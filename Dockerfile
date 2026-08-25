@@ -1,4 +1,4 @@
-FROM python:3.11-slim AS runtime
+FROM python:3.11.16-slim-bookworm@sha256:2e32f7d302adc1c37428355c1e646897c0c53f4fd60b6a551245fb90ee129f91 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -22,10 +22,13 @@ RUN groupadd --system --gid 10001 kaios \
         --shell /usr/sbin/nologin \
         kaios
 
-COPY requirements.txt pyproject.toml ./
+COPY requirements-runtime.lock.txt pyproject.toml ./
 
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r requirements.txt
+RUN python -m pip install \
+        --disable-pip-version-check \
+        --require-hashes \
+        --only-binary=:all: \
+        -r requirements-runtime.lock.txt
 
 COPY --chown=kaios:kaios . .
 

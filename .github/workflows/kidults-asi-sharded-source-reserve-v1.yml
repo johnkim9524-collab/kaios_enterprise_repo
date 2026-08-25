@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Verify exact source, syntax and autonomous trigger
         run: |
           set -euo pipefail
@@ -63,14 +63,29 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/reserve-discovery /tmp/previous-asi-sharded-source-reserve-v1
-          DISCOVERY_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-          test -n "$DISCOVERY_ID"
+          find_main_artifact() {
+            local jq_filter="$1" page payload artifact_id
+            for page in $(seq 1 10); do
+              payload="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100&page=${page}")"
+              artifact_id="$(jq -r "${jq_filter}" <<<"$payload")"
+              if [ -n "$artifact_id" ] && [ "$artifact_id" != "null" ]; then
+                printf '%s' "$artifact_id"
+                return 0
+              fi
+              [ "$(jq '.artifacts | length' <<<"$payload")" -eq 100 ] || break
+            done
+            return 1
+          }
+          DISCOVERY_ID="$(find_main_artifact '[.artifacts[] | select((.name=="kidults-asi-global-any-site-discovery-v2" or .name=="kidults-asi-global-any-site-hourly-cycle-v1" or .name=="kidults-asi-global-any-site-hourly-cycle-v2") and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')" || {
+            echo "required main discovery artifact absent after bounded 10-page lookup" >&2
+            exit 66
+          }
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
           unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
           SRC=$(find /tmp/reserve-discovery -type f \( -name global-low-risk-discovery.json -o -name global-low-risk-discovery-governed-v2.json \) -print -quit)
           test -n "$SRC"
           cp "$SRC" discovery-out/global-low-risk-discovery.json
-          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          PREV_ID="$(find_main_artifact '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')" || PREV_ID=""
           if [ -n "$PREV_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-reserve.zip
             unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-asi-sharded-source-reserve-v1
@@ -117,7 +132,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Verify exact source
         run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Generate 100,000 governed synthetic discovery candidates

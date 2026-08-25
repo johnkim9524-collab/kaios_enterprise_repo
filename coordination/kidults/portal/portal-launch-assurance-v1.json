@@ -1,0 +1,57 @@
+{
+  "id": "kidults-portal-launch-assurance-v1",
+  "record_type": "portal_launch_assurance",
+  "version": "1.0.0",
+  "canonical_surface": {
+    "id": "portal-r001",
+    "public_root": "apps/kidults-enterprise-staging/public/portal-r001",
+    "entrypoint": "index.html",
+    "default_runtime_root_is_canonical_only": true,
+    "legacy_and_variant_directories_deployable": false
+  },
+  "projection_release": {
+    "capability": "HMAC_SHA256_SHORT_LIVED_SERVER_ONLY",
+    "max_ttl_seconds": 300,
+    "surfaces": ["PORTAL_RENDER", "PUBLIC_API_RESPONSE", "EXPORT"],
+    "revalidate_and_reload_on_every_request": true,
+    "static_approved_projection": false,
+    "browser_asserted_authority": false
+  },
+  "performance_budgets": {
+    "LCP_ms_max": 2500,
+    "CLS_max": 0.1,
+    "INP_ms_max": 200,
+    "mobile_width_px": 390,
+    "desktop_width_px": 1440,
+    "measurement": "PLAYWRIGHT_CHROMIUM_LAB_AND_REMOTE_RUM_REQUIRED_FOR_PUBLIC"
+  },
+  "accessibility": {
+    "automated": "WCAG_2_2_AA_AXE_SERIOUS_CRITICAL_ZERO",
+    "manual_screen_reader_human_review_required": true,
+    "manual_receipt": "NONE",
+    "screen_reader_gate": "HOLD"
+  },
+  "conversion_security": {
+    "pii_at_rest": "AES-256-GCM-v1",
+    "rate_limit": "PERSISTENT_HMAC_CLIENT_KEY",
+    "same_origin_write_required": true,
+    "retention_days": 90,
+    "plaintext_operational_access_requires_vault_secret": true
+  },
+  "edge": {
+    "https_required": true,
+    "hsts": "max-age=63072000; includeSubDomains; preload",
+    "trusted_proxy_mode": "DISABLED_BY_DEFAULT",
+    "remote_tls_proxy_observability_receipt": "NONE",
+    "gate": "HOLD"
+  },
+  "external_evidence": {
+    "github_environment_trusted_execution": "0/15_NOT_EXECUTED",
+    "digitalocean_staging_health_rollback": "NOT_EXECUTED",
+    "human_accessibility": "NOT_EXECUTED",
+    "remote_web_vitals": "NOT_EXECUTED"
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

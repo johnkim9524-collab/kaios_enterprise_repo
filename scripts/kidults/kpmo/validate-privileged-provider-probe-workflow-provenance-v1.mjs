@@ -59,7 +59,7 @@ function violationsFor(text, spec = {}) {
 
   if (spec.requiresSetupNode) {
     if (!text.includes(APPROVED.setupNode)) findings.push('approved-setup-node-sha-missing');
-    if (!/node-version:\s*['"]24['"]/.test(text)) findings.push('node24-runtime-missing');
+    if (!/node-version:\s*['"]24\.19\.0['"]/.test(text)) findings.push('node24.19.0-runtime-missing');
   }
 
   if (spec.requiresUploadArtifact && !text.includes(APPROVED.uploadArtifact)) {
@@ -83,7 +83,7 @@ const mutationCases = [
   {
     text: `runs-on: ubuntu-24.04\n- uses: ${APPROVED.checkout}\n  with:\n    ref: \${{ github.sha }}\n    persist-credentials: false\n- uses: ${APPROVED.setupNode}\n  with:\n    node-version: '22'\nEXPECTED_SHA: \${{ github.sha }}\nrun: git rev-parse HEAD\n`,
     spec: { requiresCheckout: true, requiresSetupNode: true },
-    expected: 'node24-runtime-missing',
+    expected: 'node24.19.0-runtime-missing',
   },
   {
     text: "runs-on: ubuntu-latest\n",

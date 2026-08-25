@@ -25,7 +25,7 @@ function validateWorkflow(source) {
   require(source.includes(`EXPECTED_SHA: ${EXPECTED_SOURCE_EXPR}`), 'expected_sha_binding_missing');
   require(source.includes('git rev-parse HEAD'), 'actual_sha_readback_missing');
   require(source.includes('test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"'), 'sha_equality_assertion_missing');
-  require(/node-version:\s*['"]?24['"]?/.test(source), 'node_24_not_pinned');
+  require(/node-version:\s*['"]?24\.19\.0['"]?/.test(source), 'node_24_19_0_not_pinned');
   require(source.includes('node scripts/kidults/kpmo/validate-pre-partner-intake-workflow-provenance-v1.mjs'), 'self_provenance_validator_not_executed');
   require(source.includes('node scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs'), 'certifier_not_executed');
   require(!/pull_request_target\s*:/.test(source), 'pull_request_target_forbidden');
@@ -52,7 +52,7 @@ const mutations = [
   ['persist_credentials_removed', text.replace(/\n\s*persist-credentials:\s*false/, '')],
   ['sha_readback_removed', text.replace('ACTUAL_SHA="$(git rev-parse HEAD)"', 'ACTUAL_SHA="${EXPECTED_SHA}"')],
   ['sha_assertion_disabled', text.replace('test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"', 'true # equality disabled')],
-  ['node_downgrade', text.replace(/node-version:\s*['"]?24['"]?/, "node-version: '22'")],
+  ['node_downgrade', text.replace(/node-version:\s*['"]?24\.19\.0['"]?/, "node-version: '22'")],
   ['continue_on_error', text.replace('name: Certify all 12 internal pre-intake control families', 'continue-on-error: true\n      - name: Certify all 12 internal pre-intake control families')],
   ['secret_injection', text + '\n# mutation\nenv:\n  BAD: ${{ secrets.BAD }}\n']
 ];
@@ -70,7 +70,7 @@ console.log(JSON.stringify({
   immutable_actions: true,
   exact_source_sha_checkout_and_readback: true,
   runner: 'ubuntu-24.04',
-  node: '24',
+  node: '24.19.0',
   checkout_credentials_persisted: false,
   secretless: true,
   least_privilege: 'contents:read',

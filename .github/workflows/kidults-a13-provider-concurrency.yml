@@ -41,7 +41,7 @@ jobs:
       - name: Set up Node.js 24
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '24.19.0'
           package-manager-cache: false
 
       - name: Validate A13 workflow provenance and committed lock
@@ -49,8 +49,7 @@ jobs:
         run: node scripts/kidults/kpmo/validate-a13-validation-workflow-provenance-v1.mjs
 
       - name: Install committed dependency graph
-        run: npm ci
-
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
 

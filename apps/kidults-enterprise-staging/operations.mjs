@@ -11,12 +11,13 @@ import {
 } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {hydrateConversionRecord} from "./server.mjs";
 
 const APP_DIR = fileURLToPath(new URL(".", import.meta.url));
 const DEFAULT_PUBLIC_DIR = resolve(APP_DIR, "public");
 const DEFAULT_DATA_DIR = "/opt/intelligence-holdings/staging/data/kidults-conversions";
 const DEFAULT_OPERATIONS_DIR = "/opt/intelligence-holdings/staging/data/kidults-operations";
-const RETENTION_DAYS = 365;
+const RETENTION_DAYS = 90;
 
 function ensureDir(path, mode = 0o700) {
   mkdirSync(path, { recursive: true, mode });
@@ -178,7 +179,7 @@ export function refreshIntelligence(options = {}) {
 export function exportConversions(options = {}) {
   const dataDir = resolve(options.dataDir || DEFAULT_DATA_DIR);
   const outputPath = resolve(options.outputPath);
-  const records = readJsonLines(resolve(dataDir, "conversion-submissions.jsonl"));
+  const records = readJsonLines(resolve(dataDir, "conversion-submissions.jsonl")).map(record=>hydrateConversionRecord(record,options.secret));
   const header = ["id", "type", "email", "organization", "interest", "consent_version", "created_at", "environment"];
   const rows = records.map((record) => header.map((key) => csvCell(record[key])).join(","));
   ensureDir(dirname(outputPath));
@@ -279,7 +280,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   let result;
   if (command === "refresh") result = refreshIntelligence({ ...common, sourcePath: values.source, issue: values.issue });
   else if (command === "status") result = operationsStatus(common);
-  else if (command === "export-conversions") result = exportConversions({ ...common, outputPath: values.output });
+  else if (command === "export-conversions") result = exportConversions({ ...common, outputPath: values.output,
+    secret: process.env.KIDULTS_CONVERSION_VAULT_SECRET_FILE?readFileSync(process.env.KIDULTS_CONVERSION_VAULT_SECRET_FILE,"utf8").trim():null });
   else if (command === "enforce-retention") result = enforceRetention({ ...common, retentionDays: Number(values.days || RETENTION_DAYS) });
   else if (command === "backup") result = backupOperations({ ...common, backupRoot: values.output });
   else if (command === "verify-backup") result = verifyBackup(values.path);

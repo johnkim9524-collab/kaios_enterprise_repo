@@ -1,5 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  buildWorkflowInventory,
+  validateRequiredEnvironmentBindings
+} from './github-trusted-ref-environment-readback-v1.mjs';
 
 const ROOT = path.resolve('.github/workflows');
 const REGISTRY = 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json';
@@ -81,7 +85,7 @@ for (const file of files) {
   const details = classify(fs.readFileSync(file, 'utf8'));
   if (!details.privileged_manual_lane) continue;
   findings.push({
-    workflow: path.relative('.', file),
+    workflow: path.relative('.', file).split(path.sep).join('/'),
     secret_names: details.secret_names,
     indexed_secret_access: details.indexed_secret_access,
     secret_context_expression: details.secret_context_expression,
@@ -98,6 +102,8 @@ findings.sort((a, b) => a.workflow.localeCompare(b.workflow));
 
 let registry = null;
 let registryDrift = [];
+let privilegedExecutionInventory = null;
+let privilegedExecutionControlFailures = [];
 if (fs.existsSync(REGISTRY)) {
   registry = JSON.parse(fs.readFileSync(REGISTRY, 'utf8'));
   const actual = findings.map((x) => x.workflow);
@@ -106,7 +112,11 @@ if (fs.existsSync(REGISTRY)) {
     ...actual.filter((x) => !expected.includes(x)).map((x) => `UNREGISTERED:${x}`),
     ...expected.filter((x) => !actual.includes(x)).map((x) => `STALE_REGISTRY:${x}`)
   ];
+  privilegedExecutionInventory = buildWorkflowInventory(process.cwd(), registry);
+  privilegedExecutionControlFailures = validateRequiredEnvironmentBindings(privilegedExecutionInventory, registry);
 }
+
+const privilegedJobs = privilegedExecutionInventory?.lanes.flatMap((lane) => lane.secret_bearing_jobs) || [];
 
 const result = {
   suite: 'KIDULTS_SECRET_BEARING_WORKFLOW_DISPATCH_INVENTORY_V2',
@@ -118,6 +128,16 @@ const result = {
   findings,
   registry_present: Boolean(registry),
   registry_drift: registryDrift,
+  privileged_execution_control_failures: privilegedExecutionControlFailures,
+  live_main_sha_guarded_secret_bearing_jobs: privilegedJobs.filter((job) => (
+    job.live_main_guard.count === 1
+    && job.live_main_guard.contract_valid
+    && job.live_main_guard.before_all_provider_secret_steps
+  )).length,
+  workflow_scope_provider_secret_jobs: privilegedJobs.filter((job) => job.workflow_scope_secret_names.length > 0).length,
+  job_scope_provider_secret_jobs: privilegedJobs.filter((job) => job.job_scope_secret_names.length > 0).length,
+  step_scoped_provider_secret_jobs: privilegedJobs.filter((job) => job.provider_secrets_step_scoped).length,
+  privileged_secret_steps: privilegedJobs.reduce((count, job) => count + job.step_secret_bindings.length, 0),
   security_truth: findings.length === 0 ? 'NO_SECRET_BEARING_MANUAL_LANES' : 'EXTERNAL_CONTROL_PLANE_PROOF_REQUIRED',
   secret_material_read: false,
   credential_activation: 'NONE',
@@ -134,6 +154,10 @@ if (enforceRegistry) {
   }
   if (registryDrift.length) {
     console.error(`FAIL secret-bearing dispatch registry drift: ${registryDrift.join(', ')}`);
+    process.exit(1);
+  }
+  if (privilegedExecutionControlFailures.length) {
+    console.error(`FAIL privileged execution control drift: ${privilegedExecutionControlFailures.join(', ')}`);
     process.exit(1);
   }
   if (registry.issue !== 974 || registry.status !== 'EXTERNAL_APPROVAL_REQUIRED') {

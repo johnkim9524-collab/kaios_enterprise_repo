@@ -13,7 +13,8 @@ on:
       - 'scripts/kidults/portal/**projection-capability*'
       - 'scripts/kidults/portal/validate-portal-release-001.mjs'
       - 'tests/contracts/test_kidults_proof_product_*'
-      - 'requirements.txt'
+      - 'requirements-ci.in'
+      - 'requirements-ci.lock.txt'
   push:
     branches: [main]
     paths:
@@ -27,7 +28,8 @@ on:
       - 'scripts/kidults/portal/**projection-capability*'
       - 'scripts/kidults/portal/validate-portal-release-001.mjs'
       - 'tests/contracts/test_kidults_proof_product_*'
-      - 'requirements.txt'
+      - 'requirements-ci.in'
+      - 'requirements-ci.lock.txt'
   workflow_dispatch:
 
 permissions:
@@ -53,7 +55,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_HEAD_SHA"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24'
+          node-version: '24.19.0'
       - name: Execute Portal, API and export fail-closed proof
         run: |
           mkdir -p artifacts/kidults/projection-consumer
@@ -83,9 +85,14 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_HEAD_SHA"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.12'
+          python-version: '3.12.14'
       - name: Install non-optional schema validator
-        run: python -m pip install --disable-pip-version-check -r requirements.txt
+        run: >-
+          python -m pip install
+          --disable-pip-version-check
+          --require-hashes
+          --only-binary=:all:
+          -r requirements-ci.lock.txt
       - name: Execute proof-product schema and semantic suites
         run: >-
           python -m pytest -q

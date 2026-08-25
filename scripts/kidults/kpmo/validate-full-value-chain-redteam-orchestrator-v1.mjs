@@ -75,6 +75,11 @@ const requiredFamilyValidators = [
 const requiredDownstreamValidators = [
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
+const requiredSnapshotReadinessValidators = [
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+];
 const requiredCanonicalIds = [
   'collectible_family_id','representative_product_id','market_cell_id','assertion_id','evidence_requirement_id',
   'source_demand_id','source_family_id','evidence_id','market_event_id','snapshot_id','assessment_id','projection_id'
@@ -139,6 +144,15 @@ for (const validator of requiredDownstreamValidators) {
   const p = path.join(root, validator);
   if (!fs.existsSync(p)) throw new Error(`Required downstream boundary validator missing: ${validator}`);
 }
+if (JSON.stringify(data.required_snapshot_readiness_validators || []) !== JSON.stringify(requiredSnapshotReadinessValidators)) {
+  throw new Error('Required snapshot-readiness validator registry must remain exact and ordered');
+}
+const snapshotStageValidators = new Set(data.stage_machine_coverage?.SNAPSHOT_AND_TRACK_B?.validators || []);
+for (const validator of requiredSnapshotReadinessValidators) {
+  const p = path.join(root, validator);
+  if (!fs.existsSync(p)) throw new Error(`Required snapshot-readiness validator missing: ${validator}`);
+  if (!snapshotStageValidators.has(validator)) throw new Error(`SNAPSHOT_AND_TRACK_B stage validator binding missing: ${validator}`);
+}
 if (data.aggregate_machine_enforcement?.runner !== 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs') {
   throw new Error('Aggregate Red-Team runner binding changed');
 }
@@ -147,6 +161,9 @@ if (data.aggregate_machine_enforcement?.workflow !== '.github/workflows/kidults-
 }
 if (data.aggregate_machine_enforcement?.require_all_family_validators_pass !== true) {
   throw new Error('All family validators must pass the aggregate Red-Team');
+}
+if (data.aggregate_machine_enforcement?.require_all_snapshot_readiness_validators_pass !== true) {
+  throw new Error('All snapshot-readiness validators must pass the aggregate Red-Team');
 }
 if (data.aggregate_machine_enforcement?.exact_head_checkout_required !== true) {
   throw new Error('Aggregate Red-Team must checkout the exact source SHA');
@@ -165,6 +182,9 @@ if (!fs.existsSync(runnerPath)) throw new Error('Aggregate Red-Team runner missi
 const runnerText = fs.readFileSync(runnerPath, 'utf8');
 for (const validator of requiredDownstreamValidators) {
   if (!runnerText.includes(validator)) throw new Error(`Aggregate Red-Team downstream boundary validator binding missing: ${validator}`);
+}
+for (const validator of requiredSnapshotReadinessValidators) {
+  if (!runnerText.includes(validator)) throw new Error(`Aggregate Red-Team snapshot-readiness validator binding missing: ${validator}`);
 }
 const workflowPath = path.join(root, data.aggregate_machine_enforcement.workflow);
 if (!fs.existsSync(workflowPath)) throw new Error('Aggregate Red-Team workflow missing');
@@ -211,4 +231,4 @@ for (const [key, expected] of Object.entries(requiredHardBoundaries)) {
   if (auditContract.hard_boundaries?.[key] !== expected) throw new Error(`Audit hard boundary changed: ${key}`);
 }
 
-console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredDownstreamValidators.length} mandatory downstream boundary validator, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts, exact-head CI enforced`);
+console.log(`PASS full value-chain Red-Team orchestrator: ${requiredStages.length} audit stages, ${canonical.chain.length} canonical business-chain nodes, ${(data.required_existing_control_families || []).length} control families, ${(data.required_family_validators || []).length} executable family validators, ${requiredSnapshotReadinessValidators.length} snapshot-readiness validators, ${requiredDownstreamValidators.length} mandatory downstream boundary validator, ${requiredAxes.length} readiness axes, ${requiredChainReceipts.length} mandatory chain receipts, exact-head CI enforced`);

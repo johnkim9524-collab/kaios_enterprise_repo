@@ -61,7 +61,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.3.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
 assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -76,6 +76,17 @@ assert(contract.enforcement?.production === 'HOLD', 'CONTRACT_PRODUCTION_BOUNDAR
 assert(contract.enforcement?.public_release === 'HOLD', 'CONTRACT_PUBLIC_BOUNDARY');
 assert(contract.enforcement?.no_agent_self_exemption === true, 'SELF_EXEMPTION_MUST_BE_FALSE');
 assert(contract.enforcement?.policy_and_contract_must_change_together === true, 'POLICY_CONTRACT_SYNC');
+assert(contract.enforcement?.proactive_internal_remediation_required === true, 'PROACTIVE_REMEDIATION_REQUIRED');
+assert(contract.enforcement?.verified_closure_and_forward_proposal_required === true, 'VERIFIED_CLOSURE_FORWARD_PROPOSAL_REQUIRED');
+assert(contract.enforcement?.global_scale_stewardship_required === true, 'GLOBAL_SCALE_STEWARDSHIP_REQUIRED');
+const globalScale = contract.global_scale_operating_standard;
+assert(globalScale?.scope === 'ENTIRE_VALUE_CHAIN', 'GLOBAL_SCALE_SCOPE');
+assert(globalScale?.platform_position === 'GLOBAL_LEADING_PLATFORM', 'GLOBAL_SCALE_POSITION');
+assert(globalScale?.boutique_or_local_only_assumptions_allowed === false, 'GLOBAL_SCALE_BOUTIQUE_FORBIDDEN');
+assert(globalScale?.required_dimensions?.length === 7, 'GLOBAL_SCALE_DIMENSION_COUNT');
+assert(globalScale?.architecture_coverage_counts_as_empirical_global_proof === false, 'GLOBAL_SCALE_EMPIRICAL_BOUNDARY');
+assert(globalScale?.authorized_internal_bottleneck_remediation_required === true, 'GLOBAL_SCALE_BOTTLENECK_REMEDIATION');
+assert(globalScale?.scale_claim_requires_measured_evidence === true, 'GLOBAL_SCALE_MEASURED_EVIDENCE');
 
 const requiredPrinciples = [
   'ABSOLUTE_HONESTY',
@@ -92,12 +103,24 @@ const requiredPrinciples = [
   'REGISTRY_IS_TRUTH',
   'LABEL_FACT_INFERENCE_PLAN_UNKNOWN',
   'FAIL_CLOSED_ON_UNCERTAINTY',
-  'TRUST_OVER_SPEED'
+  'TRUST_OVER_SPEED',
+  'PROACTIVE_ISSUE_OWNERSHIP',
+  'LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT',
+  'GLOBAL_SCALE_STEWARDSHIP'
 ];
 const principleNames = contract.principles?.map((x) => x.name) ?? [];
 assert(principleNames.length === requiredPrinciples.length, 'PRINCIPLE_COUNT');
 assert(new Set(principleNames).size === principleNames.length, 'DUPLICATE_PRINCIPLE');
 for (const name of requiredPrinciples) assert(principleNames.includes(name), `MISSING_PRINCIPLE:${name}`);
+const principleById = new Map(contract.principles.map((rule) => [rule.rule_id, rule]));
+assert(principleById.get('AI-016')?.name === 'PROACTIVE_ISSUE_OWNERSHIP', 'AI_016_IDENTITY_BINDING');
+assert(principleById.get('AI-017')?.name === 'LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT', 'AI_017_IDENTITY_BINDING');
+assert(principleById.get('AI-016')?.requirement?.includes('repeated human prompting'), 'AI_016_PROMPTING_BOUNDARY');
+assert(principleById.get('AI-017')?.requirement?.includes('prioritized'), 'AI_017_FORWARD_IMPROVEMENT_BOUNDARY');
+assert(principleById.get('AI-018')?.name === 'GLOBAL_SCALE_STEWARDSHIP', 'AI_018_IDENTITY_BINDING');
+for (const marker of ['entire value chain', 'global leading platform', 'capacity', 'failure isolation', 'rights', 'cost', 'observability', 'recovery']) {
+  assert(principleById.get('AI-018')?.requirement?.includes(marker), `AI_018_REQUIREMENT:${marker}`);
+}
 for (const rule of contract.principles) {
   assert(/^AI-\d{3}$/.test(rule.rule_id), `INVALID_RULE_ID:${rule.rule_id}`);
   assert(['P0_GOVERNANCE_DEFECT', 'P1_OPERATING_DEFECT'].includes(rule.severity_on_violation), `INVALID_SEVERITY:${rule.rule_id}`);
@@ -129,7 +152,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.1.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.3.0', 'REGISTRY_POLICY_VERSION');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
 assert(JSON.stringify(registry.platform_operating_principles?.ordered_principles) === JSON.stringify(requiredPlatformPrinciples), 'REGISTRY_PLATFORM_ORDER');
@@ -142,6 +165,18 @@ assert(registry.mandatory_inheritance?.child_rule_can_weaken_policy === false, '
 assert(registry.mandatory_inheritance?.agent_self_exemption_allowed === false, 'REGISTRY_SELF_EXEMPTION_ALLOWED');
 assert(registry.change_control?.requires_policy_and_contract_sync === true, 'REGISTRY_POLICY_SYNC');
 assert(registry.change_control?.requires_validator_pass === true, 'REGISTRY_VALIDATOR_GATE');
+assert(registry.leadership_execution?.detected_internal_defect_requires_immediate_authorized_remediation === true, 'REGISTRY_PROACTIVE_REMEDIATION');
+assert(registry.leadership_execution?.repeated_human_prompting_as_normal_activation_forbidden === true, 'REGISTRY_REPEATED_PROMPTING_FORBIDDEN');
+assert(registry.leadership_execution?.ownership_through_evidence_bound_validation_required === true, 'REGISTRY_VERIFIED_CLOSURE');
+assert(registry.leadership_execution?.prioritized_forward_improvement_proposal_required === true, 'REGISTRY_FORWARD_PROPOSAL');
+assert(registry.leadership_execution?.protected_authority_gates_preserved === true, 'REGISTRY_PROTECTED_GATES');
+assert(registry.global_scale_stewardship?.rule_id === 'AI-018' && registry.global_scale_stewardship?.rule_name === 'GLOBAL_SCALE_STEWARDSHIP', 'REGISTRY_GLOBAL_SCALE_IDENTITY');
+assert(registry.global_scale_stewardship?.scope === 'ENTIRE_VALUE_CHAIN', 'REGISTRY_GLOBAL_SCALE_SCOPE');
+assert(registry.global_scale_stewardship?.platform_position === 'GLOBAL_LEADING_PLATFORM', 'REGISTRY_GLOBAL_SCALE_POSITION');
+assert(registry.global_scale_stewardship?.boutique_or_local_only_assumptions_allowed === false, 'REGISTRY_GLOBAL_SCALE_BOUTIQUE_FORBIDDEN');
+assert(registry.global_scale_stewardship?.required_dimensions?.length === 7, 'REGISTRY_GLOBAL_SCALE_DIMENSIONS');
+assert(registry.global_scale_stewardship?.scale_claim_requires_measured_evidence === true, 'REGISTRY_GLOBAL_SCALE_MEASURED_EVIDENCE');
+assert(registry.global_scale_stewardship?.protected_external_empirical_gates_preserved === true, 'REGISTRY_GLOBAL_SCALE_PROTECTED_GATES');
 assert(registry.production === 'HOLD' && registry.public_release === 'HOLD', 'REGISTRY_RELEASE_BOUNDARY');
 for (const name of requiredPrinciples) {
   assert(registry.constitutional_principles?.includes(name), `REGISTRY_MISSING_PRINCIPLE:${name}`);
@@ -179,12 +214,14 @@ const requiredAgentMarkers = [
   'No capability inflation',
   'Fail closed on uncertainty',
   '.github/AI_AGENT_OPERATING_RULES.md',
-  'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+  'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
+  'Global leading platform scale standard',
+  'AI-018 / GLOBAL_SCALE_STEWARDSHIP'
 ];
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.1.0',
+  '**Version:** 1.3.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -197,12 +234,21 @@ const requiredPolicyMarkers = [
   'Immediate blocker disclosure',
   'Correction protocol',
   'P0 governance defects',
-  'No AI agent may self-exempt'
+  'No AI agent may self-exempt',
+  'Proactive ownership and leadership closure',
+  'AI-016 / PROACTIVE_ISSUE_OWNERSHIP',
+  'AI-017 / LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT',
+  'without waiting for repeated human prompting',
+  'prioritized risks and forward improvements',
+  'Global leading platform scale stewardship',
+  'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
+  'Architecture coverage, provider counts, synthetic capacity, or a successful local test does not constitute empirical global proof'
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
 assert(copilot.includes('.github/AI_AGENT_OPERATING_RULES.md'), 'COPILOT_POLICY_REFERENCE');
 assert(copilot.includes('never fabricate metrics'), 'COPILOT_METRIC_BOUNDARY');
+assert(copilot.includes('AI-018 / GLOBAL_SCALE_STEWARDSHIP'), 'COPILOT_GLOBAL_SCALE_STEWARDSHIP');
 
 const validateReceipt = (receiptPath) => {
   const receipt = readJson(receiptPath);
@@ -236,11 +282,14 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.1.0',
+  version: '1.3.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
   principles_validated: requiredPrinciples.length,
+  leadership_rule_identities_validated: ['AI-016', 'AI-017'],
+  global_scale_rule_identities_validated: ['AI-018'],
+  global_scale_dimensions_validated: globalScale.required_dimensions.length,
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,
   inheritance_fail_closed: true,
