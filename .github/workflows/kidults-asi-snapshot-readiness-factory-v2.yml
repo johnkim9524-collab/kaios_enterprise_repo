@@ -136,8 +136,10 @@ jobs:
           if(process.env.GITHUB_EVENT_NAME==='workflow_run'&&(String(run.id)!==String(process.env.EVENT_P2_RUN_ID)||run.head_sha!==process.env.EVENT_P2_HEAD_SHA))process.exit(3);
           NODE
           P2_HEAD_SHA="$(node -p "require('/tmp/p2-run.json').head_sha")"
-          gh api -H 'Accept: application/vnd.github+json' --paginate --slurp \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100" > /tmp/p2-artifact-pages.json
+          for PAGE in 1 2 3; do
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}/artifacts?per_page=100&page=${PAGE}"
+          done | jq -s '.' > /tmp/p2-artifact-pages.json
           node - <<'NODE'
           const fs=require('fs');const pages=JSON.parse(fs.readFileSync('/tmp/p2-artifact-pages.json'));const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));
           const matches=pages.flatMap(x=>x.artifacts||[]).filter(x=>x.name==='kidults-asi-owned-source-intelligence-graph-v2'&&x.expired===false);
