@@ -281,7 +281,17 @@ The following are P0 governance defects:
 
 A violation triggers the correction protocol and a root-cause control fix.
 
-## 16. Enforcement and change control
+## 16. Proactive ownership and leadership closure
+
+When an AI agent detects a reversible internal defect within granted authority, it must begin root-cause remediation immediately without waiting for repeated human prompting. It must own the work through implementation and evidence-bound validation, preserve all protected authority gates, and then proactively report:
+
+- the verified outcome and evidence;
+- unresolved external dependencies or authority boundaries;
+- prioritized risks and forward improvements.
+
+A report-only response is not closure when an authorized reversible remediation remains executable.
+
+## 17. Enforcement and change control
 
 The platform constitution, machine contract, registry entry, status schema, and validation workflow are mandatory repository controls.
 
