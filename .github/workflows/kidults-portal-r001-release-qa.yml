@@ -121,7 +121,7 @@ jobs:
             for(const stateCase of stateCases){
               const caseName=stateCase.name;
               const context=await browser.newContext({viewport:{width:vp.width,height:vp.height},reducedMotion:'reduce'});
-              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(stateCase.input())}));
+              await context.route('**/api/v1/projection',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(stateCase.input())}));
               for(const route of routes){
                 const page=await context.newPage();
                 const runtimeErrors=[];
@@ -288,7 +288,7 @@ jobs:
               const envelope=structuredClone(validApproved);
               test.mutate(envelope);
               const context=await browser.newContext({viewport:{width:390,height:900},reducedMotion:'reduce'});
-              await context.route('**/portal-r001/data/projection-control-fixture.json',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
+              await context.route('**/api/v1/projection',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
               const page=await context.newPage();
               await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'domcontentloaded'});
               const obs=await page.evaluate(()=>({
