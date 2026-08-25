@@ -61,7 +61,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.2.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
 assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -76,6 +76,8 @@ assert(contract.enforcement?.production === 'HOLD', 'CONTRACT_PRODUCTION_BOUNDAR
 assert(contract.enforcement?.public_release === 'HOLD', 'CONTRACT_PUBLIC_BOUNDARY');
 assert(contract.enforcement?.no_agent_self_exemption === true, 'SELF_EXEMPTION_MUST_BE_FALSE');
 assert(contract.enforcement?.policy_and_contract_must_change_together === true, 'POLICY_CONTRACT_SYNC');
+assert(contract.enforcement?.proactive_internal_remediation_required === true, 'PROACTIVE_REMEDIATION_REQUIRED');
+assert(contract.enforcement?.verified_closure_and_forward_proposal_required === true, 'VERIFIED_CLOSURE_FORWARD_PROPOSAL_REQUIRED');
 
 const requiredPrinciples = [
   'ABSOLUTE_HONESTY',
@@ -92,7 +94,9 @@ const requiredPrinciples = [
   'REGISTRY_IS_TRUTH',
   'LABEL_FACT_INFERENCE_PLAN_UNKNOWN',
   'FAIL_CLOSED_ON_UNCERTAINTY',
-  'TRUST_OVER_SPEED'
+  'TRUST_OVER_SPEED',
+  'PROACTIVE_ISSUE_OWNERSHIP',
+  'LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT'
 ];
 const principleNames = contract.principles?.map((x) => x.name) ?? [];
 assert(principleNames.length === requiredPrinciples.length, 'PRINCIPLE_COUNT');
@@ -129,7 +133,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.1.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.2.0', 'REGISTRY_POLICY_VERSION');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
 assert(JSON.stringify(registry.platform_operating_principles?.ordered_principles) === JSON.stringify(requiredPlatformPrinciples), 'REGISTRY_PLATFORM_ORDER');
@@ -142,6 +146,11 @@ assert(registry.mandatory_inheritance?.child_rule_can_weaken_policy === false, '
 assert(registry.mandatory_inheritance?.agent_self_exemption_allowed === false, 'REGISTRY_SELF_EXEMPTION_ALLOWED');
 assert(registry.change_control?.requires_policy_and_contract_sync === true, 'REGISTRY_POLICY_SYNC');
 assert(registry.change_control?.requires_validator_pass === true, 'REGISTRY_VALIDATOR_GATE');
+assert(registry.leadership_execution?.detected_internal_defect_requires_immediate_authorized_remediation === true, 'REGISTRY_PROACTIVE_REMEDIATION');
+assert(registry.leadership_execution?.repeated_human_prompting_as_normal_activation_forbidden === true, 'REGISTRY_REPEATED_PROMPTING_FORBIDDEN');
+assert(registry.leadership_execution?.ownership_through_evidence_bound_validation_required === true, 'REGISTRY_VERIFIED_CLOSURE');
+assert(registry.leadership_execution?.prioritized_forward_improvement_proposal_required === true, 'REGISTRY_FORWARD_PROPOSAL');
+assert(registry.leadership_execution?.protected_authority_gates_preserved === true, 'REGISTRY_PROTECTED_GATES');
 assert(registry.production === 'HOLD' && registry.public_release === 'HOLD', 'REGISTRY_RELEASE_BOUNDARY');
 for (const name of requiredPrinciples) {
   assert(registry.constitutional_principles?.includes(name), `REGISTRY_MISSING_PRINCIPLE:${name}`);
