@@ -10,12 +10,12 @@
   ],
   "migrate_then_retire": [
     "kidults-platform-api",
-    "kidults-terminal-ui-api"
+    "kidults-terminal-ui-api",
+    "kidults-enterprise"
   ],
   "quarantine_retire_candidates": [
     "kidults-global-standard-preview",
     "kidults-one-dev",
-    "kidults-enterprise",
     "kidults-kaios",
     "kidults-web",
     "kidults-admin",
