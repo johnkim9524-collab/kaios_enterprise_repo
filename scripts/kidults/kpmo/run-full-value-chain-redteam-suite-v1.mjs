@@ -54,6 +54,11 @@ const runtimeBoundaryValidators = [
 const productionRecoveryValidators = [
   'scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs'
 ];
+const snapshotReadinessValidators = [
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
+];
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
@@ -75,6 +80,7 @@ const validators = [...new Set([
   ...providerAdapterBoundaryValidators,
   ...runtimeBoundaryValidators,
   ...productionRecoveryValidators,
+  ...snapshotReadinessValidators,
   ...downstreamBoundaryValidators
 ])];
 
@@ -148,6 +154,8 @@ console.log(JSON.stringify({
   digitalocean_readonly_audit_truth_boundary_machine_bound: true,
   production_recovery_boundary_machine_bound: true,
   production_recovery_validators: productionRecoveryValidators.length,
+  snapshot_readiness_validators: snapshotReadinessValidators.length,
+  snapshot_readiness_all_pass_required: true,
   production_automatic_rollback_executable_contract: true,
   er_projection_workflow_provenance_machine_bound: true,
   er_projection_workflow_provenance_validators: 1,
