@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Bound exact-head fan-out and cancel stale runs
+      - name: Preserve exact-head impact checks and cancel stale runs
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -33,17 +33,10 @@ jobs:
           set -euo pipefail
           api="https://api.github.com/repos/${REPOSITORY}"
           cancelled=0
-          same_head_cancelled=0
           stale_cancelled=0
-          retained=0
+          exact_head_retained=0
           examined=0
 
-          retain_run() {
-            case "$1" in
-              "KPMO Exact-Head CI Supersession v1"|"CI Validation"|"KAIOS Solo Owner Preflight") return 0 ;;
-              *) return 1 ;;
-            esac
-          }
 
           for page in $(seq 1 10); do
             response="$(curl --fail-with-body --silent --show-error \
@@ -60,8 +53,8 @@ jobs:
               [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
 
-              if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]] && retain_run "${workflow_name}"; then
-                retained=$((retained + 1))
+              if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
+                exact_head_retained=$((exact_head_retained + 1))
                 continue
               fi
 
@@ -74,11 +67,7 @@ jobs:
 
               if [[ "${code}" == "202" || "${code}" == "409" ]]; then
                 cancelled=$((cancelled + 1))
-                if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
-                  same_head_cancelled=$((same_head_cancelled + 1))
-                else
-                  stale_cancelled=$((stale_cancelled + 1))
-                fi
+                stale_cancelled=$((stale_cancelled + 1))
               else
                 cat /tmp/cancel-response.json
                 echo "Unexpected cancellation status ${code} for run ${run_id}" >&2
@@ -95,7 +84,6 @@ jobs:
             --argjson pr_number "${PR_NUMBER}" \
             --argjson examined "${examined}" \
             --argjson cancelled "${cancelled}" \
-            --argjson same_head_cancelled "${same_head_cancelled}" \
             --argjson stale_cancelled "${stale_cancelled}" \
-            --argjson retained "${retained}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_optional_runs_cancelled:$same_head_cancelled,stale_runs_cancelled:$stale_cancelled,essential_runs_retained:$retained,essential_workflow_allowlist:["KPMO Exact-Head CI Supersession v1","CI Validation","KAIOS Solo Owner Preflight"],lookup_bound:{pages:10,per_page:100}}'
+            --argjson exact_head_retained "${exact_head_retained}" \
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,lookup_bound:{pages:10,per_page:100}}'

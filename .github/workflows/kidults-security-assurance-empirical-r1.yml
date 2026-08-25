@@ -1,6 +1,14 @@
 name: KIDULTS Security Assurance Empirical R1
 on:
   pull_request:
+    paths:
+      - ".github/workflows/kidults-security-assurance-empirical-r1.yml"
+      - ".github/workflows/**"
+      - "scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs"
+      - "requirements*.txt"
+      - "package*.json"
+      - "Dockerfile"
+      - "Dockerfile.*"
   workflow_dispatch:
 
 jobs:

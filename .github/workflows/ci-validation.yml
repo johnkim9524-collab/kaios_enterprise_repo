@@ -4,10 +4,6 @@ on:
   push:
     branches:
       - main
-      - "feat/**"
-      - "refactor/**"
-      - "feature/**"
-      - "fix/**"
   pull_request:
     branches:
       - main
@@ -55,6 +51,9 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-github-actions-api-bounds-v1.mjs --self-test
           node scripts/kidults/source-intelligence/validate-github-actions-api-bounds-v1.mjs
+
+      - name: Enforce bounded PR impact routing
+        run: node scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs
 
       - name: Enforce dependency bootstrap locks
         run: |

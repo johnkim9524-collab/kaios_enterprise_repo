@@ -2,6 +2,13 @@ name: KIDULTS Cloudflare Worker Estate Policy v1
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/kidults-cloudflare-worker-estate-policy-v1.yml"
+      - "scripts/kidults/redteam/**"
+      - "scripts/kidults/portal/**"
+      - "coordination/kidults/**"
+      - "apps/kidults-enterprise-staging/**"
+      - "wrangler*.jsonc"
   push:
     branches: [main]
 

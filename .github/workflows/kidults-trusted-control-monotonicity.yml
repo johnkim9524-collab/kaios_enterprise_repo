@@ -4,6 +4,13 @@ on:
   pull_request_target:
     branches: [ main ]
     types: [opened, synchronize, reopened, ready_for_review, edited]
+    paths:
+      - ".github/workflows/kidults-trusted-control-monotonicity.yml"
+      - ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml"
+      - "scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs"
+      - "coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json"
+      - "coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json"
+      - "coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json"
 
 permissions:
   contents: read
