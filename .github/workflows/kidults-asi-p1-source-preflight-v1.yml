@@ -20,6 +20,15 @@ on:
       - 'services/kidults-autonomous-intelligence/scripts/asi-p1-source-preflight-runtime-test.mjs'
       - 'docs/kidults/asi/asi-p1-source-preflight-v1.md'
       - '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-*.json'
+      - 'scripts/kidults/source-intelligence/*asi-owned-source-intelligence-graph*.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
+      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-*.json'
+      - 'scripts/kidults/source-intelligence/*asi-snapshot-readiness-factory*.mjs'
+      - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
+      - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
+      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -36,6 +45,15 @@ on:
       - 'services/kidults-autonomous-intelligence/scripts/asi-p1-source-preflight-runtime-test.mjs'
       - 'docs/kidults/asi/asi-p1-source-preflight-v1.md'
       - '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'
+      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-*.json'
+      - 'scripts/kidults/source-intelligence/*asi-owned-source-intelligence-graph*.mjs'
+      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
+      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
+      - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-*.json'
+      - 'scripts/kidults/source-intelligence/*asi-snapshot-readiness-factory*.mjs'
+      - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
+      - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
+      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'

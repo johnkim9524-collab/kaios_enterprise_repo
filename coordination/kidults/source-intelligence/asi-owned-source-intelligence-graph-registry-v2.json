@@ -30,12 +30,12 @@
     "owned-source-intelligence-manifest-v2.json"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "52 * * * *",
+    "main_push": false,
+    "schedule": null,
     "upstream_workflows": [
-      "KIDULTS ASI P0B Bounded Discovery Candidates v1",
       "KIDULTS ASI P1 Source Preflight v1"
     ],
+    "transactional_input_binding": "P0B_AND_P1_FROM_ONE_SUCCESSFUL_P1_ARTIFACT",
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "empirical_baseline": {
