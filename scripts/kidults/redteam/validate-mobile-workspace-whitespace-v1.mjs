@@ -15,7 +15,7 @@ function requireTrue(condition, message) {
   if (!condition) errors.push(message);
 }
 
-requireTrue(html.includes('workspace-page.css?v=663'), 'Workspace entry must load canonical workspace-page.css v663 for cache invalidation.');
+requireTrue(html.includes('workspace-page.css?v=662'), 'Workspace entry must preserve the V662 workspace-page.css cache contract.');
 requireTrue(!html.includes('mobile-workspace-whitespace-hotfix.css'), 'Workspace entry must not depend on a separate whitespace hotfix asset.');
 requireTrue(/\.living-workspace__panels\s*\{[\s\S]*?min-height:\s*520px/.test(workspaceCss), 'Desktop 520px panel floor must remain explicit.');
 requireTrue(/\.workspace-page-mount\s*\{[\s\S]*?padding-bottom:\s*100px/.test(workspacePageCss), 'Desktop 100px mount padding must remain explicit.');
@@ -53,7 +53,7 @@ console.log(JSON.stringify({
   mobile_panel_min_height_px: 0,
   mobile_mount_padding_bottom_px: 0,
   mobile_main_min_height_px: 0,
-  workspace_page_cache_version: 663,
+  workspace_page_cache_contract: 'V662',
   separate_hotfix_asset: 'PROHIBITED',
   decision_mobile_label: 'REVIEW_INTENTIONAL',
   hidden_horizontal_overflow: 'PROHIBITED',
