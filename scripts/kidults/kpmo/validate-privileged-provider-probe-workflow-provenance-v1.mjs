@@ -28,10 +28,6 @@ const workflows = [
     requiresSetupNode: true,
     requiresUploadArtifact: true,
   },
-  {
-    path: '.github/workflows/kidults-psa-single-cert-probe.yml',
-    requiresUploadArtifact: true,
-  },
 ];
 
 function externalUses(text) {
