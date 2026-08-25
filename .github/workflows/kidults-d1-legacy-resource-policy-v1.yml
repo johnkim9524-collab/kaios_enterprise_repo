@@ -2,6 +2,13 @@ name: KIDULTS D1 Legacy Resource Policy v1
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/kidults-d1-legacy-resource-policy-v1.yml"
+      - "scripts/kidults/redteam/validate-d1-legacy-resource-policy-v1.mjs"
+      - "coordination/kidults/**"
+      - "apps/kidults-enterprise-staging/**"
+      - "migrations/**"
+      - "wrangler*.jsonc"
   push:
     branches: [main]
 
