@@ -1,0 +1,1 @@
+Non-merge canary for D1 impact routing and exact-head retention.
