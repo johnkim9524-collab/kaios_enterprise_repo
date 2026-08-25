@@ -11,12 +11,20 @@ const auditPath = 'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.m
 const plannerPath = 'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs';
 const errors = [];
 
+function activeWorkflowText(text) {
+  return text
+    .split('\n')
+    .filter((line) => !/^\s*#/.test(line))
+    .join('\n');
+}
+
 for (const file of [workflowPath, policyPath, auditPath, plannerPath]) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`required file missing: ${file}`);
 }
 
 if (!errors.length) {
   const workflow = fs.readFileSync(path.join(root, workflowPath), 'utf8');
+  const activeWorkflow = activeWorkflowText(workflow);
   const audit = fs.readFileSync(path.join(root, auditPath), 'utf8');
   const planner = fs.readFileSync(path.join(root, plannerPath), 'utf8');
   const policy = JSON.parse(fs.readFileSync(path.join(root, policyPath), 'utf8'));
@@ -37,21 +45,23 @@ if (!errors.length) {
     'retention-days: 90',
     'KPMO_SOURCE_SHA'
   ];
-  for (const marker of requiredWorkflowMarkers) if (!workflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
+  for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
   for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'cancel-in-progress: true']) {
-    if (workflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
+    if (activeWorkflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
   }
 
   for (const marker of ['timeout:', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv']) {
     if (!audit.includes(marker)) errors.push(`audit hardening marker missing: ${marker}`);
   }
   if (audit.includes('env: { ...process.env')) errors.push('audit must not inherit complete process.env');
+  if (/const allowed = \[[^\]]*['"]HOME['"]/.test(audit)) errors.push('audit child must not inherit caller HOME');
   if (/from ['"]node:child_process['"]/.test(planner)) errors.push('planner must never execute subprocesses');
 
   if (policy.activation_state !== 'ACTIVATES_ON_PROTECTED_MAIN_LANDING') errors.push('activation must remain main-landing bound');
   if (policy.detector?.authority !== 'READ_ONLY') errors.push('detector must remain read-only');
   if (policy.immediate_improvement?.direct_main_write !== false) errors.push('direct main write must be false');
   if (policy.immediate_improvement?.auto_merge !== false) errors.push('auto merge must be false');
+  if (policy.immediate_improvement?.attempt_ledger_authority !== 'KPMO_EXTERNAL_INCIDENT_LEDGER') errors.push('circuit-breaker ledger authority drift');
   if (policy.state_model?.generic_top_level_pass_forbidden !== true) errors.push('generic top-level PASS must be forbidden');
   if (!policy.hard_denies?.includes('PUBLIC_PRODUCTION_OR_G5_PROMOTION')) errors.push('release hard deny missing');
 
@@ -78,6 +88,7 @@ if (!errors.length) {
   const failPlan = planSafeRemediation(failReceipt, policy);
   if (failPlan.disposition !== 'KPMO_ISOLATED_DRAFT_FIX_REQUIRED') errors.push('unknown internal failure must route to KPMO Draft fix');
   if (failPlan.execution.auto_merge !== false || failPlan.execution.direct_main_write !== false) errors.push('persistent fix authority escaped');
+  if (failPlan.circuit_breaker.state !== 'ATTEMPT_LEDGER_REQUIRED_MANUAL_HOLD') errors.push('missing attempt ledger must fail closed');
 
   const mismatch = structuredClone(baseReceipt);
   mismatch.states.overall_state = 'VERIFIED_PASS';
