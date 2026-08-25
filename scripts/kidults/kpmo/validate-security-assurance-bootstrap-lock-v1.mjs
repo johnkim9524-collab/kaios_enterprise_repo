@@ -44,7 +44,7 @@ function validateLock(text) {
 function validateWorkflow(text) {
   const required = [
     'runs-on: ubuntu-24.04',
-    "python-version: '3.11'",
+    "python-version: '3.11.16'",
     `PIP_AUDIT_LOCK: ${LOCK_PATH}`,
     `EXPECTED_PIP_AUDIT_VERSION: '${EXPECTED_AUDITOR_VERSION}'`,
     'node scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs',
