@@ -170,6 +170,7 @@ assert(registry.leadership_execution?.repeated_human_prompting_as_normal_activat
 assert(registry.leadership_execution?.ownership_through_evidence_bound_validation_required === true, 'REGISTRY_VERIFIED_CLOSURE');
 assert(registry.leadership_execution?.prioritized_forward_improvement_proposal_required === true, 'REGISTRY_FORWARD_PROPOSAL');
 assert(registry.leadership_execution?.protected_authority_gates_preserved === true, 'REGISTRY_PROTECTED_GATES');
+assert(registry.global_scale_stewardship?.rule_id === 'AI-018' && registry.global_scale_stewardship?.rule_name === 'GLOBAL_SCALE_STEWARDSHIP', 'REGISTRY_GLOBAL_SCALE_IDENTITY');
 assert(registry.global_scale_stewardship?.scope === 'ENTIRE_VALUE_CHAIN', 'REGISTRY_GLOBAL_SCALE_SCOPE');
 assert(registry.global_scale_stewardship?.platform_position === 'GLOBAL_LEADING_PLATFORM', 'REGISTRY_GLOBAL_SCALE_POSITION');
 assert(registry.global_scale_stewardship?.boutique_or_local_only_assumptions_allowed === false, 'REGISTRY_GLOBAL_SCALE_BOUTIQUE_FORBIDDEN');
