@@ -3,10 +3,11 @@
   "version": "5.0.2-rc.1",
   "status": "release-candidate",
   "as_of": "2026-08-25T03:38:00Z",
-  "snapshot_id": null,
+  "snapshot_id": "baseline-provider-independent-v1",
   "source_mode": "REGISTRY_FAIL_CLOSED",
-  "interpretation": "No current immutable snapshot candidate or Evidence Package is registered. Public metrics remain unavailable until Registry-grounded evidence and assessment are produced.",
+  "interpretation": "The structural baseline identifier is retained for contract alignment only. No current immutable snapshot candidate or Evidence Package is registered, so public metrics remain unavailable until Registry-grounded evidence and assessment are produced.",
   "truth_state": {
+    "baseline": "REGISTERED_STRUCTURAL_BASELINE",
     "candidate": "NOT_AVAILABLE",
     "evidence_package": "NOT_AVAILABLE",
     "assessment": "WAITING_FOR_SNAPSHOT",
