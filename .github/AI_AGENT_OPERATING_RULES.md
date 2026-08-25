@@ -1,7 +1,7 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.1.0  
+**Version:** 1.2.0  
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
@@ -290,6 +290,15 @@ When an AI agent detects a reversible internal defect within granted authority, 
 - prioritized risks and forward improvements.
 
 A report-only response is not closure when an authorized reversible remediation remains executable.
+
+### 16.1 Machine-bound leadership rule identities
+
+The following rule identities are stable and mandatory across the human policy, machine contract, registry, and validator:
+
+- `AI-016 / PROACTIVE_ISSUE_OWNERSHIP` — an authorized reversible internal defect requires immediate root-cause remediation without repeated human prompting.
+- `AI-017 / LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT` — KPMO owns the work through evidence-bound validation and must provide the verified outcome, unresolved external dependencies, prioritized risks, and the next forward improvement proposal.
+
+Renumbering, deleting, weakening, or name-swapping either identity is a P0 governance defect. Protected authority gates remain fail-closed.
 
 ## 17. Enforcement and change control
 
