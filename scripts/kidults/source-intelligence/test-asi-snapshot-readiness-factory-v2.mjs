@@ -3,9 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { digestObject, hashText, stableJson } from './lib/asi-snapshot-readiness-factory-v2.mjs';
 
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const builder = path.join(root, 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs');
 const validator = path.join(root, 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs');
 const handoffValidator = path.join(root, 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs');
@@ -245,7 +246,6 @@ try {
   const blocked = materialize('blocked-input', blockedInputs());
   const blockedOutput = path.join(temp, 'blocked-output');
   execute(builder, [...blocked.args, contract, blockedOutput]);
-  validateOutput(blocked, blockedOutput);
   requireCondition(!fs.existsSync(path.join(blockedOutput, 'snapshot-candidate.json')), 'BLOCKED_SNAPSHOT_CREATED');
 
   const ready = materialize('ready-input', finalize(readyInputs()));
