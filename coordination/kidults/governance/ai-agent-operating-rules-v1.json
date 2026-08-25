@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS",
@@ -125,6 +125,12 @@
       "name": "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "requirement": "The responsible agent must own authorized work through implementation and evidence-bound validation, then proactively present the verified outcome, unresolved external dependencies, and prioritized forward improvements."
+    },
+    {
+      "rule_id": "AI-018",
+      "name": "GLOBAL_SCALE_STEWARDSHIP",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "Every material architecture, implementation, and operating decision must scale the entire value chain for a global leading platform across governed category, geography, language, source, evidence, capacity, concurrency, failure isolation, rights, cost, observability, and recovery dimensions; boutique or local-only assumptions must be removed or explicitly gated."
     }
   ],
   "governed_states": {
@@ -284,6 +290,24 @@
     "production": "HOLD",
     "public_release": "HOLD",
     "proactive_internal_remediation_required": true,
-    "verified_closure_and_forward_proposal_required": true
+    "verified_closure_and_forward_proposal_required": true,
+    "global_scale_stewardship_required": true
+  },
+  "global_scale_operating_standard": {
+    "scope": "ENTIRE_VALUE_CHAIN",
+    "platform_position": "GLOBAL_LEADING_PLATFORM",
+    "boutique_or_local_only_assumptions_allowed": false,
+    "required_dimensions": [
+      "CATEGORY_GEOGRAPHY_LANGUAGE_SOURCE_EVIDENCE_COVERAGE",
+      "CAPACITY_THROUGHPUT_CONCURRENCY_BACKPRESSURE",
+      "HORIZONTAL_PARTITIONING_AND_FAILURE_ISOLATION",
+      "RIGHTS_LEGAL_AND_COMMERCIAL_BOUNDARIES",
+      "DATA_QUALITY_FRESHNESS_LINEAGE_AND_IMMUTABILITY",
+      "COST_EFFICIENCY_UNIT_ECONOMICS_AND_PROVIDER_INDEPENDENCE",
+      "OBSERVABILITY_SLO_RECOVERY_AND_AUDIT_RECEIPTS"
+    ],
+    "architecture_coverage_counts_as_empirical_global_proof": false,
+    "authorized_internal_bottleneck_remediation_required": true,
+    "scale_claim_requires_measured_evidence": true
   }
 }
