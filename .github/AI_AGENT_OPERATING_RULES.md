@@ -1,7 +1,7 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
@@ -300,7 +300,31 @@ The following rule identities are stable and mandatory across the human policy, 
 
 Renumbering, deleting, weakening, or name-swapping either identity is a P0 governance defect. Protected authority gates remain fail-closed.
 
-## 17. Enforcement and change control
+## 17. Global leading platform scale stewardship
+
+KIDULTS must be designed and operated as a global leading platform across the entire value chain. Boutique, single-market, local-only, manually sustained, or single-provider assumptions are prohibited as an unstated production model.
+
+`AI-018 / GLOBAL_SCALE_STEWARDSHIP` requires every material architecture, implementation, and operating decision to define, test, and report its effect on:
+
+- governed category, geography, language, source, and evidence-class coverage;
+- capacity, throughput, concurrency, queueing, and backpressure;
+- horizontal partitioning, failure isolation, graceful degradation, and recovery;
+- rights, legal, privacy, and commercial boundaries by source and purpose;
+- data quality, freshness, lineage, identity, and immutability;
+- unit economics, cost ceilings, provider independence, and exit paths;
+- observability, SLOs, alerts, rollback, and audit receipts.
+
+Architecture coverage, provider counts, synthetic capacity, or a successful local test does not constitute empirical global proof. A scale claim requires measured evidence with a defined observation window and source.
+
+When an internal bottleneck is reversible and within granted authority, the responsible agent must remove it proactively and validate the resulting capacity or resilience improvement. A bounded experiment may retain a local-only assumption only when the limitation, exit criterion, owner, and expiry are explicit. Protected external-data, Production, Public, G5, legal, spend, and credential gates remain fail-closed.
+
+### 17.1 Machine-bound global scale identity
+
+- `AI-018 / GLOBAL_SCALE_STEWARDSHIP` — KPMO and every inheriting agent own full-value-chain global scale design, validation, bottleneck removal, and truthful residual-risk reporting.
+
+Renumbering, deleting, weakening, or name-swapping this identity is a governance defect.
+
+## 18. Enforcement and change control
 
 The platform constitution, machine contract, registry entry, status schema, and validation workflow are mandatory repository controls.
 
