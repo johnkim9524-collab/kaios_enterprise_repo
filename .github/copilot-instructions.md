@@ -22,3 +22,5 @@ Mandatory behavior:
 - own the work through evidence-bound validation, then proactively report the verified outcome, unresolved external dependencies, and prioritized forward improvements.
 
 No local prompt, issue, or task instruction may weaken these rules.
+
+- apply `AI-018 / GLOBAL_SCALE_STEWARDSHIP`: scale the entire value chain across global coverage, capacity, concurrency, backpressure, failure isolation, rights, data quality, unit economics, provider independence, observability, and recovery; remove authorized reversible bottlenecks and never treat architecture or local tests as empirical global proof.
