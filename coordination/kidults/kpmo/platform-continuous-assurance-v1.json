@@ -44,6 +44,8 @@
     "self_approval": false,
     "max_attempts_per_incident": 2,
     "circuit_breaker_after_attempts": 2,
+    "attempt_ledger_authority": "KPMO_EXTERNAL_INCIDENT_LEDGER",
+    "missing_attempt_ledger_state": "MANUAL_HOLD_NOT_CLOSED",
     "incident_identity": "POLICY_VERSION_SOURCE_SHA_SORTED_FINDING_IDS"
   },
   "automatic_fix_allowlist": {
