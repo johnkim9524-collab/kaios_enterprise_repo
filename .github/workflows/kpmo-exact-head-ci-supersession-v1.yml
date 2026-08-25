@@ -3,6 +3,8 @@ name: KPMO Exact-Head CI Supersession v1
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
 
 permissions:
   actions: write
@@ -10,7 +12,7 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: kpmo-exact-head-supersession-${{ github.event.pull_request.number }}
+  group: kpmo-exact-head-supersession-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -18,20 +20,23 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Cancel stale queued and in-progress runs for this PR branch
+      - name: Preserve exact-head impact checks and cancel stale runs
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           api="https://api.github.com/repos/${REPOSITORY}"
           cancelled=0
+          stale_cancelled=0
+          exact_head_retained=0
           examined=0
+
 
           for page in $(seq 1 10); do
             response="$(curl --fail-with-body --silent --show-error \
@@ -43,11 +48,15 @@ jobs:
             count="$(jq '.workflow_runs | length' <<<"${response}")"
             examined=$((examined + count))
 
-            while IFS=$'\t' read -r run_id head_sha status; do
+            while IFS=$'\t' read -r run_id head_sha status workflow_name; do
               [[ -n "${run_id}" ]] || continue
               [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
-              [[ "${head_sha}" != "${EXACT_HEAD_SHA}" ]] || continue
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
+
+              if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
+                exact_head_retained=$((exact_head_retained + 1))
+                continue
+              fi
 
               code="$(curl --silent --show-error --output /tmp/cancel-response.json --write-out '%{http_code}' \
                 --request POST \
@@ -58,12 +67,13 @@ jobs:
 
               if [[ "${code}" == "202" || "${code}" == "409" ]]; then
                 cancelled=$((cancelled + 1))
+                stale_cancelled=$((stale_cancelled + 1))
               else
                 cat /tmp/cancel-response.json
                 echo "Unexpected cancellation status ${code} for run ${run_id}" >&2
                 exit 1
               fi
-            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status] | @tsv' <<<"${response}")
+            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .name] | @tsv' <<<"${response}")
 
             [[ "${count}" -eq 100 ]] || break
           done
@@ -74,4 +84,6 @@ jobs:
             --argjson pr_number "${PR_NUMBER}" \
             --argjson examined "${examined}" \
             --argjson cancelled "${cancelled}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,stale_runs_cancelled:$cancelled,lookup_bound:{pages:10,per_page:100}}'
+            --argjson stale_cancelled "${stale_cancelled}" \
+            --argjson exact_head_retained "${exact_head_retained}" \
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,lookup_bound:{pages:10,per_page:100}}'

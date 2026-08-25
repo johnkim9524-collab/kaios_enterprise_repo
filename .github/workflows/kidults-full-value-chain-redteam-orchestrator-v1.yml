@@ -3,6 +3,16 @@ name: KIDULTS Full Value Chain Red-Team Orchestrator V1
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml"
+      - "scripts/kidults/**"
+      - "tests/kidults/**"
+      - "coordination/kidults/**"
+      - "apps/kidults-enterprise-staging/**"
+      - "services/kidults-autonomous-intelligence/**"
+      - "requirements*.txt"
+      - "package*.json"
+      - "Dockerfile"
   push:
     branches: [ main ]
   workflow_dispatch:
