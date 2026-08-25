@@ -15,6 +15,9 @@ const criticalWorkflowProvenanceValidators = [
 const repositoryMutationBoundaryValidators = [
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
+const ciOrchestrationValidators = [
+  'scripts/kidults/kpmo/validate-exact-head-ci-supersession-v1.mjs'
+];
 const secretBoundaryValidators = [
   'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs',
   'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
@@ -71,6 +74,7 @@ const validators = [...new Set([
   criticalGateBindingValidator,
   ...criticalWorkflowProvenanceValidators,
   ...repositoryMutationBoundaryValidators,
+  ...ciOrchestrationValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
   ...trustRootMigrationRegressionValidators,
@@ -119,6 +123,8 @@ console.log(JSON.stringify({
   a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
   workflow_repository_mutation_boundary_machine_bound: true,
   workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
+  exact_head_ci_supersession_machine_bound: true,
+  exact_head_ci_supersession_validators: ciOrchestrationValidators.length,
   pull_request_secret_boundary_machine_bound: true,
   pull_request_secret_boundary_validators: 1,
   privileged_manual_secret_lane_inventory_machine_bound: true,
