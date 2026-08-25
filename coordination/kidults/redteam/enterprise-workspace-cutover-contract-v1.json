@@ -1,0 +1,78 @@
+{
+  "contract_id": "KIDULTS_ENTERPRISE_WORKSPACE_CUTOVER_V1",
+  "status": "CUTOVER_PREPARED_PRODUCTION_HOLD",
+  "scope": "enterprise.kidults.com legacy Pages replacement with canonical KIDULTS Intelligence Workspace",
+  "source": {
+    "resource_type": "CLOUDFLARE_PAGES",
+    "project": "kidults-enterprise",
+    "custom_domain": "enterprise.kidults.com",
+    "pages_domain": "kidults-enterprise.pages.dev",
+    "remote_observed_state": "ACTIVE_LEGACY_SURFACE",
+    "git_repository_connected": false,
+    "pages_functions_bindings": 0,
+    "runtime_variables_or_secrets": 0,
+    "deletion_allowed_before_cutover": false,
+    "observed_risks": {
+      "raw_javascript_text_visible_in_ui": true,
+      "legacy_operational_claims_visible": true,
+      "examples": [
+        "OPERATING",
+        "API Connected",
+        "D1 Connected",
+        "Signals 20",
+        "Reports 2",
+        "Latency 18ms"
+      ]
+    }
+  },
+  "target": {
+    "canonical_publish_root": "apps/kidults-enterprise-staging/public/portal",
+    "canonical_workspace_entry": "apps/kidults-enterprise-staging/public/portal/workspace.html",
+    "workspace_contract": "apps/kidults-enterprise-staging/public/portal/data/workspace-contract.json",
+    "workspace_validator": "scripts/kidults/portal/validate-workspace.mjs",
+    "recommended_remote_staging_project": "kidults-workspace-staging",
+    "recommended_canonical_project": "kidults-workspace",
+    "remote_staging_deployment": "NOT_YET_PROVEN",
+    "custom_domain_cutover": "NOT_AUTHORIZED",
+    "production_public": "HOLD_EXPLICIT_G5_APPROVAL_REQUIRED"
+  },
+  "truth_requirements": {
+    "allow_data_mutation": false,
+    "allow_registry_mutation": false,
+    "preserve_fail_closed_states": true,
+    "unsupported_operational_claims": "PROHIBITED",
+    "raw_source_or_javascript_text_in_product_surface": "PROHIBITED",
+    "production_readiness_claim_without_empirical_evidence": "PROHIBITED"
+  },
+  "pre_cutover_gates": [
+    "CANONICAL_WORKSPACE_VALIDATOR_PASS",
+    "PORTAL_VALIDATION_PASS",
+    "REMOTE_STAGING_DEPLOYMENT_PROVEN",
+    "DESKTOP_VISUAL_SMOKE_PASS",
+    "MOBILE_VISUAL_SMOKE_PASS",
+    "LINK_AND_ASSET_RESOLUTION_PASS",
+    "FAIL_CLOSED_TRUTH_STATE_PASS",
+    "NO_UNSUPPORTED_OPERATIONAL_CLAIMS_PASS",
+    "ROLLBACK_TARGET_PRESERVED",
+    "EXPLICIT_G5_APPROVAL_BEFORE_CUSTOM_DOMAIN_CUTOVER"
+  ],
+  "cutover_sequence": [
+    "DEPLOY_CANONICAL_WORKSPACE_TO_REMOTE_STAGING_PROJECT",
+    "VALIDATE_REMOTE_STAGING_PAGES_DOMAIN",
+    "CAPTURE_PRE_CUTOVER_ENTERPRISE_DOMAIN_BASELINE",
+    "OBTAIN_EXPLICIT_G5_APPROVAL",
+    "MOVE_ENTERPRISE_CUSTOM_DOMAIN_TO_CANONICAL_TARGET",
+    "RUN_ENTERPRISE_DOMAIN_SMOKE_TEST",
+    "OBSERVE_24H",
+    "OBSERVE_72H_BEFORE_LEGACY_DELETE",
+    "DELETE_LEGACY_KIDULTS_ENTERPRISE_PAGES_PROJECT",
+    "VERIFY_LEGACY_PAGES_DOMAIN_NO_LONGER_SERVES",
+    "CLOSE_ESTATE_RETIREMENT_RECORD"
+  ],
+  "rollback": {
+    "required": true,
+    "legacy_project_must_remain_intact_until": "POST_CUTOVER_72H_PASS",
+    "rollback_action": "RESTORE_ENTERPRISE_CUSTOM_DOMAIN_TO_LEGACY_PROJECT",
+    "data_store_deletion": "NOT_AUTHORIZED"
+  }
+}
