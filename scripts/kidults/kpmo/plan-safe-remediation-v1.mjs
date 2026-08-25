@@ -39,6 +39,10 @@ export function planSafeRemediation(receipt, policy) {
   const safeEphemeral = failedIds.filter((id) => ephemeral.has(id));
   const persistent = failedIds.filter((id) => !ephemeral.has(id));
   const externalHolds = (receipt.unresolved_gates || []).map((gate) => gate.id).sort();
+  const attemptValue = process.env.KPMO_REMEDIATION_ATTEMPT;
+  const attemptKnown = /^\d+$/.test(attemptValue || '');
+  const currentAttempt = attemptKnown ? Number(attemptValue) : null;
+  const remediationNeeded = persistent.length > 0 || safeEphemeral.length > 0;
   const derivedOverall = worstState(receipt);
   const receiptOverall = receipt.states?.overall_state || 'UNKNOWN';
   if (derivedOverall !== receiptOverall) throw new Error(`Receipt state mismatch: declared ${receiptOverall}, derived ${derivedOverall}`);
@@ -72,12 +76,17 @@ export function planSafeRemediation(receipt, policy) {
       production_or_g5_effect: 'NONE'
     },
     circuit_breaker: {
+      attempt_ledger_authority: policy.immediate_improvement.attempt_ledger_authority,
       max_attempts: policy.immediate_improvement.max_attempts_per_incident,
       opens_after_failed_attempts: policy.immediate_improvement.circuit_breaker_after_attempts,
-      current_attempt: Number(process.env.KPMO_REMEDIATION_ATTEMPT || 0),
-      state: Number(process.env.KPMO_REMEDIATION_ATTEMPT || 0) >= policy.immediate_improvement.circuit_breaker_after_attempts
-        ? 'CIRCUIT_OPEN_MANUAL_HOLD'
-        : 'CLOSED'
+      current_attempt: currentAttempt,
+      state: !remediationNeeded
+        ? 'NOT_APPLICABLE'
+        : !attemptKnown
+          ? 'ATTEMPT_LEDGER_REQUIRED_MANUAL_HOLD'
+          : currentAttempt >= policy.immediate_improvement.circuit_breaker_after_attempts
+            ? 'CIRCUIT_OPEN_MANUAL_HOLD'
+            : 'CLOSED'
     },
     empirical_truth_effect: 'NONE'
   };
