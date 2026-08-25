@@ -1,5 +1,0 @@
-@media (max-width: 768px) {
-  html[data-mobile-reconstruction="v1"] .living-workspace__panels {
-    min-height: 0 !important;
-  }
-}
