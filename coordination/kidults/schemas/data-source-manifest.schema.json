@@ -83,15 +83,13 @@
           "access": {
             "enum": [
               "PUBLIC_PAYLOAD",
-              "PUBLIC_STATUS_ONLY",
-              "INTERNAL_ONLY"
+              "PUBLIC_STATUS_ONLY"
             ]
           },
           "publication_policy": {
             "enum": [
               "CONTRACT_GATED",
-              "STATUS_ONLY",
-              "NEVER"
+              "STATUS_ONLY"
             ]
           },
           "snapshot_binding": {

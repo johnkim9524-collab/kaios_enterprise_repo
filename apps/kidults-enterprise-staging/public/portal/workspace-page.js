@@ -1,21 +1,23 @@
-import { loadPortalData } from "./components/data-store.js";
+import { loadWorkspaceData } from "./components/data-store.js";
 import { startCopilot } from "./components/copilot.js";
 import { startCompareEngine } from "./components/compare-engine.js";
 import { startDecisionEngine } from "./components/decision-engine.js";
+import { startWhyEngine } from "./components/why-engine.js";
 import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
+import { resolveWorkspaceMode } from "./components/workspace-route.js";
 
 function human(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
 }
 
 function selectedMode() {
-  const value = new URL(window.location.href).searchParams.get("mode")?.toLowerCase();
-  if (value === "compare") return "compare";
-  if (value === "decide" || value === "decision") return "decision";
-  return "ask";
+  return resolveWorkspaceMode({
+    href: window.location.href,
+    activeMode: window.KIDULTS_WORKSPACE?.state?.() ?? "ask"
+  });
 }
 
 function registrySnapshotContext(registry) {
@@ -44,15 +46,20 @@ function renderContext(data) {
     ["Release", data.registry?.release?.status ?? "HOLD"]
   ];
 
-  context.innerHTML = rows.map(([label, value]) => `
-    <div>
-      <dt>${label}</dt>
-      <dd>${human(value)}</dd>
-    </div>
-  `).join("");
+  const fragments = rows.map(([label, value]) => {
+    const row = document.createElement("div");
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = human(value);
+    row.append(term, description);
+    return row;
+  });
+  context.replaceChildren(...fragments);
 }
 
 function mountWorkspace(data) {
+  startWhyEngine({ data, contract: data.why });
   startCopilot({ data, contract: data.copilot });
   startCompareEngine({ data, contract: data.compare });
   startDecisionEngine({ data, contract: data.decision });
@@ -64,7 +71,9 @@ function mountWorkspace(data) {
   mount.append(root);
 
   const mode = selectedMode();
-  window.KIDULTS_WORKSPACE.open(mode, { updateUrl: false, scroll: false });
+  if (window.KIDULTS_WORKSPACE.state() !== mode) {
+    window.KIDULTS_WORKSPACE.open(mode, { updateUrl: false, scroll: false });
+  }
   document.documentElement.dataset.workspaceRoute = mode;
   return mode;
 }
@@ -74,7 +83,7 @@ async function init() {
   startAccessibilityR1();
 
   try {
-    const data = await loadPortalData();
+    const data = await loadWorkspaceData();
     renderContext(data);
     const mode = mountWorkspace(data);
     startMobileReconstruction();

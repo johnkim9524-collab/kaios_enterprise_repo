@@ -64,6 +64,10 @@ const requiredFiles = [
   `${portalRoot}/data/registry-view.json`,
   `${portalRoot}/data/verticals.json`,
   `${portalRoot}/data/kidult100.json`,
+  `${portalRoot}/data/provenance.json`,
+  `${portalRoot}/data/research.json`,
+  `${portalRoot}/data/market-signals.json`,
+  `${portalRoot}/data/runtime-health-projection.json`,
   `${portalRoot}/data/portal-release-manifest-v502.json`,
   "coordination/kidults/registry/track/index.json",
   "coordination/kidults/registry/track/records/track-c-portal-v502-experience-layer.json",
@@ -77,6 +81,7 @@ const html = readText(`${portalRoot}/index.html`);
 const workspaceHtml = readText(`${portalRoot}/workspace.html`);
 const portalJs = readText(`${portalRoot}/portal.js`);
 const workspacePage = readText(`${portalRoot}/workspace-page.js`);
+const detail = readText(`${portalRoot}/detail.js`);
 const dataStore = readText(`${portalRoot}/components/data-store.js`);
 const renderers = readText(`${portalRoot}/components/renderers.js`);
 const interactions = readText(`${portalRoot}/components/interactions.js`);
@@ -175,6 +180,10 @@ const registryView = readJson(`${portalRoot}/data/registry-view.json`);
 const verticalData = readJson(`${portalRoot}/data/verticals.json`);
 const k100 = readJson(`${portalRoot}/data/kidult100.json`);
 const summary = readJson(`${portalRoot}/data/portal-summary.json`);
+const provenance = readJson(`${portalRoot}/data/provenance.json`);
+const research = readJson(`${portalRoot}/data/research.json`);
+const signals = readJson(`${portalRoot}/data/market-signals.json`);
+const runtimeHealth = readJson(`${portalRoot}/data/runtime-health-projection.json`);
 const release = readJson(`${portalRoot}/data/portal-release-manifest-v502.json`);
 const trackIndex = readJson("coordination/kidults/registry/track/index.json");
 const trackC = readJson("coordination/kidults/registry/track/records/track-c-portal-v502-experience-layer.json");
@@ -193,6 +202,7 @@ if (manifest) {
   if (manifest.display_policy?.missing_to_zero !== false) errors.push("V502 must forbid missing-to-zero conversion.");
   if (manifest.experience_label !== "V6 RC") errors.push("V6 label must remain separate from V502 contract.");
   if (manifest.hero?.asset !== "assets/hero/racing-roadster-v662.webp") errors.push("Manifest canonical Roadster asset mismatch.");
+  if (provenance?.hero?.title !== manifest.hero?.title) errors.push("Hero provenance title must match the canonical manifest Hero.");
   if (!(manifest.routes ?? []).some(route => route.id === "workspace" && route.path === "workspace.html")) {
     errors.push("Manifest does not register the dedicated Workspace route.");
   }
@@ -235,6 +245,32 @@ if (k100) {
   }
   if (items.some(item => /koala|original art figure/i.test(item.title))) errors.push("Retired object appears in K100.");
   if (items.find(item => item.id === "footwear-01")?.title !== "Archive Sneaker 01") errors.push("Footwear must be Archive Sneaker 01.");
+  if (items.some(item => item.confidence === null) && !detail.includes("confidenceLabel(object.confidence")) {
+    errors.push("Detail route must fail closed when Featured Slice confidence is null.");
+  }
+  if (detail.includes("${object.confidence}%") || detail.includes("${esc(object.confidence)}%")) {
+    errors.push("Detail route can render null as a numeric confidence percentage.");
+  }
+}
+
+if (signals) {
+  if (signals.status !== "WITHHELD_STALE" || signals.publication_eligible !== false || signals.freshness_state !== "STALE_REJECTED") {
+    errors.push("Stale market signals must remain WITHHELD_STALE / STALE_REJECTED and not publication eligible.");
+  }
+  if (signals.updated_at !== null || signals.signals?.length !== 0) errors.push("Stale signal values must not remain on the public surface.");
+}
+
+if (runtimeHealth) {
+  if (runtimeHealth.status !== "NOT_VERIFIED" || runtimeHealth.observation_freshness !== "STALE_REJECTED") {
+    errors.push("Stale runtime health must fail closed as NOT_VERIFIED / STALE_REJECTED.");
+  }
+  for (const prohibited of ["generated_at", "public_endpoint", "root_http_status", "health_http_status", "evidence_artifact_id", "digitalocean_audit_id"]) {
+    if (Object.hasOwn(runtimeHealth, prohibited)) errors.push(`Unverified runtime public status must omit internal field: ${prohibited}.`);
+  }
+}
+
+if (/stable coverage structure|architecture is fixed at eight|demand remains concentrated/i.test(JSON.stringify(research ?? {}))) {
+  errors.push("Research must present the current vertical taxonomy as versioned, not permanent.");
 }
 
 if (summary?.snapshot_id !== manifest?.snapshot_id) errors.push("Portal summary and manifest snapshot IDs differ.");

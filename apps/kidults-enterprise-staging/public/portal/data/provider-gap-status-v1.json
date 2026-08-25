@@ -1,0 +1,10 @@
+{
+  "projection_id": "kidults-provider-gap-status-v1",
+  "version": "1.0.0",
+  "status": "FOUNDATION_ACTIVE",
+  "publication_policy": "STATUS_ONLY",
+  "provider_registry_state": "RESEARCHING",
+  "production_connection": false,
+  "dimension_count": 7,
+  "details": "WITHHELD_INTERNAL_GOVERNANCE_RECORD"
+}

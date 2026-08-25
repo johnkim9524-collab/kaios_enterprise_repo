@@ -191,9 +191,31 @@ export function renderK100(k100) {
 
 export function renderSignals(signalData) {
   const node = target("[data-signal-grid]");
+  const signals = Array.isArray(signalData.signals) ? signalData.signals : [];
+  const publicationEligible = signalData.publication_eligible === true && signalData.freshness_state === "CURRENT";
+
+  if (!publicationEligible || !signals.length) {
+    node.innerHTML = `
+      <article class="signal-card reveal signal-card--withheld">
+        <header><strong>${esc(humanState(signalData.status ?? "NOT AVAILABLE"))}</strong></header>
+        <div class="signal-main">
+          <div>
+            <h3>Current market signals are withheld.</h3>
+            <p>${esc(signalData.withheld_reason ?? "No freshness-qualified, evidence-bound signal snapshot is currently registered.")}</p>
+          </div>
+        </div>
+        <div class="signal-meta">
+          <div><b>NOT AVAILABLE</b><span>Signal value</span></div>
+          <div><b>NOT AVAILABLE</b><span>Registered confidence</span></div>
+          <div><b>WITHHELD</b><span>Publication state</span></div>
+        </div>
+      </article>`;
+    return;
+  }
+
   const snapshotTime = formatDate(signalData.updated_at);
 
-  node.innerHTML = signalData.signals.map(signal => `
+  node.innerHTML = signals.map(signal => `
     <article class="signal-card reveal">
       <header>
         <strong>${esc(signal.category)}</strong>

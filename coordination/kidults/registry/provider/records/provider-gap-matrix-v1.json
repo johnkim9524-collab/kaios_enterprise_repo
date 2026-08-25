@@ -1,7 +1,13 @@
 {
+  "id": "kidults-provider-gap-matrix-v1",
   "matrix_id": "kidults-provider-gap-matrix-v1",
+  "record_type": "internal_provider_gap_matrix",
   "version": "1.0.0",
   "status": "FOUNDATION_ACTIVE",
+  "classification": "INTERNAL_PLATFORM_GOVERNANCE",
+  "access": "INTERNAL_ONLY",
+  "publication_eligible": false,
+  "public_projection": false,
   "effective_at": "2026-08-16T04:30:00+09:00",
   "provider_registry_state": "RESEARCHING",
   "production_connection": false,

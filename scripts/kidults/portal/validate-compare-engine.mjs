@@ -54,7 +54,10 @@ const verticalData = readJson(paths.verticals);
 
 for (const marker of [
   "startCompareEngine",
-  "comparisonModel",
+  "buildComparisonModel",
+  "resolveEmpiricalGateState",
+  "guidanceAvailable",
+  "gatedRows",
   "buildRows",
   "differenceNarrative",
   "baseLimitations",
@@ -211,5 +214,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Compare Engine validation: PASS (dedicated Workspace route, 8 verticals, 8 metrics, truth-first)");
+console.log("KIDULTS Compare Engine validation: PASS (dedicated route, 8 metrics, 7-state empirical suppression, truth-first)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

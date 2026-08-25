@@ -1,5 +1,6 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
+import { resolveEmpiricalGateState } from "./components/empirical-truth-gate.js";
 
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -20,6 +21,26 @@ function statusPills(items) {
   return `<div class="detail-status-row">${items.map(item => `<span>${esc(item)}</span>`).join("")}</div>`;
 }
 
+function confidenceLabel(value, { status = false } = {}) {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) {
+    return "NOT AVAILABLE";
+  }
+  const label = `${Number(value)}%`;
+  return status ? `${label} CONFIDENCE` : label;
+}
+
+const human = value => String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
+
+function empiricalState({ registry, manifest, verticals }) {
+  const gateState = resolveEmpiricalGateState({
+    registry,
+    manifest,
+    verticals,
+    meta: { registryProjectionConnected: Boolean(registry) }
+  });
+  return { gateState, available: gateState === "CURRENT" };
+}
+
 function traceability(data) {
   const rows = Object.entries(data).map(([key, value]) => `
     <div><dt>${esc(key.replaceAll("_", " "))}</dt><dd>${esc(value ?? "NOT AVAILABLE")}</dd></div>
@@ -36,9 +57,11 @@ function visualMarkup(asset, label, order) {
   return `<div class="detail-visual"><div class="detail-visual-placeholder" aria-label="Editorial visual pending">${esc(order)}</div></div>`;
 }
 
-function renderVertical(root, verticals, manifest, id) {
+function renderVertical(root, verticals, manifest, registry, id) {
   const vertical = verticals.verticals.find(item => item.id === id);
   if (!vertical) throw new Error(`Unknown vertical: ${id || "missing id"}`);
+  const empirical = empiricalState({ registry, manifest, verticals });
+  const metric = (value, format = String) => empirical.available ? format(value) : "NOT AVAILABLE";
 
   document.title = `${vertical.name} — KIDULTS V502`;
   root.innerHTML = `
@@ -47,8 +70,8 @@ function renderVertical(root, verticals, manifest, id) {
         <p class="eyebrow">CORE VERTICAL ${String(vertical.structural_order).padStart(2, "0")}</p>
         <h1>${esc(vertical.name)}</h1>
         ${statusPills([
-          vertical.featured ? "CURRENT FEATURED" : "CORE VERTICAL",
-          `OBSERVATION ${String(vertical.current_observation_order).padStart(2, "0")}`,
+          empirical.available ? (vertical.featured ? "CURRENT FEATURED" : "CORE VERTICAL") : human(empirical.gateState),
+          empirical.available ? `OBSERVATION ${String(vertical.current_observation_order).padStart(2, "0")}` : "EMPIRICAL METRICS WITHHELD",
           vertical.visual_status.replaceAll("_", " ")
         ])}
         <p class="detail-intro">${esc(vertical.summary)}</p>
@@ -60,10 +83,10 @@ function renderVertical(root, verticals, manifest, id) {
       <p class="eyebrow">CURRENT OBSERVABILITY</p>
       <h2>Measured under the provider-independent baseline.</h2>
       <div class="detail-metric-grid">
-        <article class="detail-metric-card"><strong>${Number(vertical.right_data_coverage_pct).toFixed(2)}%</strong><span>Right Data Coverage</span></article>
-        <article class="detail-metric-card"><strong>${Number(vertical.demand_evidence_pct).toFixed(1)}%</strong><span>Demand Evidence</span></article>
-        <article class="detail-metric-card"><strong>${esc(vertical.relevant)}</strong><span>Relevant Records</span></article>
-        <article class="detail-metric-card"><strong>${esc(vertical.scarcity_evidence_count)}</strong><span>Scarcity Evidence</span></article>
+        <article class="detail-metric-card"><strong>${esc(metric(vertical.right_data_coverage_pct, value => `${Number(value).toFixed(2)}%`))}</strong><span>Right Data Coverage</span></article>
+        <article class="detail-metric-card"><strong>${esc(metric(vertical.demand_evidence_pct, value => `${Number(value).toFixed(1)}%`))}</strong><span>Demand Evidence</span></article>
+        <article class="detail-metric-card"><strong>${esc(metric(vertical.relevant))}</strong><span>Relevant Records</span></article>
+        <article class="detail-metric-card"><strong>${esc(metric(vertical.scarcity_evidence_count))}</strong><span>Scarcity Evidence</span></article>
       </div>
     </section>
 
@@ -93,12 +116,14 @@ function renderVertical(root, verticals, manifest, id) {
   `;
 }
 
-function renderObject(root, k100, manifest, id) {
+function renderObject(root, k100, verticals, manifest, registry, id) {
   const object = k100.items.find(item => item.id === id);
   if (!object) throw new Error(`Unknown object: ${id || "missing id"}`);
+  const empirical = empiricalState({ registry, manifest, verticals });
 
   document.title = `${object.title} — KIDULTS V502`;
-  const score = object.score === null ? "GATED" : Number(object.score).toFixed(1);
+  const score = empirical.available && object.score !== null ? Number(object.score).toFixed(1) : "NOT AVAILABLE";
+  const confidence = empirical.available ? confidenceLabel(object.confidence) : "NOT AVAILABLE";
 
   root.innerHTML = `
     <section class="detail-hero">
@@ -106,8 +131,8 @@ function renderObject(root, k100, manifest, id) {
         <p class="eyebrow">${esc(object.category)} · FEATURED OBJECT ${String(object.rank).padStart(2, "0")}</p>
         <h1>${esc(object.title)}</h1>
         ${statusPills([
-          object.status,
-          `${object.confidence}% CONFIDENCE`,
+          empirical.available ? object.status : human(empirical.gateState),
+          empirical.available ? confidenceLabel(object.confidence, { status: true }) : "EMPIRICAL METRICS WITHHELD",
           object.asset_status.replaceAll("_", " ")
         ])}
         <p class="detail-intro">${esc(object.provenance)}</p>
@@ -120,9 +145,9 @@ function renderObject(root, k100, manifest, id) {
       <h2>Evidence and publication state remain separated.</h2>
       <div class="detail-metric-grid">
         <article class="detail-metric-card"><strong>${esc(score)}</strong><span>Preview Score</span></article>
-        <article class="detail-metric-card"><strong>${esc(object.confidence)}%</strong><span>Confidence</span></article>
-        <article class="detail-metric-card"><strong>${esc(object.freshness)}</strong><span>Freshness</span></article>
-        <article class="detail-metric-card"><strong>${String(object.rank).padStart(2, "0")}</strong><span>Featured Slice Position</span></article>
+        <article class="detail-metric-card"><strong>${esc(confidence)}</strong><span>Confidence</span></article>
+        <article class="detail-metric-card"><strong>${esc(empirical.available ? object.freshness : "NOT AVAILABLE")}</strong><span>Freshness</span></article>
+        <article class="detail-metric-card"><strong>${esc(empirical.available ? String(object.rank).padStart(2, "0") : "NOT AVAILABLE")}</strong><span>Featured Slice Position</span></article>
       </div>
     </section>
 
@@ -148,14 +173,15 @@ async function init() {
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
-    const [manifest, verticals, k100] = await Promise.all([
+    const [manifest, registry, verticals, k100] = await Promise.all([
       getJson("data/v502-manifest.json?v=652"),
+      getJson("data/registry-view.json?v=phase2-1"),
       getJson("data/verticals.json?v=652"),
       getJson("data/kidult100.json?v=652")
     ]);
 
-    if (type === "vertical") renderVertical(root, verticals, manifest, id);
-    else if (type === "object") renderObject(root, k100, manifest, id);
+    if (type === "vertical") renderVertical(root, verticals, manifest, registry, id);
+    else if (type === "object") renderObject(root, k100, verticals, manifest, registry, id);
     else throw new Error(`Unsupported detail type: ${type}`);
     startAccessibilityR1();
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
@@ -165,7 +191,7 @@ async function init() {
         <p class="eyebrow">FAIL-CLOSED</p>
         <h1>Detail not available.</h1>
         <p class="detail-intro">${esc(error.message)}</p>
-        <p><a class="button button-primary" href="index.html">Return to V502</a></p>
+        <p><a class="button button-primary" href="https://kidults.com/">Return to the public portal</a></p>
       </section>
     `;
   }

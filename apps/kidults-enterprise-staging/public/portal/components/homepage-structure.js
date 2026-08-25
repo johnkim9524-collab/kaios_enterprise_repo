@@ -104,7 +104,7 @@ export function startHomepageStructure() {
       "Hero",
       "Platform Snapshot",
       "Intelligence Method",
-      "Eight Core Verticals",
+      "Current Registered Verticals",
       "Kidult 100",
       "Market Signals",
       "Evidence",

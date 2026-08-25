@@ -1,3 +1,5 @@
+import { empiricalTruthContext, resolveEmpiricalGateState } from "./empirical-truth-gate.js";
+
 const ROOT_ID = "kidults-why-engine";
 const STYLE_ID = "kidults-why-engine-style";
 
@@ -77,6 +79,7 @@ function contextFor(data) {
   return {
     snapshot: manifest.snapshot_id ?? registry.snapshot?.baseline_id ?? "NOT AVAILABLE",
     candidate: registry.snapshot?.candidate_id ?? registry.snapshot?.candidate_status ?? "WAITING",
+    evidence: registry.evidence?.current_package_id ?? registry.evidence?.status ?? "WAITING",
     assessment: registry.assessment?.current_id ?? registry.assessment?.status ?? "WAITING",
     production: registry.release?.status ?? "NOT AVAILABLE",
     release: manifest.status ?? "NOT AVAILABLE",
@@ -119,6 +122,9 @@ function baseLimitations(data) {
   if (!data.registry?.snapshot?.candidate_id) {
     limits.push("No Candidate Snapshot is registered.");
   }
+  if (!data.registry?.evidence?.current_package_id) {
+    limits.push("No bounded Evidence Package is registered.");
+  }
   if (!data.registry?.assessment?.current_id) {
     limits.push("No independent Rankability Assessment is registered.");
   }
@@ -141,6 +147,7 @@ function traceability(data, sourceRecord) {
     ["Source record", sourceRecord],
     ["Snapshot", context.snapshot],
     ["Candidate", context.candidate],
+    ["Evidence", context.evidence],
     ["Assessment", context.assessment],
     ["Methodology", context.methodology],
     ["Evidence lineage", context.evidenceLineage],
@@ -295,7 +302,7 @@ function objectModel(data, index) {
       "The evidence-composition chart describes the portal baseline, not a causal decomposition of this object score."
     ],
     traceability: traceability(data, "portal/data/kidult100.json"),
-    href: `object.html?id=${encodeURIComponent(item.id)}`
+    href: "https://kidults.com/#trust"
   };
 }
 
@@ -348,6 +355,41 @@ function modelFor(data, type, index) {
     signal: signalModel
   };
   return builders[type]?.(data, index) ?? null;
+}
+
+function gatedModel(data, type, index) {
+  const gateState = resolveEmpiricalGateState(data);
+  const gate = empiricalTruthContext(data);
+  const vertical = type === "vertical"
+    ? data.verticals?.verticals?.slice().sort((a, b) => a.structural_order - b.structural_order)?.[index]
+    : null;
+  const object = type === "object" ? data.k100?.items?.[index] : null;
+
+  return {
+    targetType: type,
+    targetId: vertical?.id ?? object?.id ?? `${type}-${index}`,
+    eyebrow: "EMPIRICAL TRUTH GATE",
+    title: vertical?.name ?? object?.title ?? "Empirical intelligence",
+    value: "NOT AVAILABLE",
+    valueLabel: "Empirical value",
+    state: gateState,
+    summary: "Evidence-derived explanation is withheld until Candidate, Evidence, Assessment and Production gates are all current.",
+    confidence: null,
+    facts: [
+      ["Candidate", gate.candidate],
+      ["Evidence", gate.evidence],
+      ["Assessment", gate.assessment],
+      ["Production", gate.production]
+    ],
+    evidence: [["Current gate", humanState(gateState)]],
+    composition: [],
+    timeline: traceabilityTimeline(data),
+    limitations: [
+      ...baseLimitations(data),
+      "No metric, priority or comparison is inferred from the structural baseline."
+    ],
+    traceability: traceability(data, "portal/data/registry-view.json")
+  };
 }
 
 function ensureStylesheet() {
@@ -594,20 +636,27 @@ export function startWhyEngine({ data, contract } = {}) {
 
   decorateTargets(data);
 
+  const open = (type, index, focusTarget = null) => {
+    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(index)) return false;
+
+    const model = resolveEmpiricalGateState(data) === "CURRENT"
+      ? modelFor(data, type, index)
+      : gatedModel(data, type, index);
+    if (!model) return false;
+
+    returnFocus = focusTarget ?? document.activeElement;
+    renderModel(dialog, model);
+    if (!dialog.open) dialog.showModal();
+    return true;
+  };
+
   document.addEventListener("click", event => {
     const trigger = event.target.closest("[data-why-type]");
     if (!trigger) return;
 
     const type = trigger.dataset.whyType;
     const index = Number(trigger.dataset.whyIndex);
-    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(index)) return;
-
-    const model = modelFor(data, type, index);
-    if (!model) return;
-
-    returnFocus = trigger;
-    renderModel(dialog, model);
-    if (!dialog.open) dialog.showModal();
+    open(type, index, trigger);
   });
 
   dialog.querySelector("[data-why-close]").addEventListener("click", () => dialog.close());
@@ -624,6 +673,7 @@ export function startWhyEngine({ data, contract } = {}) {
     engine: normalizedContract.engine_id,
     version: normalizedContract.version,
     targets: normalizedContract.supported_targets.slice(),
-    truthRules: { ...normalizedContract.truth_rules }
+    truthRules: { ...normalizedContract.truth_rules },
+    open
   });
 }

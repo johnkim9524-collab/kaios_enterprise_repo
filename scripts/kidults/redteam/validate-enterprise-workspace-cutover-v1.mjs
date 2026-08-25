@@ -11,8 +11,18 @@ const REQUIRED_GATES = [
   'CANONICAL_WORKSPACE_VALIDATOR_PASS',
   'PORTAL_VALIDATION_PASS',
   'REMOTE_STAGING_DEPLOYMENT_PROVEN',
+  'CANONICAL_TARGET_DEPLOYMENT_PROVEN',
+  'SOURCE_REVISION_MATCH_PASS',
   'DESKTOP_VISUAL_SMOKE_PASS',
   'MOBILE_VISUAL_SMOKE_PASS',
+  'STAGING_ACCESS_CONTROL_ENFORCED',
+  'SECURITY_HEADERS_PASS',
+  'NOINDEX_AND_ROBOTS_PASS',
+  'REAL_404_PASS',
+  'SOURCE_REPOSITORY_DATA_CLASSIFICATION_PASS',
+  'INTERNAL_DATA_EXCLUSION_PASS',
+  'INTERACTION_AND_DEEP_LINK_PASS',
+  'EMPIRICAL_METRIC_SUPPRESSION_PASS',
   'LINK_AND_ASSET_RESOLUTION_PASS',
   'FAIL_CLOSED_TRUTH_STATE_PASS',
   'NO_UNSUPPORTED_OPERATIONAL_CLAIMS_PASS',
@@ -23,6 +33,9 @@ const REQUIRED_GATES = [
 const REQUIRED_SEQUENCE = [
   'DEPLOY_CANONICAL_WORKSPACE_TO_REMOTE_STAGING_PROJECT',
   'VALIDATE_REMOTE_STAGING_PAGES_DOMAIN',
+  'DEPLOY_APPROVED_REVISION_TO_CANONICAL_PROJECT',
+  'VALIDATE_CANONICAL_PROJECT_PAGES_DOMAIN',
+  'VERIFY_CANONICAL_SOURCE_REVISION',
   'CAPTURE_PRE_CUTOVER_ENTERPRISE_DOMAIN_BASELINE',
   'OBTAIN_EXPLICIT_G5_APPROVAL',
   'MOVE_ENTERPRISE_CUSTOM_DOMAIN_TO_CANONICAL_TARGET',
@@ -120,6 +133,40 @@ function runMutationSelfTests() {
       expected: REQUIRED_GATES,
       label: 'pre_cutover_gates',
     },
+    {
+      name: 'missing-access-control-gate',
+      actual: REQUIRED_GATES.filter((gate) => gate !== 'STAGING_ACCESS_CONTROL_ENFORCED'),
+      expected: REQUIRED_GATES,
+      label: 'pre_cutover_gates',
+    },
+    {
+      name: 'missing-source-repository-classification-gate',
+      actual: REQUIRED_GATES.filter((gate) => gate !== 'SOURCE_REPOSITORY_DATA_CLASSIFICATION_PASS'),
+      expected: REQUIRED_GATES,
+      label: 'pre_cutover_gates',
+    },
+    {
+      name: 'missing-canonical-target-deployment-gate',
+      actual: REQUIRED_GATES.filter((gate) => gate !== 'CANONICAL_TARGET_DEPLOYMENT_PROVEN'),
+      expected: REQUIRED_GATES,
+      label: 'pre_cutover_gates',
+    },
+    {
+      name: 'missing-source-revision-step',
+      actual: REQUIRED_SEQUENCE.filter((step) => step !== 'VERIFY_CANONICAL_SOURCE_REVISION'),
+      expected: REQUIRED_SEQUENCE,
+      label: 'cutover_sequence',
+    },
+    {
+      name: 'canonical-deployment-after-g5',
+      actual: REQUIRED_SEQUENCE.map((step) => {
+        if (step === 'DEPLOY_APPROVED_REVISION_TO_CANONICAL_PROJECT') return 'OBTAIN_EXPLICIT_G5_APPROVAL';
+        if (step === 'OBTAIN_EXPLICIT_G5_APPROVAL') return 'DEPLOY_APPROVED_REVISION_TO_CANONICAL_PROJECT';
+        return step;
+      }),
+      expected: REQUIRED_SEQUENCE,
+      label: 'cutover_sequence',
+    },
   ];
 
   requireTrue(
@@ -157,11 +204,47 @@ requireFile(target.canonical_workspace_entry, 'Canonical Workspace entry');
 requireFile(target.workspace_contract, 'Workspace contract');
 requireFile(target.workspace_validator, 'Workspace validator');
 requireTrue(target.workspace_validator === 'scripts/kidults/portal/validate-workspace.mjs', 'Canonical Workspace validator path mismatch.');
-requireTrue(target.recommended_remote_staging_project !== contract.source.project, 'Remote staging project must not reuse legacy project name.');
-requireTrue(target.recommended_canonical_project !== contract.source.project, 'Canonical target must not reuse legacy project name.');
-requireTrue(!policy.forbidden_new_deploy_targets?.includes(target.recommended_remote_staging_project), 'Recommended staging project is forbidden by estate policy.');
-requireTrue(!policy.forbidden_new_deploy_targets?.includes(target.recommended_canonical_project), 'Recommended canonical project is forbidden by estate policy.');
-requireTrue(target.remote_staging_deployment === 'NOT_YET_PROVEN', 'Remote staging must not be falsely claimed as proven.');
+requireTrue(target.staging_project === 'kidults-workspace-staging', 'Staging project must be kidults-workspace-staging.');
+requireTrue(target.canonical_project === 'kidults-workspace', 'Canonical project must be kidults-workspace.');
+requireTrue(target.canonical_project_state === 'NOT_YET_CREATED', 'Canonical project must remain explicitly NOT_YET_CREATED until deployed.');
+requireTrue(target.staging_access_control === 'NOT_YET_ENFORCED', 'Staging access control must remain explicitly NOT_YET_ENFORCED until Cloudflare Access is empirically verified.');
+requireTrue(target.source_repository_visibility === 'PUBLIC', 'Observed source repository visibility must remain explicit.');
+requireTrue(
+  target.internal_record_confidentiality === 'NOT_PROVIDED_BY_SOURCE_REPOSITORY',
+  'Public source repository must not be represented as confidential storage for internal records.',
+);
+requireTrue(target.domain_cutover_target_project === target.canonical_project, 'Custom-domain cutover target must be the canonical project.');
+requireTrue(target.public_portal_navigation_evidence?.canonical_url === 'https://kidults.com/', 'Canonical public portal URL mismatch.');
+requireTrue(
+  JSON.stringify(target.public_portal_navigation_evidence?.verified_fragment_ids) === JSON.stringify(['main', 'universe', 'intelligence', 'partners', 'trust']),
+  'Public portal navigation evidence must record the currently verified fragment IDs.',
+);
+requireTrue(target.staging_project !== contract.source.project, 'Remote staging project must not reuse legacy project name.');
+requireTrue(target.canonical_project !== contract.source.project, 'Canonical target must not reuse legacy project name.');
+requireTrue(!policy.forbidden_new_deploy_targets?.includes(target.staging_project), 'Staging project is forbidden by estate policy.');
+requireTrue(!policy.forbidden_new_deploy_targets?.includes(target.canonical_project), 'Canonical project is forbidden by estate policy.');
+requireTrue(
+  [
+    'NOT_YET_PROVEN',
+    'EMPIRICALLY_PROVEN_PRIOR_REVISION',
+    'EMPIRICALLY_PROVEN_WITH_CURRENT_REVISION_PENDING',
+  ].includes(target.remote_staging_deployment),
+  'Remote staging deployment state must remain bounded to observed evidence and current-revision revalidation.',
+);
+if (target.remote_staging_evidence !== undefined) {
+  requireTrue(
+    typeof target.remote_staging_evidence === 'object' &&
+      typeof target.remote_staging_evidence?.observed_revision === 'string' &&
+      target.remote_staging_evidence.observed_revision.trim().length > 0,
+    'Remote staging evidence must record a non-empty observed_revision when present.',
+  );
+  if (target.remote_staging_deployment === 'EMPIRICALLY_PROVEN_PRIOR_REVISION') {
+    requireTrue(
+      target.remote_staging_evidence?.current_revision_revalidation === 'REQUIRED_AFTER_MERGE',
+      'Prior-revision staging evidence must explicitly require current-revision revalidation after merge.',
+    );
+  }
+}
 requireTrue(target.custom_domain_cutover === 'NOT_AUTHORIZED', 'Custom-domain cutover must remain unauthorized before G5.');
 requireTrue(target.production_public === 'HOLD_EXPLICIT_G5_APPROVAL_REQUIRED', 'Production/Public must remain explicit-G5 HOLD.');
 
@@ -174,6 +257,61 @@ const workspaceHtml = fs.readFileSync(target.canonical_workspace_entry, 'utf8');
 for (const marker of ['data-page="workspace"', 'data-workspace-context', 'data-workspace-mount', 'KIDULTS Intelligence Workspace']) {
   requireTrue(workspaceHtml.includes(marker), `Canonical Workspace entry missing marker: ${marker}`);
 }
+
+const publishRoot = target.canonical_publish_root;
+const portalIndexPath = `${publishRoot}/index.html`;
+const headersPath = `${publishRoot}/_headers`;
+const robotsPath = `${publishRoot}/robots.txt`;
+const notFoundPath = `${publishRoot}/404.html`;
+requireFile(portalIndexPath, 'Canonical portal entry');
+requireFile(headersPath, 'Pages security headers');
+requireFile(robotsPath, 'Robots policy');
+requireFile(notFoundPath, 'Real Pages 404 document');
+for (const retiredArtifact of ['deploy-v656.txt', 'deploy-v657.txt', 'deploy-v660.txt']) {
+  requireTrue(
+    !fs.existsSync(`${publishRoot}/${retiredArtifact}`),
+    `Retired deployment marker must not remain in the public publish root: ${retiredArtifact}`,
+  );
+}
+
+const portalIndex = fs.existsSync(portalIndexPath) ? fs.readFileSync(portalIndexPath, 'utf8') : '';
+const headers = fs.existsSync(headersPath) ? fs.readFileSync(headersPath, 'utf8') : '';
+const robots = fs.existsSync(robotsPath) ? fs.readFileSync(robotsPath, 'utf8') : '';
+const notFound = fs.existsSync(notFoundPath) ? fs.readFileSync(notFoundPath, 'utf8') : '';
+
+for (const [label, html] of [['Workspace', workspaceHtml], ['Portal', portalIndex], ['404', notFound]]) {
+  requireTrue(
+    /<meta\s+name=["']robots["']\s+content=["'][^"']*noindex[^"']*nofollow[^"']*["']/i.test(html),
+    `${label} must declare noindex,nofollow.`,
+  );
+}
+
+for (const marker of [
+  "Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'",
+  'X-Robots-Tag: noindex, nofollow, noarchive',
+  'X-Content-Type-Options: nosniff',
+  'X-Frame-Options: DENY',
+  'Referrer-Policy: strict-origin-when-cross-origin',
+  'Permissions-Policy: camera=(), microphone=(), geolocation=()',
+  'Strict-Transport-Security: max-age=31536000; includeSubDomains',
+  'Cross-Origin-Opener-Policy: same-origin',
+]) {
+  requireTrue(headers.includes(marker), `Pages security headers missing marker: ${marker}`);
+}
+requireTrue(/^User-agent:\s*\*$/im.test(robots), 'robots.txt must address all crawlers.');
+requireTrue(/^Disallow:\s*\/$/im.test(robots), 'robots.txt must disallow the entire staging surface.');
+
+for (const href of [
+  'https://kidults.com/',
+  'https://kidults.com/#main',
+  'https://kidults.com/#universe',
+  'https://kidults.com/#intelligence',
+  'https://kidults.com/#partners',
+  'https://kidults.com/#trust',
+]) {
+  requireTrue(workspaceHtml.includes(`href="${href}"`), `Workspace canonical public link missing: ${href}`);
+}
+requireTrue(!/href=["'](?:\.\/)?index\.html(?:#|["'])/i.test(workspaceHtml), 'Workspace must not use local index.html links that rewrite back to Workspace.');
 
 const risks = contract.source?.observed_risks || {};
 requireTrue(risks.raw_javascript_text_visible_in_ui === true, 'Observed raw-JS legacy risk must remain recorded until retirement.');
@@ -198,7 +336,7 @@ if (errors.length) {
 console.log(JSON.stringify({
   suite: 'KIDULTS_ENTERPRISE_WORKSPACE_CUTOVER_V1',
   result: 'PASS',
-  mutation_self_tests: 6,
+  mutation_self_tests: 11,
   source_state: contract.source.remote_observed_state,
   target_remote_staging: contract.target.remote_staging_deployment,
   production_public: contract.target.production_public,

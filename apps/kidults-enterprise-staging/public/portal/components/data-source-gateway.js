@@ -1,6 +1,6 @@
 const DEFAULT_TIMEOUT_MS = 4500;
-const ALLOWED_ACCESS = new Set(["PUBLIC_PAYLOAD", "PUBLIC_STATUS_ONLY", "INTERNAL_ONLY"]);
-const ALLOWED_POLICIES = new Set(["CONTRACT_GATED", "STATUS_ONLY", "NEVER"]);
+const ALLOWED_ACCESS = new Set(["PUBLIC_PAYLOAD", "PUBLIC_STATUS_ONLY"]);
+const ALLOWED_POLICIES = new Set(["CONTRACT_GATED", "STATUS_ONLY"]);
 
 function token(value) {
   return String(value ?? "NOT_AVAILABLE").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_");
@@ -88,7 +88,7 @@ function summarizeSource(source, validation, fetched, error) {
   let state = "WAITING";
   if (error) state = source.required ? "ERROR" : "UNAVAILABLE";
   else if (validation.publicationEligible) state = "VERIFIED_CONNECTED";
-  else if (fetched) state = source.access === "INTERNAL_ONLY" ? "SHADOW_CONNECTED" : "CONNECTED_NOT_PUBLISHABLE";
+  else if (fetched) state = source.publication_policy === "STATUS_ONLY" ? "STATUS_CONNECTED" : "CONNECTED_NOT_PUBLISHABLE";
 
   return Object.freeze({
     id: source.id,
@@ -144,22 +144,21 @@ export async function loadDataConnections({
     const summary = summarizeSource(source, validation, Boolean(payload), error);
     sources.push(summary);
 
-    // Internal provider-shadow payloads are deliberately never exposed to the public Portal runtime.
-    if (payload && source.access === "PUBLIC_PAYLOAD") payloads[source.id] = payload;
+    // Only contract-validated, publication-eligible overlays enter public runtime memory.
+    // Status projections stay summarized and internal sources are invalid manifest entries.
+    if (payload && validation.publicationEligible) payloads[source.id] = payload;
   }
 
   const requiredFailure = sources.some(source => source.required && source.state === "ERROR");
   const verifiedCount = sources.filter(source => source.publicationEligible).length;
-  const connectedOptionalCount = sources.filter(source =>
-    !source.required && ["VERIFIED_CONNECTED", "CONNECTED_NOT_PUBLISHABLE", "SHADOW_CONNECTED"].includes(source.state)
-  ).length;
+  const statusConnectedCount = sources.filter(source => source.state === "STATUS_CONNECTED").length;
 
   const state = requiredFailure
     ? "DEGRADED"
     : verifiedCount > 0
       ? "VERIFIED_CONNECTED"
-      : connectedOptionalCount > 0
-        ? "SHADOW_CONNECTED"
+      : statusConnectedCount > 0
+        ? "PUBLIC_STATUS_CONNECTED"
         : "BASELINE_ONLY";
 
   return Object.freeze({

@@ -1,14 +1,14 @@
 {
   "registry_id": "kidults-provider-registry",
   "registry_name": "Provider Registry",
-  "registry_version": "1.1.0",
+  "registry_version": "1.2.0",
   "schema_version": "1.0.0",
   "owner": "Program Owner / Provider Lead",
   "custodian": "Atlas",
   "status": "ACTIVE",
   "effective_at": "2026-08-16T04:30:00+09:00",
   "record_directory": "records",
-  "record_count": 1,
+  "record_count": 3,
   "current_record_id": "provider-requirements-v1",
   "allowed_states": [
     "RESEARCHING",
@@ -24,6 +24,18 @@
       "path": "records/provider-requirements-v1.json",
       "version": "1.0.0",
       "status": "RESEARCHING"
+    },
+    {
+      "id": "kidults-provider-gap-matrix-v1",
+      "path": "records/provider-gap-matrix-v1.json",
+      "version": "1.0.0",
+      "status": "FOUNDATION_ACTIVE"
+    },
+    {
+      "id": "kidults-provider-shadow-v1",
+      "path": "records/provider-shadow-v1.json",
+      "version": "1.0.0",
+      "status": "WAITING_FOR_PROVIDER_REGISTRATION"
     }
   ],
   "change_history": [
@@ -32,6 +44,12 @@
       "changed_at": "2026-08-16T04:30:00+09:00",
       "changed_by": "KPMO / Atlas",
       "change": "Registered the provider-neutral requirements and gap matrix. No vendor, credential or Production connection was activated."
+    },
+    {
+      "version": "1.2.0",
+      "changed_at": "2026-08-25T08:39:23Z",
+      "changed_by": "Codex / Data Boundary Repair",
+      "change": "Moved the internal Provider shadow and full gap matrix out of the public Portal publish root and registered their durable internal records. Public output retains only an allowlisted status projection."
     }
   ]
 }

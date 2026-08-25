@@ -1,8 +1,8 @@
 {
   "manifest_id": "kidults-portal-data-source-manifest-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "FOUNDATION_ACTIVE",
-  "generated_at": "2026-08-16T04:30:00+09:00",
+  "generated_at": "2026-08-25T08:39:23Z",
   "baseline_snapshot_id": "baseline-provider-independent-v1",
   "production_eligible": false,
   "rules": {
@@ -45,16 +45,19 @@
       ]
     },
     {
-      "id": "provider_gap_matrix",
-      "role": "PROVIDER_REQUIREMENTS",
-      "path": "data/provider-gap-matrix-v1.json?v=phase2-1",
+      "id": "provider_gap_status",
+      "role": "PROVIDER_REQUIREMENTS_STATUS",
+      "path": "data/provider-gap-status-v1.json?v=phase2-2",
       "required": true,
-      "access": "PUBLIC_PAYLOAD",
+      "access": "PUBLIC_STATUS_ONLY",
       "publication_policy": "STATUS_ONLY",
       "snapshot_binding": "NONE",
       "required_metadata": [
         "version",
-        "status"
+        "status",
+        "provider_registry_state",
+        "production_connection",
+        "dimension_count"
       ],
       "accepted_statuses": [
         "FOUNDATION_ACTIVE"
@@ -103,18 +106,6 @@
         "APPROVED",
         "PUBLISHED"
       ]
-    },
-    {
-      "id": "provider_shadow",
-      "role": "INTERNAL_PROVIDER_SHADOW",
-      "path": "data/provider-shadow.json?v=phase2-1",
-      "required": false,
-      "access": "INTERNAL_ONLY",
-      "publication_policy": "NEVER",
-      "snapshot_binding": "NONE",
-      "status_path": "status",
-      "required_metadata": [],
-      "accepted_statuses": []
     },
     {
       "id": "runtime_health",

@@ -9,7 +9,8 @@
   "production_connection": false,
   "credentials_registered": false,
   "provider_selection": "NOT_STARTED",
-  "source_of_truth": "apps/kidults-enterprise-staging/public/portal/data/provider-gap-matrix-v1.json",
+  "source_of_truth": "coordination/kidults/registry/provider/records/provider-gap-matrix-v1.json",
+  "public_status_projection": "apps/kidults-enterprise-staging/public/portal/data/provider-gap-status-v1.json",
   "required_capabilities": [
     {
       "dimension": "sold-transaction-pricing",

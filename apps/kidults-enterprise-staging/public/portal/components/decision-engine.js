@@ -1,3 +1,5 @@
+import { resolveEmpiricalGateState } from "./empirical-truth-gate.js";
+
 const ROOT_ID = "kidults-decision-engine";
 const STYLE_ID = "kidults-decision-engine-style";
 
@@ -10,7 +12,9 @@ const DEFAULT_CONTRACT = Object.freeze({
   guidance_states: ["REVIEW_FIRST", "REVIEW", "OBSERVE", "WAITING"],
   gate_states: [
     "CURRENT",
+    "SOURCE_MISMATCH",
     "WAITING_FOR_CANDIDATE",
+    "WAITING_FOR_EVIDENCE",
     "WAITING_FOR_ASSESSMENT",
     "PREVIEW_ONLY",
     "NOT_AVAILABLE"
@@ -104,6 +108,8 @@ function contextFor(data) {
     sourceMode: data.verticals?.source_mode ?? manifest.source_mode ?? "NOT AVAILABLE",
     candidate: registry.snapshot?.candidate_id ?? registry.snapshot?.candidate_status ?? "WAITING",
     candidateReady: Boolean(registry.snapshot?.candidate_id),
+    evidence: registry.evidence?.current_package_id ?? registry.evidence?.status ?? "WAITING",
+    evidenceReady: Boolean(registry.evidence?.current_package_id),
     assessment: registry.assessment?.current_id ?? registry.assessment?.status ?? "WAITING",
     assessmentReady: Boolean(registry.assessment?.current_id),
     production: registry.release?.status ?? "NOT AVAILABLE",
@@ -113,14 +119,6 @@ function contextFor(data) {
     registryAsOf: registry.freshness?.as_of ?? registry.generated_at ?? null,
     release: manifest.status ?? "NOT AVAILABLE"
   };
-}
-
-function resolveGateState(context) {
-  if (!context.registryConnected) return "NOT_AVAILABLE";
-  if (!context.candidateReady) return "WAITING_FOR_CANDIDATE";
-  if (!context.assessmentReady) return "WAITING_FOR_ASSESSMENT";
-  if (!context.productionReady) return "PREVIEW_ONLY";
-  return "CURRENT";
 }
 
 function guidanceFor(vertical) {
@@ -149,12 +147,18 @@ function guidanceReason(vertical) {
 function gateRows(context) {
   return [
     ["Registry", context.registryConnected ? "CONNECTED" : "NOT AVAILABLE"],
+    ["Source binding", dataSourceBinding(context)],
     ["Candidate", context.candidate],
+    ["Evidence", context.evidence],
     ["Assessment", context.assessment],
     ["Production", context.production],
     ["Methodology", context.methodology],
     ["Evidence lineage", context.evidenceLineage]
   ];
+}
+
+function dataSourceBinding(context) {
+  return context.snapshot === "NOT AVAILABLE" ? "NOT AVAILABLE" : context.snapshot;
 }
 
 function limitationsFor(data, context) {
@@ -166,6 +170,7 @@ function limitationsFor(data, context) {
   ];
 
   if (!context.candidateReady) limitations.push("No Candidate Snapshot is registered.");
+  if (!context.evidenceReady) limitations.push("No bounded Evidence Package is registered.");
   if (!context.assessmentReady) limitations.push("No independent Track B Rankability Assessment is registered.");
   if (!context.productionReady) limitations.push("The current release is not approved as Production intelligence.");
   if (String(context.methodology).includes("NOT")) limitations.push("The formal methodology version is not registered.");
@@ -177,21 +182,24 @@ function limitationsFor(data, context) {
   return limitations;
 }
 
-function buildModel(data, contract) {
+export function buildModel(data, contract) {
   const context = contextFor(data);
+  const gateState = resolveEmpiricalGateState(data);
   const structural = sortedByStructure(data);
-  const queue = sortedByObservation(data)
-    .slice(0, contract.max_items)
-    .map(vertical => ({
-      vertical,
-      structuralIndex: structural.findIndex(item => item.id === vertical.id),
-      guidance: guidanceFor(vertical),
-      reason: guidanceReason(vertical)
-    }));
+  const queue = gateState === "CURRENT"
+    ? sortedByObservation(data)
+      .slice(0, contract.max_items)
+      .map(vertical => ({
+        vertical,
+        structuralIndex: structural.findIndex(item => item.id === vertical.id),
+        guidance: guidanceFor(vertical),
+        reason: guidanceReason(vertical)
+      }))
+    : [];
 
   return {
     context,
-    gateState: resolveGateState(context),
+    gateState,
     queue,
     leader: queue[0]?.vertical ?? null,
     gates: gateRows(context),
@@ -201,6 +209,7 @@ function buildModel(data, contract) {
       ["Snapshot", context.snapshot],
       ["Source mode", context.sourceMode],
       ["Candidate", context.candidate],
+      ["Evidence", context.evidence],
       ["Assessment", context.assessment],
       ["Methodology", context.methodology],
       ["Evidence lineage", context.evidenceLineage],
@@ -249,8 +258,8 @@ function ensureRoot() {
       </div>
 
       <div class="decision-engine__section-head">
-        <div><p class="eyebrow">TOP REVIEW QUEUE</p><h3>Five current priorities, one traceable basis.</h3></div>
-        <p>Priority follows current observation order. It is not a market rank, recommendation to transact or independent assessment.</p>
+        <div><p class="eyebrow">TOP REVIEW QUEUE</p><h3 data-decision-queue-title>Five current priorities, one traceable basis.</h3></div>
+        <p data-decision-queue-summary>Priority follows current observation order. It is not a market rank, recommendation to transact or independent assessment.</p>
       </div>
 
       <div class="decision-engine__queue" data-decision-queue></div>
@@ -305,7 +314,7 @@ function renderPrimary(node, model) {
     node.innerHTML = `
       <p class="eyebrow">CURRENT PRIORITY</p>
       <h3>WAITING</h3>
-      <p>No registered Core Vertical is available for review guidance.</p>
+      <p>Review guidance is unavailable while the decision gate is ${esc(human(model.gateState))}. Candidate, independent Assessment and Production approval are required.</p>
     `;
     return;
   }
@@ -359,9 +368,25 @@ function renderModel(root, model) {
   renderPairs(root.querySelector("[data-decision-gates]"), model.gates);
   renderPairs(root.querySelector("[data-decision-traceability]"), model.traceability);
 
-  root.querySelector("[data-decision-queue]").innerHTML = model.queue
-    .map((item, index) => queueCard(item, model, index))
-    .join("");
+  const queueTitle = root.querySelector("[data-decision-queue-title]");
+  const queueSummary = root.querySelector("[data-decision-queue-summary]");
+  const queue = root.querySelector("[data-decision-queue]");
+  const guidanceAvailable = model.gateState === "CURRENT";
+
+  queueTitle.textContent = guidanceAvailable
+    ? "Five current priorities, one traceable basis."
+    : "Review queue unavailable.";
+  queueSummary.textContent = guidanceAvailable
+    ? "Priority follows current observation order. It is not a market rank, recommendation to transact or independent assessment."
+    : "The queue remains fail-closed until Candidate, independent Assessment and Production gates are current.";
+  queue.innerHTML = guidanceAvailable
+    ? model.queue.map((item, index) => queueCard(item, model, index)).join("")
+    : `
+      <article class="decision-engine__locked" role="status">
+        <b>${esc(human(model.gateState))}</b>
+        <p>No priority, recommendation or action is issued from the structural baseline.</p>
+      </article>
+    `;
 
   root.querySelector("[data-decision-limitations]").innerHTML = model.limitations
     .map(limit => `<li>${esc(limit)}</li>`)
@@ -370,6 +395,10 @@ function renderModel(root, model) {
 
 function openWhy(index) {
   if (!Number.isInteger(index) || index < 0) return;
+  if (window.KIDULTS_WHY?.open) {
+    window.KIDULTS_WHY.open("vertical", index);
+    return;
+  }
   document.querySelector(`[data-why-type="vertical"][data-why-index="${index}"]`)?.click();
 }
 

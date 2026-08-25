@@ -76,9 +76,12 @@ for (const marker of [
   'href="workspace-page.css?v=662"',
   'data-workspace-context',
   'data-workspace-mount',
-  'href="index.html"'
+  'href="https://kidults.com/"'
 ]) {
   if (!workspaceHtml.includes(marker)) errors.push(`Workspace page marker missing: ${marker}`);
+}
+if (/href=["'](?:\.\/)?index\.html(?:#|["'])/i.test(workspaceHtml)) {
+  errors.push("Workspace page must not restore local index.html links that rewrite back to Workspace.");
 }
 if (workspaceHtml.includes("workspace-page-intro")) errors.push("Workspace page contains a duplicate visible introduction.");
 

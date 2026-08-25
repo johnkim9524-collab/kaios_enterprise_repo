@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const errors = [];
@@ -58,10 +59,86 @@ const contract = readJson(paths.contract);
 const verticalData = readJson(paths.verticals);
 const registry = readJson(paths.registry);
 
+async function validateGateMatrix() {
+  if (!engine || !contract || !verticalData || !registry) return;
+
+  let buildModel;
+  try {
+    ({ buildModel } = await import(pathToFileURL(absolute(paths.engine)).href));
+  } catch (error) {
+    errors.push(`Decision Engine behavioral import failed: ${error.message}`);
+    return;
+  }
+
+  if (typeof buildModel !== "function") {
+    errors.push("Decision Engine must export buildModel for behavioral gate validation.");
+    return;
+  }
+
+  const fixture = ({ connected, sourceMatch = true, candidate, evidence, assessment, production }) => ({
+    meta: { registryProjectionConnected: connected },
+    manifest: {
+      snapshot_id: verticalData.source_snapshot_id,
+      source_mode: verticalData.source_mode,
+      methodology_version: "methodology-test-v1",
+      evidence_lineage_version: "evidence-test-v1",
+      status: "RELEASE_CANDIDATE",
+      production: production === "PRODUCTION"
+    },
+    verticals: structuredClone(verticalData),
+    registry: {
+      ...structuredClone(registry),
+      snapshot: {
+        ...(registry.snapshot ?? {}),
+        baseline_id: sourceMatch ? verticalData.source_snapshot_id : "different-baseline-test",
+        candidate_id: candidate,
+        candidate_status: candidate ? "REGISTERED" : "WAITING_FOR_NEW_BOUNDED_POC_CANDIDATE"
+      },
+      evidence: {
+        ...(registry.evidence ?? {}),
+        current_package_id: evidence,
+        status: evidence ? "REGISTERED" : "WAITING_FOR_NEW_BOUNDED_POC_EVIDENCE_PACKAGE"
+      },
+      assessment: {
+        ...(registry.assessment ?? {}),
+        current_id: assessment,
+        status: assessment ? "REGISTERED" : "WAITING_FOR_SNAPSHOT"
+      },
+      release: {
+        ...(registry.release ?? {}),
+        status: production
+      }
+    }
+  });
+
+  const cases = [
+    ["NOT_AVAILABLE", fixture({ connected: false, candidate: null, evidence: null, assessment: null, production: "HOLD" }), 0],
+    ["SOURCE_MISMATCH", fixture({ connected: true, sourceMatch: false, candidate: "candidate-test", evidence: "evidence-test", assessment: "assessment-test", production: "PRODUCTION" }), 0],
+    ["WAITING_FOR_CANDIDATE", fixture({ connected: true, candidate: null, evidence: null, assessment: null, production: "HOLD" }), 0],
+    ["WAITING_FOR_EVIDENCE", fixture({ connected: true, candidate: "candidate-test", evidence: null, assessment: null, production: "HOLD" }), 0],
+    ["WAITING_FOR_ASSESSMENT", fixture({ connected: true, candidate: "candidate-test", evidence: "evidence-test", assessment: null, production: "HOLD" }), 0],
+    ["PREVIEW_ONLY", fixture({ connected: true, candidate: "candidate-test", evidence: "evidence-test", assessment: "assessment-test", production: "HOLD" }), 0],
+    ["CURRENT", fixture({ connected: true, candidate: "candidate-test", evidence: "evidence-test", assessment: "assessment-test", production: "PRODUCTION" }), contract.max_items]
+  ];
+
+  for (const [expectedState, data, expectedQueueLength] of cases) {
+    const model = buildModel(data, contract);
+    if (model.gateState !== expectedState) {
+      errors.push(`Decision gate matrix expected ${expectedState}, received ${model.gateState}.`);
+    }
+    if (model.queue.length !== expectedQueueLength) {
+      errors.push(`Decision gate ${expectedState} must expose ${expectedQueueLength} queue item(s), found ${model.queue.length}.`);
+    }
+    if (expectedState !== "CURRENT" && model.leader !== null) {
+      errors.push(`Decision gate ${expectedState} must not expose a leader/action target.`);
+    }
+  }
+}
+
 for (const marker of [
   "startDecisionEngine",
   "buildModel",
-  "resolveGateState",
+  "resolveEmpiricalGateState",
   "guidanceFor",
   "guidanceReason",
   "limitationsFor",
@@ -78,8 +155,10 @@ for (const marker of [
   "REVIEW",
   "OBSERVE",
   "WAITING_FOR_CANDIDATE",
+  "WAITING_FOR_EVIDENCE",
   "WAITING_FOR_ASSESSMENT",
-  "PREVIEW_ONLY"
+  "PREVIEW_ONLY",
+  "SOURCE_MISMATCH"
 ]) {
   if (!engine.includes(marker) && !JSON.stringify(contract).includes(marker)) {
     errors.push(`Decision Engine missing state: ${marker}`);
@@ -144,12 +223,26 @@ if (contract) {
   const gates = new Set(contract.gate_states ?? []);
   for (const state of [
     "CURRENT",
+    "SOURCE_MISMATCH",
     "WAITING_FOR_CANDIDATE",
+    "WAITING_FOR_EVIDENCE",
     "WAITING_FOR_ASSESSMENT",
     "PREVIEW_ONLY",
     "NOT_AVAILABLE"
   ]) {
     if (!gates.has(state)) errors.push(`Decision contract missing gate state: ${state}`);
+  }
+
+  const failClosed = new Set(contract.fail_closed_states ?? []);
+  for (const state of [
+    "NOT_AVAILABLE",
+    "SOURCE_MISMATCH",
+    "WAITING_FOR_CANDIDATE",
+    "WAITING_FOR_EVIDENCE",
+    "WAITING_FOR_ASSESSMENT",
+    "PREVIEW_ONLY"
+  ]) {
+    if (!failClosed.has(state)) errors.push(`Decision contract missing fail-closed state: ${state}`);
   }
 
   const rules = contract.truth_rules ?? {};
@@ -223,6 +316,17 @@ if (!engine.includes("Source registry") || !engine.includes("Snapshot") || !engi
 if (!engine.includes("data-decision-why-index")) errors.push("Decision Engine does not integrate with WHY.");
 if (!engine.includes("data-decision-compare-left")) errors.push("Decision Engine does not integrate with Compare.");
 if (!engine.includes("data-decision-ask")) errors.push("Decision Engine does not integrate with Copilot.");
+if (!engine.includes('const queue = gateState === "CURRENT"')) {
+  errors.push("Decision queue is not structurally gated to CURRENT.");
+}
+if (!engine.includes('const guidanceAvailable = model.gateState === "CURRENT"')) {
+  errors.push("Decision actions/rendering are not structurally gated to CURRENT.");
+}
+if (!engine.includes("No priority, recommendation or action is issued from the structural baseline.")) {
+  errors.push("Fail-closed Decision rendering does not explicitly suppress priority and actions.");
+}
+
+await validateGateMatrix();
 
 if (errors.length) {
   console.error(`KIDULTS Decision Engine validation: FAIL (${errors.length} error(s), ${warnings.length} warning(s))`);
@@ -231,5 +335,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Decision Engine validation: PASS (dedicated Workspace route, 5 priorities, 5 gate states, truth-first)");
+console.log("KIDULTS Decision Engine validation: PASS (dedicated route, 7-state empirical gate, queue/actions only when CURRENT)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

@@ -215,6 +215,27 @@
   gap:11px;
   margin-top:24px
 }
+.decision-engine__locked{
+  grid-column:1/-1;
+  border:1px solid rgba(216,189,114,.38);
+  border-radius:15px;
+  background:rgba(216,189,114,.055);
+  padding:clamp(22px,4vw,38px)
+}
+.decision-engine__locked b{
+  display:block;
+  font-size:9px;
+  line-height:1.4;
+  letter-spacing:.1em;
+  color:#d8bd72
+}
+.decision-engine__locked p{
+  max-width:680px;
+  margin:10px 0 0;
+  font-size:12px;
+  line-height:1.7;
+  color:rgba(255,255,255,.62)
+}
 .decision-engine__card{
   min-width:0;
   display:flex;

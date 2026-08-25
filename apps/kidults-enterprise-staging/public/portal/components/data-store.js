@@ -243,3 +243,52 @@ export async function loadPortalData() {
     }
   };
 }
+
+export async function loadWorkspaceData() {
+  const [
+    manifest,
+    registry,
+    why,
+    copilot,
+    compare,
+    decision,
+    workspace,
+    verticals,
+    summary,
+    k100,
+    research
+  ] = await Promise.all([
+    getJson(LOCAL.manifest),
+    getJson(LOCAL.registry),
+    getJson(LOCAL.why),
+    getJson(LOCAL.copilot),
+    getJson(LOCAL.compare),
+    getJson(LOCAL.decision),
+    getJson(LOCAL.workspace),
+    getJson(LOCAL.verticals),
+    getJson(LOCAL.summary),
+    getJson(LOCAL.k100),
+    getJson(LOCAL.research)
+  ]);
+
+  return {
+    manifest,
+    registry,
+    why,
+    copilot,
+    compare,
+    decision,
+    workspace,
+    verticals,
+    summary,
+    k100,
+    research,
+    signals: null,
+    meta: {
+      verifiedFields: 0,
+      registryProjectionConnected: Boolean(registry),
+      dataConnectionState: "WORKSPACE_MINIMAL",
+      releaseCandidate: manifest.status === "RELEASE_CANDIDATE"
+    }
+  };
+}

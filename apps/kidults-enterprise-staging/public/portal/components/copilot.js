@@ -1,3 +1,5 @@
+import { empiricalTruthContext, resolveEmpiricalGateState } from "./empirical-truth-gate.js";
+
 const ROOT_ID = "kidults-copilot";
 const STYLE_ID = "kidults-copilot-style";
 
@@ -94,13 +96,13 @@ function currentContext(data) {
   return {
     snapshot: manifest.snapshot_id ?? registry.snapshot?.baseline_id ?? "NOT AVAILABLE",
     candidate: registry.snapshot?.candidate_id ?? registry.snapshot?.candidate_status ?? "WAITING",
+    evidence: registry.evidence?.current_package_id ?? registry.evidence?.status ?? "WAITING",
     assessment: registry.assessment?.current_id ?? registry.assessment?.status ?? "WAITING",
     production: registry.release?.status ?? "NOT AVAILABLE",
     methodology: manifest.methodology_version ?? registry.versions?.methodology ?? "NOT REGISTERED",
     evidenceLineage: manifest.evidence_lineage_version ?? registry.versions?.evidence_lineage ?? "NOT REGISTERED",
     sourceMode: manifest.source_mode ?? "NOT AVAILABLE",
-    registryAsOf: registry.freshness?.as_of ?? registry.generated_at ?? null,
-    release: manifest.status ?? "NOT AVAILABLE"
+    registryAsOf: registry.freshness?.as_of ?? registry.generated_at ?? null
   };
 }
 
@@ -110,6 +112,7 @@ function baseTraceability(data, sourceRecord) {
     ["Source record", sourceRecord],
     ["Snapshot", context.snapshot],
     ["Candidate", context.candidate],
+    ["Evidence", context.evidence],
     ["Assessment", context.assessment],
     ["Methodology", context.methodology],
     ["Evidence lineage", context.evidenceLineage],
@@ -127,6 +130,9 @@ function baseLimitations(data) {
   }
   if (!data.registry?.snapshot?.candidate_id) {
     limitations.push("No Candidate Snapshot is registered.");
+  }
+  if (!data.registry?.evidence?.current_package_id) {
+    limitations.push("No bounded Evidence Package is registered.");
   }
   if (!data.registry?.assessment?.current_id) {
     limitations.push("No independent Rankability Assessment is registered.");
@@ -259,7 +265,7 @@ function leadingVerticalAnswer(data) {
     traceability: baseTraceability(data, data.verticals?.source_registry ?? "portal/data/verticals.json"),
     actions: [
       { label: "Open WHY", kind: "why", targetType: "vertical", targetIndex: structuralIndex },
-      { label: `Explore ${leader.short_name || leader.name}`, kind: "link", href: `vertical.html?id=${encodeURIComponent(leader.id)}` }
+      { label: `Explore ${leader.short_name || leader.name}`, kind: "link", href: "https://kidults.com/#universe" }
     ]
   };
 }
@@ -279,7 +285,7 @@ function changeAnswer(data) {
     eyebrow: "CURRENT REGISTERED STATE",
     title: "What the portal can verify now",
     summary:
-      "Copilot can describe the current registered state, but it will not claim a new change unless a previous observation or registered change event exists. The Living Pulse panel performs browser-to-browser delta detection.",
+      "Copilot can describe the current registered state, but it will not claim a new change unless a previous observation or registered change event exists.",
     state: "FAIL CLOSED",
     facts: [
       ["Candidate", context.candidate],
@@ -295,8 +301,7 @@ function changeAnswer(data) {
     ],
     traceability: baseTraceability(data, "portal/data/registry-view.json"),
     actions: [
-      { label: "Open Living Pulse", kind: "pulse" },
-      { label: "View research", kind: "link", href: "#research" }
+      { label: "View intelligence", kind: "link", href: "https://kidults.com/#intelligence" }
     ]
   };
 }
@@ -333,7 +338,7 @@ function evidenceAnswer(data) {
     traceability: baseTraceability(data, "portal/data/portal-summary.json"),
     actions: [
       { label: "Open Evidence WHY", kind: "why", targetType: "operation", targetIndex: Math.max(0, data.summary?.operations?.findIndex(item => item.label === "EVIDENCE OBJECTS") ?? 0) },
-      { label: "View evidence landscape", kind: "link", href: "#evidence-title" }
+      { label: "View evidence principles", kind: "link", href: "https://kidults.com/#trust" }
     ]
   };
 }
@@ -375,7 +380,7 @@ function reviewAnswer(data) {
     traceability: baseTraceability(data, data.verticals?.source_registry ?? "portal/data/verticals.json"),
     actions: [
       { label: "Open WHY", kind: "why", targetType: "vertical", targetIndex: structuralIndex },
-      { label: "Open research", kind: "link", href: "#research" }
+      { label: "Open intelligence", kind: "link", href: "https://kidults.com/#intelligence" }
     ]
   };
 }
@@ -409,7 +414,7 @@ function verticalAnswer(data, match) {
     traceability: baseTraceability(data, data.verticals?.source_registry ?? "portal/data/verticals.json"),
     actions: [
       { label: "Open WHY", kind: "why", targetType: "vertical", targetIndex: index },
-      { label: "Explore vertical", kind: "link", href: `vertical.html?id=${encodeURIComponent(vertical.id)}` }
+      { label: "Explore verticals", kind: "link", href: "https://kidults.com/#universe" }
     ]
   };
 }
@@ -445,7 +450,7 @@ function objectAnswer(data, match) {
     traceability: baseTraceability(data, "portal/data/kidult100.json"),
     actions: [
       { label: "Open WHY", kind: "why", targetType: "object", targetIndex: index },
-      { label: "Open provenance", kind: "link", href: `object.html?id=${encodeURIComponent(item.id)}` }
+      { label: "Open trust principles", kind: "link", href: "https://kidults.com/#trust" }
     ]
   };
 }
@@ -518,7 +523,7 @@ function fallbackAnswer(data) {
       ["Snapshot", context.snapshot],
       ["Candidate", context.candidate],
       ["Assessment", context.assessment],
-      ["Release", context.release]
+      ["Production", context.production]
     ],
     evidence: [
       ["Supported", "Why the current leading vertical appears first"],
@@ -536,12 +541,68 @@ function fallbackAnswer(data) {
   };
 }
 
-function routeQuestion(question, data) {
+function gatedAnswer(data) {
+  const gateState = resolveEmpiricalGateState(data);
+  const gate = empiricalTruthContext(data);
+  return {
+    intent: "empirical-gate",
+    eyebrow: "EMPIRICAL TRUTH GATE",
+    title: "Empirical intelligence is not available yet",
+    summary:
+      "This Workspace withholds comparisons, priorities and evidence-derived metrics until a Candidate Snapshot, bounded Evidence Package, independent Assessment and Production approval are all registered.",
+    state: gateState,
+    facts: [
+      ["Candidate", gate.candidate],
+      ["Evidence", gate.evidence],
+      ["Assessment", gate.assessment],
+      ["Production", gate.production]
+    ],
+    evidence: [
+      ["Metrics", "WITHHELD"],
+      ["Recommendations", "WITHHELD"],
+      ["Current gate", human(gateState)]
+    ],
+    limitations: [
+      ...baseLimitations(data),
+      "The structural taxonomy remains visible, but it is not used to issue empirical guidance."
+    ],
+    traceability: baseTraceability(data, "portal/data/registry-view.json"),
+    comparison: null,
+    actions: []
+  };
+}
+
+export function buildCopilotAnswer(question, data) {
   const normalized = normalizeQuestion(question);
   const verticalMatches = findVerticalsInQuestion(normalized, data);
   const objectMatch = findObjectInQuestion(normalized, data);
 
   if (!normalized) return fallbackAnswer(data);
+
+  const controlledIntent =
+    normalized.includes("compare") ||
+    normalized.includes(" versus ") ||
+    normalized.includes(" vs ") ||
+    normalized.includes("what changed") ||
+    normalized.includes("changed today") ||
+    normalized.includes("changes today") ||
+    normalized.includes("new evidence") ||
+    normalized.includes("show evidence") ||
+    normalized.includes("current evidence") ||
+    normalized === "evidence" ||
+    normalized.includes("what should i review") ||
+    normalized.includes("review today") ||
+    normalized.includes("what to review") ||
+    normalized.includes("where should i start") ||
+    normalized.includes("leading") ||
+    normalized.includes("first") ||
+    normalized.includes("observation order 1") ||
+    Boolean(objectMatch) ||
+    verticalMatches.length > 0;
+
+  if (controlledIntent && resolveEmpiricalGateState(data) !== "CURRENT") {
+    return gatedAnswer(data);
+  }
 
   if (
     normalized.includes("compare") ||
@@ -774,16 +835,15 @@ function executeAction(action) {
   if (!action) return;
 
   if (action.kind === "why") {
+    if (window.KIDULTS_WHY?.open) {
+      window.KIDULTS_WHY.open(action.targetType, Number(action.targetIndex));
+      return;
+    }
     const trigger = document.querySelector(
       `[data-why-type="${CSS.escape(action.targetType)}"][data-why-index="${Number(action.targetIndex)}"]`
     );
     trigger?.click();
     return;
-  }
-
-  if (action.kind === "pulse") {
-    const trigger = document.querySelector("[data-pulse-toggle]");
-    trigger?.click();
   }
 }
 
@@ -798,7 +858,7 @@ export function startCopilot({ data, contract } = {}) {
   const ask = question => {
     const text = String(question ?? "").trim();
     input.value = text;
-    const answer = routeQuestion(text, data);
+    const answer = buildCopilotAnswer(text, data);
     renderAnswer(root, answer);
     return answer;
   };

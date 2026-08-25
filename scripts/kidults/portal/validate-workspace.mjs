@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const errors = [];
@@ -38,9 +39,14 @@ const paths = {
   workspaceHtml: "apps/kidults-enterprise-staging/public/portal/workspace.html",
   workspacePage: "apps/kidults-enterprise-staging/public/portal/workspace-page.js",
   workspacePageCss: "apps/kidults-enterprise-staging/public/portal/workspace-page.css",
+  workspaceRoute: "apps/kidults-enterprise-staging/public/portal/components/workspace-route.js",
+  interactions: "apps/kidults-enterprise-staging/public/portal/components/interactions.js",
   store: "apps/kidults-enterprise-staging/public/portal/components/data-store.js",
   copilot: "apps/kidults-enterprise-staging/public/portal/components/copilot.js",
   compare: "apps/kidults-enterprise-staging/public/portal/components/compare-engine.js",
+  compareContract: "apps/kidults-enterprise-staging/public/portal/data/compare-engine-contract.json",
+  verticals: "apps/kidults-enterprise-staging/public/portal/data/verticals.json",
+  registry: "apps/kidults-enterprise-staging/public/portal/data/registry-view.json",
   decision: "apps/kidults-enterprise-staging/public/portal/components/decision-engine.js"
 };
 
@@ -50,11 +56,122 @@ const portal = readText(paths.portal);
 const workspaceHtml = readText(paths.workspaceHtml);
 const workspacePage = readText(paths.workspacePage);
 const workspacePageCss = readText(paths.workspacePageCss);
+const workspaceRoute = readText(paths.workspaceRoute);
+const interactions = readText(paths.interactions);
 const store = readText(paths.store);
 const copilot = readText(paths.copilot);
 const compare = readText(paths.compare);
 const decision = readText(paths.decision);
 const contract = readJson(paths.contract);
+const compareContract = readJson(paths.compareContract);
+const verticalData = readJson(paths.verticals);
+const registry = readJson(paths.registry);
+
+async function validateWorkspaceRouting() {
+  if (!workspaceRoute) return;
+
+  let resolveWorkspaceMode;
+  try {
+    ({ resolveWorkspaceMode } = await import(pathToFileURL(absolute(paths.workspaceRoute)).href));
+  } catch (error) {
+    errors.push(`Workspace route behavioral import failed: ${error.message}`);
+    return;
+  }
+
+  if (typeof resolveWorkspaceMode !== "function") {
+    errors.push("Workspace route must export resolveWorkspaceMode for behavioral deep-link validation.");
+    return;
+  }
+
+  const cases = [
+    ["https://enterprise.example/workspace#ask-kidults", "decision", "ask"],
+    ["https://enterprise.example/workspace#compare-intelligence", "ask", "compare"],
+    ["https://enterprise.example/workspace#decision-support", "ask", "decision"],
+    ["https://enterprise.example/workspace?mode=compare#ask-kidults", "ask", "ask"],
+    ["https://enterprise.example/workspace?mode=decide", "ask", "decision"],
+    ["https://enterprise.example/workspace#unknown", "compare", "compare"],
+    ["https://enterprise.example/workspace?mode=unknown#unknown", "invalid", "ask"]
+  ];
+
+  for (const [href, activeMode, expected] of cases) {
+    const actual = resolveWorkspaceMode({ href, activeMode });
+    if (actual !== expected) {
+      errors.push(`Workspace route ${href} expected ${expected}, received ${actual}.`);
+    }
+  }
+}
+
+async function validateCompareSnapshotInvariant() {
+  if (!compare || !compareContract || !verticalData || !registry) return;
+
+  let buildComparisonModel;
+  try {
+    ({ buildComparisonModel } = await import(pathToFileURL(absolute(paths.compare)).href));
+  } catch (error) {
+    errors.push(`Compare Engine behavioral import failed: ${error.message}`);
+    return;
+  }
+
+  if (typeof buildComparisonModel !== "function") {
+    errors.push("Compare Engine must export buildComparisonModel for snapshot-invariant validation.");
+    return;
+  }
+
+  const [left, right] = verticalData.verticals ?? [];
+  if (!left || !right) {
+    errors.push("Compare snapshot-invariant fixture requires two verticals.");
+    return;
+  }
+
+  const fixture = ({ connected = true, sourceMatch = true, candidate = "candidate-test", evidence = "evidence-test", assessment = "assessment-test", production = "PRODUCTION" } = {}) => ({
+    meta: { registryProjectionConnected: connected },
+    manifest: {
+      snapshot_id: verticalData.source_snapshot_id,
+      source_mode: verticalData.source_mode,
+      methodology_version: "methodology-test-v1",
+      evidence_lineage_version: "evidence-test-v1",
+      production: production === "PRODUCTION"
+    },
+    verticals: structuredClone(verticalData),
+    registry: {
+      ...structuredClone(registry),
+      snapshot: {
+        ...(registry.snapshot ?? {}),
+        baseline_id: sourceMatch ? verticalData.source_snapshot_id : "different-baseline-test",
+        candidate_id: candidate
+      },
+      evidence: { ...(registry.evidence ?? {}), current_package_id: evidence },
+      assessment: { ...(registry.assessment ?? {}), current_id: assessment },
+      release: { ...(registry.release ?? {}), status: production }
+    }
+  });
+
+  const current = buildComparisonModel(fixture(), left, right, compareContract);
+  if (current.gateState !== "CURRENT" || current.guidanceAvailable !== true) {
+    errors.push("Compare Engine must allow registered metrics only when source and Registry snapshots match and all gates are CURRENT.");
+  }
+  if (current.rows.some(row => row.leftValue === "NOT AVAILABLE" && row.rightValue === "NOT AVAILABLE")) {
+    errors.push("Compare Engine CURRENT fixture unexpectedly suppressed registered metrics.");
+  }
+
+  const failClosedCases = [
+    ["NOT_AVAILABLE", fixture({ connected: false })],
+    ["SOURCE_MISMATCH", fixture({ sourceMatch: false })],
+    ["WAITING_FOR_CANDIDATE", fixture({ candidate: null, evidence: null, assessment: null, production: "HOLD" })],
+    ["WAITING_FOR_EVIDENCE", fixture({ evidence: null, assessment: null, production: "HOLD" })],
+    ["WAITING_FOR_ASSESSMENT", fixture({ assessment: null, production: "HOLD" })],
+    ["PREVIEW_ONLY", fixture({ production: "HOLD" })]
+  ];
+  for (const [expectedState, data] of failClosedCases) {
+    const model = buildComparisonModel(data, left, right, compareContract);
+    if (model.gateState !== expectedState || model.guidanceAvailable !== false) {
+      errors.push(`Compare Engine gate ${expectedState} must fail closed; received ${model.gateState}.`);
+    }
+    if (model.rows.some(row => row.leftValue !== "NOT AVAILABLE" || row.rightValue !== "NOT AVAILABLE" || row.delta !== null)) {
+      errors.push(`Compare Engine exposed empirical metrics while gate ${expectedState} was not CURRENT.`);
+    }
+  }
+}
 
 for (const marker of [
   "startWorkspace",
@@ -111,7 +228,9 @@ if (workspaceHtml.includes("workspace-page-intro")) errors.push("Dedicated Works
 if (!workspacePageCss.includes(".workspace-page-status-section")) errors.push("Workspace route does not style the compact status section.");
 
 for (const marker of [
+  'import { loadWorkspaceData } from "./components/data-store.js";',
   'import { startWorkspace } from "./components/workspace.js";',
+  'import { resolveWorkspaceMode } from "./components/workspace-route.js";',
   'startCopilot({ data, contract: data.copilot })',
   'startCompareEngine({ data, contract: data.compare })',
   'startDecisionEngine({ data, contract: data.decision })',
@@ -121,6 +240,46 @@ for (const marker of [
   'mount.append(root)'
 ]) {
   if (!workspacePage.includes(marker)) errors.push(`Dedicated Workspace runtime missing marker: ${marker}`);
+}
+if (!workspacePage.includes("const data = await loadWorkspaceData()")) {
+  errors.push("Dedicated Workspace must use the minimal Workspace data loader.");
+}
+if (workspacePage.includes("loadPortalData")) {
+  errors.push("Dedicated Workspace must not fetch the full public Portal payload bundle.");
+}
+if (!workspacePage.includes("if (window.KIDULTS_WORKSPACE.state() !== mode)")) {
+  errors.push("Dedicated Workspace route can overwrite the requested initial deep link.");
+}
+if (!workspacePage.includes("updateUrl: false")) {
+  errors.push("Dedicated Workspace initial routing must preserve the requested URL.");
+}
+
+for (const marker of [
+  'event.key === "Escape"',
+  "close({ restoreFocus: true })",
+  'event.key !== "Tab"',
+  "event.shiftKey && document.activeElement === first",
+  "!event.shiftKey && document.activeElement === last",
+  'button.setAttribute("aria-expanded", "true")',
+  'button.setAttribute("aria-expanded", "false")'
+]) {
+  if (!interactions.includes(marker)) errors.push(`Workspace menu accessibility marker missing: ${marker}`);
+}
+
+for (const href of [
+  "https://kidults.com/",
+  "https://kidults.com/#main",
+  "https://kidults.com/#universe",
+  "https://kidults.com/#intelligence",
+  "https://kidults.com/#partners",
+  "https://kidults.com/#trust"
+]) {
+  if (!workspaceHtml.includes(`href="${href}"`)) {
+    errors.push(`Workspace public navigation must use the canonical portal URL: ${href}`);
+  }
+}
+if (/href=["'](?:\.\/)?index\.html(?:#|["'])/i.test(workspaceHtml)) {
+  errors.push("Workspace public navigation must not use local index.html links that rewrite back to Workspace.");
 }
 
 for (const prohibited of [
@@ -142,6 +301,24 @@ for (const marker of [
 
 if (!store.includes('workspace: "data/workspace-contract.json?v=650"')) {
   errors.push("data-store.js does not register the Workspace contract.");
+}
+if (!store.includes("export async function loadWorkspaceData()")) {
+  errors.push("data-store.js does not expose the minimal Workspace loader.");
+}
+for (const marker of [
+  "getJson(LOCAL.manifest)",
+  "getJson(LOCAL.registry)",
+  "getJson(LOCAL.why)",
+  "getJson(LOCAL.copilot)",
+  "getJson(LOCAL.compare)",
+  "getJson(LOCAL.decision)",
+  "getJson(LOCAL.workspace)",
+  "getJson(LOCAL.verticals)",
+  "getJson(LOCAL.summary)",
+  "getJson(LOCAL.k100)",
+  "getJson(LOCAL.research)"
+]) {
+  if (!store.includes(marker)) errors.push(`Minimal Workspace loader missing source: ${marker}`);
 }
 if (!store.includes("getJson(LOCAL.workspace)")) errors.push("data-store.js does not load the Workspace contract.");
 if (!store.includes("workspace,")) errors.push("data-store.js does not return the Workspace contract.");
@@ -198,6 +375,9 @@ if (!workspace.includes("data-decision-compare-left")) errors.push("Workspace do
 if (!workspace.includes("window.location.hash")) errors.push("Workspace does not read deep links.");
 if (!workspace.includes("history.replaceState")) errors.push("Workspace does not write deep links.");
 
+await validateWorkspaceRouting();
+await validateCompareSnapshotInvariant();
+
 if (errors.length) {
   console.error(`KIDULTS Workspace validation: FAIL (${errors.length} error(s), ${warnings.length} warning(s))`);
   for (const error of errors) console.error(`ERROR: ${error}`);
@@ -205,5 +385,5 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log("KIDULTS Workspace validation: PASS (dedicated route, one introduction, 3 keyboard-accessible panels, contract preserved)");
+console.log("KIDULTS Workspace validation: PASS (deep-link routing, menu focus controls, 3 panels, compare snapshot invariant)");
 for (const warning of warnings) console.warn(`WARN: ${warning}`);

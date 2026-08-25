@@ -1,0 +1,16 @@
+{
+  "id": "kidults-provider-shadow-v1",
+  "shadow_id": "kidults-provider-shadow-v1",
+  "record_type": "internal_provider_shadow",
+  "version": "1.0.0",
+  "status": "WAITING_FOR_PROVIDER_REGISTRATION",
+  "classification": "INTERNAL_PLATFORM_GOVERNANCE",
+  "access": "INTERNAL_ONLY",
+  "publication_eligible": false,
+  "provider_record_count": 0,
+  "active_provider_ids": [],
+  "credentials_present": false,
+  "production_connection": false,
+  "public_projection": false,
+  "note": "Provider payloads and shadow-connection records remain outside the public Portal publish root. Only a sanitized connection-status projection may be published."
+}

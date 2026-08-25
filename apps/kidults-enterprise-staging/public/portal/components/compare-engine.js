@@ -1,3 +1,5 @@
+import { resolveEmpiricalGateState } from "./empirical-truth-gate.js";
+
 const ROOT_ID = "kidults-compare-engine";
 const STYLE_ID = "kidults-compare-engine-style";
 
@@ -287,14 +289,43 @@ function differenceNarrative(left, right, rows) {
   return statements;
 }
 
-function comparisonModel(data, left, right) {
+function gatedRows() {
+  return [
+    ["right_data_coverage_pct", "Right Data coverage"],
+    ["demand_evidence_pct", "Demand evidence"],
+    ["relevant", "Relevant entities"],
+    ["demand_evidence_count", "Demand evidence records"],
+    ["scarcity_evidence_count", "Scarcity evidence records"],
+    ["current_observation_order", "Current observation order"],
+    ["structural_order", "Structural order"],
+    ["featured", "Current featured state"]
+  ].map(([key, label]) => ({
+    key,
+    label,
+    leftValue: "NOT AVAILABLE",
+    rightValue: "NOT AVAILABLE",
+    leftBar: null,
+    rightBar: null,
+    delta: null,
+    differenceLabel: "",
+    interpretation: "Withheld until the empirical truth gate is CURRENT."
+  }));
+}
+
+export function buildComparisonModel(data, left, right) {
   const context = currentContext(data);
-  const rows = buildRows(left, right);
+  const gateState = resolveEmpiricalGateState(data);
+  const guidanceAvailable = gateState === "CURRENT";
+  const rows = guidanceAvailable ? buildRows(left, right) : gatedRows();
   return {
     left,
     right,
+    gateState,
+    guidanceAvailable,
     rows,
-    narrative: differenceNarrative(left, right, rows),
+    narrative: guidanceAvailable
+      ? differenceNarrative(left, right, rows)
+      : ["Empirical differences are withheld until Candidate, Evidence, Assessment and Production gates are current."],
     limitations: baseLimitations(data),
     traceability: [
       ["Source registry", context.sourceRegistry],
@@ -404,7 +435,14 @@ function ensureRoot(verticals) {
   return root;
 }
 
-function profileMarkup(vertical, index) {
+function profileMarkup(vertical, index, guidanceAvailable) {
+  if (!guidanceAvailable) {
+    return `
+      <div class="compare-engine__profile-top"><b>STRUCTURAL TAXONOMY</b></div>
+      <h4>${esc(vertical.name)}</h4>
+      <p>Empirical profile and actions are withheld by the current truth gate.</p>
+    `;
+  }
   return `
     <div class="compare-engine__profile-top">
       <span>${String(vertical.structural_order).padStart(2, "0")}</span>
@@ -461,8 +499,11 @@ function renderModel(root, model, verticals) {
 
   root.querySelector("[data-compare-title]").textContent =
     `${model.left.short_name || model.left.name} vs ${model.right.short_name || model.right.name}`;
-  root.querySelector("[data-compare-left-profile]").innerHTML = profileMarkup(model.left, leftIndex);
-  root.querySelector("[data-compare-right-profile]").innerHTML = profileMarkup(model.right, rightIndex);
+  const state = root.querySelector("[data-compare-state]");
+  state.textContent = model.guidanceAvailable ? "REGISTRY GROUNDED" : human(model.gateState);
+  state.dataset.state = model.gateState;
+  root.querySelector("[data-compare-left-profile]").innerHTML = profileMarkup(model.left, leftIndex, model.guidanceAvailable);
+  root.querySelector("[data-compare-right-profile]").innerHTML = profileMarkup(model.right, rightIndex, model.guidanceAvailable);
   root.querySelector("[data-compare-table]").innerHTML = `
     <div class="compare-engine__table-head">
       <span>Metric</span>
@@ -530,6 +571,10 @@ function chooseDefaults(verticals, contract) {
 
 function openWhy(index) {
   if (!Number.isInteger(index) || index < 0) return;
+  if (window.KIDULTS_WHY?.open) {
+    window.KIDULTS_WHY.open("vertical", index);
+    return;
+  }
   const trigger = document.querySelector(`[data-why-type="vertical"][data-why-index="${index}"]`);
   trigger?.click();
 }
@@ -558,7 +603,7 @@ export function startCompareEngine({ data, contract } = {}) {
 
     leftSelect.value = left.id;
     rightSelect.value = right.id;
-    renderModel(root, comparisonModel(data, left, right), verticals);
+    renderModel(root, buildComparisonModel(data, left, right), verticals);
     if (updateUrl) writePairToUrl(left.id, right.id);
     if (scroll) root.scrollIntoView({ behavior: "smooth", block: "start" });
     return { leftId: left.id, rightId: right.id };

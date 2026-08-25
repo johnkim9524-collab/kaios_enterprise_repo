@@ -12,20 +12,55 @@ export function setupNavigation() {
   const nav = document.querySelector("#primary-nav");
   if (!button || !nav) return;
 
-  const close = () => {
+  const isOpen = () => button.getAttribute("aria-expanded") === "true";
+  const focusable = () => [...nav.querySelectorAll("a[href],button:not([disabled])"), button]
+    .filter(element => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+
+  const close = ({ restoreFocus = false } = {}) => {
     button.setAttribute("aria-expanded", "false");
     nav.classList.remove("is-open");
     document.body.classList.remove("menu-open");
+    if (restoreFocus) button.focus();
+  };
+
+  const open = () => {
+    button.setAttribute("aria-expanded", "true");
+    nav.classList.add("is-open");
+    document.body.classList.add("menu-open");
+    window.requestAnimationFrame(() => nav.querySelector("a[href]")?.focus());
   };
 
   button.addEventListener("click", () => {
-    const open = button.getAttribute("aria-expanded") === "true";
-    button.setAttribute("aria-expanded", String(!open));
-    nav.classList.toggle("is-open", !open);
-    document.body.classList.toggle("menu-open", !open);
+    if (isOpen()) close();
+    else open();
   });
 
   nav.querySelectorAll("a").forEach(link => link.addEventListener("click", close));
+  document.addEventListener("click", event => {
+    if (!isOpen() || button.contains(event.target) || nav.contains(event.target)) return;
+    close();
+  });
+  document.addEventListener("keydown", event => {
+    if (!isOpen()) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      close({ restoreFocus: true });
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const items = focusable();
+    if (!items.length) return;
+    const first = items[0];
+    const last = items.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
   window.addEventListener("resize", () => {
     if (window.innerWidth > 1020) close();
   }, { passive: true });
