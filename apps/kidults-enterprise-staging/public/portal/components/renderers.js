@@ -56,21 +56,9 @@ export function renderHero(manifest) {
 export function renderRegistryRibbon(registry, manifest) {
   const ribbon = target("[data-registry-ribbon]");
   const items = [
-    {
-      label: "Baseline",
-      value: registry.snapshot.baseline_id,
-      state: "BASELINE"
-    },
-    {
-      label: "Data contract",
-      value: manifest.version.toUpperCase(),
-      state: manifest.status
-    },
-    {
-      label: "Source",
-      value: manifest.source_mode.replaceAll("_", " "),
-      state: "CURRENT"
-    },
+    { label: "Baseline", value: registry.snapshot.baseline_id, state: "BASELINE" },
+    { label: "Data contract", value: manifest.version.toUpperCase(), state: manifest.status },
+    { label: "Source", value: manifest.source_mode.replaceAll("_", " "), state: "CURRENT" },
     {
       label: "Methodology",
       value: registry.versions.methodology.replaceAll("_", " "),
@@ -90,7 +78,7 @@ export function renderRegistryRibbon(registry, manifest) {
 export function renderSnapshot(summary) {
   const node = target("[data-snapshot-grid]");
   node.innerHTML = summary.metrics.map(metric => `
-    <article class="snapshot-card reveal" data-source-record="${esc(summary.snapshot_id)}">
+    <article class="snapshot-card reveal" data-source-record="${esc(summary.snapshot_id ?? "NOT_AVAILABLE")}">
       <header class="snapshot-card-header">
         <small>${esc(metric.label)}</small>
         <div class="why-slot" data-why-slot></div>
@@ -227,9 +215,9 @@ export function renderSignals(signalData) {
 }
 
 export function renderEvidence(summary, k100) {
-  target("[data-countries]").textContent = summary.coverage.countries;
-  target("[data-markets]").textContent = summary.coverage.markets;
-  target("[data-languages]").textContent = summary.coverage.languages;
+  target("[data-countries]").textContent = summary.coverage?.countries ?? "—";
+  target("[data-markets]").textContent = summary.coverage?.markets ?? "—";
+  target("[data-languages]").textContent = summary.coverage?.languages ?? "—";
 
   const qualifiedSignals = summary.metrics.find(metric => metric.id === "qualifiedSignals");
   const trackedEntities = summary.metrics.find(metric => metric.id === "trackedEntities");
@@ -258,18 +246,23 @@ export function renderEvidence(summary, k100) {
     `).join("");
   }
 
-  const stops = [];
-  let position = 0;
-  summary.composition.forEach(item => {
-    stops.push(`${item.color} ${position}% ${position + item.value}%`);
-    position += item.value;
-  });
-  target("[data-donut]").style.background = `conic-gradient(${stops.join(",")})`;
-
-  target("[data-composition-list]").innerHTML =
-    summary.composition.map(item => `
+  const donut = target("[data-donut]");
+  const compositionList = target("[data-composition-list]");
+  if (summary.composition?.length) {
+    const stops = [];
+    let position = 0;
+    summary.composition.forEach(item => {
+      stops.push(`${item.color} ${position}% ${position + item.value}%`);
+      position += item.value;
+    });
+    donut.style.background = `conic-gradient(${stops.join(",")})`;
+    compositionList.innerHTML = summary.composition.map(item => `
       <li><span><i style="background:${esc(item.color)}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
     `).join("");
+  } else {
+    donut.style.background = "none";
+    compositionList.innerHTML = '<li><span>Current source composition</span><strong>NOT VERIFIED</strong></li>';
+  }
 }
 
 function humanState(value) {
