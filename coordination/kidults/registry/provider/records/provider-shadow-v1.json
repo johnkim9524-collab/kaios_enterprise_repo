@@ -12,5 +12,7 @@
   "credentials_present": false,
   "production_connection": false,
   "public_projection": false,
+  "created_by": "Codex / Data Boundary Repair",
+  "created_at": "2026-08-25T08:39:23Z",
   "note": "Provider payloads and shadow-connection records remain outside the public Portal publish root. Only a sanitized connection-status projection may be published."
 }

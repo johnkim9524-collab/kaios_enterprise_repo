@@ -8,6 +8,8 @@
   "access": "INTERNAL_ONLY",
   "publication_eligible": false,
   "public_projection": false,
+  "created_by": "KPMO / Atlas",
+  "created_at": "2026-08-16T04:30:00+09:00",
   "effective_at": "2026-08-16T04:30:00+09:00",
   "provider_registry_state": "RESEARCHING",
   "production_connection": false,
