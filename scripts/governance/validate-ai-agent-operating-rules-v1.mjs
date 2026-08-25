@@ -102,6 +102,11 @@ const principleNames = contract.principles?.map((x) => x.name) ?? [];
 assert(principleNames.length === requiredPrinciples.length, 'PRINCIPLE_COUNT');
 assert(new Set(principleNames).size === principleNames.length, 'DUPLICATE_PRINCIPLE');
 for (const name of requiredPrinciples) assert(principleNames.includes(name), `MISSING_PRINCIPLE:${name}`);
+const principleById = new Map(contract.principles.map((rule) => [rule.rule_id, rule]));
+assert(principleById.get('AI-016')?.name === 'PROACTIVE_ISSUE_OWNERSHIP', 'AI_016_IDENTITY_BINDING');
+assert(principleById.get('AI-017')?.name === 'LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT', 'AI_017_IDENTITY_BINDING');
+assert(principleById.get('AI-016')?.requirement?.includes('repeated human prompting'), 'AI_016_PROMPTING_BOUNDARY');
+assert(principleById.get('AI-017')?.requirement?.includes('prioritized'), 'AI_017_FORWARD_IMPROVEMENT_BOUNDARY');
 for (const rule of contract.principles) {
   assert(/^AI-\d{3}$/.test(rule.rule_id), `INVALID_RULE_ID:${rule.rule_id}`);
   assert(['P0_GOVERNANCE_DEFECT', 'P1_OPERATING_DEFECT'].includes(rule.severity_on_violation), `INVALID_SEVERITY:${rule.rule_id}`);
@@ -193,7 +198,7 @@ const requiredAgentMarkers = [
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.1.0',
+  '**Version:** 1.2.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -206,7 +211,12 @@ const requiredPolicyMarkers = [
   'Immediate blocker disclosure',
   'Correction protocol',
   'P0 governance defects',
-  'No AI agent may self-exempt'
+  'No AI agent may self-exempt',
+  'Proactive ownership and leadership closure',
+  'AI-016 / PROACTIVE_ISSUE_OWNERSHIP',
+  'AI-017 / LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT',
+  'without waiting for repeated human prompting',
+  'prioritized risks and forward improvements'
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
@@ -245,11 +255,12 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.1.0',
+  version: '1.2.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
   principles_validated: requiredPrinciples.length,
+  leadership_rule_identities_validated: ['AI-016', 'AI-017'],
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,
   inheritance_fail_closed: true,
