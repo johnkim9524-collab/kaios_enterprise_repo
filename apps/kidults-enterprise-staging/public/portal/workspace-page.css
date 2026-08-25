@@ -123,6 +123,18 @@ body[data-page="workspace"] .living-workspace__header{
 }
 
 @media(max-width:768px){
+  .workspace-page-main{
+    min-height:0
+  }
+
+  .workspace-page-mount{
+    padding-bottom:0
+  }
+
+  body[data-page="workspace"] .living-workspace__panels{
+    min-height:0!important
+  }
+
   .workspace-page-context-inner{
     min-height:64px
   }
