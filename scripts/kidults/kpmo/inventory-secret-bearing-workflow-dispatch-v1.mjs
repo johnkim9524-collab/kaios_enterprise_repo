@@ -85,7 +85,7 @@ for (const file of files) {
   const details = classify(fs.readFileSync(file, 'utf8'));
   if (!details.privileged_manual_lane) continue;
   findings.push({
-    workflow: path.relative('.', file),
+    workflow: path.relative('.', file).split(path.sep).join('/'),
     secret_names: details.secret_names,
     indexed_secret_access: details.indexed_secret_access,
     secret_context_expression: details.secret_context_expression,
