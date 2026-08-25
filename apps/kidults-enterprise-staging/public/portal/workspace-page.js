@@ -18,16 +18,30 @@ function selectedMode() {
   return "ask";
 }
 
+function registrySnapshotContext(registry) {
+  const snapshot = registry?.snapshot;
+  if (!snapshot) return "NOT AVAILABLE";
+  return snapshot.candidate_id ?? snapshot.candidate_status ?? "NOT AVAILABLE";
+}
+
+function registryEvidenceContext(registry) {
+  const evidence = registry?.evidence;
+  if (!evidence) return "NOT AVAILABLE";
+  if (evidence.current_package_id) {
+    return `${evidence.current_package_id} · ${human(evidence.status ?? "REGISTERED")}`;
+  }
+  return evidence.status ?? "NOT AVAILABLE";
+}
+
 function renderContext(data) {
   const context = document.querySelector("[data-workspace-context]");
   if (!context) return;
 
-  const evidence = data.summary?.operations?.find(item => item.label === "EVIDENCE OBJECTS");
   const rows = [
-    ["Snapshot", data.manifest?.snapshot_id ?? data.registry?.snapshot?.baseline_id],
-    ["Evidence", evidence ? `${evidence.value} · ${human(evidence.state)}` : "NOT AVAILABLE"],
+    ["Snapshot", registrySnapshotContext(data.registry)],
+    ["Evidence", registryEvidenceContext(data.registry)],
     ["Assessment", data.registry?.assessment?.current_id ?? data.registry?.assessment?.status ?? "WAITING"],
-    ["Release", data.registry?.release?.status ?? data.manifest?.status]
+    ["Release", data.registry?.release?.status ?? "HOLD"]
   ];
 
   context.innerHTML = rows.map(([label, value]) => `
@@ -68,10 +82,12 @@ async function init() {
 
     document.documentElement.dataset.dataState = "workspace-ready";
     window.KIDULTS_WORKSPACE_PAGE = Object.freeze({
-      version: "1.0.0",
+      version: "1.1.0",
       route: "workspace.html",
       mode,
-      snapshotId: data.manifest?.snapshot_id,
+      candidateSnapshotId: data.registry?.snapshot?.candidate_id ?? null,
+      baselineSnapshotId: data.registry?.snapshot?.baseline_id ?? null,
+      evidencePackageId: data.registry?.evidence?.current_package_id ?? null,
       sourceMode: data.manifest?.source_mode,
       workspaceVersion: data.workspace?.version
     });

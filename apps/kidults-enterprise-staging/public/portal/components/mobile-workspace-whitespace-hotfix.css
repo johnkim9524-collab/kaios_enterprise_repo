@@ -1,0 +1,13 @@
+@media (max-width: 768px) {
+  html[data-mobile-reconstruction="v1"] .living-workspace__panels {
+    min-height: 0 !important;
+  }
+
+  html[data-mobile-reconstruction="v1"] body[data-page="workspace"] .workspace-page-main {
+    min-height: 0 !important;
+  }
+
+  html[data-mobile-reconstruction="v1"] body[data-page="workspace"] .workspace-page-mount {
+    padding-bottom: 0 !important;
+  }
+}
