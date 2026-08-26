@@ -27,35 +27,95 @@ jobs:
           from pathlib import Path
           p=Path('.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml')
           s=p.read_text()
-          old='''concurrency:\n  group: kidults-asi-owned-source-intelligence-graph-v2-${''' + '''{ github.ref }}\n  cancel-in-progress: true'''
-          new='''concurrency:\n  # Distinct upstream completions must never cancel each other before exact-generation validation.\n  group: kidults-asi-owned-source-intelligence-graph-v2-${''' + '''{ github.event_name }}-${''' + '''{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}\n  cancel-in-progress: true'''
+
+          old='concurrency:\n  group: kidults-asi-owned-source-intelligence-graph-v2-${' + '{ github.ref }}\n  cancel-in-progress: true'
+          new='concurrency:\n  # Distinct upstream completions must never cancel each other before exact-generation validation.\n  group: kidults-asi-owned-source-intelligence-graph-v2-${' + "{ github.event_name }}-${" + "{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}\n  cancel-in-progress: true"
           if s.count(old)!=1: raise SystemExit('concurrency precondition mismatch')
           s=s.replace(old,new)
 
-          old='''          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then\n            [[ "$P1_EVENT_RUN_ID" =~ ^[1-9][0-9]*$ ]]\n            [[ "$P1_EVENT_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]\n            P1_RUN_ID="$P1_EVENT_RUN_ID"\n            P1_SOURCE_SHA="$P1_EVENT_SOURCE_SHA"\n            P1_EXPECTED_BRANCH="$P1_EVENT_SOURCE_BRANCH"\n            test "$P1_EXPECTED_BRANCH" = "main"\n          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then'''
-          new='''          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then\n            [[ "$P1_EVENT_RUN_ID" =~ ^[1-9][0-9]*$ ]]\n            [[ "$P1_EVENT_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]\n            test "$P1_EVENT_SOURCE_BRANCH" = "main"\n            P1_SOURCE_SHA="$CURRENT_SHA"\n            P1_EXPECTED_BRANCH="main"\n            if [[ "$P1_EVENT_SOURCE_SHA" == "$CURRENT_SHA" ]]; then\n              P1_RUN_ID="$P1_EVENT_RUN_ID"\n            else\n              for i in $(seq 1 60); do\n                gh api -H 'Accept: application/vnd.github+json' \\\n                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs?branch=main&status=success&per_page=100" \\\n                  > /tmp/p1-runs.json\n                P1_RUN_ID="$(jq -r --arg sha "$P1_SOURCE_SHA" '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' /tmp/p1-runs.json)"\n                if [[ "$P1_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then break; fi\n                sleep 10\n              done\n            fi\n          elif [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then'''
-          if s.count(old)!=1: raise SystemExit('workflow_run precondition mismatch')
-          s=s.replace(old,new)
+          start_marker='          if [ -n "$P1_EVENT_RUN_ID" ]; then\n'
+          end_marker="          gh api -H 'Accept: application/vnd.github+json' \\\n            \"/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}\" \\\n            > /tmp/p1-run.json\n"
+          start=s.find(start_marker)
+          end=s.find(end_marker,start)
+          if start<0 or end<0: raise SystemExit('restore selection block precondition mismatch')
+          replacement='''          if [ -n "$P1_EVENT_RUN_ID" ]; then
+            P1_SOURCE_SHA="$CURRENT_SHA"
+            P1_EXPECTED_BRANCH=main
+            if [[ "$P1_EVENT_SOURCE_SHA" == "$CURRENT_SHA" ]]; then
+              P1_RUN_ID="$P1_EVENT_RUN_ID"
+            else
+              P1_RUN_ID=''
+              for ATTEMPT in $(seq 1 60); do
+                gh api --method GET -H 'Accept: application/vnd.github+json' \\
+                  -f head_sha="$P1_SOURCE_SHA" -f status=success -f per_page=100 \\
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \\
+                  > /tmp/p1-runs.json
+                P1_RUN_ID=$(jq -r --arg sha "$P1_SOURCE_SHA" \\
+                  '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' \\
+                  /tmp/p1-runs.json)
+                if [ -n "$P1_RUN_ID" ]; then break; fi
+                if [ "$ATTEMPT" -eq 60 ]; then
+                  echo "NO_SUCCESSFUL_CURRENT_SHA_P1_RUN:${P1_SOURCE_SHA}" >&2
+                  exit 1
+                fi
+                sleep 10
+              done
+            fi
+          elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            P1_RUN_ID=''
+            P1_SOURCE_SHA="$TARGET_SOURCE_SHA"
+            P1_EXPECTED_BRANCH="$EXPECTED_P1_BRANCH"
+            for ATTEMPT in $(seq 1 60); do
+              gh api --method GET -H 'Accept: application/vnd.github+json' \\
+                -f head_sha="$P1_SOURCE_SHA" -f status=success -f per_page=100 \\
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \\
+                > /tmp/p1-runs.json
+              P1_RUN_ID=$(jq -r --arg sha "$P1_SOURCE_SHA" --arg branch "$P1_EXPECTED_BRANCH" \\
+                '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch==$branch and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' \\
+                /tmp/p1-runs.json)
+              if [ -n "$P1_RUN_ID" ]; then break; fi
+              if [ "$ATTEMPT" -eq 60 ]; then
+                echo "NO_SUCCESSFUL_SAME_SHA_P1_RUN:${P1_SOURCE_SHA}" >&2
+                exit 1
+              fi
+              sleep 10
+            done
+          else
+            P1_RUN_ID=''
+            P1_SOURCE_SHA="$CURRENT_SHA"
+            P1_EXPECTED_BRANCH=main
+            for ATTEMPT in $(seq 1 60); do
+              gh api --method GET -H 'Accept: application/vnd.github+json' \\
+                -f head_sha="$P1_SOURCE_SHA" -f status=success -f per_page=100 \\
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \\
+                > /tmp/p1-runs.json
+              P1_RUN_ID=$(jq -r --arg sha "$P1_SOURCE_SHA" \\
+                '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' \\
+                /tmp/p1-runs.json)
+              if [ -n "$P1_RUN_ID" ]; then break; fi
+              if [ "$ATTEMPT" -eq 60 ]; then
+                echo "NO_SUCCESSFUL_CURRENT_SHA_P1_RUN:${P1_SOURCE_SHA}" >&2
+                exit 1
+              fi
+              sleep 10
+            done
+          fi
 
-          old='''              gh api -H 'Accept: application/vnd.github+json' \\\n                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs?branch=main&status=success&per_page=20" \\\n                > /tmp/p1-runs.json\n              P1_RUN_ID="$(jq -r --arg sha "$CURRENT_SHA" '[.workflow_runs[] | select(.head_branch=="main" and .status=="completed" and .conclusion=="success" and (.head_sha==$sha or (.head_sha | type=="string")))] | .[0].id // empty' /tmp/p1-runs.json)"\n              P1_SOURCE_SHA="$(jq -r --argjson run "${P1_RUN_ID:-0}" '.workflow_runs[] | select(.id==$run) | .head_sha' /tmp/p1-runs.json)"\n              if [[ "$P1_RUN_ID" =~ ^[1-9][0-9]*$ ]] && [[ "$P1_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then\n                if [[ "$P1_SOURCE_SHA" == "$CURRENT_SHA" ]] || git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"; then\n                  break\n                fi\n              fi'''
-          new='''              P1_SOURCE_SHA="$CURRENT_SHA"\n              gh api -H 'Accept: application/vnd.github+json' \\\n                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs?branch=main&status=success&per_page=100" \\\n                > /tmp/p1-runs.json\n              P1_RUN_ID="$(jq -r --arg sha "$P1_SOURCE_SHA" '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' /tmp/p1-runs.json)"\n              if [[ "$P1_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then\n                break\n              fi'''
-          if s.count(old)!=1: raise SystemExit('main lookup precondition mismatch')
-          s=s.replace(old,new)
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            test "$P1_EXPECTED_BRANCH" = main
+            test "$P1_SOURCE_SHA" = "$CURRENT_SHA"
+          fi
 
-          old='''          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then\n            test "$P1_EXPECTED_BRANCH" = "main"\n            git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"\n          fi'''
-          new='''          if [[ "$GITHUB_EVENT_NAME" != "pull_request" ]]; then\n            test "$P1_EXPECTED_BRANCH" = "main"\n            test "$P1_SOURCE_SHA" = "$CURRENT_SHA"\n          fi'''
-          if s.count(old)!=1: raise SystemExit('ancestor invariant precondition mismatch')
-          s=s.replace(old,new)
+'''
+          s=s[:start]+replacement+s[end:]
 
-          marker="      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'"
-          add=marker+"\n      - 'scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs'"
-          if s.count(marker)!=1: raise SystemExit('PR path precondition mismatch')
-          s=s.replace(marker,add)
+          path_marker="      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'"
+          if s.count(path_marker)!=1: raise SystemExit('PR path precondition mismatch')
+          s=s.replace(path_marker,path_marker+"\n      - 'scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs'")
 
-          marker='''          node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'''
-          add=marker+'''\n          node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs'''
-          if s.count(marker)!=1: raise SystemExit('validator invocation precondition mismatch')
-          s=s.replace(marker,add)
+          syntax_marker='          node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs'
+          if s.count(syntax_marker)!=1: raise SystemExit('syntax marker precondition mismatch')
+          s=s.replace(syntax_marker,syntax_marker+'\n          node --check scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs\n          node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs')
           p.write_text(s)
           PY
           node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs
