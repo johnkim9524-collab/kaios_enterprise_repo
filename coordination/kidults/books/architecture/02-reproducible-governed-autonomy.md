@@ -2,12 +2,12 @@
 
 **판본 일자:** 2026-08-24 KST  
 **도서:** Intelligence Holdings EVIA / Architecture Book  
-**장 상태:** `IN_PROGRESS / 2_OF_3 / NOT_READY_FOR_INTEGRATED_REVIEW`  
+**장 상태:** `COMPLETE_FOR_REVIEW / 3_OF_3 / REVIEW_SET_FROZEN`  
 **Track:** Enterprise Architecture / AI Governance / Security / Operations / KIDULTS profile  
 **의사결정 ID:** EVIA-AUTONOMY-02, PC-A-G-I-T, EVIDENCE-ADMISSION-FLOOR, HUMAN-GATE-PRESERVATION, NO-FOURTH-BOOK  
 **Snapshot ID:** N/A — 승인된 Snapshot·Candidate/Evidence·Projection이 없다.  
 **Gate State:** G0 PASS; G1 BLOCKED; G2 NOT STARTED; G3 PARTIAL; G4 BLOCKED; G5 HOLD  
-**기준 protected main:** `984dfa3ce05be35040450fe1443ecc897553592c` (`protected: true`)  
+**기준 protected main:** `0d89556064ef5244bc1cc788641e2ef0bdfb49b7` (`protected: true`)  
 **Evidence 참조:** EVIA Canon; Platform Constitution; AI Governance registry; canonical issues #235, #236, #237, #238, #240, #256, #609, #769, #881, #921, #1066; merged #1013, #1134, #1136, #1138 and current P3 v2 chain; Draft PRs #1139, #1140, #1141, #1142; prior-book source lineage
 
 ## Platform Constitution Effect Receipt
@@ -280,11 +280,11 @@ Current main의 구조를 empirical completion으로 승격하지 않으며, G5 
 
 | Book | 현재 장 수 | Architecture 결속 |
 |---|---:|---|
-| Master | 2/3 | Intelligence Economy·Knowledge Capital을 Shared Core와 portfolio boundary로 구현 |
-| Baseline | 2/3 | evidence class·status·gap·gate를 runtime state machine과 receipt에 적용 |
-| Architecture | 2/3 | governed autonomy와 current P0–P3 control chain 정리 |
+| Master | 3/3 | Intelligence Economy·Knowledge Capital을 Shared Core와 portfolio boundary로 구현 |
+| Baseline | 3/3 | evidence class·status·gap·gate를 runtime state machine과 receipt에 적용 |
+| Architecture | 3/3 | governed autonomy와 current P0–P3 control chain 정리 |
 
-Book Sync는 `IN_PROGRESS / NOT_READY_FOR_INTEGRATED_REVIEW`다. 제3장 작성 전 종합 리뷰·완료·full alignment를 선언하지 않는다.
+Book Sync 상태는 `REVIEW_SET_FROZEN / 3_OF_3`다. 제3장 작성 전 종합 리뷰·완료·full alignment를 선언하지 않는다.
 
 ## 18. Rollback
 
