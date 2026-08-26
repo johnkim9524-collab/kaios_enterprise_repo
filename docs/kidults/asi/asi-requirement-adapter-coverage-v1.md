@@ -101,11 +101,9 @@ The exact-head workflow builds twice and requires a byte-for-byte identical dire
 
 Normal execution is registered on:
 
-- relevant protected-main push;
-- relevant pull request validation;
 - successful `KIDULTS ASI Autonomous Resolution Layer v1` completion;
-- successful `KIDULTS ASI Source Adapter Wave 4 v1` completion;
-- hourly recovery schedule at minute 12.
+
+The producer owns relevant protected-main and pull-request path activation. The consumer does not race the producer through an independent push or clock trigger; it starts only after the exact upstream run succeeds and restores artifacts from that run. This also prevents a delayed scheduled consumer from binding a newer main SHA with no matching producer artifact.
 
 Manual dispatch is recovery or explicit replay only.
 
