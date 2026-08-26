@@ -2,12 +2,12 @@
 
 **판본 일자:** 2026-08-24 KST  
 **도서:** Intelligence Holdings Enterprise Baseline Book  
-**장 상태:** `IN_PROGRESS / 2_OF_3 / NOT_READY_FOR_INTEGRATED_REVIEW`  
+**장 상태:** `COMPLETE_FOR_REVIEW / 3_OF_3 / REVIEW_SET_FROZEN`  
 **Track:** Enterprise Baseline / KPMO integration / Track A–E  
 **의사결정 ID:** BASELINE-TRUTH-02, EVIDENCE-BEFORE-METRICS, KIDULTS-C1-HOLD, NO-FOURTH-BOOK  
 **Snapshot ID:** N/A — 승인된 Snapshot·Candidate/Evidence·Projection이 존재하지 않는다.  
 **Gate State:** G0 PASS; G1 BLOCKED; G2 NOT STARTED; G3 PARTIAL; G4 BLOCKED; G5 HOLD  
-**기준 protected main:** `984dfa3ce05be35040450fe1443ecc897553592c` (`protected: true`)  
+**기준 protected main:** `0d89556064ef5244bc1cc788641e2ef0bdfb49b7` (`protected: true`)  
 **Evidence 참조:** canonical issues #235, #236, #237, #238, #240, #256, #609, #769, #881, #921, #1066; PRs #1097, #1139, #1140, #1141, #1142; Platform Constitution; AI Governance registry; merged P0–P3 records; prior-book source lineage
 
 ## Platform Constitution Effect Receipt
@@ -65,7 +65,7 @@ E0·E1의 양이 늘어도 E2 이상으로 자동 승격하지 않는다. 현재
 
 | 항목 | 현재 값 | Evidence class |
 |---|---|---|
-| protected main SHA | `984dfa3ce05be35040450fe1443ecc897553592c` | E1 control provenance |
+| protected main SHA | `0d89556064ef5244bc1cc788641e2ef0bdfb49b7` | E1 control provenance |
 | branch protection | `protected: true` | E1 control provenance |
 | latest merged purpose | ASI P3 current-chain Snapshot Readiness Factory v2 | E0/E1 control |
 | current maturity | C1 — Product Contract established | Baseline classification |
@@ -190,11 +190,11 @@ G0 PASS는 C2 또는 Production readiness가 아니다.
 
 | Book | 현재 장 수 | Sync state |
 |---|---:|---|
-| Master | 2/3 | 기업가치·portfolio model과 현재 baseline을 분리 |
-| Baseline | 2/3 | current protected main과 empirical/control/gap/gate ledger 결속 |
-| Architecture | 2/3 예정 | 동일 상태문법을 runtime·receipt·rollback contract로 구현 |
+| Master | 3/3 | 기업가치·portfolio model과 현재 baseline을 분리 |
+| Baseline | 3/3 | current protected main과 empirical/control/gap/gate ledger 결속 |
+| Architecture | 3/3 예정 | 동일 상태문법을 runtime·receipt·rollback contract로 구현 |
 
-상태는 `IN_PROGRESS / NOT_READY_FOR_INTEGRATED_REVIEW`다. 3/3/3 전에는 종합 결론이나 완성 판정을 발행하지 않는다.
+상태는 `REVIEW_SET_FROZEN / 3_OF_3`다. 3/3/3 전에는 종합 결론이나 완성 판정을 발행하지 않는다.
 
 ## 15. Rollback
 
