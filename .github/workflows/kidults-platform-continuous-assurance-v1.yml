@@ -65,11 +65,13 @@ jobs:
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
           import fs from 'node:fs';
-          const stable = (value) => Array.isArray(value)
-            ? `[${value.map(stable).join(',')}]`
-            : value && typeof value === 'object'
-              ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
-              : JSON.stringify(value);
+          function stable(value) {
+            if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
+            if (value && typeof value === 'object') {
+              return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
+            }
+            return JSON.stringify(value);
+          }
           const digest = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
           const base = {
             schema_version: '1.0.0',
@@ -136,6 +138,7 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+          package-manager-cache: false
 
       - name: Validate continuous assurance contract
         run: node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
