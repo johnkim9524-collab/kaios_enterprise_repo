@@ -54,12 +54,13 @@ jobs:
       KPMO_UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
       KPMO_UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
       KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
-      KPMO_PACKET_DIR: ${{ runner.temp }}/kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
+      KPMO_PACKET_SUFFIX: kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Initialize fail-closed assurance packet
         shell: bash
         run: |
           set -euo pipefail
+          export KPMO_PACKET_DIR="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX"
           mkdir -p "$KPMO_PACKET_DIR"
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
@@ -143,22 +144,22 @@ jobs:
         run: >-
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
-          --output "$KPMO_PACKET_DIR/audit-receipt.json"
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
 
       - name: Emit safe remediation packet
         if: always()
         run: >-
           node scripts/kidults/kpmo/plan-safe-remediation-v1.mjs
-          --receipt "$KPMO_PACKET_DIR/audit-receipt.json"
+          --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
           --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
-          --output "$KPMO_PACKET_DIR/remediation-plan.json"
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json"
 
       - name: Upload exact-run assurance packet
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-continuous-assurance-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.KPMO_PACKET_DIR }}/
+          path: ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/
           if-no-files-found: error
           retention-days: 90
 
@@ -166,7 +167,7 @@ jobs:
         if: always()
         run: >-
           node -e
-          "const r=require(process.env.KPMO_PACKET_DIR+'/audit-receipt.json');
-          const p=require(process.env.KPMO_PACKET_DIR+'/remediation-plan.json');
+          "const d=process.env.RUNNER_TEMP+'/'+process.env.KPMO_PACKET_SUFFIX;
+          const r=require(d+'/audit-receipt.json');const p=require(d+'/remediation-plan.json');
           if(r.states?.internal_control_state!=='VERIFIED_PASS'||r.states?.promotion_eligible!==false||
           p.source_receipt_digest!==r.receipt_digest||p.integrity_findings?.length||p.activation?.eligible!==false)process.exit(1)"
