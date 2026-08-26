@@ -9,21 +9,233 @@ const CAPABILITY_FIELDS = [
   'revocation_epoch','rollback_generation','signature'
 ];
 const SIGNATURE_FIELDS = ['algorithm','value'];
-const SURFACE_PURPOSE = Object.freeze({PORTAL_RENDER:'PUBLIC_DISPLAY',PUBLIC_API_RESPONSE:'API_REDISTRIBUTION',EXPORT:'API_REDISTRIBUTION'});
-const PURPOSE_RIGHT = Object.freeze({PUBLIC_DISPLAY:'public_display',API_REDISTRIBUTION:'api_redistribution'});
+const SURFACE_PURPOSE = Object.freeze({
+  PORTAL_RENDER: 'PUBLIC_DISPLAY',
+  PUBLIC_API_RESPONSE: 'API_REDISTRIBUTION',
+  EXPORT: 'API_REDISTRIBUTION'
+});
+const PURPOSE_RIGHT = Object.freeze({
+  PUBLIC_DISPLAY: 'public_display',
+  API_REDISTRIBUTION: 'api_redistribution'
+});
 const MAX_CAPABILITY_LIFETIME_MS = 15 * 60 * 1000;
+
 const plainObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const nonEmpty = value => typeof value === 'string' && value.trim().length > 0;
 const sha256 = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
-function canonicalize(value){if(Array.isArray(value))return `[${value.map(canonicalize).join(',')}]`;if(plainObject(value))return `{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonicalize(value[key])}`).join(',')}}`;return JSON.stringify(value)}
-export function canonicalProjectionDigest(projection){return sha256(canonicalize(projection))}
-export function capabilitySigningBytes(capability){if(!plainObject(capability))throw new TypeError('capability envelope required');const unsigned=Object.fromEntries(Object.entries(capability).filter(([key])=>key!=='signature'));return Buffer.from(canonicalize(unsigned))}
-function parseTime(value){if(!nonEmpty(value)||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value))return null;const parsed=Date.parse(value);return Number.isFinite(parsed)?parsed:null}
-function strictBase64(value){if(!nonEmpty(value)||!/^[A-Za-z0-9+/]+={0,2}$/.test(value)||value.length%4!==0)return null;const decoded=Buffer.from(value,'base64');return decoded.toString('base64')===value?decoded:null}
-function safeCapabilityDigest(capability){try{return plainObject(capability)?sha256(capabilitySigningBytes(capability)):null}catch{return null}}
-function capabilityErrors(capability){const errors=[];if(!plainObject(capability))return ['CAPABILITY_ENVELOPE_MISSING'];const keys=Object.keys(capability).sort();if(JSON.stringify(keys)!==JSON.stringify([...CAPABILITY_FIELDS].sort()))errors.push('CAPABILITY_FIELDS_INVALID');if(capability.record_type!=='kidults_server_projection_capability')errors.push('CAPABILITY_RECORD_TYPE_INVALID');if(capability.contract_version!=='1.0.0')errors.push('CAPABILITY_VERSION_INVALID');for(const field of ['issuer','environment','key_id','surface','purpose','projection_id','projection_digest','assessment_id','evidence_pair_digest','decision','issued_at','not_before','expires_at','nonce','release_ref','workload_ref'])if(!nonEmpty(capability[field]))errors.push(`CAPABILITY_FIELD_INVALID:${field}`);if(!Object.hasOwn(SURFACE_PURPOSE,capability.surface))errors.push('CAPABILITY_SURFACE_INVALID');if(SURFACE_PURPOSE[capability.surface]!==capability.purpose)errors.push('CAPABILITY_SURFACE_PURPOSE_MISMATCH');if(capability.decision!=='ALLOW')errors.push('CAPABILITY_DECISION_NOT_ALLOW');if(capability.max_uses!==1)errors.push('CAPABILITY_MAX_USES_INVALID');if(!Number.isSafeInteger(capability.revocation_epoch)||capability.revocation_epoch<0)errors.push('CAPABILITY_REVOCATION_EPOCH_INVALID');if(!Number.isSafeInteger(capability.rollback_generation)||capability.rollback_generation<0)errors.push('CAPABILITY_ROLLBACK_GENERATION_INVALID');if(!plainObject(capability.signature)||JSON.stringify(Object.keys(capability.signature||{}).sort())!==JSON.stringify([...SIGNATURE_FIELDS].sort()))errors.push('CAPABILITY_SIGNATURE_FIELDS_INVALID');else{if(capability.signature.algorithm!=='Ed25519')errors.push('CAPABILITY_SIGNATURE_ALGORITHM_INVALID');if(!nonEmpty(capability.signature.value))errors.push('CAPABILITY_SIGNATURE_VALUE_INVALID')}for(const field of ['issued_at','not_before','expires_at'])if(parseTime(capability[field])===null)errors.push(`CAPABILITY_TIME_INVALID:${field}`);return errors}
-function trustedContextErrors(context){const errors=[];if(!plainObject(context))return ['TRUSTED_SERVER_CONTEXT_MISSING'];for(const field of ['issuer','environment','surface','purpose','releaseRef','workloadRef','evidencePairDigest'])if(!nonEmpty(context[field]))errors.push(`TRUSTED_CONTEXT_FIELD_INVALID:${field}`);if(context.clockAuthority!=='KIDULTS_CONTROL_PLANE')errors.push('TRUSTED_CLOCK_REQUIRED');if(!(context.trustedNow instanceof Date)||!Number.isFinite(context.trustedNow.getTime()))errors.push('TRUSTED_NOW_INVALID');if(!plainObject(context.publicKeys))errors.push('TRUSTED_PUBLIC_KEY_REGISTRY_MISSING');if(!context.nonceLedger||typeof context.nonceLedger.consume!=='function')errors.push('DURABLE_NONCE_LEDGER_REQUIRED');if(!Number.isSafeInteger(context.minimumRevocationEpoch)||context.minimumRevocationEpoch<0)errors.push('TRUSTED_REVOCATION_EPOCH_INVALID');if(!Number.isSafeInteger(context.minimumRollbackGeneration)||context.minimumRollbackGeneration<0)errors.push('TRUSTED_ROLLBACK_GENERATION_INVALID');return errors}
-function projectionErrors(projection,capability,context){const errors=validateProofProductProjectionSchema(projection).map(error=>`PROJECTION_SCHEMA:${error}`);if(errors.length)return errors;if(!['APPROVED_INTERNAL','APPROVED_PUBLIC'].includes(projection.projection_state))errors.push('PROJECTION_NOT_APPROVED');if(projection.projection_id!==capability.projection_id)errors.push('PROJECTION_ID_MISMATCH');if(projection.lineage?.assessment_id!==capability.assessment_id||projection.rankability?.assessment_id!==capability.assessment_id)errors.push('ASSESSMENT_ID_MISMATCH');if(canonicalProjectionDigest(projection)!==capability.projection_digest)errors.push('PROJECTION_DIGEST_MISMATCH');if(context.evidencePairDigest!==capability.evidence_pair_digest)errors.push('EVIDENCE_PAIR_DIGEST_MISMATCH');const right=PURPOSE_RIGHT[capability.purpose];if(!right||projection.rights?.[right]!=='ALLOWED')errors.push('PROJECTION_PURPOSE_RIGHT_BLOCKED');if(capability.purpose==='PUBLIC_DISPLAY'&&projection.projection_state!=='APPROVED_PUBLIC')errors.push('PUBLIC_DISPLAY_REQUIRES_APPROVED_PUBLIC');if(projection.freshness?.state!=='CURRENT')errors.push('PROJECTION_NOT_CURRENT');if(projection.rankability?.state!=='RANKABLE')errors.push('PROJECTION_NOT_RANKABLE');return errors}
-function receipt(capability,errors,signatureVerified,nonceConsumed){return Object.freeze({record_type:'kidults_server_projection_capability_receipt',version:'1.0.0',decision:errors.length===0?'CRYPTOGRAPHIC_CORE_VERIFIED_ROUTE_NOT_BOUND_HOLD':'REJECTED',errors:Object.freeze([...errors]),capability_digest:safeCapabilityDigest(capability),projection_id:capability?.projection_id||null,assessment_id:capability?.assessment_id||null,evidence_pair_digest:capability?.evidence_pair_digest||null,issuer:capability?.issuer||null,environment:capability?.environment||null,key_id:capability?.key_id||null,surface:capability?.surface||null,purpose:capability?.purpose||null,release_ref:capability?.release_ref||null,workload_ref:capability?.workload_ref||null,nonce:capability?.nonce||null,signature_verified:signatureVerified,nonce_consumed:nonceConsumed,payload_exposed:false,route_bound:false,remote_staging_executed:false,production:'HOLD',public:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'})}
-export async function verifyServerProjectionCapability({projection,capability,trustedContext}={}){const errors=[...capabilityErrors(capability),...trustedContextErrors(trustedContext)];let signatureVerified=false;let nonceConsumed=false;if(errors.length===0){for(const [actual,expected,error] of [[capability.issuer,trustedContext.issuer,'ISSUER_MISMATCH'],[capability.environment,trustedContext.environment,'ENVIRONMENT_MISMATCH'],[capability.surface,trustedContext.surface,'SURFACE_MISMATCH'],[capability.purpose,trustedContext.purpose,'PURPOSE_MISMATCH'],[capability.release_ref,trustedContext.releaseRef,'RELEASE_REF_MISMATCH'],[capability.workload_ref,trustedContext.workloadRef,'WORKLOAD_REF_MISMATCH']])if(actual!==expected)errors.push(error);const now=trustedContext.trustedNow.getTime();const issuedAt=parseTime(capability.issued_at),notBefore=parseTime(capability.not_before),expiresAt=parseTime(capability.expires_at);if(issuedAt>now)errors.push('CAPABILITY_ISSUED_IN_FUTURE');if(notBefore>now)errors.push('CAPABILITY_NOT_YET_VALID');if(expiresAt<=now)errors.push('CAPABILITY_EXPIRED');if(!(issuedAt<=notBefore&&notBefore<expiresAt))errors.push('CAPABILITY_TIME_WINDOW_INVALID');if(expiresAt-issuedAt>MAX_CAPABILITY_LIFETIME_MS)errors.push('CAPABILITY_LIFETIME_EXCEEDED');if(capability.revocation_epoch<trustedContext.minimumRevocationEpoch)errors.push('CAPABILITY_REVOKED');if(capability.rollback_generation<trustedContext.minimumRollbackGeneration)errors.push('CAPABILITY_ROLLBACK_REJECTED');const publicKey=Object.hasOwn(trustedContext.publicKeys,capability.key_id)?trustedContext.publicKeys[capability.key_id]:null;if(!publicKey)errors.push('TRUSTED_PUBLIC_KEY_NOT_FOUND');else if(publicKey.type!=='public'||publicKey.asymmetricKeyType!=='ed25519')errors.push('TRUSTED_PUBLIC_KEY_TYPE_INVALID');else{try{const signature=strictBase64(capability.signature.value);if(!signature||signature.length!==64)errors.push('CAPABILITY_SIGNATURE_ENCODING_INVALID');else{signatureVerified=crypto.verify(null,capabilitySigningBytes(capability),publicKey,signature);if(!signatureVerified)errors.push('CAPABILITY_SIGNATURE_INVALID')}}catch{errors.push('CAPABILITY_SIGNATURE_INVALID')}}}if(errors.length===0)errors.push(...projectionErrors(projection,capability,trustedContext));if(errors.length===0){try{nonceConsumed=await trustedContext.nonceLedger.consume({issuer:capability.issuer,keyId:capability.key_id,nonce:capability.nonce,expiresAt:capability.expires_at,capabilityDigest:sha256(capabilitySigningBytes(capability))});if(nonceConsumed!==true)errors.push('CAPABILITY_NONCE_REPLAYED')}catch{errors.push('CAPABILITY_NONCE_LEDGER_ERROR')}}const resultReceipt=receipt(capability,errors,signatureVerified,nonceConsumed);return Object.freeze({verified:errors.length===0,release_state:resultReceipt.decision,payload:null,receipt:resultReceipt})}
-export const serverProjectionCapabilityContract=Object.freeze({version:'1.0.0',algorithm:'Ed25519',exact_projection_digest_required:true,exact_assessment_and_evidence_pair_required:true,trusted_server_clock_required:true,single_use_nonce_required:true,revocation_and_rollback_required:true,cross_surface_purpose_environment_replay_rejected:true,server_only_module:true,browser_asset:false,route_binding:'NOT_IMPLEMENTED_HOLD',payload_exposure:'NONE',remote_staging:'NOT_EXECUTED',production:'HOLD',public:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'});
+
+function canonicalize(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
+  if (plainObject(value)) {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalize(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+export function canonicalProjectionDigest(projection) {
+  return sha256(canonicalize(projection));
+}
+
+export function capabilitySigningBytes(capability) {
+  if (!plainObject(capability)) throw new TypeError('capability envelope required');
+  const unsigned = Object.fromEntries(Object.entries(capability).filter(([key]) => key !== 'signature'));
+  return Buffer.from(canonicalize(unsigned));
+}
+
+function parseTime(value) {
+  if (!nonEmpty(value)) return null;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) return null;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function strictBase64(value) {
+  if (!nonEmpty(value) || !/^[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length % 4 !== 0) return null;
+  const decoded = Buffer.from(value,'base64');
+  return decoded.toString('base64') === value ? decoded : null;
+}
+
+function safeCapabilityDigest(capability) {
+  try {
+    return plainObject(capability) ? sha256(capabilitySigningBytes(capability)) : null;
+  } catch {
+    return null;
+  }
+}
+
+function capabilityErrors(capability) {
+  const errors = [];
+  if (!plainObject(capability)) return ['CAPABILITY_ENVELOPE_MISSING'];
+  const keys = Object.keys(capability).sort();
+  if (JSON.stringify(keys) !== JSON.stringify([...CAPABILITY_FIELDS].sort())) errors.push('CAPABILITY_FIELDS_INVALID');
+  if (capability.record_type !== 'kidults_server_projection_capability') errors.push('CAPABILITY_RECORD_TYPE_INVALID');
+  if (capability.contract_version !== '1.0.0') errors.push('CAPABILITY_VERSION_INVALID');
+  for (const field of [
+    'issuer','environment','key_id','surface','purpose','projection_id','projection_digest',
+    'assessment_id','evidence_pair_digest','decision','issued_at','not_before','expires_at',
+    'nonce','release_ref','workload_ref'
+  ]) if (!nonEmpty(capability[field])) errors.push(`CAPABILITY_FIELD_INVALID:${field}`);
+  if (!Object.hasOwn(SURFACE_PURPOSE, capability.surface)) errors.push('CAPABILITY_SURFACE_INVALID');
+  if (SURFACE_PURPOSE[capability.surface] !== capability.purpose) errors.push('CAPABILITY_SURFACE_PURPOSE_MISMATCH');
+  if (capability.decision !== 'ALLOW') errors.push('CAPABILITY_DECISION_NOT_ALLOW');
+  if (capability.max_uses !== 1) errors.push('CAPABILITY_MAX_USES_INVALID');
+  if (!Number.isSafeInteger(capability.revocation_epoch) || capability.revocation_epoch < 0) errors.push('CAPABILITY_REVOCATION_EPOCH_INVALID');
+  if (!Number.isSafeInteger(capability.rollback_generation) || capability.rollback_generation < 0) errors.push('CAPABILITY_ROLLBACK_GENERATION_INVALID');
+  if (!plainObject(capability.signature) ||
+      JSON.stringify(Object.keys(capability.signature || {}).sort()) !== JSON.stringify([...SIGNATURE_FIELDS].sort())) {
+    errors.push('CAPABILITY_SIGNATURE_FIELDS_INVALID');
+  } else {
+    if (capability.signature.algorithm !== 'Ed25519') errors.push('CAPABILITY_SIGNATURE_ALGORITHM_INVALID');
+    if (!nonEmpty(capability.signature.value)) errors.push('CAPABILITY_SIGNATURE_VALUE_INVALID');
+  }
+  for (const field of ['issued_at','not_before','expires_at']) if (parseTime(capability[field]) === null) errors.push(`CAPABILITY_TIME_INVALID:${field}`);
+  return errors;
+}
+
+function trustedContextErrors(context) {
+  const errors = [];
+  if (!plainObject(context)) return ['TRUSTED_SERVER_CONTEXT_MISSING'];
+  for (const field of ['issuer','environment','surface','purpose','releaseRef','workloadRef','evidencePairDigest']) {
+    if (!nonEmpty(context[field])) errors.push(`TRUSTED_CONTEXT_FIELD_INVALID:${field}`);
+  }
+  if (context.clockAuthority !== 'KIDULTS_CONTROL_PLANE') errors.push('TRUSTED_CLOCK_REQUIRED');
+  if (!(context.trustedNow instanceof Date) || !Number.isFinite(context.trustedNow.getTime())) errors.push('TRUSTED_NOW_INVALID');
+  if (!plainObject(context.publicKeys)) errors.push('TRUSTED_PUBLIC_KEY_REGISTRY_MISSING');
+  if (!context.nonceLedger || typeof context.nonceLedger.consume !== 'function') errors.push('DURABLE_NONCE_LEDGER_REQUIRED');
+  if (!Number.isSafeInteger(context.minimumRevocationEpoch) || context.minimumRevocationEpoch < 0) errors.push('TRUSTED_REVOCATION_EPOCH_INVALID');
+  if (!Number.isSafeInteger(context.minimumRollbackGeneration) || context.minimumRollbackGeneration < 0) errors.push('TRUSTED_ROLLBACK_GENERATION_INVALID');
+  return errors;
+}
+
+function projectionErrors(projection, capability, context) {
+  const errors = validateProofProductProjectionSchema(projection).map(error => `PROJECTION_SCHEMA:${error}`);
+  if (errors.length) return errors;
+  if (!['APPROVED_INTERNAL','APPROVED_PUBLIC'].includes(projection.projection_state)) errors.push('PROJECTION_NOT_APPROVED');
+  if (projection.projection_id !== capability.projection_id) errors.push('PROJECTION_ID_MISMATCH');
+  if (projection.lineage?.assessment_id !== capability.assessment_id ||
+      projection.rankability?.assessment_id !== capability.assessment_id) errors.push('ASSESSMENT_ID_MISMATCH');
+  if (canonicalProjectionDigest(projection) !== capability.projection_digest) errors.push('PROJECTION_DIGEST_MISMATCH');
+  if (context.evidencePairDigest !== capability.evidence_pair_digest) errors.push('EVIDENCE_PAIR_DIGEST_MISMATCH');
+  const right = PURPOSE_RIGHT[capability.purpose];
+  if (!right || projection.rights?.[right] !== 'ALLOWED') errors.push('PROJECTION_PURPOSE_RIGHT_BLOCKED');
+  if (capability.purpose === 'PUBLIC_DISPLAY' && projection.projection_state !== 'APPROVED_PUBLIC') errors.push('PUBLIC_DISPLAY_REQUIRES_APPROVED_PUBLIC');
+  if (projection.freshness?.state !== 'CURRENT') errors.push('PROJECTION_NOT_CURRENT');
+  if (projection.rankability?.state !== 'RANKABLE') errors.push('PROJECTION_NOT_RANKABLE');
+  return errors;
+}
+
+function receipt(capability, errors, signatureVerified, nonceConsumed) {
+  return Object.freeze({
+    record_type: 'kidults_server_projection_capability_receipt',
+    version: '1.0.0',
+    decision: errors.length === 0 ? 'CRYPTOGRAPHIC_CORE_VERIFIED_ROUTE_NOT_BOUND_HOLD' : 'REJECTED',
+    errors: Object.freeze([...errors]),
+    capability_digest: safeCapabilityDigest(capability),
+    projection_id: capability?.projection_id || null,
+    assessment_id: capability?.assessment_id || null,
+    evidence_pair_digest: capability?.evidence_pair_digest || null,
+    issuer: capability?.issuer || null,
+    environment: capability?.environment || null,
+    key_id: capability?.key_id || null,
+    surface: capability?.surface || null,
+    purpose: capability?.purpose || null,
+    release_ref: capability?.release_ref || null,
+    workload_ref: capability?.workload_ref || null,
+    nonce: capability?.nonce || null,
+    signature_verified: signatureVerified,
+    nonce_consumed: nonceConsumed,
+    payload_exposed: false,
+    route_bound: false,
+    remote_staging_executed: false,
+    production: 'HOLD',
+    public: 'HOLD',
+    g5: 'EXPLICIT_APPROVAL_REQUIRED'
+  });
+}
+
+export async function verifyServerProjectionCapability({projection, capability, trustedContext} = {}) {
+  const errors = [...capabilityErrors(capability), ...trustedContextErrors(trustedContext)];
+  let signatureVerified = false;
+  let nonceConsumed = false;
+  if (errors.length === 0) {
+    for (const [actual, expected, error] of [
+      [capability.issuer, trustedContext.issuer, 'ISSUER_MISMATCH'],
+      [capability.environment, trustedContext.environment, 'ENVIRONMENT_MISMATCH'],
+      [capability.surface, trustedContext.surface, 'SURFACE_MISMATCH'],
+      [capability.purpose, trustedContext.purpose, 'PURPOSE_MISMATCH'],
+      [capability.release_ref, trustedContext.releaseRef, 'RELEASE_REF_MISMATCH'],
+      [capability.workload_ref, trustedContext.workloadRef, 'WORKLOAD_REF_MISMATCH']
+    ]) if (actual !== expected) errors.push(error);
+
+    const now = trustedContext.trustedNow.getTime();
+    const issuedAt = parseTime(capability.issued_at);
+    const notBefore = parseTime(capability.not_before);
+    const expiresAt = parseTime(capability.expires_at);
+    if (issuedAt > now) errors.push('CAPABILITY_ISSUED_IN_FUTURE');
+    if (notBefore > now) errors.push('CAPABILITY_NOT_YET_VALID');
+    if (expiresAt <= now) errors.push('CAPABILITY_EXPIRED');
+    if (!(issuedAt <= notBefore && notBefore < expiresAt)) errors.push('CAPABILITY_TIME_WINDOW_INVALID');
+    if (expiresAt - issuedAt > MAX_CAPABILITY_LIFETIME_MS) errors.push('CAPABILITY_LIFETIME_EXCEEDED');
+    if (capability.revocation_epoch < trustedContext.minimumRevocationEpoch) errors.push('CAPABILITY_REVOKED');
+    if (capability.rollback_generation < trustedContext.minimumRollbackGeneration) errors.push('CAPABILITY_ROLLBACK_REJECTED');
+
+    const publicKey = Object.hasOwn(trustedContext.publicKeys,capability.key_id)
+      ? trustedContext.publicKeys[capability.key_id]
+      : null;
+    if (!publicKey) errors.push('TRUSTED_PUBLIC_KEY_NOT_FOUND');
+    else if (publicKey.type !== 'public' || publicKey.asymmetricKeyType !== 'ed25519') errors.push('TRUSTED_PUBLIC_KEY_TYPE_INVALID');
+    else {
+      try {
+        const signature = strictBase64(capability.signature.value);
+        if (!signature || signature.length !== 64) errors.push('CAPABILITY_SIGNATURE_ENCODING_INVALID');
+        else {
+          signatureVerified = crypto.verify(null, capabilitySigningBytes(capability), publicKey, signature);
+          if (!signatureVerified) errors.push('CAPABILITY_SIGNATURE_INVALID');
+        }
+      } catch {
+        errors.push('CAPABILITY_SIGNATURE_INVALID');
+      }
+    }
+  }
+  if (errors.length === 0) errors.push(...projectionErrors(projection, capability, trustedContext));
+  if (errors.length === 0) {
+    try {
+      nonceConsumed = await trustedContext.nonceLedger.consume({
+        issuer: capability.issuer,
+        keyId: capability.key_id,
+        nonce: capability.nonce,
+        expiresAt: capability.expires_at,
+        capabilityDigest: sha256(capabilitySigningBytes(capability))
+      });
+      if (nonceConsumed !== true) errors.push('CAPABILITY_NONCE_REPLAYED');
+    } catch {
+      errors.push('CAPABILITY_NONCE_LEDGER_ERROR');
+    }
+  }
+  const resultReceipt = receipt(capability, errors, signatureVerified, nonceConsumed);
+  return Object.freeze({
+    verified: errors.length === 0,
+    release_state: resultReceipt.decision,
+    payload: null,
+    receipt: resultReceipt
+  });
+}
+
+export const serverProjectionCapabilityContract = Object.freeze({
+  version: '1.0.0',
+  algorithm: 'Ed25519',
+  exact_projection_digest_required: true,
+  exact_assessment_and_evidence_pair_required: true,
+  trusted_server_clock_required: true,
+  single_use_nonce_required: true,
+  revocation_and_rollback_required: true,
+  cross_surface_purpose_environment_replay_rejected: true,
+  server_only_module: true,
+  browser_asset: false,
+  route_binding: 'NOT_IMPLEMENTED_HOLD',
+  payload_exposure: 'NONE',
+  remote_staging: 'NOT_EXECUTED',
+  production: 'HOLD',
+  public: 'HOLD',
+  g5: 'EXPLICIT_APPROVAL_REQUIRED'
+});
