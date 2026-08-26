@@ -97,3 +97,37 @@ if s.count(syntax_marker) != 1:
 s = s.replace(syntax_marker, syntax_marker + '\n          node --check scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs\n          node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs')
 
 p.write_text(s)
+
+v = Path('scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs')
+t = v.read_text()
+old = '''for (const [name, workflow] of Object.entries({ requirement, steering, ownedGraph })) {
+  assert(!workflow.includes(globalArtifactListing), `${name.toUpperCase()}_GLOBAL_ARTIFACT_LISTING_FORBIDDEN`);
+  assert(workflow.includes('/actions/runs/${'), `${name.toUpperCase()}_EXACT_RUN_ARTIFACT_QUERY_MISSING`);
+  assert(workflow.includes('git merge-base --is-ancestor'), `${name.toUpperCase()}_ANCESTOR_BINDING_MISSING`);
+}'''
+new = '''for (const [name, workflow] of Object.entries({ requirement, steering })) {
+  assert(!workflow.includes(globalArtifactListing), `${name.toUpperCase()}_GLOBAL_ARTIFACT_LISTING_FORBIDDEN`);
+  assert(workflow.includes('/actions/runs/${'), `${name.toUpperCase()}_EXACT_RUN_ARTIFACT_QUERY_MISSING`);
+  assert(workflow.includes('git merge-base --is-ancestor'), `${name.toUpperCase()}_ANCESTOR_BINDING_MISSING`);
+}
+assert(!ownedGraph.includes(globalArtifactListing), 'OWNEDGRAPH_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
+assert(ownedGraph.includes('/actions/runs/${P1_RUN_ID}/artifacts'), 'OWNEDGRAPH_EXACT_RUN_ARTIFACT_QUERY_MISSING');
+assert(ownedGraph.includes('P1_SOURCE_SHA="$CURRENT_SHA"') && ownedGraph.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNEDGRAPH_EXACT_GENERATION_BINDING_MISSING');
+assert(!ownedGraph.includes('git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"'), 'OWNEDGRAPH_ANCESTOR_GENERATION_FALLBACK_FORBIDDEN');
+const ownedGraphConcurrencyContract = "group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}";
+assert(ownedGraph.includes(ownedGraphConcurrencyContract), 'OWNEDGRAPH_EVENT_SCOPED_CONCURRENCY_MISSING');'''
+if t.count(old) != 1:
+    raise SystemExit('aggregate validator precondition mismatch')
+t = t.replace(old, new)
+
+old = "assert((ownedGraph + globalArtifactListing).includes(globalArtifactListing), 'OWNED_GRAPH_GLOBAL_LISTING_MUTATION_NOT_DETECTED');"
+new = old + '''
+const ownedGraphGenerationMutation = ownedGraph.replace('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"', 'git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"');
+assert(ownedGraphGenerationMutation !== ownedGraph && !ownedGraphGenerationMutation.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNED_GRAPH_GENERATION_MUTATION_NOT_DETECTED');
+const ownedGraphConcurrencyMutation = ownedGraph.replace('github.event.workflow_run.id', 'github.ref');
+assert(ownedGraphConcurrencyMutation !== ownedGraph && !ownedGraphConcurrencyMutation.includes(ownedGraphConcurrencyContract), 'OWNED_GRAPH_CONCURRENCY_MUTATION_NOT_DETECTED');'''
+if t.count(old) != 1:
+    raise SystemExit('mutation block precondition mismatch')
+t = t.replace(old, new)
+t = t.replace('adversarial_mutations_rejected: 9,', 'adversarial_mutations_rejected: 11,')
+v.write_text(t)
