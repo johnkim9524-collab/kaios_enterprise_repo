@@ -28,6 +28,8 @@ function parseArgs(argv){
 }
 
 export function consumeProofProductProjection(projection,{surface}={}){
+  // No API/export release route or signed control-plane capability exists yet.
+  // Caller-supplied clock/release strings are intentionally ignored.
   const admission=admitProofProductProjection(projection,{
     surface,
     purpose:SURFACES[surface]||'UNKNOWN',
@@ -48,14 +50,20 @@ export function consumeProofProductProjection(projection,{surface}={}){
 
 function main(){
   const args=parseArgs(process.argv.slice(2));
-  if(!args.projection||!args.surface)throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT');
+  if(!args.projection||!args.surface){
+    throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT');
+  }
   const projectionPath=path.resolve(process.cwd(),args.projection);
   const projection=JSON.parse(fs.readFileSync(projectionPath,'utf8'));
+  // Normal execution stays HOLD. No CLI flag may self-authorize approved output.
   const result=consumeProofProductProjection(projection,{surface:args.surface});
   process.stdout.write(`${JSON.stringify(result,null,2)}\n`);
   return result.ok?0:2;
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)){
-  try{process.exitCode=main()}catch(error){process.stderr.write(`${JSON.stringify({ok:false,state:'INVALID',error:error.message,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2)}\n`);process.exitCode=2}
+  try{process.exitCode=main()}catch(error){
+    process.stderr.write(`${JSON.stringify({ok:false,state:'INVALID',error:error.message,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2)}\n`);
+    process.exitCode=2;
+  }
 }
