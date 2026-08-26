@@ -83,10 +83,11 @@ if (!errors.length) {
     '820762786026740c76f36085b0efc47a31fe5020',
     'ea165f8d65b6e75b540449e92b4886f43607fa02',
     'retention-days: 90',
-    'KPMO_SOURCE_SHA'
+    'KPMO_SOURCE_SHA',
+    'ref: ${{ env.KPMO_SOURCE_SHA }}'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
-  for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'concurrency:', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1']) {
+  for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'concurrency:', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
     if (activeWorkflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
   }
   if (activeWorkflow.includes('path: artifacts/kpmo/continuous-assurance/')) errors.push('bootstrap packet must not live in checkout-cleaned workspace');
@@ -193,6 +194,7 @@ console.log(JSON.stringify({
   detector_authority: 'READ_ONLY',
   cadence: 'EVENT_DRIVEN_PLUS_30_MINUTE_WATCHDOG',
   same_head_cancellation: 'FORBIDDEN',
+  exact_sha_checkout: 'REQUIRED_FOR_ALL_EVENTS',
   ephemeral_self_healing: 'ALLOWLIST_ONLY',
   persistent_fix: 'KPMO_ISOLATED_DRAFT_PR_ONLY',
   direct_main_write: false,
