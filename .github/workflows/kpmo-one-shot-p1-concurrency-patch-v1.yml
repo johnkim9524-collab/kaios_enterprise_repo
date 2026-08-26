@@ -1,0 +1,85 @@
+name: KPMO One-Shot P1 Concurrency Patch v1
+
+on:
+  push:
+    branches:
+      - fix/p0-p1-preflight-concurrency-race-v1
+    paths:
+      - '.github/workflows/kpmo-one-shot-p1-concurrency-patch-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Apply exact fail-closed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p1_path = Path('.github/workflows/kidults-asi-p1-source-preflight-v1.yml')
+          validator_path = Path('scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs')
+
+          p1 = p1_path.read_text()
+          old = """concurrency:
+            group: kidults-asi-p1-source-preflight-v1-${{ github.ref }}
+            cancel-in-progress: true"""
+          new = """concurrency:
+            # A skipped/ineligible workflow_run must never cancel a valid push producer.
+            # Successful P0B completions are isolated by upstream run id.
+            group: kidults-asi-p1-source-preflight-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+            cancel-in-progress: true"""
+          if p1.count(old) != 1:
+              raise SystemExit(f'P1_CONCURRENCY_PATCH_PRECONDITION_FAILED:{p1.count(old)}')
+          p1 = p1.replace(old, new)
+          p1_path.write_text(p1)
+
+          validator = validator_path.read_text()
+          anchor = """assert(p1.includes('git merge-base --is-ancestor') && p1.includes('.path==\".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml\"'), 'P1_P0B_PROVENANCE_BINDING_MISSING');"""
+          addition = anchor + """
+          const p1ConcurrencyContract = \"group: kidults-asi-p1-source-preflight-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}\";
+          assert(p1.includes(p1ConcurrencyContract), 'P1_EVENT_SCOPED_CONCURRENCY_MISSING');
+          assert(p1.includes('cancel-in-progress: true'), 'P1_CONCURRENCY_FAIL_CLOSED_MISSING');"""
+          if validator.count(anchor) != 1:
+              raise SystemExit(f'VALIDATOR_CONCURRENCY_ANCHOR_FAILED:{validator.count(anchor)}')
+          validator = validator.replace(anchor, addition)
+
+          mutation_anchor = """assert((p1 + globalArtifactListing).includes(globalArtifactListing), 'P1_GLOBAL_LISTING_MUTATION_NOT_DETECTED');"""
+          mutation_addition = mutation_anchor + """
+          const p1ConcurrencyMutation = p1.replace('${{ github.event_name }}-', '');
+          assert(p1ConcurrencyMutation !== p1 && !p1ConcurrencyMutation.includes(p1ConcurrencyContract), 'P1_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');"""
+          if validator.count(mutation_anchor) != 1:
+              raise SystemExit(f'VALIDATOR_MUTATION_ANCHOR_FAILED:{validator.count(mutation_anchor)}')
+          validator = validator.replace(mutation_anchor, mutation_addition)
+          if validator.count('adversarial_mutations_rejected: 8') != 1:
+              raise SystemExit('VALIDATOR_MUTATION_COUNT_PRECONDITION_FAILED')
+          validator = validator.replace('adversarial_mutations_rejected: 8', 'adversarial_mutations_rejected: 9')
+          validator_path.write_text(validator)
+          PY
+
+          rm .github/workflows/kpmo-one-shot-p1-concurrency-patch-v1.yml
+          git diff --check
+          git diff -- .github/workflows/kidults-asi-p1-source-preflight-v1.yml scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
+          test "$(git status --short | wc -l | tr -d ' ')" = "3"
+          git status --short | grep -q '^ M .github/workflows/kidults-asi-p1-source-preflight-v1.yml$'
+          git status --short | grep -q '^ M scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs$'
+          git status --short | grep -q '^ D .github/workflows/kpmo-one-shot-p1-concurrency-patch-v1.yml$'
+      - name: Commit only the two governed fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'kidults-kpmo-bot'
+          git config user.email 'kidults-kpmo-bot@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(asi): isolate P1 producer concurrency by trigger source'
+          git push origin HEAD:fix/p0-p1-preflight-concurrency-race-v1
