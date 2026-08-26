@@ -3,7 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import {admitProofProductProjection} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js';
+import {admitProofProductProjection} from './runtime/proof-product-admission.js';
+import {assertTrustedPortalRuntimeParity} from './trusted-portal-runtime-parity-v1.mjs';
+
+assertTrustedPortalRuntimeParity();
 
 const SURFACES={
   PORTAL_RENDER:'PUBLIC_DISPLAY',

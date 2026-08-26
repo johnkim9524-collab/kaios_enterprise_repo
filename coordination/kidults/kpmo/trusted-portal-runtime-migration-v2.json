@@ -1,0 +1,18 @@
+{
+  "id": "trusted-portal-runtime-migration-v2",
+  "approval": "PROGRAM_OWNER_EXPLICIT_2026-08-26",
+  "scope": "#1256_TRUST_ROOT_MIGRATION",
+  "strategy": "EXACT_GOVERNED_EXECUTABLE_CLOSURE_PLUS_BYTE_PARITY",
+  "approved_external_executables": [
+    "apps/kidults-enterprise-staging/public/portal-r001/projection-store.js",
+    "apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js",
+    "apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js"
+  ],
+  "fail_closed": true,
+  "independent_verification_required": true,
+  "rollback": "REVERT_MIGRATION_COMMIT_AND_REPROVE_PROTECTED_MAIN",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "empirical_effect": "NONE"
+}

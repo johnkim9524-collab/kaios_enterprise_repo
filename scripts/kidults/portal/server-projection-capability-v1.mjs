@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import {validateProofProductProjectionSchema} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js';
+import {validateProofProductProjectionSchema} from './runtime/proof-product-schema-validator.js';
 
 const CAPABILITY_FIELDS = [
   'record_type','contract_version','issuer','environment','key_id','surface','purpose',

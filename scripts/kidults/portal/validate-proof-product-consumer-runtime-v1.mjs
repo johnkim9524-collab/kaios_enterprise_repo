@@ -2,9 +2,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import {readPortalProjection} from '../../../apps/kidults-enterprise-staging/public/portal-r001/projection-store.js';
-import {admitProofProductProjection,proofProductConsumerContract} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js';
-import {proofProductProjectionSchema,validateProofProductProjectionSchema} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js';
+import {readPortalProjection} from './runtime/projection-store.js';
+import {admitProofProductProjection,proofProductConsumerContract} from './runtime/proof-product-admission.js';
+import {proofProductProjectionSchema,validateProofProductProjectionSchema} from './runtime/proof-product-schema-validator.js';
 import {consumeProofProductProjection} from './execute-proof-product-consumer-v1.mjs';
 import {approvedProjectionFixture as approvedProjection,stateOnlyProjectionFixture as closedProjection} from './proof-product-test-fixtures-v1.mjs';
 
