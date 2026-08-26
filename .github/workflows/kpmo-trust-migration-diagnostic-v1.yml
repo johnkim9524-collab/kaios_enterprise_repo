@@ -1,0 +1,63 @@
+name: KPMO Trust Migration Diagnostic v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-trust-migration-diagnostic-v1.yml'
+      - 'scripts/kidults/**'
+      - 'coordination/kidults/**'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    outputs:
+      validators: ${{ steps.list.outputs.validators }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - id: list
+        shell: bash
+        run: |
+          set -euo pipefail
+          validators="$(node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const runner=fs.readFileSync('scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs','utf8');
+          const orchestrator=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json','utf8'));
+          const refs=new Set([...runner.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|py))['"]/g)].map(m=>m[1]));
+          const walk=value=>{if(typeof value==='string'&&/^scripts\/.+\.(?:mjs|py)$/.test(value))refs.add(value);else if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')Object.values(value).forEach(walk)};
+          walk(orchestrator.required_family_validators||[]);
+          process.stdout.write(JSON.stringify([...refs].sort()));
+          NODE
+          )"
+          echo "validators=${validators}" >> "$GITHUB_OUTPUT"
+
+  validator:
+    needs: discover
+    strategy:
+      fail-fast: false
+      matrix:
+        script: ${{ fromJSON(needs.discover.outputs.validators) }}
+    name: ${{ matrix.script }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Execute validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          case '${{ matrix.script }}' in
+            *.py) python3 '${{ matrix.script }}' ;;
+            *) node '${{ matrix.script }}' ;;
+          esac
