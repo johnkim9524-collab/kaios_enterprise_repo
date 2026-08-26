@@ -1,0 +1,173 @@
+name: KIDULTS Platform Continuous Assurance V1
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'coordination/kidults/**'
+      - 'scripts/kidults/**'
+      - 'services/kidults-autonomous-intelligence/**'
+      - 'tooling/kidults-portal-r001-browser-qa/**'
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Snapshot Readiness Factory v2'
+      - 'KIDULTS Full Value Chain Red-Team Orchestrator V1'
+      - 'KIDULTS Unified Audit Control Plane'
+      - 'KIDULTS Trusted Merge Control Monotonicity'
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Audit depth
+        required: true
+        default: deep
+        type: choice
+        options: [sentinel, deep]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    if: >-
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.repository.full_name == github.repository &&
+        github.event.workflow_run.head_branch == 'main')) &&
+      (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      KPMO_SOURCE_KIND: ${{ github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
+      KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+      KPMO_PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
+      KPMO_PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
+      KPMO_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+      KPMO_UPSTREAM_WORKFLOW_NAME: ${{ github.event.workflow_run.name || '' }}
+      KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      KPMO_UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
+      KPMO_UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+      KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
+      KPMO_PACKET_SUFFIX: kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Initialize fail-closed assurance packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          export KPMO_PACKET_DIR="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX"
+          mkdir -p "$KPMO_PACKET_DIR"
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const stable = (value) => Array.isArray(value)
+            ? `[${value.map(stable).join(',')}]`
+            : value && typeof value === 'object'
+              ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
+              : JSON.stringify(value);
+          const digest = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+          const base = {
+            schema_version: '1.0.0',
+            receipt_type: 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
+            source: {
+              expected_sha: process.env.KPMO_SOURCE_SHA || 'UNAVAILABLE',
+              actual_sha: 'UNAVAILABLE',
+              kind: process.env.KPMO_SOURCE_KIND || 'UNKNOWN'
+            },
+            states: {
+              internal_control_state: 'VERIFIED_FAIL',
+              external_empirical_state: 'HOLD',
+              release_state: 'HOLD',
+              overall_state: 'RED',
+              promotion_eligible: false
+            },
+            checks: [{ id: 'AUDIT_BOOTSTRAP', required: true, state: 'VERIFIED_FAIL' }],
+            unresolved_gates: [],
+            evidence: [],
+            fatal_error_code: 'BOOTSTRAP_NOT_COMPLETED',
+            empirical_truth_effect: {
+              graded_delta: 0,
+              human_review_delta: 0,
+              dated_sold_delta: 0,
+              candidate_or_evidence_created: false,
+              track_b_started: false,
+              projection_approved: false
+            },
+            authority_boundary: {
+              detector_authority: 'READ_ONLY',
+              repository_mutation_performed: false,
+              credentialed_external_mutation_performed: false,
+              secret_material_read: false,
+              production_or_g5_promoted: false
+            }
+          };
+          const receipt = { ...base, observed_at: new Date().toISOString(), receipt_digest: digest(stable(base)) };
+          fs.writeFileSync(`${process.env.KPMO_PACKET_DIR}/audit-receipt.json`, `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync(`${process.env.KPMO_PACKET_DIR}/remediation-plan.json`, `${JSON.stringify({
+            schema_version: '1.0.0',
+            plan_type: 'KIDULTS_SAFE_REMEDIATION_PACKET',
+            source_sha: base.source.expected_sha,
+            disposition: 'CIRCUIT_OPEN_MANUAL_HOLD',
+            failed_check_ids: ['AUDIT_BOOTSTRAP'],
+            activation_eligible: false,
+            direct_main_write: false,
+            auto_merge: false
+          }, null, 2)}\n`);
+          NODE
+
+      - name: Checkout exact audited source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.KPMO_SOURCE_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact source binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+
+      - name: Validate continuous assurance contract
+        run: node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
+
+      - name: Run audit and always retain receipt
+        run: >-
+          node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
+          --profile "$KPMO_AUDIT_PROFILE"
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+
+      - name: Emit safe remediation packet
+        if: always()
+        run: >-
+          node scripts/kidults/kpmo/plan-safe-remediation-v1.mjs
+          --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+          --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json"
+
+      - name: Upload exact-run assurance packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-continuous-assurance-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Preserve control result without promoting overall HOLD
+        if: always()
+        run: >-
+          node -e
+          "const d=process.env.RUNNER_TEMP+'/'+process.env.KPMO_PACKET_SUFFIX;
+          const r=require(d+'/audit-receipt.json');const p=require(d+'/remediation-plan.json');
+          if(r.states?.internal_control_state!=='VERIFIED_PASS'||r.states?.promotion_eligible!==false||
+          p.source_receipt_digest!==r.receipt_digest||p.integrity_findings?.length||p.activation?.eligible!==false)process.exit(1)"
