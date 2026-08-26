@@ -53,7 +53,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-source-adapter-wave3-v1-${{ github.ref }}
+  # Each successful upstream producer must retain an independent attempt. Ref-only grouping
+  # caused valid workflow_run instances to cancel one another on current protected main.
+  group: kidults-asi-source-adapter-wave3-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
