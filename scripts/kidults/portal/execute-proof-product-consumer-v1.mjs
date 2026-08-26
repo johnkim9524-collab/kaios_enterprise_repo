@@ -4,6 +4,9 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {admitProofProductProjection} from './runtime/proof-product-admission.js';
+import {assertTrustedPortalRuntimeParity} from './trusted-portal-runtime-parity-v1.mjs';
+
+assertTrustedPortalRuntimeParity();
 
 const SURFACES={
   PORTAL_RENDER:'PUBLIC_DISPLAY',
@@ -45,9 +48,7 @@ export function consumeProofProductProjection(projection,{surface}={}){
 
 function main(){
   const args=parseArgs(process.argv.slice(2));
-  if(!args.projection||!args.surface){
-    throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT');
-  }
+  if(!args.projection||!args.surface)throw new Error('required: --projection FILE --surface PORTAL_RENDER|PUBLIC_API_RESPONSE|EXPORT');
   const projectionPath=path.resolve(process.cwd(),args.projection);
   const projection=JSON.parse(fs.readFileSync(projectionPath,'utf8'));
   const result=consumeProofProductProjection(projection,{surface:args.surface});
@@ -56,8 +57,5 @@ function main(){
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)){
-  try{process.exitCode=main()}catch(error){
-    process.stderr.write(`${JSON.stringify({ok:false,state:'INVALID',error:error.message,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2)}\n`);
-    process.exitCode=2;
-  }
+  try{process.exitCode=main()}catch(error){process.stderr.write(`${JSON.stringify({ok:false,state:'INVALID',error:error.message,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2)}\n`);process.exitCode=2}
 }
