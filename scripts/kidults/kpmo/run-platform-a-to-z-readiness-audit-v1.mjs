@@ -12,6 +12,7 @@ const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-platform-az-'));
 const sourcePoolOutput = path.join(tempRoot, 'source-pool');
 const e2eOutput = path.join(tempRoot, 'bmw-r90s');
+const auditDeadline = Date.now() + 35 * 60_000;
 
 function parseArgs(argv) {
   const config = { profile: 'deep', output: path.join(tempRoot, 'audit-receipt.json') };
@@ -44,14 +45,26 @@ function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'));
 }
 
-function sourceSha() {
-  if (/^[0-9a-f]{40}$/i.test(process.env.KPMO_SOURCE_SHA || '')) return process.env.KPMO_SOURCE_SHA.toLowerCase();
+function repositoryStateDigest() {
+  const result = spawnSync('git', ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {
+    cwd: root, encoding: 'buffer', timeout: 10_000
+  });
+  return result.status === 0 ? sha256(result.stdout) : 'UNAVAILABLE';
+}
+
+function sourceIdentity() {
+  const expected = /^[0-9a-f]{40}$/i.test(process.env.KPMO_SOURCE_SHA || '')
+    ? process.env.KPMO_SOURCE_SHA.toLowerCase()
+    : 'UNAVAILABLE';
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', timeout: 10_000 });
-  return result.status === 0 ? result.stdout.trim() : 'UNAVAILABLE';
+  const actual = result.status === 0 && /^[0-9a-f]{40}$/i.test(result.stdout.trim())
+    ? result.stdout.trim().toLowerCase()
+    : 'UNAVAILABLE';
+  return { expected, actual, match: expected !== 'UNAVAILABLE' && expected === actual };
 }
 
 function safeChildEnv() {
-  const allowed = ['PATH', 'TMPDIR', 'LANG', 'LC_ALL', 'NODE_OPTIONS', 'PYTHON'];
+  const allowed = ['PATH', 'TMPDIR', 'LANG', 'LC_ALL'];
   const env = Object.fromEntries(allowed.filter((key) => process.env[key]).map((key) => [key, process.env[key]]));
   return {
     ...env,
@@ -62,16 +75,32 @@ function safeChildEnv() {
   };
 }
 
-function run(id, command, args, timeoutMs = 600_000) {
+function staticCheck(id, pass, detail) {
+  return {
+    id,
+    required: true,
+    state: pass ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+    exit_code: pass ? 0 : 1,
+    signal: null,
+    diagnostic_digest: sha256(detail),
+    diagnostic_persisted: false
+  };
+}
+
+function run(id, command, args, timeoutMs = 90_000) {
+  const remainingMs = auditDeadline - Date.now();
+  if (remainingMs <= 1_000) {
+    return staticCheck(id, false, 'GLOBAL_AUDIT_DEADLINE_EXHAUSTED');
+  }
   const result = spawnSync(command, args, {
     cwd: root,
     encoding: 'utf8',
     env: safeChildEnv(),
-    timeout: timeoutMs,
+    timeout: Math.min(timeoutMs, remainingMs),
     maxBuffer: 32 * 1024 * 1024
   });
   const diagnostic = String(result.error?.message || result.stderr || result.stdout || '')
-    .replace(/(?:gh[pousr]_[A-Za-z0-9_]{20,}|Bearer\s+[A-Za-z0-9._~+\/-]+=*)/gi, '[REDACTED]')
+    .replace(/(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9_]{20,}|(?:AKIA|ASIA)[A-Z0-9]{16}|(?:Bearer|Basic)\s+[A-Za-z0-9._~+\/-]+=*|(?:api[_-]?key|password|token|secret)\s*[=:]\s*[^\s]+)/gi, '[REDACTED]')
     .trim()
     .split(/\r?\n/)
     .slice(-12)
@@ -111,13 +140,84 @@ const deepChecks = [
   ['VALUE_CHAIN_COMPLETION_SCORECARD', 'node', ['scripts/kidults/governance/validate-value-chain-completion-scorecard-v1.mjs']]
 ];
 
-const evidencePaths = [
+const deepEphemeralChecks = [
+  ['SOURCE_POOL_FOUNDATION_BUILD', 'node', [
+    'scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs',
+    '--write', '--output', sourcePoolOutput
+  ]],
+  ['SOURCE_POOL_FOUNDATION_VALIDATE', 'node', [
+    'scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs', sourcePoolOutput
+  ]],
+  ['SYNTHETIC_FAIL_CLOSED_E2E_BUILD', 'node', [
+    'scripts/kidults/e2e/build-bmw-r90s-failclosed-vertical-slice-v1.mjs', e2eOutput
+  ]],
+  ['SYNTHETIC_FAIL_CLOSED_E2E_VALIDATE', 'node', [
+    'scripts/kidults/e2e/validate-bmw-r90s-failclosed-vertical-slice-v1.mjs', e2eOutput
+  ]]
+];
+
+const ephemeralPairs = [
+  {
+    id: 'SOURCE_POOL_FOUNDATION', output: sourcePoolOutput,
+    build: deepEphemeralChecks[0], validate: deepEphemeralChecks[1]
+  },
+  {
+    id: 'SYNTHETIC_FAIL_CLOSED_E2E', output: e2eOutput,
+    build: deepEphemeralChecks[2], validate: deepEphemeralChecks[3]
+  }
+];
+
+function runEphemeralPair(pair) {
+  const execute = (attempt) => {
+    const build = run(...pair.build);
+    const validate = build.state === 'VERIFIED_PASS'
+      ? run(...pair.validate)
+      : {
+          ...staticCheck(pair.validate[0], false, `${pair.id}:BUILD_FAILED_BEFORE_VALIDATE`),
+          failure_class: 'EPHEMERAL_BUILD_PREREQUISITE_FAILED'
+        };
+    return {
+      attempt,
+      checks: [
+        { ...build, remediation_attempt: attempt },
+        { ...validate, remediation_attempt: attempt }
+      ]
+    };
+  };
+  const first = execute(1);
+  if (first.checks.every((check) => check.state === 'VERIFIED_PASS')) {
+    return { checks: first.checks, record: { id: pair.id, attempts: 1, recovered: false, persistent_effect: 'NONE' } };
+  }
+  fs.rmSync(pair.output, { recursive: true, force: true });
+  const second = execute(2);
+  const recovered = second.checks.every((check) => check.state === 'VERIFIED_PASS');
+  const finalChecks = second.checks.map((check) => recovered ? check : {
+    ...check,
+    failure_class: 'EPHEMERAL_REBUILD_EXHAUSTED'
+  });
+  return {
+    checks: finalChecks,
+    record: {
+      id: pair.id,
+      attempts: 2,
+      recovered,
+      initial_state: first.checks.map((check) => ({ id: check.id, state: check.state })),
+      persistent_effect: 'NONE'
+    }
+  };
+}
+
+const evidencePaths = [...new Set([
   policyPath,
+  'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs',
+  'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs',
+  'scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs',
+  ...[...sentinelChecks, ...deepChecks, ...deepEphemeralChecks].map((entry) => entry[2][0]),
   'coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json',
   'coordination/kidults/portal/portal-launch-assurance-v1.json',
   'coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json',
   'coordination/kidults/audit/unified-audit-control-plane-v1.json'
-];
+])].sort();
 
 function writeReceipt(file, receipt) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -131,50 +231,104 @@ try {
   const preproduction = readJson('coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json');
   const portal = readJson('coordination/kidults/portal/portal-launch-assurance-v1.json');
   const digitalocean = readJson('coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json');
-  const checks = [...sentinelChecks, ...(config.profile === 'deep' ? deepChecks : [])]
-    .map(([id, command, args]) => run(id, command, args));
+  const identity = sourceIdentity();
+  const inputEvidence = evidencePaths.map((evidencePath) => ({ path: evidencePath, digest: fileDigest(evidencePath) }));
+  const inputWorkflowDigest = fs.existsSync(workflowPath) ? fileDigest(workflowPath) : 'UNAVAILABLE';
+  const preAuditTreeDigest = repositoryStateDigest();
+  const checks = [
+    staticCheck('SOURCE_SHA_BINDING', identity.match, `${identity.expected}:${identity.actual}`)
+  ];
+  const ephemeralImprovements = [];
+  if (process.env.KPMO_UPSTREAM_RUN_ID) {
+    const upstreamIdentity = [
+      process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
+      process.env.KPMO_UPSTREAM_RUN_ID,
+      process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
+      process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
+      process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN'
+    ].join(':');
+    checks.push(staticCheck(
+      'UPSTREAM_WORKFLOW_CONCLUSION',
+      process.env.KPMO_UPSTREAM_CONCLUSION === 'success' &&
+        process.env.KPMO_UPSTREAM_REPOSITORY === process.env.GITHUB_REPOSITORY &&
+        process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main',
+      upstreamIdentity
+    ));
+  }
+  checks.push(...[...sentinelChecks, ...(config.profile === 'deep' ? deepChecks : [])]
+    .map(([id, command, args]) => run(id, command, args)));
 
   if (config.profile === 'deep') {
-    checks.push(run('SOURCE_POOL_FOUNDATION_BUILD', 'node', [
-      'scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs',
-      '--write', '--output', sourcePoolOutput
-    ]));
-    checks.push(run('SOURCE_POOL_FOUNDATION_VALIDATE', 'node', [
-      'scripts/kidults/source-intelligence/validate-scope-source-pool-readiness-v1.mjs', sourcePoolOutput
-    ]));
-    checks.push(run('SYNTHETIC_FAIL_CLOSED_E2E_BUILD', 'node', [
-      'scripts/kidults/e2e/build-bmw-r90s-failclosed-vertical-slice-v1.mjs', e2eOutput
-    ]));
-    checks.push(run('SYNTHETIC_FAIL_CLOSED_E2E_VALIDATE', 'node', [
-      'scripts/kidults/e2e/validate-bmw-r90s-failclosed-vertical-slice-v1.mjs', e2eOutput
-    ]));
+    for (const pair of ephemeralPairs) {
+      const result = runEphemeralPair(pair);
+      checks.push(...result.checks);
+      ephemeralImprovements.push(result.record);
+    }
   }
+
+  const postIdentity = sourceIdentity();
+  checks.push(staticCheck(
+    'POST_AUDIT_SOURCE_SHA_BINDING',
+    postIdentity.match && postIdentity.actual === identity.actual,
+    `${identity.actual}:${postIdentity.expected}:${postIdentity.actual}`
+  ));
+  const postAuditTreeDigest = repositoryStateDigest();
+  checks.push(staticCheck(
+    'AUDIT_INPUT_TREE_IMMUTABILITY',
+    preAuditTreeDigest !== 'UNAVAILABLE' && preAuditTreeDigest === postAuditTreeDigest,
+    `${preAuditTreeDigest}:${postAuditTreeDigest}`
+  ));
+  const postEvidence = evidencePaths.map((evidencePath) => ({ path: evidencePath, digest: fileDigest(evidencePath) }));
+  checks.push(staticCheck(
+    'AUDIT_EXECUTION_INPUT_IMMUTABILITY',
+    stableJson(inputEvidence) === stableJson(postEvidence),
+    `${sha256(stableJson(inputEvidence))}:${sha256(stableJson(postEvidence))}`
+  ));
 
   const failed = checks.filter((check) => check.state !== 'VERIFIED_PASS');
   const unresolvedGates = (preproduction.required_gates || [])
     .filter((gate) => gate.status !== 'PASS')
     .map((gate) => ({ id: gate.id, state: gate.status || 'UNKNOWN' }));
-  const source = sourceSha();
-  const incidentMaterial = stableJson({
+  const findingMaterial = stableJson({
     policy_version: policy.version,
-    source_sha: source,
     failed_check_ids: failed.map((check) => check.id).sort(),
     unresolved_gate_ids: unresolvedGates.map((gate) => gate.id).sort()
   });
+  const findingFingerprint = sha256(findingMaterial);
+  const observationId = sha256(stableJson({
+    finding_fingerprint: findingFingerprint,
+    source_sha: identity.actual,
+    workflow_run_id: process.env.GITHUB_RUN_ID || 'LOCAL',
+    workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1'
+  }));
   const stableReceipt = {
     schema_version: '1.0.0',
     receipt_type: 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
     source: {
-      sha: source,
+      sha: identity.actual,
+      expected_sha: identity.expected,
+      actual_sha: identity.actual,
+      match: identity.match,
+      kind: process.env.KPMO_SOURCE_KIND || 'UNKNOWN',
+      pr_head_sha: process.env.KPMO_PR_HEAD_SHA || null,
+      pr_base_sha: process.env.KPMO_PR_BASE_SHA || null,
+      pr_merge_sha: process.env.KPMO_PR_MERGE_SHA || null,
       ref: process.env.GITHUB_REF || 'LOCAL',
       workflow_path: workflowPath,
-      workflow_file_digest: fs.existsSync(workflowPath) ? fileDigest(workflowPath) : 'UNAVAILABLE'
+      workflow_file_digest: inputWorkflowDigest
     },
     execution: {
       profile: config.profile,
       trigger: process.env.GITHUB_EVENT_NAME || 'LOCAL',
       workflow_run_id: process.env.GITHUB_RUN_ID || 'LOCAL',
-      workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1'
+      workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+      upstream: process.env.KPMO_UPSTREAM_RUN_ID ? {
+        run_id: process.env.KPMO_UPSTREAM_RUN_ID,
+        workflow_name: process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
+        conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+        repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
+        head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN'
+      } : null
     },
     states: {
       internal_control_state: failed.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
@@ -184,6 +338,7 @@ try {
       promotion_eligible: false
     },
     checks,
+    ephemeral_improvements: ephemeralImprovements,
     unresolved_gates: unresolvedGates,
     declared_external_boundaries: {
       github_environment_trusted_execution: portal.external_evidence?.github_environment_trusted_execution ?? 'UNKNOWN',
@@ -201,12 +356,15 @@ try {
       track_b_started: false,
       projection_approved: false
     },
-    evidence: evidencePaths.map((evidencePath) => ({ path: evidencePath, digest: fileDigest(evidencePath) })),
-    incident_id: sha256(incidentMaterial),
+    evidence: inputEvidence,
+    incident_id: findingFingerprint,
+    finding_fingerprint: findingFingerprint,
+    observation_id: observationId,
     authority_boundary: {
       detector_authority: 'READ_ONLY',
       repository_mutation_performed: false,
-      provider_or_remote_call_performed: false,
+      credentialed_external_mutation_performed: false,
+      external_network_isolation: 'NOT_ENFORCED_UNKNOWN_READS',
       secret_material_read: false,
       production_or_g5_promoted: false
     }
@@ -223,10 +381,17 @@ try {
   const config = (() => {
     try { return parseArgs(process.argv.slice(2)); } catch { return { output: path.join(tempRoot, 'audit-receipt.json') }; }
   })();
-  const failure = {
+  const identity = sourceIdentity();
+  const stableFailure = {
     schema_version: '1.0.0',
     receipt_type: 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
-    observed_at: new Date().toISOString(),
+    source: {
+      sha: identity.actual,
+      expected_sha: identity.expected,
+      actual_sha: identity.actual,
+      match: identity.match,
+      kind: process.env.KPMO_SOURCE_KIND || 'UNKNOWN'
+    },
     states: {
       internal_control_state: 'VERIFIED_FAIL',
       external_empirical_state: 'HOLD',
@@ -234,12 +399,32 @@ try {
       overall_state: 'RED',
       promotion_eligible: false
     },
+    checks: [{ id: 'FATAL_AUDIT_EXECUTION', required: true, state: 'VERIFIED_FAIL' }],
+    unresolved_gates: [],
+    evidence: [],
     fatal_error_digest: sha256(String(error?.message || error)),
     diagnostic_persisted: false,
-    empirical_truth_effect: 'NONE',
-    production: 'HOLD',
-    public: 'HOLD',
-    g5: 'EXPLICIT_APPROVAL_REQUIRED'
+    empirical_truth_effect: {
+      graded_delta: 0,
+      human_review_delta: 0,
+      dated_sold_delta: 0,
+      candidate_or_evidence_created: false,
+      track_b_started: false,
+      projection_approved: false
+    },
+    authority_boundary: {
+      detector_authority: 'READ_ONLY',
+      repository_mutation_performed: false,
+      credentialed_external_mutation_performed: false,
+      secret_material_read: false,
+      production_or_g5_promoted: false
+    },
+    production: 'HOLD', public: 'HOLD', g5: 'EXPLICIT_APPROVAL_REQUIRED'
+  };
+  const failure = {
+    ...stableFailure,
+    observed_at: new Date().toISOString(),
+    receipt_digest: sha256(stableJson(stableFailure))
   };
   writeReceipt(config.output, failure);
   console.log(JSON.stringify(failure, null, 2));
