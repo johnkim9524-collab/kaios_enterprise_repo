@@ -105,11 +105,9 @@ The graph creates no market event, sold transaction, price observation, liquidit
 ## Automatic continuation
 
 ```text
-Successful P0B or P1 run
-or relevant protected-main push
-or hourly schedule at :52
+Successful P1 run
         ↓
-Restore current immutable artifacts
+Restore exact P0B and P1 artifacts from that one P1 run
         ↓
 Build twice
         ↓
@@ -121,6 +119,8 @@ KPMO P2 receipt and 90-day artifact
 ```
 
 Manual dispatch remains only for recovery or explicit replay.
+
+The P1 workflow publishes the P0B materialization rebuilt during that run and the P1 outputs derived from it as two separately addressable artifacts. P2 requires both artifact IDs to belong to the same exact successful P1 run, preserving the numeric artifact bindings consumed by P3 without combining independently selected P0B and P1 runs. Relevant P2 protected-main changes are routed through the P1 producer, and the successful P1 `workflow_run` is the only automatic P2 activation path.
 
 ## Completion state
 

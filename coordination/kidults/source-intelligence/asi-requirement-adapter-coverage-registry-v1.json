@@ -42,11 +42,10 @@
     "market_events_created": 0
   },
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "12 * * * *",
+    "main_push": false,
+    "schedule": "UPSTREAM_WORKFLOW_ONLY",
     "upstream_workflows": [
-      "KIDULTS ASI Autonomous Resolution Layer v1",
-      "KIDULTS ASI Source Adapter Wave 4 v1"
+      "KIDULTS ASI Autonomous Resolution Layer v1"
     ],
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },

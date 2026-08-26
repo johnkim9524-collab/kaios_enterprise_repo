@@ -80,8 +80,8 @@ assert(registry.implementation_state?.software_implemented_requirements === 39 &
 assert(registry.implementation_state?.rights_schema_activation_hold_requirements === 192, 'REGISTRY_HOLD_COUNT');
 assert(registry.implementation_state?.unmerged_v2_ids_synthesized === 0 && registry.implementation_state?.duplicate_sdk_or_runtime_introduced === 0, 'REGISTRY_FORBIDDEN_ASSET_COUNTS');
 assert(registry.implementation_state?.evidence_admitted === 0 && registry.implementation_state?.market_events_created === 0, 'REGISTRY_EMPIRICAL_COUNTS');
-assert(registry.automatic_activation?.main_push === true && registry.automatic_activation?.schedule === '12 * * * *', 'REGISTRY_AUTOMATIC_TRIGGER');
-assert(same(registry.automatic_activation?.upstream_workflows, ['KIDULTS ASI Autonomous Resolution Layer v1', 'KIDULTS ASI Source Adapter Wave 4 v1']), 'REGISTRY_UPSTREAM_WORKFLOWS');
+assert(registry.automatic_activation?.main_push === false && registry.automatic_activation?.schedule === 'UPSTREAM_WORKFLOW_ONLY', 'REGISTRY_AUTOMATIC_TRIGGER');
+assert(same(registry.automatic_activation?.upstream_workflows, ['KIDULTS ASI Autonomous Resolution Layer v1']), 'REGISTRY_UPSTREAM_WORKFLOWS');
 assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.continuation?.automatic_continuation_required === true && registry.continuation?.software_gap_queue_output === 'requirement-adapter-gap-queue-v1.json', 'REGISTRY_CONTINUATION');
 assert(registry.truth_boundary?.artifact_must_be_successful_nonexpired_main_lineage === true, 'REGISTRY_ARTIFACT_BOUNDARY');
@@ -119,9 +119,7 @@ for (const marker of [
 
 for (const marker of [
   'name: KIDULTS ASI Requirement-to-Adapter Coverage v1',
-  "cron: '12 * * * *'",
   'KIDULTS ASI Autonomous Resolution Layer v1',
-  'KIDULTS ASI Source Adapter Wave 4 v1',
   'contents: read',
   'actions: read',
   'persist-credentials: false',
@@ -137,6 +135,9 @@ for (const marker of [
   'top16-empirical-activation-preflight-v1.json',
   'retention-days: 90',
 ]) assert(workflow.includes(marker), `WORKFLOW_CONTROL_MARKER:${marker}`);
+assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND_TRIGGER_FORBIDDEN');
+assert(!workflow.includes('/actions/artifacts?per_page='), 'WORKFLOW_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
+assert(workflow.includes('/actions/runs/${RUN_ID}/artifacts?per_page=100'), 'WORKFLOW_EXACT_RUN_ARTIFACT_BINDING');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
@@ -158,7 +159,7 @@ console.log(JSON.stringify({
   software_gap_requirements: registry.implementation_state.context_only_requirements + registry.implementation_state.unmapped_requirements,
   legacy_v2_ids_synthesized: 0,
   duplicate_sdk_or_runtime_introduced: 0,
-  automatic_activation_registered: true,
+  automatic_activation_registered: 'UPSTREAM_WORKFLOW_ONLY',
   evidence_admitted: 0,
   market_events_created: 0,
   public_release: 'HOLD',

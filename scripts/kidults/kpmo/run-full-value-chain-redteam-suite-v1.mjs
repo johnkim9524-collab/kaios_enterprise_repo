@@ -12,12 +12,15 @@ const criticalWorkflowProvenanceValidators = [
   'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs',
   'scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs'
 ];
+const repositoryMutationBoundaryValidators = [
+  'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
+];
+const artifactOrchestrationValidators = [
+  'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+];
 const estateSupplyChainValidators = [
   'scripts/kidults/kpmo/validate-estate-action-pinning-v1.mjs',
   'scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs'
-];
-const repositoryMutationBoundaryValidators = [
-  'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
 ];
 const secretBoundaryValidators = [
   'scripts/kidults/kpmo/validate-pr-secret-boundary-v1.mjs',
@@ -66,8 +69,8 @@ const snapshotReadinessValidators = [
 const downstreamBoundaryValidators = [
   'scripts/kidults/kpmo/validate-er-projection-workflow-provenance-v1.mjs',
   'scripts/kidults/portal/validate-proof-product-consumer-runtime-v1.mjs',
-  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-launch-assurance-v1.mjs',
+  'scripts/kidults/portal/validate-server-projection-capability-v1.mjs',
   'scripts/kidults/portal/validate-portal-release-001.mjs'
 ];
 const validators = [...new Set([
@@ -75,8 +78,9 @@ const validators = [...new Set([
   stageCoverageValidator,
   criticalGateBindingValidator,
   ...criticalWorkflowProvenanceValidators,
-  ...estateSupplyChainValidators,
   ...repositoryMutationBoundaryValidators,
+  ...artifactOrchestrationValidators,
+  ...estateSupplyChainValidators,
   ...secretBoundaryValidators,
   ...truthScopeValidators,
   ...trustRootMigrationRegressionValidators,
@@ -123,6 +127,10 @@ console.log(JSON.stringify({
   critical_workflow_provenance_validators: criticalWorkflowProvenanceValidators.length,
   a13_validation_supply_chain_machine_bound: true,
   a13_validation_dependency_install_mode: 'NPM_CI_COMMITTED_LOCK',
+  workflow_repository_mutation_boundary_machine_bound: true,
+  workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
+  artifact_consumer_orchestration_machine_bound: true,
+  artifact_consumer_orchestration_validators: artifactOrchestrationValidators.length,
   estate_action_pinning_machine_bound: true,
   estate_action_pinning_mutation_selftest: true,
   estate_action_pinning_semantic_key_mutation_selftest: true,
@@ -132,8 +140,6 @@ console.log(JSON.stringify({
   github_hosted_image_build_external_residual: true,
   dependency_bootstrap_lock_machine_bound: true,
   dependency_bootstrap_empirical_gate_effect: 'NONE',
-  workflow_repository_mutation_boundary_machine_bound: true,
-  workflow_repository_mutation_boundary_validators: repositoryMutationBoundaryValidators.length,
   pull_request_secret_boundary_machine_bound: true,
   pull_request_secret_boundary_validators: 1,
   privileged_manual_secret_lane_inventory_machine_bound: true,
