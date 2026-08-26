@@ -34,11 +34,17 @@ assert(snapshot.includes("'KIDULTS ASI Owned Source Intelligence Graph v2'"), 'S
 assert(steering.includes("'KIDULTS ASI Throughput Coverage Autobalance Live v1'"), 'STEERING_UPSTREAM_TRIGGER_MISSING');
 assert(ownedGraph.includes("'KIDULTS ASI P1 Source Preflight v1'"), 'OWNED_GRAPH_UPSTREAM_TRIGGER_MISSING');
 
-for (const [name, workflow] of Object.entries({ requirement, steering, ownedGraph })) {
+for (const [name, workflow] of Object.entries({ requirement, steering })) {
   assert(!workflow.includes(globalArtifactListing), `${name.toUpperCase()}_GLOBAL_ARTIFACT_LISTING_FORBIDDEN`);
   assert(workflow.includes('/actions/runs/${'), `${name.toUpperCase()}_EXACT_RUN_ARTIFACT_QUERY_MISSING`);
   assert(workflow.includes('git merge-base --is-ancestor'), `${name.toUpperCase()}_ANCESTOR_BINDING_MISSING`);
 }
+assert(!ownedGraph.includes(globalArtifactListing), 'OWNEDGRAPH_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
+assert(ownedGraph.includes('/actions/runs/${P1_RUN_ID}/artifacts'), 'OWNEDGRAPH_EXACT_RUN_ARTIFACT_QUERY_MISSING');
+assert(ownedGraph.includes('P1_SOURCE_SHA="$CURRENT_SHA"') && ownedGraph.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNEDGRAPH_EXACT_GENERATION_BINDING_MISSING');
+assert(!ownedGraph.includes('git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"'), 'OWNEDGRAPH_ANCESTOR_GENERATION_FALLBACK_FORBIDDEN');
+const ownedGraphConcurrencyContract = "group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}";
+assert(ownedGraph.includes(ownedGraphConcurrencyContract), 'OWNEDGRAPH_EVENT_SCOPED_CONCURRENCY_MISSING');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(snapshot.includes('/actions/runs/${P2_RUN_ID}/artifacts'), 'SNAPSHOT_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(snapshot.includes('main.commit?.sha!==run.head_sha') && snapshot.includes('main.commit.sha!==process.env.GITHUB_SHA'), 'SNAPSHOT_CURRENT_MAIN_BINDING_MISSING');
@@ -68,6 +74,10 @@ const mutations = [
 for (const [name, mutated, detector] of mutations) assert(detector.test(mutated), `MUTATION_NOT_DETECTED:${name}`);
 assert((requirement + globalArtifactListing).includes(globalArtifactListing), 'GLOBAL_LISTING_MUTATION_NOT_DETECTED');
 assert((ownedGraph + globalArtifactListing).includes(globalArtifactListing), 'OWNED_GRAPH_GLOBAL_LISTING_MUTATION_NOT_DETECTED');
+const ownedGraphGenerationMutation = ownedGraph.replace('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"', 'git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"');
+assert(ownedGraphGenerationMutation !== ownedGraph && !ownedGraphGenerationMutation.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNED_GRAPH_GENERATION_MUTATION_NOT_DETECTED');
+const ownedGraphConcurrencyMutation = ownedGraph.replace('github.event.workflow_run.id', 'github.ref');
+assert(ownedGraphConcurrencyMutation !== ownedGraph && !ownedGraphConcurrencyMutation.includes(ownedGraphConcurrencyContract), 'OWNED_GRAPH_CONCURRENCY_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
@@ -83,7 +93,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 9,
+  adversarial_mutations_rejected: 11,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',

@@ -13,6 +13,7 @@ on:
       - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
       - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+      - 'scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P1 Source Preflight v1'
@@ -24,7 +25,8 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.ref }}
+  # Distinct upstream completions must never cancel each other before exact-generation validation.
+  group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -47,6 +49,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs
+          node --check scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs
+          node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json','utf8'))"
       - name: Validate registered P2 assets and automatic continuation
@@ -68,11 +72,28 @@ jobs:
           CURRENT_SHA=$(git rev-parse HEAD)
 
           if [ -n "$P1_EVENT_RUN_ID" ]; then
-            P1_RUN_ID="$P1_EVENT_RUN_ID"
-            P1_SOURCE_SHA="$P1_EVENT_SOURCE_SHA"
+            P1_SOURCE_SHA="$CURRENT_SHA"
             P1_EXPECTED_BRANCH=main
-            test -n "$P1_SOURCE_SHA"
-            git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"
+            if [[ "$P1_EVENT_SOURCE_SHA" == "$CURRENT_SHA" ]]; then
+              P1_RUN_ID="$P1_EVENT_RUN_ID"
+            else
+              P1_RUN_ID=''
+              for ATTEMPT in $(seq 1 60); do
+                gh api --method GET -H 'Accept: application/vnd.github+json' \
+                  -f head_sha="$P1_SOURCE_SHA" -f status=success -f per_page=100 \
+                  "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
+                  > /tmp/p1-runs.json
+                P1_RUN_ID=$(jq -r --arg sha "$P1_SOURCE_SHA" \
+                  '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' \
+                  /tmp/p1-runs.json)
+                if [ -n "$P1_RUN_ID" ]; then break; fi
+                if [ "$ATTEMPT" -eq 60 ]; then
+                  echo "NO_SUCCESSFUL_CURRENT_SHA_P1_RUN:${P1_SOURCE_SHA}" >&2
+                  exit 1
+                fi
+                sleep 10
+              done
+            fi
           elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             P1_RUN_ID=''
             P1_SOURCE_SHA="$TARGET_SOURCE_SHA"
@@ -92,27 +113,30 @@ jobs:
               fi
               sleep 10
             done
-            git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"
           else
-            gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f status=success -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
-              > /tmp/p1-runs.json
-            mapfile -t P1_CANDIDATES < <(jq -r \
-              '.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' \
-              /tmp/p1-runs.json)
             P1_RUN_ID=''
-            P1_SOURCE_SHA=''
+            P1_SOURCE_SHA="$CURRENT_SHA"
             P1_EXPECTED_BRANCH=main
-            for candidate in "${P1_CANDIDATES[@]}"; do
-              IFS=$'\t' read -r candidate_run candidate_sha <<<"$candidate"
-              if git merge-base --is-ancestor "$candidate_sha" "$CURRENT_SHA"; then
-                P1_RUN_ID="$candidate_run"
-                P1_SOURCE_SHA="$candidate_sha"
-                break
+            for ATTEMPT in $(seq 1 60); do
+              gh api --method GET -H 'Accept: application/vnd.github+json' \
+                -f head_sha="$P1_SOURCE_SHA" -f status=success -f per_page=100 \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
+                > /tmp/p1-runs.json
+              P1_RUN_ID=$(jq -r --arg sha "$P1_SOURCE_SHA" \
+                '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")] | if length>=1 then .[0].id else empty end' \
+                /tmp/p1-runs.json)
+              if [ -n "$P1_RUN_ID" ]; then break; fi
+              if [ "$ATTEMPT" -eq 60 ]; then
+                echo "NO_SUCCESSFUL_CURRENT_SHA_P1_RUN:${P1_SOURCE_SHA}" >&2
+                exit 1
               fi
+              sleep 10
             done
-            test -n "$P1_RUN_ID" && test -n "$P1_SOURCE_SHA"
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            test "$P1_EXPECTED_BRANCH" = main
+            test "$P1_SOURCE_SHA" = "$CURRENT_SHA"
           fi
 
           gh api -H 'Accept: application/vnd.github+json' \
