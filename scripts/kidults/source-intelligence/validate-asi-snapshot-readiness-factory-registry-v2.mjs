@@ -175,7 +175,7 @@ const workflowMutations = [
   ['artifact-digest-unchecked', (value) => value.replaceAll("||!(/^sha256:[0-9a-f]{64}$/.test(a.digest||''))", '')],
   ['downloaded-archive-digest-unchecked', (value) => value.replace('if(a.digest!==process.env.P2_ARCHIVE_SHA256)process.exit(2)', 'if(false)process.exit(2)')],
   ['artifact-id-shape-unchecked', (value) => value.replace('[[ "$P0B_ID" =~ ^[1-9][0-9]*$ ]] && [[ "$P1_ID" =~ ^[1-9][0-9]*$ ]]', 'test -n "$P0B_ID" && test -n "$P1_ID"')],
-  ['authoritative-main-guard-removed', (value) => value.replace('test "$GITHUB_REF" = "refs/heads/main"', 'test -n "$GITHUB_REF"')],
+  ['authoritative-main-guard-removed', (value) => value.replaceAll('test "$GITHUB_REF" = "refs/heads/main"', 'test -n "$GITHUB_REF"')],
   ['current-main-head-check-removed', (value) => value.replace('||main.commit?.sha!==run.head_sha', '')],
   ['upstream-age-check-removed', (value) => value.replace('||age>24*60*60*1000', '')],
   ['manual-dispatch-added', (value) => value.replace('on:\n', 'on:\n  workflow_dispatch:\n')],
