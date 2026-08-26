@@ -74,7 +74,7 @@ if (!errors.length) {
     "github.event.workflow_run.head_branch == 'main'",
     'KPMO_UPSTREAM_CONCLUSION',
     'KPMO_SOURCE_KIND',
-    'KPMO_PACKET_DIR',
+    'KPMO_PACKET_SUFFIX',
     '${{ runner.temp }}',
     'Initialize fail-closed assurance packet',
     "'coordination/kidults/**'",
