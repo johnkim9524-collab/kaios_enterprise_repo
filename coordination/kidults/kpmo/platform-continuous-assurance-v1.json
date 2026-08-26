@@ -2,7 +2,7 @@
   "id": "kidults-platform-continuous-assurance-v1",
   "version": "1.0.0",
   "governing_owner": "KPMO",
-  "activation_state": "ACTIVATES_ON_PROTECTED_MAIN_LANDING",
+  "activation_state": "DRAFT_RED_CONTAINED_NOT_ACTIVE",
   "operating_mode": "24X7_EVENT_DRIVEN_PLUS_30_MINUTE_WATCHDOG",
   "detector": {
     "authority": "READ_ONLY",
@@ -46,7 +46,8 @@
     "circuit_breaker_after_attempts": 2,
     "attempt_ledger_authority": "KPMO_EXTERNAL_INCIDENT_LEDGER",
     "missing_attempt_ledger_state": "MANUAL_HOLD_NOT_CLOSED",
-    "incident_identity": "POLICY_VERSION_SOURCE_SHA_SORTED_FINDING_IDS"
+    "incident_identity": "POLICY_VERSION_SORTED_FINDING_IDS_AND_UNRESOLVED_GATES",
+    "observation_identity": "INCIDENT_FINGERPRINT_SOURCE_SHA_RUN_ID_ATTEMPT"
   },
   "automatic_fix_allowlist": {
     "EPHEMERAL_SOURCE_POOL_PREREQUISITE": {
@@ -55,10 +56,6 @@
     },
     "EPHEMERAL_SYNTHETIC_E2E_PREREQUISITE": {
       "scope": "TEMP_DIRECTORY_ONLY",
-      "persistent_repository_effect": "NONE"
-    },
-    "EPHEMERAL_ARTIFACT_REACQUISITION": {
-      "scope": "EXACT_RUN_EXACT_SHA_EXACT_CARDINALITY_ONLY",
       "persistent_repository_effect": "NONE"
     }
   },
