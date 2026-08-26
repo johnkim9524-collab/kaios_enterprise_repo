@@ -53,6 +53,9 @@ assert(!p1.includes(globalArtifactListing), 'P1_GLOBAL_ARTIFACT_LISTING_FORBIDDE
 assert(p1.includes("if: github.event_name == 'pull_request'") && p1.includes("if: github.event_name != 'pull_request'"), 'P1_PR_AND_LIVE_DISCOVERY_SEPARATION_MISSING');
 assert(p1.includes('/actions/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml/runs') && p1.includes('/actions/runs/${P0B_ORIGIN_RUN_ID}/artifacts'), 'P1_EXACT_ANCESTOR_P0B_RESTORE_MISSING');
 assert(p1.includes('git merge-base --is-ancestor') && p1.includes('.path==".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"'), 'P1_P0B_PROVENANCE_BINDING_MISSING');
+const p1ConcurrencyContract = "group: kidults-asi-p1-source-preflight-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}";
+assert(p1.includes(p1ConcurrencyContract), 'P1_EVENT_SCOPED_CONCURRENCY_MISSING');
+assert(p1.includes('cancel-in-progress: true'), 'P1_CONCURRENCY_FAIL_CLOSED_MISSING');
 assert(autonomousResolution.includes("'scripts/kidults/source-intelligence/*requirement-adapter-coverage*.mjs'"), 'REQUIREMENT_PRODUCER_PATH_COVERAGE_MISSING');
 assert(read('.github/workflows/kidults-asi-p1-source-preflight-v1.yml').includes("'scripts/kidults/source-intelligence/*asi-owned-source-intelligence-graph*.mjs'"), 'OWNED_GRAPH_PRODUCER_PATH_COVERAGE_MISSING');
 assert(read('.github/workflows/kidults-asi-p1-source-preflight-v1.yml').includes('/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1'), 'OWNED_GRAPH_P0B_BUNDLE_PRODUCTION_MISSING');
@@ -70,6 +73,8 @@ assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
 assert(p1PrSeparationMutation !== p1 && !p1PrSeparationMutation.includes("if: github.event_name != 'pull_request'"), 'P1_LIVE_DISCOVERY_SEPARATION_MUTATION_NOT_DETECTED');
 assert((p1 + globalArtifactListing).includes(globalArtifactListing), 'P1_GLOBAL_LISTING_MUTATION_NOT_DETECTED');
+const p1ConcurrencyMutation = p1.replace('github.event_name', 'github.ref');
+assert(p1ConcurrencyMutation !== p1 && !p1ConcurrencyMutation.includes(p1ConcurrencyContract), 'P1_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 
 console.log(JSON.stringify({
   id: 'kidults-artifact-consumer-orchestration-validation-v1',
@@ -78,7 +83,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 8,
+  adversarial_mutations_rejected: 9,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',
