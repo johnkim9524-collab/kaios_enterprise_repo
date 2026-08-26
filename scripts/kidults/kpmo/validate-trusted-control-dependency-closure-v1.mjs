@@ -114,6 +114,8 @@ const mandatoryDiscoveries = [
 ];
 for (const expected of mandatoryDiscoveries) if (!closure.has(expected)) fail(`closure missed mandatory trust dependency ${expected}`);
 
+// Mutation probes construct fake paths from fragments so this validator cannot
+// rediscover its own test fixtures as real repository dependencies.
 const fakeDynamic = ['scripts', 'probe-dynamic.mjs'].join('/');
 const dynamicMutationProbe = executableRefsFromJson(JSON.stringify({ nested: { validator: fakeDynamic } }), 'dynamic probe');
 if (!dynamicMutationProbe.has(fakeDynamic)) fail('dynamic-ref mutation probe failed');
@@ -131,8 +133,10 @@ const dependencyMutationProbe = repositoryDependencyRefs([
 for (const expected of [fakeChild, fakeResolvedHelper]) if (!dependencyMutationProbe.executable.has(expected)) fail(`transitive executable mutation probe missed ${expected}`);
 for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) if (!dependencyMutationProbe.semantic.has(expected)) fail(`semantic dependency mutation probe missed ${expected}`);
 
+const fakePortalParent = ['scripts','kidults','portal','probe-parent.mjs'].join('/');
+const fakeEscape = ['..','..','..','apps','kidults-enterprise-staging','public','portal-r001','projection-store.js'].join('/');
 let escapeRejected = false;
-try { resolveExecutableDependency('scripts/kidults/portal/example.mjs', '../../../apps/kidults-enterprise-staging/public/portal-r001/projection-store.js'); }
+try { resolveExecutableDependency(fakePortalParent, fakeEscape); }
 catch { escapeRejected = true; }
 if (!escapeRejected) fail('cross-tree executable escape mutation probe was not rejected');
 
