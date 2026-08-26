@@ -1,0 +1,93 @@
+{
+  "id": "kidults-platform-continuous-assurance-v1",
+  "version": "1.0.0",
+  "governing_owner": "KPMO",
+  "activation_state": "ACTIVE_WHEN_ON_PROTECTED_MAIN",
+  "operating_mode": "24X7_EVENT_DRIVEN_PLUS_30_MINUTE_WATCHDOG",
+  "detector": {
+    "authority": "READ_ONLY",
+    "triggers": [
+      "PROTECTED_MAIN_PUSH",
+      "PATH_BOUNDED_CONTROL_PR",
+      "CRITICAL_WORKFLOW_COMPLETION",
+      "THIRTY_MINUTE_WATCHDOG",
+      "MANUAL_RECOVERY"
+    ],
+    "exact_source_sha_required": true,
+    "same_head_runs_must_not_be_cancelled": true,
+    "diagnostic_payload": "DIGEST_ONLY_REDACTED",
+    "receipt_retention_days": 90
+  },
+  "state_model": {
+    "axes": [
+      "internal_control_state",
+      "external_empirical_state",
+      "release_state",
+      "overall_state"
+    ],
+    "generic_top_level_pass_forbidden": true,
+    "required_unknown_skipped_cancelled_or_stale": "HOLD_OR_FAIL",
+    "internal_pass_external_hold_overall": "HOLD",
+    "promotion_eligible_default": false
+  },
+  "immediate_improvement": {
+    "workflow_runtime_actions": [
+      "REBUILD_TEMPORARY_PREREQUISITES",
+      "REVALIDATE_EPHEMERAL_OUTPUTS",
+      "REJECT_STALE_OR_DUPLICATE_INPUTS",
+      "EMIT_DIGEST_BOUND_REMEDIATION_PACKET"
+    ],
+    "persistent_fix_executor": "KPMO_EXTERNAL_AGENT",
+    "persistent_fix_mode": "ISOLATED_BRANCH_AND_DRAFT_PR_ONLY",
+    "direct_main_write": false,
+    "auto_merge": false,
+    "self_approval": false,
+    "max_attempts_per_incident": 2,
+    "circuit_breaker_after_attempts": 2,
+    "attempt_ledger_authority": "KPMO_EXTERNAL_INCIDENT_LEDGER",
+    "missing_attempt_ledger_state": "MANUAL_HOLD_NOT_CLOSED",
+    "incident_identity": "POLICY_VERSION_SORTED_FINDING_IDS_AND_UNRESOLVED_GATES",
+    "observation_identity": "INCIDENT_FINGERPRINT_SOURCE_SHA_RUN_ID_ATTEMPT"
+  },
+  "automatic_fix_allowlist": {
+    "EPHEMERAL_SOURCE_POOL_PREREQUISITE": {
+      "scope": "TEMP_DIRECTORY_ONLY",
+      "persistent_repository_effect": "NONE"
+    },
+    "EPHEMERAL_SYNTHETIC_E2E_PREREQUISITE": {
+      "scope": "TEMP_DIRECTORY_ONLY",
+      "persistent_repository_effect": "NONE"
+    }
+  },
+  "hard_denies": [
+    "DIRECT_MAIN_WRITE",
+    "AUTOMATIC_MERGE",
+    "WORKFLOW_OR_TRUST_ROOT_SELF_MODIFICATION",
+    "RULESET_OR_ENVIRONMENT_MUTATION",
+    "SECRET_KEY_NONCE_OR_CREDENTIAL_ACCESS",
+    "PROVIDER_CALL_CONTRACT_EULA_OR_SPEND",
+    "RIGHTS_RETENTION_OR_DERIVED_DATA_DECISION",
+    "DATABASE_OR_INFRASTRUCTURE_MIGRATION",
+    "CLOUDFLARE_DIGITALOCEAN_OR_REMOTE_RESOURCE_MUTATION",
+    "CUSTOM_DOMAIN_CUTOVER",
+    "PUBLIC_PRODUCTION_OR_G5_PROMOTION"
+  ],
+  "empirical_truth_boundary": {
+    "audit_or_ci_can_increment_graded": false,
+    "audit_or_ci_can_increment_human_review": false,
+    "audit_or_ci_can_increment_dated_sold": false,
+    "audit_or_ci_can_create_candidate_or_evidence": false,
+    "audit_or_ci_can_start_track_b": false,
+    "audit_or_ci_can_approve_projection": false
+  },
+  "closure": {
+    "pr_head_success_is_sufficient": false,
+    "merge_result_success_required": true,
+    "protected_main_consecutive_successes_required": 2,
+    "independent_review_required": true,
+    "rollback_manifest_required": true
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
