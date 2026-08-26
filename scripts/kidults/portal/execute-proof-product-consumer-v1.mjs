@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import {admitProofProductProjection} from '../../../apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js';
+import {admitProofProductProjection} from './runtime/proof-product-admission.js';
 
 const SURFACES={
   PORTAL_RENDER:'PUBLIC_DISPLAY',
@@ -25,8 +25,6 @@ function parseArgs(argv){
 }
 
 export function consumeProofProductProjection(projection,{surface}={}){
-  // No API/export release route or signed control-plane capability exists yet.
-  // Caller-supplied clock/release strings are intentionally ignored.
   const admission=admitProofProductProjection(projection,{
     surface,
     purpose:SURFACES[surface]||'UNKNOWN',
@@ -52,7 +50,6 @@ function main(){
   }
   const projectionPath=path.resolve(process.cwd(),args.projection);
   const projection=JSON.parse(fs.readFileSync(projectionPath,'utf8'));
-  // Normal execution stays HOLD. No CLI flag may self-authorize approved output.
   const result=consumeProofProductProjection(projection,{surface:args.surface});
   process.stdout.write(`${JSON.stringify(result,null,2)}\n`);
   return result.ok?0:2;
