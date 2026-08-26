@@ -4,11 +4,6 @@ import path from 'node:path';
 const root = process.cwd();
 const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
 const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
-const exactNonScriptExecutables = new Set([
-  'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
-  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
-  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js'
-]);
 
 const fail = message => {
   console.error(`FAIL trusted-control dependency-closure selftest: ${message}`);
@@ -26,35 +21,30 @@ const topLevelScriptRefs = text => new Set(
 
 const executableRefsFromJson = (text, label) => {
   let parsed;
-  try {
-    parsed = JSON.parse(text);
-  } catch (error) {
-    fail(`${label} invalid JSON: ${error.message}`);
-  }
+  try { parsed = JSON.parse(text); } catch (error) { fail(`${label} invalid JSON: ${error.message}`); }
   const refs = new Set();
   const walk = value => {
     if (typeof value === 'string') {
       if (/^scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh)$/.test(value)) refs.add(value);
       return;
     }
-    if (Array.isArray(value)) {
-      for (const item of value) walk(item);
-      return;
-    }
-    if (value && typeof value === 'object') {
-      for (const item of Object.values(value)) walk(item);
-    }
+    if (Array.isArray(value)) { for (const item of value) walk(item); return; }
+    if (value && typeof value === 'object') for (const item of Object.values(value)) walk(item);
   };
   walk(parsed);
   return refs;
 };
 
+const resolveExecutableDependency = (currentPath, relativeRef) => {
+  const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), relativeRef));
+  if (!resolved.startsWith('scripts/')) throw new Error(`dependency escaped governed scripts root: ${currentPath} -> ${relativeRef}`);
+  return resolved;
+};
+
 const repositoryDependencyRefs = (text, currentPath) => {
   const executable = new Set();
   const semantic = new Set();
-  for (const match of text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh))['"]/g)) {
-    executable.add(match[1]);
-  }
+  for (const match of text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh))['"]/g)) executable.add(match[1]);
   const relativePatterns = [
     /\bfrom\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
     /\bimport\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
@@ -63,16 +53,11 @@ const repositoryDependencyRefs = (text, currentPath) => {
   ];
   for (const pattern of relativePatterns) {
     for (const match of text.matchAll(pattern)) {
-      const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), match[1]));
-      if (!resolved.startsWith('scripts/') && !exactNonScriptExecutables.has(resolved)) {
-        fail(`dependency escaped exact trusted executable allowlist: ${currentPath} -> ${match[1]}`);
-      }
-      executable.add(resolved);
+      try { executable.add(resolveExecutableDependency(currentPath, match[1])); }
+      catch (error) { fail(error.message); }
     }
   }
-  for (const match of text.matchAll(/['"]((?:coordination|apps|services)\/[A-Za-z0-9_./-]+\.(?:json|ya?ml))['"]/g)) {
-    semantic.add(match[1]);
-  }
+  for (const match of text.matchAll(/['"]((?:coordination|apps|services)\/[A-Za-z0-9_./-]+\.(?:json|ya?ml))['"]/g)) semantic.add(match[1]);
   for (const match of text.matchAll(/path\.join\(\s*root\s*,([\s\S]*?)\)/g)) {
     const segments = [...match[1].matchAll(/['"]([^'"]+)['"]/g)].map(item => item[1]);
     if (!segments.length) continue;
@@ -119,19 +104,16 @@ const mandatoryDiscoveries = [
   'scripts/kidults/source-intelligence/test-source-admission-record-v1.mjs',
   'scripts/kidults/projection/validate-projection-dry-run-v1.mjs',
   'scripts/kidults/audit/rfc3339-v1.mjs',
-  'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
-  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
-  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js',
+  'scripts/kidults/portal/runtime/projection-store.js',
+  'scripts/kidults/portal/runtime/proof-product-admission.js',
+  'scripts/kidults/portal/runtime/proof-product-schema-validator.js',
+  'scripts/kidults/portal/trusted-portal-runtime-parity-v1.mjs',
   'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json',
   'coordination/kidults/audit/unified-audit-control-plane-v1.json',
   'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json'
 ];
-for (const expected of mandatoryDiscoveries) {
-  if (!closure.has(expected)) fail(`closure missed mandatory trust dependency ${expected}`);
-}
+for (const expected of mandatoryDiscoveries) if (!closure.has(expected)) fail(`closure missed mandatory trust dependency ${expected}`);
 
-// Mutation probes construct fake paths from fragments so the self-test source itself cannot be
-// mistaken for a real repository dependency by the same scanner it is validating.
 const fakeDynamic = ['scripts', 'probe-dynamic.mjs'].join('/');
 const dynamicMutationProbe = executableRefsFromJson(JSON.stringify({ nested: { validator: fakeDynamic } }), 'dynamic probe');
 if (!dynamicMutationProbe.has(fakeDynamic)) fail('dynamic-ref mutation probe failed');
@@ -140,24 +122,30 @@ const fakeChild = ['scripts', 'probe-child.mjs'].join('/');
 const fakeRelativeHelper = ['.', 'probe-helper.js'].join('/');
 const fakeParent = ['scripts', 'kidults', 'kpmo', 'probe-parent.mjs'].join('/');
 const fakeResolvedHelper = ['scripts', 'kidults', 'kpmo', 'probe-helper.js'].join('/');
-const exactAppHelper = ['..', '..', '..', 'apps', 'kidults-enterprise-staging', 'public', 'portal-r001', 'projection-store.js'].join('/');
-const exactResolvedAppHelper = 'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js';
 const dependencyMutationProbe = repositoryDependencyRefs([
   `run('${fakeChild}')`,
   `import helper from '${fakeRelativeHelper}';`,
-  `import runtime from '${exactAppHelper}';`,
   "const fixture = 'coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json';",
   "const causal = path.join(root, 'coordination', 'kidults', 'kpmo', 'epistemic-causal-integrity-controls-v1.json');"
 ].join('\n'), fakeParent);
-for (const expected of [fakeChild, fakeResolvedHelper, exactResolvedAppHelper]) {
-  if (!dependencyMutationProbe.executable.has(expected)) fail(`transitive executable mutation probe missed ${expected}`);
-}
-for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) {
-  if (!dependencyMutationProbe.semantic.has(expected)) fail(`semantic dependency mutation probe missed ${expected}`);
-}
+for (const expected of [fakeChild, fakeResolvedHelper]) if (!dependencyMutationProbe.executable.has(expected)) fail(`transitive executable mutation probe missed ${expected}`);
+for (const expected of ['coordination/kidults/audit/pre-partner-adversarial-fixtures-v2.json', 'coordination/kidults/kpmo/epistemic-causal-integrity-controls-v1.json']) if (!dependencyMutationProbe.semantic.has(expected)) fail(`semantic dependency mutation probe missed ${expected}`);
+
+let escapeRejected = false;
+try { resolveExecutableDependency('scripts/kidults/portal/example.mjs', '../../../apps/kidults-enterprise-staging/public/portal-r001/projection-store.js'); }
+catch { escapeRejected = true; }
+if (!escapeRejected) fail('cross-tree executable escape mutation probe was not rejected');
+
+const trustedParity = read('scripts/kidults/portal/trusted-portal-runtime-parity-v1.mjs');
+for (const marker of [
+  'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-admission.js',
+  'apps/kidults-enterprise-staging/public/portal-r001/proof-product-schema-validator.js',
+  'TRUSTED_PORTAL_RUNTIME_PARITY_MISMATCH'
+]) if (!trustedParity.includes(marker)) fail(`parity validator missing governed deployment marker ${marker}`);
 
 console.log(JSON.stringify({
-  suite: 'KIDULTS_TRUSTED_CONTROL_DEPENDENCY_CLOSURE_SELFTEST_V1',
+  suite: 'KIDULTS_TRUSTED_CONTROL_DEPENDENCY_CLOSURE_SELFTEST_V2',
   result: 'PASS',
   literal_seed_refs: literalRefs.size,
   dynamic_seed_refs: dynamicRefs.size,
@@ -166,6 +154,9 @@ console.log(JSON.stringify({
   semantic_control_refs: semanticClosure.size,
   total_trust_dependency_refs: closure.size,
   mandatory_discoveries_proven: mandatoryDiscoveries.length,
+  cross_tree_executable_escape: 'REJECTED',
+  portal_runtime_owner: 'SCRIPTS_GOVERNED_ROOT',
+  portal_runtime_deployment_parity: 'SHA256_FAIL_CLOSED',
   mutation_probes: 6,
   empirical_gate_effect: 'NONE',
   external_partner_ingestion: 'HOLD',
