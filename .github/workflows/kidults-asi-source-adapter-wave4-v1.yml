@@ -47,7 +47,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-source-adapter-wave4-v1-${{ github.ref }}
+  # Do not let independent successful upstream completions erase one another. Non-workflow_run
+  # executions keep normal ref-scoped cancellation, while producer events are run-id isolated.
+  group: kidults-asi-source-adapter-wave4-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
