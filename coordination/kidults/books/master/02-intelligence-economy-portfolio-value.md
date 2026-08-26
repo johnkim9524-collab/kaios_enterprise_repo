@@ -2,12 +2,12 @@
 
 **판본 일자:** 2026-08-24 KST  
 **도서:** Intelligence Holdings Master Book  
-**장 상태:** `IN_PROGRESS / 2_OF_3 / NOT_READY_FOR_INTEGRATED_REVIEW`  
+**장 상태:** `COMPLETE_FOR_REVIEW / 3_OF_3 / REVIEW_SET_FROZEN`  
 **Track:** Enterprise Master / Portfolio / KIDULTS bounded vertical  
 **의사결정 ID:** PC-A-G-I-T, IH-MASTER-02, KIDULTS-TRUTH-BOUNDARY, NO-FOURTH-BOOK  
 **Snapshot ID:** N/A — 이 장은 승인된 시장 Snapshot 또는 Projection이 아니라 기업 운영원칙과 가치구조를 정의한다.  
 **Gate State:** G0 PASS; G1 BLOCKED; G2 NOT STARTED; G3 PARTIAL; G4 BLOCKED; G5 HOLD  
-**기준 protected main:** `984dfa3ce05be35040450fe1443ecc897553592c` (`protected: true`)  
+**기준 protected main:** `0d89556064ef5244bc1cc788641e2ef0bdfb49b7` (`protected: true`)  
 **Evidence 참조:** Platform Constitution; AI Governance registry; canonical issues #235, #236, #237, #238, #240, #256, #609, #769, #881, #921, #1066; merged positioning·competitiveness records; prior-book source lineage; PR #1097
 
 ## Platform Constitution Effect Receipt
@@ -208,9 +208,9 @@ Manual dispatch는 break-glass, recovery, diagnostics에만 허용하며 정상 
 
 | Book | 현재 장 수 | 이 장과의 결속 |
 |---|---:|---|
-| Master | 2/3 | 기업 정체성에서 Intelligence Economy·Knowledge Capital·portfolio value로 확장 |
-| Baseline | 2/3 예정 | 기업 목표와 현재 verified truth를 분리하는 ledger 제공 |
-| Architecture | 2/3 예정 | 가치구조를 재현 가능한 governed autonomy로 구현 |
+| Master | 3/3 | 기업 정체성에서 Intelligence Economy·Knowledge Capital·portfolio value로 확장 |
+| Baseline | 3/3 예정 | 기업 목표와 현재 verified truth를 분리하는 ledger 제공 |
+| Architecture | 3/3 예정 | 가치구조를 재현 가능한 governed autonomy로 구현 |
 
 Book Sync 상태는 `IN_PROGRESS`다. 세 Book 모두 3/3에 도달하기 전에는 종합 리뷰를 수행하거나 `READY_FOR_INTEGRATED_REVIEW`를 선언하지 않는다.
 
