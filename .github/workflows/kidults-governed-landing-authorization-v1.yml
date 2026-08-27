@@ -64,7 +64,22 @@ jobs:
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
 
           const files = await pages(`/pulls/${prNumber}/files`);
-          if (!files.length) fail('changed-file set is empty or unavailable');
+          if (!files.length) {
+            const commitCount = Number(pr.commits || 0);
+            const changedFileCount = Number(pr.changed_files || 0);
+            if (commitCount !== 0 || changedFileCount !== 0) fail(`changed-file API empty but PR metadata is nonzero: commits=${commitCount} changed_files=${changedFileCount}`);
+            console.log(JSON.stringify({
+              id:'kidults-governed-landing-authorization-receipt-v1',
+              state:'ZERO_DIFF_NO_GOVERNED_CHANGE_PASS',
+              pull_request:Number(prNumber),
+              exact_head_sha:pr.head.sha,
+              commits:commitCount,
+              changed_files:changedFileCount,
+              promotion_eligible:false,
+              public_release:'HOLD',production:'HOLD',g5:'HOLD'
+            },null,2));
+            process.exit(0);
+          }
           const prefixes = [
             '.github/',
             'services/kidults-control-plane/',
