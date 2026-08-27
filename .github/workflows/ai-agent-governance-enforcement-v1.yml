@@ -9,13 +9,16 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
+      - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   push:
@@ -26,13 +29,16 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
+      - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 
@@ -61,8 +67,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
           node --check scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs
+          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-operating-rules-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/registry/ai-agent-governance-registry-v1.json','utf8'))"
@@ -76,51 +84,48 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs | tee /tmp/ai-agent-bootstrap-remediation-validation-v1.json
-      - name: Validate a compliant evidence-bound status receipt
+      - name: Enforce report-after-remediation contract as child contract
+        shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/valid-ai-agent-status-receipt-v1.json <<'JSON'
-          {
-            "id": "governance-ci-valid-receipt",
-            "version": "1.0.0",
-            "agent_id": "KPMO_GOVERNANCE_VALIDATOR",
-            "as_of": "2026-08-23T00:00:00Z",
-            "scope": "AI_AGENT_GOVERNANCE_CI",
-            "state": "VERIFIED_PASS",
-            "facts": [
-              {
-                "statement": "The governance validator returned a pass result in this workflow.",
-                "evidence_ref_ids": ["validator-output"]
-              }
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs | tee /tmp/ai-agent-report-after-remediation-contract-validation-v1.json
+      - name: Validate a compliant evidence-bound repository status receipt through both gates
+        run: |
+          set -euo pipefail
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          export NOW
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const receipt={
+            id:`governance-ci-receipt-${process.env.GITHUB_RUN_ID}`,
+            version:'1.0.0',
+            agent_id:'KPMO_GOVERNANCE_VALIDATOR',
+            as_of:process.env.NOW,
+            scope:'AI_AGENT_GOVERNANCE_CI_REAL_RUN_RECEIPT',
+            state:'VERIFIED_PASS',
+            facts:[{statement:'The exact governance workflow run validated platform, bootstrap and report-after-remediation controls.',evidence_ref_ids:['workflow-run','validator-output']}],
+            evidence_refs:[
+              {ref_id:'workflow-run',kind:'WORKFLOW_RUN',locator:`workflow-run:${process.env.GITHUB_RUN_ID}:${process.env.GITHUB_RUN_ATTEMPT}`,observed_at:process.env.NOW,digest:`sha256:${process.env.GITHUB_SHA}`},
+              {ref_id:'validator-output',kind:'VALIDATOR_OUTPUT',locator:'/tmp/ai-agent-governance-validation-v1.json',observed_at:process.env.NOW}
             ],
-            "evidence_refs": [
-              {
-                "ref_id": "validator-output",
-                "kind": "VALIDATOR_OUTPUT",
-                "locator": "/tmp/ai-agent-governance-validation-v1.json",
-                "observed_at": "2026-08-23T00:00:00Z"
-              }
-            ],
-            "inferences": [],
-            "uncertainties": [],
-            "blockers": [],
-            "actions_executed": [
-              {
-                "action": "Validate platform and AI governance controls",
-                "result": "EXECUTED",
-                "evidence_ref_ids": ["validator-output"]
-              }
-            ],
-            "next_action": "Preserve mandatory platform and AI governance controls.",
-            "authority_boundary": {
-              "within_authority": true,
-              "protected_gates_touched": []
-            },
-            "production": "HOLD",
-            "public_release": "HOLD"
-          }
-          JSON
-          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-validation.json
+            inferences:[],
+            uncertainties:[],
+            blockers:[],
+            actions_executed:[{action:'Validate platform and AI governance controls',result:'EXECUTED',evidence_ref_ids:['workflow-run','validator-output']}],
+            next_action:'Preserve mandatory platform, Fix-First and report-after-remediation controls.',
+            authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Repository governance validation only.'},
+            defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
+            remediation_sequence:[],
+            verification_evidence_refs:['workflow-run','validator-output'],
+            truth_sync_refs:['coordination/kidults/registry/ai-agent-governance-registry-v1.json'],
+            improvement_proposal:'Continue exact-run receipt validation and remediate any new reversible governance defect before routine reporting.',
+            production:'HOLD',
+            public_release:'HOLD'
+          };
+          fs.writeFileSync('/tmp/valid-ai-agent-status-receipt-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-schema-validation.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-report-validation.json
       - name: Reject platform principle reorder mutation
         shell: bash
         run: |
@@ -208,7 +213,7 @@ jobs:
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/valid-ai-agent-status-receipt-v1.json','utf8'));
           x.state='RUNNING_VERIFIED';
-          x.evidence_refs=[{ref_id:'plan',kind:'ISSUE',locator:'issue:1',observed_at:'2026-08-23T00:00:00Z'}];
+          x.evidence_refs=[{ref_id:'plan',kind:'ISSUE',locator:'issue:1',observed_at:x.as_of}];
           x.facts[0].evidence_ref_ids=['plan'];
           x.actions_executed[0].evidence_ref_ids=['plan'];
           fs.writeFileSync('/tmp/invalid-running-receipt.json',JSON.stringify(x,null,2));
@@ -217,11 +222,44 @@ jobs:
             echo 'Validator accepted RUNNING without a live run identifier' >&2
             exit 1
           fi
+      - name: Reject report-only actual status receipt mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/valid-ai-agent-status-receipt-v1.json','utf8'));
+          x.defect_disposition='REMEDIATED_AND_VERIFIED';
+          x.remediation_sequence=[];
+          fs.writeFileSync('/tmp/invalid-report-only-receipt.json',JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt /tmp/invalid-report-only-receipt.json; then
+            echo 'Report gate accepted report-only remediation receipt' >&2
+            exit 1
+          fi
+      - name: Reject missing negative-test evidence in actual status receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/valid-ai-agent-status-receipt-v1.json','utf8'));
+          x.defect_disposition='REMEDIATED_AND_VERIFIED';
+          x.remediation_sequence=['ROOT_CAUSE_CORRECTED','REGRESSION_TESTED','EXACT_HEAD_REVALIDATED','TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE','REGISTRY_ISSUE_TRUTH_SYNCED','VERIFIED_OUTCOME_READY','PRIORITIZED_IMPROVEMENT_PROPOSAL_READY'];
+          fs.writeFileSync('/tmp/invalid-no-negative-receipt.json',JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt /tmp/invalid-no-negative-receipt.json; then
+            echo 'Report gate accepted receipt without negative-test evidence' >&2
+            exit 1
+          fi
       - name: Revalidate pristine governance after mutations
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs > /tmp/ai-agent-governance-final-validation-v1.json
           node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs > /tmp/ai-agent-bootstrap-remediation-final-validation-v1.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs > /tmp/ai-agent-report-after-remediation-final-validation-v1.json
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-final-schema-validation.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt /tmp/valid-ai-agent-status-receipt-v1.json > /tmp/valid-receipt-final-report-validation.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kpmo-ai-agent-governance-enforcement-v1
@@ -230,7 +268,12 @@ jobs:
             /tmp/ai-agent-governance-final-validation-v1.json
             /tmp/ai-agent-bootstrap-remediation-validation-v1.json
             /tmp/ai-agent-bootstrap-remediation-final-validation-v1.json
+            /tmp/ai-agent-report-after-remediation-contract-validation-v1.json
+            /tmp/ai-agent-report-after-remediation-final-validation-v1.json
             /tmp/valid-ai-agent-status-receipt-v1.json
-            /tmp/valid-receipt-validation.json
+            /tmp/valid-receipt-schema-validation.json
+            /tmp/valid-receipt-report-validation.json
+            /tmp/valid-receipt-final-schema-validation.json
+            /tmp/valid-receipt-final-report-validation.json
           retention-days: 90
           if-no-files-found: error
