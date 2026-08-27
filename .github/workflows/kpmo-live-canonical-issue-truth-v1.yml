@@ -9,6 +9,8 @@ on:
       - "coordination/kidults/**"
   push:
     branches: [ main ]
+  issues:
+    types: [edited, reopened, closed]
   workflow_dispatch:
 
 permissions:
