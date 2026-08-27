@@ -120,19 +120,16 @@ export function createPostgresCliRuntime({
           vertical: safeVertical
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-)
+SELECT set_config('app.tenant_id', :'tenant_id', false);
 SELECT json_build_object(
   'projection', p.projection_json,
   'digest', p.projection_digest,
   'asOf', p.as_of
 )::text
-FROM tenant_context
-JOIN kaios_runtime.projections p
-  ON p.tenant_id = :'tenant_id'
+FROM kaios_runtime.projections p
+WHERE p.tenant_id = :'tenant_id'
  AND p.vertical = :'vertical'
-WHERE p.status = 'approved'
+  AND p.status = 'approved'
 LIMIT 1;
 `
       });
@@ -173,18 +170,15 @@ LIMIT 1;
           scope: safeScope
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-)
+SELECT set_config('app.tenant_id', :'tenant_id', false);
 SELECT json_build_object(
   'entitlementId', e.entitlement_id,
   'expectedDigest', e.projection_digest
 )::text
-FROM tenant_context
-JOIN kaios_runtime.entitlements e
-  ON e.tenant_id = :'tenant_id'
- AND e.entitlement_id = :'entitlement_id'
-WHERE e.vertical = :'vertical'
+FROM kaios_runtime.entitlements e
+WHERE e.tenant_id = :'tenant_id'
+  AND e.entitlement_id = :'entitlement_id'
+  AND e.vertical = :'vertical'
   AND e.subject_id = :'subject_id'
   AND e.status = 'active'
   AND e.revoked_at IS NULL
@@ -221,14 +215,12 @@ LIMIT 1;
           projection_digest: digest
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-), inserted AS (
+SELECT set_config('app.tenant_id', :'tenant_id', false);
+WITH inserted AS (
   INSERT INTO kaios_runtime.export_nonces (
     tenant_id, vertical, entitlement_id, nonce_digest, projection_digest
   )
-  SELECT :'tenant_id', :'vertical', :'entitlement_id', :'nonce_digest', :'projection_digest'
-  FROM tenant_context
+  VALUES (:'tenant_id', :'vertical', :'entitlement_id', :'nonce_digest', :'projection_digest')
   ON CONFLICT DO NOTHING
   RETURNING tenant_id, vertical, entitlement_id, nonce_digest, projection_digest
 ), audited AS (
