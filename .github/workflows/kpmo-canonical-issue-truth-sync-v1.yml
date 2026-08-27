@@ -74,7 +74,7 @@ jobs:
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
           CANONICAL_TRUTH_PHASE: SYNCHRONIZED
           CANONICAL_CORRECTION_PR_NUMBER: '1441'
-          PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1431'
+          PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1438'
           EXPECTED_CORRECTION_HEAD_SHA: ''
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'true'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
