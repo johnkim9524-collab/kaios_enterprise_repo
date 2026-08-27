@@ -37,8 +37,10 @@ assert(ownedGraph.includes("'KIDULTS ASI P1 Source Preflight v1'"), 'OWNED_GRAPH
 for (const [name, workflow] of Object.entries({ requirement, steering })) {
   assert(!workflow.includes(globalArtifactListing), `${name.toUpperCase()}_GLOBAL_ARTIFACT_LISTING_FORBIDDEN`);
   assert(workflow.includes('/actions/runs/${'), `${name.toUpperCase()}_EXACT_RUN_ARTIFACT_QUERY_MISSING`);
-  assert(workflow.includes('git merge-base --is-ancestor'), `${name.toUpperCase()}_ANCESTOR_BINDING_MISSING`);
 }
+assert(requirement.includes('git merge-base --is-ancestor'), 'REQUIREMENT_ANCESTOR_BINDING_MISSING');
+assert(steering.includes('test "$AUTOBALANCE_SOURCE_SHA" = "$EXPECTED_GENERATION_SHA"'), 'STEERING_EXACT_GENERATION_BINDING_MISSING');
+assert(!steering.includes('git merge-base --is-ancestor "$AUTOBALANCE_SOURCE_SHA"'), 'STEERING_ANCESTOR_FALLBACK_FORBIDDEN');
 assert(!ownedGraph.includes(globalArtifactListing), 'OWNEDGRAPH_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(ownedGraph.includes('/actions/runs/${P1_RUN_ID}/artifacts'), 'OWNEDGRAPH_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(ownedGraph.includes('P1_SOURCE_SHA="$CURRENT_SHA"') && ownedGraph.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNEDGRAPH_EXACT_GENERATION_BINDING_MISSING');

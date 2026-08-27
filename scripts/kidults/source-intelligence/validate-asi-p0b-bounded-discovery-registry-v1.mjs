@@ -51,7 +51,7 @@ for (const marker of [
   "'KIDULTS ASI P0 Mission Consumption v1'", 'Execute four governed public-metadata rotations',
   'Build P0B source candidate increment', 'Reject source-candidate-as-evidence mutation',
   'Reject region-hint-as-coverage mutation', 'Reject host-as-factual-origin mutation',
-  'Reject target-content acquisition mutation', 'Emit KPMO P0B discovery receipt'
+  'Reject target-content acquisition mutation', 'Emit fail-closed KPMO P0B discovery receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_MUTATION_BOUNDARY');
