@@ -2,41 +2,43 @@
  * A31 — Executive Control Tower Live Integration & Governed Action Gateway
  * Module: action-lock.ts
  *
- * Only one active request per decision/action scope at a time.
- * Concurrent duplicate requests return IN_PROGRESS or EXISTING_RESULT.
+ * No process-memory lock registry is allowed. A future live gateway must
+ * inject a durable/atomic lock store. Legacy call shapes fail closed.
  */
 
-// ---------------------------------------------------------------------------
-// Lock Registry
-// ---------------------------------------------------------------------------
-
-interface LockEntry {
+export interface LockEntry {
   readonly decisionId: string;
   readonly requestId: string;
   readonly lockedAt: string;
 }
 
-const lockRegistry = new Map<string, LockEntry>();
+export interface ActionLockStore {
+  get(key: string): LockEntry | undefined;
+  set(key: string, entry: LockEntry): void;
+  delete(key: string): void;
+}
 
-// Lock key: decision-level (action scope)
 function lockKey(decisionId: string): string {
   return `a31:lock:${decisionId}`;
 }
-
-// ---------------------------------------------------------------------------
-// Acquire / Release
-// ---------------------------------------------------------------------------
 
 export type LockResult =
   | { acquired: true; entry: LockEntry }
   | { acquired: false; reason: string; existingRequestId: string };
 
+export function acquireActionLock(store: ActionLockStore, decisionId: string, requestId: string): LockResult;
+export function acquireActionLock(decisionId: string, requestId: string): LockResult;
 export function acquireActionLock(
-  decisionId: string,
-  requestId: string,
+  storeOrDecisionId: ActionLockStore | string,
+  decisionIdOrRequestId: string,
+  maybeRequestId?: string,
 ): LockResult {
+  if (typeof storeOrDecisionId === 'string') throw new Error('DURABLE_ACTION_LOCK_STORE_REQUIRED');
+  const decisionId = decisionIdOrRequestId;
+  const requestId = maybeRequestId;
+  if (!requestId) throw new Error('REQUEST_ID_REQUIRED');
   const key = lockKey(decisionId);
-  const existing = lockRegistry.get(key);
+  const existing = storeOrDecisionId.get(key);
   if (existing) {
     return {
       acquired: false,
@@ -44,25 +46,35 @@ export function acquireActionLock(
       existingRequestId: existing.requestId,
     };
   }
-
   const entry: LockEntry = {
     decisionId,
     requestId,
     lockedAt: new Date().toISOString(),
   };
-  lockRegistry.set(key, entry);
+  storeOrDecisionId.set(key, entry);
   return { acquired: true, entry };
 }
 
-export function releaseActionLock(decisionId: string, requestId: string): void {
+export function releaseActionLock(store: ActionLockStore, decisionId: string, requestId: string): void;
+export function releaseActionLock(decisionId: string, requestId: string): void;
+export function releaseActionLock(
+  storeOrDecisionId: ActionLockStore | string,
+  decisionIdOrRequestId: string,
+  maybeRequestId?: string,
+): void {
+  if (typeof storeOrDecisionId === 'string') throw new Error('DURABLE_ACTION_LOCK_STORE_REQUIRED');
+  const decisionId = decisionIdOrRequestId;
+  const requestId = maybeRequestId;
+  if (!requestId) throw new Error('REQUEST_ID_REQUIRED');
   const key = lockKey(decisionId);
-  const existing = lockRegistry.get(key);
-  // Only release if this request holds the lock
-  if (existing && existing.requestId === requestId) {
-    lockRegistry.delete(key);
-  }
+  const existing = storeOrDecisionId.get(key);
+  if (existing && existing.requestId === requestId) storeOrDecisionId.delete(key);
 }
 
-export function isDecisionLocked(decisionId: string): boolean {
-  return lockRegistry.has(lockKey(decisionId));
+export function isDecisionLocked(store: ActionLockStore, decisionId: string): boolean;
+export function isDecisionLocked(decisionId: string): boolean;
+export function isDecisionLocked(storeOrDecisionId: ActionLockStore | string, maybeDecisionId?: string): boolean {
+  if (typeof storeOrDecisionId === 'string') throw new Error('DURABLE_ACTION_LOCK_STORE_REQUIRED');
+  if (!maybeDecisionId) throw new Error('DECISION_ID_REQUIRED');
+  return Boolean(storeOrDecisionId.get(lockKey(maybeDecisionId)));
 }
