@@ -149,6 +149,15 @@ jobs:
           RESET ROLE;
           SQL
 
+      - name: Prove application-role projection read
+        shell: bash
+        env:
+          KAIOS_APP_POSTGRES_DSN: postgresql://kaios_runtime_app_login:runtime-test-password@127.0.0.1:5432/kaios
+        run: |
+          set -euo pipefail
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_APP_POSTGRES_DSN" \
+            --command="SET app.tenant_id = 'tenant-runtime-live'; SELECT tenant_id, vertical, status FROM kaios_runtime.projections WHERE tenant_id = 'tenant-runtime-live' AND vertical = 'kidults';"
+
       - name: Prove live PostgreSQL bootstrap export and replay closure
         shell: bash
         env:
