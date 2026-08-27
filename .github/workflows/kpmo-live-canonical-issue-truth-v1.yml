@@ -17,9 +17,12 @@ permissions:
   contents: read
   issues: read
 
+# Every observation gets its own immutable epoch. Board edits must never
+# cancel one another, otherwise Continuous Assurance observes artificial
+# cancellations instead of the actual canonical-truth result.
 concurrency:
-  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'issues' && github.sha || github.run_id }}
-  cancel-in-progress: true
+  group: kpmo-live-canonical-issue-truth-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'issues' && format('{0}-{1}', github.event.issue.number, github.run_id) || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   canonical-issue-truth:
