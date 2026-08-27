@@ -29,6 +29,7 @@ on:
       - 'KIDULTS ASI P0 Mission Consumption v1'
       - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
       - 'KIDULTS ASI Autonomous Resolution Layer v1'
+      - 'KIDULTS ASI SHADOW Operating Evidence v1'
     branches: [main]
     types: [completed]
   workflow_dispatch:
@@ -151,6 +152,64 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
+      - name: Validate exact ASI SHADOW upstream evidence binding
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          SHADOW_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SHADOW_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$SHADOW_UPSTREAM_CONCLUSION" = "success"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SHADOW_UPSTREAM_RUN_ID}" \
+            > /tmp/shadow-upstream-run.json
+          jq -e \
+            --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --arg sha "$SHADOW_UPSTREAM_SHA" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            '.id==$run
+             and .name=="KIDULTS ASI SHADOW Operating Evidence v1"
+             and .path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
+             and .repository.full_name==$repo
+             and .head_branch=="main"
+             and .head_sha==$sha
+             and .status=="completed"
+             and .conclusion=="success"' \
+            /tmp/shadow-upstream-run.json >/dev/null
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SHADOW_UPSTREAM_RUN_ID}/artifacts?per_page=100" \
+            > /tmp/shadow-upstream-artifacts.json
+          SHADOW_ARTIFACT_COUNT=$(jq \
+            --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --arg sha "$SHADOW_UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-shadow-operating-evidence-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            /tmp/shadow-upstream-artifacts.json)
+          test "$SHADOW_ARTIFACT_COUNT" -eq 1
+          SHADOW_ARTIFACT_ID=$(jq -r \
+            --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --arg sha "$SHADOW_UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-shadow-operating-evidence-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+            /tmp/shadow-upstream-artifacts.json)
+          SHADOW_ARTIFACT_DIGEST=$(jq -r \
+            --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --arg sha "$SHADOW_UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-shadow-operating-evidence-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
+            /tmp/shadow-upstream-artifacts.json)
+          [[ "$SHADOW_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
+          jq -n \
+            --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --arg sha "$SHADOW_UPSTREAM_SHA" \
+            --argjson artifact "$SHADOW_ARTIFACT_ID" \
+            --arg digest "$SHADOW_ARTIFACT_DIGEST" \
+            '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,artifact_id:$artifact,artifact_digest:$digest,production:"HOLD"}' \
+            > /tmp/kidults-shadow-upstream-binding.json
+
       - name: Validate Met acquisition cancellation and Assurance binding
         run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
 
@@ -165,6 +224,9 @@ jobs:
 
       - name: Validate adapter cancellation watch coverage
         run: node scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs
+
+      - name: Validate SHADOW evidence watch coverage and negative mutations
+        run: node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
 
       - name: Run audit and always retain receipt
         run: >-
