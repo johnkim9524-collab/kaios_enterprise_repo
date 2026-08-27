@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import sqlite3
 from threading import Lock
-from time import monotonic, time
+from time import monotonic, sleep, time
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,9 +76,14 @@ class DurableRateLimiter:
 
     Each check is serialized with ``BEGIN IMMEDIATE`` so concurrent worker
     processes sharing the same database cannot independently spend the same
-    remaining request slot. The database contains only opaque rate-limit keys
-    and timestamps; no bearer-token material is persisted.
+    remaining request slot. WAL mode is established during schema bootstrap,
+    not on every connection, avoiding a journal-mode lock race during
+    concurrent construction. The database contains only opaque rate-limit
+    keys and timestamps; no bearer-token material is persisted.
     """
+
+    _INITIALIZE_ATTEMPTS = 20
+    _INITIALIZE_RETRY_SECONDS = 0.05
 
     def __init__(
         self,
@@ -95,30 +100,51 @@ class DurableRateLimiter:
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(
             self.path,
-            timeout=5.0,
+            timeout=30.0,
             isolation_level=None,
         )
-        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA busy_timeout=30000")
         connection.execute("PRAGMA synchronous=FULL")
-        connection.execute("PRAGMA busy_timeout=5000")
         return connection
 
     def _initialize(self) -> None:
-        with self._connect() as connection:
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS rate_limit_events (
-                    key TEXT NOT NULL,
-                    occurred_at REAL NOT NULL
+        last_error: sqlite3.OperationalError | None = None
+        for attempt in range(self._INITIALIZE_ATTEMPTS):
+            connection = self._connect()
+            try:
+                # journal_mode is persistent database metadata. Configure it
+                # only at bootstrap; normal request connections must not
+                # renegotiate journal mode under contention.
+                connection.execute("PRAGMA journal_mode=WAL")
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS rate_limit_events (
+                        key TEXT NOT NULL,
+                        occurred_at REAL NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            connection.execute(
-                """
-                CREATE INDEX IF NOT EXISTS rate_limit_events_key_time_idx
-                ON rate_limit_events (key, occurred_at)
-                """
-            )
+                connection.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS rate_limit_events_key_time_idx
+                    ON rate_limit_events (key, occurred_at)
+                    """
+                )
+                connection.execute("COMMIT")
+                return
+            except sqlite3.OperationalError as error:
+                if connection.in_transaction:
+                    connection.execute("ROLLBACK")
+                if "locked" not in str(error).lower():
+                    raise
+                last_error = error
+            finally:
+                connection.close()
+            if attempt + 1 < self._INITIALIZE_ATTEMPTS:
+                sleep(self._INITIALIZE_RETRY_SECONDS)
+        assert last_error is not None
+        raise last_error
 
     def check(self, key: str) -> RateLimitResult:
         now = time()
