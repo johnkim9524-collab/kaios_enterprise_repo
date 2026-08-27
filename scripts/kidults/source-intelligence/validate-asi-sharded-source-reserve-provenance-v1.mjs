@@ -1,0 +1,118 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+
+const workflowPath = '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
+
+function failuresFor(text) {
+  const failures = [];
+  const required = [
+    "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",
+    "UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}",
+    "UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}",
+    "UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}",
+    "UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}",
+    'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
+    'test "$UPSTREAM_HEAD_BRANCH" = "main"',
+    'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
+    '/actions/runs/${run_id}/artifacts?per_page=100',
+    'expected exactly one producer-bound v2 discovery artifact',
+    'kidults-asi-global-any-site-hourly-cycle-v2',
+    '.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"',
+    'no successful v2 discovery producer exists on exact current SHA',
+    'KIDULTS_RESERVE_DISCOVERY_RUN_ID=',
+    'KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=',
+    'exact_generation_bound:true'
+  ];
+  for (const marker of required) {
+    if (!text.includes(marker)) failures.push(`missing provenance marker: ${marker}`);
+  }
+
+  const workflowRunBlock = text.match(/if \[ "\$GITHUB_EVENT_NAME" = "workflow_run" \]; then([\s\S]*?)else/);
+  if (!workflowRunBlock) {
+    failures.push('workflow_run producer-binding block missing');
+  } else {
+    const block = workflowRunBlock[1];
+    for (const marker of [
+      'DISCOVERY_RUN_ID="$UPSTREAM_RUN_ID"',
+      'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
+      'test "$UPSTREAM_HEAD_BRANCH" = "main"',
+      'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"'
+    ]) {
+      if (!block.includes(marker)) failures.push(`workflow_run exact binding missing: ${marker}`);
+    }
+  }
+
+  const scopedArtifactCall = text.match(/exact_discovery_artifact\(\)[\s\S]*?\/actions\/runs\/\$\{run_id\}\/artifacts\?per_page=100[\s\S]*?^\s*\}/m);
+  if (!scopedArtifactCall) failures.push('run-scoped discovery artifact lookup missing');
+
+  if (/DISCOVERY_ID=.*find_main_artifact/.test(text)) {
+    failures.push('repository-global discovery artifact selection reintroduced');
+  }
+
+  if (!text.includes('PREV_RUN_ID="$(jq -r --argjson current "$GITHUB_RUN_ID"')) {
+    failures.push('previous reserve is not bound to a prior successful workflow run');
+  }
+
+  return failures;
+}
+
+const current = fs.readFileSync(workflowPath, 'utf8');
+const failures = failuresFor(current);
+if (failures.length) {
+  console.error('Sharded Source Reserve provenance validation: FAIL');
+  for (const failure of failures) console.error(`- ${failure}`);
+  process.exit(1);
+}
+
+const mutations = [
+  [
+    '/actions/runs/${run_id}/artifacts?per_page=100',
+    '/actions/artifacts?per_page=100',
+    'repository-global artifact lookup'
+  ],
+  [
+    'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
+    'test -n "$UPSTREAM_HEAD_SHA"',
+    'exact upstream SHA binding'
+  ],
+  [
+    "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",
+    'github.ref',
+    'workflow_run concurrency isolation'
+  ],
+  [
+    'expected exactly one producer-bound v2 discovery artifact',
+    'producer-bound v2 discovery artifact',
+    'artifact exact cardinality'
+  ],
+  [
+    '.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"',
+    'true',
+    'producer workflow-path binding'
+  ]
+];
+
+for (const [from, to, label] of mutations) {
+  if (!current.includes(from)) {
+    console.error(`Sharded Source Reserve provenance self-test fixture missing: ${label}`);
+    process.exit(2);
+  }
+  const mutated = current.replace(from, to);
+  if (failuresFor(mutated).length === 0) {
+    console.error(`Sharded Source Reserve provenance self-test failed to reject: ${label}`);
+    process.exit(3);
+  }
+}
+
+console.log(JSON.stringify({
+  status: 'PASS',
+  control: 'SHARDED_SOURCE_RESERVE_EXACT_PRODUCER_PROVENANCE',
+  workflow_run_exact_upstream_id: true,
+  exact_head_sha: true,
+  exact_artifact_cardinality: true,
+  producer_workflow_path_bound: true,
+  concurrency_isolated_by_upstream_run: true,
+  previous_reserve_bound_to_successful_run: true,
+  public_release: 'HOLD',
+  production: 'HOLD'
+}));

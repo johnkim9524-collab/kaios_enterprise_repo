@@ -18,6 +18,10 @@ export type CollectorBatch = {
   normalized: NormalizedEvidence[];
 };
 
+const MAX_ADAPTER_RESPONSE_BYTES = 1_048_576;
+const MAX_ADAPTER_ATTEMPTS = 3;
+const MAX_ADAPTER_ITEMS = 5000;
+
 function parseConfigs(value?: string): AdapterConfig[] {
   if (!value) return [];
   const parsed = JSON.parse(value);
@@ -32,14 +36,31 @@ function isGoldenPathAdapter(config: AdapterConfig): boolean {
 }
 
 async function fetchJson(config: AdapterConfig): Promise<unknown> {
+  let parsedUrl: URL;
+  try { parsedUrl = new URL(config.endpoint); } catch { throw new Error(`${config.id} endpoint is invalid`); }
+  if (parsedUrl.protocol !== 'https:') throw new Error(`${config.id} endpoint must use HTTPS`);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort('adapter timeout'), Math.max(1000, config.timeoutMs || 15000));
   try {
     const headers = new Headers({ accept: 'application/json' });
     if (config.authHeader && config.authToken) headers.set(config.authHeader, config.authToken);
-    const response = await fetch(config.endpoint, { headers, signal: controller.signal });
-    if (!response.ok) throw new Error(`${config.id} returned HTTP ${response.status}`);
-    return await response.json();
+    for (let attempt = 1; attempt <= MAX_ADAPTER_ATTEMPTS; attempt += 1) {
+      const response = await fetch(config.endpoint, { headers, signal: controller.signal });
+      if (!response.ok) {
+        if ((response.status === 429 || response.status >= 500) && attempt < MAX_ADAPTER_ATTEMPTS) {
+          const retryAfter = Math.min(5000, Math.max(0, Number(response.headers.get('retry-after') || 0) * 1000));
+          await new Promise(resolve => setTimeout(resolve, retryAfter || attempt * 250));
+          continue;
+        }
+        throw new Error(`${config.id} returned HTTP ${response.status}`);
+      }
+      const body = await response.text();
+      if (Buffer.byteLength(body, 'utf8') > MAX_ADAPTER_RESPONSE_BYTES) {
+        throw new Error(`${config.id} response exceeds bounded size`);
+      }
+      try { return JSON.parse(body); } catch { throw new Error(`${config.id} returned invalid JSON`); }
+    }
+    throw new Error(`${config.id} exhausted bounded retry budget`);
   } finally {
     clearTimeout(timeout);
   }
@@ -70,6 +91,7 @@ export async function collectConfiguredAdapters(sourceAdaptersJson?: string): Pr
       if (item.source.family !== config.family) throw new Error(`${config.id} family mismatch`);
       return validateNormalizedEvidence(item);
     });
+    if (items.length > MAX_ADAPTER_ITEMS) throw new Error(`${config.id} item count exceeds bounded limit`);
     return { adapterId: config.id, family: config.family, rawCount: items.length, normalized: items };
   }));
 }

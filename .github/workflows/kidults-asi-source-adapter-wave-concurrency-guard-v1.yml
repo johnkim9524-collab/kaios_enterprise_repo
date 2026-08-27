@@ -1,0 +1,51 @@
+name: KIDULTS ASI Source Adapter Wave Concurrency Guard v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-source-adapter-wave2-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave3-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave-concurrency-guard-v1.yml'
+      - 'scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-source-adapter-wave2-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave3-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave4-v1.yml'
+      - '.github/workflows/kidults-asi-source-adapter-wave-concurrency-guard-v1.yml'
+      - 'scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-source-adapter-wave-concurrency-guard-v1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-source-adapter-wave-concurrency:
+    name: Validate Source Adapter Wave Concurrency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Require exact source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate producer-isolated concurrency and regression mutation
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs
+          node scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs

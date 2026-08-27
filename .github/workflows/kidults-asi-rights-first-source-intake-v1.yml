@@ -8,7 +8,11 @@ on:
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
       - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
@@ -29,7 +33,11 @@ on:
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
       - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
@@ -72,6 +80,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs
@@ -80,6 +90,8 @@ jobs:
             coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json \
             coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json \
+            coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json \
+            coordination/kidults/source-intelligence/source-channel-control-plane-v1.json \
             coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json; do
             node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$FILE"
           done
@@ -98,6 +110,16 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs \
             | tee /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
+      - name: Validate unified source channel control plane
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs \
+            /tmp/kidults-source-channel-control-plane-v1.json \
+            | tee /tmp/kidults-source-channel-control-plane-build-v1.json
+          cmp coordination/kidults/source-intelligence/source-channel-control-plane-v1.json \
+            /tmp/kidults-source-channel-control-plane-v1.json
+          node scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs \
+            | tee /tmp/kidults-source-channel-control-plane-validation-v1.json
       - name: Validate mandatory Track Z routing
         run: |
           set -euo pipefail
@@ -146,5 +168,8 @@ jobs:
             /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
             /tmp/kidults-rights-first-track-z-routing-validation-v1.json
             /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
+            /tmp/kidults-source-channel-control-plane-build-v1.json
+            /tmp/kidults-source-channel-control-plane-validation-v1.json
+            /tmp/kidults-source-channel-control-plane-v1.json
           retention-days: 90
           if-no-files-found: error

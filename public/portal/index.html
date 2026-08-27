@@ -105,7 +105,7 @@
 
         <article class="metric-card">
           <span class="metric-label">Current Edition</span>
-          <strong id="editionValue" class="metric-value">??/strong>
+          <strong id="editionValue" class="metric-value">??</strong>
           <small id="editionGeneratedAt">No edition loaded</small>
         </article>
 
@@ -151,23 +151,23 @@
           <dl class="definition-list">
             <div>
               <dt>Platform</dt>
-              <dd id="editionPlatform">??/dd>
+              <dd id="editionPlatform">??</dd>
             </div>
             <div>
               <dt>System</dt>
-              <dd id="editionSystem">??/dd>
+              <dd id="editionSystem">??</dd>
             </div>
             <div>
               <dt>Kidult 100 Index</dt>
-              <dd id="editionIndex">??/dd>
+              <dd id="editionIndex">??</dd>
             </div>
             <div>
               <dt>Collector Sentiment</dt>
-              <dd id="editionSentiment">??/dd>
+              <dd id="editionSentiment">??</dd>
             </div>
             <div>
               <dt>Confidence</dt>
-              <dd id="editionConfidence">??/dd>
+              <dd id="editionConfidence">??</dd>
             </div>
           </dl>
         </article>
@@ -266,6 +266,24 @@
         </div>
       </section>
 
+      <section class="panel" aria-labelledby="controlPlaneTitle">
+        <div class="panel-heading panel-heading-responsive">
+          <div>
+            <p class="eyebrow">GOVERNED CONTROL PLANE</p>
+            <h2 id="controlPlaneTitle">Authoritative State Boundary</h2>
+            <p>검증된 로컬 계약과 원격 운영 증거를 분리해 표시합니다.</p>
+          </div>
+          <span id="controlPlaneOverall" class="status-badge status-loading">Loading</span>
+        </div>
+        <div class="metric-grid" aria-label="Control plane status">
+          <article class="metric-card"><span class="metric-label">System of Record</span><strong class="metric-value">PostgreSQL</strong><small>원격 provisioning: HOLD</small></article>
+          <article class="metric-card"><span class="metric-label">D1 Role</span><strong class="metric-value">Read Model</strong><small>단일 governed projector</small></article>
+          <article class="metric-card"><span class="metric-label">PSA API</span><strong class="metric-value">Canary HOLD</strong><small>credential·rights receipt 대기</small></article>
+          <article class="metric-card"><span class="metric-label">Promotion</span><strong class="metric-value">HOLD</strong><small>Candidate/Evidence/Projection 없음</small></article>
+        </div>
+        <p id="controlPlaneEvidence" class="empty-state">Local contract: VERIFIED_PASS · remote activation: NOT_VERIFIED</p>
+      </section>
+
       <section class="panel">
         <div class="panel-heading panel-heading-responsive">
           <div><p class="eyebrow">AUTONOMOUS OPERATIONS</p><h2>Scheduler Status</h2><p>Monitor scheduled execution and the runtime lock.</p></div>
@@ -316,5 +334,6 @@
   <script src="/portal/assets/scheduler.js" defer></script>
     <script src="/portal/assets/config.js"></script>
     <script src="/portal/assets/observability.js"></script>
+    <script src="/portal/assets/control-plane-status.js" defer></script>
 </body>
 </html>

@@ -22,9 +22,15 @@ Provider-level `HOLD` remains the non-bypass boundary for access, contract, spen
 | 2 | PSA Enterprise API | Higher-quota certification helper | USD 3,500/year; 500 calls/day | PENDING_PROVIDER_RESPONSE |
 | 3 | Classic.com Licensed Bundle 3 | Primary collector-car Current SOLD candidate | Custom quote; unresolved | CONDITIONAL_HOLD |
 | 4 | CGC Dealer Portal API | Unverified certification/grading candidate | Unknown | PENDING_PROVIDER_RESPONSE |
-| 5 | ALT/FNDATA | Unverified market-data candidate | Unknown | PENDING_PROVIDER_RESPONSE |
+| 5 | ALT/FNDATA | High technical fit; provider rejected KIDULTS as competitor | N/A | DROP — COMPETITOR_CONFLICT |
 | 6 | LiveArt Pilot | Potential art-auction data candidate | Unknown | PENDING_PROVIDER_RESPONSE |
 | 7 | Hagerty | Unspecified collector-car candidate | Unknown | PENDING_PROVIDER_RESPONSE |
+
+## ALT/FNDATA terminal disposition — 2026-08-26
+
+ALT/FNDATA rejected the bounded evaluation/licensing path because it viewed KIDULTS' ingestion, normalization, calibration, customer-facing derived intelligence and derived-result retention as competitive use. The current state is `NO_GO`; it is excluded from procurement, integration, fallback, redundancy and PoC counts. Public materials may be used only for lawful competitor benchmarking.
+
+The replacement is not another single cross-category backbone. KIDULTS will use a category-specific independent Source Mesh while retaining canonical identity, entity resolution, normalization, derived intelligence, rights/lineage and provider-switch memory inside the Core.
 
 ## Current SOLD Transaction Feed conclusion
 

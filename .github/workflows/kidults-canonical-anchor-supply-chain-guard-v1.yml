@@ -1,0 +1,69 @@
+name: KIDULTS Canonical Anchor Supply Chain Guard v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
+      - 'scripts/kidults/supply-chain/**'
+      - '.github/workflows/kidults-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
+      - 'scripts/kidults/supply-chain/**'
+      - '.github/workflows/kidults-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-canonical-anchor-supply-chain-guard-v1-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-canonical-anchor-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate canonical manifest and all consumers
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs
+          node --check scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs
+          node --check scripts/kidults/supply-chain/validate-canonical-anchor-consumers-v1.mjs
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs --validate-manifest-only
+          node scripts/kidults/supply-chain/validate-canonical-anchor-consumers-v1.mjs
+      - name: Emit fail-closed guard receipt
+        run: |
+          node - <<'NODE' >/tmp/kidults-canonical-anchor-supply-chain-guard-receipt-v1.json
+          const receipt={
+            id:'kidults-canonical-anchor-supply-chain-guard-receipt-v1',
+            state:'VERIFIED_PASS',
+            source_sha:process.env.GITHUB_SHA,
+            canonical_manifest:true,
+            hardcoded_anchor_artifact_ids:0,
+            consumer_restore_contract:'EXACT_RUN_ARTIFACT_SHA_DIGEST',
+            authority:'STRUCTURAL_PREFLIGHT_ONLY',
+            autonomous_effect:'POSITIVE_SINGLE_VERIFIED_RESTORE_PATH',
+            global_effect:'POSITIVE_SHARED_BY_ALL_ANCHOR_CONSUMERS',
+            irreplaceable_value_effect:'POSITIVE_REPRODUCIBLE_ANCHOR_SUPPLY_CHAIN',
+            transparency_effect:'POSITIVE_BOUND_RECEIPT_AND_NEGATIVE_GUARD',
+            public_release:'HOLD',
+            production:'HOLD'
+          };
+          process.stdout.write(JSON.stringify(receipt,null,2)+'\n');
+          NODE
+          cat /tmp/kidults-canonical-anchor-supply-chain-guard-receipt-v1.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-canonical-anchor-supply-chain-guard-v1
+          path: /tmp/kidults-canonical-anchor-supply-chain-guard-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 90

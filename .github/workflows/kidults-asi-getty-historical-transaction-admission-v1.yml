@@ -70,23 +70,17 @@ on:
       - 'services/kidults-autonomous-intelligence/tsconfig.json'
       - 'docs/kidults/asi/asi-getty-historical-transaction-admission-v1.md'
       - '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI Source Adapter Wave 4 v1'
-    branches: [main]
-    types: [completed]
-
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: kidults-asi-getty-historical-transaction-admission-v1-${{ github.ref }}
+  # Static repository validator: coalesce only the same event and exact source generation.
+  group: kidults-asi-getty-historical-transaction-admission-v1-${{ github.event_name }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   verify-getty-historical-transaction:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

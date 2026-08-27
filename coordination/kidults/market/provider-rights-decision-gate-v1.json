@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "parent_issue": 769,
   "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
-  "providers": ["CLASSIC.COM", "ALT/FNDATA"],
+  "providers": [
+    "CLASSIC.COM",
+    "ALT/FNDATA"
+  ],
   "claim_ceiling": "DATED_OBSERVED_SOLD_PRIVATE_EVALUATION_ONLY",
   "required_dimensions": [
     "query_collect",
@@ -39,11 +42,21 @@
       "activation": "DISABLED"
     },
     "ALT/FNDATA": {
-      "written_response": "NO_SUBSTANTIVE_REPLY_OBSERVED",
-      "field_by_purpose_rights": "INCOMPLETE",
-      "provider_spec": "PENDING",
-      "decision": "NEEDS_CLARIFICATION",
-      "activation": "DISABLED"
+      "written_response": "DECLINED_COMPETITOR_CONFLICT",
+      "field_by_purpose_rights": "INCOMPATIBLE_COMPETITIVE_USE",
+      "provider_spec": "NOT_APPLICABLE_NO_GO",
+      "decision": "NO_GO",
+      "activation": "DISABLED",
+      "decision_date": "2026-08-26",
+      "rejection_basis": "PROVIDER_IDENTIFIED_KIDULTS_AS_COMPETITOR",
+      "permitted_residual_role": "PUBLIC_COMPETITOR_BENCHMARK_ONLY",
+      "excluded_from": [
+        "PROCUREMENT",
+        "INTEGRATION",
+        "FALLBACK",
+        "PROVIDER_REDUNDANCY",
+        "POC_PIPELINE"
+      ]
     }
   },
   "non_bypass": {

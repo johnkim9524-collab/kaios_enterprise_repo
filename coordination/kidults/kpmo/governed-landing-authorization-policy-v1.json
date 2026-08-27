@@ -1,0 +1,51 @@
+{
+  "id": "kidults-governed-landing-authorization-policy-v1",
+  "version": "1.0.0",
+  "status": "FOUNDER_APPROVED_FOR_IMPLEMENTATION",
+  "owner": "KPMO",
+  "issue": 1281,
+  "required_status_context": "KIDULTS Governed Landing Authorization V1",
+  "governed_path_prefixes": [
+    ".github/",
+    "scripts/kidults/kpmo/",
+    "scripts/kidults/redteam/",
+    "scripts/kidults/portal/runtime/",
+    "coordination/kidults/kpmo/",
+    "coordination/kidults/audit/",
+    "coordination/kidults/security/",
+    "coordination/kidults/providers/",
+    "infra/"
+  ],
+  "governed_exact_paths": [
+    "wrangler.toml",
+    "wrangler.json",
+    "wrangler.jsonc"
+  ],
+  "review_policy": {
+    "minimum_non_author_approvals": 1,
+    "self_review_counts": false,
+    "approval_must_bind_exact_head_sha": true,
+    "stale_approval_counts": false,
+    "eligible_reviewer_types": ["User"],
+    "eligible_author_associations": ["OWNER", "MEMBER", "COLLABORATOR"],
+    "approval_reason_marker": "Governance-Reason:",
+    "changes_requested_on_exact_head_blocks": true
+  },
+  "draft_policy": {
+    "draft_is_promotable": false,
+    "ready_state_must_be_observable": true,
+    "ready_actor_and_time_must_be_receipted": true
+  },
+  "bypass_policy": {
+    "ruleset_bypass_actor_count_must_be_zero": true,
+    "required_status_must_be_strict": true,
+    "missing_ruleset_readback_is_failure": true
+  },
+  "truth_boundary": {
+    "technical_green_is_independent_review": false,
+    "governance_green_is_empirical_launch_evidence": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  }
+}

@@ -1,0 +1,116 @@
+name: KIDULTS Source Channel Control Plane Guard v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-*-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json'
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - 'coordination/kidults/source-intelligence/*-regional-*-admission-r1.json'
+      - 'coordination/kidults/source-intelligence/state-department-online-auction-sold-event-admission-r1.json'
+      - 'scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - '.github/workflows/kidults-source-channel-control-plane-guard-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-admitted-*-source-pool-r1.json'
+      - 'coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json'
+      - 'coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json'
+      - 'coordination/kidults/source-intelligence/*-regional-*-admission-r1.json'
+      - 'coordination/kidults/source-intelligence/state-department-online-auction-sold-event-admission-r1.json'
+      - 'scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - '.github/workflows/kidults-source-channel-control-plane-guard-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-source-channel-control-plane-guard-v1-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  verify-source-channel-control-plane:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/source-channel-control-plane-v1.json','utf8'))"
+      - name: Rebuild and compare deterministic ledger
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-source-channel-control-plane-v1.mjs \
+            /tmp/kidults-source-channel-control-plane-v1.json \
+            | tee /tmp/kidults-source-channel-control-plane-build-v1.json
+          cmp coordination/kidults/source-intelligence/source-channel-control-plane-v1.json \
+            /tmp/kidults-source-channel-control-plane-v1.json
+      - name: Validate rights, aliases, activation boundaries, and mutations
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs \
+            | tee /tmp/kidults-source-channel-control-plane-validation-v1.json
+      - name: Assert protected truth boundary
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const ledger = JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/source-channel-control-plane-v1.json', 'utf8'));
+          const expected = {
+            curated_candidate_rows: 64,
+            implemented_adapter_profiles: 16,
+            unique_bounded_admitted_sources: 9,
+            rights_clear_collector_current_sold_sources: 0,
+            empirically_active_adapters: 0,
+            activation_backlog_eligible: 0,
+            evidence_admitted: 0,
+            candidate_created: false,
+            track_b_started: false,
+            approved_projection: false
+          };
+          for (const [key, value] of Object.entries(expected)) {
+            if (ledger.summary[key] !== value) throw new Error(`SOURCE_CHANNEL_TRUTH_BOUNDARY:${key}`);
+          }
+          if (ledger.production !== 'HOLD' || ledger.public_release !== 'HOLD' || ledger.g5 !== 'HOLD') {
+            throw new Error('SOURCE_CHANNEL_PROTECTED_RELEASE_BOUNDARY');
+          }
+          NODE
+          git diff --exit-code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-source-channel-control-plane-guard-v1
+          path: |
+            /tmp/kidults-source-channel-control-plane-build-v1.json
+            /tmp/kidults-source-channel-control-plane-validation-v1.json
+            /tmp/kidults-source-channel-control-plane-v1.json
+          retention-days: 90
+          if-no-files-found: error

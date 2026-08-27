@@ -1,0 +1,51 @@
+{
+  "registry_id": "KIDULTS_D1_WRITER_REGISTRY_V1",
+  "system_of_record": "POSTGRESQL",
+  "d1_role": "READ_MODEL_ONLY",
+  "permitted_normal_writer_cardinality": 1,
+  "deployed_governed_writer_cardinality": 0,
+  "writers": [
+    {
+      "writer_id": "kpmo-d1-projector-v1",
+      "state": "REGISTERED_REMOTE_HOLD_NOT_DEPLOYED",
+      "purpose": "PROJECT_POSTGRESQL_OUTBOX_TO_REBUILDABLE_D1_READ_MODELS",
+      "source_paths": [
+        "services/kidults-control-plane/src/d1-projector.mjs"
+      ],
+      "d1_bindings": [],
+      "remote_activation": "HOLD",
+      "required_source_fields": [
+        "source_event_id",
+        "source_event_hash",
+        "source_schema_version",
+        "projector_id",
+        "created_at"
+      ]
+    },
+    {
+      "writer_id": "kidults-autonomous-intelligence-legacy",
+      "state": "LEGACY_MIGRATION_HOLD",
+      "purpose": "PRE_POSTGRESQL_DIRECT_D1_INTELLIGENCE_RUNTIME",
+      "source_paths": [
+        "services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts",
+        "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+        "services/kidults-autonomous-intelligence/src/index.ts",
+        "services/kidults-autonomous-intelligence/src/publication.ts",
+        "services/kidults-autonomous-intelligence/src/worker.ts"
+      ],
+      "d1_bindings": [
+        "services/kidults-autonomous-intelligence/wrangler.jsonc#DB"
+      ],
+      "remote_activation": "PROHIBITED_UNTIL_PROJECTOR_CUTOVER",
+      "owner": "TRACK_D_ASI",
+      "exit_evidence": [
+        "POSTGRESQL_OUTBOX_SOURCE_FOR_EVERY_PROJECTED_ROW",
+        "D1_FULL_REBUILD_PARITY",
+        "DIRECT_WRITE_SITE_COUNT_ZERO",
+        "LEGACY_REMOTE_WRITER_DISABLED_RECEIPT"
+      ]
+    }
+  ],
+  "unknown_writer_policy": "P0_FAIL_CLOSED",
+  "production": "HOLD"
+}

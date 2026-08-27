@@ -1,0 +1,73 @@
+{
+  "id": "kidults-asi-workflow-fanout-budget-v1",
+  "version": "1.0.0",
+  "governing_owner": "KPMO",
+  "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
+  "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt.",
+  "static_validators": [
+    {
+      "workflow": "KIDULTS ASI Source Adapter Wave 2 v1",
+      "path": ".github/workflows/kidults-asi-source-adapter-wave2-v1.yml"
+    },
+    {
+      "workflow": "KIDULTS ASI Source Adapter Wave 3 v1",
+      "path": ".github/workflows/kidults-asi-source-adapter-wave3-v1.yml"
+    },
+    {
+      "workflow": "KIDULTS ASI Source Adapter Wave 4 v1",
+      "path": ".github/workflows/kidults-asi-source-adapter-wave4-v1.yml"
+    },
+    {
+      "workflow": "KIDULTS ASI Bonhams Cars Results Reference Adapter v1",
+      "path": ".github/workflows/kidults-asi-bonhams-cars-results-adapter-v1.yml"
+    },
+    {
+      "workflow": "KIDULTS ASI Getty Historical Transaction Admission v1",
+      "path": ".github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml"
+    },
+    {
+      "workflow": "KIDULTS ASI State Department Camera Evidence v1",
+      "path": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml"
+    }
+  ],
+  "required_static_triggers": [
+    "workflow_dispatch",
+    "schedule",
+    "push",
+    "pull_request"
+  ],
+  "static_validator_concurrency": "EVENT_NAME_PLUS_EXACT_SOURCE_SHA",
+  "budgets": {
+    "workflow_run_consumers_max": 16,
+    "workflow_run_edges_max": 29,
+    "direct_consumers_per_producer_max": 2,
+    "workflow_run_chain_depth_max": 8,
+    "cycles_max": 0
+  },
+  "direct_consumer_overrides": {
+    "KIDULTS ASI Intelligence Preparation Wave v1": {
+      "max": 3,
+      "required_consumer": "KIDULTS Platform Continuous Assurance V1",
+      "reason": "The third edge is a cancellation-aware control observer; the two execution consumers remain independently bounded."
+    }
+  },
+  "critical_static_producers_watched_by_continuous_assurance": [
+    "KIDULTS ASI Source Adapter Wave 2 v1",
+    "KIDULTS ASI Source Adapter Wave 3 v1",
+    "KIDULTS ASI Source Adapter Wave 4 v1",
+    "KIDULTS ASI Getty Historical Transaction Admission v1",
+    "KIDULTS ASI State Department Camera Evidence v1"
+  ],
+  "truth_boundary": {
+    "workflow_success_creates_candidate_or_evidence": false,
+    "workflow_success_starts_track_b": false,
+    "workflow_success_approves_projection": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "autonomous_effect": "POSITIVE: removes redundant event cascades while retaining scheduled and change-driven verification.",
+  "global_effect": "POSITIVE: establishes a repository-wide bounded workflow_run topology.",
+  "irreplaceable_value_effect": "POSITIVE: preserves exact upstream lineage only where a consumer actually depends on it.",
+  "transparency_effect": "POSITIVE: publishes measurable graph, fan-out, depth, cycle and observability limits."
+}

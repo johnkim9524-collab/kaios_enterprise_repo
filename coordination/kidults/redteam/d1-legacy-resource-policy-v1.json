@@ -1,8 +1,12 @@
 {
   "policy_id": "KIDULTS_D1_LEGACY_RESOURCE_POLICY_V1",
-  "canonical_database": "kidults-intelligence-db",
+  "canonical_system_of_record": "POSTGRESQL",
+  "d1_authority": "READ_MODEL_ONLY_NON_CANONICAL_REBUILDABLE",
+  "normal_d1_writer": "kpmo-d1-projector-v1",
+  "permitted_normal_writer_cardinality": 1,
+  "deployed_governed_writer_cardinality": 0,
   "resources": {
-    "kidults-intelligence-db": "ACTIVE_CANONICAL",
+    "kidults-intelligence-db": "LEGACY_WRITE_MIGRATION_HOLD_TARGET_READ_MODEL",
     "kidults-intelligence-db-dev": "DEV_IDLE_REVIEW",
     "kidults-intelligence-db-staging": "STAGING_IDLE_REVIEW",
     "kidults-main-db": "LEGACY_RETIRE_CANDIDATE",
@@ -15,5 +19,8 @@
   ],
   "required_replacement": "KEYED_UPSERT_CHANGED_ROWS_ONLY_AND_TARGETED_RETIRE_DELETE",
   "remote_disable_gate": "BINDING_IDENTIFICATION_AND_DEPENDENCY_PROOF_REQUIRED",
+  "unknown_writer_policy": "P0_FAIL_CLOSED",
+  "remote_legacy_writer_deploy": "PROHIBITED_UNTIL_POSTGRESQL_OUTBOX_PROJECTOR_CUTOVER",
+  "writer_registry": "services/kidults-control-plane/contracts/d1-writer-registry-v1.json",
   "paid_upgrade": "HOLD"
 }

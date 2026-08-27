@@ -12,7 +12,7 @@
     "publication": "HOLD"
   },
   "provider_id": "psa-public-api",
-  "state": "FOUNDER_APPROVED_ACCOUNT_EULA_TOKEN_HANDOFF_PENDING",
+  "state": "PRIVATE_BOUNDED_REPLY_RECORDED_SOURCE_MESSAGE_IMMUTABILITY_AND_SCHEMA_PENDING",
   "official_docs": [
     "https://www.psacard.com/publicapi",
     "https://www.psacard.com/publicapi/documentation",
@@ -60,14 +60,21 @@
     "FIELD_RIGHTS_ASSUMPTION"
   ],
   "field_purpose_rights": {
-    "collect": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "store": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "derive_internal_er_calibration": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
-    "display_internal": "PENDING_ACTUAL_API_EULA_TERMINALIZATION",
+    "collect": "ALLOW_BOUNDED_CERT_VERIFICATION_EVALUATION",
+    "store": "ALLOW_PRIVATE_TEMPORARY",
+    "derive_internal_er_calibration": "ALLOW_INTERNAL_ONLY",
+    "display_internal": "ALLOW_INTERNAL_HUMAN_QA",
     "display_public": "BLOCK",
     "redistribute": "BLOCK",
-    "retention": "PENDING_ACTUAL_API_EULA_TERMINALIZATION"
+    "retention": "ALLOW_APPROXIMATELY_UP_TO_30_DAYS_THEN_DELETE"
   },
+  "remaining_unknowns": [
+    "ORIGINAL_PROVIDER_MESSAGE_IMMUTABLE_BINDING",
+    "POPULATION_CENSUS_EXACT_FIELD_DICTIONARY",
+    "ACQUISITION_120_CASE_RIGHT",
+    "DERIVED_DATA_POST_TERMINATION_DISPOSITION",
+    "SLA_CORRECTION_AND_REPLACEMENT"
+  ],
   "max_schema_probe_calls": 3,
   "target_schema_presence": [
     "CERTIFICATION_IDENTIFIER",

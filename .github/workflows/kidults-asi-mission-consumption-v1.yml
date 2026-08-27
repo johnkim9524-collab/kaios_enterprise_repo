@@ -96,9 +96,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/asi-anchor-foundation
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" \
-            > /tmp/asi-anchor-foundation.zip
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
+            /tmp/asi-anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
           unzip -q -o /tmp/asi-anchor-foundation.zip -d /tmp/asi-anchor-foundation
+          node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs /tmp/asi-anchor-foundation
           PRODUCT_REGISTRY=$(find /tmp/asi-anchor-foundation -type f -name category-representative-product-registry-v1.json -print -quit)
           test -n "$PRODUCT_REGISTRY"
           node - "$PRODUCT_REGISTRY" <<'NODE'

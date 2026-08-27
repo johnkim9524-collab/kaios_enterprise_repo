@@ -73,8 +73,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p input queue discovery-out /tmp/previous-any-site-pool
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
+            /tmp/anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
           unzip -q -o /tmp/anchor-foundation.zip -d input
+          node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
           PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
           if [ -n "$PREV_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-any-site-pool.zip

@@ -1,0 +1,46 @@
+{
+  "policy_id": "KIDULTS_PSA_CERT_VERIFICATION_CONNECTION_POLICY_V1",
+  "provider_id": "psa-public-api",
+  "state": "SCHEMA_CANARY_READY_AFTER_CREDENTIAL_BINDING_BOUNDED_EVALUATION_HOLD",
+  "source_evidence": {
+    "canonical_issue": 1251,
+    "provider_reply_interpretation": "PRIVATE_TEMPORARY_CERT_VERIFICATION_EVALUATION_ALLOWED",
+    "source_message_immutability": "PENDING",
+    "population_census_field_dictionary": "UNKNOWN",
+    "acquisition_120_case_right": "UNKNOWN",
+    "derived_data_post_exit": "UNKNOWN"
+  },
+  "allowed": {
+    "collect": true,
+    "store_private": true,
+    "derive_internal_er_calibration": true,
+    "internal_human_qa": true,
+    "retention_days_max": 30
+  },
+  "blocked": {
+    "public_display_raw": true,
+    "redistribution_raw": true,
+    "commercial_resale_raw": true,
+    "production": true,
+    "bulk_enumeration": true,
+    "brute_force_cert_discovery": true
+  },
+  "connection_day_order": [
+    "BIND_TOKEN_IN_APPROVED_SECRET_MANAGER",
+    "CONFIRM_ACCOUNT_AND_ENDPOINT_WITHOUT_LOGGING_SECRET",
+    "RUN_ONE_TO_THREE_KNOWN_CERT_SCHEMA_CANARIES",
+    "EMIT_SCHEMA_KEYS_FIELD_PRESENCE_RESPONSE_DIGEST_AND_FAILURE_RECEIPT_ONLY",
+    "APPROVE_EXACT_FIELD_MAP",
+    "IMMUTABLY_BIND_PROVIDER_RIGHTS_SOURCE_MESSAGE",
+    "ONLY_THEN_ENABLE_BOUNDED_PRIVATE_EVALUATION",
+    "DELETE_RAW_PROVIDER_DATA_BY_DAY_30_AND_EMIT_DELETION_RECEIPT"
+  ],
+  "promotion_ceiling": "NO_GRADED_POPULATION_CANDIDATE_EVIDENCE_TRACK_B_OR_PROJECTION_INCREMENT_FROM_SCHEMA_CANARY",
+  "rollback": "REVOKE_TOKEN_STOP_ADAPTER_DELETE_TEMPORARY_RAW_DATA_PRESERVE_NON_SECRET_DIGEST_RECEIPTS",
+  "constitution_effects": {
+    "autonomous_effect": "POSITIVE_BOUNDED_MACHINE_RECEIPT",
+    "global_effect": "NEUTRAL_SINGLE_PROVIDER_CANARY_IS_NOT_GLOBAL_COVERAGE",
+    "irreplaceable_value_effect": "POSITIVE_PROVIDER_NEUTRAL_CANONICAL_OUTPUT_AND_EXIT",
+    "transparency_effect": "POSITIVE_RIGHTS_SCHEMA_AND_PROMOTION_CEILINGS_EXPLICIT"
+  }
+}

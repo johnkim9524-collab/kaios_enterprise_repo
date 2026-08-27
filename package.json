@@ -4,7 +4,9 @@
   "type": "module",
   "packageManager": "npm@11.17.0",
   "scripts": {
-    "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs"
+    "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
+    "validate:control-plane": "npm --prefix services/kidults-control-plane run validate && npm --prefix services/kidults-control-plane test",
+    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",

@@ -39,7 +39,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-p1-market-event-adapter-runtime-v1-${{ github.ref }}
+  group: kidults-asi-p1-market-event-adapter-runtime-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
