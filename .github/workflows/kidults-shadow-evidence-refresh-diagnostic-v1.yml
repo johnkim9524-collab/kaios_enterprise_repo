@@ -1,0 +1,66 @@
+name: KIDULTS SHADOW Evidence Refresh Diagnostic v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-shadow-evidence-refresh-diagnostic-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-shadow-evidence-refresh-diagnostic-v1-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate-shadow-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Install root validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install autonomous intelligence dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Regenerate deterministic SHADOW evidence twice
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output /tmp/asi-shadow-operating-evidence-run-1.json --write
+          TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs --output /tmp/asi-shadow-operating-evidence-run-2.json --write
+          cmp /tmp/asi-shadow-operating-evidence-run-1.json /tmp/asi-shadow-operating-evidence-run-2.json
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs --input /tmp/asi-shadow-operating-evidence-run-1.json
+      - name: Record committed drift without suppressing artifact upload
+        id: drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          if cmp artifacts/agci-os/asi-shadow-operating-evidence-v1.json /tmp/asi-shadow-operating-evidence-run-1.json; then
+            echo 'drift=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'drift=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-shadow-evidence-refresh-diagnostic-v1
+          path: /tmp/asi-shadow-operating-evidence-run-1.json
+          retention-days: 7
+          if-no-files-found: error
+      - name: Fail closed when committed evidence is stale
+        if: steps.drift.outputs.drift == 'true'
+        run: |
+          echo 'STALE_COMMITTED_SHADOW_EVIDENCE' >&2
+          exit 1
