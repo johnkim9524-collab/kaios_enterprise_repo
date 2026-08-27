@@ -35,6 +35,42 @@ def test_metrics_record_requests(tmp_path) -> None:
     assert metrics["request_count"] == 1
     assert metrics["error_count"] == 0
     assert metrics["status_code_count"]["200"] == 1
+    assert metrics["persistence"] == "sqlite"
+
+
+def test_metrics_and_alerts_survive_runtime_restart(tmp_path) -> None:
+    first = runtime(tmp_path)
+    first.record(
+        request_id="request-before-restart-1",
+        correlation_id="correlation-before-restart-1",
+        method="GET",
+        path="/missing",
+        status_code=500,
+        duration_ms=120,
+        client_ip="127.0.0.1",
+    )
+    first.record(
+        request_id="request-before-restart-2",
+        correlation_id="correlation-before-restart-2",
+        method="GET",
+        path="/missing",
+        status_code=500,
+        duration_ms=80,
+        client_ip="127.0.0.1",
+    )
+
+    restarted = runtime(tmp_path)
+    metrics = restarted.metrics()
+    alert_codes = {item["code"] for item in restarted.alerts()}
+
+    assert metrics["request_count"] == 2
+    assert metrics["error_count"] == 2
+    assert metrics["status_code_count"]["500"] == 2
+    assert metrics["route_count"]["/missing"] == 2
+    assert metrics["latency_max_ms"] == 120
+    assert metrics["last_request_id"] == "request-before-restart-2"
+    assert "error_threshold_exceeded" in alert_codes
+    assert "latency_threshold_exceeded" in alert_codes
 
 
 def test_error_threshold_creates_alert(tmp_path) -> None:
