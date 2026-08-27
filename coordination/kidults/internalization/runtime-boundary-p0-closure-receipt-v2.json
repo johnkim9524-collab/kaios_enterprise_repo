@@ -1,0 +1,57 @@
+{
+  "receipt_type": "KPMO_RUNTIME_AND_POSTGRES_P0_IMPLEMENTATION",
+  "version": "2.0",
+  "generated_at_kst": "2026-08-27",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "branch": "codex/p0-runtime-boundary-hardening-v9-20260827",
+  "exact_head": null,
+  "status": "IMPLEMENTED_ON_REMOTE_BRANCH_PENDING_EXACT_HEAD_CHECKS_AND_INDEPENDENT_REVIEW",
+  "implemented": {
+    "projection_boundary": {
+      "server_owned_read_model": true,
+      "client_projection_accepted": false,
+      "missing_runtime_behavior": "503_FAIL_CLOSED"
+    },
+    "export_boundary": {
+      "method": "POST_ONLY",
+      "operator_role_required": true,
+      "entitlement_scope_expiry_revocation_checks": true,
+      "request_and_entitlement_digest_binding": true,
+      "persistent_nonce_replay_defense": true,
+      "denial_payload_leakage": false
+    },
+    "postgres_greenfield": {
+      "canonical_runner": "scripts/staging/run-dual-staging-postgres-greenfield.sh",
+      "migration": "infrastructure/postgres/dual-staging/0001_runtime_projection_boundary.sql",
+      "live_bootstrap": "apps/dual-staging-http-runtime/src/postgres-server.mjs",
+      "runtime_adapter": "apps/dual-staging-http-runtime/src/postgres-runtime.mjs",
+      "rls_tables": 4,
+      "force_rls": true,
+      "two_tenant_attack_suite": true,
+      "nonce_concurrency_attack": 20,
+      "logical_backup_restore_test": true,
+      "rollback_test": true,
+      "pitr_test": false
+    },
+    "ci": [
+      ".github/workflows/p0-runtime-boundary-security.yml",
+      ".github/workflows/p0-postgres-greenfield-runtime.yml"
+    ]
+  },
+  "remaining_holds": [
+    "workflow results not yet bound to an exact reviewed head in this receipt",
+    "independent reviewer exact-head receipt absent",
+    "D1 zero-direct-writer cutover not landed in this branch",
+    "platform-wide process-memory removal not proven",
+    "PITR evidence not produced",
+    "Track B empirical evidence absent",
+    "protected main not landed"
+  ],
+  "gates": {
+    "merge": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "prohibited_claim": "Do not call this protected-main, production, D1-cutover or empirical completion until the remaining holds are closed."
+}
