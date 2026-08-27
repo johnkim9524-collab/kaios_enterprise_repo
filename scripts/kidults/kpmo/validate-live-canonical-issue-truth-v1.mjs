@@ -1,11 +1,16 @@
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
-const canonicalIssues = [344, 457, 550, 558, 559, 560];
-const trackedDefects = [1412, 1416, 1419];
+const canonicalIssues = [
+  235, 236, 237, 238, 240, 256, 344, 457, 479, 521, 550, 558,
+  559, 560, 609, 742, 769, 881, 921, 951, 1066, 1166, 1296
+];
+const trackedDefects = [1412, 1416, 1419, 1420];
 const forbiddenClosureClaims = [
   /INTERNAL REVERSIBLE[^\n]*CLOSED AT CURRENT MAIN/i,
-  /INTERNAL BLOCKERS CLOSED/i
+  /INTERNAL BLOCKERS CLOSED/i,
+  /CURRENT-MAIN INTERNAL HANDLING CONTROLS CLOSED/i,
+  /CURRENT-MAIN INTERNAL RUNTIME P0 CLOSED/i
 ];
 
 function fail(message) {
@@ -91,10 +96,17 @@ if (activeDefects.length) {
   }
 }
 
-const closureMutation = structuredClone(issues);
-closureMutation[0].body += '\n## Internal reversible-control truth — CLOSED AT CURRENT MAIN\n';
-if (!validateBodies(expectedMainSha, closureMutation, activeDefects).length) {
-  fail('unsupported-closure mutation was not rejected');
+const closureMutationTexts = [
+  '## Internal reversible-control truth — CLOSED AT CURRENT MAIN',
+  '## CURRENT-MAIN INTERNAL HANDLING CONTROLS CLOSED',
+  '## CURRENT-MAIN INTERNAL RUNTIME P0 CLOSED'
+];
+for (const mutationText of closureMutationTexts) {
+  const closureMutation = structuredClone(issues);
+  closureMutation[0].body += `\n${mutationText}\n`;
+  if (!validateBodies(expectedMainSha, closureMutation, activeDefects).length) {
+    fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  }
 }
 
 console.log(JSON.stringify({
@@ -106,6 +118,7 @@ console.log(JSON.stringify({
   stale_main_mutation_rejected: true,
   active_defect_omission_mutation_rejected: activeDefects.length > 0,
   unsupported_closure_mutation_rejected: true,
+  unsupported_closure_mutations_rejected: closureMutationTexts.length,
   empirical_promotion: false,
   production: 'HOLD',
   public: 'HOLD',
