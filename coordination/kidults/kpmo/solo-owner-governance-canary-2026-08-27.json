@@ -1,0 +1,31 @@
+{
+  "id": "solo-owner-governance-canary-2026-08-27",
+  "version": "1.0.0",
+  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27",
+  "base_sha": "d1486b69c6720e29c1e68ceca9f8a0bfee0c55cc",
+  "governance_mode": "SOLO_OWNER_GOVERNED",
+  "expected": {
+    "required_approval_count": 0,
+    "canonical_repository_owner_author": true,
+    "canonical_repository_head": true,
+    "ready_state_by_program_owner": true,
+    "strict_required_status_checks": true,
+    "review_thread_resolution": true,
+    "ruleset_bypass_actor_count": 0,
+    "draft_promotable": false
+  },
+  "truth_boundary": {
+    "technical_green_is_independent_review": false,
+    "technical_green_is_production_readiness": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "constitution_effects": {
+    "autonomous_effect": "POSITIVE",
+    "global_effect": "POSITIVE_WITH_BOUNDED_EVIDENCE",
+    "irreplaceable_value_effect": "POSITIVE",
+    "transparency_effect": "POSITIVE"
+  },
+  "rollback": "Revert the canary receipt and #1325 independently; no runtime, provider, credential, legal, Public, Production or G5 mutation."
+}
