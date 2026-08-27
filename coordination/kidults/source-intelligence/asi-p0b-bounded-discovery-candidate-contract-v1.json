@@ -65,6 +65,18 @@
     "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
+  "truth_boundary": {
+    "executes_bounded_public_metadata_network_discovery": true,
+    "observes_source_candidates": true,
+    "crawls_target_site_bodies": false,
+    "acquires_target_content": false,
+    "creates_collection_right": false,
+    "admits_evidence": false,
+    "proves_factual_origin_independence": false,
+    "creates_market_claim": false,
+    "public_release": "HOLD",
+    "production": "HOLD"
+  },
   "hard_boundaries": [
     "PUBLIC_METADATA_DISCOVERY_IS_NOT_TARGET_SITE_COLLECTION",
     "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
@@ -78,17 +90,5 @@
     "ATTENTION_NOT_DEMAND",
     "HISTORICAL_NOT_CURRENT",
     "MISSING_NOT_ZERO"
-  ],
-  "truth_boundary": {
-    "executes_bounded_public_metadata_network_discovery": true,
-    "observes_source_candidates": true,
-    "crawls_target_site_bodies": false,
-    "acquires_target_content": false,
-    "creates_collection_right": false,
-    "admits_evidence": false,
-    "proves_factual_origin_independence": false,
-    "creates_market_claim": false,
-    "public_release": "HOLD",
-    "production": "HOLD"
-  }
+  ]
 }
