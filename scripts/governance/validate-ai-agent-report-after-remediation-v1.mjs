@@ -13,10 +13,18 @@ const contract = readJson(CONTRACT);
 const bootstrap = readJson(BOOTSTRAP);
 
 ok(contract.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'CONTRACT_ID');
+ok(contract.version === '1.1.0', 'CONTRACT_VERSION');
 ok(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
-ok(contract.scope === 'ALL_AI_AGENT_STATUS_AND_PROGRESS_REPORTS', 'CONTRACT_SCOPE');
+ok(contract.scope === 'REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPTS', 'CONTRACT_SCOPE');
+ok(contract.behavioral_scope === 'ALL_AI_AGENTS_STATUS_AND_PROGRESS_REPORTING', 'BEHAVIORAL_SCOPE');
+ok(contract.machine_enforcement_scope === 'REGISTERED_REPOSITORY_STATUS_RECEIPT_PATHS', 'MACHINE_SCOPE');
+ok(contract.external_chat_output_interception_claimed === false, 'CHAT_INTERCEPTION_OVERCLAIM');
 ok(contract.normal_report_gate?.report_only_allowed === false, 'REPORT_ONLY_MUST_BE_FALSE');
 ok(contract.violation?.self_exemption_allowed === false, 'SELF_EXEMPTION_MUST_BE_FALSE');
+ok(contract.machine_receipt_rule?.receipt_must_pass_canonical_status_schema === true, 'CANONICAL_SCHEMA_BINDING');
+ok(contract.machine_receipt_rule?.receipt_must_pass_report_after_remediation_validator === true, 'REPORT_VALIDATOR_BINDING');
+ok(contract.machine_receipt_rule?.synthetic_self_test_alone_counts_as_end_to_end_report_enforcement === false, 'SYNTHETIC_SELF_TEST_OVERCLAIM');
+ok(contract.machine_receipt_rule?.registered_workflow_must_emit_and_validate_real_run_receipt === true, 'REAL_RUN_RECEIPT_REQUIRED');
 ok(contract.production === 'HOLD' && contract.public_release === 'HOLD' && contract.g5 === 'HOLD', 'RELEASE_BOUNDARY');
 
 const expected = [
@@ -62,13 +70,16 @@ function validateReceipt(receipt) {
 }
 
 const idx = process.argv.indexOf('--receipt');
+const requireReceipt = process.argv.includes('--require-receipt');
+let explicitReceiptPath = null;
 if (idx >= 0) {
-  const p = process.argv[idx + 1];
-  ok(p && fs.existsSync(p), 'RECEIPT_PATH_REQUIRED');
-  validateReceipt(readJson(p));
+  explicitReceiptPath = process.argv[idx + 1];
+  ok(explicitReceiptPath && fs.existsSync(explicitReceiptPath), 'RECEIPT_PATH_REQUIRED');
+  validateReceipt(readJson(explicitReceiptPath));
 }
+if (requireReceipt) ok(explicitReceiptPath, 'REAL_RUN_RECEIPT_REQUIRED');
 
-// Built-in adversarial regression set.
+// Built-in adversarial regression set validates the contract itself; it is not end-to-end report proof.
 const good = {
   defect_disposition: 'REMEDIATED_AND_VERIFIED',
   remediation_sequence: expected,
@@ -96,6 +107,11 @@ for (const [name, mutate] of mutations) {
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-report-after-remediation-validation-v1',
   state: 'VERIFIED_PASS',
+  contract_version: contract.version,
+  behavioral_scope: contract.behavioral_scope,
+  machine_enforcement_scope: contract.machine_enforcement_scope,
+  external_chat_output_interception_claimed: false,
+  real_run_receipt_validated: Boolean(explicitReceiptPath),
   report_only_allowed: false,
   required_sequence: expected,
   negative_mutations_rejected: mutations.length,
