@@ -11,28 +11,52 @@
   "providers": [
     {
       "provider_id": "GEMRATE",
-      "evidence_state": "WRITTEN_PROVIDER",
+      "evidence_state": "WRITTEN_PROVIDER_BOUNDED_PILOT_RIGHTS",
       "commercial": {
         "developer_monthly_usd": 200,
         "daily_request_limit": 5000,
         "trial_days": 7,
+        "trial_requires_credit_card": true,
+        "trial_auto_converts_to_monthly_usd": 200,
+        "auto_conversion_day": 7,
         "minimum_commitment": "UNKNOWN"
       },
       "included_scope": "ALL_ENDPOINTS_EXCEPT_HISTORICAL_DATA_CERT_IMAGES_CHANGE_FEED",
       "rights_confirmed": {
-        "cache_store_while_subscription_active": true,
-        "display_data_or_derived_metrics_with_attribution": true
+        "private_cache_store_while_trial_or_subscription_active": true,
+        "private_normalization": true,
+        "entity_resolution": true,
+        "model_calibration": true,
+        "human_review": true,
+        "internal_analytics": true,
+        "cert_population_grader_grade_and_universal_ids_for_matching_and_derived_analytics": true,
+        "internal_attribution_required": false,
+        "customer_facing_derived_metrics_require_gemrate_link": true,
+        "raw_retention_days_after_termination_max": 30,
+        "normalized_provider_record_retention_days_after_termination_max": 30,
+        "retain_independently_created_canonical_ids": true,
+        "retain_independently_created_entity_match_decisions": true,
+        "retain_independently_created_quality_assessments": true,
+        "public_raw_display": false,
+        "raw_redistribution": false
       },
       "rights_pending": [
-        "private_normalization",
-        "entity_resolution",
-        "model_calibration",
-        "human_review",
-        "post_termination_derived_intelligence",
-        "universal_id_portability",
-        "termination_deletion_detail"
+        "post_termination_derived_feature_retention",
+        "post_termination_model_calibration_artifact_retention",
+        "non_reconstructive_definition",
+        "universal_id_portability_after_termination",
+        "historical_data_and_cert_image_add_on_pricing",
+        "custom_mapping_and_bulk_delivery_terms",
+        "sla_support_and_minimum_commitment"
       ],
-      "activation_state": "HOLD_PENDING_WRITTEN_RIGHTS_AND_OWNER_SPEND_APPROVAL"
+      "bounded_pilot_rights_state": "PASS_WITH_POST_TERMINATION_DERIVED_HOLD",
+      "activation_state": "HOLD_PENDING_FOUNDER_TRIAL_SPEND_APPROVAL_EXACT_FIELD_MAP_PRIVATE_STORE_DELETION_AND_CANCELLATION_CONTROLS",
+      "acquisition_progress": "0_OF_120",
+      "evidence_refs": [
+        "gmail:message:1a03ecb47ea56741",
+        "gmail:message:1a0439617a831715",
+        "coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json"
+      ]
     },
     {
       "provider_id": "PSA",

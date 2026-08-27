@@ -5,13 +5,17 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
+      - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
+      - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   workflow_dispatch:
 
@@ -47,7 +51,7 @@ jobs:
         with:
           node-version: '24.19.0'
 
-      - name: Run 17-component internalization foundation
+      - name: Run 18-component internalization foundation
         run: node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs
 
       - name: Reject rights fail-open mutation
