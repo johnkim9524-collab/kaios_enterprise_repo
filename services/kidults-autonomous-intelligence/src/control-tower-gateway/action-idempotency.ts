@@ -2,17 +2,13 @@
  * A31 — Executive Control Tower Live Integration & Governed Action Gateway
  * Module: action-idempotency.ts
  *
- * Every action request must carry a stable idempotency key.
- * Duplicate submissions return the canonical existing result without mutation.
+ * No hidden in-memory fallback is allowed. A durable store must be injected
+ * by any future live gateway. Legacy call shapes fail closed.
  */
 
 import type { ExecutiveActionResponse } from './gateway-types.js';
 
-// ---------------------------------------------------------------------------
-// Idempotency Store
-// ---------------------------------------------------------------------------
-
-interface IdempotencyEntry {
+export interface IdempotencyEntry {
   readonly key: string;
   readonly requestId: string;
   readonly decisionId: string;
@@ -20,13 +16,10 @@ interface IdempotencyEntry {
   readonly createdAt: string;
 }
 
-// Bounded in-memory store — production would use durable storage
-const MAX_ENTRIES = 2000;
-const store = new Map<string, IdempotencyEntry>();
-
-// ---------------------------------------------------------------------------
-// Key Validation
-// ---------------------------------------------------------------------------
+export interface ActionIdempotencyStore {
+  get(key: string): IdempotencyEntry | undefined;
+  set(key: string, entry: IdempotencyEntry): void;
+}
 
 export function validateIdempotencyKey(key: string | null | undefined): key is string {
   return typeof key === 'string' && key.trim().length >= 8;
@@ -40,26 +33,46 @@ export function buildIdempotencyKey(
   return `a31:action:${decisionId}:${action}:${requestId}`;
 }
 
-// ---------------------------------------------------------------------------
-// Check / Register
-// ---------------------------------------------------------------------------
-
 export type IdempotencyLookup =
   | { found: false }
   | { found: true; entry: IdempotencyEntry };
 
-export function lookupIdempotency(key: string): IdempotencyLookup {
-  const entry = store.get(key);
+export function lookupIdempotency(store: ActionIdempotencyStore, key: string): IdempotencyLookup;
+export function lookupIdempotency(key: string): IdempotencyLookup;
+export function lookupIdempotency(storeOrKey: ActionIdempotencyStore | string, maybeKey?: string): IdempotencyLookup {
+  if (typeof storeOrKey === 'string') throw new Error('DURABLE_ACTION_IDEMPOTENCY_STORE_REQUIRED');
+  if (!maybeKey) throw new Error('IDEMPOTENCY_KEY_REQUIRED');
+  const entry = storeOrKey.get(maybeKey);
   if (!entry) return { found: false };
   return { found: true, entry };
 }
 
 export function registerIdempotencyResult(
+  store: ActionIdempotencyStore,
   key: string,
   requestId: string,
   decisionId: string,
   result: ExecutiveActionResponse,
+): IdempotencyEntry;
+export function registerIdempotencyResult(
+  key: string,
+  requestId: string,
+  decisionId: string,
+  result: ExecutiveActionResponse,
+): IdempotencyEntry;
+export function registerIdempotencyResult(
+  storeOrKey: ActionIdempotencyStore | string,
+  keyOrRequestId: string,
+  requestIdOrDecisionId: string,
+  decisionIdOrResult: string | ExecutiveActionResponse,
+  maybeResult?: ExecutiveActionResponse,
 ): IdempotencyEntry {
+  if (typeof storeOrKey === 'string') throw new Error('DURABLE_ACTION_IDEMPOTENCY_STORE_REQUIRED');
+  const key = keyOrRequestId;
+  const requestId = requestIdOrDecisionId;
+  const decisionId = decisionIdOrResult as string;
+  const result = maybeResult;
+  if (!result) throw new Error('IDEMPOTENCY_RESULT_REQUIRED');
   const entry: IdempotencyEntry = {
     key,
     requestId,
@@ -67,14 +80,6 @@ export function registerIdempotencyResult(
     result,
     createdAt: new Date().toISOString(),
   };
-
-  store.set(key, entry);
-
-  // Bounded eviction — remove oldest entries when limit reached
-  if (store.size > MAX_ENTRIES) {
-    const firstKey = store.keys().next().value;
-    if (firstKey !== undefined) store.delete(firstKey);
-  }
-
+  storeOrKey.set(key, entry);
   return entry;
 }
