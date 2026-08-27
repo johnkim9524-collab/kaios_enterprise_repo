@@ -9,6 +9,10 @@ on:
       - "services/kidults-autonomous-intelligence/package.json"
       - "services/kidults-autonomous-intelligence/wrangler.jsonc"
       - "coordination/kidults/redteam/d1-legacy-resource-policy-v1.json"
+      - "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json"
+      - "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs"
+      - ".github/workflows/kidults-governed-landing-authorization-v1.yml"
+      - ".github/workflows/solo-owner-preflight.yml"
   push:
     branches: [main]
   workflow_dispatch:
@@ -37,3 +41,5 @@ jobs:
         run: npm --prefix services/kidults-control-plane run validate
       - name: Run boundary negative-mutation tests
         run: npm --prefix services/kidults-control-plane test
+      - name: Validate governed critical-surface and independent-review coverage
+        run: node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs

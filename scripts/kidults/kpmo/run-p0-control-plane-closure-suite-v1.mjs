@@ -22,6 +22,7 @@ const commands = [
   ['asi-workflow-fanout-budget', ['node', 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs']],
   ['source-channel-control-plane', ['node', 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs']],
   ['pull-request-impact-routing', ['node', 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs']],
+  ['governed-landing-coverage', ['node', 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs']],
 ];
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;

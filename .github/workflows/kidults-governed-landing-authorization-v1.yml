@@ -66,13 +66,16 @@ jobs:
           if (!files.length) fail('changed-file set is empty or unavailable');
           const prefixes = [
             '.github/',
+            'services/kidults-control-plane/',
+            'services/kidults-autonomous-intelligence/',
             'scripts/kidults/kpmo/',
             'scripts/kidults/redteam/',
             'scripts/kidults/portal/runtime/',
             'coordination/kidults/kpmo/',
             'coordination/kidults/audit/',
             'coordination/kidults/security/',
-            'coordination/kidults/providers/',
+            'coordination/kidults/provider/',
+            'coordination/kidults/runtime/',
             'infra/'
           ];
           const exact = new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
@@ -90,7 +93,11 @@ jobs:
           const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
           for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
           const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
+          if((protectPr?.parameters?.required_approving_review_count||0)<1) fail('Protect main independent approval disabled');
           if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
+          if(!protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval disabled');
+          if(!protectPr?.parameters?.required_review_thread_resolution) fail('Protect main review-thread resolution disabled');
+          if(!protectPr?.parameters?.require_extra_approval_for_unattributed_changes) fail('Protect main unattributed-change approval disabled');
 
           const timeline = await pages(`/issues/${prNumber}/timeline`);
           const readinessEvents = timeline.filter(x=>x.event==='ready_for_review'||x.event==='convert_to_draft');

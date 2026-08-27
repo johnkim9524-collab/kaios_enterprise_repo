@@ -1,19 +1,22 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "FOUNDER_APPROVED_FOR_IMPLEMENTATION",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
   "governed_path_prefixes": [
     ".github/",
+    "services/kidults-control-plane/",
+    "services/kidults-autonomous-intelligence/",
     "scripts/kidults/kpmo/",
     "scripts/kidults/redteam/",
     "scripts/kidults/portal/runtime/",
     "coordination/kidults/kpmo/",
     "coordination/kidults/audit/",
     "coordination/kidults/security/",
-    "coordination/kidults/providers/",
+    "coordination/kidults/provider/",
+    "coordination/kidults/runtime/",
     "infra/"
   ],
   "governed_exact_paths": [

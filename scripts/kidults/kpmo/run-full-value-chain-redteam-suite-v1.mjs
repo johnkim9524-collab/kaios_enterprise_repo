@@ -33,6 +33,9 @@ const truthScopeValidators = [
 const trustRootMigrationRegressionValidators = [
   'scripts/kidults/kpmo/validate-trusted-control-dependency-closure-v1.mjs'
 ];
+const governedLandingValidators = [
+  'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs'
+];
 const p0PrePartnerValidators = [
   'scripts/kidults/audit/certify-pre-partner-intake-gate-v1.mjs',
   'scripts/kidults/audit/validate-pre-partner-control-family-coverage-v1.mjs',
@@ -84,6 +87,7 @@ const validators = [...new Set([
   ...secretBoundaryValidators,
   ...truthScopeValidators,
   ...trustRootMigrationRegressionValidators,
+  ...governedLandingValidators,
   ...(orchestrator.required_family_validators || []),
   ...p0PrePartnerValidators,
   ...rightsBoundaryValidators,
@@ -150,6 +154,8 @@ console.log(JSON.stringify({
   black_lotus_legacy_qualification_quarantined: true,
   trust_root_migration_dependency_closure_regression_machine_bound: true,
   trust_root_migration_dependency_closure_validators: trustRootMigrationRegressionValidators.length,
+  governed_landing_coverage_machine_bound: true,
+  governed_landing_coverage_validators: governedLandingValidators.length,
   pre_partner_intake_gate_machine_bound: true,
   pre_partner_certification_machine_bound: true,
   pre_partner_control_families: 12,
@@ -189,7 +195,9 @@ console.log(JSON.stringify({
   proof_product_consumer_unknown_discriminator_fail_closed: true,
   server_projection_capability_cryptographic_core_machine_bound: true,
   server_projection_capability_algorithm: 'Ed25519',
-  server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD',
+  staging_server_projection_routes_machine_bound: true,
+  staging_server_projection_capability_algorithm: 'HMAC-SHA256_SERVER_ONLY',
+  cross_service_ed25519_route_binding: 'PROTECTED_TRUST_ROOT_GATE_HOLD',
   proof_product_api_export_binding: 'SIGNED_SERVER_CAPABILITY_BOUND__PUBLIC_CALLER_PATH_HOLD',
   projection_portal_eos_boundary_machine_bound: true,
   empirical_evidence_readiness: 'NOT_PROMOTED_BY_THIS_SUITE',

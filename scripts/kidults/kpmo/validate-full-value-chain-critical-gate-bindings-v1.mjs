@@ -108,7 +108,9 @@ for (const marker of [
   "dependency_bootstrap_empirical_gate_effect: 'NONE'",
   'proof_product_consumer_schema_runtime_bound: true',
   'server_projection_capability_cryptographic_core_machine_bound: true',
-  "server_projection_capability_route_binding: 'NOT_IMPLEMENTED_HOLD'",
+  "staging_server_projection_routes_machine_bound: true",
+  "staging_server_projection_capability_algorithm: 'HMAC-SHA256_SERVER_ONLY'",
+  "cross_service_ed25519_route_binding: 'PROTECTED_TRUST_ROOT_GATE_HOLD'",
   "proof_product_api_export_binding: 'SIGNED_SERVER_CAPABILITY_BOUND__PUBLIC_CALLER_PATH_HOLD'"
 ]) {
   if (!runner.includes(marker)) errors.push(`aggregate truth/control marker missing: ${marker}`);
