@@ -145,8 +145,13 @@ let successOnlyRejected = false;
 try { validate(successOnlyMutation); } catch { successOnlyRejected = true; }
 if (!successOnlyRejected) fail('NEGATIVE_MUTATION_NOT_REJECTED:SUCCESS_ONLY_JOB_FILTER');
 
+const requirementWatchMutation = text.replace("      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'\n", '');
+if (requirementWatchMutation === text) fail('REQUIREMENT_SELF_TEST_SOURCE_MARKER_MISSING:WATCH');
+let requirementWatchRejected = false;
+try { validateRequirement(requirementWatchMutation); } catch { requirementWatchRejected = true; }
+if (!requirementWatchRejected) fail('REQUIREMENT_NEGATIVE_MUTATION_NOT_REJECTED:WATCH');
+
 const requirementMutations = [
-  ["      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'\n", ''],
   ['test "$REQUIREMENT_UPSTREAM_CONCLUSION" = "success"', 'test -n "$REQUIREMENT_UPSTREAM_CONCLUSION"'],
   ['.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"', '.path!=".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
@@ -174,7 +179,7 @@ console.log(JSON.stringify({
   artifact_run_sha_binding_occurrences: pairedBindingCountForReceipt(),
   provider_digest_required: true,
   failed_cancelled_observation_preserved: true,
-  mutations_rejected: mutations.length + requirementMutations.length + 1,
+  mutations_rejected: mutations.length + requirementMutations.length + 2,
   production: 'HOLD',
   public: 'HOLD',
   g5: 'EXPLICIT_APPROVAL_REQUIRED'
