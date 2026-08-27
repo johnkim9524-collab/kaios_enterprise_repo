@@ -150,13 +150,13 @@
     },
     "processor_runtime": {
       "path": "services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts",
-      "sha256": "sha256:779ac67c3db27ff2c9a0b35cfcc4590eb275b83b3cf281f06f8b1a189998bbfc",
-      "byte_count": 30779
+      "sha256": "sha256:42a4ae7889a1aae326263bba341c667f025e71d0e40047e6b4bab4c48c527aee",
+      "byte_count": 31016
     },
     "queue_recovery_runtime": {
       "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
-      "sha256": "sha256:30395b7c9fba659f199ecf6412d3e62ef4e22046d67a6a4defb91849a66ab9e3",
-      "byte_count": 83932
+      "sha256": "sha256:f19f160998a70ceded693007195934a361c17cc2973ee66191093cbd8c756bae",
+      "byte_count": 85454
     },
     "canonical_foundation_migration": {
       "path": "services/kidults-autonomous-intelligence/migrations/0001_canonical_foundation.sql",
@@ -195,13 +195,13 @@
     },
     "queue_d1_processor_e2e_test": {
       "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
-      "sha256": "sha256:89bdf5ea4a6dc690ae865869e43e6e2400bd2ffcfd50186efc948d82ed129af3",
-      "byte_count": 33703
+      "sha256": "sha256:f3d3b6fcdeb376ff1a44250db142867d54b81f954877a84c8ac7b7286e6e1237",
+      "byte_count": 33856
     },
     "runtime_recovery_fairness_test": {
       "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
-      "sha256": "sha256:9b1bc12d1fd132d08215a652717c6520052b0c434e11caacf91666d08a2cfb66",
-      "byte_count": 41415
+      "sha256": "sha256:0147abd5bf3ff4fa2848a669516a811193c6eea86eb74bb025efe19980e7ac4d",
+      "byte_count": 41591
     },
     "met_real_source_admission_runner": {
       "path": "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
@@ -1333,8 +1333,8 @@
       },
       "queue_recovery_runtime_ref": {
         "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
-        "sha256": "sha256:30395b7c9fba659f199ecf6412d3e62ef4e22046d67a6a4defb91849a66ab9e3",
-        "byte_count": 83932
+        "sha256": "sha256:f19f160998a70ceded693007195934a361c17cc2973ee66191093cbd8c756bae",
+        "byte_count": 85454
       },
       "task_lease_atomic_fencing_migration_ref": {
         "path": "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql",
@@ -1348,13 +1348,13 @@
       },
       "queue_d1_processor_e2e_test_ref": {
         "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
-        "sha256": "sha256:89bdf5ea4a6dc690ae865869e43e6e2400bd2ffcfd50186efc948d82ed129af3",
-        "byte_count": 33703
+        "sha256": "sha256:f3d3b6fcdeb376ff1a44250db142867d54b81f954877a84c8ac7b7286e6e1237",
+        "byte_count": 33856
       },
       "runtime_recovery_fairness_test_ref": {
         "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
-        "sha256": "sha256:9b1bc12d1fd132d08215a652717c6520052b0c434e11caacf91666d08a2cfb66",
-        "byte_count": 41415
+        "sha256": "sha256:0147abd5bf3ff4fa2848a669516a811193c6eea86eb74bb025efe19980e7ac4d",
+        "byte_count": 41591
       },
       "autonomous_runtime_workflow_ref": {
         "path": ".github/workflows/kidults-autonomous-runtime.yml",
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:6ef47bde04735c60d17244dfaa9c7e6dc25578c88d1fda01654a0a5edf5ed417"
+  "evidence_fingerprint": "sha256:3e7a46af31d8f3cac5e95dbfebd993508c5a11333ca951aee728b84f9bf32bd7"
 }

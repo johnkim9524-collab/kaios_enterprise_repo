@@ -1,0 +1,66 @@
+name: P0 Runtime Boundary Security
+
+on:
+  pull_request:
+    paths:
+      - 'apps/dual-staging-http-runtime/**'
+      - '.github/workflows/p0-runtime-boundary-security.yml'
+  push:
+    branches:
+      - 'codex/p0-runtime-boundary-hardening-*'
+    paths:
+      - 'apps/dual-staging-http-runtime/**'
+      - '.github/workflows/p0-runtime-boundary-security.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-runtime-boundary-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-head-runtime-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Prove exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='${{ github.event.pull_request.head.sha || github.sha }}'
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          printf 'exact_head=%s\n' "$actual"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+
+      - name: Run runtime boundary attack tests
+        working-directory: apps/dual-staging-http-runtime
+        run: node --test src/server.test.mjs
+
+      - name: Enforce fail-closed source invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          server='apps/dual-staging-http-runtime/src/server.mjs'
+          controls='apps/dual-staging-http-runtime/src/runtime-security.mjs'
+          grep -q "PROJECTION_RUNTIME_NOT_CONFIGURED" "$server"
+          grep -q "EXPORT_RUNTIME_NOT_CONFIGURED" "$server"
+          grep -q "x-kaios-entitlement-id" "$server"
+          grep -q "x-kaios-nonce" "$server"
+          grep -q "x-kaios-projection-digest" "$server"
+          grep -q "open(marker, 'wx'" "$controls"
+          if grep -qi "illustrative" "$server"; then
+            echo 'Static illustrative projection remains in executable runtime' >&2
+            exit 1
+          fi

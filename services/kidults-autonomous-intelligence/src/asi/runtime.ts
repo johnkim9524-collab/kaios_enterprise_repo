@@ -1,4 +1,5 @@
 import { assertAsiEventPayloadHash, partitionKey, validateAsiEvent, type AsiEventEnvelope, type AsiPartition } from './event';
+import { prepareD1ProjectionRead, prepareD1ProjectionWrite } from '../d1-projector-write-boundary';
 import { runAsiProcessorTask } from './processor-runtime';
 import { asiProcessorInventory, type AsiProcessorState } from './processors';
 import {
@@ -202,7 +203,7 @@ async function loadStoredEvent(env: AsiMeshEnv, eventId: string): Promise<Stored
 }
 
 function eventInsert(env: AsiMeshEnv, event: AsiEventEnvelope): D1PreparedStatement {
-  return env.DB.prepare(`
+  return prepareD1ProjectionWrite(env.DB, `
     INSERT OR IGNORE INTO asi_event_log (
       event_id,event_type,event_version,producer_engine,producer_version,correlation_id,causation_id,idempotency_key,
       partition_key,input_snapshot_ref,payload_hash,rights_state,freshness_state,assertion_purpose,decision,
@@ -254,7 +255,7 @@ async function persistEventAndOutboxes(
   const built = fleets.map((fleet) => ({fleet,...buildQueueTask(event,fleet,createdAt)}));
   const statements: D1PreparedStatement[] = [eventInsert(env,event)];
   for (const item of built) {
-    statements.push(env.DB.prepare(`
+    statements.push(prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_outbox (
         id,event_id,engine_fleet,queue_binding,queue_name,payload_json,status,partition_key,fairness_key,created_at,updated_at
       ) SELECT ?,?,?,?,?,?,'PENDING',?,?,?,?
@@ -299,7 +300,7 @@ async function claimOutbox(
   replayFence: ReplayLeaseFence | null,
 ): Promise<{row:OutboxRow;leaseOwner:string} | null> {
   const leaseOwner = makeId('relay');
-  const claimed = await env.DB.prepare(`
+  const claimed = await prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_outbox SET status='DISPATCHING',lease_owner=?,
       lease_expires_at=datetime('now',?),updated_at=?
     WHERE id=? AND (
@@ -338,7 +339,7 @@ async function beginOutboxSendAttempt(
   leaseOwner: string,
   replayFence: ReplayLeaseFence | null,
 ): Promise<OutboxRow | null> {
-  const started = await env.DB.prepare(`
+  const started = await prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_outbox SET attempt_count=attempt_count+1,updated_at=?
     WHERE id=? AND status='DISPATCHING' AND lease_owner=?
       AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now')
@@ -364,12 +365,12 @@ async function ensureFleetControls(
   const window = hourWindow(new Date(timestamp));
   const budgetWindow = 'SHADOW_TRANSPORT_UTC_HOUR';
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_circuit_breakers (
         engine_fleet,state,failure_count,consecutive_failure_count,success_count,opened_count,updated_at
       ) VALUES (?,'CLOSED',0,0,0,0,?)
     `).bind(fleet.id,timestamp),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_fleet_budgets (
         engine_fleet,budget_window,request_limit,request_used,cost_limit_microunits,cost_used_microunits,
         window_started_at,window_ends_at,updated_at
@@ -395,7 +396,7 @@ async function reserveFleetDispatch(
   if (!circuit) throw new Error('ASI_CIRCUIT_CONTROL_MISSING');
 
   if (circuit.state === 'OPEN') {
-    const claimedProbe = await env.DB.prepare(`
+    const claimedProbe = await prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_circuit_breakers SET state='HALF_OPEN',probe_lease_owner=?,
         probe_lease_expires_at=datetime('now',?),updated_at=?
       WHERE engine_fleet=? AND state='OPEN' AND next_probe_at IS NOT NULL
@@ -421,7 +422,7 @@ async function reserveFleetDispatch(
     }
     circuit = {state:'HALF_OPEN',next_probe_at:circuit.next_probe_at,probe_lease_expires_at:null};
   } else if (circuit.state === 'HALF_OPEN') {
-    const claimedProbe = await env.DB.prepare(`
+    const claimedProbe = await prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_circuit_breakers SET probe_lease_owner=?,probe_lease_expires_at=datetime('now',?),updated_at=?
       WHERE engine_fleet=? AND state='HALF_OPEN'
         AND (probe_lease_expires_at IS NULL OR datetime(probe_lease_expires_at)<=datetime('now'))
@@ -446,7 +447,7 @@ async function reserveFleetDispatch(
     }
   }
 
-  const reserved = await env.DB.prepare(`
+  const reserved = await prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_fleet_budgets SET request_used=request_used+1,updated_at=?
     WHERE engine_fleet=? AND budget_window=? AND window_started_at=?
       AND datetime(window_started_at)<=datetime('now') AND datetime(window_ends_at)>datetime('now')
@@ -480,7 +481,7 @@ async function reserveFleetDispatch(
       };
     }
     if (circuit.state === 'HALF_OPEN') {
-      await env.DB.prepare(`
+      await prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_circuit_breakers SET state='OPEN',probe_lease_owner=NULL,probe_lease_expires_at=NULL,
           next_probe_at=datetime('now',?),updated_at=? WHERE engine_fleet=? AND state='HALF_OPEN'
           AND probe_lease_owner=?
@@ -523,7 +524,7 @@ function transportAttempt(
   message: string | null,
   timestamp: string,
 ): D1PreparedStatement {
-  return env.DB.prepare(`
+  return prepareD1ProjectionWrite(env.DB, `
     INSERT INTO asi_transport_attempts (
       attempt_id,outbox_id,engine_fleet,attempt_number,dispatch_kind,outcome,circuit_state,budget_window,
       error_code,attempted_at,completed_at
@@ -541,14 +542,14 @@ function circuitSuccess(
   timestamp: string,
 ): D1PreparedStatement {
   if (control.circuitState === 'HALF_OPEN') {
-    return env.DB.prepare(`
+    return prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_circuit_breakers SET state='CLOSED',consecutive_failure_count=0,success_count=success_count+1,
         next_probe_at=NULL,reason_code=NULL,probe_lease_owner=NULL,probe_lease_expires_at=NULL,
         last_success_at=?,updated_at=?
       WHERE engine_fleet=? AND state='HALF_OPEN' AND probe_lease_owner=?
     `).bind(timestamp,timestamp,fleet.id,control.probeOwner);
   }
-  return env.DB.prepare(`
+  return prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_circuit_breakers SET consecutive_failure_count=0,success_count=success_count+1,
       last_success_at=?,updated_at=? WHERE engine_fleet=? AND state='CLOSED'
   `).bind(timestamp,timestamp,fleet.id);
@@ -562,7 +563,7 @@ function circuitFailure(
   timestamp: string,
 ): D1PreparedStatement {
   if (control.circuitState === 'HALF_OPEN') {
-    return env.DB.prepare(`
+    return prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_circuit_breakers SET failure_count=failure_count+1,
         consecutive_failure_count=consecutive_failure_count+1,state='OPEN',opened_count=opened_count+1,
         opened_at=?,next_probe_at=datetime('now',?),reason_code=?,probe_lease_owner=NULL,
@@ -572,7 +573,7 @@ function circuitFailure(
       timestamp,`+${CIRCUIT_OPEN_SECONDS} seconds`,errorCode(message),timestamp,timestamp,fleet.id,control.probeOwner,
     );
   }
-  return env.DB.prepare(`
+  return prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_circuit_breakers SET failure_count=failure_count+1,
       consecutive_failure_count=consecutive_failure_count+1,
       state=CASE WHEN consecutive_failure_count+1>=? THEN 'OPEN' ELSE state END,
@@ -596,7 +597,7 @@ async function deferControlHold(
 ): Promise<void> {
   const timestamp = nowIso();
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_transport_control_holds (
         hold_id,outbox_id,engine_fleet,control_hold_number,dispatch_kind,reason_code,circuit_state,budget_window,held_at
       )
@@ -607,7 +608,7 @@ async function deferControlHold(
       makeId('control_hold'),dispatchKind,`ASI_${control.reason}`,control.circuitState,control.budgetWindow,
       timestamp,row.id,leaseOwner,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_outbox SET status='RETRY',next_attempt_at=?,updated_at=?,last_error=?,control_hold_count=control_hold_count+1,
         lease_owner=NULL,lease_expires_at=NULL WHERE id=? AND status='DISPATCHING' AND lease_owner=?
     `).bind(control.nextAttemptAt,timestamp,`ASI_${control.reason}`,row.id,leaseOwner),
@@ -621,7 +622,7 @@ function countTerminalDeadLetterOnce(
   recordedAt: string,
 ): D1PreparedStatement[] {
   return [
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_engine_health (
         engine_fleet,queue_name,state,processed_count,failed_count,retry_count,dead_letter_count,
         last_success_at,last_failure_at,updated_at
@@ -636,7 +637,7 @@ function countTerminalDeadLetterOnce(
         dead_letter_count=asi_engine_health.dead_letter_count+1,last_failure_at=excluded.last_failure_at,
         updated_at=excluded.updated_at
     `).bind(fleet.id,fleet.queue,recordedAt,recordedAt,receiptId,fleet.id,fleet.queue),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_terminal_dlq_receipts SET health_counted=1
       WHERE receipt_id=? AND health_counted=0
         AND receipt_type IN ('CLOUDFLARE_QUEUE_DLQ','OUTBOX_DISPATCH_EXHAUSTED')
@@ -660,11 +661,11 @@ async function deadLetterOutbox(
   const recordedAt = nowIso();
   const receiptId = `terminal_outbox_${row.id}`;
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_outbox SET status='DEAD_LETTERED',lease_owner=NULL,lease_expires_at=NULL,last_error=?,updated_at=?
       WHERE id=? AND lease_owner=?
     `).bind(message,recordedAt,row.id,leaseOwner),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_terminal_dlq_receipts (
         receipt_id,receipt_type,dlq_queue_name,source_queue_name,message_id,event_id,outbox_id,payload_json,payload_bytes,
         operating_state,replay_required,ack_policy,ack_requested,loss_guarantee,recorded_at
@@ -673,7 +674,7 @@ async function deadLetterOutbox(
       receiptId,row.queue_name,row.queue_name,row.id,row.event_id,row.id,row.payload_json,
       new TextEncoder().encode(row.payload_json).byteLength,recordedAt,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_dead_letters (
         id,queue_name,source_queue_name,source_queue_provenance_state,source_queue_candidates_json,
         message_id,event_id,attempts,error_code,error_message,payload_json,recorded_at,
@@ -696,11 +697,11 @@ async function holdOutboxRegistryDrift(
   const recordedAt = nowIso();
   const receiptId = `terminal_outbox_${row.id}`;
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_outbox SET status='HOLD',lease_owner=NULL,lease_expires_at=NULL,last_error=?,updated_at=?
       WHERE id=? AND lease_owner=?
     `).bind(message,recordedAt,row.id,leaseOwner),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_terminal_dlq_receipts (
         receipt_id,receipt_type,dlq_queue_name,source_queue_name,message_id,event_id,outbox_id,payload_json,payload_bytes,
         operating_state,replay_required,ack_policy,ack_requested,loss_guarantee,recorded_at
@@ -709,7 +710,7 @@ async function holdOutboxRegistryDrift(
       receiptId,row.queue_name,row.queue_name,row.id,row.event_id,row.id,row.payload_json,
       new TextEncoder().encode(row.payload_json).byteLength,recordedAt,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_dead_letters (
         id,queue_name,source_queue_name,source_queue_provenance_state,source_queue_candidates_json,
         message_id,event_id,attempts,error_code,error_message,payload_json,recorded_at,
@@ -733,7 +734,7 @@ async function recordOutboxDispatchFailure(
 ): Promise<void> {
   const timestamp = nowIso();
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_outbox SET status='RETRY',next_attempt_at=datetime('now','+1 minute'),updated_at=?,last_error=?,
         lease_owner=NULL,lease_expires_at=NULL WHERE id=? AND lease_owner=?
     `).bind(timestamp,message,row.id,leaseOwner),
@@ -805,7 +806,7 @@ async function dispatchOutbox(
   await assertReplayLease(env,replayFence);
   const timestamp = nowIso();
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_outbox SET status='DISPATCHED',dispatched_at=?,updated_at=?,next_attempt_at=NULL,
         lease_owner=NULL,lease_expires_at=NULL,last_error=NULL WHERE id=? AND lease_owner=?
     `).bind(timestamp,timestamp,attempt.id,leaseOwner),
@@ -859,7 +860,7 @@ async function recordFairSelection(
 ): Promise<void> {
   if (result === 'SKIPPED') return;
   const timestamp = nowIso();
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO asi_relay_fairness (
       fairness_key,last_partition_key,selection_count,dispatch_count,retry_count,dead_letter_count,hold_count,
       last_outbox_id,last_selected_at,updated_at
@@ -934,7 +935,7 @@ async function claimTaskLease(
   const leaseId = `lease_${task.outbox_id}`;
   const timestamp = nowIso();
   const key = partitionKey(task.event.partition);
-  const claimed = await env.DB.prepare(`
+  const claimed = await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO asi_task_leases (
       lease_id,engine_fleet,partition_key,task_event_id,lease_owner,acquired_at,expires_at,released_at,
       release_state,outbox_id,attempt_count,last_error
@@ -966,7 +967,7 @@ function releaseTaskLease(
   error: string | null,
   timestamp: string,
 ): D1PreparedStatement {
-  return env.DB.prepare(`
+  return prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_task_leases SET released_at=?,release_state=?,last_error=?
     WHERE outbox_id=? AND task_event_id=? AND lease_owner=? AND attempt_count=? AND released_at IS NULL
       AND datetime(expires_at)>datetime('now')
@@ -997,7 +998,7 @@ function taskLeaseFencedDatabase(
   assertFence: () => Promise<void>,
 ): D1Database {
   const underlying = new WeakMap<object,D1PreparedStatement>();
-  const guard = () => database.prepare(`
+  const guard = () => prepareD1ProjectionWrite(database, `
     INSERT INTO asi_task_lease_write_fences (
       fence_check_id,outbox_id,task_event_id,lease_owner,lease_epoch,checked_at
     ) VALUES (?,?,?,?,?,?)
@@ -1041,7 +1042,15 @@ function taskLeaseFencedDatabase(
   };
   return new Proxy(database,{
     get(target,property,receiver) {
-      if (property === 'prepare') return (query: string) => wrap(target.prepare(query));
+      if (property === 'prepare') {
+        return (query: string) => {
+          const normalized = query.replace(/\s+/g, ' ').trim();
+          const prepared = /^(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(normalized)
+            ? prepareD1ProjectionWrite(target,query)
+            : prepareD1ProjectionRead(target,query);
+          return wrap(prepared);
+        };
+      }
       if (property === 'batch') {
         return async (statements: D1PreparedStatement[]) => fencedBatch(
           statements.map((statement) => underlying.get(statement) || statement),
@@ -1066,7 +1075,7 @@ async function recordTransportReceipt(
   const timestamp = nowIso();
   const key = partitionKey(task.event.partition);
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_processed_messages (
         queue_name,outbox_id,message_id,event_id,status,attempt_count,first_seen_at,last_seen_at,processing_token
       ) SELECT ?,?,?,?,'PROCESSING',?,?,?,? WHERE EXISTS (
@@ -1081,7 +1090,7 @@ async function recordTransportReceipt(
       queueName,task.outbox_id,messageId,task.event.event_id,attempts,timestamp,timestamp,token,
       task.outbox_id,task.event.event_id,taskLeaseFence.leaseOwner,taskLeaseFence.leaseEpoch,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_queue_watermarks (queue_name,partition_key,last_event_id,last_observed_at,last_processed_at,processed_count,failed_count)
       SELECT ?,?,?,?,?,1,0 WHERE EXISTS (
         SELECT 1 FROM asi_processed_messages WHERE queue_name=? AND outbox_id=? AND processing_token=? AND status='PROCESSING'
@@ -1091,7 +1100,7 @@ async function recordTransportReceipt(
         last_observed_at=MAX(asi_queue_watermarks.last_observed_at,excluded.last_observed_at),last_processed_at=excluded.last_processed_at,
         processed_count=asi_queue_watermarks.processed_count+1
     `).bind(queueName,key,task.event.event_id,task.event.observed_at,timestamp,queueName,task.outbox_id,token),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_engine_health (
         engine_fleet,queue_name,state,processed_count,failed_count,retry_count,dead_letter_count,last_success_at,last_failure_at,updated_at
       ) SELECT ?,?, ?,1,0,0,0,?,NULL,? WHERE EXISTS (
@@ -1100,7 +1109,7 @@ async function recordTransportReceipt(
       ON CONFLICT(engine_fleet) DO UPDATE SET state=excluded.state,
         processed_count=asi_engine_health.processed_count+1,last_success_at=excluded.last_success_at,updated_at=excluded.updated_at
     `).bind(fleet.id,fleet.queue,`PROCESSOR_${processorState}`,timestamp,timestamp,queueName,task.outbox_id,token),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_processed_messages SET status='SUCCEEDED',completed_at=?,last_seen_at=?,processing_token=NULL,last_error=NULL
       WHERE queue_name=? AND outbox_id=? AND processing_token=?
     `).bind(timestamp,timestamp,queueName,task.outbox_id,token),
@@ -1127,7 +1136,7 @@ async function recordTransportFailure(
   const outboxId = task?.outbox_id || `invalid_${messageId}`;
   const failureToken = makeId('failure');
   const failureRecord = task && taskLeaseFence
-    ? env.DB.prepare(`
+    ? prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_processed_messages (
         queue_name,outbox_id,message_id,event_id,status,attempt_count,first_seen_at,last_seen_at,processing_token,last_error
       ) SELECT ?,?,?,?,'FAILED',?,?,?, ?,? WHERE EXISTS (
@@ -1141,7 +1150,7 @@ async function recordTransportFailure(
       queueName,outboxId,messageId,task.event.event_id,attempts,timestamp,timestamp,failureToken,error,
       task.outbox_id,task.event.event_id,taskLeaseFence.leaseOwner,taskLeaseFence.leaseEpoch,
     )
-    : task ? env.DB.prepare(`
+    : task ? prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_processed_messages (
         queue_name,outbox_id,message_id,event_id,status,attempt_count,first_seen_at,last_seen_at,processing_token,last_error
       ) VALUES (?,?,?,?,'FAILED',?,?,?, ?,?)
@@ -1151,7 +1160,7 @@ async function recordTransportFailure(
       WHERE asi_processed_messages.status<>'SUCCEEDED'
     `).bind(
       queueName,outboxId,messageId,task.event.event_id,attempts,timestamp,timestamp,failureToken,error,
-    ) : env.DB.prepare(`
+    ) : prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_processed_messages (
         queue_name,outbox_id,message_id,event_id,status,attempt_count,first_seen_at,last_seen_at,processing_token,last_error
       ) VALUES (?,?,?,NULL,'FAILED',?,?,?, ?,?)
@@ -1162,7 +1171,7 @@ async function recordTransportFailure(
     `).bind(queueName,outboxId,messageId,attempts,timestamp,timestamp,failureToken,error);
   const statements: D1PreparedStatement[] = [
     failureRecord,
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_engine_health (
         engine_fleet,queue_name,state,processed_count,failed_count,retry_count,dead_letter_count,last_success_at,last_failure_at,updated_at
       ) SELECT ?,?,'TRANSPORT_RETRY',0,1,1,0,NULL,?,? WHERE EXISTS (
@@ -1174,7 +1183,7 @@ async function recordTransportFailure(
   ];
   if (task) {
     const key = partitionKey(task.event.partition);
-    statements.push(env.DB.prepare(`
+    statements.push(prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_queue_watermarks (queue_name,partition_key,last_event_id,last_observed_at,last_processed_at,processed_count,failed_count)
       SELECT ?,?,?,?,?,0,1 WHERE EXISTS (
         SELECT 1 FROM asi_processed_messages WHERE queue_name=? AND outbox_id=? AND processing_token=? AND status='FAILED'
@@ -1184,7 +1193,7 @@ async function recordTransportFailure(
     `).bind(queueName,key,task.event.event_id,task.event.observed_at,timestamp,queueName,outboxId,failureToken));
     if (taskLeaseFence) statements.push(releaseTaskLease(env,task,taskLeaseFence,'FAILED',error,timestamp));
   }
-  statements.push(env.DB.prepare(`
+  statements.push(prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_processed_messages SET processing_token=NULL
     WHERE queue_name=? AND outbox_id=? AND processing_token=?
   `).bind(queueName,outboxId,failureToken));
@@ -1200,7 +1209,7 @@ async function consumeDeadLetterBatch(batch: MessageBatch<AsiQueueTask>, env: As
       const sourceQueue = task?.source_queue || null;
       const payloadJson = safeJson(message.body);
       const receiptId = `terminal_dlq_${message.id}`;
-      const statements: D1PreparedStatement[] = [env.DB.prepare(`
+      const statements: D1PreparedStatement[] = [prepareD1ProjectionWrite(env.DB, `
         INSERT OR IGNORE INTO asi_terminal_dlq_receipts (
           receipt_id,receipt_type,dlq_queue_name,source_queue_name,message_id,event_id,outbox_id,payload_json,payload_bytes,
           operating_state,replay_required,ack_policy,ack_requested,loss_guarantee,recorded_at
@@ -1208,7 +1217,7 @@ async function consumeDeadLetterBatch(batch: MessageBatch<AsiQueueTask>, env: As
       `).bind(
         receiptId,batch.queue,sourceQueue,message.id,task?.event.event_id || null,task?.outbox_id || null,payloadJson,
         new TextEncoder().encode(payloadJson).byteLength,recordedAt,
-      ),env.DB.prepare(`
+      ),prepareD1ProjectionWrite(env.DB, `
         INSERT OR IGNORE INTO asi_dead_letters (
           id,queue_name,source_queue_name,source_queue_provenance_state,source_queue_candidates_json,
           message_id,event_id,attempts,error_code,error_message,payload_json,recorded_at,
@@ -1219,7 +1228,7 @@ async function consumeDeadLetterBatch(batch: MessageBatch<AsiQueueTask>, env: As
         task ? 'CLOUDFLARE_QUEUE_DLQ' : 'CLOUDFLARE_QUEUE_DLQ_TASK_INVALID',
         'Message exhausted source-queue retries; attempts are DLQ delivery attempts',payloadJson,recordedAt,receiptId)];
       if (task) {
-        statements.push(env.DB.prepare(`
+        statements.push(prepareD1ProjectionWrite(env.DB, `
           UPDATE asi_outbox SET status='DEAD_LETTERED',last_error='CLOUDFLARE_QUEUE_DLQ',updated_at=?,
             lease_owner=NULL,lease_expires_at=NULL WHERE id=? AND event_id=? AND engine_fleet=? AND queue_name=?
         `).bind(recordedAt,task.outbox_id,task.event.event_id,task.target_fleet,task.source_queue));
@@ -1315,7 +1324,7 @@ async function completeReplay(
 ): Promise<void> {
   const timestamp = nowIso();
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET status='COMPLETED',completed_at=?,replay_event_id=source_event_id,
         lease_owner=NULL,lease_expires_at=NULL,next_attempt_at=NULL,last_error=NULL,terminal_reason=NULL
       WHERE replay_id=? AND (
@@ -1326,20 +1335,20 @@ async function completeReplay(
     `).bind(
       timestamp,replay.replay_id,replay.status,replay.lease_owner,replay.attempt_count,replay.status,replay.attempt_count,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_attempts SET state='COMPLETED',reason_code=?,completed_at=?
       WHERE replay_id=? AND attempt_number=? AND EXISTS (
         SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='COMPLETED' AND completed_at=?
       )
     `).bind(reasonCode,timestamp,replay.replay_id,replay.attempt_count,replay.replay_id,timestamp),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_dead_letters SET replayed_at=?,replay_event_id=?,operating_state='REPLAYED',replay_required=0
       WHERE event_id=? AND source_queue_name=? AND replayed_at IS NULL
         AND EXISTS (
           SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='COMPLETED' AND completed_at=?
         )
     `).bind(timestamp,replay.source_event_id,replay.source_event_id,fleet.queue,replay.replay_id,timestamp),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_terminal_dlq_receipts SET operating_state='REPLAYED',replay_required=0
       WHERE event_id=? AND source_queue_name=? AND replay_required=1
         AND EXISTS (
@@ -1360,7 +1369,7 @@ async function holdReplay(
 ): Promise<void> {
   const timestamp = nowIso();
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET status='HOLD',lease_owner=NULL,lease_expires_at=NULL,next_attempt_at=NULL,
         last_error=?,terminal_reason=?,completed_at=? WHERE replay_id=? AND (
           (?='RUNNING' AND status='RUNNING' AND lease_owner=? AND lease_expires_at IS NOT NULL
@@ -1371,7 +1380,7 @@ async function holdReplay(
       reasonCode,reasonCode,timestamp,replay.replay_id,replay.status,replay.lease_owner,replay.attempt_count,
       replay.status,replay.attempt_count,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_attempts SET state='HOLD',reason_code=?,completed_at=?
       WHERE replay_id=? AND attempt_number=? AND EXISTS (
         SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='HOLD' AND completed_at=?
@@ -1412,7 +1421,7 @@ async function reconcileAwaitingReplays(env: AsiMeshEnv, limit: number): Promise
     }
     if (replay.outbox_status === 'DEAD_LETTERED') {
       if (replay.attempt_count >= replay.max_attempts) await holdReplay(env,replay,'ASI_REPLAY_ATTEMPTS_EXHAUSTED');
-      else await env.DB.prepare(`
+      else await prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_replay_requests SET status='RETRY',next_attempt_at=datetime('now','+1 minute'),
           last_error='ASI_REPLAY_RETURNED_TO_DLQ' WHERE replay_id=? AND status='AWAITING_CONSUMER'
             AND attempt_count=?
@@ -1430,7 +1439,7 @@ async function claimReplay(env: AsiMeshEnv, replayId: string): Promise<ReplayRow
   const leaseOwner = makeId('replay');
   const timestamp = nowIso();
   const results = await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET status='RUNNING',attempt_count=attempt_count+1,started_at=COALESCE(started_at,?),
         lease_owner=?,lease_expires_at=datetime('now',?),next_attempt_at=NULL,last_error=NULL
       WHERE replay_id=? AND max_attempts BETWEEN 1 AND 2 AND attempt_count<max_attempts AND (
@@ -1438,7 +1447,7 @@ async function claimReplay(env: AsiMeshEnv, replayId: string): Promise<ReplayRow
         OR (status='RUNNING' AND datetime(lease_expires_at)<=datetime('now'))
       )
     `).bind(timestamp,leaseOwner,`+${REPLAY_LEASE_SECONDS} seconds`,replayId),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO asi_replay_attempts (
         attempt_id,replay_id,outbox_id,attempt_number,state,reason_code,lease_owner,started_at
       )
@@ -1485,7 +1494,7 @@ async function processReplay(
   `).bind(fleet.queue,sourceOutbox.id).first<{status:string}>();
   if (prior?.status === 'SUCCEEDED') {
     const bound = {...replay,outbox_id:sourceOutbox.id};
-    const boundOutbox = await env.DB.prepare(`
+    const boundOutbox = await prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET outbox_id=?
       WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
         AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now') AND attempt_count=?
@@ -1495,11 +1504,11 @@ async function processReplay(
     return 'COMPLETED';
   }
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET outbox_id=? WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
         AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now') AND attempt_count=?
     `).bind(sourceOutbox.id,replay.replay_id,replay.lease_owner,replay.attempt_count),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_attempts SET outbox_id=?
       WHERE replay_id=? AND attempt_number=? AND lease_owner=? AND EXISTS (
         SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
@@ -1514,13 +1523,13 @@ async function processReplay(
 
   if (sourceOutbox.status === 'DISPATCHED') {
     await env.DB.batch([
-      env.DB.prepare(`
+      prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_replay_requests SET status='AWAITING_CONSUMER',lease_owner=NULL,lease_expires_at=NULL,
           next_attempt_at=datetime('now','+1 hour')
         WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
           AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now') AND attempt_count=?
       `).bind(replay.replay_id,replay.lease_owner,replay.attempt_count),
-      env.DB.prepare(`
+      prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_replay_attempts SET state='AWAITING_CONSUMER',reason_code='ASI_REPLAY_OUTBOX_ALREADY_DISPATCHED'
         WHERE replay_id=? AND attempt_number=? AND lease_owner=? AND EXISTS (
           SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='AWAITING_CONSUMER' AND attempt_count=?
@@ -1530,7 +1539,7 @@ async function processReplay(
     return 'DISPATCHED';
   }
 
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     UPDATE asi_outbox SET status='RETRY',attempt_count=0,next_attempt_at=NULL,dispatched_at=NULL,
       lease_owner=NULL,lease_expires_at=NULL,last_error=NULL,updated_at=?
     WHERE id=? AND status IN ('DEAD_LETTERED','HOLD','RETRY','PENDING','DISPATCHING')
@@ -1543,13 +1552,13 @@ async function processReplay(
   const result = await dispatchOutbox(env,sourceOutbox.id,'REPLAY',replayFence);
   if (result === 'DISPATCHED') {
     await env.DB.batch([
-      env.DB.prepare(`
+      prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_replay_requests SET status='AWAITING_CONSUMER',lease_owner=NULL,lease_expires_at=NULL,
           next_attempt_at=datetime('now','+1 hour'),last_error=NULL
         WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
           AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now') AND attempt_count=?
       `).bind(replay.replay_id,replay.lease_owner,replay.attempt_count),
-      env.DB.prepare(`
+      prepareD1ProjectionWrite(env.DB, `
         UPDATE asi_replay_attempts SET state='AWAITING_CONSUMER',reason_code='ASI_REPLAY_DISPATCHED'
         WHERE replay_id=? AND attempt_number=? AND lease_owner=? AND EXISTS (
           SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='AWAITING_CONSUMER' AND attempt_count=?
@@ -1563,13 +1572,13 @@ async function processReplay(
     return 'HOLD';
   }
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_requests SET status='RETRY',lease_owner=NULL,lease_expires_at=NULL,
         next_attempt_at=datetime('now','+1 minute'),last_error='ASI_REPLAY_DISPATCH_RETRY'
       WHERE replay_id=? AND status='RUNNING' AND lease_owner=?
         AND lease_expires_at IS NOT NULL AND datetime(lease_expires_at)>datetime('now') AND attempt_count=?
     `).bind(replay.replay_id,replay.lease_owner,replay.attempt_count),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       UPDATE asi_replay_attempts SET state='RETRY',reason_code='ASI_REPLAY_DISPATCH_RETRY',completed_at=?
       WHERE replay_id=? AND attempt_number=? AND lease_owner=? AND EXISTS (
         SELECT 1 FROM asi_replay_requests WHERE replay_id=? AND status='RETRY' AND attempt_count=?

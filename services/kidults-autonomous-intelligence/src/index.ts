@@ -1,4 +1,5 @@
 import { bearerAuthorized, parseBoundedJson } from './http-security';
+import { prepareD1ProjectionWrite } from './d1-projector-write-boundary';
 
 export type Env = Pick<Cloudflare.Env,
   'DB' | 'METHODOLOGY_VERSION' | 'MIN_EVIDENCE_FOR_PUBLISH'
@@ -131,21 +132,21 @@ async function ingest(request: Request, env: Env) {
   const evidenceConfidence = clamp(Number(input.evidence.confidence ?? 50));
 
   const statements: D1PreparedStatement[] = [
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO source_registry (id,name,source_family,region,base_url,trust_tier,is_active,created_at,updated_at)
       VALUES (?,?,?,?,?,?,1,?,?)
       ON CONFLICT(id) DO UPDATE SET name=excluded.name,source_family=excluded.source_family,region=excluded.region,
         base_url=excluded.base_url,trust_tier=excluded.trust_tier,is_active=1,updated_at=excluded.updated_at
     `).bind(sourceId, input.source.name, input.source.family, input.source.region || null, input.source.baseUrl || null,
       input.source.trustTier || 'C', timestamp, timestamp),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO entity_registry (id,entity_type,canonical_name,category,external_keys_json,created_at,updated_at)
       VALUES (?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET canonical_name=excluded.canonical_name,category=excluded.category,
         external_keys_json=excluded.external_keys_json,updated_at=excluded.updated_at
     `).bind(entityId, input.entity.type || 'collectible', input.entity.name, input.entity.category,
       JSON.stringify(input.entity.externalKeys || {}), timestamp, timestamp),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT INTO evidence_ledger (
         id,source_id,entity_id,external_id,observed_at,ingested_at,payload_hash,provenance_url,provenance_label,
         license_code,raw_payload_json,evidence_grade,confidence,status,admission_id
@@ -156,14 +157,14 @@ async function ingest(request: Request, env: Env) {
   ];
 
   for (const metric of input.metrics) {
-    statements.push(env.DB.prepare(`
+    statements.push(prepareD1ProjectionWrite(env.DB, `
       INSERT INTO observations (id,evidence_id,entity_id,metric_key,metric_value,unit,confidence,observed_at,created_at)
       VALUES (?,?,?,?,?,?,?,?,?)
     `).bind(makeId('obs'), evidenceId, entityId, metric.key, Number(metric.value), metric.unit || null,
       clamp(Number(metric.confidence ?? evidenceConfidence)), input.evidence.observedAt, timestamp));
   }
 
-  statements.push(env.DB.prepare(`
+  statements.push(prepareD1ProjectionWrite(env.DB, `
     INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at)
     VALUES (?,'evidence.ingested','collector',?,?,?)
   `).bind(makeId('audit'), evidenceId, JSON.stringify({
@@ -190,7 +191,7 @@ async function runIntelligence(env: Env, triggerType: string) {
   const evidenceCountRow = await env.DB.prepare(`SELECT COUNT(*) AS count FROM evidence_ledger WHERE status='accepted' AND observed_at<=?`).bind(cutoff).first<{count:number}>();
   const inputEvidenceCount = Number(evidenceCountRow?.count || 0);
 
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO intelligence_runs (id,started_at,trigger_type,methodology_version,evidence_cutoff,status,input_evidence_count)
     VALUES (?,?,?,?,?,'running',?)
   `).bind(runId, startedAt, triggerType, env.METHODOLOGY_VERSION, cutoff, inputEvidenceCount).run();
@@ -267,7 +268,7 @@ async function runIntelligence(env: Env, triggerType: string) {
 
   const snapshotStatements: D1PreparedStatement[] = [];
   for (const item of categorySnapshots) {
-    snapshotStatements.push(env.DB.prepare(`
+    snapshotStatements.push(prepareD1ProjectionWrite(env.DB, `
       INSERT INTO category_snapshots (
         id,run_id,category,score,confidence,market_activity,cultural_momentum,scarcity,canon_strength,
         market_velocity,liquidity,lifecycle_stage,evidence_count,created_at
@@ -305,7 +306,7 @@ async function runIntelligence(env: Env, triggerType: string) {
   const minEvidence = Math.max(1, Number(env.MIN_EVIDENCE_FOR_PUBLISH || 20));
   const productionEligible = inputEvidenceCount >= minEvidence && categorySnapshots.length >= 4 && Number(sourceFamiliesRow?.count || 0) >= 3;
 
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO index_snapshots (
       id,run_id,kidult100,sentiment_index,canon_strength,market_velocity,active_listings,confidence,
       coverage_brands,source_families,category_count,evidence_count,production_eligible,created_at
@@ -314,10 +315,10 @@ async function runIntelligence(env: Env, triggerType: string) {
     velocity===null?null:round2(velocity), Number(listingsRow?.total || 0), round1(confidence), Number(brandsRow?.count || 0),
     Number(sourceFamiliesRow?.count || 0), categorySnapshots.length, inputEvidenceCount, productionEligible?1:0, startedAt).run();
 
-  await env.DB.prepare(`UPDATE intelligence_runs SET finished_at=?,status='succeeded',output_category_count=? WHERE id=?`)
+  await prepareD1ProjectionWrite(env.DB, `UPDATE intelligence_runs SET finished_at=?,status='succeeded',output_category_count=? WHERE id=?`)
     .bind(nowIso(), categorySnapshots.length, runId).run();
 
-  await env.DB.prepare(`INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at) VALUES (?,'intelligence.run','engine',?,?,?)`)
+  await prepareD1ProjectionWrite(env.DB, `INSERT INTO audit_log (id,event_type,actor,subject_id,details_json,created_at) VALUES (?,'intelligence.run','engine',?,?,?)`)
     .bind(makeId('audit'), runId, JSON.stringify({ inputEvidenceCount, categories: categorySnapshots.length, productionEligible }), nowIso()).run();
 
   return { runId, inputEvidenceCount, categoryCount: categorySnapshots.length, productionEligible };
@@ -393,7 +394,7 @@ async function publish(env: Env, triggerType='manual') {
   const payloadJson=JSON.stringify(payload);
   const payloadHash=await sha256(payloadJson);
   const timestamp=nowIso();
-  await env.DB.prepare(`INSERT INTO publication_snapshots (id,run_id,channel,payload_json,payload_hash,status,published_at,created_at) VALUES (?,?,?,?,?,'published',?,?)`)
+  await prepareD1ProjectionWrite(env.DB, `INSERT INTO publication_snapshots (id,run_id,channel,payload_json,payload_hash,status,published_at,created_at) VALUES (?,?,?,?,?,'published',?,?)`)
     .bind(makeId('pub'),result.runId,'portal',payloadJson,payloadHash,timestamp,timestamp).run();
   return {...result,payloadHash,payload};
 }
@@ -430,7 +431,7 @@ export default {
   fetch(request: Request, env: Env): Promise<Response> {
     return route(request,env).catch(async(error)=>{
       const message=error instanceof Error?error.message:String(error);
-      try { await env.DB.prepare(`INSERT INTO audit_log (id,event_type,actor,details_json,created_at) VALUES (?,'runtime.error','worker',?,?)`).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run(); } catch {}
+      try { await prepareD1ProjectionWrite(env.DB, `INSERT INTO audit_log (id,event_type,actor,details_json,created_at) VALUES (?,'runtime.error','worker',?,?)`).bind(makeId('audit'),JSON.stringify({message}),nowIso()).run(); } catch {}
       return json({error:'internal_error',message:env.KIDULTS_ENV==='production'?'Internal error':message},{status:500});
     });
   },
