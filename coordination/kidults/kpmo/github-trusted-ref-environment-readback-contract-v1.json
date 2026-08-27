@@ -1,6 +1,6 @@
 {
   "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "issue": 974,
   "parent_gate_issue": 881,
   "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
@@ -14,8 +14,10 @@
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "default_branch": "main",
     "registry": "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
-    "privileged_manual_lane_count_is_dynamic_from_registry": true,
-    "secret_values_must_never_be_requested_or_recorded": true
+    "privileged_manual_lane_count_is_dynamic_from_registry": false,
+    "secret_values_must_never_be_requested_or_recorded": true,
+    "secret_bearing_lane_count_is_dynamic_from_registry": true,
+    "trigger_class_does_not_reduce_authority": true
   },
   "approved_closure_patterns": {
     "github_environment": {
@@ -30,7 +32,10 @@
       "all_list_endpoints_are_exhaustively_paginated_and_count_reconciled": true,
       "dynamic_or_whole_secret_context_is_forbidden_for_proof": true,
       "selected_non_main_ref_negative_control_must_be_rejected": true,
-      "branch_controlled_workflow_replacement_negative_control_must_be_rejected": true
+      "branch_controlled_workflow_replacement_negative_control_must_be_rejected": true,
+      "allowed_trigger_classes_bound_per_workflow_job": true,
+      "remote_mutation_class_bound_per_workflow_job": true,
+      "push_secret_lane_requires_explicit_activation_guard": true
     },
     "trusted_default_branch_or_release_handoff": {
       "repository_declaration_alone_is_sufficient": false,
@@ -111,7 +116,7 @@
   },
   "effects": {
     "autonomous_effect": "POSITIVE_READ_ONLY_READBACK_AND_FAIL_CLOSED_VALIDATION_HAVE_AUTOMATIC_TRIGGERS",
-    "global_effect": "NEUTRAL_CONTROL_APPLIES_TO_ALL_REGISTERED_PRIVILEGED_MANUAL_LANES_WITHOUT_EMPIRICAL_PROMOTION",
+    "global_effect": "POSITIVE_CONTROL_APPLIES_TO_ALL_REGISTERED_SECRET_BEARING_LANES_INDEPENDENT_OF_TRIGGER_CLASS_WITHOUT_EMPIRICAL_PROMOTION",
     "irreplaceable_value_effect": "POSITIVE_KIDULTS_OWNS_THE_LANE_TO_ENVIRONMENT_TO_REF_POLICY_LINEAGE_AND_RECEIPT_LOGIC",
     "transparency_effect": "POSITIVE_MISSING_BINDINGS_PERMISSIONS_AND_EXTERNAL_PROOF_REMAIN_EXPLICIT_BLOCKERS"
   }

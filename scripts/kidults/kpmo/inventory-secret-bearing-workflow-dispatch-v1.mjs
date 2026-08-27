@@ -50,6 +50,7 @@ function classify(text) {
     inherited_reusable_secrets: inheritedReusableSecrets,
     environment_declared: environmentDeclared,
     explicit_main_ref_guard: explicitMainRefGuard,
+    privileged_secret_lane: wholeOrDynamicSecretContext || inheritedReusableSecrets,
     privileged_manual_lane: workflowDispatch && (wholeOrDynamicSecretContext || inheritedReusableSecrets)
   };
 }
@@ -59,22 +60,25 @@ const mutationCases = [
   `workflow_dispatch:\nenvironment: staging\nenv:\n  KEY: \${{ secrets.SSH_KEY }}`,
   `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      TOKEN: \${{ secrets['TEST_TOKEN'] }}`,
   `on:\n  workflow_dispatch:\njobs:\n  run:\n    env:\n      ALL_SECRETS: \${{ toJSON(secrets) }}`,
-  `on:\n  workflow_dispatch:\njobs:\n  call:\n    uses: owner/repo/.github/workflows/reusable.yml@main\n    secrets: inherit`
+  `on:\n  workflow_dispatch:\njobs:\n  call:\n    uses: owner/repo/.github/workflows/reusable.yml@main\n    secrets: inherit`,
+  `on:\n  push:\n    branches: [main]\nenv:\n  TOKEN: \${{ secrets.TEST_TOKEN }}`,
+  `on:\n  workflow_run:\n    workflows: [Upstream]\n    types: [completed]\nenv:\n  TOKEN: \${{ secrets.TEST_TOKEN }}`,
+  `on:\n  schedule:\n    - cron: '0 0 * * *'\nenv:\n  TOKEN: \${{ secrets.TEST_TOKEN }}`
 ];
 for (const sample of mutationCases) {
-  if (!classify(sample).privileged_manual_lane) {
-    throw new Error('secret-bearing workflow_dispatch mutation self-test missed unsafe sample');
+  if (!classify(sample).privileged_secret_lane) {
+    throw new Error('trigger-independent secret-bearing workflow mutation self-test missed unsafe sample');
   }
 }
 
 const negativeCases = [
   `on:\n  pull_request:\npermissions:\n  contents: read`,
   `on:\n  workflow_dispatch:\nenv:\n  MODE: dry-run`,
-  `on:\n  push:\n    branches: [main]\nenv:\n  TOKEN: \${{ secrets.TEST_TOKEN }}`,
-  `on:\n  push:\n    branches: [main]\njobs:\n  call:\n    uses: owner/repo/.github/workflows/reusable.yml@main\n    secrets: inherit`
+  `on:\n  push:\n    branches: [main]\nenv:\n  MODE: dry-run`,
+  `on:\n  schedule:\n    - cron: '0 0 * * *'\nenv:\n  MODE: read-only`
 ];
 for (const sample of negativeCases) {
-  if (classify(sample).privileged_manual_lane) {
+  if (classify(sample).privileged_secret_lane) {
     throw new Error('secret-bearing workflow_dispatch inventory rejected negative sample');
   }
 }
@@ -83,7 +87,7 @@ const files = walk(ROOT);
 const findings = [];
 for (const file of files) {
   const details = classify(fs.readFileSync(file, 'utf8'));
-  if (!details.privileged_manual_lane) continue;
+  if (!details.privileged_secret_lane) continue;
   findings.push({
     workflow: path.relative('.', file).split(path.sep).join('/'),
     secret_names: details.secret_names,
@@ -119,9 +123,10 @@ if (fs.existsSync(REGISTRY)) {
 const privilegedJobs = privilegedExecutionInventory?.lanes.flatMap((lane) => lane.secret_bearing_jobs) || [];
 
 const result = {
-  suite: 'KIDULTS_SECRET_BEARING_WORKFLOW_DISPATCH_INVENTORY_V2',
+  suite: 'KIDULTS_TRIGGER_INDEPENDENT_SECRET_BEARING_WORKFLOW_INVENTORY_V3',
   workflows_scanned: files.length,
-  privileged_manual_lanes: findings.length,
+  privileged_secret_lanes: findings.length,
+  privileged_manual_lanes: findings.filter((finding) => finding.workflow_dispatch).length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_accepted: negativeCases.length,
   supported_secret_syntaxes: ['DOT_CONTEXT','INDEXED_OR_DYNAMIC_CONTEXT','WHOLE_SECRET_CONTEXT','REUSABLE_SECRETS_INHERIT'],
@@ -138,7 +143,7 @@ const result = {
   job_scope_provider_secret_jobs: privilegedJobs.filter((job) => job.job_scope_secret_names.length > 0).length,
   step_scoped_provider_secret_jobs: privilegedJobs.filter((job) => job.provider_secrets_step_scoped).length,
   privileged_secret_steps: privilegedJobs.reduce((count, job) => count + job.step_secret_bindings.length, 0),
-  security_truth: findings.length === 0 ? 'NO_SECRET_BEARING_MANUAL_LANES' : 'EXTERNAL_CONTROL_PLANE_PROOF_REQUIRED',
+  security_truth: findings.length === 0 ? 'NO_SECRET_BEARING_LANES' : 'EXTERNAL_CONTROL_PLANE_PROOF_REQUIRED',
   secret_material_read: false,
   credential_activation: 'NONE',
   production: 'HOLD',
@@ -153,7 +158,7 @@ if (enforceRegistry) {
     process.exit(1);
   }
   if (registryDrift.length) {
-    console.error(`FAIL secret-bearing dispatch registry drift: ${registryDrift.join(', ')}`);
+    console.error(`FAIL trigger-independent secret-bearing registry drift: ${registryDrift.join(', ')}`);
     process.exit(1);
   }
   if (privilegedExecutionControlFailures.length) {
