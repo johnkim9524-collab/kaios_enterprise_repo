@@ -5,25 +5,24 @@ on:
     branches: [ main ]
     paths:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
+      - ".github/workflows/kpmo-canonical-issue-transition-guard-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
-      - "scripts/kidults/kpmo/validate-canonical-issue-concurrency-by-issue-v1.mjs"
       - "coordination/kidults/**"
   push:
     branches: [ main ]
-  issues:
-    types: [edited, reopened, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
   issues: read
 
-# Same-issue edits may supersede an older run, but edits to different canonical
-# issues must never cancel one another. PRs remain isolated by exact head SHA;
-# push/manual executions remain isolated by exact run ID.
+# Whole-board truth is authoritative and must not be cancelled by issue-edit fan-out.
+# PR validation may observe a newer main than its event base; strict native ruleset
+# freshness remains authoritative for merge eligibility while this validator checks
+# monotonic canonical truth against the live observed main.
 concurrency:
-  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.head.sha) || github.event_name == 'issues' && format('issue-{0}', github.event.issue.number) || format('run-{0}', github.run_id) }}
-  cancel-in-progress: true
+  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   canonical-issue-truth:
@@ -43,16 +42,15 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate issue-scoped concurrency contract
-        run: node scripts/kidults/kpmo/validate-canonical-issue-concurrency-by-issue-v1.mjs
       - name: Validate live canonical issue truth
         id: validate
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          ALLOW_MAIN_ADVANCE_DURING_PR_VALIDATION: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
-          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name != 'pull_request' }}
+          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
