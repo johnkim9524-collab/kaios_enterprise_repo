@@ -1,4 +1,5 @@
 type DbEnv = { DB: D1Database };
+import { prepareD1ProjectionWrite } from './d1-projector-write-boundary';
 
 type PortalPayload = Record<string, any>;
 
@@ -109,7 +110,7 @@ export async function enrichPortalPayload(env: DbEnv, runId: string, payload: Po
 export async function persistEnrichedSnapshot(env: DbEnv, runId: string, payload: PortalPayload) {
   const payloadJson = JSON.stringify(payload);
   const payloadHash = await sha256(payloadJson);
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     UPDATE publication_snapshots SET payload_json=?,payload_hash=? WHERE run_id=? AND channel='portal'
   `).bind(payloadJson,payloadHash,runId).run();
   return payloadHash;
