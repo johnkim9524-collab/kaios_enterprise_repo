@@ -47,11 +47,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
-          EXPECTED_CANONICAL_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}
-          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}
+          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
-          EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
+          EXPECTED_CORRECTION_HEAD_SHA: ''
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
+          MAX_CANONICAL_GENERATION_LAG_COMMITS: '8'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
@@ -60,8 +60,8 @@ jobs:
           VALIDATION_OUTCOME: ${{ steps.validate.outcome }}
           RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
-          RECEIPT_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}
-          RECEIPT_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha || github.sha }}
+          RECEIPT_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}
+          RECEIPT_BODY_MAIN_SHA: ${{ steps.validate.outputs.canonical_body_main_sha || 'UNAVAILABLE' }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
