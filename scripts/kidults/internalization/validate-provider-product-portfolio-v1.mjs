@@ -292,7 +292,10 @@ function validatePortfolio(portfolio) {
   assert(cgcPartial.state === 'NEEDS_CLARIFICATION', 'CGC/CCG clarification state drift');
   assert(cgcPartial.apiIncludedWithAuthorizedDealerMembershipAndAgreement === true, 'CGC/CCG API path drift');
   assert(cgcPartial.internalDataValidationAndIntelligenceUseCanQualify === true, 'CGC/CCG internal-use eligibility drift');
-  assert(cgcPartial.twoIndustryReferencesMandatoryAndContacted === true, 'CGC/CCG reference condition drift');
+  assert(cgcPartial.twoIndustryReferencesMandatory === true, 'CGC/CCG mandatory reference condition drift');
+  assert(cgcPartial.providerWillContactSubmittedReferences === true, 'CGC/CCG provider reference-contact process drift');
+  assert(cgcPartial.referencesSubmitted === false, 'CGC/CCG references must remain unsubmitted');
+  assert(cgcPartial.referenceContactObserved === false, 'CGC/CCG reference contact must remain unobserved');
   assert(cgcPartial.membershipFeeAmount === 'UNKNOWN' && cgcPartial.numericRateLimits === 'UNKNOWN' && cgcPartial.schemaAndRights === 'UNKNOWN', 'CGC/CCG unknown material terms must remain explicit');
   assert(cgcPartial.applicationState === 'NOT_SUBMITTED', 'CGC/CCG application must remain unsubmitted');
   assert(cgcPartial.preflightRef === 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json', 'CGC/CCG intake binding drift');
@@ -402,6 +405,13 @@ const mutationTests = [
     mutate: value => {
       value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API')
         .partialResponseReadiness.applicationState = 'SUBMITTED';
+    }
+  },
+  {
+    name: 'reject_cgc_unobserved_reference_contact_promotion',
+    mutate: value => {
+      value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API')
+        .partialResponseReadiness.referenceContactObserved = true;
     }
   },
   {
