@@ -10,6 +10,14 @@ on:
       - 'docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md'
       - '.github/workflows/kidults-a39-enterprise-acceptance.yml'
       - 'services/kidults-autonomous-intelligence/reports/**'
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/scripts/a39-enterprise-acceptance.mjs'
+      - 'services/kidults-autonomous-intelligence/fixtures/a39/**'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'docs/kidults/A39_ENTERPRISE_AUTONOMOUS_OPERATIONS_ACCEPTANCE.md'
+      - '.github/workflows/kidults-a39-enterprise-acceptance.yml'
+      - 'services/kidults-autonomous-intelligence/reports/**'
 
 concurrency:
   group: kidults-a39-enterprise-acceptance
