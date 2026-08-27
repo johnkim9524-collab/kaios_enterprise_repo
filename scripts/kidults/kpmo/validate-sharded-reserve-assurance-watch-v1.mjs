@@ -81,9 +81,15 @@ const assuranceMutations = [
   ['[[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]', '[[ "$RESERVE_ARTIFACT_DIGEST" =~ ^md5: ]]']
 ];
 for (const [from, to] of assuranceMutations) {
-  const block = extractStep(assurance, 'Validate exact Sharded Reserve upstream terminal binding');
-  if (!block.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
-  const mutated = assurance.replace(block, block.replace(from, to));
+  let mutated;
+  if (from.startsWith("      - 'KIDULTS ASI Sharded Source Reserve v1'")) {
+    if (!assurance.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
+    mutated = assurance.replace(from, to);
+  } else {
+    const block = extractStep(assurance, 'Validate exact Sharded Reserve upstream terminal binding');
+    if (!block.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
+    mutated = assurance.replace(block, block.replace(from, to));
+  }
   let rejected = false;
   try { validateAssurance(mutated); } catch { rejected = true; }
   if (!rejected) fail(`ASSURANCE_MUTATION_NOT_REJECTED:${from}`);
