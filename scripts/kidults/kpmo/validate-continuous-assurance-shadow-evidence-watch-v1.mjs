@@ -78,9 +78,7 @@ function extractRequirementStep(source) {
 
 function validateRequirement(source) {
   const watch = "      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'";
-  if (countMatches(source, new RegExp(watch.replace(/[.*+?^${}()|[\]\\]/g, '\\validate(text);
-
-const mutations = ['), 'g')) !== 1) {
+  if (countMatches(source, new RegExp(watch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) !== 1) {
     fail('REQUIREMENT_WATCH_CARDINALITY_NOT_ONE');
   }
   const block = extractRequirementStep(source);
@@ -158,8 +156,10 @@ const requirementMutations = [
 ];
 
 for (const [from, to] of requirementMutations) {
-  if (!text.includes(from)) fail(`REQUIREMENT_SELF_TEST_SOURCE_MARKER_MISSING:${from}`);
-  const mutated = text.replace(from, to);
+  const requirementBlock = extractRequirementStep(text);
+  if (!requirementBlock.includes(from)) fail(`REQUIREMENT_SELF_TEST_SOURCE_MARKER_MISSING:${from}`);
+  const mutatedBlock = requirementBlock.replace(from, to);
+  const mutated = text.replace(requirementBlock, mutatedBlock);
   let rejected = false;
   try { validateRequirement(mutated); } catch { rejected = true; }
   if (!rejected) fail(`REQUIREMENT_NEGATIVE_MUTATION_NOT_REJECTED:${from}`);
