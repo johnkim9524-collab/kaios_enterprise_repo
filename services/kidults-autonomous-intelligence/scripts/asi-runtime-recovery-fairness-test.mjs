@@ -16,8 +16,12 @@ const now = new Date();
 const nowIso = now.toISOString();
 
 function compileRuntimeModules() {
-  for (const name of ['event','registry','processors','processor-runtime','runtime']) {
-    const transpiled = ts.transpileModule(readFileSync(resolve(sourceRoot,`${name}.ts`),'utf8'),{
+  const modules = [
+    ...['event','registry','processors','processor-runtime','runtime'].map((name) => ({name,root:sourceRoot})),
+    {name:'d1-projector-write-boundary',root:resolve(sourceRoot,'..')},
+  ];
+  for (const {name,root} of modules) {
+    const transpiled = ts.transpileModule(readFileSync(resolve(root,`${name}.ts`),'utf8'),{
       fileName:`${name}.ts`,
       reportDiagnostics:true,
       compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022},
@@ -25,8 +29,8 @@ function compileRuntimeModules() {
     const errors = (transpiled.diagnostics || []).filter((item) => item.category === ts.DiagnosticCategory.Error);
     if (errors.length) throw new Error(`ASI_RECOVERY_TEST_TRANSPILE_FAILED:${errors.map((item) => item.messageText).join('|')}`);
     writeFileSync(resolve(compiledRoot,`${name}.mjs`),transpiled.outputText.replace(
-      /(from\s+['"]|import\s*\(\s*['"])(\.\/[a-z0-9-]+)(['"]\s*\)?)/gi,
-      (_match,prefix,specifier,suffix) => `${prefix}${specifier}.mjs${suffix}`,
+      /(from\s+['"]|import\s*\(\s*['"])(\.\.?\/[a-z0-9-]+)(['"]\s*\)?)/gi,
+      (_match,prefix,specifier,suffix) => `${prefix}./${specifier.split('/').pop()}.mjs${suffix}`,
     ));
   }
 }
