@@ -42,7 +42,7 @@ negativePass = false;
 try { buildDeletionReceipt(record, { deletionSucceeded: false }); } catch (e) { negativePass = e.message === 'PSA_DELETION_NOT_VERIFIED'; }
 if (!negativePass) throw new Error('PSA_FALSE_DELETION_NEGATIVE_TEST_FAILED');
 negativePass = false;
-try { buildDeletionReceipt(record, { deletedAt: new Date('2026-09-28T00:00:00.000Z'), deletionSucceeeded: true }); } catch (e) { negativePass = e.message === 'PSA_DELETION_AFTER_RETENTION_DEADLINE'; }
+try { buildDeletionReceipt(record, { deletedAt: new Date('2026-09-28T00:00:00.000Z'), deletionSucceeded: true }); } catch (e) { negativePass = e.message === 'PSA_DELETION_AFTER_RETENTION_DEADLINE'; }
 if (!negativePass) throw new Error('PSA_LATE_DELETION_NEGATIVE_TEST_FAILED');
 negativePass = false;
 try { buildDeletionReceipt({ ...record, ciphertext_b64: Buffer.from('tampered').toString('base64') }, { deletionSucceeded: true }); } catch (e) { negativePass = e.message === 'PSA_RECORD_DIGEST_REQUIRED'; }
