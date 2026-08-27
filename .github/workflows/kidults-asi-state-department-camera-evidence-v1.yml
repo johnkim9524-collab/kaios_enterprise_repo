@@ -371,6 +371,11 @@ jobs:
             ],
             next_action:'Acquire explicit rights-cleared hammer or all-in realized semantics from a collector-market source, or activate one current top-16 source without inheriting this fallback admission.',
             authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal validation only; no bid, purchase, credential, external commitment, public release, Production or G5 action.'},
+            defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
+            remediation_sequence:[],
+            verification_evidence_refs:[run,validationPath,manifestPath],
+            truth_sync_refs:[],
+            improvement_proposal:'Keep the receipt-contract validator coupled to this workflow so future schema evolution fails at generation time before promotion.',
             production:'HOLD',
             public_release:'HOLD'
           };
