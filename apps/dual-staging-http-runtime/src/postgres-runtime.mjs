@@ -54,7 +54,17 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
         }
       });
       return lastLine(stdout);
-    } catch {
+    } catch (error) {
+      if (process.env.KAIOS_POSTGRES_DIAGNOSTICS === 'true') {
+        const diagnostic = String(error?.stderr || error?.message || 'unknown')
+          .replace(/postgresql:\/\/[^@\s]+@/g, 'postgresql://***@')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(-3)
+          .join(' | ');
+        console.error('POSTGRES_QUERY_DIAGNOSTIC', diagnostic);
+      }
       fail('POSTGRES_QUERY_FAILED', 503);
     }
   };
