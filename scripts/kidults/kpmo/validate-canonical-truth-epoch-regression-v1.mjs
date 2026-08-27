@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const p='coordination/kidults/kpmo/canonical-truth-epoch-regression-v1.json';
+const c=JSON.parse(fs.readFileSync(p,'utf8'));
+const required=['ISSUE_EDITS_DO_NOT_CANCEL_EACH_OTHER','PULL_REQUESTS_ISOLATED_BY_EXACT_HEAD_SHA','PUSHES_ISOLATED_BY_EXACT_SHA','EVERY_TERMINAL_RUN_EMITS_ONE_RECEIPT','CONTINUOUS_ASSURANCE_MUST_OBSERVE_REAL_TERMINAL_RESULT_NOT_ARTIFICIAL_CANCELLATION'];
+for (const x of required) if (!c.invariants?.includes(x)) throw new Error(`MISSING_${x}`);
+if (c.negative_cases?.length < 3) throw new Error('NEGATIVE_CASES_INCOMPLETE');
+if (c.promotion_eligible !== false || c.production !== 'HOLD' || c.public !== 'HOLD' || c.g5 !== 'HOLD') throw new Error('AUTHORITY_BOUNDARY_INVALID');
+const wf=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8');
+if (!wf.includes('cancel-in-progress: false')) throw new Error('CANCELLATION_NOT_DISABLED');
+if (!wf.includes("format('{0}-{1}', github.event.issue.number, github.run_id)")) throw new Error('ISSUE_EPOCH_NOT_ISOLATED');
+console.log('CANONICAL_TRUTH_EPOCH_REGRESSION_VERIFIED_PASS');
