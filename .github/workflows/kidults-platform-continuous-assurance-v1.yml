@@ -16,6 +16,8 @@ on:
     workflows:
       - 'KIDULTS ASI Snapshot Readiness Factory v2'
       - 'KIDULTS ASI Intelligence Preparation Wave v1'
+      - 'KIDULTS Autonomous Met Open Access Sample'
+      - 'KIDULTS Autonomous V&A Fashion Sample'
       - 'KIDULTS Full Value Chain Red-Team Orchestrator V1'
       - 'KIDULTS Unified Audit Control Plane'
       - 'KIDULTS Trusted Merge Control Monotonicity'
@@ -148,6 +150,12 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+
+      - name: Validate Met acquisition cancellation and Assurance binding
+        run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
+
+      - name: Validate V&A acquisition cancellation and Assurance binding
+        run: node scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs
 
       - name: Validate continuous assurance contract
         run: |

@@ -80,10 +80,13 @@
     },
     {
       "provider_id": "ALT_FNDATA",
-      "evidence_state": "NO_SUBSTANTIVE_REPLY",
-      "commercial": {"price": "UNKNOWN"},
-      "rights_pending": ["ALL_MATERIAL_RIGHTS_AND_ECONOMICS"],
-      "activation_state": "HOLD"
+      "evidence_state": "WRITTEN_PROVIDER_DECLINED_COMPETITOR_CONFLICT",
+      "evidence_ref": "coordination/kidults/internalization/alt-fndata-no-go-decision-receipt-2026-08-26.md",
+      "commercial": {"price": "NOT_APPLICABLE_NO_GO"},
+      "rights_pending": [],
+      "rights_unavailable": ["ALL_MATERIAL_PROVIDER_DATA_AND_USE_RIGHTS"],
+      "permitted_residual_role": "PUBLIC_COMPETITOR_BENCHMARK_ONLY",
+      "activation_state": "NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT"
     },
     {
       "provider_id": "LIVEART",

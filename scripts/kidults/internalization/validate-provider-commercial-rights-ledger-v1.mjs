@@ -11,7 +11,14 @@ for (const p of l.providers || []) {
   if (!p.commercial) errs.push(`${p.provider_id}: commercial state required`);
   if (!Array.isArray(p.rights_pending)) errs.push(`${p.provider_id}: rights_pending array required`);
   if (!p.activation_state) errs.push(`${p.provider_id}: activation_state required`);
-  if (String(p.activation_state).startsWith('HOLD') === false) errs.push(`${p.provider_id}: activation must remain HOLD on current evidence`);
+  if (p.provider_id === 'ALT_FNDATA') {
+    if (p.evidence_state !== 'WRITTEN_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA: rejection evidence state drift');
+    if (p.activation_state !== 'NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA: activation must remain terminal NO_GO');
+    if (p.rights_pending.length !== 0) errs.push('ALT_FNDATA: rights must not remain pending after terminal rejection');
+    if (p.permitted_residual_role !== 'PUBLIC_COMPETITOR_BENCHMARK_ONLY') errs.push('ALT_FNDATA: residual role drift');
+  } else if (String(p.activation_state).startsWith('HOLD') === false) {
+    errs.push(`${p.provider_id}: activation must remain HOLD on current evidence`);
+  }
 }
 const g = l.global_non_bypass || {};
 if (g.unknown_rights_may_activate !== false) errs.push('unknown rights activation must be false');
@@ -27,7 +34,7 @@ console.log(JSON.stringify({
   result:'PASS',
   providers:l.providers.length,
   written_provider_records:l.providers.filter(p=>p.evidence_state==='WRITTEN_PROVIDER').length,
-  activation:'ALL_HOLD_ON_CURRENT_EVIDENCE',
+  activation:'SIX_HOLD_ONE_TERMINAL_NO_GO',
   production:g.production,
   g5:g.g5
 },null,2));

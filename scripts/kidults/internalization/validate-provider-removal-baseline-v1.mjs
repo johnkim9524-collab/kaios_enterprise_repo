@@ -6,11 +6,17 @@ if (b.evidence_policy !== 'NO_EMPIRICAL_PASS_WITHOUT_EXECUTED_PROVIDER_OFF_PROOF
 for (const id of ids) {
   const r=b.providers?.find(x=>x.provider_id===id);
   if(!r) { errs.push(`missing ${id}`); continue; }
-  if(r.removal_test_state!=='NOT_MEASURED') errs.push(`${id} must remain NOT_MEASURED before empirical provider-off proof`);
   if(!r.replacement_path || r.replacement_path==='UNKNOWN') errs.push(`${id} replacement path required`);
-  if(r.decision!=='HOLD_FOR_EMPIRICAL_REMOVAL_PROOF') errs.push(`${id} must HOLD before empirical proof`);
+  if(id === 'ALT_FNDATA') {
+    if(r.removal_test_state!=='NOT_APPLICABLE_NEVER_ACTIVATED') errs.push('ALT_FNDATA removal test must be not applicable');
+    if(r.decision!=='NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA decision must remain terminal NO_GO');
+    if(r.residual_dependency!=='NONE_PROVIDER_EXCLUDED') errs.push('ALT_FNDATA residual dependency must be empty');
+  } else {
+    if(r.removal_test_state!=='NOT_MEASURED') errs.push(`${id} must remain NOT_MEASURED before empirical provider-off proof`);
+    if(r.decision!=='HOLD_FOR_EMPIRICAL_REMOVAL_PROOF') errs.push(`${id} must HOLD before empirical proof`);
+  }
 }
-if(b.summary?.providers!==7 || b.summary?.empirical_pass!==0 || b.summary?.not_measured!==7) errs.push('summary truth drift');
+if(b.summary?.providers!==7 || b.summary?.empirical_pass!==0 || b.summary?.not_measured!==6 || b.summary?.no_go!==1) errs.push('summary truth drift');
 if(b.production!=='HOLD') errs.push('production boundary drift');
 if(errs.length){console.error(errs.join('\n'));process.exit(1);}
-console.log(JSON.stringify({suite:'KIDULTS_PROVIDER_REMOVAL_BASELINE_V1',result:'PASS',providers:7,empirical_pass:0,not_measured:7,production:'HOLD'},null,2));
+console.log(JSON.stringify({suite:'KIDULTS_PROVIDER_REMOVAL_BASELINE_V1',result:'PASS',providers:7,empirical_pass:0,not_measured:6,no_go:1,production:'HOLD'},null,2));

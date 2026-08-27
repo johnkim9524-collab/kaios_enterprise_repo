@@ -1,9 +1,9 @@
 {
   "id": "kidults-asi-workflow-fanout-budget-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
-  "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt.",
+  "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt, while accounting for a strictly read-only terminal Assurance observer separately from execution fan-out.",
   "static_validators": [
     {
       "workflow": "KIDULTS ASI Source Adapter Wave 2 v1",
@@ -39,17 +39,39 @@
   "static_validator_concurrency": "EVENT_NAME_PLUS_EXACT_SOURCE_SHA",
   "budgets": {
     "workflow_run_consumers_max": 16,
-    "workflow_run_edges_max": 29,
+    "execution_workflow_run_edges_max": 29,
+    "control_observer_edges_max": 15,
     "direct_consumers_per_producer_max": 2,
     "workflow_run_chain_depth_max": 8,
     "cycles_max": 0
   },
-  "direct_consumer_overrides": {
-    "KIDULTS ASI Intelligence Preparation Wave v1": {
-      "max": 3,
-      "required_consumer": "KIDULTS Platform Continuous Assurance V1",
-      "reason": "The third edge is a cancellation-aware control observer; the two execution consumers remain independently bounded."
-    }
+  "control_observer": {
+    "consumer": "KIDULTS Platform Continuous Assurance V1",
+    "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+    "required_permissions": {
+      "contents": "read",
+      "actions": "read"
+    },
+    "producers": [
+      "KIDULTS ASI Snapshot Readiness Factory v2",
+      "KIDULTS ASI Intelligence Preparation Wave v1",
+      "KIDULTS Autonomous Met Open Access Sample",
+      "KIDULTS Autonomous V&A Fashion Sample",
+      "KIDULTS Full Value Chain Red-Team Orchestrator V1",
+      "KIDULTS Unified Audit Control Plane",
+      "KIDULTS Trusted Merge Control Monotonicity",
+      "KIDULTS ASI Source Adapter Wave 2 v1",
+      "KIDULTS ASI Source Adapter Wave 3 v1",
+      "KIDULTS ASI Source Adapter Wave 4 v1",
+      "KIDULTS ASI State Department Camera Evidence v1",
+      "KIDULTS ASI Getty Historical Transaction Admission v1",
+      "KIDULTS ASI P0 Mission Consumption v1",
+      "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+      "KIDULTS ASI Autonomous Resolution Layer v1"
+    ],
+    "terminal_observer_only": true,
+    "repository_mutation_allowed": false,
+    "reason": "Continuous Assurance observes terminal upstream conclusions and emits governed receipts; it is not an execution-stage consumer and cannot mutate repository state."
   },
   "critical_static_producers_watched_by_continuous_assurance": [
     "KIDULTS ASI Source Adapter Wave 2 v1",

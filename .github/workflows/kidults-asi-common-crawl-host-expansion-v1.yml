@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-common-crawl-host-expansion-v1.yml'
 
 permissions:
@@ -25,23 +26,110 @@ jobs:
           node-version: '24.19.0'
       - name: Verify exact source and syntax
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
-      - name: Restore latest non-expired Global Any-Site discovery artifact
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-provenance-v1.mjs --self-test
+      - name: Restore exact-generation Global Any-Site discovery artifact
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/cc-input
-          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)][0].id // empty')
-          test -n "$ART_ID"
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/cc-input.zip
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            EXPECTED_SHA="$PR_BASE_SHA"
+            BINDING_MODE="PR_BASE_COMPATIBILITY_ONLY"
+          else
+            EXPECTED_SHA="$GITHUB_SHA"
+            BINDING_MODE="EXACT_EXECUTION_SHA"
+          fi
+
+          test -n "$EXPECTED_SHA"
+          PRODUCER_WORKFLOW_PATH=".github/workflows/kidults-asi-global-open-market-discovery-v1.yml"
+          PRODUCER_WORKFLOW_NAME="KIDULTS ASI Global Any-Site Discovery v2"
+
+          RUNS_JSON="$(gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-open-market-discovery-v1.yml/runs?branch=main&status=success&head_sha=${EXPECTED_SHA}&per_page=30")"
+
+          PRODUCER_RUN_ID="$(jq -r \
+            --arg sha "$EXPECTED_SHA" \
+            --arg path "$PRODUCER_WORKFLOW_PATH" \
+            --arg name "$PRODUCER_WORKFLOW_NAME" \
+            '[.workflow_runs[]
+              | select(.head_branch=="main"
+                and .head_sha==$sha
+                and .path==$path
+                and .name==$name
+                and .conclusion=="success")][0].id // empty' <<<"$RUNS_JSON")"
+          test -n "$PRODUCER_RUN_ID"
+
+          RUN_JSON="$(gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}")"
+          test "$(jq -r '.repository.full_name' <<<"$RUN_JSON")" = "$GITHUB_REPOSITORY"
+          test "$(jq -r '.head_branch' <<<"$RUN_JSON")" = "main"
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$EXPECTED_SHA"
+          test "$(jq -r '.path' <<<"$RUN_JSON")" = "$PRODUCER_WORKFLOW_PATH"
+          test "$(jq -r '.name' <<<"$RUN_JSON")" = "$PRODUCER_WORKFLOW_NAME"
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = "success"
+
+          ARTIFACTS_JSON="$(gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100")"
+          ARTIFACT_COUNT="$(jq '[.artifacts[]
+            | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)] | length' \
+            <<<"$ARTIFACTS_JSON")"
+          test "$ARTIFACT_COUNT" -eq 1
+
+          ART_ID="$(jq -r '[.artifacts[]
+            | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)][0].id' \
+            <<<"$ARTIFACTS_JSON")"
+          ART_DIGEST="$(jq -r '[.artifacts[]
+            | select(.name=="kidults-asi-global-any-site-discovery-v2" and .expired==false)][0].digest // empty' \
+            <<<"$ARTIFACTS_JSON")"
+          [[ "$ART_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/cc-input.zip
           unzip -q -o /tmp/cc-input.zip -d /tmp/cc-input
-          SRC=$(find /tmp/cc-input -type f -name global-low-risk-discovery.json | head -1)
-          test -n "$SRC"
-          cp "$SRC" discovery-out/global-low-risk-discovery.json
+
+          mapfile -t SOURCES < <(find /tmp/cc-input -type f -name global-low-risk-discovery.json -print)
+          test "${#SOURCES[@]}" -eq 1
+          cp "${SOURCES[0]}" discovery-out/global-low-risk-discovery.json
+
+          jq -n \
+            --arg schema_version "1.0.0" \
+            --arg binding_mode "$BINDING_MODE" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg producer_workflow_path "$PRODUCER_WORKFLOW_PATH" \
+            --arg producer_workflow_name "$PRODUCER_WORKFLOW_NAME" \
+            --arg producer_run_id "$PRODUCER_RUN_ID" \
+            --arg producer_sha "$EXPECTED_SHA" \
+            --arg artifact_id "$ART_ID" \
+            --arg artifact_digest "$ART_DIGEST" \
+            '{
+              schema_version:$schema_version,
+              binding_mode:$binding_mode,
+              repository:$repository,
+              producer_workflow_path:$producer_workflow_path,
+              producer_workflow_name:$producer_workflow_name,
+              producer_run_id:($producer_run_id|tonumber),
+              producer_sha:$producer_sha,
+              artifact_name:"kidults-asi-global-any-site-discovery-v2",
+              artifact_id:($artifact_id|tonumber),
+              artifact_digest:$artifact_digest,
+              artifact_cardinality:1,
+              exact_generation:($binding_mode=="EXACT_EXECUTION_SHA"),
+              rights_promoted:false,
+              empirical_promotion:false,
+              public:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > /tmp/asi-common-crawl-host-expansion-provenance-v1.json
       - name: Execute Common Crawl public-index host expansion
         run: |
           node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
@@ -61,6 +149,8 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-common-crawl-host-expansion-v1
-          path: /tmp/asi-common-crawl-host-expansion-v1.json
+          path: |
+            /tmp/asi-common-crawl-host-expansion-v1.json
+            /tmp/asi-common-crawl-host-expansion-provenance-v1.json
           retention-days: 30
           if-no-files-found: error

@@ -37,9 +37,11 @@ function readGraph(overrides = new Map()) {
   return { workflows, byName, edges };
 }
 
-function graphMetrics(graph) {
+function graphMetrics(graph, controlObserverEdges) {
+  const observerEdgeKeys = new Set(controlObserverEdges.map(({ producer, consumer }) => `${producer}\u0000${consumer}`));
+  const executionEdges = graph.edges.filter(({ producer, consumer }) => !observerEdgeKeys.has(`${producer}\u0000${consumer}`));
   const adjacency = new Map();
-  for (const { producer, consumer } of graph.edges) {
+  for (const { producer, consumer } of executionEdges) {
     if (!adjacency.has(producer)) adjacency.set(producer, []);
     adjacency.get(producer).push(consumer);
   }
@@ -74,7 +76,9 @@ function graphMetrics(graph) {
   const directMax = directCounts.length ? Math.max(...directCounts.map((item) => item.count)) : 0;
   return {
     workflow_run_consumers: graph.workflows.filter((workflow) => workflow.producers.length > 0).length,
-    workflow_run_edges: graph.edges.length,
+    workflow_run_edges_total: graph.edges.length,
+    execution_workflow_run_edges: executionEdges.length,
+    control_observer_edges: controlObserverEdges.length,
     direct_consumers_per_producer_max: directMax,
     direct_consumer_max_producers: directCounts.filter((item) => item.count === directMax),
     direct_consumer_counts_over_one: directCounts.filter((item) => item.count > 1),
@@ -86,8 +90,37 @@ function graphMetrics(graph) {
 function validate(overrides = new Map()) {
   const findings = [];
   const graph = readGraph(overrides);
-  const metrics = graphMetrics(graph);
   const budgets = contract.budgets;
+  const observerContract = contract.control_observer;
+  const observer = graph.byName.get(observerContract.consumer);
+  const expectedObserverProducers = new Set(observerContract.producers);
+  const controlObserverEdges = graph.edges.filter(({ producer, consumer }) =>
+    consumer === observerContract.consumer && expectedObserverProducers.has(producer));
+
+  if (!observer) {
+    findings.push(`control observer missing: ${observerContract.consumer}`);
+  } else {
+    if (observer.filePath !== observerContract.path) findings.push('control observer path mismatch');
+    const actualProducers = new Set(observer.producers);
+    for (const producer of expectedObserverProducers) {
+      if (!actualProducers.has(producer)) findings.push(`control observer watch missing: ${producer}`);
+    }
+    for (const producer of actualProducers) {
+      if (!expectedObserverProducers.has(producer)) findings.push(`unapproved control observer edge: ${producer}`);
+    }
+    const permissionsBlock = observer.text.match(/\npermissions:\n([\s\S]*?)(?=\njobs:)/)?.[1] || '';
+    for (const [permission, level] of Object.entries(observerContract.required_permissions)) {
+      if (!new RegExp(`^  ${permission}: ${level}$`, 'm').test(permissionsBlock)) {
+        findings.push(`control observer permission mismatch: ${permission}:${level}`);
+      }
+    }
+    if (/^  [A-Za-z-]+: write$/m.test(permissionsBlock)) findings.push('control observer repository mutation permission detected');
+    if (observer.producers.length > 0 && graph.edges.some(({ producer }) => producer === observerContract.consumer)) {
+      findings.push('control observer must be terminal');
+    }
+  }
+
+  const metrics = graphMetrics(graph, controlObserverEdges);
 
   for (const item of contract.static_validators) {
     const workflow = graph.byName.get(item.workflow);
@@ -107,13 +140,14 @@ function validate(overrides = new Map()) {
     if (!workflow.text.includes('cancel-in-progress: true')) findings.push(`${item.workflow}: same-generation coalescing missing`);
   }
 
-  const assurance = fs.readFileSync(path.join(root, assurancePath), 'utf8');
+  const assurance = graph.byName.get(observerContract.consumer)?.text || '';
   for (const workflowName of contract.critical_static_producers_watched_by_continuous_assurance) {
     if (!assurance.includes(`- '${workflowName}'`)) findings.push(`Continuous Assurance watch missing: ${workflowName}`);
   }
 
   if (metrics.workflow_run_consumers > budgets.workflow_run_consumers_max) findings.push('workflow_run consumer budget exceeded');
-  if (metrics.workflow_run_edges > budgets.workflow_run_edges_max) findings.push('workflow_run edge budget exceeded');
+  if (metrics.execution_workflow_run_edges > budgets.execution_workflow_run_edges_max) findings.push('execution workflow_run edge budget exceeded');
+  if (metrics.control_observer_edges > budgets.control_observer_edges_max) findings.push('control observer edge budget exceeded');
   for (const item of metrics.direct_consumer_counts_over_one) {
     if (item.count <= budgets.direct_consumers_per_producer_max) continue;
     const override = contract.direct_consumer_overrides?.[item.producer];
@@ -145,10 +179,29 @@ for (const item of contract.static_validators) {
   if (mutated.findings.length === 0) fail(`${item.workflow}: redundant workflow_run mutation escaped`);
 }
 
+const assuranceOriginal = fs.readFileSync(path.join(root, assurancePath), 'utf8');
+const writePermissionMutation = assuranceOriginal.replace('  actions: read', '  actions: write');
+if (validate(new Map([[assurancePath, writePermissionMutation]])).findings.length === 0) {
+  fail('control observer write-permission mutation escaped');
+}
+const observerContract = contract.control_observer;
+const baseGraph = readGraph();
+const unapprovedProducer = baseGraph.workflows.find((workflow) =>
+  workflow.name !== observerContract.consumer && !observerContract.producers.includes(workflow.name));
+if (!unapprovedProducer) fail('control observer mutation fixture missing');
+const unapprovedEdgeMutation = assuranceOriginal.replace(
+  '    workflows:\n',
+  `    workflows:\n      - '${unapprovedProducer.name}'\n`,
+);
+if (validate(new Map([[assurancePath, unapprovedEdgeMutation]])).findings.length === 0) {
+  fail('unapproved control observer edge mutation escaped');
+}
+
 process.stdout.write(`${JSON.stringify({
   id: contract.id,
   state: 'VERIFIED_PASS',
   ...result.metrics,
+  control_observer: contract.control_observer.consumer,
   static_validators_detached: contract.static_validators.length,
   redundant_workflow_run_edges_removed: 14,
   autonomous_effect: contract.autonomous_effect,
