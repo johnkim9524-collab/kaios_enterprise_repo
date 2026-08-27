@@ -1,0 +1,127 @@
+name: P0 PostgreSQL Target-Time Restore Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      before_marker:
+        description: 'Pre-target PITR marker from readiness receipt'
+        required: true
+        type: string
+      after_marker:
+        description: 'Post-target PITR marker from readiness receipt'
+        required: true
+        type: string
+      before_marker_digest:
+        description: 'SHA-256 of pre-target marker'
+        required: true
+        type: string
+      after_marker_digest:
+        description: 'SHA-256 of post-target marker'
+        required: true
+        type: string
+      target_time:
+        description: 'UTC recovery target time from readiness receipt'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-postgres-target-time-restore-proof
+  cancel-in-progress: false
+
+jobs:
+  prove-target-time-restore:
+    if: github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
+    environment: kidults-do-staging-ssh
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verify explicit STAGING activation and exact live main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}" = 'true'
+          test "$GITHUB_REF" = 'refs/heads/main'
+          LIVE_MAIN_SHA="$(curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" | \
+            python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)')"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Checkout exact main SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate immutable PITR inputs
+        env:
+          BEFORE_MARKER: ${{ inputs.before_marker }}
+          AFTER_MARKER: ${{ inputs.after_marker }}
+          BEFORE_DIGEST: ${{ inputs.before_marker_digest }}
+          AFTER_DIGEST: ${{ inputs.after_marker_digest }}
+          TARGET_TIME: ${{ inputs.target_time }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$BEFORE_MARKER" =~ ^pitr-before-[A-Za-z0-9._:-]{6,128}$ ]]
+          [[ "$AFTER_MARKER" =~ ^pitr-after-[A-Za-z0-9._:-]{6,128}$ ]]
+          [[ "$BEFORE_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$AFTER_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+          test "$(printf '%s' "$BEFORE_MARKER" | sha256sum | awk '{print $1}')" = "$BEFORE_DIGEST"
+          test "$(printf '%s' "$AFTER_MARKER" | sha256sum | awk '{print $1}')" = "$AFTER_DIGEST"
+          python3 - "$TARGET_TIME" <<'PY'
+          from datetime import datetime
+          import sys
+          value=sys.argv[1].replace('Z','+00:00')
+          parsed=datetime.fromisoformat(value)
+          if parsed.tzinfo is None:
+              raise SystemExit('target_time must be timezone-aware')
+          print(parsed.isoformat())
+          PY
+
+      - name: Verify actual restored PostgreSQL target-time state
+        env:
+          KAIOS_POSTGRES_PITR_RESTORE_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN }}
+          KAIOS_PITR_BEFORE_MARKER: ${{ inputs.before_marker }}
+          KAIOS_PITR_AFTER_MARKER: ${{ inputs.after_marker }}
+          KAIOS_PITR_BEFORE_MARKER_DIGEST: ${{ inputs.before_marker_digest }}
+          KAIOS_PITR_AFTER_MARKER_DIGEST: ${{ inputs.after_marker_digest }}
+          KAIOS_PITR_TARGET_TIME: ${{ inputs.target_time }}
+          KAIOS_ENVIRONMENT: staging
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$KAIOS_POSTGRES_PITR_RESTORE_DSN"
+          mkdir -p artifacts/p0-postgres-pitr
+          scripts/staging/verify-postgres-target-time-restore.sh | tee artifacts/p0-postgres-pitr/target-time-restore-receipt.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          receipt=json.loads(Path('artifacts/p0-postgres-pitr/target-time-restore-receipt.json').read_text())
+          assert receipt['status']=='PASS'
+          assert receipt['environment']=='STAGING'
+          assert receipt['production_touch'] is False
+          assert receipt['pitr']=='TARGET_TIME_RESTORE_VERIFIED'
+          assert receipt['pre_target_marker_count']==1
+          assert receipt['post_target_marker_count']==0
+          assert int(receipt['force_rls_tables']) >= 4
+          assert int(receipt['migration_rows']) >= 1
+          print('POSTGRES_TARGET_TIME_RESTORE_PROOF_PASS')
+          PY
+
+      - name: Upload immutable non-secret PITR proof
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: p0-postgres-target-time-restore-${{ github.sha }}
+          path: artifacts/p0-postgres-pitr
+          if-no-files-found: error
+          retention-days: 30
