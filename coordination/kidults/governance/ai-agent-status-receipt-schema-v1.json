@@ -18,28 +18,19 @@
     "blockers",
     "actions_executed",
     "next_action",
-    "authority_boundary"
+    "authority_boundary",
+    "defect_disposition",
+    "remediation_sequence",
+    "verification_evidence_refs",
+    "truth_sync_refs",
+    "improvement_proposal"
   ],
   "properties": {
-    "id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "version": {
-      "const": "1.0.0"
-    },
-    "agent_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "as_of": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "scope": {
-      "type": "string",
-      "minLength": 1
-    },
+    "id": {"type": "string", "minLength": 1},
+    "version": {"const": "1.0.0"},
+    "agent_id": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "scope": {"type": "string", "minLength": 1},
     "state": {
       "enum": [
         "PLANNED",
@@ -55,58 +46,19 @@
         "COMPLETE_VERIFIED"
       ]
     },
-    "facts": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/claim"
-      }
-    },
-    "evidence_refs": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/evidenceRef"
-      }
-    },
-    "inferences": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/claim"
-      }
-    },
-    "uncertainties": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
-    },
-    "blockers": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/blocker"
-      }
-    },
-    "actions_executed": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/action"
-      }
-    },
-    "next_action": {
-      "type": "string",
-      "minLength": 1
-    },
+    "facts": {"type": "array", "items": {"$ref": "#/$defs/claim"}},
+    "evidence_refs": {"type": "array", "items": {"$ref": "#/$defs/evidenceRef"}},
+    "inferences": {"type": "array", "items": {"$ref": "#/$defs/claim"}},
+    "uncertainties": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "blockers": {"type": "array", "items": {"$ref": "#/$defs/blocker"}},
+    "actions_executed": {"type": "array", "items": {"$ref": "#/$defs/action"}},
+    "next_action": {"type": "string", "minLength": 1},
     "authority_boundary": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "within_authority",
-        "protected_gates_touched"
-      ],
+      "required": ["within_authority", "protected_gates_touched"],
       "properties": {
-        "within_authority": {
-          "type": "boolean"
-        },
+        "within_authority": {"type": "boolean"},
         "protected_gates_touched": {
           "type": "array",
           "items": {
@@ -121,134 +73,134 @@
           },
           "uniqueItems": true
         },
-        "notes": {
-          "type": "string"
-        }
+        "notes": {"type": "string"}
       }
     },
-    "correction_refs": {
+    "defect_disposition": {
+      "enum": [
+        "NO_REVERSIBLE_DEFECT_DETECTED",
+        "REMEDIATED_AND_VERIFIED",
+        "PROTECTED_STOP_BLOCKED"
+      ]
+    },
+    "remediation_sequence": {
       "type": "array",
       "items": {
-        "type": "string",
-        "minLength": 1
+        "enum": [
+          "ROOT_CAUSE_CORRECTED",
+          "REGRESSION_TESTED",
+          "NEGATIVE_TESTED",
+          "EXACT_HEAD_REVALIDATED",
+          "TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE",
+          "REGISTRY_ISSUE_TRUTH_SYNCED",
+          "VERIFIED_OUTCOME_READY",
+          "PRIORITIZED_IMPROVEMENT_PROPOSAL_READY"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "verification_evidence_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "truth_sync_refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "improvement_proposal": {"type": "string", "minLength": 1},
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "exact_blocker", "unblock_condition"],
+      "properties": {
+        "type": {
+          "enum": [
+            "PRODUCTION_G5",
+            "IRREVERSIBLE_LEGAL_CHANGE",
+            "IRREVERSIBLE_SECURITY_CHANGE",
+            "EXTERNAL_SPEND",
+            "CONTRACTUAL_COMMITMENT",
+            "EXPANDED_CREDENTIAL_OR_PERMISSION",
+            "MISSING_REQUIRED_TOOL_OR_PERMISSION"
+          ]
+        },
+        "exact_blocker": {"type": "string", "minLength": 1},
+        "unblock_condition": {"type": "string", "minLength": 1}
       }
     },
-    "production": {
-      "const": "HOLD"
-    },
-    "public_release": {
-      "const": "HOLD"
-    }
+    "correction_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "production": {"const": "HOLD"},
+    "public_release": {"const": "HOLD"}
   },
   "allOf": [
     {
-      "if": {
-        "properties": {
-          "state": {
-            "const": "RUNNING_VERIFIED"
-          }
-        }
-      },
+      "if": {"properties": {"state": {"const": "RUNNING_VERIFIED"}}},
       "then": {
         "properties": {
           "evidence_refs": {
             "contains": {
-              "properties": {
-                "kind": {
-                  "enum": [
-                    "WORKFLOW_RUN",
-                    "JOB_RUN",
-                    "RUNTIME_RUN"
-                  ]
-                }
-              },
-              "required": [
-                "kind"
-              ]
+              "properties": {"kind": {"enum": ["WORKFLOW_RUN", "JOB_RUN", "RUNTIME_RUN"]}},
+              "required": ["kind"]
             }
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {
-          "state": {
-            "const": "MERGED_VERIFIED"
-          }
-        }
-      },
+      "if": {"properties": {"state": {"const": "MERGED_VERIFIED"}}},
       "then": {
         "properties": {
           "evidence_refs": {
-            "contains": {
-              "properties": {
-                "kind": {
-                  "const": "MERGE_COMMIT"
-                }
-              },
-              "required": [
-                "kind"
-              ]
-            }
+            "contains": {"properties": {"kind": {"const": "MERGE_COMMIT"}}, "required": ["kind"]}
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {
-          "state": {
-            "const": "BLOCKED"
-          }
-        }
-      },
+      "if": {"properties": {"state": {"const": "BLOCKED"}}},
+      "then": {"properties": {"blockers": {"minItems": 1}}}
+    },
+    {
+      "if": {"properties": {"defect_disposition": {"const": "REMEDIATED_AND_VERIFIED"}}},
       "then": {
         "properties": {
-          "blockers": {
-            "minItems": 1
-          }
-        }
+          "remediation_sequence": {"minItems": 8, "maxItems": 8},
+          "verification_evidence_refs": {"minItems": 1},
+          "truth_sync_refs": {"minItems": 1}
+        },
+        "not": {"required": ["blocker"]}
       }
+    },
+    {
+      "if": {"properties": {"defect_disposition": {"const": "PROTECTED_STOP_BLOCKED"}}},
+      "then": {
+        "required": ["blocker"],
+        "properties": {"remediation_sequence": {"maxItems": 0}}
+      }
+    },
+    {
+      "if": {"properties": {"defect_disposition": {"const": "NO_REVERSIBLE_DEFECT_DETECTED"}}},
+      "then": {"properties": {"remediation_sequence": {"maxItems": 0}}}
     }
   ],
   "$defs": {
     "claim": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "statement",
-        "evidence_ref_ids"
-      ],
+      "required": ["statement", "evidence_ref_ids"],
       "properties": {
-        "statement": {
-          "type": "string",
-          "minLength": 1
-        },
-        "evidence_ref_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "uniqueItems": true
-        }
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ref_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
       }
     },
     "evidenceRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "ref_id",
-        "kind",
-        "locator",
-        "observed_at"
-      ],
+      "required": ["ref_id", "kind", "locator", "observed_at"],
       "properties": {
-        "ref_id": {
-          "type": "string",
-          "minLength": 1
-        },
+        "ref_id": {"type": "string", "minLength": 1},
         "kind": {
           "enum": [
             "IMMUTABLE_RECEIPT",
@@ -266,84 +218,32 @@
             "OTHER_AUTHORITATIVE_SOURCE"
           ]
         },
-        "locator": {
-          "type": "string",
-          "minLength": 1
-        },
-        "observed_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "digest": {
-          "type": "string"
-        }
+        "locator": {"type": "string", "minLength": 1},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "digest": {"type": "string"}
       }
     },
     "blocker": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "blocked_action",
-        "detected_at",
-        "blocker",
-        "unblock_condition"
-      ],
+      "required": ["blocked_action", "detected_at", "blocker", "unblock_condition"],
       "properties": {
-        "blocked_action": {
-          "type": "string",
-          "minLength": 1
-        },
-        "detected_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "blocker": {
-          "type": "string",
-          "minLength": 1
-        },
-        "owner": {
-          "type": "string"
-        },
-        "unblock_condition": {
-          "type": "string",
-          "minLength": 1
-        },
-        "parallel_work": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
+        "blocked_action": {"type": "string", "minLength": 1},
+        "detected_at": {"type": "string", "format": "date-time"},
+        "blocker": {"type": "string", "minLength": 1},
+        "owner": {"type": "string"},
+        "unblock_condition": {"type": "string", "minLength": 1},
+        "parallel_work": {"type": "array", "items": {"type": "string"}}
       }
     },
     "action": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "action",
-        "result",
-        "evidence_ref_ids"
-      ],
+      "required": ["action", "result", "evidence_ref_ids"],
       "properties": {
-        "action": {
-          "type": "string",
-          "minLength": 1
-        },
-        "result": {
-          "enum": [
-            "EXECUTED",
-            "FAILED",
-            "NOT_EXECUTED"
-          ]
-        },
-        "evidence_ref_ids": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "uniqueItems": true
-        }
+        "action": {"type": "string", "minLength": 1},
+        "result": {"enum": ["EXECUTED", "FAILED", "NOT_EXECUTED"]},
+        "evidence_ref_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
       }
     }
   }
