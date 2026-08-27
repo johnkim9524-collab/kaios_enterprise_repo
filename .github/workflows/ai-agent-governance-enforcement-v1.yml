@@ -8,11 +8,14 @@ on:
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   push:
@@ -22,11 +25,14 @@ on:
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
+      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 
@@ -54,7 +60,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
+          node --check scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-operating-rules-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/registry/ai-agent-governance-registry-v1.json','utf8'))"
@@ -63,6 +71,11 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs | tee /tmp/ai-agent-governance-validation-v1.json
+      - name: Enforce mandatory fix-first bootstrap as child contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs | tee /tmp/ai-agent-bootstrap-remediation-validation-v1.json
       - name: Validate a compliant evidence-bound status receipt
         run: |
           set -euo pipefail
@@ -159,6 +172,16 @@ jobs:
             exit 1
           fi
           mv /tmp/registry.json coordination/kidults/registry/ai-agent-governance-registry-v1.json
+      - name: Reject missing fix-first bootstrap child contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json /tmp/ai-agent-bootstrap-remediation-sequence-v1.json
+          if node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs; then
+            echo 'Bootstrap validator accepted missing mandatory child contract' >&2
+            exit 1
+          fi
+          mv /tmp/ai-agent-bootstrap-remediation-sequence-v1.json coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json
       - name: Reject manual-only sharded reserve activation mutation
         shell: bash
         run: |
@@ -198,12 +221,15 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs > /tmp/ai-agent-governance-final-validation-v1.json
+          node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs > /tmp/ai-agent-bootstrap-remediation-final-validation-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kpmo-ai-agent-governance-enforcement-v1
           path: |
             /tmp/ai-agent-governance-validation-v1.json
             /tmp/ai-agent-governance-final-validation-v1.json
+            /tmp/ai-agent-bootstrap-remediation-validation-v1.json
+            /tmp/ai-agent-bootstrap-remediation-final-validation-v1.json
             /tmp/valid-ai-agent-status-receipt-v1.json
             /tmp/valid-receipt-validation.json
           retention-days: 90
