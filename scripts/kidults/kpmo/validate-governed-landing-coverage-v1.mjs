@@ -59,6 +59,11 @@ function findingsFor(policy, workflow, preflight) {
     'ruleset bypass actor detected',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
 
+  require(workflow.includes("state:'ZERO_DIFF_NO_GOVERNED_CHANGE_PASS'"), 'ZERO_DIFF_RECEIPT_MISSING');
+  require(workflow.includes('commitCount !== 0 || changedFileCount !== 0'), 'ZERO_DIFF_METADATA_FAIL_CLOSED_MISSING');
+  require(workflow.includes('promotion_eligible:false'), 'ZERO_DIFF_PROMOTION_HOLD_MISSING');
+  require(!workflow.includes("fail('changed-file set is empty or unavailable')"), 'LEGACY_ZERO_DIFF_FALSE_RED_PRESENT');
+
   require(!preflight.includes('REQUIRED_BY_PROTECT_MAIN_RULESET'), 'STALE_INDEPENDENT_REVIEW_REQUIREMENT');
   require(preflight.includes("independent_human_review: 'OPTIONAL_NOT_REQUIRED_BY_SOLO_OWNER_RULESET'"), 'SOLO_REVIEW_MODE');
   require(preflight.includes('technical_preflight_is_merge_authorization: false'), 'TECHNICAL_AUTHORITY_BOUNDARY');
@@ -104,6 +109,18 @@ const mutations = [
     workflow,
     preflight,
   },
+  {
+    id: 'ZERO_DIFF_METADATA_GUARD_REMOVED',
+    policy,
+    workflow: workflow.replace("if (commitCount !== 0 || changedFileCount !== 0) fail(`changed-file API empty but PR metadata is nonzero: commits=${commitCount} changed_files=${changedFileCount}`);", ''),
+    preflight,
+  },
+  {
+    id: 'ZERO_DIFF_RECEIPT_REMOVED',
+    policy,
+    workflow: workflow.replace("state:'ZERO_DIFF_NO_GOVERNED_CHANGE_PASS'", "state:'NOT_GOVERNED_PATH_PASS'"),
+    preflight,
+  },
 ];
 
 const mutationResults = mutations.map(mutation => ({
@@ -114,7 +131,7 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.1.0',
+  version: '1.2.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
@@ -137,6 +154,7 @@ const receipt = {
     review_threads_resolved: true,
     last_push_approval: false,
     ruleset_bypass_actor_count: 0,
+    zero_diff_non_promotable_pass: true,
     technical_preflight_is_merge_authorization: false,
   },
   mutations: mutationResults,
