@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import {
   digestProjection,
@@ -28,8 +31,31 @@ function lastLine(output) {
     .at(-1) || '';
 }
 
+function postgresConnectionEnvironment(dsn) {
+  let parsed;
+  try {
+    parsed = new URL(dsn);
+  } catch {
+    fail('POSTGRES_DSN_INVALID', 503);
+  }
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) fail('POSTGRES_DSN_INVALID', 503);
+  const database = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  if (!parsed.hostname || !parsed.username || !database) fail('POSTGRES_DSN_INVALID', 503);
+  const environment = {
+    PGHOST: parsed.hostname,
+    PGPORT: parsed.port || '5432',
+    PGUSER: decodeURIComponent(parsed.username),
+    PGPASSWORD: decodeURIComponent(parsed.password),
+    PGDATABASE: database
+  };
+  const sslmode = parsed.searchParams.get('sslmode');
+  if (sslmode) environment.PGSSLMODE = sslmode;
+  return environment;
+}
+
 export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
   if (!dsn) fail('POSTGRES_DSN_REQUIRED', 503);
+  const connectionEnvironment = postgresConnectionEnvironment(dsn);
   return async ({ sql, variables = {} }) => {
     const args = [
       '--no-psqlrc',
@@ -42,21 +68,36 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
       if (!/^[a-z][a-z0-9_]*$/.test(name)) fail('POSTGRES_VARIABLE_INVALID', 503);
       args.push(`--set=${name}=${value}`);
     }
-    args.push('--command', sql);
+    const queryDirectory = await mkdtemp(path.join(os.tmpdir(), 'kaios-psql-'));
+    const queryFile = path.join(queryDirectory, 'query.sql');
+    await writeFile(queryFile, sql, { mode: 0o600 });
+    args.push('--file', queryFile);
     try {
       const { stdout } = await execFileAsync('psql', args, {
         timeout: timeoutMs,
         maxBuffer: 2 * 1024 * 1024,
         env: {
           ...process.env,
-          PGDATABASE: dsn,
+          ...connectionEnvironment,
           PGAPPNAME: 'kaios-dual-staging-runtime',
           PGCONNECT_TIMEOUT: process.env.PGCONNECT_TIMEOUT || '5'
         }
       });
       return lastLine(stdout);
-    } catch {
+    } catch (error) {
+      if (process.env.KAIOS_POSTGRES_DIAGNOSTICS === 'true') {
+        const diagnostic = String(error?.stderr || error?.message || 'unknown')
+          .replace(/postgresql:\/\/[^@\s]+@/g, 'postgresql://***@')
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(-3)
+          .join(' | ');
+        console.error('POSTGRES_QUERY_DIAGNOSTIC', diagnostic);
+      }
       fail('POSTGRES_QUERY_FAILED', 503);
+    } finally {
+      await rm(queryDirectory, { recursive: true, force: true });
     }
   };
 }
@@ -79,19 +120,16 @@ export function createPostgresCliRuntime({
           vertical: safeVertical
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-)
+SELECT set_config('app.tenant_id', :'tenant_id', false);
 SELECT json_build_object(
   'projection', p.projection_json,
   'digest', p.projection_digest,
   'asOf', p.as_of
 )::text
-FROM tenant_context
-JOIN kaios_runtime.projections p
-  ON p.tenant_id = :'tenant_id'
+FROM kaios_runtime.projections p
+WHERE p.tenant_id = :'tenant_id'
  AND p.vertical = :'vertical'
-WHERE p.status = 'approved'
+  AND p.status = 'approved'
 LIMIT 1;
 `
       });
@@ -132,18 +170,15 @@ LIMIT 1;
           scope: safeScope
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-)
+SELECT set_config('app.tenant_id', :'tenant_id', false);
 SELECT json_build_object(
   'entitlementId', e.entitlement_id,
   'expectedDigest', e.projection_digest
 )::text
-FROM tenant_context
-JOIN kaios_runtime.entitlements e
-  ON e.tenant_id = :'tenant_id'
- AND e.entitlement_id = :'entitlement_id'
-WHERE e.vertical = :'vertical'
+FROM kaios_runtime.entitlements e
+WHERE e.tenant_id = :'tenant_id'
+  AND e.entitlement_id = :'entitlement_id'
+  AND e.vertical = :'vertical'
   AND e.subject_id = :'subject_id'
   AND e.status = 'active'
   AND e.revoked_at IS NULL
@@ -180,14 +215,12 @@ LIMIT 1;
           projection_digest: digest
         },
         sql: `
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', :'tenant_id', true)
-), inserted AS (
+SELECT set_config('app.tenant_id', :'tenant_id', false);
+WITH inserted AS (
   INSERT INTO kaios_runtime.export_nonces (
     tenant_id, vertical, entitlement_id, nonce_digest, projection_digest
   )
-  SELECT :'tenant_id', :'vertical', :'entitlement_id', :'nonce_digest', :'projection_digest'
-  FROM tenant_context
+  VALUES (:'tenant_id', :'vertical', :'entitlement_id', :'nonce_digest', :'projection_digest')
   ON CONFLICT DO NOTHING
   RETURNING tenant_id, vertical, entitlement_id, nonce_digest, projection_digest
 ), audited AS (

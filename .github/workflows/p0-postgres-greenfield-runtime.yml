@@ -9,6 +9,7 @@ on:
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
   push:
     branches:
+      - 'main'
       - 'codex/p0-runtime-boundary-hardening-*'
     paths:
       - 'apps/dual-staging-http-runtime/**'
@@ -29,7 +30,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:17
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -105,48 +106,57 @@ jobs:
 
           psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" \
             --set="projection=$projection" --set="digest=$digest" <<'SQL'
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kaios_runtime_app_login') THEN
-    CREATE ROLE kaios_runtime_app_login LOGIN PASSWORD 'runtime-test-password' INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE;
-  END IF;
-END
-$$;
-GRANT kaios_runtime_ci_app TO kaios_runtime_app_login;
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kaios_runtime_app_login') THEN
+              CREATE ROLE kaios_runtime_app_login LOGIN PASSWORD 'runtime-test-password' INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE;
+            END IF;
+          END
+          $$;
+          GRANT kaios_runtime_ci_app TO kaios_runtime_app_login;
 
-SET ROLE kaios_runtime_ci_app;
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
-)
-INSERT INTO kaios_runtime.projections (
-  tenant_id, vertical, projection_id, projection_json, projection_digest, status, as_of, version
-)
-SELECT 'tenant-runtime-live', 'kidults', 'projection-runtime-live', :'projection'::jsonb,
-       :'digest', 'approved', clock_timestamp(), 1
-FROM tenant_context
-ON CONFLICT (tenant_id, vertical) DO UPDATE SET
-  projection_json = EXCLUDED.projection_json,
-  projection_digest = EXCLUDED.projection_digest,
-  status = EXCLUDED.status,
-  as_of = EXCLUDED.as_of,
-  version = kaios_runtime.projections.version + 1,
-  updated_at = clock_timestamp();
+          SET ROLE kaios_runtime_ci_app;
+          WITH tenant_context AS MATERIALIZED (
+            SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
+          )
+          INSERT INTO kaios_runtime.projections (
+            tenant_id, vertical, projection_id, projection_json, projection_digest, status, as_of, version
+          )
+          SELECT 'tenant-runtime-live', 'kidults', 'projection-runtime-live', :'projection'::jsonb,
+                 :'digest', 'approved', clock_timestamp(), 1
+          FROM tenant_context
+          ON CONFLICT (tenant_id, vertical) DO UPDATE SET
+            projection_json = EXCLUDED.projection_json,
+            projection_digest = EXCLUDED.projection_digest,
+            status = EXCLUDED.status,
+            as_of = EXCLUDED.as_of,
+            version = kaios_runtime.projections.version + 1,
+            updated_at = clock_timestamp();
 
-WITH tenant_context AS MATERIALIZED (
-  SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
-)
-INSERT INTO kaios_runtime.entitlements (
-  tenant_id, entitlement_id, subject_id, vertical, scopes, status,
-  projection_digest, expires_at
-)
-SELECT 'tenant-runtime-live', 'ent-runtime-live', 'operator', 'kidults', ARRAY['EXPORT'],
-       'active', :'digest', clock_timestamp() + interval '1 hour'
-FROM tenant_context
-ON CONFLICT (tenant_id, entitlement_id) DO UPDATE SET
-  status = 'active', revoked_at = NULL, projection_digest = EXCLUDED.projection_digest,
-  expires_at = EXCLUDED.expires_at, updated_at = clock_timestamp();
-RESET ROLE;
-SQL
+          WITH tenant_context AS MATERIALIZED (
+            SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
+          )
+          INSERT INTO kaios_runtime.entitlements (
+            tenant_id, entitlement_id, subject_id, vertical, scopes, status,
+            projection_digest, expires_at
+          )
+          SELECT 'tenant-runtime-live', 'ent-runtime-live', 'operator', 'kidults', ARRAY['EXPORT'],
+                 'active', :'digest', clock_timestamp() + interval '1 hour'
+          FROM tenant_context
+          ON CONFLICT (tenant_id, entitlement_id) DO UPDATE SET
+            status = 'active', revoked_at = NULL, projection_digest = EXCLUDED.projection_digest,
+            expires_at = EXCLUDED.expires_at, updated_at = clock_timestamp();
+          RESET ROLE;
+          SQL
+
+      - name: Prove application-role projection read
+        shell: bash
+        env:
+          KAIOS_APP_POSTGRES_DSN: postgresql://kaios_runtime_app_login:runtime-test-password@127.0.0.1:5432/kaios
+        run: |
+          set -euo pipefail
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_APP_POSTGRES_DSN" \
+            --command="SET app.tenant_id = 'tenant-runtime-live'; SELECT tenant_id, vertical, status FROM kaios_runtime.projections WHERE tenant_id = 'tenant-runtime-live' AND vertical = 'kidults';"
 
       - name: Prove live PostgreSQL bootstrap export and replay closure
         shell: bash
@@ -156,6 +166,7 @@ SQL
           KAIOS_STAGING_VIEWER_TOKEN_FILE: /tmp/kaios-viewer.token
           KAIOS_STAGING_OPERATOR_TOKEN_FILE: /tmp/kaios-operator.token
           KAIOS_POSTGRES_DSN: postgresql://kaios_runtime_app_login:runtime-test-password@127.0.0.1:5432/kaios
+          KAIOS_POSTGRES_DIAGNOSTICS: 'true'
           PORT: '32101'
         run: |
           set -euo pipefail
@@ -173,6 +184,9 @@ SQL
             fi
             sleep 1
           done
+          printf 'health_response='
+          cat /tmp/health.json
+          printf '\n'
           grep -q '"projection_runtime_configured":true' /tmp/health.json
           grep -q '"production_promotion_authorized":false' /tmp/health.json
 
@@ -180,6 +194,9 @@ SQL
           snapshot_code="$(curl --silent --show-error --output /tmp/snapshot.json --write-out '%{http_code}' \
             --header 'authorization: Bearer viewer-test-token' \
             http://127.0.0.1:32101/api/enterprise/snapshot)"
+          printf 'snapshot_code=%s snapshot_response=' "$snapshot_code"
+          cat /tmp/snapshot.json
+          printf '\n'
           test "$snapshot_code" = '200'
           grep -q '"source":"postgres"' /tmp/snapshot.json
 
@@ -193,6 +210,9 @@ SQL
             --header "x-kaios-projection-digest: $digest" \
             --data '{"projection":{"client_supplied":"must-not-escape"}}' \
             http://127.0.0.1:32101/api/enterprise/export)"
+          printf 'export_code=%s export_response=' "$export_code"
+          cat /tmp/export.json
+          printf '\n'
           test "$export_code" = '200'
           grep -q '"source":"postgres"' /tmp/export.json
           if grep -q 'must-not-escape' /tmp/export.json; then
@@ -207,6 +227,9 @@ SQL
             --header "x-kaios-nonce: $nonce" \
             --header "x-kaios-projection-digest: $digest" \
             http://127.0.0.1:32101/api/enterprise/export)"
+          printf 'replay_code=%s replay_response=' "$replay_code"
+          cat /tmp/replay.json
+          printf '\n'
           test "$replay_code" = '409'
           grep -q 'NONCE_REPLAY' /tmp/replay.json
           if grep -q 'postgres' /tmp/replay.json; then
@@ -217,4 +240,5 @@ SQL
           audit_count="$(psql --no-psqlrc --quiet --tuples-only --no-align \
             --dbname='postgresql://postgres:postgres@127.0.0.1:5432/kaios' \
             --command="SELECT count(*) FROM kaios_runtime.export_audit WHERE tenant_id='tenant-runtime-live' AND decision='authorized'")"
+          printf 'authorized_audit_count=%s\n' "$audit_count"
           test "$audit_count" = '1'
