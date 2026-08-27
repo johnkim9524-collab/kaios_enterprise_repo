@@ -51,7 +51,7 @@ jobs:
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ''
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
-          MAX_CANONICAL_GENERATION_LAG_COMMITS: '8'
+          MAX_CANONICAL_GENERATION_LAG_COMMITS: '1'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
