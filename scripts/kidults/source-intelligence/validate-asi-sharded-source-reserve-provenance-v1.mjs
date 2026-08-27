@@ -51,8 +51,13 @@ function failuresFor(text) {
     failures.push('repository-global discovery artifact selection reintroduced');
   }
 
-  if (!text.includes('PREV_RUN_ID="$(jq -r --argjson current "$GITHUB_RUN_ID"')) {
-    failures.push('previous reserve is not bound to a prior successful workflow run');
+  for (const marker of [
+    'mapfile -t PREV_CANDIDATES',
+    'PREV_RUN_ID="$CANDIDATE_RUN_ID"',
+    'if [ "$PREV_COUNT" -gt 1 ]; then',
+    'if [ "$PREV_COUNT" -eq 1 ]; then'
+  ]) {
+    if (!text.includes(marker)) failures.push(`previous reserve exact-artifact selection missing: ${marker}`);
   }
 
   return failures;
@@ -96,6 +101,11 @@ const mutations = [
     '.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"',
     'true',
     'producer workflow-path binding'
+  ],
+  [
+    'if [ "$PREV_COUNT" -eq 1 ]; then',
+    'if [ "$PREV_COUNT" -ge 0 ]; then',
+    'previous reserve exact-artifact eligibility'
   ]
 ];
 

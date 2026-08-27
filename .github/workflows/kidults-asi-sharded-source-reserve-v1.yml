@@ -158,18 +158,25 @@ jobs:
           PREV_RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
             -f branch=main -f status=success -f per_page=100 \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/runs")"
-          PREV_RUN_ID="$(jq -r --argjson current "$GITHUB_RUN_ID" \
-            '[.workflow_runs[] | select(.id != $current and .conclusion=="success" and .head_branch=="main")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
-            <<<"$PREV_RUNS")"
+          PREV_RUN_ID=""
           PREV_ID=""
-          if [ -n "$PREV_RUN_ID" ]; then
-            PREV_ARTIFACTS="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREV_RUN_ID}/artifacts?per_page=100")"
+          mapfile -t PREV_CANDIDATES < <(jq -r --argjson current "$GITHUB_RUN_ID" \
+            '[.workflow_runs[] | select(.id != $current and .conclusion=="success" and .head_branch=="main")] | sort_by(.updated_at) | reverse | .[].id' \
+            <<<"$PREV_RUNS")
+          for CANDIDATE_RUN_ID in "${PREV_CANDIDATES[@]}"; do
+            PREV_ARTIFACTS="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}/artifacts?per_page=100")"
             PREV_COUNT="$(jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false)] | length' <<<"$PREV_ARTIFACTS")"
-            [ "$PREV_COUNT" -eq 1 ] || {
-              echo "previous successful reserve run ${PREV_RUN_ID} does not expose exactly one reserve artifact" >&2
+            if [ "$PREV_COUNT" -gt 1 ]; then
+              echo "previous successful reserve run ${CANDIDATE_RUN_ID} exposes ambiguous reserve artifacts" >&2
               exit 70
-            }
-            PREV_ID="$(jq -r '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false)][0].id' <<<"$PREV_ARTIFACTS")"
+            fi
+            if [ "$PREV_COUNT" -eq 1 ]; then
+              PREV_RUN_ID="$CANDIDATE_RUN_ID"
+              PREV_ID="$(jq -r '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false)][0].id' <<<"$PREV_ARTIFACTS")"
+              break
+            fi
+          done
+          if [ -n "$PREV_ID" ]; then
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-reserve.zip
             unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-asi-sharded-source-reserve-v1
           fi

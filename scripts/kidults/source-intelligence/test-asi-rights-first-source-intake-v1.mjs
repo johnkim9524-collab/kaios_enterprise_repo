@@ -274,6 +274,11 @@ const receipt = {
     protected_gates_touched: [],
     notes: 'Internal reversible code, read-only official metadata and CI only; no provider contact, contract, EULA, account, credential, spend, live acquisition, Public, Production or G5 action.'
   },
+  defect_disposition: 'NO_REVERSIBLE_DEFECT_DETECTED',
+  remediation_sequence: [],
+  verification_evidence_refs: [runUrl, evidencePoolPath],
+  truth_sync_refs: [],
+  improvement_proposal: 'Keep the receipt-contract validator coupled to this generator so future schema evolution fails at generation time before promotion.',
   production: 'HOLD',
   public_release: 'HOLD'
 };
