@@ -1,0 +1,143 @@
+name: KIDULTS Cross-Grader Canonical Reconciliation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json'
+      - 'coordination/kidults/internalization/cross-grader-canonical-reconciliation-fixtures-v1.json'
+      - 'scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs'
+      - 'scripts/kidults/internalization/validate-internalization-foundation-v1.mjs'
+      - '.github/workflows/kidults-cross-grader-canonical-reconciliation-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json'
+      - 'coordination/kidults/internalization/cross-grader-canonical-reconciliation-fixtures-v1.json'
+      - 'scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs'
+      - 'scripts/kidults/internalization/validate-internalization-foundation-v1.mjs'
+      - '.github/workflows/kidults-cross-grader-canonical-reconciliation-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cross-grader-canonical-reconciliation-v1-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  cross-grader-reconciliation:
+    name: cross-grader-reconciliation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+
+      - name: Validate canonical reconciliation and synthetic replay
+        run: node scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs
+
+      - name: Reject provider ID becoming canonical truth
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json'
+          cp "$file" /tmp/cross-grader-contract.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.identity_principles.provider_universal_id_is_canonical=true;
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs; then
+            echo 'provider canonicalization mutation unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/cross-grader-contract.json "$file"
+
+      - name: Reject variant identity collapse
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json'
+          cp "$file" /tmp/cross-grader-contract.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.canonical_identity_dimensions=value.canonical_identity_dimensions.filter((x)=>x!=='variant');
+          value.merge_policy.variant_mismatch_forbids_merge=false;
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs; then
+            echo 'variant collapse mutation unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/cross-grader-contract.json "$file"
+
+      - name: Reject unsafe population summation
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json'
+          cp "$file" /tmp/cross-grader-contract.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-contract-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.population_reconciliation.cross_grader_sum_is_global_population=true;
+          value.population_reconciliation.aggregate_without_dedup_proof='SUM';
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs; then
+            echo 'unsafe population aggregation unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/cross-grader-contract.json "$file"
+
+      - name: Reject false merge fixture laundering
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-fixtures-v1.json'
+          cp "$file" /tmp/cross-grader-fixtures.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/cross-grader-canonical-reconciliation-fixtures-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          const target=value.cases.find((x)=>x.case_id==='FALSE_MERGE_PARALLEL_GUARD');
+          target.expected='SAME_CANONICAL_ID';
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs; then
+            echo 'false merge laundering unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/cross-grader-fixtures.json "$file"
+
+      - name: Validate integration with full internalization foundation
+        run: node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs
+
+      - name: Confirm clean exact-head worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
