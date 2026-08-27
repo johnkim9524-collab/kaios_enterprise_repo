@@ -189,9 +189,35 @@ function liveMainGuardContract(step) {
     && !/\|\|\s*true|continue\s*$/m.test(step.text);
 }
 
+export function workflowTriggerClasses(text) {
+  const active = activeWorkflowText(text);
+  const allowed = new Set(['push', 'pull_request', 'pull_request_target', 'workflow_dispatch', 'workflow_run', 'workflow_call', 'schedule', 'repository_dispatch']);
+  const observed = new Set();
+  const inlineList = active.match(/^on\s*:\s*\[([^\]]+)\]\s*$/m);
+  if (inlineList) {
+    for (const item of inlineList[1].split(',')) {
+      const trigger = item.trim().replace(/^['"]|['"]$/g, '');
+      if (allowed.has(trigger)) observed.add(trigger);
+    }
+  }
+  const inlineScalar = active.match(/^on\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*$/m);
+  if (inlineScalar && allowed.has(inlineScalar[1])) observed.add(inlineScalar[1]);
+  const lines = active.split(/\r?\n/);
+  const onIndex = lines.findIndex((line) => /^on\s*:\s*$/.test(line));
+  if (onIndex >= 0) {
+    for (let index = onIndex + 1; index < lines.length; index += 1) {
+      if (/^[^\s]/.test(lines[index])) break;
+      const match = lines[index].match(/^ {2}([A-Za-z_][A-Za-z0-9_]*)\s*:/);
+      if (match && allowed.has(match[1])) observed.add(match[1]);
+    }
+  }
+  return [...observed].sort();
+}
+
 export function analyzeWorkflow(text, workflow = 'fixture.yml') {
   const active = activeWorkflowText(text);
-  const workflowDispatch = /^\s*workflow_dispatch\s*:/mi.test(active);
+  const triggerClasses = workflowTriggerClasses(active);
+  const workflowDispatch = triggerClasses.includes('workflow_dispatch');
   const jobsStart = active.search(/^jobs\s*:\s*$/m);
   const workflowScope = jobsStart >= 0 ? active.slice(0, jobsStart) : active;
   const workflowSecrets = secretMetadata(workflowScope);
@@ -252,6 +278,10 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         && jobScopeSecrets.secret_bearing === false
         && providerSecretSteps.length > 0
         && JSON.stringify(uniqueSorted(providerSecretSteps.flatMap((step) => step.secret_names))) === JSON.stringify(secretNames),
+      activation_guard_variables: uniqueSorted(
+        [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]true['"]/g)].map((match) => match[1])
+      ),
+      step_names: parsedSteps.steps.map((step) => step.name).filter(Boolean),
       live_main_guard: {
         count: liveMainGuardSteps.length,
         step_index: liveMainGuard?.index ?? null,
@@ -281,6 +311,8 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       job_scope_secret_names: [],
       step_secret_bindings: [],
       provider_secrets_step_scoped: false,
+      activation_guard_variables: [],
+      step_names: [],
       live_main_guard: {
         count: 0,
         step_index: null,
@@ -294,7 +326,9 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
   const secretBearingJobs = jobs.filter((job) => job.secret_bearing);
   return {
     workflow,
+    trigger_classes: triggerClasses,
     workflow_dispatch: workflowDispatch,
+    secret_bearing_lane: secretBearingJobs.length > 0,
     privileged_manual_lane: workflowDispatch && secretBearingJobs.length > 0,
     workflow_scope_secret_names: workflowSecrets.secret_names,
     jobs,
@@ -309,7 +343,7 @@ export function buildWorkflowInventory(root = process.cwd(), registry = null) {
     const absolute = path.join(root, workflow);
     if (!fs.existsSync(absolute)) throw new Error(`REGISTERED_WORKFLOW_MISSING:${workflow}`);
     const analysis = analyzeWorkflow(fs.readFileSync(absolute, 'utf8'), workflow);
-    if (!analysis.privileged_manual_lane) throw new Error(`REGISTERED_WORKFLOW_NOT_PRIVILEGED_MANUAL_LANE:${workflow}`);
+    if (!analysis.secret_bearing_lane) throw new Error(`REGISTERED_WORKFLOW_NOT_SECRET_BEARING_LANE:${workflow}`);
     lanes.push(analysis);
   }
   return {
@@ -345,6 +379,17 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     require(!expectedByKey.has(key), `DUPLICATE_REQUIRED_BINDING:${key}`);
     expectedByKey.set(key, binding);
     require((registry?.registered_workflows || []).includes(binding?.workflow), `UNREGISTERED_BINDING_WORKFLOW:${key}`);
+    require(
+      Array.isArray(binding?.allowed_trigger_classes)
+      && binding.allowed_trigger_classes.length > 0
+      && binding.allowed_trigger_classes.every((trigger) => ['push','pull_request','pull_request_target','workflow_dispatch','workflow_run','workflow_call','schedule','repository_dispatch'].includes(trigger))
+      && new Set(binding.allowed_trigger_classes).size === binding.allowed_trigger_classes.length,
+      `INVALID_ALLOWED_TRIGGER_CLASSES:${key}`
+    );
+    require(
+      ['READ_ONLY_CONTROL_PLANE','PROVIDER_BOUNDED_READ','REMOTE_STAGING_MUTATION','PRODUCTION_MUTATION'].includes(binding?.remote_mutation_class),
+      `INVALID_REMOTE_MUTATION_CLASS:${key}`
+    );
     require(/^[a-z0-9][a-z0-9-]{2,62}$/.test(String(binding?.environment || '')), `INVALID_REQUIRED_ENVIRONMENT:${key}`);
     require(/^sha256:[0-9a-f]{64}$/.test(String(binding?.required_secret_name_digest || '')), `INVALID_REQUIRED_SECRET_DIGEST:${key}`);
     require(
@@ -368,6 +413,20 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
       require(job.environment.declared, `ENVIRONMENT_NOT_DECLARED:${key}`);
       require(job.environment.static, `ENVIRONMENT_NOT_STATIC:${key}`);
       require(job.environment.name === expected.environment, `ENVIRONMENT_NAME_MISMATCH:${key}`);
+      require(
+        JSON.stringify([...(lane.trigger_classes || [])].sort()) === JSON.stringify([...(expected.allowed_trigger_classes || [])].sort()),
+        `TRIGGER_CLASS_MISMATCH:${key}`
+      );
+      if (expected.required_activation_guard) {
+        require(
+          job.activation_guard_variables.includes(expected.required_activation_guard),
+          `ACTIVATION_GUARD_MISSING:${key}`
+        );
+        require(
+          job.step_names.includes('Verify explicit STAGING activation authorization before secret resolution'),
+          `ACTIVATION_RECEIPT_STEP_MISSING:${key}`
+        );
+      }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
       require(job.workflow_permissions_contents_read_only, `GITHUB_TOKEN_PERMISSION_NOT_CONTENTS_READ_ONLY:${key}`);
       require(job.job_permissions_override === false, `GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:${key}`);
