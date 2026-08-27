@@ -1,0 +1,61 @@
+name: KPMO Canonical Issue Transition Guard V1
+
+on:
+  issues:
+    types: [edited, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Canonical issue number to validate locally
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: kpmo-canonical-issue-transition-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  validate-local-transition:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate edited canonical issue against current main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          node --input-type=module <<'NODE'
+          const repo = process.env.GITHUB_REPOSITORY;
+          const token = process.env.GITHUB_TOKEN;
+          const issueNumber = Number(process.env.ISSUE_NUMBER);
+          const canonical = new Set([235,236,237,238,240,256,344,457,479,480,489,521,550,558,559,560,609,742,769,881,921,951,1066,1166,1296]);
+          if (!canonical.has(issueNumber)) {
+            console.log(`NON_CANONICAL_ISSUE_${issueNumber}_NOOP`);
+            process.exit(0);
+          }
+          const headers = {Accept:'application/vnd.github+json', Authorization:`Bearer ${token}`, 'X-GitHub-Api-Version':'2022-11-28'};
+          const mainRes = await fetch(`https://api.github.com/repos/${repo}/git/ref/heads/main`, {headers});
+          if (!mainRes.ok) throw new Error(`MAIN_REF_HTTP_${mainRes.status}`);
+          const mainSha = (await mainRes.json()).object?.sha;
+          if (!/^[0-9a-f]{40}$/i.test(mainSha || '')) throw new Error('MAIN_SHA_INVALID');
+          const issueRes = await fetch(`https://api.github.com/repos/${repo}/issues/${issueNumber}`, {headers});
+          if (!issueRes.ok) throw new Error(`ISSUE_HTTP_${issueRes.status}`);
+          const issue = await issueRes.json();
+          const body = String(issue.body || '');
+          const blocks = [...body.matchAll(/<!-- KPMO_CANONICAL_TRUTH_V2_START -->([\s\S]*?)<!-- KPMO_CANONICAL_TRUTH_V2_END -->/g)];
+          if (!blocks.length) throw new Error(`ISSUE_${issueNumber}_CANONICAL_BLOCK_MISSING`);
+          const block = blocks.at(-1)[1];
+          const recorded = block.match(/protected main:\s*`([0-9a-f]{40})`/i)?.[1] || '';
+          if (recorded !== mainSha) throw new Error(`ISSUE_${issueNumber}_STALE_MAIN_${recorded || 'NONE'}_EXPECTED_${mainSha}`);
+          for (const required of ['Production/Public/G5', 'HOLD']) {
+            if (!block.includes(required)) throw new Error(`ISSUE_${issueNumber}_MISSING_${required.replace(/[^A-Za-z0-9]+/g,'_')}`);
+          }
+          console.log(JSON.stringify({state:'LOCAL_TRANSITION_VERIFIED_PASS', issue_number:issueNumber, protected_main:mainSha, promotion_eligible:false, production:'HOLD', public:'HOLD', g5:'HOLD'}));
+          NODE
