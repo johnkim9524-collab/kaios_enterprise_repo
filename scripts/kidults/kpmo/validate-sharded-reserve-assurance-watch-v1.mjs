@@ -24,6 +24,7 @@ function validateAssurance(source) {
   const block = extractStep(source, 'Validate exact Sharded Reserve upstream terminal binding');
   const required = [
     "if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'",
+    'GH_TOKEN: ${{ github.token }}',
     'RESERVE_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
     'RESERVE_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}',
     'RESERVE_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}',
@@ -35,17 +36,42 @@ function validateAssurance(source) {
     'and .head_sha==$sha',
     '.status=="completed"',
     '.conclusion==$conclusion',
+    "RESERVE_UPSTREAM_EVENT=$(jq -r '.event' /tmp/reserve-upstream-run.json)",
+    '[[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|workflow_dispatch|schedule)$ ]]',
     '/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100',
     'kidults-asi-sharded-source-reserve-v1',
     'kidults-asi-sharded-source-reserve-waiting-v1',
-    'test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 1',
+    'RESERVE_BINDING_STATUS=VERIFIED_FAIL',
+    'RESERVE_BINDING_STATUS=VALIDATION_ONLY',
+    'RESERVE_BINDING_STATUS=VERIFIED_PASS',
+    'RESERVE_BINDING_STATUS=VERIFIED_HOLD',
+    'if [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request)$ ]]; then',
     'test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 0',
+    'test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 1',
+    '/actions/artifacts/${RESERVE_ARTIFACT_ID}/zip',
+    'unzip -q -o /tmp/reserve-observer.zip -d /tmp/reserve-observer',
+    'asi-sharded-source-reserve-activation-receipt-v1.json',
+    'asi-sharded-source-reserve-waiting-receipt-v1.json',
+    '.state=="VERIFIED_PASS"',
+    '.exact_generation_bound==true',
+    '.state=="WAITING_FOR_EXACT_DISCOVERY_PRODUCER"',
+    '.promotion_eligible==false',
+    '.completion_claim_allowed==false',
+    '.content_acquisition_authorized==false',
+    '.collection_right_created==false',
+    '.public_release=="HOLD"',
+    '.production=="HOLD"',
     '[[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]',
-    'WAITING_FOR_EXACT_DISCOVERY_PRODUCER',
-    'promotion_eligible:false',
+    '--arg status "$RESERVE_BINDING_STATUS"',
+    '--arg event "$RESERVE_UPSTREAM_EVENT"',
+    '{status:$status',
+    'upstream_event:$event',
+    'if [ "$RESERVE_BINDING_STATUS" = VERIFIED_FAIL ]; then',
+    'exit 1',
     'reserve-upstream-binding.json'
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`ASSURANCE_MARKER_MISSING:${marker}`);
+  if (block.includes('{status:"VERIFIED_PASS"')) fail('RESERVE_HARD_CODED_PASS_FORBIDDEN');
   const header = source.match(/jobs:\n  audit:\n([\s\S]*?)\n    runs-on:/)?.[1] || '';
   if (/workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header)) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
 }
@@ -73,23 +99,22 @@ function validateReserve(source) {
 validateAssurance(assurance);
 validateReserve(reserve);
 
+const assuranceBlock = extractStep(assurance, 'Validate exact Sharded Reserve upstream terminal binding');
 const assuranceMutations = [
-  ["      - 'KIDULTS ASI Sharded Source Reserve v1'\n", ''],
+  ['GH_TOKEN: ${{ github.token }}\n', ''],
   ['.path==".github/workflows/kidults-asi-sharded-source-reserve-v1.yml"', '.path!=".github/workflows/kidults-asi-sharded-source-reserve-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
+  ['if [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request)$ ]]; then', 'if false; then'],
   ['test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 1', 'test "$RESERVE_TOTAL_ARTIFACT_COUNT" -ge 1'],
-  ['[[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]', '[[ "$RESERVE_ARTIFACT_DIGEST" =~ ^md5: ]]']
+  ['.state=="WAITING_FOR_EXACT_DISCOVERY_PRODUCER"', '.state=="VERIFIED_PASS"'],
+  ['.promotion_eligible==false', '.promotion_eligible==true'],
+  ['{status:$status', '{status:"VERIFIED_PASS"'],
+  ['if [ "$RESERVE_BINDING_STATUS" = VERIFIED_FAIL ]; then', 'if false; then'],
+  ['exit 1', 'true']
 ];
 for (const [from, to] of assuranceMutations) {
-  let mutated;
-  if (from.startsWith("      - 'KIDULTS ASI Sharded Source Reserve v1'")) {
-    if (!assurance.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
-    mutated = assurance.replace(from, to);
-  } else {
-    const block = extractStep(assurance, 'Validate exact Sharded Reserve upstream terminal binding');
-    if (!block.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
-    mutated = assurance.replace(block, block.replace(from, to));
-  }
+  if (!assuranceBlock.includes(from)) fail(`ASSURANCE_SELF_TEST_MARKER_MISSING:${from}`);
+  const mutated = assurance.replace(assuranceBlock, assuranceBlock.replace(from, to));
   let rejected = false;
   try { validateAssurance(mutated); } catch { rejected = true; }
   if (!rejected) fail(`ASSURANCE_MUTATION_NOT_REJECTED:${from}`);
@@ -113,9 +138,13 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   exact_terminal_run_binding: true,
   success_failure_cancelled_observation: true,
+  validation_only_run_classification: true,
   exact_artifact_cardinality_and_digest: true,
+  exact_receipt_semantic_validation: true,
   producer_absent_waiting_hold_receipt: true,
-  false_pass_on_waiting_rejected: true,
+  failed_upstream_fails_assurance_closed: true,
+  hard_coded_pass_rejected: true,
+  github_cli_token_explicit: true,
   mutations_rejected: assuranceMutations.length + reserveMutations.length,
   empirical_promotion: false,
   production: 'HOLD',
