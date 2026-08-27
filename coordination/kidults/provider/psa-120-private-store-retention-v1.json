@@ -1,0 +1,23 @@
+{
+  "id": "KIDULTS_PSA_120_PRIVATE_STORE_RETENTION_V1",
+  "state": "IMPLEMENTED_FAIL_CLOSED",
+  "classification": "PRIVATE_ONLY",
+  "encryption": {
+    "algorithm": "AES-256-GCM",
+    "key_source": "RUNTIME_SECRET_ONLY",
+    "plaintext_persistence": "PROHIBITED",
+    "ciphertext_persistence": "ALLOWED_PRIVATE_ONLY"
+  },
+  "retention": {
+    "max_days": 30,
+    "delete_at_required": true,
+    "deletion_receipt_required": true,
+    "raw_backup_beyond_delete_at": "PROHIBITED"
+  },
+  "boundaries": {
+    "d1_raw_write": "PROHIBITED",
+    "public_api_raw_output": "PROHIBITED",
+    "portal_raw_output": "PROHIBITED",
+    "production": "HOLD"
+  }
+}

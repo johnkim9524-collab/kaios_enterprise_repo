@@ -1,0 +1,25 @@
+{
+  "receipt_id": "KIDULTS_PSA_120_ADMISSION_CONTROLS_RECEIPT_V1",
+  "state": "CONTROL_IMPLEMENTATION_STAGED",
+  "branch": "kpmo/psa-120-admission-controls-v1",
+  "controls": {
+    "field_map": "IMPLEMENTED",
+    "encrypted_private_store": "IMPLEMENTED",
+    "retention_deletion_receipt": "IMPLEMENTED",
+    "lawful_manifest_contract": "IMPLEMENTED",
+    "quota_guard": "IMPLEMENTED",
+    "validator": "IMPLEMENTED",
+    "ci_workflow": "IMPLEMENTED"
+  },
+  "empirical": {
+    "lawful_known_cert_manifest": "2/120",
+    "live_acquisition": "NOT_RUN",
+    "graded_population": "0/120"
+  },
+  "authority": {
+    "live_acquisition_authorized_by_this_receipt": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
