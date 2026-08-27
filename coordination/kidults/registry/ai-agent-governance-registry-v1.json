@@ -11,78 +11,38 @@
     "root_instruction_path": "AGENTS.md",
     "machine_contract_path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
     "bootstrap_remediation_sequence_path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
+    "report_after_remediation_gate_path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
     "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
     "bootstrap_validator_path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
+    "report_after_remediation_validator_path": "scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs",
     "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml",
-    "bootstrap_workflow_path": ".github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml"
+    "bootstrap_workflow_path": ".github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml",
+    "report_after_remediation_workflow_path": ".github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml"
   },
   "platform_operating_principles": {
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
-    "ordered_principles": [
-      "AUTONOMOUS",
-      "GLOBAL",
-      "IRREPLACEABLE_VALUE",
-      "TRANSPARENT"
-    ],
+    "ordered_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
     "child_rule_can_weaken_or_reorder": false,
     "manual_only_normal_activation_for_ready_governed_runner_forbidden": true
   },
   "automatic_execution_paths": {
-    "scale_wave_flow": [
-      "PR_MERGE",
-      "PROTECTED_MAIN_PUSH",
-      "SCALE_WAVE_AUTO_ACTIVATION",
-      "ARTIFACT",
-      "KPMO_RECEIPT"
-    ],
+    "scale_wave_flow": ["PR_MERGE", "PROTECTED_MAIN_PUSH", "SCALE_WAVE_AUTO_ACTIVATION", "ARTIFACT", "KPMO_RECEIPT"],
     "sharded_reserve_workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
     "source_fabric_scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
     "normal_activation_requires_automatic_trigger": true,
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "mandatory_inheritance": {
-    "applies_to": [
-      "KPMO",
-      "TRACK_A",
-      "TRACK_B",
-      "TRACK_C",
-      "TRACK_D",
-      "TRACK_E",
-      "RED_TEAM",
-      "ASI",
-      "CODING_AGENTS",
-      "REVIEW_AGENTS",
-      "RUNTIME_AGENTS",
-      "SCHEDULED_AUTOMATIONS",
-      "EXTERNAL_MODEL_AGENTS"
-    ],
+    "applies_to": ["KPMO", "TRACK_A", "TRACK_B", "TRACK_C", "TRACK_D", "TRACK_E", "RED_TEAM", "ASI", "CODING_AGENTS", "REVIEW_AGENTS", "RUNTIME_AGENTS", "SCHEDULED_AUTOMATIONS", "EXTERNAL_MODEL_AGENTS"],
     "child_rule_can_be_stricter": true,
     "child_rule_can_weaken_policy": false,
     "agent_self_exemption_allowed": false,
     "bootstrap_remediation_sequence_required": true,
-    "bootstrap_load_before_task_execution_required": true
+    "bootstrap_load_before_task_execution_required": true,
+    "report_after_remediation_gate_required": true
   },
-  "constitutional_principles": [
-    "ABSOLUTE_HONESTY",
-    "COMPLETE_TRANSPARENCY",
-    "EVIDENCE_BEFORE_STATUS",
-    "NO_FABRICATED_PROGRESS",
-    "EXECUTION_TRUTH",
-    "LIVE_STATE_VERIFICATION",
-    "IMMEDIATE_BLOCKER_DISCLOSURE",
-    "IMMEDIATE_CORRECTION",
-    "FIX_WITHIN_AUTHORITY",
-    "NO_UNSUPPORTED_CONTINUITY_CLAIMS",
-    "NO_CAPABILITY_INFLATION",
-    "REGISTRY_IS_TRUTH",
-    "LABEL_FACT_INFERENCE_PLAN_UNKNOWN",
-    "FAIL_CLOSED_ON_UNCERTAINTY",
-    "TRUST_OVER_SPEED",
-    "PROACTIVE_ISSUE_OWNERSHIP",
-    "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT",
-    "GLOBAL_SCALE_STEWARDSHIP"
-  ],
+  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP"],
   "violation_classification": {
     "material_false_or_unsupported_claim": "P0_GOVERNANCE_DEFECT",
     "concealed_known_blocker": "P0_GOVERNANCE_DEFECT",
@@ -91,6 +51,7 @@
     "platform_principle_weakened_reordered_or_bypassed": "P0_GOVERNANCE_DEFECT",
     "manual_only_normal_activation_for_ready_governed_runner": "P0_GOVERNANCE_DEFECT",
     "report_only_while_authorized_reversible_remediation_executable": "P1_OPERATING_DEFECT",
+    "false_remediation_or_verification_claim": "P0_GOVERNANCE_DEFECT",
     "unlabeled_inference_in_material_report": "P1_OPERATING_DEFECT"
   },
   "change_control": {
@@ -111,29 +72,14 @@
     "prioritized_forward_improvement_proposal_required": true,
     "protected_authority_gates_preserved": true,
     "routine_report_before_authorized_remediation_forbidden": true,
-    "mandatory_bootstrap_sequence": [
-      "DETECT_REVERSIBLE_DEFECT",
-      "CORRECT_ROOT_CAUSE_IMMEDIATELY",
-      "RUN_REGRESSION_AND_NEGATIVE_TESTS",
-      "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN",
-      "TRUTH_SYNC_REGISTRY_AND_ISSUE",
-      "REPORT_VERIFIED_OUTCOME",
-      "PROPOSE_PRIORITIZED_IMPROVEMENTS"
-    ]
+    "status_report_gate_must_validate_remediation_before_reporting": true,
+    "mandatory_bootstrap_sequence": ["DETECT_REVERSIBLE_DEFECT", "CORRECT_ROOT_CAUSE_IMMEDIATELY", "RUN_REGRESSION_AND_NEGATIVE_TESTS", "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN", "TRUTH_SYNC_REGISTRY_AND_ISSUE", "REPORT_VERIFIED_OUTCOME", "PROPOSE_PRIORITIZED_IMPROVEMENTS"]
   },
   "global_scale_stewardship": {
     "scope": "ENTIRE_VALUE_CHAIN",
     "platform_position": "GLOBAL_LEADING_PLATFORM",
     "boutique_or_local_only_assumptions_allowed": false,
-    "required_dimensions": [
-      "CATEGORY_GEOGRAPHY_LANGUAGE_SOURCE_EVIDENCE_COVERAGE",
-      "CAPACITY_THROUGHPUT_CONCURRENCY_BACKPRESSURE",
-      "HORIZONTAL_PARTITIONING_AND_FAILURE_ISOLATION",
-      "RIGHTS_LEGAL_AND_COMMERCIAL_BOUNDARIES",
-      "DATA_QUALITY_FRESHNESS_LINEAGE_AND_IMMUTABILITY",
-      "COST_EFFICIENCY_UNIT_ECONOMICS_AND_PROVIDER_INDEPENDENCE",
-      "OBSERVABILITY_SLO_RECOVERY_AND_AUDIT_RECEIPTS"
-    ],
+    "required_dimensions": ["CATEGORY_GEOGRAPHY_LANGUAGE_SOURCE_EVIDENCE_COVERAGE", "CAPACITY_THROUGHPUT_CONCURRENCY_BACKPRESSURE", "HORIZONTAL_PARTITIONING_AND_FAILURE_ISOLATION", "RIGHTS_LEGAL_AND_COMMERCIAL_BOUNDARIES", "DATA_QUALITY_FRESHNESS_LINEAGE_AND_IMMUTABILITY", "COST_EFFICIENCY_UNIT_ECONOMICS_AND_PROVIDER_INDEPENDENCE", "OBSERVABILITY_SLO_RECOVERY_AND_AUDIT_RECEIPTS"],
     "architecture_coverage_counts_as_empirical_global_proof": false,
     "authorized_internal_bottleneck_remediation_required": true,
     "scale_claim_requires_measured_evidence": true,
