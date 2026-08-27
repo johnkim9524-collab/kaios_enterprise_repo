@@ -268,7 +268,13 @@ Commercial targets must be fixed after bounded pilot baselines; no team may manu
 
 **Exit:** C5; leadership claims remain evidence-bounded and time-specific.
 
-## 9. Partner and competitor strategy
+## 9. Official competitor registry and partner strategy
+
+The machine-readable official list is `market/competitor-registry-v1.json`. Registration means that an entity is a lawful competitive benchmark; it does not establish KIDULTS market leadership or authorize use of that entity's data.
+
+| Competitor | Class | Evidence basis | Permitted use | Excluded roles |
+|---|---|---|---|---|
+| **ALT/FNDATA** | Multi-category collectibles data and analytics | Provider identified KIDULTS as a competitor and declined the bounded relationship | Lawful public product, coverage, delivery-model and capability benchmarking only | Provider, partnership candidate, procurement, integration, fallback, redundancy, PoC and data source |
 
 ### ALT/FNDATA — competitor benchmark only
 
