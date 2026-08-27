@@ -19,8 +19,81 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  activation-readiness-receipt:
+    name: Remote PostgreSQL activation readiness receipt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      authorized: ${{ steps.receipt.outputs.authorized }}
+    steps:
+      - name: Verify exact live main without resolving provider credentials
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Emit non-secret fail-closed activation receipt
+        id: receipt
+        shell: bash
+        env:
+          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
+          HOST_BOUND: ${{ vars.KIDULTS_STAGING_PUBLIC_IP != '' }}
+          FINGERPRINT_BOUND: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT != '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/p0-remote-postgres
+          if [ "$ACTIVATION_AUTHORIZED" = "true" ]; then
+            AUTHORIZED=true
+            STATUS=READY_FOR_REMOTE_EXECUTION
+          else
+            AUTHORIZED=false
+            STATUS=BLOCKED_EXTERNAL_AUTHORIZATION
+          fi
+          printf 'authorized=%s\n' "$AUTHORIZED" >> "$GITHUB_OUTPUT"
+          python3 - "$STATUS" "$AUTHORIZED" "$HOST_BOUND" "$FINGERPRINT_BOUND" <<'PY' > artifacts/p0-remote-postgres/activation-readiness.json
+          import json, os, sys
+          status, authorized, host_bound, fingerprint_bound = sys.argv[1:]
+          print(json.dumps({
+              "gate": "REMOTE_POSTGRES_PITR_ACTIVATION_READINESS",
+              "status": status,
+              "source_ref": os.environ["GITHUB_REF"],
+              "source_sha": os.environ["GITHUB_SHA"],
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "activation_authorized": authorized == "true",
+              "staging_host_binding_present": host_bound == "true",
+              "staging_fingerprint_binding_present": fingerprint_bound == "true",
+              "provider_secrets_resolved": False,
+              "remote_mutation_performed": False,
+              "production_touch": False,
+              "g5_touch": False,
+              "unblock_condition": None if authorized == "true" else "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true under the existing approved STAGING security boundary"
+          }, indent=2))
+          PY
+          cat artifacts/p0-remote-postgres/activation-readiness.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: p0-remote-postgres-activation-readiness-${{ github.sha }}
+          path: artifacts/p0-remote-postgres/activation-readiness.json
+          if-no-files-found: error
+          retention-days: 30
+
   remote-persistence-pitr-readiness:
-    if: github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
+    needs: activation-readiness-receipt
+    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main'
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
     timeout-minutes: 15
