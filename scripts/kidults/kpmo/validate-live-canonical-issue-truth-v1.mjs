@@ -1,6 +1,8 @@
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
+const expectedBodyMainSha = process.env.EXPECTED_CANONICAL_BODY_MAIN_SHA || expectedMainSha;
+const truthPhase = process.env.CANONICAL_TRUTH_PHASE || 'SYNCHRONIZED';
 const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1431');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
 const requireLiveCorrectionHead = process.env.REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES === 'true';
@@ -24,6 +26,12 @@ function fail(message) {
 if (!repository || !token || !/^[0-9a-f]{40}$/i.test(expectedMainSha || '')) {
   fail('GITHUB_REPOSITORY, GITHUB_TOKEN, and exact EXPECTED_PROTECTED_MAIN_SHA are required');
 }
+if (!/^[0-9a-f]{40}$/i.test(expectedBodyMainSha || '')) {
+  fail('EXPECTED_CANONICAL_BODY_MAIN_SHA must be an exact SHA');
+}
+if (!['TRANSITION', 'SYNCHRONIZED'].includes(truthPhase)) {
+  fail('CANONICAL_TRUTH_PHASE must be TRANSITION or SYNCHRONIZED');
+}
 if (!Number.isInteger(correctionPrNumber) || correctionPrNumber < 1) {
   fail('CANONICAL_CORRECTION_PR_NUMBER must be a positive integer');
 }
@@ -40,7 +48,7 @@ async function githubGraphql() {
   const issueSelections = requested
     .map(number => `${issueAlias(number)}: issue(number: ${number}) { number body state }`)
     .join('\n');
-  const query = `query($owner:String!,$name:String!,$correction:Int!){\n  repository(owner:$owner,name:$name){\n    ref(qualifiedName:\"refs/heads/main\"){target{... on Commit{oid}}}\n    pullRequest(number:$correction){headRefOid baseRefName}\n    ${issueSelections}\n  }\n}`;
+  const query = `query($owner:String!,$name:String!,$correction:Int!){\n  repository(owner:$owner,name:$name){\n    ref(qualifiedName:\"refs/heads/main\"){target{... on Commit{oid parents(first:1){nodes{oid}}}}}\n    pullRequest(number:$correction){headRefOid baseRefName}\n    ${issueSelections}\n  }\n}`;
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
     headers: {
@@ -64,7 +72,7 @@ function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceC
   const errors = [];
   for (const issue of issues) {
     const body = issue.body || '';
-    if (!body.includes(mainSha)) errors.push(`#${issue.number} missing exact protected-main SHA ${mainSha}`);
+    if (!body.includes(mainSha)) errors.push(`#${issue.number} missing canonical protected-main SHA ${mainSha}`);
     if (!body.includes(`#${correctionPrNumber}`)) errors.push(`#${issue.number} missing canonical correction PR #${correctionPrNumber}`);
     if (enforceCorrectionHead && !body.includes(correctionHead)) errors.push(`#${issue.number} missing live correction head ${correctionHead}`);
     for (const pattern of forbiddenClosureClaims) {
@@ -80,9 +88,17 @@ function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceC
 const live = await githubGraphql();
 const observedMainSha = live.ref?.target?.oid || '';
 if (!/^[0-9a-f]{40}$/i.test(observedMainSha)) fail('live protected-main SHA is unavailable');
+const observedParentSha = live.ref?.target?.parents?.nodes?.[0]?.oid || '';
 const correctionPrValidation = Boolean(expectedCorrectionHead);
 if (!correctionPrValidation && observedMainSha !== expectedMainSha) fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
-const effectiveMainSha = correctionPrValidation ? observedMainSha : expectedMainSha;
+if (truthPhase === 'TRANSITION') {
+  if (!/^[0-9a-f]{40}$/i.test(observedParentSha)) fail('live protected-main parent SHA is unavailable for transition validation');
+  if (expectedBodyMainSha !== observedParentSha) fail(`transition body generation must equal immediate prior main: expected body ${expectedBodyMainSha}, observed parent ${observedParentSha}`);
+  if (expectedBodyMainSha === expectedMainSha) fail('transition body generation must differ from current protected main');
+} else if (expectedBodyMainSha !== expectedMainSha) {
+  fail(`synchronized phase requires body main ${expectedMainSha}, received ${expectedBodyMainSha}`);
+}
+const effectiveBodyMainSha = expectedBodyMainSha;
 
 const correctionPr = live.pullRequest;
 const correctionHead = correctionPr?.headRefOid || '';
@@ -99,21 +115,21 @@ for (const number of [...new Set([...canonicalIssues, ...trackedDefects])]) {
 const issues = canonicalIssues.map(number => issueByNumber.get(number));
 const defectIssues = trackedDefects.map(number => issueByNumber.get(number));
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
-const errors = validateBodies(effectiveMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
+const errors = validateBodies(effectiveBodyMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
 if (errors.length) fail(errors.join('; '));
 
 const staleMainMutation = structuredClone(issues);
-staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(effectiveMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
-if (!validateBodies(effectiveMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) fail('stale-main mutation was not rejected');
+staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(effectiveBodyMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
+if (!validateBodies(effectiveBodyMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) fail('stale-main mutation was not rejected');
 
 const correctionMutation = structuredClone(issues);
 correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`.replaceAll(correctionHead, '1111111111111111111111111111111111111111');
-if (!validateBodies(effectiveMainSha, correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
+if (!validateBodies(effectiveBodyMainSha, correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
 
 if (activeDefects.length) {
   const omissionMutation = structuredClone(issues);
   omissionMutation[0].body = omissionMutation[0].body.replaceAll(`#${activeDefects[0]}`, '');
-  if (!validateBodies(effectiveMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
+  if (!validateBodies(effectiveBodyMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
 }
 
 const closureMutationTexts = [
@@ -124,15 +140,17 @@ const closureMutationTexts = [
 for (const mutationText of closureMutationTexts) {
   const closureMutation = structuredClone(issues);
   closureMutation[0].body += `\n${mutationText}\n`;
-  if (!validateBodies(effectiveMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  if (!validateBodies(effectiveBodyMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
 }
 
 console.log(JSON.stringify({
   validator: 'LIVE_CANONICAL_ISSUE_TRUTH_V1',
   state: 'VERIFIED_PASS',
-  protected_main_sha: effectiveMainSha,
-  event_base_sha: expectedMainSha,
+  truth_phase: truthPhase,
+  protected_main_sha: expectedMainSha,
+  canonical_body_main_sha: effectiveBodyMainSha,
   live_main_observed: observedMainSha,
+  live_main_parent_observed: observedParentSha || null,
   correction_pr_validation: correctionPrValidation,
   canonical_correction_pr: correctionPrNumber,
   canonical_correction_head: correctionHead,
