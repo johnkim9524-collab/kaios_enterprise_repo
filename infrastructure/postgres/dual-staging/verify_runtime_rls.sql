@@ -110,7 +110,7 @@ INSERT INTO kaios_runtime.export_nonces (
   'tenant-rls-a', 'kidults', 'ent-rls-a', repeat('d', 64), repeat('a', 64)
 ) ON CONFLICT DO NOTHING;
 
-DO $
+DO $$
 BEGIN
   BEGIN
     UPDATE kaios_runtime.export_nonces
@@ -121,11 +121,11 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 END
-$;
+$$;
 
 RESET ROLE;
 
-DO $
+DO $$
 BEGIN
   BEGIN
     UPDATE kaios_runtime.export_nonces
@@ -136,6 +136,6 @@ BEGIN
     WHEN object_not_in_prerequisite_state THEN NULL;
   END;
 END
-$;
+$$;
 
 SELECT 'POSTGRES_RLS_ATTACK_SUITE_PASS';
