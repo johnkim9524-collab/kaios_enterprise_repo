@@ -31,8 +31,31 @@ function lastLine(output) {
     .at(-1) || '';
 }
 
+function postgresConnectionEnvironment(dsn) {
+  let parsed;
+  try {
+    parsed = new URL(dsn);
+  } catch {
+    fail('POSTGRES_DSN_INVALID', 503);
+  }
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) fail('POSTGRES_DSN_INVALID', 503);
+  const database = decodeURIComponent(parsed.pathname.replace(/^\//, ''));
+  if (!parsed.hostname || !parsed.username || !database) fail('POSTGRES_DSN_INVALID', 503);
+  const environment = {
+    PGHOST: parsed.hostname,
+    PGPORT: parsed.port || '5432',
+    PGUSER: decodeURIComponent(parsed.username),
+    PGPASSWORD: decodeURIComponent(parsed.password),
+    PGDATABASE: database
+  };
+  const sslmode = parsed.searchParams.get('sslmode');
+  if (sslmode) environment.PGSSLMODE = sslmode;
+  return environment;
+}
+
 export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
   if (!dsn) fail('POSTGRES_DSN_REQUIRED', 503);
+  const connectionEnvironment = postgresConnectionEnvironment(dsn);
   return async ({ sql, variables = {} }) => {
     const args = [
       '--no-psqlrc',
@@ -55,7 +78,7 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
         maxBuffer: 2 * 1024 * 1024,
         env: {
           ...process.env,
-          PGDATABASE: dsn,
+          ...connectionEnvironment,
           PGAPPNAME: 'kaios-dual-staging-runtime',
           PGCONNECT_TIMEOUT: process.env.PGCONNECT_TIMEOUT || '5'
         }
