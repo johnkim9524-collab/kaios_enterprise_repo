@@ -27,25 +27,16 @@ async function sourceFiles() {
       if (entry.isDirectory()) {
         if (!SKIP_DIRS.has(entry.name)) await walk(fullPath);
       } else if (
-        entry.isFile() &&
-        EXTENSIONS.has(path.extname(entry.name)) &&
-        !/\.(test|spec)\.[^.]+$/.test(entry.name)
-      ) {
-        output.push(fullPath);
-      }
+        entry.isFile() && EXTENSIONS.has(path.extname(entry.name)) && !/\.(test|spec)\.[^.]+$/.test(entry.name)
+      ) output.push(fullPath);
     }
   }
   await walk(SERVICE_ROOT);
   return output.sort();
 }
 
-function lineNumber(source, offset) {
-  return source.slice(0, offset).split('\n').length;
-}
-
-function compact(value) {
-  return value.replace(/\s+/g, ' ').trim().slice(0, 220);
-}
+function lineNumber(source, offset) { return source.slice(0, offset).split('\n').length; }
+function compact(value) { return value.replace(/\s+/g, ' ').trim().slice(0, 220); }
 
 function inspect(file, source) {
   const relativeFile = path.relative(ROOT, file).replaceAll(path.sep, '/');
@@ -53,30 +44,16 @@ function inspect(file, source) {
   if (!source.includes('.prepare(') && !source.includes('.exec(')) return [];
   const findings = [];
   const staticRanges = [];
-
   for (const match of source.matchAll(STATIC_CALL)) {
     staticRanges.push([match.index, match.index + match[0].length]);
     if (!MUTATION.test(match[3])) continue;
-    findings.push({
-      kind: 'STATIC_D1_MUTATION',
-      file: relativeFile,
-      line: lineNumber(source, match.index),
-      method: match[1],
-      evidence: compact(match[3])
-    });
+    findings.push({kind:'STATIC_D1_MUTATION',file:relativeFile,line:lineNumber(source,match.index),method:match[1],evidence:compact(match[3])});
   }
-
   for (const match of source.matchAll(PREPARE_OR_EXEC)) {
-    if (staticRanges.some(([start, end]) => match.index >= start && match.index < end)) continue;
+    if (staticRanges.some(([start,end]) => match.index >= start && match.index < end)) continue;
     const argument = source.slice(match.index + match[0].length).trimStart();
     if (argument.startsWith('`') || argument.startsWith("'") || argument.startsWith('"')) continue;
-    findings.push({
-      kind: 'DYNAMIC_D1_SQL_PATH',
-      file: relativeFile,
-      line: lineNumber(source, match.index),
-      method: match[1],
-      evidence: compact(source.slice(match.index, match.index + 260))
-    });
+    findings.push({kind:'DYNAMIC_D1_SQL_PATH',file:relativeFile,line:lineNumber(source,match.index),method:match[1],evidence:compact(source.slice(match.index,match.index+260))});
   }
   return findings;
 }
@@ -90,56 +67,35 @@ for (const file of files) findings.push(...inspect(file, await readFile(file, 'u
 
 const boundaryPath = path.join(ROOT, APPROVED_PROJECTOR_BOUNDARY);
 let boundarySource = '';
-try {
-  boundarySource = await readFile(boundaryPath, 'utf8');
-} catch {
-  findings.push({kind:'PROJECTOR_BOUNDARY_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:0,method:'boundary',evidence:'canonical boundary missing'});
-}
+try { boundarySource = await readFile(boundaryPath, 'utf8'); }
+catch { findings.push({kind:'PROJECTOR_BOUNDARY_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:0,method:'boundary',evidence:'canonical boundary missing'}); }
 if (boundarySource) {
   const prepareCalls = [...boundarySource.matchAll(/\.prepare\s*\(/g)].length;
-  if (!boundarySource.includes("D1_PROJECTOR_WRITE_BOUNDARY_VERSION = 'd1-projector-write-boundary-v1'")) {
-    findings.push({kind:'PROJECTOR_BOUNDARY_MARKER_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'version marker missing'});
-  }
-  if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) {
-    findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
-  }
-  if (!boundarySource.includes("D1_PROJECTOR_READ_BOUNDARY_VERSION = 'd1-projector-read-boundary-v1'") ||
-      !boundarySource.includes('D1_PROJECTOR_READ_BOUNDARY_NON_READ_DENIED')) {
-    findings.push({kind:'PROJECTOR_READ_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'read classification guard missing'});
-  }
-  if (prepareCalls !== 2) {
-    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one write and one read prepare call, got ${prepareCalls}`});
-  }
+  if (!boundarySource.includes("D1_PROJECTOR_WRITE_BOUNDARY_VERSION = 'd1-projector-write-boundary-v1'")) findings.push({kind:'PROJECTOR_BOUNDARY_MARKER_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'version marker missing'});
+  if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
+  if (!boundarySource.includes('D1_LEGACY_RUNTIME_WRITE_DISABLED_USE_CONTROL_PLANE_PROJECTOR')) findings.push({kind:'PROJECTOR_WRITE_FAIL_CLOSED_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'runtime write boundary must fail closed'});
+  if (!boundarySource.includes("D1_PROJECTOR_READ_BOUNDARY_VERSION = 'd1-projector-read-boundary-v1'") || !boundarySource.includes('D1_PROJECTOR_READ_BOUNDARY_NON_READ_DENIED')) findings.push({kind:'PROJECTOR_READ_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'read classification guard missing'});
+  if (prepareCalls !== 1) findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`read-only boundary must contain exactly one D1 prepare call, got ${prepareCalls}`});
 }
 
-const byFile = Object.fromEntries(
-  [...new Set(findings.map((item) => item.file))]
-    .sort()
-    .map((file) => [file, findings.filter((item) => item.file === file).length])
-);
+const byFile = Object.fromEntries([...new Set(findings.map((item)=>item.file))].sort().map((file)=>[file,findings.filter((item)=>item.file===file).length]));
 const report = {
-  gate: 'D1_ZERO_DIRECT_WRITER',
-  scope: 'services/kidults-autonomous-intelligence/src production sources',
+  gate:'D1_ZERO_DIRECT_WRITER',
+  scope:'services/kidults-autonomous-intelligence/src production sources',
   mode,
-  generated_at: new Date().toISOString(),
-  status: findings.length === 0 ? 'PASS' : 'HOLD',
-  approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
-  approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
-  approved_projector_boundary_count: boundarySource ? 1 : 0,
-  scanned_files: files.length,
-  direct_writer_files: Object.keys(byFile).length,
-  findings: findings.length,
-  counts: {
-    static_d1_mutations: findings.filter((item) => item.kind === 'STATIC_D1_MUTATION').length,
-    dynamic_d1_sql_paths: findings.filter((item) => item.kind === 'DYNAMIC_D1_SQL_PATH').length,
-  },
-  by_file: byFile,
-  details: findings
+  generated_at:new Date().toISOString(),
+  status:findings.length===0?'PASS':'HOLD',
+  approved_projector_boundary:APPROVED_PROJECTOR_BOUNDARY,
+  approved_projector_boundary_version:'d1-projector-write-boundary-v1',
+  approved_projector_boundary_mode:'READ_ONLY_RUNTIME_FAIL_CLOSED_WRITE',
+  approved_projector_boundary_count:boundarySource?1:0,
+  scanned_files:files.length,
+  direct_writer_files:Object.keys(byFile).length,
+  findings:findings.length,
+  counts:{static_d1_mutations:findings.filter((item)=>item.kind==='STATIC_D1_MUTATION').length,dynamic_d1_sql_paths:findings.filter((item)=>item.kind==='DYNAMIC_D1_SQL_PATH').length},
+  by_file:byFile,
+  details:findings
 };
-
-if (outputPath) {
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
-}
-process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-if (mode === 'enforce-zero' && findings.length > 0) process.exitCode = 1;
+if (outputPath) { await mkdir(path.dirname(outputPath),{recursive:true}); await writeFile(outputPath,`${JSON.stringify(report,null,2)}\n`); }
+process.stdout.write(`${JSON.stringify(report,null,2)}\n`);
+if (mode==='enforce-zero' && findings.length>0) process.exitCode=1;
