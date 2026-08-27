@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_PSA_120_EXECUTION_PLAN_V1",
-  "state": "READY_FOR_LAWFUL_MANIFEST",
+  "state": "WAITING_FOR_PROVENANCE_BOUND_LAWFUL_MANIFEST",
   "target": 120,
   "provider_daily_limit": 100,
   "internal_daily_ceiling": 90,
@@ -9,8 +9,9 @@
     {"wave": 2, "maximum_calls": 30}
   ],
   "preconditions": [
-    "MANIFEST_HAS_120_UNIQUE_LAWFULLY_KNOWN_CERTS",
+    "MANIFEST_HAS_120_UNIQUE_PROVENANCE_BOUND_LAWFULLY_KNOWN_CERTS",
     "NO_SYNTHETIC_OR_GUESSED_CERTS",
+    "NO_BULK_ENUMERATION_OR_BRUTE_FORCE_DISCOVERY",
     "PRIVATE_ONLY_ENCRYPTED_STORE_ACTIVE",
     "DELETE_BY_AND_DELETION_RECEIPT_ACTIVE",
     "PSA_TOKEN_AVAILABLE_IN_APPROVED_SECRET_CONTEXT"
@@ -20,10 +21,12 @@
     "SCHEMA_DRIFT",
     "DAILY_INTERNAL_CEILING_REACHED",
     "RETENTION_CONTROL_FAILURE",
-    "PROVENANCE_FAILURE"
+    "PROVENANCE_FAILURE",
+    "MANIFEST_ENTRY_COUNT_OR_DIGEST_MISMATCH"
   ],
-  "current_manifest": 2,
-  "remaining_manifest": 118,
+  "declared_known_count": 2,
+  "provenance_bound_admissible_manifest": 0,
+  "remaining_admissible_manifest": 120,
   "live_execution": "HOLD_UNTIL_PRECONDITIONS",
   "production": "HOLD",
   "public": "HOLD",
