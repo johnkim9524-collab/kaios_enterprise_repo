@@ -86,9 +86,14 @@ const [branch, correctionPr, issues, defectIssues] = await Promise.all([
   Promise.all(trackedDefects.map(number => github(`/issues/${number}`)))
 ]);
 
-if (branch.commit?.sha !== expectedMainSha) {
-  fail(`main moved: expected ${expectedMainSha}, observed ${branch.commit?.sha || 'UNKNOWN'}`);
+const observedMainSha = branch.commit?.sha || '';
+if (!/^[0-9a-f]{40}$/i.test(observedMainSha)) fail('live protected-main SHA is unavailable');
+const correctionPrValidation = Boolean(expectedCorrectionHead);
+if (!correctionPrValidation && observedMainSha !== expectedMainSha) {
+  fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
 }
+const effectiveMainSha = correctionPrValidation ? observedMainSha : expectedMainSha;
+
 const correctionHead = correctionPr.head?.sha || '';
 if (!/^[0-9a-f]{40}$/i.test(correctionHead)) fail('canonical correction PR head is unavailable');
 if (correctionPr.base?.ref !== 'main') fail(`canonical correction PR targets ${correctionPr.base?.ref || 'UNKNOWN'}, not main`);
@@ -97,26 +102,26 @@ if (expectedCorrectionHead && correctionHead !== expectedCorrectionHead) {
 }
 
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
-const errors = validateBodies(expectedMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
+const errors = validateBodies(effectiveMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
 if (errors.length) fail(errors.join('; '));
 
 const staleMainMutation = structuredClone(issues);
-staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(expectedMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
-if (!validateBodies(expectedMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) {
+staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(effectiveMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
+if (!validateBodies(effectiveMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) {
   fail('stale-main mutation was not rejected');
 }
 
 const correctionMutation = structuredClone(issues);
 correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`
   .replaceAll(correctionHead, '1111111111111111111111111111111111111111');
-if (!validateBodies(expectedMainSha, correctionHead, correctionMutation, activeDefects, true).length) {
+if (!validateBodies(effectiveMainSha, correctionHead, correctionMutation, activeDefects, true).length) {
   fail('stale-correction-head mutation was not rejected');
 }
 
 if (activeDefects.length) {
   const omissionMutation = structuredClone(issues);
   omissionMutation[0].body = omissionMutation[0].body.replaceAll(`#${activeDefects[0]}`, '');
-  if (!validateBodies(expectedMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) {
+  if (!validateBodies(effectiveMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) {
     fail('active-defect omission mutation was not rejected');
   }
 }
@@ -129,7 +134,7 @@ const closureMutationTexts = [
 for (const mutationText of closureMutationTexts) {
   const closureMutation = structuredClone(issues);
   closureMutation[0].body += `\n${mutationText}\n`;
-  if (!validateBodies(expectedMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) {
+  if (!validateBodies(effectiveMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) {
     fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
   }
 }
@@ -137,7 +142,10 @@ for (const mutationText of closureMutationTexts) {
 console.log(JSON.stringify({
   validator: 'LIVE_CANONICAL_ISSUE_TRUTH_V1',
   state: 'VERIFIED_PASS',
-  protected_main_sha: expectedMainSha,
+  protected_main_sha: effectiveMainSha,
+  event_base_sha: expectedMainSha,
+  live_main_observed: observedMainSha,
+  correction_pr_validation: correctionPrValidation,
   canonical_correction_pr: correctionPrNumber,
   canonical_correction_head: correctionHead,
   live_correction_head_enforced_in_issues: requireLiveCorrectionHead,
