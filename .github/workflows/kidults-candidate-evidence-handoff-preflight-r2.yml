@@ -9,13 +9,23 @@ on:
       - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - '.github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json'
+      - 'coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json'
+      - 'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json'
+      - 'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
+      - '.github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: kidults-candidate-evidence-handoff-r2-${{ github.workflow }}-${{ github.ref }}
+  group: kidults-candidate-evidence-handoff-r2-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 env:
@@ -29,11 +39,19 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Check out exact revision
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify exact source SHA
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Set up Node.js 24.19.0
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           check-latest: false
@@ -124,7 +142,7 @@ jobs:
               gates.caller_point_estimates_authoritative !== false) {
             throw new Error('COMPUTED_GATE_TRUTH_MISMATCH');
           }
-          console.log('Candidate/Evidence R2 truth guard PASS: 6/7 constructed mechanics remain non-empirical and BLOCKED.');
+          console.log('Candidate/Evidence R2 truth guard PASS: blocked selftest fixture remains non-empirical and BLOCKED.');
           NODE
       - name: Prove shortcut laundering remains blocked
         shell: bash
@@ -229,9 +247,9 @@ jobs:
           fi
           echo 'Strict handoff mode FAIL-CLOSED PASS.'
       - name: Upload deterministic preflight evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: kidults-candidate-evidence-handoff-preflight-r2
+          name: kidults-candidate-evidence-handoff-preflight-r2-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/candidate-evidence-handoff-preflight-r2-a.json
           if-no-files-found: error
           retention-days: 30
