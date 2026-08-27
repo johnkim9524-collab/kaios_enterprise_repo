@@ -239,6 +239,11 @@ jobs:
             ],
             next_action:'Obtain authorized access and purpose-specific rights for one Top16 current-sold source or licensed feed.',
             authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal implementation only; no account, terms acceptance, spend, permission request, credential expansion, public release, Production or G5 action.'},
+            defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
+            remediation_sequence:[],
+            verification_evidence_refs:[run,validationPath,manifestPath],
+            truth_sync_refs:[],
+            improvement_proposal:'Keep the receipt-contract validator coupled to this workflow so future schema evolution fails at generation time before promotion.',
             production:'HOLD',public_release:'HOLD'
           };
           process.stdout.write(`${JSON.stringify(receipt,null,2)}\n`);
