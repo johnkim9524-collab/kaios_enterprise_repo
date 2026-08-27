@@ -1,0 +1,42 @@
+{
+  "receipt_type": "KPMO_RUNTIME_BOUNDARY_P0_CLOSURE",
+  "version": "1.0",
+  "generated_at": "2026-08-27T15:00:00+09:00",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "branch": "codex/p0-runtime-boundary-hardening-v9-20260827",
+  "exact_head": null,
+  "status": "IMPLEMENTED_PENDING_EXACT_HEAD_CI_AND_INDEPENDENT_REVIEW",
+  "scope": {
+    "closed_in_code": [
+      "shadow export route no longer permits GET",
+      "operator export requires entitlement, revocation, expiry and scope checks",
+      "projection is loaded from a server-owned store rather than client input",
+      "request and entitlement are bound to the exact projection digest",
+      "nonce replay is blocked by persistent atomic one-time markers",
+      "denied paths return no projection payload",
+      "missing runtime controls fail closed with 503",
+      "exact-head adversarial CI workflow added"
+    ],
+    "explicitly_not_closed": [
+      "PostgreSQL canonical greenfield migration and live driver bootstrap",
+      "live two-tenant RLS, concurrency, PITR, restore and rollback evidence",
+      "D1 zero-direct-writer cutover",
+      "process-memory removal outside this runtime",
+      "protected-main landing",
+      "independent reviewer exact-head receipt",
+      "Track B empirical validation"
+    ]
+  },
+  "gates": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "merge": "HOLD_UNTIL_REQUIRED_CHECKS_AND_INDEPENDENT_EXACT_HEAD_REVIEW"
+  },
+  "verification": {
+    "command": "node --test apps/dual-staging-http-runtime/src/server.test.mjs",
+    "workflow": ".github/workflows/p0-runtime-boundary-security.yml",
+    "local_result": "PENDING_RECORDED_OUTPUT",
+    "remote_ci_result": "PENDING"
+  }
+}

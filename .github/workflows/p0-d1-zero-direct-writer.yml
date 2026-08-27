@@ -1,0 +1,59 @@
+name: P0 D1 Zero Direct Writer
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/**'
+      - 'scripts/ci/validate-d1-direct-writer-cutover-v2.mjs'
+      - '.github/workflows/p0-d1-zero-direct-writer.yml'
+  push:
+    branches:
+      - 'codex/p0-runtime-boundary-hardening-*'
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/**'
+      - 'scripts/ci/validate-d1-direct-writer-cutover-v2.mjs'
+      - '.github/workflows/p0-d1-zero-direct-writer.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-d1-zero-writer-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zero-direct-writer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Prove exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='${{ github.event.pull_request.head.sha || github.sha }}'
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          printf 'exact_head=%s\n' "$actual"
+
+      - name: Generate direct-writer inventory
+        run: >-
+          node scripts/ci/validate-d1-direct-writer-cutover-v2.mjs
+          --output=artifacts/d1-direct-writer-inventory.json
+
+      - name: Upload exact-head inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-direct-writer-inventory-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/d1-direct-writer-inventory.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce zero direct D1 writers
+        run: node scripts/ci/validate-d1-direct-writer-cutover-v2.mjs --enforce-zero
