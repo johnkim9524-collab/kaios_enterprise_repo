@@ -1,0 +1,23 @@
+{
+  "id": "KPMO_CANONICAL_ISSUE_CONCURRENCY_BY_ISSUE_V1",
+  "version": "1.0.0",
+  "state": "REQUIRED",
+  "problem": "Different canonical issue edits shared a main-SHA concurrency group and cancelled one another, generating transient false-red Assurance fan-out.",
+  "required_semantics": {
+    "pull_request_identity": "EXACT_HEAD_SHA",
+    "issue_event_identity": "EXACT_ISSUE_NUMBER",
+    "push_or_manual_identity": "EXACT_RUN_ID",
+    "cancel_in_progress": true,
+    "same_issue_newer_edit_may_supersede_older": true,
+    "different_issue_edits_must_not_cancel_each_other": true
+  },
+  "assurance": {
+    "canonical_failure_observability_preserved": true,
+    "canonical_cancellation_observability_preserved": true,
+    "ignore_cancelled_runs": false,
+    "false_green_relaxation": false
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
