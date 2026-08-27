@@ -1,10 +1,13 @@
 {
   "id": "kidults-ai-agent-report-after-remediation-gate-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "scope": "ALL_AI_AGENT_STATUS_AND_PROGRESS_REPORTS",
-  "purpose": "Prevent report-before-fix behavior for reversible internal defects within granted authority.",
+  "scope": "REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPTS",
+  "behavioral_scope": "ALL_AI_AGENTS_STATUS_AND_PROGRESS_REPORTING",
+  "machine_enforcement_scope": "REGISTERED_REPOSITORY_STATUS_RECEIPT_PATHS",
+  "external_chat_output_interception_claimed": false,
+  "purpose": "Prevent report-before-fix behavior for reversible internal defects within granted authority, and machine-validate repository-governed status receipts without falsely claiming interception of external chat output.",
   "normal_report_gate": {
     "authorized_reversible_defect_present": "REMEDIATION_SEQUENCE_MUST_COMPLETE_BEFORE_ROUTINE_REPORT",
     "required_sequence": [
@@ -45,9 +48,16 @@
       "PROTECTED_STOP_BLOCKED"
     ]
   },
+  "machine_receipt_rule": {
+    "receipt_must_pass_canonical_status_schema": true,
+    "receipt_must_pass_report_after_remediation_validator": true,
+    "synthetic_self_test_alone_counts_as_end_to_end_report_enforcement": false,
+    "registered_workflow_must_emit_and_validate_real_run_receipt": true
+  },
   "violation": {
     "report_before_authorized_remediation": "P1_OPERATING_DEFECT",
     "false_remediation_or_verification_claim": "P0_GOVERNANCE_DEFECT",
+    "machine_enforcement_scope_overclaim": "P0_GOVERNANCE_DEFECT",
     "self_exemption_allowed": false
   },
   "production": "HOLD",
