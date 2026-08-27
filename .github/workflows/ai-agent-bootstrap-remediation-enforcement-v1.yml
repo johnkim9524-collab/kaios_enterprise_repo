@@ -1,0 +1,59 @@
+name: KIDULTS AI Agent Bootstrap Remediation Enforcement V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
+      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
+      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
+      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-ai-agent-bootstrap-remediation-v1-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-bootstrap-remediation:
+    name: Validate AI Fix-First Bootstrap
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Enforce mandatory fix-first bootstrap and negative mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs
+          node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs
