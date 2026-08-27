@@ -24,7 +24,8 @@ function validate(t){
   need('^sha256:[0-9a-f]{64}$','digest');
   need("status:'WAITING_FOR_EXACT_GENERATION_PEER'",'waiting receipt status');
   need("status:'VERIFIED_EXACT_GENERATION_BINDING'",'verified receipt status');
-  need("if: steps.inputs.outputs.ready == 'true'",'ready gating');
+  const readyGate="if: steps.inputs.outputs.ready == 'true'";
+  if((t.split(readyGate).length-1)<3)f.push('missing complete ready gating');
   need("echo 'ready=false' >> \"$GITHUB_OUTPUT\"",'wait output');
   need("echo 'ready=true' >> \"$GITHUB_OUTPUT\"",'ready output');
   need('expected_generation_sha:e.STEERING_EXPECTED_GENERATION_SHA','receipt generation');
