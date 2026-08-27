@@ -5,6 +5,7 @@ import process from 'node:process';
 
 const ROOT = path.resolve(new URL('../..', import.meta.url).pathname);
 const SERVICE_ROOT = path.join(ROOT, 'services/kidults-autonomous-intelligence/src');
+const APPROVED_PROJECTOR_BOUNDARY = 'services/kidults-autonomous-intelligence/src/d1-projector-write-boundary.ts';
 const EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', 'fixtures', '__tests__', '__snapshots__']);
 const MUTATION = /\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|TRUNCATE|VACUUM|REINDEX|ATTACH|DETACH)\b/i;
@@ -47,8 +48,9 @@ function compact(value) {
 }
 
 function inspect(file, source) {
-  if (!source.includes('.prepare(') && !source.includes('.exec(')) return [];
   const relativeFile = path.relative(ROOT, file).replaceAll(path.sep, '/');
+  if (relativeFile === APPROVED_PROJECTOR_BOUNDARY) return [];
+  if (!source.includes('.prepare(') && !source.includes('.exec(')) return [];
   const findings = [];
   const staticRanges = [];
 
@@ -86,6 +88,26 @@ const files = await sourceFiles();
 const findings = [];
 for (const file of files) findings.push(...inspect(file, await readFile(file, 'utf8')));
 
+const boundaryPath = path.join(ROOT, APPROVED_PROJECTOR_BOUNDARY);
+let boundarySource = '';
+try {
+  boundarySource = await readFile(boundaryPath, 'utf8');
+} catch {
+  findings.push({kind:'PROJECTOR_BOUNDARY_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:0,method:'boundary',evidence:'canonical boundary missing'});
+}
+if (boundarySource) {
+  const prepareCalls = [...boundarySource.matchAll(/\.prepare\s*\(/g)].length;
+  if (!boundarySource.includes("D1_PROJECTOR_WRITE_BOUNDARY_VERSION = 'd1-projector-write-boundary-v1'")) {
+    findings.push({kind:'PROJECTOR_BOUNDARY_MARKER_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'version marker missing'});
+  }
+  if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) {
+    findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
+  }
+  if (prepareCalls !== 1) {
+    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one prepare call, got ${prepareCalls}`});
+  }
+}
+
 const byFile = Object.fromEntries(
   [...new Set(findings.map((item) => item.file))]
     .sort()
@@ -93,18 +115,19 @@ const byFile = Object.fromEntries(
 );
 const report = {
   gate: 'D1_ZERO_DIRECT_WRITER',
-  approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
-  approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
   scope: 'services/kidults-autonomous-intelligence/src production sources',
   mode,
   generated_at: new Date().toISOString(),
   status: findings.length === 0 ? 'PASS' : 'HOLD',
+  approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
+  approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
+  approved_projector_boundary_count: boundarySource ? 1 : 0,
   scanned_files: files.length,
   direct_writer_files: Object.keys(byFile).length,
   findings: findings.length,
   counts: {
     static_d1_mutations: findings.filter((item) => item.kind === 'STATIC_D1_MUTATION').length,
-    dynamic_d1_sql_paths: findings.filter((item) => item.kind === 'DYNAMIC_D1_SQL_PATH').length
+    dynamic_d1_sql_paths: findings.filter((item) => item.kind === 'DYNAMIC_D1_SQL_PATH').length,
   },
   by_file: byFile,
   details: findings
