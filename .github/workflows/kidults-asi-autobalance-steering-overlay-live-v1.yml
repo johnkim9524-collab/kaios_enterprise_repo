@@ -89,6 +89,7 @@ jobs:
             EXPECTED_GENERATION_SHA="$CURRENT_SHA"
             BINDING_MODE='MANUAL_EXACT_CURRENT_MAIN'
           fi
+          export EXPECTED_GENERATION_SHA BINDING_MODE
 
           gh api --method GET -H 'Accept: application/vnd.github+json' \
             -f branch=main -f status=success -f per_page=100 \
@@ -107,6 +108,7 @@ jobs:
             [ -n "$BASE_RUN_ID" ] || MISSING+=(self_driving_base)
             [ -n "$AUTOBALANCE_RUN_ID" ] || MISSING+=(throughput_autobalance)
             printf -v MISSING_CSV '%s,' "${MISSING[@]}"; MISSING_CSV=${MISSING_CSV%,}
+            export MISSING_CSV
             echo 'ready=false' >> "$GITHUB_OUTPUT"
             node - <<'NODE'
           const fs=require('node:fs'),e=process.env;
@@ -174,10 +176,6 @@ jobs:
             echo "STEERING_AUTOBALANCE_DIGEST=$BAL_DIGEST"
           } >> "$GITHUB_ENV"
           echo 'ready=true' >> "$GITHUB_OUTPUT"
-        env:
-          BINDING_MODE: ${{ env.BINDING_MODE }}
-          EXPECTED_GENERATION_SHA: ${{ env.EXPECTED_GENERATION_SHA }}
-          MISSING_CSV: ${{ env.MISSING_CSV }}
 
       - name: Apply sweep-safe live autobalance overlay
         if: steps.inputs.outputs.ready == 'true'
