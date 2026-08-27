@@ -1,0 +1,95 @@
+{
+  "contract_id": "KIDULTS_CROSS_GRADER_CANONICAL_RECONCILIATION_V1",
+  "parent_issues": [1162, 1159, 945, 609],
+  "scope": "SYNTHETIC_AND_EXISTING_LAWFUL_FIXTURES_ONLY",
+  "provider_namespaces": ["PSA", "BGS", "SGC", "CGC", "TAG"],
+  "identity_principles": {
+    "kidults_canonical_identity_owned_internally": true,
+    "provider_id_is_evidence_key_only": true,
+    "provider_cert_is_evidence_key_only": true,
+    "provider_universal_id_is_canonical": false,
+    "provider_taxonomy_is_canonical": false,
+    "provider_score_is_kidults_score": false
+  },
+  "canonical_identity_dimensions": [
+    "year",
+    "set",
+    "subject",
+    "card_number",
+    "parallel",
+    "variant"
+  ],
+  "normalization_rules": {
+    "unicode": "NFKC",
+    "case": "UPPER",
+    "whitespace": "COLLAPSE_AND_TRIM",
+    "empty_parallel": "BASE",
+    "empty_variant": "STANDARD",
+    "card_number": "UPPER_TRIM_PRESERVE_INTERNAL_PUNCTUATION_AND_LEADING_ZEROES"
+  },
+  "merge_policy": {
+    "all_canonical_dimensions_must_match": true,
+    "parallel_mismatch_forbids_merge": true,
+    "variant_mismatch_forbids_merge": true,
+    "provider_or_cert_match_alone_may_merge": false,
+    "missing_required_dimension": "HOLD_UNRESOLVED",
+    "contradictory_dimensions": "HOLD_CONTRADICTION"
+  },
+  "grade_reconciliation": {
+    "mode": "VERSIONED_EXPLICIT_MAPPING_ONLY",
+    "unknown_grade": "HOLD_UNMAPPED_GRADE",
+    "source_grade_preserved": true,
+    "canonical_grade_is_not_provider_score": true,
+    "mapping_version_required": true,
+    "synthetic_mapping_table": {
+      "mapping_version": "synthetic-v1",
+      "entries": [
+        {"provider_namespace":"PSA","source_grade":"10","canonical_band":"TOP_NUMERIC"},
+        {"provider_namespace":"BGS","source_grade":"10","canonical_band":"TOP_NUMERIC"},
+        {"provider_namespace":"SGC","source_grade":"10","canonical_band":"TOP_NUMERIC"},
+        {"provider_namespace":"CGC","source_grade":"10","canonical_band":"TOP_NUMERIC"},
+        {"provider_namespace":"TAG","source_grade":"10","canonical_band":"TOP_NUMERIC"},
+        {"provider_namespace":"PSA","source_grade":"9","canonical_band":"HIGH_NUMERIC"},
+        {"provider_namespace":"BGS","source_grade":"9","canonical_band":"HIGH_NUMERIC"}
+      ]
+    }
+  },
+  "population_reconciliation": {
+    "provider_counts_are_provider_scoped_facts": true,
+    "cross_grader_sum_is_global_population": false,
+    "aggregate_without_dedup_proof": "NON_ADDITIVE_VECTOR_ONLY",
+    "unknown_count": "UNKNOWN_NOT_ZERO",
+    "contradictory_snapshot": "HOLD_CONTRADICTION",
+    "snapshot_timestamp_required": true,
+    "source_reference_required": true
+  },
+  "confidence_model": {
+    "exact_all_dimensions": "EXACT",
+    "normalized_all_dimensions": "NORMALIZED_EXACT",
+    "missing_dimension": "UNRESOLVED",
+    "dimension_conflict": "CONTRADICTORY",
+    "provider_id_only": "UNRESOLVED"
+  },
+  "mapping_history": {
+    "versioned": true,
+    "append_only": true,
+    "effective_at_required": true,
+    "previous_version_reference_required_after_v1": true
+  },
+  "provider_removal_replay": {
+    "required": true,
+    "canonical_id_must_remain_stable": true,
+    "remaining_provider_evidence_must_remain_resolvable": true,
+    "population_vector_must_remove_only_removed_provider": true,
+    "downstream_contract_must_not_require_removed_provider_fields": true
+  },
+  "non_bypass": {
+    "new_external_data_acquisition": "NOT_AUTHORIZED_BY_THIS_CONTRACT",
+    "external_spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
