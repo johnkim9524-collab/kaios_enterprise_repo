@@ -1,0 +1,58 @@
+name: Track B Generic Input Boundary V2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/assessment/validate-track-b-input-boundary-v2.mjs'
+      - 'coordination/kidults/candidates/**'
+      - 'coordination/kidults/registry/snapshot/index.json'
+      - 'coordination/kidults/registry/methodology/index.json'
+      - 'coordination/kidults/registry/evidence-lineage/index.json'
+      - '.github/workflows/track-b-input-boundary-v2.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/assessment/validate-track-b-input-boundary-v2.mjs'
+      - 'coordination/kidults/candidates/**'
+      - 'coordination/kidults/registry/snapshot/index.json'
+      - 'coordination/kidults/registry/methodology/index.json'
+      - 'coordination/kidults/registry/evidence-lineage/index.json'
+      - '.github/workflows/track-b-input-boundary-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-boundary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Prove historical candidate cannot be promoted as current
+        run: |
+          set -euo pipefail
+          if node scripts/kidults/assessment/validate-track-b-input-boundary-v2.mjs candidate-structural-20260816-r1 > /tmp/track-b-historical.json; then
+            echo 'historical candidate unexpectedly passed Track B input gate' >&2
+            exit 1
+          fi
+          grep -q 'SNAPSHOT_REGISTRY_CURRENT_CANDIDATE_MISMATCH' /tmp/track-b-historical.json
+      - name: Prove missing candidate fails closed
+        run: |
+          set -euo pipefail
+          if node scripts/kidults/assessment/validate-track-b-input-boundary-v2.mjs candidate-does-not-exist-00000000 > /tmp/track-b-missing.json 2>/tmp/track-b-missing.err; then
+            echo 'missing candidate unexpectedly passed Track B input gate' >&2
+            exit 1
+          fi
+          grep -q 'TRACK_B_CANDIDATE_UNREADABLE' /tmp/track-b-missing.err
