@@ -545,8 +545,8 @@
     },
     "autonomous_intelligence_package_manifest": {
       "path": "services/kidults-autonomous-intelligence/package.json",
-      "sha256": "sha256:1354d9be1c0b67823d230bede9b5dd9624fd546fe6d2dc7280f446ee228b341c",
-      "byte_count": 10345
+      "sha256": "sha256:13d0231663becc337dc032ba1974437fcdb14106fadf2053eec4bd22f61f3082",
+      "byte_count": 10942
     },
     "autonomous_intelligence_dependency_lock": {
       "path": "services/kidults-autonomous-intelligence/package-lock.json",
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:a71c5831abae7f7fb91b9125df702f9c5ff70bb50687306fcc89d3a27c3f1c9e"
+  "evidence_fingerprint": "sha256:6ef47bde04735c60d17244dfaa9c7e6dc25578c88d1fda01654a0a5edf5ed417"
 }
