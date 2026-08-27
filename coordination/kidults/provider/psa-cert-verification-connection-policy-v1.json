@@ -1,14 +1,24 @@
 {
   "policy_id": "KIDULTS_PSA_CERT_VERIFICATION_CONNECTION_POLICY_V1",
   "provider_id": "psa-public-api",
-  "state": "SCHEMA_CANARY_READY_AFTER_CREDENTIAL_BINDING_BOUNDED_EVALUATION_HOLD",
+  "state": "PREMIUM_API_CONNECTION_VERIFIED_BOUNDED_PRIVATE_EVALUATION_CONTROLS_HOLD",
   "source_evidence": {
     "canonical_issue": 1251,
-    "provider_reply_interpretation": "PRIVATE_TEMPORARY_CERT_VERIFICATION_EVALUATION_ALLOWED",
-    "source_message_immutability": "PENDING",
-    "population_census_field_dictionary": "UNKNOWN",
-    "acquisition_120_case_right": "UNKNOWN",
-    "derived_data_post_exit": "UNKNOWN"
+    "provider_reply_interpretation": "BOUNDED_120_CASE_PRIVATE_INTERNAL_EVALUATION_RIGHTS_CONFIRMED",
+    "source_message_immutability": "VERIFIED_BY_RFC_AND_GMAIL_IMMUTABLE_MESSAGE_IDS",
+    "population_census_field_dictionary": "CERT_RESPONSE_FIELDS_EMPIRICALLY_OBSERVED_TOTAL_POPULATION_TOTAL_WITH_QUALIFIER_AND_POPULATION_HIGHER; FULL_GRADE_CENSUS_ENDPOINT_NOT_LIVE_PROBED",
+    "acquisition_120_case_right": "CONFIRMED_FOR_BOUNDED_KNOWN_CERT_INTERNAL_EVALUATION_SUBJECT_TO_100_CALLS_PER_DAY_AND_NO_ENUMERATION",
+    "derived_data_post_exit": "ALLOW_NON_RAW_NON_RECONSTRUCTIVE_DERIVED_RESULTS",
+    "rights_message_bindings": [
+      {
+        "gmail_message_id": "1a0345ff34f722e9",
+        "rfc_message_id": "<CAKk4VAHpLn-i-tcUo3Uy8dMBuryePtHYkppFTu6CYzBxHoffjg@mail.gmail.com>"
+      },
+      {
+        "gmail_message_id": "1a0396dc3b4b7528",
+        "rfc_message_id": "<CAKk4VAFbhtvg4Jt-XR9EWR7MbcbSBxx-5J0N_4Fnuhs+z-RQKg@mail.gmail.com>"
+      }
+    ]
   },
   "allowed": {
     "collect": true,
@@ -42,5 +52,41 @@
     "global_effect": "NEUTRAL_SINGLE_PROVIDER_CANARY_IS_NOT_GLOBAL_COVERAGE",
     "irreplaceable_value_effect": "POSITIVE_PROVIDER_NEUTRAL_CANONICAL_OUTPUT_AND_EXIT",
     "transparency_effect": "POSITIVE_RIGHTS_SCHEMA_AND_PROMOTION_CEILINGS_EXPLICIT"
+  },
+  "commercial_entitlement": {
+    "plan": "PREMIUM_COLLECTORS_CLUB_API",
+    "paid_active": true,
+    "annual_usd": 199,
+    "daily_request_limit": 100,
+    "daily_limit_source": "WRITTEN_PROVIDER_ACCOUNT_ENTITLEMENT",
+    "enterprise_upgrade": "NOT_APPROVED_NOT_REQUIRED"
+  },
+  "live_connection_receipt": {
+    "receipt_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+    "protected_main_sha": "957759043f46c711d18065896cbf438bb3dcf5bd",
+    "workflow_run_id": 33123384792,
+    "artifact_id": 9667350819,
+    "artifact_digest": "sha256:7f9a3e0aeb61a89f93f7eb90245e2bf150b7ce67e68d284261a7934a63160137",
+    "http_status": 200,
+    "official_schema_match": true,
+    "provider_calls": 1,
+    "raw_provider_payload_retained": false,
+    "api_connection_state": "VERIFIED_PASS"
+  },
+  "completed_connection_steps": [
+    "BIND_TOKEN_IN_APPROVED_SECRET_MANAGER",
+    "CONFIRM_ACCOUNT_AND_ENDPOINT_WITHOUT_LOGGING_SECRET",
+    "RUN_ONE_KNOWN_CERT_SCHEMA_CANARY",
+    "EMIT_SCHEMA_KEYS_RESPONSE_DIGEST_AND_SANITIZED_RECEIPT_ONLY"
+  ],
+  "operational_readiness": {
+    "exact_field_map": "PENDING_APPROVAL",
+    "encrypted_private_store": "NOT_IMPLEMENTED",
+    "retention_deletion_scheduler": "NOT_CONNECTED",
+    "lawful_known_cert_manifest": "2_KNOWN_OF_120_REQUIRED",
+    "quota_execution_plan": "PENDING_MINIMUM_TWO_DAYS",
+    "independent_er_evidence_pairs": "NOT_ASSEMBLED",
+    "acquisition_progress": "0_OF_120",
+    "track_b": "NOT_STARTED"
   }
 }
