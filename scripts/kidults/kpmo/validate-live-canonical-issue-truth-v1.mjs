@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
-const expectedBodyMainSha = process.env.EXPECTED_CANONICAL_BODY_MAIN_SHA || expectedMainSha;
+const expectedBodyMainSha = process.env.EXPECTED_CANONICAL_BODY_MAIN_SHA || '';
 const truthPhase = process.env.CANONICAL_TRUTH_PHASE || 'SYNCHRONIZED';
 const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1431');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
@@ -26,11 +28,14 @@ function fail(message) {
 if (!repository || !token || !/^[0-9a-f]{40}$/i.test(expectedMainSha || '')) {
   fail('GITHUB_REPOSITORY, GITHUB_TOKEN, and exact EXPECTED_PROTECTED_MAIN_SHA are required');
 }
-if (!/^[0-9a-f]{40}$/i.test(expectedBodyMainSha || '')) {
-  fail('EXPECTED_CANONICAL_BODY_MAIN_SHA must be an exact SHA');
+if (expectedBodyMainSha && !/^[0-9a-f]{40}$/i.test(expectedBodyMainSha)) {
+  fail('EXPECTED_CANONICAL_BODY_MAIN_SHA must be empty or an exact SHA');
 }
-if (!['TRANSITION', 'SYNCHRONIZED'].includes(truthPhase)) {
-  fail('CANONICAL_TRUTH_PHASE must be TRANSITION or SYNCHRONIZED');
+if (!['AUTO', 'TRANSITION', 'SYNCHRONIZED'].includes(truthPhase)) {
+  fail('CANONICAL_TRUTH_PHASE must be AUTO, TRANSITION or SYNCHRONIZED');
+}
+if (truthPhase !== 'AUTO' && !expectedBodyMainSha) {
+  fail('non-AUTO truth phase requires exact EXPECTED_CANONICAL_BODY_MAIN_SHA');
 }
 if (!Number.isInteger(correctionPrNumber) || correctionPrNumber < 1) {
   fail('CANONICAL_CORRECTION_PR_NUMBER must be a positive integer');
@@ -91,14 +96,6 @@ if (!/^[0-9a-f]{40}$/i.test(observedMainSha)) fail('live protected-main SHA is u
 const observedParentSha = live.ref?.target?.parents?.nodes?.[0]?.oid || '';
 const correctionPrValidation = Boolean(expectedCorrectionHead);
 if (!correctionPrValidation && observedMainSha !== expectedMainSha) fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
-if (truthPhase === 'TRANSITION') {
-  if (!/^[0-9a-f]{40}$/i.test(observedParentSha)) fail('live protected-main parent SHA is unavailable for transition validation');
-  if (expectedBodyMainSha !== observedParentSha) fail(`transition body generation must equal immediate prior main: expected body ${expectedBodyMainSha}, observed parent ${observedParentSha}`);
-  if (expectedBodyMainSha === expectedMainSha) fail('transition body generation must differ from current protected main');
-} else if (expectedBodyMainSha !== expectedMainSha) {
-  fail(`synchronized phase requires body main ${expectedMainSha}, received ${expectedBodyMainSha}`);
-}
-const effectiveBodyMainSha = expectedBodyMainSha;
 
 const correctionPr = live.pullRequest;
 const correctionHead = correctionPr?.headRefOid || '';
@@ -115,6 +112,29 @@ for (const number of [...new Set([...canonicalIssues, ...trackedDefects])]) {
 const issues = canonicalIssues.map(number => issueByNumber.get(number));
 const defectIssues = trackedDefects.map(number => issueByNumber.get(number));
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
+
+let resolvedTruthPhase = truthPhase;
+let effectiveBodyMainSha = expectedBodyMainSha;
+if (truthPhase === 'AUTO') {
+  const allCurrent = issues.every(issue => String(issue.body || '').includes(expectedMainSha));
+  const allParent = /^[0-9a-f]{40}$/i.test(observedParentSha) && issues.every(issue => String(issue.body || '').includes(observedParentSha));
+  if (allCurrent) {
+    resolvedTruthPhase = 'SYNCHRONIZED';
+    effectiveBodyMainSha = expectedMainSha;
+  } else if (allParent) {
+    resolvedTruthPhase = 'TRANSITION';
+    effectiveBodyMainSha = observedParentSha;
+  } else {
+    fail(`AUTO phase could not resolve canonical body generation to current ${expectedMainSha} or immediate parent ${observedParentSha || 'UNKNOWN'}`);
+  }
+} else if (truthPhase === 'TRANSITION') {
+  if (!/^[0-9a-f]{40}$/i.test(observedParentSha)) fail('live protected-main parent SHA is unavailable for transition validation');
+  if (expectedBodyMainSha !== observedParentSha) fail(`transition body generation must equal immediate prior main: expected body ${expectedBodyMainSha}, observed parent ${observedParentSha}`);
+  if (expectedBodyMainSha === expectedMainSha) fail('transition body generation must differ from current protected main');
+} else if (expectedBodyMainSha !== expectedMainSha) {
+  fail(`synchronized phase requires body main ${expectedMainSha}, received ${expectedBodyMainSha}`);
+}
+
 const errors = validateBodies(effectiveBodyMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
 if (errors.length) fail(errors.join('; '));
 
@@ -143,10 +163,15 @@ for (const mutationText of closureMutationTexts) {
   if (!validateBodies(effectiveBodyMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
 }
 
+if (process.env.GITHUB_OUTPUT) {
+  fs.appendFileSync(process.env.GITHUB_OUTPUT, `resolved_truth_phase=${resolvedTruthPhase}\ncanonical_body_main_sha=${effectiveBodyMainSha}\n`);
+}
+
 console.log(JSON.stringify({
   validator: 'LIVE_CANONICAL_ISSUE_TRUTH_V1',
   state: 'VERIFIED_PASS',
-  truth_phase: truthPhase,
+  requested_truth_phase: truthPhase,
+  truth_phase: resolvedTruthPhase,
   protected_main_sha: expectedMainSha,
   canonical_body_main_sha: effectiveBodyMainSha,
   live_main_observed: observedMainSha,
