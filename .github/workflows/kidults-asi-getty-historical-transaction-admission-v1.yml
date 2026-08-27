@@ -23,6 +23,8 @@ on:
       - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
       - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
@@ -56,6 +58,8 @@ on:
       - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
       - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
@@ -101,6 +105,7 @@ jobs:
           node --check services/kidults-autonomous-intelligence/scripts/asi-getty-provenance-index-test.mjs
           node --check scripts/kidults/source-intelligence/build-asi-getty-historical-transaction-admission-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-getty-historical-transaction-admission-v1.mjs
+          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
           for FILE in \
             coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-contract-v1.json \
             coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json \
@@ -241,9 +246,9 @@ jobs:
             authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal implementation only; no account, terms acceptance, spend, permission request, credential expansion, public release, Production or G5 action.'},
             defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
             remediation_sequence:[],
-            verification_evidence_refs:[run,validationPath,manifestPath],
-            truth_sync_refs:[],
-            improvement_proposal:'Keep the receipt-contract validator coupled to this workflow so future schema evolution fails at generation time before promotion.',
+            verification_evidence_refs:['workflow-run','validator','manifest'],
+            truth_sync_refs:['coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json'],
+            improvement_proposal:'Prioritize rights-cleared current-market transaction and exposure evidence while preserving Getty historical evidence as historical-only context.',
             production:'HOLD',public_release:'HOLD'
           };
           process.stdout.write(`${JSON.stringify(receipt,null,2)}\n`);
@@ -251,6 +256,9 @@ jobs:
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
             /tmp/kidults-getty-historical-kpmo-receipt-v1.json \
             | tee /tmp/kidults-getty-historical-kpmo-receipt-validation-v1.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt \
+            /tmp/kidults-getty-historical-kpmo-receipt-v1.json \
+            | tee /tmp/kidults-getty-historical-report-after-remediation-validation-v1.json
           node --input-type=module - <<'NODE'
           import fs from 'node:fs';
           import Ajv2020 from 'ajv/dist/2020.js';
@@ -272,5 +280,6 @@ jobs:
             /tmp/kidults-getty-historical-final-validation-v1.json
             /tmp/kidults-getty-historical-kpmo-receipt-v1.json
             /tmp/kidults-getty-historical-kpmo-receipt-validation-v1.json
+            /tmp/kidults-getty-historical-report-after-remediation-validation-v1.json
           retention-days: 90
           if-no-files-found: error

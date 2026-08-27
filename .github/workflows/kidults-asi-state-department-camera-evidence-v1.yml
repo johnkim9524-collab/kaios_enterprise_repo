@@ -22,6 +22,8 @@ on:
       - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
       - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
@@ -59,6 +61,8 @@ on:
       - 'scripts/kidults/intelligence/provider-independent-layers-v1.mjs'
       - 'scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
@@ -109,6 +113,7 @@ jobs:
           node --check services/kidults-autonomous-intelligence/scripts/asi-state-department-online-auction-test.mjs
           node --check scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs
+          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
           for FILE in \
             coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
             coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
@@ -373,9 +378,9 @@ jobs:
             authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal validation only; no bid, purchase, credential, external commitment, public release, Production or G5 action.'},
             defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
             remediation_sequence:[],
-            verification_evidence_refs:[run,validationPath,manifestPath],
-            truth_sync_refs:[],
-            improvement_proposal:'Keep the receipt-contract validator coupled to this workflow so future schema evolution fails at generation time before promotion.',
+            verification_evidence_refs:['workflow-run','validator','manifest'],
+            truth_sync_refs:['coordination/kidults/source-intelligence/asi-state-department-camera-evidence-registry-v1.json'],
+            improvement_proposal:'Prioritize a rights-cleared collector-market source with explicit hammer or all-in realized semantics while preserving the existing claim ceiling.',
             production:'HOLD',
             public_release:'HOLD'
           };
@@ -384,6 +389,9 @@ jobs:
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
             /tmp/state-department-camera-evidence-kpmo-receipt-v1.json \
             | tee /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt \
+            /tmp/state-department-camera-evidence-kpmo-receipt-v1.json \
+            | tee /tmp/state-department-camera-evidence-report-after-remediation-validation-v1.json
           node --input-type=module - <<'NODE'
           import fs from 'node:fs';
           import Ajv2020 from 'ajv/dist/2020.js';
@@ -405,5 +413,6 @@ jobs:
             /tmp/state-department-camera-evidence-final-validation-v1.json
             /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
             /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
+            /tmp/state-department-camera-evidence-report-after-remediation-validation-v1.json
           retention-days: 90
           if-no-files-found: error
