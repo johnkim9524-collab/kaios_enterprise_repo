@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+const truth=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8');
+const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+if(!truth.includes('group: kpmo-live-canonical-issue-truth-')) throw new Error('CANONICAL_TRUTH_CONCURRENCY_GROUP_MISSING');
+if(!truth.includes('cancel-in-progress: false')) throw new Error('CANONICAL_TRUTH_DEBOUNCE_MUST_SERIALIZE');
+if(truth.includes('cancel-in-progress: true')) throw new Error('CANONICAL_TRUTH_SUPERSEDE_CANCELLATION_REINTRODUCED');
+if(!truth.includes("issues:\n    types: [edited, reopened, closed]")) throw new Error('CANONICAL_TRUTH_ISSUE_TRIGGER_MISSING');
+if(!assurance.includes("- 'KPMO Live Canonical Issue Truth V1'")) throw new Error('ASSURANCE_CANONICAL_TRUTH_WATCH_MISSING');
+if(!assurance.includes("if [ \"$EXPECTED_TRUTH_STATE\" != VERIFIED_PASS ]; then")) throw new Error('ASSURANCE_FAIL_CLOSED_TERMINAL_GUARD_MISSING');
+console.log('CANONICAL_TRUTH_DEBOUNCE_SERIALIZATION_VERIFIED_PASS');
