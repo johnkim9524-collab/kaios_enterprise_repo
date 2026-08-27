@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-workflow-fanout-budget-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
   "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt, while accounting for a strictly read-only terminal Assurance observer separately from execution fan-out.",
@@ -40,7 +40,7 @@
   "budgets": {
     "workflow_run_consumers_max": 16,
     "execution_workflow_run_edges_max": 29,
-    "control_observer_edges_max": 18,
+    "control_observer_edges_max": 19,
     "direct_consumers_per_producer_max": 2,
     "workflow_run_chain_depth_max": 8,
     "cycles_max": 0
@@ -70,11 +70,12 @@
       "KIDULTS ASI Autonomous Resolution Layer v1",
       "KIDULTS ASI Requirement-to-Adapter Coverage v1",
       "KIDULTS ASI SHADOW Operating Evidence v1",
-      "KIDULTS ASI Sharded Source Reserve v1"
+      "KIDULTS ASI Sharded Source Reserve v1",
+      "KPMO Live Canonical Issue Truth V1"
     ],
     "terminal_observer_only": true,
     "repository_mutation_allowed": false,
-    "reason": "Continuous Assurance is a read-only terminal observer. SHADOW, Requirement Coverage, and Sharded Reserve are explicitly included so failed, cancelled, waiting, missing, or ambiguously-artifacted producers cannot coexist with an estate-wide ASI-green interpretation."
+    "reason": "Continuous Assurance is a read-only terminal observer. SHADOW, Requirement Coverage, Sharded Reserve, and live canonical issue truth are explicitly included so failed, cancelled, waiting, missing, ambiguously-artifacted, or stale-truth producers cannot coexist with an estate-wide ASI-green interpretation."
   },
   "critical_static_producers_watched_by_continuous_assurance": [
     "KIDULTS ASI Source Adapter Wave 2 v1",
