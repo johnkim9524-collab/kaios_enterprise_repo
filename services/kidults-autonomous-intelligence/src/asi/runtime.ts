@@ -1,5 +1,5 @@
 import { assertAsiEventPayloadHash, partitionKey, validateAsiEvent, type AsiEventEnvelope, type AsiPartition } from './event';
-import { prepareD1ProjectionWrite } from '../d1-projector-write-boundary';
+import { prepareD1ProjectionRead, prepareD1ProjectionWrite } from '../d1-projector-write-boundary';
 import { runAsiProcessorTask } from './processor-runtime';
 import { asiProcessorInventory, type AsiProcessorState } from './processors';
 import {
@@ -998,7 +998,7 @@ function taskLeaseFencedDatabase(
   assertFence: () => Promise<void>,
 ): D1Database {
   const underlying = new WeakMap<object,D1PreparedStatement>();
-  const guard = () => database.prepare(`
+  const guard = () => prepareD1ProjectionWrite(database, `
     INSERT INTO asi_task_lease_write_fences (
       fence_check_id,outbox_id,task_event_id,lease_owner,lease_epoch,checked_at
     ) VALUES (?,?,?,?,?,?)
@@ -1042,7 +1042,15 @@ function taskLeaseFencedDatabase(
   };
   return new Proxy(database,{
     get(target,property,receiver) {
-      if (property === 'prepare') return (query: string) => wrap(target.prepare(query));
+      if (property === 'prepare') {
+        return (query: string) => {
+          const normalized = query.replace(/\s+/g, ' ').trim();
+          const prepared = /^(?:INSERT|UPDATE|DELETE|REPLACE)\b/i.test(normalized)
+            ? prepareD1ProjectionWrite(target,query)
+            : prepareD1ProjectionRead(target,query);
+          return wrap(prepared);
+        };
+      }
       if (property === 'batch') {
         return async (statements: D1PreparedStatement[]) => fencedBatch(
           statements.map((statement) => underlying.get(statement) || statement),
