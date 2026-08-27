@@ -19,7 +19,7 @@ from app.security.auth import (
     authenticate_request,
 )
 from app.security.policy import required_role
-from app.security.rate_limit import InMemoryRateLimiter
+from app.security.rate_limit import DurableRateLimiter
 
 
 class KAIOSGateway:
@@ -38,11 +38,15 @@ class KAIOSGateway:
             if security_config is not None
             else SecurityConfig.from_environ()
         )
-        self.rate_limiter = InMemoryRateLimiter(
+        rate_limit_path = self.security_config.audit_path.with_name(
+            "security-rate-limit.sqlite3"
+        )
+        self.rate_limiter = DurableRateLimiter(
             limit=self.security_config.rate_limit_requests,
             window_seconds=(
                 self.security_config.rate_limit_window_seconds
             ),
+            path=rate_limit_path,
         )
         self.audit = SecurityAuditLogger(
             self.security_config.audit_path
@@ -83,6 +87,7 @@ class KAIOSGateway:
                 "window_seconds": (
                     self.security_config.rate_limit_window_seconds
                 ),
+                "persistence": "sqlite",
             },
             "audit_enabled": True,
         }
@@ -362,23 +367,15 @@ class KAIOSGateway:
         except LiveModeUnavailableError as exc:
             return error_response(
                 endpoint=path,
-                error_type=exc.__class__.__name__,
+                error_type="live_mode_unavailable",
                 message=str(exc),
                 status_code=503,
             )
 
-        except FileNotFoundError as exc:
+        except Exception as exc:  # noqa: BLE001
             return error_response(
                 endpoint=path,
-                error_type="resource_not_found",
-                message=str(exc),
-                status_code=503,
-            )
-
-        except Exception as exc:
-            return error_response(
-                endpoint=path,
-                error_type=exc.__class__.__name__,
+                error_type="internal_error",
                 message=str(exc),
                 status_code=500,
             )
