@@ -6,6 +6,7 @@ import process from 'node:process';
 const ROOT = path.resolve(new URL('../..', import.meta.url).pathname);
 const SERVICE_ROOT = path.join(ROOT, 'services/kidults-autonomous-intelligence/src');
 const APPROVED_PROJECTOR_BOUNDARY = 'services/kidults-autonomous-intelligence/src/d1-projector-write-boundary.ts';
+const APPROVED_PROJECTOR_BOUNDARY_VERSION = 'd1-projector-write-boundary-v2-readonly';
 const EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', 'fixtures', '__tests__', '__snapshots__']);
 const MUTATION = /\b(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|TRUNCATE|VACUUM|REINDEX|ATTACH|DETACH)\b/i;
@@ -97,18 +98,21 @@ try {
 }
 if (boundarySource) {
   const prepareCalls = [...boundarySource.matchAll(/\.prepare\s*\(/g)].length;
-  if (!boundarySource.includes("D1_PROJECTOR_WRITE_BOUNDARY_VERSION = 'd1-projector-write-boundary-v1'")) {
-    findings.push({kind:'PROJECTOR_BOUNDARY_MARKER_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'version marker missing'});
+  if (!boundarySource.includes(`D1_PROJECTOR_WRITE_BOUNDARY_VERSION = '${APPROVED_PROJECTOR_BOUNDARY_VERSION}'`)) {
+    findings.push({kind:'PROJECTOR_BOUNDARY_MARKER_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'readonly boundary version marker missing'});
   }
   if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) {
     findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
+  }
+  if (!boundarySource.includes('D1_LEGACY_RUNTIME_WRITE_DISABLED_USE_CONTROL_PLANE_PROJECTOR')) {
+    findings.push({kind:'PROJECTOR_READONLY_FAIL_CLOSED_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'legacy mutation fail-closed guard missing'});
   }
   if (!boundarySource.includes("D1_PROJECTOR_READ_BOUNDARY_VERSION = 'd1-projector-read-boundary-v1'") ||
       !boundarySource.includes('D1_PROJECTOR_READ_BOUNDARY_NON_READ_DENIED')) {
     findings.push({kind:'PROJECTOR_READ_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'read classification guard missing'});
   }
-  if (prepareCalls !== 2) {
-    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one write and one read prepare call, got ${prepareCalls}`});
+  if (prepareCalls !== 1) {
+    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`readonly boundary must contain exactly one read prepare call, got ${prepareCalls}`});
   }
 }
 
@@ -124,7 +128,7 @@ const report = {
   generated_at: new Date().toISOString(),
   status: findings.length === 0 ? 'PASS' : 'HOLD',
   approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
-  approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
+  approved_projector_boundary_version: APPROVED_PROJECTOR_BOUNDARY_VERSION,
   approved_projector_boundary_count: boundarySource ? 1 : 0,
   scanned_files: files.length,
   direct_writer_files: Object.keys(byFile).length,
