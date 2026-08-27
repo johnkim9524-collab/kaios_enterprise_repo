@@ -1,7 +1,13 @@
 name: P0 Remote PostgreSQL Persistence and PITR Readiness
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'scripts/staging/verify-postgres-target-time-restore.sh'
 
 permissions:
   contents: read
