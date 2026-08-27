@@ -186,6 +186,35 @@ jobs:
           diff -qr \
             /tmp/kidults-asi-requirement-adapter-coverage-run-1 \
             /tmp/kidults-asi-requirement-adapter-coverage-run-2
+      - name: Reject legacy and forged exact-trigger artifact bindings
+        run: |
+          set -euo pipefail
+          cp /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json /tmp/bad-artifact-binding-version-v1.json
+          cp /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json /tmp/bad-artifact-binding-exact-trigger-v1.json
+          node - <<'NODE'
+          const fs=require('fs');
+          let p='/tmp/bad-artifact-binding-version-v1.json';
+          let x=JSON.parse(fs.readFileSync(p));
+          x.version='1.0.0';
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          p='/tmp/bad-artifact-binding-exact-trigger-v1.json';
+          x=JSON.parse(fs.readFileSync(p));
+          x.exact_triggering_run_bound=!x.exact_triggering_run_bound;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          for BAD in /tmp/bad-artifact-binding-version-v1.json /tmp/bad-artifact-binding-exact-trigger-v1.json; do
+            if node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs \
+              /tmp/arl-input/replacement-source-mission-queue-v1.json \
+              /tmp/arl-input/autonomous-resolution-manifest-v1.json \
+              /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
+              "$BAD" \
+              coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json \
+              coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
+              "/tmp/$(basename "$BAD" .json)-output"; then
+              echo "Builder accepted stale or forged provenance binding: $BAD" >&2
+              exit 1
+            fi
+          done
       - name: Validate all 192 requirement mappings and claim ceilings
         run: |
           set -euo pipefail
