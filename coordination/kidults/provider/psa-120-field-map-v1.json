@@ -1,0 +1,15 @@
+{
+  "id": "KIDULTS_PSA_120_FIELD_MAP_V1",
+  "provider_id": "psa-public-api",
+  "source_model": "PublicCertificationModel.PSACert",
+  "state": "APPROVED_FOR_BOUNDED_PRIVATE_EVALUATION",
+  "allowed_fields": [
+    "Brand","CardGrade","CardNumber","Category","CertNumber","GradeDescription","IsDualCert","IsPSADNA","LabelType","PopulationHigher","SpecID","SpecNumber","Subject","TotalPopulation","TotalPopulationWithQualifier","Variety","Year"
+  ],
+  "purposes": ["ENTITY_RESOLUTION","MODEL_CALIBRATION","INTERNAL_HUMAN_QA"],
+  "retention_days_max": 30,
+  "raw_public_display": false,
+  "raw_redistribution": false,
+  "market_or_transaction_fields_admitted": false,
+  "production_authority": false
+}

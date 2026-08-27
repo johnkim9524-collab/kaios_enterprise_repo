@@ -1,0 +1,25 @@
+{
+  "id": "KIDULTS_PSA_120_KNOWN_CERT_MANIFEST_V1",
+  "state": "WAITING_FOR_LAWFUL_SOURCE_COMPLETION",
+  "target_count": 120,
+  "current_known_count": 2,
+  "remaining_required": 118,
+  "cert_values_in_repository": false,
+  "required_entry_contract": {
+    "cert_reference_digest": "sha256:<64hex>",
+    "lawful_source_ref": "required",
+    "source_observed_at": "ISO-8601 required",
+    "admission_purpose": "PRIVATE_ER_EVALUATION_ONLY",
+    "enumeration_used": false
+  },
+  "rules": {
+    "bulk_enumeration": "PROHIBITED",
+    "brute_force_discovery": "PROHIBITED",
+    "duplicates": "PROHIBITED",
+    "exact_120_required_before_live_wave": true,
+    "provider_daily_limit": 100,
+    "minimum_execution_waves": 2
+  },
+  "promotion_authority": "NONE",
+  "production": "HOLD"
+}
