@@ -32,7 +32,7 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
-  require(receipt?.version === '1.3.0', 'receipt_version');
+  require(receipt?.version === '1.4.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
@@ -72,7 +72,8 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.external_partner_ingestion_authorized === false, 'partner_ingestion_boundary');
   require(receipt?.production === 'HOLD' && receipt?.public === 'HOLD', 'release_boundary');
   require(receipt?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'g5_boundary');
-  require(receipt?.registered_privileged_manual_lanes === 16, 'registered_lane_count');
+  require(receipt?.registered_secret_bearing_lanes === 16, 'registered_secret_lane_count');
+  require(receipt?.registered_privileged_manual_lanes === 16, 'registered_lane_count_legacy_alias');
   require(Array.isArray(receipt?.binding_results) && receipt.binding_results.length === receipt?.secret_bearing_jobs, 'binding_partition');
   require(receipt?.verified_secret_bearing_jobs === receipt?.binding_results?.filter((item) => item.state === 'VERIFIED_PASS').length, 'verified_binding_count');
   require(receipt?.binding_results?.every((item) => (
@@ -242,7 +243,7 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
-  assert(contract.version === '1.3.0', 'CONTRACT_VERSION');
+  assert(contract.version === '1.4.0', 'CONTRACT_VERSION');
   assert(contract.issue === 974 && contract.parent_gate_issue === 881, 'CONTRACT_ISSUE_BINDING');
   assert(contract.status === 'IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED', 'CONTRACT_STATUS');
   assert(JSON.stringify(contract.platform_principles) === JSON.stringify(['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']), 'PRINCIPLE_ORDER');
