@@ -44,8 +44,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
-          CANONICAL_CORRECTION_PR_NUMBER: '1418'
-          EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1418 && github.event.pull_request.head.sha || '' }}
+          CANONICAL_CORRECTION_PR_NUMBER: '1429'
+          EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1429 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name != 'pull_request' }}
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
