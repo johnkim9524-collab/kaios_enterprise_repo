@@ -17,7 +17,7 @@ import {
 } from './asi/runtime';
 import { ASI_PLATFORM_PRINCIPLES } from './asi/registry';
 import { isControlTowerRoute } from './control-tower-ui/executive-control-tower.js';
-import { isGatewayRoute } from './control-tower-gateway/control-tower-gateway.js';
+import { isGatewayRoute } from './control-tower-gateway/route-boundary.js';
 import { bearerAuthorized, parseBoundedJson } from './http-security';
 
 export type Env = BaseEnv & AsiMeshEnv & {
