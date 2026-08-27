@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-workflow-fanout-budget-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
   "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt, while accounting for a strictly read-only terminal Assurance observer separately from execution fan-out.",
@@ -40,7 +40,7 @@
   "budgets": {
     "workflow_run_consumers_max": 16,
     "execution_workflow_run_edges_max": 29,
-    "control_observer_edges_max": 16,
+    "control_observer_edges_max": 17,
     "direct_consumers_per_producer_max": 2,
     "workflow_run_chain_depth_max": 8,
     "cycles_max": 0
@@ -68,11 +68,12 @@
       "KIDULTS ASI P0 Mission Consumption v1",
       "KIDULTS ASI P0B Bounded Discovery Candidates v1",
       "KIDULTS ASI Autonomous Resolution Layer v1",
+      "KIDULTS ASI Requirement-to-Adapter Coverage v1",
       "KIDULTS ASI SHADOW Operating Evidence v1"
     ],
     "terminal_observer_only": true,
     "repository_mutation_allowed": false,
-    "reason": "Continuous Assurance observes terminal upstream conclusions and emits governed receipts; it is not an execution-stage consumer and cannot mutate repository state. SHADOW evidence is explicitly included so a failed, cancelled, missing or ambiguously-artifacted SHADOW producer cannot coexist with an estate-wide ASI-green interpretation."
+    "reason": "Continuous Assurance observes terminal upstream conclusions and emits governed receipts; it is not an execution-stage consumer and cannot mutate repository state. SHADOW and Requirement Coverage evidence are explicitly included so failed, cancelled, missing or ambiguously-artifacted producers cannot coexist with an estate-wide ASI-green interpretation."
   },
   "critical_static_producers_watched_by_continuous_assurance": [
     "KIDULTS ASI Source Adapter Wave 2 v1",
