@@ -103,8 +103,12 @@ if (boundarySource) {
   if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) {
     findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
   }
-  if (prepareCalls !== 1) {
-    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one prepare call, got ${prepareCalls}`});
+  if (!boundarySource.includes("D1_PROJECTOR_READ_BOUNDARY_VERSION = 'd1-projector-read-boundary-v1'") ||
+      !boundarySource.includes('D1_PROJECTOR_READ_BOUNDARY_NON_READ_DENIED')) {
+    findings.push({kind:'PROJECTOR_READ_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'read classification guard missing'});
+  }
+  if (prepareCalls !== 2) {
+    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one write and one read prepare call, got ${prepareCalls}`});
   }
 }
 
