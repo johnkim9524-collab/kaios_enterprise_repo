@@ -103,12 +103,15 @@ if (boundarySource) {
   if (!boundarySource.includes('D1_PROJECTOR_WRITE_BOUNDARY_SCHEMA_MUTATION_DENIED')) {
     findings.push({kind:'PROJECTOR_SCHEMA_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'schema guard missing'});
   }
+  if (!boundarySource.includes('D1_LEGACY_RUNTIME_WRITE_DISABLED_USE_CONTROL_PLANE_PROJECTOR')) {
+    findings.push({kind:'PROJECTOR_WRITE_FAIL_CLOSED_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'runtime write boundary must fail closed'});
+  }
   if (!boundarySource.includes("D1_PROJECTOR_READ_BOUNDARY_VERSION = 'd1-projector-read-boundary-v1'") ||
       !boundarySource.includes('D1_PROJECTOR_READ_BOUNDARY_NON_READ_DENIED')) {
     findings.push({kind:'PROJECTOR_READ_GUARD_MISSING',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:'read classification guard missing'});
   }
-  if (prepareCalls !== 2) {
-    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`expected one write and one read prepare call, got ${prepareCalls}`});
+  if (prepareCalls !== 1) {
+    findings.push({kind:'PROJECTOR_PREPARE_CARDINALITY',file:APPROVED_PROJECTOR_BOUNDARY,line:1,method:'boundary',evidence:`read-only boundary must contain exactly one D1 prepare call, got ${prepareCalls}`});
   }
 }
 
@@ -125,6 +128,7 @@ const report = {
   status: findings.length === 0 ? 'PASS' : 'HOLD',
   approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
   approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
+  approved_projector_boundary_mode: 'READ_ONLY_RUNTIME_FAIL_CLOSED_WRITE',
   approved_projector_boundary_count: boundarySource ? 1 : 0,
   scanned_files: files.length,
   direct_writer_files: Object.keys(byFile).length,
