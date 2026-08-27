@@ -174,6 +174,9 @@ jobs:
             fi
             sleep 1
           done
+          printf 'health_response='
+          cat /tmp/health.json
+          printf '\n'
           grep -q '"projection_runtime_configured":true' /tmp/health.json
           grep -q '"production_promotion_authorized":false' /tmp/health.json
 
@@ -181,6 +184,9 @@ jobs:
           snapshot_code="$(curl --silent --show-error --output /tmp/snapshot.json --write-out '%{http_code}' \
             --header 'authorization: Bearer viewer-test-token' \
             http://127.0.0.1:32101/api/enterprise/snapshot)"
+          printf 'snapshot_code=%s snapshot_response=' "$snapshot_code"
+          cat /tmp/snapshot.json
+          printf '\n'
           test "$snapshot_code" = '200'
           grep -q '"source":"postgres"' /tmp/snapshot.json
 
@@ -194,6 +200,9 @@ jobs:
             --header "x-kaios-projection-digest: $digest" \
             --data '{"projection":{"client_supplied":"must-not-escape"}}' \
             http://127.0.0.1:32101/api/enterprise/export)"
+          printf 'export_code=%s export_response=' "$export_code"
+          cat /tmp/export.json
+          printf '\n'
           test "$export_code" = '200'
           grep -q '"source":"postgres"' /tmp/export.json
           if grep -q 'must-not-escape' /tmp/export.json; then
@@ -208,6 +217,9 @@ jobs:
             --header "x-kaios-nonce: $nonce" \
             --header "x-kaios-projection-digest: $digest" \
             http://127.0.0.1:32101/api/enterprise/export)"
+          printf 'replay_code=%s replay_response=' "$replay_code"
+          cat /tmp/replay.json
+          printf '\n'
           test "$replay_code" = '409'
           grep -q 'NONCE_REPLAY' /tmp/replay.json
           if grep -q 'postgres' /tmp/replay.json; then
@@ -218,4 +230,5 @@ jobs:
           audit_count="$(psql --no-psqlrc --quiet --tuples-only --no-align \
             --dbname='postgresql://postgres:postgres@127.0.0.1:5432/kaios' \
             --command="SELECT count(*) FROM kaios_runtime.export_audit WHERE tenant_id='tenant-runtime-live' AND decision='authorized'")"
+          printf 'authorized_audit_count=%s\n' "$audit_count"
           test "$audit_count" = '1'
