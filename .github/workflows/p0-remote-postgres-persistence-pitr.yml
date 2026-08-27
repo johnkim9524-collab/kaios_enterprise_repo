@@ -19,25 +19,25 @@ jobs:
     env:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
-      POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
     steps:
-      - name: Verify live protected main before credential resolution
+      - name: Verify live main before provider credential resolution
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = 'refs/heads/main'
-          live_main_sha="$(
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
             curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 --max-time 30 \
+              --connect-timeout 10 \
+              --max-time 30 \
               --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header 'Accept: application/vnd.github+json' \
-              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; s=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(s) if re.fullmatch(r"[0-9a-f]{40}",s) else sys.exit(65)'
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
           )"
-          test "$live_main_sha" = "$GITHUB_SHA"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
       - name: Checkout exact main SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,13 +51,12 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Assert required STAGING bindings
+      - name: Assert required non-secret STAGING bindings
         shell: bash
         run: |
           set -euo pipefail
           test -n "$HOST"
           test -n "$EXPECTED_FINGERPRINT"
-          test -n "$POSTGRES_DSN"
           test "$HOST" = '165.232.175.45'
 
       - name: Pin and verify ED25519 host key
@@ -92,13 +91,17 @@ jobs:
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
 
       - name: Stage verifier and DSN without exposing DSN in process arguments
+        env:
+          POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$POSTGRES_DSN"
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; mkdir -p ~/kidults-runtime/bin ~/kidults-runtime/data ~/kidults-runtime/audit; cat > ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh' < scripts/staging/verify-remote-postgres-persistence-pitr.sh
           "${SSH[@]}" kidults-staging@"$HOST" 'chmod 700 ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh'
           printf '%s' "$POSTGRES_DSN" | "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/data/postgres-staging.dsn; chmod 600 ~/kidults-runtime/data/postgres-staging.dsn'
+          unset POSTGRES_DSN
 
       - name: Execute persistent PostgreSQL and WAL/PITR readiness proof
         shell: bash
