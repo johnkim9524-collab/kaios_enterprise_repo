@@ -1,0 +1,37 @@
+{
+  "id": "kidults-internal-p0-current-state-2026-08-27",
+  "as_of": "2026-08-27T17:47:00+09:00",
+  "protected_main_base": "99e0019199a2c05ada9088a0fd1c3888a2801c25",
+  "governance": {
+    "mode": "SOLO_OWNER_PROTECTED_MAIN",
+    "required_approving_review_count": 0,
+    "independent_reviewer_blocker": false,
+    "required_status_checks_enforced": true,
+    "bypass_allowed": false
+  },
+  "internal_implementation": {
+    "server_owned_projection": "LANDED_MAIN",
+    "export_entitlement_revocation_nonce_digest_controls": "LANDED_MAIN",
+    "postgres_greenfield_and_rls_contracts": "LANDED_MAIN",
+    "postgres_backup_restore_rollback_attack_suite": "LANDED_MAIN",
+    "d1_role": "READ_MODEL_ONLY",
+    "d1_direct_writer_gate": "ZERO_DIRECT_WRITER_VERIFIED",
+    "exact_head_ci": "PASS",
+    "protected_main_landing": "PASS"
+  },
+  "remaining_nonlocal_boundaries": {
+    "remote_digitalocean_staging_activation": "EXPLICIT_EXTERNAL_MUTATION_GATE",
+    "remote_postgres_runtime_receipt": "NOT_EXECUTED",
+    "remote_d1_projector_receipt": "NOT_EXECUTED",
+    "candidate_evidence_pair": "NOT_CREATED",
+    "track_b_empirical_assessment": "NOT_STARTED",
+    "approved_projection": "NONE"
+  },
+  "authority_boundary": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "provider_or_spend_mutation": "NOT_AUTHORIZED_BY_THIS_RECEIPT"
+  },
+  "disposition": "INTERNAL_IMPLEMENTATION_P0_CLOSED_REMOTE_STAGING_AND_EMPIRICAL_WORK_REMAIN"
+}
