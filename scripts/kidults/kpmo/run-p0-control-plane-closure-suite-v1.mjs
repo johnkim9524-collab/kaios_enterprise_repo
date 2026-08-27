@@ -55,12 +55,25 @@ const ledger = JSON.parse(fs.readFileSync(
 ));
 const receipt = {
   id: 'kidults-p0-control-plane-closure-receipt-v1',
-  version: '1.0.0',
+  version: '1.1.0',
   agent_id: 'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
   as_of: new Date().toISOString(),
   scope: 'LOCAL_AND_CI_CONTRACT_VERIFICATION_ONLY',
   exact_source_sha: exactSha,
   state: failed ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
+  governance: {
+    mode: 'SOLO_OWNER_PROTECTED_MAIN',
+    pull_request_required: true,
+    required_approving_review_count: 0,
+    code_owner_review_required: false,
+    last_push_approval_required: false,
+    required_status_checks: [
+      'KAIOS Solo Owner Preflight',
+      'Validate KAIOS Foundation',
+      'Validate Production Container',
+    ],
+    bypass_allowed: false,
+  },
   facts: {
     checks_total: results.length,
     checks_passed: results.filter(result => result.state === 'VERIFIED_PASS').length,
@@ -84,14 +97,12 @@ const receipt = {
     'REMOTE_POSTGRESQL_NOT_PROVISIONED',
     'REMOTE_D1_PROJECTOR_NOT_DEPLOYED',
     'LEGACY_D1_WRITER_CUTOVER_NOT_VERIFIED_REMOTE',
-    'INDEPENDENT_GITHUB_REVIEW_NOT_PRESENT',
     'CLOUDFLARE_PREVIEW_SKIP_REMOTE_READBACK_PENDING',
   ],
   blockers: [
-    'INDEPENDENT_GITHUB_REVIEW_REQUIRED',
     'REMOTE_INFRASTRUCTURE_AND_CREDENTIAL_GATE',
   ],
-  next_action: 'PUSH_WITH_CF_PAGES_SKIP_THEN_INDEPENDENT_APPROVAL_THEN_GOVERNED_REMOTE_CANARY',
+  next_action: 'EXACT_HEAD_REQUIRED_CHECKS_THEN_GOVERNED_REMOTE_STAGING_CANARY',
   authority_boundary: {
     remote_mutation: false,
     provider_contact: false,
