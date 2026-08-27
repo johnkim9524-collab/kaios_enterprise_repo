@@ -54,19 +54,23 @@ jobs:
           ART_ID=""
           ART_DIGEST=""
           for attempt in $(seq 1 24); do
-            RUN_JSON=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
               -f branch="$TARGET_BRANCH" -f status=success -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs")
-            RUN=$(jq -c --arg repo "$GITHUB_REPOSITORY" --arg branch "$TARGET_BRANCH" --arg sha "$EXPECTED_SHA" \
-              '[.workflow_runs[] | select(.repository.full_name==$repo and .path==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" and .head_branch==$branch and .head_sha==$sha and .conclusion=="success")] | first // empty' <<<"$RUN_JSON")
-            RUN_ID=$(jq -r '.id // empty' <<<"${RUN:-{}}")
+              --jq '.workflow_runs[] | [.id, .repository.full_name, .path, .head_branch, .head_sha, .conclusion] | @tsv' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs" \
+              > /tmp/frontier-runs.tsv
+            RUN_ID=$(awk -F '\t' -v repo="$GITHUB_REPOSITORY" -v branch="$TARGET_BRANCH" -v sha="$EXPECTED_SHA" \
+              '$2==repo && $3==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" && $4==branch && $5==sha && $6=="success" {print $1; exit}' \
+              /tmp/frontier-runs.tsv)
             if [ -n "$RUN_ID" ]; then
-              ART_JSON=$(gh api -H 'Accept: application/vnd.github+json' \
-                "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100")
-              ART_COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)] | length' <<<"$ART_JSON")
+              gh api -H 'Accept: application/vnd.github+json' \
+                --jq '.artifacts[] | [.id, .name, .expired, .digest] | @tsv' \
+                "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+                > /tmp/frontier-artifacts.tsv
+              ART_COUNT=$(awk -F '\t' '$2=="kidults-asi-self-driving-cycle-v1" && $3=="false" {count++} END {print count+0}' /tmp/frontier-artifacts.tsv)
               if [ "$ART_COUNT" -eq 1 ]; then
-                ART_ID=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)][0].id' <<<"$ART_JSON")
-                ART_DIGEST=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)][0].digest // empty' <<<"$ART_JSON")
+                ART_ID=$(awk -F '\t' '$2=="kidults-asi-self-driving-cycle-v1" && $3=="false" {print $1}' /tmp/frontier-artifacts.tsv)
+                ART_DIGEST=$(awk -F '\t' '$2=="kidults-asi-self-driving-cycle-v1" && $3=="false" {print $4}' /tmp/frontier-artifacts.tsv)
                 break
               fi
             fi
