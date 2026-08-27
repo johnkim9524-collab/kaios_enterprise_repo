@@ -78,7 +78,8 @@ jobs:
           workflow='.github/workflows/p0-postgres-greenfield-runtime.yml'
 
           grep -Fq "image: $expected_image" "$workflow"
-          if grep -Eq 'apt-get .*postgresql-client|apt-get install .*postgresql-client' "$workflow"; then
+          package_manager='apt''-get'
+          if grep -Eq "$package_manager .*postgresql-client|$package_manager install .*postgresql-client" "$workflow"; then
             echo 'unpinned PostgreSQL client bootstrap detected' >&2
             exit 1
           fi
