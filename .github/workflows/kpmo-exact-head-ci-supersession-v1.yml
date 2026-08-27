@@ -56,7 +56,40 @@ jobs:
           exact_head_retained=0
           cancellation_retry_attempts=0
           terminal_race_readbacks=0
+          terminal_readback_attempts=0
           examined=0
+
+          read_run_terminal() {
+            local target_run_id="$1"
+            local readback_code=""
+            local latest_status=""
+            local latest_conclusion=""
+            local attempts=0
+            for readback_attempt in $(seq 1 8); do
+              attempts="${readback_attempt}"
+              readback_code="$(curl --silent --show-error --output /tmp/run-readback.json --write-out '%{http_code}' \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "${api}/actions/runs/${target_run_id}")"
+              if [[ "${readback_code}" == "200" ]]; then
+                latest_status="$(jq -r '.status' /tmp/run-readback.json)"
+                latest_conclusion="$(jq -r '.conclusion // ""' /tmp/run-readback.json)"
+                if [[ "${latest_status}" == "completed" ]]; then
+                  jq -cn --arg status "${latest_status}" --arg conclusion "${latest_conclusion}" --argjson attempts "${attempts}" '{status:$status,conclusion:$conclusion,attempts:$attempts}'
+                  return 0
+                fi
+              elif [[ "${readback_code}" == "429" || "${readback_code}" =~ ^5[0-9][0-9]$ ]]; then
+                :
+              else
+                cat /tmp/run-readback.json
+                echo "Unexpected run read-back status ${readback_code} for run ${target_run_id}" >&2
+                return 1
+              fi
+              sleep 2
+            done
+            jq -cn --arg status "${latest_status:-UNKNOWN}" --arg conclusion "${latest_conclusion:-}" --argjson attempts "${attempts}" '{status:$status,conclusion:$conclusion,attempts:$attempts}'
+          }
 
           for page in $(seq 1 10); do
             response="$(curl --fail-with-body --silent --show-error --get \
@@ -101,22 +134,23 @@ jobs:
                 break
               done
 
-              if [[ "${code}" == "202" || "${code}" == "409" ]]; then
-                cancelled=$((cancelled + 1))
-                stale_cancelled=$((stale_cancelled + 1))
-              elif [[ "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
-                run_readback="$(curl --fail-with-body --silent --show-error \
-                  -H "Authorization: Bearer ${GH_TOKEN}" \
-                  -H "Accept: application/vnd.github+json" \
-                  -H "X-GitHub-Api-Version: 2022-11-28" \
-                  "${api}/actions/runs/${run_id}")"
-                latest_status="$(jq -r '.status' <<<"${run_readback}")"
-                if [[ "${latest_status}" != "queued" && "${latest_status}" != "in_progress" && "${latest_status}" != "waiting" && "${latest_status}" != "pending" ]]; then
-                  terminal_race_readbacks=$((terminal_race_readbacks + 1))
+              if [[ "${code}" == "202" || "${code}" == "409" || "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
+                readback_result="$(read_run_terminal "${run_id}")"
+                latest_status="$(jq -r '.status' <<<"${readback_result}")"
+                latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
+                readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
+                terminal_readback_attempts=$((terminal_readback_attempts + readback_attempts))
+                if [[ "${latest_status}" == "completed" ]]; then
+                  if [[ "${latest_conclusion}" == "cancelled" ]]; then
+                    cancelled=$((cancelled + 1))
+                    stale_cancelled=$((stale_cancelled + 1))
+                  else
+                    terminal_race_readbacks=$((terminal_race_readbacks + 1))
+                  fi
                   continue
                 fi
                 cat /tmp/cancel-response.json
-                echo "Cancellation retry exhausted for still-active run ${run_id} status=${latest_status} code=${code}" >&2
+                echo "Cancellation not terminally confirmed for run ${run_id} status=${latest_status} conclusion=${latest_conclusion} code=${code}" >&2
                 exit 1
               else
                 cat /tmp/cancel-response.json
@@ -138,4 +172,5 @@ jobs:
             --argjson exact_head_retained "${exact_head_retained}" \
             --argjson cancellation_retry_attempts "${cancellation_retry_attempts}" \
             --argjson terminal_race_readbacks "${terminal_race_readbacks}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,cancellation_retry_attempts:$cancellation_retry_attempts,terminal_race_readbacks:$terminal_race_readbacks,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
+            --argjson terminal_readback_attempts "${terminal_readback_attempts}" \
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,cancellation_retry_attempts:$cancellation_retry_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
