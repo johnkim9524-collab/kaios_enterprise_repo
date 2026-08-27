@@ -42,14 +42,13 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
       if (!/^[a-z][a-z0-9_]*$/.test(name)) fail('POSTGRES_VARIABLE_INVALID', 503);
       args.push(`--set=${name}=${value}`);
     }
-    args.push('--command', sql);
+    args.push('--dbname', dsn, '--command', sql);
     try {
       const { stdout } = await execFileAsync('psql', args, {
         timeout: timeoutMs,
         maxBuffer: 2 * 1024 * 1024,
         env: {
           ...process.env,
-          PGDATABASE: dsn,
           PGAPPNAME: 'kaios-dual-staging-runtime',
           PGCONNECT_TIMEOUT: process.env.PGCONNECT_TIMEOUT || '5'
         }
