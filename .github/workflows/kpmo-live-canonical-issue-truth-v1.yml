@@ -5,21 +5,22 @@ on:
     branches: [ main ]
     paths:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
+      - ".github/workflows/kpmo-canonical-issue-transition-guard-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
       - "coordination/kidults/**"
   push:
     branches: [ main ]
-  issues:
-    types: [edited, reopened, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
   issues: read
 
+# Authoritative whole-board truth must never be cancelled by issue-edit fan-out.
+# Issue edits are handled by the separate local transition guard.
 concurrency:
-  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'issues' && github.sha || github.run_id }}
-  cancel-in-progress: true
+  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   canonical-issue-truth:
@@ -46,7 +47,7 @@ jobs:
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
-          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name != 'pull_request' }}
+          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
