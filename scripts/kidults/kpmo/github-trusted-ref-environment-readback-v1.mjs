@@ -9,6 +9,7 @@ export const REGISTRY_PATH = 'coordination/kidults/kpmo/secret-bearing-workflow-
 const DEFAULT_REPOSITORY = 'johnkim9524-collab/kaios_enterprise_repo';
 const DEFAULT_BRANCH = 'main';
 export const LIVE_MAIN_GUARD_STEP_NAME = 'Verify live main before provider credential resolution';
+export const ACTIVATION_RECEIPT_STEP_NAME = 'Verify explicit STAGING activation authorization before secret resolution';
 
 const digest = (value) => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const uniqueSorted = (values) => [...new Set(values)].sort();
@@ -189,6 +190,27 @@ function liveMainGuardContract(step) {
     && !/\|\|\s*true|continue\s*$/m.test(step.text);
 }
 
+function activationReceiptContract(step, requiredVariable, triggerClasses) {
+  if (!step || step.name !== ACTIVATION_RECEIPT_STEP_NAME || !requiredVariable) return false;
+  const required = [
+    `ACTIVATION_AUTHORIZED: \${{ vars.${requiredVariable} }}`,
+    'set -euo pipefail',
+    'test "$ACTIVATION_AUTHORIZED" = "true"',
+    'test "$GITHUB_REF" = "refs/heads/main"'
+  ];
+  const eventPredicates = [...triggerClasses].sort().map(
+    (trigger) => `"$GITHUB_EVENT_NAME" = "${trigger}"`
+  );
+  const eventContract = eventPredicates.length === 1
+    ? step.text.includes(`test ${eventPredicates[0]}`)
+    : step.text.includes(`test ${eventPredicates.join(' -o ')}`);
+  return required.every((marker) => step.text.includes(marker))
+    && eventContract
+    && !secretMetadata(step.text).secret_bearing
+    && !/continue-on-error\s*:\s*true/i.test(step.text)
+    && !/\|\|\s*true|continue\s*$/m.test(step.text);
+}
+
 export function workflowTriggerClasses(text) {
   const active = activeWorkflowText(text);
   const allowed = new Set(['push', 'pull_request', 'pull_request_target', 'workflow_dispatch', 'workflow_run', 'workflow_call', 'schedule', 'repository_dispatch']);
@@ -257,6 +279,11 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
     const environment = jobEnvironment(block);
     const explicitMainRefGuard = /github\.ref\s*==\s*['"]refs\/heads\/main['"]/.test(block)
       || /GITHUB_REF[^\n]*refs\/heads\/main/.test(block);
+    const activationGuardVariables = uniqueSorted(
+      [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]true['"]/g)].map((match) => match[1])
+    );
+    const activationReceiptSteps = parsedSteps.steps.filter((step) => step.name === ACTIVATION_RECEIPT_STEP_NAME);
+    const activationReceipt = activationReceiptSteps.length === 1 ? activationReceiptSteps[0] : null;
     return {
       job: header.id,
       secret_bearing: secretBearing,
@@ -278,10 +305,27 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         && jobScopeSecrets.secret_bearing === false
         && providerSecretSteps.length > 0
         && JSON.stringify(uniqueSorted(providerSecretSteps.flatMap((step) => step.secret_names))) === JSON.stringify(secretNames),
-      activation_guard_variables: uniqueSorted(
-        [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]true['"]/g)].map((match) => match[1])
-      ),
+      activation_guard_variables: activationGuardVariables,
       step_names: parsedSteps.steps.map((step) => step.name).filter(Boolean),
+      activation_receipt: {
+        count: activationReceiptSteps.length,
+        step_index: activationReceipt?.index ?? null,
+        contract_valid: activationReceiptContract(
+          activationReceipt,
+          activationGuardVariables.length === 1 ? activationGuardVariables[0] : null,
+          triggerClasses
+        ),
+        before_live_main_guard: Boolean(
+          activationReceipt
+          && liveMainGuard
+          && activationReceipt.index < liveMainGuard.index
+        ),
+        before_all_provider_secret_steps: Boolean(
+          activationReceipt
+          && providerSecretSteps.length > 0
+          && providerSecretSteps.every((step) => activationReceipt.index < step.index)
+        )
+      },
       live_main_guard: {
         count: liveMainGuardSteps.length,
         step_index: liveMainGuard?.index ?? null,
@@ -422,10 +466,11 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
           job.activation_guard_variables.includes(expected.required_activation_guard),
           `ACTIVATION_GUARD_MISSING:${key}`
         );
-        require(
-          job.step_names.includes('Verify explicit STAGING activation authorization before secret resolution'),
-          `ACTIVATION_RECEIPT_STEP_MISSING:${key}`
-        );
+        require(job.activation_receipt?.count === 1, `ACTIVATION_RECEIPT_STEP_MISSING:${key}`);
+        require(job.activation_receipt?.step_index === 0, `ACTIVATION_RECEIPT_STEP_ORDER:${key}`);
+        require(job.activation_receipt?.contract_valid === true, `ACTIVATION_RECEIPT_STEP_CONTRACT:${key}`);
+        require(job.activation_receipt?.before_live_main_guard === true, `ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:${key}`);
+        require(job.activation_receipt?.before_all_provider_secret_steps === true, `ACTIVATION_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
       }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
       require(job.workflow_permissions_contents_read_only, `GITHUB_TOKEN_PERMISSION_NOT_CONTENTS_READ_ONLY:${key}`);

@@ -7,8 +7,8 @@ on:
       - main
     paths:
       - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+      - 'scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh'
       - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
-      - 'scripts/staging/verify-postgres-target-time-restore.sh'
 
 permissions:
   contents: read
@@ -76,6 +76,13 @@ jobs:
               "staging_fingerprint_binding_present": fingerprint_bound == "true",
               "provider_secrets_resolved": False,
               "remote_mutation_performed": False,
+              "restore_actuator_configured": False,
+              "external_restore_required": True,
+              "restore_performed_by_this_workflow": False,
+              "external_restore_authorized_by_this_workflow": False,
+              "external_provider_spend_authorized_by_this_workflow": False,
+              "expanded_provider_credential_authorized_by_this_workflow": False,
+              "provider_contract_authorized_by_this_workflow": False,
               "production_touch": False,
               "g5_touch": False,
               "unblock_condition": None if authorized == "true" else "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true under the existing approved STAGING security boundary"
@@ -90,7 +97,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  remote-persistence-pitr-readiness:
+  remote-persistence-pitr-fixture:
     needs: activation-readiness-receipt
     if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
     environment: kidults-do-staging-ssh
@@ -217,167 +224,141 @@ jobs:
           print(json.dumps(r, indent=2))
           PY
 
-      - name: Stage verifier and DSN without exposing DSN in process arguments
+      - name: Verify pinned runner PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_client='16.15'
+          psql_version="$(psql --version)"
+          pg_isready_version="$(pg_isready --version)"
+          grep -Fq " $expected_client" <<<"$psql_version"
+          grep -Fq " $expected_client" <<<"$pg_isready_version"
+          printf 'psql_version=%s\npg_isready_version=%s\n' "$psql_version" "$pg_isready_version"
+
+      - name: Execute source PostgreSQL fixture through pinned SSH tunnel
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$POSTGRES_DSN"
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; mkdir -p ~/kidults-runtime/bin ~/kidults-runtime/data ~/kidults-runtime/audit; cat > ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh' < scripts/staging/verify-remote-postgres-persistence-pitr.sh
-          "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/bin/verify-postgres-target-time-restore.sh' < scripts/staging/verify-postgres-target-time-restore.sh
-          "${SSH[@]}" kidults-staging@"$HOST" 'chmod 700 ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh ~/kidults-runtime/bin/verify-postgres-target-time-restore.sh'
-          printf '%s' "$POSTGRES_DSN" | "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/data/postgres-staging.dsn; chmod 600 ~/kidults-runtime/data/postgres-staging.dsn'
-          unset POSTGRES_DSN
-
-      - name: Execute persistent PostgreSQL and WAL/PITR readiness proof
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          cleanup() {
-            "${SSH[@]}" kidults-staging@"$HOST" 'rm -f ~/kidults-runtime/data/postgres-staging.dsn' >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-          "${SSH[@]}" kidults-staging@"$HOST" '
-            set -euo pipefail
-            export KAIOS_ENVIRONMENT=staging
-            export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
-            KAIOS_POSTGRES_DSN="$(cat ~/kidults-runtime/data/postgres-staging.dsn)"
-            export KAIOS_POSTGRES_DSN
-            ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh | tee ~/kidults-runtime/audit/postgres-persistence-pitr-readiness.json
-          '
-
-      - name: Collect non-secret receipt
-        shell: bash
-        run: |
-          set -euo pipefail
           mkdir -p artifacts/p0-remote-postgres
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/postgres-persistence-pitr-readiness.json' > artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
+          export KAIOS_ENVIRONMENT=staging
+          export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
+          export KAIOS_STAGING_SSH_HOST="$HOST"
+          export KAIOS_STAGING_SSH_USER=kidults-staging
+          export KAIOS_STAGING_SSH_KEY_PATH="$RUNNER_TEMP/ssh/id_ed25519"
+          export KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH="$RUNNER_TEMP/ssh/known_hosts"
+          export KAIOS_SOURCE_VERIFIER_PATH="$GITHUB_WORKSPACE/scripts/staging/verify-remote-postgres-persistence-pitr.sh"
+          export KAIOS_POSTGRES_DSN="$POSTGRES_DSN"
+          unset POSTGRES_DSN
+          scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source \
+            | tee artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
+
+      - name: Assert source receipt and emit external-restore handoff
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
-          import datetime, json, os, re
+          import datetime, hashlib, json, os, re
           from pathlib import Path
-          p=Path('artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json')
-          r=json.loads(p.read_text())
+
+          root=Path('artifacts/p0-remote-postgres')
+          receipt_path=root/'postgres-persistence-pitr-readiness.json'
+          receipt_bytes=receipt_path.read_bytes()
+          r=json.loads(receipt_bytes)
           assert r['status']=='PASS'
           assert r['environment']=='STAGING'
           assert r['production_touch'] is False
-          assert r['pitr_capability']=='TARGET_TIME_RESTORE_FIXTURE_READY'
+          assert r['fixture_state'] in {
+              'TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED',
+              'TARGET_BOUNDARY_FIXTURE_VERIFIED__WAL_ARCHIVE_EVENT_NOT_VERIFIED',
+          }
+          assert r['pitr_capability']=='NOT_VERIFIED'
+          assert r['base_backup_verified'] is False
+          assert r['archive_restore_path_verified'] is False
+          assert r['restore_capability_verified'] is False
+          assert r['restore_actuator_configured'] is False
+          assert r['restore_performed_by_this_script'] is False
+          assert r['data_checksums']=='on'
+          assert r['pitr_probe_table']=='kaios_runtime.pitr_probe_v2'
           assert int(r['force_rls_tables']) >= 4
           assert r['before_lsn'] != r['after_lsn']
+          assert isinstance(r['pg_switch_wal_authorized'], bool)
+          assert isinstance(r['archive_observation_attempted'], bool)
+          assert isinstance(r['wal_archive_event_verified'], bool)
+          if r['wal_archive_event_verified']:
+              assert r['archive_observation_attempted'] is True
+              assert r['pg_switch_wal_authorized'] is True
+              assert int(r['archived_count']) > int(r['archived_count_before'])
+              assert int(r['archived_count']) > 0
+              assert int(r['failed_archive_count']) == int(r['failed_archive_count_before'])
+              assert r['archive_stats_reset']
+              assert r['switched_wal_archived'] is True
+              assert re.fullmatch(r'[A-F0-9]{24}', r['switched_wal'])
+              assert re.fullmatch(r'[A-F0-9]{24}', r['last_archived_wal'])
+          else:
+              assert r['archive_observation_attempted'] is False
+              assert r['switched_wal_archived'] is False
+              for key in ('archived_count_before','archived_count','failed_archive_count_before','failed_archive_count','archive_stats_reset','switched_wal','last_archived_wal'):
+                  assert r[key] is None
+          assert r['marker_boundary_order_verified'] is True
+          assert re.fullmatch(r'sha256:[a-f0-9]{64}', r['connection_identity_digest'])
+          assert r['tls_encryption_required'] is True
+          assert isinstance(r['tls_ca_chain_verified'], bool)
+          assert isinstance(r['tls_hostname_verified'], bool)
+          assert r['destination_policy']=='DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT'
           for key in ('pitr_before_marker_digest','pitr_after_marker_digest'):
               assert re.fullmatch(r'[a-f0-9]{64}', r[key])
           assert r['pitr_before_marker'].startswith('pitr-before-')
           assert r['pitr_after_marker'].startswith('pitr-after-')
-          datetime.datetime.fromisoformat(r['pitr_target_time'].replace(' ', 'T'))
+          assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', r['pitr_target_time'])
+          datetime.datetime.fromisoformat(r['pitr_target_time'][:-1] + '+00:00')
+          assert r['target_time_precision']=='WHOLE_SECOND_UTC'
+          assert r['marker_target_guard_seconds_minimum']==2
+
           fixture={
+              'id':'kidults-p0-postgres-target-time-fixture-v1',
               'status':'READY',
+              'state':'WAITING_FOR_EXTERNAL_RESTORE',
               'environment':'STAGING',
               'production_touch':False,
-              'source_main_sha': os.environ['GITHUB_SHA'],
-              'before_marker': r['pitr_before_marker'],
-              'after_marker': r['pitr_after_marker'],
-              'before_marker_digest': r['pitr_before_marker_digest'],
-              'after_marker_digest': r['pitr_after_marker_digest'],
-              'target_time': r['pitr_target_time'],
-              'next_required_proof':'RESTORE_TO_TARGET_TIME_THEN_RUN_verify-postgres-target-time-restore.sh'
+              'public_touch':False,
+              'g5_touch':False,
+              'source_workflow':'.github/workflows/p0-remote-postgres-persistence-pitr.yml',
+              'source_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'source_main_sha':os.environ['GITHUB_SHA'],
+              'source_receipt_sha256':'sha256:'+hashlib.sha256(receipt_bytes).hexdigest(),
+              'source_connection_identity_digest':r['connection_identity_digest'],
+              'source_tls_encryption_required':True,
+              'source_tls_ca_chain_verified':r['tls_ca_chain_verified'],
+              'source_tls_hostname_verified':r['tls_hostname_verified'],
+              'source_destination_policy':r['destination_policy'],
+              'before_marker':r['pitr_before_marker'],
+              'after_marker':r['pitr_after_marker'],
+              'before_marker_digest':r['pitr_before_marker_digest'],
+              'after_marker_digest':r['pitr_after_marker_digest'],
+              'target_time':r['pitr_target_time'],
+              'target_time_precision':r['target_time_precision'],
+              'marker_target_guard_seconds_minimum':r['marker_target_guard_seconds_minimum'],
+              'marker_boundary_order_verified':True,
+              'wal_archive_event_verified':r['wal_archive_event_verified'],
+              'pg_switch_wal_authorized':r['pg_switch_wal_authorized'],
+              'restore_actuator_configured':False,
+              'provider_restore_performed':False,
+              'external_restore_required':True,
+              'base_backup_verified':False,
+              'archive_restore_path_verified':False,
+              'restore_capability_verified':False,
+              'restore_performed_by_this_workflow':False,
+              'external_restore_authorized_by_this_workflow':False,
+              'external_provider_spend_authorized_by_this_workflow':False,
+              'expanded_provider_credential_authorized_by_this_workflow':False,
+              'provider_contract_authorized_by_this_workflow':False,
+              'next_required_proof':'EXTERNAL_RESTORE_TO_EXACT_TARGET_TIME_THEN_DISPATCH_p0-postgres-target-time-restore-verification.yml'
           }
-          Path('artifacts/p0-remote-postgres/pitr-target-time-fixture.json').write_text(json.dumps(fixture,indent=2)+'\n')
-          print('REMOTE_POSTGRES_TARGET_TIME_PITR_FIXTURE_READY')
-          PY
-
-      - name: Stage PITR restore DSN without exposing DSN in process arguments
-        env:
-          RESTORE_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$RESTORE_DSN"
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          printf '%s' "$RESTORE_DSN" | "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/data/postgres-pitr-restore.dsn; chmod 600 ~/kidults-runtime/data/postgres-pitr-restore.dsn'
-          unset RESTORE_DSN
-
-      - name: Execute actual target-time PITR restore verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          eval "$(python3 - <<'PY'
-          import json, shlex
-          r=json.load(open('artifacts/p0-remote-postgres/pitr-target-time-fixture.json'))
-          print('export KAIOS_PITR_BEFORE_MARKER='+shlex.quote(r['before_marker']))
-          print('export KAIOS_PITR_AFTER_MARKER='+shlex.quote(r['after_marker']))
-          print('export KAIOS_PITR_TARGET_TIME='+shlex.quote(r['target_time']))
-          PY
-          )"
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          cleanup_restore() {
-            "${SSH[@]}" kidults-staging@"$HOST" 'rm -f ~/kidults-runtime/data/postgres-pitr-restore.dsn' >/dev/null 2>&1 || true
-          }
-          trap cleanup_restore EXIT
-          "${SSH[@]}" kidults-staging@"$HOST" "
-            set -euo pipefail
-            export KAIOS_ENVIRONMENT=staging
-            export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
-            export KAIOS_PITR_BEFORE_MARKER=$(printf %q "$KAIOS_PITR_BEFORE_MARKER")
-            export KAIOS_PITR_AFTER_MARKER=$(printf %q "$KAIOS_PITR_AFTER_MARKER")
-            export KAIOS_PITR_TARGET_TIME=$(printf %q "$KAIOS_PITR_TARGET_TIME")
-            KAIOS_POSTGRES_PITR_RESTORE_DSN=\"\$(cat ~/kidults-runtime/data/postgres-pitr-restore.dsn)\"
-            export KAIOS_POSTGRES_PITR_RESTORE_DSN
-            ~/kidults-runtime/bin/verify-postgres-target-time-restore.sh | tee ~/kidults-runtime/audit/postgres-target-time-restore.json
-          "
-
-      - name: Collect and assert target-time restore receipt
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/postgres-target-time-restore.json' > artifacts/p0-remote-postgres/postgres-target-time-restore.json
-          python3 - <<'PY'
-          import json
-          r=json.load(open('artifacts/p0-remote-postgres/postgres-target-time-restore.json'))
-          assert r['status']=='PASS'
-          assert r['environment']=='STAGING'
-          assert r['production_touch'] is False
-          assert r['pitr']=='TARGET_TIME_RESTORE_VERIFIED'
-          assert r['pre_target_marker_count']==1
-          assert r['post_target_marker_count']==0
-          assert int(r['force_rls_tables']) >= 4
-          assert int(r['schema_migrations']) >= 1
-          print('REMOTE_POSTGRES_TARGET_TIME_PITR_VERIFIED')
-          PY
-
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6.0.0
-        with:
-          python-version: '3.12.14'
-          cache: pip
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
-        with:
-          node-version: '24.19.0'
-          package-manager-cache: false
-
-      - name: Re-evaluate Candidate Evidence Track B and Projection chain
-        shell: bash
-        run: |
-          set -euo pipefail
-          python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
-          python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/p0-remote-postgres/empirical-chain-state.json
-          python scripts/kidults/integration/build-live-chain-audit-v1.py artifacts/p0-remote-postgres/empirical-chain-state.json artifacts/p0-remote-postgres/empirical-audit-chain.json
-          python3 - <<'PY'
-          import json
-          p=json.load(open('artifacts/p0-remote-postgres/empirical-chain-state.json'))
-          a=json.load(open('artifacts/p0-remote-postgres/empirical-audit-chain.json'))
-          assert p['result']=='PASS'
-          assert p['production']=='HOLD'
-          assert p['public_intelligence']=='HOLD'
-          assert a['production']=='HOLD'
-          assert a['public_intelligence']=='HOLD'
-          assert a['raw_provider_payloads'] is False
-          assert a['credentials'] is False
-          assert a['secrets'] is False
-          print('POST_PITR_EMPIRICAL_CHAIN_STATE='+p['state'])
+          (root/'pitr-target-time-fixture.json').write_text(json.dumps(fixture,indent=2)+'\n',encoding='utf-8')
+          print('WAITING_FOR_EXTERNAL_RESTORE')
           PY
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import {
+  ACTIVATION_RECEIPT_STEP_NAME,
   CONTRACT_PATH,
   LIVE_MAIN_GUARD_STEP_NAME,
   REGISTRY_PATH,
@@ -184,9 +185,9 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
   });
 }
 
-test('current exact registry binds all 16 secret-bearing lanes but external policy remains fail closed', () => {
-  assert.equal(currentInventory.registered_lane_count, 16);
-  assert.equal(currentInventory.secret_bearing_job_count, 16);
+test('current exact registry binds all 17 secret-bearing lanes but external policy remains fail closed', () => {
+  assert.equal(currentInventory.registered_lane_count, 17);
+  assert.equal(currentInventory.secret_bearing_job_count, 17);
   assert.deepEqual(validateRequiredEnvironmentBindings(currentInventory, registry), []);
   const repositoryGuardedLanes = currentInventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
@@ -274,7 +275,7 @@ test('selected non-main ref and stale main SHA are independently rejected', () =
   assert.ok(stale.blockers.includes('EXACT_SOURCE_SHA_NOT_OBSERVED_DEFAULT_BRANCH_HEAD'));
 });
 
-test('all 16 secret-bearing jobs reject unreadable, stale, and non-main live-main guards', () => {
+test('all 17 secret-bearing jobs reject unreadable, stale, and non-main live-main guards', () => {
   const mutations = [
     [
       'unreadable_api_fail_open',
@@ -308,10 +309,10 @@ test('all 16 secret-bearing jobs reject unreadable, stale, and non-main live-mai
       rejected += 1;
     }
   }
-  assert.equal(rejected, 48);
+  assert.equal(rejected, currentInventory.lanes.length * mutations.length);
 });
 
-test('all 16 secret-bearing jobs reject secret scope and guard order mutations', () => {
+test('all 17 secret-bearing jobs reject secret scope and guard order mutations', () => {
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
     const job = lane.secret_bearing_jobs[0];
@@ -368,7 +369,7 @@ test('all 16 secret-bearing jobs reject secret scope and guard order mutations',
     assert.ok(failures.some((failure) => failure.startsWith('REQUIRED_SECRET_STEP_MISMATCH:')));
     rejected += 1;
   }
-  assert.equal(rejected, 80);
+  assert.equal(rejected, currentInventory.lanes.length * 5);
 });
 
 test('unprotected main, wildcard policy, and unreadable secret metadata fail closed', () => {
@@ -520,6 +521,60 @@ test('trigger transformation and missing explicit activation guard fail closed',
     registry
   );
   assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_GUARD_MISSING:')));
+});
+
+test('activation receipt body and first-step ordering fail closed under mutation', () => {
+  for (const workflow of [
+    '.github/workflows/p0-remote-postgres-persistence-pitr.yml',
+    '.github/workflows/p0-postgres-target-time-restore-verification.yml'
+  ]) {
+    const source = fs.readFileSync(workflow, 'utf8');
+    const lane = analyzeWorkflow(source, workflow);
+    const job = lane.secret_bearing_jobs[0];
+    assert.equal(job.activation_receipt.count, 1);
+    assert.equal(job.activation_receipt.step_index, 0);
+    assert.equal(job.activation_receipt.contract_valid, true);
+    assert.equal(job.activation_receipt.before_live_main_guard, true);
+    assert.equal(job.activation_receipt.before_all_provider_secret_steps, true);
+
+    const noAuthorizationAssertion = source.replace(
+      '          test "$ACTIVATION_AUTHORIZED" = "true"\n',
+      '          test -n "$ACTIVATION_AUTHORIZED"\n'
+    );
+    let failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, workflow, noAuthorizationAssertion),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+
+    const reordered = moveNamedStepAfter(source, ACTIVATION_RECEIPT_STEP_NAME, LIVE_MAIN_GUARD_STEP_NAME);
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, workflow, reordered),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_ORDER:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:')));
+
+    const secretExpression = '$' + '{{ secrets.MUTATED_ACTIVATION_SECRET }}';
+    const activationEnvironmentBlock = (
+      `      - name: ${ACTIVATION_RECEIPT_STEP_NAME}\n` +
+      '        shell: bash\n' +
+      '        env:\n' +
+      '          ACTIVATION_AUTHORIZED: $' +
+      '{{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}\n'
+    );
+    assert.ok(source.includes(activationEnvironmentBlock));
+    const leaked = source.replace(
+      activationEnvironmentBlock,
+      activationEnvironmentBlock + `          MUTATED_ACTIVATION_SECRET: ${secretExpression}\n`
+    );
+    assert.notEqual(leaked, source);
+    failures = validateRequiredEnvironmentBindings(
+      replaceLaneSource(currentInventory, workflow, leaked),
+      registry
+    );
+    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+  }
 });
 
 test('ruleset context is recorded but never promoted to issue 936 closure', () => {
