@@ -1,7 +1,7 @@
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
-const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1429');
+const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1431');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
 const requireLiveCorrectionHead = process.env.REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES === 'true';
 const canonicalIssues = [
