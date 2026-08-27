@@ -308,7 +308,7 @@ test('all 16 privileged jobs reject unreadable, stale, and non-main live-main gu
       rejected += 1;
     }
   }
-  assert.equal(rejected, 45);
+  assert.equal(rejected, 48);
 });
 
 test('all 16 privileged jobs reject secret scope and guard order mutations', () => {
@@ -368,7 +368,7 @@ test('all 16 privileged jobs reject secret scope and guard order mutations', () 
     assert.ok(failures.some((failure) => failure.startsWith('REQUIRED_SECRET_STEP_MISMATCH:')));
     rejected += 1;
   }
-  assert.equal(rejected, 75);
+  assert.equal(rejected, 80);
 });
 
 test('unprotected main, wildcard policy, and unreadable secret metadata fail closed', () => {
