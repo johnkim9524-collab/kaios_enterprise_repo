@@ -64,7 +64,7 @@ concurrency:
 
 jobs:
   validate-mission-directed-discovery-contract:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -85,7 +85,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
 
   mission-directed-discovery:
-    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

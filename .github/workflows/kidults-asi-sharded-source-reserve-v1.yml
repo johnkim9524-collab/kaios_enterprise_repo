@@ -34,8 +34,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-sharded-source-reserve-contract:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate reserve contract without producer artifact consumption
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs
+
   rolling-live-reserve:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
