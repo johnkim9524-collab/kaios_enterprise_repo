@@ -28,7 +28,8 @@ function validate(assuranceSource, truthSource) {
   require(assuranceSource.includes('canonical-truth-upstream-binding.json'), 'TRUTH_BINDING_RECEIPT_MISSING');
 
   require(truthSource.includes('id: validate'), 'TRUTH_VALIDATION_STEP_ID_MISSING');
-  require(truthSource.includes('if: always()'), 'TRUTH_RECEIPT_ALWAYS_MISSING');
+  require(/- name: Emit exact canonical-truth receipt\n\s+if: always\(\)/.test(truthSource), 'TRUTH_RECEIPT_EMIT_ALWAYS_MISSING');
+  require(/- name: Upload exact canonical-truth receipt\n\s+if: always\(\)/.test(truthSource), 'TRUTH_RECEIPT_UPLOAD_ALWAYS_MISSING');
   require(truthSource.includes("receipt_id: 'kpmo-live-canonical-issue-truth-receipt-v1'"), 'TRUTH_RECEIPT_ID_MISSING');
   require(truthSource.includes("state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'"), 'TRUTH_RECEIPT_STATE_DERIVATION_MISSING');
   require(truthSource.includes('kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}'), 'TRUTH_ARTIFACT_RUN_BINDING_MISSING');
