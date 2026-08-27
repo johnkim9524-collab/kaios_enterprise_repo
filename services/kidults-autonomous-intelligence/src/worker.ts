@@ -1,4 +1,5 @@
 import baseWorker, { type Env as BaseEnv } from './index';
+import { prepareD1ProjectionWrite } from './d1-projector-write-boundary';
 import {
   ASI_ENGINE_ALIGNMENT_POLICY_DIGEST,
   ASI_ENGINE_ALIGNMENT_POLICY_VERSION,
@@ -65,7 +66,7 @@ async function recordShadowHeartbeat(
   env: Env,
   recovery: AsiRecoveryCycleResult,
 ): Promise<void> {
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
     VALUES (?,'asi.shadow.heartbeat','scheduler',?,?)
   `).bind(makeId('audit'),JSON.stringify({
@@ -86,7 +87,7 @@ async function preflightAlignmentReceipts(
     const task = message.body;
     const receipt = await assertAsiExecutionAlignment(task.target_fleet,task.event);
     if (!receipt.hard_floor_pass) throw new Error('ASI_ENGINE_ALIGNMENT_PREFLIGHT_NOT_PASS');
-    await env.DB.prepare(`
+    await prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO audit_log (id,event_type,actor,details_json,created_at)
       VALUES (?,'asi.engine.alignment.preflight.v2',?,?,?)
     `).bind(
@@ -111,7 +112,7 @@ async function recordAlignmentBatchCompletion(
   batch: MessageBatch<AsiQueueTask>,
   receipts: readonly AsiEngineAlignmentPreflightReceipt[],
 ): Promise<void> {
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
     VALUES (?,'asi.engine.alignment.batch.completed.v2','asi-runtime',?,?)
   `).bind(makeId('audit'),JSON.stringify({
@@ -178,7 +179,7 @@ export default {
       await recordShadowHeartbeat(env,recovery);
     })().catch(async (error) => {
       const message = error instanceof Error ? error.message : String(error);
-      await env.DB.prepare(`
+      await prepareD1ProjectionWrite(env.DB, `
         INSERT INTO audit_log (id,event_type,actor,details_json,created_at)
         VALUES (?,'asi.shadow.heartbeat.error','scheduler',?,?)
       `).bind(makeId('audit'),JSON.stringify({message,engineAlignment:engineAlignmentStatus()}),nowIso()).run();
