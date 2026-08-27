@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 
 : "${KAIOS_ENVIRONMENT:?KAIOS_ENVIRONMENT is required}"
 : "${KAIOS_PRODUCTION_PROMOTION_AUTHORIZED:?KAIOS_PRODUCTION_PROMOTION_AUTHORIZED is required}"
@@ -14,51 +15,81 @@ set -euo pipefail
 [[ "$KAIOS_PRODUCTION_PROMOTION_AUTHORIZED" == 'false' ]] || { echo 'production promotion must remain false' >&2; exit 64; }
 [[ "$KAIOS_PITR_BEFORE_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid BEFORE digest' >&2; exit 64; }
 [[ "$KAIOS_PITR_AFTER_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid AFTER digest' >&2; exit 64; }
-command -v psql >/dev/null 2>&1 || { echo 'psql is required' >&2; exit 69; }
+for command_name in psql pg_isready; do
+  command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
+done
 
-before_row="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --dbname="$KAIOS_POSTGRES_PITR_RESTORE_DSN" \
+python3 - "$KAIOS_PITR_TARGET_TIME" <<'PY'
+import datetime, re, sys
+value=sys.argv[1]
+if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value):
+    raise SystemExit('target time must be canonical whole-second UTC RFC3339')
+datetime.datetime.fromisoformat(value[:-1] + '+00:00')
+PY
+
+export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
+pg_isready >/dev/null
+
+probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
-  --command="SELECT count(*) || '|' || COALESCE(max(marker_digest),'') || '|' || COALESCE(max(phase),'') FROM kaios_runtime.pitr_probe WHERE marker=:'marker'")"
-before_count="${before_row%%|*}"
-before_rest="${before_row#*|}"
-before_digest="${before_rest%%|*}"
-before_phase="${before_rest##*|}"
-[[ "$before_count" == '1' ]] || { echo 'pre-target marker missing after PITR restore' >&2; exit 1; }
-[[ "$before_digest" == "$KAIOS_PITR_BEFORE_MARKER_DIGEST" ]] || { echo 'pre-target marker digest mismatch' >&2; exit 1; }
-[[ "$before_phase" == 'BEFORE_TARGET' ]] || { echo 'pre-target marker phase mismatch' >&2; exit 1; }
+  --set="after_marker=$KAIOS_PITR_AFTER_MARKER" \
+  --set="target_time=$KAIOS_PITR_TARGET_TIME" \
+  --command="SELECT json_build_object(
+    'before_count',(SELECT count(*)::int FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
+    'before_digest',(SELECT COALESCE(max(marker_digest),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
+    'before_phase',(SELECT COALESCE(max(phase),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
+    'before_guard_verified',(SELECT COALESCE(max(created_at) <= :'target_time'::timestamptz - interval '2 seconds',false) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
+    'after_count',(SELECT count(*)::int FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'after_marker'),
+    'data_checksums',current_setting('data_checksums'),
+    'force_rls_tables',(SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='kaios_runtime' AND c.relrowsecurity AND c.relforcerowsecurity),
+    'migration_rows',(SELECT count(*)::int FROM kaios_runtime.schema_migrations),
+    'endpoint_in_recovery',pg_is_in_recovery()
+  )::text")"
 
-after_count="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --dbname="$KAIOS_POSTGRES_PITR_RESTORE_DSN" \
-  --set="marker=$KAIOS_PITR_AFTER_MARKER" \
-  --command="SELECT count(*) FROM kaios_runtime.pitr_probe WHERE marker=:'marker'")"
-[[ "$after_count" == '0' ]] || { echo 'post-target marker survived PITR restore' >&2; exit 1; }
-
-rls_forced="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --dbname="$KAIOS_POSTGRES_PITR_RESTORE_DSN" \
-  --command="SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='kaios_runtime' AND c.relrowsecurity AND c.relforcerowsecurity")"
-[[ "$rls_forced" =~ ^[0-9]+$ ]] || { echo 'invalid RLS count after restore' >&2; exit 1; }
-(( rls_forced >= 4 )) || { echo "RLS lost after PITR restore: $rls_forced" >&2; exit 1; }
-
-migration_count="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
-  --dbname="$KAIOS_POSTGRES_PITR_RESTORE_DSN" \
-  --command="SELECT count(*) FROM kaios_runtime.schema_migrations")"
-[[ "$migration_count" =~ ^[0-9]+$ ]] || { echo 'invalid migration ledger count after restore' >&2; exit 1; }
-(( migration_count >= 1 )) || { echo 'migration ledger missing after PITR restore' >&2; exit 1; }
-
-python3 - "$KAIOS_PITR_TARGET_TIME" "$rls_forced" "$migration_count" "$KAIOS_PITR_BEFORE_MARKER_DIGEST" "$KAIOS_PITR_AFTER_MARKER_DIGEST" <<'PY'
+python3 - "$probe_json" "$KAIOS_PITR_TARGET_TIME" "$KAIOS_PITR_BEFORE_MARKER_DIGEST" "$KAIOS_PITR_AFTER_MARKER_DIGEST" <<'PY'
 import json, sys
+probe=json.loads(sys.argv[1])
+target_time=sys.argv[2]
+before_digest=sys.argv[3]
+after_digest=sys.argv[4]
+if probe.get('before_count') != 1:
+    raise SystemExit('pre-target marker missing at target-boundary probe')
+if probe.get('before_digest') != before_digest:
+    raise SystemExit('pre-target marker digest mismatch')
+if probe.get('before_phase') != 'BEFORE_TARGET':
+    raise SystemExit('pre-target marker phase mismatch')
+if probe.get('before_guard_verified') is not True:
+    raise SystemExit('pre-target marker does not satisfy the two-second target guard')
+if probe.get('after_count') != 0:
+    raise SystemExit('post-target marker present at target-boundary probe')
+if probe.get('data_checksums') != 'on':
+    raise SystemExit('data checksums are not enabled at target-boundary probe')
+if not isinstance(probe.get('force_rls_tables'), int) or probe['force_rls_tables'] < 4:
+    raise SystemExit(f"RLS missing at target-boundary probe: {probe.get('force_rls_tables')}")
+if not isinstance(probe.get('migration_rows'), int) or probe['migration_rows'] < 1:
+    raise SystemExit('migration ledger missing at target-boundary probe')
+if probe.get('endpoint_in_recovery') is not False:
+    raise SystemExit('target-boundary endpoint is still in recovery')
 print(json.dumps({
   "status": "PASS",
   "environment": "STAGING",
   "production_touch": False,
-  "target_time": sys.argv[1],
+  "target_time": target_time,
   "pre_target_marker_count": 1,
   "post_target_marker_count": 0,
-  "pre_target_marker_digest": sys.argv[4],
-  "expected_post_target_marker_digest": sys.argv[5],
-  "force_rls_tables": int(sys.argv[2]),
-  "migration_rows": int(sys.argv[3]),
-  "pitr": "TARGET_TIME_RESTORE_VERIFIED"
+  "pre_target_marker_digest": before_digest,
+  "expected_post_target_marker_digest": after_digest,
+  "pre_target_marker_at_or_before_target_time": True,
+  "pre_target_marker_guard_seconds_minimum": 2,
+  "data_checksums": probe["data_checksums"],
+  "pitr_probe_table": "kaios_runtime.pitr_probe_v2",
+  "force_rls_tables": probe["force_rls_tables"],
+  "migration_rows": probe["migration_rows"],
+  "endpoint_in_recovery": False,
+  "consistent_snapshot_scope": "SINGLE_POSTGRESQL_STATEMENT",
+  "target_boundary_data_state_observed": True,
+  "restore_method_verified": False,
+  "provider_control_plane_receipt_verified": False,
+  "pitr": "NOT_VERIFIED"
 }, separators=(",", ":")))
 PY

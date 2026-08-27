@@ -90,6 +90,7 @@ for (const file of files) {
   if (!details.privileged_secret_lane) continue;
   findings.push({
     workflow: path.relative('.', file).split(path.sep).join('/'),
+    workflow_dispatch: details.workflow_dispatch,
     secret_names: details.secret_names,
     indexed_secret_access: details.indexed_secret_access,
     secret_context_expression: details.secret_context_expression,
