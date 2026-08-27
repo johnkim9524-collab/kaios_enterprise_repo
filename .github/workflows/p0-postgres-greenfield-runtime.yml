@@ -166,6 +166,7 @@ jobs:
           KAIOS_STAGING_VIEWER_TOKEN_FILE: /tmp/kaios-viewer.token
           KAIOS_STAGING_OPERATOR_TOKEN_FILE: /tmp/kaios-operator.token
           KAIOS_POSTGRES_DSN: postgresql://kaios_runtime_app_login:runtime-test-password@127.0.0.1:5432/kaios
+          KAIOS_POSTGRES_DIAGNOSTICS: 'true'
           PORT: '32101'
         run: |
           set -euo pipefail
