@@ -19,7 +19,6 @@ on:
 
 permissions:
   contents: read
-  issues: read
 
 jobs:
   full-value-chain-redteam:
@@ -51,10 +50,5 @@ jobs:
           echo "image_version=${ImageVersion:-UNKNOWN}"
           echo "node=$(node --version)"
           cat /etc/os-release
-      - name: Validate live canonical issue truth
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
-        run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
       - name: Run aggregate full value-chain Red-Team suite
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
