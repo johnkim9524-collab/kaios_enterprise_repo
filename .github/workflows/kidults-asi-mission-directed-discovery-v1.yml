@@ -63,8 +63,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-mission-directed-discovery-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate mission-directed discovery contract without live network
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
+
   mission-directed-discovery:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
