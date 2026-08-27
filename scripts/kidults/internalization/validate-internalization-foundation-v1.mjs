@@ -5,6 +5,7 @@ const suites = [
   'scripts/kidults/internalization/validate-rights-intelligence-policy-v1.mjs',
   'scripts/kidults/internalization/validate-provider-economics-v1.mjs',
   'scripts/kidults/internalization/validate-source-reputation-v1.mjs',
+  'scripts/kidults/internalization/validate-cross-grader-canonical-reconciliation-v1.mjs',
   'scripts/kidults/internalization/validate-market-integrity-v1.mjs',
   'scripts/kidults/internalization/validate-canonical-ontology-evolution-v1.mjs',
   'scripts/kidults/internalization/validate-historical-learning-memory-v1.mjs',
