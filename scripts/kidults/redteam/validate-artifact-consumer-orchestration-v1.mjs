@@ -12,6 +12,7 @@ const files = {
   autonomousResolution: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
   ownedGraph: '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml',
   p1: '.github/workflows/kidults-asi-p1-source-preflight-v1.yml',
+  supersession: '.github/workflows/kpmo-exact-head-ci-supersession-v1.yml',
 };
 
 for (const path of Object.values(files)) assert(fs.existsSync(path), `WORKFLOW_MISSING:${path}`);
@@ -22,6 +23,7 @@ const steering = read(files.steering);
 const autonomousResolution = read(files.autonomousResolution);
 const ownedGraph = read(files.ownedGraph);
 const p1 = read(files.p1);
+const supersession = read(files.supersession);
 
 const independentTrigger = /^\s{2}(schedule|push):/m;
 const globalArtifactListing = '/actions/artifacts?per_page=';
@@ -56,6 +58,18 @@ assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDAT
 assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
+const snapshotConcurrencyContract = "group: kidults-asi-snapshot-readiness-factory-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'push' && github.ref || github.run_id }}";
+assert(snapshot.includes(snapshotConcurrencyContract), 'SNAPSHOT_EVENT_SCOPED_CONCURRENCY_MISSING');
+assert(snapshot.includes('cancel-in-progress: true'), 'SNAPSHOT_CONCURRENCY_FAIL_CLOSED_MISSING');
+const autonomousResolutionPrStaticContract = "validate-autonomous-resolution-contract:\n    if: github.event_name == 'pull_request' || github.event_name == 'push'";
+assert(autonomousResolution.includes(autonomousResolutionPrStaticContract), 'AUTONOMOUS_RESOLUTION_PR_STATIC_LANE_MISSING');
+const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')";
+assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_SEPARATION_MISSING');
+assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
+assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
+assert(supersession.includes('run_readback="$(curl --fail-with-body'), 'EXACT_HEAD_SUPERSESSION_TERMINAL_READBACK_MISSING');
+assert(supersession.includes('Cancellation retry exhausted for still-active run'), 'EXACT_HEAD_SUPERSESSION_FAIL_CLOSED_MISSING');
+assert(supersession.includes('same_head_runs_cancelled:0'), 'EXACT_HEAD_SUPERSESSION_SAME_HEAD_INVARIANT_MISSING');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(snapshot.includes('/actions/runs/${P2_RUN_ID}/artifacts'), 'SNAPSHOT_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(snapshot.includes('main.commit?.sha!==run.head_sha') && snapshot.includes('main.commit.sha!==process.env.GITHUB_SHA'), 'SNAPSHOT_CURRENT_MAIN_BINDING_MISSING');
@@ -95,6 +109,15 @@ const requirementProducerEventMutation = requirement.replace(requirementProducer
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
 const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
 assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
+const snapshotConcurrencyMutation = snapshot.replace('github.event.workflow_run.id', 'github.ref');
+assert(snapshotConcurrencyMutation !== snapshot && !snapshotConcurrencyMutation.includes(snapshotConcurrencyContract), 'SNAPSHOT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
+const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
+  "if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
+  "if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
+);
+assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
+const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do', 'for attempt in 1; do');
+assert(supersessionRetryMutation !== supersession && !supersessionRetryMutation.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_RETRY_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
@@ -110,7 +133,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 14,
+  adversarial_mutations_rejected: 17,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',
