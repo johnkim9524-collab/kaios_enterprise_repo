@@ -30,9 +30,12 @@ function installEvaluationClock(sqlite) {
 }
 
 function compileRuntimeModules() {
-  const names = ['event','registry','processors','processor-runtime','runtime'];
-  for (const name of names) {
-    const input = readFileSync(resolve(sourceRoot,`${name}.ts`),'utf8');
+  const modules = [
+    ...['event','registry','processors','processor-runtime','runtime'].map((name) => ({name,root:sourceRoot})),
+    {name:'d1-projector-write-boundary',root:resolve(sourceRoot,'..')},
+  ];
+  for (const {name,root} of modules) {
+    const input = readFileSync(resolve(root,`${name}.ts`),'utf8');
     const transpiled = ts.transpileModule(input,{
       fileName:`${name}.ts`,
       reportDiagnostics:true,
@@ -47,8 +50,8 @@ function compileRuntimeModules() {
       throw new Error(`ASI_E2E_TYPESCRIPT_TRANSPILE_FAILED:${errors.map((item) => item.messageText).join('|')}`);
     }
     const output = transpiled.outputText.replace(
-      /(from\s+['"]|import\s*\(\s*['"])(\.\/[a-z0-9-]+)(['"]\s*\)?)/gi,
-      (_match,prefix,specifier,suffix) => `${prefix}${specifier}.mjs${suffix}`,
+      /(from\s+['"]|import\s*\(\s*['"])(\.\.?\/[a-z0-9-]+)(['"]\s*\)?)/gi,
+      (_match,prefix,specifier,suffix) => `${prefix}./${specifier.split('/').pop()}.mjs${suffix}`,
     );
     writeFileSync(resolve(compiledRoot,`${name}.mjs`),output,'utf8');
   }
