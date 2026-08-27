@@ -15,6 +15,7 @@ const forbiddenClosureClaims = [
   /CURRENT-MAIN INTERNAL HANDLING CONTROLS CLOSED/i,
   /CURRENT-MAIN INTERNAL RUNTIME P0 CLOSED/i
 ];
+const canonicalBlockPattern = /<!-- KPMO_CANONICAL_TRUTH_V2_START -->([\s\S]*?)<!-- KPMO_CANONICAL_TRUTH_V2_END -->/g;
 
 function fail(message) {
   console.error(`FAIL canonical issue truth: ${message}`);
@@ -60,11 +61,36 @@ async function githubGraphql() {
   return payload.data.repository;
 }
 
-function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceCorrectionHead) {
+async function githubRest(path) {
+  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28'
+    },
+    signal: AbortSignal.timeout(15_000)
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`REST HTTP ${response.status}: ${text.slice(0, 500)}`);
+  return JSON.parse(text);
+}
+
+function latestCanonicalBlock(body) {
+  const blocks = [...String(body || '').matchAll(canonicalBlockPattern)];
+  return blocks.length ? blocks.at(-1)[1] : '';
+}
+
+function canonicalMainSha(body) {
+  const block = latestCanonicalBlock(body);
+  const match = block.match(/protected main:\s*`([0-9a-f]{40})`/i);
+  return match?.[1] || '';
+}
+
+function validateStaticBodies(correctionHead, issues, activeDefects, enforceCorrectionHead) {
   const errors = [];
   for (const issue of issues) {
     const body = issue.body || '';
-    if (!body.includes(mainSha)) errors.push(`#${issue.number} missing exact protected-main SHA ${mainSha}`);
+    if (!canonicalMainSha(body)) errors.push(`#${issue.number} missing canonical protected-main SHA in KPMO_CANONICAL_TRUTH_V2 block`);
     if (!body.includes(`#${correctionPrNumber}`)) errors.push(`#${issue.number} missing canonical correction PR #${correctionPrNumber}`);
     if (enforceCorrectionHead && !body.includes(correctionHead)) errors.push(`#${issue.number} missing live correction head ${correctionHead}`);
     for (const pattern of forbiddenClosureClaims) {
@@ -72,6 +98,29 @@ function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceC
     }
     for (const defect of activeDefects) {
       if (!body.includes(`#${defect}`)) errors.push(`#${issue.number} omits active defect #${defect}`);
+    }
+  }
+  return errors;
+}
+
+async function validateMonotonicMain(mainSha, issues) {
+  const errors = [];
+  const groups = new Map();
+  for (const issue of issues) {
+    const recorded = canonicalMainSha(issue.body || '');
+    if (!recorded) continue;
+    if (!groups.has(recorded)) groups.set(recorded, []);
+    groups.get(recorded).push(issue.number);
+  }
+  for (const [recorded, numbers] of groups) {
+    if (recorded === mainSha) continue;
+    try {
+      const comparison = await githubRest(`/compare/${recorded}...${mainSha}`);
+      if (!['ahead', 'identical'].includes(comparison.status)) {
+        errors.push(`#${numbers.join(',#')} canonical main ${recorded} is not ancestor-or-equal to protected main ${mainSha} (status=${comparison.status || 'UNKNOWN'})`);
+      }
+    } catch (error) {
+      errors.push(`#${numbers.join(',#')} canonical main ${recorded} cannot be proven ancestor of ${mainSha}: ${error.message}`);
     }
   }
   return errors;
@@ -99,22 +148,30 @@ for (const number of [...new Set([...canonicalIssues, ...trackedDefects])]) {
 const issues = canonicalIssues.map(number => issueByNumber.get(number));
 const defectIssues = trackedDefects.map(number => issueByNumber.get(number));
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
-const errors = validateBodies(effectiveMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
+const errors = [
+  ...validateStaticBodies(correctionHead, issues, activeDefects, requireLiveCorrectionHead),
+  ...await validateMonotonicMain(effectiveMainSha, issues)
+];
 if (errors.length) fail(errors.join('; '));
 
-const staleMainMutation = structuredClone(issues);
-staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(effectiveMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
-if (!validateBodies(effectiveMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) fail('stale-main mutation was not rejected');
+const missingBlockMutation = structuredClone(issues);
+missingBlockMutation[0].body = String(missingBlockMutation[0].body || '').replace(canonicalBlockPattern, '');
+if (!validateStaticBodies(correctionHead, missingBlockMutation, activeDefects, requireLiveCorrectionHead).length) fail('missing canonical-block mutation was not rejected');
 
 const correctionMutation = structuredClone(issues);
 correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`.replaceAll(correctionHead, '1111111111111111111111111111111111111111');
-if (!validateBodies(effectiveMainSha, correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
+if (!validateStaticBodies(correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
 
 if (activeDefects.length) {
   const omissionMutation = structuredClone(issues);
   omissionMutation[0].body = omissionMutation[0].body.replaceAll(`#${activeDefects[0]}`, '');
-  if (!validateBodies(effectiveMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
+  if (!validateStaticBodies(correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
 }
+
+const impossibleMainMutation = structuredClone(issues);
+impossibleMainMutation[0].body = impossibleMainMutation[0].body.replace(canonicalBlockPattern, block => block.replace(/protected main:\s*`[0-9a-f]{40}`/i, 'protected main: `1111111111111111111111111111111111111111`'));
+const impossibleErrors = await validateMonotonicMain(effectiveMainSha, impossibleMainMutation);
+if (!impossibleErrors.length) fail('non-ancestor canonical-main mutation was not rejected');
 
 const closureMutationTexts = [
   '## Internal reversible-control truth — CLOSED AT CURRENT MAIN',
@@ -124,7 +181,7 @@ const closureMutationTexts = [
 for (const mutationText of closureMutationTexts) {
   const closureMutation = structuredClone(issues);
   closureMutation[0].body += `\n${mutationText}\n`;
-  if (!validateBodies(effectiveMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  if (!validateStaticBodies(correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
 }
 
 console.log(JSON.stringify({
@@ -133,14 +190,17 @@ console.log(JSON.stringify({
   protected_main_sha: effectiveMainSha,
   event_base_sha: expectedMainSha,
   live_main_observed: observedMainSha,
+  canonical_main_policy: 'MONOTONIC_ANCESTOR_OR_EQUAL',
   correction_pr_validation: correctionPrValidation,
   canonical_correction_pr: correctionPrNumber,
   canonical_correction_head: correctionHead,
   live_correction_head_enforced_in_issues: requireLiveCorrectionHead,
   canonical_issues: canonicalIssues,
   active_defects: activeDefects,
-  github_read_mode: 'SINGLE_GRAPHQL_BATCH',
-  stale_main_mutation_rejected: true,
+  github_issue_read_mode: 'SINGLE_GRAPHQL_BATCH',
+  canonical_main_ancestry_verified: true,
+  missing_canonical_block_mutation_rejected: true,
+  non_ancestor_main_mutation_rejected: true,
   stale_correction_head_mutation_rejected: true,
   active_defect_omission_mutation_rejected: activeDefects.length > 0,
   unsupported_closure_mutations_rejected: closureMutationTexts.length,
