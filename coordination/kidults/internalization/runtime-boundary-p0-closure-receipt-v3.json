@@ -1,0 +1,51 @@
+{
+  "receipt_type": "KPMO_RUNTIME_P0_CURRENT_MAIN_TRUTH",
+  "version": "3.0",
+  "generated_at_kst": "2026-08-27T17:55:00+09:00",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "protected_main": "99e0019199a2c05ada9088a0fd1c3888a2801c25",
+  "source_merge_pr": 1327,
+  "status": "PROTECTED_MAIN_RUNTIME_BOUNDARY_LANDED__D1_AND_REMOTE_RUNTIME_HOLDS_REMAIN",
+  "closed": {
+    "reviewer_required_gate": false,
+    "reviewer_blocker_removed": true,
+    "protected_main_landed": true,
+    "server_owned_projection_boundary": true,
+    "client_projection_accepted": false,
+    "export_post_only": true,
+    "operator_export_required": true,
+    "entitlement_scope_expiry_revocation_binding": true,
+    "projection_digest_binding": true,
+    "persistent_nonce_replay_defense": true,
+    "denial_payload_leakage": false,
+    "postgres_greenfield_runner_landed": true,
+    "postgres_runtime_adapter_landed": true,
+    "postgres_forced_rls_test_contract_landed": true,
+    "workflow_dependency_pins_corrected": true,
+    "node_runtime_pin": "24.19.0",
+    "stale_pr_1328_closed": true
+  },
+  "remaining_internal_p0": {
+    "d1_legacy_direct_write_sites": {
+      "status": "HOLD",
+      "writer_files": 5,
+      "static_mutations": 89,
+      "dynamic_sql_paths": 1,
+      "policy": "NO_REMOTE_LEGACY_WRITER_DEPLOY_UNTIL_POSTGRESQL_OUTBOX_PROJECTOR_CUTOVER"
+    },
+    "postgres_remote_staging_execution": "NOT_PROVEN_BY_THIS_RECEIPT",
+    "pitr": "NOT_PROVEN",
+    "platform_wide_process_memory_removal": "NOT_PROVEN",
+    "track_b_empirical_evidence": "ABSENT"
+  },
+  "governance": {
+    "required_approving_review_count": 0,
+    "required_reviewers": [],
+    "code_owner_review_required": false,
+    "required_status_checks_remain_authoritative": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "truth_rule": "Do not relabel D1, PITR, remote staging, empirical Track B, Production/Public or G5 as complete without exact runtime evidence."
+}
