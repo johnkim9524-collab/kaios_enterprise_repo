@@ -30,16 +30,30 @@ rls_forced="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_S
 (( rls_forced >= 4 )) || { echo "expected at least 4 FORCE RLS tables, got $rls_forced" >&2; exit 1; }
 
 before_lsn="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --command="SELECT pg_current_wal_lsn()")"
-marker="pitr-probe-$(date -u +%Y%m%dT%H%M%SZ)-$$"
-marker_digest="$(printf '%s' "$marker" | sha256sum | awk '{print $1}')"
+stamp="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+before_marker="pitr-before-${stamp}"
+after_marker="pitr-after-${stamp}"
+before_digest="$(printf '%s' "$before_marker" | sha256sum | awk '{print $1}')"
+after_digest="$(printf '%s' "$after_marker" | sha256sum | awk '{print $1}')"
 
-psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$marker" --set="digest=$marker_digest" <<'SQL'
+psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$before_marker" --set="digest=$before_digest" <<'SQL'
 BEGIN;
 CREATE TABLE IF NOT EXISTS kaios_runtime.pitr_probe (
   marker text PRIMARY KEY,
   marker_digest text NOT NULL CHECK (marker_digest ~ '^[a-f0-9]{64}$'),
   created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
+INSERT INTO kaios_runtime.pitr_probe(marker, marker_digest)
+VALUES (:'marker', :'digest');
+COMMIT;
+CHECKPOINT;
+SQL
+
+pitr_target_time="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --command="SELECT clock_timestamp() AT TIME ZONE 'UTC'")"
+psql --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --command="SELECT pg_sleep(1)" >/dev/null
+
+psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$after_marker" --set="digest=$after_digest" <<'SQL'
+BEGIN;
 INSERT INTO kaios_runtime.pitr_probe(marker, marker_digest)
 VALUES (:'marker', :'digest');
 COMMIT;
@@ -54,8 +68,9 @@ archived_count="${archive_status%%|*}"
 failed_count="${archive_status##*|}"
 [[ "$archived_count" =~ ^[0-9]+$ && "$failed_count" =~ ^[0-9]+$ ]] || { echo 'invalid pg_stat_archiver counters' >&2; exit 1; }
 
-marker_exists="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$marker" --command="SELECT count(*) FROM kaios_runtime.pitr_probe WHERE marker=:'marker'")"
-[[ "$marker_exists" == "1" ]] || { echo 'PITR probe marker not durable' >&2; exit 1; }
+before_exists="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$before_marker" --command="SELECT count(*) FROM kaios_runtime.pitr_probe WHERE marker=:'marker'")"
+after_exists="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" --set="marker=$after_marker" --command="SELECT count(*) FROM kaios_runtime.pitr_probe WHERE marker=:'marker'")"
+[[ "$before_exists" == "1" && "$after_exists" == "1" ]] || { echo 'PITR probe markers are not durable' >&2; exit 1; }
 
-printf '{"status":"PASS","environment":"STAGING","production_touch":false,"server_version":"%s","wal_level":"%s","archive_mode":"%s","data_checksums":"%s","force_rls_tables":%s,"before_lsn":"%s","after_lsn":"%s","archived_count":%s,"failed_archive_count":%s,"probe_marker_digest":"%s","pitr_capability":"READY_FOR_TARGET_TIME_RESTORE_EXERCISE"}\n' \
-  "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$archived_count" "$failed_count" "$marker_digest"
+printf '{"status":"PASS","environment":"STAGING","production_touch":false,"server_version":"%s","wal_level":"%s","archive_mode":"%s","data_checksums":"%s","force_rls_tables":%s,"before_lsn":"%s","after_lsn":"%s","archived_count":%s,"failed_archive_count":%s,"before_marker":"%s","before_marker_digest":"%s","after_marker":"%s","after_marker_digest":"%s","pitr_target_time":"%s","pitr_capability":"READY_FOR_TARGET_TIME_RESTORE_EXERCISE"}\n' \
+  "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$archived_count" "$failed_count" "$before_marker" "$before_digest" "$after_marker" "$after_digest" "$pitr_target_time"
