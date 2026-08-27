@@ -18,8 +18,8 @@ permissions:
   issues: read
 
 concurrency:
-  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}
-  cancel-in-progress: false
+  group: kpmo-live-canonical-issue-truth-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'issues' && github.sha || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   canonical-issue-truth:
