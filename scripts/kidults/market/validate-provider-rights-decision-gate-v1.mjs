@@ -1,9 +1,16 @@
 import fs from 'node:fs';
+import { runClassicResponseIntakeValidation } from './validate-classic-bundle3-provider-response-intake-v1.mjs';
 
 const gate = JSON.parse(fs.readFileSync('coordination/kidults/market/provider-rights-decision-gate-v1.json','utf8'));
 const classic = JSON.parse(fs.readFileSync('coordination/kidults/market/classic-private-activation-contract-r1.json','utf8'));
 
 const errs = [];
+let classicIntakeReceipt;
+try {
+  classicIntakeReceipt = runClassicResponseIntakeValidation();
+} catch (error) {
+  errs.push(`CLASSIC.COM response intake invalid: ${error.message}`);
+}
 if (gate.parent_issue !== 769) errs.push('parent issue must be #769');
 if (!Array.isArray(gate.required_dimensions) || gate.required_dimensions.length !== 11) errs.push('11 field-purpose dimensions required');
 if (!Array.isArray(gate.required_event_fields) || gate.required_event_fields.length !== 5) errs.push('5 event fields required');
@@ -32,6 +39,8 @@ console.log(JSON.stringify({
   required_dimensions:gate.required_dimensions.length,
   required_event_fields:gate.required_event_fields.length,
   classic_decision:gate.current_provider_state['CLASSIC.COM'].decision,
+  classic_response_intake:classicIntakeReceipt?.state || 'INVALID',
+  classic_response_intake_mutations:classicIntakeReceipt?.mutation_tests || 0,
   alt_fndata_decision:gate.current_provider_state['ALT/FNDATA'].decision,
   activation:'DISABLED_PENDING_SOURCE_SPECIFIC_PASS',
   production:'HOLD',

@@ -5,14 +5,18 @@ on:
     paths:
       - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
       - 'coordination/kidults/market/classic-private-activation-contract-r1.json'
+      - 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json'
       - 'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
+      - 'scripts/kidults/market/validate-classic-bundle3-provider-response-intake-v1.mjs'
       - '.github/workflows/kidults-provider-rights-decision-gate.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
       - 'coordination/kidults/market/classic-private-activation-contract-r1.json'
+      - 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json'
       - 'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
+      - 'scripts/kidults/market/validate-classic-bundle3-provider-response-intake-v1.mjs'
 
 jobs:
   provider-rights-decision-gate:

@@ -98,17 +98,29 @@
       "evidence_state": "WRITTEN_PROVIDER",
       "commercial": {
         "commercial_licensing_available": true,
-        "pricing": "USE_CASE_DEPENDENT"
+        "pricing": "USE_CASE_DEPENDENT",
+        "pilot_price": "UNKNOWN",
+        "query_and_rate_limits": "UNKNOWN"
       },
       "rights_pending": [
         "field_purpose_matrix",
+        "provider_schedule_and_spec",
+        "representative_schema_and_sample",
+        "sold_realized_price_and_fee_semantics",
         "retention",
         "derivation",
         "public_derived_output",
         "portability",
-        "termination"
+        "termination",
+        "post_termination_non_reconstructive_derived_output",
+        "kidults_pre_existing_and_independent_ip_carve_out"
       ],
-      "activation_state": "HOLD_RIGHTS_AND_ECONOMICS_PENDING"
+      "activation_state": "HOLD_RIGHTS_AND_ECONOMICS_PENDING",
+      "latest_outbound_state": "SENT_2026_08_26_AWAITING_PROVIDER_RESPONSE",
+      "evidence_refs": [
+        "gmail:message:1a03ecb6a6b5f290",
+        "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json"
+      ]
     },
     {
       "provider_id": "ALT_FNDATA",
