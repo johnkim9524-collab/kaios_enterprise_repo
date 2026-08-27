@@ -11,6 +11,7 @@ const controlPlaneTests = fs.readdirSync('services/kidults-control-plane/scripts
 const commands = [
   ['postgres-d1-boundary', ['node', 'services/kidults-control-plane/scripts/validate-boundary-v1.mjs']],
   ['postgres-d1-runtime-negative-mutations', ['node', '--test', ...controlPlaneTests]],
+  ['durable-action-state-boundary', ['node', 'scripts/kidults/kpmo/validate-durable-action-state-boundary-v1.mjs']],
   ['source-adapter-concurrency', ['node', 'scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs']],
   ['continuous-assurance-cancellation-watch', ['node', 'scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs']],
   ['autonomous-resolution-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs']],
@@ -36,88 +37,21 @@ for (const [id, [program, ...args]] of commands) {
   const stdout = result.stdout || '';
   const stderr = result.stderr || '';
   const passed = result.status === 0;
-  results.push({
-    id,
-    state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
-    exit_code: result.status,
-    stdout_digest: sha256(stdout),
-    stderr_digest: sha256(stderr),
-  });
-  if (!passed) {
-    failed = true;
-    process.stderr.write(`\n[${id}] FAILED\n${stdout}${stderr}`);
-  }
+  results.push({ id, state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL', exit_code: result.status, stdout_digest: sha256(stdout), stderr_digest: sha256(stderr) });
+  if (!passed) { failed = true; process.stderr.write(`\n[${id}] FAILED\n${stdout}${stderr}`); }
 }
 
-const ledger = JSON.parse(fs.readFileSync(
-  'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json',
-  'utf8',
-));
+const ledger = JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/source-channel-control-plane-v1.json','utf8'));
 const receipt = {
-  id: 'kidults-p0-control-plane-closure-receipt-v1',
-  version: '1.1.0',
-  agent_id: 'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
-  as_of: new Date().toISOString(),
-  scope: 'LOCAL_AND_CI_CONTRACT_VERIFICATION_ONLY',
-  exact_source_sha: exactSha,
+  id: 'kidults-p0-control-plane-closure-receipt-v1', version: '1.2.0', agent_id: 'AI-018 / GLOBAL_SCALE_STEWARDSHIP', as_of: new Date().toISOString(), scope: 'LOCAL_AND_CI_CONTRACT_VERIFICATION_ONLY', exact_source_sha: exactSha,
   state: failed ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
-  governance: {
-    mode: 'SOLO_OWNER_PROTECTED_MAIN',
-    pull_request_required: true,
-    required_approving_review_count: 0,
-    code_owner_review_required: false,
-    last_push_approval_required: false,
-    required_status_checks: [
-      'KAIOS Solo Owner Preflight',
-      'Validate KAIOS Foundation',
-      'Validate Production Container',
-    ],
-    bypass_allowed: false,
-  },
-  facts: {
-    checks_total: results.length,
-    checks_passed: results.filter(result => result.state === 'VERIFIED_PASS').length,
-    system_of_record: 'POSTGRESQL',
-    d1_role: 'READ_MODEL_ONLY',
-    permitted_normal_d1_writer: ['kpmo-d1-projector-v1'],
-    enterprise_authorization: 'EXACT_RESOURCE_GRANT_AND_ACTIVE_POSTGRESQL_ENTITLEMENT_REQUIRED',
-    billing_authority: 'ATOMIC_POSTGRESQL_SUBSCRIPTION_ENTITLEMENT_AUDIT_OUTBOX',
-    outbox_delivery: 'LEASED_SINGLE_PROJECTOR_WITH_APPEND_ONLY_TERMINAL_RECEIPTS',
-    d1_projection_ordering: 'MONOTONIC_SOURCE_CREATED_AT_AND_EVENT_ID',
-    source_ledger_digest: ledger.ledger_digest,
-    canonical_sources: ledger.summary.canonical_source_count,
-    lawful_collector_current_sold_sources: ledger.summary.rights_clear_collector_current_sold_sources,
-    empirically_active_adapters: ledger.summary.empirically_active_adapters,
-    candidate_created: ledger.summary.candidate_created,
-    track_b_started: ledger.summary.track_b_started,
-    approved_projection: ledger.summary.approved_projection,
-  },
-  evidence_refs: results,
-  uncertainties: [
-    'REMOTE_POSTGRESQL_NOT_PROVISIONED',
-    'REMOTE_D1_PROJECTOR_NOT_DEPLOYED',
-    'LEGACY_D1_WRITER_CUTOVER_NOT_VERIFIED_REMOTE',
-    'CLOUDFLARE_PREVIEW_SKIP_REMOTE_READBACK_PENDING',
-  ],
-  blockers: [
-    'REMOTE_INFRASTRUCTURE_AND_CREDENTIAL_GATE',
-  ],
-  next_action: 'EXACT_HEAD_REQUIRED_CHECKS_THEN_GOVERNED_REMOTE_STAGING_CANARY',
-  authority_boundary: {
-    remote_mutation: false,
-    provider_contact: false,
-    spend: false,
-    production: 'HOLD',
-    public_release: 'HOLD',
-    g5: 'HOLD',
-  },
-  autonomous_effect: 'POSITIVE',
-  global_effect: 'POSITIVE',
-  irreplaceable_value_effect: 'POSITIVE',
-  transparency_effect: 'POSITIVE',
+  governance: { mode:'SOLO_OWNER_PROTECTED_MAIN', pull_request_required:true, required_approving_review_count:0, code_owner_review_required:false, last_push_approval_required:false, required_status_checks:['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container'], bypass_allowed:false },
+  facts: { checks_total:results.length, checks_passed:results.filter(r=>r.state==='VERIFIED_PASS').length, system_of_record:'POSTGRESQL', d1_role:'READ_MODEL_ONLY', permitted_normal_d1_writer:['kpmo-d1-projector-v1'], executive_action_state:'FAIL_CLOSED_UNTIL_POSTGRESQL_DURABLE_BACKEND', enterprise_authorization:'EXACT_RESOURCE_GRANT_AND_ACTIVE_POSTGRESQL_ENTITLEMENT_REQUIRED', billing_authority:'ATOMIC_POSTGRESQL_SUBSCRIPTION_ENTITLEMENT_AUDIT_OUTBOX', outbox_delivery:'LEASED_SINGLE_PROJECTOR_WITH_APPEND_ONLY_TERMINAL_RECEIPTS', d1_projection_ordering:'MONOTONIC_SOURCE_CREATED_AT_AND_EVENT_ID', source_ledger_digest:ledger.ledger_digest, canonical_sources:ledger.summary.canonical_source_count, lawful_collector_current_sold_sources:ledger.summary.rights_clear_collector_current_sold_sources, empirically_active_adapters:ledger.summary.empirically_active_adapters, candidate_created:ledger.summary.candidate_created, track_b_started:ledger.summary.track_b_started, approved_projection:ledger.summary.approved_projection },
+  evidence_refs:results,
+  uncertainties:['REMOTE_POSTGRESQL_DSN_NOT_PROVEN_AVAILABLE','REMOTE_D1_PROJECTOR_NOT_DEPLOYED','LEGACY_D1_WRITER_CUTOVER_NOT_VERIFIED_REMOTE','CLOUDFLARE_PREVIEW_SKIP_REMOTE_READBACK_PENDING'], blockers:['REMOTE_INFRASTRUCTURE_AND_CREDENTIAL_GATE'], next_action:'EXACT_HEAD_REQUIRED_CHECKS_THEN_GOVERNED_REMOTE_STAGING_CANARY',
+  authority_boundary:{ remote_mutation:false, provider_contact:false, spend:false, production:'HOLD', public_release:'HOLD', g5:'HOLD' }, autonomous_effect:'POSITIVE', global_effect:'POSITIVE', irreplaceable_value_effect:'POSITIVE', transparency_effect:'POSITIVE'
 };
-
-const serialized = `${JSON.stringify(receipt, null, 2)}\n`;
-if (process.env.KPMO_RECEIPT_PATH) fs.writeFileSync(process.env.KPMO_RECEIPT_PATH, serialized);
+const serialized=`${JSON.stringify(receipt,null,2)}\n`;
+if(process.env.KPMO_RECEIPT_PATH) fs.writeFileSync(process.env.KPMO_RECEIPT_PATH,serialized);
 process.stdout.write(serialized);
-if (failed) process.exit(1);
+if(failed) process.exit(1);
