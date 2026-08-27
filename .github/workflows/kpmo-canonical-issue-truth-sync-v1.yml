@@ -1,0 +1,80 @@
+name: KPMO Canonical Issue Truth Sync V1
+
+on:
+  workflow_run:
+    workflows: ["KPMO Live Canonical Issue Truth V1"]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: kpmo-canonical-truth-sync-main
+  cancel-in-progress: true
+
+jobs:
+  synchronize:
+    if: >-
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify exact upstream transition and append V3 receipts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CANONICAL_CORRECTION_PR_NUMBER: '1438'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const repository=process.env.GITHUB_REPOSITORY,token=process.env.GITHUB_TOKEN,target=process.env.UPSTREAM_HEAD_SHA;
+          const upstreamRun=Number(process.env.UPSTREAM_RUN_ID),correction=Number(process.env.CANONICAL_CORRECTION_PR_NUMBER);
+          const canonical=[235,236,237,238,240,256,344,457,479,480,489,521,550,558,559,560,609,742,769,881,921,951,1066,1166,1296];
+          const defects=[1330,1412,1416,1419,1420,1421,1423,1427];
+          const marker='<!-- KPMO_CANONICAL_TRUTH_RECEIPT_V3 -->';
+          const [owner,name]=repository.split('/');
+          const headers={Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'};
+          async function api(path,options={}){const r=await fetch(`https://api.github.com/repos/${repository}${path}`,{...options,headers:{...headers,...(options.headers||{})},signal:AbortSignal.timeout(15000)});const text=await r.text();if(!r.ok)throw new Error(`${options.method||'GET'} ${path} HTTP ${r.status}: ${text.slice(0,500)}`);return text?JSON.parse(text):null;}
+          const run=await api(`/actions/runs/${upstreamRun}`);
+          if(run.name!=='KPMO Live Canonical Issue Truth V1'||run.path!=='.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'||run.head_sha!==target||run.head_branch!=='main'||run.event!=='push'||run.status!=='completed'||run.conclusion!=='success')throw new Error('upstream transition binding invalid');
+          const branch=await api('/branches/main');if(branch.commit?.sha!==target){console.log(JSON.stringify({state:'STALE_UPSTREAM_SKIP',target,live_main:branch.commit?.sha||null}));process.exit(0);}
+          const aliases=[...new Set([...canonical,...defects])].map(n=>`i${n}:issue(number:${n}){number state comments(last:10){nodes{body author{login}}}}`).join('\n');
+          const query=`query($owner:String!,$name:String!,$correction:Int!){repository(owner:$owner,name:$name){pullRequest(number:$correction){headRefOid baseRefName merged state}${aliases}}}`;
+          const gr=await fetch('https://api.github.com/graphql',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({query,variables:{owner,name,correction}}),signal:AbortSignal.timeout(15000)});const gt=await gr.text();if(!gr.ok)throw new Error(`GraphQL HTTP ${gr.status}: ${gt.slice(0,500)}`);const gp=JSON.parse(gt);if(gp.errors?.length)throw new Error(JSON.stringify(gp.errors));const repo=gp.data?.repository;if(!repo)throw new Error('GraphQL repository unavailable');
+          const pr=repo.pullRequest,correctionHead=pr?.headRefOid||'';if(pr?.baseRefName!=='main'||!/^[0-9a-f]{40}$/i.test(correctionHead))throw new Error('canonical correction PR unavailable');
+          const active=defects.filter(n=>String(repo[`i${n}`]?.state||'').toLowerCase()==='open');
+          const receipt=[marker,'KPMO canonical truth receipt v3',`protected_main_sha: \`${target}\``,`canonical_correction: #${correction}`,`canonical_correction_head: \`${correctionHead}\``,`writer_upstream_run_id: ${upstreamRun}`,`active_defects: ${active.map(n=>`#${n}`).join(' ')||'NONE'}`,'canonical_board_union: 25','whole_platform_internal_closure: NOT_ESTABLISHED','GRADED: 0/120','human_review: 0','dated_SOLD: 0','Candidate/Evidence: NONE/NONE','Track_B: NOT_STARTED','Approved_Projection: NONE','remote_PITR_proof: NONE','Production/Public/G5: HOLD'].join('\n');
+          let written=0,skipped=0;
+          for(const n of canonical){const issue=repo[`i${n}`];if(!issue||issue.number!==n)throw new Error(`#${n} unavailable`);const latest=[...(issue.comments?.nodes||[])].reverse().find(c=>['github-actions[bot]',owner].includes(c.author?.login||'')&&(c.body||'').includes(marker));if((latest?.body||'').includes(target)&&(latest?.body||'').includes(correctionHead)){skipped++;continue;}await api(`/issues/${n}/comments`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({body:receipt})});written++;}
+          const after=await api('/branches/main');if(after.commit?.sha!==target)throw new Error(`main moved during sync: ${after.commit?.sha||'UNKNOWN'}`);
+          console.log(JSON.stringify({state:'RECEIPTS_SYNCHRONIZED',protected_main_sha:target,correction_pr:correction,correction_head:correctionHead,active_defects:active,written,skipped,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+          NODE
+
+      - name: Revalidate exact synchronized generation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANONICAL_VALIDATION_EVENT: post_transition_sync
+          EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
+          CANONICAL_TRUTH_PHASE: SYNCHRONIZED
+          CANONICAL_CORRECTION_PR_NUMBER: '1438'
+          PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1431'
+          EXPECTED_CORRECTION_HEAD_SHA: ''
+          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'true'
+        run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
