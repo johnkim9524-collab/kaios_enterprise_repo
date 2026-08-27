@@ -184,9 +184,9 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
   });
 }
 
-test('current exact registry binds all 15 privileged lanes but external policy remains fail closed', () => {
-  assert.equal(currentInventory.registered_lane_count, 15);
-  assert.equal(currentInventory.secret_bearing_job_count, 15);
+test('current exact registry binds all 16 privileged lanes but external policy remains fail closed', () => {
+  assert.equal(currentInventory.registered_lane_count, 16);
+  assert.equal(currentInventory.secret_bearing_job_count, 16);
   assert.deepEqual(validateRequiredEnvironmentBindings(currentInventory, registry), []);
   const repositoryGuardedLanes = currentInventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
@@ -274,7 +274,7 @@ test('selected non-main ref and stale main SHA are independently rejected', () =
   assert.ok(stale.blockers.includes('EXACT_SOURCE_SHA_NOT_OBSERVED_DEFAULT_BRANCH_HEAD'));
 });
 
-test('all 15 privileged jobs reject unreadable, stale, and non-main live-main guards', () => {
+test('all 16 privileged jobs reject unreadable, stale, and non-main live-main guards', () => {
   const mutations = [
     [
       'unreadable_api_fail_open',
@@ -311,7 +311,7 @@ test('all 15 privileged jobs reject unreadable, stale, and non-main live-main gu
   assert.equal(rejected, 45);
 });
 
-test('all 15 privileged jobs reject secret scope and guard order mutations', () => {
+test('all 16 privileged jobs reject secret scope and guard order mutations', () => {
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
     const job = lane.secret_bearing_jobs[0];
