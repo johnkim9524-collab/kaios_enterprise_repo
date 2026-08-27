@@ -35,6 +35,8 @@ function validate(assuranceSource, truthSource) {
   require(truthSource.includes('kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}'), 'TRUTH_ARTIFACT_RUN_BINDING_MISSING');
   require(truthSource.includes('promotion_eligible: false'), 'TRUTH_PROMOTION_HOLD_MISSING');
   require(truthSource.includes("production: 'HOLD'") && truthSource.includes("public: 'HOLD'"), 'TRUTH_RELEASE_HOLD_MISSING');
+  require(truthSource.includes("cancel-in-progress: ${{ github.event_name != 'issues' }}"), 'TRUTH_ISSUE_SYNC_CANCELLATION_NOT_DISABLED');
+  require(!/cancel-in-progress:\s*true/.test(truthSource), 'TRUTH_UNCONDITIONAL_CANCELLATION_FORBIDDEN');
 
   return failures;
 }
@@ -53,7 +55,8 @@ const mutations = [
   ['removed receipt outcome', assurance.replace('and .validation_outcome==$outcome', 'and true'), truth],
   ['removed failure propagation', assurance.replace('if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then', 'if false; then'), truth],
   ['hard-coded PASS receipt', assurance, truth.replace("state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'", "state: 'VERIFIED_PASS'")],
-  ['receipt upload not always', assurance, truth.replace('      - name: Upload exact canonical-truth receipt\n        if: always()', '      - name: Upload exact canonical-truth receipt')]
+  ['receipt upload not always', assurance, truth.replace('      - name: Upload exact canonical-truth receipt\n        if: always()', '      - name: Upload exact canonical-truth receipt')],
+  ['issue-sync cancellation reintroduced', assurance, truth.replace("cancel-in-progress: ${{ github.event_name != 'issues' }}", 'cancel-in-progress: true')]
 ];
 
 const escaped = [];
@@ -70,6 +73,7 @@ console.log(JSON.stringify({
   truth_watch_cardinality: 1,
   receipt_semantics: 'EXACT_RUN_SHA_PATH_TERMINAL_STATE',
   failure_propagation: 'FAIL_CLOSED',
+  issue_sync_cancellation_semantics: 'NO_CANCEL_FOR_ISSUE_EVENTS',
   mutations_blocked: mutations.length,
   promotion_eligible: false,
   production: 'HOLD',
