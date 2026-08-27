@@ -7,33 +7,62 @@
     {
       "priority": 1,
       "provider": "PSA",
-      "goal": "Confirm Public API token scope and written permission for transaction-level Auction Prices Realized fields in commercial intelligence/index use",
-      "required_external_input": ["PSA_API_TOKEN_OR_PARTNER_ACCESS", "FIELD_LEVEL_REUSE_CONFIRMATION"],
-      "allowed_after_approval": ["CERTIFICATION", "POPULATION", "AUTHORIZED_AUCTION_RESULT_FIELDS"],
-      "state": "WAITING_EXTERNAL_PROVIDER_AUTHORIZATION"
+      "goal": "Approve the exact Cert Verification field map, connect encrypted private storage and 30-day deletion receipts, assemble a lawful 120-known-cert manifest, then execute a quota-safe bounded internal evaluation",
+      "required_external_input": [
+        "EXACT_FIELD_MAP_APPROVAL",
+        "ENCRYPTED_PRIVATE_STORE_AND_ACCESS_AUDIT",
+        "RETENTION_DELETION_SCHEDULER_AND_RECEIPT",
+        "LAWFUL_120_KNOWN_CERT_MANIFEST",
+        "INDEPENDENT_TWO_SIDED_ER_EVIDENCE_PAIRS"
+      ],
+      "allowed_after_approval": [
+        "CERTIFICATION_IDENTITY_AND_GRADE",
+        "POPULATION_CONTEXT",
+        "NON_RAW_NON_RECONSTRUCTIVE_INTERNAL_DERIVED_RESULTS"
+      ],
+      "state": "API_CONNECTION_VERIFIED_120_EXECUTION_CONTROLS_PENDING",
+      "evidence_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+      "connection_run_id": 33123384792,
+      "acquisition_progress": "0_OF_120"
     },
     {
       "priority": 2,
       "provider": "eBay",
       "goal": "Apply for approved partner access to Marketplace Insights sold-history capability",
-      "required_external_input": ["EBAY_DEVELOPER_ACCOUNT", "MARKETPLACE_INSIGHTS_APPROVAL", "PRODUCTION_KEYSET"],
-      "allowed_after_approval": ["AUTHORIZED_SOLD_HISTORY_FIELDS"],
+      "required_external_input": [
+        "EBAY_DEVELOPER_ACCOUNT",
+        "MARKETPLACE_INSIGHTS_APPROVAL",
+        "PRODUCTION_KEYSET"
+      ],
+      "allowed_after_approval": [
+        "AUTHORIZED_SOLD_HISTORY_FIELDS"
+      ],
       "state": "WAITING_LIMITED_RELEASE_APPROVAL"
     },
     {
       "priority": 3,
       "provider": "Cardmarket",
       "goal": "Obtain prior written agreement for price/sales data use in KIDULTS commercial intelligence",
-      "required_external_input": ["CARDMARKET_WRITTEN_DATA_USE_AGREEMENT", "API_CREDENTIALS"],
-      "allowed_after_approval": ["AGREEMENT_SCOPED_PUBLIC_PRICE_OR_SALES_FIELDS"],
+      "required_external_input": [
+        "CARDMARKET_WRITTEN_DATA_USE_AGREEMENT",
+        "API_CREDENTIALS"
+      ],
+      "allowed_after_approval": [
+        "AGREEMENT_SCOPED_PUBLIC_PRICE_OR_SALES_FIELDS"
+      ],
       "state": "WAITING_WRITTEN_AGREEMENT"
     },
     {
       "priority": 4,
       "provider": "TCGplayer",
       "goal": "Determine whether an existing eligible Developer Key is available; do not assume new access can be obtained",
-      "required_external_input": ["EXISTING_TCGPLAYER_DEVELOPER_KEY_IF_ANY", "API_TERMS_SCOPE_REVIEW"],
-      "allowed_after_approval": ["API_SCOPED_CATALOG_AND_PRICING_FIELDS"],
+      "required_external_input": [
+        "EXISTING_TCGPLAYER_DEVELOPER_KEY_IF_ANY",
+        "API_TERMS_SCOPE_REVIEW"
+      ],
+      "allowed_after_approval": [
+        "API_SCOPED_CATALOG_AND_PRICING_FIELDS"
+      ],
       "state": "WAITING_EXISTING_ACCESS_CHECK"
     }
   ],
