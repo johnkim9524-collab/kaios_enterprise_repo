@@ -32,6 +32,7 @@ on:
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
       - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI SHADOW Operating Evidence v1'
+      - 'KPMO Live Canonical Issue Truth V1'
     branches: [main]
     types: [completed]
   workflow_dispatch:
@@ -415,6 +416,67 @@ jobs:
             exit 1
           fi
 
+      - name: Validate exact Canonical Truth upstream terminal binding
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Live Canonical Issue Truth V1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRUTH_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          TRUTH_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          TRUTH_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TRUTH_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$TRUTH_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$TRUTH_UPSTREAM_CONCLUSION" =~ ^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$ ]]
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${TRUTH_UPSTREAM_RUN_ID}"             > /tmp/truth-upstream-run.json
+          jq -e             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg repo "$GITHUB_REPOSITORY"             --arg conclusion "$TRUTH_UPSTREAM_CONCLUSION"             '.id==$run
+             and .name=="KPMO Live Canonical Issue Truth V1"
+             and .path==".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
+             and .repository.full_name==$repo
+             and .head_branch=="main"
+             and .head_sha==$sha
+             and .status=="completed"
+             and .conclusion==$conclusion'             /tmp/truth-upstream-run.json >/dev/null
+          TRUTH_UPSTREAM_EVENT=$(jq -r '.event' /tmp/truth-upstream-run.json)
+          [[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${TRUTH_UPSTREAM_RUN_ID}/artifacts?per_page=100"             > /tmp/truth-upstream-artifacts.json
+          TRUTH_ARTIFACT_NAME="kpmo-live-canonical-issue-truth-v1-${TRUTH_UPSTREAM_RUN_ID}"
+          TRUTH_ARTIFACT_COUNT=$(jq             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/truth-upstream-artifacts.json)
+          test "$TRUTH_ARTIFACT_COUNT" -eq 1
+          TRUTH_ARTIFACT_ID=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/truth-upstream-artifacts.json)
+          TRUTH_ARTIFACT_DIGEST=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/truth-upstream-artifacts.json)
+          [[ "$TRUTH_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$TRUTH_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
+          rm -rf /tmp/truth-observer /tmp/truth-observer.zip
+          mkdir -p /tmp/truth-observer
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TRUTH_ARTIFACT_ID}/zip"             > /tmp/truth-observer.zip
+          unzip -q -o /tmp/truth-observer.zip -d /tmp/truth-observer
+          TRUTH_RECEIPT=$(find /tmp/truth-observer -type f -name canonical-truth-receipt-v1.json -print -quit)
+          test -n "$TRUTH_RECEIPT"
+          EXPECTED_TRUTH_STATE=VERIFIED_FAIL
+          EXPECTED_VALIDATION_OUTCOME=failure
+          if [ "$TRUTH_UPSTREAM_CONCLUSION" = success ]; then
+            EXPECTED_TRUTH_STATE=VERIFIED_PASS
+            EXPECTED_VALIDATION_OUTCOME=success
+          fi
+          jq -e             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg repo "$GITHUB_REPOSITORY"             --arg event "$TRUTH_UPSTREAM_EVENT"             --arg state "$EXPECTED_TRUTH_STATE"             --arg outcome "$EXPECTED_VALIDATION_OUTCOME"             '.receipt_id=="kpmo-live-canonical-issue-truth-receipt-v1"
+             and .workflow_name=="KPMO Live Canonical Issue Truth V1"
+             and .workflow_path==".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
+             and .repository==$repo
+             and .run_id==$run
+             and .head_sha==$sha
+             and .event==$event
+             and .validation_outcome==$outcome
+             and .state==$state
+             and .promotion_eligible==false
+             and .production=="HOLD"
+             and .public=="HOLD"'             "$TRUTH_RECEIPT" >/dev/null
+          jq -n             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg conclusion "$TRUTH_UPSTREAM_CONCLUSION"             --arg event "$TRUTH_UPSTREAM_EVENT"             --arg state "$EXPECTED_TRUTH_STATE"             --argjson artifact "$TRUTH_ARTIFACT_ID"             --arg digest "$TRUTH_ARTIFACT_DIGEST"             '{status:$state,upstream_run_id:$run,upstream_sha:$sha,upstream_conclusion:$conclusion,upstream_event:$event,artifact_cardinality:1,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}'             > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/canonical-truth-upstream-binding.json"
+          if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then
+            exit 1
+          fi
+
       - name: Validate Met acquisition cancellation and Assurance binding
         run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
 
@@ -430,11 +492,12 @@ jobs:
       - name: Validate adapter cancellation watch coverage
         run: node scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs
 
-      - name: Validate SHADOW, Requirement, and Reserve evidence watch coverage
+      - name: Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage
         run: |
           node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
           node scripts/kidults/kpmo/validate-requirement-assurance-watch-v1.mjs
           node scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs
+          node scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs
 
       - name: Run audit and always retain receipt
         run: >-
