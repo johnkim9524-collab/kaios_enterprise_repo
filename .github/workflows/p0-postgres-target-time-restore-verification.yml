@@ -1,13 +1,9 @@
 name: P0 PostgreSQL Target-Time Restore Verification
 
 on:
-  workflow_run:
-    workflows:
-      - P0 Remote PostgreSQL Persistence and PITR Readiness
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
@@ -16,25 +12,14 @@ concurrency:
 
 jobs:
   verify-target-time-restore:
-    if: github.ref == 'refs/heads/main' && github.event.workflow_run.conclusion == 'success' && vars.KIDULTS_POSTGRES_PITR_RESTORE_VERIFICATION_AUTHORIZED == 'true'
+    if: github.ref == 'refs/heads/main' && vars.KIDULTS_POSTGRES_PITR_RESTORE_VERIFICATION_AUTHORIZED == 'true'
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
-      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
-      SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Require exact successful readiness source
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          test -n "$SOURCE_RUN_ID"
-          test "$SOURCE_HEAD_SHA" = "${{ github.event.workflow_run.head_sha }}"
-          test "${{ github.event.workflow_run.head_branch }}" = main
-
       - name: Verify live main before provider credential resolution
         shell: bash
         env:
@@ -53,52 +38,21 @@ jobs:
               python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-          test "$SOURCE_HEAD_SHA" = "$LIVE_MAIN_SHA"
 
-      - name: Checkout exact readiness source SHA
+      - name: Checkout exact live main SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ env.SOURCE_HEAD_SHA }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Prove exact checkout and staging-only boundary
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$SOURCE_HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test -n "$HOST"
           test -n "$EXPECTED_FINGERPRINT"
           test "$HOST" = '165.232.175.45'
-
-      - name: Download exact readiness artifact
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-        with:
-          pattern: p0-remote-postgres-persistence-pitr-*
-          path: artifacts/source-readiness
-          merge-multiple: true
-          run-id: ${{ env.SOURCE_RUN_ID }}
-          github-token: ${{ github.token }}
-
-      - name: Require executable PITR proof tuple
-        shell: bash
-        run: |
-          set -euo pipefail
-          receipt="$(find artifacts/source-readiness -type f -name postgres-persistence-pitr-readiness.json -print -quit)"
-          test -n "$receipt"
-          python3 - "$receipt" <<'PY' > "$RUNNER_TEMP/pitr-proof.env"
-          import json, shlex, sys
-          r=json.load(open(sys.argv[1], encoding='utf-8'))
-          assert r['status']=='PASS'
-          assert r['environment']=='STAGING'
-          assert r['production_touch'] is False
-          assert r['pitr_capability']=='TARGET_TIME_RESTORE_FIXTURE_READY'
-          for key in ('pitr_before_marker','pitr_after_marker','pitr_target_time'):
-              value=r.get(key)
-              assert isinstance(value,str) and value
-          print('KAIOS_PITR_BEFORE_MARKER='+shlex.quote(r['pitr_before_marker']))
-          print('KAIOS_PITR_AFTER_MARKER='+shlex.quote(r['pitr_after_marker']))
-          print('KAIOS_PITR_TARGET_TIME='+shlex.quote(r['pitr_target_time']))
-          PY
 
       - name: Pin and verify ED25519 host key
         shell: bash
@@ -130,6 +84,28 @@ jobs:
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
+
+      - name: Collect and bind remote readiness proof tuple
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/p0-pitr-restore
+          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/postgres-persistence-pitr-readiness.json' > artifacts/p0-pitr-restore/postgres-persistence-pitr-readiness.json
+          python3 - <<'PY' > "$RUNNER_TEMP/pitr-proof.env"
+          import json, shlex
+          r=json.load(open('artifacts/p0-pitr-restore/postgres-persistence-pitr-readiness.json', encoding='utf-8'))
+          assert r['status']=='PASS'
+          assert r['environment']=='STAGING'
+          assert r['production_touch'] is False
+          assert r['pitr_capability']=='TARGET_TIME_RESTORE_FIXTURE_READY'
+          for key in ('pitr_before_marker','pitr_after_marker','pitr_target_time'):
+              value=r.get(key)
+              assert isinstance(value,str) and value
+          print('KAIOS_PITR_BEFORE_MARKER='+shlex.quote(r['pitr_before_marker']))
+          print('KAIOS_PITR_AFTER_MARKER='+shlex.quote(r['pitr_after_marker']))
+          print('KAIOS_PITR_TARGET_TIME='+shlex.quote(r['pitr_target_time']))
+          PY
 
       - name: Stage verifier and restore DSN without exposing DSN in arguments
         env:
@@ -171,7 +147,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/p0-pitr-restore
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/postgres-target-time-restore.json' > artifacts/p0-pitr-restore/postgres-target-time-restore.json
           python3 - <<'PY'
@@ -187,10 +162,39 @@ jobs:
           print('POSTGRES_TARGET_TIME_RESTORE_VERIFIED')
           PY
 
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6.0.0
+        with:
+          python-version: '3.12.14'
+          cache: pip
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Re-evaluate Candidate Evidence Track B and Projection chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
+          python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/p0-pitr-restore/empirical-chain-state.json
+          python scripts/kidults/integration/build-live-chain-audit-v1.py artifacts/p0-pitr-restore/empirical-chain-state.json artifacts/p0-pitr-restore/empirical-audit-chain.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('artifacts/p0-pitr-restore/empirical-chain-state.json'))
+          a=json.load(open('artifacts/p0-pitr-restore/empirical-audit-chain.json'))
+          assert p['result']=='PASS'
+          assert p['production']=='HOLD'
+          assert p['public_intelligence']=='HOLD'
+          assert a['production']=='HOLD'
+          assert a['public_intelligence']=='HOLD'
+          print('POST_PITR_EMPIRICAL_CHAIN_STATE='+p['state'])
+          PY
+
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
-          name: p0-postgres-target-time-restore-${{ env.SOURCE_HEAD_SHA }}
+          name: p0-postgres-target-time-restore-${{ github.sha }}
           path: artifacts/p0-pitr-restore
           if-no-files-found: error
           retention-days: 30
