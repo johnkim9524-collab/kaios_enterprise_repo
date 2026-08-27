@@ -696,7 +696,7 @@ export function buildReadbackReceipt({
 
   const receipt = {
     id: 'kidults-github-trusted-ref-environment-readback-receipt-v1',
-    version: '1.3.0',
+    version: '1.4.0',
     issue: 974,
     parent_gate_issue: 881,
     observed_at: observedAt,
@@ -724,6 +724,7 @@ export function buildReadbackReceipt({
       organization_secret_name_digest: organizationSecretsComplete ? digest(organizationSecretNames.join('\n')) : null,
       secret_names_emitted: false
     },
+    registered_secret_bearing_lanes: inventory.registered_lane_count,
     registered_privileged_manual_lanes: inventory.registered_lane_count,
     secret_bearing_jobs: inventory.secret_bearing_job_count,
     verified_secret_bearing_jobs: bindingResults.filter((result) => result.state === 'VERIFIED_PASS').length,
