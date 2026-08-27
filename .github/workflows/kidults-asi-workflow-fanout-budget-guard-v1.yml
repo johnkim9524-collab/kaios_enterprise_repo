@@ -1,0 +1,50 @@
+name: KIDULTS ASI Workflow Fan-out Budget Guard v1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-*.yml'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - 'coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'
+      - 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-*.yml'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - 'coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'
+      - 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-workflow-fanout-budget-guard-v1-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-fanout-budget:
+    name: Validate ASI Workflow Fan-out Budget
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Require exact source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate bounded acyclic fan-out and negative mutations
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs
+          node scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs

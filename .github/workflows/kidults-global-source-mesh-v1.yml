@@ -36,7 +36,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: kidults-global-source-mesh-v1-${{ github.ref }}
+  group: kidults-global-source-mesh-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:

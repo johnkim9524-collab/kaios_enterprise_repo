@@ -1,0 +1,85 @@
+{
+  "contract_id": "KIDULTS_PERSISTENT_CONTROL_PLANE_V1",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "canonical_system_of_record": {
+    "engine": "POSTGRESQL",
+    "authority": "SOLE_CANONICAL_WRITABLE_LEDGER",
+    "required_capabilities": [
+      "TRANSACTIONS",
+      "FOREIGN_KEYS",
+      "ROW_LEVEL_SECURITY",
+      "WRITER_IDENTITY",
+      "TRANSACTIONAL_OUTBOX",
+      "APPEND_ONLY_AUDIT",
+      "BACKUP_PITR_RESTORE"
+    ]
+  },
+  "d1": {
+    "role": "READ_MODEL_ONLY",
+    "authority": "NON_CANONICAL_DISPOSABLE_REBUILDABLE",
+    "normal_writer": "kpmo-d1-projector-v1",
+    "direct_product_writes": "PROHIBITED",
+    "direct_ai_agent_writes": "PROHIBITED",
+    "rebuild_source": "POSTGRESQL_TRANSACTIONAL_OUTBOX"
+  },
+  "command_path": [
+    "AUTHENTICATE",
+    "AUTHORIZE_SERVER_SIDE",
+    "SET_REGISTERED_WRITER_ID",
+    "POSTGRESQL_TRANSACTION",
+    "AUDIT_EVENT",
+    "OUTBOX_EVENT",
+    "COMMIT",
+    "PROJECTOR_CLAIM",
+    "D1_IDEMPOTENT_UPSERT",
+    "PARITY_RECEIPT"
+  ],
+  "enterprise_runtime": {
+    "authentication": "VERIFIED_IDENTITY_ADAPTER_THEN_POSTGRESQL_MEMBERSHIP_RESOURCE_GRANT_AND_ACTIVE_ENTITLEMENT",
+    "client_role_authority": "PROHIBITED",
+    "billing": "VERIFIED_SIGNATURE_MONOTONIC_POSTGRESQL_SUBSCRIPTION_AND_ENTITLEMENT_TRANSITION_ATOMIC_AUDIT_OUTBOX",
+    "observability": "TENANT_SCOPED_APPEND_ONLY_SECRET_FIELD_DENY",
+    "external_identity_provider": "NOT_SELECTED",
+    "external_billing_provider": "NOT_SELECTED"
+  },
+  "fail_closed_invariants": [
+    "UNREGISTERED_WRITER_DENIED",
+    "CROSS_TENANT_ACCESS_DENIED",
+    "CLIENT_SIDE_ROLE_NEVER_AUTHORIZES",
+    "RESOURCE_GRANT_MUST_MATCH_EXACT_RESOURCE",
+    "ACTIVE_BILLING_ENTITLEMENT_REQUIRED",
+    "ACCESS_ALLOW_OR_DENY_WITHOUT_APPEND_ONLY_AUDIT_IS_PROHIBITED",
+    "D1_NEVER_GRANTS_ENTITLEMENT",
+    "D1_NEVER_DECIDES_SOURCE_RIGHTS",
+    "DUPLICATE_OR_OUT_OF_ORDER_EVENT_NO_ESCALATION",
+    "STALE_D1_PROJECTION_EVENT_NEVER_OVERWRITES_NEWER_STATE",
+    "POISON_OUTBOX_EVENT_RETRIES_ARE_BOUNDED_THEN_QUARANTINED",
+    "SUPPLY_RUN_SOURCE_RIGHTS_PURPOSE_FIELD_SET_AND_CARDINALITY_MUST_MATCH",
+    "AUDIT_UPDATE_OR_DELETE_DENIED",
+    "PROJECTION_WITHOUT_SOURCE_EVENT_AND_HASH_DENIED"
+  ],
+  "empirical_truth": {
+    "graded_population": "0/120",
+    "human_review": 0,
+    "lawful_current_market_dated_sold": 0,
+    "candidate": "NONE",
+    "evidence": "NONE",
+    "track_b": "NOT_STARTED",
+    "approved_live_projection": "NONE"
+  },
+  "activation": {
+    "local_ci": "AUTHORIZED",
+    "remote_postgresql": "HOLD",
+    "remote_d1": "HOLD",
+    "billing_provider": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "constitution_effects": {
+    "autonomous_effect": "POSITIVE_CONTROLLED_COMMAND_OUTBOX_REPLAY",
+    "global_effect": "POSITIVE_EXPLICIT_TENANT_CURRENCY_LOCALE_JURISDICTION",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_LEDGER_LINEAGE_AND_CUSTOMER_CONTEXT",
+    "transparency_effect": "POSITIVE_ATTRIBUTABLE_WRITES_AND_REBUILDABLE_PROJECTIONS"
+  }
+}

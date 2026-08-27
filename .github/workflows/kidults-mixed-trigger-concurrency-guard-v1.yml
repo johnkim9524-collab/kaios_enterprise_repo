@@ -1,0 +1,44 @@
+name: KIDULTS Mixed-Trigger Concurrency Guard v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-global-source-mesh-v1.yml'
+      - '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml'
+      - '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml'
+      - '.github/workflows/kidults-mixed-trigger-concurrency-guard-v1.yml'
+      - 'scripts/kidults/kpmo/validate-mixed-trigger-concurrency-siblings-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-global-source-mesh-v1.yml'
+      - '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml'
+      - '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml'
+      - '.github/workflows/kidults-mixed-trigger-concurrency-guard-v1.yml'
+      - 'scripts/kidults/kpmo/validate-mixed-trigger-concurrency-siblings-v1.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-mixed-trigger-concurrency-guard-v1-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate event/run-id concurrency isolation
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/validate-mixed-trigger-concurrency-siblings-v1.mjs
+          node scripts/kidults/kpmo/validate-mixed-trigger-concurrency-siblings-v1.mjs

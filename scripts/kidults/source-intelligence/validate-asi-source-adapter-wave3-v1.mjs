@@ -168,8 +168,8 @@ for (const marker of [
   'schedule:',
   "cron: '27 */3 * * *'",
   'push:',
-  'workflow_run:',
-  "'KIDULTS ASI Source Adapter Wave 2 v1'",
+  'pull_request:',
+  'group: kidults-asi-source-adapter-wave3-v1-${{ github.event_name }}-${{ github.sha }}',
   'Typecheck shared core and four Wave 3 adapters',
   'Run four-adapter Wave 3 deterministic fixture and mutation proof',
   'Validate Wave 3 implementation truth',
@@ -179,6 +179,7 @@ for (const marker of [
   'Revalidate pristine Wave 3 state',
   'Emit KPMO Wave 3 receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
+assert(!workflow.includes('workflow_run:'), 'WORKFLOW_STATIC_VALIDATOR_MUST_NOT_CONSUME_UPSTREAM_ARTIFACT');
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_REPOSITORY_MUTATION_BOUNDARY');
 assert(!workflow.includes('curl ') && !workflow.includes('wget '), 'WORKFLOW_UNDECLARED_NETWORK');

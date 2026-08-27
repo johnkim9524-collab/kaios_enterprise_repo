@@ -268,26 +268,31 @@ Commercial targets must be fixed after bounded pilot baselines; no team may manu
 
 **Exit:** C5; leadership claims remain evidence-bounded and time-specific.
 
-## 9. Partner and competitor strategy
+## 9. Official competitor registry and partner strategy
 
-### ALT/FNDATA and other broad data platforms
+The machine-readable official list is `market/competitor-registry-v1.json`. Registration means that an entity is a lawful competitive benchmark; it does not establish KIDULTS market leadership or authorize use of that entity's data.
 
-Treat as:
+| Competitor | Class | Evidence basis | Permitted use | Excluded roles |
+|---|---|---|---|---|
+| **ALT/FNDATA** | Multi-category collectibles data and analytics | Provider identified KIDULTS as a competitor and declined the bounded relationship | Lawful public product, coverage, delivery-model and capability benchmarking only | Provider, partnership candidate, procurement, integration, fallback, redundancy, PoC and data source |
 
-- a high-priority potential observation/data partner;
-- a benchmark for cross-category data accessibility;
-- a competitor in datasets, dashboards, statistics and API delivery;
-- not an authority over KIDULTS identity, confidence, rankability, methodology or Projection.
+### ALT/FNDATA — competitor benchmark only
 
-Negotiation objectives:
+ALT/FNDATA rejected the bounded partnership/evaluation path because it regarded KIDULTS' intended ingestion, normalization, calibration, customer-facing derived intelligence and derived-result retention as competitive use.
 
-- lawful field-level use and derivative rights;
-- source and observation lineage;
-- stable identifiers and update behavior;
-- API/S3 delivery and bounded historical backfill;
-- audit, correction and termination terms;
-- economically testable pilot;
-- export and transition rights sufficient for provider switching.
+Current treatment:
+
+- `DECLINED_BY_PROVIDER / COMPETITOR_CONFLICT / NO_GO`;
+- excluded from procurement, integration, fallback, provider redundancy and PoC pipeline;
+- no further partnership outreach, account, contract, credential, spend or ingestion;
+- public materials may be used only as a lawful competitor/product benchmark;
+- no ALT/FNDATA identifier, taxonomy, score or data becomes part of KIDULTS Core.
+
+Strategic response:
+
+- do not replace ALT/FNDATA with another single cross-category backbone;
+- build category-specific independent sources for art, watches, handbags, design and other domains;
+- retain canonical identity, entity resolution, normalization, derived intelligence, rights/lineage and provider-switch memory inside KIDULTS.
 
 ### Category specialists
 

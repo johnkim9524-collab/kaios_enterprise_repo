@@ -63,8 +63,10 @@ test('A13-B10 synchronizes wide editorial panels to the benchmark width', () => 
   assert.match(js, /1201/);
 });
 
-test('A13-B10 baseline documents the remaining merge gates', () => {
-  assert.match(baseline, /STAGING · ILLUSTRATIVE DATA/);
-  assert.match(baseline, /one HTML, one CSS and one JS/i);
+test('A13-B10 baseline documents supersession and remaining safety gates', () => {
+  assert.match(baseline, /Status:\s+SUPERSEDED FOR PUBLIC VISUAL DESIGN/i);
+  assert.match(baseline, /docs\/design\/KIDULTS_FINAL_MASTER_DESIGN\.md/);
+  assert.match(baseline, /no longer the visual authority for the KIDULTS public portal/i);
+  assert.match(baseline, /illustrative\/staging values must not be represented as validated production evidence/i);
   assert.match(baseline, /Production remains untouched/i);
 });

@@ -7,6 +7,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-source-domain-observation-graph-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs'
       - '.github/workflows/kidults-asi-source-domain-observation-graph-v1.yml'
+      - 'scripts/kidults/redteam/validate-source-domain-observation-graph-provenance-v1.mjs'
 
 permissions:
   contents: read
@@ -32,16 +33,41 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-source-domain-observation-graph-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-domain-observation-graph-v1.mjs
-      - name: Restore latest main Self-Driving cycle inputs
+          node --check scripts/kidults/redteam/validate-source-domain-observation-graph-provenance-v1.mjs
+      - name: Validate exact-generation provenance control
+        run: node scripts/kidults/redteam/validate-source-domain-observation-graph-provenance-v1.mjs .github/workflows/kidults-asi-source-domain-observation-graph-v1.yml
+      - name: Restore exact-generation Self-Driving cycle inputs
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          EXPECTED_WORKFLOW_PATH: .github/workflows/kidults-asi-self-driving-control-loop-v1.yml
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/source-domain-input discovery-out
-          ART_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-          test -n "$ART_ID"
+          RUN_JSON=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f head_sha="$EXPECTED_SHA" -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs")
+          MATCHES=$(jq -c --arg repo "$EXPECTED_REPOSITORY" --arg path "$EXPECTED_WORKFLOW_PATH" --arg sha "$EXPECTED_SHA" \
+            '[.workflow_runs[] | select(.repository.full_name==$repo and .path==$path and .head_branch=="main" and .head_sha==$sha and .conclusion=="success")]' <<<"$RUN_JSON")
+          RUN_COUNT=$(jq 'length' <<<"$MATCHES")
+          test "$RUN_COUNT" -ge 1
+          RUN=$(jq -c 'sort_by(.created_at) | last' <<<"$MATCHES")
+          RUN_ID=$(jq -r '.id' <<<"$RUN")
+          RUN_HEAD=$(jq -r '.head_sha' <<<"$RUN")
+          test "$RUN_HEAD" = "$EXPECTED_SHA"
+
+          ART_JSON=$(gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100")
+          ARTS=$(jq -c '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false)]' <<<"$ART_JSON")
+          ART_COUNT=$(jq 'length' <<<"$ARTS")
+          test "$ART_COUNT" -eq 1
+          ART_ID=$(jq -r '.[0].id' <<<"$ARTS")
+          ART_DIGEST=$(jq -r '.[0].digest // empty' <<<"$ARTS")
+          [[ "$ART_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/source-domain-input.zip
           unzip -q -o /tmp/source-domain-input.zip -d /tmp/source-domain-input
           DISCOVERY=$(find /tmp/source-domain-input -type f -name 'global-low-risk-discovery.json' -print -quit)
@@ -50,6 +76,29 @@ jobs:
           test -n "$POOL"
           cp "$DISCOVERY" discovery-out/global-low-risk-discovery.json
           cp "$POOL" /tmp/asi-proactive-source-pool-v1.json
+          jq -n \
+            --arg mode "EXACT_EXECUTION_SHA" \
+            --arg repository "$EXPECTED_REPOSITORY" \
+            --arg workflow_path "$EXPECTED_WORKFLOW_PATH" \
+            --argjson producer_run_id "$RUN_ID" \
+            --arg producer_sha "$RUN_HEAD" \
+            --argjson artifact_id "$ART_ID" \
+            --arg artifact_digest "$ART_DIGEST" \
+            '{
+              schema:"kidults.source-domain-observation-graph.provenance-receipt.v1",
+              mode:$mode,
+              repository:$repository,
+              producer_workflow_path:$workflow_path,
+              producer_run_id:$producer_run_id,
+              producer_sha:$producer_sha,
+              artifact_id:$artifact_id,
+              artifact_digest:$artifact_digest,
+              exact_generation:true,
+              empirical_promotion:false,
+              public_release:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > /tmp/asi-source-domain-observation-graph-provenance-v1.json
       - name: Build and validate conservative source-domain graph
         if: github.event_name != 'pull_request'
         run: |
@@ -114,5 +163,6 @@ jobs:
           path: |
             /tmp/asi-source-domain-observation-graph-v1.json
             /tmp/asi-source-domain-observation-graph-replay-v1.json
+            /tmp/asi-source-domain-observation-graph-provenance-v1.json
           retention-days: 30
           if-no-files-found: error

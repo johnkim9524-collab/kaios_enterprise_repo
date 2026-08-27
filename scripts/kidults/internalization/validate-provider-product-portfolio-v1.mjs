@@ -22,9 +22,12 @@ const EXPECTED_HOLD_IDS = [
 const EXPECTED_PENDING_RESPONSE_IDS = [
   'PSA_ENTERPRISE_API',
   'CGC_DEALER_PORTAL_API',
-  'ALT_FNDATA',
   'LIVEART_PILOT',
   'HAGERTY_UNSPECIFIED_PRODUCT'
+];
+
+const EXPECTED_DROP_IDS = [
+  'ALT_FNDATA'
 ];
 
 const REQUIRED_CURRENT_SOLD_CAPABILITIES = [
@@ -162,10 +165,10 @@ function validatePortfolio(portfolio) {
 
   assert(sameMembers(conditionalHoldIds, EXPECTED_HOLD_IDS), 'conditional HOLD universe drift');
   assert(sameMembers(pendingResponseIds, EXPECTED_PENDING_RESPONSE_IDS), 'pending provider-response universe drift');
-  assert(terminalDispositionIds.length === 0, 'terminal disposition is prohibited before provider response');
+  assert(sameMembers(terminalDispositionIds, EXPECTED_DROP_IDS), 'terminal disposition universe drift');
   assert(portfolio.summary?.conditionalHoldCount === 3, 'conditional HOLD count drift');
-  assert(portfolio.summary?.pendingProviderResponseCount === 5, 'pending provider-response count drift');
-  assert(portfolio.summary?.dropCount === 0, 'DROP count must remain zero before provider response');
+  assert(portfolio.summary?.pendingProviderResponseCount === 4, 'pending provider-response count drift');
+  assert(portfolio.summary?.dropCount === 1, 'DROP count must reflect ALT/FNDATA provider rejection');
   assert(
     sameMembers(portfolio.summary?.conditionalHoldProductIds, EXPECTED_HOLD_IDS),
     'conditional HOLD summary drift'
@@ -173,6 +176,10 @@ function validatePortfolio(portfolio) {
   assert(
     sameMembers(portfolio.summary?.pendingProviderResponseProductIds, EXPECTED_PENDING_RESPONSE_IDS),
     'pending provider-response summary drift'
+  );
+  assert(
+    sameMembers(portfolio.summary?.dropProductIds, EXPECTED_DROP_IDS),
+    'DROP summary drift'
   );
   assert(
     sameMembers(
@@ -248,6 +255,16 @@ function validatePortfolio(portfolio) {
     assert(classic.evidenceGates?.includes(gate), `Classic.com missing evidence gate ${gate}`);
   }
 
+  const altFndata = byId.ALT_FNDATA ?? {};
+  assert(altFndata.decision === 'DROP', 'ALT/FNDATA must remain terminal DROP after provider rejection');
+  assert(altFndata.role === 'COMPETITOR_BENCHMARK_ONLY', 'ALT/FNDATA role drift');
+  assert(
+    altFndata.terminalReason === 'PROVIDER_DECLINED_COMPETITIVE_USE_CONFLICT_2026_08_26',
+    'ALT/FNDATA terminal reason drift'
+  );
+  assert(altFndata.resolvedDisposition?.state === 'NO_GO', 'ALT/FNDATA NO_GO disposition missing');
+  assert(altFndata.activation?.state === 'PROHIBITED', 'ALT/FNDATA activation must remain prohibited');
+
   for (const productId of EXPECTED_PENDING_RESPONSE_IDS) {
     const product = byId[productId] ?? {};
     const terminal = product.terminalDispositionPolicy ?? {};
@@ -313,7 +330,7 @@ const mutationTests = [
   {
     name: 'reject_missing_provider_response_gate',
     mutate: value => {
-      value.products.find(product => product.productId === 'ALT_FNDATA')
+      value.products.find(product => product.productId === 'LIVEART_PILOT')
         .terminalDispositionPolicy.requiresOfficialProviderResponse = false;
     }
   },

@@ -1,0 +1,85 @@
+{
+  "registry_id": "KIDULTS_COMPETITOR_REGISTRY_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-27",
+  "owner": "KPMO",
+  "decision_owner": "John",
+  "scope": "COMPETITOR_BENCHMARK_REGISTRY",
+  "state": "REGISTERED_INTERNAL",
+  "evidence_policy": "EVIDENCE_BOUNDED_NO_MARKET_LEADERSHIP_INFERENCE",
+  "competitors": [
+    {
+      "competitor_id": "ALT_FNDATA",
+      "display_name": "ALT/FNDATA",
+      "competitor_class": "MULTI_CATEGORY_COLLECTIBLES_DATA_AND_ANALYTICS",
+      "classification": "COMPETITOR_BENCHMARK_ONLY",
+      "classification_basis": "PROVIDER_IDENTIFIED_KIDULTS_AS_COMPETITOR_AND_DECLINED_BOUNDED_RELATIONSHIP",
+      "relationship_state": "DECLINED_BY_PROVIDER_COMPETITOR_CONFLICT_NO_GO_CLOSED",
+      "decision_date": "2026-08-26",
+      "evidence_refs": [
+        "coordination/kidults/internalization/alt-fndata-no-go-decision-receipt-2026-08-26.md",
+        "coordination/kidults/internalization/provider-operating-admission-gate-v1.json",
+        "coordination/kidults/internalization/provider-product-portfolio-v1.json",
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1066",
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/769"
+      ],
+      "lawful_benchmark_scope": [
+        "PUBLIC_PRODUCT_POSITIONING",
+        "PUBLIC_CATEGORY_COVERAGE",
+        "PUBLIC_DELIVERY_MODEL",
+        "PUBLIC_RIGHTS_AND_COMMERCIAL_BOUNDARY",
+        "PUBLIC_DATA_AND_ANALYTICS_CAPABILITY"
+      ],
+      "prohibited_operational_roles": [
+        "PROVIDER",
+        "PARTNERSHIP_CANDIDATE",
+        "PROCUREMENT_OPTION",
+        "INTEGRATION_TARGET",
+        "FALLBACK_PROVIDER",
+        "PROVIDER_REDUNDANCY",
+        "POC_PIPELINE",
+        "DATA_SOURCE"
+      ],
+      "prohibited_actions": [
+        "FURTHER_PARTNERSHIP_OUTREACH",
+        "ACCOUNT_OR_KEY_REQUEST",
+        "CONTRACT_OR_EULA",
+        "SPEND",
+        "CREDENTIAL_ACTIVATION",
+        "DATA_INGESTION"
+      ],
+      "kidults_differentiation_boundary": [
+        "CANONICAL_OBJECT_IDENTITY",
+        "EVIDENCE_ADMISSION",
+        "RIGHTS_AND_PROVENANCE",
+        "EXPLAINABLE_COMPARABLES",
+        "CONFIDENCE_AND_RANKABILITY_SEPARATION",
+        "GOVERNED_PROJECTION",
+        "PROVIDER_SWITCH_MEMORY",
+        "DECISION_HISTORY"
+      ],
+      "claim_boundary": "Registration identifies a benchmark competitor; it does not prove KIDULTS market leadership, superior coverage, customers, revenue or Production readiness."
+    }
+  ],
+  "portfolio_rules": {
+    "competitor_may_count_as_provider": false,
+    "competitor_may_count_as_fallback": false,
+    "competitor_may_count_as_redundancy": false,
+    "public_materials_require_lawful_use": true,
+    "nonpublic_or_provider_data_use": "PROHIBITED"
+  },
+  "gate_state": {
+    "candidate_evidence": "NONE_NONE",
+    "track_b": "NOT_STARTED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "constitution_effects": {
+    "autonomous_effect": "POSITIVE_PREVENTS_AUTOMATED_PROVIDER_REACTIVATION",
+    "global_effect": "POSITIVE_WITH_EVIDENCE_SUPPORTS_CROSS_CATEGORY_COMPETITOR_MONITORING_WITHOUT_COVERAGE_CLAIM",
+    "irreplaceable_value_effect": "POSITIVE_REINFORCES_KIDULTS_OWNED_CORE_DIFFERENTIATION",
+    "transparency_effect": "POSITIVE_SEPARATES_COMPETITOR_BENCHMARK_FROM_PROVIDER_AND_EVIDENCE_ROLES"
+  },
+  "rollback": "Revert this registry and its two documentation references. No provider, runtime, credential, data, Public, Production or G5 state changes."
+}

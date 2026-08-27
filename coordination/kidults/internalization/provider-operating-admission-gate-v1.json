@@ -40,10 +40,21 @@
     "PSA": "HOLD",
     "GEMRATE": "HOLD",
     "CGC_CCG": "HOLD",
-    "ALT_FNDATA": "HOLD",
+    "ALT_FNDATA": "NO_GO",
     "CLASSIC_COM": "HOLD",
     "LIVEART": "HOLD",
     "HAGERTY": "HOLD"
+  },
+  "terminal_decisions": {
+    "ALT_FNDATA": {
+      "basis": "PROVIDER_DECLINED_COMPETITOR_CONFLICT",
+      "evidence_ref": "coordination/kidults/internalization/alt-fndata-no-go-decision-receipt-2026-08-26.md",
+      "external_contact": "PROHIBITED",
+      "procurement": "EXCLUDED",
+      "integration": "EXCLUDED",
+      "fallback_or_redundancy": "EXCLUDED",
+      "permitted_residual_role": "PUBLIC_COMPETITOR_BENCHMARK_ONLY"
+    }
   },
   "non_bypass": {
     "contract_acceptance": "EXPLICIT_APPROVAL_REQUIRED",

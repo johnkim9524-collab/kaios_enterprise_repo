@@ -14,7 +14,13 @@ for(const p of ledger.providers||[]){
   if((p.internalize_now_remaining||[]).length!==0) errs.push(`${p.provider_id} immediate internalization remains`);
   if((p.prohibited_dependency_remaining||[]).length!==0) errs.push(`${p.provider_id} prohibited dependency remains`);
   if(p.structural_core_state!=='OWNED_CORE_BOUNDARY_PRESENT') errs.push(`${p.provider_id} structural core boundary missing`);
-  if(operating.provider_baseline?.[p.provider_id]!=='HOLD') errs.push(`${p.provider_id} must remain HOLD before joint gate pass`);
+  const expected = p.provider_id === 'ALT_FNDATA' ? 'NO_GO' : 'HOLD';
+  if(operating.provider_baseline?.[p.provider_id]!==expected) errs.push(`${p.provider_id} must remain ${expected}`);
+  if(p.provider_id === 'ALT_FNDATA') {
+    if((p.residual_external||[]).length!==0) errs.push('ALT_FNDATA residual provider dependency must be empty');
+    if(p.activation_state!=='NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA activation must remain terminal NO_GO');
+    if(p.permitted_residual_role!=='PUBLIC_COMPETITOR_BENCHMARK_ONLY') errs.push('ALT_FNDATA residual role drift');
+  }
 }
 if(ledger.summary?.providers!==7) errs.push('provider count drift');
 if(ledger.summary?.internalize_now_remaining!==0) errs.push('internalize-now summary must be zero');

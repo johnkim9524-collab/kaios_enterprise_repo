@@ -1,0 +1,61 @@
+name: KIDULTS P0 Control Plane Closure v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-*.yml'
+      - 'services/kidults-control-plane/**'
+      - 'services/kidults-autonomous-intelligence/**'
+      - 'scripts/kidults/**'
+      - 'coordination/kidults/kpmo/**'
+      - 'coordination/kidults/redteam/**'
+      - 'coordination/kidults/source-intelligence/**'
+      - 'package.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-*.yml'
+      - 'services/kidults-control-plane/**'
+      - 'services/kidults-autonomous-intelligence/**'
+      - 'scripts/kidults/**'
+      - 'coordination/kidults/kpmo/**'
+      - 'coordination/kidults/redteam/**'
+      - 'coordination/kidults/source-intelligence/**'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-p0-control-plane-closure-v1-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  verify-p0-control-plane-closure:
+    name: KIDULTS P0 Control Plane Closure v1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source and execute integrated closure suite
+        env:
+          KPMO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          KPMO_RECEIPT_PATH: /tmp/kidults-p0-control-plane-closure-receipt-v1.json
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
+          node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-p0-control-plane-closure-v1
+          path: /tmp/kidults-p0-control-plane-closure-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error

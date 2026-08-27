@@ -33,13 +33,14 @@
     },
     {
       "provider_id": "ALT_FNDATA",
-      "portfolio_priority": "TIER_1_MARKET_BACKBONE_CANDIDATE",
-      "role": "HORIZONTAL_MARKET_OBSERVATION_SOURCE",
-      "rights_state": "PENDING",
-      "external_fact": ["licensed_transaction_observation", "licensed_listing_or_market_observation"],
+      "portfolio_priority": "EXCLUDED_NO_GO",
+      "role": "PUBLIC_COMPETITOR_BENCHMARK_ONLY",
+      "rights_state": "NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT",
+      "decision_evidence_ref": "coordination/kidults/internalization/alt-fndata-no-go-decision-receipt-2026-08-26.md",
+      "external_fact": [],
       "internalize_now": ["market_event_canonicalization", "deduplication", "comparables", "liquidity", "valuation", "confidence_provenance", "provider_switching"],
       "internalize_phased": ["market_regime_learning", "source_reputation_history"],
-      "prohibited_dependency": ["provider_event_schema_as_canonical_contract", "provider_analytics_as_kidults_methodology"]
+      "prohibited_dependency": ["provider_event_schema_as_canonical_contract", "provider_analytics_as_kidults_methodology", "alt_fndata_as_procurement_integration_fallback_or_redundancy"]
     },
     {
       "provider_id": "CLASSIC_COM",

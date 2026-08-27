@@ -2,12 +2,12 @@ name: KPMO Exact-Head CI Supersession v1
 
 on:
   pull_request_target:
+    branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
 permissions:
-  actions: write
   contents: read
   pull-requests: read
 
@@ -17,6 +17,11 @@ concurrency:
 
 jobs:
   cancel-stale-pr-runs:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -25,25 +30,41 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
           PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           EXACT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           CURRENT_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           api="https://api.github.com/repos/${REPOSITORY}"
+
+          if [[ "${EVENT_NAME}" == "pull_request_target" ]]; then
+            [[ "${BASE_BRANCH}" == "main" ]] || { echo "Refusing non-main PR target" >&2; exit 1; }
+            [[ "${HEAD_REPOSITORY}" == "${REPOSITORY}" ]] || { echo "Refusing Actions write for fork PR" >&2; exit 1; }
+          elif [[ "${EVENT_NAME}" == "push" ]]; then
+            [[ "${HEAD_BRANCH}" == "main" ]] || { echo "Refusing non-main push" >&2; exit 1; }
+          else
+            echo "Unsupported event ${EVENT_NAME}" >&2
+            exit 1
+          fi
+
           cancelled=0
           stale_cancelled=0
           exact_head_retained=0
           examined=0
 
-
           for page in $(seq 1 10); do
-            response="$(curl --fail-with-body --silent --show-error \
+            response="$(curl --fail-with-body --silent --show-error --get \
               -H "Authorization: Bearer ${GH_TOKEN}" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              "${api}/actions/runs?branch=${HEAD_BRANCH}&per_page=100&page=${page}")"
+              --data-urlencode "branch=${HEAD_BRANCH}" \
+              --data-urlencode "per_page=100" \
+              --data-urlencode "page=${page}" \
+              "${api}/actions/runs")"
 
             count="$(jq '.workflow_runs | length' <<<"${response}")"
             examined=$((examined + count))
@@ -86,4 +107,4 @@ jobs:
             --argjson cancelled "${cancelled}" \
             --argjson stale_cancelled "${stale_cancelled}" \
             --argjson exact_head_retained "${exact_head_retained}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,lookup_bound:{pages:10,per_page:100}}'
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,exact_head_impact_runs_retained:$exact_head_retained,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'

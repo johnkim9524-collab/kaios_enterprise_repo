@@ -17,6 +17,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
@@ -38,6 +39,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
@@ -57,12 +59,33 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-mission-directed-discovery-v1-${{ github.ref }}
+  group: kidults-asi-mission-directed-discovery-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  validate-mission-directed-discovery-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate mission-directed discovery contract without live network
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
+
   mission-directed-discovery:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -82,17 +105,57 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs \
             | tee /tmp/mission-directed-discovery-registry-validation-v1.json
-      - name: Restore latest mission-consumption discovery intents
+      - name: Restore exact mission-consumption discovery intents
         env:
           GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_PATH: ${{ github.event.workflow_run.path }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/mission-consumption-input
-          ARTIFACT_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-v1" and .expired==false)][0].id // empty')
+          CURRENT_SHA=$(git rev-parse HEAD)
+          TARGET_SHA="$CURRENT_SHA"
+          VALIDATION_ONLY=false
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            test -n "$PR_BASE_SHA"
+            TARGET_SHA="$PR_BASE_SHA"
+            VALIDATION_ONLY=true
+          fi
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            test -n "$UPSTREAM_RUN_ID"
+            test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
+            test "$UPSTREAM_HEAD_BRANCH" = main
+            test "$UPSTREAM_HEAD_SHA" = "$TARGET_SHA"
+            test "$UPSTREAM_PATH" = '.github/workflows/kidults-asi-mission-consumption-v1.yml'
+            PRODUCER_RUN_ID="$UPSTREAM_RUN_ID"
+          else
+            RUNS=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f status=success -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-mission-consumption-v1.yml/runs")
+            PRODUCER_RUN_ID=$(jq -r --arg sha "$TARGET_SHA" \
+              '[.workflow_runs[] | select(.head_sha==$sha and .head_branch=="main" and .conclusion=="success" and .path==".github/workflows/kidults-asi-mission-consumption-v1.yml")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
+              <<<"$RUNS")
+          fi
+          test -n "$PRODUCER_RUN_ID"
+          RUN=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}")
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
+            '.repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .conclusion=="success" and .path==".github/workflows/kidults-asi-mission-consumption-v1.yml"' \
+            <<<"$RUN" >/dev/null
+          ARTIFACTS=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100")
+          ARTIFACT_COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-v1" and .expired==false)] | length' <<<"$ARTIFACTS")
+          test "$ARTIFACT_COUNT" = 1
+          ARTIFACT_ID=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-v1" and .expired==false)][0].id' <<<"$ARTIFACTS")
+          ARTIFACT_DIGEST=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-mission-consumption-v1" and .expired==false)][0].digest // empty' <<<"$ARTIFACTS")
           test -n "$ARTIFACT_ID"
+          test -n "$ARTIFACT_DIGEST"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
             > /tmp/mission-consumption-input.zip
           unzip -q -o /tmp/mission-consumption-input.zip -d /tmp/mission-consumption-input
@@ -105,23 +168,41 @@ jobs:
           NODE
           echo "MISSION_INTENT_FILE=$INTENT_FILE" >> "$GITHUB_ENV"
           echo "MISSION_LANE_FILE=$LANE_FILE" >> "$GITHUB_ENV"
+          echo "MISSION_CONSUMPTION_RUN_ID=$PRODUCER_RUN_ID" >> "$GITHUB_ENV"
+          echo "MISSION_CONSUMPTION_HEAD_SHA=$TARGET_SHA" >> "$GITHUB_ENV"
           echo "MISSION_CONSUMPTION_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "MISSION_CONSUMPTION_ARTIFACT_DIGEST=$ARTIFACT_DIGEST" >> "$GITHUB_ENV"
+          echo "MISSION_VALIDATION_ONLY=$VALIDATION_ONLY" >> "$GITHUB_ENV"
+          jq -n --argjson run_id "$PRODUCER_RUN_ID" --arg sha "$TARGET_SHA" --argjson artifact_id "$ARTIFACT_ID" --arg digest "$ARTIFACT_DIGEST" --argjson validation_only "$VALIDATION_ONLY" \
+            '{producer_workflow_path:".github/workflows/kidults-asi-mission-consumption-v1.yml",producer_run_id:$run_id,producer_head_sha:$sha,artifact_name:"kidults-asi-mission-consumption-v1",artifact_id:$artifact_id,artifact_digest:$digest,exact_generation_bound:true,artifact_cardinality:1,validation_only:$validation_only,promotion_authority:false}' \
+            > /tmp/mission-consumption-provenance-v1.json
       - name: Restore prior rolling discovery cursor
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/previous-mission-directed-discovery
-          PREVIOUS_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
-            --jq '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
+          CURRENT_SHA=$(git rev-parse HEAD)
+          RUNS=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-mission-directed-discovery-v1.yml/runs")
+          PREVIOUS_RUN_ID=$(jq -r --arg sha "$CURRENT_SHA" --argjson current "$GITHUB_RUN_ID" \
+            '[.workflow_runs[] | select(.id != $current and .head_sha==$sha and .head_branch=="main" and .conclusion=="success" and .path==".github/workflows/kidults-asi-mission-directed-discovery-v1.yml")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
+            <<<"$RUNS")
+          PREVIOUS_ID=''
           PREVIOUS_STATE=/tmp/previous-mission-directed-discovery/no-previous-state.json
-          if [ -n "$PREVIOUS_ID" ]; then
+          if [ -n "$PREVIOUS_RUN_ID" ]; then
+            ARTIFACTS=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREVIOUS_RUN_ID}/artifacts?per_page=100")
+            COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false)] | length' <<<"$ARTIFACTS")
+            test "$COUNT" = 1
+            PREVIOUS_ID=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false)][0].id' <<<"$ARTIFACTS")
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREVIOUS_ID}/zip" \
               > /tmp/previous-mission-directed-discovery.zip
             unzip -q -o /tmp/previous-mission-directed-discovery.zip -d /tmp/previous-mission-directed-discovery
             FOUND=$(find /tmp/previous-mission-directed-discovery -type f -name mission-directed-discovery-cycle-state-v1.json -print -quit || true)
             if [ -n "$FOUND" ]; then PREVIOUS_STATE="$FOUND"; fi
           fi
+          echo "PREVIOUS_DISCOVERY_RUN_ID=${PREVIOUS_RUN_ID:-NONE}" >> "$GITHUB_ENV"
           echo "PREVIOUS_DISCOVERY_ARTIFACT_ID=${PREVIOUS_ID:-NONE}" >> "$GITHUB_ENV"
           echo "PREVIOUS_DISCOVERY_STATE=$PREVIOUS_STATE" >> "$GITHUB_ENV"
       - name: Execute bounded live mission-directed discovery
@@ -294,7 +375,7 @@ jobs:
       - name: Emit KPMO mission-directed discovery receipt
         run: |
           node - <<'NODE' >/tmp/mission-directed-discovery-kpmo-receipt-v1.json
-          const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const d=JSON.parse(fs.readFileSync('/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json'));const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_artifact_id:process.env.MISSION_CONSUMPTION_ARTIFACT_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,manifest_digest:digest,primary_discovery_fallback_used:d.primary_discovery_fallback_used===true,primary_discovery_failure:d.primary_discovery_failure||null,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const d=JSON.parse(fs.readFileSync('/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json'));const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_run_id:Number(process.env.MISSION_CONSUMPTION_RUN_ID),mission_consumption_head_sha:process.env.MISSION_CONSUMPTION_HEAD_SHA,mission_consumption_artifact_id:Number(process.env.MISSION_CONSUMPTION_ARTIFACT_ID),mission_consumption_artifact_digest:process.env.MISSION_CONSUMPTION_ARTIFACT_DIGEST,previous_discovery_run_id:process.env.PREVIOUS_DISCOVERY_RUN_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,exact_generation_bound:true,artifact_cardinality:1,validation_only:process.env.MISSION_VALIDATION_ONLY==='true',promotion_authority:false,manifest_digest:digest,primary_discovery_fallback_used:d.primary_discovery_fallback_used===true,primary_discovery_failure:d.primary_discovery_failure||null,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/mission-directed-discovery-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -315,5 +396,6 @@ jobs:
             /tmp/mission-claim-admission-readiness-validation-v1.json
             /tmp/mission-claim-admission-readiness-final-validation-v1.json
             /tmp/mission-directed-discovery-kpmo-receipt-v1.json
+            /tmp/mission-consumption-provenance-v1.json
           retention-days: 90
           if-no-files-found: error

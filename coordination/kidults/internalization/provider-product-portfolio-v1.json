@@ -63,8 +63,8 @@
   },
   "summary": {
     "conditionalHoldCount": 3,
-    "pendingProviderResponseCount": 5,
-    "dropCount": 0,
+    "pendingProviderResponseCount": 4,
+    "dropCount": 1,
     "conditionalHoldProductIds": [
       "GEMRATE_DEVELOPER_TIER",
       "PSA_PREMIUM_API",
@@ -73,7 +73,6 @@
     "pendingProviderResponseProductIds": [
       "PSA_ENTERPRISE_API",
       "CGC_DEALER_PORTAL_API",
-      "ALT_FNDATA",
       "LIVEART_PILOT",
       "HAGERTY_UNSPECIFIED_PRODUCT"
     ],
@@ -83,6 +82,9 @@
     "gradingOrCertificationHelperProductIds": [
       "GEMRATE_DEVELOPER_TIER",
       "PSA_PREMIUM_API"
+    ],
+    "dropProductIds": [
+      "ALT_FNDATA"
     ]
   },
   "products": [
@@ -331,15 +333,14 @@
       "providerId": "ALT_FNDATA",
       "productName": "ALT/FNDATA",
       "priority": 5,
-      "decision": "PENDING_PROVIDER_RESPONSE",
-      "role": "UNVERIFIED_MARKET_DATA_CANDIDATE",
-      "fit": "UNVERIFIED",
-      "pendingReason": "NO_VERIFIABLE_PRODUCT_SCHEMA_PRICE_OR_RIGHTS_RESPONSE_YET",
+      "decision": "DROP",
+      "role": "COMPETITOR_BENCHMARK_ONLY",
+      "fit": "HIGH_TECHNICAL_FIT_PARTNERSHIP_INCOMPATIBLE",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
         "qualifiesAsCompleteCurrentSoldFeed": false,
-        "reason": "NO_VERIFIED_CURRENT_SOLD_PRODUCT"
+        "reason": "PROVIDER_DECLINED_COMPETITOR_CONFLICT_NO_ADMITTED_DATA"
       },
       "economics": {
         "currency": "USD",
@@ -347,7 +348,7 @@
         "annualAmount": null,
         "trialDays": null,
         "callsPerDay": null,
-        "quoteStatus": "UNKNOWN"
+        "quoteStatus": "NOT_APPLICABLE_PROVIDER_DECLINED"
       },
       "activation": {
         "state": "PROHIBITED",
@@ -359,7 +360,10 @@
         "adapterBacklogAdmissionAllowed": false,
         "productionAllowed": false
       },
-      "evidenceGates": [],
+      "evidenceGates": [
+        "PROVIDER_RESPONSE_2026_08_26",
+        "PROGRAM_OWNER_CONFIRMED_COMPETITOR_CONFLICT"
+      ],
       "terminalDispositionPolicy": {
         "requiresOfficialProviderResponse": true,
         "requiresResponseEvidenceReference": true,
@@ -373,6 +377,20 @@
         "requiresNewDecisionPacket": true,
         "requiresKpmoReview": true,
         "requiresFounderApproval": true
+      },
+      "terminalReason": "PROVIDER_DECLINED_COMPETITIVE_USE_CONFLICT_2026_08_26",
+      "resolvedDisposition": {
+        "state": "NO_GO",
+        "date": "2026-08-26",
+        "basis": "PROVIDER_IDENTIFIED_KIDULTS_AS_COMPETITOR",
+        "currentUse": "PUBLIC_COMPETITOR_BENCHMARK_ONLY",
+        "excludedFrom": [
+          "PROCUREMENT",
+          "INTEGRATION",
+          "FALLBACK",
+          "PROVIDER_REDUNDANCY",
+          "POC_PIPELINE"
+        ]
       }
     },
     {

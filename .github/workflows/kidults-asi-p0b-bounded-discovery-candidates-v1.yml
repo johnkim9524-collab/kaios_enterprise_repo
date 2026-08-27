@@ -47,7 +47,8 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.ref }}
+  # Distinct upstream completions and schedules must not share a cancellation namespace.
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -214,13 +215,48 @@ jobs:
             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
             > /tmp/kidults-asi-p0b-candidate-final-validation-v1.json
-      - name: Emit KPMO P0B discovery receipt
+      - name: Emit fail-closed KPMO P0B discovery receipt
+        if: always()
+        env:
+          KPMO_JOB_STATUS: ${{ job.status }}
         run: |
+          set -euo pipefail
           node - <<'NODE' >/tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/p0b-bounded-discovery-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-p0b-bounded-discovery-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');
+          const crypto=require('crypto');
+          const manifestPath='/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/p0b-bounded-discovery-manifest-v1.json';
+          const manifestExists=fs.existsSync(manifestPath);
+          const pass=process.env.KPMO_JOB_STATUS==='success'&&manifestExists;
+          const receipt={
+            id:'kidults-asi-p0b-bounded-discovery-receipt-v1',
+            state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',
+            source_sha:process.env.GITHUB_SHA,
+            trigger_event:process.env.GITHUB_EVENT_NAME,
+            run_id:process.env.GITHUB_RUN_ID,
+            run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),
+            job_status:process.env.KPMO_JOB_STATUS,
+            manifest_present:manifestExists,
+            failure_contained:!pass,
+            candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',
+            evidence_admission:'NONE',
+            public_release:'HOLD',
+            production:'HOLD'
+          };
+          if(manifestExists){
+            const bytes=fs.readFileSync(manifestPath);
+            const m=JSON.parse(bytes);
+            receipt.manifest_digest='sha256:'+crypto.createHash('sha256').update(bytes).digest('hex');
+            receipt.results=m.results;
+            receipt.autonomous_effect=m.autonomous_effect;
+            receipt.global_effect=m.global_effect;
+            receipt.irreplaceable_value_effect=m.irreplaceable_value_effect;
+            receipt.transparency_effect=m.transparency_effect;
+          }
+          process.stdout.write(JSON.stringify(receipt,null,2));
           NODE
           cat /tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-p0b-bounded-discovery-candidates-v1
           path: |

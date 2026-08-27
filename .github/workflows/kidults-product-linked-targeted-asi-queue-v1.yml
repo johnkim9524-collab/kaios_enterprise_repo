@@ -23,9 +23,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p input out
-          gh api -H 'Accept: application/vnd.github+json' \
-            /repos/${{ github.repository }}/actions/artifacts/9286462549/zip > anchor-foundation.zip
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
+            anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
           unzip -q anchor-foundation.zip -d input
+          node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
       - name: Build Product-linked Targeted ASI queue
         run: node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input out
       - name: Validate queue and North-Star boundaries

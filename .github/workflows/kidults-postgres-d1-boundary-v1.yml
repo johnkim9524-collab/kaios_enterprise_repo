@@ -1,0 +1,45 @@
+name: KIDULTS PostgreSQL System Ledger and D1 Writer Boundary v1
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/kidults-postgres-d1-boundary-v1.yml"
+      - "services/kidults-control-plane/**"
+      - "services/kidults-autonomous-intelligence/src/**"
+      - "services/kidults-autonomous-intelligence/package.json"
+      - "services/kidults-autonomous-intelligence/wrangler.jsonc"
+      - "coordination/kidults/redteam/d1-legacy-resource-policy-v1.json"
+      - "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json"
+      - "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs"
+      - ".github/workflows/kidults-governed-landing-authorization-v1.yml"
+      - ".github/workflows/solo-owner-preflight.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-postgres-d1-boundary-v1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres-d1-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
+      - name: Validate PostgreSQL authority, D1 read models and exact writer inventory
+        run: npm --prefix services/kidults-control-plane run validate
+      - name: Run boundary negative-mutation tests
+        run: npm --prefix services/kidults-control-plane test
+      - name: Validate governed critical-surface and independent-review coverage
+        run: node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs

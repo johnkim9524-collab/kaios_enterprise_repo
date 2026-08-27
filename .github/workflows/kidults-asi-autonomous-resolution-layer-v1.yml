@@ -30,6 +30,7 @@ on:
       - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -56,6 +57,7 @@ on:
       - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P1 Source Preflight v1'
@@ -67,7 +69,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-autonomous-resolution-layer-v1-${{ github.ref }}
+  group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -94,6 +96,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json','utf8'))"
       - name: Validate registered resolution engines and automatic activation
@@ -101,33 +105,53 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
             | tee /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
-      - name: Restore latest successful main P1 artifact with bounded lookup
+      - name: Restore exact producer-bound P1 artifact
         env:
           GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_PATH: ${{ github.event.workflow_run.path }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/p1-expanded /tmp/p1-input
           CURRENT_SHA=$(git rev-parse HEAD)
-          P1_RUN_ID=""
-          P1_SOURCE_SHA=""
-          P1_ID=""
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=20 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
-            > /tmp/p1-runs.json
-          mapfile -t CANDIDATES < <(jq -r '.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success") | [.id,.head_sha] | @tsv' /tmp/p1-runs.json)
-          for CANDIDATE in "${CANDIDATES[@]}"; do
-            IFS=$'\t' read -r CANDIDATE_RUN_ID CANDIDATE_SOURCE_SHA <<<"$CANDIDATE"
-            if git merge-base --is-ancestor "$CANDIDATE_SOURCE_SHA" "$CURRENT_SHA"; then
-              P1_RUN_ID="$CANDIDATE_RUN_ID"
-              P1_SOURCE_SHA="$CANDIDATE_SOURCE_SHA"
-              break
-            fi
-          done
+          TARGET_SHA="$CURRENT_SHA"
+          VALIDATION_ONLY=false
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            test -n "$PR_BASE_SHA"
+            TARGET_SHA="$PR_BASE_SHA"
+            VALIDATION_ONLY=true
+          fi
+
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            test -n "$UPSTREAM_RUN_ID"
+            test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
+            test "$UPSTREAM_HEAD_BRANCH" = main
+            test "$UPSTREAM_HEAD_SHA" = "$CURRENT_SHA"
+            test "$UPSTREAM_PATH" = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'
+            P1_RUN_ID="$UPSTREAM_RUN_ID"
+            P1_SOURCE_SHA="$UPSTREAM_HEAD_SHA"
+          else
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f status=success -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
+              > /tmp/p1-runs.json
+            P1_RUN_ID=$(jq -r --arg sha "$TARGET_SHA" \
+              '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .status=="completed" and .conclusion=="success" and .head_sha==$sha)] | sort_by(.updated_at) | reverse | .[0].id // empty' \
+              /tmp/p1-runs.json)
+            P1_SOURCE_SHA="$TARGET_SHA"
+          fi
           test -n "$P1_RUN_ID"
           test -n "$P1_SOURCE_SHA"
-          git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"
+          test "$P1_SOURCE_SHA" = "$TARGET_SHA"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}" > /tmp/p1-run.json
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
+            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
+            /tmp/p1-run.json >/dev/null
           gh api --method GET -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" \
             > /tmp/p1-artifacts.json
@@ -147,7 +171,8 @@ jobs:
           test -n "$P1_RUN_ID"
           test -n "$P1_SOURCE_SHA"
           test -n "$P1_ID"
-          git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"
+          P1_DIGEST=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).digest")
+          test -n "$P1_DIGEST"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in \
@@ -160,15 +185,17 @@ jobs:
             test "${#FILES[@]}" -eq 1
             cp "${FILES[0]}" "/tmp/p1-input/$NAME"
           done
-          P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" node - <<'NODE'
+          P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" P1_DIGEST="$P1_DIGEST" VALIDATION_ONLY="$VALIDATION_ONLY" node - <<'NODE'
           const fs=require('fs');
-          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.0.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,source_sha_ancestor_of_consumer:true,status:'completed',conclusion:'success',expired:false};
+          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.1.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
           fs.writeFileSync('/tmp/p1-input/p1-upstream-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
           echo "P1_RUN_ID=$P1_RUN_ID" >> "$GITHUB_ENV"
           echo "P1_SOURCE_SHA=$P1_SOURCE_SHA" >> "$GITHUB_ENV"
-          echo "p1_run_id=$P1_RUN_ID p1_artifact_id=$P1_ID source_sha=$P1_SOURCE_SHA consumer_sha=$CURRENT_SHA"
+          echo "P1_ARTIFACT_DIGEST=$P1_DIGEST" >> "$GITHUB_ENV"
+          echo "P1_VALIDATION_ONLY=$VALIDATION_ONLY" >> "$GITHUB_ENV"
+          echo "p1_run_id=$P1_RUN_ID p1_artifact_id=$P1_ID source_sha=$P1_SOURCE_SHA consumer_sha=$CURRENT_SHA exact_generation=true validation_only=$VALIDATION_ONLY"
       - name: Build autonomous resolution layer twice
         run: |
           set -euo pipefail
@@ -282,7 +309,7 @@ jobs:
       - name: Emit KPMO autonomous-resolution receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p1_workflow_run_id:process.env.P1_RUN_ID,p1_artifact_id:process.env.P1_ARTIFACT_ID,p1_source_sha:process.env.P1_SOURCE_SHA,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,p1_source_sha:process.env.P1_SOURCE_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

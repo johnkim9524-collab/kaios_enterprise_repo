@@ -115,7 +115,10 @@ jobs:
           console.log(JSON.stringify({
             status: 'PASS',
             mode: 'SOLO_OWNER_PREFLIGHT',
-            independent_human_review: 'WAIVED_FOR_SOLO_POC',
+            independent_human_review: 'REQUIRED_BY_PROTECT_MAIN_RULESET',
+            self_review_counts: false,
+            exact_head_approval_required: true,
+            technical_preflight_is_merge_authorization: false,
             merge_authorization: 'SEPARATE_PROGRAM_OWNER_DECISION_REQUIRED',
             provider_contact: contract.provider_contact,
             production: contract.production,

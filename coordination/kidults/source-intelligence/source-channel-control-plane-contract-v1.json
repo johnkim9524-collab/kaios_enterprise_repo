@@ -1,0 +1,97 @@
+{
+  "id": "kidults-source-channel-control-plane-contract-v1",
+  "version": "1.0.0",
+  "status": "APPROVED_FAIL_CLOSED_INTERNAL_CONTROL",
+  "owner": "KPMO / Track A / ASI",
+  "priority": "P0",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "objective": "Unify curated discovery candidates, implemented adapters, bounded source admissions, and purpose-specific rights evidence into one deterministic Source x Purpose control ledger without widening any claim or activation authority.",
+  "inputs": {
+    "curated_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+    "adapter_registry": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json",
+    "top16_preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "open_current_sold_preflight": "coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json",
+    "strict_bounded_pools": [
+      "coordination/kidults/source-intelligence/rights-admitted-pilot-source-pool-r1.json",
+      "coordination/kidults/source-intelligence/rights-admitted-transaction-source-pool-r1.json"
+    ],
+    "repository_declaration_pools": [
+      "coordination/kidults/source-intelligence/global-rights-source-pool-expansion-r2.json",
+      "coordination/kidults/source-intelligence/designer-maker-moma-cooper-admission-r3.json"
+    ],
+    "purpose_specific_bounded_declarations": [
+      "coordination/kidults/source-intelligence/musicbrainz-regional-catalog-observation-admission-r1.json",
+      "coordination/kidults/source-intelligence/wikidata-regional-vinyl-catalog-observation-admission-r1.json",
+      "coordination/kidults/source-intelligence/state-department-online-auction-sold-event-admission-r1.json"
+    ]
+  },
+  "source_aliases": {
+    "bricklink-price-guide-api": "bricklink-catalog-api",
+    "europeana-apis-fashion": "europeana-metadata-api",
+    "moma-collection-research-dataset": "moma-collection-dataset",
+    "musicbrainz-core-catalog": "musicbrainz-web-service"
+  },
+  "purpose_vocabulary": [
+    "ACTIVE_LISTING_CONTEXT",
+    "AUTHENTICATION_CONDITION",
+    "CULTURE_ATTENTION",
+    "CURRENT_SOLD_TRANSACTION",
+    "HISTORICAL_TRANSACTION_CONTEXT",
+    "IDENTITY_CATALOG",
+    "PROVENANCE_HISTORY",
+    "SOURCE_ROLE_CLASSIFICATION"
+  ],
+  "admission_classes": {
+    "STRICT_R1_BOUNDED_ADMITTED": "Evidence-bound source admission limited to the recorded purpose and claim ceiling.",
+    "REPOSITORY_DECLARED_BOUNDED_SHADOW": "Repository methodology declaration or bounded shadow admission; not strict-R1 legal or runtime admission.",
+    "CONDITIONAL_NOT_ADMITTED": "Candidate or conditional source with unresolved rights, access, purpose, or commercial-use conditions.",
+    "UNASSESSED": "No purpose-specific admission evidence is registered."
+  },
+  "mandatory_invariants": [
+    "ONE_CANONICAL_SOURCE_ID_PER_ALIAS",
+    "ALL_64_CURATED_ROWS_ACCOUNTED_EXACTLY_ONCE",
+    "ALL_16_IMPLEMENTED_ADAPTERS_ACCOUNTED_AND_INACTIVE",
+    "BOUNDED_CONTEXT_NEVER_WIDENS_TO_CURRENT_SOLD",
+    "METHODOLOGY_DECLARATION_NEVER_COUNTS_AS_STRICT_R1",
+    "CURRENT_SOLD_REQUIRES_EXACT_SOURCE_PURPOSE_FIELD_OUTPUT_SCOPE_TIME_AND_RIGHTS_BINDING",
+    "CURRENT_SOLD_REFERENCE_NEVER_COUNTS_AS_COLLECTOR_MARKET_EVIDENCE",
+    "ACTIVATION_REQUIRES_RIGHTS_CLEAR_PLUS_IMMUTABLE_LIVE_SCHEMA_PLUS_ORIGIN_PLUS_RECEIPT",
+    "UNKNOWN_OR_CONDITIONAL_IS_HOLD",
+    "PRODUCTION_PUBLIC_AND_G5_REMAIN_HOLD"
+  ],
+  "expected_boundaries": {
+    "curated_candidate_rows": 64,
+    "core_domains": 8,
+    "minimum_candidates_per_core_domain": 8,
+    "implemented_adapter_profiles": 16,
+    "unique_bounded_admitted_sources": 9,
+    "rights_clear_collector_current_sold_sources": 0,
+    "empirically_active_adapters": 0,
+    "evidence_admitted": 0,
+    "candidate_created": false,
+    "track_b_started": false,
+    "approved_projection": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "authority_boundary": {
+    "network_collection": false,
+    "provider_contact": false,
+    "credential_use": false,
+    "account_creation": false,
+    "eula_or_contract_acceptance": false,
+    "spend": false,
+    "runtime_activation": false,
+    "production": "HOLD"
+  },
+  "autonomous_effect": "A deterministic builder and validator replace manual reconciliation of fragmented source registries.",
+  "global_effect": "All eight curated domains and every registered bounded source are reconciled in one global source ledger.",
+  "irreplaceable_value_effect": "Canonical source identity, purpose ceilings, rights lineage, and provider-switchable activation backlog become KIDULTS-owned control assets.",
+  "transparency_effect": "Every source and purpose receives an explicit decision, blocker, evidence class, and non-promotion boundary."
+}

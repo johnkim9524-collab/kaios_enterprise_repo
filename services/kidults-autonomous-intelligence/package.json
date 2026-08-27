@@ -6,7 +6,7 @@
   "packageManager": "npm@11.17.0",
   "scripts": {
     "dev": "wrangler dev --local",
-    "deploy": "npm run deploy:preflight && wrangler deploy",
+    "deploy": "npm run deploy:preflight && npm run d1:writer:remote-guard && wrangler deploy",
     "deploy:preflight": "node scripts/deploy-preflight.mjs",
     "types:generate": "wrangler types src/worker-configuration.d.ts",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir /tmp/kidults-asi-worker-dry-run",
@@ -20,6 +20,7 @@
     "asi:runtime-recovery:test": "node scripts/asi-runtime-recovery-fairness-test.mjs",
     "validate": "npm run deploy:preflight && npm run typecheck && npm run asi:processor:test && npm run asi:processor:e2e && npm run asi:runtime-recovery:test && npm run runtime:smoke && npm run deploy:dry-run",
     "remote:d1:preflight": "node scripts/remote-d1-preflight.mjs",
+    "d1:writer:remote-guard": "node ../kidults-control-plane/scripts/remote-writer-guard-v1.mjs",
     "a9:finalize": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/a9-finalize.ps1",
     "scale:smoke": "node scripts/a10-scale-certify.mjs --profile=smoke",
     "scale:100k": "node scripts/a10-scale-certify.mjs --profile=baseline",

@@ -1,0 +1,10 @@
+{
+  "name": "@kaios/kidults-control-plane",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate-boundary-v1.mjs",
+    "test": "node --test scripts/*.test.mjs"
+  }
+}

@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/kidults/scope/close-scope-self-collection-gaps-v1.mjs'
       - 'scripts/kidults/scope/validate-scope-self-collection-closure-v1.mjs'
+      - 'scripts/kidults/scope/validate-track-b-boundary-no-shadow-assessment-v1.mjs'
       - '.github/workflows/kidults-scope-poc-gap-closure-v1.yml'
   workflow_dispatch:
 
@@ -13,22 +14,24 @@ permissions:
   actions: read
 
 jobs:
-  close-gaps:
+  close-internal-scope-gaps:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Download immutable 32-scope live baseline artifact
+      - name: Verify Track B authority boundary
+        run: node scripts/kidults/scope/validate-track-b-boundary-no-shadow-assessment-v1.mjs
+      - name: Download historical 32-scope live baseline artifact
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p scope-poc-live-out
           gh api -H 'Accept: application/vnd.github+json' /repos/${{ github.repository }}/actions/artifacts/9304716429/zip > baseline.zip
           unzip -q baseline.zip -d scope-poc-live-out
-      - name: Terminalize P0 self-collection tasks and freeze requirement specification
+      - name: Classify bounded self-collection gaps and internal requirement specification
         run: node scripts/kidults/scope/close-scope-self-collection-gaps-v1.mjs scope-poc-live-out coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json
-      - name: Validate closure / Track B / Projection invariants
+      - name: Validate internal closure and fail-closed Track B boundary
         run: node scripts/kidults/scope/validate-scope-self-collection-closure-v1.mjs scope-poc-live-out
-      - name: Upload immutable closure artifact
+      - name: Upload internal closure artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-32-scope-poc-gap-closure-v1

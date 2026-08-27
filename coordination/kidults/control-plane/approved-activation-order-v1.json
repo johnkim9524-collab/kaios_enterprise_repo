@@ -1,0 +1,32 @@
+{
+  "id": "kidults-approved-control-plane-activation-order-v1",
+  "version": "1.0.0",
+  "approval": {
+    "program_owner": "John",
+    "approved_at": "2026-08-27",
+    "scope": "PostgreSQL authoritative ledger, D1 single-projector cutover, bounded PSA canary, independent review, remote rollback verification",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "ordered_stages": [
+    { "stage": 1, "name": "POSTGRESQL_AUTHORITATIVE_LEDGER", "requires": ["owner", "backup_restore_plan", "remote_provisioning_receipt"], "state": "AUTHORIZED_PENDING_EVIDENCE" },
+    { "stage": 2, "name": "D1_SINGLE_PROJECTOR_CUTOVER", "requires": ["legacy_writer_inventory", "direct_write_rejection", "projector_deployment_receipt"], "state": "LOCKED_UNTIL_STAGE_1" },
+    { "stage": 3, "name": "PSA_1_TO_3_KNOWN_CERT_CANARY", "requires": ["secret_manager_binding", "actual_eula_rights_receipt", "stage_1_receipt", "stage_2_receipt"], "state": "LOCKED_UNTIL_STAGE_2" },
+    { "stage": 4, "name": "INDEPENDENT_REVIEW", "requires": ["exact_sha_review", "non_author_approval", "constitution_effects"], "state": "LOCKED_UNTIL_STAGE_3" },
+    { "stage": 5, "name": "REMOTE_ROLLBACK_VERIFICATION", "requires": ["health_receipt", "no_projection_receipt", "rollback_receipt"], "state": "LOCKED_UNTIL_STAGE_4" }
+  ],
+  "promotion_ceiling": {
+    "graded_increment": 0,
+    "candidate": false,
+    "evidence": false,
+    "track_b": false,
+    "approved_projection": false
+  },
+  "authority_boundary": {
+    "provider_contract": "NOT_AUTHORIZED",
+    "new_spend": "NOT_AUTHORIZED",
+    "public_or_production_activation": "NOT_AUTHORIZED",
+    "irreversible_security_or_rights_change": "NOT_AUTHORIZED"
+  }
+}

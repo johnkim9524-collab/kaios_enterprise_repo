@@ -18,7 +18,10 @@ for (const p of ['CLASSIC.COM','ALT/FNDATA']) {
   }
 }
 if (gate.current_provider_state?.['CLASSIC.COM']?.decision !== 'NEEDS_CLARIFICATION') errs.push('CLASSIC.COM must remain NEEDS_CLARIFICATION on current evidence');
-if (gate.current_provider_state?.['ALT/FNDATA']?.decision !== 'NEEDS_CLARIFICATION') errs.push('ALT/FNDATA must remain NEEDS_CLARIFICATION on current evidence');
+const alt = gate.current_provider_state?.['ALT/FNDATA'];
+if (alt?.decision !== 'NO_GO') errs.push('ALT/FNDATA must remain NO_GO after provider competitor-conflict rejection');
+if (alt?.written_response !== 'DECLINED_COMPETITOR_CONFLICT') errs.push('ALT/FNDATA rejection evidence state drift');
+if (alt?.activation !== 'DISABLED') errs.push('ALT/FNDATA activation must remain disabled');
 if (gate.non_bypass?.credential_activation !== 'EXPLICIT_APPROVAL_REQUIRED') errs.push('credential approval boundary drift');
 if (gate.non_bypass?.external_spend !== 'EXPLICIT_APPROVAL_REQUIRED') errs.push('spend approval boundary drift');
 if (gate.non_bypass?.production !== 'HOLD' || gate.non_bypass?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') errs.push('release boundary drift');

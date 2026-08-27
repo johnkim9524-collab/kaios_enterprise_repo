@@ -55,8 +55,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p input queue discovery-out
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
+            /tmp/anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
           unzip -q -o /tmp/anchor-foundation.zip -d input
+          node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
           node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue
           node scripts/kidults/source-intelligence/validate-product-linked-targeted-asi-queue-v1.mjs queue
       - name: Empirically execute provider-adaptive supplemental discovery

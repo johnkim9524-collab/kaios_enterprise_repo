@@ -14,6 +14,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
 
 permissions:
@@ -31,39 +32,48 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
-      - name: Verify exact source and syntax
+      - name: Verify exact source, provenance guard and syntax
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
           node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs
-      - name: Restore latest successful branch-compatible Global Any-Site discovery evidence
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs
+      - name: Restore exact-generation Global Any-Site discovery evidence
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/any-site-input
+          rm -f /tmp/any-site-run.json /tmp/any-site-artifact.json /tmp/any-site-provenance.json
           for ATTEMPT in $(seq 1 24); do
             gh api -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-open-market-discovery-v1.yml/runs?branch=${TARGET_BRANCH}&status=success&per_page=100" \
               > /tmp/any-site-runs.json
-            TARGET_BRANCH="$TARGET_BRANCH" node - <<'NODE'
+            TARGET_BRANCH="$TARGET_BRANCH" EXPECTED_SHA="$EXPECTED_SHA" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-runs.json','utf8'));
           const target=process.env.TARGET_BRANCH;
+          const expectedSha=process.env.EXPECTED_SHA;
+          const repository=process.env.GITHUB_REPOSITORY;
           const runs=(x.workflow_runs||[])
             .filter((run)=>run.name==='KIDULTS ASI Global Any-Site Discovery v2'&&
               run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'&&
-              run.head_branch===target&&run.status==='completed'&&run.conclusion==='success')
+              run.repository?.full_name===repository&&
+              run.head_branch===target&&
+              run.head_sha===expectedSha&&
+              run.status==='completed'&&run.conclusion==='success')
             .sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)||b.id-a.id);
           if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));
           NODE
             if [ -s /tmp/any-site-run.json ]; then break; fi
             if [ "$ATTEMPT" -eq 24 ]; then
-              echo "NO_SUCCESSFUL_BRANCH_GLOBAL_DISCOVERY_RUN:${TARGET_BRANCH}" >&2
+              echo "NO_SUCCESSFUL_EXACT_GENERATION_GLOBAL_DISCOVERY_RUN:${TARGET_BRANCH}:${EXPECTED_SHA}" >&2
               exit 1
             fi
             sleep 10
@@ -72,16 +82,28 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
             > /tmp/any-site-artifacts.json
-          node - <<'NODE'
+          EXPECTED_SHA="$EXPECTED_SHA" node - <<'NODE'
           const fs=require('fs');
           const run=JSON.parse(fs.readFileSync('/tmp/any-site-run.json','utf8'));
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-artifacts.json','utf8'));
+          const expectedSha=process.env.EXPECTED_SHA;
+          if(run.head_sha!==expectedSha)throw new Error(`GLOBAL_DISCOVERY_RUN_SHA_MISMATCH:${run.head_sha}:${expectedSha}`);
           const artifacts=(x.artifacts||[])
             .filter((artifact)=>artifact.name==='kidults-asi-global-any-site-discovery-v2'&&
               artifact.expired===false&&artifact.workflow_run?.id===run.id&&
-              artifact.workflow_run?.head_sha===run.head_sha);
+              artifact.workflow_run?.head_sha===expectedSha);
           if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);
-          fs.writeFileSync('/tmp/any-site-artifact.json',JSON.stringify(artifacts[0],null,2));
+          const artifact=artifacts[0];
+          if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);
+          fs.writeFileSync('/tmp/any-site-artifact.json',JSON.stringify(artifact,null,2));
+          fs.writeFileSync('/tmp/any-site-provenance.json',JSON.stringify({
+            producer_workflow:run.path,
+            producer_run_id:run.id,
+            producer_head_sha:run.head_sha,
+            artifact_id:artifact.id,
+            artifact_digest:artifact.digest,
+            exact_generation:true
+          },null,2));
           NODE
           ART_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/any-site-artifact.json')).id")
           gh api -H 'Accept: application/vnd.github+json' \
@@ -92,7 +114,7 @@ jobs:
           test "${#FILES[@]}" -eq 1
           cp "${FILES[0]}" discovery-out/global-low-risk-discovery.json
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
-          echo "global_discovery_run_id=$RUN_ID artifact_id=$ART_ID branch=$TARGET_BRANCH"
+          echo "global_discovery_run_id=$RUN_ID artifact_id=$ART_ID branch=$TARGET_BRANCH expected_sha=$EXPECTED_SHA exact_generation=true"
       - name: Expand bounded hosts through Common Crawl public index
         run: |
           node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
@@ -147,8 +169,8 @@ jobs:
       - name: Emit governed binding receipt
         run: |
           node - <<'NODE' >/tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
-          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v1.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v1.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-common-crawl-v1.json'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-common-crawl-gate-chain-binding-receipt-v1',status:'SHADOW_COMMON_CRAWL_ANY_SITE_GATE_CHAIN_BOUND',common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,merged_discovery_candidates:d.candidate_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_metadata_admitted:g3.admitted_count,rolling_candidate_pool:p.candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v1.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v1.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-common-crawl-v1.json'));const provenance=JSON.parse(fs.readFileSync('/tmp/any-site-provenance.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-common-crawl-gate-chain-binding-receipt-v1',status:'SHADOW_COMMON_CRAWL_ANY_SITE_GATE_CHAIN_BOUND',upstream_global_discovery:provenance,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,merged_discovery_candidates:d.candidate_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_metadata_admitted:g3.admitted_count,rolling_candidate_pool:p.candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -161,6 +183,7 @@ jobs:
             /tmp/asi-gate2-independent-reverification-v1.json
             /tmp/asi-gate3-admission-runtime-v1.json
             /tmp/asi-proactive-source-pool-common-crawl-v1.json
+            /tmp/any-site-provenance.json
             /tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
           retention-days: 30
           if-no-files-found: error

@@ -150,8 +150,10 @@ jobs:
             fi
           fi
 
-          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9286462549/zip" > /tmp/anchor-foundation.zip
+          node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
+            /tmp/anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
           unzip -q -o /tmp/anchor-foundation.zip -d input
+          node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
           echo "cycle_index=$CYCLE_INDEX" >> "$GITHUB_OUTPUT"
           echo "previous_cycle_count=$PREV_COUNT" >> "$GITHUB_OUTPUT"
           echo "previous_pool_valid=$PREV_VALID" >> "$GITHUB_OUTPUT"

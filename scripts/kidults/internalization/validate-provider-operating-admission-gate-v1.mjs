@@ -22,8 +22,13 @@ if (!removal.required_continuity_invariants?.includes('downstream_contract_conti
 const providers = matrix.providers?.map(p=>p.provider_id) || [];
 for (const p of ['PSA','GEMRATE','CGC_CCG','ALT_FNDATA','CLASSIC_COM','LIVEART','HAGERTY']) {
   if (!providers.includes(p)) errs.push(`provider missing from matrix ${p}`);
-  if (gate.provider_baseline?.[p] !== 'HOLD') errs.push(`${p} baseline must HOLD until joint gate evidence exists`);
+  const expected = p === 'ALT_FNDATA' ? 'NO_GO' : 'HOLD';
+  if (gate.provider_baseline?.[p] !== expected) errs.push(`${p} baseline must remain ${expected}`);
 }
+const altTerminal = gate.terminal_decisions?.ALT_FNDATA;
+if (altTerminal?.basis !== 'PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA terminal basis drift');
+if (altTerminal?.external_contact !== 'PROHIBITED') errs.push('ALT_FNDATA external contact must remain prohibited');
+if (altTerminal?.fallback_or_redundancy !== 'EXCLUDED') errs.push('ALT_FNDATA fallback/redundancy exclusion missing');
 for (const p of ['CLASSIC.COM','ALT/FNDATA']) {
   const s = legacy.current_provider_state?.[p];
   if (!s) errs.push(`legacy rights state missing ${p}`);
@@ -33,4 +38,4 @@ for (const k of ['contract_acceptance','external_spend','credential_activation']
 if (gate.non_bypass?.production !== 'HOLD' || gate.non_bypass?.public_intelligence !== 'HOLD') errs.push('release boundary drift');
 
 if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
-console.log(JSON.stringify({suite:'KIDULTS_PROVIDER_OPERATING_ADMISSION_GATE_V1',result:'PASS',providers:providers.length,legacy_market_providers:Object.keys(legacy.current_provider_state||{}).length,baseline:'ALL_HOLD',production:'HOLD'},null,2));
+console.log(JSON.stringify({suite:'KIDULTS_PROVIDER_OPERATING_ADMISSION_GATE_V1',result:'PASS',providers:providers.length,legacy_market_providers:Object.keys(legacy.current_provider_state||{}).length,baseline:'SIX_HOLD_ONE_TERMINAL_NO_GO',production:'HOLD'},null,2));

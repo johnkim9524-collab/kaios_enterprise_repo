@@ -3,6 +3,14 @@ import fs from 'node:fs';
 const p=process.argv[2]||'/tmp/asi-openalex-gdelt-public-metadata-discovery-v1.json';
 const x=JSON.parse(fs.readFileSync(p,'utf8'));
 const fail=m=>{throw new Error(m)};
+const source=fs.readFileSync('scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs','utf8');
+const attempts=Number(source.match(/const MAX_FETCH_ATTEMPTS=(\d+)/)?.[1]||0);
+const oaPacing=Number(source.match(/const OPENALEX_PACING_MS=(\d+)/)?.[1]||0);
+const gdeltPacing=Number(source.match(/const GDELT_PACING_MS=(\d+)/)?.[1]||0);
+if(attempts<4)fail('RESILIENCE_FETCH_ATTEMPTS');
+if(oaPacing<500||gdeltPacing<400)fail('RESILIENCE_PROVIDER_PACING');
+if(!source.includes("headers?.get?.('retry-after')")||!source.includes('r.status===408||r.status===429||r.status>=500'))fail('RESILIENCE_HTTP_RETRY');
+if(!/catch\(error\)\{[\s\S]*attempt<MAX_FETCH_ATTEMPTS-1[\s\S]*fetchJson\(url,opts,attempt\+1\)/.test(source))fail('RESILIENCE_TRANSPORT_RETRY');
 if(x.id!=='kidults-asi-openalex-gdelt-public-metadata-discovery-v1'||x.status!=='SHADOW_MULTI_PROVIDER_PUBLIC_METADATA_DISCOVERY_COMPLETE')fail('IDENTITY');
 if(x.universe_target!=='GLOBAL_ANY_SITE_SOURCE_UNIVERSE'||x.universe_restricted!==false)fail('UNIVERSE_NARROWED');
 if(Number(x.scope_registry_total)!==32||Number(x.scope_rotation_count)!==4||Number(x.cycle_scope_count)!==8||!Number.isInteger(Number(x.scope_rotation_index))||Number(x.scope_rotation_index)<0||Number(x.scope_rotation_index)>3)fail('SCOPE_ROTATION');
@@ -15,7 +23,7 @@ for(const id of ids){const a=x.provider_budget_actions[id];if(!a||!actions.has(a
 if(enabled<1)fail('AT_LEAST_ONE_INDEPENDENT_LANE_REQUIRED');
 if(!Array.isArray(x.candidates)||x.candidates.length!==Number(x.candidate_count)||Number(x.candidate_count)<1||Number(x.live_external_candidate_count)!==Number(x.candidate_count))fail('EMPIRICAL_CANDIDATES');
 if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.acquisition_authorized!==false||x.content_acquired!==false||x.target_site_body_crawled!==false)fail('RELEASE_BOUNDARY');
-const r=x.rules||{};for(const k of ['multi_provider_fail_soft','at_least_one_independent_lane_executes','provider_health_controls_budget_only','discovery_metadata_only','target_site_body_traversal_forbidden','attention_is_not_demand','listing_is_not_sold','terminal_transaction_assertion_required','rights_never_promoted','admission_never_promoted'])if(r[k]!==true)fail(`RULE:${k}`);
+const r=x.rules||{};for(const k of ['multi_provider_fail_soft','at_least_one_independent_lane_executes','provider_health_controls_budget_only','transient_network_retry','retry_after_honored','provider_request_pacing','discovery_metadata_only','target_site_body_traversal_forbidden','attention_is_not_demand','listing_is_not_sold','terminal_transaction_assertion_required','rights_never_promoted','admission_never_promoted'])if(r[k]!==true)fail(`RULE:${k}`);
 const allowed=new Set(ids);const seen=new Set();
 for(const c of x.candidates){
  if(!c.candidate_id||!c.endpoint_url||seen.has(c.endpoint_url))fail('CANDIDATE_IDENTITY_OR_DUPLICATE');seen.add(c.endpoint_url);

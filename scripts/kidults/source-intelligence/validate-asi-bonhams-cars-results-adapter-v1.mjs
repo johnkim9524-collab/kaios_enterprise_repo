@@ -73,9 +73,10 @@ for(const marker of [
 for(const marker of ['SIXTEEN_SOURCE_TEMPLATES_EXPANDED','REFERENCE_ADAPTER_IMPLEMENTED_FIXTURE_VERIFIED_NOT_EMPIRICALLY_ACTIVATED','TEMPLATE_GENERATED_IMPLEMENTATION_PENDING','source-adapter-development-backlog-v1.json','RIGHTS_CLEAR_FOR_PURPOSE','RIGHTS_GATED_NO_ELIGIBLE_PROFILE'])assert(builderSource.includes(marker),`BUILDER_MARKER:${marker}`);
 assert(builderSource.includes('buildPurposeRightsIndex') && builderSource.includes('CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION'),'BUILDER_PURPOSE_RIGHTS_GATE');
 for(const marker of [
-  'workflow_dispatch:','schedule:',"cron: '37 */3 * * *'",'push:','pull_request:','workflow_run:',"'KIDULTS ASI Autonomous Resolution Layer v1'",'Run Bonhams Cars reference adapter fixture and mutation proof',
+  'workflow_dispatch:','schedule:',"cron: '37 */3 * * *'",'push:','pull_request:','group: kidults-asi-bonhams-cars-results-adapter-v1-${{ github.event_name }}-${{ github.sha }}','Run Bonhams Cars reference adapter fixture and mutation proof',
   'Build all 16 source adapter templates twice','Reject fixture promotion mutation','Reject template-as-adapter mutation','Emit KPMO reference-adapter receipt'
 ])assert(workflow.includes(marker),`WORKFLOW_MARKER:${marker}`);
+assert(!workflow.includes('workflow_run:'),'WORKFLOW_STATIC_VALIDATOR_MUST_NOT_CONSUME_UPSTREAM_ARTIFACT');
 assert(workflow.includes('contents: read')&&!workflow.includes('contents: write')&&workflow.includes('persist-credentials: false')&&!workflow.includes('git push'),'WORKFLOW_MUTATION_BOUNDARY');
 for(const marker of ['# KIDULTS ASI Bonhams Cars Results Reference Adapter v1','Reference Adapter','16-Source Template Expansion','First Evidence Admission','0 admitted Evidence'])assert(doc.includes(marker),`DOC_MARKER:${marker}`);
 

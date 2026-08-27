@@ -5,9 +5,11 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-hourly-v2-promotion-readiness-v1.yml'
   workflow_run:
     workflows: ['KIDULTS ASI Global Any-Site Hourly Pooling v2']
+    branches: [main]
     types: [completed]
 
 permissions:
@@ -27,8 +29,11 @@ jobs:
           node-version: '24.19.0'
       - name: Verify exact source and syntax
         run: |
+          set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
       - name: Build deterministic two-cycle fixture
         run: |
           node - <<'NODE' >/tmp/promotion-input.json
@@ -72,71 +77,164 @@ jobs:
   empirical-main-promotion-readiness:
     if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
+    env:
+      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+      UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+      UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+      CANONICAL_PRODUCER_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+      CANONICAL_V2_ARTIFACT: kidults-asi-global-any-site-source-pool-v2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: main
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
-      - name: Restore two distinct successful main v2 cycle artifacts
+      - name: Verify exact source and promotion provenance contract
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
+      - name: Bind triggering run and restore two exact-generation v2 cycles
         id: restore
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/v2/0 /tmp/v2/1 /tmp/v1
-          mapfile -t V2 < <(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false and .workflow_run.head_branch=="main") | {id,run:.workflow_run.id}] | unique_by(.run) | .[0:2][] | "\(.id)|\(.run)"')
-          if [ "${#V2[@]}" -lt 2 ]; then
+          mkdir -p /tmp/v2/0 /tmp/v2/1
+
+          test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
+          test -n "$EXPECTED_SHA"
+          test -n "$UPSTREAM_RUN_ID"
+
+          MAIN_SHA="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+          test "$MAIN_SHA" = "$EXPECTED_SHA"
+
+          validate_run() {
+            local run_id="$1" payload
+            payload="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
+            jq -e \
+              --arg repo "$GITHUB_REPOSITORY" \
+              --arg sha "$EXPECTED_SHA" \
+              --arg path "$CANONICAL_PRODUCER_PATH" \
+              '.conclusion=="success"
+               and .head_branch=="main"
+               and .head_sha==$sha
+               and .repository.full_name==$repo
+               and .path==$path' \
+              <<<"$payload" >/dev/null
+          }
+
+          exact_artifact() {
+            local run_id="$1" payload count artifact_id digest
+            payload="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100")"
+            count="$(jq --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)] | length' <<<"$payload")"
+            [ "$count" -eq 1 ] || {
+              echo "expected exactly one canonical v2 artifact for run ${run_id}; got ${count}" >&2
+              exit 71
+            }
+            artifact_id="$(jq -r --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)][0].id' <<<"$payload")"
+            digest="$(jq -r --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' <<<"$payload")"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+              echo "canonical v2 artifact digest missing/invalid for run ${run_id}" >&2
+              exit 72
+            }
+            printf '%s|%s' "$artifact_id" "$digest"
+          }
+
+          validate_run "$UPSTREAM_RUN_ID"
+
+          RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
+          SECOND_RUN_ID="$(jq -r --arg sha "$EXPECTED_SHA" --arg trigger "$UPSTREAM_RUN_ID" \
+            '[.workflow_runs[]
+              | select(.head_sha==$sha and .conclusion=="success" and (.id|tostring)!=$trigger)]
+             | sort_by(.updated_at) | reverse | .[0].id // empty' \
+            <<<"$RUNS")"
+
+          if [ -z "$SECOND_RUN_ID" ]; then
+            cat > /tmp/promotion-waiting.json <<JSON
+          {"id":"kidults-asi-hourly-v2-promotion-readiness-v1","status":"WAITING_FOR_SECOND_DISTINCT_EXACT_SHA_V2_CYCLE","exact_head_sha":"${EXPECTED_SHA}","triggering_run_id":"${UPSTREAM_RUN_ID}","observed_exact_sha_v2_cycles":1,"public_release":"HOLD","production":"HOLD"}
+          JSON
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo "v2_cycle_count=${#V2[@]}" >> "$GITHUB_OUTPUT"
-            printf '{"id":"kidults-asi-hourly-v2-promotion-readiness-v1","status":"WAITING_FOR_SECOND_DISTINCT_MAIN_V2_CYCLE","observed_v2_cycles":%s,"public_release":"HOLD","production":"HOLD"}\n' "${#V2[@]}" > /tmp/promotion-waiting.json
+            echo 'v2_cycle_count=1' >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          test "$SECOND_RUN_ID" != "$UPSTREAM_RUN_ID"
+          validate_run "$SECOND_RUN_ID"
+
           for i in 0 1; do
-            IFS='|' read -r ART RUN <<< "${V2[$i]}"
+            if [ "$i" -eq 0 ]; then RUN_ID="$UPSTREAM_RUN_ID"; else RUN_ID="$SECOND_RUN_ID"; fi
+            IFS='|' read -r ART DIGEST <<<"$(exact_artifact "$RUN_ID")"
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART}/zip" > "/tmp/v2-${i}.zip"
             unzip -q -o "/tmp/v2-${i}.zip" -d "/tmp/v2/${i}"
-            RECEIPT=$(find "/tmp/v2/${i}" -type f -name asi-global-any-site-hourly-cycle-receipt-v2.json | head -1)
+            RECEIPT="$(find "/tmp/v2/${i}" -type f -name asi-global-any-site-hourly-cycle-receipt-v2.json -print -quit)"
             test -n "$RECEIPT"
+            node - "$RECEIPT" <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(x.id!=='kidults-asi-global-any-site-hourly-cycle-receipt-v2')throw new Error('V2_RECEIPT_ID_MISMATCH');
+          if(x.public_release!=='HOLD'||x.production!=='HOLD')throw new Error('V2_RECEIPT_RELEASE_BOUNDARY');
+          NODE
             cp "$RECEIPT" "/tmp/v2/${i}/receipt.json"
             echo "v2_artifact_${i}=$ART" >> "$GITHUB_OUTPUT"
-            echo "v2_run_${i}=$RUN" >> "$GITHUB_OUTPUT"
+            echo "v2_digest_${i}=$DIGEST" >> "$GITHUB_OUTPUT"
+            echo "v2_run_${i}=$RUN_ID" >> "$GITHUB_OUTPUT"
           done
-          V1=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0] | if . then "\(.id)|\(.workflow_run.id)" else "" end')
-          if [ -n "$V1" ]; then
-            IFS='|' read -r V1_ART V1_RUN <<< "$V1"
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${V1_ART}/zip" > /tmp/v1.zip
-            unzip -q -o /tmp/v1.zip -d /tmp/v1
-            V1_RECEIPT=$(find /tmp/v1 -type f -name asi-global-any-site-hourly-cycle-receipt-v1.json | head -1)
-            if [ -n "$V1_RECEIPT" ]; then cp "$V1_RECEIPT" /tmp/v1/receipt.json; fi
-            echo "v1_artifact=$V1_ART" >> "$GITHUB_OUTPUT"
-            echo "v1_run=$V1_RUN" >> "$GITHUB_OUTPUT"
-          fi
+
+          cat > /tmp/asi-hourly-v2-promotion-provenance-v1.json <<JSON
+          {
+            "id": "kidults-asi-hourly-v2-promotion-provenance-v1",
+            "state": "VERIFIED_PASS_EXACT_GENERATION",
+            "exact_head_sha": "${EXPECTED_SHA}",
+            "canonical_producer_workflow": "${CANONICAL_PRODUCER_PATH}",
+            "triggering_run_id": "${UPSTREAM_RUN_ID}",
+            "triggering_run_included": true,
+            "same_generation": true,
+            "cycles": [
+              {"run_id": "${UPSTREAM_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_0=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_0=' "$GITHUB_OUTPUT" | cut -d= -f2-)"},
+              {"run_id": "${SECOND_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_1=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_1=' "$GITHUB_OUTPUT" | cut -d= -f2-)"}
+            ],
+            "v1_baseline": "OMITTED_NOT_REQUIRED_FOR_EXACT_V2_PAIR",
+            "public_release": "HOLD",
+            "production": "HOLD"
+          }
+          JSON
+          jq -e '
+            .triggering_run_included==true
+            and .same_generation==true
+            and (.cycles|length)==2
+            and (.cycles[0].run_id != .cycles[1].run_id)
+            and (.cycles|all(.artifact_digest|test("^sha256:[0-9a-f]{64}$")))
+            and .public_release=="HOLD"
+            and .production=="HOLD"
+          ' /tmp/asi-hourly-v2-promotion-provenance-v1.json >/dev/null
+
           echo 'ready=true' >> "$GITHUB_OUTPUT"
           echo 'v2_cycle_count=2' >> "$GITHUB_OUTPUT"
       - name: Emit waiting evidence
         if: steps.restore.outputs.ready != 'true'
         run: cat /tmp/promotion-waiting.json
-      - name: Build empirical promotion input
+      - name: Build exact-generation promotion input
         if: steps.restore.outputs.ready == 'true'
         env:
           V2_ART_0: ${{ steps.restore.outputs.v2_artifact_0 }}
           V2_RUN_0: ${{ steps.restore.outputs.v2_run_0 }}
           V2_ART_1: ${{ steps.restore.outputs.v2_artifact_1 }}
           V2_RUN_1: ${{ steps.restore.outputs.v2_run_1 }}
-          V1_ART: ${{ steps.restore.outputs.v1_artifact }}
-          V1_RUN: ${{ steps.restore.outputs.v1_run }}
         run: |
           node - <<'NODE' >/tmp/asi-hourly-v2-promotion-input-v1.json
-          const fs=require('fs');const read=p=>JSON.parse(fs.readFileSync(p));
+          const fs=require('fs');const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
           const v2=[0,1].map(i=>({artifact_id:process.env[`V2_ART_${i}`],workflow_run_id:process.env[`V2_RUN_${i}`],receipt:read(`/tmp/v2/${i}/receipt.json`)}));
-          const v1=fs.existsSync('/tmp/v1/receipt.json')?{artifact_id:process.env.V1_ART,workflow_run_id:process.env.V1_RUN,receipt:read('/tmp/v1/receipt.json')}:null;
-          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:v1,v2_cycles:v2},null,2));
+          if(v2[0].workflow_run_id!==process.env.UPSTREAM_RUN_ID)throw new Error('TRIGGERING_RUN_OMITTED');
+          process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:null,v2_cycles:v2},null,2));
           NODE
-      - name: Validate two-cycle empirical promotion readiness
+      - name: Validate two-cycle exact-generation promotion readiness
         if: steps.restore.outputs.ready == 'true'
         run: node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/asi-hourly-v2-promotion-input-v1.json /tmp/asi-hourly-v2-promotion-readiness-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -145,6 +243,7 @@ jobs:
           name: kidults-asi-hourly-v2-promotion-readiness-v1
           path: |
             /tmp/promotion-waiting.json
+            /tmp/asi-hourly-v2-promotion-provenance-v1.json
             /tmp/asi-hourly-v2-promotion-input-v1.json
             /tmp/asi-hourly-v2-promotion-readiness-v1.json
           retention-days: 90

@@ -15,6 +15,11 @@ for (const p of m.providers || []) {
   if (!Array.isArray(p.internalize_now)) errs.push(`${p.provider_id}: internalize_now array required`);
   if (!Array.isArray(p.prohibited_dependency) || p.prohibited_dependency.length === 0) errs.push(`${p.provider_id}: prohibited_dependency required`);
 }
+const alt = m.providers?.find(p => p.provider_id === 'ALT_FNDATA');
+if (alt?.portfolio_priority !== 'EXCLUDED_NO_GO') errs.push('ALT_FNDATA: portfolio priority must remain excluded');
+if (alt?.role !== 'PUBLIC_COMPETITOR_BENCHMARK_ONLY') errs.push('ALT_FNDATA: role drift');
+if (alt?.rights_state !== 'NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA: rights state must remain terminal NO_GO');
+if ((alt?.external_fact || []).length !== 0) errs.push('ALT_FNDATA: no provider facts may be admitted');
 
 const rules = m.global_rules || {};
 if (rules.provider_direct_to_portal !== false) errs.push('provider direct to portal must be false');
