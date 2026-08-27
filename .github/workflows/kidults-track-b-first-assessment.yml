@@ -1,78 +1,63 @@
-name: KIDULTS Track B First Independent Assessment
+name: KIDULTS Track B Historical Assessment Archive
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/candidates/candidate-structural-20260816-r1/**"
-      - "coordination/kidults/registry/assessment/**"
-      - "coordination/kidults/registry/handoff/**"
-      - "coordination/kidults/registry/track/**"
-      - "coordination/kidults/registry/mission/**"
-      - "coordination/kidults/registry/digital-twin/**"
-      - "coordination/kidults/schemas/rankability-assessment.schema.json"
-      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
-      - "scripts/kidults/assessment/**"
-      - "scripts/kidults/candidate/validate-structural-candidate-r1.mjs"
-      - "scripts/kidults/portal/build-v502-registry-view.mjs"
-      - ".github/workflows/kidults-track-b-first-assessment.yml"
   pull_request:
+    branches: [main]
     paths:
-      - "coordination/kidults/candidates/candidate-structural-20260816-r1/**"
-      - "coordination/kidults/registry/assessment/**"
-      - "coordination/kidults/registry/handoff/**"
-      - "coordination/kidults/registry/track/**"
-      - "coordination/kidults/registry/mission/**"
-      - "coordination/kidults/registry/digital-twin/**"
-      - "coordination/kidults/schemas/rankability-assessment.schema.json"
-      - "apps/kidults-enterprise-staging/public/portal/data/registry-view.json"
-      - "scripts/kidults/assessment/**"
-      - "scripts/kidults/candidate/validate-structural-candidate-r1.mjs"
-      - "scripts/kidults/portal/build-v502-registry-view.mjs"
-      - ".github/workflows/kidults-track-b-first-assessment.yml"
+      - 'coordination/kidults/candidates/candidate-structural-20260816-r1/**'
+      - 'coordination/kidults/registry/assessment/**'
+      - 'coordination/kidults/registry/track/records/track-b-rankability-validation-gate.json'
+      - 'coordination/kidults/registry/role/records/role-track-b.json'
+      - 'scripts/kidults/assessment/validate-first-rankability-assessment.mjs'
+      - '.github/workflows/kidults-track-b-first-assessment.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/candidates/candidate-structural-20260816-r1/**'
+      - 'coordination/kidults/registry/assessment/**'
+      - 'coordination/kidults/registry/track/records/track-b-rankability-validation-gate.json'
+      - 'coordination/kidults/registry/role/records/role-track-b.json'
+      - 'scripts/kidults/assessment/validate-first-rankability-assessment.mjs'
+      - '.github/workflows/kidults-track-b-first-assessment.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: kidults-track-b-historical-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
-  validate:
+  validate-historical-archive:
+    name: Validate historical assessment is non-authoritative
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - name: Checkout exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "24.19.0"
-
-      - name: Syntax check
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Prove exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
         run: |
-          node --check scripts/kidults/assessment/build-first-rankability-assessment.mjs
-          node --check scripts/kidults/assessment/validate-first-assessment-history.mjs
-          node --check scripts/kidults/candidate/validate-structural-candidate-r1.mjs
-          node --check scripts/kidults/portal/build-v502-registry-view.mjs
-
-      - name: Validate immutable Track A historical input
-        run: node scripts/kidults/candidate/validate-structural-candidate-r1.mjs
-
-      - name: Prove historical evaluator same-input same-output reproducibility
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Set up Node.js 24.19.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          check-latest: false
+      - name: Syntax check historical authority guard
+        run: node --check scripts/kidults/assessment/validate-first-rankability-assessment.mjs
+      - name: Prove immutable historical assessment blob
+        shell: bash
         run: |
-          ASSESSMENT_GENERATED_AT="$(node -e "const a=require('./coordination/kidults/registry/assessment/records/assessment-candidate-structural-20260816-r1-v1.json');process.stdout.write(a.generated_at)")"
-          export ASSESSMENT_GENERATED_AT
-          node scripts/kidults/assessment/build-first-rankability-assessment.mjs > /tmp/assessment-1.json
-          node scripts/kidults/assessment/build-first-rankability-assessment.mjs > /tmp/assessment-2.json
-          cmp /tmp/assessment-1.json /tmp/assessment-2.json
-
-      - name: Audit first independent Assessment as immutable history
-        run: node scripts/kidults/assessment/validate-first-assessment-history.mjs
-
-      - name: Validate current Registry and Mission Control
-        run: |
-          node scripts/kidults/registry/validate-operational-registry.mjs
-          node scripts/kidults/mission-control/validate-mission-control.mjs
-          node scripts/kidults/portal/build-v502-registry-view.mjs
+          set -euo pipefail
+          file='coordination/kidults/registry/assessment/records/assessment-candidate-structural-20260816-r1-v1.json'
+          test "$(git hash-object "$file")" = 'fa44778ae839006f3d599ff897a900661df9e27e'
+      - name: Enforce historical-only authority and current waiting state
+        run: node scripts/kidults/assessment/validate-first-rankability-assessment.mjs
