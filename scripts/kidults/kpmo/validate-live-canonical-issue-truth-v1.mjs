@@ -15,7 +15,6 @@ const forbiddenClosureClaims = [
   /CURRENT-MAIN INTERNAL HANDLING CONTROLS CLOSED/i,
   /CURRENT-MAIN INTERNAL RUNTIME P0 CLOSED/i
 ];
-const canonicalBlockPattern = /<!-- KPMO_CANONICAL_TRUTH_V2_START -->([\s\S]*?)<!-- KPMO_CANONICAL_TRUTH_V2_END -->/g;
 
 function fail(message) {
   console.error(`FAIL canonical issue truth: ${message}`);
@@ -57,56 +56,24 @@ async function github(path) {
   throw lastError;
 }
 
-function latestCanonicalBlock(body) {
-  const blocks = [...String(body || '').matchAll(canonicalBlockPattern)];
-  return blocks.length ? blocks.at(-1)[1] : '';
-}
-
-function canonicalMainSha(body) {
-  const block = latestCanonicalBlock(body);
-  const match = block.match(/protected main:\s*`([0-9a-f]{40})`/i);
-  return match?.[1] || '';
-}
-
-function validateStaticBodies(correctionHead, issues, activeDefects, enforceCorrectionHead) {
+function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceCorrectionHead) {
   const errors = [];
   for (const issue of issues) {
     const body = issue.body || '';
-    const recordedMain = canonicalMainSha(body);
-    if (!recordedMain) errors.push(`#${issue.number} missing canonical protected-main SHA in KPMO_CANONICAL_TRUTH_V2 block`);
-    if (!body.includes(`#${correctionPrNumber}`)) errors.push(`#${issue.number} missing canonical correction PR #${correctionPrNumber}`);
-    if (enforceCorrectionHead && !body.includes(correctionHead)) errors.push(`#${issue.number} missing live correction head ${correctionHead}`);
+    if (!body.includes(mainSha)) {
+      errors.push(`#${issue.number} missing exact protected-main SHA ${mainSha}`);
+    }
+    if (!body.includes(`#${correctionPrNumber}`)) {
+      errors.push(`#${issue.number} missing canonical correction PR #${correctionPrNumber}`);
+    }
+    if (enforceCorrectionHead && !body.includes(correctionHead)) {
+      errors.push(`#${issue.number} missing live correction head ${correctionHead}`);
+    }
     for (const pattern of forbiddenClosureClaims) {
       if (pattern.test(body)) errors.push(`#${issue.number} contains unsupported closure claim ${pattern}`);
     }
     for (const defect of activeDefects) {
       if (!body.includes(`#${defect}`)) errors.push(`#${issue.number} omits active defect #${defect}`);
-    }
-  }
-  return errors;
-}
-
-async function validateMonotonicMain(issues) {
-  const errors = [];
-  const recorded = new Map();
-  for (const issue of issues) {
-    const sha = canonicalMainSha(issue.body || '');
-    if (sha) {
-      if (!recorded.has(sha)) recorded.set(sha, []);
-      recorded.get(sha).push(issue.number);
-    }
-  }
-  for (const [sha, numbers] of recorded) {
-    if (sha === expectedMainSha) continue;
-    let comparison;
-    try {
-      comparison = await github(`/compare/${sha}...${expectedMainSha}`);
-    } catch (error) {
-      errors.push(`#${numbers.join(',#')} canonical main ${sha} cannot be proven ancestor of ${expectedMainSha}: ${error.message}`);
-      continue;
-    }
-    if (!['ahead', 'identical'].includes(comparison.status)) {
-      errors.push(`#${numbers.join(',#')} canonical main ${sha} is not ancestor-or-equal to protected main ${expectedMainSha} (status=${comparison.status || 'UNKNOWN'})`);
     }
   }
   return errors;
@@ -119,56 +86,67 @@ const [branch, correctionPr, issues, defectIssues] = await Promise.all([
   Promise.all(trackedDefects.map(number => github(`/issues/${number}`)))
 ]);
 
-if (branch.commit?.sha !== expectedMainSha) fail(`main moved: expected ${expectedMainSha}, observed ${branch.commit?.sha || 'UNKNOWN'}`);
+if (branch.commit?.sha !== expectedMainSha) {
+  fail(`main moved: expected ${expectedMainSha}, observed ${branch.commit?.sha || 'UNKNOWN'}`);
+}
 const correctionHead = correctionPr.head?.sha || '';
 if (!/^[0-9a-f]{40}$/i.test(correctionHead)) fail('canonical correction PR head is unavailable');
 if (correctionPr.base?.ref !== 'main') fail(`canonical correction PR targets ${correctionPr.base?.ref || 'UNKNOWN'}, not main`);
-if (expectedCorrectionHead && correctionHead !== expectedCorrectionHead) fail(`correction head moved: expected event head ${expectedCorrectionHead}, observed ${correctionHead}`);
+if (expectedCorrectionHead && correctionHead !== expectedCorrectionHead) {
+  fail(`correction head moved: expected event head ${expectedCorrectionHead}, observed ${correctionHead}`);
+}
 
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
-const staticErrors = validateStaticBodies(correctionHead, issues, activeDefects, requireLiveCorrectionHead);
-const monotonicErrors = await validateMonotonicMain(issues);
-const errors = [...staticErrors, ...monotonicErrors];
+const errors = validateBodies(expectedMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
 if (errors.length) fail(errors.join('; '));
 
-const missingBlockMutation = structuredClone(issues);
-missingBlockMutation[0].body = String(missingBlockMutation[0].body || '').replace(canonicalBlockPattern, '');
-if (!validateStaticBodies(correctionHead, missingBlockMutation, activeDefects, requireLiveCorrectionHead).length) fail('missing canonical-block mutation was not rejected');
+const staleMainMutation = structuredClone(issues);
+staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(expectedMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
+if (!validateBodies(expectedMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) {
+  fail('stale-main mutation was not rejected');
+}
 
 const correctionMutation = structuredClone(issues);
-correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`.replaceAll(correctionHead, '1111111111111111111111111111111111111111');
-if (!validateStaticBodies(correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
+correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`
+  .replaceAll(correctionHead, '1111111111111111111111111111111111111111');
+if (!validateBodies(expectedMainSha, correctionHead, correctionMutation, activeDefects, true).length) {
+  fail('stale-correction-head mutation was not rejected');
+}
 
 if (activeDefects.length) {
   const omissionMutation = structuredClone(issues);
   omissionMutation[0].body = omissionMutation[0].body.replaceAll(`#${activeDefects[0]}`, '');
-  if (!validateStaticBodies(correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
+  if (!validateBodies(expectedMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) {
+    fail('active-defect omission mutation was not rejected');
+  }
 }
 
-for (const mutationText of [
+const closureMutationTexts = [
   '## Internal reversible-control truth — CLOSED AT CURRENT MAIN',
   '## CURRENT-MAIN INTERNAL HANDLING CONTROLS CLOSED',
   '## CURRENT-MAIN INTERNAL RUNTIME P0 CLOSED'
-]) {
+];
+for (const mutationText of closureMutationTexts) {
   const closureMutation = structuredClone(issues);
   closureMutation[0].body += `\n${mutationText}\n`;
-  if (!validateStaticBodies(correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  if (!validateBodies(expectedMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) {
+    fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  }
 }
 
 console.log(JSON.stringify({
   validator: 'LIVE_CANONICAL_ISSUE_TRUTH_V1',
   state: 'VERIFIED_PASS',
   protected_main_sha: expectedMainSha,
-  canonical_main_policy: 'MONOTONIC_ANCESTOR_OR_EQUAL',
   canonical_correction_pr: correctionPrNumber,
   canonical_correction_head: correctionHead,
   live_correction_head_enforced_in_issues: requireLiveCorrectionHead,
   canonical_issues: canonicalIssues,
   active_defects: activeDefects,
-  canonical_blocks_present: true,
-  canonical_main_ancestry_verified: true,
+  stale_main_mutation_rejected: true,
   stale_correction_head_mutation_rejected: true,
   active_defect_omission_mutation_rejected: activeDefects.length > 0,
+  unsupported_closure_mutations_rejected: closureMutationTexts.length,
   empirical_promotion: false,
   production: 'HOLD',
   public: 'HOLD',
