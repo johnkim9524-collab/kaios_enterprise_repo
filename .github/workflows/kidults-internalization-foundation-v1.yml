@@ -1,0 +1,119 @@
+name: KIDULTS Internalization Foundation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/internalization/**'
+      - 'scripts/kidults/internalization/**'
+      - '.github/workflows/kidults-internalization-foundation-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/internalization/**'
+      - 'scripts/kidults/internalization/**'
+      - '.github/workflows/kidults-internalization-foundation-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-internalization-foundation-v1-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  internalization-foundation:
+    name: internalization-foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+
+      - name: Run 17-component internalization foundation
+        run: node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs
+
+      - name: Reject rights fail-open mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/rights-intelligence-policy-v1.json'
+          cp "$file" /tmp/rights-intelligence-policy-v1.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/rights-intelligence-policy-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.fail_closed_rules.unknown_required_right='ALLOW';
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-rights-intelligence-policy-v1.mjs; then
+            echo 'rights fail-open mutation unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/rights-intelligence-policy-v1.json "$file"
+
+      - name: Reject economics concentration weakening
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/provider-economics-contract-v1.json'
+          cp "$file" /tmp/provider-economics-contract-v1.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/provider-economics-contract-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.priority_rules.single_provider_concentration_penalty=false;
+          value.unit_metrics=value.unit_metrics.filter((x)=>x!=='switching_cost');
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-provider-economics-v1.mjs; then
+            echo 'economics weakening mutation unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/provider-economics-contract-v1.json "$file"
+
+      - name: Reject reputation evidence weakening
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='coordination/kidults/internalization/source-reputation-contract-v1.json'
+          cp "$file" /tmp/source-reputation-contract-v1.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const file='coordination/kidults/internalization/source-reputation-contract-v1.json';
+          const value=JSON.parse(fs.readFileSync(file,'utf8'));
+          value.dimensions=value.dimensions.filter((x)=>!['freshness','provenance_completeness','rights_change_frequency'].includes(x));
+          value.requirements.evidence_reference_required=false;
+          fs.writeFileSync(file,JSON.stringify(value,null,2)+'\n');
+          NODE
+          if node scripts/kidults/internalization/validate-source-reputation-v1.mjs; then
+            echo 'reputation evidence weakening unexpectedly passed' >&2
+            exit 1
+          fi
+          mv /tmp/source-reputation-contract-v1.json "$file"
+
+      - name: Re-run foundation after mutation restoration
+        run: node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs
+
+      - name: Confirm clean exact-head worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
