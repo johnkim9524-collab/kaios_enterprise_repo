@@ -7,9 +7,7 @@ const assurance = fs.readFileSync(assurancePath, 'utf8');
 const truth = fs.readFileSync(truthPath, 'utf8');
 const validator = fs.readFileSync(validatorPath, 'utf8');
 
-function count(source, needle) {
-  return source.split(needle).length - 1;
-}
+function count(source, needle) { return source.split(needle).length - 1; }
 
 function validate(assuranceSource, truthSource, validatorSource) {
   const failures = [];
@@ -38,17 +36,20 @@ function validate(assuranceSource, truthSource, validatorSource) {
   require(truthSource.includes('promotion_eligible: false'), 'TRUTH_PROMOTION_HOLD_MISSING');
   require(truthSource.includes("production: 'HOLD'") && truthSource.includes("public: 'HOLD'"), 'TRUTH_RELEASE_HOLD_MISSING');
 
-  require(truthSource.includes("EXPECTED_CANONICAL_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}"), 'TRUTH_PREVIOUS_GENERATION_BINDING_MISSING');
-  require(truthSource.includes("CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}"), 'TRUTH_PHASE_BINDING_MISSING');
+  require(truthSource.includes("CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}"), 'TRUTH_PHASE_BINDING_MISSING');
+  require(truthSource.includes("MAX_CANONICAL_GENERATION_LAG_COMMITS: '8'"), 'TRUTH_BOUNDED_LAG_MISSING');
   require(truthSource.includes("cron: '13,43 * * * *'"), 'TRUTH_BOUNDED_SYNC_WATCHDOG_MISSING');
   require(truthSource.includes("version: '1.1.0'"), 'TRUTH_RECEIPT_PHASE_VERSION_MISSING');
   require(truthSource.includes('truth_phase: process.env.RECEIPT_PHASE'), 'TRUTH_RECEIPT_PHASE_MISSING');
-  require(truthSource.includes('canonical_body_main_sha: process.env.RECEIPT_BODY_MAIN_SHA'), 'TRUTH_RECEIPT_BODY_GENERATION_MISSING');
+  require(truthSource.includes("RECEIPT_BODY_MAIN_SHA: ${{ steps.validate.outputs.canonical_body_main_sha || 'UNAVAILABLE' }}"), 'TRUTH_RECEIPT_GENERATION_OUTPUT_MISSING');
 
-  require(validatorSource.includes("truthPhase === 'TRANSITION'"), 'TRUTH_TRANSITION_VALIDATION_MISSING');
-  require(validatorSource.includes('expectedCanonicalBodyMainSha'), 'TRUTH_PREVIOUS_GENERATION_VALIDATOR_MISSING');
-  require(validatorSource.includes("fail('future-SHA transition mutation was not rejected')"), 'TRUTH_FUTURE_SHA_MUTATION_MISSING');
+  require(validatorSource.includes("['PREMERGE', 'TRANSITION', 'SYNCHRONIZED']"), 'TRUTH_THREE_PHASE_VALIDATOR_MISSING');
+  require(validatorSource.includes("if (truthPhase === 'SYNCHRONIZED')"), 'TRUTH_EXACT_SYNC_VALIDATION_MISSING');
+  require(validatorSource.includes('canonical board generations diverged'), 'TRUTH_COHERENCE_VALIDATION_MISSING');
+  require(validatorSource.includes('is not a bounded recent main ancestor'), 'TRUTH_ANCESTOR_BOUND_MISSING');
   require(validatorSource.includes("github_read_mode: 'SINGLE_GRAPHQL_BATCH'"), 'TRUTH_BATCH_READ_REGRESSION');
+  require(validatorSource.includes('divergent_generation_mutation_rejected: true'), 'TRUTH_DIVERGENCE_MUTATION_MISSING');
+  require(validatorSource.includes('fs.appendFileSync(process.env.GITHUB_OUTPUT'), 'TRUTH_GENERATION_OUTPUT_MISSING');
 
   return failures;
 }
@@ -68,11 +69,12 @@ const mutations = [
   ['removed failure propagation', assurance.replace('if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then', 'if false; then'), truth, validator],
   ['hard-coded PASS receipt', assurance, truth.replace("state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'", "state: 'VERIFIED_PASS'"), validator],
   ['receipt upload not always', assurance, truth.replace('      - name: Upload exact canonical-truth receipt\n        if: always()', '      - name: Upload exact canonical-truth receipt'), validator],
-  ['removed previous generation binding', assurance, truth.replace("          EXPECTED_CANONICAL_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}\n", ''), validator],
-  ['removed phase binding', assurance, truth.replace("          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}\n", ''), validator],
+  ['removed phase binding', assurance, truth.replace("          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}\n", ''), validator],
+  ['removed bounded lag', assurance, truth.replace("          MAX_CANONICAL_GENERATION_LAG_COMMITS: '8'\n", ''), validator],
   ['removed bounded watchdog', assurance, truth.replace("  schedule:\n    - cron: '13,43 * * * *'\n", ''), validator],
-  ['removed transition validator', assurance, truth, validator.replaceAll("truthPhase === 'TRANSITION'", "truthPhase === 'DISABLED'")],
-  ['removed future-SHA mutation', assurance, truth, validator.replace("if (!validateBodies(bodyMainSha, correctionHead, futureShaMutation, activeDefects, requireLiveCorrectionHead).length) fail('future-SHA transition mutation was not rejected');", "void futureShaMutation;")]
+  ['removed exact sync', assurance, truth, validator.replace("if (truthPhase === 'SYNCHRONIZED')", "if (false)")],
+  ['removed coherence check', assurance, truth, validator.replace("if (generationSet.length !== 1) fail(`canonical board generations diverged: ${generationSet.join(',')}`);", 'void generationSet;')],
+  ['removed ancestor bound', assurance, truth, validator.replace("if (lagIndex < 0 || lagIndex > maxLagCommits) fail(`${truthPhase} canonical generation ${bodyMainSha} is not a bounded recent main ancestor`);", 'void lagIndex;')]
 ];
 
 const escaped = [];
@@ -87,9 +89,10 @@ if (escaped.length) {
 console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   truth_watch_cardinality: 1,
-  receipt_semantics: 'EXACT_RUN_SHA_PATH_TERMINAL_STATE_AND_TRUTH_PHASE',
-  transition_protocol: 'PRIOR_GENERATION_TO_SYNCHRONIZED_CURRENT_MAIN',
+  receipt_semantics: 'EXACT_RUN_SHA_PATH_TERMINAL_STATE_AND_CANONICAL_GENERATION',
+  transition_protocol: 'COHERENT_RECENT_ANCESTOR_TO_EXACT_SYNCHRONIZED_CURRENT_MAIN',
   bounded_sync_watchdog_minutes: 30,
+  max_generation_lag_commits: 8,
   github_read_mode: 'SINGLE_GRAPHQL_BATCH',
   failure_propagation: 'FAIL_CLOSED',
   mutations_blocked: mutations.length,
