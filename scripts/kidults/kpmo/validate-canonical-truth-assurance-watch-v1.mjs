@@ -36,7 +36,7 @@ function validate(a,t,v){
   require(t.includes('promotion_eligible:false'),'TRUTH_PROMOTION_HOLD_MISSING');
   require(t.includes("production:'HOLD'")&&t.includes("public:'HOLD'")&&t.includes("g5:'HOLD'"),'TRUTH_RELEASE_HOLD_MISSING');
   require(t.includes("CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}"),'TRUTH_PHASE_BINDING_MISSING');
-  require(t.includes("CANONICAL_CORRECTION_PR_NUMBER: '1438'"),'TRUTH_CORRECTION_PR_BINDING_MISSING');
+  require(t.includes("CANONICAL_CORRECTION_PR_NUMBER: '1441'"),'TRUTH_CORRECTION_PR_BINDING_MISSING');
   require(t.includes("cron: '13,43 * * * *'"),'TRUTH_BOUNDED_SYNC_WATCHDOG_MISSING');
   require(t.includes("RECEIPT_BODY_MAIN_SHA: ${{ steps.validate.outputs.canonical_body_main_sha || 'UNAVAILABLE' }}"),'TRUTH_RECEIPT_GENERATION_OUTPUT_MISSING');
   require(!t.includes('issues: write')&&!t.includes('actions: write'),'TRUTH_READ_ONLY_PERMISSION_BOUNDARY_BROKEN');
