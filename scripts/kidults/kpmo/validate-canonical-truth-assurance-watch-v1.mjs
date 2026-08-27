@@ -43,9 +43,11 @@ function validate(a,t,v){
   require(!t.includes('issues: write')&&!t.includes('actions: write'),'TRUTH_READ_ONLY_PERMISSION_BOUNDARY_BROKEN');
 
   require(/\['PREMERGE'\s*,\s*'TRANSITION'\s*,\s*'SYNCHRONIZED'\]/.test(v),'TRUTH_THREE_PHASE_VALIDATOR_MISSING');
-  require(v.includes("const expectedBaseIndex=history.indexOf(expectedMainSha);"),'TRUTH_PREMERGE_EVENT_BASE_HISTORY_BINDING_MISSING');
-  require(v.includes("if(truthPhase==='PREMERGE'&&expectedBaseIndex<0)"),'TRUTH_PREMERGE_EVENT_BASE_LIVENESS_MISSING');
-  require(v.includes("else if(truthPhase==='PREMERGE')allowed=new Set([expectedMainSha,expectedBaseParent].filter(isSha));"),'TRUTH_PREMERGE_EVENT_BASE_WINDOW_MISSING');
+  require(v.includes('expectedBase:object(expression:$expected)'),'TRUTH_PREMERGE_EXACT_BASE_OBJECT_MISSING');
+  require(v.includes("const expectedBaseParent=expectedBase?.parents?.nodes?.[0]?.oid||'';"),'TRUTH_PREMERGE_FIRST_PARENT_MISSING');
+  require(v.includes("const expectedBaseGrandparent=expectedBase?.parents?.nodes?.[0]?.parents?.nodes?.[0]?.oid||'';"),'TRUTH_PREMERGE_FIRST_PARENT_DEPTH2_MISSING');
+  require(v.includes("if(truthPhase==='PREMERGE'&&!history.includes(expectedMainSha))"),'TRUTH_PREMERGE_LIVE_HISTORY_MEMBERSHIP_MISSING');
+  require(v.includes("else if(truthPhase==='PREMERGE')allowed=new Set([expectedMainSha,expectedBaseParent,expectedBaseGrandparent].filter(isSha));"),'TRUTH_PREMERGE_MAINLINE_WINDOW_MISSING');
   require(v.includes("else allowed=new Set([parent,grandparent].filter(isSha));"),'TRUTH_TRANSITION_PRIOR_GENERATION_BOUND_MISSING');
   require(v.includes("if(truthPhase==='SYNCHRONIZED'&&(set.length!==1||set[0]!==observedMain))"),'TRUTH_EXACT_SYNC_VALIDATION_MISSING');
   require(v.includes('const unsafe=set.filter(g=>!allowed.has(g))'),'TRUTH_GENERATION_WINDOW_ENFORCEMENT_MISSING');
@@ -66,8 +68,9 @@ const mutations=[
  ['failure propagation removal',assurance.replace('if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then','if false; then'),truth,validator],
  ['phase binding removal',assurance,truth.replace("          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}\n",''),validator],
  ['read-only permission break',assurance,truth.replace('  issues: read','  issues: write'),validator],
- ['premerge event-base history removal',assurance,truth,validator.replace("const expectedBaseIndex=history.indexOf(expectedMainSha);",'const expectedBaseIndex=0;')],
- ['premerge event-base window removal',assurance,truth,validator.replace("else if(truthPhase==='PREMERGE')allowed=new Set([expectedMainSha,expectedBaseParent].filter(isSha));","else if(truthPhase==='PREMERGE')allowed=new Set(history);")],
+ ['premerge exact base object removal',assurance,truth,validator.replace('expectedBase:object(expression:$expected)','expectedBase:object(expression:"main")')],
+ ['premerge first-parent depth2 removal',assurance,truth,validator.replace("const expectedBaseGrandparent=expectedBase?.parents?.nodes?.[0]?.parents?.nodes?.[0]?.oid||'';","const expectedBaseGrandparent='';")],
+ ['premerge bounded window removal',assurance,truth,validator.replace("else if(truthPhase==='PREMERGE')allowed=new Set([expectedMainSha,expectedBaseParent,expectedBaseGrandparent].filter(isSha));","else if(truthPhase==='PREMERGE')allowed=new Set(history);")],
  ['transition bound removal',assurance,truth,validator.replace("else allowed=new Set([parent,grandparent].filter(isSha));","else allowed=new Set(history);")],
  ['exact synchronized validation removal',assurance,truth,validator.replace("if(truthPhase==='SYNCHRONIZED'&&(set.length!==1||set[0]!==observedMain))fail(`SYNCHRONIZED requires exact current generation ${observedMain}`);",'void set;')],
  ['generation window enforcement removal',assurance,truth,validator.replace("const unsafe=set.filter(g=>!allowed.has(g));if(unsafe.length)fail(`${truthPhase} contains out-of-window canonical generations: ${unsafe.join(',')}; allowed=${[...allowed].join(',')}`);",'const unsafe=[];')],
@@ -75,4 +78,4 @@ const mutations=[
 ];
 const escaped=[];for(const [name,a,t,v] of mutations)if(validate(a,t,v).length===0)escaped.push(name);
 if(escaped.length){console.error(JSON.stringify({state:'VERIFIED_FAIL',escaped_mutations:escaped},null,2));process.exit(1);}
-console.log(JSON.stringify({state:'VERIFIED_PASS',truth_watch_cardinality:1,receipt_semantics:'EXACT_RUN_SHA_PATH_TERMINAL_STATE_AND_CANONICAL_GENERATION',premerge_protocol:'EVENT_BASE_PLUS_IMMEDIATE_PREDECESSOR_WITH_LIVE_HISTORY_MEMBERSHIP',transition_protocol:'BOUNDED_PRIOR_GENERATION_TO_EXACT_SYNCHRONIZED_CURRENT_MAIN',bounded_sync_watchdog_minutes:30,canonical_generation_window:'PREMERGE_EVENT_BASE_OR_PREDECESSOR__TRANSITION_PARENT_OR_GRANDPARENT__SYNCHRONIZED_EXACT_CURRENT',canonical_writer:'APPEND_ONLY_RECEIPT_V3',canonical_board_union:25,github_read_mode:'SINGLE_GRAPHQL_BATCH',failure_propagation:'FAIL_CLOSED',mutations_blocked:mutations.length,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+console.log(JSON.stringify({state:'VERIFIED_PASS',truth_watch_cardinality:1,receipt_semantics:'EXACT_RUN_SHA_PATH_TERMINAL_STATE_AND_CANONICAL_GENERATION',premerge_protocol:'EXACT_EVENT_BASE_FIRST_PARENT_DEPTH_2_WITH_LIVE_HISTORY_MEMBERSHIP',transition_protocol:'BOUNDED_PRIOR_GENERATION_TO_EXACT_SYNCHRONIZED_CURRENT_MAIN',bounded_sync_watchdog_minutes:30,canonical_generation_window:'PREMERGE_EVENT_BASE_MAINLINE_DEPTH2__TRANSITION_PARENT_OR_GRANDPARENT__SYNCHRONIZED_EXACT_CURRENT',canonical_writer:'APPEND_ONLY_RECEIPT_V3',canonical_board_union:25,github_read_mode:'SINGLE_GRAPHQL_BATCH',failure_propagation:'FAIL_CLOSED',mutations_blocked:mutations.length,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
