@@ -1,0 +1,61 @@
+{
+  "id": "kidults-ai-agent-bootstrap-remediation-sequence-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "scope": "ALL_AI_AGENTS_AND_AUTOMATIONS",
+  "sequence_id": "DETECT_FIX_VERIFY_SYNC_REPORT_IMPROVE",
+  "trigger": "REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY",
+  "mandatory_sequence": [
+    "DETECT_REVERSIBLE_DEFECT",
+    "CORRECT_ROOT_CAUSE_IMMEDIATELY",
+    "RUN_REGRESSION_AND_NEGATIVE_TESTS",
+    "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN",
+    "TRUTH_SYNC_REGISTRY_AND_ISSUE",
+    "REPORT_VERIFIED_OUTCOME",
+    "PROPOSE_PRIORITIZED_IMPROVEMENTS"
+  ],
+  "report_only_before_remediation_allowed": false,
+  "repeated_human_prompting_required": false,
+  "bootstrap_must_load_before_task_execution": true,
+  "bootstrap_inheritance": {
+    "KPMO": true,
+    "TRACK_A": true,
+    "TRACK_B": true,
+    "TRACK_C": true,
+    "TRACK_D": true,
+    "TRACK_E": true,
+    "RED_TEAM": true,
+    "ASI": true,
+    "CODING_AGENTS": true,
+    "REVIEW_AGENTS": true,
+    "RUNTIME_AGENTS": true,
+    "SCHEDULED_AUTOMATIONS": true,
+    "EXTERNAL_MODEL_AGENTS": true,
+    "child_rule_can_weaken": false,
+    "agent_self_exemption_allowed": false
+  },
+  "stop_conditions": [
+    "PRODUCTION_G5",
+    "IRREVERSIBLE_LEGAL_CHANGE",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "EXPANDED_CREDENTIAL_OR_PERMISSION",
+    "MISSING_REQUIRED_TOOL_OR_PERMISSION"
+  ],
+  "stop_condition_behavior": "FAIL_CLOSED_AND_REPORT_EXACT_BLOCKER_WITH_UNBLOCK_CONDITION",
+  "minimum_closure_evidence": [
+    "ROOT_CAUSE_IDENTIFIED",
+    "IMPLEMENTATION_OR_CONFIGURATION_EVIDENCE",
+    "REGRESSION_TEST_EVIDENCE",
+    "NEGATIVE_TEST_EVIDENCE",
+    "EXACT_HEAD_REVALIDATION",
+    "TARGET_MAIN_REVALIDATION_OR_EXPLICIT_PREMERGE_NOT_YET_APPLICABLE",
+    "REGISTRY_ISSUE_TRUTH_SYNC_RECEIPT",
+    "VERIFIED_OUTCOME_REPORT",
+    "PRIORITIZED_IMPROVEMENT_PROPOSAL"
+  ],
+  "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING",
+  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate."
+}
