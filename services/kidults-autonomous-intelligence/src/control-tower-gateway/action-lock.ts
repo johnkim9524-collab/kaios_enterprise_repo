@@ -1,68 +1,9 @@
-/**
- * A31 — Executive Control Tower Live Integration & Governed Action Gateway
- * Module: action-lock.ts
- *
- * Only one active request per decision/action scope at a time.
- * Concurrent duplicate requests return IN_PROGRESS or EXISTING_RESULT.
- */
-
-// ---------------------------------------------------------------------------
-// Lock Registry
-// ---------------------------------------------------------------------------
-
-interface LockEntry {
-  readonly decisionId: string;
-  readonly requestId: string;
-  readonly lockedAt: string;
-}
-
-const lockRegistry = new Map<string, LockEntry>();
-
-// Lock key: decision-level (action scope)
-function lockKey(decisionId: string): string {
-  return `a31:lock:${decisionId}`;
-}
-
-// ---------------------------------------------------------------------------
-// Acquire / Release
-// ---------------------------------------------------------------------------
-
-export type LockResult =
-  | { acquired: true; entry: LockEntry }
-  | { acquired: false; reason: string; existingRequestId: string };
-
-export function acquireActionLock(
-  decisionId: string,
-  requestId: string,
-): LockResult {
-  const key = lockKey(decisionId);
-  const existing = lockRegistry.get(key);
-  if (existing) {
-    return {
-      acquired: false,
-      reason: 'This decision is already being processed.',
-      existingRequestId: existing.requestId,
-    };
-  }
-
-  const entry: LockEntry = {
-    decisionId,
-    requestId,
-    lockedAt: new Date().toISOString(),
-  };
-  lockRegistry.set(key, entry);
-  return { acquired: true, entry };
-}
-
-export function releaseActionLock(decisionId: string, requestId: string): void {
-  const key = lockKey(decisionId);
-  const existing = lockRegistry.get(key);
-  // Only release if this request holds the lock
-  if (existing && existing.requestId === requestId) {
-    lockRegistry.delete(key);
-  }
-}
-
-export function isDecisionLocked(decisionId: string): boolean {
-  return lockRegistry.has(lockKey(decisionId));
-}
+/** A31 live action locking must be durable and cross-process. */
+export const A31_ACTION_LOCK_BACKEND='POSTGRESQL_DURABLE_BACKEND_REQUIRED' as const;
+export const A31_ACTION_LOCK_RUNTIME_READY=false as const;
+interface LockEntry{readonly decisionId:string;readonly requestId:string;readonly lockedAt:string;}
+export type LockResult={acquired:true;entry:LockEntry}|{acquired:false;reason:string;existingRequestId:string};
+function durableBackendRequired():never{throw new Error('A31_DURABLE_ACTION_LOCK_BACKEND_REQUIRED');}
+export function acquireActionLock(_decisionId:string,_requestId:string):LockResult{return durableBackendRequired();}
+export function releaseActionLock(_decisionId:string,_requestId:string):void{durableBackendRequired();}
+export function isDecisionLocked(_decisionId:string):boolean{return durableBackendRequired();}
