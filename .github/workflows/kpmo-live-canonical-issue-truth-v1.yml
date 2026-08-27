@@ -6,11 +6,14 @@ on:
     paths:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
+      - "scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs"
       - "coordination/kidults/**"
   push:
     branches: [ main ]
   issues:
     types: [edited, reopened, closed]
+  schedule:
+    - cron: '13,43 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -44,9 +47,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          EXPECTED_CANONICAL_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || '' }}
+          CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
-          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name != 'pull_request' }}
+          REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
@@ -55,6 +60,8 @@ jobs:
           VALIDATION_OUTCOME: ${{ steps.validate.outcome }}
           RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
+          RECEIPT_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || 'SYNCHRONIZED' }}
+          RECEIPT_BODY_MAIN_SHA: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha || github.sha }}
         run: |
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
@@ -62,7 +69,7 @@ jobs:
           if (!['success', 'failure', 'cancelled', 'skipped'].includes(outcome)) process.exit(65);
           const receipt = {
             receipt_id: 'kpmo-live-canonical-issue-truth-receipt-v1',
-            version: '1.0.0',
+            version: '1.1.0',
             workflow_name: 'KPMO Live Canonical Issue Truth V1',
             workflow_path: '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',
             repository: process.env.GITHUB_REPOSITORY,
@@ -70,6 +77,8 @@ jobs:
             run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
             head_sha: process.env.RECEIPT_HEAD_SHA,
             event: process.env.RECEIPT_EVENT,
+            truth_phase: process.env.RECEIPT_PHASE,
+            canonical_body_main_sha: process.env.RECEIPT_BODY_MAIN_SHA,
             validation_outcome: outcome,
             state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
             promotion_eligible: false,
