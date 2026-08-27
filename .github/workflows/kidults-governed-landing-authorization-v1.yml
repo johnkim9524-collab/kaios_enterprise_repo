@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Enforce exact-head independent authorization and ruleset monotonicity
+      - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -58,6 +58,7 @@ jobs:
             fail(`pagination bound exceeded ${path}`);
           };
 
+          const repository = await api('');
           const pr = await api(`/pulls/${prNumber}`);
           if (pr.base?.ref !== 'main') fail('base branch is not main');
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
@@ -93,9 +94,9 @@ jobs:
           const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
           for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
           const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
-          if((protectPr?.parameters?.required_approving_review_count||0)<1) fail('Protect main independent approval disabled');
+          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');
           if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
-          if(!protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval disabled');
+          if(protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval must remain disabled in solo-owner mode');
           if(!protectPr?.parameters?.required_review_thread_resolution) fail('Protect main review-thread resolution disabled');
           if(!protectPr?.parameters?.require_extra_approval_for_unattributed_changes) fail('Protect main unattributed-change approval disabled');
 
@@ -116,6 +117,10 @@ jobs:
             if (pr.draft) fail('governed PR is Draft');
             if(lastReadiness?.event==='convert_to_draft') fail('latest readiness event is convert_to_draft');
 
+            if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');
+            if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');
+            if(readinessReceipt.actor!==repository.owner?.login) fail('latest ready state was not authorized by Program Owner');
+
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
             for(const review of reviews){
@@ -128,24 +133,27 @@ jobs:
               if(!prior || stamp>=priorStamp) latest.set(login,review);
             }
             const eligibleAssociation = new Set(['OWNER','MEMBER','COLLABORATOR']);
-            const eligible = [...latest.values()].filter(r=>r.user.login!==pr.user.login && eligibleAssociation.has(r.author_association));
+            const eligible = [...latest.values()].filter(r=>eligibleAssociation.has(r.author_association));
             const blockers = eligible.filter(r=>r.state==='CHANGES_REQUESTED');
             if(blockers.length) fail(`exact-head changes requested by ${blockers.map(r=>r.user.login).join(',')}`);
-            const approvals = eligible.filter(r=>r.state==='APPROVED' && /Governance-Reason:\s*\S/i.test(r.body||''));
-            if(approvals.length<1) fail('missing exact-head eligible non-author APPROVED review with Governance-Reason');
+            const optionalApprovals = eligible.filter(r=>r.user.login!==pr.user.login && r.state==='APPROVED');
 
             const receipt = {
               id:'kidults-governed-landing-authorization-receipt-v1',
-              state:'AUTHORIZED_EXACT_HEAD',
+              state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD',
               repository:repo,
               pull_request:Number(prNumber),
               author:pr.user.login,
+              program_owner:repository.owner.login,
+              governance_mode:'SOLO_OWNER_GOVERNED',
+              decision_id:'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
               readiness:readinessReceipt,
-              approvals:approvals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id,reason:(r.body||'').match(/Governance-Reason:\s*(.+)/i)?.[1]?.trim()||null})),
-              self_review_excluded:true,
-              stale_approval_excluded:true,
+              required_approval_count:0,
+              optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
+              self_review_is_not_independent_review:true,
+              stale_review_excluded:true,
               ruleset_bypass_actor_count:0,
               public_release:'HOLD',
               production:'HOLD',

@@ -1,7 +1,7 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.1.0",
-  "status": "FOUNDER_APPROVED_FOR_IMPLEMENTATION",
+  "version": "1.2.0",
+  "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
@@ -25,14 +25,24 @@
     "wrangler.jsonc"
   ],
   "review_policy": {
-    "minimum_non_author_approvals": 1,
+    "minimum_non_author_approvals": 0,
     "self_review_counts": false,
     "approval_must_bind_exact_head_sha": true,
     "stale_approval_counts": false,
-    "eligible_reviewer_types": ["User"],
-    "eligible_author_associations": ["OWNER", "MEMBER", "COLLABORATOR"],
+    "eligible_reviewer_types": [
+      "User"
+    ],
+    "eligible_author_associations": [
+      "OWNER",
+      "MEMBER",
+      "COLLABORATOR"
+    ],
     "approval_reason_marker": "Governance-Reason:",
-    "changes_requested_on_exact_head_blocks": true
+    "changes_requested_on_exact_head_blocks": true,
+    "solo_owner_author_must_match_repository_owner": true,
+    "same_repository_head_required": true,
+    "ready_state_by_owner_is_authorization": true,
+    "optional_external_review_must_bind_exact_head": true
   },
   "draft_policy": {
     "draft_is_promotable": false,
@@ -42,13 +52,22 @@
   "bypass_policy": {
     "ruleset_bypass_actor_count_must_be_zero": true,
     "required_status_must_be_strict": true,
-    "missing_ruleset_readback_is_failure": true
+    "missing_ruleset_readback_is_failure": true,
+    "required_status_contexts": [
+      "KAIOS Solo Owner Preflight",
+      "Validate KAIOS Foundation",
+      "Validate Production Container"
+    ]
   },
   "truth_boundary": {
     "technical_green_is_independent_review": false,
     "governance_green_is_empirical_launch_evidence": false,
     "production": "HOLD",
     "public_release": "HOLD",
-    "g5": "HOLD"
-  }
+    "g5": "HOLD",
+    "solo_owner_governance_is_independent_review": false,
+    "solo_owner_governance_is_production_approval": false
+  },
+  "governance_mode": "SOLO_OWNER_GOVERNED",
+  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27"
 }
