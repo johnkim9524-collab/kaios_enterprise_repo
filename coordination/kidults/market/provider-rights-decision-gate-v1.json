@@ -1,6 +1,6 @@
 {
   "id": "kidults-provider-rights-decision-gate-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "parent_issue": 769,
   "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
   "providers": [
@@ -38,6 +38,8 @@
       "written_response": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
       "field_by_purpose_rights": "INCOMPLETE",
       "provider_spec": "PENDING",
+      "latest_detailed_request": "SENT_2026_08_26_AWAITING_RESPONSE",
+      "response_intake_ref": "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json",
       "decision": "NEEDS_CLARIFICATION",
       "activation": "DISABLED"
     },

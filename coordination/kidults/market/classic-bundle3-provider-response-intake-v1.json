@@ -1,0 +1,208 @@
+{
+  "id": "kidults-classic-bundle3-provider-response-intake-v1",
+  "version": "1.0.0",
+  "parent_issue": 769,
+  "as_of": "2026-08-27",
+  "provider": "CLASSIC.COM",
+  "product_id": "CLASSIC_COM_LICENSED_BUNDLE_3",
+  "scope": "CURRENT_SOLD_PRIVATE_EVALUATION",
+  "current_state": "AWAITING_PROVIDER_RESPONSE",
+  "current_decision": "NEEDS_CLARIFICATION",
+  "risk_state": "AMBER",
+  "vertical_fit": "CONFIRMED_FOR_COLLECTOR_CAR_SOLD_COMPS",
+  "commercial_fit": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
+  "rights_and_economics": "UNRESOLVED",
+  "activation": "DISABLED",
+  "latest_outbound": {
+    "sent_at": "2026-08-26T15:58:33Z",
+    "evidence_ref": "gmail:message:1a03ecb6a6b5f290",
+    "thread_ref": "gmail:thread:1a01d87e01b06ad4",
+    "rfc_message_id": "<CAPAjgK6bpiw7WqYm4vg2Knpd5A415pSmZP3WbaVRRJfJsr27Tg@mail.gmail.com>",
+    "issue_comment_ref": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/769#issuecomment-5427755574",
+    "request_scope": [
+      "PROPOSED_SCHEDULE_OR_TERM_SHEET",
+      "30_DAY_UP_TO_120_KNOWN_RECORD_PRIVATE_PILOT",
+      "BUNDLE_SCHEMA_AND_REDACTED_SAMPLE",
+      "PRICE_QUERY_LIMIT_HISTORY_FRESHNESS_AND_SUPPORT",
+      "SOLD_STATUS_REALIZED_PRICE_AND_FEE_SEMANTICS",
+      "FIELD_BY_PURPOSE_RIGHTS",
+      "RAW_RETENTION_DELETION_AND_TERMINATION",
+      "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_RETENTION",
+      "KIDULTS_PRE_EXISTING_AND_INDEPENDENT_IP_CARVE_OUT"
+    ],
+    "external_commitment_authorized": false,
+    "signature_authorized": false,
+    "spend_authorized": false,
+    "credential_authorized": false,
+    "provider_network_call_authorized": false
+  },
+  "response_observation": {
+    "latest_provider_reply_before_outbound": {
+      "received_at": "2026-08-25T22:47:23Z",
+      "evidence_ref": "gmail:message:1a03b1b656abf1e0",
+      "rfc_message_id": "<CANUsitoZL3gHUMb=gc3U9EDZ-T6oOvjhyudLfi=kM7nsBTC7Jw@mail.gmail.com>"
+    },
+    "observed_through": "2026-08-27T22:58:39Z",
+    "provider_reply_after_latest_outbound": false,
+    "provider_origin_response_ref": null,
+    "provider_origin_response_received_at": null,
+    "raw_email_body_retained": false,
+    "raw_agreement_or_attachment_retained": false
+  },
+  "required_response": {
+    "commercial_pilot": {
+      "question_id": "Q1_PILOT_PRICE_AND_SCHEDULE",
+      "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+      "required_items": [
+        "30_DAY_UP_TO_120_RECORD_PRIVATE_PILOT_PRICE",
+        "PRODUCTION_PRICING_OR_PRICING_METHOD",
+        "QUERY_AND_RATE_LIMITS",
+        "SLA_SUPPORT_AND_CORRECTION_TERMS"
+      ]
+    },
+    "provider_spec": {
+      "question_id": "Q2_OPERATING_LIMITS_AND_PROVIDER_SPEC",
+      "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+      "required_items": [
+        "PROPOSED_SCHEDULE_OR_ONE_PAGE_TERM_SHEET",
+        "BUNDLE_3_FIELD_SCHEMA",
+        "REDACTED_SAMPLE_PAYLOAD",
+        "ENDPOINT_AND_AUTH_SPEC_ONLY_AFTER_APPROVAL"
+      ]
+    },
+    "sold_event_semantics": {
+      "question_id": "Q3_SCHEMA_AND_SOLD_SEMANTICS",
+      "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+      "required_event_fields": [
+        "stable_object_or_lot_identity",
+        "sold_date",
+        "realized_consideration",
+        "currency",
+        "venue_or_source_reference"
+      ],
+      "required_items": [
+        "SOLD_NOT_SOLD_WITHDRAWN_DISTINCTION",
+        "REALIZED_CONSIDERATION_AVAILABILITY_BY_SOURCE_TYPE",
+        "BUYER_OR_SELLER_FEE_INCLUSION_BY_SOURCE",
+        "COVERAGE_HISTORY_DEPTH_AND_FRESHNESS",
+        "CORRECTION_AND_UPDATE_BEHAVIOR"
+      ]
+    },
+    "rights_and_termination": {
+      "question_id": "Q4_RIGHTS_TERMINATION_AND_IP",
+      "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+      "required_rights_dimensions": [
+        "query_collect",
+        "private_store",
+        "internal_derive",
+        "internal_review",
+        "retention_1_to_30_days",
+        "automation_rate_limits",
+        "attribution",
+        "public_derived_output_boundary",
+        "onward_transfer",
+        "deletion_termination",
+        "entity_territory_scope"
+      ],
+      "required_ip_clarifications": [
+        "KIDULTS_PRE_EXISTING_AND_INDEPENDENT_ASI_ENTITY_RESOLUTION_NORMALIZATION_SCORING_AND_ANALYTICAL_METHODOLOGY_EXCLUDED",
+        "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_RETENTION_DURING_TERM",
+        "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_RETENTION_AFTER_TERMINATION",
+        "RAW_DATA_RETENTION_DELETION_AND_TERMINATION"
+      ]
+    }
+  },
+  "required_event_fields": [
+    "stable_object_or_lot_identity",
+    "sold_date",
+    "realized_consideration",
+    "currency",
+    "venue_or_source_reference"
+  ],
+  "assessment_states": [
+    "COMPATIBLE",
+    "INCOMPATIBLE",
+    "UNKNOWN",
+    "AMBIGUOUS",
+    "CONDITIONAL"
+  ],
+  "rights_assessments": {
+    "query_collect": {"state": "UNKNOWN", "evidence_ref": null},
+    "private_store": {"state": "UNKNOWN", "evidence_ref": null},
+    "internal_derive": {"state": "UNKNOWN", "evidence_ref": null},
+    "internal_review": {"state": "UNKNOWN", "evidence_ref": null},
+    "retention_1_to_30_days": {"state": "UNKNOWN", "evidence_ref": null},
+    "automation_rate_limits": {"state": "UNKNOWN", "evidence_ref": null},
+    "attribution": {"state": "UNKNOWN", "evidence_ref": null},
+    "public_derived_output_boundary": {"state": "UNKNOWN", "evidence_ref": null},
+    "onward_transfer": {"state": "UNKNOWN", "evidence_ref": null},
+    "deletion_termination": {"state": "UNKNOWN", "evidence_ref": null},
+    "entity_territory_scope": {"state": "UNKNOWN", "evidence_ref": null}
+  },
+  "event_field_assessments": {
+    "stable_object_or_lot_identity": {"state": "UNKNOWN", "evidence_ref": null},
+    "sold_date": {"state": "UNKNOWN", "evidence_ref": null},
+    "realized_consideration": {"state": "UNKNOWN", "evidence_ref": null},
+    "currency": {"state": "UNKNOWN", "evidence_ref": null},
+    "venue_or_source_reference": {"state": "UNKNOWN", "evidence_ref": null}
+  },
+  "event_field_crosswalk": {
+    "stable_object_or_lot_identity": {"candidate_contract_fields": ["vin", "lot"], "state": "PENDING_PROVIDER_SPEC"},
+    "sold_date": {"candidate_contract_fields": ["lot_date"], "state": "PENDING_PROVIDER_SPEC"},
+    "realized_consideration": {"candidate_contract_fields": ["price", "price_usd", "high_bid_price"], "state": "PENDING_PROVIDER_SPEC"},
+    "currency": {"candidate_contract_fields": ["price_currency"], "state": "PENDING_PROVIDER_SPEC"},
+    "venue_or_source_reference": {"candidate_contract_fields": ["listing_type", "lot"], "state": "PENDING_PROVIDER_SPEC"}
+  },
+  "provider_spec_assessment": {"state": "UNKNOWN", "evidence_ref": null},
+  "commercial_assessments": {
+    "pilot_and_production_price": {"state": "UNKNOWN", "evidence_ref": null},
+    "query_rate_quota_limits": {"state": "UNKNOWN", "evidence_ref": null},
+    "sla_support_and_corrections": {"state": "UNKNOWN", "evidence_ref": null},
+    "coverage_history_and_freshness": {"state": "UNKNOWN", "evidence_ref": null}
+  },
+  "recorded_rights_decision": "NEEDS_CLARIFICATION",
+  "recorded_operating_admission": "HOLD_RIGHTS_SPEC_ECONOMICS_AND_APPROVAL_PENDING",
+  "followup_policy": {
+    "status": "PLANNED_NOT_SENT",
+    "not_before": "2026-08-31T16:00:00Z",
+    "response_requested_by": "2026-09-04T00:00:00Z",
+    "same_thread_required": true,
+    "send_requires_live_no_reply_check": true,
+    "send_requires_explicit_owner_authorization": true,
+    "automatic_send_authorized": false,
+    "no_response_transition": "DEFERRED_HOLD_NO_SUBSTANTIVE_RESPONSE",
+    "no_response_terminal_disposition": false,
+    "no_response_prioritize_alternate_current_sold_path": true,
+    "explicit_incompatibility_transition": "NO_GO",
+    "material_complete_response_transition": "RUN_SOURCE_SPECIFIC_RIGHTS_DECISION_GATE"
+  },
+  "decision_inputs": {
+    "pass_eligible_only_when": [
+      "EVERY_REQUIRED_RIGHTS_DIMENSION_EXPLICITLY_COMPATIBLE",
+      "EVERY_REQUIRED_EVENT_FIELD_PRESENT_WITH_DEFINED_SEMANTICS",
+      "PROVIDER_SPEC_AND_PROPOSED_SCHEDULE_AVAILABLE",
+      "PILOT_PRICE_QUOTA_RATE_LIMIT_AND_SLA_AVAILABLE",
+      "NO_PROHIBITED_OR_AMBIGUOUS_TERM"
+    ],
+    "no_go_when": [
+      "PROVIDER_EXPLICITLY_CANNOT_SUPPORT_REQUIRED_PRIVATE_USE",
+      "REQUIRED_EVENT_FIELD_EXPLICITLY_UNAVAILABLE",
+      "REQUIRED_DERIVATION_OR_RETENTION_RIGHT_EXPLICITLY_PROHIBITED"
+    ],
+    "no_response_is_not_no_go": true
+  },
+  "authority_boundary": {
+    "contract_or_schedule_acceptance": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "external_spend": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "credential_issuance_or_activation": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "provider_network_access": "PROHIBITED_BEFORE_SEPARATE_APPROVAL_AND_RIGHTS_PASS",
+    "data_acquisition": "PROHIBITED_BEFORE_SEPARATE_APPROVAL_AND_RIGHTS_PASS",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "autonomous_effect": "Provider replies can be classified deterministically without enabling external access or spending.",
+  "global_effect": "This candidate covers collector cars and modern classics only; other categories, regions and geographies remain NOT_VERIFIED.",
+  "irreplaceable_value_effect": "KIDULTS-owned identity, normalization, entity-resolution, scoring and analytical methodology remain outside provider ownership.",
+  "transparency_effect": "The latest request, unresolved items, response timing and every non-bypass boundary are recorded with evidence references."
+}
