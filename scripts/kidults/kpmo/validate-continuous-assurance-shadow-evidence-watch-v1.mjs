@@ -5,6 +5,10 @@ const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1
 const text = fs.readFileSync(workflowPath, 'utf8');
 const fail = (message) => { throw new Error(message); };
 
+function countMatches(source, regex) {
+  return [...source.matchAll(regex)].length;
+}
+
 function extractShadowStep(source) {
   const startMarker = '      - name: Validate exact ASI SHADOW upstream evidence binding\n';
   const start = source.indexOf(startMarker);
@@ -15,7 +19,9 @@ function extractShadowStep(source) {
 
 function validate(source) {
   const watch = "      - 'KIDULTS ASI SHADOW Operating Evidence v1'";
-  if (!source.includes(watch)) fail('SHADOW_WATCH_MISSING');
+  if (countMatches(source, new RegExp(watch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) !== 1) {
+    fail('SHADOW_WATCH_CARDINALITY_NOT_ONE');
+  }
 
   const block = extractShadowStep(source);
   const required = [
@@ -36,19 +42,22 @@ function validate(source) {
     'SHADOW_ARTIFACT_COUNT=$(jq',
     'test "$SHADOW_ARTIFACT_COUNT" -eq 1',
     '.name=="kidults-asi-shadow-operating-evidence-v1"',
-    '.workflow_run.id==$run',
-    '.workflow_run.head_sha==$sha',
     '[[ "$SHADOW_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]'
   ];
   for (const marker of required) {
     if (!block.includes(marker)) fail(`MISSING_IN_SHADOW_BINDING:${marker}`);
   }
+
   if (!/and \.head_sha==\$sha\s*\n\s*and \.status=="completed"/.test(block)) {
     fail('RUN_LEVEL_EXACT_SHA_BINDING_MISSING');
   }
-  if (!/\.workflow_run\.id==\$run[^\n]*\.workflow_run\.head_sha==\$sha/.test(block)) {
-    fail('ARTIFACT_RUN_SHA_BINDING_MISSING');
-  }
+
+  const runBindingCount = countMatches(block, /\.workflow_run\.id==\$run/g);
+  const shaBindingCount = countMatches(block, /\.workflow_run\.head_sha==\$sha/g);
+  const pairedBindingCount = countMatches(block, /\.workflow_run\.id==\$run[^\n]*\.workflow_run\.head_sha==\$sha/g);
+  if (runBindingCount !== 3) fail(`ARTIFACT_RUN_BINDING_CARDINALITY:${runBindingCount}`);
+  if (shaBindingCount !== 3) fail(`ARTIFACT_SHA_BINDING_CARDINALITY:${shaBindingCount}`);
+  if (pairedBindingCount !== 3) fail(`ARTIFACT_RUN_SHA_PAIR_CARDINALITY:${pairedBindingCount}`);
 
   const jobHeader = source.match(/jobs:\n  audit:\n([\s\S]*?)\n    runs-on:/)?.[1] || '';
   if (/workflow_run\.conclusion\s*==\s*['\"]success['\"]/.test(jobHeader)) {
@@ -66,6 +75,7 @@ const mutations = [
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
   ['test "$SHADOW_ARTIFACT_COUNT" -eq 1', 'test "$SHADOW_ARTIFACT_COUNT" -ge 1'],
   ['.workflow_run.id==$run', '.workflow_run.id!=$run'],
+  ['.workflow_run.head_sha==$sha', '.workflow_run.head_sha!=$sha'],
   ['[[ "$SHADOW_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]', '[[ "$SHADOW_ARTIFACT_DIGEST" =~ ^md5: ]]']
 ];
 
@@ -81,6 +91,7 @@ const successOnlyMutation = text.replace(
   "      (github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
   "      (github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
 );
+if (successOnlyMutation === text) fail('SELF_TEST_SOURCE_MARKER_MISSING:SUCCESS_ONLY_JOB_FILTER');
 let successOnlyRejected = false;
 try { validate(successOnlyMutation); } catch { successOnlyRejected = true; }
 if (!successOnlyRejected) fail('NEGATIVE_MUTATION_NOT_REJECTED:SUCCESS_ONLY_JOB_FILTER');
@@ -91,6 +102,7 @@ console.log(JSON.stringify({
   watch_required: true,
   exact_upstream_run_binding: true,
   exact_artifact_cardinality: 1,
+  artifact_run_sha_binding_occurrences: pairedBindingCountForReceipt(),
   provider_digest_required: true,
   failed_cancelled_observation_preserved: true,
   mutations_rejected: mutations.length + 1,
@@ -98,3 +110,7 @@ console.log(JSON.stringify({
   public: 'HOLD',
   g5: 'EXPLICIT_APPROVAL_REQUIRED'
 }, null, 2));
+
+function pairedBindingCountForReceipt() {
+  return countMatches(extractShadowStep(text), /\.workflow_run\.id==\$run[^\n]*\.workflow_run\.head_sha==\$sha/g);
+}
