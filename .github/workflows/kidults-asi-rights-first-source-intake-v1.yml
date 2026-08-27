@@ -23,6 +23,8 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json'
       - 'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs'
@@ -48,6 +50,8 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json'
       - 'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs'
@@ -86,6 +90,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/lib/asi-autonomous-resolution-replacement-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs
           node --check scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs
+          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
           for FILE in \
             coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json \
             coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
@@ -131,6 +136,9 @@ jobs:
           node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt \
             /tmp/kidults-rights-first-source-intake-receipt-v1.json \
             | tee /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt \
+            /tmp/kidults-rights-first-source-intake-receipt-v1.json \
+            | tee /tmp/kidults-rights-first-source-intake-report-after-remediation-validation-v1.json
           node --input-type=module - <<'NODE'
           import fs from 'node:fs';
           import Ajv2020 from 'ajv/dist/2020.js';
@@ -168,6 +176,7 @@ jobs:
             /tmp/kidults-rights-first-claim-ceiling-validation-v1.json
             /tmp/kidults-rights-first-track-z-routing-validation-v1.json
             /tmp/kidults-rights-first-source-intake-receipt-validation-v1.json
+            /tmp/kidults-rights-first-source-intake-report-after-remediation-validation-v1.json
             /tmp/kidults-source-channel-control-plane-build-v1.json
             /tmp/kidults-source-channel-control-plane-validation-v1.json
             /tmp/kidults-source-channel-control-plane-v1.json
