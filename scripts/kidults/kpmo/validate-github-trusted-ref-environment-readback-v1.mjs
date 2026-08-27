@@ -72,7 +72,7 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.external_partner_ingestion_authorized === false, 'partner_ingestion_boundary');
   require(receipt?.production === 'HOLD' && receipt?.public === 'HOLD', 'release_boundary');
   require(receipt?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'g5_boundary');
-  require(receipt?.registered_privileged_manual_lanes === 15, 'registered_lane_count');
+  require(receipt?.registered_privileged_manual_lanes === 16, 'registered_lane_count');
   require(Array.isArray(receipt?.binding_results) && receipt.binding_results.length === receipt?.secret_bearing_jobs, 'binding_partition');
   require(receipt?.verified_secret_bearing_jobs === receipt?.binding_results?.filter((item) => item.state === 'VERIFIED_PASS').length, 'verified_binding_count');
   require(receipt?.binding_results?.every((item) => (
@@ -279,8 +279,8 @@ export function validateRepository(root = process.cwd()) {
   assert(registry.internal_readback_control?.state === contract.status, 'REGISTRY_READBACK_STATE');
   assert(registry.internal_readback_control?.settings_mutated === false && registry.internal_readback_control?.secret_material_read === false, 'REGISTRY_READBACK_SAFETY_BOUNDARY');
   assert(registry.internal_readback_control?.issue_974_closed === false && registry.internal_readback_control?.issue_881_control_pass_promoted === false, 'REGISTRY_SEMANTIC_BOUNDARY');
-  assert(inventory.registered_lane_count === registry.registered_count && registry.registered_count === 15, 'REGISTRY_LANE_PARTITION');
-  assert(inventory.secret_bearing_job_count === 15, 'SECRET_BEARING_JOB_PARTITION');
+  assert(inventory.registered_lane_count === registry.registered_count && registry.registered_count === 16, 'REGISTRY_LANE_PARTITION');
+  assert(inventory.secret_bearing_job_count === 16, 'SECRET_BEARING_JOB_PARTITION');
   const repositoryBindingFailures = validateRequiredEnvironmentBindings(inventory, registry);
   assert(repositoryBindingFailures.length === 0, `REPOSITORY_ENVIRONMENT_BINDINGS:${repositoryBindingFailures.join(',')}`);
   const repositoryGuardedLanes = inventory.lanes
@@ -302,15 +302,16 @@ export function validateRepository(root = process.cwd()) {
   assert(collector.includes("stored_repository_or_environment_secret_activated: false"), 'STORED_SECRET_FALSE_RECEIPT');
   assert(collector.includes("provider_credential_activated: false"), 'PROVIDER_CREDENTIAL_FALSE_RECEIPT');
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
-  assert(testSource.includes('all 15 privileged jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
-  assert(testSource.includes('all 15 privileged jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
+  assert(testSource.includes('all 16 secret-bearing jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
+  assert(testSource.includes('all 16 secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
+  assert(testSource.includes('trigger transformation and missing explicit activation guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');
   assert(docs.includes('EPHEMERAL_GITHUB_TOKEN_METADATA_READ'), 'DOC_EPHEMERAL_TOKEN_SEMANTICS');
   assert(docs.includes('external_proof_validator_fail_closed_until_trusted_attestor'), 'DOC_EXTERNAL_ATTESTOR_FAIL_CLOSED');
   assert(docs.includes('## Repository live-main and credential-lifetime controls'), 'DOC_PRIVILEGED_EXECUTION_CONTROL');
-  assert(docs.includes('15/15 guards') && docs.includes('zero workflow-scope bindings') && docs.includes('zero job-scope bindings'), 'DOC_PRIVILEGED_EXECUTION_COUNTS');
+  assert(docs.includes('16/16 guards') && docs.includes('zero workflow-scope bindings') && docs.includes('zero job-scope bindings'), 'DOC_PRIVILEGED_EXECUTION_COUNTS');
   assert(docs.includes('They therefore do not close #974.'), 'DOC_ISSUE_974_BOUNDARY');
 
   const workflowMutations = [
