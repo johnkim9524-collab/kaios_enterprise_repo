@@ -1,0 +1,220 @@
+name: P0 PostgreSQL Greenfield Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'apps/dual-staging-http-runtime/**'
+      - 'infrastructure/postgres/dual-staging/**'
+      - 'scripts/staging/*dual-staging-postgres*'
+      - '.github/workflows/p0-postgres-greenfield-runtime.yml'
+  push:
+    branches:
+      - 'codex/p0-runtime-boundary-hardening-*'
+    paths:
+      - 'apps/dual-staging-http-runtime/**'
+      - 'infrastructure/postgres/dual-staging/**'
+      - 'scripts/staging/*dual-staging-postgres*'
+      - '.github/workflows/p0-postgres-greenfield-runtime.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p0-postgres-greenfield-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  greenfield-runtime-attack-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kaios
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kaios"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      KAIOS_ENVIRONMENT: staging
+      KAIOS_PRODUCTION_PROMOTION_AUTHORIZED: 'false'
+      KAIOS_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/kaios
+      KAIOS_POSTGRES_RESTORE_DSN: postgresql://postgres:postgres@127.0.0.1:5432/kaios_restore
+
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Prove exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='${{ github.event.pull_request.head.sha || github.sha }}'
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+          printf 'exact_head=%s\n' "$actual"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Create isolated restore target
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 \
+            --dbname='postgresql://postgres:postgres@127.0.0.1:5432/postgres' \
+            --command='CREATE DATABASE kaios_restore'
+
+      - name: Run canonical greenfield migration
+        shell: bash
+        run: bash scripts/staging/run-dual-staging-postgres-greenfield.sh
+
+      - name: Run RLS concurrency backup restore and rollback attacks
+        shell: bash
+        run: bash scripts/staging/verify-dual-staging-postgres-runtime-v2.sh
+
+      - name: Run runtime adapter unit attacks
+        working-directory: apps/dual-staging-http-runtime
+        run: node --test src/server.test.mjs src/postgres-runtime.test.mjs
+
+      - name: Seed a valid PostgreSQL server-owned projection
+        shell: bash
+        run: |
+          set -euo pipefail
+          projection='{"source":"postgres","approved":true}'
+          digest="$(node -e 'const crypto=require("node:crypto"); const value=JSON.parse(process.argv[1]); process.stdout.write(crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"));' "$projection")"
+          printf '%s' "$digest" > /tmp/projection.digest
+
+          psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN" \
+            --set="projection=$projection" --set="digest=$digest" <<'SQL'
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kaios_runtime_app_login') THEN
+    CREATE ROLE kaios_runtime_app_login LOGIN PASSWORD 'runtime-test-password' INHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE;
+  END IF;
+END
+$$;
+GRANT kaios_runtime_ci_app TO kaios_runtime_app_login;
+
+SET ROLE kaios_runtime_ci_app;
+WITH tenant_context AS MATERIALIZED (
+  SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
+)
+INSERT INTO kaios_runtime.projections (
+  tenant_id, vertical, projection_id, projection_json, projection_digest, status, as_of, version
+)
+SELECT 'tenant-runtime-live', 'kidults', 'projection-runtime-live', :'projection'::jsonb,
+       :'digest', 'approved', clock_timestamp(), 1
+FROM tenant_context
+ON CONFLICT (tenant_id, vertical) DO UPDATE SET
+  projection_json = EXCLUDED.projection_json,
+  projection_digest = EXCLUDED.projection_digest,
+  status = EXCLUDED.status,
+  as_of = EXCLUDED.as_of,
+  version = kaios_runtime.projections.version + 1,
+  updated_at = clock_timestamp();
+
+WITH tenant_context AS MATERIALIZED (
+  SELECT set_config('app.tenant_id', 'tenant-runtime-live', true)
+)
+INSERT INTO kaios_runtime.entitlements (
+  tenant_id, entitlement_id, subject_id, vertical, scopes, status,
+  projection_digest, expires_at
+)
+SELECT 'tenant-runtime-live', 'ent-runtime-live', 'operator', 'kidults', ARRAY['EXPORT'],
+       'active', :'digest', clock_timestamp() + interval '1 hour'
+FROM tenant_context
+ON CONFLICT (tenant_id, entitlement_id) DO UPDATE SET
+  status = 'active', revoked_at = NULL, projection_digest = EXCLUDED.projection_digest,
+  expires_at = EXCLUDED.expires_at, updated_at = clock_timestamp();
+RESET ROLE;
+SQL
+
+      - name: Prove live PostgreSQL bootstrap export and replay closure
+        shell: bash
+        env:
+          KAIOS_STAGING_VERTICAL: kidults
+          KAIOS_STAGING_TENANT_ID: tenant-runtime-live
+          KAIOS_STAGING_VIEWER_TOKEN_FILE: /tmp/kaios-viewer.token
+          KAIOS_STAGING_OPERATOR_TOKEN_FILE: /tmp/kaios-operator.token
+          KAIOS_POSTGRES_DSN: postgresql://kaios_runtime_app_login:runtime-test-password@127.0.0.1:5432/kaios
+          PORT: '32101'
+        run: |
+          set -euo pipefail
+          printf 'viewer-test-token' > "$KAIOS_STAGING_VIEWER_TOKEN_FILE"
+          printf 'operator-test-token' > "$KAIOS_STAGING_OPERATOR_TOKEN_FILE"
+          chmod 600 "$KAIOS_STAGING_VIEWER_TOKEN_FILE" "$KAIOS_STAGING_OPERATOR_TOKEN_FILE"
+
+          node apps/dual-staging-http-runtime/src/postgres-server.mjs >/tmp/postgres-runtime.log 2>&1 &
+          runtime_pid=$!
+          trap 'kill "$runtime_pid" 2>/dev/null || true; cat /tmp/postgres-runtime.log || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:32101/health >/tmp/health.json; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q '"projection_runtime_configured":true' /tmp/health.json
+          grep -q '"production_promotion_authorized":false' /tmp/health.json
+
+          digest="$(cat /tmp/projection.digest)"
+          snapshot_code="$(curl --silent --show-error --output /tmp/snapshot.json --write-out '%{http_code}' \
+            --header 'authorization: Bearer viewer-test-token' \
+            http://127.0.0.1:32101/api/enterprise/snapshot)"
+          test "$snapshot_code" = '200'
+          grep -q '"source":"postgres"' /tmp/snapshot.json
+
+          nonce='nonce-postgres-live-000000001'
+          export_code="$(curl --silent --show-error --output /tmp/export.json --write-out '%{http_code}' \
+            --request POST \
+            --header 'authorization: Bearer operator-test-token' \
+            --header 'content-type: application/json' \
+            --header 'x-kaios-entitlement-id: ent-runtime-live' \
+            --header "x-kaios-nonce: $nonce" \
+            --header "x-kaios-projection-digest: $digest" \
+            --data '{"projection":{"client_supplied":"must-not-escape"}}' \
+            http://127.0.0.1:32101/api/enterprise/export)"
+          test "$export_code" = '200'
+          grep -q '"source":"postgres"' /tmp/export.json
+          if grep -q 'must-not-escape' /tmp/export.json; then
+            echo 'client projection escaped into export' >&2
+            exit 1
+          fi
+
+          replay_code="$(curl --silent --show-error --output /tmp/replay.json --write-out '%{http_code}' \
+            --request POST \
+            --header 'authorization: Bearer operator-test-token' \
+            --header 'x-kaios-entitlement-id: ent-runtime-live' \
+            --header "x-kaios-nonce: $nonce" \
+            --header "x-kaios-projection-digest: $digest" \
+            http://127.0.0.1:32101/api/enterprise/export)"
+          test "$replay_code" = '409'
+          grep -q 'NONCE_REPLAY' /tmp/replay.json
+          if grep -q 'postgres' /tmp/replay.json; then
+            echo 'projection leaked on replay denial' >&2
+            exit 1
+          fi
+
+          audit_count="$(psql --no-psqlrc --quiet --tuples-only --no-align \
+            --dbname='postgresql://postgres:postgres@127.0.0.1:5432/kaios' \
+            --command="SELECT count(*) FROM kaios_runtime.export_audit WHERE tenant_id='tenant-runtime-live' AND decision='authorized'")"
+          test "$audit_count" = '1'
