@@ -1,0 +1,73 @@
+{
+  "fixture_id": "KIDULTS_CROSS_GRADER_CANONICAL_RECONCILIATION_FIXTURES_V1",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "cases": [
+    {
+      "case_id": "EXACT_NORMALIZED_MATCH",
+      "expected": "SAME_CANONICAL_ID",
+      "records": [
+        {"provider_namespace":"PSA","provider_cert":"SYN-PSA-001","year":"1999","set":"Base Set","subject":"Example Player","card_number":"007","parallel":"","variant":""},
+        {"provider_namespace":"BGS","provider_cert":"SYN-BGS-441","year":"1999","set":"  base   set ","subject":"example player","card_number":"007","parallel":"BASE","variant":"STANDARD"}
+      ]
+    },
+    {
+      "case_id": "FALSE_MERGE_PARALLEL_GUARD",
+      "expected": "DIFFERENT_CANONICAL_ID",
+      "records": [
+        {"provider_namespace":"PSA","provider_cert":"SYN-PSA-002","year":"2001","set":"Example Chrome","subject":"Example Subject","card_number":"12","parallel":"REFRACTOR","variant":"STANDARD"},
+        {"provider_namespace":"SGC","provider_cert":"SYN-SGC-002","year":"2001","set":"Example Chrome","subject":"Example Subject","card_number":"12","parallel":"BASE","variant":"STANDARD"}
+      ]
+    },
+    {
+      "case_id": "FALSE_MERGE_VARIANT_GUARD",
+      "expected": "DIFFERENT_CANONICAL_ID",
+      "records": [
+        {"provider_namespace":"CGC","provider_cert":"SYN-CGC-003","year":"2003","set":"Example Set","subject":"Example Subject","card_number":"88","parallel":"BASE","variant":"ERROR"},
+        {"provider_namespace":"TAG","provider_cert":"SYN-TAG-003","year":"2003","set":"Example Set","subject":"Example Subject","card_number":"88","parallel":"BASE","variant":"CORRECTED"}
+      ]
+    },
+    {
+      "case_id": "PROVIDER_CERT_NOT_CANONICAL",
+      "expected": "SAME_CANONICAL_ID_DESPITE_DIFFERENT_PROVIDER_CERT",
+      "records": [
+        {"provider_namespace":"PSA","provider_cert":"SYN-PSA-004","year":"2010","set":"Example Update","subject":"Example Rookie","card_number":"U10","parallel":"GOLD","variant":"STANDARD"},
+        {"provider_namespace":"TAG","provider_cert":"SYN-TAG-999","year":"2010","set":"Example Update","subject":"Example Rookie","card_number":"U10","parallel":"GOLD","variant":"STANDARD"}
+      ]
+    },
+    {
+      "case_id": "MISSING_DIMENSION_HOLD",
+      "expected": "HOLD_UNRESOLVED",
+      "records": [
+        {"provider_namespace":"BGS","provider_cert":"SYN-BGS-005","year":"2015","set":"Example Set","subject":"Example Subject","card_number":"15","parallel":"BASE","variant":null}
+      ]
+    }
+  ],
+  "grade_cases": [
+    {"provider_namespace":"PSA","source_grade":"10","mapping_version":"synthetic-v1","expected":"TOP_NUMERIC"},
+    {"provider_namespace":"BGS","source_grade":"9","mapping_version":"synthetic-v1","expected":"HIGH_NUMERIC"},
+    {"provider_namespace":"CGC","source_grade":"7.5","mapping_version":"synthetic-v1","expected":"HOLD_UNMAPPED_GRADE"}
+  ],
+  "population_case": {
+    "canonical_object_fixture_ref":"EXACT_NORMALIZED_MATCH",
+    "snapshots": [
+      {"provider_namespace":"PSA","count":100,"snapshot_at":"2026-01-01T00:00:00Z","source_reference":"synthetic://psa/pop/1"},
+      {"provider_namespace":"BGS","count":40,"snapshot_at":"2026-01-01T00:00:00Z","source_reference":"synthetic://bgs/pop/1"},
+      {"provider_namespace":"SGC","count":null,"snapshot_at":"2026-01-01T00:00:00Z","source_reference":"synthetic://sgc/pop/1"}
+    ],
+    "expected": {
+      "mode":"NON_ADDITIVE_VECTOR_ONLY",
+      "vector":{"PSA":100,"BGS":40,"SGC":"UNKNOWN"},
+      "global_population":null
+    }
+  },
+  "provider_removal_case": {
+    "canonical_object_fixture_ref":"EXACT_NORMALIZED_MATCH",
+    "remove_provider":"PSA",
+    "expected": {
+      "canonical_id_stable":true,
+      "remaining_resolvable_provider":"BGS",
+      "population_removed_only":"PSA",
+      "downstream_contract_rewrite_required":false
+    }
+  }
+}
