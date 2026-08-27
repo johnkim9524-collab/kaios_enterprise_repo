@@ -9,7 +9,9 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
   push:
@@ -20,7 +22,9 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
+      - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
 
@@ -36,30 +40,98 @@ jobs:
     name: Validate Report-After-Remediation Gate
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.EXPECTED_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
-      - name: Verify exact source revision
-        env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact source revision and contracts
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-      - name: Enforce report-after-remediation contract and adversarial negatives
+          node --check scripts/governance/validate-ai-agent-operating-rules-v1.mjs
+          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json','utf8'))"
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs > /tmp/report-after-remediation-contract-validation-v1.json
+      - name: Emit actual repository-governed status receipt for this run
         shell: bash
         run: |
           set -euo pipefail
-          node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
-          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs | tee /tmp/report-after-remediation-validation-v1.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const now=new Date().toISOString();
+          const run=`workflow-run:${process.env.GITHUB_RUN_ID}:${process.env.GITHUB_RUN_ATTEMPT}`;
+          const receipt={
+            id:`report-after-remediation-run-${process.env.GITHUB_RUN_ID}`,
+            version:'1.0.0',
+            agent_id:'KPMO_REPORT_AFTER_REMEDIATION_ENFORCEMENT',
+            as_of:now,
+            scope:'REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPT',
+            state:'VERIFIED_PASS',
+            facts:[{statement:'This exact repository workflow run executed the registered status-receipt governance path.',evidence_ref_ids:['workflow-run']}],
+            evidence_refs:[{ref_id:'workflow-run',kind:'WORKFLOW_RUN',locator:run,observed_at:now,digest:`sha256:${process.env.EXPECTED_SHA}`}],
+            inferences:[],
+            uncertainties:[],
+            blockers:[],
+            actions_executed:[{action:'Validate report-after-remediation contract and exact repository receipt path',result:'EXECUTED',evidence_ref_ids:['workflow-run']}],
+            next_action:'Preserve fail-closed receipt validation and fix any newly detected reversible defect before routine reporting.',
+            authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Repository governance validation only; no Production/Public/G5 or external mutation.'},
+            defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
+            remediation_sequence:[],
+            verification_evidence_refs:['workflow-run'],
+            truth_sync_refs:['coordination/kidults/registry/ai-agent-governance-registry-v1.json'],
+            improvement_proposal:'Keep repository-governed status receipts machine-validated and preserve behavioral Fix-First requirements for all AI agents without claiming external chat interception.',
+            production:'HOLD',
+            public_release:'HOLD'
+          };
+          fs.writeFileSync('/tmp/actual-ai-agent-status-receipt-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Validate actual receipt through canonical and remediation gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/governance/validate-ai-agent-operating-rules-v1.mjs --receipt /tmp/actual-ai-agent-status-receipt-v1.json > /tmp/actual-status-schema-validation-v1.json
+          node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt /tmp/actual-ai-agent-status-receipt-v1.json > /tmp/actual-report-after-remediation-validation-v1.json
+      - name: Reject report-only and missing-evidence mutations on actual receipt shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const base=JSON.parse(fs.readFileSync('/tmp/actual-ai-agent-status-receipt-v1.json','utf8'));
+          const reportOnly=structuredClone(base);
+          reportOnly.defect_disposition='REMEDIATED_AND_VERIFIED';
+          reportOnly.remediation_sequence=[];
+          fs.writeFileSync('/tmp/report-only-invalid.json',JSON.stringify(reportOnly,null,2));
+          const noNegative=structuredClone(base);
+          noNegative.defect_disposition='REMEDIATED_AND_VERIFIED';
+          noNegative.remediation_sequence=['ROOT_CAUSE_CORRECTED','REGRESSION_TESTED','EXACT_HEAD_REVALIDATED','TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE','REGISTRY_ISSUE_TRUTH_SYNCED','VERIFIED_OUTCOME_READY','PRIORITIZED_IMPROVEMENT_PROPOSAL_READY'];
+          fs.writeFileSync('/tmp/no-negative-invalid.json',JSON.stringify(noNegative,null,2));
+          const noTruth=structuredClone(base);
+          noTruth.defect_disposition='REMEDIATED_AND_VERIFIED';
+          noTruth.remediation_sequence=['ROOT_CAUSE_CORRECTED','REGRESSION_TESTED','NEGATIVE_TESTED','EXACT_HEAD_REVALIDATED','TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE','REGISTRY_ISSUE_TRUTH_SYNCED','VERIFIED_OUTCOME_READY','PRIORITIZED_IMPROVEMENT_PROPOSAL_READY'];
+          noTruth.truth_sync_refs=[];
+          fs.writeFileSync('/tmp/no-truth-invalid.json',JSON.stringify(noTruth,null,2));
+          NODE
+          for bad in /tmp/report-only-invalid.json /tmp/no-negative-invalid.json /tmp/no-truth-invalid.json; do
+            if node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs --require-receipt --receipt "$bad"; then
+              echo "Report-after-remediation validator accepted invalid actual-receipt mutation: $bad" >&2
+              exit 1
+            fi
+          done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ai-agent-report-after-remediation-validation-v1
-          path: /tmp/report-after-remediation-validation-v1.json
+          path: |
+            /tmp/report-after-remediation-contract-validation-v1.json
+            /tmp/actual-ai-agent-status-receipt-v1.json
+            /tmp/actual-status-schema-validation-v1.json
+            /tmp/actual-report-after-remediation-validation-v1.json
           retention-days: 90
           if-no-files-found: error
