@@ -107,8 +107,11 @@
         "monthlyAmount": 200,
         "annualAmount": 2400,
         "trialDays": 7,
-        "callsPerDay": null,
-        "quoteStatus": "TRACK_Z_VALIDATED_PRICE"
+        "callsPerDay": 5000,
+        "quoteStatus": "WRITTEN_PROVIDER",
+        "trialRequiresCreditCard": true,
+        "trialAutoConvertsAfterDays": 7,
+        "trialAutoConvertsMonthlyAmount": 200
       },
       "activation": {
         "state": "PROHIBITED",
@@ -131,6 +134,20 @@
         "TERMINATION_DELETION",
         "FOUNDER_APPROVAL"
       ],
+      "boundedPilotReadiness": {
+        "rightsState": "PASS_WITH_POST_TERMINATION_DERIVED_HOLD",
+        "activationState": "HOLD",
+        "scope": "PRIVATE_120_KNOWN_CERT_CASES_NO_ENUMERATION",
+        "acquisitionProgress": "0_OF_120",
+        "rawAndNormalizedProviderRecordsDeleteWithinDaysAfterTermination": 30,
+        "postTerminationDerivedFeatures": "DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT",
+        "postTerminationModelCalibrationArtifacts": "DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT",
+        "independentlyCreatedCanonicalIds": "RETAIN_CONFIRMED",
+        "independentlyCreatedEntityMatchDecisions": "RETAIN_CONFIRMED",
+        "independentlyCreatedQualityAssessments": "RETAIN_CONFIRMED",
+        "trialCancelOrProviderExtensionReceiptBeforeDay7": "PENDING",
+        "preflightRef": "coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json"
+      },
       "reentryPolicy": null
     },
     {

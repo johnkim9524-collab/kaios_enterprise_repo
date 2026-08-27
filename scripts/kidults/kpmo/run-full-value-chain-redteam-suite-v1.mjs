@@ -48,7 +48,8 @@ const p0PrePartnerValidators = [
   'scripts/kidults/audit/validate-destructive-canonical-suppression-v1.mjs'
 ];
 const rightsBoundaryValidators = [
-  'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs'
+  'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
+  'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs'
 ];
 const providerAdapterBoundaryValidators = [
   'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs',
@@ -171,6 +172,7 @@ console.log(JSON.stringify({
   pre_partner_rekey_alias_reingestion_fail_closed: true,
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
+  provider_commercial_rights_ledger_machine_bound: true,
   provider_adapter_workflow_provenance_machine_bound: true,
   provider_adapter_boundary_validators: providerAdapterBoundaryValidators.length,
   runtime_boundary_validators: runtimeBoundaryValidators.length,

@@ -1,0 +1,124 @@
+{
+  "id": "kidults-gemrate-bounded-pilot-preflight-v1",
+  "version": "1.0.0",
+  "provider_id": "GEMRATE",
+  "product_id": "GEMRATE_DEVELOPER_TIER",
+  "governing_issue": 1151,
+  "recorded_at": "2026-08-27T23:23:37Z",
+  "state": "WRITTEN_BOUNDED_PILOT_RIGHTS_CONFIRMED_ACTIVATION_HOLD",
+  "rights_decision": "PASS_WITH_POST_TERMINATION_DERIVED_HOLD",
+  "activation_decision": "HOLD",
+  "source_evidence": {
+    "latest_outbound": {
+      "evidence_ref": "gmail:message:1a03ecb47ea56741",
+      "rfc_message_id": "<CAPAjgK6a53u-i0Wabi0RnxUweJ0w-n2zt2hFFzVt9jP3aL8OWg@mail.gmail.com>",
+      "sent_at": "2026-08-26T15:58:24Z"
+    },
+    "provider_response": {
+      "evidence_ref": "gmail:message:1a0439617a831715",
+      "rfc_message_id": "<mtblvykv.b88db842-7160-4b8d-bd83-ca25f404f56c@we.are.superhuman.com>",
+      "received_at": "2026-08-27T14:18:21Z",
+      "sender_role": "GEMRATE_FOUNDER"
+    }
+  },
+  "commercial": {
+    "developer_monthly_usd": 200,
+    "daily_request_limit": 5000,
+    "trial_days": 7,
+    "trial_requires_credit_card": true,
+    "trial_auto_converts_to_monthly_usd": 200,
+    "auto_conversion_day": 7,
+    "minimum_commitment": "UNKNOWN",
+    "included_endpoints": "ALL_EXCEPT_LISTED_EXCLUSIONS",
+    "excluded_endpoints": [
+      "HISTORICAL_DATA",
+      "CERT_IMAGES",
+      "CHANGE_FEED"
+    ],
+    "change_feed_commercial_start_monthly_usd": 1000,
+    "change_feed_daily_request_limit": 100000,
+    "historical_data_and_cert_images_pricing": "UNKNOWN_ADD_ON_BY_CALL_VOLUME",
+    "custom_mappings_and_bulk_delivery": "COMMERCIAL_AGREEMENT_REQUIRED_AFTER_PILOT"
+  },
+  "bounded_pilot_scope": {
+    "target_known_cert_cases": 120,
+    "known_cert_numbers_only": true,
+    "private_internal_evaluation_only": true,
+    "public_display": false,
+    "raw_redistribution": false,
+    "scraping": false,
+    "bulk_enumeration": false,
+    "trial_scope_confirmed_by_provider": true,
+    "current_sold_transaction_feed": false,
+    "authoritative_grader_truth": false
+  },
+  "rights_confirmed": {
+    "private_cache_and_storage_while_trial_or_subscription_active": true,
+    "private_normalization": true,
+    "entity_resolution": true,
+    "model_calibration": true,
+    "human_qa": true,
+    "internal_analytics": true,
+    "cert_numbers_for_matching_and_derived_analytics": true,
+    "population_records_for_matching_and_derived_analytics": true,
+    "grader_names_and_grades_for_matching_and_derived_analytics": true,
+    "universal_identifiers_for_matching_and_derived_analytics": true,
+    "internal_attribution_required": false,
+    "customer_facing_derived_metrics_require_gemrate_link": true,
+    "raw_records_may_be_redistributed": false
+  },
+  "post_termination_policy": {
+    "raw_provider_data_delete_within_days": 30,
+    "normalized_provider_records_delete_within_days": 30,
+    "independently_created_canonical_ids": "RETAIN_CONFIRMED",
+    "independently_created_entity_match_decisions": "RETAIN_CONFIRMED",
+    "independently_created_quality_assessments": "RETAIN_CONFIRMED",
+    "provider_universal_id_portability": "HOLD_NOT_EXPRESSLY_CONFIRMED",
+    "derived_features": "DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT",
+    "model_calibration_artifacts": "DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT",
+    "non_reconstructive_definition": "UNKNOWN_REQUIRES_COMMERCIAL_AGREEMENT"
+  },
+  "activation_prerequisites": {
+    "founder_trial_and_credit_card_approval": "REQUIRED",
+    "founder_auto_converting_spend_approval": "REQUIRED",
+    "terms_acceptance_approval": "REQUIRED",
+    "exact_field_map": "PENDING",
+    "lawful_120_known_cert_manifest": "PENDING",
+    "encrypted_private_store": "PENDING",
+    "termination_deletion_scheduler_and_receipt": "PENDING",
+    "trial_cancel_or_provider_extension_receipt_before_day_7": "PENDING",
+    "credential_secret_binding": "PENDING",
+    "adapter": "NOT_IMPLEMENTED"
+  },
+  "secretless_execution_receipt": {
+    "account_created": false,
+    "terms_accepted": false,
+    "credit_card_entered": false,
+    "credential_created_or_observed": false,
+    "provider_network_calls": 0,
+    "external_spend_usd": 0,
+    "cases_acquired": 0,
+    "target_cases": 120
+  },
+  "non_bypass": {
+    "trial_activation": "HOLD_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "contract": "HOLD_EXPLICIT_APPROVAL_REQUIRED",
+    "spend": "HOLD_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "credential": "HOLD_EXPLICIT_APPROVAL_REQUIRED",
+    "data_acquisition": "HOLD",
+    "adapter_admission": "HOLD",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "remaining_unknowns": [
+    "POST_TERMINATION_DERIVED_FEATURE_RETENTION",
+    "POST_TERMINATION_MODEL_CALIBRATION_ARTIFACT_RETENTION",
+    "NON_RECONSTRUCTIVE_DEFINITION",
+    "UNIVERSAL_ID_PORTABILITY_AFTER_TERMINATION",
+    "HISTORICAL_DATA_AND_CERT_IMAGE_ADD_ON_PRICING",
+    "CUSTOM_MAPPING_AND_BULK_DELIVERY_TERMS",
+    "SLA_SUPPORT_AND_MINIMUM_COMMITMENT"
+  ],
+  "truth_boundary": "Written provider evidence confirms a private 120-known-cert pilot use scope, but does not authorize account creation, terms acceptance, a credit card, auto-converting spend, credentials, API calls, acquisition, adapter admission, Public, Production or G5. Raw and normalized provider records must be deleted within 30 days after termination. Derived features and model-calibration artifacts must also be deleted or held unless a commercial agreement expressly grants post-termination retention."
+}

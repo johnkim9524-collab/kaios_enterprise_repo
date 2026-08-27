@@ -223,6 +223,24 @@ function validatePortfolio(portfolio) {
   assert(gemRate.economics?.monthlyAmount === 200, 'GemRate monthly cost drift');
   assert(gemRate.economics?.annualAmount === 2400, 'GemRate annual cost drift');
   assert(gemRate.economics?.trialDays === 7, 'GemRate trial duration drift');
+  assert(gemRate.economics?.callsPerDay === 5000, 'GemRate daily quota drift');
+  assert(gemRate.economics?.quoteStatus === 'WRITTEN_PROVIDER', 'GemRate quote evidence drift');
+  assert(gemRate.economics?.trialRequiresCreditCard === true, 'GemRate trial credit-card condition missing');
+  assert(gemRate.economics?.trialAutoConvertsAfterDays === 7, 'GemRate auto-conversion day drift');
+  assert(gemRate.economics?.trialAutoConvertsMonthlyAmount === 200, 'GemRate auto-conversion amount drift');
+  const gemRatePilot = gemRate.boundedPilotReadiness ?? {};
+  assert(gemRatePilot.rightsState === 'PASS_WITH_POST_TERMINATION_DERIVED_HOLD', 'GemRate bounded-pilot rights drift');
+  assert(gemRatePilot.activationState === 'HOLD', 'GemRate bounded-pilot activation must remain HOLD');
+  assert(gemRatePilot.scope === 'PRIVATE_120_KNOWN_CERT_CASES_NO_ENUMERATION', 'GemRate bounded-pilot scope drift');
+  assert(gemRatePilot.acquisitionProgress === '0_OF_120', 'GemRate acquisition must remain 0 of 120');
+  assert(gemRatePilot.rawAndNormalizedProviderRecordsDeleteWithinDaysAfterTermination === 30, 'GemRate termination deletion deadline drift');
+  assert(gemRatePilot.postTerminationDerivedFeatures === 'DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT', 'GemRate derived-feature hold missing');
+  assert(gemRatePilot.postTerminationModelCalibrationArtifacts === 'DELETE_OR_HOLD_PENDING_COMMERCIAL_AGREEMENT', 'GemRate model-calibration hold missing');
+  for (const field of ['independentlyCreatedCanonicalIds', 'independentlyCreatedEntityMatchDecisions', 'independentlyCreatedQualityAssessments']) {
+    assert(gemRatePilot[field] === 'RETAIN_CONFIRMED', `GemRate independent artifact retention drift: ${field}`);
+  }
+  assert(gemRatePilot.trialCancelOrProviderExtensionReceiptBeforeDay7 === 'PENDING', 'GemRate cancellation control must remain pending');
+  assert(gemRatePilot.preflightRef === 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json', 'GemRate preflight binding drift');
 
   const psaPremium = byId.PSA_PREMIUM_API ?? {};
   assert(psaPremium.decision === 'CONDITIONAL_HOLD', 'PSA Premium decision drift');
@@ -319,6 +337,27 @@ const mutationTests = [
     mutate: value => {
       value.products.find(product => product.productId === 'GEMRATE_DEVELOPER_TIER')
         .currentSoldCapability.qualifiesAsCompleteCurrentSoldFeed = true;
+    }
+  },
+  {
+    name: 'reject_gemrate_trial_activation',
+    mutate: value => {
+      value.products.find(product => product.productId === 'GEMRATE_DEVELOPER_TIER')
+        .boundedPilotReadiness.activationState = 'ALLOW';
+    }
+  },
+  {
+    name: 'reject_gemrate_post_termination_derived_retention',
+    mutate: value => {
+      value.products.find(product => product.productId === 'GEMRATE_DEVELOPER_TIER')
+        .boundedPilotReadiness.postTerminationDerivedFeatures = 'RETAIN';
+    }
+  },
+  {
+    name: 'reject_gemrate_auto_conversion_without_cancel_control',
+    mutate: value => {
+      value.products.find(product => product.productId === 'GEMRATE_DEVELOPER_TIER')
+        .boundedPilotReadiness.trialCancelOrProviderExtensionReceiptBeforeDay7 = 'NOT_REQUIRED';
     }
   },
   {
