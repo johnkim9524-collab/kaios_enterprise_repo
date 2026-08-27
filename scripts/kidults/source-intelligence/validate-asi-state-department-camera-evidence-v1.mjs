@@ -274,10 +274,12 @@ assert(genericMarketRouterValidator.includes('reference_only_evidence_generic_ad
   'GENERIC_MARKET_ROUTER_REGRESSION_MARKER');
 const workflow = read(contract.authoritative_inputs.workflow);
 for (const marker of [
-  'workflow_dispatch:', 'schedule:', 'push:', 'pull_request:', 'workflow_run:', "cron: '23 */4 * * *'",
+  'workflow_dispatch:', 'schedule:', 'push:', 'pull_request:', "cron: '23 */4 * * *'",
+  'group: kidults-asi-state-department-camera-evidence-v1-${{ github.event_name }}-${{ github.sha }}',
   'contents: read', 'persist-credentials: false', 'validate-ai-agent-operating-rules-v1.mjs --receipt',
   'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
+assert(!workflow.includes('workflow_run:'), 'WORKFLOW_STATIC_VALIDATOR_MUST_NOT_CONSUME_UPSTREAM_ARTIFACT');
 for (const step of contract.required_workflow_mutation_steps) {
   assert(workflow.includes(`- name: ${step}`), `WORKFLOW_MUTATION_STEP:${step}`);
 }
