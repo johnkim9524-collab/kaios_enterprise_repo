@@ -11,6 +11,7 @@ function failuresFor(text) {
     "UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}",
     "UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}",
     "UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}",
+    "PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}",
     'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
     'test "$UPSTREAM_HEAD_BRANCH" = "main"',
     'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
@@ -18,7 +19,8 @@ function failuresFor(text) {
     'expected exactly one producer-bound v2 discovery artifact',
     'kidults-asi-global-any-site-hourly-cycle-v2',
     '.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"',
-    'no successful v2 discovery producer exists on exact current SHA',
+    'TARGET_SHA="$PR_BASE_SHA"',
+    'no successful v2 discovery producer exists on exact target SHA',
     'KIDULTS_RESERVE_DISCOVERY_RUN_ID=',
     'KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=',
     'exact_generation_bound:true'
@@ -74,6 +76,11 @@ const mutations = [
     'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
     'test -n "$UPSTREAM_HEAD_SHA"',
     'exact upstream SHA binding'
+  ],
+  [
+    'TARGET_SHA="$PR_BASE_SHA"',
+    'TARGET_SHA="$GITHUB_SHA"',
+    'pull request base-generation compatibility binding'
   ],
   [
     "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",

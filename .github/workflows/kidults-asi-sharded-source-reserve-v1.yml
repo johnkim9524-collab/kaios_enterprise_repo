@@ -67,10 +67,18 @@ jobs:
           UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}
           UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
           UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/reserve-discovery /tmp/previous-asi-sharded-source-reserve-v1
+          TARGET_SHA="$GITHUB_SHA"
+          VALIDATION_ONLY=false
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            test -n "$PR_BASE_SHA"
+            TARGET_SHA="$PR_BASE_SHA"
+            VALIDATION_ONLY=true
+          fi
 
           validate_discovery_run() {
             local run_id="$1" expected_sha="$2" payload
@@ -110,16 +118,16 @@ jobs:
             RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
               -f branch=main -f status=success -f per_page=100 \
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
-            DISCOVERY_RUN_ID="$(jq -r --arg sha "$GITHUB_SHA" \
+            DISCOVERY_RUN_ID="$(jq -r --arg sha "$TARGET_SHA" \
               '[.workflow_runs[] | select(.head_sha==$sha and .conclusion=="success")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
               <<<"$RUNS")"
             [ -n "$DISCOVERY_RUN_ID" ] || {
-              echo "no successful v2 discovery producer exists on exact current SHA ${GITHUB_SHA}" >&2
+              echo "no successful v2 discovery producer exists on exact target SHA ${TARGET_SHA}" >&2
               exit 69
             }
           fi
 
-          validate_discovery_run "$DISCOVERY_RUN_ID" "$GITHUB_SHA"
+          validate_discovery_run "$DISCOVERY_RUN_ID" "$TARGET_SHA"
           DISCOVERY_ID="$(exact_discovery_artifact "$DISCOVERY_RUN_ID")"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
           unzip -q -o /tmp/reserve-discovery.zip -d /tmp/reserve-discovery
@@ -148,14 +156,15 @@ jobs:
 
           {
             echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=${DISCOVERY_RUN_ID}"
-            echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${GITHUB_SHA}"
+            echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${TARGET_SHA}"
             echo "KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID=${DISCOVERY_ID}"
             echo "KIDULTS_RESERVE_PREVIOUS_RUN_ID=${PREV_RUN_ID:-NONE}"
             echo "KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID=${PREV_ID:-NONE}"
+            echo "KIDULTS_RESERVE_VALIDATION_ONLY=${VALIDATION_ONLY}"
           } >> "$GITHUB_ENV"
 
           echo "discovery_producer_run_id=$DISCOVERY_RUN_ID"
-          echo "discovery_producer_head_sha=$GITHUB_SHA"
+          echo "discovery_producer_head_sha=$TARGET_SHA"
           echo "discovery_artifact_id=$DISCOVERY_ID"
           echo "previous_successful_reserve_run_id=${PREV_RUN_ID:-NONE}"
           echo "previous_reserve_artifact_id=${PREV_ID:-NONE}"
@@ -177,7 +186,7 @@ jobs:
         run: |
           node - <<'NODE' >/tmp/asi-sharded-source-reserve-activation-receipt-v1.json
           const fs=require('fs');const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json','utf8'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:process.env.GITHUB_EVENT_NAME,discovery_producer_run_id:Number(process.env.KIDULTS_RESERVE_DISCOVERY_RUN_ID),discovery_producer_head_sha:process.env.KIDULTS_RESERVE_DISCOVERY_HEAD_SHA,discovery_artifact_id:Number(process.env.KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID),previous_reserve_run_id:process.env.KIDULTS_RESERVE_PREVIOUS_RUN_ID,previous_reserve_artifact_id:process.env.KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID,exact_generation_bound:true,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:process.env.GITHUB_EVENT_NAME,discovery_producer_run_id:Number(process.env.KIDULTS_RESERVE_DISCOVERY_RUN_ID),discovery_producer_head_sha:process.env.KIDULTS_RESERVE_DISCOVERY_HEAD_SHA,discovery_artifact_id:Number(process.env.KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID),previous_reserve_run_id:process.env.KIDULTS_RESERVE_PREVIOUS_RUN_ID,previous_reserve_artifact_id:process.env.KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID,exact_generation_bound:true,validation_only:process.env.KIDULTS_RESERVE_VALIDATION_ONLY==='true',promotion_authority:false,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-sharded-source-reserve-activation-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
