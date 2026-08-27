@@ -6,9 +6,13 @@ This runbook is the governed bridge from repository evidence to an approved
 STAGING control plane. It does not authorize Production, Public, G5, provider
 contact, contracts, spend or credential creation.
 
+Governance mode: `SOLO_OWNER_AUTOMATED_EVIDENCE`. Human reviewer approval is
+not a required gate. Required exact-head checks, immutable runtime receipts and
+post-merge main revalidation are authoritative.
+
 ## Immutable activation order
 
-1. Bind the reviewed PR head and migration digest to the activation receipt.
+1. Bind the exact PR head SHA and migration digest to the activation receipt.
 2. Provision an approved ephemeral PostgreSQL STAGING instance with PITR and a
    separately encrypted backup target.
 3. Apply `migrations/postgres/0001_system_of_record.sql` as a migration owner.
@@ -21,10 +25,12 @@ contact, contracts, spend or credential creation.
 7. Deploy only `kpmo-d1-projector-v1` with the write-capable D1 binding.
 8. Rebuild D1 from the PostgreSQL outbox and compare row count, source event ID,
    source hash, schema version, projector ID and canonical row digest.
-9. Disable the legacy ASI D1 writer and prove its direct-write site count and
-   remote write attempts are both zero.
+9. Keep the legacy ASI D1 writer disabled and prove its direct-write site count
+   and remote write attempts are both zero.
 10. Run two natural protected-main command → outbox → projector → immutable
     receipt chains without manual retry.
+11. Revalidate the merged protected-main SHA and bind the post-merge result to
+    the final STAGING activation receipt.
 
 ## PSA connection-day procedure (bounded, non-promotional)
 
@@ -78,13 +84,13 @@ All must be rejected and must produce an attributable receipt where applicable.
 
 ## Acceptance evidence
 
-- exact reviewed source SHA and non-author approval with `Governance-Reason:`;
+- exact source SHA, exact-head required checks PASS and post-merge main revalidation receipt;
 - PostgreSQL migration digest and server version;
 - zero-bypass role/privilege read-back;
 - tenant-isolation and writer-spoof negative receipts;
 - billing, access, supply and observability transaction receipts;
 - D1 full-rebuild parity digest and unknown-writer count `0`;
-- backup restore with recovery-point and recovery-time measurements;
+- backup restore plus PITR with recovery-point and recovery-time measurements;
 - two consecutive automatic chain receipts;
 - legacy writer disabled receipt;
 - explicit rollback owner and expiry for the STAGING window.
