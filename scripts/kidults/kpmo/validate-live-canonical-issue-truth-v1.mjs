@@ -101,14 +101,14 @@ const errors = validateBodies(expectedMainSha, correctionHead, issues, activeDef
 if (errors.length) fail(errors.join('; '));
 
 const staleMainMutation = structuredClone(issues);
-staleMainMutation[0].body = staleMainMutation[0].body.replace(expectedMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
+staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(expectedMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
 if (!validateBodies(expectedMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) {
   fail('stale-main mutation was not rejected');
 }
 
 const correctionMutation = structuredClone(issues);
 correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`
-  .replace(correctionHead, '1111111111111111111111111111111111111111');
+  .replaceAll(correctionHead, '1111111111111111111111111111111111111111');
 if (!validateBodies(expectedMainSha, correctionHead, correctionMutation, activeDefects, true).length) {
   fail('stale-correction-head mutation was not rejected');
 }
