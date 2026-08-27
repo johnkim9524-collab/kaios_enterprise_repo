@@ -47,6 +47,7 @@ jobs:
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name != 'pull_request' }}
+          REQUIRE_EXACT_MAIN_IN_ISSUES: ${{ github.event_name == 'issues' || github.event_name == 'workflow_dispatch' }}
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
 
       - name: Emit exact canonical-truth receipt
