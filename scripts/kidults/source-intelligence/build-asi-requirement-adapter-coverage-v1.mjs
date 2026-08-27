@@ -95,7 +95,11 @@ const purposeRightsPreflight = JSON.parse(staticTexts.purposeRightsPreflight);
 const explicitPurposeRightsPreflight = JSON.parse(await fs.readFile(purposeRightsPreflightPath, 'utf8'));
 assert(same(purposeRightsPreflight, explicitPurposeRightsPreflight), 'PURPOSE_RIGHTS_PREFLIGHT_BINDING_DRIFT');
 
-assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.0.0', 'ARTIFACT_BINDING_ID_VERSION');
+assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.1.0', 'ARTIFACT_BINDING_ID_VERSION');
+const artifactProducingEvents = new Set(['workflow_run', 'schedule', 'workflow_dispatch', 'pull_request']);
+assert(artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_WORKFLOW_EVENT');
+assert(typeof artifactBinding.exact_triggering_run_bound === 'boolean', 'ARTIFACT_BINDING_EXACT_TRIGGER_TYPE');
+assert(artifactBinding.exact_triggering_run_bound === (artifactBinding.workflow_event === 'workflow_run'), 'ARTIFACT_BINDING_EXACT_TRIGGER_SEMANTICS');
 assert(artifactBinding.artifact_name === input.upstream_artifact_name, 'ARTIFACT_NAME_MISMATCH');
 assert(Number.isInteger(artifactBinding.artifact_id) && artifactBinding.artifact_id > 0, 'ARTIFACT_ID_INVALID');
 assert(artifactBinding.expired === false, 'ARTIFACT_EXPIRED');
