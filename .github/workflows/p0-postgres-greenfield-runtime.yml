@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -69,12 +69,27 @@ jobs:
         with:
           node-version: '24.19.0'
 
-      - name: Install PostgreSQL client
+      - name: Verify pinned PostgreSQL supply chain
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
+          expected_image='postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94'
+          expected_client='16.15'
+          workflow='.github/workflows/p0-postgres-greenfield-runtime.yml'
+
+          grep -Fq "image: $expected_image" "$workflow"
+          package_manager='apt''-get'
+          if grep -Eq "$package_manager .*postgresql-client|$package_manager install .*postgresql-client" "$workflow"; then
+            echo 'unpinned PostgreSQL client bootstrap detected' >&2
+            exit 1
+          fi
+
+          psql_version="$(psql --version)"
+          pg_dump_version="$(pg_dump --version)"
+          printf 'postgres_service_image=%s\npsql_version=%s\npg_dump_version=%s\n' \
+            "$expected_image" "$psql_version" "$pg_dump_version"
+          grep -Fq " $expected_client" <<<"$psql_version"
+          grep -Fq " $expected_client" <<<"$pg_dump_version"
 
       - name: Create isolated restore target
         shell: bash
