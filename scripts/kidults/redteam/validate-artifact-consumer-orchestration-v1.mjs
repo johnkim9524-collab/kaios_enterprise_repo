@@ -51,8 +51,9 @@ const requirementConcurrencyContract = "group: kidults-asi-requirement-adapter-c
 assert(requirement.includes(requirementConcurrencyContract), 'REQUIREMENT_EVENT_SCOPED_CONCURRENCY_MISSING');
 assert(requirement.includes('cancel-in-progress: true'), 'REQUIREMENT_CONCURRENCY_FAIL_CLOSED_MISSING');
 const requirementProducerEventGuard = "github.event.workflow_run.event != 'push'";
+const requirementExactTriggerLine = '\n            RUN_ID="$EVENT_ARL_RUN_ID"\n';
 assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_GUARD_MISSING');
-assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes('RUN_ID="$EVENT_ARL_RUN_ID"'), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
+assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
@@ -92,8 +93,8 @@ const requirementConcurrencyMutation = requirement.replace('github.event.workflo
 assert(requirementConcurrencyMutation !== requirement && !requirementConcurrencyMutation.includes(requirementConcurrencyContract), 'REQUIREMENT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const requirementProducerEventMutation = requirement.replace(requirementProducerEventGuard, 'true');
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
-const requirementExactTriggerMutation = requirement.replace('RUN_ID="$EVENT_ARL_RUN_ID"', 'RUN_ID=""');
-assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes('RUN_ID="$EVENT_ARL_RUN_ID"'), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
+const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
+assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
