@@ -93,7 +93,7 @@ jobs:
 
   remote-persistence-pitr-readiness:
     needs: activation-readiness-receipt
-    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main'
+    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
     timeout-minutes: 15
