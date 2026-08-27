@@ -30,6 +30,7 @@ on:
       - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
       - 'KIDULTS ASI Autonomous Resolution Layer v1'
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
+      - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI SHADOW Operating Evidence v1'
     branches: [main]
     types: [completed]
@@ -267,6 +268,80 @@ jobs:
             --arg digest "$REQUIREMENT_ARTIFACT_DIGEST" \
             '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,artifact_id:$artifact,artifact_digest:$digest,production:"HOLD"}' \
             > /tmp/kidults-requirement-upstream-binding.json
+      - name: Validate exact Sharded Reserve upstream terminal binding
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'
+        env:
+          RESERVE_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          RESERVE_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          RESERVE_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RESERVE_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RESERVE_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$RESERVE_UPSTREAM_CONCLUSION" =~ ^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RESERVE_UPSTREAM_RUN_ID}" \
+            > /tmp/reserve-upstream-run.json
+          jq -e \
+            --argjson run "$RESERVE_UPSTREAM_RUN_ID" \
+            --arg sha "$RESERVE_UPSTREAM_SHA" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg conclusion "$RESERVE_UPSTREAM_CONCLUSION" \
+            '.id==$run
+             and .name=="KIDULTS ASI Sharded Source Reserve v1"
+             and .path==".github/workflows/kidults-asi-sharded-source-reserve-v1.yml"
+             and .repository.full_name==$repo
+             and .head_branch=="main"
+             and .head_sha==$sha
+             and .status=="completed"
+             and .conclusion==$conclusion' \
+            /tmp/reserve-upstream-run.json >/dev/null
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100" \
+            > /tmp/reserve-upstream-artifacts.json
+          RESERVE_PASS_ARTIFACT_COUNT=$(jq \
+            --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            /tmp/reserve-upstream-artifacts.json)
+          RESERVE_WAITING_ARTIFACT_COUNT=$(jq \
+            --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-waiting-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            /tmp/reserve-upstream-artifacts.json)
+          RESERVE_TOTAL_ARTIFACT_COUNT=$((RESERVE_PASS_ARTIFACT_COUNT + RESERVE_WAITING_ARTIFACT_COUNT))
+          RESERVE_OBSERVED_STATE=VERIFIED_FAIL
+          RESERVE_ARTIFACT_ID=0
+          RESERVE_ARTIFACT_DIGEST=NONE
+          if [ "$RESERVE_UPSTREAM_CONCLUSION" = success ]; then
+            test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 1
+            if [ "$RESERVE_PASS_ARTIFACT_COUNT" -eq 1 ]; then
+              RESERVE_OBSERVED_STATE=VERIFIED_PASS
+              RESERVE_ARTIFACT_NAME=kidults-asi-sharded-source-reserve-v1
+            else
+              test "$RESERVE_WAITING_ARTIFACT_COUNT" -eq 1
+              RESERVE_OBSERVED_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER
+              RESERVE_ARTIFACT_NAME=kidults-asi-sharded-source-reserve-waiting-v1
+            fi
+            RESERVE_ARTIFACT_ID=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
+              '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/reserve-upstream-artifacts.json)
+            RESERVE_ARTIFACT_DIGEST=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
+              '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/reserve-upstream-artifacts.json)
+            [[ "$RESERVE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+            [[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
+          else
+            test "$RESERVE_TOTAL_ARTIFACT_COUNT" -eq 0
+          fi
+          jq -n \
+            --argjson run "$RESERVE_UPSTREAM_RUN_ID" \
+            --arg sha "$RESERVE_UPSTREAM_SHA" \
+            --arg conclusion "$RESERVE_UPSTREAM_CONCLUSION" \
+            --arg state "$RESERVE_OBSERVED_STATE" \
+            --argjson artifacts "$RESERVE_TOTAL_ARTIFACT_COUNT" \
+            --argjson artifact "$RESERVE_ARTIFACT_ID" \
+            --arg digest "$RESERVE_ARTIFACT_DIGEST" \
+            '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,upstream_conclusion:$conclusion,reserve_state:$state,artifact_cardinality:$artifacts,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}' \
+            > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/reserve-upstream-binding.json"
+
       - name: Validate Met acquisition cancellation and Assurance binding
         run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
 
@@ -282,8 +357,10 @@ jobs:
       - name: Validate adapter cancellation watch coverage
         run: node scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs
 
-      - name: Validate SHADOW and Requirement evidence watch coverage and negative mutations
-        run: node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
+      - name: Validate SHADOW, Requirement, and Reserve evidence watch coverage
+        run: |
+          node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
+          node scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs
 
       - name: Run audit and always retain receipt
         run: >-
