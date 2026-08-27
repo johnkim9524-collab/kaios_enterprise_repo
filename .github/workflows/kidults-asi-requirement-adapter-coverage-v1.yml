@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   verify-requirement-adapter-coverage:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'push')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -45,44 +45,74 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs \
             | tee /tmp/kidults-asi-requirement-adapter-coverage-registry-validation-v1.json
-      - name: Restore exact successful same-SHA autonomous-resolution artifact
+      - name: Restore exact artifact-producing autonomous-resolution run
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
           EXPECTED_HEAD_BRANCH: ${{ github.event.pull_request.head.ref || 'main' }}
           ARTIFACT_VALIDATION_SCOPE: ${{ github.event_name == 'pull_request' && 'PULL_REQUEST_HEAD' || 'MAIN' }}
+          EVENT_ARL_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_ARL_EVENT: ${{ github.event.workflow_run.event }}
+          EVENT_ARL_HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/arl-expanded /tmp/arl-input
-          for ATTEMPT in $(seq 1 24); do
+          rm -f /tmp/arl-run.json /tmp/arl-artifact.json
+
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            test -n "$EVENT_ARL_RUN_ID"
+            test "$EVENT_ARL_EVENT" != push
+            test "$EVENT_ARL_HEAD_REPOSITORY" = "$GITHUB_REPOSITORY"
+            RUN_ID="$EVENT_ARL_RUN_ID"
             gh api -H 'Accept: application/vnd.github+json' \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs?head_sha=${TARGET_SOURCE_SHA}&status=success&per_page=100" \
-              > /tmp/arl-runs.json
-            TARGET_SOURCE_SHA="$TARGET_SOURCE_SHA" node - <<'NODE'
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_ARL_RUN_ID}" \
+              > /tmp/arl-run.json
+            EVENT_ARL_RUN_ID="$EVENT_ARL_RUN_ID" EVENT_ARL_EVENT="$EVENT_ARL_EVENT" TARGET_SOURCE_SHA="$TARGET_SOURCE_SHA" EXPECTED_HEAD_BRANCH="$EXPECTED_HEAD_BRANCH" node - <<'NODE'
+          const fs=require('fs');
+          const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
+          if(run.id!==Number(process.env.EVENT_ARL_RUN_ID))throw new Error('AUTONOMOUS_RESOLUTION_TRIGGER_RUN_ID_MISMATCH');
+          if(run.name!=='KIDULTS ASI Autonomous Resolution Layer v1'||run.path!=='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml')throw new Error('AUTONOMOUS_RESOLUTION_TRIGGER_IDENTITY');
+          if(run.head_sha!==process.env.TARGET_SOURCE_SHA||run.head_branch!==process.env.EXPECTED_HEAD_BRANCH)throw new Error('AUTONOMOUS_RESOLUTION_TRIGGER_SOURCE_SCOPE');
+          if(run.status!=='completed'||run.conclusion!=='success')throw new Error('AUTONOMOUS_RESOLUTION_TRIGGER_NOT_SUCCESS');
+          if(run.event!==process.env.EVENT_ARL_EVENT||run.event==='push')throw new Error(`AUTONOMOUS_RESOLUTION_NON_ARTIFACT_EVENT:${run.event}`);
+          NODE
+          else
+            for ATTEMPT in $(seq 1 24); do
+              gh api -H 'Accept: application/vnd.github+json' \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs?head_sha=${TARGET_SOURCE_SHA}&status=success&per_page=100" \
+                > /tmp/arl-runs.json
+              TARGET_SOURCE_SHA="$TARGET_SOURCE_SHA" EXPECTED_HEAD_BRANCH="$EXPECTED_HEAD_BRANCH" node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/arl-runs.json','utf8'));
           const target=process.env.TARGET_SOURCE_SHA;
           const expectedBranch=process.env.EXPECTED_HEAD_BRANCH;
+          const artifactProducingEvents=new Set(['workflow_run','schedule','workflow_dispatch','pull_request']);
           const runs=(x.workflow_runs||[])
             .filter((run)=>run.name==='KIDULTS ASI Autonomous Resolution Layer v1'&&
               run.path==='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'&&
               run.head_sha===target&&run.head_branch===expectedBranch&&
-              run.status==='completed'&&run.conclusion==='success')
+              run.status==='completed'&&run.conclusion==='success'&&
+              run.event!=='push'&&artifactProducingEvents.has(run.event))
             .sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)||b.id-a.id);
           if(runs.length)fs.writeFileSync('/tmp/arl-run.json',JSON.stringify(runs[0],null,2));
           NODE
-            if [ -s /tmp/arl-run.json ]; then break; fi
-            if [ "$ATTEMPT" -eq 24 ]; then
-              echo "NO_SUCCESSFUL_SAME_SHA_AUTONOMOUS_RESOLUTION_RUN:${TARGET_SOURCE_SHA}" >&2
-              exit 1
-            fi
-            sleep 10
-          done
-          RUN_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).id")
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
-            > /tmp/arl-artifacts.json
-          node - <<'NODE'
+              if [ -s /tmp/arl-run.json ]; then break; fi
+              if [ "$ATTEMPT" -eq 24 ]; then
+                echo "NO_SUCCESSFUL_ARTIFACT_PRODUCING_SAME_SHA_AUTONOMOUS_RESOLUTION_RUN:${TARGET_SOURCE_SHA}" >&2
+                exit 1
+              fi
+              sleep 10
+            done
+            RUN_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).id")
+          fi
+
+          test -n "$RUN_ID"
+          for ATTEMPT in $(seq 1 12); do
+            rm -f /tmp/arl-artifact.json
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+              > /tmp/arl-artifacts.json
+            node - <<'NODE'
           const fs=require('fs');
           const run=JSON.parse(fs.readFileSync('/tmp/arl-run.json','utf8'));
           const x=JSON.parse(fs.readFileSync('/tmp/arl-artifacts.json','utf8'));
@@ -90,9 +120,17 @@ jobs:
             .filter((artifact)=>artifact.name==='kidults-asi-autonomous-resolution-layer-v1'&&
               artifact.expired===false&&artifact.workflow_run?.id===run.id&&
               artifact.workflow_run?.head_sha===run.head_sha);
-          if(artifacts.length!==1)throw new Error(`AUTONOMOUS_RESOLUTION_ARTIFACT_CARDINALITY:${artifacts.length}`);
-          fs.writeFileSync('/tmp/arl-artifact.json',JSON.stringify(artifacts[0],null,2));
+          if(artifacts.length>1)throw new Error(`AUTONOMOUS_RESOLUTION_ARTIFACT_CARDINALITY:${artifacts.length}`);
+          if(artifacts.length===1)fs.writeFileSync('/tmp/arl-artifact.json',JSON.stringify(artifacts[0],null,2));
           NODE
+            if [ -s /tmp/arl-artifact.json ]; then break; fi
+            if [ "$ATTEMPT" -eq 12 ]; then
+              echo "AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}" >&2
+              exit 1
+            fi
+            sleep 5
+          done
+
           ARTIFACT_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/arl-artifact.json')).id")
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
@@ -122,8 +160,9 @@ jobs:
           const executionSha=process.env.EXECUTION_SHA;
           if(run.head_sha!==expectedSourceSha||run.head_sha!==process.env.PRODUCER_HEAD_SHA)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
           if(run.head_branch!==expectedHeadBranch)throw new Error('AUTONOMOUS_RESOLUTION_HEAD_BRANCH_SCOPE');
+          if(run.event==='push')throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_ONLY_PUSH_FORBIDDEN');
           if(!['MAIN','PULL_REQUEST_HEAD'].includes(validationScope))throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_SCOPE');
-          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.0.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,production_eligible:validationScope==='MAIN',source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.1.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_event:run.event,workflow_name:run.name,workflow_path:run.path,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,production_eligible:validationScope==='MAIN',exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
           fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
