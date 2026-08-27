@@ -51,7 +51,7 @@ jobs:
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           CANONICAL_TRUTH_PHASE: ${{ github.event_name == 'push' && 'TRANSITION' || github.event_name == 'pull_request' && 'PREMERGE' || 'SYNCHRONIZED' }}
           CANONICAL_CORRECTION_PR_NUMBER: '1441'
-          PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1431'
+          PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1438'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1441 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: ${{ github.event_name == 'issues' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
         run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
