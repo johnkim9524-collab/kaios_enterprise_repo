@@ -96,6 +96,43 @@ jobs:
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
 
+      - name: Discover existing PostgreSQL runtime read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/p0-remote-postgres
+          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          "${SSH[@]}" kidults-staging@"$HOST" 'python3 - <<'"'"'PY'"'"'
+          import json, os, shutil, socket, subprocess
+          def run(args):
+              try:
+                  p=subprocess.run(args, text=True, capture_output=True, timeout=5)
+                  return {"rc":p.returncode,"stdout":p.stdout.strip()[:500],"stderr":p.stderr.strip()[:500]}
+              except Exception as e:
+                  return {"rc":127,"error":type(e).__name__}
+          report={
+              "hostname": socket.gethostname(),
+              "user": os.environ.get("USER"),
+              "psql_present": shutil.which("psql") is not None,
+              "pg_isready_present": shutil.which("pg_isready") is not None,
+              "systemctl_postgresql": run(["systemctl","is-active","postgresql"]),
+              "loopback_5432": run(["bash","-lc","ss -lnt 2>/dev/null | grep -E '\''127\\.0\\.0\\.1:5432|\\[::1\\]:5432|0\\.0\\.0\\.0:5432'\'' || true"]),
+              "pg_isready_loopback": run(["pg_isready","-h","127.0.0.1","-p","5432"]) if shutil.which("pg_isready") else {"rc":127},
+              "peer_postgres_probe": run(["psql","--no-psqlrc","--dbname=postgres","--tuples-only","--no-align","--command=select current_user, current_database();"]) if shutil.which("psql") else {"rc":127},
+          }
+          print(json.dumps(report, separators=(",",":")))
+          PY' > artifacts/p0-remote-postgres/staging-postgres-readonly-discovery.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('artifacts/p0-remote-postgres/staging-postgres-readonly-discovery.json')
+          r=json.loads(p.read_text())
+          assert r['hostname']=='ih-staging-01'
+          assert r['user']=='kidults-staging'
+          print('STAGING_POSTGRES_READONLY_DISCOVERY_COMPLETE')
+          print(json.dumps(r, indent=2))
+          PY
+
       - name: Stage verifier and DSN without exposing DSN in process arguments
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
@@ -149,7 +186,9 @@ jobs:
           PY
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
         with:
           name: p0-remote-postgres-persistence-pitr-${{ github.sha }}
           path: artifacts/p0-remote-postgres
+          if-no-files-found: error
           retention-days: 30
