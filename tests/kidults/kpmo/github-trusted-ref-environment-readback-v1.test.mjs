@@ -184,9 +184,9 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
   });
 }
 
-test('current exact registry binds all 15 privileged lanes but external policy remains fail closed', () => {
-  assert.equal(currentInventory.registered_lane_count, 15);
-  assert.equal(currentInventory.secret_bearing_job_count, 15);
+test('current exact registry binds all 16 secret-bearing lanes but external policy remains fail closed', () => {
+  assert.equal(currentInventory.registered_lane_count, 16);
+  assert.equal(currentInventory.secret_bearing_job_count, 16);
   assert.deepEqual(validateRequiredEnvironmentBindings(currentInventory, registry), []);
   const repositoryGuardedLanes = currentInventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
@@ -274,7 +274,7 @@ test('selected non-main ref and stale main SHA are independently rejected', () =
   assert.ok(stale.blockers.includes('EXACT_SOURCE_SHA_NOT_OBSERVED_DEFAULT_BRANCH_HEAD'));
 });
 
-test('all 15 privileged jobs reject unreadable, stale, and non-main live-main guards', () => {
+test('all 16 secret-bearing jobs reject unreadable, stale, and non-main live-main guards', () => {
   const mutations = [
     [
       'unreadable_api_fail_open',
@@ -308,10 +308,10 @@ test('all 15 privileged jobs reject unreadable, stale, and non-main live-main gu
       rejected += 1;
     }
   }
-  assert.equal(rejected, 45);
+  assert.equal(rejected, 48);
 });
 
-test('all 15 privileged jobs reject secret scope and guard order mutations', () => {
+test('all 16 secret-bearing jobs reject secret scope and guard order mutations', () => {
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
     const job = lane.secret_bearing_jobs[0];
@@ -368,7 +368,7 @@ test('all 15 privileged jobs reject secret scope and guard order mutations', () 
     assert.ok(failures.some((failure) => failure.startsWith('REQUIRED_SECRET_STEP_MISMATCH:')));
     rejected += 1;
   }
-  assert.equal(rejected, 75);
+  assert.equal(rejected, 80);
 });
 
 test('unprotected main, wildcard policy, and unreadable secret metadata fail closed', () => {
@@ -496,6 +496,30 @@ jobs:
   assert.deepEqual(analysis.secret_bearing_jobs[0].environment, { declared: true, name: 'staging', static: true });
   assert.equal(analysis.secret_bearing_jobs[1].environment.static, false);
   assert.equal(analysis.secret_bearing_jobs[1].dynamic_secret_context, true);
+});
+
+test('trigger transformation and missing explicit activation guard fail closed', () => {
+  const workflow = '.github/workflows/p0-remote-postgres-persistence-pitr.yml';
+  const source = fs.readFileSync(workflow, 'utf8');
+  const lane = analyzeWorkflow(source, workflow);
+  assert.deepEqual(lane.trigger_classes, ['push', 'workflow_dispatch']);
+
+  const noDispatch = source.replace('  workflow_dispatch:\n', '');
+  let failures = validateRequiredEnvironmentBindings(
+    replaceLaneSource(currentInventory, workflow, noDispatch),
+    registry
+  );
+  assert.ok(failures.some((failure) => failure.startsWith('TRIGGER_CLASS_MISMATCH:')));
+
+  const noActivationGuard = source.replace(
+    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'",
+    ''
+  );
+  failures = validateRequiredEnvironmentBindings(
+    replaceLaneSource(currentInventory, workflow, noActivationGuard),
+    registry
+  );
+  assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_GUARD_MISSING:')));
 });
 
 test('ruleset context is recorded but never promoted to issue 936 closure', () => {

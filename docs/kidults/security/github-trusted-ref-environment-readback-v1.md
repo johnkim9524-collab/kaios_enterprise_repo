@@ -25,7 +25,7 @@ The observation used only public control-plane metadata. It did not read secret 
 
 ## Implemented internal control
 
-The repository-side implementation now statically binds all 15 registered secret-bearing jobs to eight named GitHub Environments and gives every such job an exact-`main` guard. The registry binds every workflow/job identity to its required Environment and to a digest of its required secret-name set. The machine validator rejects a missing, renamed, dynamic, duplicate, or extra binding; a changed secret-name digest; or a removed exact-`main` guard. These local bindings do not prove that the eight Environments exist, have exact-`main` deployment policies, disable administrator bypass, or contain Environment-only secrets on live GitHub.
+The repository-side implementation now statically binds all 16 registered secret-bearing jobs, independent of trigger class, to eight named GitHub Environments and gives every such job an exact-`main` guard. The registry binds every workflow/job identity to its required Environment and to a digest of its required secret-name set. The machine validator rejects a missing, renamed, dynamic, duplicate, or extra binding; a changed secret-name digest; or a removed exact-`main` guard. These local bindings do not prove that the eight Environments exist, have exact-`main` deployment policies, disable administrator bypass, or contain Environment-only secrets on live GitHub.
 
 The collector derives the current privileged-job set from `secret-bearing-workflow-dispatch-registry-v1.json`, parses each job's secret references and Environment binding, and performs GET-only GitHub metadata reads. Every list endpoint is paginated to exhaustion and reconciled to its reported count before it can contribute to a pass. The receipt records exact source SHA/ref, live default-branch SHA, endpoint statuses, registry-to-workflow binding results, deployment-policy results, Environment coverage, repository/organization scope-absence counts/digests, and negative-execution evidence without emitting secret names or values.
 
@@ -78,9 +78,9 @@ node scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mj
 
 ## Repository live-main and credential-lifetime controls
 
-All 15 registered secret-bearing jobs implement the same inline, secret-free preflight before any provider credential is resolved. The preflight uses only `${{ github.token }}` with `contents: read` to GET `/repos/$GITHUB_REPOSITORY/branches/main`; an unreadable or malformed response, a non-`main` ref, or any SHA other than exact `GITHUB_SHA` fails closed.
+All 16 registered secret-bearing jobs implement the same inline, secret-free preflight before any provider credential is resolved. The preflight uses only `${{ github.token }}` with `contents: read` to GET `/repos/$GITHUB_REPOSITORY/branches/main`; an unreadable or malformed response, a non-`main` ref, or any SHA other than exact `GITHUB_SHA` fails closed.
 
-Provider secrets are forbidden at workflow and job scope. The dispatch registry names the single allowed credential-consuming step for each privileged job, and the repository validator proves 15/15 guards, 15/15 step-scoped bindings, zero workflow-scope bindings, zero job-scope bindings, and rejects stale, unreadable, non-main, ordering, and scope mutations.
+Provider secrets are forbidden at workflow and job scope. The dispatch registry names the single allowed credential-consuming step for each privileged job, and the repository validator proves 16/16 guards, 16/16 step-scoped bindings, zero workflow-scope bindings, zero job-scope bindings, and rejects stale, unreadable, non-main, ordering, and scope mutations.
 
 The Portal STAGING lane additionally keeps host-key scan and fingerprint verification secret-free, materializes the SSH identity in a separate minimal step, removes the private key and `known_hosts` immediately after remote receipts are collected, and performs receipt validation and artifact upload only after that cleanup.
 
@@ -89,7 +89,7 @@ These repository controls reduce the stale-main and credential-lifetime attack s
 ## Remaining external blockers
 
 1. Program Owner security approval for any Environment, secret-scope, deployment-policy, ruleset, or trusted-handoff change.
-2. Land the 15 repository-side Environment bindings, live-main guards, and step-only secret-lifetime controls on protected `main`, then verify that live GitHub executes that exact source. The controls are implemented locally but are not merged or externally proven.
+2. Land the 16 repository-side Environment bindings, live-main guards, and step-only secret-lifetime controls on protected `main`, then verify that live GitHub executes that exact source. The controls are implemented locally but are not merged or externally proven.
 3. Exact-`main` external deployment branch policy for each bound Environment.
 4. Administrator bypass disabled for every bound Environment.
 5. Authorized Environment-secret metadata read-back proving every referenced secret name resolves in the bound Environment, without reading values.
@@ -105,3 +105,10 @@ This work changes only assurance observability. Partner ingestion remains `HOLD`
 ## Rollback
 
 Revert the repository implementation commits together. The read-back workflow is read-only and creates no external setting to undo. If the eight Environments or their secret scopes are later configured through a separately approved external change, that external change requires its own rollback plan; it is not undone by a Git revert.
+
+
+## Trigger-independent inventory correction
+
+The current registry covers secret-bearing jobs regardless of whether they are activated by `push`, `schedule`, `workflow_run`, reusable-workflow handoff, or `workflow_dispatch`. Each binding records allowed trigger classes and a mutation class. A trigger transformation without an atomic registry migration fails closed.
+
+The remote PostgreSQL/PITR lane is bound as `REMOTE_STAGING_MUTATION`. It requires `KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true` before any secret-consuming step. Missing authorization skips the job; missing DSN fails before any remote file write. This repository control does not itself authorize STAGING, create a credential, prove PostgreSQL/PITR readiness, or change Production/Public/G5.
