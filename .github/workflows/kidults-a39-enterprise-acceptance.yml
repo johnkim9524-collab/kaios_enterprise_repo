@@ -39,54 +39,13 @@ jobs:
         run: |
           node -e "
             const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf-8'));
-            const required = ['a39:gate', 'a39:certify', 'a39:finalize'];
+            const required = ['a15-a38:refresh', 'a39:gate', 'a39:certify', 'a39:finalize'];
             const missing = required.filter((name) => !pkg.scripts[name]);
             if (missing.length) { console.error('MISSING SCRIPTS:', missing.join(', ')); process.exit(1); }
             console.log('A39 scripts present:', required.join(', '));
           "
 
-      - name: Typecheck
-        working-directory: services/kidults-autonomous-intelligence
-        run: npm run typecheck
-
-      - name: Refresh complete A15-A38 simulation evidence chain
-        working-directory: services/kidults-autonomous-intelligence
-        env:
-          A39_MODE: SIMULATION
-        run: |
-          set -euo pipefail
-          npm run a15:policy
-          npm run a16:execution
-          npm run a17:bounded-live
-          npm run a18:smoke
-          npm run a19:gap
-          npm run a20:gate
-          npm run a21:pipeline
-          npm run a22:publication-control
-          npm run a23:gate
-          npm run a24:gate
-          npm run a25:runtime
-          npm run a26:recovery
-          npm run a27:governance
-          npm run a28:control-tower
-          npm run a29:orchestrate
-          npm run a30:ui
-          npm run a31:gateway
-          npm run a32:reality
-          npm run a33:gate
-          npm run a34:gate
-          npm run a35:gate
-          npm run a36:gate
-          npm run a37:gate
-          npm run a38:gate
-
-      - name: Run A39 gate
-        working-directory: services/kidults-autonomous-intelligence
-        run: npm run a39:gate
-        env:
-          A39_MODE: SIMULATION
-
-      - name: Run A39 certify
+      - name: Run complete A15-A39 certification
         working-directory: services/kidults-autonomous-intelligence
         run: npm run a39:certify
         env:
