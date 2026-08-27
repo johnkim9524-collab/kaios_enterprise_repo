@@ -1,0 +1,21 @@
+{
+  "id": "canonical-truth-monotonic-main-v1",
+  "problem": "A newly-created protected-main SHA cannot already exist in canonical issue bodies at push time, so exact-SHA enforcement on push creates deterministic false-red after every lawful main advance.",
+  "policy": {
+    "pull_request": "MONOTONIC_ANCESTOR_OR_EQUAL",
+    "push": "MONOTONIC_ANCESTOR_OR_EQUAL",
+    "issues": "EXACT_CURRENT_MAIN",
+    "workflow_dispatch": "EXACT_CURRENT_MAIN"
+  },
+  "regression": {
+    "non_ancestor_sha_rejected": true,
+    "missing_canonical_block_rejected": true,
+    "active_defect_omission_rejected": true,
+    "unsupported_closure_rejected": true,
+    "stale_correction_head_rejected_when_enforced": true
+  },
+  "promotion_eligible": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
