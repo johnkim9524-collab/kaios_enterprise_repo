@@ -4,6 +4,7 @@ const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
 const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1431');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
 const requireLiveCorrectionHead = process.env.REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES === 'true';
+const allowPrMainAdvance = process.env.ALLOW_MAIN_ADVANCE_DURING_PR_VALIDATION === 'true';
 const canonicalIssues = [
   235, 236, 237, 238, 240, 256, 344, 457, 479, 480, 489, 521, 550,
   558, 559, 560, 609, 742, 769, 881, 921, 951, 1066, 1166, 1296
@@ -130,8 +131,10 @@ const live = await githubGraphql();
 const observedMainSha = live.ref?.target?.oid || '';
 if (!/^[0-9a-f]{40}$/i.test(observedMainSha)) fail('live protected-main SHA is unavailable');
 const correctionPrValidation = Boolean(expectedCorrectionHead);
-if (!correctionPrValidation && observedMainSha !== expectedMainSha) fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
-const effectiveMainSha = correctionPrValidation ? observedMainSha : expectedMainSha;
+if (!correctionPrValidation && observedMainSha !== expectedMainSha && !allowPrMainAdvance) {
+  fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
+}
+const effectiveMainSha = (correctionPrValidation || allowPrMainAdvance) ? observedMainSha : expectedMainSha;
 
 const correctionPr = live.pullRequest;
 const correctionHead = correctionPr?.headRefOid || '';
@@ -190,6 +193,7 @@ console.log(JSON.stringify({
   protected_main_sha: effectiveMainSha,
   event_base_sha: expectedMainSha,
   live_main_observed: observedMainSha,
+  main_advance_during_pr_validation_allowed: allowPrMainAdvance,
   canonical_main_policy: 'MONOTONIC_ANCESTOR_OR_EQUAL',
   correction_pr_validation: correctionPrValidation,
   canonical_correction_pr: correctionPrNumber,
