@@ -10,9 +10,12 @@
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
     "machine_contract_path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+    "bootstrap_remediation_sequence_path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
     "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
-    "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml"
+    "bootstrap_validator_path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
+    "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml",
+    "bootstrap_workflow_path": ".github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml"
   },
   "platform_operating_principles": {
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
@@ -56,7 +59,9 @@
     ],
     "child_rule_can_be_stricter": true,
     "child_rule_can_weaken_policy": false,
-    "agent_self_exemption_allowed": false
+    "agent_self_exemption_allowed": false,
+    "bootstrap_remediation_sequence_required": true,
+    "bootstrap_load_before_task_execution_required": true
   },
   "constitutional_principles": [
     "ABSOLUTE_HONESTY",
@@ -85,6 +90,8 @@
     "stale_state_presented_as_current": "P0_GOVERNANCE_DEFECT",
     "platform_principle_weakened_reordered_or_bypassed": "P0_GOVERNANCE_DEFECT",
     "manual_only_normal_activation_for_ready_governed_runner": "P0_GOVERNANCE_DEFECT",
+    "report_only_response_while_reversible_internal_remediation_executable": "P1_OPERATING_DEFECT",
+    "bootstrap_sequence_skipped_or_reordered": "P1_OPERATING_DEFECT",
     "unlabeled_inference_in_material_report": "P1_OPERATING_DEFECT"
   },
   "change_control": {
@@ -103,7 +110,17 @@
     "verified_outcome_report_required": true,
     "unresolved_external_dependency_disclosure_required": true,
     "prioritized_forward_improvement_proposal_required": true,
-    "protected_authority_gates_preserved": true
+    "protected_authority_gates_preserved": true,
+    "mandatory_bootstrap_sequence": [
+      "DETECT_REVERSIBLE_DEFECT",
+      "CORRECT_ROOT_CAUSE_IMMEDIATELY",
+      "RUN_REGRESSION_AND_NEGATIVE_TESTS",
+      "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN",
+      "TRUTH_SYNC_REGISTRY_AND_ISSUE",
+      "REPORT_VERIFIED_OUTCOME",
+      "PROPOSE_PRIORITIZED_IMPROVEMENTS"
+    ],
+    "routine_report_before_authorized_remediation_forbidden": true
   },
   "global_scale_stewardship": {
     "scope": "ENTIRE_VALUE_CHAIN",
