@@ -1,0 +1,45 @@
+name: P0 Live Runtime Durable State Boundary
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/**'
+      - 'services/kidults-autonomous-intelligence/scripts/validate-live-runtime-state-boundary.mjs'
+      - 'scripts/ci/validate-d1-direct-writer-cutover-v2.mjs'
+      - '.github/workflows/p0-live-runtime-durable-state.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/kidults-autonomous-intelligence/src/**'
+      - 'services/kidults-autonomous-intelligence/scripts/validate-live-runtime-state-boundary.mjs'
+      - 'scripts/ci/validate-d1-direct-writer-cutover-v2.mjs'
+      - '.github/workflows/p0-live-runtime-durable-state.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  durable-state-boundary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Prove exact head
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+      - name: Reject hidden process-memory control state
+        run: node services/kidults-autonomous-intelligence/scripts/validate-live-runtime-state-boundary.mjs
+      - name: Enforce zero D1 runtime writers
+        run: node scripts/ci/validate-d1-direct-writer-cutover-v2.mjs --enforce-zero
