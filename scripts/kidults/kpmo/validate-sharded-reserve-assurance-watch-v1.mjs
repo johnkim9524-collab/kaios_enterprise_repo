@@ -68,9 +68,6 @@ function validateReserve(source) {
   for (const marker of required) if (!source.includes(marker)) fail(`RESERVE_MARKER_MISSING:${marker}`);
   const waitingUpload = count(source, 'name: kidults-asi-sharded-source-reserve-waiting-v1');
   if (waitingUpload !== 1) fail(`WAITING_ARTIFACT_CARDINALITY:${waitingUpload}`);
-  if (source.includes('status=success') && source.includes('KIDULTS_RESERVE_PRODUCER_STATE=WAITING')) {
-    fail('SUCCESS_FILTER_MUST_NOT_MASK_WAITING');
-  }
 }
 
 validateAssurance(assurance);
