@@ -53,7 +53,8 @@ const mutations = [
 ];
 
 for (const [from, to] of mutations) {
-  const mutated = text.replace(from, to);
+  if (!text.includes(from)) fail(`NEGATIVE_MUTATION_SOURCE_MISSING:${from}`);
+  const mutated = text.split(from).join(to);
   let rejected = false;
   try { validate(mutated); } catch { rejected = true; }
   if (!rejected) fail(`NEGATIVE_MUTATION_NOT_REJECTED:${from}`);
