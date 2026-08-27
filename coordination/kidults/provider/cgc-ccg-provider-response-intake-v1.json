@@ -1,0 +1,73 @@
+{
+  "id": "kidults-cgc-ccg-provider-response-intake-v1",
+  "version": "1.0.0",
+  "provider_id": "CGC_CCG",
+  "product_id": "CGC_DEALER_PORTAL_API",
+  "governing_issue": 1220,
+  "active_ticket": 1133459,
+  "state": "PARTIAL_RESPONSE_RECEIVED",
+  "decision": "NEEDS_CLARIFICATION",
+  "source_evidence": {
+    "latest_substantive_outbound": {
+      "evidence_ref": "gmail:message:1a0348bf65698c4f",
+      "rfc_message_id": "<CAPAjgK7GVRKZf7NH=ycUyUpGqHnKuohv_UJcJH69yGUS_nQnUQ@mail.gmail.com>",
+      "sent_at": "2026-08-24T16:13:02Z"
+    },
+    "provider_response": {
+      "evidence_ref": "gmail:message:1a0436674fda570e",
+      "rfc_message_id": "<YPL9GPYY7EK_6a903afe3ed7f_d2a71ac22b42f1_sprut@zendesk.com>",
+      "received_at": "2026-08-27T13:26:22Z",
+      "ticket": 1133459
+    }
+  },
+  "confirmed": {
+    "api_included_with_authorized_dealer_membership_fee_and_agreement": true,
+    "internal_data_validation_and_intelligence_use_can_qualify": true,
+    "two_industry_references_mandatory": true,
+    "references_will_be_contacted": true
+  },
+  "bounded_interpretation": {
+    "no_additional_requirement_stated_beyond_membership_fee": true,
+    "membership_fee_amount_known": false,
+    "numeric_rate_limit_known": false,
+    "unlimited_api_claim_allowed": false,
+    "dealer_approval_guarantees_api_activation": false
+  },
+  "unresolved": [
+    "MEMBERSHIP_FEE_AMOUNT",
+    "SCHEMA_SAMPLE_AND_DOCUMENTATION",
+    "CERT_IDENTITY_GRADE_AND_POPULATION_COVERAGE",
+    "PRIVATE_STORAGE_NORMALIZATION_RIGHTS",
+    "ENTITY_RESOLUTION_MODEL_CALIBRATION_AND_HUMAN_QA_RIGHTS",
+    "RETENTION_DELETION_AND_POST_TERMINATION_DERIVED_RIGHTS",
+    "NUMERIC_RATE_LIMITS",
+    "SLA_SUPPORT_AND_MINIMUM_COMMITMENT"
+  ],
+  "prepared_next_request": {
+    "state": "PREPARED_NOT_SENT",
+    "route_to": "CGC_API_OR_DATA_OWNER",
+    "purpose": "REQUEST_SCHEMA_RIGHTS_RETENTION_RATE_LIMIT_AND_MEMBERSHIP_FEE_CLARIFICATION",
+    "send_authorized": false
+  },
+  "execution_receipt": {
+    "application_submitted": false,
+    "references_submitted": false,
+    "agreement_accepted": false,
+    "account_or_credential_created": false,
+    "provider_api_calls": 0,
+    "external_spend_usd": 0,
+    "data_acquired": false
+  },
+  "non_bypass": {
+    "application": "HOLD",
+    "references": "HOLD",
+    "agreement": "HOLD_EXPLICIT_APPROVAL_REQUIRED",
+    "spend": "HOLD_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "credential": "HOLD_EXPLICIT_APPROVAL_REQUIRED",
+    "data_acquisition": "HOLD",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "truth_boundary": "The provider confirms an API path included with Authorized Dealer membership and an agreement, possible eligibility for internal data-validation/intelligence use, and mandatory contacted references. The response does not establish membership cost, fields, storage/derivation/retention rights, numeric rate limits, SLA or activation authority. No application, references, agreement, spend, credential, API call, data acquisition, Public, Production or G5 is authorized."
+}

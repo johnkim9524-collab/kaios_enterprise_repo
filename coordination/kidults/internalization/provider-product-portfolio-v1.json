@@ -24,6 +24,7 @@
     "providerBaselineMeaning": "NO_EXTERNAL_ACCESS_SPEND_OR_ACTIVATION",
     "CONDITIONAL_HOLD": "OPTION_REMAINS_INACTIVE_UNTIL_ALL_EVIDENCE_GATES_PASS",
     "PENDING_PROVIDER_RESPONSE": "INACTIVE_NON_TERMINAL_UNTIL_OFFICIAL_PROVIDER_RESPONSE_AND_DECISION_EVIDENCE",
+    "PARTIAL_RESPONSE_RECEIVED": "INACTIVE_NON_TERMINAL_WHILE_MATERIAL_FIELDS_RIGHTS_OR_ECONOMICS_REMAIN_UNRESOLVED",
     "DROP": "TERMINAL_DISPOSITION_REQUIRING_OFFICIAL_PROVIDER_RESPONSE_NEW_DECISION_PACKET_KPMO_REVIEW_AND_FOUNDER_APPROVAL",
     "productDecisionPrecedence": "PRODUCT_DECISION_NARROWS_BUT_NEVER_RELAXES_PROVIDER_HOLD"
   },
@@ -63,7 +64,8 @@
   },
   "summary": {
     "conditionalHoldCount": 3,
-    "pendingProviderResponseCount": 4,
+    "pendingProviderResponseCount": 3,
+    "partialResponseReceivedCount": 1,
     "dropCount": 1,
     "conditionalHoldProductIds": [
       "GEMRATE_DEVELOPER_TIER",
@@ -72,9 +74,11 @@
     ],
     "pendingProviderResponseProductIds": [
       "PSA_ENTERPRISE_API",
-      "CGC_DEALER_PORTAL_API",
       "LIVEART_PILOT",
       "HAGERTY_UNSPECIFIED_PRODUCT"
+    ],
+    "partialResponseReceivedProductIds": [
+      "CGC_DEALER_PORTAL_API"
     ],
     "currentSoldPrimaryCandidateProductIds": [
       "CLASSIC_COM_LICENSED_BUNDLE_3"
@@ -301,10 +305,10 @@
       "providerId": "CGC",
       "productName": "CGC Dealer Portal API",
       "priority": 4,
-      "decision": "PENDING_PROVIDER_RESPONSE",
+      "decision": "PARTIAL_RESPONSE_RECEIVED",
       "role": "UNVERIFIED_CERTIFICATION_OR_GRADING_CANDIDATE",
       "fit": "SEMANTICALLY_POSSIBLE_BUT_UNVERIFIED",
-      "pendingReason": "PRODUCT_PRICE_RIGHTS_AND_FIELDS_UNCONFIRMED_PENDING_PROVIDER_RESPONSE",
+      "pendingReason": "API_PATH_AND_INTERNAL_INTELLIGENCE_ELIGIBILITY_PARTIALLY_CONFIRMED_FIELDS_RIGHTS_PRICE_AND_RATE_LIMITS_UNRESOLVED",
       "currentSoldCapability": {
         "providesTransactionHistory": false,
         "potentiallyRelevant": false,
@@ -330,6 +334,17 @@
         "productionAllowed": false
       },
       "evidenceGates": [],
+      "partialResponseReadiness": {
+        "state": "NEEDS_CLARIFICATION",
+        "apiIncludedWithAuthorizedDealerMembershipAndAgreement": true,
+        "internalDataValidationAndIntelligenceUseCanQualify": true,
+        "twoIndustryReferencesMandatoryAndContacted": true,
+        "membershipFeeAmount": "UNKNOWN",
+        "numericRateLimits": "UNKNOWN",
+        "schemaAndRights": "UNKNOWN",
+        "applicationState": "NOT_SUBMITTED",
+        "preflightRef": "coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json"
+      },
       "terminalDispositionPolicy": {
         "requiresOfficialProviderResponse": true,
         "requiresResponseEvidenceReference": true,
