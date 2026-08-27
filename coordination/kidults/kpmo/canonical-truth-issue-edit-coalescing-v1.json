@@ -1,0 +1,19 @@
+{
+  "id": "canonical-truth-issue-edit-coalescing-v1",
+  "root_cause": "Sequential canonical-board truth synchronization emitted one issues:edited workflow per partial update, allowing transient incomplete board states to be recorded as failures.",
+  "correction": {
+    "issues_concurrency_key": "protected-main SHA",
+    "cancel_in_progress": true,
+    "pull_request_generation_isolation_preserved": true,
+    "push_generation_isolation_preserved": true
+  },
+  "negative_regression": [
+    "different PR heads do not cancel one another",
+    "main push canary remains independent",
+    "successive issue edits on the same main generation coalesce to the latest observer"
+  ],
+  "promotion_eligible": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
