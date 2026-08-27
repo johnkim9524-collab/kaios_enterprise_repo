@@ -1,14 +1,14 @@
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
-const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1418');
+const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1429');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
 const requireLiveCorrectionHead = process.env.REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES === 'true';
 const canonicalIssues = [
   235, 236, 237, 238, 240, 256, 344, 457, 479, 480, 489, 521, 550,
   558, 559, 560, 609, 742, 769, 881, 921, 951, 1066, 1166, 1296
 ];
-const trackedDefects = [1330, 1412, 1416, 1419, 1420, 1421];
+const trackedDefects = [1330, 1412, 1416, 1419, 1420, 1421, 1423, 1427];
 const forbiddenClosureClaims = [
   /INTERNAL REVERSIBLE[^\n]*CLOSED AT CURRENT MAIN/i,
   /INTERNAL BLOCKERS CLOSED/i,
