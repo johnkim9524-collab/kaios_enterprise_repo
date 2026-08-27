@@ -4,12 +4,7 @@
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
-  "platform_principles": [
-    "AUTONOMOUS",
-    "GLOBAL",
-    "IRREPLACEABLE_VALUE",
-    "TRANSPARENT"
-  ],
+  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
   "mission": "Execute bounded public-metadata discovery for the current mission portfolio, convert observed endpoints into governed source candidates, bind candidates to mission lanes without overstating regional relevance or factual-origin independence, and emit exact empirical increments.",
   "authoritative_inputs": {
     "p0_contract": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json",

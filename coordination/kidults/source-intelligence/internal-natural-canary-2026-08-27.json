@@ -1,0 +1,12 @@
+{
+  "id": "kidults-internal-natural-canary-2026-08-27",
+  "purpose": "Trigger protected-main internal control canaries for ASI SHADOW→Continuous Assurance and P0B→P1 provenance without changing empirical, rights, provider, publication or production truth.",
+  "semantic_effect": "NONE_CONTROL_ONLY",
+  "empirical_evidence_created": false,
+  "rights_or_admission_changed": false,
+  "provider_activation_changed": false,
+  "projection_changed": false,
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
