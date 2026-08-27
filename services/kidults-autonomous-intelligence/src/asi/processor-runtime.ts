@@ -1,4 +1,5 @@
 import { partitionKey, type AsiDecision, type AsiEventEnvelope, type AsiRightsState } from './event';
+import { prepareD1ProjectionWrite } from '../d1-projector-write-boundary';
 import {
   ASI_BOUNDED_SHADOW_PURPOSE,
   ASI_BOUNDED_SHADOW_REQUIRED_ASSERTIONS,
@@ -191,7 +192,7 @@ async function recordDiscoveryCandidate(
     throw new Error('ASI_SOURCE_CANDIDATE_IDEMPOTENCY_CONFLICT');
   }
   await env.DB.batch([
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_source_candidates (
         source_id,canonical_site_id,canonical_host,canonical_host_hash,purpose,partition_key,channel,region,language,scope_id,
         source_role,discovery_engine_fleet,discovery_event_id,input_snapshot_ref,payload_hash,rights_state,freshness_state,
@@ -203,7 +204,7 @@ async function recordDiscoveryCandidate(
       event.input_snapshot_ref,event.payload_hash,event.rights_state,event.freshness_state,candidateState,
       `candidate:${event.event_id}`,event.observed_at,event.observed_at,recordedAt,recordedAt,
     ),
-    env.DB.prepare(`
+    prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_source_candidate_observations (
         observation_id,source_id,discovery_event_id,discovery_engine_fleet,discovery_channel,input_snapshot_ref,payload_hash,
         rights_state,freshness_state,provenance_json,idempotency_key,observed_at,recorded_at
@@ -246,14 +247,14 @@ async function recordProcessorAssertions(
   const groupId = await fanInGroupId(result);
   const recordedAt = nowIso();
   const assertions = [...result.assertions,result.fan_in_assertion];
-  const statements: D1PreparedStatement[] = [env.DB.prepare(`
+  const statements: D1PreparedStatement[] = [prepareD1ProjectionWrite(env.DB, `
     INSERT OR IGNORE INTO asi_processor_fan_in_groups (
       group_id,source_id,purpose,partition_key,stage,correlation_id,input_snapshot_ref,idempotency_key,created_at
     ) VALUES (?,?,?,?,?,?,?,?,?)
   `).bind(groupId,result.source_id,purpose,key,result.stage,event.correlation_id,event.input_snapshot_ref,`fanin:${groupId}`,recordedAt)];
 
   for (const assertion of assertions) {
-    statements.push(env.DB.prepare(`
+    statements.push(prepareD1ProjectionWrite(env.DB, `
       INSERT OR IGNORE INTO asi_processor_assertions (
         assertion_id,source_id,purpose,partition_key,stage,engine_fleet,assertion_type,decision,rights_state,freshness_state,
         event_id,causation_event_id,source_outbox_id,source_message_id,correlation_id,input_snapshot_ref,
@@ -268,7 +269,7 @@ async function recordProcessorAssertions(
       `processor:${assertion.assertion_id}`,assertion.observed_at,recordedAt,assertion.supersedes_assertion_id,
     ));
     if (!assertion.assertion_type.startsWith('FLEET_SUMMARY:')) {
-      statements.push(env.DB.prepare(`
+      statements.push(prepareD1ProjectionWrite(env.DB, `
         INSERT OR IGNORE INTO asi_engine_assertions (
           assertion_id,source_id,engine_fleet,assertion_type,purpose,decision,rights_state,payload_hash,event_id,
           engine_version,observed_at,supersedes_assertion_id
@@ -280,7 +281,7 @@ async function recordProcessorAssertions(
       ));
     }
   }
-  statements.push(env.DB.prepare(`
+  statements.push(prepareD1ProjectionWrite(env.DB, `
     INSERT OR IGNORE INTO asi_processor_fan_in_members (group_id,engine_fleet,assertion_id,linked_at)
     VALUES (?,?,?,?)
   `).bind(groupId,result.fleet_id,result.fan_in_assertion.assertion_id,recordedAt));
@@ -446,7 +447,7 @@ async function materializeAdmission(
   );
   await hooks.stageEvent(event);
   const reviewDueAt = addDays(event.observed_at,7);
-  const statements: D1PreparedStatement[] = [env.DB.prepare(`
+  const statements: D1PreparedStatement[] = [prepareD1ProjectionWrite(env.DB, `
     INSERT OR IGNORE INTO asi_purpose_admissions (
       admission_id,source_id,purpose,evidence_class,output_class,region,decision,rights_state,policy_version,input_snapshot_ref,
       reason_codes_json,required_assertion_count,satisfied_assertion_count,source_event_id,decided_at,review_due_at
@@ -457,7 +458,7 @@ async function materializeAdmission(
     ASI_BOUNDED_SHADOW_REQUIRED_ASSERTIONS.length,evaluated.satisfied_assertion_types.length,event.event_id,event.observed_at,reviewDueAt,
   )];
   for (const assertionId of evaluated.assertion_ids) {
-    statements.push(env.DB.prepare(`INSERT OR IGNORE INTO asi_admission_assertions (admission_id,assertion_id) VALUES (?,?)`)
+    statements.push(prepareD1ProjectionWrite(env.DB, `INSERT OR IGNORE INTO asi_admission_assertions (admission_id,assertion_id) VALUES (?,?)`)
       .bind(admissionId,assertionId));
   }
   await env.DB.batch(statements);
@@ -542,7 +543,7 @@ async function recordSourcePoolDecision(
   const review = await env.DB.prepare(`SELECT review_due_at FROM asi_purpose_admissions WHERE admission_id=?`)
     .bind(admissionId).first<{review_due_at:string}>();
   if (!review) throw new Error('ASI_POOL_ADMISSION_NOT_FOUND');
-  await env.DB.prepare(`
+  await prepareD1ProjectionWrite(env.DB, `
     INSERT OR IGNORE INTO asi_source_pool_decisions (
       decision_id,source_id,purpose,partition_key,pool_state,rights_state,classification_group_id,qualification_group_id,
       admission_id,decision_engine_fleet,decision_event_id,causation_event_id,source_outbox_id,source_message_id,
