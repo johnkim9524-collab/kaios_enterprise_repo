@@ -20,6 +20,16 @@ jobs:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
     steps:
+      - name: Verify explicit STAGING activation authorization before secret resolution
+        shell: bash
+        env:
+          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_POSTGRES_PITR_RESTORE_VERIFICATION_AUTHORIZED }}
+        run: |
+          set -euo pipefail
+          test "$ACTIVATION_AUTHORIZED" = "true"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+
       - name: Verify live main before provider credential resolution
         shell: bash
         env:
