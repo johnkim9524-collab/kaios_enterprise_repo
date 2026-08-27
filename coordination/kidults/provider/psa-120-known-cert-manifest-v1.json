@@ -1,25 +1,31 @@
 {
   "id": "KIDULTS_PSA_120_KNOWN_CERT_MANIFEST_V1",
-  "state": "WAITING_FOR_LAWFUL_SOURCE_COMPLETION",
+  "state": "WAITING_FOR_PROVENANCE_BOUND_SOURCE_COMPLETION",
   "target_count": 120,
-  "current_known_count": 2,
-  "remaining_required": 118,
+  "declared_known_count": 2,
+  "provenance_bound_admissible_count": 0,
+  "remaining_required": 120,
   "cert_values_in_repository": false,
+  "entries": [],
   "required_entry_contract": {
     "cert_reference_digest": "sha256:<64hex>",
-    "lawful_source_ref": "required",
+    "lawful_source_ref": "required_nonempty_stable_reference",
     "source_observed_at": "ISO-8601 required",
     "admission_purpose": "PRIVATE_ER_EVALUATION_ONLY",
-    "enumeration_used": false
+    "enumeration_used": false,
+    "raw_cert_value_in_repository": false
   },
+  "truth_boundary": "DECLARED_KNOWN_COUNT_IS_NOT_ADMISSIBLE_PROGRESS. ONLY ENTRIES WITH MACHINE-VALIDATED DIGEST + LAWFUL SOURCE PROVENANCE COUNT TOWARD 120.",
   "rules": {
     "bulk_enumeration": "PROHIBITED",
     "brute_force_discovery": "PROHIBITED",
+    "synthetic_or_guessed_identifiers": "PROHIBITED",
     "duplicates": "PROHIBITED",
-    "exact_120_required_before_live_wave": true,
+    "exact_120_provenance_bound_entries_required_before_live_wave": true,
     "provider_daily_limit": 100,
     "minimum_execution_waves": 2
   },
   "promotion_authority": "NONE",
+  "live_acquisition": "HOLD_UNTIL_120_PROVENANCE_BOUND_ENTRIES",
   "production": "HOLD"
 }
