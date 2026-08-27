@@ -17,9 +17,11 @@ permissions:
   contents: read
   issues: read
 
-# Preserve every canonical-truth observation. Board synchronization may emit
-# many issue events for the same main SHA; those events must never cancel one
-# another because Continuous Assurance treats cancellation as a real failure.
+# KPMO_CANONICAL_TRUTH_EPOCH_V1
+# Multi-board synchronization can emit many issue events for one protected-main
+# SHA. Each event must produce its own terminal receipt. Cancelling an older
+# event because a newer board edit arrived creates an artificial VERIFIED_FAIL
+# in Continuous Assurance, so issue observations are intentionally non-cancellable.
 concurrency:
   group: kpmo-live-canonical-issue-truth-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'issues' && format('{0}-{1}', github.event.issue.number, github.run_id) || github.sha }}
   cancel-in-progress: false
