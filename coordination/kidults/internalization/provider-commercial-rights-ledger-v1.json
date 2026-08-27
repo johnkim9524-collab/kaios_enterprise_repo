@@ -100,22 +100,36 @@
     },
     {
       "provider_id": "CGC_CCG",
-      "evidence_state": "WRITTEN_PROVIDER",
+      "evidence_state": "WRITTEN_PROVIDER_PARTIAL_RESPONSE",
       "commercial": {
-        "price": "UNKNOWN",
-        "minimum_commitment": "UNKNOWN"
+        "membership_fee_amount": "UNKNOWN",
+        "minimum_commitment": "UNKNOWN",
+        "api_included_with_authorized_dealer_membership_and_agreement": true,
+        "numeric_rate_limits": "UNKNOWN"
       },
       "known_path": "DEALER_PORTAL_API",
+      "rights_confirmed": {
+        "internal_data_validation_and_intelligence_use_can_qualify": true,
+        "two_industry_references_mandatory_and_contacted": true
+      },
       "rights_pending": [
         "cert_identity_grade",
         "population_census",
         "private_storage_normalization",
         "entity_resolution_model_calibration_human_qa",
-        "derived_intelligence_retention",
-        "dealer_eligibility",
-        "commercial_terms"
+        "retention_deletion_and_post_termination_derived_rights",
+        "schema_sample_and_documentation",
+        "membership_fee_amount",
+        "numeric_rate_limits",
+        "sla_support_and_minimum_commitment"
       ],
-      "activation_state": "HOLD_DEALER_API_RIGHTS_PENDING"
+      "response_state": "PARTIAL_RESPONSE_RECEIVED_NEEDS_CLARIFICATION",
+      "activation_state": "HOLD_DEALER_APPLICATION_REFERENCES_AGREEMENT_SPEND_CREDENTIAL_AND_DATA",
+      "evidence_refs": [
+        "gmail:message:1a0348bf65698c4f",
+        "gmail:message:1a0436674fda570e",
+        "coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json"
+      ]
     },
     {
       "provider_id": "CLASSIC_COM",

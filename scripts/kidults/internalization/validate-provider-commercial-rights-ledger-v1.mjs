@@ -3,9 +3,14 @@ import {
   GEMRATE_PREFLIGHT_PATH,
   validateGemrateBoundedPilot
 } from '../provider/validate-gemrate-bounded-pilot-preflight-v1.mjs';
+import {
+  CGC_CCG_INTAKE_PATH,
+  validateCgcCcgResponseIntake
+} from '../provider/validate-cgc-ccg-provider-response-intake-v1.mjs';
 
 const l = JSON.parse(fs.readFileSync('coordination/kidults/internalization/provider-commercial-rights-ledger-v1.json','utf8'));
 const gemratePreflight = JSON.parse(fs.readFileSync(GEMRATE_PREFLIGHT_PATH, 'utf8'));
+const cgcCcgIntake = JSON.parse(fs.readFileSync(CGC_CCG_INTAKE_PATH, 'utf8'));
 const errs = [];
 const sameMembers = (actual = [], expected = []) => actual.length === expected.length &&
   [...actual].sort().every((value, index) => value === [...expected].sort()[index]);
@@ -44,6 +49,16 @@ for (const p of l.providers || []) {
     for (const ref of ['gmail:message:1a03ecb47ea56741', 'gmail:message:1a0439617a831715', GEMRATE_PREFLIGHT_PATH]) {
       if (!p.evidence_refs?.includes(ref)) errs.push(`GEMRATE: evidence binding missing ${ref}`);
     }
+  } else if (p.provider_id === 'CGC_CCG') {
+    if (p.evidence_state !== 'WRITTEN_PROVIDER_PARTIAL_RESPONSE') errs.push('CGC_CCG: partial response evidence state drift');
+    if (p.commercial?.membership_fee_amount !== 'UNKNOWN' || p.commercial?.numeric_rate_limits !== 'UNKNOWN') errs.push('CGC_CCG: unknown economics/rate limits must remain explicit');
+    if (p.commercial?.api_included_with_authorized_dealer_membership_and_agreement !== true) errs.push('CGC_CCG: included API path drift');
+    if (p.rights_confirmed?.internal_data_validation_and_intelligence_use_can_qualify !== true || p.rights_confirmed?.two_industry_references_mandatory_and_contacted !== true) errs.push('CGC_CCG: confirmed eligibility/reference facts drift');
+    if (p.response_state !== 'PARTIAL_RESPONSE_RECEIVED_NEEDS_CLARIFICATION') errs.push('CGC_CCG: response state drift');
+    if (p.activation_state !== 'HOLD_DEALER_APPLICATION_REFERENCES_AGREEMENT_SPEND_CREDENTIAL_AND_DATA') errs.push('CGC_CCG: activation HOLD drift');
+    for (const ref of ['gmail:message:1a0348bf65698c4f', 'gmail:message:1a0436674fda570e', CGC_CCG_INTAKE_PATH]) {
+      if (!p.evidence_refs?.includes(ref)) errs.push(`CGC_CCG: evidence binding missing ${ref}`);
+    }
   } else if (p.provider_id === 'ALT_FNDATA') {
     if (p.evidence_state !== 'WRITTEN_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA: rejection evidence state drift');
     if (p.activation_state !== 'NO_GO_PROVIDER_DECLINED_COMPETITOR_CONFLICT') errs.push('ALT_FNDATA: activation must remain terminal NO_GO');
@@ -54,6 +69,7 @@ for (const p of l.providers || []) {
   }
 }
 for (const finding of validateGemrateBoundedPilot(gemratePreflight)) errs.push(`GEMRATE_PREFLIGHT: ${finding}`);
+for (const finding of validateCgcCcgResponseIntake(cgcCcgIntake)) errs.push(`CGC_CCG_INTAKE: ${finding}`);
 const g = l.global_non_bypass || {};
 if (g.unknown_rights_may_activate !== false) errs.push('unknown rights activation must be false');
 if (g.unknown_price_may_be_zero !== false) errs.push('unknown price cannot be zero');
@@ -71,6 +87,8 @@ console.log(JSON.stringify({
   gemrate_bounded_pilot_rights:'PASS_WITH_POST_TERMINATION_DERIVED_HOLD',
   gemrate_activation:'HOLD',
   gemrate_acquisition:'0_OF_120',
+  cgc_ccg_response:'PARTIAL_RESPONSE_RECEIVED_NEEDS_CLARIFICATION',
+  cgc_ccg_activation:'HOLD',
   activation:'SIX_HOLD_ONE_TERMINAL_NO_GO',
   production:g.production,
   g5:g.g5

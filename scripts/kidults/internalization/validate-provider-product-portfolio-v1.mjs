@@ -21,9 +21,12 @@ const EXPECTED_HOLD_IDS = [
 
 const EXPECTED_PENDING_RESPONSE_IDS = [
   'PSA_ENTERPRISE_API',
-  'CGC_DEALER_PORTAL_API',
   'LIVEART_PILOT',
   'HAGERTY_UNSPECIFIED_PRODUCT'
+];
+
+const EXPECTED_PARTIAL_RESPONSE_IDS = [
+  'CGC_DEALER_PORTAL_API'
 ];
 
 const EXPECTED_DROP_IDS = [
@@ -159,15 +162,20 @@ function validatePortfolio(portfolio) {
   const pendingResponseIds = products
     .filter(product => product.decision === 'PENDING_PROVIDER_RESPONSE')
     .map(product => product.productId);
+  const partialResponseIds = products
+    .filter(product => product.decision === 'PARTIAL_RESPONSE_RECEIVED')
+    .map(product => product.productId);
   const terminalDispositionIds = products
     .filter(product => ['DROP', 'REJECTED'].includes(product.decision))
     .map(product => product.productId);
 
   assert(sameMembers(conditionalHoldIds, EXPECTED_HOLD_IDS), 'conditional HOLD universe drift');
   assert(sameMembers(pendingResponseIds, EXPECTED_PENDING_RESPONSE_IDS), 'pending provider-response universe drift');
+  assert(sameMembers(partialResponseIds, EXPECTED_PARTIAL_RESPONSE_IDS), 'partial provider-response universe drift');
   assert(sameMembers(terminalDispositionIds, EXPECTED_DROP_IDS), 'terminal disposition universe drift');
   assert(portfolio.summary?.conditionalHoldCount === 3, 'conditional HOLD count drift');
-  assert(portfolio.summary?.pendingProviderResponseCount === 4, 'pending provider-response count drift');
+  assert(portfolio.summary?.pendingProviderResponseCount === 3, 'pending provider-response count drift');
+  assert(portfolio.summary?.partialResponseReceivedCount === 1, 'partial provider-response count drift');
   assert(portfolio.summary?.dropCount === 1, 'DROP count must reflect ALT/FNDATA provider rejection');
   assert(
     sameMembers(portfolio.summary?.conditionalHoldProductIds, EXPECTED_HOLD_IDS),
@@ -176,6 +184,10 @@ function validatePortfolio(portfolio) {
   assert(
     sameMembers(portfolio.summary?.pendingProviderResponseProductIds, EXPECTED_PENDING_RESPONSE_IDS),
     'pending provider-response summary drift'
+  );
+  assert(
+    sameMembers(portfolio.summary?.partialResponseReceivedProductIds, EXPECTED_PARTIAL_RESPONSE_IDS),
+    'partial provider-response summary drift'
   );
   assert(
     sameMembers(portfolio.summary?.dropProductIds, EXPECTED_DROP_IDS),
@@ -273,6 +285,18 @@ function validatePortfolio(portfolio) {
     assert(classic.evidenceGates?.includes(gate), `Classic.com missing evidence gate ${gate}`);
   }
 
+  const cgc = byId.CGC_DEALER_PORTAL_API ?? {};
+  assert(cgc.decision === 'PARTIAL_RESPONSE_RECEIVED', 'CGC/CCG partial response decision drift');
+  assert(cgc.pendingReason === 'API_PATH_AND_INTERNAL_INTELLIGENCE_ELIGIBILITY_PARTIALLY_CONFIRMED_FIELDS_RIGHTS_PRICE_AND_RATE_LIMITS_UNRESOLVED', 'CGC/CCG pending reason drift');
+  const cgcPartial = cgc.partialResponseReadiness ?? {};
+  assert(cgcPartial.state === 'NEEDS_CLARIFICATION', 'CGC/CCG clarification state drift');
+  assert(cgcPartial.apiIncludedWithAuthorizedDealerMembershipAndAgreement === true, 'CGC/CCG API path drift');
+  assert(cgcPartial.internalDataValidationAndIntelligenceUseCanQualify === true, 'CGC/CCG internal-use eligibility drift');
+  assert(cgcPartial.twoIndustryReferencesMandatoryAndContacted === true, 'CGC/CCG reference condition drift');
+  assert(cgcPartial.membershipFeeAmount === 'UNKNOWN' && cgcPartial.numericRateLimits === 'UNKNOWN' && cgcPartial.schemaAndRights === 'UNKNOWN', 'CGC/CCG unknown material terms must remain explicit');
+  assert(cgcPartial.applicationState === 'NOT_SUBMITTED', 'CGC/CCG application must remain unsubmitted');
+  assert(cgcPartial.preflightRef === 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json', 'CGC/CCG intake binding drift');
+
   const altFndata = byId.ALT_FNDATA ?? {};
   assert(altFndata.decision === 'DROP', 'ALT/FNDATA must remain terminal DROP after provider rejection');
   assert(altFndata.role === 'COMPETITOR_BENCHMARK_ONLY', 'ALT/FNDATA role drift');
@@ -283,7 +307,7 @@ function validatePortfolio(portfolio) {
   assert(altFndata.resolvedDisposition?.state === 'NO_GO', 'ALT/FNDATA NO_GO disposition missing');
   assert(altFndata.activation?.state === 'PROHIBITED', 'ALT/FNDATA activation must remain prohibited');
 
-  for (const productId of EXPECTED_PENDING_RESPONSE_IDS) {
+  for (const productId of [...EXPECTED_PENDING_RESPONSE_IDS, ...EXPECTED_PARTIAL_RESPONSE_IDS]) {
     const product = byId[productId] ?? {};
     const terminal = product.terminalDispositionPolicy ?? {};
     assert(terminal.requiresOfficialProviderResponse === true, `${productId}: provider response gate missing`);
@@ -367,6 +391,20 @@ const mutationTests = [
     }
   },
   {
+    name: 'reject_cgc_partial_response_as_complete',
+    mutate: value => {
+      value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API')
+        .partialResponseReadiness.state = 'PASS';
+    }
+  },
+  {
+    name: 'reject_cgc_application_submission',
+    mutate: value => {
+      value.products.find(product => product.productId === 'CGC_DEALER_PORTAL_API')
+        .partialResponseReadiness.applicationState = 'SUBMITTED';
+    }
+  },
+  {
     name: 'reject_missing_provider_response_gate',
     mutate: value => {
       value.products.find(product => product.productId === 'LIVEART_PILOT')
@@ -439,6 +477,7 @@ console.log(JSON.stringify({
   products: portfolio.products.length,
   conditional_hold: portfolio.summary.conditionalHoldCount,
   pending_provider_response: portfolio.summary.pendingProviderResponseCount,
+  partial_provider_response: portfolio.summary.partialResponseReceivedCount,
   terminal_drop: portfolio.summary.dropCount,
   complete_immediately_purchasable_current_sold_products:
     portfolio.currentSoldTransactionFeed.completeImmediatelyPurchasableProductCount,
