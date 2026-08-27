@@ -9,8 +9,6 @@ on:
       - "coordination/kidults/**"
   push:
     branches: [ main ]
-  schedule:
-    - cron: "37 * * * *"
   workflow_dispatch:
 
 permissions:
