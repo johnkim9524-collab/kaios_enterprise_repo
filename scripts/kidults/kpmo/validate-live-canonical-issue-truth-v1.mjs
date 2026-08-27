@@ -1,6 +1,8 @@
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const expectedMainSha = process.env.EXPECTED_PROTECTED_MAIN_SHA;
+const expectedCanonicalBodyMainSha = process.env.EXPECTED_CANONICAL_BODY_MAIN_SHA || '';
+const truthPhase = process.env.CANONICAL_TRUTH_PHASE || 'SYNCHRONIZED';
 const correctionPrNumber = Number(process.env.CANONICAL_CORRECTION_PR_NUMBER || '1429');
 const expectedCorrectionHead = process.env.EXPECTED_CORRECTION_HEAD_SHA || '';
 const requireLiveCorrectionHead = process.env.REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES === 'true';
@@ -20,16 +22,16 @@ function fail(message) {
   console.error(`FAIL canonical issue truth: ${message}`);
   process.exit(1);
 }
+const isSha = value => /^[0-9a-f]{40}$/i.test(value || '');
 
-if (!repository || !token || !/^[0-9a-f]{40}$/i.test(expectedMainSha || '')) {
+if (!repository || !token || !isSha(expectedMainSha)) {
   fail('GITHUB_REPOSITORY, GITHUB_TOKEN, and exact EXPECTED_PROTECTED_MAIN_SHA are required');
 }
-if (!Number.isInteger(correctionPrNumber) || correctionPrNumber < 1) {
-  fail('CANONICAL_CORRECTION_PR_NUMBER must be a positive integer');
-}
-if (expectedCorrectionHead && !/^[0-9a-f]{40}$/i.test(expectedCorrectionHead)) {
-  fail('EXPECTED_CORRECTION_HEAD_SHA must be empty or an exact SHA');
-}
+if (!['TRANSITION', 'SYNCHRONIZED'].includes(truthPhase)) fail(`unsupported CANONICAL_TRUTH_PHASE ${truthPhase}`);
+if (expectedCanonicalBodyMainSha && !isSha(expectedCanonicalBodyMainSha)) fail('EXPECTED_CANONICAL_BODY_MAIN_SHA must be empty or exact SHA');
+if (truthPhase === 'TRANSITION' && !isSha(expectedCanonicalBodyMainSha)) fail('TRANSITION requires previous exact canonical-body main SHA');
+if (!Number.isInteger(correctionPrNumber) || correctionPrNumber < 1) fail('CANONICAL_CORRECTION_PR_NUMBER must be a positive integer');
+if (expectedCorrectionHead && !isSha(expectedCorrectionHead)) fail('EXPECTED_CORRECTION_HEAD_SHA must be empty or an exact SHA');
 
 const [owner, name] = repository.split('/');
 if (!owner || !name) fail('GITHUB_REPOSITORY must be owner/name');
@@ -37,9 +39,7 @@ const issueAlias = number => `i${number}`;
 
 async function githubGraphql() {
   const requested = [...new Set([...canonicalIssues, ...trackedDefects])];
-  const issueSelections = requested
-    .map(number => `${issueAlias(number)}: issue(number: ${number}) { number body state }`)
-    .join('\n');
+  const issueSelections = requested.map(number => `${issueAlias(number)}: issue(number: ${number}) { number body state }`).join('\n');
   const query = `query($owner:String!,$name:String!,$correction:Int!){\n  repository(owner:$owner,name:$name){\n    ref(qualifiedName:\"refs/heads/main\"){target{... on Commit{oid}}}\n    pullRequest(number:$correction){headRefOid baseRefName}\n    ${issueSelections}\n  }\n}`;
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
@@ -60,33 +60,34 @@ async function githubGraphql() {
   return payload.data.repository;
 }
 
-function validateBodies(mainSha, correctionHead, issues, activeDefects, enforceCorrectionHead) {
+function validateBodies(bodyMainSha, correctionHead, issues, activeDefects, enforceCorrectionHead) {
   const errors = [];
   for (const issue of issues) {
     const body = issue.body || '';
-    if (!body.includes(mainSha)) errors.push(`#${issue.number} missing exact protected-main SHA ${mainSha}`);
+    if (!body.includes(bodyMainSha)) errors.push(`#${issue.number} missing canonical protected-main SHA ${bodyMainSha}`);
     if (!body.includes(`#${correctionPrNumber}`)) errors.push(`#${issue.number} missing canonical correction PR #${correctionPrNumber}`);
     if (enforceCorrectionHead && !body.includes(correctionHead)) errors.push(`#${issue.number} missing live correction head ${correctionHead}`);
-    for (const pattern of forbiddenClosureClaims) {
-      if (pattern.test(body)) errors.push(`#${issue.number} contains unsupported closure claim ${pattern}`);
-    }
-    for (const defect of activeDefects) {
-      if (!body.includes(`#${defect}`)) errors.push(`#${issue.number} omits active defect #${defect}`);
-    }
+    for (const pattern of forbiddenClosureClaims) if (pattern.test(body)) errors.push(`#${issue.number} contains unsupported closure claim ${pattern}`);
+    for (const defect of activeDefects) if (!body.includes(`#${defect}`)) errors.push(`#${issue.number} omits active defect #${defect}`);
   }
   return errors;
 }
 
 const live = await githubGraphql();
 const observedMainSha = live.ref?.target?.oid || '';
-if (!/^[0-9a-f]{40}$/i.test(observedMainSha)) fail('live protected-main SHA is unavailable');
+if (!isSha(observedMainSha)) fail('live protected-main SHA is unavailable');
 const correctionPrValidation = Boolean(expectedCorrectionHead);
 if (!correctionPrValidation && observedMainSha !== expectedMainSha) fail(`main moved: expected ${expectedMainSha}, observed ${observedMainSha}`);
-const effectiveMainSha = correctionPrValidation ? observedMainSha : expectedMainSha;
+const targetMainSha = correctionPrValidation ? observedMainSha : expectedMainSha;
+const bodyMainSha = truthPhase === 'TRANSITION'
+  ? expectedCanonicalBodyMainSha
+  : (correctionPrValidation ? observedMainSha : expectedMainSha);
+if (!isSha(bodyMainSha)) fail('canonical body generation SHA is unavailable');
+if (truthPhase === 'TRANSITION' && bodyMainSha === targetMainSha) fail('TRANSITION must bind the prior truth generation, not the newly created main SHA');
 
 const correctionPr = live.pullRequest;
 const correctionHead = correctionPr?.headRefOid || '';
-if (!/^[0-9a-f]{40}$/i.test(correctionHead)) fail('canonical correction PR head is unavailable');
+if (!isSha(correctionHead)) fail('canonical correction PR head is unavailable');
 if (correctionPr?.baseRefName !== 'main') fail(`canonical correction PR targets ${correctionPr?.baseRefName || 'UNKNOWN'}, not main`);
 if (expectedCorrectionHead && correctionHead !== expectedCorrectionHead) fail(`correction head moved: expected event head ${expectedCorrectionHead}, observed ${correctionHead}`);
 
@@ -99,21 +100,27 @@ for (const number of [...new Set([...canonicalIssues, ...trackedDefects])]) {
 const issues = canonicalIssues.map(number => issueByNumber.get(number));
 const defectIssues = trackedDefects.map(number => issueByNumber.get(number));
 const activeDefects = defectIssues.filter(issue => issue.state === 'open').map(issue => issue.number);
-const errors = validateBodies(effectiveMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
+const errors = validateBodies(bodyMainSha, correctionHead, issues, activeDefects, requireLiveCorrectionHead);
 if (errors.length) fail(errors.join('; '));
 
 const staleMainMutation = structuredClone(issues);
-staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(effectiveMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
-if (!validateBodies(effectiveMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) fail('stale-main mutation was not rejected');
+staleMainMutation[0].body = staleMainMutation[0].body.replaceAll(bodyMainSha, '0a597e04ab528ae8f36bcd335ee7b1c6df7c51f9');
+if (!validateBodies(bodyMainSha, correctionHead, staleMainMutation, activeDefects, requireLiveCorrectionHead).length) fail('stale-main mutation was not rejected');
+
+if (truthPhase === 'TRANSITION') {
+  const futureShaMutation = structuredClone(issues);
+  futureShaMutation[0].body = futureShaMutation[0].body.replaceAll(bodyMainSha, targetMainSha);
+  if (!validateBodies(bodyMainSha, correctionHead, futureShaMutation, activeDefects, requireLiveCorrectionHead).length) fail('future-SHA transition mutation was not rejected');
+}
 
 const correctionMutation = structuredClone(issues);
 correctionMutation[0].body = `${correctionMutation[0].body}\n#${correctionPrNumber} exact head ${correctionHead}\n`.replaceAll(correctionHead, '1111111111111111111111111111111111111111');
-if (!validateBodies(effectiveMainSha, correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
+if (!validateBodies(bodyMainSha, correctionHead, correctionMutation, activeDefects, true).length) fail('stale-correction-head mutation was not rejected');
 
 if (activeDefects.length) {
   const omissionMutation = structuredClone(issues);
   omissionMutation[0].body = omissionMutation[0].body.replaceAll(`#${activeDefects[0]}`, '');
-  if (!validateBodies(effectiveMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
+  if (!validateBodies(bodyMainSha, correctionHead, omissionMutation, activeDefects, requireLiveCorrectionHead).length) fail('active-defect omission mutation was not rejected');
 }
 
 const closureMutationTexts = [
@@ -124,14 +131,16 @@ const closureMutationTexts = [
 for (const mutationText of closureMutationTexts) {
   const closureMutation = structuredClone(issues);
   closureMutation[0].body += `\n${mutationText}\n`;
-  if (!validateBodies(effectiveMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
+  if (!validateBodies(bodyMainSha, correctionHead, closureMutation, activeDefects, requireLiveCorrectionHead).length) fail(`unsupported-closure mutation was not rejected: ${mutationText}`);
 }
 
 console.log(JSON.stringify({
   validator: 'LIVE_CANONICAL_ISSUE_TRUTH_V1',
   state: 'VERIFIED_PASS',
-  protected_main_sha: effectiveMainSha,
-  event_base_sha: expectedMainSha,
+  truth_phase: truthPhase,
+  target_protected_main_sha: targetMainSha,
+  canonical_body_main_sha: bodyMainSha,
+  event_expected_main_sha: expectedMainSha,
   live_main_observed: observedMainSha,
   correction_pr_validation: correctionPrValidation,
   canonical_correction_pr: correctionPrNumber,
@@ -141,6 +150,7 @@ console.log(JSON.stringify({
   active_defects: activeDefects,
   github_read_mode: 'SINGLE_GRAPHQL_BATCH',
   stale_main_mutation_rejected: true,
+  future_sha_transition_mutation_rejected: truthPhase === 'TRANSITION',
   stale_correction_head_mutation_rejected: true,
   active_defect_omission_mutation_rejected: activeDefects.length > 0,
   unsupported_closure_mutations_rejected: closureMutationTexts.length,
