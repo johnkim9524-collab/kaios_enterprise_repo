@@ -11,6 +11,7 @@ const controlPlaneTests = fs.readdirSync('services/kidults-control-plane/scripts
 const commands = [
   ['postgres-d1-boundary', ['node', 'services/kidults-control-plane/scripts/validate-boundary-v1.mjs']],
   ['postgres-d1-runtime-negative-mutations', ['node', '--test', ...controlPlaneTests]],
+  ['durable-action-state-boundary', ['node', 'scripts/kidults/kpmo/validate-durable-action-state-boundary-v1.mjs']],
   ['source-adapter-concurrency', ['node', 'scripts/kidults/redteam/validate-source-adapter-wave-concurrency-v1.mjs']],
   ['continuous-assurance-cancellation-watch', ['node', 'scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs']],
   ['autonomous-resolution-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs']],
@@ -55,7 +56,7 @@ const ledger = JSON.parse(fs.readFileSync(
 ));
 const receipt = {
   id: 'kidults-p0-control-plane-closure-receipt-v1',
-  version: '1.1.0',
+  version: '1.2.0',
   agent_id: 'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
   as_of: new Date().toISOString(),
   scope: 'LOCAL_AND_CI_CONTRACT_VERIFICATION_ONLY',
@@ -80,6 +81,7 @@ const receipt = {
     system_of_record: 'POSTGRESQL',
     d1_role: 'READ_MODEL_ONLY',
     permitted_normal_d1_writer: ['kpmo-d1-projector-v1'],
+    executive_action_state: 'FAIL_CLOSED_UNTIL_POSTGRESQL_DURABLE_BACKEND',
     enterprise_authorization: 'EXACT_RESOURCE_GRANT_AND_ACTIVE_POSTGRESQL_ENTITLEMENT_REQUIRED',
     billing_authority: 'ATOMIC_POSTGRESQL_SUBSCRIPTION_ENTITLEMENT_AUDIT_OUTBOX',
     outbox_delivery: 'LEASED_SINGLE_PROJECTOR_WITH_APPEND_ONLY_TERMINAL_RECEIPTS',
@@ -94,7 +96,7 @@ const receipt = {
   },
   evidence_refs: results,
   uncertainties: [
-    'REMOTE_POSTGRESQL_NOT_PROVISIONED',
+    'REMOTE_POSTGRESQL_DSN_NOT_PROVEN_AVAILABLE',
     'REMOTE_D1_PROJECTOR_NOT_DEPLOYED',
     'LEGACY_D1_WRITER_CUTOVER_NOT_VERIFIED_REMOTE',
     'CLOUDFLARE_PREVIEW_SKIP_REMOTE_READBACK_PENDING',
