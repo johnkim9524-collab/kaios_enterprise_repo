@@ -1,5 +1,6 @@
-type DbEnv = { DB: D1Database };
 import { prepareD1ProjectionWrite } from './d1-projector-write-boundary';
+
+type DbEnv = { DB: D1Database };
 
 type PortalPayload = Record<string, any>;
 
