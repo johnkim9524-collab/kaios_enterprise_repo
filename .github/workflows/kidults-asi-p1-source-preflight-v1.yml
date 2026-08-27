@@ -106,6 +106,43 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs \
             | tee /tmp/kidults-asi-p1-registry-validation-v1.json
+      - name: Restore exact triggering P0B artifact for workflow-run
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          P0B_EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
+          P0B_EVENT_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$P0B_EVENT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$P0B_EVENT_SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          test "$P0B_EVENT_RUN_ID" != "$GITHUB_RUN_ID"
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_EVENT_RUN_ID}"             > /tmp/p0b-trigger-run.json
+          jq -e             --argjson run "$P0B_EVENT_RUN_ID"             --arg sha "$P0B_EVENT_SOURCE_SHA"             --arg repo "$GITHUB_REPOSITORY"             '.id==$run
+             and .name=="KIDULTS ASI P0B Bounded Discovery Candidates v1"
+             and .path==".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"
+             and .repository.full_name==$repo
+             and .head_branch=="main"
+             and .head_sha==$sha
+             and .status=="completed"
+             and .conclusion=="success"'             /tmp/p0b-trigger-run.json >/dev/null
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_EVENT_RUN_ID}/artifacts?per_page=100"             > /tmp/p0b-artifacts.json
+          P0B_ARTIFACT_ID=$(jq -r --argjson run "$P0B_EVENT_RUN_ID" --arg sha "$P0B_EVENT_SOURCE_SHA"             '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end'             /tmp/p0b-artifacts.json)
+          [[ "$P0B_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ARTIFACT_ID}/zip"             > /tmp/p0b.zip
+          rm -rf /tmp/p0b-expanded /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+          mkdir -p /tmp/p0b-expanded /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+          unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
+          for NAME in             p0b-source-candidate-registry-v1.json             p0b-mission-candidate-binding-ledger-v1.json             p0b-candidate-gap-register-v1.json             p0b-provider-host-diversity-v1.json             p0b-bounded-discovery-manifest-v1.json; do
+            mapfile -t FILES < <(find /tmp/p0b-expanded -type f -name "$NAME" -print)
+            test "${#FILES[@]}" -eq 1
+            cp "${FILES[0]}" "/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/$NAME"
+          done
+          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json             > /tmp/kidults-asi-p0b-candidate-validation-v1.json
+          echo "P0B_INPUT_MODE=EXACT_TRIGGERING_WORKFLOW_RUN" >> "$GITHUB_ENV"
+          echo "P0B_ORIGIN_RUN_ID=$P0B_EVENT_RUN_ID" >> "$GITHUB_ENV"
+          echo "P0B_ORIGIN_SOURCE_SHA=$P0B_EVENT_SOURCE_SHA" >> "$GITHUB_ENV"
       - name: Restore exact successful main P0B for pull-request validation
         if: github.event_name == 'pull_request'
         env:
@@ -159,10 +196,11 @@ jobs:
             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
             > /tmp/kidults-asi-p0b-candidate-validation-v1.json
+          echo "P0B_INPUT_MODE=ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_RUN_ID=$P0B_ORIGIN_RUN_ID" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_SOURCE_SHA=$P0B_ORIGIN_SOURCE_SHA" >> "$GITHUB_ENV"
       - name: Rebuild current P0B source candidates
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && github.event_name != 'workflow_run'
         shell: bash
         run: |
           set -euo pipefail
@@ -208,8 +246,33 @@ jobs:
             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
             > /tmp/kidults-asi-p0b-candidate-validation-v1.json
-          echo "P0B_ORIGIN_RUN_ID=$GITHUB_RUN_ID" >> "$GITHUB_ENV"
+          echo "P0B_INPUT_MODE=REBUILT_LOCAL_CONTROL" >> "$GITHUB_ENV"
+          echo "P0B_ORIGIN_RUN_ID=" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_SOURCE_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+      - name: Enforce P0B producer identity and input-mode contract
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const mode=process.env.P0B_INPUT_MODE;
+          const origin=process.env.P0B_ORIGIN_RUN_ID || null;
+          const source=process.env.P0B_ORIGIN_SOURCE_SHA;
+          if (process.env.GITHUB_EVENT_NAME==='workflow_run') {
+            const expected=String(event.workflow_run?.id || '');
+            if (mode!=='EXACT_TRIGGERING_WORKFLOW_RUN') throw new Error('P0B_INPUT_MODE_NOT_EXACT');
+            if (!expected || origin!==expected) throw new Error('P0B_ORIGIN_NOT_TRIGGERING_RUN');
+            if (origin===process.env.GITHUB_RUN_ID) throw new Error('P0B_SELF_ORIGIN_FORBIDDEN');
+            if (source!==event.workflow_run?.head_sha) throw new Error('P0B_ORIGIN_SHA_MISMATCH');
+          } else if (process.env.GITHUB_EVENT_NAME==='pull_request') {
+            if (mode!=='ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST') throw new Error('P0B_PR_INPUT_MODE_INVALID');
+            if (!origin || origin===process.env.GITHUB_RUN_ID) throw new Error('P0B_PR_ORIGIN_INVALID');
+          } else {
+            if (mode!=='REBUILT_LOCAL_CONTROL') throw new Error('P0B_LOCAL_INPUT_MODE_INVALID');
+            if (origin!==null) throw new Error('P0B_LOCAL_REBUILD_MUST_NOT_CLAIM_PRODUCER_RUN');
+            if (source!==process.env.GITHUB_SHA) throw new Error('P0B_LOCAL_SOURCE_SHA_MISMATCH');
+          }
+          NODE
       - name: Build P1 classification qualification and Gate 1 outputs
         run: |
           set -euo pipefail
@@ -325,7 +388,7 @@ jobs:
       - name: Emit KPMO P1 source-preflight receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-p1-source-preflight-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-p1-source-preflight-v1/p1-source-preflight-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const runtime=JSON.parse(fs.readFileSync('/tmp/kidults-asi-p1-source-preflight-runtime-receipts-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-p1-source-preflight-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_origin_run_id:process.env.P0B_ORIGIN_RUN_ID,p0b_origin_source_sha:process.env.P0B_ORIGIN_SOURCE_SHA,manifest_digest:digest,results:m.results,runtime_preflight:{grains:runtime.candidate_mission_grains_runtime_preflighted,tasks:runtime.source_preflight_tasks_runtime_preflighted,classification_tasks:runtime.classification_tasks_runtime_preflighted,qualification_tasks:runtime.qualification_tasks_runtime_preflighted,fleets:runtime.runtime_registered_fleets_exercised,receipts:runtime.alignment_receipts},autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-p1-source-preflight-v1/p1-source-preflight-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const runtime=JSON.parse(fs.readFileSync('/tmp/kidults-asi-p1-source-preflight-runtime-receipts-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-p1-source-preflight-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_input_mode:process.env.P0B_INPUT_MODE,p0b_origin_run_id:process.env.P0B_ORIGIN_RUN_ID||null,p0b_origin_source_sha:process.env.P0B_ORIGIN_SOURCE_SHA,manifest_digest:digest,results:m.results,runtime_preflight:{grains:runtime.candidate_mission_grains_runtime_preflighted,tasks:runtime.source_preflight_tasks_runtime_preflighted,classification_tasks:runtime.classification_tasks_runtime_preflighted,qualification_tasks:runtime.qualification_tasks_runtime_preflighted,fleets:runtime.runtime_registered_fleets_exercised,receipts:runtime.alignment_receipts},autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-p1-source-preflight-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
