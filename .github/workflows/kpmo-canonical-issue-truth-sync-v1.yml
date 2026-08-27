@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
           UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          CANONICAL_CORRECTION_PR_NUMBER: '1438'
+          CANONICAL_CORRECTION_PR_NUMBER: '1441'
         shell: bash
         run: |
           set -euo pipefail
@@ -73,7 +73,7 @@ jobs:
           CANONICAL_VALIDATION_EVENT: post_transition_sync
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.workflow_run.head_sha }}
           CANONICAL_TRUTH_PHASE: SYNCHRONIZED
-          CANONICAL_CORRECTION_PR_NUMBER: '1438'
+          CANONICAL_CORRECTION_PR_NUMBER: '1441'
           PREVIOUS_CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ''
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'true'
