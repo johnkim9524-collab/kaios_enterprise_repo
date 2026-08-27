@@ -1,0 +1,106 @@
+{
+  "receipt_id": "KIDULTS_PSA_PREMIUM_API_CONNECTION_RECEIPT_V1",
+  "version": "1.0.0",
+  "provider_id": "psa-public-api",
+  "generated_at": "2026-08-27T22:39:54Z",
+  "state": "CONNECTION_VERIFIED_BOUNDED_PRIVATE_EVALUATION_CONTROLS_PENDING",
+  "commercial_entitlement": {
+    "plan": "PREMIUM_COLLECTORS_CLUB_API",
+    "membership_state": "PAID_ACTIVE",
+    "annual_usd": 199,
+    "daily_request_limit": 100,
+    "daily_limit_evidence": "WRITTEN_PROVIDER_ACCOUNT_ENTITLEMENT_NOT_PUBLIC_SWAGGER",
+    "enterprise_upgrade_state": "NOT_APPROVED_NOT_REQUIRED"
+  },
+  "written_rights_evidence": [
+    {
+      "gmail_message_id": "1a0345ff34f722e9",
+      "rfc_message_id": "<CAKk4VAHpLn-i-tcUo3Uy8dMBuryePtHYkppFTu6CYzBxHoffjg@mail.gmail.com>",
+      "provider_reply_at": "2026-08-24T15:24:34Z",
+      "decisions": [
+        "ALLOW_PRIVATE_TEMPORARY_CERT_VERIFICATION_STORAGE",
+        "ALLOW_INTERNAL_ENTITY_RESOLUTION_AND_MODEL_CALIBRATION",
+        "ALLOW_INTERNAL_HUMAN_QA",
+        "ALLOW_RAW_RETENTION_UP_TO_30_DAYS_THEN_DELETE",
+        "POPULATION_CENSUS_AVAILABLE",
+        "NO_SEPARATE_COMMERCIAL_AGREEMENT_BEYOND_PREMIUM_AND_API_TERMS"
+      ]
+    },
+    {
+      "gmail_message_id": "1a0396dc3b4b7528",
+      "rfc_message_id": "<CAKk4VAFbhtvg4Jt-XR9EWR7MbcbSBxx-5J0N_4Fnuhs+z-RQKg@mail.gmail.com>",
+      "provider_reply_at": "2026-08-25T14:57:33Z",
+      "decisions": [
+        "ALLOW_RETAIN_NON_RAW_NON_RECONSTRUCTIVE_DERIVED_RESULTS",
+        "POPULATION_CENSUS_AUTHORIZED_METHOD_AVAILABLE_METHOD_DETAIL_AMBIGUOUS"
+      ]
+    }
+  ],
+  "execution_evidence": {
+    "protected_main_sha": "957759043f46c711d18065896cbf438bb3dcf5bd",
+    "workflow_run_id": 33123384792,
+    "workflow_run_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33123384792",
+    "workflow_job_id": 98695582858,
+    "artifact_id": 9667350819,
+    "artifact_name": "kidults-psa-single-cert-probe-summary",
+    "artifact_digest": "sha256:7f9a3e0aeb61a89f93f7eb90245e2bf150b7ce67e68d284261a7934a63160137",
+    "response_digest": "sha256:df365028bb7923e3e6368e74fc0fa6368ce30c775345ceacabdc16499fe92870",
+    "http_status": 200,
+    "provider_calls": 1,
+    "expected_cardinality": 1,
+    "actual_cardinality": 1,
+    "api_connection_state": "VERIFIED_PASS",
+    "official_response_model": "PublicCertificationModel",
+    "official_schema_match": true
+  },
+  "observed_schema": {
+    "top_level_record": "PSACert",
+    "field_paths": [
+      "PSACert.Brand",
+      "PSACert.CardGrade",
+      "PSACert.CardNumber",
+      "PSACert.Category",
+      "PSACert.CertNumber",
+      "PSACert.GradeDescription",
+      "PSACert.IsDualCert",
+      "PSACert.IsPSADNA",
+      "PSACert.LabelType",
+      "PSACert.PopulationHigher",
+      "PSACert.SpecID",
+      "PSACert.SpecNumber",
+      "PSACert.Subject",
+      "PSACert.TotalPopulation",
+      "PSACert.TotalPopulationWithQualifier",
+      "PSACert.Variety",
+      "PSACert.Year"
+    ],
+    "population_context_present": true,
+    "market_or_transaction_fields_admitted": false
+  },
+  "sensitive_data_boundary": {
+    "token_persisted": false,
+    "raw_response_persisted": false,
+    "cert_value_persisted": false,
+    "public_raw_display": "BLOCK",
+    "raw_redistribution": "BLOCK",
+    "raw_commercial_resale": "BLOCK"
+  },
+  "operational_readiness": {
+    "exact_field_map": "PENDING_APPROVAL",
+    "immutable_rights_binding": "VERIFIED_BY_RFC_AND_GMAIL_IMMUTABLE_MESSAGE_IDS",
+    "concrete_encrypted_private_store": "NOT_IMPLEMENTED",
+    "retention_deletion_scheduler_and_receipt": "NOT_CONNECTED",
+    "lawful_known_cert_manifest": "2_KNOWN_OF_120_REQUIRED",
+    "multi_day_quota_plan": "PENDING_MINIMUM_TWO_WAVES",
+    "independent_two_sided_er_evidence": "NOT_ASSEMBLED",
+    "acquisition_progress": "0_OF_120",
+    "candidate_evidence": "NONE_NONE",
+    "track_b": "NOT_STARTED"
+  },
+  "promotion_authority": "NONE",
+  "graded_population_increment": 0,
+  "candidate_evidence_increment": 0,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
