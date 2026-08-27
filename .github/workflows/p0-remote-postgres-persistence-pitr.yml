@@ -1,7 +1,6 @@
 name: P0 Remote PostgreSQL Persistence and PITR Readiness
 
 on:
-  # Manual dispatch remains break-glass only; the same explicit activation gate applies.
   workflow_dispatch:
   push:
     branches:
@@ -227,7 +226,8 @@ jobs:
           test -n "$POSTGRES_DSN"
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; mkdir -p ~/kidults-runtime/bin ~/kidults-runtime/data ~/kidults-runtime/audit; cat > ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh' < scripts/staging/verify-remote-postgres-persistence-pitr.sh
-          "${SSH[@]}" kidults-staging@"$HOST" 'chmod 700 ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh'
+          "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/bin/verify-postgres-target-time-restore.sh' < scripts/staging/verify-postgres-target-time-restore.sh
+          "${SSH[@]}" kidults-staging@"$HOST" 'chmod 700 ~/kidults-runtime/bin/verify-remote-postgres-persistence-pitr.sh ~/kidults-runtime/bin/verify-postgres-target-time-restore.sh'
           printf '%s' "$POSTGRES_DSN" | "${SSH[@]}" kidults-staging@"$HOST" 'umask 077; cat > ~/kidults-runtime/data/postgres-staging.dsn; chmod 600 ~/kidults-runtime/data/postgres-staging.dsn'
           unset POSTGRES_DSN
 
@@ -257,17 +257,35 @@ jobs:
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           "${SSH[@]}" kidults-staging@"$HOST" 'cat ~/kidults-runtime/audit/postgres-persistence-pitr-readiness.json' > artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
           python3 - <<'PY'
-          import json
+          import datetime, json, os, re
           from pathlib import Path
           p=Path('artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json')
           r=json.loads(p.read_text())
           assert r['status']=='PASS'
           assert r['environment']=='STAGING'
           assert r['production_touch'] is False
-          assert r['pitr_capability']=='READY_FOR_TARGET_TIME_RESTORE_EXERCISE'
+          assert r['pitr_capability']=='TARGET_TIME_RESTORE_FIXTURE_READY'
           assert int(r['force_rls_tables']) >= 4
           assert r['before_lsn'] != r['after_lsn']
-          print('REMOTE_POSTGRES_PERSISTENCE_PITR_READINESS_PASS')
+          for key in ('pitr_before_marker_digest','pitr_after_marker_digest'):
+              assert re.fullmatch(r'[a-f0-9]{64}', r[key])
+          assert r['pitr_before_marker'].startswith('pitr-before-')
+          assert r['pitr_after_marker'].startswith('pitr-after-')
+          datetime.datetime.fromisoformat(r['pitr_target_time'].replace(' ', 'T'))
+          fixture={
+              'status':'READY',
+              'environment':'STAGING',
+              'production_touch':False,
+              'source_main_sha': os.environ['GITHUB_SHA'],
+              'before_marker': r['pitr_before_marker'],
+              'after_marker': r['pitr_after_marker'],
+              'before_marker_digest': r['pitr_before_marker_digest'],
+              'after_marker_digest': r['pitr_after_marker_digest'],
+              'target_time': r['pitr_target_time'],
+              'next_required_proof':'RESTORE_TO_TARGET_TIME_THEN_RUN_verify-postgres-target-time-restore.sh'
+          }
+          Path('artifacts/p0-remote-postgres/pitr-target-time-fixture.json').write_text(json.dumps(fixture,indent=2)+'\n')
+          print('REMOTE_POSTGRES_TARGET_TIME_PITR_FIXTURE_READY')
           PY
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
