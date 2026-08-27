@@ -1,0 +1,56 @@
+{
+  "id": "kidults-ai-agent-report-after-remediation-gate-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "scope": "ALL_AI_AGENT_STATUS_AND_PROGRESS_REPORTS",
+  "purpose": "Prevent report-before-fix behavior for reversible internal defects within granted authority.",
+  "normal_report_gate": {
+    "authorized_reversible_defect_present": "REMEDIATION_SEQUENCE_MUST_COMPLETE_BEFORE_ROUTINE_REPORT",
+    "required_sequence": [
+      "ROOT_CAUSE_CORRECTED",
+      "REGRESSION_TESTED",
+      "NEGATIVE_TESTED",
+      "EXACT_HEAD_REVALIDATED",
+      "TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE",
+      "REGISTRY_ISSUE_TRUTH_SYNCED",
+      "VERIFIED_OUTCOME_READY",
+      "PRIORITIZED_IMPROVEMENT_PROPOSAL_READY"
+    ],
+    "report_only_allowed": false
+  },
+  "protected_stop_exception": {
+    "allowed_only_when": [
+      "PRODUCTION_G5",
+      "IRREVERSIBLE_LEGAL_CHANGE",
+      "IRREVERSIBLE_SECURITY_CHANGE",
+      "EXTERNAL_SPEND",
+      "CONTRACTUAL_COMMITMENT",
+      "EXPANDED_CREDENTIAL_OR_PERMISSION",
+      "MISSING_REQUIRED_TOOL_OR_PERMISSION"
+    ],
+    "required_behavior": "FAIL_CLOSED_AND_REPORT_EXACT_BLOCKER_AND_UNBLOCK_CONDITION"
+  },
+  "report_receipt_minimum": {
+    "required_fields": [
+      "defect_disposition",
+      "remediation_sequence",
+      "verification_evidence_refs",
+      "truth_sync_refs",
+      "improvement_proposal"
+    ],
+    "defect_disposition_values": [
+      "NO_REVERSIBLE_DEFECT_DETECTED",
+      "REMEDIATED_AND_VERIFIED",
+      "PROTECTED_STOP_BLOCKED"
+    ]
+  },
+  "violation": {
+    "report_before_authorized_remediation": "P1_OPERATING_DEFECT",
+    "false_remediation_or_verification_claim": "P0_GOVERNANCE_DEFECT",
+    "self_exemption_allowed": false
+  },
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
