@@ -465,8 +465,8 @@
     },
     "candidate_handoff_preflight_workflow_r2": {
       "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
-      "sha256": "sha256:9eb3b47f65b32cecfb293bf178979a901629eaaa281bbc55140d2c1aef634858",
-      "byte_count": 12518
+      "sha256": "sha256:0ecd16c04d79ec9886a31eca6641d1f4ffd8c4dddd8457c8db5ab8a1f857d64c",
+      "byte_count": 13489
     },
     "autonomous_runtime_workflow": {
       "path": ".github/workflows/kidults-autonomous-runtime.yml",
@@ -733,8 +733,8 @@
       },
       "workflow_ref": {
         "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
-        "sha256": "sha256:9eb3b47f65b32cecfb293bf178979a901629eaaa281bbc55140d2c1aef634858",
-        "byte_count": 12518
+        "sha256": "sha256:0ecd16c04d79ec9886a31eca6641d1f4ffd8c4dddd8457c8db5ab8a1f857d64c",
+        "byte_count": 13489
       },
       "materiality": "DOWNSTREAM_TRACK_B_SUBMISSION_TRUTH_BOUNDARY_NOT_UPSTREAM_SHADOW_EXECUTION_OR_PROMOTION_EVIDENCE",
       "local_blocked_selftest": {
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:3e7a46af31d8f3cac5e95dbfebd993508c5a11333ca951aee728b84f9bf32bd7"
+  "evidence_fingerprint": "sha256:6658aecdf224c696298395fd476031eb147f75a1c324afa480c3f1f744e40fda"
 }
