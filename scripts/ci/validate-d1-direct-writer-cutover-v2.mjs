@@ -93,6 +93,8 @@ const byFile = Object.fromEntries(
 );
 const report = {
   gate: 'D1_ZERO_DIRECT_WRITER',
+  approved_projector_boundary: APPROVED_PROJECTOR_BOUNDARY,
+  approved_projector_boundary_version: 'd1-projector-write-boundary-v1',
   scope: 'services/kidults-autonomous-intelligence/src production sources',
   mode,
   generated_at: new Date().toISOString(),
