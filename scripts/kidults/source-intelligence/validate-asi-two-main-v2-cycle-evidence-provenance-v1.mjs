@@ -26,6 +26,7 @@ function validate(source){
   for(const marker of required)if(!source.includes(marker))fail(`MISSING:${marker}`);
   if(source.includes('/actions/artifacts?per_page=100'))fail('REPOSITORY_GLOBAL_ARTIFACT_LOOKUP_FORBIDDEN');
   if(source.includes('Restore latest v1 baseline'))fail('UNBOUND_V1_BASELINE_FORBIDDEN');
+  if(/v1_baseline\s*:\s*(?!null\b)/.test(source))fail('NON_NULL_V1_BASELINE_FORBIDDEN');
   if(!source.includes('/actions/runs/${run_id}/artifacts?per_page=100'))fail('RUN_SCOPED_ARTIFACT_LOOKUP_REQUIRED');
   return true;
 }
