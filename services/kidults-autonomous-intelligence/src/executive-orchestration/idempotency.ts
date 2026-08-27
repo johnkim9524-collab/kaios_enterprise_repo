@@ -2,13 +2,13 @@
  * A29 — Autonomous Executive Decision Orchestration & Approval Lifecycle
  * Module: idempotency.ts
  *
- * Every execution plan requires a stable idempotency key.
- * Duplicate approval/execution attempts return existing result without mutation.
+ * Runtime idempotency MUST be durable. Process-memory state is forbidden here.
+ * Until the PostgreSQL-backed A29 execution service is connected, every runtime
+ * lookup/register attempt fails closed instead of pretending a Map is durable.
  */
 
-// ---------------------------------------------------------------------------
-// Idempotency Store
-// ---------------------------------------------------------------------------
+export const A29_IDEMPOTENCY_BACKEND = 'POSTGRESQL_DURABLE_BACKEND_REQUIRED' as const;
+export const A29_IDEMPOTENCY_RUNTIME_READY = false as const;
 
 export interface IdempotencyRecord<T = unknown> {
   key: string;
@@ -17,37 +17,27 @@ export interface IdempotencyRecord<T = unknown> {
   createdAt: string;
 }
 
-const idempotencyStore: Map<string, IdempotencyRecord> = new Map();
-
-// ---------------------------------------------------------------------------
-// Key Generation
-// ---------------------------------------------------------------------------
-
 export function buildIdempotencyKey(decisionId: string, planId: string): string {
   return `a29:exec:${decisionId}:${planId}`;
 }
-
-// ---------------------------------------------------------------------------
-// Check / Register
-// ---------------------------------------------------------------------------
 
 export type IdempotencyCheckResult<T> =
   | { exists: false }
   | { exists: true; record: IdempotencyRecord<T> };
 
-export function checkIdempotency<T>(key: string): IdempotencyCheckResult<T> {
-  const record = idempotencyStore.get(key);
-  if (!record) return { exists: false };
-  return { exists: true, record: record as IdempotencyRecord<T> };
+function durableBackendRequired(): never {
+  throw new Error('A29_DURABLE_IDEMPOTENCY_BACKEND_REQUIRED');
+}
+
+export function checkIdempotency<T>(_key: string): IdempotencyCheckResult<T> {
+  return durableBackendRequired();
 }
 
 export function registerIdempotencyResult<T>(
-  key: string,
-  decisionId: string,
-  result: T,
-  nowIso: string,
+  _key: string,
+  _decisionId: string,
+  _result: T,
+  _nowIso: string,
 ): IdempotencyRecord<T> {
-  const record: IdempotencyRecord<T> = { key, decisionId, result, createdAt: nowIso };
-  idempotencyStore.set(key, record as IdempotencyRecord);
-  return record;
+  return durableBackendRequired();
 }
