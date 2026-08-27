@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { promisify } from 'node:util';
 import {
   digestProjection,
@@ -42,13 +45,17 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
       if (!/^[a-z][a-z0-9_]*$/.test(name)) fail('POSTGRES_VARIABLE_INVALID', 503);
       args.push(`--set=${name}=${value}`);
     }
-    args.push('--dbname', dsn, '--command', sql);
+    const queryDirectory = await mkdtemp(path.join(os.tmpdir(), 'kaios-psql-'));
+    const queryFile = path.join(queryDirectory, 'query.sql');
+    await writeFile(queryFile, sql, { mode: 0o600 });
+    args.push('--file', queryFile);
     try {
       const { stdout } = await execFileAsync('psql', args, {
         timeout: timeoutMs,
         maxBuffer: 2 * 1024 * 1024,
         env: {
           ...process.env,
+          PGDATABASE: dsn,
           PGAPPNAME: 'kaios-dual-staging-runtime',
           PGCONNECT_TIMEOUT: process.env.PGCONNECT_TIMEOUT || '5'
         }
@@ -66,6 +73,8 @@ export function createPsqlExecutor({ dsn, timeoutMs = 10_000 }) {
         console.error('POSTGRES_QUERY_DIAGNOSTIC', diagnostic);
       }
       fail('POSTGRES_QUERY_FAILED', 503);
+    } finally {
+      await rm(queryDirectory, { recursive: true, force: true });
     }
   };
 }
