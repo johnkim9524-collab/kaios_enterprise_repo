@@ -110,19 +110,32 @@ INSERT INTO kaios_runtime.export_nonces (
   'tenant-rls-a', 'kidults', 'ent-rls-a', repeat('d', 64), repeat('a', 64)
 ) ON CONFLICT DO NOTHING;
 
-DO $$
+DO $
 BEGIN
   BEGIN
     UPDATE kaios_runtime.export_nonces
     SET projection_digest = repeat('e', 64)
     WHERE tenant_id = 'tenant-rls-a';
-    RAISE EXCEPTION 'immutable nonce update unexpectedly succeeded';
+    RAISE EXCEPTION 'application role unexpectedly received immutable UPDATE authority';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+END
+$;
+
+RESET ROLE;
+
+DO $
+BEGIN
+  BEGIN
+    UPDATE kaios_runtime.export_nonces
+    SET projection_digest = repeat('e', 64)
+    WHERE tenant_id = 'tenant-rls-a';
+    RAISE EXCEPTION 'immutable nonce trigger unexpectedly permitted owner UPDATE';
   EXCEPTION
     WHEN object_not_in_prerequisite_state THEN NULL;
   END;
 END
-$$;
-
-RESET ROLE;
+$;
 
 SELECT 'POSTGRES_RLS_ATTACK_SUITE_PASS';
