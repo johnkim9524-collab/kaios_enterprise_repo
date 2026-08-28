@@ -237,7 +237,8 @@ jobs:
               page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
               await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
               await page.keyboard.press('Tab');
-              await page.waitForTimeout(100);
+              await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+              await page.screenshot({path:`${screenshotDir}/portal-r001-approved-w${width}.png`,fullPage:false});
               await page.waitForFunction(()=>globalThis.__kidultsVitals?.lcp>0,{timeout:2000}).catch(()=>{});
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
