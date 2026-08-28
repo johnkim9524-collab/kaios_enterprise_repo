@@ -1,0 +1,1 @@
+Minimal correction: canonical issue-edit runs now serialize instead of cancelling each other. Existing Continuous Assurance is untouched. Real validation failures remain fail-closed. Production/Public/G5 HOLD.
