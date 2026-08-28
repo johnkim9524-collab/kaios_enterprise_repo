@@ -3,11 +3,13 @@ on:
   pull_request:
     paths:
       - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/public/portal/portal-r001/**'
       - 'apps/kidults-enterprise-staging/server.mjs'
       - '.github/workflows/kidults-portal-r001-release-qa.yml'
       - 'tooling/kidults-portal-r001-browser-qa/package.json'
       - 'tooling/kidults-portal-r001-browser-qa/package-lock.json'
       - 'scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs'
       - 'scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs'
       - 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs'
   workflow_dispatch:
@@ -34,7 +36,9 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
       - name: Validate browser QA workflow provenance
-        run: node scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs
+        run: |
+          node scripts/kidults/kpmo/validate-portal-r001-browser-qa-supply-chain-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs
       - name: Install isolated browser QA dependencies
         run: |
           mkdir -p /tmp/kidults-r001-qa

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360">
+  <title>Global market coverage illustration</title>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="80%"><stop stop-color="#174234"/><stop offset=".52" stop-color="#0b2c21"/><stop offset="1" stop-color="#041710"/></radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#d8bd8d" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="800" height="360" fill="url(#bg)"/><rect width="800" height="360" fill="url(#grid)"/>
+  <g fill="#bca57d" fill-opacity=".16" stroke="#d6bc8d" stroke-opacity=".32" stroke-width="2">
+    <path d="M70 92l27-34 65-21 70 20 32 32-17 26-39 9-24 36-26 7-19 41-31-6-8-41-32-23z"/>
+    <path d="M211 199l33 11 20 42-7 58-30 35-18-55-19-31z"/>
+    <path d="M342 78l37-31 65 4 39 25 19 35-38 16-30-12-29 26-42-7-26-27z"/>
+    <path d="M403 143l55-6 41 25 8 55-28 77-36 18-25-62-31-46z"/>
+    <path d="M489 90l53-36 97 2 72 36-13 31-49 8-25 34-57-7-20-29-51 4-24-20z"/>
+    <path d="M650 246l38-22 53 20 14 35-31 28-52-13z"/>
+    <path d="M280 67l17-22 22 5-4 23-25 10z"/>
+  </g>
+  <g fill="none" stroke="#c7a36a" stroke-width="2" stroke-opacity=".58">
+    <path d="M134 110Q284 12 401 112T657 101"/><path d="M231 239Q373 127 480 196T702 267"/><path d="M134 110Q285 185 480 196"/>
+  </g>
+  <g fill="#d7b77e" stroke="#0a2a20" stroke-width="4"><circle cx="134" cy="110" r="8"/><circle cx="231" cy="239" r="7"/><circle cx="401" cy="112" r="8"/><circle cx="480" cy="196" r="8"/><circle cx="657" cy="101" r="7"/><circle cx="702" cy="267" r="7"/></g>
+  <rect y="252" width="800" height="108" fill="#041610" fill-opacity=".63"/>
+</svg>

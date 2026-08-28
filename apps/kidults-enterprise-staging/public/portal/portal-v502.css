@@ -61,7 +61,7 @@ html[data-data-state=error] .registry-ribbon-inner{color:var(--v502-red)}
   scrollbar-width:none
 }
 .registry-ribbon-inner::-webkit-scrollbar{display:none}
-.registry-loading{font-size:11px;color:var(--muted)}
+.registry-loading{font-size:11px;color:#626a64}
 .registry-status-item{
   min-width:max-content;
   display:flex;
