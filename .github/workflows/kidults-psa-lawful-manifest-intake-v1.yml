@@ -3,14 +3,28 @@ name: KIDULTS PSA Lawful Manifest Intake v1
 on:
   pull_request:
     paths:
-      - 'scripts/kidults/provider/build-psa-lawful-manifest-entry-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.test.mjs'
       - 'scripts/kidults/provider/validate-psa-lawful-manifest-intake-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
+      - 'coordination/kidults/provider/psa-120-known-cert-manifest-v1.json'
+      - 'coordination/kidults/provider/psa-lawful-known-cert-intake-runbook-v1.md'
       - '.github/workflows/kidults-psa-lawful-manifest-intake-v1.yml'
   push:
     branches: [main]
     paths:
-      - 'scripts/kidults/provider/build-psa-lawful-manifest-entry-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.test.mjs'
       - 'scripts/kidults/provider/validate-psa-lawful-manifest-intake-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
+      - 'coordination/kidults/provider/psa-120-known-cert-manifest-v1.json'
+      - 'coordination/kidults/provider/psa-lawful-known-cert-intake-runbook-v1.md'
       - '.github/workflows/kidults-psa-lawful-manifest-intake-v1.yml'
   workflow_dispatch:
 
@@ -30,5 +44,9 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate lawful manifest intake without provider credentials
+      - name: Test keyed private batch intake without provider credentials
+        run: node --test services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.test.mjs
+      - name: Validate exact lawful private batch intake errors
         run: node scripts/kidults/provider/validate-psa-lawful-manifest-intake-v1.mjs
+      - name: Validate governed manifest and source authority contract
+        run: node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs

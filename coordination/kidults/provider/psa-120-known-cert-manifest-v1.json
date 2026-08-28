@@ -5,12 +5,16 @@
   "declared_known_count": 2,
   "provenance_bound_admissible_count": 0,
   "remaining_required": 120,
+  "reference_key_id": "PSA_CERT_REFERENCE_KEY_V1",
   "cert_values_in_repository": false,
   "entries": [],
   "required_entry_contract": {
-    "cert_reference_digest": "sha256:<64hex>",
+    "cert_reference_digest": "hmac-sha256:v1:<64hex>",
+    "source_authority_id": "governed active source authority id",
+    "source_authority_entry_digest": "sha256:<64hex> of canonical authority entry including rights_evidence_digest",
+    "source_bundle_token": "hmac-sha256:v1:<64hex>",
+    "source_record_token": "hmac-sha256:v1:<64hex>",
     "source_receipt_digest": "sha256:<64hex>",
-    "source_record_digest": "sha256:<64hex>",
     "source_class": "PROGRAM_OWNER_KNOWN_CERT_RECORD|RIGHTS_CLEAR_PRIVATE_SOURCE_RECORD",
     "rights_basis_id": "PSA_BOUNDED_PRIVATE_EVALUATION_2026_08_24",
     "collector_id": "PROGRAM_OWNER|KPMO_AUTHORIZED_OPERATOR",
@@ -22,14 +26,15 @@
     "empirical_admissible": true
   },
   "source_receipt_contract": {
-    "schema_version": "1.0.0",
+    "schema_version": "2.0.0",
     "receipt_type": "KIDULTS_PSA_KNOWN_CERT_SOURCE_RECEIPT",
     "synthetic": false,
     "enumeration_method": "NONE",
-    "exact_cert_to_receipt_digest_binding_required": true,
+    "source_authority_registry_binding_required": true,
+    "exact_cert_to_source_record_binding_required": true,
     "self_asserted_provenance_rejected": true
   },
-  "truth_boundary": "DECLARED_KNOWN_COUNT_IS_NOT_ADMISSIBLE_PROGRESS. ONLY MACHINE-VALIDATED PROVENANCE-BOUND SOURCE RECEIPTS WITH EXACT CERT BINDING COUNT TOWARD 120.",
+  "truth_boundary": "DECLARED_KNOWN_COUNT_IS_NOT_ADMISSIBLE_PROGRESS. ONLY MACHINE-VALIDATED, AUTHORITY-BOUND SOURCE RECORDS WITH EXACT CERT HMAC BINDING COUNT TOWARD 120. REGISTRY METADATA AND RIGHTS EVIDENCE DIGESTS DO NOT ALONE PROVE LAWFULNESS; EACH ACTUAL SOURCE AUTHORITY REQUIRES EXPLICIT PROGRAM OWNER APPROVAL ON PROTECTED MAIN.",
   "rules": {
     "bulk_enumeration": "PROHIBITED",
     "brute_force_discovery": "PROHIBITED",

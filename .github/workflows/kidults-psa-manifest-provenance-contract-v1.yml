@@ -4,15 +4,21 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/provider/psa-120-known-cert-manifest-v1.json'
-      - 'scripts/kidults/provider/build-psa-lawful-manifest-entry-v1.mjs'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.test.mjs'
       - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
       - '.github/workflows/kidults-psa-manifest-provenance-contract-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/provider/psa-120-known-cert-manifest-v1.json'
-      - 'scripts/kidults/provider/build-psa-lawful-manifest-entry-v1.mjs'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.mjs'
+      - 'scripts/kidults/provider/intake-psa-lawful-known-cert-batch-v1.test.mjs'
       - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
       - '.github/workflows/kidults-psa-manifest-provenance-contract-v1.yml'
 
 permissions:
@@ -26,9 +32,28 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - run: node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs
+      - name: Validate manifest against preexisting protected-base authority
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MANIFEST_REPO_PATH: coordination/kidults/provider/psa-120-known-cert-manifest-v1.json
+          REGISTRY_REPO_PATH: coordination/kidults/provider/psa-source-authority-registry-v1.json
+          PSA_AUTHORITY_PROTECTED_BASE_MANIFEST_PATH: ${{ runner.temp }}/psa-known-cert-manifest-protected-base.json
+          PSA_AUTHORITY_PROTECTED_BASE_REGISTRY_PATH: ${{ runner.temp }}/psa-source-authority-registry-protected-base.json
+        run: |
+          git show "${BASE_SHA}:${MANIFEST_REPO_PATH}" > "${PSA_AUTHORITY_PROTECTED_BASE_MANIFEST_PATH}"
+          if git cat-file -e "${BASE_SHA}:${REGISTRY_REPO_PATH}" 2>/dev/null; then
+            git show "${BASE_SHA}:${REGISTRY_REPO_PATH}" > "${PSA_AUTHORITY_PROTECTED_BASE_REGISTRY_PATH}"
+          else
+            node --input-type=module -e "import fs from 'node:fs'; fs.writeFileSync(process.env.PSA_AUTHORITY_PROTECTED_BASE_REGISTRY_PATH, JSON.stringify({id:'KIDULTS_PSA_SOURCE_AUTHORITY_REGISTRY_V1',schema_version:'1.0.0',state:'NO_ACTIVE_SOURCE_AUTHORITIES',reference_key_id:'PSA_CERT_REFERENCE_KEY_V1',authorities:[]}))"
+          fi
+          node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs
+      - name: Validate manifest on protected main
+        if: github.event_name != 'pull_request'
+        run: node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs

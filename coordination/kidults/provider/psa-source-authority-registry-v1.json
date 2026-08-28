@@ -1,0 +1,7 @@
+{
+  "id": "KIDULTS_PSA_SOURCE_AUTHORITY_REGISTRY_V1",
+  "schema_version": "1.0.0",
+  "state": "NO_ACTIVE_SOURCE_AUTHORITIES",
+  "reference_key_id": "PSA_CERT_REFERENCE_KEY_V1",
+  "authorities": []
+}

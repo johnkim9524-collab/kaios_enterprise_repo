@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_PSA_120_EXECUTION_PLAN_V1",
-  "state": "WAITING_FOR_PROVENANCE_BOUND_LAWFUL_MANIFEST",
+  "state": "GOVERNED_EXECUTION_PLAN_STAGED",
   "target": 120,
   "provider_daily_limit": 100,
   "internal_daily_ceiling": 90,
@@ -24,9 +24,12 @@
     "PROVENANCE_FAILURE",
     "MANIFEST_ENTRY_COUNT_OR_DIGEST_MISMATCH"
   ],
-  "declared_known_count": 2,
-  "provenance_bound_admissible_manifest": 0,
-  "remaining_admissible_manifest": 120,
+  "manifest_progress": {
+    "source": "coordination/kidults/provider/psa-120-known-cert-manifest-v1.json",
+    "admission_counter": "provenance_bound_admissible_count",
+    "remaining_counter": "remaining_required",
+    "declared_known_count_is_not_admission_progress": true
+  },
   "live_execution": "HOLD_UNTIL_PRECONDITIONS",
   "production": "HOLD",
   "public": "HOLD",

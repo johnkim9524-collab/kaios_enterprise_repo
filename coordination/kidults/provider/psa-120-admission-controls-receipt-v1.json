@@ -1,20 +1,30 @@
 {
   "receipt_id": "KIDULTS_PSA_120_ADMISSION_CONTROLS_RECEIPT_V1",
   "state": "CONTROL_IMPLEMENTATION_STAGED",
-  "branch": "kpmo/psa-120-admission-controls-v1",
+  "branch": "kpmo/psa-lawful-intake-runtime-hardening-v1",
   "controls": {
+    "acquisition_orchestrator": "IMPLEMENTED",
     "field_map": "IMPLEMENTED",
     "encrypted_private_store": "IMPLEMENTED",
     "retention_deletion_receipt": "IMPLEMENTED",
+    "lawful_private_batch_intake": "IMPLEMENTED",
     "lawful_manifest_contract": "IMPLEMENTED",
+    "source_authority_registry": "IMPLEMENTED",
+    "keyed_reference_tokens": "IMPLEMENTED",
     "quota_guard": "IMPLEMENTED",
     "validator": "IMPLEMENTED",
     "ci_workflow": "IMPLEMENTED"
   },
   "empirical": {
-    "lawful_known_cert_manifest": "2/120",
-    "live_acquisition": "NOT_RUN",
-    "graded_population": "0/120"
+    "manifest_source": "coordination/kidults/provider/psa-120-known-cert-manifest-v1.json",
+    "provenance_bound_lawful_known_cert_manifest_at_receipt": "0/120",
+    "declared_only_known_cert_count_at_receipt": 2,
+    "declared_only_count_admissible": false,
+    "source_authority_registry_state_at_receipt": "NO_ACTIVE_SOURCE_AUTHORITIES",
+    "live_acquisition_at_receipt": "NOT_RUN",
+    "provider_calls_this_change": 0,
+    "runtime_activation_at_receipt": "HOLD_PENDING_SHARED_QUOTA_AND_SCHEDULED_RETENTION_RUNTIME",
+    "graded_population_at_receipt": "0/120"
   },
   "authority": {
     "live_acquisition_authorized_by_this_receipt": false,

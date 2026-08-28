@@ -1,10 +1,15 @@
 import { createHash } from 'node:crypto';
+import {
+  createPsaCertReferenceToken,
+  decodePsaReferenceKey,
+} from './psa-reference-token.mjs';
 
 const MAX_PROBES = 3;
 const MAX_PROVIDER_CALLS = 3;
 const MAX_RETRIES_PER_CERT = 2;
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DIGEST = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+const REFERENCE_KEY_ID = 'PSA_CERT_REFERENCE_KEY_V1';
 
 function validateCertNumber(value) {
   const cert = String(value ?? '').trim();
@@ -51,8 +56,18 @@ function assertRightsReceipt(receipt) {
   return receipt;
 }
 
-export function buildPsaSchemaCanaryPlan({ certNumbers, rightsReceipt, asOf = new Date() }) {
+function certReferenceTokens(certs, certReferenceKey) {
+  const validatedKey = decodePsaReferenceKey(String(certReferenceKey ?? ''));
+  validatedKey.fill(0);
+  return certs.map(cert => createPsaCertReferenceToken({
+    keyBase64: certReferenceKey,
+    certNumber: cert,
+  }));
+}
+
+export function buildPsaSchemaCanaryPlan({ certNumbers, certReferenceKey, rightsReceipt, asOf = new Date() }) {
   const certs = boundedProbeList(certNumbers);
+  const references = certReferenceTokens(certs, certReferenceKey);
   const rights = assertRightsReceipt(rightsReceipt);
   const observedAt = new Date(asOf);
   if (Number.isNaN(observedAt.valueOf())) throw new Error('PSA_CANARY_AS_OF_INVALID');
@@ -60,7 +75,8 @@ export function buildPsaSchemaCanaryPlan({ certNumbers, rightsReceipt, asOf = ne
     provider_id: 'psa-public-api',
     state: 'READY_FOR_CREDENTIAL_BOUND_SCHEMA_CANARY_ONLY',
     probe_count: certs.length,
-    cert_reference_digests: certs.map(cert => DIGEST(cert)),
+    reference_key_id: REFERENCE_KEY_ID,
+    cert_reference_digests: references,
     endpoint_class: 'CERT_VERIFICATION_SINGLE_ITEM_BY_CERT_NUMBER',
     output_ceiling: 'SCHEMA_KEYS_FIELD_PRESENCE_AND_RESPONSE_DIGEST_ONLY',
     raw_payload_persistence: 'PROHIBITED',
@@ -76,15 +92,19 @@ export async function executePsaSchemaCanary({
   fetchImpl,
   accessToken,
   certNumbers,
+  certReferenceKey,
   rightsReceipt,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   sleep = delay => new Promise(resolve => setTimeout(resolve, delay)),
   now = () => new Date(),
+  executeProviderAttempt,
 }) {
   if (typeof fetchImpl !== 'function') throw new Error('PSA_FETCH_IMPLEMENTATION_REQUIRED');
   if (typeof accessToken !== 'string' || accessToken.length < 8) throw new Error('PSA_ACCESS_TOKEN_REQUIRED');
+  if (typeof executeProviderAttempt !== 'function') throw new Error('PSA_QUOTA_BOUND_PROVIDER_ATTEMPT_REQUIRED');
   if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000) throw new Error('PSA_TIMEOUT_OUT_OF_BOUNDS');
   const certs = boundedProbeList(certNumbers);
+  const references = certReferenceTokens(certs, certReferenceKey);
   assertRightsReceipt(rightsReceipt);
   const attempts = [];
   let providerCalls = 0;
@@ -100,11 +120,18 @@ export async function executePsaSchemaCanary({
       let retriable = false;
       let retryDelayMs = 0;
       try {
-        providerCalls += 1;
-        const response = await fetchImpl(`https://api.psacard.com/publicapi/cert/GetByCertNumber/${encodeURIComponent(cert)}`, {
-          method: 'GET',
-          headers: { Authorization: `bearer ${accessToken}`, Accept: 'application/json' },
-          signal: controller.signal,
+        const response = await executeProviderAttempt({
+          certReferenceDigest: references[certIndex],
+          certIndex,
+          attemptOrdinal: retries + 1,
+          request: async () => {
+            providerCalls += 1;
+            return fetchImpl(`https://api.psacard.com/publicapi/cert/GetByCertNumber/${encodeURIComponent(cert)}`, {
+              method: 'GET',
+              headers: { Authorization: `bearer ${accessToken}`, Accept: 'application/json' },
+              signal: controller.signal,
+            });
+          },
         });
         const body = await response.text();
         let parsed = null;
@@ -115,16 +142,17 @@ export async function executePsaSchemaCanary({
         const retryAfter = Number(response.headers?.get?.('retry-after'));
         retryDelayMs = Number.isFinite(retryAfter) && retryAfter >= 0 ? Math.min(retryAfter * 1000, 5_000) : 250;
         terminal = {
-          cert_reference_digest: DIGEST(cert), started_at: startedAt,
+          cert_reference_digest: references[certIndex], started_at: startedAt,
           completed_at: now().toISOString(), http_status: Number(response.status),
           outcome: response.ok && parsed ? 'SCHEMA_OBSERVED' : 'FAILED',
           response_sha256: DIGEST(body), schema_keys: parsed ? [...schemaKeys(parsed)].sort() : [],
           raw_payload_retained: false, failure_class: failureClass,
         };
       } catch (error) {
+        if (String(error?.code || '').startsWith('PSA_QUOTA_')) throw error;
         retriable = true;
         terminal = {
-          cert_reference_digest: DIGEST(cert), started_at: startedAt,
+          cert_reference_digest: references[certIndex], started_at: startedAt,
           completed_at: now().toISOString(), http_status: null, outcome: 'FAILED',
           response_sha256: null, schema_keys: [], raw_payload_retained: false,
           failure_class: error?.name === 'AbortError' ? 'TIMEOUT' : 'TRANSPORT_ERROR',
@@ -150,6 +178,7 @@ export async function executePsaSchemaCanary({
     receipt_id: 'KIDULTS_PSA_SCHEMA_CANARY_RECEIPT_V1',
     state: successful === attempts.length ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
     provider_id: 'psa-public-api',
+    reference_key_id: REFERENCE_KEY_ID,
     expected_cardinality: certs.length,
     actual_cardinality: attempts.length,
     provider_calls: providerCalls,
@@ -164,4 +193,4 @@ export async function executePsaSchemaCanary({
   };
 }
 
-export const psaAdapterInternals = { schemaKeys, validateCertNumber, assertRightsReceipt };
+export const psaAdapterInternals = { schemaKeys, validateCertNumber, assertRightsReceipt, certReferenceTokens };

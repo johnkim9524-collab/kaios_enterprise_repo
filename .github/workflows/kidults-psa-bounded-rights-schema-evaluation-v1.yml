@@ -2,11 +2,29 @@ name: KIDULTS PSA Bounded Rights Schema Evaluation V1
 
 on:
   workflow_dispatch:
-    inputs:
-      cert_numbers:
-        description: 'One to three known PSA cert numbers, comma-separated; no enumeration'
-        required: true
-        type: string
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
+      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
+      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
 
 permissions:
   contents: read
@@ -32,6 +50,9 @@ jobs:
         run: |
           node --check scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs
           node --check scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs
+          node --test scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs
           node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
             coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
             /tmp/psa-preflight-default.json
@@ -54,14 +75,19 @@ jobs:
           test "$code" -eq 3
 
   bounded-live-schema-probe:
-    if: github.ref == 'refs/heads/main'
+    needs: prove-default-fail-closed
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: kidults-psa-provider-account-quota
+      cancel-in-progress: false
     environment: kidults-psa-bounded-probe
-    runs-on: ubuntu-24.04
+    runs-on: [self-hosted, linux, x64, kidults-psa-private]
     timeout-minutes: 8
     env:
       KAIOS_PSA_ACCOUNT_AUTHORIZED: ${{ vars.KAIOS_PSA_ACCOUNT_AUTHORIZED }}
       KAIOS_PSA_EULA_COMPATIBLE: ${{ vars.KAIOS_PSA_EULA_COMPATIBLE }}
-      KAIOS_PSA_PROBE_CERTS: ${{ inputs.cert_numbers }}
+      KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED: ${{ vars.KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED }}
+      PSA_PRIVATE_RUNTIME_ROOT: ${{ vars.KAIOS_PSA_PRIVATE_RUNTIME_ROOT }}
       KAIOS_REQUIRE_PSA_PROBE_ALLOWED: '1'
     steps:
       - name: Verify live main before provider credential resolution
@@ -94,10 +120,43 @@ jobs:
         env:
           EXPECTED_SHA: ${{ github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Verify configured private runtime boundary before provider credential resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED" = "1"
+          test -n "$PSA_PRIVATE_RUNTIME_ROOT"
+          test -d "$PSA_PRIVATE_RUNTIME_ROOT"
+          test ! -L "$PSA_PRIVATE_RUNTIME_ROOT"
+          test "$(stat -c '%a' "$PSA_PRIVATE_RUNTIME_ROOT")" = "700"
+          [[ "$GITHUB_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]]
+          node --input-type=module - <<'NODE'
+          import { realpathSync } from 'node:fs';
+          import { sep } from 'node:path';
+          const privateRoot = realpathSync(process.env.PSA_PRIVATE_RUNTIME_ROOT);
+          const workspace = realpathSync(process.env.GITHUB_WORKSPACE);
+          const overlaps = privateRoot === workspace || privateRoot.startsWith(`${workspace}${sep}`) || workspace.startsWith(`${privateRoot}${sep}`);
+          if (overlaps) throw new Error('PSA_PRIVATE_RUNTIME_OVERLAPS_REPOSITORY');
+          console.log('Private PSA runtime filesystem boundary PASS; cross-run persistence and sharedness are not asserted.');
+          NODE
       - name: Authorize and run bounded documented single-cert schema probe
         env:
           KAIOS_PSA_API_TOKEN: ${{ secrets.KAIOS_PSA_API_TOKEN }}
+          KAIOS_PSA_PROBE_CERTS: ${{ secrets.KAIOS_PSA_PROBE_CERTS }}
+          PSA_CERT_REFERENCE_KEY_B64: ${{ secrets.PSA_CERT_REFERENCE_KEY_B64 }}
         run: |
+          set -euo pipefail
+          test -n "$KAIOS_PSA_API_TOKEN"
+          test -n "$KAIOS_PSA_PROBE_CERTS"
+          test -n "$PSA_CERT_REFERENCE_KEY_B64"
+          printf '::add-mask::%s\n' "$KAIOS_PSA_API_TOKEN" "$KAIOS_PSA_PROBE_CERTS" "$PSA_CERT_REFERENCE_KEY_B64"
+          IFS=',' read -r -a cert_values <<< "$KAIOS_PSA_PROBE_CERTS"
+          for cert_value in "${cert_values[@]}"; do
+            cert_value="${cert_value//[[:space:]]/}"
+            test -n "$cert_value"
+            printf '::add-mask::%s\n' "$cert_value"
+          done
           node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs \
             coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
             /tmp/psa-preflight-live.json
@@ -105,13 +164,34 @@ jobs:
             coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json \
             /tmp/psa-single-cert-schema-v1.json
       - name: Enforce no raw payload / no reviewer-material promotion
+        env:
+          KAIOS_PSA_API_TOKEN: ${{ secrets.KAIOS_PSA_API_TOKEN }}
+          KAIOS_PSA_PROBE_CERTS: ${{ secrets.KAIOS_PSA_PROBE_CERTS }}
+          PSA_CERT_REFERENCE_KEY_B64: ${{ secrets.PSA_CERT_REFERENCE_KEY_B64 }}
         run: |
           node - <<'NODE'
+          const fs=require('node:fs');
+          const text=fs.readFileSync('/tmp/psa-single-cert-schema-v1.json','utf8');
           const x=require('/tmp/psa-single-cert-schema-v1.json');
           if(x.probe_count<1||x.probe_count>3) process.exit(1);
+          if(x.state!=='VERIFIED_PASS'||x.successful_probe_count!==x.probe_count||x.failure_receipt_count!==0) process.exit(1);
           if(x.raw_provider_payload_retained!==false||x.token_retained!==false||x.reviewer_material_increment!==0) process.exit(1);
+          if(x.cert_reference_key_retained!==false||x.policy_violation_count!==0) process.exit(1);
           if(x.rights_state!=='PENDING_ACTUAL_API_EULA_TERMINALIZATION'||x.production!=='HOLD'||x.publication!=='HOLD') process.exit(1);
-          for(const r of x.results){if(r.raw_payload_emitted!==false||!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256)||!/^sha256:[a-f0-9]{64}$/.test(r.cert_number_sha256))process.exit(1);}
+          if(x.provider_call_budget!==3||x.provider_calls<1||x.provider_calls>x.provider_call_budget) process.exit(1);
+          if(x.quota_lease?.state!=='ENFORCED_DURABLE_PRIVATE_ROOT_PRE_FETCH'||x.quota_lease.approved_daily_budget!==100||x.quota_lease.per_run_cap!==90) process.exit(1);
+          if(x.quota_lease.provider_attempts_reserved!==x.provider_calls||x.quota_lease.private_state_persisted_outside_repository!==true||x.quota_lease.shared_across_eligible_runners_verified!==false) process.exit(1);
+          if(!Array.isArray(x.provider_call_attempts)||x.provider_call_attempts.length!==x.provider_calls) process.exit(1);
+          if(x.results.reduce((sum,r)=>sum+r.provider_call_attempts,0)!==x.provider_calls) process.exit(1);
+          for(const r of [...x.results,...x.provider_call_attempts]){
+            if(r.raw_payload_emitted!==false||!/^hmac-sha256:v1:[a-f0-9]{64}$/.test(r.cert_reference_token))process.exit(1);
+            if(r.response_sha256!==null&&!/^sha256:[a-f0-9]{64}$/.test(r.response_sha256))process.exit(1);
+            if(r.response_sha256===null&&r.http_status!==null)process.exit(1);
+            for(const key of r.top_level_schema_keys||[]){if(!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)||/\d{5,16}/.test(key))process.exit(1);}
+          }
+          const rawCerts=String(process.env.KAIOS_PSA_PROBE_CERTS||'').split(',').map(v=>v.trim()).filter(Boolean);
+          for(const value of [process.env.KAIOS_PSA_API_TOKEN,process.env.PSA_CERT_REFERENCE_KEY_B64,...rawCerts]){if(value&&text.includes(value))process.exit(1);}
+          for(const envName of ['KAIOS_PSA_API_TOKEN','KAIOS_PSA_PROBE_CERTS','PSA_CERT_REFERENCE_KEY_B64']){if(text.includes(envName))process.exit(1);}
           console.log('PASS: PSA bounded schema observation contains no raw provider payload and promotes zero reviewer material.');
           NODE
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

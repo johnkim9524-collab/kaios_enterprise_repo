@@ -4,21 +4,37 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/provider/psa-120-*.json'
+      - 'coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
       - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
+      - 'services/kidults-control-plane/src/psa-acquisition-orchestrator.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
       - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/provider/psa-120-*.json'
+      - 'coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-source-authority-registry-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
       - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
+      - 'services/kidults-control-plane/src/psa-acquisition-orchestrator.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
       - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   workflow_dispatch:
 
@@ -42,3 +58,7 @@ jobs:
         run: node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
       - name: Run PSA private-store regression and negative tests
         run: node --test services/kidults-control-plane/scripts/psa-private-*.test.mjs
+      - name: Run PSA acquisition and durable-quota regression and negative tests
+        run: |
+          node --test services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs

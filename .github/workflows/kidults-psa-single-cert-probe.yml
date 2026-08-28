@@ -2,18 +2,69 @@ name: KIDULTS PSA Single Cert Probe
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-psa-single-cert-probe.yml'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-psa-single-cert-probe.yml'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
+      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
+      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
+      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
 
 permissions:
   contents: read
 
 jobs:
-  probe:
-    if: github.ref == 'refs/heads/main'
-    environment: kidults-psa-public-single-cert
+  validate-no-secrets:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate probe, adapter, HMAC references, and durable quota without secrets
+        run: |
+          node --check scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs
+          node --check services/kidults-control-plane/src/psa-cert-verification-adapter.mjs
+          node --check services/kidults-control-plane/src/psa-provider-quota-lease.mjs
+          node --check services/kidults-control-plane/src/psa-reference-token.mjs
+          node --test scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs
+
+  probe:
+    needs: validate-no-secrets
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: kidults-psa-provider-account-quota
+      cancel-in-progress: false
+    environment: kidults-psa-public-single-cert
+    runs-on: [self-hosted, linux, x64, kidults-psa-private]
     timeout-minutes: 8
     env:
-      PSA_CERT_NUMBER: '08178895'
+      KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED: ${{ vars.KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED }}
+      PSA_PRIVATE_RUNTIME_ROOT: ${{ vars.KAIOS_PSA_PRIVATE_RUNTIME_ROOT }}
     steps:
       - name: Verify live main before provider credential resolution
         shell: bash
@@ -50,20 +101,86 @@ jobs:
           EXPECTED_SHA: ${{ github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
+      - name: Verify configured private runtime boundary before provider credential resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$KAIOS_PSA_PRIVATE_RUNTIME_VERIFIED" = "1"
+          test -n "$PSA_PRIVATE_RUNTIME_ROOT"
+          test -d "$PSA_PRIVATE_RUNTIME_ROOT"
+          test ! -L "$PSA_PRIVATE_RUNTIME_ROOT"
+          test "$(stat -c '%a' "$PSA_PRIVATE_RUNTIME_ROOT")" = "700"
+          [[ "$GITHUB_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$GITHUB_RUN_ATTEMPT" =~ ^[0-9]+$ ]]
+          node --input-type=module - <<'NODE'
+          import { realpathSync } from 'node:fs';
+          import { sep } from 'node:path';
+          const privateRoot = realpathSync(process.env.PSA_PRIVATE_RUNTIME_ROOT);
+          const workspace = realpathSync(process.env.GITHUB_WORKSPACE);
+          const overlaps = privateRoot === workspace || privateRoot.startsWith(`${workspace}${sep}`) || workspace.startsWith(`${privateRoot}${sep}`);
+          if (overlaps) throw new Error('PSA_PRIVATE_RUNTIME_OVERLAPS_REPOSITORY');
+          console.log('Private PSA runtime filesystem boundary PASS; cross-run persistence and sharedness are not asserted.');
+          NODE
+
       - name: Execute one official single-cert probe
         shell: bash
         env:
           PSA_PUBLIC_API_TOKEN: ${{ secrets.PSA_PUBLIC_API_TOKEN }}
+          PSA_KNOWN_CERT_CANARY: ${{ secrets.PSA_KNOWN_CERT_CANARY }}
+          PSA_CERT_REFERENCE_KEY_B64: ${{ secrets.PSA_CERT_REFERENCE_KEY_B64 }}
         run: |
+          set -euo pipefail
+          test -n "$PSA_PUBLIC_API_TOKEN"
+          test -n "$PSA_KNOWN_CERT_CANARY"
+          test -n "$PSA_CERT_REFERENCE_KEY_B64"
+          printf '::add-mask::%s\n' "$PSA_PUBLIC_API_TOKEN" "$PSA_KNOWN_CERT_CANARY" "$PSA_CERT_REFERENCE_KEY_B64"
           node --input-type=module - <<'NODE'
           import fs from 'node:fs/promises';
           import { executePsaSchemaCanary } from './services/kidults-control-plane/src/psa-cert-verification-adapter.mjs';
+          import {
+            assertObservedSchemaKeyPathsSafe,
+            createPsaCertReferenceToken,
+          } from './scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs';
+          import { createPsaProviderQuotaLease } from './services/kidults-control-plane/src/psa-provider-quota-lease.mjs';
 
           const token = process.env.PSA_PUBLIC_API_TOKEN;
-          const cert = process.env.PSA_CERT_NUMBER;
+          const cert = process.env.PSA_KNOWN_CERT_CANARY;
+          const referenceKey = process.env.PSA_CERT_REFERENCE_KEY_B64;
           if (!token) throw new Error('PSA_TOKEN_MISSING');
-          if (!/^\d{8,}$/.test(cert)) throw new Error('PSA_CERT_FORMAT_INVALID');
-          console.log(`::add-mask::${token}`);
+          if (!/^\d{5,12}$/.test(cert)) throw new Error('PSA_CERT_FORMAT_INVALID');
+          const certReferenceToken = createPsaCertReferenceToken(cert, referenceKey);
+          const quotaLease = createPsaProviderQuotaLease({
+            privateRoot: process.env.PSA_PRIVATE_RUNTIME_ROOT,
+            forbiddenRoot: process.env.GITHUB_WORKSPACE,
+            approvedDailyBudget: 100,
+            perRunCap: 90,
+          });
+          const quotaRunId = `github-run-${process.env.GITHUB_RUN_ID}`;
+          const quotaDispatchId = `github-run-${process.env.GITHUB_RUN_ID}-attempt-${process.env.GITHUB_RUN_ATTEMPT}-single`;
+          const executeProviderAttempt = async ({ certReferenceDigest, certIndex, attemptOrdinal, request }) => {
+            const attemptId = `cert-${certIndex + 1}-attempt-${attemptOrdinal}`;
+            let providerRequestStarted = false;
+            try {
+              const execution = await quotaLease.executeAttempt({
+                runId: quotaRunId,
+                dispatchId: quotaDispatchId,
+                attemptId,
+                idempotencyKey: `${quotaDispatchId}-${attemptId}`,
+                requestReferenceDigest: certReferenceDigest,
+              }, async () => {
+                providerRequestStarted = true;
+                return request();
+              });
+              return execution.provider_result;
+            } catch (error) {
+              if (!providerRequestStarted && !String(error?.code || '').startsWith('PSA_QUOTA_')) {
+                const quotaError = new Error('PSA_QUOTA_RESERVATION_FAILED');
+                quotaError.code = 'PSA_QUOTA_RESERVATION_FAILED';
+                throw quotaError;
+              }
+              throw error;
+            }
+          };
 
           const rightsReceipt = {
             provider_id: 'psa-public-api',
@@ -82,19 +199,31 @@ jobs:
             fetchImpl: fetch,
             accessToken: token,
             certNumbers: [cert],
+            certReferenceKey: referenceKey,
             rightsReceipt,
+            executeProviderAttempt,
           });
           const schemaKeys = receipt.attempts?.[0]?.schema_keys ?? [];
+          assertObservedSchemaKeyPathsSafe(schemaKeys, [cert]);
           const officialSchemaMatch = schemaKeys.includes('PSACert.CertNumber') || schemaKeys.includes('DNACert.CertNumber');
           const apiConnectionPass = receipt.state === 'VERIFIED_PASS' &&
             receipt.actual_cardinality === 1 &&
-            receipt.provider_calls === 1 &&
+            receipt.provider_calls >= 1 &&
+            receipt.provider_calls <= receipt.provider_call_budget &&
+            receipt.provider_call_budget === 3 &&
             receipt.attempts?.[0]?.http_status === 200 &&
             receipt.attempts?.[0]?.outcome === 'SCHEMA_OBSERVED' &&
             officialSchemaMatch;
 
+          const sanitizedAttempts = receipt.attempts.map(attempt => {
+            if (attempt.cert_reference_digest !== certReferenceToken) throw new Error('PSA_CERT_REFERENCE_BINDING_INVALID');
+            const { cert_reference_digest: _discardedPublicDigest, ...safeAttempt } = attempt;
+            return { ...safeAttempt, cert_reference_token: certReferenceToken };
+          });
+
           const summary = {
             ...receipt,
+            attempts: sanitizedAttempts,
             receipt_id: 'KIDULTS_PSA_PREMIUM_API_CONNECTION_RECEIPT_V2',
             api_connection_state: apiConnectionPass ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
             official_response_model: 'PublicCertificationModel',
@@ -108,10 +237,25 @@ jobs:
             public: 'HOLD',
             g5: 'EXPLICIT_APPROVAL_REQUIRED',
             rights_state: 'CONFIRMED_FOR_BOUNDED_PRIVATE_EVALUATION',
+            quota_lease: {
+              state: 'ENFORCED_DURABLE_PRIVATE_ROOT_PRE_FETCH',
+              approved_daily_budget: 100,
+              per_run_cap: 90,
+              provider_attempts_reserved: receipt.provider_calls,
+              private_state_persisted_outside_repository: true,
+              shared_across_eligible_runners_verified: false,
+            },
           };
+          const serialized = JSON.stringify(summary);
+          for (const sensitive of [token, cert, referenceKey]) {
+            if (sensitive && serialized.includes(sensitive)) throw new Error('PSA_SENSITIVE_VALUE_IN_ARTIFACT');
+          }
+          if (!summary.attempts.every(attempt => /^hmac-sha256:v1:[a-f0-9]{64}$/.test(attempt.cert_reference_token))) {
+            throw new Error('PSA_CERT_REFERENCE_TOKEN_INVALID');
+          }
           await fs.writeFile('/tmp/psa-probe-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
           if (!apiConnectionPass) throw new Error('PSA_OFFICIAL_SCHEMA_CONTRACT_NOT_VERIFIED');
-          console.log('PSA Premium API connection PASS: authorized official response schema observed; no raw payload retained.');
+          console.log('PSA API connection PASS: authorized official response schema observed; no raw payload retained.');
           NODE
 
       - name: Verify no secret/raw payload persistence
@@ -123,12 +267,16 @@ jobs:
           const fs=require('node:fs');
           const text=fs.readFileSync('/tmp/psa-probe-summary.json','utf8');
           const x=JSON.parse(text);
-          if(text.includes('08178895')||text.includes('PSA_PUBLIC_API_TOKEN')) process.exit(1);
+          if(text.includes('PSA_PUBLIC_API_TOKEN')||text.includes('PSA_KNOWN_CERT_CANARY')||text.includes('PSA_CERT_REFERENCE_KEY_B64')) process.exit(1);
           if(x.api_connection_state!=='VERIFIED_PASS'||x.official_schema_match!==true) process.exit(1);
           if(x.production!=='HOLD'||x.public!=='HOLD'||x.g5!=='EXPLICIT_APPROVAL_REQUIRED') process.exit(1);
           if(x.token_persisted!==false||x.raw_response_persisted!==false||x.cert_value_persisted!==false) process.exit(1);
           if(x.raw_payload_retained!==false||x.promotion_authority!=='NONE') process.exit(1);
-          console.log('Fail-closed persistence boundary PASS: PSA Premium API connection receipt is non-raw and non-promotable.');
+          if(x.provider_calls<1||x.provider_calls>x.provider_call_budget||x.provider_call_budget!==3) process.exit(1);
+          if(x.quota_lease?.state!=='ENFORCED_DURABLE_PRIVATE_ROOT_PRE_FETCH'||x.quota_lease.approved_daily_budget!==100||x.quota_lease.per_run_cap!==90) process.exit(1);
+          if(x.quota_lease.provider_attempts_reserved!==x.provider_calls||x.quota_lease.private_state_persisted_outside_repository!==true||x.quota_lease.shared_across_eligible_runners_verified!==false) process.exit(1);
+          if(!x.attempts.every(a=>/^hmac-sha256:v1:[a-f0-9]{64}$/.test(a.cert_reference_token)&&!('cert_reference_digest' in a))) process.exit(1);
+          console.log('Fail-closed persistence boundary PASS: PSA API connection receipt is non-raw and non-promotable.');
           NODE
 
       - name: Upload sanitized probe summary

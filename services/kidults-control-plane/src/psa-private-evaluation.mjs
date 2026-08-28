@@ -1,6 +1,10 @@
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+const SHA256_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const CERT_REFERENCE_DIGEST_PATTERN = /^(?:sha256:[0-9a-f]{64}|hmac-sha256:v1:[0-9a-f]{64})$/;
+const HMAC_CERT_REFERENCE_PATTERN = /^hmac-sha256:v1:[0-9a-f]{64}$/;
+const CERT_REFERENCE_DOMAIN = 'KIDULTS_PSA_CERT_REFERENCE_V1\0';
 const canonical = value => {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
@@ -55,9 +59,32 @@ function normalize(rawPayload, fieldMap) {
   return normalized;
 }
 
+function normalizeCertNumber(value) {
+  const normalized = String(value ?? '').trim();
+  if (!/^\d{4,16}$/.test(normalized)) throw new Error('PSA_PAYLOAD_CERT_NUMBER_INVALID');
+  return normalized;
+}
+
+function assertPayloadCertReference({ rawPayload, normalized, certReferenceDigest, certReferenceKey }) {
+  if (!HMAC_CERT_REFERENCE_PATTERN.test(certReferenceDigest || '')) throw new Error('PSA_HMAC_CERT_REFERENCE_REQUIRED');
+  const candidates = [
+    normalized.certification_number,
+    rawPayload?.PSACert?.CertNumber,
+    rawPayload?.CertNumber,
+    rawPayload?.cert?.number,
+  ].filter(value => value !== undefined && value !== null && value !== '');
+  if (!candidates.length) throw new Error('PSA_PAYLOAD_CERT_NUMBER_REQUIRED');
+  const certNumbers = [...new Set(candidates.map(normalizeCertNumber))];
+  if (certNumbers.length !== 1) throw new Error('PSA_PAYLOAD_CERT_NUMBER_CONFLICT');
+  if (!Buffer.isBuffer(certReferenceKey) || certReferenceKey.length !== 32) throw new Error('PSA_CERT_REFERENCE_KEY_REQUIRED');
+  const expected = `hmac-sha256:v1:${createHmac('sha256', certReferenceKey).update(`${CERT_REFERENCE_DOMAIN}${certNumbers[0]}`).digest('hex')}`;
+  if (!timingSafeEqual(Buffer.from(expected), Buffer.from(certReferenceDigest))) throw new Error('PSA_CERT_REFERENCE_PAYLOAD_MISMATCH');
+}
+
 export async function stagePsaPrivateEvaluation({
   rawPayload,
   certReferenceDigest,
+  certReferenceKey,
   rightsReceipt,
   fieldMap,
   privateStore,
@@ -67,11 +94,13 @@ export async function stagePsaPrivateEvaluation({
   assertStore(privateStore);
   assertEvaluationRights(rightsReceipt);
   if (typeof admitNormalized !== 'function') throw new Error('PSA_NORMALIZED_ADMISSION_CALLBACK_REQUIRED');
-  if (!/^sha256:[0-9a-f]{64}$/.test(certReferenceDigest || '')) throw new Error('PSA_CERT_REFERENCE_DIGEST_INVALID');
+  if (!CERT_REFERENCE_DIGEST_PATTERN.test(certReferenceDigest || '')) throw new Error('PSA_CERT_REFERENCE_DIGEST_INVALID');
+  if (!HMAC_CERT_REFERENCE_PATTERN.test(certReferenceDigest)) throw new Error('PSA_HMAC_CERT_REFERENCE_REQUIRED');
   const acquired = new Date(acquiredAt);
   if (Number.isNaN(acquired.valueOf())) throw new Error('PSA_ACQUIRED_AT_INVALID');
   if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) throw new Error('PSA_RAW_PAYLOAD_INVALID');
   const normalized = normalize(rawPayload, fieldMap);
+  assertPayloadCertReference({ rawPayload, normalized, certReferenceDigest, certReferenceKey });
   const rawSerialized = canonical(rawPayload);
   const normalizedSerialized = canonical(normalized);
   const rawDigest = sha256(rawSerialized);
@@ -82,11 +111,33 @@ export async function stagePsaPrivateEvaluation({
     acquiredAt: acquired.toISOString(), deleteBy, rawDigest,
   });
   required(privateHandle, 'PSA_PRIVATE_HANDLE');
-  const admission = await admitNormalized({
-    providerId: 'psa-public-api', certReferenceDigest, normalized,
-    rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
-    fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
-  });
+  let admission;
+  try {
+    admission = await admitNormalized({
+      providerId: 'psa-public-api', certReferenceDigest, normalized,
+      rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
+      fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
+    });
+    required(admission, 'PSA_NORMALIZED_ADMISSION_RECEIPT');
+  } catch (admissionError) {
+    try {
+      const compensatedAt = new Date(Math.max(Date.now(), acquired.valueOf())).toISOString();
+      const compensation = await privateStore.delete({
+        handle: privateHandle,
+        reason: 'ADMISSION_FAILED_COMPENSATION',
+        deletedAt: compensatedAt,
+      });
+      if (compensation?.deletion_verified !== true || compensation?.raw_payload_retained !== false) {
+        throw new Error('PSA_ADMISSION_COMPENSATION_NOT_VERIFIED');
+      }
+    } catch (compensationError) {
+      throw new AggregateError(
+        [admissionError, compensationError],
+        'PSA_ADMISSION_FAILED_COMPENSATION_FAILED',
+      );
+    }
+    throw admissionError;
+  }
   return {
     receipt_id: 'KIDULTS_PSA_PRIVATE_EVALUATION_STAGE_RECEIPT_V1',
     state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
@@ -106,20 +157,48 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
   const expired = await privateStore.listExpired({ providerId: 'psa-public-api', beforeOrAt: instant.toISOString() });
   if (!Array.isArray(expired)) throw new Error('PSA_EXPIRED_LIST_INVALID');
   const deleted = [];
+  const deletionReceiptDigests = [];
+  const retentionBreaches = [];
   for (const item of expired) {
     required(item.handle, 'PSA_EXPIRED_HANDLE');
     const deletion = await privateStore.delete({ handle: item.handle, reason: 'RETENTION_EXPIRED', deletedAt: instant.toISOString() });
     if (deletion?.deletion_verified !== true || deletion?.raw_payload_retained !== false) {
       throw new Error('PSA_DELETION_RECEIPT_NOT_VERIFIED');
     }
-    deleted.push(sha256(String(item.handle)));
+    const handleDigest = sha256(String(item.handle));
+    const deletionReceiptDigest = sha256(canonical({
+      handle_digest: handleDigest,
+      state: deletion.state ?? null,
+      record_digest: SHA256_DIGEST_PATTERN.test(deletion.record_digest || '') ? deletion.record_digest : null,
+      cert_reference_digest: CERT_REFERENCE_DIGEST_PATTERN.test(deletion.cert_reference_digest || '') ? deletion.cert_reference_digest : null,
+      deleted_at: deletion.deleted_at ?? null,
+      delete_at: deletion.delete_at ?? null,
+      deletion_verified: true,
+      retention_deadline_met: deletion.retention_deadline_met ?? null,
+      raw_payload_retained: false,
+    }));
+    const retentionDeadlineMissed = deletion.retention_deadline_met === false || deletion.state === 'VERIFIED_RETENTION_BREACH_DELETED';
+    deleted.push(handleDigest);
+    deletionReceiptDigests.push(deletionReceiptDigest);
+    if (retentionDeadlineMissed) {
+      retentionBreaches.push({
+        handleDigest,
+        recordDigest: SHA256_DIGEST_PATTERN.test(deletion.record_digest || '') ? deletion.record_digest : null,
+        receiptDigest: deletionReceiptDigest,
+      });
+    }
   }
   return {
     receipt_id: 'KIDULTS_PSA_RETENTION_DELETION_RECEIPT_V1',
-    state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
+    state: retentionBreaches.length ? 'VERIFIED_RETENTION_BREACH_DELETED' : 'VERIFIED_PASS', provider_id: 'psa-public-api',
     evaluated_at: instant.toISOString(), deleted_count: deleted.length,
-    deleted_handle_digests: deleted.sort(), raw_payload_in_receipt: false,
+    deleted_handle_digests: deleted.sort(), deletion_receipt_digests: deletionReceiptDigests.sort(),
+    retention_breach_count: retentionBreaches.length,
+    retention_breach_digests: retentionBreaches.map(({ receiptDigest }) => receiptDigest).sort(),
+    retention_breach_handle_digests: retentionBreaches.map(({ handleDigest }) => handleDigest).sort(),
+    retention_breach_record_digests: retentionBreaches.flatMap(({ recordDigest }) => recordDigest ? [recordDigest] : []).sort(),
+    raw_payload_in_receipt: false,
   };
 }
 
-export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights };
+export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights, assertPayloadCertReference };
