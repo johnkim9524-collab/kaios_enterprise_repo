@@ -3,8 +3,10 @@ on:
   pull_request:
     paths:
       - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/public/portal/portal-r001/**'
       - 'coordination/kidults/portal/portal-release-001-product-design-v1.md'
       - 'scripts/kidults/portal/validate-portal-release-001.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs'
       - '.github/workflows/kidults-portal-release-001.yml'
   workflow_dispatch:
 
@@ -32,4 +34,5 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - run: node scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs
       - run: node scripts/kidults/portal/validate-portal-release-001.mjs
