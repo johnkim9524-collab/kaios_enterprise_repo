@@ -13,6 +13,7 @@ const ALLOWED_SOURCE_CLASSES = new Set(['PROGRAM_OWNER_KNOWN_CERT_RECORD','RIGHT
 const ALLOWED_COLLECTORS = new Set(['PROGRAM_OWNER','KPMO_AUTHORIZED_OPERATOR']);
 const REQUIRED_RIGHTS_BASIS = 'PSA_BOUNDED_PRIVATE_EVALUATION_2026_08_24';
 const REQUIRED_PURPOSE = 'PRIVATE_ER_EVALUATION_ONLY';
+const EMPIRICAL_HOLD_STATE = 'HOLD_INDEPENDENT_SOURCE_AUTHORITY_NOT_PROVEN';
 
 export function validateSourceReceipt(receipt, certNumber, { controlValidation = false } = {}) {
   const cert = String(certNumber || '').trim();
@@ -50,7 +51,9 @@ export function buildManifestEntry({ certNumber, receipt, controlValidation = fa
     non_enumeration_verified: true,
     enumeration_used: false,
     raw_cert_value_in_repository: false,
-    empirical_admissible: controlValidation ? false : true
+    source_authority_verified: false,
+    empirical_admission_state: EMPIRICAL_HOLD_STATE,
+    empirical_admissible: false
   };
 }
 
