@@ -61,6 +61,23 @@ function assertCertReferenceBinding(normalized, certReferenceDigest) {
   if (sha256(cert) !== certReferenceDigest) throw new Error('PSA_CERT_REFERENCE_DIGEST_MISMATCH');
 }
 
+function assertAdmissionReceipt(admission) {
+  if (!admission || typeof admission !== 'object' || Array.isArray(admission)) throw new Error('PSA_NORMALIZED_ADMISSION_RECEIPT_INVALID');
+  if (!['COMMITTED', 'VERIFIED_PASS'].includes(admission.state)) throw new Error('PSA_NORMALIZED_ADMISSION_NOT_COMMITTED');
+}
+
+async function compensatePrivateWrite({ privateStore, privateHandle, acquiredAt }) {
+  let deletion;
+  try {
+    deletion = await privateStore.delete({ handle: privateHandle, reason: 'STAGE_ABORT', deletedAt: acquiredAt });
+  } catch (error) {
+    throw new Error('PSA_STAGE_COMPENSATING_DELETION_FAILED', { cause: error });
+  }
+  if (deletion?.deletion_verified !== true || deletion?.raw_payload_retained !== false) {
+    throw new Error('PSA_STAGE_COMPENSATING_DELETION_NOT_VERIFIED');
+  }
+}
+
 export async function stagePsaPrivateEvaluation({
   rawPayload,
   certReferenceDigest,
@@ -89,11 +106,22 @@ export async function stagePsaPrivateEvaluation({
     acquiredAt: acquired.toISOString(), deleteBy, rawDigest,
   });
   required(privateHandle, 'PSA_PRIVATE_HANDLE');
-  const admission = await admitNormalized({
-    providerId: 'psa-public-api', certReferenceDigest, normalized,
-    rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
-    fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
-  });
+  let admission;
+  try {
+    admission = await admitNormalized({
+      providerId: 'psa-public-api', certReferenceDigest, normalized,
+      rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
+      fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
+    });
+    assertAdmissionReceipt(admission);
+  } catch (error) {
+    try {
+      await compensatePrivateWrite({ privateStore, privateHandle, acquiredAt: acquired.toISOString() });
+    } catch (cleanupError) {
+      throw new AggregateError([error, cleanupError], 'PSA_STAGE_ADMISSION_FAILED_AND_COMPENSATION_FAILED');
+    }
+    throw error;
+  }
   return {
     receipt_id: 'KIDULTS_PSA_PRIVATE_EVALUATION_STAGE_RECEIPT_V1',
     state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
@@ -129,4 +157,4 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
   };
 }
 
-export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights, assertCertReferenceBinding };
+export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights, assertCertReferenceBinding, assertAdmissionReceipt, compensatePrivateWrite };
