@@ -1,0 +1,37 @@
+{
+  "id": "kidults-mobile-portal-public-authorization-v1",
+  "version": "2.0.0",
+  "state": "HOLD_NOT_AUTHORIZED",
+  "authorization_id": null,
+  "actor": {
+    "github_login": null,
+    "role": "PROGRAM_OWNER"
+  },
+  "scope": "PUBLIC_MOBILE_PORTAL_SHELL_NON_LIVE",
+  "authorized_at": null,
+  "expires_at": null,
+  "authorized_pull_request": null,
+  "authorization_nonce": null,
+  "portal_surface_digest": null,
+  "target": {
+    "provider": "CLOUDFLARE_PAGES",
+    "project": "kidults-mobile-portal-staging",
+    "build_root": "apps/kidults-mobile-portal",
+    "publish_root": "apps/kidults-mobile-portal/public",
+    "path": "/mobile/",
+    "entry_alias": "/",
+    "resolved_asset": "/mobile/index.html"
+  },
+  "single_use": {
+    "bound_to_one_pull_request_and_surface_digest": true,
+    "reusable_after_surface_change": false
+  },
+  "truth_boundary": {
+    "live_approved_projection": "NONE",
+    "empirical_intelligence": false,
+    "mobile_default": "FAIL_CLOSED",
+    "public_live_intelligence": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

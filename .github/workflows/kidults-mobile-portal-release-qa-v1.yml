@@ -1,0 +1,140 @@
+name: KIDULTS Independent Mobile Portal Public Promotion QA
+
+on:
+  pull_request:
+    paths:
+      - 'apps/kidults-mobile-portal/**'
+      - '.github/workflows/kidults-mobile-portal-release-qa-v1.yml'
+      - 'tooling/kidults-mobile-portal-browser-qa/package.json'
+      - 'tooling/kidults-mobile-portal-browser-qa/package-lock.json'
+      - 'scripts/kidults/kpmo/validate-mobile-portal-browser-qa-supply-chain-v1.mjs'
+      - 'scripts/kidults/kpmo/build-mobile-portal-browser-qa-toolchain-receipt-v1.mjs'
+      - 'scripts/kidults/portal/capture-mobile-portal-v1.mjs'
+      - 'scripts/kidults/portal/validate-independent-mobile-portal-v1.mjs'
+      - 'scripts/kidults/portal/validate-mobile-projection-client-v1.mjs'
+      - 'scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs'
+      - 'coordination/kidults/portal/mobile-portal-public-promotion-gate-v1.json'
+      - 'coordination/kidults/portal/mobile-portal-physical-ios-acceptance-v1.json'
+      - 'coordination/kidults/portal/mobile-portal-public-authorization-v1.json'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-mobile-portal/**'
+      - '.github/workflows/kidults-mobile-portal-release-qa-v1.yml'
+      - 'tooling/kidults-mobile-portal-browser-qa/package.json'
+      - 'tooling/kidults-mobile-portal-browser-qa/package-lock.json'
+      - 'scripts/kidults/kpmo/validate-mobile-portal-browser-qa-supply-chain-v1.mjs'
+      - 'scripts/kidults/kpmo/build-mobile-portal-browser-qa-toolchain-receipt-v1.mjs'
+      - 'scripts/kidults/portal/capture-mobile-portal-v1.mjs'
+      - 'scripts/kidults/portal/validate-independent-mobile-portal-v1.mjs'
+      - 'scripts/kidults/portal/validate-mobile-projection-client-v1.mjs'
+      - 'scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs'
+      - 'coordination/kidults/portal/mobile-portal-public-promotion-gate-v1.json'
+      - 'coordination/kidults/portal/mobile-portal-physical-ios-acceptance-v1.json'
+      - 'coordination/kidults/portal/mobile-portal-public-authorization-v1.json'
+jobs:
+  independent-mobile-public-promotion:
+    name: KIDULTS Mobile Portal Public Promotion Gate V1
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # The physical-device-tested source may be the receipt-only parent.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate mobile QA workflow provenance
+        run: node scripts/kidults/kpmo/validate-mobile-portal-browser-qa-supply-chain-v1.mjs
+      - name: Validate exact independent mobile artifact
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node scripts/kidults/portal/validate-independent-mobile-portal-v1.mjs --self-test
+          node scripts/kidults/portal/validate-mobile-projection-client-v1.mjs
+          node scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs --self-test
+      - name: Install isolated mobile browser QA dependencies
+        run: |
+          mkdir -p /tmp/kidults-mobile-qa
+          cp tooling/kidults-mobile-portal-browser-qa/package.json /tmp/kidults-mobile-qa/package.json
+          cp tooling/kidults-mobile-portal-browser-qa/package-lock.json /tmp/kidults-mobile-qa/package-lock.json
+          npm ci --prefix /tmp/kidults-mobile-qa --ignore-scripts --no-audit --no-fund
+          node /tmp/kidults-mobile-qa/node_modules/playwright/cli.js install --with-deps chromium webkit
+          ln -s /tmp/kidults-mobile-qa/node_modules "$GITHUB_WORKSPACE/node_modules"
+      - name: Run independent mobile Portal QA
+        env:
+          KIDULTS_MOBILE_OUTPUT: /tmp/kidults-mobile-public-qa-v1
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/kidults/portal/capture-mobile-portal-v1.mjs
+      - name: Build exact toolchain receipt
+        if: always()
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/kidults/kpmo/build-mobile-portal-browser-qa-toolchain-receipt-v1.mjs /tmp/kidults-mobile-qa/toolchain-receipt.json
+      - name: Determine whether this change mutates the canonical mobile Public surface
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const surfacePaths=['apps/kidults-mobile-portal/'];
+          const isPortalSurface=filename=>surfacePaths.some(surface=>surface.endsWith('/')?filename.startsWith(surface):filename===surface);
+          let changed=false;
+          if(process.env.PR_NUMBER){
+            const files=[];
+            for(let page=1;page<=5;page+=1){
+              const response=await fetch(`${process.env.GITHUB_API_URL}/repos/${process.env.GITHUB_REPOSITORY}/pulls/${process.env.PR_NUMBER}/files?per_page=100&page=${page}`,{headers:{Authorization:`Bearer ${process.env.GH_TOKEN}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});
+              if(!response.ok) throw new Error(`PR_FILES_${response.status}`);
+              const values=await response.json();
+              files.push(...values);
+              if(values.length<100) break;
+              if(page===5) throw new Error('PR_FILES_PAGINATION_BOUND_EXCEEDED');
+            }
+            changed=files.some(file=>[file.filename,file.previous_filename].filter(Boolean).some(isPortalSurface));
+          }else if(process.env.GITHUB_EVENT_NAME==='push'){
+            const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+            const commits=Array.isArray(event.commits)?event.commits:[];
+            if(Number(event.size||0)>commits.length) throw new Error('PUSH_COMMIT_FILE_LIST_TRUNCATED');
+            const files=commits.flatMap(commit=>[...(commit.added||[]),...(commit.modified||[]),...(commit.removed||[])]);
+            changed=files.some(isPortalSurface);
+          }
+          fs.appendFileSync(process.env.GITHUB_ENV,`KIDULTS_PORTAL_SURFACE_CHANGED=${changed?'true':'false'}\n`);
+          console.log(`Canonical mobile Portal surface changed: ${changed}`);
+          NODE
+      - name: Enforce physical iPhone-bound Public promotion
+        if: success()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_PROGRAM_OWNER: ${{ github.repository_owner }}
+          AUTHORIZING_GITHUB_ACTOR: ${{ github.triggering_actor }}
+          KIDULTS_PORTAL_QA_REPORT: /tmp/kidults-mobile-public-qa-v1/mobile-portal-report-v1.json
+          KIDULTS_PORTAL_QA_TOOLCHAIN_RECEIPT: /tmp/kidults-mobile-qa/toolchain-receipt.json
+        run: |
+          if [ "${KIDULTS_PORTAL_SURFACE_CHANGED}" = true ]; then
+            node scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs --promotion
+          else
+            node scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs --contract
+          fi
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kidults-mobile-portal-public-qa-v1
+          path: |
+            /tmp/kidults-mobile-public-qa-v1/mobile-portal-report-v1.json
+            /tmp/kidults-mobile-public-qa-v1/*.png
+            /tmp/kidults-mobile-qa/toolchain-receipt.json
+          retention-days: 30

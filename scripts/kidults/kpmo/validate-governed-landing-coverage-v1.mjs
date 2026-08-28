@@ -11,7 +11,10 @@ const requiredPrefixes = [
   'services/kidults-autonomous-intelligence/',
   'scripts/kidults/kpmo/',
   'scripts/kidults/redteam/',
+  'scripts/kidults/portal/',
   'scripts/kidults/portal/runtime/',
+  'apps/kidults-mobile-portal/',
+  'coordination/kidults/portal/',
   'coordination/kidults/kpmo/',
   'coordination/kidults/audit/',
   'coordination/kidults/security/',
@@ -26,7 +29,7 @@ function findingsFor(policy, workflow, preflight) {
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.2.0', 'POLICY_VERSION');
+  require(policy.version === '1.3.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -110,6 +113,12 @@ const mutations = [
     preflight,
   },
   {
+    id: 'MOBILE_PORTAL_SURFACE_PATH_REMOVED',
+    policy: {...policy, governed_path_prefixes: policy.governed_path_prefixes.filter(x => x !== 'apps/kidults-mobile-portal/')},
+    workflow,
+    preflight,
+  },
+  {
     id: 'ZERO_DIFF_METADATA_GUARD_REMOVED',
     policy,
     workflow: workflow.replace("if (commitCount !== 0 || changedFileCount !== 0) fail(`changed-file API empty but PR metadata is nonzero: commits=${commitCount} changed_files=${changedFileCount}`);", ''),
@@ -131,7 +140,7 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.2.0',
+  version: '1.3.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
@@ -143,6 +152,8 @@ const receipt = {
     provider_rights: true,
     runtime: true,
     infrastructure: true,
+    portal_public_surface: true,
+    portal_promotion_controls: true,
   },
   authorization_boundary: {
     required_approvals: 0,

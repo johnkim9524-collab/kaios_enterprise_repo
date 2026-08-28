@@ -1,0 +1,35 @@
+{
+  "id": "kidults-mobile-portal-physical-ios-acceptance-v1",
+  "version": "2.0.0",
+  "state": "HOLD_NOT_EXECUTED",
+  "portal_surface_digest": null,
+  "tested_source_sha": null,
+  "tested_url": "https://kidults-mobile-portal-staging.pages.dev/mobile/",
+  "device": {
+    "class": "PHYSICAL_IPHONE",
+    "model": null,
+    "ios_version": null,
+    "browser": "MOBILE_SAFARI",
+    "browser_version": null,
+    "persistent_device_identifier": null
+  },
+  "tester": {
+    "github_login": null
+  },
+  "started_at": null,
+  "completed_at": null,
+  "lifecycle_cycles": 0,
+  "results": [],
+  "runtime_errors": [],
+  "crash_count": null,
+  "stale_render_count": null,
+  "horizontal_overflow_count": null,
+  "notes": "Template only. HOLD is intentional until a physical iPhone run is completed against the exact dedicated mobile artifact and hostname.",
+  "authority_boundary": {
+    "self_asserted_automated_result_is_valid": false,
+    "simulator_or_playwright_is_physical_device": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

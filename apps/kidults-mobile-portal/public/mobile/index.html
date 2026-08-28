@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-product="kidults-mobile-intelligence-portal" data-entry-surface="mobile-independent" data-release="mobile-release-001" data-state="NO_PROJECTION">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#082b22">
+  <meta name="description" content="KIDULTS Mobile Intelligence — governed collectibles status and structure designed for mobile.">
+  <meta name="robots" content="noindex,nofollow">
+  <title>KIDULTS Mobile Intelligence</title>
+  <link rel="stylesheet" href="/mobile/mobile.css">
+  <script type="module" src="/mobile/mobile.js"></script>
+</head>
+<body>
+  <a class="m-skip" href="#mobile-main">Skip to intelligence</a>
+
+  <div class="m-app">
+    <header class="m-header">
+      <a class="m-wordmark" href="#home" aria-label="KIDULTS Mobile home">KIDULTS</a>
+      <button class="m-status-button" type="button" data-open-status aria-haspopup="dialog" aria-controls="mobile-status-dialog">
+        <span class="m-state-dot" aria-hidden="true"></span>
+        <span data-header-state>NO PROJECTION</span>
+      </button>
+    </header>
+
+    <section class="m-projection-bar" aria-label="Current governed Projection status">
+      <div>
+        <span>Projection</span>
+        <strong data-projection-state aria-live="polite">NO PROJECTION</strong>
+      </div>
+      <div>
+        <span>As of</span>
+        <strong data-projection-asof>—</strong>
+      </div>
+      <div>
+        <span>Rights</span>
+        <strong data-rights-state>WAITING</strong>
+      </div>
+    </section>
+
+    <main id="mobile-main">
+      <section class="m-brief" id="home" aria-labelledby="mobile-brief-title">
+        <p class="m-eyebrow">READ-ONLY MOBILE INTELLIGENCE</p>
+        <h1 id="mobile-brief-title">Collectibles intelligence,<br>made for the moment.</h1>
+        <p class="m-brief-copy" data-brief-copy>No governed Projection is available. Structure remains visible; market claims stay withheld.</p>
+        <div class="m-brief-actions">
+          <a class="m-primary-action" href="#verticals">View the universes</a>
+          <button class="m-secondary-action" type="button" data-open-status>View status</button>
+        </div>
+      </section>
+
+      <section class="m-section" id="verticals" aria-labelledby="mobile-verticals-title">
+        <div class="m-section-heading">
+          <div><p class="m-eyebrow">8 CORE VERTICALS</p><h2 id="mobile-verticals-title">Eight universes in scope.</h2></div>
+          <span class="m-section-state">STRUCTURE</span>
+        </div>
+        <div class="m-vertical-list" data-mobile-verticals role="list"></div>
+      </section>
+
+      <section class="m-section" id="signals" aria-labelledby="mobile-signals-title">
+        <div class="m-section-heading">
+          <div><p class="m-eyebrow">MARKET PULSE</p><h2 id="mobile-signals-title">What can be said now.</h2></div>
+          <span class="m-section-state" data-signal-state>WAITING</span>
+        </div>
+        <div class="m-signal-list" data-mobile-signals></div>
+      </section>
+
+      <section class="m-section m-k100" id="kidult-100" aria-labelledby="mobile-k100-title">
+        <div class="m-section-heading">
+          <div><p class="m-eyebrow">KIDULT 100</p><h2 id="mobile-k100-title">Benchmark status.</h2></div>
+          <span class="m-section-state" data-k100-state>NO PROJECTION</span>
+        </div>
+        <div class="m-k100-value"><strong data-k100-value>—</strong><span data-k100-note>Ranking waits for approved evidence.</span></div>
+      </section>
+
+      <section class="m-section" id="evidence" aria-labelledby="mobile-evidence-title">
+        <div class="m-section-heading">
+          <div><p class="m-eyebrow">EVIDENCE &amp; LIMITS</p><h2 id="mobile-evidence-title">Know what is missing.</h2></div>
+        </div>
+        <dl class="m-evidence-list" data-mobile-evidence></dl>
+      </section>
+
+    </main>
+
+    <nav class="m-bottom-nav" aria-label="Mobile portal navigation">
+      <a href="#home" aria-label="Overview" aria-current="location"><span aria-hidden="true">⌂</span><b>Home</b></a>
+      <a href="#verticals" aria-label="Core verticals"><span aria-hidden="true">◇</span><b>Verticals</b></a>
+      <a href="#signals" aria-label="Market signals"><span aria-hidden="true">↗</span><b>Signals</b></a>
+      <a href="#evidence" aria-label="Evidence and limits"><span aria-hidden="true">◎</span><b>Evidence</b></a>
+    </nav>
+  </div>
+
+  <dialog class="m-status-dialog" id="mobile-status-dialog" aria-labelledby="mobile-status-title">
+    <form method="dialog"><button class="m-dialog-close" aria-label="Close status details">×</button></form>
+    <p class="m-eyebrow">GOVERNED STATUS</p>
+    <h2 id="mobile-status-title">Current intelligence boundary.</h2>
+    <dl>
+      <div><dt>Projection</dt><dd data-dialog-projection>NO PROJECTION</dd></div>
+      <div><dt>Assessment</dt><dd data-dialog-assessment>NOT STARTED</dd></div>
+      <div><dt>Freshness</dt><dd data-dialog-freshness>NOT AVAILABLE</dd></div>
+      <div><dt>As of</dt><dd data-dialog-asof>NOT AVAILABLE</dd></div>
+      <div><dt>Rights</dt><dd data-dialog-rights>WAITING</dd></div>
+      <div><dt>Release</dt><dd data-dialog-release>HOLD</dd></div>
+      <div><dt>Reason</dt><dd data-dialog-reason>NO GOVERNED PROJECTION</dd></div>
+    </dl>
+  </dialog>
+</body>
+</html>

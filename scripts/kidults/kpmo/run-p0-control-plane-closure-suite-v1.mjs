@@ -23,6 +23,9 @@ const commands = [
   ['source-channel-control-plane', ['node', 'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs']],
   ['pull-request-impact-routing', ['node', 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs']],
   ['governed-landing-coverage', ['node', 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs']],
+  ['mobile-portal-artifact-purity', ['node', 'scripts/kidults/portal/validate-independent-mobile-portal-v1.mjs', '--self-test']],
+  ['mobile-portal-public-promotion-gate', ['node', 'scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs', '--contract']],
+  ['mobile-portal-public-promotion-negative-canaries', ['node', 'scripts/kidults/portal/validate-mobile-portal-public-promotion-gate-v1.mjs', '--self-test']],
 ];
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
