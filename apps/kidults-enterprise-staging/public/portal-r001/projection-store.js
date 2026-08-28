@@ -82,7 +82,13 @@ export async function readPortalProjection({url='/api/v1/projection',controlUrl=
   try{candidate=await response.json()}
   catch{return Object.freeze(invalidProjection('PROJECTION_JSON_INVALID','PRIMARY_INVALID'))}
 
-  if(exactSignedPortalEnvelope(candidate))return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
+  if(exactSignedPortalEnvelope(candidate)){
+    // A signed Portal capability authorizes the non-object Portal fields only.
+    // Object identity/count stay quarantined until independent publication authority
+    // is machine-bound at the producer/consumer boundary.
+    const quarantinedPortalView={...candidate.portal_view,objects:[]};
+    return Object.freeze({...quarantinedPortalView,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
+  }
   if(candidate?.record_type==='kidults_proof_product_projection'){
     const admission=admitProofProductProjection(candidate,{
       surface:'PORTAL_RENDER',
@@ -130,6 +136,7 @@ export const portalProjectionContract=Object.freeze({
   proof_product_admission:'EXECUTED_BEFORE_RENDER',
   browser_clock_authoritative:false,
   approved_projection_release_authority:'SIGNED_SERVER_CAPABILITY',
+  signed_capability_object_publication:'QUARANTINED_UNTIL_INDEPENDENT_AUTHORITY',
   static_approved_projection:false,
   invalid_primary_control_fallback:false,
   control_fallback_statuses:[404,503],

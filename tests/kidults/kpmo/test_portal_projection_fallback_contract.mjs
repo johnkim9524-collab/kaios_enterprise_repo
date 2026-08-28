@@ -74,12 +74,44 @@ await withFetch(async()=>{
   await assert.rejects(()=>readPortalProjection(),error=>error?.name==='AbortError');
 });
 
+const signedEnvelope={
+  ok:true,
+  capability_expires_at:1787905000000,
+  revalidate_after_ms:5000,
+  portal_view:{
+    source:'SIGNED_SERVER_CAPABILITY',
+    projection:{state:'LIVE_APPROVED',projection_id:'projection-qa',assessment_id:'assessment-qa'},
+    release:{state:'READY'},
+    objects:[{object_id:'object-secret',title:'Quarantined object'}],
+    overview:[{label:'Allowed signed field',value:'visible'}]
+  },
+  consumption_receipt:{
+    decision:'ACCEPTED',surface:'PORTAL_RENDER',purpose:'PUBLIC_DISPLAY',
+    release_authority:'SIGNED_SERVER_CAPABILITY',clock_authority:'KIDULTS_CONTROL_PLANE',
+    capability_digest:'a'.repeat(64),payload_exposed:true,
+    projection_id:'projection-qa',assessment_id:'assessment-qa',
+    rights_state:'CLEARED',freshness_state:'CURRENT',
+    production:'HOLD',public:'HOLD',g5:'HOLD'
+  }
+};
+await withFetch(async url=>{
+  assert.equal(url,'/api/v1/projection');
+  return response(signedEnvelope);
+},async()=>{
+  const result=await readPortalProjection();
+  assert.equal(result.projection.state,'LIVE_APPROVED');
+  assert.equal(result.source,'SIGNED_SERVER_CAPABILITY');
+  assert.deepEqual(result.objects,[],'signed Portal capability must not publish object identity/count without independent authority');
+  assert.equal(result.overview[0].value,'visible','non-object signed fields must remain available');
+});
+
 const objectSource=await readFile(new URL('../../../apps/kidults-enterprise-staging/public/portal-r001/object-intelligence.js',import.meta.url),'utf8');
 assert.match(objectSource,/state==='LIVE_APPROVED'&&objects\.length>0\?`\$\{objects\.length\} APPROVED`:'WAITING'/);
 
 const appStore=await readFile(new URL('../../../apps/kidults-enterprise-staging/public/portal-r001/projection-store.js',import.meta.url),'utf8');
 const runtimeStore=await readFile(new URL('../../../scripts/kidults/portal/runtime/projection-store.js',import.meta.url),'utf8');
 assert.equal(runtimeStore,appStore,'runtime projection-store copies must remain byte-identical');
+assert.match(appStore,/signed_capability_object_publication:'QUARANTINED_UNTIL_INDEPENDENT_AUTHORITY'/);
 
 const portalSource=await readFile(new URL('../../../apps/kidults-enterprise-staging/public/portal-r001/portal-release-001.js',import.meta.url),'utf8');
 const syncGate=portalSource.indexOf("gateWorkspace('NO_PROJECTION');");
