@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_type": "KIDULTS_PSA_KNOWN_CERT_SOURCE_RECEIPT",
+  "source_class": "PUBLICLY_OBSERVED_KNOWN_CERT_RECORD",
+  "collector_id": "KPMO_AUTHORIZED_OPERATOR",
+  "rights_basis_id": "PSA_BOUNDED_PRIVATE_EVALUATION_2026_08_24",
+  "admission_purpose": "PRIVATE_ER_EVALUATION_ONLY",
+  "enumeration_method": "NONE",
+  "non_enumeration_verified": true,
+  "synthetic": false,
+  "source_observed_at": "2026-08-28T01:06:07.000Z",
+  "cert_reference_digest": "sha256:c73f9fc38ec2e22fa849bc345f6f94a605daf7d6d8bc073036c5200102e39794",
+  "source_record_digest": "sha256:e29b9adb4ec3ea60879d52067e5926a806a9d1fc300191da7631d4f06dc86626",
+  "source_ref": "https://www.psacard.com/cert/19981610/psa",
+  "receipt_digest": "sha256:d256ec82ab8848a818a9029db7dece88f8d20c0ef33f90eb665e14fd5bb40b48"
+}
