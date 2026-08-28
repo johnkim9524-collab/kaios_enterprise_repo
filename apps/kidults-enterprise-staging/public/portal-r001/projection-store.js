@@ -46,9 +46,9 @@ function exactSignedPortalEnvelope(candidate){
     receipt?.freshness_state==='CURRENT'&&receipt?.production==='HOLD'&&receipt?.public==='HOLD'&&receipt?.g5==='HOLD';
 }
 
-export async function readPortalProjection({url='/api/v1/projection',controlUrl='./data/projection-control-fixture.json'}={}){
+export async function readPortalProjection({url='/api/v1/projection',controlUrl='./data/projection-control-fixture.json',signal}={}){
   try{
-    const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});
+    const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal});
     if(!response.ok)throw new Error(`HTTP_${response.status}`);
     const candidate=await response.json();
     if(exactSignedPortalEnvelope(candidate))return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
@@ -82,7 +82,7 @@ export async function readPortalProjection({url='/api/v1/projection',controlUrl=
     throw new Error('PROJECTION_RECORD_TYPE_INVALID');
   }catch(error){
     if(url===controlUrl||url!=='/api/v1/projection')return Object.freeze(invalidProjection(error?.message));
-    try{return await readPortalProjection({url:controlUrl,controlUrl})}
+    try{return await readPortalProjection({url:controlUrl,controlUrl,signal})}
     catch{return Object.freeze(invalidProjection(error?.message))}
   }
 }

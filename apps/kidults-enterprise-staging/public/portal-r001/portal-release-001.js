@@ -192,7 +192,9 @@ function renderFailure(){
 
 let projectionRevalidationTimer=null;
 let projectionRefreshInFlight=false;
+let projectionRefreshController=null;
 let portalDisposed=false;
+let portalLifecycleEpoch=0;
 
 function scheduleProjectionRefresh(delayMs){
   clearTimeout(projectionRevalidationTimer);
@@ -203,36 +205,62 @@ function scheduleProjectionRefresh(delayMs){
 
 async function refreshProjection(allowHiddenInitialRead=false){
   if(portalDisposed||projectionRefreshInFlight||(!allowHiddenInitialRead&&document.visibilityState==='hidden'))return;
+  const refreshEpoch=portalLifecycleEpoch;
+  const controller=new AbortController();
+  projectionRefreshController=controller;
   projectionRefreshInFlight=true;
   try{
-    const data=await readPortalProjection();
-    if(portalDisposed)return;
+    const data=await readPortalProjection({signal:controller.signal});
+    if(portalDisposed||refreshEpoch!==portalLifecycleEpoch)return;
     render(data);
     scheduleProjectionRefresh(Number.isInteger(data.runtime_revalidate_after_ms)?Math.max(data.runtime_revalidate_after_ms,30000):60000);
   }catch{
-    if(portalDisposed)return;
+    if(portalDisposed||refreshEpoch!==portalLifecycleEpoch)return;
     renderFailure();
     scheduleProjectionRefresh(60000);
   }finally{
-    projectionRefreshInFlight=false;
+    if(refreshEpoch===portalLifecycleEpoch){
+      projectionRefreshInFlight=false;
+      if(projectionRefreshController===controller)projectionRefreshController=null;
+    }
   }
 }
 
 function disposePortalRuntime(){
   portalDisposed=true;
+  portalLifecycleEpoch+=1;
+  projectionRefreshController?.abort();
+  projectionRefreshController=null;
+  projectionRefreshInFlight=false;
   clearTimeout(projectionRevalidationTimer);
   projectionRevalidationTimer=null;
+}
+
+function restorePortalRuntime(){
+  portalLifecycleEpoch+=1;
+  projectionRefreshController?.abort();
+  projectionRefreshController=null;
+  projectionRefreshInFlight=false;
+  portalDisposed=false;
+  renderFailure();
+  if(document.visibilityState==='visible')refreshProjection();
 }
 
 initializeNavigation();
 bindHero();
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
-    portalDisposed=false;
+    if(portalDisposed){
+      portalDisposed=false;
+      projectionRefreshInFlight=false;
+    }
     refreshProjection();
   }else clearTimeout(projectionRevalidationTimer);
 });
-globalThis.addEventListener('pagehide',disposePortalRuntime,{once:true});
+globalThis.addEventListener('pagehide',disposePortalRuntime);
+globalThis.addEventListener('pageshow',event=>{
+  if(event.persisted)restorePortalRuntime();
+});
 // Always perform one fail-closed initial read. Some WebKit/headless lifecycle
 // states report the document as hidden during initial script evaluation; hidden
 // state suppresses recurring polling, but must not leave the portal unrendered.
