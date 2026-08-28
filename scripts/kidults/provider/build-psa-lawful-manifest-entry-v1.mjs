@@ -9,7 +9,7 @@ const stable = value => {
   if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`;
   return JSON.stringify(value);
 };
-const ALLOWED_SOURCE_CLASSES = new Set(['PROGRAM_OWNER_KNOWN_CERT_RECORD','RIGHTS_CLEAR_PRIVATE_SOURCE_RECORD']);
+const ALLOWED_SOURCE_CLASSES = new Set(['PROGRAM_OWNER_KNOWN_CERT_RECORD','RIGHTS_CLEAR_PRIVATE_SOURCE_RECORD','PUBLICLY_OBSERVED_KNOWN_CERT_RECORD']);
 const ALLOWED_COLLECTORS = new Set(['PROGRAM_OWNER','KPMO_AUTHORIZED_OPERATOR']);
 const REQUIRED_RIGHTS_BASIS = 'PSA_BOUNDED_PRIVATE_EVALUATION_2026_08_24';
 const REQUIRED_PURPOSE = 'PRIVATE_ER_EVALUATION_ONLY';
@@ -26,6 +26,7 @@ export function validateSourceReceipt(receipt, certNumber, { controlValidation =
   if (receipt.enumeration_method !== 'NONE' || receipt.non_enumeration_verified !== true) throw new Error('PSA_ENUMERATION_OR_DISCOVERY_PROHIBITED');
   if (receipt.synthetic !== false && !(controlValidation && receipt.synthetic === true)) throw new Error('PSA_SYNTHETIC_SOURCE_RECEIPT_REJECTED');
   if (Number.isNaN(Date.parse(String(receipt.source_observed_at || '')))) throw new Error('PSA_SOURCE_OBSERVED_AT_INVALID');
+  if (receipt.source_class === 'PUBLICLY_OBSERVED_KNOWN_CERT_RECORD' && !/^https:\/\/www\.psacard\.com\/cert\//.test(String(receipt.source_ref || ''))) throw new Error('PSA_PUBLIC_SOURCE_REF_INVALID');
   if (!/^sha256:[0-9a-f]{64}$/.test(String(receipt.cert_reference_digest || ''))) throw new Error('PSA_SOURCE_CERT_DIGEST_INVALID');
   if (!/^sha256:[0-9a-f]{64}$/.test(String(receipt.source_record_digest || ''))) throw new Error('PSA_SOURCE_RECORD_DIGEST_INVALID');
   if (!/^sha256:[0-9a-f]{64}$/.test(String(receipt.receipt_digest || ''))) throw new Error('PSA_SOURCE_RECEIPT_DIGEST_INVALID');
