@@ -1,0 +1,1 @@
+import fs from 'node:fs';const t=fs.readFileSync('coordination/kidults/kpmo/canonical-issue-serialization-final-v1.md','utf8');for(const s of ['serialize instead of cancelling','Continuous Assurance is untouched','fail-closed','Production/Public/G5 HOLD'])if(!t.includes(s))process.exit(1);console.log('CANONICAL_SERIALIZATION_FINAL_PASS');
