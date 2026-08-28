@@ -246,11 +246,14 @@ jobs:
               page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
               page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
               await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
-              await page.keyboard.press('Tab');
+              await page.waitForFunction(()=>document.querySelector('.hero-image')?.complete&&document.querySelector('.hero-image')?.naturalWidth>0,{timeout:5000});
               await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
               await page.screenshot({path:`${screenshotDir}/portal-r001-approved-w${width}.png`,fullPage:false});
               await page.waitForFunction(()=>globalThis.__kidultsVitals?.lcp>0,{timeout:2000}).catch(()=>{});
               await page.evaluate(()=>globalThis.__kidultsDrainVitals?.());
+              // User input terminates LCP candidate collection. Exercise keyboard focus only
+              // after the paint observer has been drained, never before measurement.
+              await page.keyboard.press('Tab');
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
