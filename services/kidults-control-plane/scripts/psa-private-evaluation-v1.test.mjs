@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createHash } from 'node:crypto';
 import { stagePsaPrivateEvaluation, deleteExpiredPsaEvaluations } from '../src/psa-private-evaluation.mjs';
 
 const hash = char => `sha256:${char.repeat(64)}`;
+const certDigest = value => `sha256:${createHash('sha256').update(String(value), 'utf8').digest('hex')}`;
 const rights = {
   provider_id: 'psa-public-api', source_message_immutability: 'VERIFIED',
   collect: 'ALLOW', store_private: 'ALLOW', derive_internal_er_calibration: 'ALLOW',
@@ -29,12 +31,12 @@ function store() {
   };
 }
 
-test('private PSA evaluation persists only behind verified rights and approved field map', async () => {
+test('private PSA evaluation persists only behind verified rights, approved field map, and exact cert binding', async () => {
   const privateStore = store();
   let admitted;
   const raw = { cert: { number: '40413252', grade: '10' }, population: { total: 3 }, secretExtra: 'not-admitted' };
   const receipt = await stagePsaPrivateEvaluation({
-    rawPayload: raw, certReferenceDigest: hash('c'), rightsReceipt: rights, fieldMap,
+    rawPayload: raw, certReferenceDigest: certDigest('40413252'), rightsReceipt: rights, fieldMap,
     privateStore, acquiredAt: '2026-08-27T00:00:00Z',
     admitNormalized: async input => { admitted = input; return { state: 'COMMITTED', commandId: 'command-1' }; },
   });
@@ -46,9 +48,22 @@ test('private PSA evaluation persists only behind verified rights and approved f
   assert(!serialized.includes('not-admitted'));
 });
 
+test('private PSA evaluation rejects cert-reference mismatch before storage or normalized admission', async () => {
+  const privateStore = store();
+  let admitted = false;
+  await assert.rejects(() => stagePsaPrivateEvaluation({
+    rawPayload: { cert: { number: '40413252', grade: '10' } },
+    certReferenceDigest: certDigest('99999999'), rightsReceipt: rights, fieldMap, privateStore,
+    acquiredAt: '2026-08-27T00:00:00Z',
+    admitNormalized: async () => { admitted = true; return {}; },
+  }), /PSA_CERT_REFERENCE_DIGEST_MISMATCH/);
+  assert.equal(privateStore.calls.length, 0);
+  assert.equal(admitted, false);
+});
+
 test('private PSA evaluation fails before storage when immutable rights or field map is absent', async () => {
   const privateStore = store();
-  const input = { rawPayload: { cert: { number: '1', grade: '10' } }, certReferenceDigest: hash('c'), rightsReceipt: rights, fieldMap, privateStore, admitNormalized: async () => ({}) };
+  const input = { rawPayload: { cert: { number: '40413252', grade: '10' } }, certReferenceDigest: certDigest('40413252'), rightsReceipt: rights, fieldMap, privateStore, admitNormalized: async () => ({}) };
   await assert.rejects(() => stagePsaPrivateEvaluation({ ...input, rightsReceipt: { ...rights, source_message_immutability: 'PENDING' } }), /IMMUTABILITY_NOT_VERIFIED/);
   await assert.rejects(() => stagePsaPrivateEvaluation({ ...input, fieldMap: { ...fieldMap, state: 'DRAFT' } }), /FIELD_MAP_NOT_APPROVED/);
   assert.equal(privateStore.calls.length, 0);

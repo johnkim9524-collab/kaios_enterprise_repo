@@ -55,6 +55,12 @@ function normalize(rawPayload, fieldMap) {
   return normalized;
 }
 
+function assertCertReferenceBinding(normalized, certReferenceDigest) {
+  const cert = String(normalized?.certification_number ?? '').trim();
+  if (!/^\d{4,16}$/.test(cert)) throw new Error('PSA_CERTIFICATION_NUMBER_INVALID');
+  if (sha256(cert) !== certReferenceDigest) throw new Error('PSA_CERT_REFERENCE_DIGEST_MISMATCH');
+}
+
 export async function stagePsaPrivateEvaluation({
   rawPayload,
   certReferenceDigest,
@@ -72,6 +78,7 @@ export async function stagePsaPrivateEvaluation({
   if (Number.isNaN(acquired.valueOf())) throw new Error('PSA_ACQUIRED_AT_INVALID');
   if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) throw new Error('PSA_RAW_PAYLOAD_INVALID');
   const normalized = normalize(rawPayload, fieldMap);
+  assertCertReferenceBinding(normalized, certReferenceDigest);
   const rawSerialized = canonical(rawPayload);
   const normalizedSerialized = canonical(normalized);
   const rawDigest = sha256(rawSerialized);
@@ -122,4 +129,4 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
   };
 }
 
-export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights };
+export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights, assertCertReferenceBinding };

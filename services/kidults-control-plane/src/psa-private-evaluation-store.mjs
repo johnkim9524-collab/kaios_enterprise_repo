@@ -28,6 +28,13 @@ function validatePayload(payload) {
   if (disallowed.length) throw new Error(`PSA_PAYLOAD_FIELD_NOT_ALLOWED:${disallowed[0]}`);
 }
 
+function assertPayloadCertBinding(payload, certReferenceDigest) {
+  validatePayload(payload);
+  const cert = String(payload.PSACert.CertNumber ?? '').trim();
+  if (!/^\d{4,16}$/.test(cert)) throw new Error('PSA_PAYLOAD_CERT_NUMBER_INVALID');
+  if (digest(cert) !== certReferenceDigest) throw new Error('PSA_CERT_REFERENCE_DIGEST_MISMATCH');
+}
+
 function authenticatedMetadata({ certReferenceDigest, observedAt, deleteAt }) {
   return {
     record_version: '1.1.0', provider_id: 'psa-public-api', classification: 'PRIVATE_ONLY',
@@ -43,7 +50,7 @@ function recordDigest(record) {
 
 function encryptRecord({ certReferenceDigest, payload, key, observedAt, deleteAt }) {
   if (!/^sha256:[0-9a-f]{64}$/.test(String(certReferenceDigest || ''))) throw new Error('PSA_CERT_REFERENCE_DIGEST_INVALID');
-  validatePayload(payload);
+  assertPayloadCertBinding(payload, certReferenceDigest);
   if (!Buffer.isBuffer(key) || key.length !== 32) throw new Error('PSA_AES_256_KEY_REQUIRED');
   const observed = new Date(observedAt);
   const deletion = new Date(deleteAt);
@@ -97,7 +104,7 @@ export function decryptPrivatePsaRecord(record, key) {
   decipher.setAuthTag(Buffer.from(record.tag_b64, 'base64'));
   const plaintext = Buffer.concat([decipher.update(Buffer.from(record.ciphertext_b64, 'base64')), decipher.final()]);
   const payload = JSON.parse(plaintext.toString('utf8'));
-  validatePayload(payload);
+  assertPayloadCertBinding(payload, record.cert_reference_digest);
   return payload;
 }
 

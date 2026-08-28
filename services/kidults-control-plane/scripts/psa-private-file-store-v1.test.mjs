@@ -1,19 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot } from '../src/psa-private-evaluation-store.mjs';
 import { deleteExpiredPsaEvaluations } from '../src/psa-private-evaluation.mjs';
 
 const hash = char => `sha256:${char.repeat(64)}`;
+const certDigest = value => `sha256:${createHash('sha256').update(String(value), 'utf8').digest('hex')}`;
 
 test('file store encrypts raw PSA payload and emits verified deletion audit', async () => {
   const root = await mkdtemp(join(tmpdir(), 'kidults-psa-private-'));
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 7), now: () => new Date('2026-08-28T00:00:00Z') });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895', CardGrade: '10' } },
+      providerId: 'psa-public-api', certReferenceDigest: certDigest('08178895'), payload: { PSACert: { CertNumber: '08178895', CardGrade: '10' } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const recordText = await readFile(join(root, handle.slice('psa-private-file:'.length)), 'utf8');
@@ -29,12 +31,26 @@ test('file store encrypts raw PSA payload and emits verified deletion audit', as
   }
 });
 
+test('file store rejects cert-reference mismatch before encrypted persistence', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'kidults-psa-private-binding-'));
+  try {
+    const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 9) });
+    await assert.rejects(() => store.put({
+      providerId: 'psa-public-api', certReferenceDigest: certDigest('99999999'), payload: { PSACert: { CertNumber: '08178895' } },
+      acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
+    }), /PSA_CERT_REFERENCE_DIGEST_MISMATCH/);
+    assert.deepEqual(await readdir(root), []);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('file store rejects retention beyond thirty days before write', async () => {
   const root = await mkdtemp(join(tmpdir(), 'kidults-psa-private-negative-'));
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 3) });
     await assert.rejects(() => store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: {} },
+      providerId: 'psa-public-api', certReferenceDigest: certDigest('08178895'), payload: { PSACert: { CertNumber: '08178895' } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-28T00:00:01Z', rawDigest: hash('d')
     }), /DELETE_AT_OUT_OF_BOUNDS/);
   } finally {
@@ -47,7 +63,7 @@ test('file store rejects tampered deletion metadata and preserves the record', a
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 5) });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895' } },
+      providerId: 'psa-public-api', certReferenceDigest: certDigest('08178895'), payload: { PSACert: { CertNumber: '08178895' } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const path = join(root, handle.slice('psa-private-file:'.length));
@@ -79,7 +95,7 @@ test('late retention run deletes overdue raw data and records the deadline breac
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 6) });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895' } },
+      providerId: 'psa-public-api', certReferenceDigest: certDigest('08178895'), payload: { PSACert: { CertNumber: '08178895' } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const path = join(root, handle.slice('psa-private-file:'.length));
