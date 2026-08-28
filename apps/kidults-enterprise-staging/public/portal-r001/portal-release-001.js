@@ -143,6 +143,20 @@ function renderAudit(audit={}){
   }));
 }
 
+function updateControlFixtureMarker(enabled){
+  const bar=query('.status-strip');
+  if(!bar)return;
+  if(enabled){
+    bar.dataset.fixture='NON_PROMOTABLE';
+    bar.title='Control fixture only — not empirical or live Projection';
+    bar.setAttribute('aria-description','Non-promotable control fixture. No live approved Projection exists.');
+    return;
+  }
+  delete bar.dataset.fixture;
+  bar.removeAttribute('title');
+  bar.removeAttribute('aria-description');
+}
+
 function render(data){
   const projection=data.projection||{};
   const state=normalizeIntelligenceState(projection.state);
@@ -163,14 +177,7 @@ function render(data){
   write('[data-audit-seal]',state==='LIVE_APPROVED'?'TRACE BOUND':'CONTROL BOUNDARY');
   renderObjectIntelligence(data);
   gateWorkspace(state);
-  if(data.fixture_type==='NON_PROMOTABLE_CONTROL'){
-    const bar=query('.status-strip');
-    if(bar){
-      bar.dataset.fixture='NON_PROMOTABLE';
-      bar.title='Control fixture only — not empirical or live Projection';
-      bar.setAttribute('aria-description','Non-promotable control fixture. No live approved Projection exists.');
-    }
-  }
+  updateControlFixtureMarker(data.fixture_type==='NON_PROMOTABLE_CONTROL');
 }
 
 function renderFailure(){
@@ -188,6 +195,7 @@ function renderFailure(){
   write('[data-audit-seal]','CONTROL BOUNDARY');
   renderObjectIntelligence(fallback);
   gateWorkspace('INVALID');
+  updateControlFixtureMarker(false);
 }
 
 let projectionRevalidationTimer=null;
@@ -248,6 +256,9 @@ function restorePortalRuntime(){
 
 initializeNavigation();
 bindHero();
+// The static document starts at NO_PROJECTION. Mark the workspace fail-closed
+// synchronously before any asynchronous Projection read can complete.
+gateWorkspace('NO_PROJECTION');
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     if(portalDisposed){

@@ -81,4 +81,12 @@ const appStore=await readFile(new URL('../../../apps/kidults-enterprise-staging/
 const runtimeStore=await readFile(new URL('../../../scripts/kidults/portal/runtime/projection-store.js',import.meta.url),'utf8');
 assert.equal(runtimeStore,appStore,'runtime projection-store copies must remain byte-identical');
 
+const portalSource=await readFile(new URL('../../../apps/kidults-enterprise-staging/public/portal-r001/portal-release-001.js',import.meta.url),'utf8');
+const syncGate=portalSource.indexOf("gateWorkspace('NO_PROJECTION');");
+const firstRead=portalSource.lastIndexOf('refreshProjection(true);');
+assert.ok(syncGate>0&&syncGate<firstRead,'workspace must be blocked synchronously before the first async Projection read');
+assert.match(portalSource,/updateControlFixtureMarker\(data\.fixture_type==='NON_PROMOTABLE_CONTROL'\)/);
+assert.match(portalSource,/renderFailure\(\)[\s\S]*updateControlFixtureMarker\(false\);/);
+assert.match(portalSource,/delete bar\.dataset\.fixture;/);
+
 console.log('PORTAL_PROJECTION_FALLBACK_CONTRACT_PASS');
