@@ -5,6 +5,9 @@ on:
     paths:
       - 'coordination/kidults/provider/psa-120-*.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
+      - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
+      - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   push:
@@ -12,6 +15,9 @@ on:
     paths:
       - 'coordination/kidults/provider/psa-120-*.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
+      - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
+      - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   workflow_dispatch:
@@ -34,3 +40,5 @@ jobs:
           package-manager-cache: false
       - name: Validate PSA 120 admission controls without provider credentials
         run: node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
+      - name: Run PSA private-store regression and negative tests
+        run: node --test services/kidults-control-plane/scripts/psa-private-*.test.mjs

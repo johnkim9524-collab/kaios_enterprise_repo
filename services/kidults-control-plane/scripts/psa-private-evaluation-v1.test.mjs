@@ -25,7 +25,7 @@ function store() {
     calls, capabilities: ['ENCRYPTION_AT_REST', 'ACCESS_AUDIT', 'DELETE_BY_ENFORCEMENT'],
     put: async input => { calls.push(['put', input]); return 'private://psa/record-1'; },
     listExpired: async () => [{ handle: 'private://psa/record-1' }],
-    delete: async input => { calls.push(['delete', input]); },
+    delete: async input => { calls.push(['delete', input]); return { deletion_verified: true, raw_payload_retained: false }; },
   };
 }
 
@@ -61,4 +61,10 @@ test('expired PSA private records are deleted with a non-secret receipt', async 
   assert.equal(receipt.raw_payload_in_receipt, false);
   assert(privateStore.calls.some(([operation]) => operation === 'delete'));
   assert(!JSON.stringify(receipt).includes('private://psa/record-1'));
+});
+
+test('expired PSA deletion fails closed when store cannot verify deletion', async () => {
+  const privateStore = store();
+  privateStore.delete = async input => { privateStore.calls.push(['delete', input]); return { deletion_verified: false, raw_payload_retained: false }; };
+  await assert.rejects(() => deleteExpiredPsaEvaluations({ privateStore, now: '2026-09-26T00:00:00Z' }), /DELETION_RECEIPT_NOT_VERIFIED/);
 });
