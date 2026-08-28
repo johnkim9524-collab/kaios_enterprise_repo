@@ -56,23 +56,37 @@ jobs:
             BINDING_MODE="EXACT_CURRENT_MAIN"
           fi
 
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs" \
-            > /tmp/hourly-runs.json
+          MAX_ATTEMPTS=12
+          WAIT_SECONDS=15
+          HOURLY_RUN_ID=""
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f status=success -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs" \
+              > /tmp/hourly-runs.json
 
-          HOURLY_RUN_ID=$(jq -r --arg sha "$EXPECTED_PRODUCER_SHA" \
-            '[.workflow_runs[]
-              | select(
-                  .name=="KIDULTS ASI Global Any-Site Hourly Pooling v1"
-                  and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"
-                  and .head_branch=="main"
-                  and .head_sha==$sha
-                  and .status=="completed"
-                  and .conclusion=="success"
-                )
-            ][0].id // empty' /tmp/hourly-runs.json)
-          test -n "$HOURLY_RUN_ID"
+            HOURLY_RUN_ID=$(jq -r --arg sha "$EXPECTED_PRODUCER_SHA" \
+              '[.workflow_runs[]
+                | select(
+                    .name=="KIDULTS ASI Global Any-Site Hourly Pooling v1"
+                    and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"
+                    and .head_branch=="main"
+                    and .head_sha==$sha
+                    and .status=="completed"
+                    and .conclusion=="success"
+                  )
+              ] | sort_by(.created_at) | reverse | .[0].id // empty' /tmp/hourly-runs.json)
+
+            if [ -n "$HOURLY_RUN_ID" ]; then
+              echo "Exact-generation producer ready on attempt $attempt/$MAX_ATTEMPTS: run $HOURLY_RUN_ID"
+              break
+            fi
+            if [ "$attempt" -eq "$MAX_ATTEMPTS" ]; then
+              echo "::error title=Exact-generation producer unavailable::No completed successful hourly producer for exact SHA $EXPECTED_PRODUCER_SHA after $MAX_ATTEMPTS bounded attempts."
+              exit 66
+            fi
+            sleep "$WAIT_SECONDS"
+          done
 
           HOURLY_SOURCE_SHA=$(jq -r --argjson run "$HOURLY_RUN_ID" \
             '[.workflow_runs[] | select(.id==$run)][0].head_sha // empty' /tmp/hourly-runs.json)
