@@ -7,9 +7,12 @@ on:
       - 'coordination/kidults/internalization/**'
       - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json'
+      - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
+      - 'coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
       - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - 'scripts/kidults/provider/validate-cgc-ccg-provider-response-intake-v1.mjs'
+      - 'scripts/kidults/market/validate-alternate-current-sold-provider-preflight-v1.mjs'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   push:
     branches: [main]
@@ -17,9 +20,12 @@ on:
       - 'coordination/kidults/internalization/**'
       - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json'
+      - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
+      - 'coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
       - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - 'scripts/kidults/provider/validate-cgc-ccg-provider-response-intake-v1.mjs'
+      - 'scripts/kidults/market/validate-alternate-current-sold-provider-preflight-v1.mjs'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   workflow_dispatch:
 

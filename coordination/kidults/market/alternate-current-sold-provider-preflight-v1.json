@@ -1,0 +1,698 @@
+{
+  "id": "kidults-alternate-current-sold-provider-preflight-v1",
+  "version": "1.0.0",
+  "status": "VERIFIED_FAIL_CLOSED_NEEDS_CLARIFICATION",
+  "parent_issue": 769,
+  "track_z_issue": 1166,
+  "as_of": "2026-08-28",
+  "purpose": "Rank and preflight Discogs, Cardmarket, and eBay Marketplace Insights as alternate Current-SOLD candidates without contacting providers, accepting terms, creating accounts, using credentials, spending money, acquiring data, or developing adapters.",
+  "decision_law_ref": "coordination/kidults/market/provider-rights-decision-gate-v1.json",
+  "provider_order": [
+    "DISCOGS",
+    "CARDMARKET",
+    "EBAY_MARKETPLACE_INSIGHTS"
+  ],
+  "ranking_basis": [
+    "STRATEGIC_DOMAIN_FIT",
+    "RIGHTS_AND_ACCESS_READINESS",
+    "CURRENT_SOLD_PRODUCT_REALITY",
+    "EVENT_SCHEMA_COMPLETENESS",
+    "FRESHNESS_AND_COVERAGE",
+    "INTEGRATION_AND_ECONOMICS"
+  ],
+  "assessment_states": [
+    "COMPATIBLE",
+    "INCOMPATIBLE",
+    "UNKNOWN",
+    "AMBIGUOUS",
+    "CONDITIONAL"
+  ],
+  "required_dimensions": [
+    "query_collect",
+    "private_store",
+    "internal_derive",
+    "internal_review",
+    "retention_1_to_30_days",
+    "automation_rate_limits",
+    "attribution",
+    "public_derived_output_boundary",
+    "onward_transfer",
+    "deletion_termination",
+    "entity_territory_scope"
+  ],
+  "required_event_fields": [
+    "stable_object_or_lot_identity",
+    "sold_date",
+    "realized_consideration",
+    "currency",
+    "venue_or_source_reference"
+  ],
+  "providers": [
+    {
+      "provider_id": "DISCOGS",
+      "provider_name": "Discogs",
+      "product_id": "DISCOGS_MARKETPLACE_SALES_HISTORY",
+      "strategic_fit_rank": 1,
+      "scope_fit": [
+        "vinyl_recorded_music"
+      ],
+      "product_reality_state": "PARTIAL_UI_ONLY_NO_SALES_HISTORY_ROWS_API",
+      "access_state": "SALES_HISTORY_DETAIL_REQUIRES_LOGIN_AND_CAPTCHA_PUBLIC_ROWS_API_NOT_DOCUMENTED",
+      "semantics_state": "SALES_HISTORY_UI_EXISTS_MARKETPLACE_API_SURFACES_ARE_LISTING_STATS_OR_PRICE_SUGGESTIONS_NOT_TRANSACTION_ROWS",
+      "standard_terms_current_fit": "NO_GO_FOR_KIDULTS_COMMERCIAL_CURRENT_SOLD_UNDER_STANDARD_TERMS",
+      "separate_license_path_state": "UNCONFIRMED_NOT_REJECTED",
+      "provider_spec_state": "ABSENT_FOR_CURRENT_SOLD_TRANSACTION_ROWS",
+      "observed_product_facts": {
+        "sales_history_surface": "LOGIN_CAPTCHA_UI_LAST_30_SALES",
+        "public_sales_history_rows_api": "NOT_DOCUMENTED",
+        "marketplace_stats_semantics": "CURRENT_LISTING_NOT_SOLD",
+        "price_suggestions_semantics": "DERIVED_SUGGESTION_NOT_TRANSACTION",
+        "standard_terms_sales_history_classification": "RESTRICTED_MARKETPLACE_DATA",
+        "standard_terms_commercial_use": "PROHIBITED",
+        "standard_rate_limit": "25_UNAUTHENTICATED_OR_60_AUTHENTICATED_REQUESTS_PER_MINUTE_SUBJECT_TO_EXCEPTIONS",
+        "published_general_api_price": "NOT_PUBLISHED"
+      },
+      "official_evidence": [
+        {
+          "evidence_id": "DISCOGS_SALES_HISTORY_HELP",
+          "url": "https://support.discogs.com/hc/en-us/articles/360007425553-Where-Can-I-Access-Sales-History",
+          "observed_on": "2026-08-28",
+          "supports": "Sales History is a release-level UI showing the most recent 30 sales and detailed access requires login and CAPTCHA."
+        },
+        {
+          "evidence_id": "DISCOGS_API_SPEC",
+          "url": "https://www.discogs.com/developers",
+          "observed_on": "2026-08-28",
+          "supports": "The documented marketplace statistics and price-suggestion surfaces are not transaction-row sales history."
+        },
+        {
+          "evidence_id": "DISCOGS_API_TERMS",
+          "url": "https://support.discogs.com/hc/en-us/articles/360009334593-API-Terms-of-Use",
+          "observed_on": "2026-08-28",
+          "supports": "Sales history is Restricted Marketplace Data; standard Restricted Data terms prohibit commercial use and third-party transfer and constrain caching, display, attribution, automation, and termination."
+        },
+        {
+          "evidence_id": "DISCOGS_TERMS",
+          "url": "https://support.discogs.com/hc/en-us/articles/360009334333-Terms-of-Service",
+          "observed_on": "2026-08-28",
+          "supports": "Separate API agreements may exist for selected business partners, but no KIDULTS agreement is evidenced."
+        }
+      ],
+      "rights_assessments": {
+        "query_collect": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Standard Restricted Data access is not compatible with KIDULTS commercial Current-SOLD use; a separate written license is unconfirmed."
+        },
+        "private_store": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Standard caching and storage are limited to what is necessary for an application; durable private storage requires written clarification."
+        },
+        "internal_derive": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Commercial Restricted Data use is prohibited under standard terms and separate derived-intelligence rights are unconfirmed."
+        },
+        "internal_review": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Internal commercial review is not separately authorized for Restricted sales-history data."
+        },
+        "retention_1_to_30_days": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "A numeric retention right is not granted and display freshness is limited."
+        },
+        "automation_rate_limits": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Rate limits exist, but no documented Current-SOLD rows API or commercial automation authorization exists."
+        },
+        "attribution": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Standard public API attribution is specified, but a separately licensed Current-SOLD attribution contract is absent."
+        },
+        "public_derived_output_boundary": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Public derived commercial outputs are not authorized under the standard Restricted Data license."
+        },
+        "onward_transfer": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Standard terms prohibit transfer of Restricted Data; non-reconstructive output rights require separate confirmation."
+        },
+        "deletion_termination": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "Access may terminate without notice and post-termination raw and derived retention rights are not confirmed."
+        },
+        "entity_territory_scope": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "DISCOGS_API_TERMS",
+          "reason": "A KIDULTS legal-entity, product, audience, and territory grant is absent."
+        }
+      },
+      "event_field_assessments": {
+        "stable_object_or_lot_identity": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "No documented transaction-row schema establishes a stable sold-event identity or deduplication key."
+        },
+        "sold_date": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Exact sale timestamp, timezone, correction, and cancellation semantics are not documented for a machine feed."
+        },
+        "realized_consideration": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Shipping, tax, fees, refunds, chargebacks, and multi-item allocation semantics are not documented."
+        },
+        "currency": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Transaction-row currency and any conversion timestamp or method are not documented."
+        },
+        "venue_or_source_reference": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "No stable machine-readable sold-event source reference is documented."
+        }
+      },
+      "provider_spec_assessment": {
+        "state": "UNKNOWN",
+        "evidence_ref": null,
+        "reason": "The public API specification does not document a sales-history transaction-row product."
+      },
+      "required_written_clarifications": {
+        "product_access_and_provider_spec": {
+          "question_id": "Q1_PRODUCT_ACCESS_AND_PROVIDER_SPEC",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "named licensed product and eligibility path",
+            "complete response schema and nullability",
+            "coverage, freshness, latency, backfill, corrections, and deletions",
+            "quota, support, price, pilot schedule, and termination mechanics"
+          ]
+        },
+        "sold_event_semantics": {
+          "question_id": "Q2_SOLD_EVENT_SEMANTICS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_event_fields": [
+            "stable_object_or_lot_identity",
+            "sold_date",
+            "realized_consideration",
+            "currency",
+            "venue_or_source_reference"
+          ]
+        },
+        "field_by_purpose_rights": {
+          "question_id": "Q3_FIELD_BY_PURPOSE_RIGHTS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_rights_dimensions": [
+            "query_collect",
+            "private_store",
+            "internal_derive",
+            "internal_review",
+            "retention_1_to_30_days",
+            "automation_rate_limits",
+            "attribution",
+            "public_derived_output_boundary",
+            "onward_transfer",
+            "deletion_termination",
+            "entity_territory_scope"
+          ]
+        },
+        "termination_and_derived_ip": {
+          "question_id": "Q4_TERMINATION_AND_DERIVED_IP",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "raw-data deletion and audit obligations",
+            "non-reconstructive derived-output ownership during term",
+            "non-reconstructive derived-output survival after termination",
+            "KIDULTS pre-existing and independently developed methods excluded from provider IP"
+          ]
+        }
+      },
+      "recorded_decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED",
+      "qualifies_as_complete_current_sold_feed": false,
+      "operating_admission": "HOLD_RIGHTS_ACCESS_PRODUCT_SPEC_AND_APPROVAL_PENDING"
+    },
+    {
+      "provider_id": "CARDMARKET",
+      "provider_name": "Cardmarket",
+      "product_id": "CARDMARKET_SALES_DATA",
+      "strategic_fit_rank": 2,
+      "scope_fit": [
+        "trading_cards"
+      ],
+      "product_reality_state": "PARTIAL_PUBLIC_AGGREGATES_ONLY_NO_MARKETWIDE_TRANSACTION_ROWS",
+      "access_state": "NEW_API_APPLICATIONS_NOT_ACCEPTED_EXISTING_USER_ACCESS_ONLY",
+      "semantics_state": "DAILY_PRODUCT_PRICE_GUIDE_AGGREGATES_AND_OWN_ACCOUNT_ORDERS_NOT_MARKETWIDE_CURRENT_SOLD_TRANSACTIONS",
+      "standard_terms_current_fit": "NO_TRANSACTION_LEVEL_PRODUCT_AND_NO_NEW_API_ACCESS",
+      "separate_license_path_state": "UNCONFIRMED_NOT_REJECTED",
+      "provider_spec_state": "ABSENT_FOR_MARKETWIDE_CURRENT_SOLD_TRANSACTION_ROWS",
+      "observed_product_facts": {
+        "new_api_applications": "NOT_ACCEPTED",
+        "public_daily_data": "PRODUCT_CATALOG_AND_PRICE_PARAMETERS",
+        "public_price_semantics": "AGGREGATED_PRICE_GUIDE_NOT_TRANSACTION_ROWS",
+        "public_data_update_cadence": "DAILY",
+        "own_order_scope": "AUTHENTICATED_USERS_OWN_BUYER_OR_SELLER_ORDERS_ONLY",
+        "price_guide_endpoint": "DEPRECATED_AND_RESTRICTED",
+        "published_general_api_price": "NOT_FOUND"
+      },
+      "official_evidence": [
+        {
+          "evidence_id": "CARDMARKET_API_HELP",
+          "url": "https://help.cardmarket.com/en/cardmarket-api",
+          "observed_on": "2026-08-28",
+          "supports": "Cardmarket is not accepting new API-access applications and existing credentials have strict sharing and revocation constraints."
+        },
+        {
+          "evidence_id": "CARDMARKET_PUBLIC_DATA",
+          "url": "https://www.cardmarket.com/en/Insight/Articles/scryfall-x-cardmarket",
+          "observed_on": "2026-08-28",
+          "supports": "Public daily files contain product catalog and price parameters for application incorporation, not transaction rows."
+        },
+        {
+          "evidence_id": "CARDMARKET_PRODUCT_ENTITY",
+          "url": "https://apiv2.cardmarket.com/ws/documentation/API_2.0:Entities:Product",
+          "observed_on": "2026-08-28",
+          "supports": "Product priceGuide fields are aggregate or listing-price measures rather than sold-event records."
+        },
+        {
+          "evidence_id": "CARDMARKET_ORDER_API",
+          "url": "https://apiv2.cardmarket.com/ws/documentation/API_2.0:Order_Management",
+          "observed_on": "2026-08-28",
+          "supports": "Order endpoints are scoped to the authenticated user's own buyer or seller orders."
+        },
+        {
+          "evidence_id": "CARDMARKET_MARKETPLACE_API",
+          "url": "https://apiv2.cardmarket.com/ws/documentation/API_2.0:Market_Place_Information",
+          "observed_on": "2026-08-28",
+          "supports": "Marketplace Articles are active offers and the Price Guides file is restricted and deprecated."
+        },
+        {
+          "evidence_id": "CARDMARKET_AUTH",
+          "url": "https://apiv2.cardmarket.com/ws/documentation/API:Auth_Overview",
+          "observed_on": "2026-08-28",
+          "supports": "API app access historically required eligible accounts and manual approval and may be revoked for abusive use."
+        }
+      ],
+      "rights_assessments": {
+        "query_collect": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "CARDMARKET_API_HELP",
+          "reason": "New API applications are not accepted and a separate KIDULTS data-license path is unconfirmed."
+        },
+        "private_store": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "No KIDULTS-specific raw or aggregate storage grant is evidenced."
+        },
+        "internal_derive": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Public application incorporation is documented, but commercial derived-intelligence rights are not."
+        },
+        "internal_review": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Internal use by the KIDULTS legal entity and team is not expressly granted."
+        },
+        "retention_1_to_30_days": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "No numeric retention or historical archive right is evidenced."
+        },
+        "automation_rate_limits": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "CARDMARKET_AUTH",
+          "reason": "Existing-access quotas and revocation constraints exist, but no KIDULTS access is authorized."
+        },
+        "attribution": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "A Current-SOLD attribution and link-back contract is not evidenced."
+        },
+        "public_derived_output_boundary": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Public commercial derived-output rights and reconstruction limits are not evidenced."
+        },
+        "onward_transfer": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Raw, aggregate, and non-reconstructive output transfer rights are not evidenced."
+        },
+        "deletion_termination": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Post-revocation deletion, audit, derived survival, and portability rules are not evidenced."
+        },
+        "entity_territory_scope": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "A KIDULTS legal-entity, product, audience, and territory grant is absent."
+        }
+      },
+      "event_field_assessments": {
+        "stable_object_or_lot_identity": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Product IDs in aggregate guides do not establish a stable marketwide sold-event identity."
+        },
+        "sold_date": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Daily and rolling averages do not expose an individual sold timestamp or correction semantics."
+        },
+        "realized_consideration": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Aggregated SELL and AVG measures do not expose individual realized consideration or fee and refund semantics."
+        },
+        "currency": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "A transaction-row currency and conversion contract is absent."
+        },
+        "venue_or_source_reference": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "No marketwide sold-event reference is present in the public aggregate product contract."
+        }
+      },
+      "provider_spec_assessment": {
+        "state": "UNKNOWN",
+        "evidence_ref": null,
+        "reason": "No marketwide transaction-level Current-SOLD product specification is evidenced."
+      },
+      "required_written_clarifications": {
+        "product_access_and_provider_spec": {
+          "question_id": "Q1_PRODUCT_ACCESS_AND_PROVIDER_SPEC",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "named licensed product and eligibility path",
+            "complete response schema and nullability",
+            "coverage, freshness, latency, backfill, corrections, and deletions",
+            "quota, support, price, pilot schedule, and termination mechanics"
+          ]
+        },
+        "sold_event_semantics": {
+          "question_id": "Q2_SOLD_EVENT_SEMANTICS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_event_fields": [
+            "stable_object_or_lot_identity",
+            "sold_date",
+            "realized_consideration",
+            "currency",
+            "venue_or_source_reference"
+          ]
+        },
+        "field_by_purpose_rights": {
+          "question_id": "Q3_FIELD_BY_PURPOSE_RIGHTS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_rights_dimensions": [
+            "query_collect",
+            "private_store",
+            "internal_derive",
+            "internal_review",
+            "retention_1_to_30_days",
+            "automation_rate_limits",
+            "attribution",
+            "public_derived_output_boundary",
+            "onward_transfer",
+            "deletion_termination",
+            "entity_territory_scope"
+          ]
+        },
+        "termination_and_derived_ip": {
+          "question_id": "Q4_TERMINATION_AND_DERIVED_IP",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "raw-data deletion and audit obligations",
+            "non-reconstructive derived-output ownership during term",
+            "non-reconstructive derived-output survival after termination",
+            "KIDULTS pre-existing and independently developed methods excluded from provider IP"
+          ]
+        }
+      },
+      "recorded_decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED",
+      "qualifies_as_complete_current_sold_feed": false,
+      "operating_admission": "HOLD_RIGHTS_ACCESS_PRODUCT_SPEC_AND_APPROVAL_PENDING"
+    },
+    {
+      "provider_id": "EBAY_MARKETPLACE_INSIGHTS",
+      "provider_name": "eBay Marketplace Insights",
+      "product_id": "EBAY_MARKETPLACE_INSIGHTS",
+      "strategic_fit_rank": 3,
+      "scope_fit": [
+        "ALL_32_SCOPE_COVERAGE_TO_BE_PROVEN"
+      ],
+      "product_reality_state": "SOLD_HISTORY_API_EXISTS_RESTRICTED_NEW_USER_SCHEMA_UNAVAILABLE",
+      "access_state": "RESTRICTED_NOT_OPEN_TO_NEW_USERS",
+      "semantics_state": "SALES_HISTORY_OF_SOLD_ITEMS_PRODUCT_EXISTS_BUT_COMPLETE_RESPONSE_AND_RIGHTS_CONTRACT_UNAVAILABLE_TO_NEW_USERS",
+      "standard_terms_current_fit": "NO_NEW_MARKETPLACE_INSIGHTS_ACCESS_AND_WRITTEN_CONSENT_REQUIRED",
+      "separate_license_path_state": "UNCONFIRMED_NOT_REJECTED",
+      "provider_spec_state": "INCOMPLETE_FOR_NEW_USER_CURRENT_SOLD_ADMISSION",
+      "observed_product_facts": {
+        "marketplace_insights_purpose": "SALES_HISTORY_OF_SOLD_ITEMS",
+        "marketplace_insights_release": "LIMITED_RELEASE",
+        "new_user_access": "RESTRICTED_NOT_OPEN",
+        "product_research_surface": "HUMAN_UI_ONLY_NOT_PROGRAMMATIC_FEED",
+        "browse_api_semantics": "ACTIVE_PURCHASABLE_ITEMS_NOT_SOLD_HISTORY",
+        "complete_response_schema": "NOT_AVAILABLE_TO_NEW_USER_FOR_VALIDATION",
+        "published_marketplace_insights_price": "NOT_FOUND"
+      },
+      "official_evidence": [
+        {
+          "evidence_id": "EBAY_MARKETPLACE_SUPPORT",
+          "url": "https://developer.ebay.com/api-docs/buy/static/ref-marketplace-supported.html",
+          "observed_on": "2026-08-28",
+          "supports": "Marketplace Insights is restricted and not open to new users."
+        },
+        {
+          "evidence_id": "EBAY_BUYING_APP",
+          "url": "https://developer.ebay.com/develop/get-started/get-started-on-a-buying-application",
+          "observed_on": "2026-08-28",
+          "supports": "Marketplace Insights is a Limited Release API for sales history of sold items."
+        },
+        {
+          "evidence_id": "EBAY_BUY_REQUIREMENTS",
+          "url": "https://developer.ebay.com/api-docs/buy/static/buy-requirements.html",
+          "observed_on": "2026-08-28",
+          "supports": "Production Buy API use is partner-oriented and subject to eligibility, approval, contracts, policies, and business-model review."
+        },
+        {
+          "evidence_id": "EBAY_FIELD_FILTERS",
+          "url": "https://developer.ebay.com/api-docs/buy/static/ref-buy-browse-filters.html",
+          "observed_on": "2026-08-28",
+          "supports": "Some sold-search inputs are documented, but they do not establish a complete response-field contract."
+        },
+        {
+          "evidence_id": "EBAY_API_LICENSE",
+          "url": "https://developer.ebay.com/join/api-license-agreement",
+          "observed_on": "2026-08-28",
+          "supports": "Use, caching, display, restricted-data derivation, transfer, attribution, deletion, termination, and model-use constraints require source-specific review and in some cases prior written consent."
+        },
+        {
+          "evidence_id": "EBAY_PRODUCT_RESEARCH",
+          "url": "https://www.ebay.com/help/selling/selling-tools/product-research?id=4853",
+          "observed_on": "2026-08-28",
+          "supports": "Product Research is a human Seller Hub research surface, not a KIDULTS programmatic Current-SOLD feed."
+        }
+      ],
+      "rights_assessments": {
+        "query_collect": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_MARKETPLACE_SUPPORT",
+          "reason": "The sold-history API is restricted and closed to new users; a separate approved path is unconfirmed."
+        },
+        "private_store": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Standard caching is limited and a KIDULTS historical private-store grant is not confirmed."
+        },
+        "internal_derive": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Restricted API modifications, derived pricing tools, and model use can require prior written consent or be prohibited."
+        },
+        "internal_review": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Permitted internal review scope is contingent on the approved business model and contract."
+        },
+        "retention_1_to_30_days": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Standard retention is purpose-limited and termination deletion obligations do not establish a reusable archive right."
+        },
+        "automation_rate_limits": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_BUY_REQUIREMENTS",
+          "reason": "Production access and operating limits depend on approval and a source-specific contract."
+        },
+        "attribution": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Marketplace Insights-specific attribution and presentation requirements are not fully available to a new user."
+        },
+        "public_derived_output_boundary": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Public display and Restricted API derived outputs require source-specific written confirmation."
+        },
+        "onward_transfer": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Bulk, resale, API redistribution, and third-party transfer are constrained; non-reconstructive output rights remain unconfirmed."
+        },
+        "deletion_termination": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_API_LICENSE",
+          "reason": "Termination requires cessation and deletion; post-termination derived survival and portability are not established."
+        },
+        "entity_territory_scope": {
+          "state": "CONDITIONAL",
+          "evidence_ref": "EBAY_BUY_REQUIREMENTS",
+          "reason": "The approved entity, application, marketplaces, categories, territories, and audiences would be contract-specific."
+        }
+      },
+      "event_field_assessments": {
+        "stable_object_or_lot_identity": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Search-input documentation does not establish the complete returned sold-event identity and deduplication contract."
+        },
+        "sold_date": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "A lastSoldDate filter does not establish returned timestamp, timezone, correction, or cancellation semantics."
+        },
+        "realized_consideration": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "The accessible documentation does not establish actual accepted offer, fees, taxes, shipping, refunds, or quantity semantics."
+        },
+        "currency": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "Price filters do not establish transaction-row currency and conversion semantics."
+        },
+        "venue_or_source_reference": {
+          "state": "UNKNOWN",
+          "evidence_ref": null,
+          "reason": "A complete stable sold-event source-reference contract is not available to a new user."
+        }
+      },
+      "provider_spec_assessment": {
+        "state": "UNKNOWN",
+        "evidence_ref": null,
+        "reason": "A complete Marketplace Insights response specification cannot be validated for new-user admission."
+      },
+      "required_written_clarifications": {
+        "product_access_and_provider_spec": {
+          "question_id": "Q1_PRODUCT_ACCESS_AND_PROVIDER_SPEC",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "named licensed product and eligibility path",
+            "complete response schema and nullability",
+            "coverage, freshness, latency, backfill, corrections, and deletions",
+            "quota, support, price, pilot schedule, and termination mechanics"
+          ]
+        },
+        "sold_event_semantics": {
+          "question_id": "Q2_SOLD_EVENT_SEMANTICS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_event_fields": [
+            "stable_object_or_lot_identity",
+            "sold_date",
+            "realized_consideration",
+            "currency",
+            "venue_or_source_reference"
+          ]
+        },
+        "field_by_purpose_rights": {
+          "question_id": "Q3_FIELD_BY_PURPOSE_RIGHTS",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_rights_dimensions": [
+            "query_collect",
+            "private_store",
+            "internal_derive",
+            "internal_review",
+            "retention_1_to_30_days",
+            "automation_rate_limits",
+            "attribution",
+            "public_derived_output_boundary",
+            "onward_transfer",
+            "deletion_termination",
+            "entity_territory_scope"
+          ]
+        },
+        "termination_and_derived_ip": {
+          "question_id": "Q4_TERMINATION_AND_DERIVED_IP",
+          "state": "PENDING_PROVIDER_SPECIFIC_ANSWER",
+          "required_items": [
+            "raw-data deletion and audit obligations",
+            "non-reconstructive derived-output ownership during term",
+            "non-reconstructive derived-output survival after termination",
+            "KIDULTS pre-existing and independently developed methods excluded from provider IP"
+          ]
+        }
+      },
+      "recorded_decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED",
+      "qualifies_as_complete_current_sold_feed": false,
+      "operating_admission": "HOLD_RIGHTS_ACCESS_PRODUCT_SPEC_AND_APPROVAL_PENDING"
+    }
+  ],
+  "portfolio_truth": {
+    "rights_clear_current_sold_provider_count": 0,
+    "complete_current_sold_provider_count": 0,
+    "current_sold_transaction_events_created": 0,
+    "current_sold_gap": "OPEN",
+    "fail_closed_output": "UNAVAILABLE_NO_RIGHTS_CLEAR_CURRENT_SOLD_FEED"
+  },
+  "execution_receipt": {
+    "provider_contacts": 0,
+    "applications_submitted": 0,
+    "accounts_created_or_terms_accepted": 0,
+    "credentials_created_or_used": 0,
+    "provider_network_calls": 0,
+    "external_spend_usd": 0,
+    "records_acquired": 0,
+    "adapters_created_or_enabled": 0,
+    "external_commitment_authorized": false,
+    "contact_authorized": false,
+    "data_acquisition_authorized": false,
+    "adapter_development_authorized": false
+  },
+  "promotion_boundary": {
+    "candidate_evidence": "NOT_ADMITTED",
+    "current_sold_transaction": "NOT_ADMITTED",
+    "track_b": "HOLD",
+    "public_intelligence": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "authority_boundary": {
+    "provider_contact": "EXPLICIT_PROGRAM_OWNER_AUTHORIZATION_REQUIRED",
+    "account_or_terms_acceptance": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "contract_or_schedule_acceptance": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "credential_issuance_or_activation": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "provider_network_access": "PROHIBITED_BEFORE_SEPARATE_APPROVAL_AND_RIGHTS_PASS",
+    "data_acquisition": "PROHIBITED_BEFORE_SEPARATE_APPROVAL_AND_RIGHTS_PASS",
+    "external_spend": "EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "truth_boundary": "The ranking is a deterministic research priority, not provider admission. Public product documentation can establish product reality or lack of access but cannot create KIDULTS rights. Discogs standard Restricted Data terms, Cardmarket aggregate price guides and closed new API intake, and eBay restricted Marketplace Insights access do not yield a rights-clear transaction-level Current-SOLD feed. A source-specific written agreement, complete provider specification, deterministic PASS, explicit approvals, and a separate acquisition gate are all required before contact, account or terms acceptance, credentials, network calls, spend, data acquisition, adapter work, Candidate/Evidence, Track B, Public, Production, or G5 promotion."
+}

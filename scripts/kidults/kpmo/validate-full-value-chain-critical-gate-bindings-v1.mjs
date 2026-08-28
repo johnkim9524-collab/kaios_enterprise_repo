@@ -145,10 +145,15 @@ for (const script of [
 }
 
 const rightsGate = JSON.parse(fs.readFileSync('coordination/kidults/market/provider-rights-decision-gate-v1.json','utf8'));
-for (const provider of ['CLASSIC.COM','ALT/FNDATA']) {
+const expectedRightsProviders = ['CLASSIC.COM','ALT/FNDATA','DISCOGS','CARDMARKET','EBAY_MARKETPLACE_INSIGHTS'];
+if (JSON.stringify(rightsGate.providers) !== JSON.stringify(expectedRightsProviders)) errors.push('provider rights gate provider universe must remain exact and ordered');
+for (const provider of expectedRightsProviders) {
   const state = rightsGate.current_provider_state?.[provider];
   if (!state) errors.push(`provider state missing: ${provider}`);
   if (state?.decision !== 'PASS' && state?.activation !== 'DISABLED') errors.push(`${provider} activation must remain disabled without PASS`);
+}
+for (const provider of ['DISCOGS','CARDMARKET','EBAY_MARKETPLACE_INSIGHTS']) {
+  if (rightsGate.current_provider_state?.[provider]?.decision !== 'NEEDS_CLARIFICATION') errors.push(`${provider} must remain NEEDS_CLARIFICATION on current evidence`);
 }
 if (rightsGate.non_bypass?.production !== 'HOLD' || rightsGate.non_bypass?.g5 !== 'EXPLICIT_APPROVAL_REQUIRED') errors.push('provider rights gate release boundary drift');
 
