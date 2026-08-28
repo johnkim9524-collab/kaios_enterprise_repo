@@ -347,6 +347,7 @@ jobs:
           cd /tmp/kidults-r001-qa
           node run.mjs
       - name: Build exact toolchain receipt
+        if: always()
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs /tmp/kidults-r001-qa/toolchain-receipt.json

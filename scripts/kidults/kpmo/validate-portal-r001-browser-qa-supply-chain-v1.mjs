@@ -53,6 +53,7 @@ function workflowFindings(text) {
   require(!activeRunLines(text).some((line) => /^(?:run:\s*)?npm\s+install\b/i.test(line)), 'MUTABLE_NPM_INSTALL_FORBIDDEN');
   require(!activeRunLines(text).some((line) => /^(?:run:\s*)?npx\b/i.test(line)), 'NPX_RUNTIME_RESOLUTION_FORBIDDEN');
   require(text.includes(`node ${RECEIPT_BUILDER} /tmp/kidults-r001-qa/toolchain-receipt.json`), 'TOOLCHAIN_RECEIPT_BUILDER_MISSING');
+  require(/- name:\s*Build exact toolchain receipt\s*\n\s*if:\s*always\(\)\s*\n/.test(text), 'TOOLCHAIN_RECEIPT_FAILURE_PATH_NOT_ALWAYS');
   require(text.includes('/tmp/kidults-r001-qa/toolchain-receipt.json'), 'TOOLCHAIN_RECEIPT_ARTIFACT_BINDING_MISSING');
   require(!/pull_request_target\s*:/.test(text), 'PULL_REQUEST_TARGET_FORBIDDEN');
   require(!/continue-on-error\s*:\s*true/.test(text), 'CONTINUE_ON_ERROR_FORBIDDEN');
@@ -119,6 +120,7 @@ expectMutation('NPX', workflow.replace('node /tmp/kidults-r001-qa/node_modules/p
 expectMutation('CREDENTIAL_PERSIST', workflow.replace('persist-credentials: false', 'persist-credentials: true'), 'CHECKOUT_CREDENTIAL_PERSISTENCE_NOT_DISABLED');
 expectMutation('FIXTURE_TRIGGER_REMOVAL', workflow.replace(`      - '${FIXTURE_BUILDER}'\n`, ''), 'FIXTURE_BUILDER_PATH_TRIGGER_MISSING');
 expectMutation('FIXTURE_IMPORT_DRIFT', workflow.replace(`process.env.GITHUB_WORKSPACE+'/${FIXTURE_BUILDER}'`, `process.env.GITHUB_WORKSPACE+'/scripts/kidults/portal/unbound-fixtures.mjs'`), 'FIXTURE_BUILDER_RUNTIME_IMPORT_MISSING');
+expectMutation('TOOLCHAIN_RECEIPT_ALWAYS_REMOVAL', workflow.replace('      - name: Build exact toolchain receipt\n        if: always()\n', '      - name: Build exact toolchain receipt\n'), 'TOOLCHAIN_RECEIPT_FAILURE_PATH_NOT_ALWAYS');
 
 const lockNoIntegrity = structuredClone(lock);
 const record = Object.entries(lockNoIntegrity.packages).find(([name, value]) => name && !value.link)?.[1];
@@ -133,7 +135,7 @@ const receipt = {
   agent_id: 'codex/p1_supply_chain',
   suite: 'KIDULTS_PORTAL_R001_BROWSER_QA_SUPPLY_CHAIN_VALIDATOR_V1',
   result: 'PASS',
-  issues: [895, 933, 935, 976],
+  issues: [895, 933, 935, 976, 1493],
   workflow: WORKFLOW_PATH,
   workflow_sha256: `sha256:${crypto.createHash('sha256').update(workflow).digest('hex')}`,
   package_sha256: `sha256:${crypto.createHash('sha256').update(pkgBytes).digest('hex')}`,
@@ -142,7 +144,7 @@ const receipt = {
   fixture_builder_sha256: `sha256:${crypto.createHash('sha256').update(fixtureBytes).digest('hex')}`,
   locked_package_records: registryRecords.length,
   integrity_bound_package_records: registryRecords.filter(([, value]) => value.integrity).length,
-  mutations_rejected: 9,
+  mutations_rejected: 10,
   scope: 'PORTAL_R001_BROWSER_QA_ONLY',
   empirical_gate_effect: 'NONE',
   external_runtime_mutation: false,
