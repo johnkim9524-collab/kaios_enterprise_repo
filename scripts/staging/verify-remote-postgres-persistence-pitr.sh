@@ -13,7 +13,7 @@ for command_name in psql pg_isready sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
-pg_isready "$KAIOS_POSTGRES_DSN" >/dev/null
+pg_isready --dbname="$KAIOS_POSTGRES_DSN" >/dev/null
 
 psql_scalar() {
   psql "$KAIOS_POSTGRES_DSN" --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"
