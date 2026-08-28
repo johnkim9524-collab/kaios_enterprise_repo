@@ -209,7 +209,7 @@ export function validateClassicResponseIntakeBundle(bundle) {
   for (const effect of ['autonomous_effect', 'global_effect', 'irreplaceable_value_effect', 'transparency_effect']) if (!isNonemptyString(intake[effect])) errors.push(`${effect} required`);
 
   const gateClassic = gate.current_provider_state?.['CLASSIC.COM'] || {};
-  if (gate.version !== '1.1.0') errors.push('provider gate version must be 1.1.0');
+  if (gate.version !== '1.2.0') errors.push('provider gate version must be 1.2.0');
   if (gateClassic.latest_detailed_request !== 'SENT_2026_08_26_AWAITING_RESPONSE') errors.push('provider gate latest request state drift');
   if (gateClassic.response_intake_ref !== INTAKE_PATH || gateClassic.activation !== 'DISABLED') errors.push('provider gate intake binding or activation drift');
   const ledgerClassic = (ledger.providers || []).find(provider => provider.provider_id === 'CLASSIC_COM');

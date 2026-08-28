@@ -1,11 +1,14 @@
 {
   "id": "kidults-provider-rights-decision-gate-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "parent_issue": 769,
   "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
   "providers": [
     "CLASSIC.COM",
-    "ALT/FNDATA"
+    "ALT/FNDATA",
+    "DISCOGS",
+    "CARDMARKET",
+    "EBAY_MARKETPLACE_INSIGHTS"
   ],
   "claim_ceiling": "DATED_OBSERVED_SOLD_PRIVATE_EVALUATION_ONLY",
   "required_dimensions": [
@@ -59,6 +62,36 @@
         "PROVIDER_REDUNDANCY",
         "POC_PIPELINE"
       ]
+    },
+    "DISCOGS": {
+      "written_response": "NOT_REQUESTED_CONTACT_NOT_AUTHORIZED",
+      "field_by_purpose_rights": "INCOMPLETE_SEPARATE_LICENSE_PATH_UNCONFIRMED",
+      "provider_spec": "CURRENT_SOLD_TRANSACTION_ROWS_API_NOT_DOCUMENTED",
+      "product_reality": "PARTIAL_UI_ONLY_NO_SALES_HISTORY_ROWS_API",
+      "access": "STANDARD_API_EXISTS_SALES_HISTORY_RESTRICTED",
+      "preflight_ref": "coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json",
+      "decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED"
+    },
+    "CARDMARKET": {
+      "written_response": "NOT_REQUESTED_CONTACT_NOT_AUTHORIZED",
+      "field_by_purpose_rights": "INCOMPLETE_SEPARATE_LICENSE_PATH_UNCONFIRMED",
+      "provider_spec": "MARKETWIDE_TRANSACTION_LEVEL_CURRENT_SOLD_SPEC_ABSENT",
+      "product_reality": "PARTIAL_PUBLIC_AGGREGATES_ONLY",
+      "access": "NEW_API_APPLICATIONS_NOT_ACCEPTED",
+      "preflight_ref": "coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json",
+      "decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED"
+    },
+    "EBAY_MARKETPLACE_INSIGHTS": {
+      "written_response": "NOT_REQUESTED_CONTACT_NOT_AUTHORIZED",
+      "field_by_purpose_rights": "INCOMPLETE_SEPARATE_LICENSE_PATH_UNCONFIRMED",
+      "provider_spec": "INCOMPLETE_FOR_NEW_USER_CURRENT_SOLD_ADMISSION",
+      "product_reality": "SOLD_HISTORY_API_EXISTS_RESTRICTED",
+      "access": "RESTRICTED_NOT_OPEN_TO_NEW_USERS",
+      "preflight_ref": "coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json",
+      "decision": "NEEDS_CLARIFICATION",
+      "activation": "DISABLED"
     }
   },
   "non_bypass": {
