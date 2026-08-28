@@ -235,6 +235,37 @@ jobs:
           grep -Fq " $expected_client" <<<"$pg_isready_version"
           printf 'psql_version=%s\npg_isready_version=%s\n' "$psql_version" "$pg_isready_version"
 
+      - name: Diagnose PostgreSQL DSN shape without exposing secret
+        env:
+          POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, re, urllib.parse
+          raw=os.environ.get('POSTGRES_DSN','')
+          p=urllib.parse.urlsplit(raw)
+          host=p.hostname or ''
+          query=urllib.parse.parse_qs(p.query, keep_blank_values=True)
+          print('dsn_present=%s' % bool(raw))
+          print('scheme=%s' % (p.scheme or '<empty>'))
+          print('host_suffix_ok=%s' % host.endswith('.db.ondigitalocean.com'))
+          print('port=%s' % (p.port if p.port is not None else '<empty>'))
+          print('path_present=%s' % bool(p.path))
+          print('fragment_present=%s' % bool(p.fragment))
+          print('query_keys=%s' % ','.join(sorted(query)))
+          if p.scheme not in {'postgres','postgresql'} or not host or p.fragment:
+              raise SystemExit('DSN shape invalid: scheme/host/fragment')
+          if not host.endswith('.db.ondigitalocean.com'):
+              raise SystemExit('DSN shape invalid: DigitalOcean host suffix')
+          if p.port != 25060:
+              raise SystemExit('DSN shape invalid: port must be 25060')
+          ssl=[k for k in query if k == 'sslmode']
+          if len(ssl) != 1 or query.get('sslmode',[None])[0] not in {'require','verify-ca','verify-full'}:
+              raise SystemExit('DSN shape invalid: sslmode')
+          print('DSN_SHAPE_DIAGNOSTIC_PASS')
+          PY
+
       - name: Execute source PostgreSQL fixture through pinned SSH tunnel
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
