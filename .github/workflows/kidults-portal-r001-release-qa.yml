@@ -229,6 +229,7 @@ jobs:
               await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
               await page.keyboard.press('Tab');
               await page.waitForTimeout(100);
+              await page.waitForFunction(()=>globalThis.__kidultsVitals?.lcp>0,{timeout:2000}).catch(()=>{});
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
@@ -253,7 +254,8 @@ jobs:
               if(!obs.signInEnabled)failures.push(`APPROVED_QUARANTINE:w${width}:SIGN_IN_PROJECTION_GATED`);
               if(runtimeErrors.length)failures.push(`APPROVED_QUARANTINE:w${width}:RUNTIME_${runtimeErrors.join('|')}`);
               if(width<=430&&obs.horizontalOverflow)failures.push(`APPROVED_QUARANTINE:w${width}:HORIZONTAL_OVERFLOW`);
-              if(!obs.vitals?.lcp||obs.vitals.lcp>2500)failures.push(`APPROVED_POSITIVE:w${width}:LCP_${obs.vitals?.lcp}`);
+              if(!obs.vitals?.lcp)failures.push(`APPROVED_POSITIVE:w${width}:LCP_MEASUREMENT_ABSENT`);
+              else if(obs.vitals.lcp>2500)failures.push(`APPROVED_POSITIVE:w${width}:LCP_${obs.vitals.lcp}`);
               if(obs.vitals?.cls>0.1)failures.push(`APPROVED_POSITIVE:w${width}:CLS_${obs.vitals?.cls}`);
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
@@ -291,6 +293,7 @@ jobs:
               await context.route('**/api/v1/projection',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
               const page=await context.newPage();
               await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'domcontentloaded'});
+              await page.waitForTimeout(50);
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
