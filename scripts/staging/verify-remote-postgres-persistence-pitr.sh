@@ -13,14 +13,15 @@ for command_name in psql pg_isready sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
-pg_isready --dbname="$KAIOS_POSTGRES_DSN" >/dev/null
+export PGDATABASE="$KAIOS_POSTGRES_DSN"
+pg_isready >/dev/null
 
 psql_scalar() {
-  psql "$KAIOS_POSTGRES_DSN" --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"
+  psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"
 }
 
 psql_mutation() {
-  psql "$KAIOS_POSTGRES_DSN" --no-psqlrc --quiet --output=/dev/null --set=ON_ERROR_STOP=1 "$@"
+  psql --no-psqlrc --quiet --output=/dev/null --set=ON_ERROR_STOP=1 "$@"
 }
 
 server_version="$(psql_scalar "SHOW server_version")"
@@ -132,13 +133,13 @@ if [[ "$archive_observation_attempted" == 'true' ]]; then
 fi
 
 for marker in "$before_marker" "$after_marker"; do
-  marker_exists="$(psql "$KAIOS_POSTGRES_DSN" --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  marker_exists="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
     --set="marker=$marker" \
     --command="SELECT count(*) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'")"
   [[ "$marker_exists" == "1" ]] || { echo "PITR probe marker not durable: $marker" >&2; exit 1; }
 done
 
-boundary_order="$(psql "$KAIOS_POSTGRES_DSN" --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+boundary_order="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="before_marker=$before_marker" \
   --set="after_marker=$after_marker" \
   --set="target_time=$target_time" \
