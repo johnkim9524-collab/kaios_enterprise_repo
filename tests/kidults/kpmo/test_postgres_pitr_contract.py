@@ -40,12 +40,11 @@ def fail(message, code=97):
 
 
 args = sys.argv[1:]
-expected_database = os.environ.get("FAKE_EXPECT_PGDATABASE", "")
-if expected_database:
-    if os.environ.get("PGDATABASE") != expected_database:
-        fail("fake psql expected the DSN in PGDATABASE")
-    if any(expected_database in argument for argument in args):
-        fail("fake psql observed the DSN in a process argument")
+expected_dsn = os.environ.get("FAKE_EXPECT_DSN_ENV", "")
+if expected_dsn and os.environ.get("PGDATABASE") != expected_dsn:
+    fail("fake psql expected the DSN in PGDATABASE")
+if expected_dsn and expected_dsn in args:
+    fail("fake psql received the DSN as a process argument")
 
 command = ""
 for index, argument in enumerate(args):
@@ -204,12 +203,21 @@ FAKE_PG_ISREADY = r"""#!/usr/bin/env python3
 import os
 import sys
 
-expected = os.environ.get("FAKE_EXPECT_PGDATABASE", "")
+expected = os.environ.get("FAKE_EXPECT_DSN_ENV", "")
+argv = sys.argv[1:]
+dbname_values = []
+for index, argument in enumerate(argv):
+    if argument == "--dbname" and index + 1 < len(argv):
+        dbname_values.append(argv[index + 1])
+    elif argument == "-d" and index + 1 < len(argv):
+        dbname_values.append(argv[index + 1])
+    elif argument.startswith("--dbname="):
+        dbname_values.append(argument.split("=", 1)[1])
 if expected and os.environ.get("PGDATABASE") != expected:
     print("fake pg_isready expected the DSN in PGDATABASE", file=sys.stderr)
     raise SystemExit(97)
-if expected and any(expected in argument for argument in sys.argv[1:]):
-    print("fake pg_isready observed the DSN in a process argument", file=sys.stderr)
+if expected and (expected in argv or expected in dbname_values):
+    print("fake pg_isready received the DSN as a process argument", file=sys.stderr)
     raise SystemExit(97)
 raise SystemExit(0)
 """
@@ -270,7 +278,7 @@ def _fake_environment(tmp_path: Path, *, mode: str, dsn: str) -> dict[str, str]:
         {
             "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
             "FAKE_MODE": mode,
-            "FAKE_EXPECT_PGDATABASE": dsn,
+            "FAKE_EXPECT_DSN_ENV": dsn,
             "FAKE_PSQL_STATE": str(tmp_path / "psql-state.json"),
             "KAIOS_ENVIRONMENT": "staging",
             "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
