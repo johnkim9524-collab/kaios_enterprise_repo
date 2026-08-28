@@ -383,6 +383,87 @@ jobs:
             if(webkitObs.objectTitle!=='No governed object'||webkitObs.objectCount!=='WAITING')failures.push('WEBKIT_IPHONE_LIFECYCLE:OBJECT_QUARANTINE_BROKEN');
             results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'APPROVED_WEBKIT_LIFECYCLE_30_CYCLES',obs:webkitObs,runtimeErrors,crashed});
             await context.close();
+
+            // A LIVE_APPROVED page restored from BFCache must purge every
+            // previously rendered dynamic value before a failing revalidation
+            // settles. This is the exact stale-value boundary missed by the
+            // original lifecycle canary.
+            const failureContext=await webkitBrowser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+            const failurePage=await failureContext.newPage();
+            const failureErrors=[];
+            let failureCrashed=false;
+            let forcedFailureResponseCount=0;
+            let expectedFailureConsoleCount=0;
+            failurePage.on('crash',()=>{failureCrashed=true});
+            failurePage.on('pageerror',error=>failureErrors.push(`PAGEERROR_${error.message}`));
+            failurePage.on('console',message=>{
+              if(message.type()!=='error'||/favicon/i.test(message.text()))return;
+              if(forcedFailureResponseCount>0&&/Failed to load resource: the server responded with a status of 500/i.test(message.text())){
+                expectedFailureConsoleCount+=1;
+                return;
+              }
+              failureErrors.push(`CONSOLE_${message.text()}`);
+            });
+            await failurePage.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
+            await failurePage.waitForFunction(()=>document.documentElement.dataset.state==='LIVE_APPROVED',{timeout:5000});
+            const livePrecondition=await failurePage.evaluate(()=>({
+              signalText:document.querySelector('[data-signal-grid]')?.textContent||'',
+              auditText:document.querySelector('[data-audit-safe]')?.textContent||''
+            }));
+            if(!livePrecondition.signalText.includes('fixture-what_changed')||!livePrecondition.auditText.includes('fixture-approved-market-v1')){
+              failures.push(`WEBKIT_LIVE_TO_FAILURE:PRECONDITION_NOT_LIVE_${JSON.stringify(livePrecondition)}`);
+            }
+            await failureContext.route('**/api/v1/projection',async route=>{
+              forcedFailureResponseCount+=1;
+              await new Promise(resolve=>setTimeout(resolve,250));
+              await route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({ok:false,error:'qa_forced_revalidation_failure'})});
+            });
+            const immediatePurge=await failurePage.evaluate(()=>{
+              globalThis.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
+              globalThis.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+              const workspace=[...document.querySelectorAll('.workspace-grid article')];
+              return {
+                state:document.documentElement.dataset.state,
+                signalCount:document.querySelectorAll('[data-signal-grid] .signal-item').length,
+                signalText:document.querySelector('[data-signal-grid]')?.textContent||'',
+                auditRowCount:document.querySelectorAll('[data-audit-safe] > span').length,
+                auditText:document.querySelector('[data-audit-safe]')?.textContent||'',
+                verticalCount:document.querySelectorAll('[data-vertical-grid] .vertical-tile').length,
+                auditSeal:document.querySelector('[data-audit-seal]')?.textContent,
+                workspaceBlocked:workspace.length===4&&workspace.every(node=>node.getAttribute('aria-disabled')==='true'),
+                kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED',
+                objectTitle:document.querySelector('[data-object-title]')?.textContent,
+                objectCount:document.querySelector('[data-object-count]')?.textContent
+              };
+            });
+            await failurePage.waitForFunction(()=>document.documentElement.dataset.state==='INVALID'&&document.querySelectorAll('[data-vertical-grid] .vertical-tile').length===8,{timeout:5000});
+            const settledPurge=await failurePage.evaluate(()=>{
+              const workspace=[...document.querySelectorAll('.workspace-grid article')];
+              return {
+                state:document.documentElement.dataset.state,
+                signalCount:document.querySelectorAll('[data-signal-grid] .signal-item').length,
+                signalText:document.querySelector('[data-signal-grid]')?.textContent||'',
+                auditText:document.querySelector('[data-audit-safe]')?.textContent||'',
+                verticalCount:document.querySelectorAll('[data-vertical-grid] .vertical-tile').length,
+                auditSeal:document.querySelector('[data-audit-seal]')?.textContent,
+                workspaceBlocked:workspace.length===4&&workspace.every(node=>node.getAttribute('aria-disabled')==='true'),
+                kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED',
+                objectTitle:document.querySelector('[data-object-title]')?.textContent,
+                objectCount:document.querySelector('[data-object-count]')?.textContent
+              };
+            });
+            const staleMarker=/fixture-(?:approved|projection|assessment|replay|pair|correlation|what_changed|liquidity|market_scale)/;
+            if(immediatePurge.state!=='INVALID'||immediatePurge.signalCount!==0||immediatePurge.signalText||immediatePurge.auditRowCount!==9||staleMarker.test(immediatePurge.auditText)||immediatePurge.verticalCount!==0||immediatePurge.auditSeal!=='CONTROL BOUNDARY'||!immediatePurge.workspaceBlocked||immediatePurge.kidultReady||immediatePurge.objectTitle!=='No governed object'||immediatePurge.objectCount!=='WAITING'){
+              failures.push(`WEBKIT_LIVE_TO_FAILURE:IMMEDIATE_STALE_VALUE_${JSON.stringify(immediatePurge)}`);
+            }
+            if(settledPurge.state!=='INVALID'||settledPurge.signalCount!==0||settledPurge.signalText||staleMarker.test(settledPurge.auditText)||settledPurge.verticalCount!==8||settledPurge.auditSeal!=='CONTROL BOUNDARY'||!settledPurge.workspaceBlocked||settledPurge.kidultReady||settledPurge.objectTitle!=='No governed object'||settledPurge.objectCount!=='WAITING'){
+              failures.push(`WEBKIT_LIVE_TO_FAILURE:SETTLED_STALE_VALUE_${JSON.stringify(settledPurge)}`);
+            }
+            if(forcedFailureResponseCount!==1)failures.push(`WEBKIT_LIVE_TO_FAILURE:FORCED_RESPONSE_COUNT_${forcedFailureResponseCount}`);
+            if(failureCrashed)failures.push('WEBKIT_LIVE_TO_FAILURE:PAGE_CRASH');
+            if(failureErrors.length)failures.push(`WEBKIT_LIVE_TO_FAILURE:RUNTIME_${failureErrors.join('|')}`);
+            results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'LIVE_APPROVED_TO_BFCACHE_FAILED_REVALIDATION_PURGE',livePrecondition,immediatePurge,settledPurge,forcedFailureResponseCount,expectedFailureConsoleCount,runtimeErrors:failureErrors,crashed:failureCrashed});
+            await failureContext.close();
             await webkitBrowser.close();
           }
 
