@@ -16,8 +16,8 @@ const SAFE_STRUCTURAL_VERTICALS=Object.freeze([
   ['cards-comics-memorabilia','Cards / Comics / Memorabilia']
 ].map(([vertical_id,label])=>Object.freeze({vertical_id,label,structural_state:'AVAILABLE'})));
 
-const invalidProjection=reason=>({
-  source:'CONTROL_FALLBACK',
+const invalidProjection=(reason,source='CONTROL_FALLBACK')=>({
+  source,
   projection:{state:'INVALID',projection_id:null,as_of:null,assessment_id:null,rights_state:'WAITING',freshness:'NOT_AVAILABLE'},
   release:{state:'HOLD'},
   structural:{core_verticals:{value:8,state:'AVAILABLE'}},
@@ -46,45 +46,69 @@ function exactSignedPortalEnvelope(candidate){
     receipt?.freshness_state==='CURRENT'&&receipt?.production==='HOLD'&&receipt?.public==='HOLD'&&receipt?.g5==='HOLD';
 }
 
-export async function readPortalProjection({url='/api/v1/projection',controlUrl='./data/projection-control-fixture.json'}={}){
+async function readControlFallback(controlUrl,signal){
+  return readPortalProjection({url:controlUrl,controlUrl,signal});
+}
+
+export async function readPortalProjection({url='/api/v1/projection',controlUrl='./data/projection-control-fixture.json',signal}={}){
+  let response;
   try{
-    const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});
-    if(!response.ok)throw new Error(`HTTP_${response.status}`);
-    const candidate=await response.json();
-    if(exactSignedPortalEnvelope(candidate))return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
-    if(candidate?.record_type==='kidults_proof_product_projection'){
-      const admission=admitProofProductProjection(candidate,{
-        surface:'PORTAL_RENDER',
-        purpose:'PUBLIC_DISPLAY',
-        trustedNow:null,
-        clockAuthority:'UNTRUSTED_BROWSER',
-        releaseAuthority:'HOLD'
-      });
-      const fallback=invalidProjection(admission.receipt.reason);
-      fallback.projection.state=admission.accepted&&admission.state_only?'NO_PROJECTION':'INVALID';
-      fallback.audit.projection_id=admission.receipt.projection_id;
-      fallback.audit.assessment_id=admission.receipt.assessment_id;
-      fallback.audit.reason_category=admission.receipt.reason;
-      fallback.audit.consumption_receipt=admission.receipt;
-      return Object.freeze(fallback);
-    }
-    const exactControl=candidate?.record_type===CONTROL_RECORD_TYPE&&
-      candidate?.schema_version===CONTROL_SCHEMA_VERSION&&
-      candidate?.fixture_type==='NON_PROMOTABLE_CONTROL'&&candidate?.release?.state==='HOLD'&&
-      candidate?.projection?.state==='NO_PROJECTION'&&candidate?.projection?.synthetic===true&&
-      candidate?.projection?.promotable===false&&candidate?.projection?.production===false&&candidate?.projection?.public===false;
-    if(exactControl){
-      const fallback=invalidProjection('NO_GOVERNED_PROJECTION');
-      fallback.fixture_type='NON_PROMOTABLE_CONTROL';
-      fallback.projection.state='NO_PROJECTION';
-      return Object.freeze(fallback);
-    }
-    throw new Error('PROJECTION_RECORD_TYPE_INVALID');
+    response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'},signal});
   }catch(error){
+    if(error?.name==='AbortError')throw error;
     if(url===controlUrl||url!=='/api/v1/projection')return Object.freeze(invalidProjection(error?.message));
-    try{return await readPortalProjection({url:controlUrl,controlUrl})}
-    catch{return Object.freeze(invalidProjection(error?.message))}
+    try{return await readControlFallback(controlUrl,signal)}
+    catch(fallbackError){
+      if(fallbackError?.name==='AbortError')throw fallbackError;
+      return Object.freeze(invalidProjection(error?.message));
+    }
   }
+
+  if(!response.ok){
+    if(url===controlUrl||url!=='/api/v1/projection')return Object.freeze(invalidProjection(`HTTP_${response.status}`));
+    if(response.status===404||response.status===503){
+      try{return await readControlFallback(controlUrl,signal)}
+      catch(fallbackError){
+        if(fallbackError?.name==='AbortError')throw fallbackError;
+        return Object.freeze(invalidProjection(`HTTP_${response.status}`));
+      }
+    }
+    return Object.freeze(invalidProjection(`HTTP_${response.status}`,'PRIMARY_INVALID'));
+  }
+
+  let candidate;
+  try{candidate=await response.json()}
+  catch{return Object.freeze(invalidProjection('PROJECTION_JSON_INVALID','PRIMARY_INVALID'))}
+
+  if(exactSignedPortalEnvelope(candidate))return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
+  if(candidate?.record_type==='kidults_proof_product_projection'){
+    const admission=admitProofProductProjection(candidate,{
+      surface:'PORTAL_RENDER',
+      purpose:'PUBLIC_DISPLAY',
+      trustedNow:null,
+      clockAuthority:'UNTRUSTED_BROWSER',
+      releaseAuthority:'HOLD'
+    });
+    const fallback=invalidProjection(admission.receipt.reason,'PRIMARY_ADMISSION');
+    fallback.projection.state=admission.accepted&&admission.state_only?'NO_PROJECTION':'INVALID';
+    fallback.audit.projection_id=admission.receipt.projection_id;
+    fallback.audit.assessment_id=admission.receipt.assessment_id;
+    fallback.audit.reason_category=admission.receipt.reason;
+    fallback.audit.consumption_receipt=admission.receipt;
+    return Object.freeze(fallback);
+  }
+  const exactControl=candidate?.record_type===CONTROL_RECORD_TYPE&&
+    candidate?.schema_version===CONTROL_SCHEMA_VERSION&&
+    candidate?.fixture_type==='NON_PROMOTABLE_CONTROL'&&candidate?.release?.state==='HOLD'&&
+    candidate?.projection?.state==='NO_PROJECTION'&&candidate?.projection?.synthetic===true&&
+    candidate?.projection?.promotable===false&&candidate?.projection?.production===false&&candidate?.projection?.public===false;
+  if(exactControl){
+    const fallback=invalidProjection('NO_GOVERNED_PROJECTION');
+    fallback.fixture_type='NON_PROMOTABLE_CONTROL';
+    fallback.projection.state='NO_PROJECTION';
+    return Object.freeze(fallback);
+  }
+  return Object.freeze(invalidProjection('PROJECTION_RECORD_TYPE_INVALID','PRIMARY_INVALID'));
 }
 
 export const portalProjectionContract=Object.freeze({
@@ -104,5 +128,8 @@ export const portalProjectionContract=Object.freeze({
   proof_product_admission:'EXECUTED_BEFORE_RENDER',
   browser_clock_authoritative:false,
   approved_projection_release_authority:'SIGNED_SERVER_CAPABILITY',
-  static_approved_projection:false,toctou_control:'SERVER_RELOAD_AND_READMISSION_PER_REQUEST'
+  static_approved_projection:false,
+  invalid_primary_control_fallback:false,
+  control_fallback_statuses:[404,503],
+  toctou_control:'SERVER_RELOAD_AND_READMISSION_PER_REQUEST'
 });
