@@ -27,7 +27,7 @@ if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value):
 datetime.datetime.fromisoformat(value[:-1] + '+00:00')
 PY
 
-pg_isready "$KAIOS_POSTGRES_PITR_RESTORE_DSN" >/dev/null
+pg_isready --dbname="$KAIOS_POSTGRES_PITR_RESTORE_DSN" >/dev/null
 
 probe_json="$(psql "$KAIOS_POSTGRES_PITR_RESTORE_DSN" --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
