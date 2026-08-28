@@ -135,7 +135,7 @@ const receipt = {
   agent_id: 'codex/p1_supply_chain',
   suite: 'KIDULTS_PORTAL_R001_BROWSER_QA_SUPPLY_CHAIN_VALIDATOR_V1',
   result: 'PASS',
-  issues: [895, 933, 935, 976, 1493],
+  issues: [895, 933, 935, 976, 1493, 1494, 1496, 1497],
   workflow: WORKFLOW_PATH,
   workflow_sha256: `sha256:${crypto.createHash('sha256').update(workflow).digest('hex')}`,
   package_sha256: `sha256:${crypto.createHash('sha256').update(pkgBytes).digest('hex')}`,
