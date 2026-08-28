@@ -252,6 +252,29 @@ jobs:
           export KAIOS_SOURCE_VERIFIER_PATH="$GITHUB_WORKSPACE/scripts/staging/verify-remote-postgres-persistence-pitr.sh"
           export KAIOS_POSTGRES_DSN="$POSTGRES_DSN"
           unset POSTGRES_DSN
+          python3 - <<'PY'
+          import os, urllib.parse
+          raw=os.environ['KAIOS_POSTGRES_DSN']
+          p=urllib.parse.urlsplit(raw)
+          host=p.hostname or ''
+          query=urllib.parse.parse_qs(p.query, keep_blank_values=True)
+          print('dsn_present=%s' % bool(raw))
+          print('scheme=%s' % (p.scheme or '<empty>'))
+          print('host_suffix_ok=%s' % host.endswith('.db.ondigitalocean.com'))
+          print('port=%s' % (p.port if p.port is not None else '<empty>'))
+          print('path_present=%s' % bool(p.path))
+          print('fragment_present=%s' % bool(p.fragment))
+          print('query_keys=%s' % ','.join(sorted(query)))
+          if p.scheme not in {'postgres','postgresql'} or not host or p.fragment:
+              raise SystemExit('DSN shape invalid: scheme/host/fragment')
+          if not host.endswith('.db.ondigitalocean.com'):
+              raise SystemExit('DSN shape invalid: DigitalOcean host suffix')
+          if p.port != 25060:
+              raise SystemExit('DSN shape invalid: port must be 25060')
+          if query.get('sslmode',[None])[0] not in {'require','verify-ca','verify-full'}:
+              raise SystemExit('DSN shape invalid: sslmode')
+          print('DSN_SHAPE_DIAGNOSTIC_PASS')
+          PY
           scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source \
             | tee artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
 
