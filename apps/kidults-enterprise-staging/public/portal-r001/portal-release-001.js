@@ -193,23 +193,32 @@ function renderFailure(){
 let projectionRevalidationTimer=null;
 let projectionRefreshInFlight=false;
 let portalDisposed=false;
+let initialProjectionReadCompleted=false;
 
-function scheduleProjectionRefresh(delayMs){
+function clearProjectionTimer(){
   clearTimeout(projectionRevalidationTimer);
-  if(portalDisposed||document.visibilityState==='hidden')return;
-  const safeDelay=Math.max(15000,Number.isFinite(delayMs)?delayMs:60000);
-  projectionRevalidationTimer=setTimeout(refreshProjection,safeDelay);
+  projectionRevalidationTimer=null;
 }
 
-async function refreshProjection(){
-  if(portalDisposed||projectionRefreshInFlight||document.visibilityState==='hidden')return;
+function scheduleProjectionRefresh(delayMs){
+  clearProjectionTimer();
+  if(portalDisposed||document.visibilityState==='hidden')return;
+  const safeDelay=Math.max(30000,Number.isFinite(delayMs)?delayMs:60000);
+  projectionRevalidationTimer=setTimeout(()=>refreshProjection(),safeDelay);
+}
+
+async function refreshProjection({allowHiddenInitial=false}={}){
+  if(portalDisposed||projectionRefreshInFlight)return;
+  if(document.visibilityState==='hidden'&&initialProjectionReadCompleted&&!allowHiddenInitial)return;
   projectionRefreshInFlight=true;
   try{
     const data=await readPortalProjection();
+    initialProjectionReadCompleted=true;
     if(portalDisposed)return;
     render(data);
-    scheduleProjectionRefresh(Number.isInteger(data.runtime_revalidate_after_ms)?Math.max(data.runtime_revalidate_after_ms,30000):60000);
+    scheduleProjectionRefresh(Number.isInteger(data.runtime_revalidate_after_ms)?data.runtime_revalidate_after_ms:60000);
   }catch{
+    initialProjectionReadCompleted=true;
     if(portalDisposed)return;
     renderFailure();
     scheduleProjectionRefresh(60000);
@@ -220,17 +229,31 @@ async function refreshProjection(){
 
 function disposePortalRuntime(){
   portalDisposed=true;
-  clearTimeout(projectionRevalidationTimer);
-  projectionRevalidationTimer=null;
+  clearProjectionTimer();
+}
+
+function revivePortalRuntime(){
+  portalDisposed=false;
+  clearProjectionTimer();
 }
 
 initializeNavigation();
 bindHero();
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
-    portalDisposed=false;
+    revivePortalRuntime();
     refreshProjection();
-  }else clearTimeout(projectionRevalidationTimer);
+  }else clearProjectionTimer();
 });
-globalThis.addEventListener('pagehide',disposePortalRuntime,{once:true});
-refreshProjection();
+globalThis.addEventListener('pagehide',()=>{
+  disposePortalRuntime();
+});
+globalThis.addEventListener('pageshow',event=>{
+  if(event.persisted){
+    globalThis.location.reload();
+    return;
+  }
+  revivePortalRuntime();
+  if(initialProjectionReadCompleted)refreshProjection();
+});
+refreshProjection({allowHiddenInitial:true});
