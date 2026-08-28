@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_PSA_120_PRIVATE_STORE_RETENTION_V1",
-  "state": "IMPLEMENTED_FAIL_CLOSED",
+  "state": "IMPLEMENTED_VALIDATOR_CONNECTED_RUNTIME_ACTIVATION_HOLD",
   "classification": "PRIVATE_ONLY",
   "encryption": {
     "algorithm": "AES-256-GCM",
@@ -19,5 +19,17 @@
     "public_api_raw_output": "PROHIBITED",
     "portal_raw_output": "PROHIBITED",
     "production": "HOLD"
+  },
+  "implementation": {
+    "store_module": "services/kidults-control-plane/src/psa-private-evaluation-store.mjs#createPsaPrivateFileStore",
+    "deletion_runner": "scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs",
+    "automatic_trigger": "BLOCKED_PENDING_PERSISTENT_GOVERNED_RUNNER_AND_PRIVATE_STORE_MOUNT",
+    "activation_requirements": [
+      "PSA_PRIVATE_STORE_ROOT_EXPLICIT_NON_REPOSITORY_PATH",
+      "PSA_PRIVATE_STORE_KEY_B64_RUNTIME_SECRET_32_BYTES",
+      "PERSISTENT_GOVERNED_RUNNER_WITH_STORE_MOUNT"
+    ],
+    "github_hosted_runner_execution": "VALIDATION_ONLY_NO_PERSISTENT_STORE",
+    "production_activation": "HOLD"
   }
 }

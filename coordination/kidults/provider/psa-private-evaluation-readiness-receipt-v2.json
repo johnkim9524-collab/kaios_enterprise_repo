@@ -1,0 +1,74 @@
+{
+  "receipt_id": "KIDULTS_PSA_PRIVATE_EVALUATION_READINESS_RECEIPT_V2",
+  "version": "2.0.0",
+  "agent_id": "AI-018 / GLOBAL_SCALE_STEWARDSHIP",
+  "as_of": "2026-08-28T01:33:33Z",
+  "scope": "PSA Premium bounded private evaluation field mapping, encrypted store, retention deletion and pilot preconditions",
+  "state": "VERIFIED_PASS_CONTROLS_RUNTIME_ACTIVATION_HOLD",
+  "facts": [
+    "Observed PSA PublicCertificationModel.PSACert schema is bound to an exact 17-field canonical map by digest.",
+    "A concrete AES-256-GCM private file store encrypts raw payloads, retains only digest-based audit metadata and verifies physical deletion before emitting a receipt.",
+    "The retention runner rejects repository-overlapping and symlink-resolved storage, missing runtime key material and invalid key material.",
+    "A delayed deletion run still deletes overdue raw data and emits an explicit retention-breach receipt instead of retaining it or losing the audit trail.",
+    "PSA provider access remains bounded to known-cert private evaluation; public display, raw redistribution, bulk enumeration, Production and G5 remain blocked.",
+    "The lawful provenance-bound known-cert manifest remains 0 of 120, so provider acquisition did not run."
+  ],
+  "actions_executed": [
+    "BOUND_EXACT_FIELD_MAP_TO_OBSERVED_SCHEMA_DIGEST",
+    "IMPLEMENTED_CONCRETE_ENCRYPTED_PRIVATE_FILE_STORE",
+    "REQUIRED_VERIFIED_DELETION_RECEIPT_BEFORE_RETENTION_SUCCESS",
+    "IMPLEMENTED_FAIL_CLOSED_RETENTION_DELETION_RUNNER",
+    "BOUND_PRIVATE_STORE_ROOT_TO_REALPATH_AND_BLOCKED_REPOSITORY_OVERLAP",
+    "PRESERVED_DELETION_AND_BREACH_AUDIT_ON_LATE_RETENTION_RUN",
+    "ADDED_REGRESSION_AND_NEGATIVE_TESTS",
+    "EXTENDED_AUTOMATIC_PR_AND_MAIN_VALIDATION_PATHS"
+  ],
+  "evidence_refs": [
+    "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+    "coordination/kidults/provider/psa-120-field-map-v1.json",
+    "coordination/kidults/provider/psa-120-private-store-retention-v1.json",
+    "services/kidults-control-plane/src/psa-private-evaluation-store.mjs",
+    "services/kidults-control-plane/src/psa-private-evaluation.mjs",
+    "scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs",
+    "services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs"
+  ],
+  "validation": {
+    "admission_validator": "VERIFIED_PASS",
+    "targeted_psa_tests": { "passed": 14, "failed": 0 },
+    "control_plane_tests": { "passed": 51, "failed": 0 },
+    "boundary_validator": "VERIFIED_PASS_LOCAL_CONTRACT",
+    "retention_runner_zero_record_execution": "VERIFIED_PASS",
+    "retention_runner_missing_environment_negative": "VERIFIED_PASS",
+    "git_diff_check": "VERIFIED_PASS"
+  },
+  "uncertainties": [
+    "No persistent governed runner or private-store mount is configured in the repository evidence.",
+    "No 120-entry provenance-bound lawful cert manifest exists."
+  ],
+  "blockers": [
+    {
+      "action": "ACTIVATE_AUTOMATIC_RETENTION_DELETION",
+      "state": "BLOCKED",
+      "reason": "Persistent governed runner, explicit non-repository private-store mount and runtime-only 32-byte key are not provisioned.",
+      "unblock_condition": "Provision the governed runtime and secret/mount bindings, then register and validate the automatic trigger."
+    },
+    {
+      "action": "EXECUTE_120_CASE_PSA_PILOT",
+      "state": "BLOCKED",
+      "reason": "Provenance-bound lawful known-cert manifest is 0/120.",
+      "unblock_condition": "Provide exactly 120 unique, lawfully known, provenance-bound cert references without enumeration or repository raw-cert persistence."
+    }
+  ],
+  "next_action": "Merge verified controls, provision the governed private runtime, and assemble the lawful 120-entry manifest before any provider acquisition.",
+  "authority_boundary": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "external_spend": "NONE",
+    "provider_calls_this_change": 0
+  },
+  "autonomous_effect": "Positive: reversible local controls and PR/main validation execute without provider credentials; runtime deletion scheduling remains blocked until persistent infrastructure exists.",
+  "global_effect": "Neutral: PSA remains one bounded certification provider and is not global coverage evidence.",
+  "irreplaceable_value_effect": "Positive: canonical field mapping, digest lineage, encrypted storage and deletion receipts remain KIDULTS-owned and provider-switchable.",
+  "transparency_effect": "Positive: implementation completion is separated from runtime activation and empirical acquisition progress."
+}

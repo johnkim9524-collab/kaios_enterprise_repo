@@ -108,7 +108,10 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
   const deleted = [];
   for (const item of expired) {
     required(item.handle, 'PSA_EXPIRED_HANDLE');
-    await privateStore.delete({ handle: item.handle, reason: 'RETENTION_EXPIRED', deletedAt: instant.toISOString() });
+    const deletion = await privateStore.delete({ handle: item.handle, reason: 'RETENTION_EXPIRED', deletedAt: instant.toISOString() });
+    if (deletion?.deletion_verified !== true || deletion?.raw_payload_retained !== false) {
+      throw new Error('PSA_DELETION_RECEIPT_NOT_VERIFIED');
+    }
     deleted.push(sha256(String(item.handle)));
   }
   return {

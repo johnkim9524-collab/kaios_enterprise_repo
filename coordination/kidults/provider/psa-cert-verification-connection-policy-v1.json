@@ -1,7 +1,7 @@
 {
   "policy_id": "KIDULTS_PSA_CERT_VERIFICATION_CONNECTION_POLICY_V1",
   "provider_id": "psa-public-api",
-  "state": "PREMIUM_API_CONNECTION_VERIFIED_BOUNDED_PRIVATE_EVALUATION_CONTROLS_HOLD",
+  "state": "PREMIUM_API_CONNECTION_VERIFIED_PRIVATE_EVALUATION_CONTROLS_VERIFIED_RUNTIME_ACTIVATION_HOLD",
   "source_evidence": {
     "canonical_issue": 1251,
     "provider_reply_interpretation": "BOUNDED_120_CASE_PRIVATE_INTERNAL_EVALUATION_RIGHTS_CONFIRMED",
@@ -80,13 +80,15 @@
     "EMIT_SCHEMA_KEYS_RESPONSE_DIGEST_AND_SANITIZED_RECEIPT_ONLY"
   ],
   "operational_readiness": {
-    "exact_field_map": "PENDING_APPROVAL",
-    "encrypted_private_store": "NOT_IMPLEMENTED",
-    "retention_deletion_scheduler": "NOT_CONNECTED",
-    "lawful_known_cert_manifest": "2_KNOWN_OF_120_REQUIRED",
+    "exact_field_map": "VERIFIED_OBSERVED_17_FIELD_SCHEMA_BOUND",
+    "encrypted_private_store": "VERIFIED_LOCAL_AES_256_GCM_FILE_STORE",
+    "retention_deletion_runner": "VERIFIED_LOCAL_FAIL_CLOSED",
+    "retention_deletion_scheduler": "BLOCKED_PENDING_PERSISTENT_GOVERNED_RUNNER_AND_PRIVATE_STORE_MOUNT",
+    "lawful_known_cert_manifest": "0_PROVENANCE_BOUND_ADMISSIBLE_OF_120_DECLARED_KNOWN_2",
     "quota_execution_plan": "PENDING_MINIMUM_TWO_DAYS",
     "independent_er_evidence_pairs": "NOT_ASSEMBLED",
     "acquisition_progress": "0_OF_120",
     "track_b": "NOT_STARTED"
-  }
+  },
+  "latest_readiness_receipt": "coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json"
 }
