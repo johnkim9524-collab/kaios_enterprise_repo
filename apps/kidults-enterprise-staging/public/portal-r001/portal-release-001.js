@@ -191,21 +191,46 @@ function renderFailure(){
 }
 
 let projectionRevalidationTimer=null;
+let projectionRefreshInFlight=false;
+let portalDisposed=false;
+
+function scheduleProjectionRefresh(delayMs){
+  clearTimeout(projectionRevalidationTimer);
+  if(portalDisposed||document.visibilityState==='hidden')return;
+  const safeDelay=Math.max(15000,Number.isFinite(delayMs)?delayMs:60000);
+  projectionRevalidationTimer=setTimeout(refreshProjection,safeDelay);
+}
+
 async function refreshProjection(){
+  if(portalDisposed||projectionRefreshInFlight||document.visibilityState==='hidden')return;
+  projectionRefreshInFlight=true;
   try{
     const data=await readPortalProjection();
+    if(portalDisposed)return;
     render(data);
-    clearTimeout(projectionRevalidationTimer);
-    projectionRevalidationTimer=setTimeout(refreshProjection,
-      Number.isInteger(data.runtime_revalidate_after_ms)?data.runtime_revalidate_after_ms:30000);
+    scheduleProjectionRefresh(Number.isInteger(data.runtime_revalidate_after_ms)?Math.max(data.runtime_revalidate_after_ms,30000):60000);
   }catch{
+    if(portalDisposed)return;
     renderFailure();
-    clearTimeout(projectionRevalidationTimer);
-    projectionRevalidationTimer=setTimeout(refreshProjection,5000);
+    scheduleProjectionRefresh(60000);
+  }finally{
+    projectionRefreshInFlight=false;
   }
+}
+
+function disposePortalRuntime(){
+  portalDisposed=true;
+  clearTimeout(projectionRevalidationTimer);
+  projectionRevalidationTimer=null;
 }
 
 initializeNavigation();
 bindHero();
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshProjection()});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    portalDisposed=false;
+    refreshProjection();
+  }else clearTimeout(projectionRevalidationTimer);
+});
+globalThis.addEventListener('pagehide',disposePortalRuntime,{once:true});
 refreshProjection();
