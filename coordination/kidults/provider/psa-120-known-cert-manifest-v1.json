@@ -9,13 +9,27 @@
   "entries": [],
   "required_entry_contract": {
     "cert_reference_digest": "sha256:<64hex>",
-    "lawful_source_ref": "required_nonempty_stable_reference",
+    "source_receipt_digest": "sha256:<64hex>",
+    "source_record_digest": "sha256:<64hex>",
+    "source_class": "PROGRAM_OWNER_KNOWN_CERT_RECORD|RIGHTS_CLEAR_PRIVATE_SOURCE_RECORD",
+    "rights_basis_id": "PSA_BOUNDED_PRIVATE_EVALUATION_2026_08_24",
+    "collector_id": "PROGRAM_OWNER|KPMO_AUTHORIZED_OPERATOR",
     "source_observed_at": "ISO-8601 required",
     "admission_purpose": "PRIVATE_ER_EVALUATION_ONLY",
+    "non_enumeration_verified": true,
     "enumeration_used": false,
-    "raw_cert_value_in_repository": false
+    "raw_cert_value_in_repository": false,
+    "empirical_admissible": true
   },
-  "truth_boundary": "DECLARED_KNOWN_COUNT_IS_NOT_ADMISSIBLE_PROGRESS. ONLY ENTRIES WITH MACHINE-VALIDATED DIGEST + LAWFUL SOURCE PROVENANCE COUNT TOWARD 120.",
+  "source_receipt_contract": {
+    "schema_version": "1.0.0",
+    "receipt_type": "KIDULTS_PSA_KNOWN_CERT_SOURCE_RECEIPT",
+    "synthetic": false,
+    "enumeration_method": "NONE",
+    "exact_cert_to_receipt_digest_binding_required": true,
+    "self_asserted_provenance_rejected": true
+  },
+  "truth_boundary": "DECLARED_KNOWN_COUNT_IS_NOT_ADMISSIBLE_PROGRESS. ONLY MACHINE-VALIDATED PROVENANCE-BOUND SOURCE RECEIPTS WITH EXACT CERT BINDING COUNT TOWARD 120.",
   "rules": {
     "bulk_enumeration": "PROHIBITED",
     "brute_force_discovery": "PROHIBITED",
@@ -27,5 +41,7 @@
   },
   "promotion_authority": "NONE",
   "live_acquisition": "HOLD_UNTIL_120_PROVENANCE_BOUND_ENTRIES",
-  "production": "HOLD"
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
 }
