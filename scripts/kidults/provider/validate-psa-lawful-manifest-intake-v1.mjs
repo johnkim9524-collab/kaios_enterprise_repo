@@ -33,9 +33,17 @@ function makeReceipt(overrides = {}) {
 const controlReceipt = makeReceipt();
 const controlEntry = buildManifestEntry({ certNumber: fixtureCert, receipt: controlReceipt, controlValidation: true });
 if (controlEntry.empirical_admissible !== false) throw new Error('PSA_CONTROL_FIXTURE_MUST_NOT_BE_EMPIRICAL');
+if (controlEntry.source_authority_verified !== false || controlEntry.empirical_admission_state !== 'HOLD_INDEPENDENT_SOURCE_AUTHORITY_NOT_PROVEN') throw new Error('PSA_SOURCE_AUTHORITY_HOLD_MISSING');
 if (controlEntry.raw_cert_value_in_repository !== false || controlEntry.enumeration_used !== false || controlEntry.non_enumeration_verified !== true) throw new Error('PSA_CONTROL_ENTRY_BOUNDARY_INVALID');
 if (!/^sha256:[0-9a-f]{64}$/.test(controlEntry.source_receipt_digest)) throw new Error('PSA_SOURCE_RECEIPT_BINDING_INVALID');
 if (JSON.stringify(controlEntry).includes(fixtureCert)) throw new Error('PSA_CONTROL_ENTRY_RAW_CERT_LEAK');
+
+const selfHashedReceipt = makeReceipt({ synthetic: false });
+validateSourceReceipt(selfHashedReceipt, fixtureCert);
+const selfHashedEntry = buildManifestEntry({ certNumber: fixtureCert, receipt: selfHashedReceipt, controlValidation: false });
+if (selfHashedEntry.empirical_admissible !== false || selfHashedEntry.source_authority_verified !== false || selfHashedEntry.empirical_admission_state !== 'HOLD_INDEPENDENT_SOURCE_AUTHORITY_NOT_PROVEN') {
+  throw new Error('PSA_SELF_HASHED_RECEIPT_FALSE_EMPIRICAL_PROMOTION');
+}
 
 const negatives = [
   ['SYNTHETIC_EMPIRICAL', () => validateSourceReceipt(controlReceipt, fixtureCert)],
@@ -55,7 +63,7 @@ for (const [name, fn] of negatives) {
 }
 
 console.log(JSON.stringify({
-  validator: 'KIDULTS_PSA_LAWFUL_MANIFEST_INTAKE_V2',
+  validator: 'KIDULTS_PSA_LAWFUL_MANIFEST_INTAKE_V3',
   state: 'VERIFIED_PASS',
   provenance_receipt_required: true,
   receipt_digest_verified: true,
@@ -65,6 +73,9 @@ console.log(JSON.stringify({
   cert_digest_bound_to_receipt: true,
   non_enumeration_machine_verified: true,
   synthetic_control_fixture_empirical_admissible: false,
+  self_hashed_receipt_empirical_admissible: false,
+  independent_source_authority_proven: false,
+  empirical_admission_state: 'HOLD_INDEPENDENT_SOURCE_AUTHORITY_NOT_PROVEN',
   negative_mutations_rejected: negatives.length,
   live_provider_call: false,
   empirical_delta: 0,
