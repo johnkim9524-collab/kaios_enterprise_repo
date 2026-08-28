@@ -41,7 +41,7 @@ jobs:
           cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-qa/package.json
           cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-qa/package-lock.json
           npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund
-          node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps chromium
+          node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps chromium webkit
       - name: Start staging portal
         shell: bash
         run: |
@@ -82,7 +82,7 @@ jobs:
         shell: bash
         run: |
           cat > /tmp/kidults-r001-qa/run.mjs <<'NODE'
-          import { chromium } from 'playwright';
+          import { chromium, webkit } from 'playwright';
           import AxeBuilder from '@axe-core/playwright';
           import fs from 'node:fs/promises';
 
@@ -218,17 +218,42 @@ jobs:
               const context=await browser.newContext({viewport:{width,height:width===390?900:1000},reducedMotion:'reduce'});
               await context.addInitScript(()=>{
                 globalThis.__kidultsVitals={lcp:0,cls:0,inp:0};
-                new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,e.startTime)}).observe({type:'largest-contentful-paint',buffered:true});
-                new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)globalThis.__kidultsVitals.cls+=e.value}).observe({type:'layout-shift',buffered:true});
-                try{new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,e.duration)}).observe({type:'event',buffered:true,durationThreshold:16})}catch{}
+                globalThis.__kidultsVitalsObservers=[];
+                const lcpObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,e.startTime)});
+                lcpObserver.observe({type:'largest-contentful-paint',buffered:true});
+                globalThis.__kidultsVitalsObservers.push(lcpObserver);
+                const clsObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)globalThis.__kidultsVitals.cls+=e.value});
+                clsObserver.observe({type:'layout-shift',buffered:true});
+                globalThis.__kidultsVitalsObservers.push(clsObserver);
+                try{
+                  const inpObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,e.duration)});
+                  inpObserver.observe({type:'event',buffered:true,durationThreshold:16});
+                  globalThis.__kidultsVitalsObservers.push(inpObserver);
+                }catch{}
+                globalThis.__kidultsDrainVitals=()=>{
+                  for(const observer of globalThis.__kidultsVitalsObservers){
+                    for(const entry of observer.takeRecords()){
+                      if(entry.entryType==='largest-contentful-paint')globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,entry.startTime);
+                      else if(entry.entryType==='layout-shift'&&!entry.hadRecentInput)globalThis.__kidultsVitals.cls+=entry.value;
+                      else if(entry.entryType==='event')globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,entry.duration);
+                    }
+                  }
+                  return {...globalThis.__kidultsVitals};
+                };
               });
               const page=await context.newPage();
               const runtimeErrors=[];
               page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
               page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
               await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
+              await page.waitForFunction(()=>document.querySelector('.hero-image')?.complete&&document.querySelector('.hero-image')?.naturalWidth>0,{timeout:5000});
+              await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+              await page.screenshot({path:`${screenshotDir}/portal-r001-approved-w${width}.png`,fullPage:false});
+              await page.waitForFunction(()=>globalThis.__kidultsVitals?.lcp>0,{timeout:2000}).catch(()=>{});
+              await page.evaluate(()=>globalThis.__kidultsDrainVitals?.());
+              // User input terminates LCP candidate collection. Exercise keyboard focus only
+              // after the paint observer has been drained, never before measurement.
               await page.keyboard.press('Tab');
-              await page.waitForTimeout(100);
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
@@ -253,7 +278,8 @@ jobs:
               if(!obs.signInEnabled)failures.push(`APPROVED_QUARANTINE:w${width}:SIGN_IN_PROJECTION_GATED`);
               if(runtimeErrors.length)failures.push(`APPROVED_QUARANTINE:w${width}:RUNTIME_${runtimeErrors.join('|')}`);
               if(width<=430&&obs.horizontalOverflow)failures.push(`APPROVED_QUARANTINE:w${width}:HORIZONTAL_OVERFLOW`);
-              if(!obs.vitals?.lcp||obs.vitals.lcp>2500)failures.push(`APPROVED_POSITIVE:w${width}:LCP_${obs.vitals?.lcp}`);
+              if(!obs.vitals?.lcp)failures.push(`APPROVED_POSITIVE:w${width}:LCP_MEASUREMENT_ABSENT`);
+              else if(obs.vitals.lcp>2500)failures.push(`APPROVED_POSITIVE:w${width}:LCP_${obs.vitals.lcp}`);
               if(obs.vitals?.cls>0.1)failures.push(`APPROVED_POSITIVE:w${width}:CLS_${obs.vitals?.cls}`);
               const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();
               const serious=axe.violations.filter(v=>['serious','critical'].includes(v.impact));
@@ -291,6 +317,7 @@ jobs:
               await context.route('**/api/v1/projection',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(envelope)}));
               const page=await context.newPage();
               await page.goto(baseUrl+'/portal-r001/index.html',{waitUntil:'domcontentloaded'});
+              await page.waitForTimeout(50);
               const obs=await page.evaluate(()=>({
                 state:document.documentElement.dataset.state,
                 workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
@@ -323,6 +350,42 @@ jobs:
           }
 
           await browser.close();
+
+          // WebKit recovery canary: exercise the constrained mobile engine and
+          // repeated lifecycle transitions that reproduced the original iPhone incident.
+          {
+            const webkitBrowser=await webkit.launch({headless:true});
+            const context=await webkitBrowser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+            const page=await context.newPage();
+            const runtimeErrors=[];
+            let crashed=false;
+            page.on('crash',()=>{crashed=true});
+            page.on('pageerror',error=>runtimeErrors.push(`PAGEERROR_${error.message}`));
+            page.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))runtimeErrors.push(`CONSOLE_${message.text()}`)});
+            await page.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
+            await page.waitForFunction(()=>document.documentElement.dataset.state==='LIVE_APPROVED',{timeout:5000});
+            for(let cycle=0;cycle<30;cycle+=1){
+              await page.evaluate(()=>{
+                globalThis.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));
+                globalThis.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));
+              });
+              await page.waitForFunction(()=>document.documentElement.dataset.state==='LIVE_APPROVED',{timeout:5000});
+            }
+            const webkitObs=await page.evaluate(()=>({
+              state:document.documentElement.dataset.state,
+              workspaceBlocked:[...document.querySelectorAll('.workspace-grid article')].some(node=>node.getAttribute('aria-disabled')==='true'),
+              objectTitle:document.querySelector('[data-object-title]')?.textContent,
+              objectCount:document.querySelector('[data-object-count]')?.textContent
+            }));
+            if(crashed)failures.push('WEBKIT_IPHONE_LIFECYCLE:PAGE_CRASH');
+            if(runtimeErrors.length)failures.push(`WEBKIT_IPHONE_LIFECYCLE:RUNTIME_${runtimeErrors.join('|')}`);
+            if(webkitObs.state!=='LIVE_APPROVED'||webkitObs.workspaceBlocked)failures.push(`WEBKIT_IPHONE_LIFECYCLE:STATE_${JSON.stringify(webkitObs)}`);
+            if(webkitObs.objectTitle!=='No governed object'||webkitObs.objectCount!=='WAITING')failures.push('WEBKIT_IPHONE_LIFECYCLE:OBJECT_QUARANTINE_BROKEN');
+            results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'APPROVED_WEBKIT_LIFECYCLE_30_CYCLES',obs:webkitObs,runtimeErrors,crashed});
+            await context.close();
+            await webkitBrowser.close();
+          }
+
           const report={
             id:'kidults-portal-r001-release-qa-v1',
             governing_issue:895,
@@ -347,6 +410,7 @@ jobs:
           cd /tmp/kidults-r001-qa
           node run.mjs
       - name: Build exact toolchain receipt
+        if: always()
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/kidults/kpmo/build-portal-r001-browser-qa-toolchain-receipt-v1.mjs /tmp/kidults-r001-qa/toolchain-receipt.json

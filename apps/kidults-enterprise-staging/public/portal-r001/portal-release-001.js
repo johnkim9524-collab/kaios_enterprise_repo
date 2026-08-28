@@ -143,6 +143,20 @@ function renderAudit(audit={}){
   }));
 }
 
+function updateControlFixtureMarker(enabled){
+  const bar=query('.status-strip');
+  if(!bar)return;
+  if(enabled){
+    bar.dataset.fixture='NON_PROMOTABLE';
+    bar.title='Control fixture only — not empirical or live Projection';
+    bar.setAttribute('aria-description','Non-promotable control fixture. No live approved Projection exists.');
+    return;
+  }
+  delete bar.dataset.fixture;
+  bar.removeAttribute('title');
+  bar.removeAttribute('aria-description');
+}
+
 function render(data){
   const projection=data.projection||{};
   const state=normalizeIntelligenceState(projection.state);
@@ -163,14 +177,7 @@ function render(data){
   write('[data-audit-seal]',state==='LIVE_APPROVED'?'TRACE BOUND':'CONTROL BOUNDARY');
   renderObjectIntelligence(data);
   gateWorkspace(state);
-  if(data.fixture_type==='NON_PROMOTABLE_CONTROL'){
-    const bar=query('.status-strip');
-    if(bar){
-      bar.dataset.fixture='NON_PROMOTABLE';
-      bar.title='Control fixture only — not empirical or live Projection';
-      bar.setAttribute('aria-description','Non-promotable control fixture. No live approved Projection exists.');
-    }
-  }
+  updateControlFixtureMarker(data.fixture_type==='NON_PROMOTABLE_CONTROL');
 }
 
 function renderFailure(){
@@ -188,24 +195,84 @@ function renderFailure(){
   write('[data-audit-seal]','CONTROL BOUNDARY');
   renderObjectIntelligence(fallback);
   gateWorkspace('INVALID');
+  updateControlFixtureMarker(false);
 }
 
 let projectionRevalidationTimer=null;
-async function refreshProjection(){
+let projectionRefreshInFlight=false;
+let projectionRefreshController=null;
+let portalDisposed=false;
+let portalLifecycleEpoch=0;
+
+function scheduleProjectionRefresh(delayMs){
+  clearTimeout(projectionRevalidationTimer);
+  if(portalDisposed||document.visibilityState==='hidden')return;
+  const safeDelay=Math.max(15000,Number.isFinite(delayMs)?delayMs:60000);
+  projectionRevalidationTimer=setTimeout(refreshProjection,safeDelay);
+}
+
+async function refreshProjection(allowHiddenInitialRead=false){
+  if(portalDisposed||projectionRefreshInFlight||(!allowHiddenInitialRead&&document.visibilityState==='hidden'))return;
+  const refreshEpoch=portalLifecycleEpoch;
+  const controller=new AbortController();
+  projectionRefreshController=controller;
+  projectionRefreshInFlight=true;
   try{
-    const data=await readPortalProjection();
+    const data=await readPortalProjection({signal:controller.signal});
+    if(portalDisposed||refreshEpoch!==portalLifecycleEpoch)return;
     render(data);
-    clearTimeout(projectionRevalidationTimer);
-    projectionRevalidationTimer=setTimeout(refreshProjection,
-      Number.isInteger(data.runtime_revalidate_after_ms)?data.runtime_revalidate_after_ms:30000);
+    scheduleProjectionRefresh(Number.isInteger(data.runtime_revalidate_after_ms)?Math.max(data.runtime_revalidate_after_ms,30000):60000);
   }catch{
+    if(portalDisposed||refreshEpoch!==portalLifecycleEpoch)return;
     renderFailure();
-    clearTimeout(projectionRevalidationTimer);
-    projectionRevalidationTimer=setTimeout(refreshProjection,5000);
+    scheduleProjectionRefresh(60000);
+  }finally{
+    if(refreshEpoch===portalLifecycleEpoch){
+      projectionRefreshInFlight=false;
+      if(projectionRefreshController===controller)projectionRefreshController=null;
+    }
   }
+}
+
+function disposePortalRuntime(){
+  portalDisposed=true;
+  portalLifecycleEpoch+=1;
+  projectionRefreshController?.abort();
+  projectionRefreshController=null;
+  projectionRefreshInFlight=false;
+  clearTimeout(projectionRevalidationTimer);
+  projectionRevalidationTimer=null;
+}
+
+function restorePortalRuntime(){
+  portalLifecycleEpoch+=1;
+  projectionRefreshController?.abort();
+  projectionRefreshController=null;
+  projectionRefreshInFlight=false;
+  portalDisposed=false;
+  renderFailure();
+  if(document.visibilityState==='visible')refreshProjection();
 }
 
 initializeNavigation();
 bindHero();
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshProjection()});
-refreshProjection();
+// The static document starts at NO_PROJECTION. Mark the workspace fail-closed
+// synchronously before any asynchronous Projection read can complete.
+gateWorkspace('NO_PROJECTION');
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    if(portalDisposed){
+      portalDisposed=false;
+      projectionRefreshInFlight=false;
+    }
+    refreshProjection();
+  }else clearTimeout(projectionRevalidationTimer);
+});
+globalThis.addEventListener('pagehide',disposePortalRuntime);
+globalThis.addEventListener('pageshow',event=>{
+  if(event.persisted)restorePortalRuntime();
+});
+// Always perform one fail-closed initial read. Some WebKit/headless lifecycle
+// states report the document as hidden during initial script evaluation; hidden
+// state suppresses recurring polling, but must not leave the portal unrendered.
+refreshProjection(true);
