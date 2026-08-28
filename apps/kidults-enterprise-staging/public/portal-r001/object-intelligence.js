@@ -14,7 +14,7 @@ export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
   const localState=object?'LIVE_APPROVED':state==='LIVE_APPROVED'?'NOT_AVAILABLE':state;
   const stage=query('[data-object-state]',root);
 
-  write(root,'[data-object-count]',state==='LIVE_APPROVED'?`${objects.length} APPROVED`:'WAITING');
+  write(root,'[data-object-count]',state==='LIVE_APPROVED'&&objects.length>0?`${objects.length} APPROVED`:'WAITING');
   if(stage){
     stage.dataset.objectState=localState;
     stage.setAttribute('aria-label',object?`Governed object: ${clean(object.title)}`:'No governed object is available');
