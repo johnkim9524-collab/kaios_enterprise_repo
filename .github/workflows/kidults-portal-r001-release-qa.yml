@@ -218,9 +218,18 @@ jobs:
               const context=await browser.newContext({viewport:{width,height:width===390?900:1000},reducedMotion:'reduce'});
               await context.addInitScript(()=>{
                 globalThis.__kidultsVitals={lcp:0,cls:0,inp:0};
-                new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,e.startTime)}).observe({type:'largest-contentful-paint',buffered:true});
-                new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)globalThis.__kidultsVitals.cls+=e.value}).observe({type:'layout-shift',buffered:true});
-                try{new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,e.duration)}).observe({type:'event',buffered:true,durationThreshold:16})}catch{}
+                globalThis.__kidultsVitalsObservers=[];
+                const lcpObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.lcp=Math.max(globalThis.__kidultsVitals.lcp,e.startTime)});
+                lcpObserver.observe({type:'largest-contentful-paint',buffered:true});
+                globalThis.__kidultsVitalsObservers.push(lcpObserver);
+                const clsObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)globalThis.__kidultsVitals.cls+=e.value});
+                clsObserver.observe({type:'layout-shift',buffered:true});
+                globalThis.__kidultsVitalsObservers.push(clsObserver);
+                try{
+                  const inpObserver=new PerformanceObserver(list=>{for(const e of list.getEntries())globalThis.__kidultsVitals.inp=Math.max(globalThis.__kidultsVitals.inp,e.duration)});
+                  inpObserver.observe({type:'event',buffered:true,durationThreshold:16});
+                  globalThis.__kidultsVitalsObservers.push(inpObserver);
+                }catch{}
               });
               const page=await context.newPage();
               const runtimeErrors=[];
