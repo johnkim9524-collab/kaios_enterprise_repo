@@ -189,9 +189,16 @@ function renderFailure(){
   write('[data-assessment]','NOT STARTED');
   write('[data-rights]','WAITING');
   write('[data-release-state]','HOLD');
+  // A failed revalidation can follow a previously admitted LIVE_APPROVED view.
+  // Purge every dynamic collection before rendering the fail-closed shell so
+  // BFCache restore, abort, or transport failure cannot leave stale approved
+  // values or audit identifiers visible while the next read is pending.
+  renderVerticals([]);
+  renderSignals([],'INVALID');
   renderKidult100({state:'INVALID'},'INVALID');
   renderResearch({state:'INVALID',items:[]},'INVALID');
   renderEvidence({},[],'INVALID',{freshness:'NOT_AVAILABLE',rights_state:'WAITING'});
+  renderAudit({});
   write('[data-audit-seal]','CONTROL BOUNDARY');
   renderObjectIntelligence(fallback);
   gateWorkspace('INVALID');
