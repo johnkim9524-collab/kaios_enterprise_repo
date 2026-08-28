@@ -392,9 +392,18 @@ jobs:
             const failurePage=await failureContext.newPage();
             const failureErrors=[];
             let failureCrashed=false;
+            let forcedFailureResponseCount=0;
+            let expectedFailureConsoleCount=0;
             failurePage.on('crash',()=>{failureCrashed=true});
             failurePage.on('pageerror',error=>failureErrors.push(`PAGEERROR_${error.message}`));
-            failurePage.on('console',message=>{if(message.type()==='error'&&!/favicon/i.test(message.text()))failureErrors.push(`CONSOLE_${message.text()}`)});
+            failurePage.on('console',message=>{
+              if(message.type()!=='error'||/favicon/i.test(message.text()))return;
+              if(forcedFailureResponseCount>0&&/Failed to load resource: the server responded with a status of 500/i.test(message.text())){
+                expectedFailureConsoleCount+=1;
+                return;
+              }
+              failureErrors.push(`CONSOLE_${message.text()}`);
+            });
             await failurePage.goto('http://127.0.0.1:4174/portal-r001/index.html',{waitUntil:'domcontentloaded'});
             await failurePage.waitForFunction(()=>document.documentElement.dataset.state==='LIVE_APPROVED',{timeout:5000});
             const livePrecondition=await failurePage.evaluate(()=>({
@@ -405,6 +414,7 @@ jobs:
               failures.push(`WEBKIT_LIVE_TO_FAILURE:PRECONDITION_NOT_LIVE_${JSON.stringify(livePrecondition)}`);
             }
             await failureContext.route('**/api/v1/projection',async route=>{
+              forcedFailureResponseCount+=1;
               await new Promise(resolve=>setTimeout(resolve,250));
               await route.fulfill({status:500,contentType:'application/json',body:JSON.stringify({ok:false,error:'qa_forced_revalidation_failure'})});
             });
@@ -449,9 +459,10 @@ jobs:
             if(settledPurge.state!=='INVALID'||settledPurge.signalCount!==0||settledPurge.signalText||staleMarker.test(settledPurge.auditText)||settledPurge.verticalCount!==8||settledPurge.auditSeal!=='CONTROL BOUNDARY'||!settledPurge.workspaceBlocked||settledPurge.kidultReady||settledPurge.objectTitle!=='No governed object'||settledPurge.objectCount!=='WAITING'){
               failures.push(`WEBKIT_LIVE_TO_FAILURE:SETTLED_STALE_VALUE_${JSON.stringify(settledPurge)}`);
             }
+            if(forcedFailureResponseCount!==1)failures.push(`WEBKIT_LIVE_TO_FAILURE:FORCED_RESPONSE_COUNT_${forcedFailureResponseCount}`);
             if(failureCrashed)failures.push('WEBKIT_LIVE_TO_FAILURE:PAGE_CRASH');
             if(failureErrors.length)failures.push(`WEBKIT_LIVE_TO_FAILURE:RUNTIME_${failureErrors.join('|')}`);
-            results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'LIVE_APPROVED_TO_BFCACHE_FAILED_REVALIDATION_PURGE',livePrecondition,immediatePurge,settledPurge,runtimeErrors:failureErrors,crashed:failureCrashed});
+            results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'LIVE_APPROVED_TO_BFCACHE_FAILED_REVALIDATION_PURGE',livePrecondition,immediatePurge,settledPurge,forcedFailureResponseCount,expectedFailureConsoleCount,runtimeErrors:failureErrors,crashed:failureCrashed});
             await failureContext.close();
             await webkitBrowser.close();
           }
