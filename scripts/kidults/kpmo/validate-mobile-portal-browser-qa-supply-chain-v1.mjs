@@ -13,6 +13,7 @@ const CHECKOUT = '3d3c42e5aac5ba805825da76410c181273ba90b1';
 const SETUP_NODE = '820762786026740c76f36085b0efc47a31fe5020';
 const UPLOAD = 'b7c566a772e6b6bfb58ed0dc250532a479d7789f';
 const EXACT_SOURCE = '${{ github.event.pull_request.head.sha || github.sha }}';
+const ATTEMPT_BOUND_ARTIFACT = 'kidults-mobile-portal-public-qa-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}';
 const ACTION_REF = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[0-9a-f]{40}(?:\s+#\s*.+)?$/i;
 
 function actionRefs(text) {
@@ -45,6 +46,9 @@ function workflowFindings(text) {
   require(text.includes(`run: node ${RUNNER}`), 'BROWSER_RUNNER_MISSING');
   require(text.includes(`node ${BUILDER} /tmp/kidults-mobile-qa/toolchain-receipt.json`), 'TOOLCHAIN_BUILDER_MISSING');
   require(/- name:\s*Build exact toolchain receipt\s*\n\s*if:\s*always\(\)/.test(text), 'TOOLCHAIN_FAILURE_RECEIPT_NOT_ALWAYS');
+  require(text.includes(`name: ${ATTEMPT_BOUND_ARTIFACT}`), 'ARTIFACT_IDENTITY_NOT_ATTEMPT_BOUND');
+  require((text.match(/\$\{\{ github\.run_id \}\}/g) || []).length >= 1, 'ARTIFACT_RUN_ID_BINDING_MISSING');
+  require((text.match(/\$\{\{ github\.run_attempt \}\}/g) || []).length >= 1, 'ARTIFACT_RUN_ATTEMPT_BINDING_MISSING');
   require(text.includes("const surfacePaths=['apps/kidults-mobile-portal/'];"), 'SURFACE_PATH_NOT_DEDICATED_APP');
   require((text.match(/changed=files\.some\(file=>\[file\.filename,file\.previous_filename\]\.filter\(Boolean\)\.some\(isPortalSurface\)\)/g) || []).length === 1, 'PR_SURFACE_DETECTION_DRIFT');
   require((text.match(/changed=files\.some\(isPortalSurface\)/g) || []).length === 1, 'PUSH_SURFACE_DETECTION_DRIFT');
@@ -113,6 +117,7 @@ expectMutation('PROMOTION_SELF_TEST_REMOVAL', workflow.replace('node scripts/kid
 expectMutation('CREDENTIAL_PERSIST', workflow.replace('persist-credentials: false', 'persist-credentials: true'), 'CREDENTIAL_PERSISTENCE_FORBIDDEN');
 expectMutation('NPM_INSTALL', workflow.replace('npm ci --prefix /tmp/kidults-mobile-qa --ignore-scripts --no-audit --no-fund', 'npm install --prefix /tmp/kidults-mobile-qa'), 'MUTABLE_RUNTIME_RESOLUTION_FORBIDDEN');
 expectMutation('PROMOTION_DOWNGRADE', workflow.replace('validate-mobile-portal-public-promotion-gate-v1.mjs --promotion', 'validate-mobile-portal-public-promotion-gate-v1.mjs --contract'), 'PROMOTION_MODE_MISSING');
+expectMutation('STATIC_ARTIFACT_IDENTITY', workflow.replace(ATTEMPT_BOUND_ARTIFACT, 'kidults-mobile-portal-public-qa-v1'), 'ARTIFACT_IDENTITY_NOT_ATTEMPT_BOUND');
 
 const lockMutation = structuredClone(lock);
 delete Object.entries(lockMutation.packages).find(([name, record]) => name && !record.link)[1].integrity;
@@ -127,12 +132,12 @@ console.log(JSON.stringify({
   workflow_sha256: `sha256:${crypto.createHash('sha256').update(workflow).digest('hex')}`,
   package_sha256: `sha256:${crypto.createHash('sha256').update(packageBytes).digest('hex')}`,
   lock_sha256: `sha256:${crypto.createHash('sha256').update(lockBytes).digest('hex')}`,
-  negative_canaries_rejected: 10,
+  negative_canaries_rejected: 11,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
   autonomous_effect: 'Dedicated mobile changes trigger the exact-head QA without the enterprise portal workflow.',
   global_effect: 'Pinned Chromium and WebKit dependencies support the declared mobile viewport matrix.',
   irreplaceable_value_effect: 'KIDULTS owns the workflow, runner, lock, validator, and receipts.',
-  transparency_effect: 'The validator binds every executable QA dependency and rejects cross-product triggers.'
+  transparency_effect: 'The validator binds every executable QA dependency and rejects cross-product triggers and unbound rerun artifact identity.'
 }, null, 2));
