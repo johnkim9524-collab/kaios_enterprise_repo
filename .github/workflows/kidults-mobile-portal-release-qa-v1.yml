@@ -132,7 +132,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
-          name: kidults-mobile-portal-public-qa-v1
+          name: kidults-mobile-portal-public-qa-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/kidults-mobile-public-qa-v1/mobile-portal-report-v1.json
             /tmp/kidults-mobile-public-qa-v1/*.png
