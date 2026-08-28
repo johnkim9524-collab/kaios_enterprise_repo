@@ -2,59 +2,12 @@ name: KIDULTS PSA Single Cert Probe
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/kidults-psa-single-cert-probe.yml'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
-      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
-      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
-      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
-      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/kidults-psa-single-cert-probe.yml'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
-      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
-      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
-      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
-      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
 
 permissions:
   contents: read
 
 jobs:
-  validate-no-secrets:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
-        with:
-          node-version: '24.19.0'
-          package-manager-cache: false
-      - name: Validate probe, adapter, HMAC references, and durable quota without secrets
-        run: |
-          node --check scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs
-          node --check services/kidults-control-plane/src/psa-cert-verification-adapter.mjs
-          node --check services/kidults-control-plane/src/psa-provider-quota-lease.mjs
-          node --check services/kidults-control-plane/src/psa-reference-token.mjs
-          node --test scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs
-          node --test services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs
-          node --test services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs
-          node --test services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs
-
   probe:
-    needs: validate-no-secrets
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     concurrency:
       group: kidults-psa-provider-account-quota

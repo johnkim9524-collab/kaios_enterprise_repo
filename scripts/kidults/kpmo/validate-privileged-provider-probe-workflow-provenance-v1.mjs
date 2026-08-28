@@ -27,10 +27,12 @@ const workflows = [
     requiresCheckout: true,
     requiresSetupNode: true,
     requiresUploadArtifact: true,
+    requiresPrivatePsaRunner: true,
   },
   {
     path: '.github/workflows/kidults-psa-single-cert-probe.yml',
     requiresUploadArtifact: true,
+    requiresPrivatePsaRunner: true,
   },
 ];
 
@@ -40,7 +42,13 @@ function externalUses(text) {
 
 function violationsFor(text, spec = {}) {
   const findings = [];
-  if (!/runs-on:\s*ubuntu-24\.04\b/.test(text)) findings.push('runner-not-pinned-ubuntu-24.04');
+  if (spec.requiresPrivatePsaRunner) {
+    if (!/runs-on:\s*\[self-hosted,\s*linux,\s*x64,\s*kidults-psa-private\]/.test(text)) {
+      findings.push('private-psa-runner-boundary-missing');
+    }
+  } else if (!/runs-on:\s*ubuntu-24\.04\b/.test(text)) {
+    findings.push('runner-not-pinned-ubuntu-24.04');
+  }
 
   for (const ref of externalUses(text)) {
     if (ref.startsWith('./') || ref.startsWith('docker://')) continue;
@@ -89,6 +97,11 @@ const mutationCases = [
     text: "runs-on: ubuntu-latest\n",
     spec: {},
     expected: 'runner-not-pinned-ubuntu-24.04',
+  },
+  {
+    text: "runs-on: ubuntu-24.04\n",
+    spec: { requiresPrivatePsaRunner: true },
+    expected: 'private-psa-runner-boundary-missing',
   },
   {
     text: 'runs-on: ubuntu-24.04\n- uses: actions/upload-artifact@v6\n',

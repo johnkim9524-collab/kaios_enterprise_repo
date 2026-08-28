@@ -2,29 +2,6 @@ name: KIDULTS PSA Bounded Rights Schema Evaluation V1
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
-      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
-      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
-      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
-      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
-      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
-      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
-      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
-      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
-      - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
-      - 'services/kidults-control-plane/src/psa-reference-token.mjs'
-      - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
-      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
 
 permissions:
   contents: read

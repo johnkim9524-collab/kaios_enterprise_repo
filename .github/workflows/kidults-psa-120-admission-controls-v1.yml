@@ -9,14 +9,23 @@ on:
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
       - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
       - 'services/kidults-control-plane/src/psa-acquisition-orchestrator.mjs'
+      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
       - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
       - 'services/kidults-control-plane/src/psa-reference-token.mjs'
       - 'services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
+      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
       - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
+      - '.github/workflows/kidults-psa-single-cert-probe.yml'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   push:
     branches: [main]
@@ -27,14 +36,23 @@ on:
       - 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'
       - 'services/kidults-control-plane/src/psa-private-evaluation.mjs'
       - 'services/kidults-control-plane/src/psa-acquisition-orchestrator.mjs'
+      - 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
       - 'services/kidults-control-plane/src/psa-provider-quota-lease.mjs'
       - 'services/kidults-control-plane/src/psa-reference-token.mjs'
       - 'services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs'
       - 'services/kidults-control-plane/scripts/psa-private-*.test.mjs'
+      - 'coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.mjs'
+      - 'scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs'
+      - 'scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs'
       - 'scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs'
+      - '.github/workflows/kidults-psa-bounded-rights-schema-evaluation-v1.yml'
+      - '.github/workflows/kidults-psa-single-cert-probe.yml'
       - '.github/workflows/kidults-psa-120-admission-controls-v1.yml'
   workflow_dispatch:
 
@@ -62,3 +80,9 @@ jobs:
         run: |
           node --test services/kidults-control-plane/scripts/psa-acquisition-orchestrator-v1.test.mjs
           node --test services/kidults-control-plane/scripts/psa-provider-quota-lease-v1.test.mjs
+      - name: Run secretless provider-probe regression and negative tests
+        run: |
+          node --test scripts/kidults/source-intelligence/probe-psa-single-cert-schema-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/psa-reference-token-v1.test.mjs
+          node scripts/kidults/source-intelligence/validate-psa-bounded-rights-schema-evaluation-v1.mjs coordination/kidults/source-intelligence/psa-bounded-rights-schema-evaluation-v1.json
