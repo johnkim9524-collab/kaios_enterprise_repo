@@ -1,0 +1,9 @@
+{
+  "id": "KPMO_CANONICAL_ISSUE_SERIALIZATION_V1",
+  "state": "STAGED",
+  "root_cause": "issue-edit runs sharing one main-SHA concurrency group were cancelled by newer issue edits",
+  "correction": "serialize issue-edit epochs by setting cancel-in-progress false while preserving the existing validator and receipts",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
