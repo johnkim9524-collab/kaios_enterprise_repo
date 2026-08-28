@@ -201,8 +201,8 @@ function scheduleProjectionRefresh(delayMs){
   projectionRevalidationTimer=setTimeout(refreshProjection,safeDelay);
 }
 
-async function refreshProjection(){
-  if(portalDisposed||projectionRefreshInFlight||document.visibilityState==='hidden')return;
+async function refreshProjection(allowHiddenInitialRead=false){
+  if(portalDisposed||projectionRefreshInFlight||(!allowHiddenInitialRead&&document.visibilityState==='hidden'))return;
   projectionRefreshInFlight=true;
   try{
     const data=await readPortalProjection();
@@ -233,4 +233,7 @@ document.addEventListener('visibilitychange',()=>{
   }else clearTimeout(projectionRevalidationTimer);
 });
 globalThis.addEventListener('pagehide',disposePortalRuntime,{once:true});
-refreshProjection();
+// Always perform one fail-closed initial read. Some WebKit/headless lifecycle
+// states report the document as hidden during initial script evaluation; hidden
+// state suppresses recurring polling, but must not leave the portal unrendered.
+refreshProjection(true);
