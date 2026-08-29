@@ -1,195 +1,80 @@
-name: KIDULTS AGCI-OS Candidate R2 Five-Source Preflight
+name: KIDULTS AGCI-OS Candidate R2 Reference Observer HOLD
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    branches: [main]
     paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/smithsonian-open-access-r1.json"
-      - "coordination/kidults/autonomous/source-discovery/contracts/artic-design-open-access-r1.json"
-      - "coordination/kidults/autonomous/source-discovery/contracts/getty-provenance-sale-r1.json"
-      - "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-met-records-r1.json"
-      - "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-vam-records-r1.json"
-      - "scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs"
-      - "scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs"
-      - "scripts/kidults/autonomous/collect-artic-design-sample.mjs"
-      - "scripts/kidults/autonomous/validate-artic-design-sample.mjs"
-      - "scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs"
-      - "scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs"
-      - "scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs"
-      - "scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs"
-      - "scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs"
-      - "scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs"
+      - "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json"
+      - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/validate-met-open-access-sample.mjs"
+      - "scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs"
+      - "scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs"
+      - ".github/workflows/kidults-autonomous-met-sample.yml"
       - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
-  schedule:
-    - cron: "5 0 * * 3,6"
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json"
+      - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/validate-met-open-access-sample.mjs"
+      - "scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs"
+      - "scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs"
+      - ".github/workflows/kidults-autonomous-met-sample.yml"
+      - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: kidults-agci-os-candidate-r2-preflight
-  cancel-in-progress: true
+  group: kidults-candidate-r2-reference-observer-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: false
 
 jobs:
-  validate:
-    if: github.ref == 'refs/heads/main'
-    environment: kidults-smithsonian-readonly
+  observer-hold:
+    name: Candidate R2 Reference Observer — HOLD / No Admission
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - name: Verify live main before provider credential resolution
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24.19.0"
-
-      - name: Syntax check
+      - name: Prove fail-closed observer regressions offline
         run: |
-          node --check scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs
-          node --check scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs
-          node --check scripts/kidults/autonomous/collect-artic-design-sample.mjs
-          node --check scripts/kidults/autonomous/validate-artic-design-sample.mjs
-          node --check scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs
-          node --check scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs
-          node --check scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs
-          node --check scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs
-          node --check scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs
-          node --check scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs
-
-      - name: Collect Smithsonian authority sample
-        env:
-          SMITHSONIAN_API_KEY: ${{ secrets.SMITHSONIAN_API_KEY }}
+          set -euo pipefail
+          node --check scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs
+          node --check scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs
+          node scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs
+      - name: Record Candidate R2 HOLD without provider calls or committed shadows
         run: |
-          node scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs \
-            --output artifacts/autonomous-source-samples/smithsonian-open-access-r1 \
-            --query design \
-            --rows 50 \
-            --limit 12 \
-            --minimum-records 8
-          node scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs \
-            artifacts/autonomous-source-samples/smithsonian-open-access-r1
-
-      - name: Collect Art Institute authority sample
+          node scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs \
+            --output artifacts/agci-os/candidate-r2-reference-observer-r1
+      - name: Enforce no-admission receipt
         run: |
-          node scripts/kidults/autonomous/collect-artic-design-sample.mjs \
-            --output artifacts/autonomous-source-samples/artic-design-open-access-r1 \
-            --query design \
-            --search-limit 50 \
-            --limit 12 \
-            --minimum-records 8
-          node scripts/kidults/autonomous/validate-artic-design-sample.mjs \
-            artifacts/autonomous-source-samples/artic-design-open-access-r1
-
-      - name: Collect Getty rights-cleared sale activity
-        run: |
-          node scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs \
-            --output artifacts/autonomous-source-samples/getty-provenance-sale-r1 \
-            --minimum-events 1
-          node scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs \
-            artifacts/autonomous-source-samples/getty-provenance-sale-r1
-
-      - name: Build five-source Candidate R2 preflight
-        run: |
-          node scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs \
-            --smithsonian-dir artifacts/autonomous-source-samples/smithsonian-open-access-r1 \
-            --artic-dir artifacts/autonomous-source-samples/artic-design-open-access-r1 \
-            --getty-dir artifacts/autonomous-source-samples/getty-provenance-sale-r1 \
-            --output artifacts/agci-os/candidate-r2-preflight-r1 \
-            --write
-
-      - name: Prove preflight same-input same-output
-        run: |
-          node --input-type=module <<'NODE' > /tmp/candidate-r2-preflight-1.json
-          import { buildCandidateR2Preflight, loadCandidateR2PreflightInput } from './scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs';
-          const input = loadCandidateR2PreflightInput({
-            smithsonianDir: 'artifacts/autonomous-source-samples/smithsonian-open-access-r1',
-            articDir: 'artifacts/autonomous-source-samples/artic-design-open-access-r1',
-            gettyDir: 'artifacts/autonomous-source-samples/getty-provenance-sale-r1',
-            output: 'artifacts/agci-os/candidate-r2-preflight-r1',
-            freshnessMaxAgeDays: 7
-          });
-          process.stdout.write(JSON.stringify(buildCandidateR2Preflight(input)));
+          node - <<'NODE'
+          const fs = require('fs');
+          const receipt = JSON.parse(fs.readFileSync('artifacts/agci-os/candidate-r2-reference-observer-r1/candidate-r2-observer-receipt.json'));
+          if (receipt.state !== 'HOLD_NO_GOVERNED_MET_RECEIPT' ||
+              receipt.observer_provider_call_count !== 0 ||
+              receipt.observer_credential_count !== 0 ||
+              receipt.committed_met_shadow_input_count !== 0 ||
+              receipt.committed_vam_shadow_input_count !== 0 ||
+              receipt.vam_provider_call_count !== 0 ||
+              receipt.current_sold_observation_count !== 0 ||
+              receipt.canonical_candidate_state !== 'NONE' ||
+              receipt.canonical_evidence_state !== 'NONE' ||
+              receipt.track_b_state !== 'NOT_STARTED' ||
+              receipt.approved_projection_state !== 'NONE' ||
+              receipt.publication !== 'HOLD' || receipt.production !== 'HOLD' || receipt.g5 !== 'HOLD') {
+            throw new Error('CANDIDATE_R2_OBSERVER_HOLD_BOUNDARY_FAILED');
+          }
           NODE
-          node --input-type=module <<'NODE' > /tmp/candidate-r2-preflight-2.json
-          import { buildCandidateR2Preflight, loadCandidateR2PreflightInput } from './scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs';
-          const input = loadCandidateR2PreflightInput({
-            smithsonianDir: 'artifacts/autonomous-source-samples/smithsonian-open-access-r1',
-            articDir: 'artifacts/autonomous-source-samples/artic-design-open-access-r1',
-            gettyDir: 'artifacts/autonomous-source-samples/getty-provenance-sale-r1',
-            output: 'artifacts/agci-os/candidate-r2-preflight-r1',
-            freshnessMaxAgeDays: 7
-          });
-          process.stdout.write(JSON.stringify(buildCandidateR2Preflight(input)));
-          NODE
-          cmp /tmp/candidate-r2-preflight-1.json /tmp/candidate-r2-preflight-2.json
-
-      - name: Validate Candidate R2 preflight boundaries
-        run: |
-          node scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs \
-            artifacts/agci-os/candidate-r2-preflight-r1
-
-      - name: Build Golden Dataset v1 labeling queue
-        run: |
-          node scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs \
-            --preflight-dir artifacts/agci-os/candidate-r2-preflight-r1 \
-            --output artifacts/agci-os/golden-dataset-v1-candidate \
-            --write
-
-      - name: Prove Golden Dataset same-input same-output
-        run: |
-          node --input-type=module <<'NODE' > /tmp/golden-dataset-v1-1.json
-          import { buildGoldenDatasetCandidate } from './scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs';
-          process.stdout.write(JSON.stringify(buildGoldenDatasetCandidate('artifacts/agci-os/candidate-r2-preflight-r1')));
-          NODE
-          node --input-type=module <<'NODE' > /tmp/golden-dataset-v1-2.json
-          import { buildGoldenDatasetCandidate } from './scripts/kidults/golden-dataset/build-golden-dataset-v1-candidate.mjs';
-          process.stdout.write(JSON.stringify(buildGoldenDatasetCandidate('artifacts/agci-os/candidate-r2-preflight-r1')));
-          NODE
-          cmp /tmp/golden-dataset-v1-1.json /tmp/golden-dataset-v1-2.json
-
-      - name: Validate Golden Dataset v1 labeling queue
-        run: |
-          node scripts/kidults/golden-dataset/validate-golden-dataset-v1-candidate.mjs \
-            artifacts/agci-os/golden-dataset-v1-candidate
-
-      - name: Validate existing AGCI-OS governance
-        run: |
-          node scripts/kidults/architecture/validate-agci-os-registry-v2.mjs
-          node scripts/kidults/registry/validate-operational-registry.mjs
-          node scripts/kidults/mission-control/validate-mission-control.mjs
-
-      - name: Upload Candidate R2 preflight evidence
-        if: always()
+      - name: Upload exactly one observer HOLD artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: kidults-agci-os-candidate-r2-five-source-preflight
-          path: |
-            artifacts/agci-os/candidate-r2-preflight-r1
-            artifacts/agci-os/golden-dataset-v1-candidate
-            artifacts/autonomous-source-samples/smithsonian-open-access-r1
-            artifacts/autonomous-source-samples/artic-design-open-access-r1
-            artifacts/autonomous-source-samples/getty-provenance-sale-r1
+          name: kidults-candidate-r2-reference-observer-hold-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/agci-os/candidate-r2-reference-observer-r1
           if-no-files-found: error
           retention-days: 30
