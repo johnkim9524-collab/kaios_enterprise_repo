@@ -181,5 +181,27 @@
     "lighthouse_target_maximum": 50,
     "evidence_ladder_exact_order": true,
     "provider_direct_projection_paths": 0
+  },
+  "execution_request": {
+    "requested_by": "KPMO",
+    "requested_at": "2026-08-29T22:25:00+09:00",
+    "generation": 1,
+    "mode": "NATURAL_MAIN_CHAIN",
+    "scope": [
+      "AUTOMOBILES_MOBILITY_LIGHTHOUSE",
+      "IDENTITY_REFERENCE_GRAPH",
+      "RIGHTS_AND_DATED_SOLD_DISCOVERY",
+      "PRODUCT_READINESS"
+    ],
+    "external_collection_authorized": false,
+    "provider_activation_authorized": false,
+    "expected_chain": [
+      "MISSION_VALIDATION",
+      "INTELLIGENCE_PREPARATION",
+      "P0_MISSION_CONSUMPTION",
+      "MISSION_CONSUMPTION",
+      "CONTINUOUS_ASSURANCE"
+    ],
+    "state": "REQUESTED"
   }
 }
