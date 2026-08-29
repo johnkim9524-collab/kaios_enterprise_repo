@@ -1,0 +1,83 @@
+{
+  "id": "kidults-cloudflare-pages-staging-governance-v1",
+  "version": "1.0.0",
+  "status": "PROGRAM_OWNER_APPROVED_STAGING_GOVERNANCE",
+  "owner": "KPMO",
+  "issue": 1234,
+  "project": {
+    "name": "kidults-workspace-staging",
+    "platform_role": "CONTROLLED_STATIC_STAGING_MIRROR",
+    "expected_repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "production_branch": "main",
+    "source_root": "apps/kidults-enterprise-staging/public",
+    "canonical_portal_root": "apps/kidults-enterprise-staging/public/portal-r001"
+  },
+  "automatic_deployment_boundary": {
+    "legacy_deployments_enabled": false,
+    "production_deployments_enabled": false,
+    "preview_deployment_setting": "none",
+    "preview_branch_includes": [],
+    "preview_branch_excludes": [],
+    "git_push_is_deployment_authority": false
+  },
+  "deployment_policy": {
+    "trigger": "workflow_dispatch_only",
+    "source_ref": "refs/heads/main",
+    "source_sha": "EXACT_LIVE_MAIN_ONLY",
+    "operator": "REPOSITORY_OWNER_ONLY",
+    "cloudflare_deployment_method": "WRANGLER_DIRECT_UPLOAD_TO_EXISTING_GIT_PROJECT",
+    "cloudflare_branch": "main",
+    "commit_message_prefix": "[KIDULTS-GOVERNED-STAGING]",
+    "authorization_phrase": "DEPLOY_KIDULTS_WORKSPACE_STAGING",
+    "environment": "kidults-cloudflare-staging-deploy",
+    "deployment_receipt_required": true
+  },
+  "read_only_monitor": {
+    "workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml",
+    "environment": "kidults-cloudflare-readonly",
+    "triggers": [
+      "push",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "schedule": "*/30 * * * *",
+    "settings_readback_required": true,
+    "latest_deployment_must_be_governed": true,
+    "remote_mutation": false,
+    "visible_preview_count_must_be_zero": true,
+    "current_main_match_is_informational": true
+  },
+  "emergency_control": {
+    "workflow": ".github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml",
+    "trigger": "workflow_dispatch_only",
+    "default_operation": "contain_auto_deployments",
+    "allowed_operations": [
+      "contain_auto_deployments",
+      "delete_preview_deployments"
+    ],
+    "preview_delete_only": true,
+    "production_deployment_delete_forbidden": true,
+    "environment": "kidults-cloudflare-staging-deploy",
+    "inventory_workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml"
+  },
+  "credential_policy": {
+    "read_only_environment": "kidults-cloudflare-readonly",
+    "mutation_environment": "kidults-cloudflare-staging-deploy",
+    "required_secret_names": [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN"
+    ],
+    "write_token_persistent_repository_secret": false,
+    "write_token_lifetime": "TEMPORARY_MINIMUM_SCOPE_REMOVE_AFTER_USE",
+    "secret_material_in_receipts": false
+  },
+  "truth_boundary": {
+    "cloudflare_pages_internal_environment_name": "production",
+    "platform_environment": "STAGING",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD",
+    "staging_deployment_is_public_authorization": false,
+    "staging_deployment_is_production_authorization": false
+  }
+}

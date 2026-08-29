@@ -1,0 +1,124 @@
+name: KIDULTS Cloudflare Pages Governed STAGING Deploy v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact protected-main SHA to deploy
+        required: true
+        type: string
+      authorization:
+        description: Type DEPLOY_KIDULTS_WORKSPACE_STAGING
+        required: true
+        type: string
+      reason:
+        description: Auditable STAGING deployment reason
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-pages-governed-staging-deploy-v1
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate explicit owner authorization and exact source
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          AUTHORIZATION: ${{ inputs.authorization }}
+          DEPLOY_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$REQUESTED_SHA" = "$GITHUB_SHA"
+          test "$AUTHORIZATION" = "DEPLOY_KIDULTS_WORKSPACE_STAGING"
+          test -n "$DEPLOY_REASON"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate Portal mirror and governance contract
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ inputs.source_sha }}"
+          node scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
+          bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    needs: validate
+    environment: kidults-cloudflare-staging-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+          test "$LIVE_MAIN_SHA" = "${{ inputs.source_sha }}"
+
+      - name: Re-verify exact owner authorization before deployment credentials
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          AUTHORIZATION: ${{ inputs.authorization }}
+          DEPLOY_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
+          test "$REQUESTED_SHA" = "$GITHUB_SHA"
+          test "$AUTHORIZATION" = "DEPLOY_KIDULTS_WORKSPACE_STAGING"
+          test -n "$DEPLOY_REASON"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Execute governed Cloudflare STAGING deployment
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          SOURCE_DIR: apps/kidults-enterprise-staging/public
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          DEPLOY_REASON: ${{ inputs.reason }}
+          RECEIPT_DIR: artifacts/cloudflare-governed-staging-deploy
+        run: bash scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: cloudflare-governed-staging-deploy-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-governed-staging-deploy
+          if-no-files-found: error
+          retention-days: 30
