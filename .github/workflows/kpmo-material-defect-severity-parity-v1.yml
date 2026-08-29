@@ -1,0 +1,113 @@
+name: KPMO Material Defect Severity Parity V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+  issues:
+    types: [opened, edited, reopened, labeled, unlabeled]
+  schedule:
+    - cron: '9 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: kpmo-material-defect-severity-parity-${{ github.event_name }}-${{ github.ref || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validate-severity-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Validate open P0/P1 title-label parity with complete pagination
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const repo=process.env.GITHUB_REPOSITORY;
+          const token=process.env.GH_TOKEN;
+          if(!repo||!token) throw new Error('REPOSITORY_OR_TOKEN_MISSING');
+          const headers={Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'};
+          async function get(url){
+            const r=await fetch(url,{headers,signal:AbortSignal.timeout(20000)});
+            const text=await r.text();
+            if(!r.ok) throw new Error(`GITHUB_HTTP_${r.status}:${text.slice(0,200)}`);
+            return JSON.parse(text);
+          }
+          async function searchOpenIssues(){
+            const out=[];
+            let total=null;
+            for(let page=1;page<=10;page++){
+              const q=encodeURIComponent(`repo:${repo} is:issue is:open`);
+              const url=`https://api.github.com/search/issues?q=${q}&sort=updated&order=desc&per_page=100&page=${page}`;
+              const data=await get(url);
+              if(data.incomplete_results!==false) throw new Error(`INCOMPLETE_RESULTS:all-open:page=${page}`);
+              if(!Number.isInteger(data.total_count)||data.total_count<0||data.total_count>1000) throw new Error(`INVALID_TOTAL:all-open:${data.total_count}`);
+              if(total===null) total=data.total_count;
+              if(total!==data.total_count) throw new Error(`CARDINALITY_MOVED:all-open:${total}->${data.total_count}`);
+              if(!Array.isArray(data.items)) throw new Error(`INVALID_ITEMS:all-open:page=${page}`);
+              out.push(...data.items);
+              if(out.length>=total) break;
+              if(data.items.length===0||page===10) throw new Error(`PAGINATION_TRUNCATED:all-open:${out.length}/${total}`);
+            }
+            if(out.length!==total) throw new Error(`CARDINALITY_MISMATCH:all-open:${out.length}/${total}`);
+            return out;
+          }
+          const issues=await searchOpenIssues();
+          const exactTitleSeverity=title=>{
+            const text=String(title||'');
+            return {p0:text.includes('[P0]'),p1:text.includes('[P1]')};
+          };
+          const failures=[];
+          let p0TitleCount=0;
+          let p1TitleCount=0;
+          for(const issue of issues){
+            const title=String(issue.title||'');
+            const {p0:titleP0,p1:titleP1}=exactTitleSeverity(title);
+            if(titleP0) p0TitleCount++;
+            if(titleP1) p1TitleCount++;
+            const labels=new Set((issue.labels||[]).map(x=>typeof x==='string'?x:x?.name).filter(Boolean));
+            if(titleP0&&!labels.has('P0')) failures.push(`#${issue.number}:P0_TITLE_WITHOUT_P0_LABEL`);
+            if(titleP1&&!labels.has('P1')) failures.push(`#${issue.number}:P1_TITLE_WITHOUT_P1_LABEL`);
+            if(labels.has('P0')&&titleP1&&!titleP0) failures.push(`#${issue.number}:P0_LABEL_WITH_P1_ONLY_TITLE`);
+            if(labels.has('P1')&&titleP0&&!titleP1) failures.push(`#${issue.number}:P1_LABEL_WITH_P0_ONLY_TITLE`);
+          }
+          if(failures.length){
+            console.error(JSON.stringify({state:'VERIFIED_FAIL',failures,open_issue_count:issues.length,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+            process.exit(1);
+          }
+          console.log(JSON.stringify({state:'VERIFIED_PASS',open_issue_count:issues.length,p0_exact_title_count:p0TitleCount,p1_exact_title_count:p1TitleCount,pagination_complete:true,cardinality_stable:true,exact_title_token_filter:true,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+          NODE
+
+      - name: Negative canary — mismatch and support-token aliasing must be rejected
+        run: |
+          node --input-type=module <<'NODE'
+          const severity=title=>({p0:String(title||'').includes('[P0]'),p1:String(title||'').includes('[P1]')});
+          const parity=(title,labels)=>{
+            const set=new Set(labels);
+            const {p0,p1}=severity(title);
+            if(p0&&!set.has('P0')) return false;
+            if(p1&&!set.has('P1')) return false;
+            if(set.has('P0')&&p1&&!p0) return false;
+            if(set.has('P1')&&p0&&!p1) return false;
+            return true;
+          };
+          if(parity('[P1] synthetic missing label',[])) throw new Error('MISSING_P1_LABEL_NOT_REJECTED');
+          if(parity('[P0] synthetic wrong label',['P1'])) throw new Error('P0_P1_MISMATCH_NOT_REJECTED');
+          if(!parity('[P1] synthetic correct',['P1'])) throw new Error('VALID_PARITY_REJECTED');
+          if(severity('[P0-SUPPORT] synthetic support lane').p0) throw new Error('P0_SUPPORT_FALSE_EXACT_TOKEN');
+          if(severity('[P1-SUPPORT] synthetic support lane').p1) throw new Error('P1_SUPPORT_FALSE_EXACT_TOKEN');
+          if(!parity('[P0-SUPPORT] synthetic support lane',[])) throw new Error('SUPPORT_LANE_INCORRECTLY_REQUIRES_P0_LABEL');
+          console.log(JSON.stringify({state:'VERIFIED_PASS',negative_canaries:4,positive_canaries:2,exact_token_alias_canary:true}));
+          NODE
