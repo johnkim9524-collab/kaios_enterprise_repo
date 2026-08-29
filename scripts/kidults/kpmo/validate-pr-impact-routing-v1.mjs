@@ -5,6 +5,7 @@ import path from 'node:path';
 const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const allowedUnbounded = new Set([
+  'ai-agent-bootstrap-remediation-enforcement-v1.yml',
   'ci-validation.yml',
   'kidults-governed-landing-authorization-v1.yml',
   supersessionWorkflow,
