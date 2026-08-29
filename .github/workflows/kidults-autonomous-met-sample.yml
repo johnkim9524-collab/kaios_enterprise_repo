@@ -1,14 +1,27 @@
 name: KIDULTS Autonomous Met Open Access Sample
+run-name: KIDULTS Governed Met Reference Discovery · ${{ github.event_name }} · ${{ github.sha }}
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
+  pull_request:
+    branches: [main]
     paths:
       - "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json"
       - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
       - "scripts/kidults/autonomous/validate-met-open-access-sample.mjs"
+      - "scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs"
+      - "scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs"
       - ".github/workflows/kidults-autonomous-met-sample.yml"
+      - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json"
+      - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
+      - "scripts/kidults/autonomous/validate-met-open-access-sample.mjs"
+      - "scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs"
+      - "scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs"
+      - ".github/workflows/kidults-autonomous-met-sample.yml"
+      - ".github/workflows/kidults-agci-os-candidate-r2-preflight.yml"
   schedule:
     - cron: "30 22 * * *"
   workflow_dispatch:
@@ -21,24 +34,75 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  collect:
+  offline-boundary:
+    name: Met Reference Discovery Offline Boundary
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24.19.0"
+      - name: Prove rights, lineage, freshness, zero and Candidate HOLD boundaries offline
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/autonomous/collect-met-open-access-sample.mjs
+          node --check scripts/kidults/autonomous/validate-met-open-access-sample.mjs
+          node --check scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs
+          node --check scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs
+          node scripts/kidults/engine-v2/test-met-reference-discovery-r2.mjs
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+  live-reference-discovery:
+    name: Met Governed Live Reference Discovery
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: offline-boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "24.19.0"
 
-      - name: Syntax check
+      - name: Verify exact current main before public-source read
+        id: pre_main
+        continue-on-error: true
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node --check scripts/kidults/autonomous/collect-met-open-access-sample.mjs
-          node --check scripts/kidults/autonomous/validate-met-open-access-sample.mjs
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; value=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(value) if re.fullmatch(r"[0-9a-f]{40}",value) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Collect bounded live metadata sample
+      - name: Materialize pre-read failure without provider call
+        if: steps.pre_main.outcome != 'success'
+        continue-on-error: true
+        run: |
+          node scripts/kidults/autonomous/collect-met-open-access-sample.mjs \
+            --output artifacts/autonomous-source-samples/met-costume-open-access-r1 \
+            --preflight-failure EXACT_MAIN_PRE_READ_GUARD_FAILED
+
+      - name: Collect bounded public metadata reference sample
+        id: collect
+        if: steps.pre_main.outcome == 'success'
+        continue-on-error: true
         run: |
           node scripts/kidults/autonomous/collect-met-open-access-sample.mjs \
             --output artifacts/autonomous-source-samples/met-costume-open-access-r1 \
@@ -46,16 +110,102 @@ jobs:
             --limit 12 \
             --minimum-records 8
 
-      - name: Validate evidence and safety gates
+      - name: Re-verify exact current main after public-source read
+        id: post_main
+        if: always() && steps.pre_main.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          node scripts/kidults/autonomous/validate-met-open-access-sample.mjs \
-            artifacts/autonomous-source-samples/met-costume-open-access-r1
+          set -euo pipefail
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; value=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(value) if re.fullmatch(r"[0-9a-f]{40}",value) else sys.exit(65)'
+          )"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Upload evidence artifact
+      - name: Validate terminal source receipt and claim ceiling
+        id: validate
+        if: always()
+        continue-on-error: true
+        run: node scripts/kidults/autonomous/validate-met-open-access-sample.mjs artifacts/autonomous-source-samples/met-costume-open-access-r1
+
+      - name: Observe Reference Discovery without Candidate or Track B admission
+        id: observe
+        if: always()
+        continue-on-error: true
+        run: |
+          node scripts/kidults/engine-v2/observe-met-reference-discovery-r2.mjs \
+            --met-dir artifacts/autonomous-source-samples/met-costume-open-access-r1 \
+            --output artifacts/agci-os/candidate-r2-reference-observer-r1 \
+            --require-source
+
+      - name: Record exact workflow control outcomes
+        if: always()
+        env:
+          PRE_MAIN: ${{ steps.pre_main.outcome }}
+          COLLECT: ${{ steps.collect.outcome }}
+          POST_MAIN: ${{ steps.post_main.outcome }}
+          VALIDATE: ${{ steps.validate.outcome }}
+          OBSERVE: ${{ steps.observe.outcome }}
+        run: |
+          mkdir -p artifacts/agci-os/candidate-r2-reference-observer-r1
+          node - <<'NODE'
+          const fs = require('fs');
+          const receipt = {
+            receipt_id: `met-reference-workflow-control-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`,
+            git_sha: process.env.GITHUB_SHA,
+            github_run_id: Number(process.env.GITHUB_RUN_ID),
+            github_run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            outcomes: {
+              exact_main_pre_read: process.env.PRE_MAIN,
+              collection: process.env.COLLECT || 'skipped',
+              exact_main_post_read: process.env.POST_MAIN || 'skipped',
+              source_validation: process.env.VALIDATE,
+              candidate_observer: process.env.OBSERVE
+            },
+            artifact_upload_count_expected: 1,
+            current_sold: 0,
+            candidate: 'NONE',
+            evidence: 'NONE',
+            track_b: 'NOT_STARTED',
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync('artifacts/agci-os/candidate-r2-reference-observer-r1/workflow-control-receipt.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+
+      - name: Upload exactly one terminal artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: kidults-met-open-access-bounded-sample
-          path: artifacts/autonomous-source-samples/met-costume-open-access-r1
+          name: kidults-met-reference-discovery-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/autonomous-source-samples/met-costume-open-access-r1
+            artifacts/agci-os/candidate-r2-reference-observer-r1
           if-no-files-found: error
           retention-days: 30
+
+      - name: Enforce terminal control outcome
+        if: always()
+        env:
+          PRE_MAIN: ${{ steps.pre_main.outcome }}
+          COLLECT: ${{ steps.collect.outcome }}
+          POST_MAIN: ${{ steps.post_main.outcome }}
+          VALIDATE: ${{ steps.validate.outcome }}
+          OBSERVE: ${{ steps.observe.outcome }}
+        run: |
+          set -euo pipefail
+          test "$PRE_MAIN" = "success"
+          test "$COLLECT" = "success"
+          test "$POST_MAIN" = "success"
+          test "$VALIDATE" = "success"
+          test "$OBSERVE" = "success"

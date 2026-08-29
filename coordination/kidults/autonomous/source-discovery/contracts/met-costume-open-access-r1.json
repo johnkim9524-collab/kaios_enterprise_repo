@@ -1,60 +1,124 @@
 {
   "contract_id": "met-costume-open-access-r1",
-  "version": "1.0.0",
-  "status": "APPROVED_FOR_BOUNDED_POC",
+  "version": "1.2.0",
+  "status": "APPROVED_FOR_GOVERNED_SCHEDULED_REFERENCE_DISCOVERY",
   "created_at": "2026-08-16T10:20:00+09:00",
+  "reviewed_at": "2026-08-30T08:01:00+09:00",
   "owner": "Track A / Autonomous Source Discovery",
   "source_id": "met-costume-institute-open-access",
   "source_tier": 1,
   "vertical_id": "fashion-accessories",
   "source_class": "MUSEUM_AUTHORITY_OPEN_DATA",
+  "source_layer": "OPEN_AUTHORITY",
+  "admission_class": "REFERENCE_DISCOVERY_ONLY",
+  "market_evidence_class": "NONE",
+  "current_sold_eligible": false,
   "api_base_url": "https://collectionapi.metmuseum.org/public/collection/v1",
   "department_id": 8,
   "department_name": "The Costume Institute",
   "access_mode": "PUBLIC_REST_API_NO_KEY",
+  "credential_required": false,
+  "cost_exposure_usd": 0,
+  "external_commitment_required": false,
   "rights_state": "CC0_COLLECTION_METADATA; IMAGE_USE_REQUIRES_OBJECT_PUBLIC_DOMAIN_FLAG",
+  "rights_provenance": {
+    "official_policy_urls": [
+      "https://metmuseum.github.io/",
+      "https://github.com/metmuseum/openaccess"
+    ],
+    "repository_contract_path": "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json",
+    "allowed_scope": "PUBLIC_COLLECTION_METADATA_REFERENCE_DISCOVERY_ONLY",
+    "excluded_scope": [
+      "IMAGE_DOWNLOAD_OR_REUSE",
+      "TRADEMARK_OR_ENDORSEMENT_RIGHTS",
+      "PRIVACY_OR_PERSONAL_DATA_RIGHTS",
+      "CURRENT_SOLD_TRANSACTION",
+      "MARKET_PRICE_OR_LIQUIDITY_INFERENCE",
+      "CANDIDATE_OR_EVIDENCE_ADMISSION",
+      "PUBLICATION_AUTHORIZATION"
+    ],
+    "unknown_rights_fail_closed": true
+  },
   "collection_mode": "METADATA_ONLY_NO_IMAGE_DOWNLOAD",
   "query": "dress",
   "bounded_limits": {
     "normalized_record_target": 12,
     "minimum_successful_records": 8,
     "maximum_object_requests": 50,
-    "maximum_requests_per_second": 4,
-    "retry_attempts": 3,
-    "request_timeout_ms": 15000
+    "maximum_logical_requests_per_run": 51,
+    "maximum_http_attempts_per_logical_request": 3,
+    "maximum_http_attempts_per_run": 153,
+    "minimum_request_interval_ms": 250,
+    "request_timeout_ms": 15000,
+    "maximum_observation_age_hours": 168,
+    "maximum_retry_after_ms": 5000,
+    "retryable_statuses": [408, 425, 429, 500, 502, 503, 504]
+  },
+  "runtime_controls": {
+    "owner_workflow": ".github/workflows/kidults-autonomous-met-sample.yml",
+    "cadence": "30 22 * * *",
+    "live_read_events": ["schedule", "workflow_dispatch"],
+    "push_or_pull_request_behavior": "OFFLINE_VALIDATION_ONLY_PROVIDER_CALLS_ZERO",
+    "event_run_concurrency_group": "kidults-autonomous-met-sample-${event_name}-${push_ref_or_run_id}",
+    "cancel_in_progress": true,
+    "provider_attempt_budget_isolated_per_run": true,
+    "exact_main_pre_read_required": true,
+    "exact_main_post_read_required": true,
+    "final_redirect_policy": "ERROR_AND_FINAL_URL_ALLOWLIST_RECHECK",
+    "attempt_accounting": "LOG_BEFORE_EVERY_FETCH",
+    "terminal_states": [
+      "COMPLETED_REFERENCE_DISCOVERY",
+      "TERMINAL_ZERO_REFERENCE_DISCOVERY",
+      "FAILED_REFERENCE_DISCOVERY"
+    ],
+    "terminal_receipt_count_per_run": 1
+  },
+  "object_response_binding": {
+    "requested_object_id_must_equal_payload_object_id": true,
+    "payload_object_id_type": "POSITIVE_INTEGER",
+    "required_department": "The Costume Institute",
+    "object_url_host_allowlist": ["www.metmuseum.org"],
+    "invalid_response_disposition": "FAIL_CLOSED_AND_COUNT_ATTEMPT"
+  },
+  "candidate_r2_boundary": {
+    "pathway_input_role": "REFERENCE_DISCOVERY_OBSERVER_ONLY",
+    "committed_met_shadow_allowed": false,
+    "committed_vam_shadow_allowed": false,
+    "vam_operational_activation": "HOLD_PROVIDER_CALLS_ZERO",
+    "may_create_snapshot_candidate": false,
+    "may_create_immutable_evidence_package": false,
+    "canonical_candidate_state": "NONE",
+    "canonical_evidence_state": "NONE",
+    "track_b_state": "NOT_STARTED",
+    "approved_projection_state": "NONE",
+    "workflow_success_is_track_b_pass": false
   },
   "required_outputs": [
     "run-manifest.json",
     "sanitized-raw-records.json",
     "normalized-evidence-records.json",
     "evidence-package.json",
-    "quality-report.json"
-  ],
-  "autonomous_controls": [
-    "official-host allowlist",
-    "bounded request budget",
-    "timeout",
-    "retry with backoff",
-    "metadata sanitization",
-    "raw payload hashing",
-    "deduplication",
-    "critical-field completeness",
-    "provenance reference",
-    "fail-closed minimum record gate"
+    "quality-report.json",
+    "terminal-receipt.json",
+    "candidate-r2-observer-receipt.json"
   ],
   "prohibited_operations": [
     "credential use",
     "image download",
     "paid access",
     "provider mutation",
+    "current-SOLD promotion",
+    "Candidate or Evidence admission",
+    "Track B handoff",
     "Portal publication",
-    "Candidate publication",
-    "Production mutation"
+    "Public or Production mutation",
+    "G5 activation"
   ],
   "production_eligible": false,
   "references": [
     "https://metmuseum.github.io/",
     "https://github.com/metmuseum/openaccess",
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/296"
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1539",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/238#issuecomment-5465472511"
   ]
 }
