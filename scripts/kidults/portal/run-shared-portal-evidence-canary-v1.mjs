@@ -173,6 +173,11 @@ try {
     {timeout: 5000},
   );
   const settledPurge = await page.evaluate(snapshotPortal);
+  const type = settledPurge.navigationType;
+  const browserHistoryTraversal = type === 'back_forward';
+  if (!browserHistoryTraversal) {
+    functionalFailures.push(`NAVIGATION_TYPE_${type}_EXPECTED_back_forward`);
+  }
 
   const pagehide = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pagehide');
   const pageshow = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pageshow' && entry.documentId === firstDocumentId);
@@ -183,7 +188,7 @@ try {
     pagehideTrusted: pagehide?.trusted === true,
     pageshowPersisted: pageshow?.persisted === true,
     pageshowTrusted: pageshow?.trusted === true,
-    navigationType: settledPurge.navigationType,
+    navigationType: type,
     documentIdentityPreserved: settledPurge.documentId === firstDocumentId,
     syntheticDispatchUsed: false,
     forcedFailureResponseCount,
@@ -207,19 +212,17 @@ try {
   };
 } catch (error) {
   functionalFailures.push(`CANARY_EXCEPTION_${error?.stack || error}`);
-  if (!page) {
-    page = {
-      isClosed: () => true,
-      close: async () => {},
-    };
-  }
 } finally {
+  // Always emit a structured fail-closed receipt, including browser-launch failures.
+  const pageForClose = page || {isClosed: () => true, close: async () => {}};
+  const contextForClose = context || {close: async () => {}};
+  const browserForClose = browser || {close: async () => {}};
   const diagnostics = await closeAndFreezePageDiagnostics({
-    page,
-    context,
-    browser,
-    closeContext: Boolean(context),
-    closeBrowser: Boolean(browser),
+    page: pageForClose,
+    context: contextForClose,
+    browser: browserForClose,
+    closeContext: true,
+    closeBrowser: true,
     runtimeErrors,
     responseErrors,
     harnessDiagnostics,
