@@ -25,7 +25,7 @@ jobs:
       CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
       RECEIPT_DIR: artifacts/cloudflare-preview-cleanup
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Verify exact cleanup authority and credentials
         shell: bash
@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload sanitized cleanup receipt
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cloudflare-preview-estate-cleanup-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/cloudflare-preview-cleanup
