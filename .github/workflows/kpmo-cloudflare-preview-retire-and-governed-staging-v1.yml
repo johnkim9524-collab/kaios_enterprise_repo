@@ -100,6 +100,7 @@ jobs:
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID_LEGACY_UNUSED: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_ACCOUNT_ID: 235eaa51d04e7f4436a9faa507a04f9d
           CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
           EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
