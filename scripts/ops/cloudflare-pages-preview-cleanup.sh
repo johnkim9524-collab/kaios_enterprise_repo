@@ -124,8 +124,23 @@ final="$(list_deployments | normalize)"
 final_production_ids="$(jq -c '[.[] | select((.environment | ascii_downcase) == "production") | .id] | sort' <<<"$final")"
 remaining_preview_count="$(jq '[.[] | select((.environment | ascii_downcase) == "preview")] | length' <<<"$final")"
 
-if [[ "$final_production_ids" != "$initial_production_ids" ]]; then
-  echo "Fail closed: Production deployment set changed" >&2
+missing_initial_production_count="$(jq -n \
+  --argjson initial "$initial_production_ids" \
+  --argjson final "$final_production_ids" \
+  '$initial - $final | length')"
+
+if [[ "$missing_initial_production_count" -ne 0 ]]; then
+  jq -n \
+    --arg project "$PROJECT_NAME" \
+    --arg state "BLOCKED" \
+    --arg blocker "INITIAL_PRODUCTION_DEPLOYMENT_DISAPPEARED" \
+    --argjson deleted "$deleted" \
+    --argjson failed "$failed" \
+    --argjson initial_production_ids "$initial_production_ids" \
+    --argjson final_visible_production_ids "$final_production_ids" \
+    '{project:$project,state:$state,blocker:$blocker,deleted:$deleted,failed_attempts:$failed,production_mutation_unproven:true,initial_production_ids:$initial_production_ids,final_visible_production_ids:$final_visible_production_ids}' \
+    > "$RECEIPT_DIR/final.json"
+  echo "Fail closed: an initially visible Production deployment disappeared" >&2
   exit 67
 fi
 
