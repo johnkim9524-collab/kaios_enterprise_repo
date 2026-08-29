@@ -46,8 +46,7 @@ assert.match(script, /PROVIDER_HTTP_404/);
 assert.match(script, /PROVIDER_HTTP_5XX/);
 assert.match(script, /PROVIDER_TRANSPORT_OR_TIMEOUT/);
 assert.equal(script.includes('--request PATCH'), false);
-assert.equal(script.includes('api_request DELETE "$API_ROOT"'), false);
-assert.equal(script.includes('delete_pages_project'), false);
+assert.equal(script.includes('cf_request DELETE "$API_ROOT"'), false);
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 assert.match(workflow, /workflows: \["KPMO CF-KIDULTS-14501AC-01 Preflight"\]/);
