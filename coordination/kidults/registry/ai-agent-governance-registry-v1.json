@@ -1,11 +1,12 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.4.0",
+  "version": "1.3.0",
+  "registry_revision": "1.4.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.4.0",
+    "policy_version": "1.3.0",
     "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
