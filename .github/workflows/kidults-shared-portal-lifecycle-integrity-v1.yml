@@ -1,0 +1,165 @@
+name: KIDULTS Shared Portal Lifecycle Integrity V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/public/portal/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/server.mjs'
+      - 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs'
+      - 'scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs'
+      - 'tooling/kidults-portal-r001-browser-qa/package.json'
+      - 'tooling/kidults-portal-r001-browser-qa/package-lock.json'
+      - '.github/workflows/kidults-shared-portal-lifecycle-integrity-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/public/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/public/portal/portal-r001/**'
+      - 'apps/kidults-enterprise-staging/server.mjs'
+      - 'scripts/kidults/portal/proof-product-test-fixtures-v1.mjs'
+      - 'scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs'
+      - 'tooling/kidults-portal-r001-browser-qa/package.json'
+      - 'tooling/kidults-portal-r001-browser-qa/package-lock.json'
+      - '.github/workflows/kidults-shared-portal-lifecycle-integrity-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-shared-portal-lifecycle-integrity-v1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared-portal-lifecycle-integrity:
+    name: KIDULTS Shared Portal Lifecycle Integrity V1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Run lifecycle evidence negative canaries
+        run: node scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs --self-test
+
+      - name: Install exact browser toolchain
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kidults-shared-portal-lifecycle
+          cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-shared-portal-lifecycle/package.json
+          cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-shared-portal-lifecycle/package-lock.json
+          npm ci --prefix /tmp/kidults-shared-portal-lifecycle --ignore-scripts --no-audit --no-fund
+          node /tmp/kidults-shared-portal-lifecycle/node_modules/playwright/cli.js install --with-deps webkit
+          ln -s /tmp/kidults-shared-portal-lifecycle/node_modules "$GITHUB_WORKSPACE/node_modules"
+
+      - name: Start signed non-public shared Portal fixture
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'portal-r001-lifecycle-nonproduction-secret' > /tmp/kidults-conversion-secret
+          printf 'portal-r001-lifecycle-capability-secret-at-least-32-bytes' > /tmp/kidults-projection-secret
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {approvedProjectionFixture} from './scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
+          const projection=approvedProjectionFixture(), now=new Date();
+          projection.generated_at=new Date(now-120000).toISOString();
+          projection.updated_at=new Date(now-60000).toISOString();
+          projection.freshness.observed_at=new Date(now-120000).toISOString();
+          projection.freshness.valid_until=new Date(now.getTime()+3600000).toISOString();
+          fs.writeFileSync('/tmp/kidults-approved-projection.json',JSON.stringify(projection));
+          NODE
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          KIDULTS_APPROVED_PROJECTION_FILE=/tmp/kidults-approved-projection.json \
+          KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE=/tmp/kidults-projection-secret \
+          HOST=127.0.0.1 PORT=4174 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-shared-portal-server.log 2>&1 &
+          echo $! >/tmp/kidults-shared-portal-server.pid
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4174/health >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4174/health >/dev/null || { cat /tmp/kidults-shared-portal-server.log; exit 1; }
+
+      - name: Prove real WebKit history BFCache and frozen verdict integrity
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          KIDULTS_SHARED_PORTAL_BASE_URL: http://127.0.0.1:4174
+          KIDULTS_SHARED_PORTAL_LIFECYCLE_REPORT: /tmp/kidults-shared-portal-lifecycle/report.json
+        run: node scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs --browser
+
+      - name: Build exact evidence receipt
+        if: always()
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          const reportPath='/tmp/kidults-shared-portal-lifecycle/report.json';
+          const runnerPath='scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs';
+          const lockPath='tooling/kidults-portal-r001-browser-qa/package-lock.json';
+          const sha=bytes=>`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
+          const report=fs.existsSync(reportPath)?JSON.parse(fs.readFileSync(reportPath,'utf8')):null;
+          const sourceSha=process.env.SOURCE_SHA||'';
+          const checkedOut=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+          const failures=[];
+          if(!/^[0-9a-f]{40}$/.test(sourceSha)||checkedOut!==sourceSha)failures.push('SOURCE_SHA_MISMATCH');
+          if(report?.result!=='PASS')failures.push('BROWSER_REPORT_NOT_PASS');
+          if(report?.real_bfcache?.state!=='VERIFIED_PASS')failures.push('REAL_BFCACHE_NOT_PASS');
+          if(report?.evidence_frozen_after_all_browser_close!==true)failures.push('POST_CLOSE_FREEZE_MISSING');
+          if(report?.serialized_verdict_bound_to_frozen_evidence!==true)failures.push('SERIALIZED_VERDICT_BINDING_MISSING');
+          const receipt={
+            id:'kidults-shared-portal-lifecycle-integrity-receipt-v1',
+            source_sha:sourceSha,
+            checked_out_sha:checkedOut,
+            state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',
+            failures,
+            report_sha256:fs.existsSync(reportPath)?sha(fs.readFileSync(reportPath)):null,
+            runner_sha256:sha(fs.readFileSync(runnerPath)),
+            lock_sha256:sha(fs.readFileSync(lockPath)),
+            real_bfcache:report?.real_bfcache?.state||'UNKNOWN',
+            evidence_frozen_after_all_browser_close:report?.evidence_frozen_after_all_browser_close===true,
+            serialized_verdict_bound_to_frozen_evidence:report?.serialized_verdict_bound_to_frozen_evidence===true,
+            empirical_gate_effect:'NONE', public_release:'HOLD', production:'HOLD', g5:'HOLD'
+          };
+          fs.mkdirSync('/tmp/kidults-shared-portal-lifecycle',{recursive:true});
+          fs.writeFileSync('/tmp/kidults-shared-portal-lifecycle/receipt.json',`${JSON.stringify(receipt,null,2)}\n`);
+          console.log(JSON.stringify(receipt,null,2));
+          if(failures.length)process.exit(1);
+          NODE
+
+      - name: Upload exact lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-shared-portal-lifecycle-integrity-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kidults-shared-portal-lifecycle/report.json
+            /tmp/kidults-shared-portal-lifecycle/receipt.json
+            /tmp/kidults-shared-portal-server.log
+          retention-days: 30
