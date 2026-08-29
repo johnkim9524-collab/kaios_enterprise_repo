@@ -39,6 +39,11 @@ export function assertPromotablePullRequest(pr, {
   if (pr.head?.sha !== expectedHeadSha) fail('PULL_REQUEST_HEAD_CHANGED', String(pr.head?.sha ?? 'missing'));
   if (repository && pr.head?.repo?.full_name !== repository) fail('PULL_REQUEST_HEAD_REPOSITORY_MISMATCH');
   if (pr.draft === true) fail('PULL_REQUEST_DRAFT');
+  if (pr.mergeable !== true) fail('PULL_REQUEST_NOT_MERGEABLE', String(pr.mergeable));
+  const mergeableState = normalized(pr.mergeable_state);
+  if (!mergeableState || mergeableState === 'unknown' || mergeableState === 'dirty') {
+    fail('PULL_REQUEST_MERGEABILITY_UNPROVEN', mergeableState || 'missing');
+  }
   const blockers = noMergeBlockers(pr, noMergePolicy);
   if (blockers.length) fail('PULL_REQUEST_NO_MERGE_BLOCKED', blockers.join(','));
   return {
@@ -48,6 +53,8 @@ export function assertPromotablePullRequest(pr, {
     state: pr.state,
     merged: pr.merged === true,
     draft: pr.draft === true,
+    mergeable: pr.mergeable === true,
+    mergeable_state: mergeableState,
     updated_at: pr.updated_at ?? null,
     blocker_count: 0,
   };
@@ -59,7 +66,8 @@ export function assertStableFinalReread(initial, final, options) {
   if (before.number !== after.number) fail('PULL_REQUEST_NUMBER_CHANGED');
   if (before.head_sha !== after.head_sha) fail('PULL_REQUEST_HEAD_CHANGED_DURING_AUTHORIZATION');
   if (before.base_ref !== after.base_ref) fail('PULL_REQUEST_BASE_CHANGED_DURING_AUTHORIZATION');
-  return {initial: before, final: after, stable_exact_head: true};
+  if (before.mergeable_state !== after.mergeable_state) fail('PULL_REQUEST_MERGEABILITY_CHANGED_DURING_AUTHORIZATION');
+  return {initial: before, final: after, stable_exact_head: true, stable_mergeability: true};
 }
 
 function scopeMatches(filename, rule) {
