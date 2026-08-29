@@ -49,7 +49,8 @@
     "schedule": "47 */3 * * *",
     "upstream_workflows": [
       "KIDULTS Global Source Mesh v1",
-      "KIDULTS ASI Source Fabric Scale PI1"
+      "KIDULTS ASI Source Fabric Scale PI1",
+      "KIDULTS ASI Multi-Lane Autonomous Acquisition Mission v1"
     ],
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
@@ -68,5 +69,6 @@
     "governance_boundary_owner": "KPMO",
     "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
     "psa_blocking_dependency_count": 0
-  }
+  },
+  "execution_request_source": "coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json"
 }
