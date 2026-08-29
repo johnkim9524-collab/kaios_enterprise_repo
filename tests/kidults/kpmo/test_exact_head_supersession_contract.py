@@ -18,8 +18,8 @@ def validate_contract(text: str) -> None:
     assert 'same_head_runs_cancelled:0' in text
 
     same_head_guard = text.index('if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then')
-    force_cancel = text.index('/actions/runs/${target_run_id}/force-cancel')
-    assert same_head_guard < force_cancel
+    force_cancel_call = text.index('force_result="$(force_cancel_run "${run_id}")"')
+    assert same_head_guard < force_cancel_call
 
     forbidden = 'if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'
     assert forbidden not in text
