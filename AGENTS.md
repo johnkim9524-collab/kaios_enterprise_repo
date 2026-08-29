@@ -8,6 +8,7 @@ The authoritative platform constitution is `coordination/kidults/kpmo/operating-
 The authoritative AI policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
 The authoritative AI machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.  
 The mandatory fix-first bootstrap is `coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json`.
+The provider strategy constitution is `coordination/kidults/governance/provider-strategy-constitution-v1.md`; Track Z and KPMO must load their provider bootstraps before provider work.
 
 ## Mandatory agent bootstrap — fix first, report last
 
