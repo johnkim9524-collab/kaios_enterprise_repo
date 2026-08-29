@@ -1,9 +1,42 @@
 {
   "id": "kidults-ai-agent-bootstrap-protection-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_TAMPER_EVIDENT_FAIL_CLOSED",
   "owner": "KPMO",
   "scope": "REPOSITORY_WIDE_AI_AGENT_BOOTSTRAP_TRUST_ROOT",
+  "platform_operating_principles": {
+    "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
+    "ordered_principles": [
+      "AUTONOMOUS",
+      "GLOBAL",
+      "IRREPLACEABLE_VALUE",
+      "TRANSPARENT"
+    ],
+    "constitutional_order_is_binding": true,
+    "child_rule_can_weaken_reorder_or_bypass": false,
+    "all_ai_agents_and_automations_must_inherit": true,
+    "principle_contracts": {
+      "AUTONOMOUS": {
+        "required_behavior": "Detect uncertainty and reversible internal defects, acquire or demand evidence, remediate root cause within granted authority, recompute and revalidate before reporting.",
+        "forbidden_behavior": "Treat uncertainty as approval, require repeated human prompting for normal ready-state execution, or substitute report-only behavior for authorized remediation."
+      },
+      "GLOBAL": {
+        "required_behavior": "Design and validate for global categories, geographies, languages, currencies, taxonomies, rights boundaries, scale, bias, freshness and time basis.",
+        "forbidden_behavior": "Present architecture coverage or local/boutique assumptions as empirical global proof."
+      },
+      "IRREPLACEABLE_VALUE": {
+        "required_behavior": "Compound proprietary value in canonical object relationships, evidence lineage, methodology, decision memory and reusable intelligence rather than depending on replaceable provider feeds.",
+        "forbidden_behavior": "Equate raw third-party data access, provider dependency or transient feed availability with irreplaceable platform value."
+      },
+      "TRANSPARENT": {
+        "required_behavior": "Preserve reproducible fact-to-factor-to-claim-to-decision lineage with source, rights, as-of date, confidence, revision history, model involvement, evidence state and rollback/audit receipts.",
+        "forbidden_behavior": "Promote unsupported, stale, inferred or partially failed state as verified truth."
+      }
+    },
+    "evidence_before_metrics": true,
+    "proof_before_procurement": true,
+    "portal_consumes_intelligence_does_not_calculate_intelligence": true
+  },
   "protected_paths": [
     "AGENTS.md",
     ".github/AI_AGENT_OPERATING_RULES.md",
@@ -27,7 +60,8 @@
     "path_filter_narrowing_forbidden": true,
     "self_exemption_forbidden": true,
     "silent_deletion_forbidden": true,
-    "fail_closed_on_missing_or_weakened_control": true
+    "fail_closed_on_missing_or_weakened_control": true,
+    "platform_principle_weakening_reordering_or_bypass_forbidden": true
   },
   "continuous_enforcement": {
     "all_pull_requests_to_main": true,
@@ -42,7 +76,8 @@
     "bootstrap_sequence_weakened_or_reordered": "P0_GOVERNANCE_DEFECT",
     "repository_wide_enforcement_narrowed": "P0_GOVERNANCE_DEFECT",
     "self_exemption_or_report_only_bypass_enabled": "P0_GOVERNANCE_DEFECT",
-    "direct_main_mutation_attempt": "P0_GOVERNANCE_DEFECT"
+    "direct_main_mutation_attempt": "P0_GOVERNANCE_DEFECT",
+    "platform_principle_weakened_reordered_or_bypassed": "P0_GOVERNANCE_DEFECT"
   },
-  "truth_boundary": "This repository control is tamper-evident and fail-closed, not cryptographically immutable against a repository administrator. Native GitHub ruleset enforcement remains a separate trust-root control. Production/Public/G5 remain HOLD."
+  "truth_boundary": "This repository control is tamper-evident and fail-closed, not cryptographically immutable against a repository administrator. Native GitHub ruleset enforcement remains a separate trust-root control. Architecture or control coverage never substitutes for empirical global, provider, market, human-review, PostgreSQL/PITR, Production/Public or G5 evidence. Production/Public/G5 remain HOLD."
 }
