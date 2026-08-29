@@ -1,0 +1,56 @@
+name: KIDULTS Atomic Governed Landing V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Exact pull request number
+        required: true
+        type: string
+      expected_head_sha:
+        description: Exact 40-character pull request head SHA
+        required: true
+        type: string
+      landing_authorization_id:
+        description: LAND-PR-<number>-<first-12-head-sha>
+        required: true
+        type: string
+
+concurrency:
+  group: kidults-atomic-governed-landing-v1-${{ inputs.pull_request_number }}
+  cancel-in-progress: false
+
+jobs:
+  atomic-governed-landing:
+    name: Atomic governed landing executor
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      issues: read
+      pull-requests: write
+      statuses: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout protected main implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify protected main checkout
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+
+      - name: Re-read live authority and execute exact-head server merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+        run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs

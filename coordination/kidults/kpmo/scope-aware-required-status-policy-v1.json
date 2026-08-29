@@ -1,0 +1,44 @@
+{
+  "id": "kidults-scope-aware-required-status-policy-v1",
+  "version": "1.0.0",
+  "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
+  "owner": "KPMO",
+  "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
+  "exact_head_required": true,
+  "zero_diff_policy": "PASS_ONLY_WHEN_PULL_REQUEST_METADATA_COUNTS_ARE_BOTH_ZERO",
+  "zero_coverage_policy": "FAIL_CLOSED",
+  "technical_base_contexts": [
+    "KAIOS Solo Owner Preflight",
+    "Validate KAIOS Foundation",
+    "Validate Production Container"
+  ],
+  "native_required_status_contexts": [
+    "KIDULTS Governed Landing Authorization V1",
+    "KIDULTS Scope-Aware Authoritative Status V1"
+  ],
+  "scope_rules": [
+    {"id":"github","prefixes":[".github/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"application","prefixes":["app/","apps/","packages/","public/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"control-plane","prefixes":["services/","infrastructure/","infra/","deploy/","release/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"governance-and-data","prefixes":["coordination/","contracts/","config/","data/","artifacts/","backups/","secrets/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"implementation-and-tests","prefixes":["scripts/","tests/","tooling/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"documentation","prefixes":["docs/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitignore","AGENTS.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
+  ],
+  "aggregation_policy": {
+    "latest_completed_result_per_exact_context": true,
+    "success_conclusions": ["success"],
+    "pending_wait_is_bounded": true,
+    "missing_context_fails": true,
+    "cancelled_skipped_neutral_timed_out_fail": true,
+    "duplicate_latest_timestamp_fails": true,
+    "self_context_is_never_aggregated": true
+  },
+  "authority_boundary": {
+    "technical_status_is_merge_authority": false,
+    "governed_landing_is_separate_native_context": true,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  }
+}

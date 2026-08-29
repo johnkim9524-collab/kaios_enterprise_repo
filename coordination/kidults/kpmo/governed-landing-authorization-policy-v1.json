@@ -1,10 +1,11 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
+  "scope_aware_required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
   "governed_path_prefixes": [
     ".github/",
     "services/kidults-control-plane/",
@@ -49,6 +50,37 @@
     "ready_state_must_be_observable": true,
     "ready_actor_and_time_must_be_receipted": true
   },
+  "no_merge_policy": {
+    "closed_pull_request_blocks": true,
+    "merged_pull_request_blocks": true,
+    "exact_labels": [
+      "no-merge",
+      "do-not-merge",
+      "merge-hold"
+    ],
+    "title_markers": [
+      "[NO-MERGE]",
+      "[DO-NOT-MERGE]"
+    ],
+    "marker_match_is_case_insensitive": true,
+    "blocker_must_be_absent_on_initial_and_final_live_read": true
+  },
+  "atomic_landing_policy": {
+    "ordinary_readiness_may_publish_success": false,
+    "readiness_status": "pending",
+    "operation_specific_dispatch_required": true,
+    "live_dispatch_actor_must_equal_repository_owner": true,
+    "expected_head_sha_required": true,
+    "initial_live_pull_request_read_required": true,
+    "final_live_pull_request_reread_required": true,
+    "final_state_must_equal_open": true,
+    "server_side_merge_must_bind_expected_head_sha": true,
+    "failure_revokes_exact_head_status": true,
+    "success_status_and_merge_are_same_trusted_job": true,
+    "immediate_post_status_premerge_reread_required": true,
+    "expected_head_compare_is_atomic_for_sha_only": true,
+    "no_merge_label_atomicity_claimed": false
+  },
   "bypass_policy": {
     "ruleset_bypass_actor_count_must_be_zero": true,
     "required_status_must_be_strict": true,
@@ -56,7 +88,9 @@
     "required_status_contexts": [
       "KAIOS Solo Owner Preflight",
       "Validate KAIOS Foundation",
-      "Validate Production Container"
+      "Validate Production Container",
+      "KIDULTS Governed Landing Authorization V1",
+      "KIDULTS Scope-Aware Authoritative Status V1"
     ]
   },
   "truth_boundary": {
