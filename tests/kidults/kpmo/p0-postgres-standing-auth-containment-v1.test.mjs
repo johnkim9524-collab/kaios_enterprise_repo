@@ -15,20 +15,25 @@ const restore = fs.readFileSync(restoreWorkflowPath, 'utf8');
 const containment = JSON.parse(fs.readFileSync(containmentPath, 'utf8'));
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function jobBlock(workflow, jobId) {
-  const match = workflow.match(new RegExp(`^  ${escapeRegex(jobId)}:\\n([\\s\\S]*?)(?=^  [A-Za-z0-9_-]+:\\n|\\Z)`, 'm'));
-  assert.ok(match, `missing job ${jobId}`);
-  return `  ${jobId}:\n${match[1]}`;
+  const lines = workflow.split(/\r?\n/);
+  const start = lines.findIndex((line) => line === `  ${jobId}:`);
+  assert.notEqual(start, -1, `missing job ${jobId}`);
+  let end = lines.length;
+  for (let index = start + 1; index < lines.length; index += 1) {
+    if (/^  [A-Za-z0-9_-]+:\s*$/.test(lines[index])) {
+      end = index;
+      break;
+    }
+  }
+  return lines.slice(start, end).join('\n');
 }
 
 const sourceContainmentJob = jobBlock(source, 'fail-closed-activation-containment');
 const sourceCredentialedJob = jobBlock(source, 'remote-persistence-pitr-fixture');
 const restoreContainmentJob = jobBlock(restore, 'fail-closed-target-time-containment');
 const restoreCredentialedJob = jobBlock(restore, 'verify-target-time-restore');
+const inertCondition = "${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}";
 
 assert.equal(containment.state, 'FAIL_CLOSED_CONTAINED');
 assert.deepEqual(containment.issues, [1481, 1482]);
@@ -40,9 +45,12 @@ assert.equal(containment.legacy_variable.repository_code_accepts_as_executable_a
 assert.equal(containment.legacy_variable.external_value_read_by_containment, false);
 assert.equal(containment.legacy_variable.external_false_readback_still_required, true);
 assert.equal(containment.legacy_variable.required_external_value, 'false');
+assert.equal(containment.legacy_variable.registry_marker_retained, true);
+assert.equal(containment.legacy_variable.registry_marker_runtime_semantics, 'LITERAL_FALSE_AND_LEGACY_VARIABLE_INERT');
 assert.equal(containment.contained_workflows.length, 2);
 for (const lane of containment.contained_workflows) {
-  assert.equal(lane.job_condition, '${{ false }}');
+  assert.equal(lane.job_condition, inertCondition);
+  assert.equal(lane.literal_false_dominates_all_variable_values, true);
   assert.equal(lane.provider_environment_entered, false);
   assert.equal(lane.provider_secrets_resolved, false);
   assert.equal(lane.ssh_executed, false);
@@ -68,7 +76,8 @@ for (const [name, workflow, containmentJob, credentialedJob] of [
   ['source', source, sourceContainmentJob, sourceCredentialedJob],
   ['restore', restore, restoreContainmentJob, restoreCredentialedJob]
 ]) {
-  assert.match(credentialedJob, /if: \$\{\{ false \}\}/, `${name} credentialed job must be unreachable`);
+  assert.equal(credentialedJob.includes(`if: ${inertCondition}`), true, `${name} credentialed job must have literal-false conjunction`);
+  assert.equal(credentialedJob.includes('||'), false, `${name} credentialed job must not provide alternate enable path`);
   assert.match(credentialedJob, /environment: kidults-do-staging-ssh/);
   assert.match(credentialedJob, /Verify explicit STAGING activation authorization before secret resolution/);
   assert.match(credentialedJob, /ACTIVATION_AUTHORIZED: \$\{\{ vars\.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED \}\}/);
@@ -84,13 +93,14 @@ for (const [name, workflow, containmentJob, credentialedJob] of [
   assert.match(containmentJob, /pitr_proven[^\n]*False/);
   assert.match(workflow, /if-no-files-found: error/);
   assert.equal(workflow.includes('needs.activation-readiness-receipt.outputs.authorized'), false);
+  assert.equal((credentialedJob.match(/vars\.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED/g) || []).length, 2, `${name} legacy marker must exist only in false condition and inert activation step`);
 }
 
 assert.match(sourceCredentialedJob, /Materialize dedicated STAGING key/);
 assert.match(sourceCredentialedJob, /SSH_PRIVATE_KEY_B64: \$\{\{ secrets\.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 \}\}/);
 assert.match(sourceCredentialedJob, /Execute source PostgreSQL fixture through pinned SSH tunnel/);
 assert.match(sourceCredentialedJob, /POSTGRES_DSN: \$\{\{ secrets\.KIDULTS_STAGING_POSTGRES_DSN \}\}/);
-assert.equal((source.match(/if: \$\{\{ false \}\}/g) || []).length, 1);
+assert.equal((source.match(/false && vars\.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'/g) || []).length, 1);
 assert.match(source, /BLOCKED_ONE_SHOT_AUTHORIZATION_REQUIRED/);
 assert.match(source, /standing_boolean_consulted_by_executable_job[^\n]*False/);
 assert.match(source, /source_fixture_receipt[^\n]*None/);
@@ -99,7 +109,7 @@ assert.match(restoreCredentialedJob, /Materialize dedicated STAGING key/);
 assert.match(restoreCredentialedJob, /SSH_PRIVATE_KEY_B64: \$\{\{ secrets\.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 \}\}/);
 assert.match(restoreCredentialedJob, /Execute target-time restore verification through pinned SSH tunnel/);
 assert.match(restoreCredentialedJob, /PITR_RESTORE_DSN: \$\{\{ secrets\.KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN \}\}/);
-assert.equal((restore.match(/if: \$\{\{ false \}\}/g) || []).length, 1);
+assert.equal((restore.match(/false && vars\.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'/g) || []).length, 1);
 assert.match(restore, /request_metadata_is_authorization[^\n]*False/);
 assert.match(restore, /request_metadata_is_restore_proof[^\n]*False/);
 assert.match(restore, /target_time_restore_verified[^\n]*False/);
@@ -151,6 +161,8 @@ console.log(JSON.stringify({
   result: 'PASS',
   issues: [1481, 1482],
   standing_boolean_executable_authority: false,
+  inert_registry_marker_preserved: true,
+  literal_false_dominates_all_variable_values: true,
   source_credentialed_job_reachable: false,
   restore_credentialed_job_reachable: false,
   provider_environment_entered: false,
