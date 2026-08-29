@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-intelligence-preparation-wave-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -17,7 +17,8 @@
     "global_source_mesh_contract": "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
     "global_source_mesh_builder": "scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs",
     "scope_matrix": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
-    "verified_surface_baseline": "coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json"
+    "verified_surface_baseline": "coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json",
+    "immediate_priority_mission": "coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json"
   },
   "canonical_execution_order": [
     "UNKNOWN_REGISTRY",
@@ -139,7 +140,33 @@
     "mission_requires_claim_ceiling": true,
     "mission_can_create_collection_right": false,
     "mission_can_create_evidence_admission": false,
-    "mission_can_create_market_claim": false
+    "mission_can_create_market_claim": false,
+    "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
+    "runtime_priority_owner": "ASI",
+    "psa_is_program_prerequisite": false,
+    "psa_role": "PARALLEL_GRADED_SUPPLEMENT_LANE",
+    "non_psa_execution_lanes": [
+      "AUTOMOBILES_MOBILITY_LIGHTHOUSE",
+      "IDENTITY_REFERENCE_GRAPH",
+      "RIGHTS_AND_DATED_SOLD_DISCOVERY",
+      "PRODUCT_READINESS"
+    ],
+    "evidence_ladder": [
+      "REFERENCE",
+      "DISCOVERY",
+      "OBSERVATION",
+      "CANDIDATE",
+      "EVIDENCE",
+      "APPROVED_PROJECTION"
+    ],
+    "automobiles_lighthouse_target": {
+      "minimum": 25,
+      "maximum": 50
+    },
+    "current_sold_blocked_fallback": [
+      "WATCHES",
+      "CARDS"
+    ]
   },
   "provider_replaceability_policy": {
     "provider_list_is_not_strategy": true,

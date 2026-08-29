@@ -14,6 +14,7 @@ const files={
   platform:'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
   mesh:'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json',
   registry:'coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json',
+  mission:'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json',
   doc:'docs/kidults/asi/asi-sourcing-direction-v2.md',
   meshWorkflow:'.github/workflows/kidults-global-source-mesh-v1.yml',
   scaleWorkflow:'.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
@@ -27,6 +28,7 @@ const direction=readJson(files.direction);
 const platform=readJson(files.platform);
 const mesh=readJson(files.mesh);
 const registry=readJson(files.registry);
+const mission=readJson(files.mission);
 const doc=readText(files.doc);
 const meshWorkflow=readText(files.meshWorkflow);
 const scaleWorkflow=readText(files.scaleWorkflow);
@@ -35,7 +37,7 @@ const order=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 const expectedModel='FOUR_AXIS_HARD_FLOOR_THEN_EXPECTED_INTELLIGENCE_GAIN_PER_TOTAL_COST';
 
 assert(direction.id==='kidults-asi-sourcing-direction-contract-v2','DIRECTION_ID');
-assert(direction.version==='2.0.0','DIRECTION_VERSION');
+assert(direction.version==='2.1.0','DIRECTION_VERSION');
 assert(direction.status==='ACTIVE_MANDATORY_FAIL_CLOSED','DIRECTION_STATUS');
 assert(direction.owner==='KPMO','DIRECTION_OWNER');
 assert(direction.precedence==='ASI_SOURCING_DIRECTION_AUTHORITY','DIRECTION_PRECEDENCE');
@@ -137,6 +139,13 @@ for(const nonGoal of [
 ]){
   assert(direction.non_goals?.includes(nonGoal),`MISSING_NON_GOAL:${nonGoal}`);
 }
+assert(direction.runtime_priority_governance?.runtime_priority_owner==='ASI','RUNTIME_PRIORITY_OWNER');
+assert(direction.runtime_priority_governance?.operating_mode==='MULTI_LANE_AUTONOMOUS_ACQUISITION','RUNTIME_OPERATING_MODE');
+assert(direction.runtime_priority_governance?.psa_is_program_prerequisite===false,'PSA_NOT_PREREQUISITE');
+assert(mission.runtime_priority_owner==='ASI'&&mission.governance_owner==='KPMO','MISSION_OWNER_SEPARATION');
+assert(mission.provider_independence?.psa_is_program_prerequisite===false,'MISSION_PSA_BOUNDARY');
+assert(mission.execution_lanes?.[0]?.lane_id==='AUTOMOBILES_MOBILITY_LIGHTHOUSE','MISSION_LIGHTHOUSE_FIRST');
+assert(mission.execution_lanes?.[4]?.lane_id==='PSA_GRADED_SUPPLEMENT','MISSION_PSA_PARALLEL');
 assert(direction.public_release==='HOLD'&&direction.production==='HOLD','DIRECTION_RELEASE_BOUNDARY');
 
 assert(mesh.sourcing_direction_contract===files.direction,'MESH_DIRECTION_BINDING');
@@ -168,7 +177,7 @@ for(const rule of [
 }
 
 assert(registry.id==='kidults-asi-sourcing-direction-registry-v2','REGISTRY_ID');
-assert(registry.version==='2.0.0','REGISTRY_VERSION');
+assert(registry.version==='2.1.0','REGISTRY_VERSION');
 assert(registry.owner==='KPMO','REGISTRY_OWNER');
 assert(JSON.stringify(registry.constitutional_order)===JSON.stringify(order),'REGISTRY_DIRECTION_ORDER');
 assert(registry.registered_assets?.authoritative_contract===files.direction,'REGISTRY_CONTRACT_PATH');
@@ -183,6 +192,9 @@ assert(registry.mandatory_inheritance?.self_exemption_allowed===false,'REGISTRY_
 assert(registry.source_strategy_boundaries?.source_count_is_not_goal===true,'REGISTRY_SOURCE_COUNT');
 assert(registry.source_strategy_boundaries?.provider_list_is_not_strategy===true,'REGISTRY_PROVIDER_LIST');
 assert(registry.source_strategy_boundaries?.priority_score_is_not_permission===true,'REGISTRY_PRIORITY_PERMISSION');
+assert(registry.registered_assets?.immediate_priority_mission===files.mission,'REGISTRY_MISSION_PATH');
+assert(registry.runtime_priority_owner==='ASI'&&registry.governance_boundary_owner==='KPMO','REGISTRY_PRIORITY_OWNER');
+assert(registry.operating_mode==='MULTI_LANE_AUTONOMOUS_ACQUISITION','REGISTRY_OPERATING_MODE');
 assert(registry.public_release==='HOLD'&&registry.production==='HOLD','REGISTRY_RELEASE_BOUNDARY');
 
 for(const marker of [
@@ -249,7 +261,7 @@ if(meshArg>=0){
 
 console.log(JSON.stringify({
   id:'kidults-asi-sourcing-direction-validation-v2',
-  version:'2.0.0',
+  version:'2.1.0',
   state:'VERIFIED_PASS',
   sourcing_direction_order:order,
   source_selection_model:expectedModel,
@@ -257,6 +269,9 @@ console.log(JSON.stringify({
   source_count_is_not_goal:true,
   provider_first_selection_forbidden:true,
   manual_only_normal_activation_forbidden:true,
+  operating_mode:mission.operating_mode,
+  runtime_priority_owner:mission.runtime_priority_owner,
+  psa_blocking_dependency_count:0,
   transparent_receipt_field_count:requiredReceiptFields.length,
   mesh_validation:meshValidation,
   public_release:'HOLD',
