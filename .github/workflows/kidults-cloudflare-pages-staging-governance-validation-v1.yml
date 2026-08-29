@@ -18,6 +18,7 @@ on:
       - 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
       - 'tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs'
       - 'tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -41,6 +42,7 @@ jobs:
           node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
           node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs
           node tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs
+          node tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs
           node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
           bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
           bash -n scripts/ops/cloudflare-pages-auto-deployment-containment.sh

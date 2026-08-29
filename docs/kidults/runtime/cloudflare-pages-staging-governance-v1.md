@@ -15,6 +15,7 @@
 - Source: exact live protected-main SHA only.
 - Deployment method: Wrangler Direct Upload to the existing Git-integrated Pages project.
 - Read-only drift audit: every 30 minutes, on protected-main push, and on demand.
+- Deployment inventory pagination: Cloudflare Pages maximum `per_page=25`; all pages are bounded, and skipped attempts are separated from materialized deployments.
 - Preview deletion: emergency manual operation only.
 - Production-environment deployment deletion: prohibited.
 - Public / platform Production / G5: HOLD.
