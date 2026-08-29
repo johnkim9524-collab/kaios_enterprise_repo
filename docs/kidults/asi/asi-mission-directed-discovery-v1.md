@@ -49,6 +49,8 @@ A provider failure does not erase successful results from other lanes. Partial f
 
 ## Fail-soft metadata fallback
 
+If both the primary provider lanes and the bounded GitHub fallback return zero candidates for a cursor batch, the cycle emits `SHADOW_MISSION_DIRECTED_NO_CANDIDATE_OBSERVED` and advances the cursor. This is a transparent terminal observation—not a runtime failure, not Evidence, and not permission to invent a candidate. Downstream gates receive an explicit empty set and remain HOLD.
+
 The first empirical run proved that a narrow mission query can legitimately return zero candidates even when provider requests succeed. Zero results are not converted into fabricated candidates and do not silently disappear.
 
 When the primary multi-provider cycle fails or produces no live candidate, the workflow executes a bounded GitHub public-metadata fallback. The fallback:

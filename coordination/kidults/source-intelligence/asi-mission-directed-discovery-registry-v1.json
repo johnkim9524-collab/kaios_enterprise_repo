@@ -17,6 +17,7 @@
     "discovery_runner": "scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs",
     "discovery_fallback_runner": "scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs",
     "discovery_validator": "scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs",
+    "zero_candidate_test": "scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs",
     "readiness_builder": "scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs",
     "readiness_validator": "scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs",
     "gate1_builder": "scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs",
@@ -58,6 +59,7 @@
     "fallback_provider_lane": "GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA",
     "primary_failure_must_remain_visible": true,
     "fallback_usage_must_remain_visible": true,
+    "fallback_zero_candidate_behavior": "EMIT_TRANSPARENT_TERMINAL_OBSERVATION_AND_CONTINUE_CURSOR",
     "fallback_candidate_claim_ceiling": "DISCOVERY_METADATA_ONLY",
     "fallback_can_create_rights_admission_or_claim": false
   },
@@ -85,6 +87,7 @@
     "registered_or_discovered_endpoint_is_rights_admitted": false,
     "adapter_requirement_is_implemented_adapter": false,
     "fallback_candidate_is_market_evidence": false,
+    "zero_candidate_observation_is_failure_or_evidence": false,
     "public_release": "HOLD",
     "production": "HOLD"
   }
