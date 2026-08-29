@@ -7,6 +7,7 @@ on:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
       - ".github/workflows/kpmo-canonical-issue-transition-guard-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
+      - "scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs"
       - "scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs"
       - "coordination/kidults/**"
   push:
@@ -75,6 +76,13 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs --self-test
           node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs
+      - name: Fail closed on material-defect severity metadata drift
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
       - name: Validate live canonical issue truth
         id: validate
         env:
