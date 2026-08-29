@@ -6,6 +6,7 @@ EXPECTED_REPOSITORY="${EXPECTED_REPOSITORY:-johnkim9524-collab/kaios_enterprise_
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-pages-boundary-readonly}"
 MAX_PAGES="${MAX_PAGES:-100}"
 PAGE_SIZE="${PAGE_SIZE:-25}"
+# Guard contract: PAGE_SIZE > 25 is refused before any Cloudflare API call.
 
 mkdir -p "$RECEIPT_DIR"
 
