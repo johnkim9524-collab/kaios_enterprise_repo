@@ -67,7 +67,7 @@ jobs:
             and .g5 == "HOLD"
           ' "$RECEIPT_DIR/final.json" >/dev/null
 
-      - uses: actions/upload-artifact@b7c566a772e6b6f058ed0dc250532a479d7789f # v6.0.0
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: cloudflare-auto-deployment-containment-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
