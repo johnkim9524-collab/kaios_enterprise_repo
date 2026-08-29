@@ -1,0 +1,40 @@
+name: KPMO Temporary Trusted-Ref Source Export
+
+on:
+  push:
+    branches:
+      - kpmo/cloudflare-staging-governance-v1
+    paths:
+      - .github/workflows/kpmo-temp-export-trusted-ref-sources.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Export exact trusted-ref source set
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kpmo-trusted-ref-export
+          cp --parents \
+            scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs \
+            scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs \
+            tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.mjs \
+            docs/kidults/security/github-trusted-ref-environment-readback-v1.md \
+            coordination/kidults/kpmo/github-trusted-ref-environment-readback-contract-v1.json \
+            /tmp/kpmo-trusted-ref-export/
+          printf '%s\n' "$GITHUB_SHA" > /tmp/kpmo-trusted-ref-export/SOURCE_SHA
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kpmo-trusted-ref-source-export-${{ github.sha }}
+          path: /tmp/kpmo-trusted-ref-export
+          if-no-files-found: error
+          retention-days: 1
