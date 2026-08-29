@@ -1,0 +1,48 @@
+name: KPMO CF-KIDULTS-14501AC-01 Preflight
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml'
+      - '.github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml'
+      - 'coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json'
+      - 'scripts/ops/cloudflare-pages-cf-kidults-14501ac-01.sh'
+      - 'tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs'
+      - '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml'
+      - '.github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml'
+      - 'coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json'
+      - 'scripts/ops/cloudflare-pages-cf-kidults-14501ac-01.sh'
+      - 'tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs'
+      - '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-cf-kidults-14501ac-01-preflight-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate exact approval, bounded script and workflow binding
+        run: |
+          set -euo pipefail
+          node tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs
+          bash -n scripts/ops/cloudflare-pages-cf-kidults-14501ac-01.sh
