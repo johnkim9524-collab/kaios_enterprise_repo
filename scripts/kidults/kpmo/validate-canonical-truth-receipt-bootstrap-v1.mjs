@@ -38,9 +38,23 @@ function validateWorkflow(text) {
     '"production": "HOLD"',
     '"public": "HOLD"',
     '"run_attempt": $GITHUB_RUN_ATTEMPT',
-    '"head_sha": "$RECEIPT_HEAD_SHA"'
+    '"head_sha": "$RECEIPT_HEAD_SHA"',
+    'canonical-truth-validation-output-v1.json',
+    '"g5": "HOLD"'
   ]) {
     requireTrue(bootstrap.includes(token), `CANONICAL_RECEIPT_BOOTSTRAP_TOKEN_MISSING:${token}`);
+  }
+
+  const validate = text.slice(validateIndex, emitIndex);
+  for (const token of [
+    'set -euo pipefail',
+    'canonical-truth-validation-output-v1.tmp.json',
+    'node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"',
+    'mv "$TMP_OUTPUT" "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"',
+    'rm -f "$TMP_OUTPUT"',
+    'exit 1'
+  ]) {
+    requireTrue(validate.includes(token), `CANONICAL_VALIDATION_OUTPUT_CAPTURE_MISSING:${token}`);
   }
 
   const emit = text.slice(emitIndex, uploadIndex);
@@ -49,12 +63,30 @@ function validateWorkflow(text) {
     'CANONICAL_RECEIPT_EMPTY_OUTCOME_FALLBACK_MISSING');
   requireTrue(emit.includes('test -s "$RUNNER_TEMP/canonical-truth-receipt-v1.json"'),
     'CANONICAL_RECEIPT_FALLBACK_FILE_ASSERT_MISSING');
+  requireTrue(emit.includes('test -s "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"'),
+    'CANONICAL_VALIDATION_OUTPUT_FALLBACK_FILE_ASSERT_MISSING');
   requireTrue(emit.includes("failure_class: outcome === 'success' ? null : 'CANONICAL_VALIDATION_NON_SUCCESS'"),
     'CANONICAL_RECEIPT_NON_SUCCESS_CLASSIFICATION_MISSING');
   requireTrue(emit.includes('promotion_eligible: false'),
     'CANONICAL_RECEIPT_PROMOTION_HOLD_MISSING');
   requireTrue(emit.includes('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)'),
     'CANONICAL_RECEIPT_RUN_ATTEMPT_BINDING_MISSING');
+  for (const token of [
+    'validation_output_sha256: validationOutputSha256',
+    'validated_protected_main_sha: validatedProtectedMainSha',
+    'material_defect_registry_sha256: registryDigest',
+    'material_defect_count: registryCount',
+    'material_defect_issue_numbers: registryIssueNumbers',
+    'material_defect_query_cardinality: registryCardinality',
+    "validation?.state !== 'VERIFIED_PASS'",
+    "validation.empirical_promotion !== false",
+    "validation.production !== 'HOLD'",
+    "validation.public !== 'HOLD'",
+    "validation.g5 !== 'HOLD'",
+    "crypto.createHash('sha256').update(validationText).digest('hex')"
+  ]) {
+    requireTrue(emit.includes(token), `CANONICAL_REGISTRY_RECEIPT_BINDING_MISSING:${token}`);
+  }
 
   const upload = text.slice(uploadIndex);
   requireTrue(upload.includes('if: always()'), 'CANONICAL_RECEIPT_UPLOAD_NOT_ALWAYS');
@@ -62,6 +94,10 @@ function validateWorkflow(text) {
   requireTrue(upload.includes('name: kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}'),
     'CANONICAL_RECEIPT_RUN_ID_ARTIFACT_NAME_MISSING');
   requireTrue(upload.includes('overwrite: true'), 'CANONICAL_RECEIPT_RERUN_OVERWRITE_MISSING');
+  requireTrue(upload.includes('${{ runner.temp }}/canonical-truth-receipt-v1.json'),
+    'CANONICAL_RECEIPT_ARTIFACT_PATH_MISSING');
+  requireTrue(upload.includes('${{ runner.temp }}/canonical-truth-validation-output-v1.json'),
+    'CANONICAL_VALIDATION_OUTPUT_ARTIFACT_PATH_MISSING');
 
   return true;
 }
@@ -75,15 +111,19 @@ if (process.argv.includes('--self-test')) {
     source.replace('if [ -z "${VALIDATION_OUTCOME:-}" ]; then', 'if [ -n "${VALIDATION_OUTCOME:-}" ]; then'),
     source.replace('"promotion_eligible": false', '"promotion_eligible": true'),
     source.replace('overwrite: true', 'overwrite: false'),
-    source.replace('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)', 'run_attempt: 1')
+    source.replace('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)', 'run_attempt: 1'),
+    source.replace('node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"', 'node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'),
+    source.replace('material_defect_registry_sha256: registryDigest', 'material_defect_registry_sha256: null'),
+    source.replace('material_defect_issue_numbers: registryIssueNumbers', 'material_defect_issue_numbers: []'),
+    source.replace('${{ runner.temp }}/canonical-truth-validation-output-v1.json', '${{ runner.temp }}/missing-validation-output.json')
   ];
   for (const [index, mutation] of mutations.entries()) {
     let rejected = false;
     try { validateWorkflow(mutation); } catch { rejected = true; }
     requireTrue(rejected, `CANONICAL_RECEIPT_NEGATIVE_MUTATION_NOT_REJECTED:${index}`);
   }
-  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true,negative_mutations_rejected:mutations.length}));
+  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true,registry_bound_artifact:true,negative_mutations_rejected:mutations.length}));
 } else {
   validateWorkflow(source);
-  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true}));
+  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true,registry_bound_artifact:true}));
 }
