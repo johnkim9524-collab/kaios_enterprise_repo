@@ -50,6 +50,7 @@ assert(same(contract.required_outputs, [
 const baseline = contract.expected_current_main_baseline;
 assert(baseline.registered_source_profiles === 16 && baseline.implemented_source_adapters === 16 && baseline.pending_source_adapters === 0, 'CONTRACT_SOURCE_BASELINE');
 assert(baseline.software_implemented_requirements === 39 && baseline.context_only_requirements === 15 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 153, 'CONTRACT_COVERAGE_BASELINE');
+assert(baseline.source_profile_discovery_requirements === 120 && baseline.schema_bound_claim_parser_requirements === 33 && baseline.internal_unbound_execution_queue_count === 0, 'CONTRACT_GAP_CLASS_BASELINE');
 assert(baseline.rights_schema_activation_hold_requirements === 192 && baseline.evidence_admitted === 0 && baseline.market_events_created === 0, 'CONTRACT_EMPIRICAL_BASELINE');
 assert(contract.truth_boundary?.software_lineage_only === true && contract.truth_boundary?.live_source_request_executed === false && contract.truth_boundary?.provider_contact_executed === false, 'CONTRACT_LIVE_BOUNDARY');
 assert(contract.truth_boundary?.rights_pass_created === false && contract.truth_boundary?.source_adapter_activated === false, 'CONTRACT_ACTIVATION_BOUNDARY');
@@ -145,7 +146,7 @@ for (const pin of [
 ]) assert(workflow.includes(pin), `WORKFLOW_ACTION_NOT_IMMUTABLY_PINNED:${pin}`);
 assert(documentation.includes('39 / 192') && documentation.includes('RIGHTS_SCHEMA_ACTIVATION_HOLD'), 'DOCUMENTATION_BASELINE_OR_BOUNDARY');
 assert(documentation.includes('RIGHTS_CLEAR_FOR_PURPOSE') && documentation.includes('adapter-acquisition backlog items'), 'DOCUMENTATION_RIGHTS_FIRST_BOUNDARY');
-assert(documentation.includes('9502274246') && documentation.includes('32674508442') && documentation.includes('81079541e708d5916621fec3758c357f96b7254b'), 'DOCUMENTATION_CURRENT_EVIDENCE_BINDING');
+assert(documentation.includes('latest exact-main producer at execution time') && documentation.includes('KPMO receipt'), 'DOCUMENTATION_DYNAMIC_EVIDENCE_BINDING');
 
 console.log(JSON.stringify({
   id: 'kidults-asi-requirement-adapter-coverage-registry-validation-v1',
