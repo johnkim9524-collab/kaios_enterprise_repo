@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 
 const STALE_MARKER = /fixture-(?:approved|projection|assessment|replay|pair|correlation|what_changed|liquidity|market_scale)/;
@@ -170,6 +171,24 @@ async function selfTest() {
   }, null, 2));
 }
 
+function portalSnapshot() {
+  const workspace = [...document.querySelectorAll('.workspace-grid article')];
+  return {
+    captured_at: performance.now(),
+    state: document.documentElement.dataset.state || null,
+    signal_count: document.querySelectorAll('[data-signal-grid] .signal-item').length,
+    signal_text: document.querySelector('[data-signal-grid]')?.textContent || '',
+    audit_row_count: document.querySelectorAll('[data-audit-safe] > span').length,
+    audit_text: document.querySelector('[data-audit-safe]')?.textContent || '',
+    vertical_count: document.querySelectorAll('[data-vertical-grid] .vertical-tile').length,
+    audit_seal: document.querySelector('[data-audit-seal]')?.textContent || null,
+    workspace_blocked: workspace.length === 4 && workspace.every((node) => node.getAttribute('aria-disabled') === 'true'),
+    kidult_ready: document.querySelector('[data-k100-state]')?.dataset.contentState === 'LIVE_APPROVED',
+    object_title: document.querySelector('[data-object-title]')?.textContent || null,
+    object_count: document.querySelector('[data-object-count]')?.textContent || null,
+  };
+}
+
 function immediatePurgePass(value = {}) {
   return value.state === 'INVALID'
     && value.signal_count === 0
@@ -197,10 +216,126 @@ function settledPurgePass(value = {}) {
     && value.object_count === 'WAITING';
 }
 
+const HOP_BY_HOP_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+]);
+
+function requestHeadersForProxy(headers = {}) {
+  const output = {};
+  for (const [name, rawValue] of Object.entries(headers)) {
+    const lower = name.toLowerCase();
+    if (HOP_BY_HOP_HEADERS.has(lower) || ['host', 'accept-encoding', 'content-length'].includes(lower) || rawValue == null) continue;
+    output[lower] = Array.isArray(rawValue) ? rawValue.join(', ') : String(rawValue);
+  }
+  return output;
+}
+
+async function startBfcacheFixture({upstreamUrl, port, shouldFailProjection, onForcedFailure}) {
+  const upstream = new URL(upstreamUrl);
+  const fixtureOrigin = `http://127.0.0.1:${port}`;
+  const state = {
+    upstream_html_cache_control: null,
+    fixture_html_cache_control: 'private, max-age=60',
+    html_cache_rewrite_count: 0,
+    proxy_requests: 0,
+  };
+  const server = http.createServer(async (request, response) => {
+    state.proxy_requests += 1;
+    try {
+      const requestUrl = new URL(request.url || '/', fixtureOrigin);
+      if (requestUrl.pathname === '/__kidults-bfcache-probe-v1.html') {
+        const body = Buffer.from('<!doctype html><html lang="en"><head><meta charset="utf-8"><title>KIDULTS BFCache Probe</title></head><body><main id="kidults-bfcache-probe-v1">Same-origin history probe</main></body></html>');
+        response.writeHead(200, {
+          'cache-control': state.fixture_html_cache_control,
+          'content-length': String(body.length),
+          'content-security-policy': "default-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+          'content-type': 'text/html; charset=utf-8',
+          'cross-origin-opener-policy': 'same-origin',
+          'referrer-policy': 'no-referrer',
+          'x-content-type-options': 'nosniff',
+          'x-frame-options': 'DENY',
+        });
+        response.end(body);
+        return;
+      }
+
+      if (requestUrl.pathname === '/api/v1/projection' && shouldFailProjection()) {
+        onForcedFailure();
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const body = Buffer.from(JSON.stringify({ok: false, error: 'qa_forced_restored_revalidation_failure'}));
+        response.writeHead(500, {
+          'cache-control': 'no-store',
+          'content-length': String(body.length),
+          'content-type': 'application/json; charset=utf-8',
+          'x-content-type-options': 'nosniff',
+        });
+        response.end(body);
+        return;
+      }
+
+      if (!['GET', 'HEAD'].includes(request.method || 'GET')) {
+        response.writeHead(405, {'content-type': 'text/plain; charset=utf-8'});
+        response.end('Method not allowed');
+        return;
+      }
+
+      const upstreamResponse = await fetch(new URL(`${requestUrl.pathname}${requestUrl.search}`, upstream), {
+        method: request.method,
+        headers: requestHeadersForProxy(request.headers),
+        redirect: 'manual',
+      });
+      const bytes = Buffer.from(await upstreamResponse.arrayBuffer());
+      const responseHeaders = {};
+      for (const [name, value] of upstreamResponse.headers.entries()) {
+        const lower = name.toLowerCase();
+        if (HOP_BY_HOP_HEADERS.has(lower) || ['content-length', 'content-encoding'].includes(lower)) continue;
+        responseHeaders[lower] = value;
+      }
+      if ((responseHeaders['content-type'] || '').toLowerCase().startsWith('text/html')) {
+        state.upstream_html_cache_control ??= responseHeaders['cache-control'] || null;
+        responseHeaders['cache-control'] = state.fixture_html_cache_control;
+        state.html_cache_rewrite_count += 1;
+      }
+      responseHeaders['content-length'] = String(bytes.length);
+      response.writeHead(upstreamResponse.status, responseHeaders);
+      if (request.method === 'HEAD') response.end();
+      else response.end(bytes);
+    } catch (error) {
+      const body = Buffer.from(JSON.stringify({ok: false, error: 'qa_bfcache_fixture_proxy_failure'}));
+      if (!response.headersSent) {
+        response.writeHead(502, {
+          'cache-control': 'no-store',
+          'content-length': String(body.length),
+          'content-type': 'application/json; charset=utf-8',
+        });
+      }
+      response.end(body);
+    }
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', resolve);
+  });
+  return {origin: fixtureOrigin, server, state};
+}
+
+async function closeServer(server) {
+  if (!server?.listening) return;
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+}
+
 async function runBrowser() {
   const {webkit} = await import('playwright');
   const output = path.resolve(process.env.KIDULTS_SHARED_PORTAL_LIFECYCLE_REPORT || '/tmp/kidults-shared-portal-lifecycle-integrity-v1.json');
-  const baseUrl = process.env.KIDULTS_SHARED_PORTAL_BASE_URL || 'http://127.0.0.1:4174';
+  const upstreamUrl = process.env.KIDULTS_SHARED_PORTAL_BASE_URL || 'http://127.0.0.1:4174';
+  const proxyPort = Number(process.env.KIDULTS_SHARED_PORTAL_BFCACHE_PORT || 4176);
   const runtimeErrors = [];
   const responseErrors = [];
   const harnessDiagnostics = [];
@@ -210,14 +345,22 @@ async function runBrowser() {
   let browser;
   let context;
   let page;
+  let fixture;
   let firstDocument;
   let secondDocument;
   let restoredDocument;
   let immediatePurge;
   let settledPurge;
   let evidence;
+  let firstResponseHeaders;
 
   try {
+    fixture = await startBfcacheFixture({
+      upstreamUrl,
+      port: proxyPort,
+      shouldFailProjection: () => failAfterRestore,
+      onForcedFailure: () => { forcedFailureResponseCount += 1; },
+    });
     browser = await webkit.launch({headless: true});
     context = await browser.newContext({viewport: {width: 390, height: 844}, reducedMotion: 'reduce'});
     await context.addInitScript(() => {
@@ -228,22 +371,6 @@ async function runBrowser() {
       });
       addEventListener('pageshow', (event) => {
         globalThis.__kidultsQaLifecycle.push({type: 'pageshow', persisted: event.persisted, at: performance.now()});
-      });
-    });
-
-    await context.route('**/__kidults-bfcache-probe-v1.html', (route) => route.fulfill({
-      status: 200,
-      contentType: 'text/html; charset=utf-8',
-      body: '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>KIDULTS BFCache Probe</title></head><body><main id="kidults-bfcache-probe-v1">Same-origin history probe</main></body></html>',
-    }));
-    await context.route('**/api/v1/projection', async (route) => {
-      if (!failAfterRestore) return route.continue();
-      forcedFailureResponseCount += 1;
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      return route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({ok: false, error: 'qa_forced_restored_revalidation_failure'}),
       });
     });
 
@@ -262,13 +389,18 @@ async function runBrowser() {
       if (!expected) runtimeErrors.push(`CONSOLE:${message.text()}`);
     });
 
-    const firstResponse = await page.goto(`${baseUrl}/portal-r001/index.html`, {waitUntil: 'domcontentloaded', timeout: 45_000});
+    const firstUrl = `${fixture.origin}/portal-r001/index.html`;
+    const firstResponse = await page.goto(firstUrl, {waitUntil: 'domcontentloaded', timeout: 45_000});
     if (!firstResponse?.ok()) functionalFailures.push(`FIRST_DOCUMENT_HTTP_${firstResponse?.status()}`);
+    firstResponseHeaders = await firstResponse?.allHeaders();
+    if (firstResponseHeaders?.['cache-control'] !== fixture.state.fixture_html_cache_control) {
+      functionalFailures.push(`BFCACHE_FIXTURE_CACHE_HEADER_${firstResponseHeaders?.['cache-control'] || 'MISSING'}`);
+    }
     await page.waitForFunction(() => document.documentElement.dataset.state === 'LIVE_APPROVED', null, {timeout: 10_000});
 
-    // Register after the Portal runtime's own pageshow listener. On a genuine
-    // BFCache restore, the Portal synchronously purges stale values first; this
-    // listener then stores the same-event DOM state before the delayed 500 can settle.
+    // This listener is registered after the Portal runtime's own pageshow handler.
+    // A real BFCache restore first performs the Portal's synchronous stale-value
+    // purge, then this listener freezes the same-event DOM before the delayed 500.
     await page.evaluate(() => {
       globalThis.__kidultsQaCapturePortalState = () => {
         const workspace = [...document.querySelectorAll('.workspace-grid article')];
@@ -289,7 +421,7 @@ async function runBrowser() {
       };
       globalThis.__kidultsQaImmediateRestoredPurge = null;
       addEventListener('pageshow', (event) => {
-        if (event.persisted) {
+        if (event.persisted && typeof globalThis.__kidultsQaCapturePortalState === 'function') {
           globalThis.__kidultsQaImmediateRestoredPurge = globalThis.__kidultsQaCapturePortalState();
         }
       });
@@ -307,7 +439,7 @@ async function runBrowser() {
       functionalFailures.push('LIVE_PRECONDITION_MISSING');
     }
 
-    const probeUrl = `${baseUrl}/__kidults-bfcache-probe-v1.html`;
+    const probeUrl = `${fixture.origin}/__kidults-bfcache-probe-v1.html`;
     const secondResponse = await page.goto(probeUrl, {waitUntil: 'load', timeout: 45_000});
     if (!secondResponse?.ok()) functionalFailures.push(`SECOND_DOCUMENT_HTTP_${secondResponse?.status()}`);
     await page.waitForSelector('#kidults-bfcache-probe-v1', {state: 'attached', timeout: 10_000});
@@ -321,20 +453,40 @@ async function runBrowser() {
     failAfterRestore = true;
     const backResponse = await page.goBack({waitUntil: 'commit', timeout: 45_000});
     await page.waitForURL((url) => url.pathname === '/portal-r001/index.html', {timeout: 10_000});
-    await page.waitForFunction(() => globalThis.__kidultsQaImmediateRestoredPurge !== null, null, {timeout: 10_000});
-    immediatePurge = await page.evaluate(() => structuredClone(globalThis.__kidultsQaImmediateRestoredPurge));
+    await page.waitForFunction((firstId) => {
+      const id = globalThis.__kidultsQaDocumentId;
+      const lifecycle = globalThis.__kidultsQaLifecycle || [];
+      return typeof id === 'string' && (id !== firstId || lifecycle.some((event) => event.type === 'pageshow' && event.persisted === true));
+    }, firstDocument.id, {timeout: 10_000});
 
-    await page.waitForFunction(() => (
-      document.documentElement.dataset.state === 'INVALID'
-      && document.querySelectorAll('[data-vertical-grid] .vertical-tile').length === 8
-    ), null, {timeout: 15_000});
-    settledPurge = await page.evaluate(() => globalThis.__kidultsQaCapturePortalState());
     restoredDocument = await page.evaluate(() => ({
       id: globalThis.__kidultsQaDocumentId,
       url: location.href,
       lifecycle: (globalThis.__kidultsQaLifecycle || []).map((event) => ({...event})),
       performance_navigation_type: performance.getEntriesByType('navigation')[0]?.type || null,
+      capture_hook_present: typeof globalThis.__kidultsQaCapturePortalState === 'function',
     }));
+    const restoredByBrowser = firstDocument.id === restoredDocument.id
+      && restoredDocument.lifecycle.some((event) => event.type === 'pagehide' && event.persisted === true)
+      && restoredDocument.lifecycle.some((event) => event.type === 'pageshow' && event.persisted === true)
+      && restoredDocument.capture_hook_present;
+
+    if (restoredByBrowser) {
+      await page.waitForFunction(() => (
+        typeof globalThis.__kidultsQaCapturePortalState === 'function'
+        && globalThis.__kidultsQaImmediateRestoredPurge !== null
+        && typeof globalThis.__kidultsQaImmediateRestoredPurge === 'object'
+      ), null, {timeout: 10_000});
+      immediatePurge = await page.evaluate(() => structuredClone(globalThis.__kidultsQaImmediateRestoredPurge));
+    } else {
+      functionalFailures.push('BFCACHE_RESTORATION_NOT_OBSERVED');
+    }
+
+    await page.waitForFunction(() => (
+      document.documentElement.dataset.state === 'INVALID'
+      && document.querySelectorAll('[data-vertical-grid] .vertical-tile').length === 8
+    ), null, {timeout: 15_000});
+    settledPurge = await page.evaluate(portalSnapshot);
 
     evidence = {
       navigation_method: 'page.goBack',
@@ -363,6 +515,7 @@ async function runBrowser() {
       contexts: context ? [context] : [],
       browsers: browser ? [browser] : [],
     });
+    await closeServer(fixture?.server);
   }
 
   const diagnostics = freezeDiagnostics({runtimeErrors, responseErrors, harnessDiagnostics});
@@ -381,6 +534,8 @@ async function runBrowser() {
       immediate_purge: immediatePurge,
       settled_purge: settledPurge,
       evidence,
+      first_response_headers: firstResponseHeaders,
+      bfcache_fixture: fixture?.state || null,
     },
     diagnostics,
     synthetic_lifecycle_control: {
@@ -394,6 +549,8 @@ async function runBrowser() {
       automated_webkit: true,
       physical_iphone: false,
       human_usability: false,
+      local_cache_header_override: 'CI_BFCACHE_FIXTURE_ONLY',
+      external_runtime_mutation: false,
       empirical_gate_effect: 'NONE',
       approved_projection: 'FIXTURE_ONLY',
       public_release: 'HOLD',
