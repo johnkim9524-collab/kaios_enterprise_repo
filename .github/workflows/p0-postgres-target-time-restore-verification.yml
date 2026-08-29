@@ -79,7 +79,7 @@ jobs:
               "request_metadata_is_restore_proof": False,
               "standing_boolean_consulted_by_executable_job": False,
               "standing_boolean_authority_accepted": False,
-              "credentialed_job_condition": "false",
+              "credentialed_job_condition": "false_and_legacy_variable_inert_for_registry_contract",
               "provider_environment_entered": False,
               "provider_secrets_resolved": False,
               "ssh_executed": False,
@@ -113,8 +113,9 @@ jobs:
     # Permanent fail-closed containment for #1481. Request metadata and the
     # legacy standing boolean cannot authorize Environment or secret resolution.
     # This registered job remains unreachable until a fresh independent one-shot
-    # authority is atomically consumed before this job can start.
-    if: ${{ false }}
+    # authority is atomically consumed before this job can start. The variable
+    # marker is retained only for registry continuity; literal false wins.
+    if: ${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
     timeout-minutes: 5
