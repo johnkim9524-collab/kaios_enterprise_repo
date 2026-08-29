@@ -4,19 +4,19 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Approved mutation operation
+        description: Requested Cloudflare STAGING emergency operation (execution disabled pending #1576)
         required: true
         default: contain_auto_deployments
         type: choice
         options:
           - contain_auto_deployments
           - delete_preview_deployments
-      authorization:
-        description: Exact operation-specific confirmation phrase
+      external_authorization_issue:
+        description: Reserved external authorization issue number; not executable until #1576 closes
         required: true
         type: string
       reason:
-        description: Auditable control reason
+        description: Auditable request reason; this input is not authorization
         required: true
         type: string
 
@@ -29,10 +29,14 @@ concurrency:
 
 jobs:
   control:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    # P0 fail-closed containment for #1576. A typed phrase, workflow input,
+    # repository JSON, commit message, or actor identity cannot authorize a
+    # provider mutation. This lane remains registered only until the external
+    # source-bound, atomically consumed authorization gate is implemented.
+    if: ${{ false }}
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - name: Verify live main before provider credential resolution
         shell: bash
@@ -53,58 +57,18 @@ jobs:
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Validate exact emergency authorization
-        env:
-          OPERATION: ${{ inputs.operation }}
-          AUTHORIZATION: ${{ inputs.authorization }}
-          CONTROL_REASON: ${{ inputs.reason }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
-          test -n "$CONTROL_REASON"
-          case "$OPERATION" in
-            contain_auto_deployments)
-              test "$AUTHORIZATION" = "CONTAIN_KIDULTS_WORKSPACE_STAGING"
-              ;;
-            delete_preview_deployments)
-              test "$AUTHORIZATION" = "DELETE_PREVIEW_ONLY_KIDULTS_WORKSPACE_STAGING"
-              ;;
-            *)
-              exit 64
-              ;;
-          esac
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
-          persist-credentials: false
-
       - name: Execute approved Cloudflare Pages emergency control
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
-          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
-          OPERATION: ${{ inputs.operation }}
+          REQUESTED_OPERATION: ${{ inputs.operation }}
+          EXTERNAL_AUTHORIZATION_ISSUE: ${{ inputs.external_authorization_issue }}
           CONTROL_REASON: ${{ inputs.reason }}
-          RECEIPT_DIR: artifacts/cloudflare-pages-emergency-control
         run: |
           set -euo pipefail
-          case "$OPERATION" in
-            contain_auto_deployments)
-              bash scripts/ops/cloudflare-pages-auto-deployment-containment.sh --execute
-              ;;
-            delete_preview_deployments)
-              bash scripts/ops/cloudflare-pages-preview-cleanup.sh --delete-preview
-              ;;
-          esac
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
-        with:
-          name: cloudflare-pages-emergency-control-${{ inputs.operation }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/cloudflare-pages-emergency-control
-          if-no-files-found: error
-          retention-days: 30
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "Cloudflare Emergency Control is fail-closed under issue #1576."
+          echo "Request inputs are audit metadata only and cannot authorize mutation."
+          exit 78
