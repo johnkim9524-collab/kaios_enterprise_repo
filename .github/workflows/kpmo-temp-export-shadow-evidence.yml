@@ -1,4 +1,4 @@
-name: KPMO Temporary Export SHADOW Evidence
+name: KPMO Temporary Refresh SHADOW Evidence
 
 on:
   push:
@@ -8,43 +8,43 @@ on:
       - .github/workflows/kpmo-temp-export-shadow-evidence.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  export:
+  refresh:
     if: github.actor == github.repository_owner
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
+          ref: kpmo/cloudflare-staging-governance-v1
           fetch-depth: 1
-          persist-credentials: false
+          persist-credentials: true
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Build and validate exact deterministic SHADOW evidence
+      - name: Build, validate and commit exact deterministic SHADOW evidence
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_REF_NAME" = "kpmo/cloudflare-staging-governance-v1"
           npm ci --ignore-scripts --no-audit --no-fund
           npm ci --ignore-scripts --no-audit --no-fund --prefix services/kidults-autonomous-intelligence
-          mkdir -p /tmp/kpmo-shadow-evidence
+          OUT="/tmp/asi-shadow-operating-evidence-v1.json"
           node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
-            --output /tmp/kpmo-shadow-evidence/asi-shadow-operating-evidence-v1.json --write
+            --output "$OUT" --write
           node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs \
-            --input /tmp/kpmo-shadow-evidence/asi-shadow-operating-evidence-v1.json
-          sha256sum /tmp/kpmo-shadow-evidence/asi-shadow-operating-evidence-v1.json \
-            > /tmp/kpmo-shadow-evidence/SHA256SUMS
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: kpmo-shadow-evidence-export-${{ github.sha }}
-          path: /tmp/kpmo-shadow-evidence
-          if-no-files-found: error
-          retention-days: 1
+            --input "$OUT"
+          cp "$OUT" artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs \
+            --input artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          git config user.name 'johnkim9524-collab'
+          git config user.email 'john.kim9524@gmail.com'
+          git add artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          test -n "$(git status --porcelain)"
+          git commit -m '[CF-Pages-Skip] fix(asi): refresh deterministic SHADOW evidence'
+          git push origin "HEAD:$GITHUB_REF_NAME"
