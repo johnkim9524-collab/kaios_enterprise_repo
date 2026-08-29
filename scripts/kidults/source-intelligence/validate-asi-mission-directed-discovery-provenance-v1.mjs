@@ -9,7 +9,11 @@ if (!source.includes("group: kidults-asi-mission-directed-discovery-v1-${{ githu
 }
 if (source.includes('/actions/artifacts?per_page=')) fail('MISSION_DIRECTED_REPOSITORY_GLOBAL_ARTIFACT_LOOKUP');
 if (!source.includes('/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100')) fail('MISSION_CONSUMPTION_RUN_SCOPED_ARTIFACTS');
-if (!source.includes('/actions/runs/${PREVIOUS_RUN_ID}/artifacts?per_page=100')) fail('MISSION_CURSOR_RUN_SCOPED_ARTIFACTS');
+if (!source.includes('/actions/runs/${CANDIDATE_RUN_ID}/artifacts?per_page=100')) fail('MISSION_CURSOR_RUN_SCOPED_ARTIFACTS');
+if (!source.includes('for CANDIDATE_RUN_ID in $CANDIDATE_RUN_IDS; do')) fail('MISSION_CURSOR_ARTIFACT_AWARE_SELECTION');
+if (!source.includes('if [ "$COUNT" = 0 ]; then')) fail('MISSION_CURSOR_STATIC_SUCCESS_SKIP');
+if (!source.includes('DUPLICATE_CURSOR_ARTIFACTS:${CANDIDATE_RUN_ID}:${COUNT}')) fail('MISSION_CURSOR_DUPLICATE_REJECTION');
+if (!source.includes('PREVIOUS_RUN_ID="$CANDIDATE_RUN_ID"')) fail('MISSION_CURSOR_SELECTED_RUN_BINDING');
 if (!source.includes(".path==\".github/workflows/kidults-asi-mission-consumption-v1.yml\"")) fail('MISSION_CONSUMPTION_WORKFLOW_IDENTITY');
 if (!source.includes('test "$ARTIFACT_COUNT" = 1')) fail('MISSION_CONSUMPTION_EXACT_CARDINALITY');
 if (!source.includes('test "$UPSTREAM_HEAD_SHA" = "$TARGET_SHA"')) fail('MISSION_CONSUMPTION_EXACT_SHA');

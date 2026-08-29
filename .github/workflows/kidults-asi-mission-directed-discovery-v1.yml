@@ -192,18 +192,28 @@ jobs:
           RUNS=$(gh api --method GET -H 'Accept: application/vnd.github+json' \
             -f branch=main -f status=success -f per_page=100 \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-mission-directed-discovery-v1.yml/runs")
-          PREVIOUS_RUN_ID=$(jq -r --arg sha "$CURRENT_SHA" --argjson current "$GITHUB_RUN_ID" \
-            '[.workflow_runs[] | select(.id != $current and .head_sha==$sha and .head_branch=="main" and .conclusion=="success" and .path==".github/workflows/kidults-asi-mission-directed-discovery-v1.yml")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
+          CANDIDATE_RUN_IDS=$(jq -r --arg sha "$CURRENT_SHA" --argjson current "$GITHUB_RUN_ID" \
+            '[.workflow_runs[] | select(.id != $current and .head_sha==$sha and .head_branch=="main" and .conclusion=="success" and .path==".github/workflows/kidults-asi-mission-directed-discovery-v1.yml")] | sort_by(.updated_at) | reverse | .[].id' \
             <<<"$RUNS")
+          PREVIOUS_RUN_ID=''
           PREVIOUS_ID=''
           PREVIOUS_STATE=/tmp/previous-mission-directed-discovery/no-previous-state.json
-          if [ -n "$PREVIOUS_RUN_ID" ]; then
-            ARTIFACTS=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREVIOUS_RUN_ID}/artifacts?per_page=100")
+          for CANDIDATE_RUN_ID in $CANDIDATE_RUN_IDS; do
+            ARTIFACTS=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${CANDIDATE_RUN_ID}/artifacts?per_page=100")
             COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false)] | length' <<<"$ARTIFACTS")
-            test "$COUNT" = 1
+            if [ "$COUNT" -gt 1 ]; then
+              echo "DUPLICATE_CURSOR_ARTIFACTS:${CANDIDATE_RUN_ID}:${COUNT}" >&2
+              exit 1
+            fi
+            if [ "$COUNT" = 0 ]; then
+              continue
+            fi
+            PREVIOUS_RUN_ID="$CANDIDATE_RUN_ID"
             PREVIOUS_ID=$(jq -r '[.artifacts[] | select(.name=="kidults-asi-mission-directed-discovery-v1" and .expired==false)][0].id' <<<"$ARTIFACTS")
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREVIOUS_ID}/zip" \
-              > /tmp/previous-mission-directed-discovery.zip
+            break
+          done
+          if [ -n "$PREVIOUS_RUN_ID" ]; then
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREVIOUS_ID}/zip" > /tmp/previous-mission-directed-discovery.zip
             unzip -q -o /tmp/previous-mission-directed-discovery.zip -d /tmp/previous-mission-directed-discovery
             FOUND=$(find /tmp/previous-mission-directed-discovery -type f -name mission-directed-discovery-cycle-state-v1.json -print -quit || true)
             if [ -n "$FOUND" ]; then PREVIOUS_STATE="$FOUND"; fi
