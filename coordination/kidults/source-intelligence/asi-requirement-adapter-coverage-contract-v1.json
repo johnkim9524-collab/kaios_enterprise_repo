@@ -96,6 +96,9 @@
     "context_only_requirements": 15,
     "unmapped_requirements": 138,
     "software_gap_requirements": 153,
+    "source_profile_discovery_requirements": 120,
+    "schema_bound_claim_parser_requirements": 33,
+    "internal_unbound_execution_queue_count": 0,
     "sold_software_implemented_requirements": 24,
     "liquidity_software_implemented_requirements": 15,
     "fully_software_covered_families": 1,
@@ -118,6 +121,8 @@
   "hard_boundaries": [
     "NO_UNMERGED_V2_IDENTIFIER_OR_SEMANTIC_MAPPING_SYNTHESIS",
     "SOURCE_PROFILE_COUNT_IS_NOT_REQUIREMENT_COVERAGE",
+    "SOURCE_PROFILE_ABSENCE_IS_NOT_AN_IMPLEMENTATION_DEFECT",
+    "SCHEMA_BOUND_PARSER_MUST_NOT_BE_INVENTED_WITHOUT_RIGHTS_AND_LIVE_SCHEMA",
     "REGISTERED_CLAIM_IS_NOT_IMPLEMENTED_CLAIM",
     "CONTEXT_ONLY_IS_NOT_PARSER_COVERAGE",
     "SOFTWARE_IMPLEMENTED_IS_NOT_RIGHTS_OR_LIVE_SCHEMA_PASS",

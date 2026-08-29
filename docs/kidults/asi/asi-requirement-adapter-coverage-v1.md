@@ -18,14 +18,7 @@ A new `coverage_record_id` is derived from that current grain and the required a
 
 The runner restores exactly one non-expired artifact from a successful `main` run of `KIDULTS ASI Autonomous Resolution Layer v1`. It binds the workflow run, artifact, producer SHA, consumer SHA, manifest digest, queue digest, and current static-input digests.
 
-Current implementation baseline, last verified at `2026-08-23T23:44:42Z`:
-
-- protected-main source SHA: `81079541e708d5916621fec3758c357f96b7254b`;
-- workflow run: `32674508442`;
-- artifact: `9502274246` / `kidults-asi-autonomous-resolution-layer-v1`;
-- artifact expiry: `2026-11-21T23:44:31Z`;
-- replacement queue digest: `sha256:ad42655aa9290ec9fd29dcc2e18cfae52b3a0e8c5cf49ed92e2d6abdc9347dd1`;
-- resolution manifest digest: `sha256:745a3554ca3c287bd42b6898c1ca0de8f0575aa4576ad3c8e949394f71f48263`.
+The runner binds the latest exact-main producer at execution time. Run IDs, artifact IDs, SHAs, expiry, and digests are emitted in the artifact binding and KPMO receipt rather than copied into this policy document as a stale baseline.
 
 If the exact successful main artifact is unavailable, expired, ambiguous, from another workflow or branch, not ancestral to the consumer, or its digests no longer match current authoritative inputs, the runner fails closed. It never substitutes a fixture or a non-main artifact.
 
@@ -59,15 +52,19 @@ The 16 normalized source claim-ceiling records and the 192 mission requirements 
 | Domain × evidence-class families | 16 |
 | Registered source profiles | 16 |
 | Normalized source claim-ceiling records | 16 |
-| Source-specific parser implementations | **1** |
-| Generated templates pending source implementation | **15** |
+| Implemented source adapters | **16 / 16** |
+| Pending registered-source adapter implementations | **0** |
 | `SOFTWARE_IMPLEMENTED` | **39 / 192** |
 | `CONTEXT_ONLY` | **15 / 192** |
 | `UNMAPPED` | 138 / 192 |
-| Total software gap | **153 / 192** |
+| Source-profile discovery required | **120 / 192** |
+| Schema-bound claim parser unavailable | **33 / 192** |
+| Unresolved internal execution queue | **0** |
 | `RIGHTS_SCHEMA_ACTIVATION_HOLD` | 192 / 192 |
 
-The 39 software matches comprise 24 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, five are partial, and ten have zero matching claim-parser coverage.
+The 39 software matches comprise 24 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, five are partial, and ten have zero matching claim-parser coverage. The remaining 153 requirements are not 153 missing code modules: 120 have no registered source profile for the scope/claim, while 33 have a registered profile but cannot receive a truthful claim parser until source-specific rights, a live schema snapshot, and claim semantics are verified.
+
+The upstream Autonomous Resolution Layer has already terminalized all 672 original preflight actions and reduced remaining Gate 1 HOLD decisions to zero. Rejected discovery-metadata candidates are not carried forward as open preflight work.
 
 The separate acquisition gate currently has 0 `RIGHTS_CLEAR_FOR_PURPOSE` profiles, 16 rights-preflight holds, 0 selected replacement profiles, and 0 adapter-acquisition backlog items. This does not erase the software claim ceiling; it prevents unapproved collection from being scheduled.
 
@@ -78,7 +75,7 @@ The runtime profile `verified_assignment_count` values sum to 156. That value is
 - `requirement-adapter-coverage-ledger-v1.json` — all 192 current mission-grain records;
 - `requirement-adapter-family-coverage-v1.json` — the 16 domain × evidence-class reporting families;
 - `source-adapter-claim-ceiling-registry-v1.json` — the normalized 16-source registered/implemented/template/context claim ceilings (software capability records, not rights clearance or live activation);
-- `requirement-adapter-gap-queue-v1.json` — all 153 software gaps;
+- `requirement-adapter-gap-queue-v1.json` — 120 source-profile discovery requirements and 33 schema-bound claim-parser requirements;
 - `requirement-adapter-coverage-manifest-v1.json` — exact producer/consumer SHA, upstream artifact, input and output digest lineage.
 
 Generated data remains a 90-day workflow artifact. It is not committed as empirical truth.
@@ -115,7 +112,7 @@ It executes no live target-source request, contacts no provider, creates no coll
 
 ### Platform effects
 
-- `autonomous_effect`: positive — the exact main artifact is automatically replayed into a fail-closed gap queue.
+- `autonomous_effect`: positive — all 672 preflight actions are terminal and remaining requirements are routed to source discovery or schema-bound activation without manual triage.
 - `global_effect`: positive — all 32 scopes × 3 regions × 2 evidence classes remain explicit, while software coverage is not called global empirical coverage.
 - `irreplaceable_value_effect`: positive — KIDULTS owns the requirement-to-source claim-ceiling lineage and switching gaps.
 - `transparency_effect`: positive — registered, implemented, context-only, empirical, and release states remain separate and digest-bound.
