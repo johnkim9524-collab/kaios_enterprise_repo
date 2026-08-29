@@ -1,0 +1,57 @@
+{
+  "id": "kidults-cloudflare-staging-deployment-policy-v1",
+  "version": "1.0.0",
+  "owner": "KPMO",
+  "issue": 1234,
+  "project": "kidults-workspace-staging",
+  "project_disposition": "RETAIN_AS_CANONICAL_SHARED_PORTAL_STAGING",
+  "canonical_portal_architecture": "SHARED_RESPONSIVE_SINGLE_SURFACE",
+  "target_settings": {
+    "legacy_deployments_enabled": false,
+    "production_deployments_enabled": false,
+    "preview_deployment_setting": "none",
+    "preview_branch_includes": [],
+    "preview_branch_excludes": []
+  },
+  "deployment_policy": {
+    "git_push_may_deploy": false,
+    "main_merge_may_deploy": false,
+    "arbitrary_branch_preview_may_deploy": false,
+    "approved_exact_sha_deployment_only": true,
+    "deployment_authorization_must_be_distinct_from_merge_authorization": true,
+    "deployment_receipt_required": [
+      "source_sha",
+      "workflow_run_id",
+      "deployment_id",
+      "deployment_url",
+      "deployed_at",
+      "authorization_receipt"
+    ]
+  },
+  "credential_policy": {
+    "read_monitor_credential": "READ_ONLY",
+    "write_credential": "TEMPORARY_MINIMUM_SCOPE_PAGES_EDIT",
+    "write_credential_may_be_persistent": false,
+    "write_credential_removal_after_verified_readback": true
+  },
+  "monitoring_policy": {
+    "hourly_read_only_settings_readback": true,
+    "recent_deployment_inventory": true,
+    "settings_drift_is_failure": true,
+    "automatic_mutation_by_monitor": false
+  },
+  "cleanup_policy": {
+    "workflow_trigger": "WORKFLOW_DISPATCH_ONLY",
+    "default_mode": "READBACK",
+    "automatic_deletion": false,
+    "preview_only_when_explicitly_authorized": true,
+    "production_history_deletion": false
+  },
+  "current_state": "CONTROL_CODE_PREPARED_EXTERNAL_SETTINGS_AND_CREDENTIAL_READBACK_PENDING",
+  "truth_boundary": {
+    "empirical_gate_effect": "NONE",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
