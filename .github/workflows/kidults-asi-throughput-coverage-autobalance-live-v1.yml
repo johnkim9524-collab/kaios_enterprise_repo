@@ -56,26 +56,50 @@ jobs:
             BINDING_MODE="EXACT_CURRENT_MAIN"
           fi
 
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs" \
-            > /tmp/hourly-runs.json
+          AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10
+          AUTOBALANCE_PRODUCER_WAIT_SECONDS=3
+          HOURLY_RUN_ID=""
+          HOURLY_SOURCE_SHA=""
+          HOURLY_RUN_STATE="NONE"
+          for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS"); do
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f branch=main -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs" \
+              > /tmp/hourly-runs.json
 
-          HOURLY_RUN_ID=$(jq -r --arg sha "$EXPECTED_PRODUCER_SHA" \
-            '[.workflow_runs[]
-              | select(
-                  .name=="KIDULTS ASI Global Any-Site Hourly Pooling v1"
-                  and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"
-                  and .head_branch=="main"
-                  and .head_sha==$sha
-                  and .status=="completed"
-                  and .conclusion=="success"
-                )
-            ][0].id // empty' /tmp/hourly-runs.json)
+            LATEST_EXACT_RUN=$(jq -c --arg sha "$EXPECTED_PRODUCER_SHA" \
+              '[.workflow_runs[]
+                | select(
+                    .name=="KIDULTS ASI Global Any-Site Hourly Pooling v1"
+                    and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"
+                    and .head_branch=="main"
+                    and .head_sha==$sha
+                  )
+              ] | sort_by(.created_at) | reverse | .[0] // empty' /tmp/hourly-runs.json)
+
+            if [ -n "$LATEST_EXACT_RUN" ]; then
+              HOURLY_RUN_ID=$(jq -r '.id // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_SOURCE_SHA=$(jq -r '.head_sha // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_RUN_STATUS=$(jq -r '.status // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_RUN_CONCLUSION=$(jq -r '.conclusion // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_RUN_STATE="${HOURLY_RUN_STATUS}:${HOURLY_RUN_CONCLUSION:-NONE}"
+              test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
+              if [ "$HOURLY_RUN_STATUS" = "completed" ] && [ "$HOURLY_RUN_CONCLUSION" = "success" ]; then
+                break
+              fi
+              if [ "$HOURLY_RUN_STATUS" = "completed" ]; then
+                echo "::error title=Autobalance producer failed::UPSTREAM_EXACT_GENERATION_TERMINAL_NON_SUCCESS:${HOURLY_RUN_ID}:${HOURLY_RUN_CONCLUSION}" >&2
+                exit 1
+              fi
+            fi
+
+            if [ "$ATTEMPT" -eq "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS" ]; then
+              echo "::error title=Autobalance producer not terminal::UPSTREAM_EXACT_GENERATION_NOT_TERMINAL:${EXPECTED_PRODUCER_SHA}:${HOURLY_RUN_STATE}" >&2
+              exit 1
+            fi
+            sleep "$AUTOBALANCE_PRODUCER_WAIT_SECONDS"
+          done
           test -n "$HOURLY_RUN_ID"
-
-          HOURLY_SOURCE_SHA=$(jq -r --argjson run "$HOURLY_RUN_ID" \
-            '[.workflow_runs[] | select(.id==$run)][0].head_sha // empty' /tmp/hourly-runs.json)
           test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
 
           gh api -H 'Accept: application/vnd.github+json' \
