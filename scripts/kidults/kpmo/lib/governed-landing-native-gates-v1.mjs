@@ -133,6 +133,185 @@ export function evaluateRequiredCheckRuns(checkRuns, requiredContexts, {expected
   return results;
 }
 
+export async function attachWorkflowRunProvenance(checkRuns, {
+  loadWorkflowRun,
+  loadWorkflowJob,
+  expectedRepository,
+} = {}) {
+  if (!Array.isArray(checkRuns) || typeof loadWorkflowRun !== 'function'
+    || typeof loadWorkflowJob !== 'function' || !expectedRepository) fail('CHECK_RUN_PROVENANCE_INPUT_INVALID');
+  const runCache = new Map();
+  const jobCache = new Map();
+  return Promise.all(checkRuns.map(async checkRun => {
+    const match = String(checkRun?.details_url ?? '').match(/^https:\/\/github[.]com\/([^/]+\/[^/]+)\/actions\/runs\/(\d+)\/job\/(\d+)$/);
+    if (!match) fail('CHECK_RUN_ACTIONS_DETAILS_URL_INVALID', String(checkRun?.id ?? 'missing'));
+    if (match[1] !== expectedRepository) fail('CHECK_RUN_DETAILS_REPOSITORY_MISMATCH', String(checkRun?.id ?? 'missing'));
+    const runId = Number(match[2]);
+    const jobId = Number(match[3]);
+    if (jobId !== Number(checkRun?.id)) fail('CHECK_RUN_DETAILS_JOB_ID_MISMATCH', String(checkRun?.id ?? 'missing'));
+    if (!runCache.has(runId)) runCache.set(runId, Promise.resolve(loadWorkflowRun(runId)));
+    if (!jobCache.has(jobId)) jobCache.set(jobId, Promise.resolve(loadWorkflowJob(jobId)));
+    const [run, job] = await Promise.all([runCache.get(runId), jobCache.get(jobId)]);
+    if (Number(run?.id) !== runId) fail('CHECK_RUN_WORKFLOW_RUN_ID_MISMATCH', String(checkRun?.id ?? 'missing'));
+    if (!Number.isInteger(Number(checkRun?.check_suite?.id))
+      || Number(checkRun.check_suite.id) !== Number(run?.check_suite_id)) {
+      fail('CHECK_RUN_CHECK_SUITE_BINDING_MISMATCH', String(checkRun?.id ?? 'missing'));
+    }
+    const expectedCheckRunUrl = `https://api.github.com/repos/${expectedRepository}/check-runs/${checkRun.id}`;
+    if (Number(job?.id) !== jobId || Number(job?.run_id) !== runId
+      || job?.check_run_url !== expectedCheckRunUrl || job?.name !== checkRun?.name
+      || job?.status !== checkRun?.status || job?.conclusion !== checkRun?.conclusion) {
+      fail('CHECK_RUN_WORKFLOW_JOB_BINDING_MISMATCH', String(checkRun?.id ?? 'missing'));
+    }
+    return {
+      ...checkRun,
+      workflow_provenance: {
+        run_id: runId,
+        job_id: jobId,
+        check_suite_id: Number(run?.check_suite_id),
+        workflow_id: Number(run?.workflow_id),
+        workflow_path: String(run?.path ?? '').split('@')[0],
+        workflow_name: run?.name,
+        event: run?.event,
+        run_head_sha: run?.head_sha,
+        pull_request_heads: (run?.pull_requests || []).map(pr => ({
+          number: Number(pr?.number),
+          head_sha: pr?.head?.sha,
+          head_repository: pr?.head?.repo?.full_name ?? pr?.head?.repo?.name,
+        })),
+        repository: run?.repository?.full_name,
+        run_attempt: Number(run?.run_attempt),
+        job_head_sha: job?.head_sha,
+        job_status: job?.status,
+        job_conclusion: job?.conclusion,
+      },
+    };
+  }));
+}
+
+export function evaluateProvenanceBoundRequiredCheckRuns(checkRuns, requiredContexts, {
+  expectedIntegrationId,
+  expectedHeadSha,
+  expectedRepository,
+  expectedPrNumber,
+  requiredContextProducers,
+} = {}) {
+  if (!SHA_PATTERN.test(expectedHeadSha || '') || !expectedRepository
+    || !Number.isInteger(Number(expectedPrNumber)) || Number(expectedPrNumber) < 1
+    || !requiredContextProducers) {
+    fail('REQUIRED_CONTEXT_PROVENANCE_POLICY_INVALID');
+  }
+  const expected = [...new Set(requiredContexts || [])].sort();
+  if (!expected.length) fail('ZERO_REQUIRED_STATUS_CONTEXTS');
+  const results = [];
+  for (const context of expected) {
+    const producer = requiredContextProducers[context];
+    if (!producer) fail('REQUIRED_CONTEXT_PRODUCER_POLICY_MISSING', context);
+    const candidates = checkRuns.filter(run => run?.name === context);
+    if (candidates.length === 0) fail('REQUIRED_CONTEXT_MISSING', context);
+    if (candidates.length !== 1) fail('REQUIRED_CONTEXT_PRODUCER_CARDINALITY', `${context}:${candidates.length}`);
+    const run = candidates[0];
+    if (run.status !== 'completed') fail('REQUIRED_CONTEXT_NOT_TERMINAL', context);
+    if (run.conclusion !== 'success') fail('REQUIRED_CONTEXT_NOT_SUCCESS', `${context}:${run.conclusion ?? 'null'}`);
+    if (run.head_sha !== expectedHeadSha) fail('REQUIRED_CONTEXT_CHECK_HEAD_MISMATCH', context);
+    if (run.app?.id !== expectedIntegrationId) fail('REQUIRED_CONTEXT_INTEGRATION_MISMATCH', `${context}:${run.app?.id ?? 'missing'}`);
+    const provenance = run.workflow_provenance;
+    const normalHeadBound = producer.producer_kind === 'github_actions_pull_request_job'
+      && provenance?.run_head_sha === expectedHeadSha && provenance?.job_head_sha === expectedHeadSha;
+    const trustedTargetHeads = (provenance?.pull_request_heads || []).filter(value =>
+      value.number === Number(expectedPrNumber)
+      && value.head_sha === expectedHeadSha && value.head_repository === expectedRepository);
+    const currentPrAssociationBound = trustedTargetHeads.length === 1;
+    const trustedTargetBound = producer.producer_kind === 'trusted_pull_request_target_job'
+      && currentPrAssociationBound && provenance?.job_head_sha === provenance?.run_head_sha;
+    if (!provenance
+      || provenance.workflow_path !== producer.workflow_path
+      || provenance.workflow_name !== producer.workflow_name
+      || provenance.event !== producer.event
+      || (!normalHeadBound && !trustedTargetBound)
+      || !currentPrAssociationBound
+      || provenance.repository !== expectedRepository
+      || provenance.check_suite_id !== Number(run?.check_suite?.id)
+      || provenance.job_status !== run.status || provenance.job_conclusion !== run.conclusion
+      || !Number.isInteger(provenance.workflow_id) || provenance.workflow_id < 1
+      || !Number.isInteger(provenance.run_id) || provenance.run_id < 1
+      || !Number.isInteger(provenance.job_id) || provenance.job_id < 1
+      || !Number.isInteger(provenance.run_attempt) || provenance.run_attempt < 1) {
+      fail('REQUIRED_CONTEXT_PROVENANCE_MISMATCH', context);
+    }
+    results.push({
+      context,
+      check_run_id: run.id,
+      status: run.status,
+      conclusion: run.conclusion,
+      workflow_provenance: provenance,
+    });
+  }
+  return results;
+}
+
+export async function invalidateExactHeadStatusOnFailure(error, publishFailure) {
+  try {
+    const published = await publishFailure(error);
+    if (published?.state !== 'failure') fail('FAILURE_STATUS_INVALIDATION_READBACK_MISMATCH');
+  } catch (publishError) {
+    throw new AggregateError([error, publishError], 'FAILURE_STATUS_INVALIDATION_UNKNOWN_HOLD', {cause: error});
+  }
+  throw error;
+}
+
+export function assertFailureStatusPublicationReadBack(published, statuses, {
+  expectedHeadSha,
+  expectedContext,
+  expectedRepository,
+  postEndpoint,
+  readBackEndpoint,
+} = {}) {
+  const expectedPostEndpoint = `/statuses/${expectedHeadSha}`;
+  const expectedReadBackEndpoint = `/commits/${expectedHeadSha}/statuses`;
+  const normalizedContext = String(expectedContext || '').toLowerCase();
+  if (!SHA_PATTERN.test(expectedHeadSha || '') || !expectedContext || !expectedRepository
+    || postEndpoint !== expectedPostEndpoint || readBackEndpoint !== expectedReadBackEndpoint
+    || !Array.isArray(statuses)) {
+    fail('FAILURE_STATUS_READBACK_INPUT_INVALID');
+  }
+  const expectedStatusUrl = `https://api.github.com/repos/${expectedRepository}/statuses/${expectedHeadSha}`;
+  if (!Number.isInteger(Number(published?.id)) || published?.state !== 'failure'
+    || String(published?.context || '').toLowerCase() !== normalizedContext || published?.url !== expectedStatusUrl
+    || !published?.created_at || !published?.updated_at) {
+    fail('FAILURE_STATUS_POST_RESPONSE_INVALID');
+  }
+  const latest = statuses.filter(value => String(value?.context || '').toLowerCase() === normalizedContext)
+    .sort((a, b) => Date.parse(b?.updated_at || b?.created_at || 0) - Date.parse(a?.updated_at || a?.created_at || 0)
+      || Number(b?.id || 0) - Number(a?.id || 0))[0];
+  if (!latest || Number(latest.id) !== Number(published.id)
+    || latest.state !== 'failure' || String(latest.context || '').toLowerCase() !== normalizedContext || latest.url !== expectedStatusUrl
+    || latest.created_at !== published.created_at || latest.updated_at !== published.updated_at) {
+    fail('FAILURE_STATUS_INDEPENDENT_READBACK_MISMATCH');
+  }
+  return latest;
+}
+
+export function assertFreshExactHeadSuccessStatus(statuses, context, minimumUpdatedAt) {
+  if (!Array.isArray(statuses) || !context) fail('AUTHORITATIVE_STATUS_INPUT_INVALID');
+  const minimum = Date.parse(minimumUpdatedAt || '');
+  if (!Number.isFinite(minimum)) fail('AUTHORITATIVE_STATUS_MINIMUM_TIME_INVALID');
+  const normalizedContext = String(context).toLowerCase();
+  const candidates = statuses.filter(value => String(value?.context || '').toLowerCase() === normalizedContext).map(value => ({
+    value,
+    timestamp: Date.parse(value?.updated_at || value?.created_at || ''),
+  }));
+  if (!candidates.length) fail('AUTHORITATIVE_STATUS_MISSING', context);
+  if (candidates.some(candidate => !Number.isFinite(candidate.timestamp))) fail('AUTHORITATIVE_STATUS_TIMESTAMP_INVALID', context);
+  const updated = Math.max(...candidates.map(candidate => candidate.timestamp));
+  const latestCandidates = candidates.filter(candidate => candidate.timestamp === updated);
+  if (latestCandidates.length !== 1) fail('AUTHORITATIVE_STATUS_LATEST_AMBIGUOUS', `${context}:${latestCandidates.length}`);
+  const latest = latestCandidates[0].value;
+  if (updated < minimum) fail('AUTHORITATIVE_STATUS_STALE', context);
+  if (latest.state !== 'success') fail('AUTHORITATIVE_STATUS_NOT_SUCCESS', `${context}:${latest.state ?? 'missing'}`);
+  return latest;
+}
+
 export function assertNativeRequiredContexts(rulesetContexts, expectedContexts) {
   const actual = new Set(rulesetContexts || []);
   const missing = (expectedContexts || []).filter(context => !actual.has(context));

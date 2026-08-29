@@ -15,7 +15,9 @@ const paths = {
   legacyEntityResolution: "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
   legacyOpenChannel: "scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs",
   legacyOpenChannelValidator: "scripts/kidults/scope/validate-self-collected-open-channel-expansion-v1.mjs",
-  legacyRuntimeWrapper: "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs"
+  legacyRuntimeWrapper: "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+  legacyRuntimeWorkflow: ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+  bridge: "scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs"
 };
 const sourceLock = "group: kidults-met-public-source-read";
 const collectorCommand = "node scripts/kidults/autonomous/collect-met-open-access-sample.mjs";
@@ -23,6 +25,38 @@ const requiredWatch = "- 'KIDULTS Autonomous Met Open Access Sample'";
 const allowedCollectorWorkflows = [paths.crossSource, paths.met].sort();
 const allowedEndpointFiles = [paths.collector, paths.offlineTest].sort();
 const expectedLegacyInvokerJobCount = 24;
+const diagnosticOutput = process.argv[2] ?? null;
+const diagnosticLineage = {
+  git_sha: process.env.KIDULTS_EXACT_CHECKOUT_SHA ?? process.env.GITHUB_SHA ?? null,
+  github_run_id: process.env.GITHUB_RUN_ID ?? null,
+  github_run_attempt: process.env.GITHUB_RUN_ATTEMPT ?? null,
+  github_workflow_ref: process.env.GITHUB_WORKFLOW_REF ?? null
+};
+
+function emitDiagnostic(receipt, stream = "log") {
+  const serialized = `${JSON.stringify(receipt, null, 2)}\n`;
+  if (diagnosticOutput) fs.writeFileSync(diagnosticOutput, serialized);
+  console[stream](serialized.trim());
+}
+
+if (diagnosticOutput) {
+  fs.writeFileSync(diagnosticOutput, `${JSON.stringify({
+    schema_version: "1.5.0",
+    receipt_type: "KIDULTS_MET_ACQUISITION_ASSURANCE_INVARIANT",
+    state: "DIAGNOSTIC_INITIALIZED",
+    runtime_lineage: diagnosticLineage
+  }, null, 2)}\n`);
+}
+process.on("uncaughtException", error => {
+  emitDiagnostic({
+    schema_version: "1.5.0",
+    receipt_type: "KIDULTS_MET_ACQUISITION_ASSURANCE_INVARIANT",
+    state: "VERIFIED_FAIL",
+    runtime_lineage: diagnosticLineage,
+    failure: String(error?.stack ?? error).slice(0, 12000)
+  }, "error");
+  process.exit(1);
+});
 
 function filesUnder(root, pattern) {
   const files = [];
@@ -99,6 +133,10 @@ function validate(input) {
   }
   if (!input.assurance.includes(requiredWatch)) failures.push("MET_ASSURANCE_WATCH_MISSING");
   if (!input.met.includes('- cron: "30 22 * * *"')) failures.push("MET_SCHEDULE_MISSING");
+  if (!/^jobs:\s*$[\s\S]*?^  collect:\s*$/m.test(input.met) ||
+      /^ {4}if:\s*\$\{\{\s*false\s*\}\}\s*$/m.test(input.met)) {
+    failures.push("MET_GOVERNED_OWNER_JOB_NOT_ACTIVE");
+  }
   if (!input.met.includes("Verify exact current main before public-source read") ||
       !input.crossSource.includes("Verify exact current main before public-source read") ||
       !input.crossSource.includes("if: github.ref == 'refs/heads/main'")) {
@@ -174,15 +212,49 @@ function validate(input) {
       failures.push(`MET_LEGACY_INVOKER_JOB_HOLD_COMMENT_MISSING:${invocation.file}:${invocation.job}`);
     }
   }
-  if (!input.legacyRuntimeWrapper.includes("r.status !== 0") ||
-      !input.legacyRuntimeWrapper.includes("run-met-real-source-admission-r1.mjs")) {
-    failures.push("MET_LEGACY_RUNTIME_WRAPPER_NONZERO_NOT_FAIL_CLOSED");
+  if (!input.legacyRuntimeWrapper.includes('import { validateRetiredMetInvokerReceipt }') ||
+      !input.legacyRuntimeWrapper.includes("validateRetiredMetInvokerReceipt({") ||
+      !input.legacyRuntimeWrapper.includes("observedExitCode: child.status") ||
+      !input.legacyRuntimeWrapper.includes("observedSignal: child.signal") ||
+      !input.legacyRuntimeWrapper.includes("expectedLineage") ||
+      !input.legacyRuntimeWrapper.includes("github_workflow_name: process.env.GITHUB_WORKFLOW,\n    github_workflow_ref: process.env.GITHUB_WORKFLOW_REF") ||
+      !input.legacyRuntimeWrapper.includes("validateGovernedOwnerLane") ||
+      !input.legacyRuntimeWrapper.includes("GETTY_ONLY_BRIDGE_BOUNDARY_INVALID") ||
+      !input.legacyRuntimeWrapper.includes('report.state = "VERIFIED_FAIL"') ||
+      !input.legacyRuntimeWrapper.includes("writeFileSync(output")) {
+    failures.push("MET_RUNTIME_HOLD_ACCEPTANCE_OR_DIAGNOSTIC_NOT_FAIL_CLOSED");
+  }
+  if (!/^  governed-met-owner-assurance:\s*\n    name: KIDULTS Runtime Governed Met Owner Assurance R1\s*$/m.test(input.legacyRuntimeWorkflow) ||
+      !/^  runtime-control-baseline:\s*\n    name: KIDULTS Runtime Control Baseline R1\s*\n    needs: governed-met-owner-assurance\s*\n    if: always\(\)\s*$/m.test(input.legacyRuntimeWorkflow) ||
+      /^ {4}if:\s*\$\{\{\s*false\s*\}\}\s*$/m.test(input.legacyRuntimeWorkflow) ||
+      !input.legacyRuntimeWorkflow.includes("github.event.pull_request.head.sha || github.sha") ||
+      !input.legacyRuntimeWorkflow.includes("KIDULTS_EXACT_CHECKOUT_SHA") ||
+      !input.legacyRuntimeWorkflow.includes("Initialize governed-owner diagnostic before fallible work") ||
+      !input.legacyRuntimeWorkflow.includes("Initialize runtime diagnostic before fallible work") ||
+      !input.legacyRuntimeWorkflow.includes("Require independent governed-owner assurance") ||
+      (input.legacyRuntimeWorkflow.match(/if: always\(\)/g) ?? []).length < 3 ||
+      !/name: Upload governed-owner diagnostic\s*\n        if: always\(\)/m.test(input.legacyRuntimeWorkflow) ||
+      !/name: Upload runtime control diagnostics\s*\n        if: always\(\)/m.test(input.legacyRuntimeWorkflow) ||
+      !input.legacyRuntimeWorkflow.includes("/tmp/kidults-met-owner-assurance-v1.json") ||
+      !input.legacyRuntimeWorkflow.includes("/tmp/asi-real-source-processor-bridge-r1.json") ||
+      !input.legacyRuntimeWorkflow.includes("kidults-met-owner-assurance-v1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.event.pull_request.head.sha || github.sha }}") ||
+      !input.legacyRuntimeWorkflow.includes("kidults-runtime-control-baseline-r1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.event.pull_request.head.sha || github.sha }}")) {
+    failures.push("MET_RUNTIME_WORKFLOW_ACTIVE_OWNER_OR_ALWAYS_DIAGNOSTIC_MISSING");
   }
   if (!input.legacyOpenChannelValidator.includes("HOLD_VERIFIED") ||
       !input.legacyOpenChannelValidator.includes("process.exitCode = 3") ||
       input.legacyOpenChannelValidator.includes('status:"PASS"') ||
       input.legacyOpenChannelValidator.includes('status: "PASS"')) {
     failures.push("MET_LEGACY_DOWNSTREAM_FALSE_PASS_OPEN");
+  }
+  if (!input.bridge.includes('import { validateRetiredMetInvokerReceipt }') ||
+      !input.bridge.includes("validateRetiredMetInvokerReceipt({") ||
+      !input.bridge.includes("KIDULTS_MET_HOLD_OBSERVED_EXIT_CODE") ||
+      !input.bridge.includes("metHoldValidation.state !== 'VERIFIED_RETIRED_HOLD'") ||
+      !input.bridge.includes("state: 'PASS_GETTY_ONLY'") ||
+      !input.bridge.includes("identity_context: 'WITHHELD_GOVERNED_MET_OWNER_ONLY'") ||
+      input.bridge.includes("source_id: met.source_id")) {
+    failures.push("MET_GETTY_ONLY_BRIDGE_BOUNDARY_INVALID");
   }
   const scheduled = input.contract.scheduled_activation;
   const objectBinding = input.contract.object_response_binding;
@@ -224,6 +296,8 @@ const input = {
   },
   legacyOpenChannelValidator: fs.readFileSync(paths.legacyOpenChannelValidator, "utf8"),
   legacyRuntimeWrapper: fs.readFileSync(paths.legacyRuntimeWrapper, "utf8"),
+  legacyRuntimeWorkflow: fs.readFileSync(paths.legacyRuntimeWorkflow, "utf8"),
+  bridge: fs.readFileSync(paths.bridge, "utf8"),
   legacyWorkflowInvocations: legacyWorkflowInventory()
 };
 validate(input);
@@ -239,6 +313,14 @@ const mutations = [
   { id: "LEGACY_ENDPOINT_REINTRODUCED", patch: value => ({ ...value, endpointReferences: [...value.endpointReferences, paths.legacyAdmission].sort() }) },
   { id: "LEGACY_HOLD_EXIT_MASKED", patch: value => ({ ...value, legacyWorkflowInvocations: value.legacyWorkflowInvocations.map((item, index) => index === 0 ? { ...item, line: `${item.line} || true` } : item) }) },
   { id: "LEGACY_INVOKER_JOB_REENABLED", patch: value => ({ ...value, legacyWorkflowInvocations: value.legacyWorkflowInvocations.map((item, index) => index === 0 ? { ...item, jobContent: item.jobContent.replace("if: ${{ false }}", "if: ${{ true }}") } : item) }) },
+  { id: "GOVERNED_OWNER_JOB_DISABLED", patch: value => ({ ...value, met: value.met.replace("  collect:\n    runs-on:", "  collect:\n    if: ${{ false }}\n    runs-on:") }) },
+  { id: "RUNTIME_UNEXPECTED_EXIT_ACCEPTED", patch: value => ({ ...value, legacyRuntimeWrapper: value.legacyRuntimeWrapper.replace("observedExitCode: child.status", "observedExitCode: 3") }) },
+  { id: "RUNTIME_RECEIPT_VALIDATOR_REMOVED", patch: value => ({ ...value, legacyRuntimeWrapper: value.legacyRuntimeWrapper.replace("validateRetiredMetInvokerReceipt({", "(() => ({ state: 'VERIFIED_RETIRED_HOLD' }))({") }) },
+  { id: "RUNTIME_OWNER_IDENTITY_WEAKENED", patch: value => ({ ...value, legacyRuntimeWrapper: value.legacyRuntimeWrapper.replace("github_workflow_name: process.env.GITHUB_WORKFLOW,\n    github_workflow_ref: process.env.GITHUB_WORKFLOW_REF", "github_workflow_name: artifact?.probe_lineage?.github_workflow_name,\n    github_workflow_ref: artifact?.probe_lineage?.github_workflow_ref") }) },
+  { id: "RUNTIME_CONTEXT_RENAMED", patch: value => ({ ...value, legacyRuntimeWorkflow: value.legacyRuntimeWorkflow.replace("    name: KIDULTS Runtime Control Baseline R1", "    name: KIDULTS Runtime Control Baseline Renamed") }) },
+  { id: "RUNTIME_WORKFLOW_RESKIPPED", patch: value => ({ ...value, legacyRuntimeWorkflow: value.legacyRuntimeWorkflow.replace("  runtime-control-baseline:\n    name:", "  runtime-control-baseline:\n    if: ${{ false }}\n    name:") }) },
+  { id: "RUNTIME_DIAGNOSTIC_NOT_ALWAYS", patch: value => ({ ...value, legacyRuntimeWorkflow: value.legacyRuntimeWorkflow.replace("name: Upload runtime control diagnostics\n        if: always()", "name: Upload runtime control diagnostics\n        if: success()") }) },
+  { id: "BRIDGE_READMITS_MET", patch: value => ({ ...value, bridge: value.bridge.replace("const admittedInputs = [", "const admittedInputs = [{ source_id: met.source_id },") }) },
   { id: "EXACT_RUN_LINEAGE_WEAKENED", patch: value => ({ ...value, validator: value.validator.replace("manifest?.runtime_lineage?.git_sha === process.env.GITHUB_SHA", "/^[a-f0-9]{40}$/.test(manifest?.runtime_lineage?.git_sha ?? '')") }) }
 ];
 const rejected = [];
@@ -253,20 +335,22 @@ if (rejected.length !== mutations.length) {
   throw new Error(`MUTATION_NOT_REJECTED:${mutations.filter(item => !rejected.includes(item.id)).map(item => item.id).join(",")}`);
 }
 
-console.log(JSON.stringify({
-  schema_version: "1.3.0",
+emitDiagnostic({
+  schema_version: "1.5.0",
   receipt_type: "KIDULTS_MET_ACQUISITION_ASSURANCE_INVARIANT",
   state: "VERIFIED_PASS",
+  runtime_lineage: diagnosticLineage,
   scheduled_live_producer_count: 1,
   scheduled_live_producer: paths.met,
   governed_collector_workflow_count: allowedCollectorWorkflows.length,
   legacy_direct_provider_call_count: 0,
   legacy_workflow_invocations_literal_false: input.legacyWorkflowInvocations.length,
+  runtime_baseline: "ACTIVE_RETIRED_MET_HOLD_GETTY_ONLY",
   source_lock: "ALL_REACHABLE_GOVERNED_CALLERS_SERIALIZED_NO_CANCEL",
   object_binding: "REQUEST_ID_PAYLOAD_ID_DEPARTMENT_SCHEMA_EXACT",
-  runtime_lineage: "EXACT_SHA_RUN_ID_RUN_ATTEMPT",
+  runtime_lineage_policy: "EXACT_SHA_RUN_ID_RUN_ATTEMPT",
   protected_boundary: "REFERENCE_DISCOVERY_NOT_CANDIDATE",
   mutations_total: mutations.length,
   mutations_rejected: rejected.length,
   rejected
-}, null, 2));
+});

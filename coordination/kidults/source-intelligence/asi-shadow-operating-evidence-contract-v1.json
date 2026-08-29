@@ -28,7 +28,8 @@
     "entity_resolution_scope_matrix": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
     "entity_resolution_approved_calibration_strata": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
     "global_pool_bootstrap_contract": "coordination/kidults/source-intelligence/global-pool-r1-frontier-seed-channel-contract-v1.json",
-    "scope_source_pool_readiness_contract": "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
+    "scope_source_pool_readiness_contract": "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json",
+    "retired_met_hold_receipt_contract": "coordination/kidults/runtime/retired-met-hold-receipt-contract-v1.json"
   },
   "optional_current_state_inputs": {
     "rights_access_review": "coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json",
@@ -60,6 +61,9 @@
     "real_source_queue_d1_injection_workflow": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
     "real_source_retry_dlq_quarantine_workflow": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
     "runtime_control_baseline_runner": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+    "retired_met_hold_receipt_validator": "scripts/kidults/runtime/validate-retired-met-hold-receipt-v1.mjs",
+    "met_acquisition_assurance_validator": "scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs",
+    "retired_met_hold_receipt_negative_tests": "tests/kidults/runtime/retired-met-hold-receipt-v1.test.mjs",
     "entity_resolution_benchmark_runner": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
     "entity_resolution_real_dataset_assembler": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
     "entity_resolution_getty_transaction_r2_extender": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",

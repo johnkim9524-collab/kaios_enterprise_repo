@@ -7,6 +7,11 @@ import {
   assertStableFinalReread,
   resolveScopeRequirements,
   evaluateRequiredCheckRuns,
+  evaluateProvenanceBoundRequiredCheckRuns,
+  attachWorkflowRunProvenance,
+  invalidateExactHeadStatusOnFailure,
+  assertFailureStatusPublicationReadBack,
+  assertFreshExactHeadSuccessStatus,
   assertSingleAuthoritativeProducer,
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
@@ -40,6 +45,9 @@ const postgresContext = 'KIDULTS PostgreSQL One-Shot Authorization Boundary V1';
 const postgresWorkflowPath = '.github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml';
 const metVamContext = 'KIDULTS Met V&A Candidate R2 Boundary V1';
 const metVamWorkflowPath = '.github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml';
+const runtimeContext = 'KIDULTS Runtime Control Baseline R1';
+const runtimeOwnerContext = 'KIDULTS Runtime Governed Met Owner Assurance R1';
+const runtimeWorkflowPath = '.github/workflows/kidults-runtime-control-baseline-r1.yml';
 
 function workflowOnBlock(source) {
   const lines = source.split('\n');
@@ -69,6 +77,28 @@ function pullRequestPathTriggers(source) {
 function pullRequestTriggerFindings(rule, workflowSource) {
   const triggers = new Set(pullRequestPathTriggers(workflowSource));
   return (rule.exact_paths || []).filter(filename => !triggers.has(filename)).sort();
+}
+
+function workflowJobBlock(source, jobId) {
+  const lines = source.split('\n');
+  const start = lines.findIndex(line => line === `  ${jobId}:`);
+  assert.notEqual(start, -1, `job missing: ${jobId}`);
+  let end = start + 1;
+  while (end < lines.length && !/^  [A-Za-z0-9_-]+:\s*$/.test(lines[end])) end += 1;
+  return lines.slice(start, end).join('\n');
+}
+
+function runtimeWorkflowFindings(source) {
+  const findings = [];
+  const owner = workflowJobBlock(source, 'governed-met-owner-assurance');
+  const runtime = workflowJobBlock(source, 'runtime-control-baseline');
+  if ((source.match(new RegExp(`^    name: ${runtimeContext}$`, 'gm')) || []).length !== 1) findings.push('RUNTIME_CONTEXT_CARDINALITY');
+  if ((source.match(new RegExp(`^    name: ${runtimeOwnerContext}$`, 'gm')) || []).length !== 1) findings.push('OWNER_CONTEXT_CARDINALITY');
+  if (/^    if: \$\{\{ false \}\}\s*$/m.test(owner)) findings.push('OWNER_JOB_SKIPPED');
+  if (/^    if: \$\{\{ false \}\}\s*$/m.test(runtime)) findings.push('RUNTIME_JOB_SKIPPED');
+  if (!/^    needs: governed-met-owner-assurance\s*$/m.test(runtime)) findings.push('OWNER_DEPENDENCY_MISSING');
+  if (!/^    if: always\(\)\s*$/m.test(runtime)) findings.push('RUNTIME_FAILURE_DIAGNOSTIC_PATH_MISSING');
+  return findings;
 }
 
 test('open exact-head PR is promotable', () => {
@@ -155,6 +185,273 @@ test('missing, pending, failed, and ambiguous latest checks are rejected', () =>
   code(() => evaluateRequiredCheckRuns([
     {id: 3, name: 'Foundation', status: 'completed', conclusion: 'success', completed_at: '2026-01-02', app: {id: 999}},
   ], ['Foundation'], {expectedIntegrationId: 15368}), 'REQUIRED_CONTEXT_INTEGRATION_MISMATCH');
+});
+
+const producerPolicy = {
+  Foundation: {
+    workflow_path: '.github/workflows/ci-validation.yml',
+    workflow_name: 'CI Validation',
+    event: 'pull_request',
+    producer_kind: 'github_actions_pull_request_job',
+  },
+};
+const provenanceCheck = (overrides = {}) => ({
+  id: 101,
+  name: 'Foundation',
+  head_sha: sha,
+  check_suite: {id: 501},
+  status: 'completed',
+  conclusion: 'success',
+  app: {id: 15368},
+  workflow_provenance: {
+    run_id: 201,
+    job_id: 301,
+    check_suite_id: 501,
+    workflow_id: 401,
+    workflow_path: '.github/workflows/ci-validation.yml',
+    workflow_name: 'CI Validation',
+    event: 'pull_request',
+    run_head_sha: sha,
+    job_head_sha: sha,
+    job_status: 'completed',
+    job_conclusion: 'success',
+    pull_request_heads: [{number: 1, head_sha: sha, head_repository: 'johnkim9524-collab/kaios_enterprise_repo'}],
+    repository: 'johnkim9524-collab/kaios_enterprise_repo',
+    run_attempt: 1,
+    ...overrides,
+  },
+});
+const provenanceOptions = {
+  expectedIntegrationId: 15368,
+  expectedHeadSha: sha,
+  expectedRepository: 'johnkim9524-collab/kaios_enterprise_repo',
+  expectedPrNumber: 1,
+  requiredContextProducers: producerPolicy,
+};
+
+test('required check is bound to one exact workflow producer and Actions run lineage', () => {
+  const result = evaluateProvenanceBoundRequiredCheckRuns([provenanceCheck()], ['Foundation'], provenanceOptions);
+  assert.equal(result[0].workflow_provenance.workflow_path, '.github/workflows/ci-validation.yml');
+});
+
+test('late same-name impersonator and duplicate producers fail closed', () => {
+  const real = provenanceCheck();
+  const impersonator = provenanceCheck({run_id: 202, job_id: 302, workflow_id: 402, workflow_path: '.github/workflows/attacker.yml'});
+  code(() => evaluateProvenanceBoundRequiredCheckRuns([real, impersonator], ['Foundation'], provenanceOptions), 'REQUIRED_CONTEXT_PRODUCER_CARDINALITY');
+  const duplicate = provenanceCheck({run_id: 203, job_id: 303});
+  code(() => evaluateProvenanceBoundRequiredCheckRuns([real, duplicate], ['Foundation'], provenanceOptions), 'REQUIRED_CONTEXT_PRODUCER_CARDINALITY');
+});
+
+test('wrong workflow identity, event, head and repository fail provenance binding', () => {
+  for (const mutation of [
+    {workflow_path: '.github/workflows/attacker.yml'},
+    {workflow_name: 'Attacker Workflow'},
+    {event: 'workflow_dispatch'},
+    {run_head_sha: 'b'.repeat(40)},
+    {job_head_sha: 'b'.repeat(40)},
+    {pull_request_heads: [{number: 2, head_sha: sha, head_repository: 'johnkim9524-collab/kaios_enterprise_repo'}]},
+    {repository: 'attacker/repository'},
+  ]) {
+    code(() => evaluateProvenanceBoundRequiredCheckRuns([provenanceCheck(mutation)], ['Foundation'], provenanceOptions), 'REQUIRED_CONTEXT_PROVENANCE_MISMATCH');
+  }
+  code(() => evaluateProvenanceBoundRequiredCheckRuns([{...provenanceCheck(), app: {id: 999}}], ['Foundation'], provenanceOptions), 'REQUIRED_CONTEXT_INTEGRATION_MISMATCH');
+  code(() => evaluateProvenanceBoundRequiredCheckRuns([{...provenanceCheck(), head_sha: 'b'.repeat(40)}], ['Foundation'], provenanceOptions), 'REQUIRED_CONTEXT_CHECK_HEAD_MISMATCH');
+});
+
+test('trusted pull_request_target producer binds the event PR head instead of the base run SHA', () => {
+  const context = 'Governed';
+  const check = {...provenanceCheck({
+    run_head_sha: 'b'.repeat(40),
+    job_head_sha: 'b'.repeat(40),
+    workflow_path: '.github/workflows/trusted.yml',
+    workflow_name: 'Trusted',
+    event: 'pull_request_target',
+    pull_request_heads: [{number: 1, head_sha: sha, head_repository: 'johnkim9524-collab/kaios_enterprise_repo'}],
+  }), name: context};
+  const options = {
+    ...provenanceOptions,
+    requiredContextProducers: {[context]: {
+      workflow_path: '.github/workflows/trusted.yml', workflow_name: 'Trusted', event: 'pull_request_target', producer_kind: 'trusted_pull_request_target_job',
+    }},
+  };
+  assert.equal(evaluateProvenanceBoundRequiredCheckRuns([check], [context], options)[0].context, context);
+  check.workflow_provenance.pull_request_heads[0].head_sha = 'c'.repeat(40);
+  code(() => evaluateProvenanceBoundRequiredCheckRuns([check], [context], options), 'REQUIRED_CONTEXT_PROVENANCE_MISMATCH');
+});
+
+test('local pull_request_target semantics fixture cannot claim remote native-check liveness', () => {
+  const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+  assert.equal(policy.trusted_pull_request_target_liveness.state, 'REMOTE_EVIDENCE_REQUIRED_HOLD');
+  assert.equal(policy.trusted_pull_request_target_liveness.local_event_semantics_fixture_is_remote_evidence, false);
+  assert.equal(policy.trusted_pull_request_target_liveness.native_required_binding_activation_before_receipt, 'HOLD');
+});
+
+test('Actions details URL is resolved to exact workflow-run provenance', async () => {
+  const [value] = await attachWorkflowRunProvenance([{
+    id: 301,
+    name: 'Foundation',
+    head_sha: sha,
+    check_suite: {id: 501},
+    status: 'completed',
+    conclusion: 'success',
+    details_url: 'https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/201/job/301',
+  }], {
+    expectedRepository: 'johnkim9524-collab/kaios_enterprise_repo',
+    loadWorkflowRun: async runId => ({
+      id: runId, check_suite_id: 501, workflow_id: 401, path: '.github/workflows/ci-validation.yml', name: 'CI Validation',
+      event: 'pull_request', head_sha: sha, repository: {full_name: 'johnkim9524-collab/kaios_enterprise_repo'}, run_attempt: 1,
+    }),
+    loadWorkflowJob: async jobId => ({
+      id: jobId, run_id: 201, name: 'Foundation', head_sha: sha, status: 'completed', conclusion: 'success',
+      check_run_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/check-runs/301',
+    }),
+  });
+  assert.equal(value.workflow_provenance.run_id, 201);
+  assert.equal(value.workflow_provenance.job_id, 301);
+});
+
+test('details URL, Actions job id, run id, check URL and name must bind the check run', async () => {
+  const checkRun = {
+    id: 301, name: 'Foundation', head_sha: sha, check_suite: {id: 501}, status: 'completed', conclusion: 'success',
+    details_url: 'https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/201/job/301',
+  };
+  const base = {
+    expectedRepository: 'johnkim9524-collab/kaios_enterprise_repo',
+    loadWorkflowRun: async () => ({id: 201, check_suite_id: 501}),
+  };
+  for (const job of [
+    {id: 999, run_id: 201, name: 'Foundation', status: 'completed', conclusion: 'success', check_run_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/check-runs/301'},
+    {id: 301, run_id: 999, name: 'Foundation', status: 'completed', conclusion: 'success', check_run_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/check-runs/301'},
+    {id: 301, run_id: 201, name: 'Attacker', status: 'completed', conclusion: 'success', check_run_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/check-runs/301'},
+    {id: 301, run_id: 201, name: 'Foundation', status: 'completed', conclusion: 'success', check_run_url: 'https://api.github.com/repos/attacker/repo/check-runs/301'},
+    {id: 301, run_id: 201, name: 'Foundation', status: 'in_progress', conclusion: null, check_run_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/check-runs/301'},
+  ]) {
+    await assert.rejects(
+      attachWorkflowRunProvenance([checkRun], {...base, loadWorkflowJob: async () => job}),
+      error => error instanceof GateFailure && error.code === 'CHECK_RUN_WORKFLOW_JOB_BINDING_MISMATCH',
+    );
+  }
+  await assert.rejects(
+    attachWorkflowRunProvenance([{...checkRun, id: 302}], {
+      ...base,
+      loadWorkflowJob: async () => ({id: 301, run_id: 201, name: 'Foundation', status: 'completed', conclusion: 'success'}),
+    }),
+    error => error instanceof GateFailure && error.code === 'CHECK_RUN_DETAILS_JOB_ID_MISMATCH',
+  );
+  await assert.rejects(
+    attachWorkflowRunProvenance([{...checkRun, check_suite: {id: 502}}], {
+      ...base,
+      loadWorkflowJob: async () => ({id: 301, run_id: 201, name: 'Foundation', status: 'completed', conclusion: 'success'}),
+    }),
+    error => error instanceof GateFailure && error.code === 'CHECK_RUN_CHECK_SUITE_BINDING_MISMATCH',
+  );
+});
+
+test('initial invalid PR state explicitly invalidates stale exact-head success', async () => {
+  const original = new GateFailure('PULL_REQUEST_NO_MERGE_BLOCKED');
+  const publications = [];
+  await assert.rejects(
+    invalidateExactHeadStatusOnFailure(original, async failure => {
+      publications.push({state: 'failure', code: failure.code});
+      return {state: 'failure'};
+    }),
+    error => error === original,
+  );
+  assert.deepEqual(publications, [{state: 'failure', code: 'PULL_REQUEST_NO_MERGE_BLOCKED'}]);
+});
+
+test('failure-status publication errors are surfaced with the original failure', async () => {
+  const original = new GateFailure('PULL_REQUEST_DRAFT');
+  await assert.rejects(
+    invalidateExactHeadStatusOnFailure(original, async () => { throw new Error('STATUS_WRITE_FAILED'); }),
+    error => error instanceof AggregateError
+      && error.message === 'FAILURE_STATUS_INVALIDATION_UNKNOWN_HOLD'
+      && error.errors.includes(original)
+      && error.errors.some(item => item.message === 'STATUS_WRITE_FAILED'),
+  );
+});
+
+test('failure-status response mismatch is UNKNOWN/HOLD rather than stale-success invalidation', async () => {
+  const original = new GateFailure('PULL_REQUEST_CLOSED');
+  await assert.rejects(
+    invalidateExactHeadStatusOnFailure(original, async () => ({state: 'success'})),
+    error => error instanceof AggregateError
+      && error.message === 'FAILURE_STATUS_INVALIDATION_UNKNOWN_HOLD'
+      && error.errors.includes(original)
+      && error.errors.some(item => item.code === 'FAILURE_STATUS_INVALIDATION_READBACK_MISMATCH'),
+  );
+});
+
+test('failure status is accepted only after independent latest exact-context id and timestamp readback', () => {
+  const expectedRepository = 'johnkim9524-collab/kaios_enterprise_repo';
+  const published = {
+    id: 7001, state: 'failure', context: 'Aggregator',
+    url: `https://api.github.com/repos/${expectedRepository}/statuses/${sha}`,
+    created_at: '2026-08-29T20:48:00Z', updated_at: '2026-08-29T20:48:00Z',
+  };
+  const options = {
+    expectedHeadSha: sha,
+    expectedContext: 'Aggregator',
+    expectedRepository,
+    postEndpoint: `/statuses/${sha}`,
+    readBackEndpoint: `/commits/${sha}/statuses`,
+  };
+  assert.equal(assertFailureStatusPublicationReadBack(published, [published], options).id, 7001);
+  for (const mutation of [
+    {...published, id: 7000},
+    {...published, state: 'success'},
+    {...published, url: `https://api.github.com/repos/${expectedRepository}/statuses/7001`},
+    {...published, url: 'https://api.github.com/repos/attacker/repository/statuses/7001'},
+    {...published, updated_at: '2026-08-29T20:47:59Z'},
+  ]) code(() => assertFailureStatusPublicationReadBack(published, [mutation], options), 'FAILURE_STATUS_INDEPENDENT_READBACK_MISMATCH');
+  code(() => assertFailureStatusPublicationReadBack(published, [
+    published,
+    {...published, id: 7002, state: 'success', created_at: '2026-08-29T20:49:00Z', updated_at: '2026-08-29T20:49:00Z'},
+  ], options), 'FAILURE_STATUS_INDEPENDENT_READBACK_MISMATCH');
+  code(() => assertFailureStatusPublicationReadBack(published, [
+    published,
+    {...published, id: 7002, context: 'aggregator', state: 'success', created_at: '2026-08-29T20:49:00Z', updated_at: '2026-08-29T20:49:00Z'},
+  ], options), 'FAILURE_STATUS_INDEPENDENT_READBACK_MISMATCH');
+  for (const endpointMutation of [
+    {...options, postEndpoint: `/statuses/${'b'.repeat(40)}`},
+    {...options, readBackEndpoint: `/commits/${'b'.repeat(40)}/statuses`},
+  ]) code(() => assertFailureStatusPublicationReadBack(published, [published], endpointMutation), 'FAILURE_STATUS_READBACK_INPUT_INVALID');
+});
+
+test('atomic landing rejects a stale prior success after PR state changes', () => {
+  const context = 'Aggregator';
+  code(() => assertFreshExactHeadSuccessStatus([{
+    context, state: 'success', updated_at: '2026-08-29T20:41:58Z',
+  }], context, '2026-08-29T20:47:55Z'), 'AUTHORITATIVE_STATUS_STALE');
+  assert.equal(assertFreshExactHeadSuccessStatus([{
+    context, state: 'success', updated_at: '2026-08-29T20:48:00Z',
+  }], context, '2026-08-29T20:47:55Z').state, 'success');
+});
+
+test('authoritative status rejects same-latest-time success/failure ties in both array orders', () => {
+  const context = 'Aggregator';
+  const success = {id: 1, context, state: 'success', updated_at: '2026-08-29T20:48:00Z'};
+  const failure = {id: 2, context, state: 'failure', updated_at: '2026-08-29T20:48:00Z'};
+  for (const statuses of [[success, failure], [failure, success]]) {
+    code(() => assertFreshExactHeadSuccessStatus(
+      statuses,
+      context,
+      '2026-08-29T20:47:55Z',
+    ), 'AUTHORITATIVE_STATUS_LATEST_AMBIGUOUS');
+  }
+  const lowerCaseFailure = {...failure, context: 'aggregator', updated_at: '2026-08-29T20:49:00Z'};
+  code(() => assertFreshExactHeadSuccessStatus(
+    [success, lowerCaseFailure],
+    context,
+    '2026-08-29T20:47:55Z',
+  ), 'AUTHORITATIVE_STATUS_NOT_SUCCESS');
+  for (const statuses of [[success, {...failure, context: 'aggregator'}], [{...failure, context: 'aggregator'}, success]]) {
+    code(() => assertFreshExactHeadSuccessStatus(
+      statuses,
+      context,
+      '2026-08-29T20:47:55Z',
+    ), 'AUTHORITATIVE_STATUS_LATEST_AMBIGUOUS');
+  }
 });
 
 const repository = 'johnkim9524-collab/kaios_enterprise_repo';
@@ -343,6 +640,87 @@ test('real PostgreSQL one-shot mappings retain the specialized context across re
     ], {commits: 1, changed_files: 1}, policyMutation);
     assert.ok(!result.required_contexts.includes(postgresContext), `rename mutation was not detected: ${filename}`);
   }
+});
+
+test('every #1596 runtime trigger surface is scope-bound by one unique context', () => {
+  const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+  const workflowSource = fs.readFileSync(runtimeWorkflowPath, 'utf8');
+  const rule = policy.scope_rules.find(value => value.id === 'runtime-retired-met-control');
+  assert.ok(rule, '#1596 runtime scope rule missing');
+  assert.deepEqual(rule.prefixes, []);
+  assert.ok(rule.exact_paths.length >= 31, `unexpectedly small #1596 runtime surface: ${rule.exact_paths.length}`);
+  assert.equal(new Set(rule.exact_paths).size, rule.exact_paths.length, 'duplicate #1596 runtime surface');
+  assert.deepEqual(rule.required_contexts, [runtimeContext]);
+  assert.deepEqual(pullRequestTriggerFindings(rule, workflowSource), []);
+  assert.deepEqual([...pullRequestPathTriggers(workflowSource)].sort(), [...rule.exact_paths].sort(), 'runtime triggers and scope rule must be exact peers');
+  assert.deepEqual(runtimeWorkflowFindings(workflowSource), []);
+
+  const runtimeContextWorkflows = fs.readdirSync('.github/workflows')
+    .filter(name => fs.readFileSync(`.github/workflows/${name}`, 'utf8').includes(`    name: ${runtimeContext}`))
+    .map(name => `.github/workflows/${name}`);
+  const ownerContextWorkflows = fs.readdirSync('.github/workflows')
+    .filter(name => fs.readFileSync(`.github/workflows/${name}`, 'utf8').includes(`    name: ${runtimeOwnerContext}`))
+    .map(name => `.github/workflows/${name}`);
+  assert.deepEqual(runtimeContextWorkflows, [runtimeWorkflowPath], 'runtime context must be repository-unique');
+  assert.deepEqual(ownerContextWorkflows, [runtimeWorkflowPath], 'owner-assurance context must be repository-unique');
+
+  for (const filename of rule.exact_paths) {
+    assert.ok(fs.existsSync(filename), `mapped #1596 runtime surface missing: ${filename}`);
+    const result = resolveScopeRequirements([{filename, status: 'modified'}], {commits: 1, changed_files: 1}, policy);
+    assert.ok(result.required_contexts.includes(runtimeContext), `${filename}:${runtimeContext}`);
+  }
+});
+
+test('#1596 context removal, rename, skip, trigger gaps and path renames fail closed', () => {
+  const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+  const workflowSource = fs.readFileSync(runtimeWorkflowPath, 'utf8');
+  const rule = policy.scope_rules.find(value => value.id === 'runtime-retired-met-control');
+
+  for (const [index, filename] of rule.exact_paths.entries()) {
+    const triggerLine = `      - '${filename}'\n`;
+    assert.ok(workflowSource.includes(triggerLine), `runtime trigger fixture missing: ${filename}`);
+    assert.deepEqual(pullRequestTriggerFindings(rule, workflowSource.replace(triggerLine, '')), [filename]);
+
+    const policyMutation = structuredClone(policy);
+    const mutatedRule = policyMutation.scope_rules.find(value => value.id === 'runtime-retired-met-control');
+    mutatedRule.exact_paths = mutatedRule.exact_paths.filter(value => value !== filename);
+    const removed = resolveScopeRequirements([{filename, status: 'modified'}], {commits: 1, changed_files: 1}, policyMutation);
+    assert.ok(!removed.required_contexts.includes(runtimeContext), `runtime policy removal undetected: ${filename}`);
+
+    const neutral = `docs/kidults/runtime-1596-rename-control-${index}.md`;
+    for (const entry of [
+      {filename: neutral, previous_filename: filename, status: 'renamed'},
+      {filename, previous_filename: neutral, status: 'renamed'},
+    ]) {
+      const renamed = resolveScopeRequirements([entry], {commits: 1, changed_files: 1}, policy);
+      assert.ok(renamed.required_contexts.includes(runtimeContext), `runtime rename lost context: ${filename}`);
+    }
+  }
+
+  const noContextPolicy = structuredClone(policy);
+  noContextPolicy.scope_rules.find(value => value.id === 'runtime-retired-met-control').required_contexts = [];
+  const noContext = resolveScopeRequirements([{filename: rule.exact_paths[0], status: 'modified'}], {commits: 1, changed_files: 1}, noContextPolicy);
+  assert.ok(!noContext.required_contexts.includes(runtimeContext), 'runtime context removal mutation escaped');
+
+  const extraTrigger = workflowSource.replace('    paths:\n', "    paths:\n      - 'docs/kidults/runtime-unmapped-trigger.md'\n");
+  assert.deepEqual(pullRequestTriggerFindings(rule, extraTrigger), []);
+  assert.notDeepEqual([...pullRequestPathTriggers(extraTrigger)].sort(), [...rule.exact_paths].sort(), 'unmapped runtime trigger escaped reverse-parity guard');
+
+  for (const mutation of [
+    workflowSource.replace(`    name: ${runtimeContext}`, '    name: KIDULTS Runtime Control Baseline Renamed'),
+    workflowSource.replace('  runtime-control-baseline:\n    name:', '  runtime-control-baseline:\n    if: ${{ false }}\n    name:'),
+    workflowSource.replace('  governed-met-owner-assurance:\n    name:', '  governed-met-owner-assurance:\n    if: ${{ false }}\n    name:'),
+    workflowSource.replace('    needs: governed-met-owner-assurance\n', ''),
+  ]) assert.ok(runtimeWorkflowFindings(mutation).length > 0, 'runtime workflow mutation escaped');
+});
+
+test('required #1596 runtime check rejects missing, renamed, skipped and failed conclusions', () => {
+  const success = {id: 1, name: runtimeContext, status: 'completed', conclusion: 'success', completed_at: '2026-08-30T00:00:00Z', app: {id: 15368}};
+  assert.equal(evaluateRequiredCheckRuns([success], [runtimeContext], {expectedIntegrationId: 15368})[0].context, runtimeContext);
+  code(() => evaluateRequiredCheckRuns([], [runtimeContext], {expectedIntegrationId: 15368}), 'REQUIRED_CONTEXT_MISSING');
+  code(() => evaluateRequiredCheckRuns([{...success, name: `${runtimeContext} Renamed`}], [runtimeContext], {expectedIntegrationId: 15368}), 'REQUIRED_CONTEXT_MISSING');
+  code(() => evaluateRequiredCheckRuns([{...success, conclusion: 'skipped'}], [runtimeContext], {expectedIntegrationId: 15368}), 'REQUIRED_CONTEXT_NOT_SUCCESS');
+  code(() => evaluateRequiredCheckRuns([{...success, conclusion: 'failure'}], [runtimeContext], {expectedIntegrationId: 15368}), 'REQUIRED_CONTEXT_NOT_SUCCESS');
 });
 
 test('every Met V&A Candidate R2 surface is PR-triggered by one unique native job context', () => {

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { validateRetiredMetInvokerReceipt } from '../runtime/validate-retired-met-hold-receipt-v1.mjs';
 
 const [metPath, gettyPath, outputPath = '/tmp/asi-real-source-processor-bridge-r1.json'] = process.argv.slice(2);
 if (!metPath || !gettyPath) throw new Error('Usage: node build-real-source-processor-bridge-r1.mjs <met-artifact> <getty-artifact> [output]');
@@ -18,10 +19,21 @@ function digest(value) {
   return `sha256:${createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')}`;
 }
 
-if (met.validations?.live_public_api_retrieval !== 'PASS' || met.validations?.public_domain_filter !== 'PASS') {
-  throw new Error('MET_REAL_SOURCE_NOT_ADMITTED');
-}
-if (met.validations?.market_event_admission !== 'PROHIBITED') throw new Error('MET_MARKET_EVENT_GUARD_MISSING');
+const metHoldValidation = validateRetiredMetInvokerReceipt({
+  receipt: met,
+  observedExitCode: Number(process.env.KIDULTS_MET_HOLD_OBSERVED_EXIT_CODE),
+  observedSignal: null,
+  expectedLineage: {
+    github_repository: process.env.GITHUB_REPOSITORY,
+    github_repository_owner: process.env.GITHUB_REPOSITORY_OWNER,
+    git_sha: process.env.KIDULTS_EXACT_CHECKOUT_SHA,
+    github_run_id: process.env.GITHUB_RUN_ID,
+    github_run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+    github_workflow_name: process.env.GITHUB_WORKFLOW,
+    github_workflow_ref: process.env.GITHUB_WORKFLOW_REF
+  }
+});
+if (metHoldValidation.state !== 'VERIFIED_RETIRED_HOLD') throw new Error('MET_RETIRED_HOLD_RECEIPT_REQUIRED');
 if (getty.validations?.live_public_api_retrieval !== 'PASS' || getty.validations?.rights_admission !== 'PASS_CC0') {
   throw new Error('GETTY_REAL_SOURCE_NOT_ADMITTED');
 }
@@ -29,15 +41,6 @@ if (getty.validations?.historical_sale_activity_semantics !== 'PASS') throw new 
 if (getty.validations?.current_market_price_semantics !== 'NOT_ESTABLISHED') throw new Error('GETTY_CURRENT_PRICE_GUARD_MISSING');
 
 const admittedInputs = [
-  {
-    source_id: met.source_id,
-    evidence_class: 'IDENTITY_CONTEXT',
-    rights_state: 'ALLOW',
-    freshness_state: 'CURRENT_AT_RETRIEVAL',
-    payload_hash: digest({ samples: met.samples, retrieved_at: met.retrieved_at }),
-    market_event_eligible: false,
-    claim_ceiling: ['OBJECT_IDENTITY', 'CATALOG_CONTEXT', 'REFERENCE_METADATA'],
-  },
   {
     source_id: getty.source_id,
     evidence_class: 'HISTORICAL_SALE_ACTIVITY',
@@ -75,7 +78,7 @@ const result = {
   execution_mode: 'DEV_SHADOW_ONLY',
   generated_at: new Date().toISOString(),
   source_pool_admission: {
-    state: 'PASS_PARTIAL',
+    state: 'PASS_GETTY_ONLY',
     admitted_input_count: admittedInputs.length,
     inputs: admittedInputs,
   },
@@ -99,8 +102,8 @@ const result = {
     control: retryDlqControl,
   },
   evidence_admission_report: {
-    state: 'PASS_PARTIAL',
-    identity_context: 'ADMITTED',
+    state: 'PASS_GETTY_ONLY',
+    identity_context: 'WITHHELD_GOVERNED_MET_OWNER_ONLY',
     historical_sale_activity: 'ADMITTED_HISTORICAL_ONLY',
     current_market_price: 'NOT_ADMITTED',
     current_liquidity: 'NOT_ADMITTED',
@@ -121,7 +124,7 @@ const result = {
     ],
   },
   production_mutation: false,
-  truth_boundary: 'This bridge converts live rights-admitted source artifacts into deterministic canonical processor inputs and required preflight reports. It does not claim Queue/D1 real-source injection, current-market sufficiency, Candidate readiness, or Production readiness.'
+  truth_boundary: 'This bridge accepts an exact zero-call retired Met HOLD receipt, excludes Met from admitted inputs, and converts only Getty CC0 historical-provenance metadata into a deterministic local processor input. It does not claim Met/V&A admission, Queue/D1 remote execution, current-market sufficiency, Candidate readiness, or Production readiness.'
 };
 
 await fs.writeFile(outputPath, JSON.stringify(result, null, 2));

@@ -2,8 +2,11 @@
 import fs from 'node:fs';
 import {
   GateFailure,
+  attachWorkflowRunProvenance,
+  assertFailureStatusPublicationReadBack,
   assertStableFinalReread,
-  evaluateRequiredCheckRuns,
+  evaluateProvenanceBoundRequiredCheckRuns,
+  invalidateExactHeadStatusOnFailure,
   resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 
@@ -58,17 +61,30 @@ const arrayPages = async path => {
 const checkPages = async sha => {
   const out = [];
   for (let page = 1; page <= 10; page += 1) {
-    const value = await api(`/commits/${sha}/check-runs?per_page=100&page=${page}`);
+    const value = await api(`/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`);
     if (!Array.isArray(value?.check_runs)) throw new Error('GITHUB_CHECK_RUNS_SHAPE_INVALID');
     out.push(...value.check_runs);
     if (value.check_runs.length < 100) return out;
   }
   throw new Error('GITHUB_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const publishFailureWithReadBack = async failure => {
+  const postEndpoint = `/statuses/${expectedHeadSha}`;
+  const readBackEndpoint = `/commits/${expectedHeadSha}/statuses`;
+  const published = await postStatus('failure', failure?.code || failure?.message || 'scope aggregation failed');
+  const statuses = await arrayPages(readBackEndpoint);
+  assertFailureStatusPublicationReadBack(published, statuses, {
+    expectedHeadSha,
+    expectedContext: context,
+    expectedRepository: repository,
+    postEndpoint,
+    readBackEndpoint,
+  });
+  return published;
+};
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const retryable = new Set(['REQUIRED_CONTEXT_MISSING', 'REQUIRED_CONTEXT_NOT_TERMINAL']);
 
-let pendingPublished = false;
 try {
   const initial = await api(`/pulls/${prNumber}`);
   assertStableFinalReread(initial, initial, {
@@ -77,15 +93,24 @@ try {
     noMergePolicy: landingPolicy.no_merge_policy,
   });
   await postStatus('pending', 'Waiting for exact-head scope requirements');
-  pendingPublished = true;
 
   const files = await arrayPages(`/pulls/${prNumber}/files`);
   const scope = resolveScopeRequirements(files, initial, policy);
   let results = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      results = evaluateRequiredCheckRuns(await checkPages(expectedHeadSha), scope.required_contexts, {
+      const checkRuns = await attachWorkflowRunProvenance(
+        (await checkPages(expectedHeadSha)).filter(run => scope.required_contexts.includes(run?.name)), {
+          loadWorkflowRun: runId => api(`/actions/runs/${runId}`),
+          loadWorkflowJob: jobId => api(`/actions/jobs/${jobId}`),
+          expectedRepository: repository,
+        });
+      results = evaluateProvenanceBoundRequiredCheckRuns(checkRuns, scope.required_contexts, {
         expectedIntegrationId: policy.native_status_binding.integration_id,
+        expectedHeadSha,
+        expectedRepository: repository,
+        expectedPrNumber: Number(prNumber),
+        requiredContextProducers: policy.required_context_producers,
       });
       break;
     } catch (error) {
@@ -117,8 +142,5 @@ try {
     production: 'HOLD', public_release: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {
-  if (pendingPublished) {
-    try { await postStatus('failure', error?.code || error?.message || 'scope aggregation failed'); } catch {}
-  }
-  throw error;
+  await invalidateExactHeadStatusOnFailure(error, publishFailureWithReadBack);
 }

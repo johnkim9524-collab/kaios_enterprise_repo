@@ -1,6 +1,6 @@
 {
   "id": "kidults-scope-aware-required-status-policy-v1",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
@@ -23,6 +23,75 @@
     "integration_name": "GitHub Actions",
     "repository_ruleset_source_required": true,
     "bypass_actors_forbidden": true
+  },
+  "required_context_producers": {
+    "KAIOS Solo Owner Preflight": {
+      "workflow_path": ".github/workflows/solo-owner-preflight.yml",
+      "workflow_name": "KAIOS Solo Owner Preflight",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "Validate KAIOS Foundation": {
+      "workflow_path": ".github/workflows/ci-validation.yml",
+      "workflow_name": "CI Validation",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "Validate Production Container": {
+      "workflow_path": ".github/workflows/ci-validation.yml",
+      "workflow_name": "CI Validation",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS Governed Landing Control Validation V1": {
+      "workflow_path": ".github/workflows/kidults-postgres-d1-boundary-v1.yml",
+      "workflow_name": "KIDULTS PostgreSQL System Ledger and D1 Writer Boundary v1",
+      "event": "pull_request_target",
+      "producer_kind": "trusted_pull_request_target_job"
+    },
+    "KIDULTS Cloudflare One-Shot Trust Boundary V1": {
+      "workflow_path": ".github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml",
+      "workflow_name": "KPMO CF-KIDULTS-14501AC-01 Preflight",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS Cloudflare STAGING Governance Boundary V1": {
+      "workflow_path": ".github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml",
+      "workflow_name": "KIDULTS Cloudflare Pages STAGING Governance Validation v1",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS PostgreSQL One-Shot Authorization Boundary V1": {
+      "workflow_path": ".github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml",
+      "workflow_name": "KIDULTS PostgreSQL One-Shot Authorization Native Gate V1",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS Shared Portal Evidence Integrity V1": {
+      "workflow_path": ".github/workflows/kidults-shared-portal-evidence-integrity-v1.yml",
+      "workflow_name": "KIDULTS Shared Portal Evidence Integrity V1",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS Runtime Control Baseline R1": {
+      "workflow_path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+      "workflow_name": "KIDULTS Runtime Control Baseline R1",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    },
+    "KIDULTS Met V&A Candidate R2 Boundary V1": {
+      "workflow_path": ".github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml",
+      "workflow_name": "KIDULTS Met V&A Candidate R2 Native Boundary V1",
+      "event": "pull_request",
+      "producer_kind": "github_actions_pull_request_job"
+    }
+  },
+  "trusted_pull_request_target_liveness": {
+    "state": "REMOTE_EVIDENCE_REQUIRED_HOLD",
+    "producer_context": "KIDULTS Governed Landing Control Validation V1",
+    "required_remote_receipt": "NATIVE_CHECK_HEAD_EQUALS_CANDIDATE__RUN_AND_JOB_HEAD_EQUAL_TRUSTED_BASE__EVENT_PR_NUMBER_REPOSITORY_AND_HEAD_EXACT",
+    "local_event_semantics_fixture_is_remote_evidence": false,
+    "native_required_binding_activation_before_receipt": "HOLD"
   },
   "scope_rules": [
     {
@@ -142,6 +211,46 @@
       ]
     },
     {
+      "id": "runtime-retired-met-control",
+      "prefixes": [],
+      "exact_paths": [
+        "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+        "scripts/kidults/runtime/validate-retired-met-hold-receipt-v1.mjs",
+        "coordination/kidults/runtime/retired-met-hold-receipt-contract-v1.json",
+        "scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs",
+        "tests/kidults/runtime/retired-met-hold-receipt-v1.test.mjs",
+        ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+        "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
+        "coordination/kidults/source-intelligence/asi-shadow-operating-evidence-contract-v1.json",
+        "scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs",
+        ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+        "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
+        ".github/workflows/kidults-autonomous-met-sample.yml",
+        "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json",
+        "scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs",
+        "scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs",
+        "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs",
+        "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs",
+        "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
+        "services/kidults-autonomous-intelligence/src/asi/event.ts",
+        "services/kidults-autonomous-intelligence/src/asi/processors.ts",
+        "services/kidults-autonomous-intelligence/src/asi/processor-runtime.ts",
+        "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+        "services/kidults-autonomous-intelligence/src/asi/registry.ts",
+        "services/kidults-autonomous-intelligence/migrations/0001_canonical_foundation.sql",
+        "services/kidults-autonomous-intelligence/migrations/0002_autonomous_orchestration.sql",
+        "services/kidults-autonomous-intelligence/migrations/0003_asi_market_funnel_shadow.sql",
+        "services/kidults-autonomous-intelligence/migrations/0004_asi_processor_shadow.sql",
+        "services/kidults-autonomous-intelligence/migrations/0005_asi_runtime_recovery_fairness_shadow.sql",
+        "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql",
+        "services/kidults-autonomous-intelligence/package.json",
+        "services/kidults-autonomous-intelligence/package-lock.json"
+      ],
+      "required_contexts": [
+        "KIDULTS Runtime Control Baseline R1"
+      ]
+    },
+    {
       "id": "met-vam-candidate-r2",
       "prefixes": [
         ".github/workflows/kidults-autonomous-met-",
@@ -189,7 +298,18 @@
     "missing_context_fails": true,
     "cancelled_skipped_neutral_timed_out_fail": true,
     "duplicate_latest_timestamp_fails": true,
-    "self_context_is_never_aggregated": true
+    "status_context_case_insensitive": true,
+    "self_context_is_never_aggregated": true,
+    "exactly_one_check_run_per_context": true,
+    "workflow_path_name_event_head_repository_bound": true,
+    "actions_run_api_readback_required": true,
+    "actions_job_check_run_exact_binding_required": true,
+    "check_runs_filter_all_required": true,
+    "check_suite_run_binding_required": true,
+    "check_and_job_terminal_outcome_consistency_required": true,
+    "event_pull_request_number_repository_head_association_required": true,
+    "failure_status_independent_readback_required": true,
+    "post_success_premerge_provenance_reread_required": true
   },
   "authority_boundary": {
     "technical_status_is_merge_authority": false,

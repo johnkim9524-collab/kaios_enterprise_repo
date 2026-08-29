@@ -1,0 +1,58 @@
+{
+  "id": "kidults-retired-met-invoker-contract-v1",
+  "version": "1.0.0",
+  "issue": 1596,
+  "state": "RETIRED_HARD_HOLD",
+  "invoker": {
+    "runner": "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
+    "parent_control": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+    "github_repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "github_repository_owner": "johnkim9524-collab",
+    "github_workflow_name": "KIDULTS Runtime Control Baseline R1",
+    "github_workflow_path": ".github/workflows/kidults-runtime-control-baseline-r1.yml"
+  },
+  "process_outcome": {
+    "expected_exit_code": 3,
+    "expected_signal": null
+  },
+  "receipt": {
+    "id": "met-real-source-admission-run-r1",
+    "version": "1.2.0",
+    "status": "HOLD_GOVERNED_MET_OWNER_ONLY",
+    "execution_mode": "LEGACY_DIRECT_PROVIDER_PATH_DISABLED",
+    "source_id": "met-open-access-api",
+    "blocker": "ONLY_AUTONOMOUS_MET_SAMPLE_WORKFLOW_MAY_PERFORM_LIVE_REFERENCE_READS",
+    "governed_owner_workflow": ".github/workflows/kidults-autonomous-met-sample.yml",
+    "required_zero_fields": [
+      "provider_call_count",
+      "requests_executed",
+      "sample_count",
+      "track_b_submission_count",
+      "track_b_assessment_count"
+    ],
+    "required_false_fields": [
+      "data_admission_performed",
+      "immutable_candidate_evidence_pair_created",
+      "production_mutation"
+    ],
+    "required_empty_array_fields": [
+      "samples"
+    ]
+  },
+  "lineage": {
+    "required_fields": [
+      "github_repository",
+      "github_repository_owner",
+      "git_sha",
+      "github_run_id",
+      "github_run_attempt",
+      "github_workflow_name",
+      "github_workflow_ref",
+      "parent_control"
+    ],
+    "git_sha_pattern": "^[0-9a-f]{40}$",
+    "positive_integer_string_pattern": "^[1-9][0-9]*$",
+    "workflow_ref_pattern": "^johnkim9524-collab/kaios_enterprise_repo/[.]github/workflows/kidults-runtime-control-baseline-r1[.]yml@.+$"
+  },
+  "truth_boundary": "A valid receipt proves only that the retired invoker exited with code 3 and emitted an exact zero-provider, zero-admission, zero-Candidate, zero-Track-B, zero-Production HOLD receipt bound to one GitHub run lineage. It authorizes no provider call or downstream action."
+}

@@ -4,8 +4,18 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs'
+      - 'scripts/kidults/runtime/validate-retired-met-hold-receipt-v1.mjs'
+      - 'coordination/kidults/runtime/retired-met-hold-receipt-contract-v1.json'
+      - 'scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs'
+      - 'tests/kidults/runtime/retired-met-hold-receipt-v1.test.mjs'
+      - '.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-shadow-operating-evidence-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs'
       - '.github/workflows/kidults-runtime-control-baseline-r1.yml'
       - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
+      - '.github/workflows/kidults-autonomous-met-sample.yml'
+      - 'coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json'
       - 'scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs'
       - 'scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs'
       - 'services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs'
@@ -39,15 +49,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  governed-met-owner-assurance:
+    name: KIDULTS Runtime Governed Met Owner Assurance R1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Initialize governed-owner diagnostic before fallible work
+        env:
+          EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node -e "const fs=require('fs');fs.writeFileSync('/tmp/kidults-met-owner-assurance-v1.json',JSON.stringify({schema_version:'1.5.0',receipt_type:'KIDULTS_MET_ACQUISITION_ASSURANCE_INVARIANT',state:'DIAGNOSTIC_INITIALIZED',runtime_lineage:{git_sha:process.env.EXACT_SHA,github_run_id:process.env.GITHUB_RUN_ID,github_run_attempt:process.env.GITHUB_RUN_ATTEMPT,github_workflow_ref:process.env.GITHUB_WORKFLOW_REF}},null,2)+'\n')"
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Read back exact PR head or dispatch SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24.19.0'
+      - name: Independently validate active governed Met owner lane
+        env:
+          KIDULTS_EXACT_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs /tmp/kidults-met-owner-assurance-v1.json
+      - name: Reject retired-receipt replay and boundary mutations
+        run: node --test tests/kidults/runtime/retired-met-hold-receipt-v1.test.mjs
+      - name: Upload governed-owner diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-met-owner-assurance-v1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/kidults-met-owner-assurance-v1.json
+          if-no-files-found: error
+          retention-days: 30
+
   runtime-control-baseline:
+    name: KIDULTS Runtime Control Baseline R1
+    needs: governed-met-owner-assurance
+    if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
+      - name: Initialize runtime diagnostic before fallible work
+        env:
+          EXACT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node -e "const fs=require('fs');fs.writeFileSync('/tmp/kidults-runtime-control-baseline-r1.json',JSON.stringify({id:'kidults-runtime-control-baseline-r1',schema_version:'2.0.0',state:'DIAGNOSTIC_INITIALIZED',production:'HOLD',runtime_lineage:{git_sha:process.env.EXACT_SHA,github_run_id:process.env.GITHUB_RUN_ID,github_run_attempt:process.env.GITHUB_RUN_ATTEMPT,github_workflow_ref:process.env.GITHUB_WORKFLOW_REF}},null,2)+'\n')"
       - name: Checkout repository
         # actions/checkout v5.0.0
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Read back exact PR head or dispatch SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Set up Node.js
         # actions/setup-node v5.0.0
@@ -57,16 +119,24 @@ jobs:
       - name: Install ASI runtime dependencies
         working-directory: services/kidults-autonomous-intelligence
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Measure live-metadata-derived local in-memory CI control workload
+      - name: Verify retired Met HOLD and active governed owner lane
+        env:
+          KIDULTS_EXACT_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: node scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs /tmp/kidults-runtime-control-baseline-r1.json
-      - name: Enforce exact local synthetic control-only truth boundary
+      - name: Require independent governed-owner assurance
+        if: always()
+        env:
+          OWNER_ASSURANCE_RESULT: ${{ needs.governed-met-owner-assurance.result }}
+        run: test "$OWNER_ASSURANCE_RESULT" = success
+      - name: Enforce exact zero-call HOLD and governed-owner truth boundary
         run: |
-          node -e "const x=require('/tmp/kidults-runtime-control-baseline-r1.json'); if(x.environment_class!=='CI_CONTROL'||x.workload_class!=='LIVE_METADATA_DERIVED_LOCAL_IN_MEMORY_BOUNDED_CONTROL'||x.backend.database!=='LOCAL_IN_MEMORY_SQLITE'||x.backend.queue!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||x.backend.remote_cloudflare!==false||x.backend.canonical_cloudflare_durability_verified!==false||x.original_source_record_processed!==false||x.validations.timing_instrumentation!=='PASS'||x.validations.live_metadata_retrieval_workflow!=='PASS'||x.validations.local_queue_d1_compatible_harness!=='PASS'||x.validations.synthetic_retry_dlq_control!=='PASS'||x.validations.synthetic_fail_closed_rights_hold!=='PASS'||x.validations.forced_failure_source_observed!==false||x.validations.unknown_rights_source_observed!==false||x.validations.remote_cloudflare_execution_verified!==false||x.validations.dev_environment_measured!=='NOT_YET'||x.validations.staging_environment_measured!=='NOT_YET'||x.validations.business_capacity_claim_authorized!==false||x.validations.production_mutation!==false||x.production!=='HOLD') process.exit(1); console.log('Local in-memory CI control baseline PASS; remote Cloudflare, DEV/STAGING capacity, and business claims remain blocked.')"
-      - name: Upload local runtime control artifacts
+          node -e "const x=require('/tmp/kidults-runtime-control-baseline-r1.json'); if(x.state!=='VERIFIED_PASS'||x.environment_class!=='CI_CONTROL'||x.workload_class!=='RETIRED_MET_HOLD_AND_GETTY_ONLY_BOUNDED_CONTROL'||x.backend.database!=='LOCAL_IN_MEMORY_SQLITE'||x.backend.queue!=='LOCAL_DETERMINISTIC_IN_MEMORY_QUEUE'||x.backend.remote_cloudflare!==false||x.retired_met_provider_call_count!==0||x.data_admission_performed!==false||x.immutable_candidate_evidence_pair_created!==false||x.validations.retired_met_hold_exact!=='PASS'||x.validations.no_provider_call!=='PASS_ZERO'||x.validations.no_data_admission!=='PASS_FALSE'||x.validations.no_candidate_or_track_b!=='PASS_FALSE_ZERO'||x.validations.no_production_mutation!=='PASS_FALSE'||x.validations.governed_owner_identity!=='PASS_EXACT_PATH_AND_NAME'||x.validations.governed_owner_lane!=='PASS_ACTIVE_EXACT_MAIN_SERIALIZED_REFERENCE_DISCOVERY'||x.validations.downstream_lane!=='PASS_GETTY_ONLY_BRIDGE_LOCAL_QUEUE_AND_FAILURE_CONTROLS'||x.validations.synthetic_retry_dlq_control!=='PASS'||x.validations.synthetic_fail_closed_rights_hold!=='PASS'||x.validations.candidate_r2!=='HOLD_NOT_ACTIVATED'||x.validations.remote_cloudflare_execution_verified!==false||x.validations.business_capacity_claim_authorized!==false||x.validations.production_mutation!==false||x.production!=='HOLD') process.exit(1); console.log('Retired Met zero-call HOLD, independent governed owner, and Getty-only local controls PASS; Candidate R2, Cloudflare, PostgreSQL, and Production remain blocked.')"
+      - name: Upload runtime control diagnostics
+        if: always()
         # actions/upload-artifact v4.6.2
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-runtime-control-baseline-r1
+          name: kidults-runtime-control-baseline-r1-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             /tmp/kidults-runtime-control-baseline-r1.json
             /tmp/met-real-source-admission-r1.json

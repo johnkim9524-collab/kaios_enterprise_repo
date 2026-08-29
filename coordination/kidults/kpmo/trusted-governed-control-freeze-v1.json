@@ -40,6 +40,7 @@
     ".github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml",
     ".github/workflows/kidults-shared-portal-evidence-integrity-v1.yml",
     ".github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml",
+    ".github/workflows/kidults-runtime-control-baseline-r1.yml",
     ".github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml"
   ],
   "authority_boundary": {

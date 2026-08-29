@@ -2,12 +2,16 @@
 import fs from 'node:fs';
 import {
   assertLandingActorAndAuthorization,
+  assertFailureStatusPublicationReadBack,
+  assertFreshExactHeadSuccessStatus,
+  attachWorkflowRunProvenance,
   assertNativeRequiredStatusBindings,
   assertRepositoryDefaultBranch,
   assertRepositoryDefaultBranchRuleset,
   assertSoloOwnerProtectPullRequestRule,
   assertStableFinalReread,
-  evaluateRequiredCheckRuns,
+  evaluateProvenanceBoundRequiredCheckRuns,
+  invalidateExactHeadStatusOnFailure,
   resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 
@@ -61,7 +65,7 @@ const pages = async path => {
 const checkRuns = async sha => {
   const output = [];
   for (let page = 1; page <= 10; page += 1) {
-    const payload = await request(`/commits/${sha}/check-runs?per_page=100&page=${page}`);
+    const payload = await request(`/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`);
     if (!Array.isArray(payload?.check_runs)) throw new Error('CHECK_RUNS_SHAPE_INVALID');
     output.push(...payload.check_runs);
     if (payload.check_runs.length < 100) return output;
@@ -79,11 +83,36 @@ const assertLiveControlMain = async (prSnapshot) => {
   if (branch?.commit?.sha !== controlSha) throw new Error('ATOMIC_LANDING_LIVE_MAIN_CONTROL_SHA_DRIFT');
   if (prSnapshot?.base?.sha !== controlSha) throw new Error('PULL_REQUEST_BASE_SHA_NOT_EXACT_CONTROL_MAIN');
 };
+const validateRequiredCheckProvenance = async requiredContexts =>
+  evaluateProvenanceBoundRequiredCheckRuns(await attachWorkflowRunProvenance(
+    (await checkRuns(expectedHeadSha)).filter(run => requiredContexts.includes(run?.name)), {
+      loadWorkflowRun: runId => request(`/actions/runs/${runId}`),
+      loadWorkflowJob: jobId => request(`/actions/jobs/${jobId}`),
+      expectedRepository: repository,
+    }), requiredContexts, {
+    expectedIntegrationId: scopePolicy.native_status_binding.integration_id,
+    expectedHeadSha,
+    expectedRepository: repository,
+    expectedPrNumber: Number(prNumber),
+    requiredContextProducers: scopePolicy.required_context_producers,
+  });
+const publishFailureWithReadBack = async failure => {
+  const postEndpoint = `/statuses/${expectedHeadSha}`;
+  const readBackEndpoint = `/commits/${expectedHeadSha}/statuses`;
+  const published = await publish('failure', failure?.code || failure?.message || 'atomic landing failed');
+  const statuses = await pages(readBackEndpoint);
+  assertFailureStatusPublicationReadBack(published, statuses, {
+    expectedHeadSha,
+    expectedContext: context,
+    expectedRepository: repository,
+    postEndpoint,
+    readBackEndpoint,
+  });
+  return published;
+};
 
-let statusTouched = false;
 try {
   await publish('pending', 'Atomic landing final checks in progress');
-  statusTouched = true;
   const repositoryState = await request('');
   assertRepositoryDefaultBranch(repositoryState);
   assertLandingActorAndAuthorization(landingActor, landingTriggeringActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha, landingRunAttempt);
@@ -112,13 +141,10 @@ try {
   ], {repository, integrationId: scopePolicy.native_status_binding.integration_id});
 
   const statuses = await request(`/commits/${expectedHeadSha}/status`);
-  const aggregator = (statuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
-  if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
+  assertFreshExactHeadSuccessStatus(statuses.statuses || [], scopePolicy.required_status_context, initial.updated_at);
   const files = await pages(`/pulls/${prNumber}/files`);
   const scopedRequirements = resolveScopeRequirements(files, initial, scopePolicy);
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopedRequirements.required_contexts, {
-    expectedIntegrationId: scopePolicy.native_status_binding.integration_id,
-  });
+  await validateRequiredCheckProvenance(scopedRequirements.required_contexts);
 
   const timeline = await pages(`/issues/${prNumber}/timeline`);
   const readinessEvents = timeline.filter(value => value.event === 'ready_for_review' || value.event === 'convert_to_draft');
@@ -138,18 +164,14 @@ try {
   await assertLiveControlMain(final);
   if (final.mergeable !== true || !['clean', 'unstable', 'has_hooks'].includes(final.mergeable_state)) throw new Error('FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
   const finalStatuses = await request(`/commits/${expectedHeadSha}/status`);
-  const finalAggregator = (finalStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
-  if (finalAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
+  assertFreshExactHeadSuccessStatus(finalStatuses.statuses || [], scopePolicy.required_status_context, final.updated_at);
   const finalFiles = await pages(`/pulls/${prNumber}/files`);
   const finalScopedRequirements = resolveScopeRequirements(finalFiles, final, scopePolicy);
   if (JSON.stringify(finalScopedRequirements) !== JSON.stringify(scopedRequirements)) throw new Error('IMMEDIATE_PREMERGE_SCOPE_REQUIREMENTS_DRIFT');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), finalScopedRequirements.required_contexts, {
-    expectedIntegrationId: scopePolicy.native_status_binding.integration_id,
-  });
+  await validateRequiredCheckProvenance(finalScopedRequirements.required_contexts);
 
-  // Native merge protection needs this context to become successful. Keep the
-  // post-success window to one PR read, one live-main read and the SHA-bound
-  // merge request; all paginated/status/check work is completed above.
+  // Native merge protection needs this context to become successful. Re-read
+  // every live authority surface after publication before the SHA-bound merge.
   await publish('success', 'Exact-head atomic landing authorized');
   const immediatePreMerge = await request(`/pulls/${prNumber}`);
   assertStableFinalReread(initial, immediatePreMerge, {
@@ -158,6 +180,14 @@ try {
     noMergePolicy: policy.no_merge_policy,
   });
   await assertLiveControlMain(immediatePreMerge);
+  const immediateStatuses = await request(`/commits/${expectedHeadSha}/status`);
+  assertFreshExactHeadSuccessStatus(immediateStatuses.statuses || [], scopePolicy.required_status_context, immediatePreMerge.updated_at);
+  const immediateFiles = await pages(`/pulls/${prNumber}/files`);
+  const immediateScopedRequirements = resolveScopeRequirements(immediateFiles, immediatePreMerge, scopePolicy);
+  if (JSON.stringify(immediateScopedRequirements) !== JSON.stringify(finalScopedRequirements)) {
+    throw new Error('POST_SUCCESS_SCOPE_REQUIREMENTS_DRIFT');
+  }
+  await validateRequiredCheckProvenance(immediateScopedRequirements.required_contexts);
   const merged = await request(`/pulls/${prNumber}/merge`, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -180,6 +210,8 @@ try {
     initial_live_read: true,
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
+    immediate_post_status_aggregator_reread: true,
+    immediate_post_status_specialized_checks_reread: true,
     server_side_expected_head_compare: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: [
@@ -190,8 +222,5 @@ try {
     public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {
-  if (statusTouched) {
-    try { await publish('failure', error?.code || error?.message || 'atomic landing failed'); } catch {}
-  }
-  throw error;
+  await invalidateExactHeadStatusOnFailure(error, publishFailureWithReadBack);
 }

@@ -81,8 +81,13 @@ test('documented immutable set contains the control validators, policies and eve
     '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml',
     '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml',
     '.github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml',
+    '.github/workflows/kidults-runtime-control-baseline-r1.yml',
     '.github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml',
   ]) assert.ok(immutable.has(expected), expected);
+  const producerPolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+  for (const producer of Object.values(producerPolicy.required_context_producers || {})) {
+    assert.ok(immutable.has(producer.workflow_path), producer.workflow_path);
+  }
   assert.equal(manifest.ordinary_pull_request_update_allowed, false);
   assert.equal(manifest.bootstrap_exception.must_be_explicitly_authorized_by_program_owner, true);
   assert.equal(manifest.bootstrap_exception.does_not_authorize_production_public_or_g5, true);
@@ -169,7 +174,7 @@ test('pull_request_target workflow pins exact base/head and runs only the truste
 
 test('all freeze authority surfaces require the native trusted-control context', () => {
   const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-  assert.equal(policy.version, '1.4.0');
+  assert.equal(policy.version, '1.6.0');
   for (const filename of [
     DEFAULT_MANIFEST_PATH,
     validatorPath,

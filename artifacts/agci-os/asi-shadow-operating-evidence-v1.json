@@ -7,7 +7,7 @@
   "contract": {
     "id": "kidults-asi-shadow-operating-evidence-contract-v1",
     "version": "1.0.0",
-    "fingerprint": "sha256:32488f109ab04545c2968a7ae1bfc86e3d115e83f8317bb4a9c5b4ed5277c21f"
+    "fingerprint": "sha256:3650726859e011196f70ed9195801ea9d60a811b871d1b1a48d9f8dbece4e050"
   },
   "principles": [
     "AUTONOMOUS",
@@ -118,6 +118,12 @@
       "version": "1.0.0",
       "fingerprint": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f"
     },
+    "retired_met_hold_receipt_contract": {
+      "path": "coordination/kidults/runtime/retired-met-hold-receipt-contract-v1.json",
+      "id": "kidults-retired-met-invoker-contract-v1",
+      "version": "1.0.0",
+      "fingerprint": "sha256:11d83020bb6cd3ec75250756c8ccdb4d637d39348c60d7d74dae0046c291c2d6"
+    },
     "rights_access_review": {
       "path": "coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json",
       "id": "kidults-asi-source-rights-access-review-r1",
@@ -205,8 +211,8 @@
     },
     "met_real_source_admission_runner": {
       "path": "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
-      "sha256": "sha256:9638b40a4130ced55e0fda252946b451b165e7f8ae4405a094c765148f1defae",
-      "byte_count": 1065
+      "sha256": "sha256:ce196e1d62b0355b64a9b8f0b43350d3ea7662752662fc6f6d84c5365014345c",
+      "byte_count": 1653
     },
     "getty_historical_sale_runner": {
       "path": "scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs",
@@ -215,8 +221,8 @@
     },
     "real_source_processor_bridge_builder": {
       "path": "scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs",
-      "sha256": "sha256:77b343d3ea70c98bd3a84f4056fee08e4523731f848fd6a39f44360250d81b36",
-      "byte_count": 5271
+      "sha256": "sha256:b6b2e866bfa1d469d775d66994c3b2fb816b1816daa437403aca0854b3f27e23",
+      "byte_count": 5561
     },
     "real_source_queue_d1_injection_runner": {
       "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs",
@@ -255,8 +261,23 @@
     },
     "runtime_control_baseline_runner": {
       "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
-      "sha256": "sha256:317ea44eaf5d48d1f6c1e77173496ee0b53a3ec735b8e62adce2fefb20a5f7da",
-      "byte_count": 5036
+      "sha256": "sha256:813e677bbfa66a567d68d200eea88cff980f54bc81b9d2df6e483cbdea5f4c95",
+      "byte_count": 12958
+    },
+    "retired_met_hold_receipt_validator": {
+      "path": "scripts/kidults/runtime/validate-retired-met-hold-receipt-v1.mjs",
+      "sha256": "sha256:fed99f0a75583573dcc2c0cfc38e3ff23a3a580d1331a63bba64098f9e904988",
+      "byte_count": 6717
+    },
+    "met_acquisition_assurance_validator": {
+      "path": "scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs",
+      "sha256": "sha256:fd92b4e4c7eed1090a8f4b33f04639bd33bf2f57011bfed507ddf39dc531c861",
+      "byte_count": 22524
+    },
+    "retired_met_hold_receipt_negative_tests": {
+      "path": "tests/kidults/runtime/retired-met-hold-receipt-v1.test.mjs",
+      "sha256": "sha256:0cc14fd2fc632aaa565793401e4472ea84966875c9f35e3d3a2ad7582c209cce",
+      "byte_count": 6766
     },
     "entity_resolution_benchmark_runner": {
       "path": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
@@ -355,8 +376,8 @@
     },
     "runtime_control_baseline_workflow": {
       "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
-      "sha256": "sha256:66ce21aeaeca33df05f95fcf123ec80a9e6e6ea156d9dfcaf3887bd68b5b793e",
-      "byte_count": 4936
+      "sha256": "sha256:04fcf2b7cf662af40f61f1196279e89edba710a9b20e05049fa67fbb5b7ccfd2",
+      "byte_count": 9698
     },
     "global_rights_source_pool_expansion_r2_workflow": {
       "path": ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml",
@@ -520,8 +541,8 @@
     },
     "shadow_evidence_builder": {
       "path": "scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs",
-      "sha256": "sha256:48feab104daaaf216f530c5f309d6afdce7181b3a826e76c4aee9344b0c6081b",
-      "byte_count": 131119
+      "sha256": "sha256:c2ed0c6a003984c6bd7ffd757a9410aeb20fa3d42f86699557b8a070679b8d78",
+      "byte_count": 131438
     },
     "shadow_evidence_validator": {
       "path": "scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs",
@@ -530,8 +551,8 @@
     },
     "shadow_evidence_workflow": {
       "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
-      "sha256": "sha256:8c0b52312a47c5583ae4f2edb50edfbeafe5e976be0ffeac51d4f7a5e76c424a",
-      "byte_count": 17099
+      "sha256": "sha256:7779c79377868cac77f9cffebd8bea4700bfa2b0e6b6c769dbe0d6bd9891f152",
+      "byte_count": 17701
     },
     "root_package_manifest": {
       "path": "package.json",
@@ -1318,8 +1339,8 @@
       "runtime_core_fingerprint": "sha256:e6403da65d8c8deae089e04e19272ebefa41dbfd2aa55792c5e9a6279fa67d2f",
       "baseline_runner_ref": {
         "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
-        "sha256": "sha256:317ea44eaf5d48d1f6c1e77173496ee0b53a3ec735b8e62adce2fefb20a5f7da",
-        "byte_count": 5036
+        "sha256": "sha256:813e677bbfa66a567d68d200eea88cff980f54bc81b9d2df6e483cbdea5f4c95",
+        "byte_count": 12958
       },
       "runtime_core_workflow_ref": {
         "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
@@ -1328,8 +1349,8 @@
       },
       "baseline_workflow_ref": {
         "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
-        "sha256": "sha256:66ce21aeaeca33df05f95fcf123ec80a9e6e6ea156d9dfcaf3887bd68b5b793e",
-        "byte_count": 4936
+        "sha256": "sha256:04fcf2b7cf662af40f61f1196279e89edba710a9b20e05049fa67fbb5b7ccfd2",
+        "byte_count": 9698
       },
       "queue_recovery_runtime_ref": {
         "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
@@ -2269,5 +2290,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:ae457495af5ec63eebf0d8e76d9597c7b71bbad37c47076e5660005216d7bb66"
+  "evidence_fingerprint": "sha256:3dab44548e1692cb442b1b714044c0e8e3fde32fb5a1edd70c65e2c1a2080052"
 }
