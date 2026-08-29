@@ -1,0 +1,51 @@
+{
+  "id": "cf-kidults-14501ac-01-program-owner-approval-v1",
+  "state": "PROGRAM_OWNER_EXPLICIT_ONE_SHOT_APPROVAL",
+  "approval_id": "CF-KIDULTS-14501AC-01",
+  "source_type": "PROGRAM_OWNER_CURRENT_CHAT_MESSAGE",
+  "source_event_id": "CF-KIDULTS-14501AC-01",
+  "source_text_sha256": "sha256:69bb0b446992e067269b36beb11f936f52e2a08d104d94d9f9940f2a6c9ad71f",
+  "observed_at": "2026-08-30T00:54:47+09:00",
+  "expires_at": "2026-08-30T01:44:47+09:00",
+  "one_time": true,
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "project": "kidults-workspace-staging",
+  "expected_account_id": "235eaa51d04e7f4436a9faa507a04f9d",
+  "target_sha": "14501ac022bdd7c918924a207f257b047b1ba970",
+  "max_materialized_preview_deletions": 588,
+  "authorization": {
+    "read_only_parity_preflight": true,
+    "delete_materialized_preview_only": true,
+    "preserve_all_production_deployments": true,
+    "governed_staging_deploy_once": true,
+    "final_read_only_verification": true
+  },
+  "fail_closed_on": [
+    "HTTP_401",
+    "HTTP_403",
+    "HTTP_404",
+    "HTTP_5XX",
+    "TIMEOUT",
+    "ACCOUNT_MISMATCH",
+    "PROJECT_MISMATCH",
+    "REPOSITORY_MISMATCH",
+    "SETTINGS_MISMATCH",
+    "APPROVAL_EXPIRY",
+    "APPROVAL_REPLAY",
+    "PREVIEW_COUNT_OVER_588"
+  ],
+  "forbidden": {
+    "enable_automatic_git_deployments": true,
+    "delete_production_deployments": true,
+    "delete_pages_project": true,
+    "public_release": true,
+    "platform_production": true,
+    "g5": true
+  },
+  "truth_boundary": {
+    "platform_environment": "STAGING",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
