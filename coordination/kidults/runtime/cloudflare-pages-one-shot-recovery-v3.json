@@ -1,12 +1,18 @@
 {
   "id": "kidults-cloudflare-pages-one-shot-recovery-v3",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "operation_id": "KIDULTS_CF_PAGES_PREVIEW_RETIREMENT_GOVERNED_STAGING_2026_08_29",
-  "state": "AUTHORIZED_PENDING_TARGET_PR_BINDING",
-  "target_merge_pr": 0,
+  "state": "AUTHORIZED_PENDING_EXECUTION",
   "project": "kidults-workspace-staging",
   "expected_repository": "johnkim9524-collab/kaios_enterprise_repo",
   "canonical_account_id_digest": "sha256:b44611d7b4a31965ba18e4099a76b50faba95101a4a14d405ce07bee9d580683",
+  "execution_gate": {
+    "workflow_file": "kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml",
+    "prior_success_floor_run_id": 33255714663,
+    "execute_until_first_success_after_floor": true,
+    "retry_after_failure_on_next_successful_main_ci": true,
+    "hardcoded_pull_request_identity_forbidden": true
+  },
   "prior_failed_runs": [
     {
       "run_id": 33255295161,
