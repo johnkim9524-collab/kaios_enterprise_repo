@@ -12,7 +12,8 @@ const paths = {
   copilot: '.github/copilot-instructions.md',
   policy: '.github/AI_AGENT_OPERATING_RULES.md',
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
-  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+  registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
+  enforcement: '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
 };
 for (const p of Object.values(paths)) requireTrue(fs.existsSync(p), `MISSING:${p}`);
 
@@ -22,6 +23,7 @@ const copilot = read(paths.copilot);
 const policy = read(paths.policy);
 const contract = json(paths.contract);
 const registry = json(paths.registry);
+const enforcement = read(paths.enforcement);
 
 const expected = [
   'DETECT_REVERSIBLE_DEFECT',
@@ -63,6 +65,18 @@ requireTrue(registry.mandatory_inheritance?.bootstrap_load_before_task_execution
 requireTrue(JSON.stringify(registry.leadership_execution?.mandatory_bootstrap_sequence) === JSON.stringify(expected), 'REGISTRY_SEQUENCE_ORDER');
 requireTrue(registry.leadership_execution?.routine_report_before_authorized_remediation_forbidden === true, 'REGISTRY_REPORT_ONLY_FORBIDDEN');
 
+// Repository-wide bootstrap enforcement must execute on every PR to main and every main push,
+// plus a periodic sentinel and an explicit manual recovery path. Path filters would allow ordinary
+// code changes to bypass bootstrap validation and are therefore forbidden.
+requireTrue(/^\s*pull_request:\s*\n\s+branches:\s*\[main\]/m.test(enforcement), 'ENFORCEMENT_ALL_PR_TO_MAIN_REQUIRED');
+requireTrue(/^\s*push:\s*\n\s+branches:\s*\[main\]/m.test(enforcement), 'ENFORCEMENT_ALL_MAIN_PUSH_REQUIRED');
+requireTrue(/^\s*schedule:\s*$/m.test(enforcement) && /cron:\s*['"]13 \* \* \* \*['"]/.test(enforcement), 'ENFORCEMENT_HOURLY_SENTINEL_REQUIRED');
+requireTrue(/^\s*workflow_dispatch:\s*$/m.test(enforcement), 'ENFORCEMENT_MANUAL_RECOVERY_REQUIRED');
+requireTrue(!/^\s+paths:\s*$/m.test(enforcement), 'ENFORCEMENT_PATH_FILTER_FORBIDDEN');
+requireTrue(enforcement.includes("ref: ${{ github.event.pull_request.head.sha || github.sha }}"), 'ENFORCEMENT_EXACT_HEAD_CHECKOUT');
+requireTrue(enforcement.includes('persist-credentials: false'), 'ENFORCEMENT_CREDENTIAL_PERSISTENCE_FORBIDDEN');
+requireTrue(enforcement.includes('node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'), 'ENFORCEMENT_VALIDATOR_REQUIRED');
+
 const mutate = (value, transform, label) => {
   const candidate = structuredClone(value);
   transform(candidate);
@@ -78,12 +92,31 @@ mutate(bootstrap, (x) => x.mandatory_sequence = [...x.mandatory_sequence].revers
 mutate(bootstrap, (x) => x.report_only_before_remediation_allowed = true, 'ALLOW_REPORT_ONLY');
 mutate(bootstrap, (x) => x.bootstrap_inheritance.agent_self_exemption_allowed = true, 'ALLOW_SELF_EXEMPTION');
 
+const enforcementMutations = [
+  enforcement.replace('  pull_request:\n    branches: [main]\n', "  pull_request:\n    branches: [main]\n    paths:\n      - 'AGENTS.md'\n"),
+  enforcement.replace("  schedule:\n    - cron: '13 * * * *'\n", ''),
+  enforcement.replace('  workflow_dispatch:\n', ''),
+  enforcement.replace('persist-credentials: false', 'persist-credentials: true')
+];
+for (const mutated of enforcementMutations) {
+  const invalid = /^\s+paths:\s*$/m.test(mutated)
+    || !/^\s*schedule:\s*$/m.test(mutated)
+    || !/^\s*workflow_dispatch:\s*$/m.test(mutated)
+    || mutated.includes('persist-credentials: true');
+  requireTrue(invalid, 'ENFORCEMENT_NEGATIVE_MUTATION_NOT_REJECTED');
+}
+
 console.log(JSON.stringify({
   id:'kidults-ai-agent-bootstrap-remediation-validation-v1',
   state:'VERIFIED_PASS',
   sequence:expected,
   inheritance_count:13,
-  negative_mutations_rejected:3,
+  negative_mutations_rejected:7,
+  repository_wide_pr_enforcement:true,
+  repository_wide_main_push_enforcement:true,
+  hourly_sentinel:true,
+  manual_recovery_path:true,
+  path_filter_allowed:false,
   report_only_before_remediation_allowed:false,
   production:'HOLD',
   public_release:'HOLD',
