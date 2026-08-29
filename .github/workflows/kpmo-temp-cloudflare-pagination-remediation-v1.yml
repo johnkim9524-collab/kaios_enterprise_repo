@@ -1,0 +1,380 @@
+name: KPMO Temporary Cloudflare Pagination Remediation v1
+
+on:
+  push:
+    branches:
+      - kpmo/cloudflare-pages-pagination-fix-v1
+    paths:
+      - .github/workflows/kpmo-temp-cloudflare-pagination-remediation-v1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: kpmo/cloudflare-pages-pagination-fix-v1
+          fetch-depth: 1
+          persist-credentials: true
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Apply bounded Pages pagination and skipped-attempt semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def read(path):
+              return Path(path).read_text()
+
+          def write(path, text):
+              Path(path).write_text(text)
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              return text.replace(old, new, 1)
+
+          readonly_path = 'scripts/ops/cloudflare-pages-boundary-readonly.sh'
+          text = read(readonly_path)
+          text = replace_once(
+              text,
+              'MAX_PAGES="${MAX_PAGES:-100}"\n',
+              'MAX_PAGES="${MAX_PAGES:-100}"\nPAGE_SIZE="${PAGE_SIZE:-25}"\n',
+              'readonly page size declaration',
+          )
+          text = replace_once(
+              text,
+              'if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then\n',
+              'if [[ ! "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( PAGE_SIZE > 25 )); then\n'
+              '  echo "PAGE_SIZE must be an integer from 1 to 25" >&2\n'
+              '  write_preflight_failure_receipt \\\n'
+              '    "REFUSED_INVALID_INPUT" \\\n'
+              '    "INVALID_PAGE_SIZE" \\\n'
+              '    64\n'
+              'fi\n'
+              'if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then\n',
+              'readonly page size guard',
+          )
+          text = text.replace('per_page=100&page=$page', 'per_page=${PAGE_SIZE}&page=$page')
+          if 'per_page=100' in text:
+              raise SystemExit('readonly retained invalid per_page=100')
+          text = replace_once(
+              text,
+              'api_get() {\n'
+              '  local url="$1" output="$2"\n'
+              '  curl --fail-with-body --silent --show-error \\\n'
+              '    --retry 3 --retry-delay 1 --retry-all-errors \\\n'
+              '    --connect-timeout 10 --max-time 45 \\\n'
+              '    --request GET \\\n'
+              '    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \\\n'
+              '    --header "Accept: application/json" \\\n'
+              '    "$url" > "$output"\n'
+              '}\n',
+              'api_get() {\n'
+              '  local url="$1" output="$2" endpoint="project" rc\n'
+              '  if [[ "$url" == *"/deployments"* ]]; then endpoint="deployments"; fi\n'
+              '  set +e\n'
+              '  curl --fail-with-body --silent --show-error \\\n'
+              '    --retry 3 --retry-delay 1 --retry-all-errors \\\n'
+              '    --connect-timeout 10 --max-time 45 \\\n'
+              '    --request GET \\\n'
+              '    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \\\n'
+              '    --header "Accept: application/json" \\\n'
+              '    "$url" > "$output"\n'
+              '  rc=$?\n'
+              '  set -e\n'
+              '  if [[ "$rc" -ne 0 ]]; then\n'
+              '    local codes="[]" messages="[]"\n'
+              '    if jq -e . "$output" >/dev/null 2>&1; then\n'
+              '      codes="$(jq -c \'[.errors[]?.code]\' "$output")"\n'
+              '      messages="$(jq -c \'[.errors[]?.message]\' "$output")"\n'
+              '    fi\n'
+              '    jq -n \\\n'
+              '      --arg endpoint "$endpoint" \\\n'
+              '      --arg project "$PROJECT_NAME" \\\n'
+              '      --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \\\n'
+              '      --argjson exit_code "$rc" \\\n'
+              '      --argjson cloudflare_error_codes "$codes" \\\n'
+              '      --argjson cloudflare_error_messages "$messages" \\\n'
+              '      \'{\n'
+              '        id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",\n'
+              '        state:"BLOCKED_REMOTE_READBACK_ERROR",\n'
+              '        reason_code:"CLOUDFLARE_API_READ_FAILED",\n'
+              '        failure_endpoint:$endpoint,\n'
+              '        exit_code:$exit_code,\n'
+              '        project:$project,\n'
+              '        current_main_sha:$current_main_sha,\n'
+              '        cloudflare_error_codes:$cloudflare_error_codes,\n'
+              '        cloudflare_error_messages:$cloudflare_error_messages,\n'
+              '        cloudflare_api_called:true,\n'
+              '        settings_readback_complete:false,\n'
+              '        deployment_inventory_complete:false,\n'
+              '        read_only:true,settings_mutated:false,deployment_created:false,deployment_deleted:false,\n'
+              '        platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"\n'
+              '      }\' > "$RECEIPT_DIR/final.json"\n'
+              '    cat "$RECEIPT_DIR/final.json"\n'
+              '    return "$rc"\n'
+              '  fi\n'
+              '}\n',
+              'readonly api error receipt',
+          )
+          text = replace_once(
+              text,
+              '  created_on,\n  latest_stage_status:',
+              '  created_on,\n'
+              '  is_skipped: (.is_skipped // false),\n'
+              '  skip_reason: (.skip_reason // null),\n'
+              '  materialized: (((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0))),\n'
+              '  latest_stage_status:',
+              'readonly normalized deployment classification',
+          )
+          text = replace_once(
+              text,
+              'jq \'.[0] // null\' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-deployment.json"\n',
+              'jq \'.[0] // null\' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-attempt.json"\n'
+              'jq \'[.[] | select(.materialized == true)][0] // null\' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-deployment.json"\n',
+              'readonly latest materialized deployment',
+          )
+          text = replace_once(
+              text,
+              'preview_count="$(jq \'[.[] | select(.environment == "preview")] | length\' "$RECEIPT_DIR/deployments.json")"\n',
+              'preview_count="$(jq \'[.[] | select(.environment == "preview" and .materialized == true)] | length\' "$RECEIPT_DIR/deployments.json")"\n'
+              'skipped_preview_attempt_count="$(jq \'[.[] | select(.environment == "preview" and .is_skipped == true)] | length\' "$RECEIPT_DIR/deployments.json")"\n',
+              'readonly preview materialization count',
+          )
+          text = replace_once(
+              text,
+              '  --argjson visible_preview_count "$preview_count" \\\n'
+              '  --slurpfile project_readback',
+              '  --argjson visible_preview_count "$preview_count" \\\n'
+              '  --argjson skipped_preview_attempt_count "$skipped_preview_attempt_count" \\\n'
+              '  --slurpfile project_readback',
+              'readonly receipt skipped preview arg',
+          )
+          text = replace_once(
+              text,
+              '  --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \\\n',
+              '  --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \\\n'
+              '  --slurpfile latest_attempt "$RECEIPT_DIR/latest-attempt.json" \\\n',
+              'readonly latest attempt slurp',
+          )
+          text = replace_once(
+              text,
+              '    visible_preview_count:$visible_preview_count,\n'
+              '    project_readback:$project_readback[0],\n'
+              '    latest_deployment:$latest[0],\n',
+              '    visible_preview_count:$visible_preview_count,\n'
+              '    skipped_preview_attempt_count:$skipped_preview_attempt_count,\n'
+              '    project_readback:$project_readback[0],\n'
+              '    latest_attempt:$latest_attempt[0],\n'
+              '    latest_deployment:$latest[0],\n',
+              'readonly receipt classification fields',
+          )
+          write(readonly_path, text)
+
+          for path in [
+              'scripts/ops/cloudflare-pages-preview-cleanup.sh',
+              'scripts/ops/cloudflare-pages-auto-deployment-containment.sh',
+          ]:
+              text = read(path)
+              text = replace_once(
+                  text,
+                  'MAX_PAGES="${MAX_PAGES:-100}"\n',
+                  'MAX_PAGES="${MAX_PAGES:-100}"\nPAGE_SIZE="${PAGE_SIZE:-25}"\n',
+                  f'{path} page size declaration',
+              )
+              text = replace_once(
+                  text,
+                  'if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then\n',
+                  'if [[ ! "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( PAGE_SIZE > 25 )); then\n'
+                  '  echo "PAGE_SIZE must be an integer from 1 to 25" >&2\n'
+                  '  exit 64\n'
+                  'fi\n'
+                  'if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then\n',
+                  f'{path} page size guard',
+              )
+              text = text.replace('per_page=100&page=$page', 'per_page=${PAGE_SIZE}&page=$page')
+              if 'per_page=100' in text:
+                  raise SystemExit(f'{path} retained invalid per_page=100')
+              write(path, text)
+
+          cleanup_path = 'scripts/ops/cloudflare-pages-preview-cleanup.sh'
+          text = read(cleanup_path)
+          text = replace_once(
+              text,
+              '    url,\n    created_on\n',
+              '    url,\n'
+              '    created_on,\n'
+              '    is_skipped: (.is_skipped // false),\n'
+              '    skip_reason: (.skip_reason // null),\n'
+              '    materialized: (((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0)))\n',
+              'cleanup normalized classification',
+          )
+          text = text.replace(
+              'select(.environment == "preview") | .id',
+              'select(.environment == "preview" and .materialized == true) | .id',
+          )
+          if text.count('select(.environment == "preview" and .materialized == true) | .id') < 2:
+              raise SystemExit('cleanup materialized Preview filter missing')
+          write(cleanup_path, text)
+
+          deploy_path = 'scripts/ops/cloudflare-pages-governed-staging-deploy.sh'
+          text = read(deploy_path).replace('per_page=100&page=1', 'per_page=25&page=1')
+          if 'per_page=100' in text:
+              raise SystemExit('governed deploy retained invalid per_page=100')
+          if text.count('per_page=25&page=1') != 2:
+              raise SystemExit('governed deploy expected two bounded deployment reads')
+          write(deploy_path, text)
+
+          test_path = Path('tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs')
+          test_path.write_text(r'''#!/usr/bin/env node
+          import assert from 'node:assert/strict';
+          import {spawnSync} from 'node:child_process';
+          import fs from 'node:fs';
+          import os from 'node:os';
+          import path from 'node:path';
+
+          const repoRoot = process.cwd();
+          const files = {
+            readonly: 'scripts/ops/cloudflare-pages-boundary-readonly.sh',
+            cleanup: 'scripts/ops/cloudflare-pages-preview-cleanup.sh',
+            contain: 'scripts/ops/cloudflare-pages-auto-deployment-containment.sh',
+            deploy: 'scripts/ops/cloudflare-pages-governed-staging-deploy.sh',
+          };
+          const source = Object.fromEntries(Object.entries(files).map(([key, value]) => [key, fs.readFileSync(value, 'utf8')]));
+          for (const [key, value] of Object.entries(source)) {
+            assert.equal(value.includes('per_page=100'), false, `${key} must reject Cloudflare-invalid per_page=100`);
+          }
+          for (const key of ['readonly', 'cleanup', 'contain']) {
+            assert.match(source[key], /PAGE_SIZE="\$\{PAGE_SIZE:-25\}"/);
+            assert.match(source[key], /PAGE_SIZE > 25/);
+            assert.match(source[key], /per_page=\$\{PAGE_SIZE\}/);
+          }
+          assert.equal((source.deploy.match(/per_page=25&page=1/g) || []).length, 2);
+          for (const marker of ['is_skipped', 'skip_reason', 'materialized', 'latest-attempt.json', 'skipped_preview_attempt_count']) {
+            assert.equal(source.readonly.includes(marker), true, `readonly marker missing: ${marker}`);
+          }
+          assert.equal(source.cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), true);
+
+          const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cf-pagination-'));
+          process.on('exit', () => fs.rmSync(temp, {recursive: true, force: true}));
+          const fakeBin = path.join(temp, 'bin');
+          fs.mkdirSync(fakeBin, {recursive: true});
+          const fakeCurl = String.raw`#!/usr/bin/env node
+          const args = process.argv.slice(2);
+          const url = args.find((value) => value.startsWith('https://')) || '';
+          const match = url.match(/[?&]per_page=(\d+)/);
+          if (match && Number(match[1]) > 25) {
+            process.stdout.write(JSON.stringify({success:false,errors:[{code:8000024,message:'Invalid list options provided.'}],result:null}));
+            process.exit(22);
+          }
+          const project = {success:true,result:{
+            id:'project-id',name:'kidults-workspace-staging',production_branch:'main',modified_on:'2026-08-29T00:00:00Z',
+            source:{type:'github',config:{owner:'johnkim9524-collab',repo_name:'kaios_enterprise_repo',deployments_enabled:false,production_deployments_enabled:false,preview_deployment_setting:'none',preview_branch_includes:[],preview_branch_excludes:[]}}
+          }};
+          const skipped = {id:'skipped-preview',environment:'preview',url:null,aliases:[],created_on:'2026-08-29T00:02:00Z',is_skipped:true,skip_reason:'preview_deployments_disabled',latest_stage:{status:'idle'},deployment_trigger:{type:'github:push',metadata:{branch:'feature/test',commit_hash:'2222222222222222222222222222222222222222',commit_message:'skipped'}}};
+          const governed = {id:'governed-production',environment:'production',url:'https://governed.kidults-workspace-staging.pages.dev',aliases:[],created_on:'2026-08-29T00:01:00Z',is_skipped:false,latest_stage:{status:'success'},deployment_trigger:{type:'ad_hoc',metadata:{branch:'main',commit_hash:'1111111111111111111111111111111111111111',commit_message:'[KIDULTS-GOVERNED-STAGING] repository=johnkim9524-collab/kaios_enterprise_repo source_sha=1111111111111111111111111111111111111111 run=1 attempt=1 reason=test'}}};
+          if (!url.includes('/deployments')) process.stdout.write(JSON.stringify(project));
+          else {
+            const page = Number((url.match(/[?&]page=(\d+)/) || [,'1'])[1]);
+            const result = page === 1 ? [skipped] : [governed];
+            process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:2,total_pages:2}}));
+          }
+          `;
+          fs.writeFileSync(path.join(fakeBin, 'curl'), fakeCurl, {mode:0o755});
+          const receiptDir = path.join(temp, 'receipt');
+          const result = spawnSync('bash', [files.readonly], {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            env: {
+              ...process.env,
+              PATH: `${fakeBin}:${process.env.PATH}`,
+              CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+              CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+              CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+              EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+              RECEIPT_DIR: receiptDir,
+              GITHUB_SHA: '1111111111111111111111111111111111111111',
+            },
+          });
+          assert.equal(result.status, 0, result.stderr || result.stdout);
+          const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
+          assert.equal(receipt.state, 'COMPLETE_VERIFIED');
+          assert.equal(receipt.visible_preview_count, 0);
+          assert.equal(receipt.skipped_preview_attempt_count, 1);
+          assert.equal(receipt.latest_deployment_governed, true);
+          assert.equal(receipt.latest_attempt.id, 'skipped-preview');
+          assert.equal(receipt.latest_deployment.id, 'governed-production');
+          assert.equal(receipt.settings_mutated, false);
+
+          console.log(JSON.stringify({
+            suite:'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
+            result:'PASS',
+            invalid_per_page_100_rejected:true,
+            bounded_page_size_25:true,
+            skipped_preview_not_materialized:true,
+            latest_materialized_governed_selection:true,
+            public_release:'HOLD',production:'HOLD',g5:'HOLD'
+          }, null, 2));
+          '''.replace(/^          /gm, ''))
+
+          workflow_path = '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
+          text = read(workflow_path)
+          text = replace_once(
+              text,
+              '          node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs\n',
+              '          node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs\n'
+              '          node tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs\n',
+              'validation workflow pagination regression',
+          )
+          write(workflow_path, text)
+
+          runbook_path = 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
+          text = read(runbook_path)
+          text = replace_once(
+              text,
+              '- Read-only drift audit: every 30 minutes, on protected-main push, and on demand.\n',
+              '- Read-only drift audit: every 30 minutes, on protected-main push, and on demand.\n'
+              '- Deployment inventory pagination: Cloudflare Pages maximum `per_page=25`; all pages are bounded and skipped attempts are separated from materialized deployments.\n',
+              'runbook pagination contract',
+          )
+          write(runbook_path, text)
+          PY
+
+          bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
+          bash -n scripts/ops/cloudflare-pages-preview-cleanup.sh
+          bash -n scripts/ops/cloudflare-pages-auto-deployment-containment.sh
+          bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+          node tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
+          node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs
+
+      - name: Commit pagination root correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'johnkim9524-collab'
+          git config user.email 'john.kim9524@gmail.com'
+          git add \
+            scripts/ops/cloudflare-pages-boundary-readonly.sh \
+            scripts/ops/cloudflare-pages-preview-cleanup.sh \
+            scripts/ops/cloudflare-pages-auto-deployment-containment.sh \
+            scripts/ops/cloudflare-pages-governed-staging-deploy.sh \
+            tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs \
+            .github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml \
+            docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md
+          test -n "$(git status --porcelain)"
+          git commit -m '[CF-Pages-Skip] fix(cloudflare): honor Pages page-size cap and skipped attempts'
+          git push origin HEAD:kpmo/cloudflare-pages-pagination-fix-v1
