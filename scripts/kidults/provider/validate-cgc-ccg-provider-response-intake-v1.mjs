@@ -37,7 +37,7 @@ export function validateCgcCcgResponseIntake(x) {
     'api_included_with_authorized_dealer_membership_fee_and_agreement',
     'internal_data_validation_and_intelligence_use_can_qualify',
     'two_industry_references_mandatory',
-    'references_will_be_contacted'
+    'provider_will_contact_submitted_references'
   ]) require(x.confirmed?.[field] === true, `confirmed fact drift: ${field}`);
   require(x.bounded_interpretation?.no_additional_requirement_stated_beyond_membership_fee === true, 'bounded commercial interpretation missing');
   for (const field of ['membership_fee_amount_known', 'numeric_rate_limit_known', 'unlimited_api_claim_allowed', 'dealer_approval_guarantees_api_activation']) {
@@ -47,7 +47,7 @@ export function validateCgcCcgResponseIntake(x) {
   require(x.prepared_next_request?.state === 'PREPARED_NOT_SENT' && x.prepared_next_request?.route_to === 'CGC_API_OR_DATA_OWNER', 'next request routing drift');
   require(x.prepared_next_request?.send_authorized === false, 'outbound request must not be pre-authorized');
   const receipt = x.execution_receipt ?? {};
-  for (const field of ['application_submitted', 'references_submitted', 'agreement_accepted', 'account_or_credential_created', 'data_acquired']) require(receipt[field] === false, `execution must remain false: ${field}`);
+  for (const field of ['application_submitted', 'references_submitted', 'reference_contact_observed', 'agreement_accepted', 'account_or_credential_created', 'data_acquired']) require(receipt[field] === false, `execution must remain false: ${field}`);
   require(receipt.provider_api_calls === 0 && receipt.external_spend_usd === 0, 'provider calls/spend must remain zero');
   const boundary = x.non_bypass ?? {};
   for (const field of ['application', 'references', 'data_acquisition', 'public', 'production']) require(boundary[field] === 'HOLD', `${field} boundary drift`);
@@ -66,6 +66,7 @@ const mutations = [
   ['reject_missing_retention_unknown', x => { x.unresolved = x.unresolved.filter(v => !v.startsWith('RETENTION_')); }],
   ['reject_application_submission', x => { x.execution_receipt.application_submitted = true; }],
   ['reject_reference_submission', x => { x.execution_receipt.references_submitted = true; }],
+  ['reject_unobserved_reference_contact_promotion', x => { x.execution_receipt.reference_contact_observed = true; }],
   ['reject_agreement_acceptance', x => { x.execution_receipt.agreement_accepted = true; }],
   ['reject_provider_call', x => { x.execution_receipt.provider_api_calls = 1; }],
   ['reject_spend', x => { x.execution_receipt.external_spend_usd = 1; }],

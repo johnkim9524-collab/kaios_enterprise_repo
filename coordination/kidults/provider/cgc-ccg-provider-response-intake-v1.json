@@ -24,7 +24,7 @@
     "api_included_with_authorized_dealer_membership_fee_and_agreement": true,
     "internal_data_validation_and_intelligence_use_can_qualify": true,
     "two_industry_references_mandatory": true,
-    "references_will_be_contacted": true
+    "provider_will_contact_submitted_references": true
   },
   "bounded_interpretation": {
     "no_additional_requirement_stated_beyond_membership_fee": true,
@@ -52,6 +52,7 @@
   "execution_receipt": {
     "application_submitted": false,
     "references_submitted": false,
+    "reference_contact_observed": false,
     "agreement_accepted": false,
     "account_or_credential_created": false,
     "provider_api_calls": 0,
@@ -69,5 +70,5 @@
     "production": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
   },
-  "truth_boundary": "The provider confirms an API path included with Authorized Dealer membership and an agreement, possible eligibility for internal data-validation/intelligence use, and mandatory contacted references. The response does not establish membership cost, fields, storage/derivation/retention rights, numeric rate limits, SLA or activation authority. No application, references, agreement, spend, credential, API call, data acquisition, Public, Production or G5 is authorized."
+  "truth_boundary": "The provider confirms an API path included with Authorized Dealer membership and an agreement, possible eligibility for internal data-validation/intelligence use, that two industry references are mandatory and that it will contact submitted references. The response does not establish membership cost, fields, storage/derivation/retention rights, numeric rate limits, SLA or activation authority. No application, references, agreement, spend, credential, API call, data acquisition, Public, Production or G5 is authorized."
 }
