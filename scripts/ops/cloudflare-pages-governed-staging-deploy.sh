@@ -62,7 +62,7 @@ api_get() {
 }
 
 api_get "$API_ROOT" "$tmp_dir/project-before.json"
-api_get "$API_ROOT/deployments?per_page=100&page=1" "$tmp_dir/deployments-before.json"
+api_get "$API_ROOT/deployments?per_page=25&page=1" "$tmp_dir/deployments-before.json"
 jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
   .success == true
   and .result.name == $project
@@ -108,7 +108,7 @@ if [[ "$deploy_rc" -ne 0 ]]; then
   exit "$deploy_rc"
 fi
 
-api_get "$API_ROOT/deployments?per_page=100&page=1" "$tmp_dir/deployments-after.json"
+api_get "$API_ROOT/deployments?per_page=25&page=1" "$tmp_dir/deployments-after.json"
 api_get "$API_ROOT" "$tmp_dir/project-after.json"
 jq -e '.success == true and (.result | type == "array")' "$tmp_dir/deployments-after.json" >/dev/null
 after_ids="$(jq -c '[.result[]?.id] | unique | sort' "$tmp_dir/deployments-after.json")"

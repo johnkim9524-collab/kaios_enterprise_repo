@@ -5,6 +5,7 @@ PROJECT_NAME="${CLOUDFLARE_PAGES_PROJECT_NAME:-kidults-workspace-staging}"
 EXPECTED_REPOSITORY="${EXPECTED_REPOSITORY:-johnkim9524-collab/kaios_enterprise_repo}"
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-pages-boundary-readonly}"
 MAX_PAGES="${MAX_PAGES:-100}"
+PAGE_SIZE="${PAGE_SIZE:-25}"
 
 mkdir -p "$RECEIPT_DIR"
 
@@ -81,6 +82,10 @@ if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
     "INVALID_MAX_PAGES" \
     64
 fi
+if [[ ! "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( PAGE_SIZE > 25 )); then
+  echo "PAGE_SIZE must be an integer from 1 to 25" >&2
+  write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "INVALID_PAGE_SIZE" 64
+fi
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
   echo "Cloudflare read-only credentials are absent" >&2
   write_preflight_failure_receipt \
@@ -113,7 +118,7 @@ list_all_deployments() {
       return 68
     fi
     page_file="$tmp_dir/deployments-page-${page}.json"
-    api_get "$API_ROOT/deployments?per_page=100&page=$page" "$page_file"
+    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
     jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
     jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson"
     total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
@@ -162,6 +167,9 @@ jq '[.[] | {
   url,
   aliases: (.aliases // []),
   created_on,
+  is_skipped: (.is_skipped // false),
+  skip_reason: (.skip_reason // null),
+  materialized: (((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0))),
   latest_stage_status: (.latest_stage.status // null),
   trigger_type: (.deployment_trigger.type // null),
   branch: (.deployment_trigger.metadata.branch // null),
@@ -169,7 +177,8 @@ jq '[.[] | {
   commit_message: (.deployment_trigger.metadata.commit_message // null)
 }] | sort_by(.created_on) | reverse' "$tmp_dir/deployments-all.json" > "$RECEIPT_DIR/deployments.json"
 
-jq '.[0] // null' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-deployment.json"
+jq '.[0] // null' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-attempt.json"
+jq '[.[] | select(.materialized == true)][0] // null' "$RECEIPT_DIR/deployments.json" > "$RECEIPT_DIR/latest-deployment.json"
 
 settings_pass="$(jq -r '
   .repository_matches_expected == true
@@ -180,7 +189,8 @@ settings_pass="$(jq -r '
   and (.preview_branch_excludes | length == 0)
 ' "$RECEIPT_DIR/project-readback.json")"
 
-preview_count="$(jq '[.[] | select(.environment == "preview")] | length' "$RECEIPT_DIR/deployments.json")"
+preview_count="$(jq '[.[] | select(.environment == "preview" and .materialized == true)] | length' "$RECEIPT_DIR/deployments.json")"
+skipped_preview_attempt_count="$(jq '[.[] | select(.environment == "preview" and .is_skipped == true)] | length' "$RECEIPT_DIR/deployments.json")"
 latest_governed="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
   . != null
   and .environment == "production"
@@ -203,8 +213,10 @@ jq -n \
   --argjson settings_pass "$settings_pass" \
   --argjson latest_deployment_governed "$latest_governed" \
   --argjson visible_preview_count "$preview_count" \
+  --argjson skipped_preview_attempt_count "$skipped_preview_attempt_count" \
   --slurpfile project_readback "$RECEIPT_DIR/project-readback.json" \
   --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \
+  --slurpfile latest_attempt "$RECEIPT_DIR/latest-attempt.json" \
   '{
     id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",
     state:$state,
@@ -213,7 +225,9 @@ jq -n \
     settings_pass:$settings_pass,
     latest_deployment_governed:$latest_deployment_governed,
     visible_preview_count:$visible_preview_count,
+    skipped_preview_attempt_count:$skipped_preview_attempt_count,
     project_readback:$project_readback[0],
+    latest_attempt:$latest_attempt[0],
     latest_deployment:$latest[0],
     latest_deployment_matches_current_main:(($latest[0].commit_hash // null) == $current_main_sha),
     current_main_match_is_informational:true,

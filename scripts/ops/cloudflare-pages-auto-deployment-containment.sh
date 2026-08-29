@@ -6,6 +6,7 @@ EXPECTED_REPOSITORY="${EXPECTED_REPOSITORY:-johnkim9524-collab/kaios_enterprise_
 MODE="${1:---dry-run}"
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-auto-deployment-containment}"
 MAX_PAGES="${MAX_PAGES:-100}"
+PAGE_SIZE="${PAGE_SIZE:-25}"
 API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID:-MISSING}/pages/projects/${PROJECT_NAME}"
 
 if [[ "$PROJECT_NAME" != "kidults-workspace-staging" ]]; then
@@ -22,6 +23,10 @@ if [[ "$MODE" != "--dry-run" && "$MODE" != "--execute" ]]; then
 fi
 if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
   echo "MAX_PAGES must be an integer from 1 to 100" >&2
+  exit 64
+fi
+if [[ ! "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( PAGE_SIZE > 25 )); then
+  echo "PAGE_SIZE must be an integer from 1 to 25" >&2
   exit 64
 fi
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
@@ -94,7 +99,7 @@ list_all_deployment_ids() {
       return 68
     fi
     page_file="$tmp_dir/deployments-page-${page}.json"
-    api_request GET "$API_ROOT/deployments?per_page=100&page=$page" "$page_file"
+    api_request GET "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
     jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
     jq -r '.result[]?.id' "$page_file" >> "$tmp_dir/deployment-ids.ndjson"
     total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"

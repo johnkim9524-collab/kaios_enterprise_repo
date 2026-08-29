@@ -122,6 +122,18 @@ function findingsFor(input) {
     'current_main_match_is_informational:true',
   ]) require(readonlyScript.includes(marker), `READONLY_SCRIPT_MARKER:${marker}`);
   require(!readonlyScript.includes('map(select(.latest_stage_status == "success")) | .[0]'), 'READONLY_MUST_INSPECT_LATEST_ATTEMPT');
+  require(readonlyScript.includes('latest-attempt.json'), 'READONLY_LATEST_ATTEMPT_RETAINED');
+  require(readonlyScript.includes('select(.materialized == true)'), 'READONLY_LATEST_MATERIALIZED_SELECTION');
+  require(readonlyScript.includes('skipped_preview_attempt_count'), 'READONLY_SKIPPED_PREVIEW_INFORMATIONAL');
+  for (const [id, script] of Object.entries({readonlyScript, containScript, cleanupScript, deployScript})) {
+    require(!script.includes('per_page=100'), `CLOUDFLARE_INVALID_PAGE_SIZE:${id}`);
+  }
+  for (const [id, script] of Object.entries({readonlyScript, containScript, cleanupScript})) {
+    require(script.includes('PAGE_SIZE="${PAGE_SIZE:-25}"'), `CLOUDFLARE_PAGE_SIZE_DECLARATION:${id}`);
+    require(script.includes('PAGE_SIZE > 25'), `CLOUDFLARE_PAGE_SIZE_GUARD:${id}`);
+    require(script.includes('per_page=${PAGE_SIZE}'), `CLOUDFLARE_BOUNDED_PAGE_QUERY:${id}`);
+  }
+  require((deployScript.match(/per_page=25&page=1/g) || []).length === 2, 'DEPLOY_BOUNDED_PAGE_QUERY');
 
   for (const marker of [
     '.config.deployments_enabled = false',
@@ -136,14 +148,15 @@ function findingsFor(input) {
 
   for (const marker of [
     'list_all_deployments()',
-    'select(.environment == "preview")',
+    'select(.environment == "preview" and .materialized == true)',
     'select(.environment == "production")',
-    'initial_preview_ids="$(jq -c \'[.[] | select(.environment == "preview") | .id] | unique | sort\' <<<"$initial")"',
+    'initial_preview_ids="$(jq -c \'[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort\' <<<"$initial")"',
     'DELETE "$API_ROOT/deployments/$deployment_id"',
     'test "$initial_production_ids" = "$final_production_ids"',
     'production_mutation:false',
   ]) require(cleanupScript.includes(marker), `CLEANUP_MARKER:${marker}`);
   require(!cleanupScript.includes('select(.environment == "production") | .id | @sh'), 'CLEANUP_PRODUCTION_DELETE_FORBIDDEN');
+  require(cleanupScript.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_MATERIALIZED_PREVIEW_ONLY');
 
   for (const marker of [
     'if [[ "$(git rev-parse HEAD)" != "$SOURCE_SHA" ]]; then',
@@ -236,7 +249,7 @@ const mutations = [
   ['CONTAINMENT_LEAVES_PRODUCTION_AUTO_ON', {containScript: base.containScript.replace('.config.production_deployments_enabled = false', '.config.production_deployments_enabled = true')}],
   ['CONTAINMENT_HISTORY_GUARD_REMOVED', {containScript: base.containScript.replace('test "$before_ids" = "$after_ids"', 'true')}],
   ['CLEANUP_PRODUCTION_PRESERVATION_REMOVED', {cleanupScript: base.cleanupScript.replace('test "$initial_production_ids" = "$final_production_ids"', 'true')}],
-  ['CLEANUP_FILTER_SWITCHED_TO_PRODUCTION', {cleanupScript: base.cleanupScript.replace('initial_preview_ids="$(jq -c \'[.[] | select(.environment == "preview") | .id] | unique | sort\' <<<"$initial")"', 'initial_preview_ids="$(jq -c \'[.[] | select(.environment == "production") | .id] | unique | sort\' <<<"$initial")"')}],
+  ['CLEANUP_FILTER_SWITCHED_TO_PRODUCTION', {cleanupScript: base.cleanupScript.replace('initial_preview_ids="$(jq -c \'[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort\' <<<"$initial")"', 'initial_preview_ids="$(jq -c \'[.[] | select(.environment == "production") | .id] | unique | sort\' <<<"$initial")"')}],
   ['DEPLOY_MESSAGE_PREFIX_REMOVED', {deployScript: base.deployScript.replace('commit_message="[KIDULTS-GOVERNED-STAGING] repository=${EXPECTED_REPOSITORY}', 'commit_message="[UNCONTROLLED] repository=${EXPECTED_REPOSITORY}')}],
   ['DEPLOY_AUTO_SETTING_GUARD_REMOVED', {deployScript: base.deployScript.replaceAll('and .result.source.config.production_deployments_enabled == false', 'and true')}],
   ['REGISTRY_DEPLOY_WORKFLOW_REMOVED', {registry: {...registry, registered_workflows: registry.registered_workflows.filter((x) => x !== REQUIRED_SECRET_WORKFLOWS[2])}}],

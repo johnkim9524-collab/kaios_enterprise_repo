@@ -5,6 +5,7 @@ PROJECT_NAME="${CLOUDFLARE_PAGES_PROJECT_NAME:-kidults-workspace-staging}"
 MODE="${1:---inventory}"
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-preview-cleanup}"
 MAX_PAGES="${MAX_PAGES:-100}"
+PAGE_SIZE="${PAGE_SIZE:-25}"
 API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID:-MISSING}/pages/projects/${PROJECT_NAME}"
 
 if [[ "$PROJECT_NAME" != "kidults-workspace-staging" ]]; then
@@ -17,6 +18,10 @@ if [[ "$MODE" != "--inventory" && "$MODE" != "--delete-preview" ]]; then
 fi
 if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
   echo "MAX_PAGES must be an integer from 1 to 100" >&2
+  exit 64
+fi
+if [[ ! "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( PAGE_SIZE > 25 )); then
+  echo "PAGE_SIZE must be an integer from 1 to 25" >&2
   exit 64
 fi
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
@@ -51,7 +56,7 @@ list_all_deployments() {
       return 68
     fi
     page_file="$tmp_dir/${prefix}-page-${page}.json"
-    api_request GET "$API_ROOT/deployments?per_page=100&page=$page" "$page_file"
+    api_request GET "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
     jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
     jq -c '.result[]' "$page_file" >> "$ndjson"
     total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
@@ -76,14 +81,17 @@ normalize() {
     commit_hash: (.deployment_trigger.metadata.commit_hash // null),
     trigger_type: (.deployment_trigger.type // null),
     url,
-    created_on
+    created_on,
+    is_skipped: (.is_skipped // false),
+    skip_reason: (.skip_reason // null),
+    materialized: (((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0)))
   }]'
 }
 
 list_all_deployments "$tmp_dir/initial-raw.json" initial
 initial="$(normalize < "$tmp_dir/initial-raw.json")"
 initial_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$initial")"
-initial_preview_ids="$(jq -c '[.[] | select(.environment == "preview") | .id] | unique | sort' <<<"$initial")"
+initial_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$initial")"
 if [[ "$(jq 'length' <<<"$initial_production_ids")" -lt 1 ]]; then
   echo "Fail closed: no production-environment deployment visible before preview cleanup" >&2
   exit 66
@@ -141,7 +149,7 @@ done < <(jq -r '.[]' <<<"$initial_preview_ids")
 list_all_deployments "$tmp_dir/final-raw.json" final
 final="$(normalize < "$tmp_dir/final-raw.json")"
 final_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$final")"
-remaining_preview_ids="$(jq -c '[.[] | select(.environment == "preview") | .id] | unique | sort' <<<"$final")"
+remaining_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$final")"
 test "$initial_production_ids" = "$final_production_ids"
 
 state="COMPLETE_VERIFIED"
