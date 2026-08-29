@@ -127,7 +127,7 @@ for (const [from, to, label] of mutations) {
     console.error(`Sharded Source Reserve provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  const mutated = current.replace(from, to);
+  const mutated = current.replaceAll(from, to);
   if (failuresFor(mutated).length === 0) {
     console.error(`Sharded Source Reserve provenance self-test failed to reject: ${label}`);
     process.exit(3);
