@@ -33,15 +33,58 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify exact containment authority and credentials
+      - name: Verify exact containment authority and credential availability
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "codex/cloudflare-preview-estate-cleanup"
           test "$CLOUDFLARE_PAGES_PROJECT_NAME" = "kidults-workspace-staging"
           test "$EXPECTED_REPOSITORY" = "$GITHUB_REPOSITORY"
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          mkdir -p "$RECEIPT_DIR"
+          if test -z "$CLOUDFLARE_API_TOKEN"; then
+            jq -n \
+              --arg project "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+              --arg state "BLOCKED" \
+              --arg blocker "CLOUDFLARE_WRITE_TOKEN_ABSENT" \
+              --arg source_sha "$GITHUB_SHA" \
+              '{
+                project:$project,
+                state:$state,
+                blocker:$blocker,
+                source_sha:$source_sha,
+                cloudflare_patch_executed:false,
+                project_setting_readback_obtained:false,
+                deployment_created:false,
+                deployment_deleted:false,
+                production_history_mutated:false,
+                public_release:"HOLD",
+                production:"HOLD",
+                g5:"HOLD"
+              }' > "$RECEIPT_DIR/final.json"
+            exit 66
+          fi
+          if test -z "$CLOUDFLARE_ACCOUNT_ID"; then
+            jq -n \
+              --arg project "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+              --arg state "BLOCKED" \
+              --arg blocker "CLOUDFLARE_ACCOUNT_ID_ABSENT" \
+              --arg source_sha "$GITHUB_SHA" \
+              '{
+                project:$project,
+                state:$state,
+                blocker:$blocker,
+                source_sha:$source_sha,
+                cloudflare_patch_executed:false,
+                project_setting_readback_obtained:false,
+                deployment_created:false,
+                deployment_deleted:false,
+                production_history_mutated:false,
+                public_release:"HOLD",
+                production:"HOLD",
+                g5:"HOLD"
+              }' > "$RECEIPT_DIR/final.json"
+            exit 67
+          fi
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"
           echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
 
@@ -49,7 +92,7 @@ jobs:
         shell: bash
         run: bash scripts/ops/cloudflare-pages-auto-deployment-containment.sh --execute
 
-      - name: Verify sanitized receipt
+      - name: Verify sanitized success receipt
         shell: bash
         run: |
           set -euo pipefail
