@@ -175,8 +175,8 @@ for (const workflow of [metWorkflow, observerWorkflow]) {
   assert.equal(workflow.includes("authority-shadow-vam-records-r1.json"), false);
   assert.equal(workflow.includes("SMITHSONIAN_API_KEY"), false);
 }
-assert.equal(metWorkflow.includes("kidults-met-public-source-read"), true);
-assert.equal(metWorkflow.includes("cancel-in-progress: false"), true);
+assert.equal(metWorkflow.includes("group: kidults-autonomous-met-sample-${{ github.event_name }}-${{ github.event_name == 'push' && github.ref || github.run_id }}"), true);
+assert.equal(metWorkflow.includes("cancel-in-progress: true"), true);
 assert.equal(observerWorkflow.includes("Candidate R2 Reference Observer HOLD"), true);
 
 console.log(JSON.stringify({
