@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       source_run_id:
-        description: Successful exact-main source fixture workflow run ID
+        description: Historical source fixture run ID for audit context only; not authorization or proof
         required: true
         type: string
       restore_operation_reference:
-        description: Operator-supplied external restore reference (context only, not proof)
+        description: Operator-supplied restore reference for audit context only; not authorization or proof
         required: true
         type: string
 
@@ -16,338 +16,109 @@ permissions:
   contents: read
 
 concurrency:
-  group: p0-postgres-target-time-restore-verification
+  group: p0-postgres-target-time-restore-containment
   cancel-in-progress: false
 
 jobs:
-  activation-readiness-receipt:
-    name: Target-time restore activation readiness receipt
+  fail-closed-target-time-containment:
+    name: PostgreSQL target-time restore replay containment
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    outputs:
-      authorized: ${{ steps.receipt.outputs.authorized }}
     steps:
-      - name: Verify exact live main without resolving provider credentials
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Emit non-secret fail-closed activation receipt
-        id: receipt
+      - name: Verify exact source, request shape and containment contract
+        id: verify
         shell: bash
         env:
-          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
-          HOST_BOUND: ${{ vars.KIDULTS_STAGING_PUBLIC_IP != '' }}
-          FINGERPRINT_BOUND: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT != '' }}
           SOURCE_RUN_ID: ${{ inputs.source_run_id }}
           RESTORE_OPERATION_REFERENCE: ${{ inputs.restore_operation_reference }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$RESTORE_OPERATION_REFERENCE" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{7,255}$ ]]
+          node tests/kidults/kpmo/p0-postgres-standing-auth-containment-v1.test.mjs
+
+      - name: Emit non-secret fail-closed target-time containment receipt
+        if: always()
+        shell: bash
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          RESTORE_OPERATION_REFERENCE: ${{ inputs.restore_operation_reference }}
+        run: |
+          set -euo pipefail
           mkdir -p artifacts/p0-postgres-target-time-restore
-          if [ "$ACTIVATION_AUTHORIZED" = "true" ]; then
-            AUTHORIZED=true
-            STATUS=READY_FOR_DATABASE_STATE_PROBE
-          else
-            AUTHORIZED=false
-            STATUS=BLOCKED_EXTERNAL_AUTHORIZATION
-          fi
-          printf 'authorized=%s\n' "$AUTHORIZED" >> "$GITHUB_OUTPUT"
-          python3 - "$STATUS" "$AUTHORIZED" "$HOST_BOUND" "$FINGERPRINT_BOUND" <<'PY' > artifacts/p0-postgres-target-time-restore/activation-readiness.json
-          import json, os, sys
-          status, authorized, host_bound, fingerprint_bound = sys.argv[1:]
+          python3 - <<'PY' > artifacts/p0-postgres-target-time-restore/activation-containment.json
+          import json, os, re
+          verified = os.environ.get("VERIFY_OUTCOME") == "success"
+          raw_source_run = os.environ.get("SOURCE_RUN_ID", "")
+          source_run_id = int(raw_source_run) if re.fullmatch(r"[1-9][0-9]*", raw_source_run) else None
           print(json.dumps({
-              "gate": "POSTGRES_TARGET_TIME_RESTORE_VERIFICATION_ACTIVATION_READINESS",
-              "status": status,
+              "receipt_id": "kidults-p0-postgres-target-time-restore-containment-v1",
+              "version": "1.0.0",
+              "state": "BLOCKED_ONE_SHOT_AUTHORIZATION_REQUIRED" if verified else "VERIFIED_FAIL_CONTAINMENT_CONTRACT",
+              "issues": [1481, 1482],
+              "containment_contract_verified": verified,
+              "verification_outcome": os.environ.get("VERIFY_OUTCOME", "unknown"),
               "source_ref": os.environ["GITHUB_REF"],
               "source_sha": os.environ["GITHUB_SHA"],
               "event": os.environ["GITHUB_EVENT_NAME"],
-              "source_run_id": int(os.environ["SOURCE_RUN_ID"]),
-              "restore_operation_reference": os.environ["RESTORE_OPERATION_REFERENCE"],
-              "restore_operation_reference_verified": False,
-              "provider_control_plane_receipt_verified": False,
-              "activation_authorized": authorized == "true",
-              "staging_host_binding_present": host_bound == "true",
-              "staging_fingerprint_binding_present": fingerprint_bound == "true",
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "requested_source_run_id": source_run_id,
+              "restore_operation_reference": os.environ.get("RESTORE_OPERATION_REFERENCE"),
+              "request_metadata_is_authorization": False,
+              "request_metadata_is_restore_proof": False,
+              "standing_boolean_consulted_by_executable_job": False,
+              "standing_boolean_authority_accepted": False,
+              "credentialed_job_condition": "false_and_legacy_variable_inert_for_registry_contract",
+              "provider_environment_entered": False,
               "provider_secrets_resolved": False,
+              "ssh_executed": False,
+              "database_contacted": False,
               "remote_mutation_performed": False,
-              "restore_performed_by_this_workflow": False,
-              "external_restore_authorized_by_this_workflow": False,
-              "external_provider_spend_authorized_by_this_workflow": False,
-              "expanded_provider_credential_authorized_by_this_workflow": False,
-              "provider_contract_authorized_by_this_workflow": False,
-              "production_touch": False,
-              "public_touch": False,
-              "g5_touch": False,
-              "unblock_condition": "AUTHORITATIVE_PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT_REQUIRED_FOR_PITR_VERIFICATION" if authorized == "true" else "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true AND AUTHORITATIVE_PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT_REQUIRED"
+              "restore_probe_executed": False,
+              "restore_performed": False,
+              "target_time_restore_verified": False,
+              "target_time_restore_receipt": None,
+              "pitr_proven": False,
+              "required_next_control": "INDEPENDENT_RUN_BOUND_SINGLE_USE_AUTHORIZATION_CONSUMED_BEFORE_ENVIRONMENT_OR_SECRET_RESOLUTION",
+              "required_external_state": "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=false",
+              "production": "HOLD",
+              "public": "HOLD",
+              "g5": "HOLD"
           }, indent=2))
           PY
-          cat artifacts/p0-postgres-target-time-restore/activation-readiness.json
+          test -s artifacts/p0-postgres-target-time-restore/activation-containment.json
+          python3 -m json.tool artifacts/p0-postgres-target-time-restore/activation-containment.json >/dev/null
+          cat artifacts/p0-postgres-target-time-restore/activation-containment.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
         with:
-          name: p0-postgres-target-time-restore-activation-${{ github.sha }}-${{ github.run_id }}
-          path: artifacts/p0-postgres-target-time-restore/activation-readiness.json
-          if-no-files-found: error
-          retention-days: 30
-
-  bind-source-fixture:
-    needs: activation-readiness-receipt
-    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      source_artifact_id: ${{ steps.bind.outputs.source_artifact_id }}
-      source_artifact_digest: ${{ steps.bind.outputs.source_artifact_digest }}
-      source_receipt_sha256: ${{ steps.bind.outputs.source_receipt_sha256 }}
-      source_connection_identity_digest: ${{ steps.bind.outputs.source_connection_identity_digest }}
-      before_marker: ${{ steps.bind.outputs.before_marker }}
-      after_marker: ${{ steps.bind.outputs.after_marker }}
-      before_marker_digest: ${{ steps.bind.outputs.before_marker_digest }}
-      after_marker_digest: ${{ steps.bind.outputs.after_marker_digest }}
-      target_time: ${{ steps.bind.outputs.target_time }}
-    steps:
-      - name: Verify exact live main before source artifact read-back
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-
-      - name: Bind exact source run and immutable fixture artifact
-        id: bind
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-        run: |
-          set -euo pipefail
-          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          mkdir -p artifacts/p0-postgres-target-time-restore/source-artifact
-          artifact_name="p0-remote-postgres-persistence-pitr-$GITHUB_SHA"
-          curl --fail-with-body --silent --show-error \
-            --connect-timeout 10 \
-            --max-time 30 \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID" \
-            > "$RUNNER_TEMP/source-run.json"
-          curl --fail-with-body --silent --show-error \
-            --connect-timeout 10 \
-            --max-time 30 \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN_ID/artifacts?per_page=100&name=$artifact_name" \
-            > "$RUNNER_TEMP/source-artifacts.json"
-          python3 - <<'PY'
-          import json, os, re
-          from pathlib import Path
-
-          run=json.loads(Path(os.environ['RUNNER_TEMP']+'/source-run.json').read_text())
-          run_id=int(os.environ['SOURCE_RUN_ID'])
-          assert run['id']==run_id
-          assert run['repository']['full_name']==os.environ['GITHUB_REPOSITORY']
-          assert run['head_branch']=='main'
-          assert run['head_sha']==os.environ['GITHUB_SHA']
-          assert run['event'] in {'push','workflow_dispatch'}
-          assert run['status']=='completed'
-          assert run['conclusion']=='success'
-          assert run['path']=='.github/workflows/p0-remote-postgres-persistence-pitr.yml'
-
-          payload=json.loads(Path(os.environ['RUNNER_TEMP']+'/source-artifacts.json').read_text())
-          expected_name='p0-remote-postgres-persistence-pitr-'+os.environ['GITHUB_SHA']
-          artifacts=payload.get('artifacts',[])
-          assert payload.get('total_count')==len(artifacts)
-          matches=[
-              a for a in artifacts
-              if a.get('name')==expected_name
-              and not a.get('expired')
-              and a.get('workflow_run',{}).get('id')==run_id
-              and a.get('workflow_run',{}).get('head_sha')==os.environ['GITHUB_SHA']
-          ]
-          assert len(matches)==1
-          artifact=matches[0]
-          assert re.fullmatch(r'sha256:[a-f0-9]{64}', str(artifact.get('digest','')))
-          Path(os.environ['RUNNER_TEMP']+'/source-artifact-id').write_text(str(artifact['id']))
-          Path(os.environ['RUNNER_TEMP']+'/source-artifact-digest').write_text(artifact['digest'])
-          PY
-          artifact_id="$(<"$RUNNER_TEMP/source-artifact-id")"
-          curl --fail-with-body --silent --show-error --location \
-            --connect-timeout 10 \
-            --max-time 60 \
-            --header "Authorization: Bearer $GITHUB_TOKEN" \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
-            --output "$RUNNER_TEMP/source-artifact.zip"
-          python3 - <<'PY'
-          import hashlib, json, os, re, zipfile
-          from pathlib import Path, PurePosixPath
-
-          temp=Path(os.environ['RUNNER_TEMP'])
-          destination=Path('artifacts/p0-postgres-target-time-restore/source-artifact')
-          archive=temp/'source-artifact.zip'
-          api_digest=(temp/'source-artifact-digest').read_text()
-          archive_digest='sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()
-          assert archive_digest==api_digest
-
-          with zipfile.ZipFile(archive) as zf:
-              for member in zf.infolist():
-                  path=PurePosixPath(member.filename)
-                  assert not path.is_absolute() and '..' not in path.parts
-              zf.extractall(destination)
-
-          fixtures=list(destination.rglob('pitr-target-time-fixture.json'))
-          receipts=list(destination.rglob('postgres-persistence-pitr-readiness.json'))
-          assert len(fixtures)==1 and len(receipts)==1
-          fixture=json.loads(fixtures[0].read_text())
-          receipt_bytes=receipts[0].read_bytes()
-          receipt=json.loads(receipt_bytes)
-          assert fixture['id']=='kidults-p0-postgres-target-time-fixture-v1'
-          assert fixture['status']=='READY'
-          assert fixture['state']=='WAITING_FOR_EXTERNAL_RESTORE'
-          assert fixture['environment']=='STAGING'
-          assert fixture['production_touch'] is False
-          assert fixture['public_touch'] is False
-          assert fixture['g5_touch'] is False
-          assert fixture['source_workflow']=='.github/workflows/p0-remote-postgres-persistence-pitr.yml'
-          assert fixture['source_run_id']==int(os.environ['SOURCE_RUN_ID'])
-          assert fixture['source_main_sha']==os.environ['GITHUB_SHA']
-          assert fixture['restore_actuator_configured'] is False
-          assert fixture['provider_restore_performed'] is False
-          assert fixture['external_restore_required'] is True
-          receipt_digest='sha256:'+hashlib.sha256(receipt_bytes).hexdigest()
-          assert fixture['source_receipt_sha256']==receipt_digest
-          assert receipt['status']=='PASS'
-          assert receipt['fixture_state'] in {
-              'TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED',
-              'TARGET_BOUNDARY_FIXTURE_VERIFIED__WAL_ARCHIVE_EVENT_NOT_VERIFIED',
-          }
-          assert receipt['pitr_capability']=='NOT_VERIFIED'
-          assert receipt['base_backup_verified'] is False
-          assert receipt['archive_restore_path_verified'] is False
-          assert receipt['restore_capability_verified'] is False
-          assert receipt['restore_actuator_configured'] is False
-          assert receipt['restore_performed_by_this_script'] is False
-          assert receipt['pg_switch_wal_authorized']==fixture['pg_switch_wal_authorized']
-          assert receipt['wal_archive_event_verified']==fixture['wal_archive_event_verified']
-          assert receipt['marker_boundary_order_verified'] is True
-          assert receipt['connection_identity_digest']==fixture['source_connection_identity_digest']
-          assert receipt['tls_encryption_required'] is True
-          assert receipt['tls_encryption_required']==fixture['source_tls_encryption_required']
-          assert receipt['tls_ca_chain_verified']==fixture['source_tls_ca_chain_verified']
-          assert receipt['tls_hostname_verified']==fixture['source_tls_hostname_verified']
-          assert receipt['destination_policy']==fixture['source_destination_policy']
-          assert receipt['destination_policy']=='DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT'
-          assert receipt['pitr_before_marker']==fixture['before_marker']
-          assert receipt['pitr_after_marker']==fixture['after_marker']
-          assert receipt['pitr_before_marker_digest']==fixture['before_marker_digest']
-          assert receipt['pitr_after_marker_digest']==fixture['after_marker_digest']
-          assert receipt['pitr_target_time']==fixture['target_time']
-          assert fixture['marker_boundary_order_verified'] is True
-          assert re.fullmatch(r'sha256:[a-f0-9]{64}', fixture['source_connection_identity_digest'])
-          assert re.fullmatch(r'pitr-before-[A-Za-z0-9-]+', fixture['before_marker'])
-          assert re.fullmatch(r'pitr-after-[A-Za-z0-9-]+', fixture['after_marker'])
-          for key in ('before_marker_digest','after_marker_digest'):
-              assert re.fullmatch(r'[a-f0-9]{64}', fixture[key])
-          assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', fixture['target_time'])
-          assert fixture['target_time_precision']=='WHOLE_SECOND_UTC'
-          assert fixture['marker_target_guard_seconds_minimum']==2
-          assert fixture['base_backup_verified'] is False
-          assert fixture['archive_restore_path_verified'] is False
-          assert fixture['restore_capability_verified'] is False
-          assert fixture['restore_performed_by_this_workflow'] is False
-          assert fixture['external_restore_authorized_by_this_workflow'] is False
-          assert fixture['external_provider_spend_authorized_by_this_workflow'] is False
-          assert fixture['expanded_provider_credential_authorized_by_this_workflow'] is False
-          assert fixture['provider_contract_authorized_by_this_workflow'] is False
-
-          output=Path(os.environ['GITHUB_OUTPUT'])
-          values={
-              'source_artifact_id':(temp/'source-artifact-id').read_text(),
-              'source_artifact_digest':api_digest,
-              'source_receipt_sha256':receipt_digest,
-              'source_connection_identity_digest':fixture['source_connection_identity_digest'],
-              'before_marker':fixture['before_marker'],
-              'after_marker':fixture['after_marker'],
-              'before_marker_digest':fixture['before_marker_digest'],
-              'after_marker_digest':fixture['after_marker_digest'],
-              'target_time':fixture['target_time'],
-          }
-          with output.open('a',encoding='utf-8') as handle:
-              for key,value in values.items():
-                  assert '\n' not in value and '\r' not in value
-                  handle.write(f'{key}={value}\n')
-
-          binding={
-              'id':'kidults-p0-postgres-source-fixture-binding-v1',
-              'status':'VERIFIED_PASS',
-              'source_run_id':int(os.environ['SOURCE_RUN_ID']),
-              'source_main_sha':os.environ['GITHUB_SHA'],
-              'source_artifact_id':int(values['source_artifact_id']),
-              'source_artifact_digest':api_digest,
-              'source_receipt_sha256':receipt_digest,
-              'target_time':fixture['target_time'],
-              'restore_capability_verified':False,
-              'pitr_verified':False,
-              'production_touch':False,
-              'public_touch':False,
-              'g5_touch':False,
-          }
-          Path('artifacts/p0-postgres-target-time-restore/source-fixture-binding.json').write_text(json.dumps(binding,indent=2)+'\n')
-          print('SOURCE_FIXTURE_ARTIFACT_BOUND')
-          PY
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: p0-postgres-source-fixture-binding-${{ inputs.source_run_id }}-${{ github.sha }}
-          path: artifacts/p0-postgres-target-time-restore/source-fixture-binding.json
+          name: p0-postgres-target-time-restore-containment-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/p0-postgres-target-time-restore/activation-containment.json
           if-no-files-found: error
           retention-days: 30
 
   verify-target-time-restore:
-    needs:
-      - activation-readiness-receipt
-      - bind-source-fixture
-    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && needs.bind-source-fixture.result == 'success' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
+    # Permanent fail-closed containment for #1481. Request metadata and the
+    # legacy standing boolean cannot authorize Environment or secret resolution.
+    # This registered job remains unreachable until a fresh independent one-shot
+    # authority is atomically consumed before this job can start. The variable
+    # marker is retained only for registry continuity; literal false wins.
+    if: ${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    env:
-      HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
-      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
+    timeout-minutes: 5
     steps:
       - name: Verify explicit STAGING activation authorization before secret resolution
         shell: bash
@@ -378,230 +149,24 @@ jobs:
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Checkout exact main SHA
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Prove exact-head checkout and source binding
-        shell: bash
-        env:
-          SOURCE_ARTIFACT_DIGEST: ${{ needs.bind-source-fixture.outputs.source_artifact_digest }}
-          SOURCE_RECEIPT_SHA256: ${{ needs.bind-source-fixture.outputs.source_receipt_sha256 }}
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          [[ "$SOURCE_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-          [[ "$SOURCE_RECEIPT_SHA256" =~ ^sha256:[a-f0-9]{64}$ ]]
-          test -n "$HOST"
-          test -n "$EXPECTED_FINGERPRINT"
-          test "$HOST" = '165.232.175.45'
-
-      - name: Pin and verify ED25519 host key
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/ssh"
-          timeout 10 ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
-          observed="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
-          test "$observed" = "$EXPECTED_FINGERPRINT"
-
       - name: Materialize dedicated STAGING key
+        shell: bash
         env:
           SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
-        shell: bash
         run: |
           set -euo pipefail
-          test -n "$SSH_PRIVATE_KEY_B64"
-          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
-          tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
-          mv "$RUNNER_TEMP/ssh/id_ed25519.normalized" "$RUNNER_TEMP/ssh/id_ed25519"
-          chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
-          ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
+          echo "::add-mask::$SSH_PRIVATE_KEY_B64"
           unset SSH_PRIVATE_KEY_B64
-
-      - name: Verify exact non-root STAGING identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
-          test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
-
-      - name: Verify pinned runner PostgreSQL client
-        shell: bash
-        run: |
-          set -euo pipefail
-          expected_client='16.15'
-          psql_version="$(psql --version)"
-          pg_isready_version="$(pg_isready --version)"
-          grep -Fq " $expected_client" <<<"$psql_version"
-          grep -Fq " $expected_client" <<<"$pg_isready_version"
+          echo "Credentialed PostgreSQL restore lane is fail-closed under #1481."
+          exit 78
 
       - name: Execute target-time restore verification through pinned SSH tunnel
-        env:
-          RESTORE_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN }}
-          BEFORE_MARKER: ${{ needs.bind-source-fixture.outputs.before_marker }}
-          AFTER_MARKER: ${{ needs.bind-source-fixture.outputs.after_marker }}
-          BEFORE_MARKER_DIGEST: ${{ needs.bind-source-fixture.outputs.before_marker_digest }}
-          AFTER_MARKER_DIGEST: ${{ needs.bind-source-fixture.outputs.after_marker_digest }}
-          TARGET_TIME: ${{ needs.bind-source-fixture.outputs.target_time }}
-          SOURCE_CONNECTION_IDENTITY_DIGEST: ${{ needs.bind-source-fixture.outputs.source_connection_identity_digest }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$RESTORE_DSN"
-          [[ "$SOURCE_CONNECTION_IDENTITY_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-          mkdir -p artifacts/p0-postgres-target-time-restore
-          export KAIOS_ENVIRONMENT=staging
-          export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
-          export KAIOS_STAGING_SSH_HOST="$HOST"
-          export KAIOS_STAGING_SSH_USER=kidults-staging
-          export KAIOS_STAGING_SSH_KEY_PATH="$RUNNER_TEMP/ssh/id_ed25519"
-          export KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH="$RUNNER_TEMP/ssh/known_hosts"
-          export KAIOS_RESTORE_VERIFIER_PATH="$GITHUB_WORKSPACE/scripts/staging/verify-postgres-target-time-restore.sh"
-          export KAIOS_PITR_BEFORE_MARKER="$BEFORE_MARKER"
-          export KAIOS_PITR_AFTER_MARKER="$AFTER_MARKER"
-          export KAIOS_PITR_BEFORE_MARKER_DIGEST="$BEFORE_MARKER_DIGEST"
-          export KAIOS_PITR_AFTER_MARKER_DIGEST="$AFTER_MARKER_DIGEST"
-          export KAIOS_PITR_TARGET_TIME="$TARGET_TIME"
-          export KAIOS_POSTGRES_PITR_RESTORE_DSN="$RESTORE_DSN"
-          unset RESTORE_DSN
-          scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh restore \
-            | tee artifacts/p0-postgres-target-time-restore/postgres-target-time-restore.json
-
-      - name: Assert target-boundary data state and exact fixture binding
         shell: bash
         env:
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
-          RESTORE_OPERATION_REFERENCE: ${{ inputs.restore_operation_reference }}
-          SOURCE_ARTIFACT_ID: ${{ needs.bind-source-fixture.outputs.source_artifact_id }}
-          SOURCE_ARTIFACT_DIGEST: ${{ needs.bind-source-fixture.outputs.source_artifact_digest }}
-          SOURCE_RECEIPT_SHA256: ${{ needs.bind-source-fixture.outputs.source_receipt_sha256 }}
-          SOURCE_CONNECTION_IDENTITY_DIGEST: ${{ needs.bind-source-fixture.outputs.source_connection_identity_digest }}
-          BEFORE_MARKER_DIGEST: ${{ needs.bind-source-fixture.outputs.before_marker_digest }}
-          AFTER_MARKER_DIGEST: ${{ needs.bind-source-fixture.outputs.after_marker_digest }}
-          TARGET_TIME: ${{ needs.bind-source-fixture.outputs.target_time }}
+          PITR_RESTORE_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN }}
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json, os, re
-          from pathlib import Path
-
-          path=Path('artifacts/p0-postgres-target-time-restore/postgres-target-time-restore.json')
-          raw=path.read_bytes()
-          r=json.loads(raw)
-          assert r['status']=='PASS'
-          assert r['environment']=='STAGING'
-          assert r['production_touch'] is False
-          assert r['pitr']=='NOT_VERIFIED'
-          assert r['target_boundary_data_state_observed'] is True
-          assert r['restore_method_verified'] is False
-          assert r['provider_control_plane_receipt_verified'] is False
-          assert r['pre_target_marker_count']==1
-          assert r['post_target_marker_count']==0
-          assert r['pre_target_marker_digest']==os.environ['BEFORE_MARKER_DIGEST']
-          assert r['expected_post_target_marker_digest']==os.environ['AFTER_MARKER_DIGEST']
-          assert r['pre_target_marker_at_or_before_target_time'] is True
-          assert r['pre_target_marker_guard_seconds_minimum']==2
-          assert r['target_time']==os.environ['TARGET_TIME']
-          assert r['data_checksums']=='on'
-          assert r['pitr_probe_table']=='kaios_runtime.pitr_probe_v2'
-          assert int(r['force_rls_tables']) >= 4
-          assert int(r['migration_rows']) >= 1
-          assert r['endpoint_in_recovery'] is False
-          assert r['consistent_snapshot_scope']=='SINGLE_POSTGRESQL_STATEMENT'
-          assert re.fullmatch(r'sha256:[a-f0-9]{64}', r['connection_identity_digest'])
-          assert r['tls_encryption_required'] is True
-          assert isinstance(r['tls_ca_chain_verified'], bool)
-          assert isinstance(r['tls_hostname_verified'], bool)
-          assert r['destination_policy']=='DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT'
-          assert r['connection_identity_digest'] != os.environ['SOURCE_CONNECTION_IDENTITY_DIGEST']
-
-          verification={
-              'id':'kidults-p0-postgres-target-boundary-state-observation-v1',
-              'status':'VERIFIED_DATA_STATE_ONLY',
-              'state':'WAITING_FOR_PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT',
-              'environment':'STAGING',
-              'source_main_sha':os.environ['GITHUB_SHA'],
-              'source_run_id':int(os.environ['SOURCE_RUN_ID']),
-              'source_artifact_id':int(os.environ['SOURCE_ARTIFACT_ID']),
-              'source_artifact_digest':os.environ['SOURCE_ARTIFACT_DIGEST'],
-              'source_receipt_sha256':os.environ['SOURCE_RECEIPT_SHA256'],
-              'restore_receipt_sha256':'sha256:'+hashlib.sha256(raw).hexdigest(),
-              'source_connection_identity_digest':os.environ['SOURCE_CONNECTION_IDENTITY_DIGEST'],
-              'restore_connection_identity_digest':r['connection_identity_digest'],
-              'restore_tls_encryption_required':True,
-              'restore_tls_ca_chain_verified':r['tls_ca_chain_verified'],
-              'restore_tls_hostname_verified':r['tls_hostname_verified'],
-              'destination_policy':r['destination_policy'],
-              'distinct_logical_connection_identity_observed':True,
-              'physical_restore_resource_distinctness_verified':False,
-              'target_time':r['target_time'],
-              'restore_operation_reference':os.environ['RESTORE_OPERATION_REFERENCE'],
-              'restore_operation_reference_evidence_class':'OPERATOR_SUPPLIED_EXTERNAL_REFERENCE',
-              'restore_operation_reference_verified':False,
-              'provider_control_plane_receipt_verified':False,
-              'target_boundary_data_state_observed':True,
-              'endpoint_in_recovery':False,
-              'consistent_snapshot_scope':'SINGLE_POSTGRESQL_STATEMENT',
-              'restore_method_verified':False,
-              'pitr_verified':False,
-              'restore_performed_by_this_workflow':False,
-              'external_restore_authorized_by_this_workflow':False,
-              'external_provider_spend_authorized_by_this_workflow':False,
-              'expanded_provider_credential_authorized_by_this_workflow':False,
-              'provider_contract_authorized_by_this_workflow':False,
-              'verification_basis':'EXACT_SOURCE_ARTIFACT_PLUS_DISTINCT_LOGICAL_ENDPOINT_MARKER_AND_DIGEST_STATE_ONLY',
-              'next_required_proof':'AUTHORITATIVE_PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT_BOUND_TO_SOURCE_TARGET_EXACT_TARGET_TIME_AND_COMPLETED_OPERATION',
-              'production_touch':False,
-              'public_touch':False,
-              'g5_touch':False,
-          }
-          Path('artifacts/p0-postgres-target-time-restore/target-boundary-state-observation.json').write_text(json.dumps(verification,indent=2)+'\n')
-          print('TARGET_BOUNDARY_DATA_STATE_OBSERVED_RESTORE_METHOD_UNVERIFIED')
-          PY
-
-      - name: Emit fail-closed PITR and downstream chain gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import hashlib, json
-          from pathlib import Path
-
-          root=Path('artifacts/p0-postgres-target-time-restore')
-          observation_path=root/'target-boundary-state-observation.json'
-          observation=json.loads(observation_path.read_text())
-          assert observation['status']=='VERIFIED_DATA_STATE_ONLY'
-          assert observation['state']=='WAITING_FOR_PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT'
-          assert observation['target_boundary_data_state_observed'] is True
-          assert observation['restore_method_verified'] is False
-          assert observation['pitr_verified'] is False
-          assert observation['provider_control_plane_receipt_verified'] is False
-          handoff={
-              'id':'kidults-pitr-and-downstream-chain-gate-v1',
-              'status':'BLOCKED',
-              'blocker':'PROVIDER_OR_PHYSICAL_RESTORE_RECEIPT_MISSING',
-              'target_boundary_observation_sha256':'sha256:'+hashlib.sha256(observation_path.read_bytes()).hexdigest(),
-              'pitr':'NOT_VERIFIED',
-              'candidate':'NONE',
-              'evidence_package':'NONE',
-              'track_b':'NOT_STARTED',
-              'live_projection':'NONE',
-              'production':'HOLD',
-              'public_intelligence':'HOLD',
-              'g5':'HOLD',
-          }
-          (root/'pitr-and-downstream-chain-gate.json').write_text(json.dumps(handoff,indent=2)+'\n')
-          print('PITR_AND_DOWNSTREAM_CHAIN_BLOCKED_ON_AUTHORITATIVE_RESTORE_RECEIPT')
-          PY
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
-        with:
-          name: p0-postgres-target-time-restore-${{ github.sha }}-${{ inputs.source_run_id }}
-          path: artifacts/p0-postgres-target-time-restore
-          if-no-files-found: error
-          retention-days: 30
+          echo "::add-mask::$PITR_RESTORE_DSN"
+          unset PITR_RESTORE_DSN
+          echo "No SSH, tunnel, database contact, restore probe or PITR claim is permitted."
+          exit 78

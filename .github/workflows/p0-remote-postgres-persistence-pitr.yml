@@ -7,105 +7,101 @@ on:
       - main
     paths:
       - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
-      - 'scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh'
-      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'coordination/kidults/runtime/postgres-standing-authorization-containment-v1.json'
+      - 'tests/kidults/kpmo/p0-postgres-standing-auth-containment-v1.test.mjs'
 
 permissions:
   contents: read
 
 concurrency:
-  group: p0-remote-postgres-persistence-pitr
+  group: p0-remote-postgres-persistence-pitr-containment
   cancel-in-progress: false
 
 jobs:
-  activation-readiness-receipt:
-    name: Remote PostgreSQL activation readiness receipt
+  fail-closed-activation-containment:
+    name: PostgreSQL activation replay containment
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    outputs:
-      authorized: ${{ steps.receipt.outputs.authorized }}
     steps:
-      - name: Verify exact live main without resolving provider credentials
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source and containment contract
+        id: verify
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node tests/kidults/kpmo/p0-postgres-standing-auth-containment-v1.test.mjs
 
-      - name: Emit non-secret fail-closed activation receipt
-        id: receipt
+      - name: Emit non-secret fail-closed containment receipt
+        if: always()
         shell: bash
         env:
-          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
-          HOST_BOUND: ${{ vars.KIDULTS_STAGING_PUBLIC_IP != '' }}
-          FINGERPRINT_BOUND: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT != '' }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/p0-remote-postgres
-          if [ "$ACTIVATION_AUTHORIZED" = "true" ]; then
-            AUTHORIZED=true
-            STATUS=READY_FOR_REMOTE_EXECUTION
-          else
-            AUTHORIZED=false
-            STATUS=BLOCKED_EXTERNAL_AUTHORIZATION
-          fi
-          printf 'authorized=%s\n' "$AUTHORIZED" >> "$GITHUB_OUTPUT"
-          python3 - "$STATUS" "$AUTHORIZED" "$HOST_BOUND" "$FINGERPRINT_BOUND" <<'PY' > artifacts/p0-remote-postgres/activation-readiness.json
-          import json, os, sys
-          status, authorized, host_bound, fingerprint_bound = sys.argv[1:]
+          python3 - <<'PY' > artifacts/p0-remote-postgres/activation-containment.json
+          import json, os
+          verified = os.environ.get("VERIFY_OUTCOME") == "success"
           print(json.dumps({
-              "gate": "REMOTE_POSTGRES_PITR_ACTIVATION_READINESS",
-              "status": status,
+              "receipt_id": "kidults-p0-remote-postgres-activation-containment-v1",
+              "version": "1.0.0",
+              "state": "BLOCKED_ONE_SHOT_AUTHORIZATION_REQUIRED" if verified else "VERIFIED_FAIL_CONTAINMENT_CONTRACT",
+              "issues": [1481, 1482],
+              "containment_contract_verified": verified,
+              "verification_outcome": os.environ.get("VERIFY_OUTCOME", "unknown"),
               "source_ref": os.environ["GITHUB_REF"],
               "source_sha": os.environ["GITHUB_SHA"],
               "event": os.environ["GITHUB_EVENT_NAME"],
-              "activation_authorized": authorized == "true",
-              "staging_host_binding_present": host_bound == "true",
-              "staging_fingerprint_binding_present": fingerprint_bound == "true",
+              "run_id": int(os.environ["GITHUB_RUN_ID"]),
+              "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]),
+              "standing_boolean_consulted_by_executable_job": False,
+              "standing_boolean_authority_accepted": False,
+              "credentialed_job_condition": "false_and_legacy_variable_inert_for_registry_contract",
+              "provider_environment_entered": False,
               "provider_secrets_resolved": False,
+              "ssh_executed": False,
+              "database_contacted": False,
               "remote_mutation_performed": False,
-              "restore_actuator_configured": False,
-              "external_restore_required": True,
-              "restore_performed_by_this_workflow": False,
-              "external_restore_authorized_by_this_workflow": False,
-              "external_provider_spend_authorized_by_this_workflow": False,
-              "expanded_provider_credential_authorized_by_this_workflow": False,
-              "provider_contract_authorized_by_this_workflow": False,
-              "production_touch": False,
-              "g5_touch": False,
-              "unblock_condition": None if authorized == "true" else "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true under the existing approved STAGING security boundary"
+              "source_fixture_executed": False,
+              "source_fixture_receipt": None,
+              "pitr_proven": False,
+              "required_next_control": "INDEPENDENT_RUN_BOUND_SINGLE_USE_AUTHORIZATION_CONSUMED_BEFORE_ENVIRONMENT_OR_SECRET_RESOLUTION",
+              "required_external_state": "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=false",
+              "production": "HOLD",
+              "public": "HOLD",
+              "g5": "HOLD"
           }, indent=2))
           PY
-          cat artifacts/p0-remote-postgres/activation-readiness.json
+          test -s artifacts/p0-remote-postgres/activation-containment.json
+          python3 -m json.tool artifacts/p0-remote-postgres/activation-containment.json >/dev/null
+          cat artifacts/p0-remote-postgres/activation-containment.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
         with:
-          name: p0-remote-postgres-activation-readiness-${{ github.sha }}
-          path: artifacts/p0-remote-postgres/activation-readiness.json
+          name: p0-remote-postgres-activation-containment-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/p0-remote-postgres/activation-containment.json
           if-no-files-found: error
           retention-days: 30
 
   remote-persistence-pitr-fixture:
-    needs: activation-readiness-receipt
-    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
+    # Permanent fail-closed containment for #1481. The legacy standing boolean
+    # may not authorize this credential-bearing lane. The job remains in the
+    # registered inventory only until a fresh independent one-shot authority is
+    # implemented and atomically consumed before Environment/secret resolution.
+    # The legacy variable marker remains solely to satisfy registry continuity;
+    # literal false makes the conjunction impossible for every variable value.
+    if: ${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    env:
-      HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
-      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
+    timeout-minutes: 5
     steps:
       - name: Verify explicit STAGING activation authorization before secret resolution
         shell: bash
@@ -136,258 +132,24 @@ jobs:
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Checkout exact main SHA
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Prove exact-head checkout
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-
-      - name: Assert required non-secret STAGING bindings
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$HOST"
-          test -n "$EXPECTED_FINGERPRINT"
-          test "$HOST" = '165.232.175.45'
-
-      - name: Pin and verify ED25519 host key
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/ssh"
-          timeout 10 ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
-          observed="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
-          test "$observed" = "$EXPECTED_FINGERPRINT"
-
       - name: Materialize dedicated STAGING key
+        shell: bash
         env:
           SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
-        shell: bash
         run: |
           set -euo pipefail
-          test -n "$SSH_PRIVATE_KEY_B64"
-          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
-          tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
-          mv "$RUNNER_TEMP/ssh/id_ed25519.normalized" "$RUNNER_TEMP/ssh/id_ed25519"
-          chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
-          ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
+          echo "::add-mask::$SSH_PRIVATE_KEY_B64"
           unset SSH_PRIVATE_KEY_B64
-
-      - name: Verify exact non-root STAGING identity
-        shell: bash
-        run: |
-          set -euo pipefail
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
-          test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
-
-      - name: Discover existing PostgreSQL runtime read-only
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p artifacts/p0-remote-postgres
-          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
-          "${SSH[@]}" kidults-staging@"$HOST" 'python3 - <<'"'"'PY'"'"'
-          import json, os, shutil, socket, subprocess
-          def run(args):
-              try:
-                  p=subprocess.run(args, text=True, capture_output=True, timeout=5)
-                  return {"rc":p.returncode,"stdout":p.stdout.strip()[:500],"stderr":p.stderr.strip()[:500]}
-              except Exception as e:
-                  return {"rc":127,"error":type(e).__name__}
-          report={
-              "hostname": socket.gethostname(),
-              "user": os.environ.get("USER"),
-              "psql_present": shutil.which("psql") is not None,
-              "pg_isready_present": shutil.which("pg_isready") is not None,
-              "systemctl_postgresql": run(["systemctl","is-active","postgresql"]),
-              "loopback_5432": run(["bash","-lc","ss -lnt 2>/dev/null | grep -E '\''127\\.0\\.0\\.1:5432|\\[::1\\]:5432|0\\.0\\.0\\.0:5432'\'' || true"]),
-              "pg_isready_loopback": run(["pg_isready","-h","127.0.0.1","-p","5432"]) if shutil.which("pg_isready") else {"rc":127},
-              "peer_postgres_probe": run(["psql","--no-psqlrc","--dbname=postgres","--tuples-only","--no-align","--command=select current_user, current_database();"]) if shutil.which("psql") else {"rc":127},
-          }
-          print(json.dumps(report, separators=(",",":")))
-          PY' > artifacts/p0-remote-postgres/staging-postgres-readonly-discovery.json
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('artifacts/p0-remote-postgres/staging-postgres-readonly-discovery.json')
-          r=json.loads(p.read_text())
-          assert r['hostname']=='ih-staging-01'
-          assert r['user']=='kidults-staging'
-          print('STAGING_POSTGRES_READONLY_DISCOVERY_COMPLETE')
-          print(json.dumps(r, indent=2))
-          PY
-
-      - name: Verify pinned runner PostgreSQL client
-        shell: bash
-        run: |
-          set -euo pipefail
-          expected_client='16.15'
-          psql_version="$(psql --version)"
-          pg_isready_version="$(pg_isready --version)"
-          grep -Fq " $expected_client" <<<"$psql_version"
-          grep -Fq " $expected_client" <<<"$pg_isready_version"
-          printf 'psql_version=%s\npg_isready_version=%s\n' "$psql_version" "$pg_isready_version"
+          echo "Credentialed PostgreSQL source lane is fail-closed under #1481."
+          exit 78
 
       - name: Execute source PostgreSQL fixture through pinned SSH tunnel
+        shell: bash
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
-        shell: bash
         run: |
           set -euo pipefail
-          test -n "$POSTGRES_DSN"
-          mkdir -p artifacts/p0-remote-postgres
-          export KAIOS_ENVIRONMENT=staging
-          export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
-          export KAIOS_STAGING_SSH_HOST="$HOST"
-          export KAIOS_STAGING_SSH_USER=kidults-staging
-          export KAIOS_STAGING_SSH_KEY_PATH="$RUNNER_TEMP/ssh/id_ed25519"
-          export KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH="$RUNNER_TEMP/ssh/known_hosts"
-          export KAIOS_SOURCE_VERIFIER_PATH="$GITHUB_WORKSPACE/scripts/staging/verify-remote-postgres-persistence-pitr.sh"
-          export KAIOS_POSTGRES_DSN="$POSTGRES_DSN"
+          echo "::add-mask::$POSTGRES_DSN"
           unset POSTGRES_DSN
-          python3 - <<'PY'
-          import os, urllib.parse
-          raw=os.environ['KAIOS_POSTGRES_DSN']
-          p=urllib.parse.urlsplit(raw)
-          host=p.hostname or ''
-          query=urllib.parse.parse_qs(p.query, keep_blank_values=True)
-          print('dsn_present=%s' % bool(raw))
-          print('scheme=%s' % (p.scheme or '<empty>'))
-          print('host_suffix_ok=%s' % host.endswith('.db.ondigitalocean.com'))
-          print('port=%s' % (p.port if p.port is not None else '<empty>'))
-          print('path_present=%s' % bool(p.path))
-          print('fragment_present=%s' % bool(p.fragment))
-          print('query_keys=%s' % ','.join(sorted(query)))
-          if p.scheme not in {'postgres','postgresql'} or not host or p.fragment:
-              raise SystemExit('DSN shape invalid: scheme/host/fragment')
-          if not host.endswith('.db.ondigitalocean.com'):
-              raise SystemExit('DSN shape invalid: DigitalOcean host suffix')
-          if p.port != 25060:
-              raise SystemExit('DSN shape invalid: port must be 25060')
-          if query.get('sslmode',[None])[0] not in {'require','verify-ca','verify-full'}:
-              raise SystemExit('DSN shape invalid: sslmode')
-          print('DSN_SHAPE_DIAGNOSTIC_PASS')
-          PY
-          scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source \
-            | tee artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
-
-      - name: Assert source receipt and emit external-restore handoff
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import datetime, hashlib, json, os, re
-          from pathlib import Path
-
-          root=Path('artifacts/p0-remote-postgres')
-          receipt_path=root/'postgres-persistence-pitr-readiness.json'
-          receipt_bytes=receipt_path.read_bytes()
-          r=json.loads(receipt_bytes)
-          assert r['status']=='PASS'
-          assert r['environment']=='STAGING'
-          assert r['production_touch'] is False
-          assert r['fixture_state'] in {
-              'TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED',
-              'TARGET_BOUNDARY_FIXTURE_VERIFIED__WAL_ARCHIVE_EVENT_NOT_VERIFIED',
-          }
-          assert r['pitr_capability']=='NOT_VERIFIED'
-          assert r['base_backup_verified'] is False
-          assert r['archive_restore_path_verified'] is False
-          assert r['restore_capability_verified'] is False
-          assert r['restore_actuator_configured'] is False
-          assert r['restore_performed_by_this_script'] is False
-          assert r['data_checksums']=='on'
-          assert r['pitr_probe_table']=='kaios_runtime.pitr_probe_v2'
-          assert int(r['force_rls_tables']) >= 4
-          assert r['before_lsn'] != r['after_lsn']
-          assert isinstance(r['pg_switch_wal_authorized'], bool)
-          assert isinstance(r['archive_observation_attempted'], bool)
-          assert isinstance(r['wal_archive_event_verified'], bool)
-          if r['wal_archive_event_verified']:
-              assert r['archive_observation_attempted'] is True
-              assert r['pg_switch_wal_authorized'] is True
-              assert int(r['archived_count']) > int(r['archived_count_before'])
-              assert int(r['archived_count']) > 0
-              assert int(r['failed_archive_count']) == int(r['failed_archive_count_before'])
-              assert r['archive_stats_reset']
-              assert r['switched_wal_archived'] is True
-              assert re.fullmatch(r'[A-F0-9]{24}', r['switched_wal'])
-              assert re.fullmatch(r'[A-F0-9]{24}', r['last_archived_wal'])
-          else:
-              assert r['archive_observation_attempted'] is False
-              assert r['switched_wal_archived'] is False
-              for key in ('archived_count_before','archived_count','failed_archive_count_before','failed_archive_count','archive_stats_reset','switched_wal','last_archived_wal'):
-                  assert r[key] is None
-          assert r['marker_boundary_order_verified'] is True
-          assert re.fullmatch(r'sha256:[a-f0-9]{64}', r['connection_identity_digest'])
-          assert r['tls_encryption_required'] is True
-          assert isinstance(r['tls_ca_chain_verified'], bool)
-          assert isinstance(r['tls_hostname_verified'], bool)
-          assert r['destination_policy']=='DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT'
-          for key in ('pitr_before_marker_digest','pitr_after_marker_digest'):
-              assert re.fullmatch(r'[a-f0-9]{64}', r[key])
-          assert r['pitr_before_marker'].startswith('pitr-before-')
-          assert r['pitr_after_marker'].startswith('pitr-after-')
-          assert re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', r['pitr_target_time'])
-          datetime.datetime.fromisoformat(r['pitr_target_time'][:-1] + '+00:00')
-          assert r['target_time_precision']=='WHOLE_SECOND_UTC'
-          assert r['marker_target_guard_seconds_minimum']==2
-
-          fixture={
-              'id':'kidults-p0-postgres-target-time-fixture-v1',
-              'status':'READY',
-              'state':'WAITING_FOR_EXTERNAL_RESTORE',
-              'environment':'STAGING',
-              'production_touch':False,
-              'public_touch':False,
-              'g5_touch':False,
-              'source_workflow':'.github/workflows/p0-remote-postgres-persistence-pitr.yml',
-              'source_run_id':int(os.environ['GITHUB_RUN_ID']),
-              'source_main_sha':os.environ['GITHUB_SHA'],
-              'source_receipt_sha256':'sha256:'+hashlib.sha256(receipt_bytes).hexdigest(),
-              'source_connection_identity_digest':r['connection_identity_digest'],
-              'source_tls_encryption_required':True,
-              'source_tls_ca_chain_verified':r['tls_ca_chain_verified'],
-              'source_tls_hostname_verified':r['tls_hostname_verified'],
-              'source_destination_policy':r['destination_policy'],
-              'before_marker':r['pitr_before_marker'],
-              'after_marker':r['pitr_after_marker'],
-              'before_marker_digest':r['pitr_before_marker_digest'],
-              'after_marker_digest':r['pitr_after_marker_digest'],
-              'target_time':r['pitr_target_time'],
-              'target_time_precision':r['target_time_precision'],
-              'marker_target_guard_seconds_minimum':r['marker_target_guard_seconds_minimum'],
-              'marker_boundary_order_verified':True,
-              'wal_archive_event_verified':r['wal_archive_event_verified'],
-              'pg_switch_wal_authorized':r['pg_switch_wal_authorized'],
-              'restore_actuator_configured':False,
-              'provider_restore_performed':False,
-              'external_restore_required':True,
-              'base_backup_verified':False,
-              'archive_restore_path_verified':False,
-              'restore_capability_verified':False,
-              'restore_performed_by_this_workflow':False,
-              'external_restore_authorized_by_this_workflow':False,
-              'external_provider_spend_authorized_by_this_workflow':False,
-              'expanded_provider_credential_authorized_by_this_workflow':False,
-              'provider_contract_authorized_by_this_workflow':False,
-              'next_required_proof':'EXTERNAL_RESTORE_TO_EXACT_TARGET_TIME_THEN_DISPATCH_p0-postgres-target-time-restore-verification.yml'
-          }
-          (root/'pitr-target-time-fixture.json').write_text(json.dumps(fixture,indent=2)+'\n',encoding='utf-8')
-          print('WAITING_FOR_EXTERNAL_RESTORE')
-          PY
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
-        with:
-          name: p0-remote-postgres-persistence-pitr-${{ github.sha }}
-          path: artifacts/p0-remote-postgres
-          if-no-files-found: error
-          retention-days: 30
+          echo "No SSH, tunnel, database contact or source fixture is permitted."
+          exit 78
