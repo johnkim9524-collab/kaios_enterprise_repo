@@ -25,7 +25,7 @@ const path = require('node:path');
 const args = process.argv.slice(2);
 const methodIndex = args.indexOf('--request');
 const method = methodIndex >= 0 ? args[methodIndex + 1] : 'GET';
-const url = args.find((value) => /^https:\/\//.test(value)) || '';
+const url = args.find((value) => value.startsWith('https://')) || '';
 const scenario = process.env.FAKE_CF_SCENARIO;
 const stateDir = process.env.FAKE_CF_STATE_DIR;
 fs.mkdirSync(stateDir, {recursive: true});
