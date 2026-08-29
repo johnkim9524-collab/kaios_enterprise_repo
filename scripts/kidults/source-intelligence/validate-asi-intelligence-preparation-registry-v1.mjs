@@ -52,8 +52,8 @@ for (const [key, expected] of Object.entries({
 assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '47 */3 * * *', 'REGISTRY_SCHEDULE');
 assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
-assert(registry.automatic_activation?.upstream_workflows?.length === 2, 'REGISTRY_UPSTREAM_COUNT');
-for (const upstream of ['KIDULTS Global Source Mesh v1', 'KIDULTS ASI Source Fabric Scale PI1']) {
+assert(registry.automatic_activation?.upstream_workflows?.length === 3, 'REGISTRY_UPSTREAM_COUNT');
+for (const upstream of ['KIDULTS Global Source Mesh v1', 'KIDULTS ASI Source Fabric Scale PI1', 'KIDULTS ASI Multi-Lane Autonomous Acquisition Mission v1']) {
   assert(registry.automatic_activation.upstream_workflows.includes(upstream), `REGISTRY_UPSTREAM:${upstream}`);
 }
 
