@@ -1,4 +1,4 @@
-name: KPMO CF-KIDULTS-14501AC-01 Preflight
+name: KPMO CF-KIDULTS-14501AC-01 Retirement Guard
 
 on:
   pull_request:
@@ -7,6 +7,7 @@ on:
       - '.github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml'
       - '.github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml'
       - 'coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json'
+      - 'coordination/kidults/runtime/cloudflare-pages-one-shot-completion-v1.json'
       - 'scripts/ops/cloudflare-pages-cf-kidults-14501ac-01.sh'
       - 'tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs'
       - '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
@@ -16,6 +17,7 @@ on:
       - '.github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml'
       - '.github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml'
       - 'coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json'
+      - 'coordination/kidults/runtime/cloudflare-pages-one-shot-completion-v1.json'
       - 'scripts/ops/cloudflare-pages-cf-kidults-14501ac-01.sh'
       - 'tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs'
       - '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
@@ -24,11 +26,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: kpmo-cf-kidults-14501ac-01-preflight-${{ github.ref }}
+  group: kpmo-cf-kidults-14501ac-01-retirement-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  validate:
+  validate-consumed-tombstone:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -41,7 +43,7 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate exact approval, bounded script and workflow binding
+      - name: Prove consumed approval cannot authorize replay
         run: |
           set -euo pipefail
           node tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs
