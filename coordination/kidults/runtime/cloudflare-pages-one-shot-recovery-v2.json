@@ -1,0 +1,41 @@
+{
+  "id": "kidults-cloudflare-pages-one-shot-recovery-v2",
+  "state": "AUTHORIZED_PENDING_CREDENTIAL_DIAGNOSTIC_AND_EXECUTION",
+  "project": "kidults-workspace-staging",
+  "original_authorized_pr": 1560,
+  "identity_recovery_pr": 1562,
+  "failed_workflow_run_id": 33255714663,
+  "failed_exact_main_sha": "5d0590e2f01589061069ce560fab814e70832fab",
+  "root_cause_observed": "INITIAL_PAGES_DEPLOYMENT_INVENTORY_HTTP_404",
+  "mutation_observed_before_failure": false,
+  "failure_artifact_id": 9715733544,
+  "failure_artifact_digest": "sha256:aeefe76a08f490c73c7a7f8be19ec5c3530064a56a7667004a01ed8eb905babe",
+  "diagnostic_scope": [
+    "VERIFY_TOKEN_STATUS_WITHOUT_REVEALING_TOKEN",
+    "COMPARE_CONFIGURED_ACCOUNT_IDENTIFIER_DIGEST_TO_CANONICAL_IDENTIFIER",
+    "VERIFY_PROJECT_VISIBILITY_USING_CONFIGURED_AND_CANONICAL_ACCOUNT_IDENTIFIERS",
+    "SELECT_ONLY_A_VERIFIED_PROJECT_VISIBLE_ACCOUNT_IDENTIFIER"
+  ],
+  "authorized_operations": [
+    "RETIRE_HISTORICAL_MATERIALIZED_PREVIEW_DEPLOYMENTS_ONLY",
+    "PRESERVE_PRODUCTION_DEPLOYMENT_HISTORY",
+    "CREATE_ONE_GOVERNED_EXACT_MAIN_STAGING_DEPLOYMENT",
+    "FINAL_READ_ONLY_API_VERIFICATION"
+  ],
+  "forbidden_operations": [
+    "DELETE_PRODUCTION_DEPLOYMENTS",
+    "DELETE_PAGES_PROJECT",
+    "ENABLE_AUTOMATIC_GIT_DEPLOYMENTS",
+    "PUBLIC_RELEASE",
+    "PLATFORM_PRODUCTION_RELEASE",
+    "G5_PROMOTION"
+  ],
+  "program_owner_authorization": {
+    "authorized": true,
+    "instruction": "끝까지 밀어",
+    "recorded_at": "2026-08-29T22:00:00+09:00"
+  },
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
