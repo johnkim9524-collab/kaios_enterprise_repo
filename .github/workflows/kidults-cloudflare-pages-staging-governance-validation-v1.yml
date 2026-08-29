@@ -21,6 +21,7 @@ on:
       - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
       - 'tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-pages-readonly-governed-lineage-v1.test.mjs'
       - 'tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs'
       - 'tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs'
       - 'tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs'
@@ -46,6 +47,7 @@ jobs:
         run: |
           node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
           node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs
+          node tests/kidults/kpmo/cloudflare-pages-readonly-governed-lineage-v1.test.mjs
           node tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs
           node tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs
           node tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs
