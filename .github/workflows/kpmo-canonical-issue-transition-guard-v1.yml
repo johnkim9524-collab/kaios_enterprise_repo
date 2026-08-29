@@ -43,6 +43,10 @@ jobs:
             process.exit(0);
           }
           const headers = {Accept:'application/vnd.github+json', Authorization:`Bearer ${token}`, 'X-GitHub-Api-Version':'2022-11-28'};
+          const isAllowedLineage = (status) => status === 'identical' || status === 'ahead';
+          for (const [status, expected] of [['identical', true], ['ahead', true], ['behind', false], ['diverged', false]]) {
+            if (isAllowedLineage(status) !== expected) throw new Error(`LINEAGE_CLASSIFIER_REGRESSION_${status}`);
+          }
           const mainRes = await fetch(`https://api.github.com/repos/${repo}/git/ref/heads/main`, {headers});
           if (!mainRes.ok) throw new Error(`MAIN_REF_HTTP_${mainRes.status}`);
           const mainSha = (await mainRes.json()).object?.sha;
@@ -55,9 +59,19 @@ jobs:
           if (!blocks.length) throw new Error(`ISSUE_${issueNumber}_CANONICAL_BLOCK_MISSING`);
           const block = blocks.at(-1)[1];
           const recorded = block.match(/protected main:\s*`([0-9a-f]{40})`/i)?.[1] || '';
-          if (recorded !== mainSha) throw new Error(`ISSUE_${issueNumber}_STALE_MAIN_${recorded || 'NONE'}_EXPECTED_${mainSha}`);
+          if (!/^[0-9a-f]{40}$/i.test(recorded)) throw new Error(`ISSUE_${issueNumber}_RECORDED_MAIN_INVALID_${recorded || 'NONE'}`);
+          let lineageStatus = 'identical';
+          if (recorded !== mainSha) {
+            const compareRes = await fetch(`https://api.github.com/repos/${repo}/compare/${recorded}...${mainSha}`, {headers});
+            if (!compareRes.ok) throw new Error(`ISSUE_${issueNumber}_COMPARE_HTTP_${compareRes.status}`);
+            const compare = await compareRes.json();
+            lineageStatus = String(compare.status || 'UNKNOWN');
+            if (!isAllowedLineage(lineageStatus)) {
+              throw new Error(`ISSUE_${issueNumber}_NON_MONOTONIC_MAIN_${recorded}_CURRENT_${mainSha}_STATUS_${lineageStatus}`);
+            }
+          }
           if (!/Production\/Public\/G5:\s*\*\*HOLD\*\*/i.test(block) && !(block.includes('Production/Public/G5') && block.includes('HOLD'))) {
             throw new Error(`ISSUE_${issueNumber}_RELEASE_HOLD_MISSING`);
           }
-          console.log(JSON.stringify({state:'LOCAL_TRANSITION_VERIFIED_PASS', issue_number:issueNumber, protected_main:mainSha, promotion_eligible:false, production:'HOLD', public:'HOLD', g5:'HOLD'}));
+          console.log(JSON.stringify({state:'LOCAL_TRANSITION_VERIFIED_PASS', issue_number:issueNumber, recorded_main:recorded, protected_main:mainSha, lineage_status:lineageStatus, lineage_policy:'MONOTONIC_ANCESTOR_OR_EQUAL', promotion_eligible:false, production:'HOLD', public:'HOLD', g5:'HOLD'}));
           NODE
