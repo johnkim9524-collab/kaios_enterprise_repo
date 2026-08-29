@@ -84,7 +84,9 @@ try {
   let results = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      results = evaluateRequiredCheckRuns(await checkPages(expectedHeadSha), scope.required_contexts);
+      results = evaluateRequiredCheckRuns(await checkPages(expectedHeadSha), scope.required_contexts, {
+        expectedIntegrationId: policy.native_status_binding.integration_id,
+      });
       break;
     } catch (error) {
       if (!(error instanceof GateFailure) || !retryable.has(error.code) || attempt === maxAttempts) throw error;

@@ -40,9 +40,17 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {
+            assertNativeRequiredStatusBindings,
+            assertRepositoryDefaultBranch,
+            assertRepositoryDefaultBranchRuleset,
+            assertSoloOwnerProtectPullRequestRule,
+          } from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
           const token = process.env.GH_TOKEN;
+          const scopePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
           const headers = {
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.github+json',
@@ -68,6 +76,7 @@ jobs:
           };
 
           const repository = await api('');
+          assertRepositoryDefaultBranch(repository);
           const pr = await api(`/pulls/${prNumber}`);
           if (pr.base?.ref !== 'main') fail('base branch is not main');
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
@@ -116,17 +125,12 @@ jobs:
           if(!solo || !protect) fail('required active rulesets missing');
           const soloDetail = await api(`/rulesets/${solo.id}`);
           const protectDetail = await api(`/rulesets/${protect.id}`);
-          if((soloDetail.bypass_actors||[]).length!==0 || (protectDetail.bypass_actors||[]).length!==0) fail('ruleset bypass actor detected');
-          const statusRule=(soloDetail.rules||[]).find(x=>x.type==='required_status_checks');
-          if(!statusRule?.parameters?.strict_required_status_checks_policy) fail('strict required status policy disabled');
-          const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
-          for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
-          const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
-          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');
-          if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
-          if(protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval must remain disabled in solo-owner mode');
-          if(!protectPr?.parameters?.required_review_thread_resolution) fail('Protect main review-thread resolution disabled');
-          if(!protectPr?.parameters?.require_extra_approval_for_unattributed_changes) fail('Protect main unattributed-change approval disabled');
+          assertRepositoryDefaultBranchRuleset(protectDetail, repo);
+          assertSoloOwnerProtectPullRequestRule(protectDetail);
+          assertNativeRequiredStatusBindings(soloDetail, [
+            ...scopePolicy.technical_base_contexts,
+            ...scopePolicy.native_required_status_contexts,
+          ], {repository:repo,integrationId:scopePolicy.native_status_binding.integration_id});
 
           const timeline = await pages(`/issues/${prNumber}/timeline`);
           const readinessEvents = timeline.filter(x=>x.event==='ready_for_review'||x.event==='convert_to_draft');
@@ -214,7 +218,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {assertStableFinalReread} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          import {assertRepositoryDefaultBranch,assertStableFinalReread} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA;
           const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
           const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
@@ -222,6 +226,7 @@ jobs:
           const status=async(state,description)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context:policy.required_status_context,description})});
           let failure=null;
           try {
+            assertRepositoryDefaultBranch(await api(''));
             const final=await api(`/pulls/${number}`);
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
             if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');

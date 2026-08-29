@@ -1,0 +1,51 @@
+{
+  "id": "kidults-trusted-governed-control-freeze-v1",
+  "version": "1.0.0",
+  "status": "PROGRAM_OWNER_APPROVED_BOOTSTRAP_PENDING_NATIVE_ENFORCEMENT",
+  "comparison": "EXACT_BYTES_FROM_TRUSTED_BASE",
+  "trusted_source": "PULL_REQUEST_TARGET_EXACT_BASE_SHA",
+  "candidate_source": "EXACT_PULL_REQUEST_HEAD_SHA",
+  "update_path": "OWNER_GOVERNED_BOOTSTRAP_EXCEPTION_ONLY",
+  "ordinary_pull_request_update_allowed": false,
+  "bootstrap_exception": {
+    "purpose": "Install or deliberately replace the immutable native governance trust root.",
+    "must_be_explicitly_authorized_by_program_owner": true,
+    "must_be_called_out_in_pull_request_and_landing_receipt": true,
+    "must_be_verified_from_protected_main_before_native_binding_or_rebinding": true,
+    "does_not_authorize_production_public_or_g5": true
+  },
+  "immutable_categories": {
+    "freeze_mechanism": "Manifest and validator that define and enforce this exact-byte set.",
+    "native_control_plane": "Trusted pull_request_target control, authorization, aggregator, atomic landing and their core validators/policies.",
+    "native_status_producers": "Canonical workflow files allowed to produce protected merge-status contexts."
+  },
+  "immutable_paths": [
+    "coordination/kidults/kpmo/trusted-governed-control-freeze-v1.json",
+    "scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs",
+    ".github/workflows/kidults-postgres-d1-boundary-v1.yml",
+    "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
+    "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
+    "scripts/kidults/kpmo/lib/governed-landing-cloudflare-remote-mutation-boundary-v1.mjs",
+    "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json",
+    "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+    "scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs",
+    "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs",
+    "scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs",
+    ".github/workflows/kidults-atomic-governed-landing-v1.yml",
+    ".github/workflows/kidults-governed-landing-authorization-v1.yml",
+    ".github/workflows/kidults-scope-aware-authoritative-status-v1.yml",
+    ".github/workflows/solo-owner-preflight.yml",
+    ".github/workflows/ci-validation.yml",
+    ".github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml",
+    ".github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml",
+    ".github/workflows/kidults-shared-portal-evidence-integrity-v1.yml",
+    ".github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml",
+    ".github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml"
+  ],
+  "authority_boundary": {
+    "technical_check_is_merge_authority": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  }
+}

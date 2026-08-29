@@ -1,8 +1,9 @@
 name: KIDULTS PostgreSQL System Ledger and D1 Writer Boundary v1
 
 on:
-  pull_request:
+  pull_request_target:
     paths:
+      - ".github/workflows/**"
       - ".github/workflows/kidults-postgres-d1-boundary-v1.yml"
       - "services/kidults-control-plane/**"
       - "services/kidults-autonomous-intelligence/src/**"
@@ -11,14 +12,23 @@ on:
       - "coordination/kidults/redteam/d1-legacy-resource-policy-v1.json"
       - "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json"
       - "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs"
+      - "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs"
+      - "scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs"
+      - "coordination/kidults/kpmo/trusted-governed-control-freeze-v1.json"
+      - "tests/kidults/kpmo/trusted-governed-control-freeze-v1.test.mjs"
+      - "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json"
+      - "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs"
+      - "scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs"
+      - "scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs"
+      - "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs"
+      - ".github/workflows/kidults-atomic-governed-landing-v1.yml"
+      - ".github/workflows/kidults-scope-aware-authoritative-status-v1.yml"
       - ".github/workflows/kidults-governed-landing-authorization-v1.yml"
       - ".github/workflows/solo-owner-preflight.yml"
-  push:
-    branches: [main]
-  workflow_dispatch:
-
 permissions:
+  checks: write
   contents: read
+  pull-requests: read
 
 concurrency:
   group: kidults-postgres-d1-boundary-v1-${{ github.event.pull_request.number || github.ref }}
@@ -26,20 +36,58 @@ concurrency:
 
 jobs:
   postgres-d1-boundary:
+    name: KIDULTS Governed Landing Control Validation V1
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout trusted base validators
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+          path: trusted-control
+      - name: Checkout exact untrusted PR head without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '24.19.0'
-          cache: npm
-          cache-dependency-path: services/kidults-autonomous-intelligence/package-lock.json
-      - name: Validate PostgreSQL authority, D1 read models and exact writer inventory
-        run: npm --prefix services/kidults-control-plane run validate
-      - name: Run boundary negative-mutation tests
-        run: npm --prefix services/kidults-control-plane test
-      - name: Validate governed critical-surface and independent-review coverage
-        run: node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          path: candidate
+      - name: Verify exact candidate SHA
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git -C trusted-control rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_SHA"
+          if git -C candidate ls-files -s | awk '$1 == "120000" || $1 == "160000" { found=1 } END { exit !found }'; then
+            echo 'Symlink or submodule entries are forbidden in governed candidate validation.' >&2
+            exit 1
+          fi
+      - name: Run only trusted-base repository governance validators against candidate
+        id: trusted_control
+        continue-on-error: true
+        working-directory: candidate
+        run: |
+          node ../trusted-control/scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs \
+            --trusted-root ../trusted-control \
+            --candidate-root .
+          node ../trusted-control/scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs
+          node ../trusted-control/scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs
+      - name: Publish trusted exact-head governed-control check
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          VALIDATION_OUTCOME: ${{ steps.trusted_control.outcome }}
+        run: |
+          node --input-type=module <<'NODE'
+          const headers={Authorization:`Bearer ${process.env.GH_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'};
+          const api=async(path,options={})=>{const response=await fetch(`https://api.github.com/repos/${process.env.GH_REPOSITORY}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error',signal:AbortSignal.timeout(30000)});const body=await response.json().catch(()=>null);if(!response.ok)throw new Error(`GITHUB_API_${response.status}:${path}`);return body;};
+          const pr=await api(`/pulls/${process.env.PR_NUMBER}`);
+          if(pr.state!=='open'||pr.merged===true||pr.head?.sha!==process.env.EXPECTED_HEAD_SHA)throw new Error('EXACT_OPEN_PR_HEAD_REREAD_FAILED');
+          const conclusion=process.env.VALIDATION_OUTCOME==='success'?'success':'failure';
+          await api('/check-runs',{method:'POST',body:JSON.stringify({name:'KIDULTS Governed Landing Control Validation V1',head_sha:process.env.EXPECTED_HEAD_SHA,status:'completed',conclusion,output:{title:'Trusted-base governed control validation',summary:conclusion==='success'?'Trusted base validators accepted the exact PR head.':'Trusted base validators rejected the exact PR head.'}})});
+          if(conclusion!=='success')process.exit(1);
+          NODE

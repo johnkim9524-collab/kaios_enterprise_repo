@@ -1,10 +1,34 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  cloudflareRemoteMutationViolations,
+  inspectWorkflowCloudflareMutations,
+} from './lib/governed-landing-cloudflare-remote-mutation-boundary-v1.mjs';
 
 const ROOT = path.resolve('.github/workflows');
-const POLICY_VERSION = '1.1';
+const POLICY_VERSION = '1.2';
 const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-landing-v1.yml');
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
+const TRUSTED_CONTROL_WORKFLOW = path.resolve(ROOT, 'kidults-postgres-d1-boundary-v1.yml');
+const STATUS_WRITE_ALLOWLIST = new Set([
+  '.github/workflows/kidults-governed-landing-authorization-v1.yml',
+  '.github/workflows/kidults-scope-aware-authoritative-status-v1.yml',
+  '.github/workflows/kidults-atomic-governed-landing-v1.yml',
+]);
+const CHECKS_WRITE_ALLOWLIST = new Set([
+  '.github/workflows/kidults-postgres-d1-boundary-v1.yml',
+]);
+const PROTECTED_CHECK_PRODUCERS = new Map([
+  ['KAIOS Solo Owner Preflight', '.github/workflows/solo-owner-preflight.yml'],
+  ['Validate KAIOS Foundation', '.github/workflows/ci-validation.yml'],
+  ['Validate Production Container', '.github/workflows/ci-validation.yml'],
+  ['KIDULTS Governed Landing Control Validation V1', '.github/workflows/kidults-postgres-d1-boundary-v1.yml'],
+  ['KIDULTS Cloudflare One-Shot Trust Boundary V1', '.github/workflows/kpmo-cf-kidults-14501ac-01-preflight.yml'],
+  ['KIDULTS Cloudflare STAGING Governance Boundary V1', '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'],
+  ['KIDULTS Shared Portal Evidence Integrity V1', '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'],
+  ['KIDULTS PostgreSQL One-Shot Authorization Boundary V1', '.github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml'],
+  ['KIDULTS Met V&A Candidate R2 Boundary V1', '.github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml'],
+]);
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -42,9 +66,31 @@ function violationsFor(text) {
   const findings = [];
   if (lines.some((line) => /^\s*contents:\s*write\s*$/i.test(line))) findings.push('contents-write');
   if (lines.some((line) => /^\s*permissions:\s*write-all\s*$/i.test(line))) findings.push('permissions-write-all');
+  if (lines.some((line) => /(?:^|[{,])\s*statuses\s*:\s*write(?:\s*[,}]|\s*$)/i.test(line))) findings.push('statuses-write');
+  if (lines.some((line) => /(?:^|[{,])\s*checks\s*:\s*write(?:\s*[,}]|\s*$)/i.test(line))) findings.push('checks-write');
   if (lines.some(containsDirectGitPush)) findings.push('direct-git-push');
   if (lines.some(containsDirectRepositoryApiMutation)) findings.push('direct-github-repository-mutation-api');
   return [...new Set(findings)];
+}
+
+function protectedContextViolations(relative, workflow) {
+  const findings = [];
+  const jobNames = [];
+  const lines = workflow.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^ {4}name:\s*(.*?)\s*$/);
+    if (!match) continue;
+    const raw = match[1];
+    if (!raw || /^[>|]/.test(raw) || raw.includes('${{')) {
+      findings.push(`dynamic-or-block-job-name-forbidden:line-${index + 1}`);
+      continue;
+    }
+    jobNames.push(raw.replace(/^['"]|['"]$/g, '').trim());
+  }
+  for (const [context, producer] of PROTECTED_CHECK_PRODUCERS) {
+    if (jobNames.includes(context) && relative !== producer) findings.push(`protected-check-context-spoof:${context}`);
+  }
+  return findings;
 }
 
 function constrainedAtomicLandingViolations(workflow, runner) {
@@ -54,20 +100,28 @@ function constrainedAtomicLandingViolations(workflow, runner) {
     ['exact-pr-input', 'pull_request_number:'],
     ['exact-head-input', 'expected_head_sha:'],
     ['operation-authorization-input', 'landing_authorization_id:'],
-    ['serialized-pr-landing', 'cancel-in-progress: false'],
-    ['main-checkout', 'ref: main'],
+    ['serialized-global-landing', 'group: kidults-atomic-governed-landing-v1-global'],
+    ['serialized-no-cancel', 'cancel-in-progress: false'],
+    ['control-sha-checkout', 'ref: ${{ github.sha }}'],
     ['credential-persistence-disabled', 'persist-credentials: false'],
     ['main-ref-assertion', 'test "$GITHUB_REF" = refs/heads/main'],
     ['live-actor-binding', 'LANDING_ACTOR: ${{ github.actor }}'],
+    ['triggering-actor-binding', 'LANDING_TRIGGERING_ACTOR: ${{ github.triggering_actor }}'],
+    ['run-attempt-binding', 'LANDING_RUN_ATTEMPT: ${{ github.run_attempt }}'],
+    ['control-sha-binding', 'CONTROL_SHA: ${{ github.sha }}'],
     ['fixed-runner', 'run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'],
   ];
   const runnerRequirements = [
-    ['owner-actor-assertion', 'assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login'],
+    ['owner-actor-assertion', 'assertLandingActorAndAuthorization(landingActor, landingTriggeringActor, repositoryState.owner?.login'],
+    ['repository-default-main-assertion', 'assertRepositoryDefaultBranch(repositoryState);'],
     ['initial-live-pr-read', 'const initial = await request(`/pulls/${prNumber}`);'],
     ['final-live-pr-reread', 'const final = await request(`/pulls/${prNumber}`);'],
     ['post-status-live-pr-reread', 'const immediatePreMerge = await request(`/pulls/${prNumber}`);'],
-    ['post-status-scope-reread', "throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT')"],
-    ['post-status-check-reread', 'evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);'],
+    ['final-scope-status-reread', 'const finalAggregator = (finalStatuses.statuses || []).find'],
+    ['final-scope-requirements-reread', 'const finalScopedRequirements = resolveScopeRequirements(finalFiles, final, scopePolicy);'],
+    ['final-check-reread', 'evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), finalScopedRequirements.required_contexts, {'],
+    ['live-main-control-reread', 'await assertLiveControlMain(immediatePreMerge);'],
+    ['bounded-api-timeout', 'AbortSignal.timeout(30_000)'],
     ['server-merge-put', "method: 'PUT'"],
     ['server-merge-exact-head', 'body: JSON.stringify({sha: expectedHeadSha, merge_method: \'merge\'})'],
     ['failure-status-revocation', "await publish('failure', error?.code || error?.message || 'atomic landing failed')"],
@@ -86,9 +140,39 @@ function constrainedAtomicLandingViolations(workflow, runner) {
   if (/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_run):\s*$/mi.test(workflow)) {
     findings.push('atomic-landing-workflow-dispatch-only');
   }
-  const nonContentsViolations = violationsFor(workflow).filter(value => value !== 'contents-write');
+  const nonContentsViolations = violationsFor(workflow).filter(value => !['contents-write', 'statuses-write'].includes(value));
   if (nonContentsViolations.length) findings.push(...nonContentsViolations.map(value => `atomic-landing-${value}`));
   return [...new Set(findings)];
+}
+
+function trustedControlWorkflowViolations(workflow) {
+  const requirements = [
+    ['target-event', 'pull_request_target:'],
+    ['checks-write', 'checks: write'],
+    ['trusted-base-checkout', 'path: trusted-control'],
+    ['exact-base-checkout', 'ref: ${{ github.event.pull_request.base.sha }}'],
+    ['exact-base-verification', 'test "$(git -C trusted-control rev-parse HEAD)" = "$EXPECTED_BASE_SHA"'],
+    ['exact-head-checkout', 'ref: ${{ github.event.pull_request.head.sha }}'],
+    ['candidate-isolated', 'path: candidate'],
+    ['candidate-symlink-submodule-guard', '$1 == "120000" || $1 == "160000"'],
+    ['trusted-freeze-validator', 'node ../trusted-control/scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs'],
+    ['trusted-freeze-root', '--trusted-root ../trusted-control'],
+    ['candidate-freeze-root', '--candidate-root .'],
+    ['trusted-coverage-validator', 'node ../trusted-control/scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs'],
+    ['trusted-mutation-validator', 'node ../trusted-control/scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'],
+    ['final-pr-reread', "const pr=await api(`/pulls/${process.env.PR_NUMBER}`);"],
+    ['exact-open-head-reread', "pr.head?.sha!==process.env.EXPECTED_HEAD_SHA"],
+    ['exact-check-name', "name:'KIDULTS Governed Landing Control Validation V1'"],
+    ['exact-head-check-run', 'head_sha:process.env.EXPECTED_HEAD_SHA'],
+    ['failed-validation-fails-job', "if(conclusion!=='success')process.exit(1)"],
+  ];
+  const findings = requirements.filter(([, marker]) => !workflow.includes(marker)).map(([id]) => `trusted-control-${id}`);
+  const candidateBlock = workflow.split('      - name: Run only trusted-base repository governance validators against candidate')[1]
+    ?.split(/^      - name:/m)[0] || '';
+  if (candidateBlock.split(/\r?\n/).some(line => /\bnode\b/.test(line) && !line.includes('node ../trusted-control/'))) {
+    findings.push('trusted-control-candidate-executable-used-as-authority');
+  }
+  return findings;
 }
 
 const mutationCases = [
@@ -97,6 +181,10 @@ const mutationCases = [
   ['run: git push origin HEAD:main', 'direct-git-push'],
   ['run: git add x && git push', 'direct-git-push'],
   ['run: gh api --method POST /repos/acme/repo/git/refs', 'direct-github-repository-mutation-api'],
+  ['permissions:\n  statuses: write', 'statuses-write'],
+  ['permissions:\n  checks: write', 'checks-write'],
+  ['permissions: {statuses: write}', 'statuses-write'],
+  ['permissions: {checks: write}', 'checks-write'],
 ];
 const negativeCases = [
   "run: echo 'Repository mutation did not occur; no direct push was performed.'",
@@ -110,6 +198,17 @@ for (const sample of negativeCases) {
   const found = violationsFor(sample);
   if (found.length) throw new Error(`workflow mutation guard false-positive self-test: ${sample} -> ${found.join(',')}`);
 }
+for (const sample of [
+  'jobs:\n  spoof:\n    name: KAIOS Solo Owner Preflight',
+  'jobs:\n  spoof:\n    name: "KAIOS Solo Owner Preflight"',
+  'jobs:\n  spoof:\n    name: >-\n      KAIOS Solo Owner Preflight',
+  "jobs:\n  spoof:\n    name: ${{ 'KAIOS Solo Owner Preflight' }}",
+]) if (!protectedContextViolations('.github/workflows/attacker.yml', sample).length) {
+  throw new Error(`protected check context spoof self-test was not rejected: ${sample}`);
+}
+if (protectedContextViolations('.github/workflows/solo-owner-preflight.yml', 'jobs:\n  preflight:\n    name: KAIOS Solo Owner Preflight').length) {
+  throw new Error('canonical protected check producer was falsely rejected');
+}
 
 const files = walk(ROOT);
 const findings = [];
@@ -117,6 +216,15 @@ let constrainedAtomicLandingExceptions = 0;
 for (const file of files) {
   const workflow = fs.readFileSync(file, 'utf8');
   let violations = violationsFor(workflow);
+  const relative = path.relative('.', file).replaceAll('\\', '/');
+  if (violations.includes('statuses-write') && STATUS_WRITE_ALLOWLIST.has(relative)) {
+    violations = violations.filter(value => value !== 'statuses-write');
+  }
+  if (violations.includes('checks-write') && CHECKS_WRITE_ALLOWLIST.has(relative)) {
+    violations = violations.filter(value => value !== 'checks-write');
+  }
+  violations.push(...cloudflareRemoteMutationViolations(workflow));
+  violations.push(...protectedContextViolations(relative, workflow));
   if (path.resolve(file) === ATOMIC_LANDING_WORKFLOW && violations.includes('contents-write')) {
     const runner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
     const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner);
@@ -130,6 +238,23 @@ for (const file of files) {
   if (violations.length) findings.push({ file: path.relative('.', file), violations });
 }
 
+const actualStatusWriters = files
+  .filter(file => violationsFor(fs.readFileSync(file, 'utf8')).includes('statuses-write'))
+  .map(file => path.relative('.', file).replaceAll('\\', '/')).sort();
+const expectedStatusWriters = [...STATUS_WRITE_ALLOWLIST].sort();
+if (JSON.stringify(actualStatusWriters) !== JSON.stringify(expectedStatusWriters)) {
+  findings.push({file: '.github/workflows', violations: ['status-write-allowlist-cardinality-or-identity-drift']});
+}
+const actualCheckWriters = files
+  .filter(file => violationsFor(fs.readFileSync(file, 'utf8')).includes('checks-write'))
+  .map(file => path.relative('.', file).replaceAll('\\', '/')).sort();
+if (JSON.stringify(actualCheckWriters) !== JSON.stringify([...CHECKS_WRITE_ALLOWLIST].sort())) {
+  findings.push({file: '.github/workflows', violations: ['checks-write-allowlist-cardinality-or-identity-drift']});
+}
+
+const cloudflareMutationJobs = files.flatMap(file => inspectWorkflowCloudflareMutations(fs.readFileSync(file, 'utf8'))
+  .map(job => ({file: path.relative('.', file).replaceAll('\\', '/'), ...job})));
+
 if (constrainedAtomicLandingExceptions !== 1) {
   findings.push({
     file: path.relative('.', ATOMIC_LANDING_WORKFLOW),
@@ -139,9 +264,16 @@ if (constrainedAtomicLandingExceptions !== 1) {
 
 const atomicWorkflow = fs.readFileSync(ATOMIC_LANDING_WORKFLOW, 'utf8');
 const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
+const trustedControlWorkflow = fs.readFileSync(TRUSTED_CONTROL_WORKFLOW, 'utf8');
+const trustedControlFindings = trustedControlWorkflowViolations(trustedControlWorkflow);
+if (trustedControlFindings.length) findings.push({file:path.relative('.', TRUSTED_CONTROL_WORKFLOW),violations:trustedControlFindings});
 const atomicMutationCases = [
-  ['owner-actor', atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingActor'), 'atomic-landing-runner-owner-actor-assertion'],
+  ['owner-actor', atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, landingTriggeringActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingTriggeringActor, landingActor'), 'atomic-landing-runner-owner-actor-assertion'],
+  ['default-main', atomicRunner.replace('assertRepositoryDefaultBranch(repositoryState);', 'void repositoryState.default_branch;'), 'atomic-landing-runner-repository-default-main-assertion'],
   ['final-reread', atomicRunner.replace('const immediatePreMerge = await request(`/pulls/${prNumber}`);', 'const immediatePreMerge = final;'), 'atomic-landing-runner-post-status-live-pr-reread'],
+  ['scope-reread', atomicRunner.replace('const finalAggregator = (finalStatuses.statuses || []).find', 'const finalAggregator = (statuses.statuses || []).find'), 'atomic-landing-runner-final-scope-status-reread'],
+  ['check-reread', atomicRunner.replace('evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), finalScopedRequirements.required_contexts, {', 'evaluateRequiredCheckRuns([], finalScopedRequirements.required_contexts, {'), 'atomic-landing-runner-final-check-reread'],
+  ['live-main-reread', atomicRunner.replace('await assertLiveControlMain(immediatePreMerge);', 'void immediatePreMerge;'), 'atomic-landing-runner-live-main-control-reread'],
   ['expected-head', atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"), 'atomic-landing-runner-server-merge-exact-head'],
   ['failure-revocation', atomicRunner.replace("await publish('failure', error?.code || error?.message || 'atomic landing failed')", 'void error'), 'atomic-landing-runner-failure-status-revocation'],
   ['label-caveat', atomicRunner.replace('no_merge_label_server_transactionality_claimed: false', 'no_merge_label_server_transactionality_claimed: true'), 'atomic-landing-runner-label-atomicity-caveat'],
@@ -150,6 +282,15 @@ for (const [id, mutatedRunner, expected] of atomicMutationCases) {
   const found = constrainedAtomicLandingViolations(atomicWorkflow, mutatedRunner);
   if (!found.includes(expected)) throw new Error(`atomic landing exception self-test missed ${id}: ${expected}`);
 }
+for (const [id, mutated] of [
+  ['head-sha', trustedControlWorkflow.replace('head_sha:process.env.EXPECTED_HEAD_SHA', "head_sha:'main'")],
+  ['check-name', trustedControlWorkflow.replace("name:'KIDULTS Governed Landing Control Validation V1'", "name:'spoof'")],
+  ['trusted-validator', trustedControlWorkflow.replace('node ../trusted-control/scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs', 'node scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs')],
+  ['base-sha', trustedControlWorkflow.replace('ref: ${{ github.event.pull_request.base.sha }}', 'ref: main')],
+  ['trusted-freeze', trustedControlWorkflow.replace('node ../trusted-control/scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs', 'node scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs')],
+]) {
+  if (!trustedControlWorkflowViolations(mutated).length) throw new Error(`trusted control self-test missed ${id}`);
+}
 
 const result = {
   suite: 'KIDULTS_WORKFLOW_REPOSITORY_MUTATION_BOUNDARY_V1',
@@ -157,6 +298,12 @@ const result = {
   workflows_scanned: files.length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_rejected: negativeCases.length,
+  protected_check_contexts_pinned: PROTECTED_CHECK_PRODUCERS.size,
+  status_write_workflows_allowlisted: STATUS_WRITE_ALLOWLIST.size,
+  checks_write_workflows_allowlisted: CHECKS_WRITE_ALLOWLIST.size,
+  trusted_control_mutation_cases_detected: 5,
+  cloudflare_remote_mutation_jobs_detected: cloudflareMutationJobs.length,
+  cloudflare_remote_mutation_jobs_disabled_by_literal_false: cloudflareMutationJobs.filter(job => job.literal_false_job_gate).length,
   policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS_EXCEPT_CONSTRAINED_ATOMIC_GOVERNED_SERVER_MERGE',
   constrained_atomic_landing_exceptions: constrainedAtomicLandingExceptions,
   atomic_landing_mutation_cases_detected: atomicMutationCases.length,

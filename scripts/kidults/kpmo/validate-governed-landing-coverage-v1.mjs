@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.3.0', 'POLICY_VERSION');
+  require(policy.version === '1.4.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -55,21 +55,29 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.atomic_landing_policy?.ordinary_readiness_may_publish_success === false, 'READINESS_FALSE_SUCCESS_ALLOWED');
   require(policy.atomic_landing_policy?.server_side_merge_must_bind_expected_head_sha === true, 'SERVER_SHA_COMPARE_MISSING');
   require(policy.atomic_landing_policy?.live_dispatch_actor_must_equal_repository_owner === true, 'LIVE_LANDING_ACTOR_GUARD_MISSING');
+  require(policy.atomic_landing_policy?.live_triggering_actor_must_equal_repository_owner === true, 'LIVE_LANDING_TRIGGERING_ACTOR_GUARD_MISSING');
+  require(policy.atomic_landing_policy?.workflow_run_attempt_must_equal_one === true
+    && policy.atomic_landing_policy?.workflow_rerun_is_forbidden === true, 'LANDING_RERUN_GUARD_MISSING');
+  require(policy.atomic_landing_policy?.repository_default_branch_must_equal_main === true, 'DEFAULT_MAIN_GUARD_MISSING');
   require(policy.atomic_landing_policy?.immediate_post_status_premerge_reread_required === true, 'IMMEDIATE_PREMERGE_REREAD_POLICY_MISSING');
   require(policy.atomic_landing_policy?.expected_head_compare_is_atomic_for_sha_only === true && policy.atomic_landing_policy?.no_merge_label_atomicity_claimed === false, 'ATOMICITY_CLAIM_BOUNDARY_INVALID');
+  require(policy.atomic_landing_policy?.all_pull_request_landings_globally_serialized === true, 'GLOBAL_LANDING_SERIALIZATION_MISSING');
+  require(policy.atomic_landing_policy?.control_sha_must_equal_live_main_at_initial_final_and_immediate_premerge_reads === true, 'CONTROL_MAIN_SHA_BINDING_MISSING');
+  require(policy.atomic_landing_policy?.pull_request_base_sha_must_equal_control_sha === true, 'PR_BASE_CONTROL_SHA_BINDING_MISSING');
+  require(policy.atomic_landing_policy?.hard_runner_loss_can_leave_orphan_success === true
+    && policy.atomic_landing_policy?.orphan_success_lease_or_watchdog_installed === false
+    && policy.atomic_landing_policy?.no_merge_authority_state === 'HOLD_RESIDUAL_STATUS_TO_MERGE_WINDOW', 'ORPHAN_SUCCESS_RESIDUAL_MUST_REMAIN_HOLD');
 
   for (const marker of [
-    "required_approving_review_count||0)!==0",
-    'dismiss_stale_reviews_on_push',
-    'last-push approval must remain disabled in solo-owner mode',
-    'required_review_thread_resolution',
-    'require_extra_approval_for_unattributed_changes',
+    'assertSoloOwnerProtectPullRequestRule(protectDetail)',
+    'assertRepositoryDefaultBranchRuleset(protectDetail, repo)',
+    'assertRepositoryDefaultBranch(repository)',
+    'assertNativeRequiredStatusBindings(soloDetail',
     "pr.user?.login!==repository.owner?.login",
     "pr.head?.repo?.full_name!==repo",
     "readinessReceipt.actor!==repository.owner?.login",
     "state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD'",
     'required_approval_count:0',
-    'ruleset bypass actor detected',
     "pr.state !== 'open' || pr.merged === true",
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
@@ -79,6 +87,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   for (const marker of [
     'workflow_dispatch:',
     'cancel-in-progress: false',
+    'group: kidults-atomic-governed-landing-v1-global',
+    'CONTROL_SHA: ${{ github.sha }}',
+    'LANDING_TRIGGERING_ACTOR: ${{ github.triggering_actor }}',
+    'LANDING_RUN_ATTEMPT: ${{ github.run_attempt }}',
     'LANDING_AUTHORIZATION_ID',
     'run-atomic-governed-landing-v1.mjs',
     'contents: write',
@@ -86,16 +98,34 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   ]) require(atomicWorkflow.includes(marker), `ATOMIC_WORKFLOW_MARKER_MISSING:${marker}`);
   for (const marker of [
     'assertStableFinalReread(initial, final',
-    'assertNativeRequiredContexts',
+    'assertNativeRequiredStatusBindings',
+    'assertSoloOwnerProtectPullRequestRule',
+    'assertLiveControlMain(initial)',
+    'assertLiveControlMain(final)',
+    'assertLiveControlMain(immediatePreMerge)',
+    'resolveScopeRequirements(finalFiles',
     'SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS',
     'assertLandingActorAndAuthorization',
+    'assertRepositoryDefaultBranch(repositoryState)',
     'immediatePreMerge',
     'IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT',
     "body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})",
     "await publish('failure'",
   ]) require(atomicRunner.includes(marker), `ATOMIC_RUNNER_MARKER_MISSING:${marker}`);
   require(aggregatePolicy.id === 'kidults-scope-aware-required-status-policy-v1', 'AGGREGATE_POLICY_ID');
+  require(aggregatePolicy.version === '1.4.0', 'AGGREGATE_POLICY_VERSION');
   require(aggregatePolicy.zero_coverage_policy === 'FAIL_CLOSED', 'AGGREGATE_ZERO_COVERAGE_FAIL_CLOSE');
+  require(aggregatePolicy.native_status_binding?.integration_id === 15368, 'AGGREGATE_GITHUB_ACTIONS_INTEGRATION_PIN');
+  const specializedRules = (aggregatePolicy.scope_rules || []).filter(rule => (rule.required_contexts || []).length > 0);
+  require(specializedRules.length >= 4, 'AGGREGATE_SPECIALIZED_SCOPE_RULES_MISSING');
+  for (const context of [
+    'KIDULTS Governed Landing Control Validation V1',
+    'KIDULTS Cloudflare One-Shot Trust Boundary V1',
+    'KIDULTS Cloudflare STAGING Governance Boundary V1',
+    'KIDULTS PostgreSQL One-Shot Authorization Boundary V1',
+    'KIDULTS Met V&A Candidate R2 Boundary V1',
+    'KIDULTS Shared Portal Evidence Integrity V1',
+  ]) require(specializedRules.some(rule => rule.required_contexts.includes(context)), `AGGREGATE_SPECIALIZED_CONTEXT_MISSING:${context}`);
   require(aggregatePolicy.required_status_context === policy.scope_aware_required_status_context, 'AGGREGATE_CONTEXT_MISMATCH');
   for (const context of [policy.required_status_context, policy.scope_aware_required_status_context]) {
     require(policy.bypass_policy?.required_status_contexts?.includes(context), `NATIVE_REQUIRED_CONTEXT_POLICY_MISSING:${context}`);
@@ -147,7 +177,7 @@ const mutations = [
   {
     id: 'SOLO_APPROVAL_COUNT_GUARD_REMOVED',
     policy,
-    workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');", ''),
+    workflow: workflow.replace('assertSoloOwnerProtectPullRequestRule(protectDetail);', ''),
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -233,6 +263,39 @@ const mutations = [
     aggregateRunner,
   },
   {
+    id: 'DEFAULT_MAIN_GUARD_REMOVED',
+    policy,
+    workflow: workflow.replace('assertRepositoryDefaultBranch(repository);', ''),
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'TRIGGERING_ACTOR_GUARD_REMOVED',
+    policy,
+    workflow,
+    preflight,
+    atomicWorkflow: atomicWorkflow.replace('LANDING_TRIGGERING_ACTOR: ${{ github.triggering_actor }}', ''),
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'RUN_ATTEMPT_GUARD_REMOVED',
+    policy,
+    workflow,
+    preflight,
+    atomicWorkflow: atomicWorkflow.replace('LANDING_RUN_ATTEMPT: ${{ github.run_attempt }}', ''),
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
     id: 'ZERO_COVERAGE_FAIL_CLOSE_REMOVED',
     policy,
     workflow,
@@ -262,7 +325,7 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.3.0',
+  version: '1.4.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
@@ -289,10 +352,15 @@ const receipt = {
     closed_or_no_merge_fails_closed: true,
     final_live_reread: true,
     live_dispatch_actor_is_repository_owner: true,
+    live_triggering_actor_is_repository_owner: true,
+    workflow_rerun_forbidden: true,
+    repository_default_branch_is_main: true,
     immediate_post_status_premerge_reread: true,
     server_side_expected_head_compare: true,
     expected_head_compare_atomic_scope: 'SHA_ONLY',
     no_merge_label_atomicity_claimed: false,
+    hard_runner_loss_orphan_success_watchdog: false,
+    no_merge_authority_state: 'HOLD_RESIDUAL_STATUS_TO_MERGE_WINDOW',
     native_required_status_contexts: policy.bypass_policy.required_status_contexts,
     zero_coverage_scope_fails_closed: true,
     technical_preflight_is_merge_authorization: false,

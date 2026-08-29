@@ -4,15 +4,33 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - '.github/workflows/kidults-portal-*'
+      - '.github/workflows/kidults-shared-portal-*'
       - 'apps/kidults-enterprise-staging/**'
       - 'scripts/kidults/portal/**'
+      - 'tests/kidults/kpmo/portal-public-metric-boundary-v1.test.mjs'
+      - 'tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs'
+      - 'coordination/kidults/governance/portal-accessibility-assurance-v1.json'
+      - 'coordination/kidults/governance/portal-physical-mobile-screen-reader-acceptance-contract-v1.json'
+      - 'coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json'
+      - 'coordination/kidults/portal/**'
+      - 'coordination/kidults/governance/portal-*'
       - 'tooling/kidults-portal-r001-browser-qa/**'
       - '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'
   push:
     branches: [main]
     paths:
+      - '.github/workflows/kidults-portal-*'
+      - '.github/workflows/kidults-shared-portal-*'
       - 'apps/kidults-enterprise-staging/**'
       - 'scripts/kidults/portal/**'
+      - 'tests/kidults/kpmo/portal-public-metric-boundary-v1.test.mjs'
+      - 'tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs'
+      - 'coordination/kidults/governance/portal-accessibility-assurance-v1.json'
+      - 'coordination/kidults/governance/portal-physical-mobile-screen-reader-acceptance-contract-v1.json'
+      - 'coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json'
+      - 'coordination/kidults/portal/**'
+      - 'coordination/kidults/governance/portal-*'
       - 'tooling/kidults-portal-r001-browser-qa/**'
       - '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'
   workflow_dispatch:
@@ -51,7 +69,12 @@ jobs:
           node --check scripts/kidults/portal/browser-qa-evidence-v1.mjs
           node --check scripts/kidults/portal/test-browser-qa-evidence-v1.mjs
           node --check scripts/kidults/portal/run-shared-portal-evidence-canary-v1.mjs
+          node --check scripts/kidults/portal/run-shared-responsive-portal-mobile-canary-v1.mjs
+          node --check scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs
           node scripts/kidults/portal/test-browser-qa-evidence-v1.mjs
+          node tests/kidults/kpmo/portal-public-metric-boundary-v1.test.mjs
+          node tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs
+          node scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs
 
       - name: Install isolated browser QA dependencies
         run: |
@@ -99,6 +122,14 @@ jobs:
           cd /tmp/kidults-r001-qa
           node run-shared-portal-evidence-canary-v1.mjs
 
+      - name: Run 30-cycle responsive WebKit surrogate
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cp scripts/kidults/portal/run-shared-responsive-portal-mobile-canary-v1.mjs /tmp/kidults-r001-qa/run-shared-responsive-portal-mobile-canary-v1.mjs
+          cd /tmp/kidults-r001-qa
+          node run-shared-responsive-portal-mobile-canary-v1.mjs
+
       - name: Stop staging Portal
         if: always()
         run: |
@@ -112,5 +143,6 @@ jobs:
           name: kidults-shared-portal-evidence-integrity-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/kidults-shared-portal-evidence-integrity-v1.json
+            /tmp/kidults-shared-responsive-portal-mobile-canary-v1.json
             /tmp/kidults-shared-portal-evidence-server.log
           retention-days: 30

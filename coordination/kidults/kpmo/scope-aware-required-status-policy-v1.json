@@ -1,6 +1,6 @@
 {
   "id": "kidults-scope-aware-required-status-policy-v1",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
@@ -16,7 +16,164 @@
     "KIDULTS Governed Landing Authorization V1",
     "KIDULTS Scope-Aware Authoritative Status V1"
   ],
+  "native_status_binding": {
+    "ruleset_target": "branch",
+    "default_branch_condition": "~DEFAULT_BRANCH",
+    "integration_id": 15368,
+    "integration_name": "GitHub Actions",
+    "repository_ruleset_source_required": true,
+    "bypass_actors_forbidden": true
+  },
   "scope_rules": [
+    {
+      "id": "governed-landing-control",
+      "prefixes": [
+        ".github/workflows/",
+        ".github/workflows/kidults-atomic-governed-landing-",
+        ".github/workflows/kidults-governed-landing-",
+        ".github/workflows/kidults-scope-aware-authoritative-status-",
+        "scripts/kidults/kpmo/run-atomic-governed-landing-",
+        "scripts/kidults/kpmo/run-scope-aware-authoritative-status-",
+        "scripts/kidults/kpmo/lib/governed-landing-",
+        "tests/kidults/kpmo/governed-landing-"
+      ],
+      "exact_paths": [
+        "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+        "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json",
+        "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
+        "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
+        "scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs",
+        "tests/kidults/kpmo/trusted-governed-control-freeze-v1.test.mjs",
+        "coordination/kidults/kpmo/trusted-governed-control-freeze-v1.json",
+        ".github/workflows/solo-owner-preflight.yml",
+        ".github/workflows/ci-validation.yml",
+        ".github/workflows/kidults-postgres-d1-boundary-v1.yml"
+      ],
+      "required_contexts": [
+        "KIDULTS Governed Landing Control Validation V1"
+      ]
+    },
+    {
+      "id": "cloudflare-trust-root",
+      "prefixes": [
+        ".github/workflows/kidults-cloudflare-",
+        ".github/workflows/kpmo-cloudflare-",
+        ".github/workflows/kpmo-cf-",
+        "services/kidults-cloudflare-approval-trust-root/",
+        "services/kidults-autonomous-intelligence/scripts/",
+        "scripts/ops/cloudflare-pages-",
+        "tests/kidults/kpmo/cloudflare-",
+        "tests/kidults/kpmo/cf-",
+        "coordination/kidults/runtime/cloudflare-",
+        "coordination/kidults/runtime/cf-",
+        "docs/kidults/runtime/cloudflare-"
+      ],
+      "exact_paths": [
+        "scripts/governance/external-one-shot-approval-ledger-v1.mjs",
+        "scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs",
+        "scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs",
+        "scripts/kidults/redteam/validate-cloudflare-worker-estate-policy-v1.mjs",
+        "tests/kidults/kpmo/external-one-shot-approval-ledger-v1.test.mjs",
+        "coordination/kidults/governance/external-one-shot-approval-ledger-v1.json",
+        "coordination/kidults/redteam/cloudflare-worker-estate-policy-v1.json",
+        "services/kidults-autonomous-intelligence/package.json",
+        "services/kidults-autonomous-intelligence/scripts/cloudflare-global-no-rerun.mjs",
+        "services/kidults-autonomous-intelligence/scripts/remote-d1-preflight.mjs",
+        "services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs",
+        "services/kidults-autonomous-intelligence/scripts/a9-finalize.ps1",
+        "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json"
+      ],
+      "required_contexts": [
+        "KIDULTS Cloudflare One-Shot Trust Boundary V1",
+        "KIDULTS Cloudflare STAGING Governance Boundary V1"
+      ]
+    },
+    {
+      "id": "postgres-one-shot-authorization",
+      "prefixes": [],
+      "exact_paths": [
+        ".github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml",
+        ".github/workflows/p0-postgres-target-time-restore-verification.yml",
+        ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
+        "coordination/kidults/governance/external-one-shot-approval-ledger-v1.json",
+        "coordination/kidults/kpmo/github-trusted-ref-environment-readback-contract-v1.json",
+        "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json",
+        "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
+        "coordination/kidults/runtime/postgres-external-one-shot-authorization-v1.json",
+        "docs/kidults/security/github-trusted-ref-environment-readback-v1.md",
+        "docs/kidults/security/postgres-external-one-shot-authorization-v1.md",
+        "package.json",
+        "scripts/governance/external-one-shot-approval-ledger-v1.mjs",
+        "scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs",
+        "scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs",
+        "scripts/kidults/kpmo/validate-github-trusted-ref-environment-readback-v1.mjs",
+        "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
+        "scripts/staging/validate-postgres-external-one-shot-authorization-v1.mjs",
+        "scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh",
+        "scripts/staging/verify-remote-postgres-persistence-pitr.sh",
+        "scripts/staging/verify-postgres-target-time-restore.sh",
+        "scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh",
+        "tests/kidults/kpmo/external-one-shot-approval-ledger-v1.test.mjs",
+        "tests/kidults/kpmo/github-trusted-ref-environment-readback-v1.test.mjs",
+        "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs",
+        "tests/staging/postgres-external-one-shot-authorization-v1.test.mjs"
+      ],
+      "required_contexts": [
+        "KIDULTS PostgreSQL One-Shot Authorization Boundary V1"
+      ]
+    },
+    {
+      "id": "portal-acceptance",
+      "prefixes": [
+        ".github/workflows/kidults-portal-",
+        ".github/workflows/kidults-shared-portal-",
+        "apps/kidults-enterprise-staging/",
+        "tooling/kidults-portal-r001-browser-qa/",
+        "scripts/kidults/portal/",
+        "tests/kidults/kpmo/portal-",
+        "coordination/kidults/portal/"
+      ],
+      "exact_paths": [
+        "coordination/kidults/governance/portal-accessibility-assurance-v1.json",
+        "coordination/kidults/governance/portal-physical-mobile-screen-reader-acceptance-contract-v1.json"
+      ],
+      "required_contexts": [
+        "KIDULTS Shared Portal Evidence Integrity V1"
+      ]
+    },
+    {
+      "id": "met-vam-candidate-r2",
+      "prefixes": [
+        ".github/workflows/kidults-autonomous-met-",
+        ".github/workflows/kidults-autonomous-vam-",
+        ".github/workflows/kidults-agci-os-candidate-r2-"
+      ],
+      "exact_paths": [
+        ".github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml",
+        "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json",
+        "coordination/kidults/autonomous/source-discovery/contracts/vam-fashion-collections-r1.json",
+        "coordination/kidults/provider/candidate-r2-source-transaction-preflight-v1.json",
+        "coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json",
+        "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
+        "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
+        "scripts/kidults/autonomous/collect-met-open-access-sample.mjs",
+        "scripts/kidults/autonomous/collect-vam-fashion-sample.mjs",
+        "scripts/kidults/autonomous/validate-met-open-access-sample.mjs",
+        "scripts/kidults/autonomous/validate-vam-fashion-sample.mjs",
+        "scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs",
+        "scripts/kidults/engine-v2/validate-candidate-r2-live-public-metadata-pathway-v1.mjs",
+        "scripts/kidults/engine-v2/test-met-vam-candidate-r2-live-pathway-v1.mjs",
+        "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
+        "scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs",
+        "scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs",
+        "scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs",
+        "scripts/kidults/scope/validate-self-collected-open-channel-expansion-v1.mjs",
+        "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs"
+      ],
+      "required_contexts": [
+        "KIDULTS Met V&A Candidate R2 Boundary V1"
+      ]
+    },
     {"id":"github","prefixes":[".github/"],"exact_paths":[],"required_contexts":[]},
     {"id":"application","prefixes":["app/","apps/","packages/","public/"],"exact_paths":[],"required_contexts":[]},
     {"id":"control-plane","prefixes":["services/","infrastructure/","infra/","deploy/","release/"],"exact_paths":[],"required_contexts":[]},

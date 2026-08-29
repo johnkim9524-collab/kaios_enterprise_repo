@@ -1,0 +1,65 @@
+name: KIDULTS Met V&A Candidate R2 Native Boundary V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-met-vam-candidate-r2-boundary-v1.yml'
+      - '.github/workflows/kidults-autonomous-met-*'
+      - '.github/workflows/kidults-autonomous-vam-*'
+      - '.github/workflows/kidults-agci-os-candidate-r2-*'
+      - '.github/workflows/kidults-autonomous-met-sample.yml'
+      - '.github/workflows/kidults-autonomous-vam-fashion-sample.yml'
+      - '.github/workflows/kidults-agci-os-candidate-r2-preflight.yml'
+      - 'coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json'
+      - 'coordination/kidults/autonomous/source-discovery/contracts/vam-fashion-collections-r1.json'
+      - 'coordination/kidults/provider/candidate-r2-source-transaction-preflight-v1.json'
+      - 'coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'artifacts/agci-os/asi-shadow-operating-evidence-v1.json'
+      - 'scripts/kidults/autonomous/collect-met-open-access-sample.mjs'
+      - 'scripts/kidults/autonomous/collect-vam-fashion-sample.mjs'
+      - 'scripts/kidults/autonomous/validate-met-open-access-sample.mjs'
+      - 'scripts/kidults/autonomous/validate-vam-fashion-sample.mjs'
+      - 'scripts/kidults/engine-v2/run-candidate-r2-preflight.mjs'
+      - 'scripts/kidults/engine-v2/validate-candidate-r2-live-public-metadata-pathway-v1.mjs'
+      - 'scripts/kidults/engine-v2/test-met-vam-candidate-r2-live-pathway-v1.mjs'
+      - 'scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs'
+      - 'scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs'
+      - 'scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs'
+      - 'scripts/kidults/scope/run-self-collected-open-channel-expansion-v1.mjs'
+      - 'scripts/kidults/scope/validate-self-collected-open-channel-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs'
+      - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
+      - 'tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: KIDULTS Met V&A Candidate R2 Boundary V1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify exact pull-request source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Enforce offline-only rights, lineage, replay and Candidate HOLD boundaries
+        run: |
+          set -euo pipefail
+          node scripts/kidults/engine-v2/test-met-vam-candidate-r2-live-pathway-v1.mjs
+          node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
+          node scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs
+          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
+          node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs
+          node --test tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs

@@ -17,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: kidults-atomic-governed-landing-v1-${{ inputs.pull_request_number }}
+  group: kidults-atomic-governed-landing-v1-global
   cancel-in-progress: false
 
 jobs:
@@ -36,14 +36,14 @@ jobs:
       - name: Checkout protected main implementation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Verify protected main checkout
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = refs/heads/main
-          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Re-read live authority and execute exact-head server merge
         env:
@@ -53,4 +53,7 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
+          LANDING_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          LANDING_RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROL_SHA: ${{ github.sha }}
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs

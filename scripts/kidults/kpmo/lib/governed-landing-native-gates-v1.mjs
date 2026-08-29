@@ -83,14 +83,21 @@ export function resolveScopeRequirements(files, metadata, policy) {
   for (const entry of files) {
     const filename = typeof entry === 'string' ? entry : entry?.filename;
     if (!filename) fail('PULL_REQUEST_FILENAME_INVALID');
-    const matches = (policy.scope_rules || []).filter(rule => scopeMatches(filename, rule));
-    if (!matches.length) {
-      unmatched.push(filename);
-      continue;
-    }
-    for (const match of matches) {
-      matchedScopes.add(match.id);
-      for (const context of match.required_contexts || []) contexts.add(context);
+    const status = typeof entry === 'string' ? null : entry?.status;
+    const previous = typeof entry === 'string' ? null : entry?.previous_filename;
+    if (status === 'renamed' && (!previous || previous === filename)) fail('RENAMED_FILE_PREVIOUS_PATH_REQUIRED', filename);
+    if (status !== 'renamed' && previous) fail('UNEXPECTED_PREVIOUS_FILENAME', filename);
+    const paths = status === 'renamed' ? [filename, previous] : [filename];
+    for (const candidate of paths) {
+      const matches = (policy.scope_rules || []).filter(rule => scopeMatches(candidate, rule));
+      if (!matches.length) {
+        unmatched.push(candidate);
+        continue;
+      }
+      for (const match of matches) {
+        matchedScopes.add(match.id);
+        for (const context of match.required_contexts || []) contexts.add(context);
+      }
     }
   }
   if (unmatched.length) fail('ZERO_COVERAGE_SCOPE', unmatched.sort().join(','));
@@ -106,7 +113,7 @@ export function resolveScopeRequirements(files, metadata, policy) {
 
 const stamp = item => Date.parse(item?.completed_at || item?.updated_at || item?.started_at || item?.created_at || 0);
 
-export function evaluateRequiredCheckRuns(checkRuns, requiredContexts) {
+export function evaluateRequiredCheckRuns(checkRuns, requiredContexts, {expectedIntegrationId = null} = {}) {
   if (!Array.isArray(checkRuns)) fail('CHECK_RUNS_REQUIRED');
   const expected = [...new Set(requiredContexts || [])].sort();
   if (!expected.length) fail('ZERO_REQUIRED_STATUS_CONTEXTS');
@@ -118,6 +125,9 @@ export function evaluateRequiredCheckRuns(checkRuns, requiredContexts) {
     const latest = candidates[0];
     if (latest.status !== 'completed') fail('REQUIRED_CONTEXT_NOT_TERMINAL', context);
     if (latest.conclusion !== 'success') fail('REQUIRED_CONTEXT_NOT_SUCCESS', `${context}:${latest.conclusion ?? 'null'}`);
+    if (expectedIntegrationId !== null && latest.app?.id !== expectedIntegrationId) {
+      fail('REQUIRED_CONTEXT_INTEGRATION_MISMATCH', `${context}:${latest.app?.id ?? 'missing'}`);
+    }
     results.push({context, check_run_id: latest.id, status: latest.status, conclusion: latest.conclusion});
   }
   return results;
@@ -130,12 +140,70 @@ export function assertNativeRequiredContexts(rulesetContexts, expectedContexts) 
   return [...expectedContexts].sort();
 }
 
-export function assertLandingActorAndAuthorization(actor, repositoryOwner, authorizationId, prNumber, expectedHeadSha) {
+export function assertRepositoryDefaultBranchRuleset(ruleset, repository) {
+  if (!ruleset || ruleset.enforcement !== 'active' || ruleset.target !== 'branch' || ruleset.source_type !== 'Repository' || ruleset.source !== repository) {
+    fail('RULESET_REPOSITORY_BRANCH_TARGET_MISMATCH');
+  }
+  const include = ruleset.conditions?.ref_name?.include;
+  const exclude = ruleset.conditions?.ref_name?.exclude;
+  if (!Array.isArray(include) || include.length !== 1 || include[0] !== '~DEFAULT_BRANCH'
+    || !Array.isArray(exclude) || exclude.length !== 0) fail('RULESET_DEFAULT_BRANCH_CONDITION_MISMATCH');
+  if ((ruleset.bypass_actors || []).length !== 0) fail('RULESET_BYPASS_ACTOR_FORBIDDEN');
+  return {target: ruleset.target, source: ruleset.source, condition: include[0], bypass_actor_count: 0};
+}
+
+export function assertRepositoryDefaultBranch(repositoryState, expected = 'main') {
+  if (!repositoryState || repositoryState.default_branch !== expected) {
+    fail('REPOSITORY_DEFAULT_BRANCH_DRIFT', String(repositoryState?.default_branch ?? 'missing'));
+  }
+  return expected;
+}
+
+export function assertNativeRequiredStatusBindings(ruleset, expectedContexts, {repository, integrationId} = {}) {
+  assertRepositoryDefaultBranchRuleset(ruleset, repository);
+  if (!Number.isInteger(integrationId) || integrationId < 1) fail('NATIVE_STATUS_INTEGRATION_ID_INVALID');
+  const statusRule = (ruleset.rules || []).find(rule => rule.type === 'required_status_checks');
+  if (!statusRule?.parameters?.strict_required_status_checks_policy) fail('STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
+  const entries = statusRule.parameters.required_status_checks;
+  if (!Array.isArray(entries)) fail('NATIVE_REQUIRED_STATUS_ENTRIES_REQUIRED');
+  const contexts = entries.map(entry => entry?.context);
+  if (new Set(contexts).size !== contexts.length) fail('NATIVE_REQUIRED_STATUS_CONTEXT_DUPLICATE');
+  assertNativeRequiredContexts(contexts, expectedContexts);
+  for (const context of expectedContexts || []) {
+    const entry = entries.find(value => value?.context === context);
+    if (entry?.integration_id !== integrationId) fail('NATIVE_REQUIRED_STATUS_INTEGRATION_MISMATCH', context);
+  }
+  return [...expectedContexts].sort();
+}
+
+export function assertSoloOwnerProtectPullRequestRule(ruleset) {
+  const rule = (ruleset?.rules || []).find(value => value.type === 'pull_request');
+  const parameters = rule?.parameters;
+  if (!parameters
+    || parameters.required_approving_review_count !== 0
+    || parameters.dismiss_stale_reviews_on_push !== true
+    || parameters.require_last_push_approval !== false
+    || parameters.required_review_thread_resolution !== true
+    || parameters.require_extra_approval_for_unattributed_changes !== true) {
+    fail('PROTECT_MAIN_PULL_REQUEST_RULE_DRIFT');
+  }
+  return {
+    required_approving_review_count: 0,
+    dismiss_stale_reviews_on_push: true,
+    require_last_push_approval: false,
+    required_review_thread_resolution: true,
+    require_extra_approval_for_unattributed_changes: true,
+  };
+}
+
+export function assertLandingActorAndAuthorization(actor, triggeringActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha, runAttempt) {
   if (!actor || actor !== repositoryOwner) fail('PROGRAM_OWNER_LANDING_ACTOR_REQUIRED');
+  if (!triggeringActor || triggeringActor !== repositoryOwner) fail('PROGRAM_OWNER_TRIGGERING_ACTOR_REQUIRED');
+  if (String(runAttempt) !== '1') fail('ATOMIC_LANDING_RERUN_FORBIDDEN');
   if (!/^\d+$/.test(String(prNumber)) || !SHA_PATTERN.test(expectedHeadSha || '')) fail('LANDING_OPERATION_BINDING_INVALID');
   const expected = `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`;
   if (authorizationId !== expected) fail('ATOMIC_LANDING_OPERATION_AUTHORIZATION_MISMATCH');
-  return {actor, authorization_id: authorizationId, expected_head_sha: expectedHeadSha};
+  return {actor, triggering_actor: triggeringActor, run_attempt: 1, authorization_id: authorizationId, expected_head_sha: expectedHeadSha};
 }
 
 export function authoritativeGenerationKey(receipt) {
