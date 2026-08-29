@@ -111,7 +111,7 @@ The admission-demand package preserves all current P1 actions as machine-readabl
 
 P3 never scans the repository-wide first 100 artifacts and never falls back to an artifact from any branch.
 
-For a `workflow_run` trigger, the event's P2 run ID and head SHA are authoritative inputs but still must equal the live observed `main` head. For schedule or protected-main push, P3 first selects one successful `main` run of the exact P2 workflow and then fetches that run by ID. Manual replay is disabled until trusted-ref enforcement exists. P3 requires:
+For a `workflow_run` trigger, the event's P2 run ID and head SHA are authoritative inputs but still must equal the live observed `main` head. For schedule or exact-main recovery dispatch, P3 selects one successful `main` run of the exact P2 workflow at the live main SHA and then fetches that run by ID. A dispatch from any non-main ref fails closed. P3 requires:
 
 - the exact workflow path, successful conclusion, repository, `main` branch, and 40-character head SHA;
 - the run head to equal live `main`, a strict completion timestamp, and no more than 24 hours between completion/readback and graph snapshot time;
@@ -131,7 +131,7 @@ After pair generation, `track-b-handoff-readiness-v2.json` remains `PAIR_GENERAT
 
 ## Automatic execution
 
-Pull requests execute only secretless static and liveness validation and cannot publish an authoritative Candidate/Evidence artifact. The authoritative job activates only on exact `refs/heads/main` from a successful exact P2 workflow run, a relevant protected-main push, or the hourly `:07` schedule. Manual dispatch is disabled until trusted-ref enforcement exists, preventing a branch-selected workflow from publishing into the authoritative artifact lane. The job restores the exact fresh upstream chain, validates receipt and lineage bindings, builds twice, proves deterministic replay, validates conditional outputs and digests, executes liveness and mutation tests, and emits a KPMO receipt, a uniquely main-SHA/run-ID-named 90-day content-addressed artifact, and a separate provider artifact receipt. The 90-day artifact is not immutable evidence or a Track B input without external receipts.
+Pull requests execute only secretless static and liveness validation and cannot publish an authoritative Candidate/Evidence artifact. The authoritative job activates only on exact `refs/heads/main` from a successful exact P2 workflow run, the hourly `:07` schedule, or an exact-main recovery dispatch. Schedule and recovery dispatch both require a successful exact P2 run at the live main SHA; a branch-selected dispatch fails closed. The job restores the exact fresh upstream chain, validates receipt and lineage bindings, builds twice, proves deterministic replay, validates conditional outputs and digests, executes liveness and mutation tests, and emits a KPMO receipt, a uniquely main-SHA/run-ID-named 90-day content-addressed artifact, and a separate provider artifact receipt. The 90-day artifact is not immutable evidence or a Track B input without external receipts.
 
 ## Fail-closed truth boundaries
 

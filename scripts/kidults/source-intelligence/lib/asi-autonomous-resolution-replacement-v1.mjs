@@ -64,7 +64,7 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
         effective_target_claims: profile.effective_target_claims,
         suppressed_target_claims: profile.suppressed_target_claims,
         context_only_claims: profile.context_only_claims,
-        adapter_state: 'ADAPTER_NOT_IMPLEMENTED',
+        adapter_state: 'IMPLEMENTED_NOT_RIGHTS_VERIFIED',
         rights_state: profile.rights_eligibility.decision,
         rights_eligibility_state: profile.rights_eligibility.decision,
         rights_eligibility_reason_codes: profile.rights_eligibility.reason_codes,
@@ -137,7 +137,7 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
     access_mode: profile.access_mode,
     official_endpoint: profile.official_endpoint,
     official_documentation_url: profile.official_documentation_url,
-    adapter_state: 'ADAPTER_NOT_IMPLEMENTED',
+    adapter_state: 'IMPLEMENTED_NOT_RIGHTS_VERIFIED',
     rights_state: profile.rights_state,
     rights_eligibility_state: profile.rights_eligibility_state,
     rights_eligibility_reason_codes: profile.rights_eligibility_reason_codes,
@@ -149,7 +149,6 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
       'SOURCE_SCHEMA_AND_DRIFT_CONTRACT',
       'SOLD_OR_EXPOSURE_SEMANTICS_VERIFICATION',
       'SOURCE_OWNER_AND_FACTUAL_ORIGIN_VERIFICATION',
-      'SOURCE_SPECIFIC_ADAPTER_IMPLEMENTATION',
       'DETERMINISTIC_REPLAY_AND_MUTATION_PROOF',
       'MARKET_EVENT_ADMISSION_RECEIPT'
     ],
@@ -189,7 +188,7 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
       })).sort((a, b) => a.priority_rank - b.priority_rank || a.source_id.localeCompare(b.source_id)),
       implementation_priority_rule: 'RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_REPLACEMENT_PROFILE_SELECTION',
       registered_profile_is_rights_verified: false,
-      registered_profile_is_adapter_implemented: false,
+      registered_profile_is_adapter_implemented: true,
       evidence_admitted: 0,
       public_release: 'HOLD', production: 'HOLD'
     }

@@ -8,6 +8,10 @@
   "effective_at": "2026-08-29T22:00:00+09:00",
   "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
   "mission": "Without waiting for PSA or any single provider, autonomously build lawful object knowledge, source opportunity, rights, evidence and product-readiness assets while preserving evidence-class and claim boundaries.",
+  "registered_execution_assets": {
+    "automobiles_mobility_lighthouse_dossiers": "coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json",
+    "lighthouse_validator": "scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs"
+  },
   "platform_principles": [
     "AUTONOMOUS",
     "GLOBAL",

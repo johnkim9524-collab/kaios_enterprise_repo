@@ -6,6 +6,7 @@ const files = {
   registry: 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-registry-v1.json',
   strictGate: 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json',
   sourceFrontier: 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv',
+  implementationRegistry: 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json',
   runtimeModule: 'services/kidults-autonomous-intelligence/src/asi/market-adapter.ts',
   runtimeTest: 'services/kidults-autonomous-intelligence/scripts/asi-market-adapter-runtime-test.mjs',
   validator: 'scripts/kidults/source-intelligence/validate-asi-p1-market-event-adapter-runtime-v1.mjs',
@@ -21,6 +22,7 @@ for (const [name, file] of Object.entries(files)) assert(fs.existsSync(file), `M
 const contract = json(files.contract);
 const registry = json(files.registry);
 const strictGate = json(files.strictGate);
+const implementationRegistry = json(files.implementationRegistry);
 const frontierText = read(files.sourceFrontier).trim();
 const moduleSource = read(files.runtimeModule);
 const testSource = read(files.runtimeTest);
@@ -39,7 +41,7 @@ assert(contract.runtime_states?.length === 8 && new Set(contract.runtime_states)
 assert(contract.runtime_invariants?.length >= 12, 'CONTRACT_RUNTIME_INVARIANTS');
 assert(contract.registered_source_profiles?.length === 16, 'CONTRACT_PROFILE_COUNT');
 assert(JSON.stringify(contract.profile_tuple) === JSON.stringify(['priority_rank', 'source_id', 'verified_assignment_count', 'target_claims']), 'CONTRACT_PROFILE_TUPLE');
-assert(contract.registered_profile_default_state === 'ADAPTER_NOT_IMPLEMENTED', 'CONTRACT_DEFAULT_STATE');
+assert(contract.registered_profile_default_state === 'IMPLEMENTED_NOT_RIGHTS_VERIFIED', 'CONTRACT_DEFAULT_STATE');
 assert(contract.fixture_policy?.mode === 'SYNTHETIC_CONTROL_ONLY', 'CONTRACT_FIXTURE_MODE');
 assert(contract.fixture_policy?.can_create_market_event_or_claim === false, 'CONTRACT_FIXTURE_PROMOTION');
 assert(contract.claim_targets.DATED_OBSERVED_SOLD_TRANSACTION.required_fields.length === 13, 'DATED_SOLD_REQUIRED_FIELDS');
@@ -94,7 +96,7 @@ const requiredImplementationTruth = {
   generic_strict_adapter_runtime_implemented: true,
   generic_runtime_tested_with_non_promotable_fixtures: true,
   registered_source_profile_count: 16,
-  registered_source_adapter_implemented_count: 0,
+  registered_source_adapter_implemented_count: 16,
   registered_source_adapter_activated_count: 0,
   field_purpose_rights_verified_source_count: 0,
   sold_semantics_verified_source_count: 0,
@@ -113,6 +115,14 @@ assert(strictGate.current_empirical_binding?.strict_current_price_eligible === f
 assert(strictGate.current_empirical_binding?.liquidity_eligible === false, 'STRICT_GATE_LIQUIDITY_OVERCLAIM');
 assert(strictGate.current_empirical_binding?.public_or_commercial_projection_eligible === false, 'STRICT_GATE_PROJECTION_OVERCLAIM');
 
+assert(implementationRegistry.id === 'kidults-asi-source-adapter-wave4-registry-v1', 'IMPLEMENTATION_REGISTRY_ID');
+assert(implementationRegistry.implementation_state?.portfolio_source_specific_adapters_implemented === 16, 'IMPLEMENTATION_REGISTRY_COUNT');
+assert(implementationRegistry.implementation_state?.portfolio_source_specific_adapters_pending === 0, 'IMPLEMENTATION_REGISTRY_PENDING');
+assert(implementationRegistry.implementation_state?.field_purpose_rights_verified_sources === 0, 'IMPLEMENTATION_REGISTRY_RIGHTS_OVERCLAIM');
+assert(implementationRegistry.implementation_state?.source_specific_adapters_activated === 0, 'IMPLEMENTATION_REGISTRY_ACTIVATION_OVERCLAIM');
+assert(implementationRegistry.implementation_state?.empirical_market_events_admitted === 0, 'IMPLEMENTATION_REGISTRY_EVENT_OVERCLAIM');
+assert(JSON.stringify([...implementationRegistry.implemented_source_ids].sort()) === JSON.stringify([...profileSourceIds].sort()), 'IMPLEMENTATION_REGISTRY_SOURCE_SET');
+
 assert(registry.id === 'kidults-asi-p1-market-event-adapter-runtime-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version && registry.owner === 'KPMO' && registry.priority === 'P1', 'REGISTRY_METADATA');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLES');
@@ -120,6 +130,7 @@ for (const [key, expected] of Object.entries({
   contract: files.contract,
   strict_current_market_gate: files.strictGate,
   registered_source_frontier: files.sourceFrontier,
+  source_adapter_implementation_registry: files.implementationRegistry,
   runtime_module: files.runtimeModule,
   runtime_test: files.runtimeTest,
   validator: files.validator,
@@ -133,10 +144,9 @@ assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPL
 assert(registry.implementation_state?.generic_strict_runtime === 'IMPLEMENTED_NOT_SOURCE_ACTIVATION', 'REGISTRY_GENERIC_RUNTIME');
 assert(registry.implementation_state?.runtime_fixture_tests === 'NON_PROMOTABLE_CONTROL_ONLY', 'REGISTRY_FIXTURE_TESTS');
 assert(registry.implementation_state?.registered_source_profiles === 16, 'REGISTRY_PROFILE_COUNT');
-assert(registry.implementation_state?.source_specific_adapters_implemented === 0 && registry.implementation_state?.source_specific_adapters_activated === 0, 'REGISTRY_SOURCE_ADAPTER_OVERCLAIM');
+assert(registry.implementation_state?.source_specific_adapters_implemented === 16 && registry.implementation_state?.source_specific_adapters_activated === 0, 'REGISTRY_SOURCE_ADAPTER_TRUTH');
 assert(registry.implementation_state?.empirical_market_events_admitted === 0 && registry.implementation_state?.current_price_eligible_sources === 0 && registry.implementation_state?.liquidity_eligible_sources === 0, 'REGISTRY_CLAIM_OVERCLAIM');
-assert(registry.next_source_adapter_backlog?.length === 6, 'REGISTRY_BACKLOG_COUNT');
-assert(registry.next_source_adapter_backlog[0].source_id === 'bonhams-cars-results' && registry.next_source_adapter_backlog[0].verified_assignment_count === 24, 'REGISTRY_BACKLOG_PRIORITY');
+assert(registry.empirical_activation_backlog?.length === 6, 'REGISTRY_ACTIVATION_BACKLOG_COUNT');
 
 for (const marker of [
   'export type MarketAdapterState',
@@ -176,7 +186,7 @@ for (const marker of [
   'Exercise fail-closed market adapter runtime',
   'Reject registered-source activation mutation',
   'Reject fixture promotion mutation',
-  'Reject source-adapter implementation overclaim mutation',
+  'Reject source-adapter implementation undercount and activation overclaim mutation',
   'Emit KPMO market-adapter runtime receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
@@ -187,7 +197,7 @@ for (const marker of [
   'Listing ≠ Sold',
   'Sold Count ≠ Liquidity',
   '16 registered source profiles',
-  '0 source-specific adapters implemented',
+  '16 source-specific adapters implemented',
   'Bonhams Cars Results'
 ]) assert(doc.includes(marker), `DOC_MARKER:${marker}`);
 
@@ -211,7 +221,7 @@ console.log(JSON.stringify({
   verified_assignment_total: assignmentTotal,
   generic_strict_runtime_implemented: true,
   generic_runtime_fixture_tested: true,
-  registered_source_adapters_implemented: 0,
+  registered_source_adapters_implemented: 16,
   registered_source_adapters_activated: 0,
   empirical_market_events_admitted: 0,
   current_price_eligible_sources: 0,

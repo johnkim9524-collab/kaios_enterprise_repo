@@ -70,8 +70,9 @@ assert(JSON.stringify(registry.input_artifacts) === JSON.stringify([
 ]), 'REGISTRY_INPUT_ARTIFACTS');
 assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '7 * * * *', 'REGISTRY_SCHEDULE');
+assert(registry.automatic_activation?.schedule_authoritative_fallback === 'SELECT_EXACT_SUCCESSFUL_P2_RUN_AT_CURRENT_MAIN_HEAD', 'REGISTRY_SCHEDULE_AUTHORITATIVE_FALLBACK');
 assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI Owned Source Intelligence Graph v2', 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_EXACT_LIVE_MAIN_AND_EXACT_P2_RUN_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.release_semantics?.output_existence_is_prerequisite === false, 'REGISTRY_LIVENESS_BOUNDARY');
 assert(registry.release_semantics?.track_b_submission_preauthorized === false, 'REGISTRY_TRACK_B_PREAUTHORIZATION');
 assert(registry.release_semantics?.blocker_package_is_evidence_package === false, 'REGISTRY_BLOCKER_BOUNDARY');
@@ -91,7 +92,8 @@ assert(contract.pair_generation?.content_addressed_pair_is_not_immutable_storage
 assert(contract.pair_generation?.immutable_storage_receipt_required_for_track_b === true && contract.pair_generation?.artifact_attestation_required_for_track_b === true, 'CONTRACT_TRACK_B_ATTESTATION');
 assert(contract.pair_generation?.upstream_binding_receipt_digest_must_be_inside_exact_pair === true, 'CONTRACT_PAIR_UPSTREAM_BINDING');
 assert(contract.upstream_freshness?.require_current_main_head === true && contract.upstream_freshness?.maximum_age_hours === 24, 'CONTRACT_UPSTREAM_FRESHNESS');
-assert(contract.automatic_activation?.manual_dispatch_role === 'DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT', 'CONTRACT_MANUAL_DISPATCH_BOUNDARY');
+assert(contract.automatic_activation?.manual_dispatch_role === 'RECOVERY_EXACT_LIVE_MAIN_AND_EXACT_P2_RUN_ONLY', 'CONTRACT_MANUAL_DISPATCH_BOUNDARY');
+assert(contract.automatic_activation?.schedule_authoritative_fallback === 'SELECT_EXACT_SUCCESSFUL_P2_RUN_AT_CURRENT_MAIN_HEAD', 'CONTRACT_SCHEDULE_AUTHORITATIVE_FALLBACK');
 assert(contract.artifact_restore?.p2_exact_workflow_run_required === true && contract.artifact_restore?.p2_main_head_sha_binding_required === true && contract.artifact_restore?.artifact_digest_required === true, 'CONTRACT_EXACT_RESTORE');
 assert(contract.artifact_restore?.downloaded_archive_sha256_must_equal_provider_artifact_digest === true, 'CONTRACT_ARCHIVE_DIGEST_RESTORE');
 assert(contract.artifact_restore?.p0b_and_p1_artifact_ids_must_come_from_p2_receipt === true && contract.artifact_restore?.content_digests_must_match_p2_lineage === true, 'CONTRACT_RECEIPT_LINEAGE_RESTORE');
@@ -106,6 +108,7 @@ function workflowFindings(source) {
   const findings = [];
   const requiredMarkers = [
     'schedule:',
+    'workflow_dispatch:',
     "cron: '7 * * * *'",
     'push:',
     'workflow_run:',
@@ -113,12 +116,15 @@ function workflowFindings(source) {
     "if: github.event_name == 'pull_request'",
     'Run secretless P3 static and liveness validation only',
     'Require exact main for authoritative P3 artifact publication',
+    "test \"$GITHUB_EVENT_NAME\" = \"workflow_run\" || test \"$GITHUB_EVENT_NAME\" = \"schedule\" || test \"$GITHUB_EVENT_NAME\" = \"workflow_dispatch\"",
     'test "$GITHUB_REF" = "refs/heads/main"',
     "'KIDULTS ASI Owned Source Intelligence Graph v2'",
     'Prove P3 liveness and upstream-binding mutation resistance',
     'validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test',
     'test-asi-snapshot-readiness-factory-v2.mjs',
     'Restore exact P2 run and its receipt-bound P0B and P1 artifacts',
+    'actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=100',
+    "run.head_sha===process.env.GITHUB_SHA",
     'actions/runs/${P2_RUN_ID}/artifacts?per_page=100',
     '[[ "$P2_RUN_ID" =~ ^[1-9][0-9]*$ ]]',
     '[[ "$P2_ID" =~ ^[1-9][0-9]*$ ]]',
@@ -157,7 +163,7 @@ function workflowFindings(source) {
     'artifact_attestation_verified:false',
   ];
   for (const marker of requiredMarkers) if (!source.includes(marker)) findings.push(`MISSING:${marker}`);
-  if (/^\s{2}workflow_dispatch\s*:/m.test(source)) findings.push('AUTHORITATIVE_MANUAL_DISPATCH_FORBIDDEN_UNTIL_TRUSTED_REF_ENFORCEMENT');
+  if (!source.includes('github.event_name == \'workflow_dispatch\'') || !source.includes('test "$GITHUB_REF" = "refs/heads/main"')) findings.push('MANUAL_DISPATCH_EXACT_MAIN_GUARD_MISSING');
   if (/\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/artifacts\?per_page=/.test(source)) findings.push('GLOBAL_ARTIFACT_SCAN_PRESENT');
   if (/artifacts\?per_page=100[^\n]*\|[^\n]*(head_branch|main)/.test(source)) findings.push('ANY_BRANCH_FALLBACK_PRESENT');
   if (!source.includes('P2_RUN_ID="$EVENT_P2_RUN_ID"') || !source.includes('P2_HEAD_SHA="$P2_HEAD_SHA"')) findings.push('UPSTREAM_RUN_HEAD_BINDING_MISSING');
@@ -178,7 +184,7 @@ const workflowMutations = [
   ['authoritative-main-guard-removed', (value) => value.replaceAll('test "$GITHUB_REF" = "refs/heads/main"', 'test -n "$GITHUB_REF"')],
   ['current-main-head-check-removed', (value) => value.replace('||main.commit?.sha!==run.head_sha', '')],
   ['upstream-age-check-removed', (value) => value.replace('||age>24*60*60*1000', '')],
-  ['manual-dispatch-added', (value) => value.replace('on:\n', 'on:\n  workflow_dispatch:\n')],
+  ['manual-dispatch-main-guard-removed', (value) => value.replaceAll('test "$GITHUB_REF" = "refs/heads/main"', 'test -n "$GITHUB_REF"')],
 ];
 for (const [name, mutate] of workflowMutations) {
   const candidate = mutate(workflow);

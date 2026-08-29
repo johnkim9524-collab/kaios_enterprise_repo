@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 const p='coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json';
+const lighthousePath='coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json';
 const c=JSON.parse(fs.readFileSync(p,'utf8'));
+const lighthouse=JSON.parse(fs.readFileSync(lighthousePath,'utf8'));
 const fail=m=>{throw new Error(m)}; const a=(v,m)=>{if(!v)fail(m)};
 const principles=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 const ladder=['REFERENCE','DISCOVERY','OBSERVATION','CANDIDATE','EVIDENCE','APPROVED_PROJECTION'];
@@ -10,6 +12,8 @@ a(c.version==='1.0.0','MISSION_VERSION');
 a(c.status==='ACTIVE_MANDATORY_P0_AFTER_MAIN_MERGE','MISSION_STATUS');
 a(c.governance_owner==='KPMO'&&c.runtime_priority_owner==='ASI','OWNER_SEPARATION');
 a(c.operating_mode==='MULTI_LANE_AUTONOMOUS_ACQUISITION','OPERATING_MODE');
+a(c.registered_execution_assets?.automobiles_mobility_lighthouse_dossiers===lighthousePath,'LIGHTHOUSE_ASSET_BINDING');
+a(c.registered_execution_assets?.lighthouse_validator==='scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs','LIGHTHOUSE_VALIDATOR_BINDING');
 a(JSON.stringify(c.platform_principles)===JSON.stringify(principles),'PRINCIPLE_ORDER');
 a(c.provider_independence?.psa_is_program_prerequisite===false,'PSA_PREREQUISITE');
 a(c.provider_independence?.psa_role==='PARALLEL_GRADED_SUPPLEMENT_LANE','PSA_ROLE');
@@ -29,5 +33,9 @@ a(c.execution_lanes[4]?.fallback==='CONTINUE_LANES_1_TO_4','PSA_NON_BLOCKING_FAL
 a(c.required_outputs?.length===10,'OUTPUT_COUNT');
 for(const k of ['discovery_is_not_collection','collection_is_not_admission','admission_is_not_claim','reference_is_not_current_market_evidence','observation_is_not_evidence','candidate_is_not_approved_projection']) a(c.execution_boundaries?.[k]===true,`BOUNDARY:${k}`);
 a(c.acceptance?.psa_blocking_dependency_count===0,'PSA_BLOCKING_COUNT');
+a(lighthouse.id==='kidults-asi-automobiles-mobility-lighthouse-dossiers-v1','LIGHTHOUSE_REGISTRY_ID');
+a(lighthouse.dossiers?.length>=25&&lighthouse.dossiers?.length<=50,'LIGHTHOUSE_DOSSIER_COUNT');
+a(new Set(lighthouse.dossiers.map(x=>x.canonical_object_id)).size===lighthouse.dossiers.length,'LIGHTHOUSE_UNIQUE_IDENTITIES');
+a(lighthouse.evidence_class==='REFERENCE'&&lighthouse.truth_boundary?.reference_is_evidence===false,'LIGHTHOUSE_EVIDENCE_BOUNDARY');
 a(c.execution_boundaries?.public_release==='HOLD'&&c.execution_boundaries?.production==='HOLD'&&c.execution_boundaries?.g5==='HOLD','RELEASE_BOUNDARY');
-console.log(JSON.stringify({id:'kidults-asi-multi-lane-autonomous-acquisition-mission-validation-v1',state:'VERIFIED_PASS',operating_mode:c.operating_mode,runtime_priority_owner:c.runtime_priority_owner,non_psa_lane_count:4,psa_blocking_dependency_count:0,lighthouse_target:c.execution_lanes[0].target,evidence_ladder:ladder,public_release:'HOLD',production:'HOLD',g5:'HOLD'},null,2));
+console.log(JSON.stringify({id:'kidults-asi-multi-lane-autonomous-acquisition-mission-validation-v1',state:'VERIFIED_PASS',operating_mode:c.operating_mode,runtime_priority_owner:c.runtime_priority_owner,non_psa_lane_count:4,psa_blocking_dependency_count:0,lighthouse_target:c.execution_lanes[0].target,lighthouse_dossiers_created:lighthouse.dossiers.length,lighthouse_evidence_class:lighthouse.evidence_class,lighthouse_market_evidence_count:0,evidence_ladder:ladder,public_release:'HOLD',production:'HOLD',g5:'HOLD'},null,2));

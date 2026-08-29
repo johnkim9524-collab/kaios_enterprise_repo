@@ -161,7 +161,10 @@
     ],
     "automobiles_lighthouse_target": {
       "minimum": 25,
-      "maximum": 50
+      "maximum": 50,
+      "created_reference_dossiers": 25,
+      "registry": "coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json",
+      "state": "REFERENCE_DOSSIERS_CREATED_SOURCE_FETCH_AND_RIGHTS_REVIEW_PENDING"
     },
     "current_sold_blocked_fallback": [
       "WATCHES",

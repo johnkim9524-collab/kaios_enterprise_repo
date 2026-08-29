@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs'
       - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
@@ -25,6 +27,8 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs'
       - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'

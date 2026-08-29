@@ -30,8 +30,9 @@
   "automatic_activation": {
     "main_push": true,
     "schedule": "7 * * * *",
+    "schedule_authoritative_fallback": "SELECT_EXACT_SUCCESSFUL_P2_RUN_AT_CURRENT_MAIN_HEAD",
     "upstream_workflow": "KIDULTS ASI Owned Source Intelligence Graph v2",
-    "manual_dispatch_role": "DISABLED_UNTIL_TRUSTED_REF_ENFORCEMENT"
+    "manual_dispatch_role": "RECOVERY_EXACT_LIVE_MAIN_AND_EXACT_P2_RUN_ONLY"
   },
   "release_semantics": {
     "snapshot_candidate_generation": "ATOMIC_CONTENT_ADDRESSED_PAIR_AFTER_ALL_TEN_PREREQUISITES_PASS_STORAGE_AND_ATTESTATION_PENDING",
