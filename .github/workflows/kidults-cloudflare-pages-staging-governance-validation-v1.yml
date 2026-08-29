@@ -8,17 +8,23 @@ on:
       - '.github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml'
       - '.github/workflows/kidults-cloudflare-pages-staging-deploy-v1.yml'
       - '.github/workflows/kidults-cloudflare-pages-staging-governance-validation-v1.yml'
+      - '.github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml'
       - 'scripts/ops/cloudflare-pages-boundary-readonly.sh'
       - 'scripts/ops/cloudflare-pages-auto-deployment-containment.sh'
+      - 'scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh'
       - 'scripts/ops/cloudflare-pages-preview-cleanup.sh'
       - 'scripts/ops/cloudflare-pages-governed-staging-deploy.sh'
       - 'scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs'
       - 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json'
+      - 'coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v3.json'
       - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
       - 'tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs'
       - 'tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs'
       - 'tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-pages-staging-credential-diagnostic-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-pages-preview-force-delete-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-pages-one-shot-first-success-gate-v1.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -43,8 +49,12 @@ jobs:
           node tests/kidults/kpmo/cloudflare-pages-staging-governance-v1.test.mjs
           node tests/kidults/kpmo/cloudflare-pages-readonly-credential-failure-receipt-v1.test.mjs
           node tests/kidults/kpmo/cloudflare-pages-api-pagination-v1.test.mjs
+          node tests/kidults/kpmo/cloudflare-pages-staging-credential-diagnostic-v1.test.mjs
+          node tests/kidults/kpmo/cloudflare-pages-preview-force-delete-v1.test.mjs
+          node tests/kidults/kpmo/cloudflare-pages-one-shot-first-success-gate-v1.test.mjs
           node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
           bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
           bash -n scripts/ops/cloudflare-pages-auto-deployment-containment.sh
+          bash -n scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh
           bash -n scripts/ops/cloudflare-pages-preview-cleanup.sh
           bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
