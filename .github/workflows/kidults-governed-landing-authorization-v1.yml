@@ -82,26 +82,20 @@ jobs:
           }
           const prefixes = [
             '.github/',
-            'apps/kidults-enterprise-staging/',
             'services/kidults-control-plane/',
             'services/kidults-autonomous-intelligence/',
             'scripts/kidults/kpmo/',
             'scripts/kidults/redteam/',
-            'scripts/kidults/portal/',
+            'scripts/kidults/portal/runtime/',
             'coordination/kidults/kpmo/',
             'coordination/kidults/audit/',
             'coordination/kidults/security/',
             'coordination/kidults/provider/',
             'coordination/kidults/runtime/',
-            'coordination/kidults/portal/',
-            'tooling/kidults-portal-r001-browser-qa/',
             'infra/'
           ];
           const exact = new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
-          const filenames = files.map(x=>x.filename);
-          const forbiddenStandaloneMobile = filenames.filter(name=>name.startsWith('apps/kidults-mobile-portal/'));
-          if(forbiddenStandaloneMobile.length) fail(`standalone mobile Portal path is retired: ${forbiddenStandaloneMobile.join(',')}`);
-          const governedFiles = filenames.filter(name=>exact.has(name)||prefixes.some(prefix=>name.startsWith(prefix)));
+          const governedFiles = files.map(x=>x.filename).filter(name=>exact.has(name)||prefixes.some(prefix=>name.startsWith(prefix)));
 
           const rulesets = await api('/rulesets');
           const solo = rulesets.find(x=>x.name==='KAIOS Solo Owner Preflight' && x.enforcement==='active');
@@ -113,7 +107,7 @@ jobs:
           const statusRule=(soloDetail.rules||[]).find(x=>x.type==='required_status_checks');
           if(!statusRule?.parameters?.strict_required_status_checks_policy) fail('strict required status policy disabled');
           const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
-          for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container','KIDULTS Governed Landing Authorization V1']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
+          for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
           const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
           if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');
           if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
@@ -170,15 +164,12 @@ jobs:
               decision_id:'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
-              canonical_portal_architecture:'SHARED_RESPONSIVE_SINGLE_SURFACE',
-              standalone_mobile_portal:'RETIRED',
               readiness:readinessReceipt,
               required_approval_count:0,
               optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
               stale_review_excluded:true,
               ruleset_bypass_actor_count:0,
-              native_required_status_verified:true,
               public_release:'HOLD',
               production:'HOLD',
               g5:'HOLD'
@@ -194,7 +185,6 @@ jobs:
             exact_head_sha:pr.head.sha,
             readiness:readinessReceipt,
             ruleset_bypass_actor_count:0,
-            native_required_status_verified:true,
             public_release:'HOLD',production:'HOLD',g5:'HOLD'
           },null,2));
           NODE

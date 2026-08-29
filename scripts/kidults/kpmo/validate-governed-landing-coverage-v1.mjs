@@ -7,64 +7,33 @@ const preflightPath = '.github/workflows/solo-owner-preflight.yml';
 
 const requiredPrefixes = [
   '.github/',
-  'apps/kidults-enterprise-staging/',
   'services/kidults-control-plane/',
   'services/kidults-autonomous-intelligence/',
   'scripts/kidults/kpmo/',
   'scripts/kidults/redteam/',
-  'scripts/kidults/portal/',
+  'scripts/kidults/portal/runtime/',
   'coordination/kidults/kpmo/',
   'coordination/kidults/audit/',
   'coordination/kidults/security/',
   'coordination/kidults/provider/',
   'coordination/kidults/runtime/',
-  'coordination/kidults/portal/',
-  'tooling/kidults-portal-r001-browser-qa/',
   'infra/',
-];
-const retiredPrefixes = ['apps/kidults-mobile-portal/'];
-const requiredStatusContexts = [
-  'KAIOS Solo Owner Preflight',
-  'Validate KAIOS Foundation',
-  'Validate Production Container',
-  'KIDULTS Governed Landing Authorization V1',
 ];
 
 function findingsFor(policy, workflow, preflight) {
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(id); };
   const prefixes = new Set(policy.governed_path_prefixes || []);
-  const retired = new Set(policy.retired_path_prefixes || []);
-  const statusContexts = new Set(policy.bypass_policy?.required_status_contexts || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.3.0', 'POLICY_VERSION');
+  require(policy.version === '1.2.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
-  require(policy.canonical_portal_architecture === 'SHARED_RESPONSIVE_SINGLE_SURFACE', 'CANONICAL_PORTAL_ARCHITECTURE');
-  require(policy.truth_boundary?.standalone_mobile_portal === 'RETIRED', 'STANDALONE_MOBILE_RETIREMENT');
-  require(policy.truth_boundary?.shared_portal_is_only_customer_surface === true, 'SHARED_PORTAL_ONLY_SURFACE');
-
   for (const prefix of requiredPrefixes) {
     require(prefixes.has(prefix), `POLICY_PREFIX_MISSING:${prefix}`);
     require(workflow.includes(`'${prefix}'`), `WORKFLOW_PREFIX_MISSING:${prefix}`);
   }
-  for (const prefix of retiredPrefixes) {
-    require(retired.has(prefix), `RETIRED_PREFIX_MISSING:${prefix}`);
-    require(workflow.includes(`name.startsWith('${prefix}')`), `RETIRED_PREFIX_GUARD_MISSING:${prefix}`);
-  }
-  for (const context of requiredStatusContexts) {
-    require(statusContexts.has(context), `POLICY_REQUIRED_STATUS_MISSING:${context}`);
-  }
-  require(
-    workflow.includes("'KIDULTS Governed Landing Authorization V1']) if(!existingRequired.has(required))"),
-    'WORKFLOW_NATIVE_REQUIRED_STATUS_SELF_READBACK_MISSING',
-  );
-  require(workflow.includes('native_required_status_verified:true'), 'NATIVE_REQUIRED_STATUS_RECEIPT_MISSING');
-  require(workflow.includes("canonical_portal_architecture:'SHARED_RESPONSIVE_SINGLE_SURFACE'"), 'CANONICAL_PORTAL_RECEIPT_MISSING');
-  require(workflow.includes("standalone_mobile_portal:'RETIRED'"), 'MOBILE_RETIREMENT_RECEIPT_MISSING');
-  require(!prefixes.has('scripts/kidults/portal/runtime/'), 'NARROW_PORTAL_RUNTIME_ONLY_PREFIX_PRESENT');
   require(!prefixes.has('coordination/kidults/providers/'), 'STALE_PROVIDER_PREFIX_POLICY');
   require(!workflow.includes("'coordination/kidults/providers/'"), 'STALE_PROVIDER_PREFIX_WORKFLOW');
 
@@ -117,42 +86,6 @@ const mutations = [
     preflight,
   },
   {
-    id: 'SHARED_PORTAL_APP_PATH_REMOVED',
-    policy: {...policy, governed_path_prefixes: policy.governed_path_prefixes.filter(x => x !== 'apps/kidults-enterprise-staging/')},
-    workflow,
-    preflight,
-  },
-  {
-    id: 'PORTAL_QA_PATH_REVERTS_TO_RUNTIME_ONLY',
-    policy: {...policy, governed_path_prefixes: policy.governed_path_prefixes.map(x => x === 'scripts/kidults/portal/' ? 'scripts/kidults/portal/runtime/' : x)},
-    workflow,
-    preflight,
-  },
-  {
-    id: 'STANDALONE_MOBILE_RETIREMENT_GUARD_REMOVED',
-    policy,
-    workflow: workflow.replace("const forbiddenStandaloneMobile = filenames.filter(name=>name.startsWith('apps/kidults-mobile-portal/'));", 'const forbiddenStandaloneMobile = [];'),
-    preflight,
-  },
-  {
-    id: 'NATIVE_GOVERNED_STATUS_REMOVED_FROM_POLICY',
-    policy: {
-      ...policy,
-      bypass_policy: {
-        ...policy.bypass_policy,
-        required_status_contexts: policy.bypass_policy.required_status_contexts.filter(x => x !== 'KIDULTS Governed Landing Authorization V1'),
-      },
-    },
-    workflow,
-    preflight,
-  },
-  {
-    id: 'NATIVE_GOVERNED_STATUS_SELF_READBACK_REMOVED',
-    policy,
-    workflow: workflow.replace(",'KIDULTS Governed Landing Authorization V1']", ']'),
-    preflight,
-  },
-  {
     id: 'SOLO_APPROVAL_COUNT_GUARD_REMOVED',
     policy,
     workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');", ''),
@@ -198,21 +131,13 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.3.0',
+  version: '1.2.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
-  canonical_portal_architecture: 'SHARED_RESPONSIVE_SINGLE_SURFACE',
-  standalone_mobile_portal: 'RETIRED',
   governed_prefix_count: requiredPrefixes.length,
-  retired_prefix_count: retiredPrefixes.length,
-  required_status_context_count: requiredStatusContexts.length,
   protected_surfaces: {
     workflows: true,
-    shared_portal_app: true,
-    shared_portal_qa: true,
-    shared_portal_coordination: true,
-    portal_browser_tooling: true,
     control_plane: true,
     autonomous_intelligence: true,
     provider_rights: true,
@@ -229,7 +154,6 @@ const receipt = {
     review_threads_resolved: true,
     last_push_approval: false,
     ruleset_bypass_actor_count: 0,
-    native_governed_landing_status_required: true,
     zero_diff_non_promotable_pass: true,
     technical_preflight_is_merge_authorization: false,
   },

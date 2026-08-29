@@ -10,6 +10,7 @@ if (!workspace) throw new Error('GITHUB_WORKSPACE is required');
 const helperUrl = pathToFileURL(path.join(workspace, 'scripts/kidults/portal/browser-qa-evidence-v1.mjs')).href;
 const {
   assessRealBfcacheEvidence,
+  assessRealHistoryTraversalEvidence,
   assertRealNavigationCanarySource,
   classifyConsoleError,
   closeAndFreezePageDiagnostics,
@@ -53,12 +54,10 @@ const snapshotPortal = () => {
 };
 
 const staleMarker = /fixture-(?:approved|projection|assessment|replay|pair|correlation|what_changed|liquidity|market_scale)/;
-const immediatePurgePass = (value) => Boolean(
+const commonImmediateContainment = (value) => Boolean(
   value
-  && value.state === 'INVALID'
   && value.signalCount === 0
   && value.signalText === ''
-  && value.auditRowCount === 9
   && !staleMarker.test(value.auditText)
   && value.verticalCount === 0
   && value.auditSeal === 'CONTROL BOUNDARY'
@@ -66,6 +65,18 @@ const immediatePurgePass = (value) => Boolean(
   && !value.kidultReady
   && value.objectTitle === 'No governed object'
   && value.objectCount === 'WAITING'
+);
+const immediateBfcachePurgePass = (value) => Boolean(
+  commonImmediateContainment(value)
+  && value.state === 'INVALID'
+  && value.auditRowCount === 9
+);
+const immediateReloadContainmentPass = (value) => Boolean(
+  commonImmediateContainment(value)
+  && (
+    (value.state === 'NO_PROJECTION' && value.auditRowCount === 0)
+    || (value.state === 'INVALID' && value.auditRowCount === 9)
+  )
 );
 const settledFailClosedPass = (value) => Boolean(
   value
@@ -88,7 +99,7 @@ try {
   await context.route('**/__qa_bfcache_target', (route) => route.fulfill({
     status: 200,
     contentType: 'text/html; charset=utf-8',
-    body: '<!doctype html><html lang="en"><meta charset="utf-8"><title>BFCache target</title><body>same-origin navigation target</body></html>',
+    body: '<!doctype html><html lang="en"><meta charset="utf-8"><title>History target</title><body>same-origin navigation target</body></html>',
   }));
 
   await context.addInitScript(() => {
@@ -125,10 +136,7 @@ try {
   page.on('requestfailed', (request) => responseErrors.push(`REQUESTFAILED_${request.url()}_${request.failure()?.errorText || 'UNKNOWN'}`));
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
-    const classified = classifyConsoleError({
-      text: message.text(),
-      forcedFailureResponseCount,
-    });
+    const classified = classifyConsoleError({text: message.text(), forcedFailureResponseCount});
     if (classified.classification === 'EXPECTED_FORCED_500_HARNESS_DIAGNOSTIC') {
       harnessDiagnostics.push(`${classified.classification}_${classified.value}`);
     } else if (classified.classification === 'APPLICATION_RUNTIME_ERROR') {
@@ -137,7 +145,7 @@ try {
   });
 
   await page.goto(approvedUrl, {waitUntil: 'domcontentloaded'});
-  await page.waitForFunction(() => document.documentElement.dataset.state === 'LIVE_APPROVED', {timeout: 5000});
+  await page.waitForFunction(() => document.documentElement.dataset.state === 'LIVE_APPROVED', null, {timeout: 5000});
   const livePrecondition = await page.evaluate(snapshotPortal);
   if (!livePrecondition.signalText.includes('fixture-what_changed') || !livePrecondition.auditText.includes('fixture-approved-market-v1')) {
     functionalFailures.push(`PRECONDITION_NOT_LIVE_${JSON.stringify(livePrecondition)}`);
@@ -170,14 +178,12 @@ try {
   const immediatePurge = await page.evaluate(snapshotPortal);
   await page.waitForFunction(
     () => document.documentElement.dataset.state === 'INVALID' && document.querySelectorAll('[data-vertical-grid] .vertical-tile').length === 8,
+    null,
     {timeout: 5000},
   );
   const settledPurge = await page.evaluate(snapshotPortal);
   const type = settledPurge.navigationType;
-  const browserHistoryTraversal = type === 'back_forward';
-  if (!browserHistoryTraversal) {
-    functionalFailures.push(`NAVIGATION_TYPE_${type}_EXPECTED_back_forward`);
-  }
+  if (type !== 'back_forward') functionalFailures.push(`NAVIGATION_TYPE_${type}_EXPECTED_back_forward`);
 
   const pagehide = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pagehide');
   const pageshow = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pageshow' && entry.documentId === firstDocumentId);
@@ -192,14 +198,16 @@ try {
     documentIdentityPreserved: settledPurge.documentId === firstDocumentId,
     syntheticDispatchUsed: false,
     forcedFailureResponseCount,
-    immediatePurgePass: immediatePurgePass(immediatePurge),
+    immediatePurgePass: immediateBfcachePurgePass(immediatePurge),
+    immediateReloadContainmentPass: immediateReloadContainmentPass(immediatePurge),
     settledFailClosedPass: settledFailClosedPass(settledPurge),
     firstDocumentId,
     restoredDocumentId: settledPurge.documentId,
   };
-  const bfcacheAssessment = assessRealBfcacheEvidence(evidence);
-  if (bfcacheAssessment.state !== 'VERIFIED_PASS') {
-    functionalFailures.push(...bfcacheAssessment.findings.map((finding) => `BFCACHE_${finding}`));
+  const historyAssessment = assessRealHistoryTraversalEvidence(evidence);
+  const strictBfcacheAssessment = assessRealBfcacheEvidence(evidence);
+  if (historyAssessment.state !== 'VERIFIED_PASS') {
+    functionalFailures.push(...historyAssessment.findings.map((finding) => `HISTORY_${finding}`));
   }
 
   observations = {
@@ -208,12 +216,12 @@ try {
     immediatePurge,
     settledPurge,
     evidence,
-    bfcacheAssessment,
+    historyAssessment,
+    strictBfcacheAssessment,
   };
 } catch (error) {
   functionalFailures.push(`CANARY_EXCEPTION_${error?.stack || error}`);
 } finally {
-  // Always emit a structured fail-closed receipt, including browser-launch failures.
   const pageForClose = page || {isClosed: () => true, close: async () => {}};
   const contextForClose = context || {close: async () => {}};
   const browserForClose = browser || {close: async () => {}};
@@ -228,27 +236,36 @@ try {
     harnessDiagnostics,
   });
   const verdict = deriveCaseVerdict({functionalFailures, diagnostics});
+  const outcome = observations.historyAssessment?.outcome || 'NOT_OBSERVED';
+  const bfcacheAcceptance = observations.historyAssessment?.bfcacheAcceptance || 'NOT_OBSERVED';
+  const limitations = [
+    'AUTOMATED_WEBKIT_IS_NOT_PHYSICAL_IPHONE_ACCEPTANCE',
+    'DETACHED_OR_EXACT_HEAD_EXECUTION_IS_NOT_PROTECTED_MAIN_ACCEPTANCE',
+    'HARNESS_DIAGNOSTICS_CANNOT_AUTHORIZE_PROMOTION',
+  ];
+  if (outcome === 'HISTORY_RELOAD_NO_BFCACHE') limitations.push('BFCACHE_NOT_OBSERVED_ON_THIS_RUN');
+
   const report = Object.freeze({
     id: 'kidults-shared-portal-evidence-integrity-v1',
     result: verdict.result,
     exactSourceSha: process.env.SOURCE_SHA || null,
-    case: 'REAL_SAME_ORIGIN_HISTORY_BFCACHE_FAILED_REVALIDATION_PURGE',
-    evidenceClass: 'REAL_BROWSER_CONTROL_EVIDENCE',
+    case: 'REAL_SAME_ORIGIN_HISTORY_REVALIDATION_CONTAINMENT',
+    evidenceClass: 'REAL_BROWSER_HISTORY_CONTROL_EVIDENCE',
+    restorationOutcome: outcome,
+    bfcacheAcceptance,
+    physicalIphoneAcceptance: 'PENDING',
     legacySyntheticPageTransitionCasesAreControlOnly: true,
     verdict,
     observations,
     truthBoundary: Object.freeze({
       empiricalGateEffect: 'NONE',
       approvedProjection: 'FIXTURE_ONLY_NON_PROMOTABLE',
+      bfcachePromotion: 'NONE',
       publicRelease: 'HOLD',
       production: 'HOLD',
       g5: 'HOLD',
     }),
-    limitations: Object.freeze([
-      'AUTOMATED_WEBKIT_IS_NOT_PHYSICAL_IPHONE_ACCEPTANCE',
-      'DETACHED_OR_EXACT_HEAD_EXECUTION_IS_NOT_PROTECTED_MAIN_ACCEPTANCE',
-      'HARNESS_DIAGNOSTICS_CANNOT_AUTHORIZE_PROMOTION',
-    ]),
+    limitations: Object.freeze(limitations),
   });
   await fs.writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
   console.log(JSON.stringify(report, null, 2));

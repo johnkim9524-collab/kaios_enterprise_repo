@@ -120,7 +120,7 @@ const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
 const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do', 'for attempt in 1; do');
 assert(supersessionRetryMutation !== supersession && !supersessionRetryMutation.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_RETRY_MUTATION_NOT_DETECTED');
-const supersessionTerminalProofMutation = supersession.replace('if [[ "${latest_conclusion}" == "cancelled" ]]', 'if [[ -n "${latest_conclusion}" ]]');
+const supersessionTerminalProofMutation = supersession.replaceAll('if [[ "${latest_conclusion}" == "cancelled" ]]', 'if [[ -n "${latest_conclusion}" ]]');
 assert(supersessionTerminalProofMutation !== supersession && !supersessionTerminalProofMutation.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 'EXACT_HEAD_SUPERSESSION_TERMINAL_PROOF_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');

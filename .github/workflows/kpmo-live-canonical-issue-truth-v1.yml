@@ -7,6 +7,8 @@ on:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
       - ".github/workflows/kpmo-canonical-issue-transition-guard-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
+      - "scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs"
+      - "scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs"
       - "coordination/kidults/**"
   push:
     branches: [ main ]
@@ -28,6 +30,47 @@ jobs:
   canonical-issue-truth:
     runs-on: ubuntu-24.04
     steps:
+      - name: Initialize fail-closed canonical-truth receipt
+        shell: bash
+        env:
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/canonical-truth-receipt-v1.json" <<EOF
+          {
+            "receipt_id": "kpmo-live-canonical-issue-truth-receipt-v1",
+            "version": "1.1.0",
+            "workflow_name": "KPMO Live Canonical Issue Truth V1",
+            "workflow_path": ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml",
+            "repository": "$GITHUB_REPOSITORY",
+            "run_id": $GITHUB_RUN_ID,
+            "run_attempt": $GITHUB_RUN_ATTEMPT,
+            "head_sha": "$RECEIPT_HEAD_SHA",
+            "event": "$RECEIPT_EVENT",
+            "validation_outcome": "not_run",
+            "state": "VERIFIED_FAIL",
+            "failure_class": "VALIDATION_NOT_COMPLETED",
+            "promotion_eligible": false,
+            "production": "HOLD",
+            "public": "HOLD"
+          }
+          EOF
+          cat > "$RUNNER_TEMP/canonical-truth-validation-output-v1.json" <<EOF
+          {
+            "validator": "LIVE_CANONICAL_ISSUE_TRUTH_V1",
+            "state": "VERIFIED_FAIL",
+            "failure_class": "VALIDATION_NOT_COMPLETED",
+            "head_sha": "$RECEIPT_HEAD_SHA",
+            "event": "$RECEIPT_EVENT",
+            "empirical_promotion": false,
+            "whole_platform_closure": false,
+            "production": "HOLD",
+            "public": "HOLD",
+            "g5": "HOLD"
+          }
+          EOF
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -42,6 +85,18 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Validate bootstrap receipt contract
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs
+      - name: Fail closed on material-defect severity metadata drift
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
       - name: Validate live canonical issue truth
         id: validate
         env:
@@ -51,7 +106,17 @@ jobs:
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
-        run: node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP_OUTPUT="$RUNNER_TEMP/canonical-truth-validation-output-v1.tmp.json"
+          if node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"; then
+            test -s "$TMP_OUTPUT"
+            mv "$TMP_OUTPUT" "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"
+          else
+            rm -f "$TMP_OUTPUT"
+            exit 1
+          fi
 
       - name: Emit exact canonical-truth receipt
         if: always()
@@ -59,14 +124,54 @@ jobs:
           VALIDATION_OUTCOME: ${{ steps.validate.outcome }}
           RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
+        shell: bash
         run: |
+          set -euo pipefail
+          if [ -z "${VALIDATION_OUTCOME:-}" ]; then
+            test -s "$RUNNER_TEMP/canonical-truth-receipt-v1.json"
+            test -s "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"
+            exit 0
+          fi
+          if [[ ! "$VALIDATION_OUTCOME" =~ ^(success|failure|cancelled|skipped)$ ]]; then
+            echo "::error::unsupported canonical validation outcome: $VALIDATION_OUTCOME"
+            exit 65
+          fi
           node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
           import fs from 'node:fs';
           const outcome = process.env.VALIDATION_OUTCOME;
-          if (!['success', 'failure', 'cancelled', 'skipped'].includes(outcome)) process.exit(65);
+          const outputPath = `${process.env.RUNNER_TEMP}/canonical-truth-validation-output-v1.json`;
+          if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) throw new Error('CANONICAL_VALIDATION_OUTPUT_MISSING');
+          const validationText = fs.readFileSync(outputPath, 'utf8');
+          const validationOutputSha256 = `sha256:${crypto.createHash('sha256').update(validationText).digest('hex')}`;
+          let validation;
+          try { validation = JSON.parse(validationText); } catch { throw new Error('CANONICAL_VALIDATION_OUTPUT_JSON_INVALID'); }
+
+          let registryDigest = null;
+          let registryCount = 0;
+          let registryIssueNumbers = [];
+          let registryCardinality = null;
+          let validatedProtectedMainSha = null;
+          if (outcome === 'success') {
+            if (validation?.state !== 'VERIFIED_PASS') throw new Error('CANONICAL_VALIDATION_OUTPUT_NOT_PASS');
+            if (!/^[0-9a-f]{40}$/i.test(validation?.protected_main_sha || '')) throw new Error('CANONICAL_VALIDATED_MAIN_SHA_INVALID');
+            if (!/^sha256:[0-9a-f]{64}$/.test(validation?.material_defect_registry_sha256 || '')) throw new Error('CANONICAL_MATERIAL_REGISTRY_DIGEST_INVALID');
+            if (!Number.isInteger(validation?.material_defect_count) || validation.material_defect_count < 0) throw new Error('CANONICAL_MATERIAL_REGISTRY_COUNT_INVALID');
+            if (!Array.isArray(validation?.material_defects) || validation.material_defects.length !== validation.material_defect_count) throw new Error('CANONICAL_MATERIAL_REGISTRY_CARDINALITY_INVALID');
+            registryIssueNumbers = validation.material_defects.map((item) => item?.issue_number);
+            if (registryIssueNumbers.some((number) => !Number.isInteger(number) || number < 1)) throw new Error('CANONICAL_MATERIAL_REGISTRY_ISSUE_NUMBER_INVALID');
+            if (new Set(registryIssueNumbers).size !== registryIssueNumbers.length) throw new Error('CANONICAL_MATERIAL_REGISTRY_DUPLICATE_ISSUE');
+            if (!validation?.material_defect_query_cardinality || !Number.isInteger(validation.material_defect_query_cardinality.P0) || !Number.isInteger(validation.material_defect_query_cardinality.P1)) throw new Error('CANONICAL_MATERIAL_QUERY_CARDINALITY_INVALID');
+            if (validation.empirical_promotion !== false || validation.whole_platform_closure !== false || validation.production !== 'HOLD' || validation.public !== 'HOLD' || validation.g5 !== 'HOLD') throw new Error('CANONICAL_VALIDATION_PROMOTION_BOUNDARY_INVALID');
+            registryDigest = validation.material_defect_registry_sha256;
+            registryCount = validation.material_defect_count;
+            registryCardinality = validation.material_defect_query_cardinality;
+            validatedProtectedMainSha = validation.protected_main_sha;
+          }
+
           const receipt = {
             receipt_id: 'kpmo-live-canonical-issue-truth-receipt-v1',
-            version: '1.0.0',
+            version: '1.1.0',
             workflow_name: 'KPMO Live Canonical Issue Truth V1',
             workflow_path: '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',
             repository: process.env.GITHUB_REPOSITORY,
@@ -76,6 +181,14 @@ jobs:
             event: process.env.RECEIPT_EVENT,
             validation_outcome: outcome,
             state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_class: outcome === 'success' ? null : 'CANONICAL_VALIDATION_NON_SUCCESS',
+            validation_output_sha256: validationOutputSha256,
+            validation_output_state: validation?.state || 'VERIFIED_FAIL',
+            validated_protected_main_sha: validatedProtectedMainSha,
+            material_defect_registry_sha256: registryDigest,
+            material_defect_count: registryCount,
+            material_defect_issue_numbers: registryIssueNumbers,
+            material_defect_query_cardinality: registryCardinality,
             promotion_eligible: false,
             production: 'HOLD',
             public: 'HOLD'
@@ -88,6 +201,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}
-          path: ${{ runner.temp }}/canonical-truth-receipt-v1.json
+          path: |
+            ${{ runner.temp }}/canonical-truth-receipt-v1.json
+            ${{ runner.temp }}/canonical-truth-validation-output-v1.json
           if-no-files-found: error
           retention-days: 30
+          overwrite: true

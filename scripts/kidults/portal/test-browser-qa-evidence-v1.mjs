@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {
   assessRealBfcacheEvidence,
+  assessRealHistoryTraversalEvidence,
   assertRealNavigationCanarySource,
   classifyConsoleError,
   closeAndFreezePageDiagnostics,
@@ -61,7 +62,6 @@ assert.equal(verdict.result, 'FAIL');
 assert.equal(verdict.failures.length, 6);
 assert.equal(verdict.serializedFromSameImmutableSnapshot, true);
 assert.strictEqual(verdict.diagnostics, diagnostics);
-
 assert.throws(
   () => deriveCaseVerdict({
     functionalFailures: [],
@@ -104,13 +104,36 @@ const validBfcache = {
   syntheticDispatchUsed: false,
   forcedFailureResponseCount: 1,
   immediatePurgePass: true,
+  immediateReloadContainmentPass: false,
   settledFailClosedPass: true,
   firstDocumentId: 'doc-1',
   restoredDocumentId: 'doc-1',
 };
 assert.equal(assessRealBfcacheEvidence(validBfcache).state, 'VERIFIED_PASS');
+const restoredHistory = assessRealHistoryTraversalEvidence(validBfcache);
+assert.equal(restoredHistory.state, 'VERIFIED_PASS');
+assert.equal(restoredHistory.outcome, 'BFCACHE_RESTORED');
+assert.equal(restoredHistory.bfcacheAcceptance, 'VERIFIED_PASS');
 
-const mutations = [
+const validReload = {
+  ...validBfcache,
+  pagehidePersisted: false,
+  pagehideTrusted: false,
+  pageshowPersisted: false,
+  pageshowTrusted: false,
+  documentIdentityPreserved: false,
+  immediatePurgePass: false,
+  immediateReloadContainmentPass: true,
+  restoredDocumentId: 'doc-2',
+};
+assert.equal(assessRealBfcacheEvidence(validReload).state, 'VERIFIED_FAIL');
+const reloadHistory = assessRealHistoryTraversalEvidence(validReload);
+assert.equal(reloadHistory.state, 'VERIFIED_PASS');
+assert.equal(reloadHistory.outcome, 'HISTORY_RELOAD_NO_BFCACHE');
+assert.equal(reloadHistory.bfcacheAcceptance, 'NOT_OBSERVED_PENDING_PHYSICAL_DEVICE');
+assert.equal(reloadHistory.promotionEligible, false);
+
+const strictMutations = [
   ['SYNTHETIC_DISPATCH', {syntheticDispatchUsed: true}],
   ['NO_BACK_FORWARD', {navigationType: 'navigate'}],
   ['PAGESHOW_NOT_PERSISTED', {pageshowPersisted: false}],
@@ -123,8 +146,25 @@ const mutations = [
   ['NO_SETTLED_FAIL_CLOSED', {settledFailClosedPass: false}],
   ['FAILURE_RESPONSE_REPLAYED', {forcedFailureResponseCount: 2}],
 ];
-for (const [id, mutation] of mutations) {
+for (const [id, mutation] of strictMutations) {
   const result = assessRealBfcacheEvidence({...validBfcache, ...mutation});
+  assert.equal(result.state, 'VERIFIED_FAIL', id);
+  assert.ok(result.findings.length > 0, id);
+}
+
+const reloadMutations = [
+  ['RELOAD_SYNTHETIC_DISPATCH', {syntheticDispatchUsed: true}],
+  ['RELOAD_NOT_BACK_FORWARD', {navigationType: 'navigate'}],
+  ['RELOAD_NOT_SAME_ORIGIN', {secondDocumentSameOrigin: false}],
+  ['RELOAD_FAILURE_RESPONSE_REPLAYED', {forcedFailureResponseCount: 2}],
+  ['RELOAD_NOT_SETTLED_FAIL_CLOSED', {settledFailClosedPass: false}],
+  ['RELOAD_IMMEDIATE_CONTAINMENT_MISSING', {immediateReloadContainmentPass: false}],
+  ['RELOAD_PARTIAL_PERSISTED_SIGNAL', {pagehidePersisted: true}],
+  ['RELOAD_IDENTITY_MISSING', {restoredDocumentId: null}],
+  ['RELOAD_IDENTITY_FALSE_GREEN', {restoredDocumentId: 'doc-1'}],
+];
+for (const [id, mutation] of reloadMutations) {
+  const result = assessRealHistoryTraversalEvidence({...validReload, ...mutation});
   assert.equal(result.state, 'VERIFIED_FAIL', id);
   assert.ok(result.findings.length > 0, id);
 }
@@ -136,6 +176,7 @@ const validSource = `
   addEventListener('pagehide', event => [event.persisted, event.isTrusted]);
   const type = performance.getEntriesByType('navigation')[0].type;
   if (type === 'back_forward') await page.goBack();
+  assessRealHistoryTraversalEvidence({});
 `;
 assert.equal(assertRealNavigationCanarySource(validSource).state, 'VERIFIED_PASS');
 assert.throws(
@@ -150,7 +191,9 @@ console.log(JSON.stringify({
   immutable_verdict_binding: 'PASS',
   deterministic_harness_classification: 'PASS',
   real_bfcache_contract: 'PASS',
-  negative_mutations_rejected: mutations.length + 1,
+  real_history_reload_containment_contract: 'PASS',
+  false_bfcache_green_rejected: 'PASS',
+  negative_mutations_rejected: strictMutations.length + reloadMutations.length + 1,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

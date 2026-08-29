@@ -1,0 +1,45 @@
+name: KPMO Canonical Latest Block Scope V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-canonical-latest-block-scope-v1.yml'
+      - 'scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+  push:
+    branches: [main]
+  issues:
+    types: [opened, edited, reopened, closed]
+  schedule:
+    - cron: '13 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: kpmo-canonical-latest-block-${{ github.event_name }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validate-latest-block-scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Reject historical-block fallback
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs

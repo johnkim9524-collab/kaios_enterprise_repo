@@ -8,6 +8,13 @@ on:
       - 'scripts/kidults/portal/**'
       - 'tooling/kidults-portal-r001-browser-qa/**'
       - '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/**'
+      - 'scripts/kidults/portal/**'
+      - 'tooling/kidults-portal-r001-browser-qa/**'
+      - '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'
   workflow_dispatch:
 
 permissions:
@@ -84,7 +91,7 @@ jobs:
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4174/health >/dev/null && break; sleep 1; done
           curl -fsS http://127.0.0.1:4174/health >/dev/null || { cat /tmp/kidults-shared-portal-evidence-server.log; exit 1; }
 
-      - name: Run real history/BFCache and late-error canary
+      - name: Run real history navigation, conditional BFCache, and late-error canary
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |

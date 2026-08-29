@@ -3,13 +3,14 @@
 /**
  * Shared KIDULTS Portal browser-QA evidence helpers.
  *
- * Security / truth contract:
- * - browser diagnostics are frozen only after page, context, and browser closure;
- * - the serialized case and its verdict are derived from the same immutable snapshot;
- * - deterministic harness noise is non-authorizing and cannot erase application errors;
- * - synthetic PageTransitionEvent dispatch is never accepted as BFCache proof;
- * - real BFCache evidence requires a same-origin second document, page.goBack(),
- *   trusted persisted lifecycle events, preserved document identity, and fail-closed purge.
+ * Truth contract:
+ * - diagnostics are frozen only after page, context, and browser closure;
+ * - verdict and serialized evidence use the same immutable snapshot;
+ * - deterministic harness noise is non-authorizing;
+ * - synthetic lifecycle dispatch is never BFCache evidence;
+ * - BFCache PASS requires trusted persisted events and preserved document identity;
+ * - a real back/forward reload may pass only as non-promotable containment evidence,
+ *   while BFCache and physical-iPhone acceptance remain pending.
  */
 
 function frozenStrings(values, field) {
@@ -26,17 +27,12 @@ async function settleListenerQueues() {
 export function classifyConsoleError({text, forcedFailureResponseCount = 0}) {
   const value = String(text || '');
   if (/favicon/i.test(value)) return Object.freeze({classification: 'IGNORED_FAVICON', value});
-
-  // This message is deterministic browser noise caused by the intentionally
-  // forced Projection 500 response. Classification depends on the response
-  // counter, never on an event-timing flag such as axeActive.
   if (
     Number(forcedFailureResponseCount) > 0
     && /Failed to load resource: the server responded with a status of 500/i.test(value)
   ) {
     return Object.freeze({classification: 'EXPECTED_FORCED_500_HARNESS_DIAGNOSTIC', value});
   }
-
   return Object.freeze({classification: 'APPLICATION_RUNTIME_ERROR', value});
 }
 
@@ -51,7 +47,6 @@ export async function closeAndFreezePageDiagnostics({
   harnessDiagnostics = [],
 }) {
   if (!page || typeof page.close !== 'function') throw new TypeError('page.close is required');
-
   const isClosed = typeof page.isClosed === 'function' ? page.isClosed() : false;
   if (!isClosed) await page.close({runBeforeUnload: false});
   await settleListenerQueues();
@@ -107,42 +102,112 @@ export function deriveCaseVerdict({functionalFailures = [], diagnostics}) {
   });
 }
 
-const REQUIRED_BFCACHE_FACTS = Object.freeze([
+const COMMON_HISTORY_FACTS = Object.freeze([
   ['navigationMethod', 'page.goBack'],
   ['secondDocumentSameOrigin', true],
+  ['navigationType', 'back_forward'],
+  ['syntheticDispatchUsed', false],
+  ['forcedFailureResponseCount', 1],
+  ['settledFailClosedPass', true],
+]);
+
+const REQUIRED_BFCACHE_FACTS = Object.freeze([
+  ...COMMON_HISTORY_FACTS,
   ['pagehidePersisted', true],
   ['pagehideTrusted', true],
   ['pageshowPersisted', true],
   ['pageshowTrusted', true],
-  ['navigationType', 'back_forward'],
   ['documentIdentityPreserved', true],
-  ['syntheticDispatchUsed', false],
-  ['forcedFailureResponseCount', 1],
   ['immediatePurgePass', true],
-  ['settledFailClosedPass', true],
 ]);
+
+function mismatches(evidence, facts) {
+  const findings = [];
+  for (const [field, expected] of facts) {
+    if (evidence[field] !== expected) {
+      findings.push(`${field}:expected=${JSON.stringify(expected)}:actual=${JSON.stringify(evidence[field])}`);
+    }
+  }
+  return findings;
+}
+
+function identityFindings(evidence, {same}) {
+  const findings = [];
+  if (!evidence.firstDocumentId || !evidence.restoredDocumentId) {
+    findings.push('document_identity_missing');
+    return findings;
+  }
+  const equal = evidence.firstDocumentId === evidence.restoredDocumentId;
+  if (same && !equal) findings.push('document_identity_changed');
+  if (!same && equal) findings.push('document_identity_unexpectedly_preserved');
+  return findings;
+}
 
 export function assessRealBfcacheEvidence(evidence) {
   if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
     throw new TypeError('evidence must be an object');
   }
+  const findings = [
+    ...mismatches(evidence, REQUIRED_BFCACHE_FACTS),
+    ...identityFindings(evidence, {same: true}),
+  ];
+  return Object.freeze({
+    state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
+    outcome: findings.length ? 'BFCACHE_NOT_VERIFIED' : 'BFCACHE_RESTORED',
+    evidenceType: 'REAL_SAME_ORIGIN_HISTORY_BFCACHE',
+    syntheticControlIsNotEmpiricalBfcacheProof: true,
+    findings: Object.freeze(findings),
+    promotionEligible: false,
+    publicRelease: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  });
+}
 
-  const findings = [];
-  for (const [field, expected] of REQUIRED_BFCACHE_FACTS) {
-    if (evidence[field] !== expected) {
-      findings.push(`${field}:expected=${JSON.stringify(expected)}:actual=${JSON.stringify(evidence[field])}`);
-    }
+export function assessRealHistoryTraversalEvidence(evidence) {
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+    throw new TypeError('evidence must be an object');
   }
 
-  if (!evidence.firstDocumentId || !evidence.restoredDocumentId) {
-    findings.push('document_identity_missing');
-  } else if (evidence.firstDocumentId !== evidence.restoredDocumentId) {
-    findings.push('document_identity_changed');
+  const findings = mismatches(evidence, COMMON_HISTORY_FACTS);
+  const fullyRestored = Boolean(
+    evidence.pagehidePersisted === true
+    && evidence.pagehideTrusted === true
+    && evidence.pageshowPersisted === true
+    && evidence.pageshowTrusted === true
+    && evidence.documentIdentityPreserved === true
+    && evidence.firstDocumentId
+    && evidence.firstDocumentId === evidence.restoredDocumentId
+  );
+  const partialBfcacheSignal = Boolean(
+    evidence.pagehidePersisted === true
+    || evidence.pageshowPersisted === true
+    || evidence.documentIdentityPreserved === true
+  );
+
+  let outcome;
+  let bfcacheAcceptance;
+  if (fullyRestored) {
+    outcome = 'BFCACHE_RESTORED';
+    const strict = assessRealBfcacheEvidence(evidence);
+    findings.push(...strict.findings);
+    bfcacheAcceptance = strict.state;
+  } else {
+    outcome = 'HISTORY_RELOAD_NO_BFCACHE';
+    bfcacheAcceptance = 'NOT_OBSERVED_PENDING_PHYSICAL_DEVICE';
+    if (partialBfcacheSignal) findings.push('partial_or_contradictory_bfcache_signal');
+    if (evidence.immediateReloadContainmentPass !== true) {
+      findings.push(`immediateReloadContainmentPass:expected=true:actual=${JSON.stringify(evidence.immediateReloadContainmentPass)}`);
+    }
+    findings.push(...identityFindings(evidence, {same: false}));
   }
 
   return Object.freeze({
     state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
-    evidenceType: 'REAL_SAME_ORIGIN_HISTORY_BFCACHE',
+    outcome,
+    evidenceType: 'REAL_SAME_ORIGIN_HISTORY_TRAVERSAL',
+    bfcacheAcceptance,
+    physicalIphoneAcceptance: 'PENDING',
     syntheticControlIsNotEmpiricalBfcacheProof: true,
     findings: Object.freeze(findings),
     promotionEligible: false,
@@ -156,16 +221,15 @@ export function assertRealNavigationCanarySource(source) {
   const text = String(source || '');
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(id); };
-
   require(text.includes('page.goBack('), 'PAGE_GOBACK_MISSING');
   require(text.includes('__kidultsQaDocumentId'), 'DOCUMENT_IDENTITY_MISSING');
   require(text.includes("type === 'back_forward'") || text.includes("type==='back_forward'"), 'BACK_FORWARD_NAVIGATION_TYPE_MISSING');
   require(text.includes('event.persisted'), 'PERSISTED_EVENT_OBSERVATION_MISSING');
   require(text.includes('event.isTrusted'), 'TRUSTED_EVENT_OBSERVATION_MISSING');
   require(text.includes('__qa_bfcache_target'), 'SECOND_SAME_ORIGIN_DOCUMENT_MISSING');
+  require(text.includes('assessRealHistoryTraversalEvidence'), 'HISTORY_TRAVERSAL_ASSESSMENT_MISSING');
   require(!text.includes("new PageTransitionEvent('pagehide'"), 'SYNTHETIC_PAGEHIDE_DISPATCH_PRESENT');
   require(!text.includes("new PageTransitionEvent('pageshow'"), 'SYNTHETIC_PAGESHOW_DISPATCH_PRESENT');
-
   if (findings.length) throw new Error(`REAL_NAVIGATION_CANARY_SOURCE_INVALID:${findings.join(',')}`);
   return Object.freeze({state: 'VERIFIED_PASS', findings: Object.freeze([])});
 }
