@@ -114,8 +114,6 @@ jobs:
   retire-and-deploy:
     needs: authorize
     if: needs.authorize.outputs.should_execute == 'true'
-    permissions:
-      contents: read
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -132,12 +130,13 @@ jobs:
           test "$SOURCE_SHA" = "$GITHUB_SHA"
           LIVE_MAIN_SHA="$(
             curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 --max-time 30 \
+              --connect-timeout 10 \
+              --max-time 30 \
               --header "Authorization: Bearer $GITHUB_TOKEN" \
               --header "Accept: application/vnd.github+json" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              jq -er '.commit.sha | select(test("^[0-9a-f]{40}$"))'
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
