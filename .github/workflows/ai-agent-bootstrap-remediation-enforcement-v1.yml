@@ -3,32 +3,17 @@ name: KIDULTS AI Agent Bootstrap Remediation Enforcement V1
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'AGENTS.md'
-      - '.github/AI_AGENT_OPERATING_RULES.md'
-      - '.github/copilot-instructions.md'
-      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
-      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
-      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
-      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
-      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
   push:
     branches: [main]
-    paths:
-      - 'AGENTS.md'
-      - '.github/AI_AGENT_OPERATING_RULES.md'
-      - '.github/copilot-instructions.md'
-      - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
-      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
-      - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
-      - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
-      - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
+  schedule:
+    - cron: '13 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: kidults-ai-agent-bootstrap-remediation-v1-${{ github.event.pull_request.number || github.sha }}
+  group: kidults-ai-agent-bootstrap-remediation-v1-${{ github.event.pull_request.number || github.ref || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +29,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+          package-manager-cache: false
       - name: Verify exact source revision
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
