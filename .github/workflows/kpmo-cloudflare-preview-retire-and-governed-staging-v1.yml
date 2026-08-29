@@ -2,7 +2,7 @@ name: KPMO Cloudflare Preview Retirement and Governed STAGING v1
 
 on:
   workflow_run:
-    workflows: ["KPMO CF-KIDULTS-14501AC-01 Preflight"]
+    workflows: ["KPMO CF-KIDULTS-14501AC-01 Retirement Guard"]
     types: [completed]
     branches: [main]
 
