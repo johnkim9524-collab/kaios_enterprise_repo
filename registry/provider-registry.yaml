@@ -1,0 +1,29 @@
+schema_version: provider-registry-v1
+authority: coordination/kidults/governance/provider-strategy-constitution-v1.md
+last_verified: 2026-08-29
+providers:
+  - provider_id: ebay-marketplace-insights
+    verticals: [KIDULTS]
+    state: CLOSED
+    reopen_condition: written_authorized_license_or_pilot
+    duplicate_outreach: false
+  - provider_id: psa-enterprise-api
+    verticals: [KIDULTS]
+    state: DROP
+    reopen_condition: new_economic_and_rights_case_approved_by_KPMO
+  - provider_id: psa-premium-api
+    verticals: [KIDULTS]
+    state: HOLD
+    reopen_condition: bounded_private_evaluation_rights_and_cost_gate
+  - provider_id: gemrate-developer
+    verticals: [KIDULTS]
+    state: HOLD
+    reopen_condition: commercial_derivative_and_historical_rights_confirmed
+  - provider_id: classic-com
+    verticals: [KIDULTS, AUTOBIT]
+    state: RIGHTS_INQUIRY
+    reopen_condition: licensed_sold_schema_and_display_rights_confirmed
+  - provider_id: alt-fndata
+    verticals: [KIDULTS]
+    state: DROP
+    reopen_condition: provider_scope_changes_in_writing
