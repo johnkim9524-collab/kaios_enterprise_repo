@@ -33,7 +33,10 @@ for (const prohibited of [
   requireTrue(!workspacePage.includes(prohibited), `Workspace status must not use preview fallback: ${prohibited}`);
 }
 
-requireTrue(redirects === '/ /workspace.html 200', 'Enterprise staging root must rewrite to /workspace.html with status 200.');
+requireTrue(
+  redirects === '/ /index.html 200\n/workspace /workspace.html 200',
+  'Enterprise staging must serve the original responsive Portal at / and keep Workspace at /workspace.',
+);
 
 requireTrue(registry?.publication?.candidate_publication === 'PROHIBITED', 'Registry candidate publication must remain fail-closed.');
 requireTrue(registry?.release?.status === 'HOLD', 'Registry release must remain HOLD before G5.');
@@ -61,5 +64,6 @@ console.log(JSON.stringify({
   evidence_package_id: registry.evidence?.current_package_id ?? null,
   assessment: registry.assessment?.status ?? 'NOT_AVAILABLE',
   release: registry.release?.status ?? 'NOT_AVAILABLE',
-  enterprise_root: 'WORKSPACE_REWRITE',
+  enterprise_root: 'ORIGINAL_RESPONSIVE_PORTAL',
+  workspace_route: '/workspace',
 }, null, 2));
