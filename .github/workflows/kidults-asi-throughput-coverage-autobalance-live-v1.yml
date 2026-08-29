@@ -36,7 +36,11 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
 
+      # PRs prove the producer-selection contract and negative mutations above.
+      # Live producer consumption is schedule/manual only because a fresh PR base SHA
+      # is not guaranteed to have an hourly producer generation yet.
       - name: Restore exact-generation hourly gate artifacts
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
@@ -162,6 +166,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Build and validate live autobalance plan
+        if: github.event_name != 'pull_request'
         run: |
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
             discovery-out/global-low-risk-discovery.json \
@@ -173,6 +178,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
 
       - name: Emit exact producer provenance receipt
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -euo pipefail
@@ -231,6 +237,7 @@ jobs:
           NODE
 
       - name: Reject permission weakening mutation
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           node - <<'NODE'
@@ -239,6 +246,7 @@ jobs:
           if node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/bad-live-autobalance.json; then exit 1; fi
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name != 'pull_request'
         with:
           name: kidults-asi-throughput-coverage-autobalance-live-v1
           path: |
