@@ -1100,7 +1100,11 @@ try {
   });
   git(isolationRoot, ['remote', 'set-url', 'origin', acceptedOrigins[0]]);
   const isolatedSha = gitText(isolationRoot, ['rev-parse', 'HEAD']).toLowerCase();
-  const isolatedBranch = gitText(isolationRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD']);
+  let isolatedBranch = gitText(isolationRoot, ['rev-parse', '--abbrev-ref', 'HEAD']);
+  if (isolatedBranch === 'HEAD') {
+    isolatedBranch = `isolation-${unique}`;
+    git(isolationRoot, ['checkout', '--quiet', '-b', isolatedBranch, isolatedSha]);
+  }
   const isolatedArgs = [
     '--require-clean',
     '--agent-id', `isolation-agent-${unique}`,
