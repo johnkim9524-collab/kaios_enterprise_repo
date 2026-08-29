@@ -11,13 +11,16 @@
     "repository_code_accepts_as_executable_authority": false,
     "external_value_read_by_containment": false,
     "external_false_readback_still_required": true,
-    "required_external_value": "false"
+    "required_external_value": "false",
+    "registry_marker_retained": true,
+    "registry_marker_runtime_semantics": "LITERAL_FALSE_AND_LEGACY_VARIABLE_INERT"
   },
   "contained_workflows": [
     {
       "workflow": ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
       "credentialed_job": "remote-persistence-pitr-fixture",
-      "job_condition": "${{ false }}",
+      "job_condition": "${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}",
+      "literal_false_dominates_all_variable_values": true,
       "push_can_enter_credentialed_job": false,
       "workflow_dispatch_can_enter_credentialed_job": false,
       "provider_environment_entered": false,
@@ -30,7 +33,8 @@
     {
       "workflow": ".github/workflows/p0-postgres-target-time-restore-verification.yml",
       "credentialed_job": "verify-target-time-restore",
-      "job_condition": "${{ false }}",
+      "job_condition": "${{ false && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true' }}",
+      "literal_false_dominates_all_variable_values": true,
       "workflow_dispatch_can_enter_credentialed_job": false,
       "provider_environment_entered": false,
       "provider_secrets_resolved": false,
