@@ -41,13 +41,13 @@ Normalized Record Ready for Separate Market-Event Gate
 
 The generic runtime is now implemented and tested. It provides the mandatory normalization and rejection behavior for every future source adapter.
 
-It does not mean any registered source adapter is implemented or activated.
+Generic-runtime completion alone does not prove a source adapter. A separate Wave 4 registry now proves all 16 software implementations; it does not prove rights, live schema, semantics, activation, or empirical admission.
 
 Current exact state:
 
 ```text
 16 registered source profiles
-0 source-specific adapters implemented
+16 source-specific adapters implemented
 0 source-specific adapters activated
 0 empirical market events admitted
 0 current-price eligible sources
@@ -130,9 +130,9 @@ Fixture output is permanently non-promotable and cannot prove empirical source r
 
 ## Registered source portfolio
 
-The current registry contains 16 source profiles representing 156 verified mission assignments. All remain `ADAPTER_NOT_IMPLEMENTED`.
+The current registry contains 16 source profiles representing 156 verified mission assignments. All 16 software adapters are implemented and fixture-verified, while every profile remains `IMPLEMENTED_NOT_RIGHTS_VERIFIED`; activation, empirical admission, current-price eligibility, and liquidity eligibility remain zero.
 
-The first source-specific implementation backlog is ordered by verified mission demand:
+The empirical activation backlog is prioritized by verified mission demand:
 
 1. **Bonhams Cars Results** — 24 assignments;
 2. Barrett-Jackson Results — 18;

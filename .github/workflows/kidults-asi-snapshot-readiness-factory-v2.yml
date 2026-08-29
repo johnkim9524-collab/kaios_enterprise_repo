@@ -1,6 +1,7 @@
 name: KIDULTS ASI Snapshot Readiness Factory v2
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '7 * * * *'
   push:
@@ -88,7 +89,7 @@ jobs:
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
 
   assess-current-snapshot-readiness:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -96,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
-          test "$GITHUB_EVENT_NAME" = "workflow_run"
+          test "$GITHUB_EVENT_NAME" = "workflow_run" || test "$GITHUB_EVENT_NAME" = "schedule" || test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
@@ -137,12 +138,24 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p2-expanded /tmp/p0b /tmp/p1 /tmp/p2
-          test -n "$EVENT_P2_RUN_ID" && test -n "$EVENT_P2_HEAD_SHA"
-          P2_RUN_ID="$EVENT_P2_RUN_ID"
+          if test "$GITHUB_EVENT_NAME" = "schedule" || test "$GITHUB_EVENT_NAME" = "workflow_dispatch"; then
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=100" \
+              > /tmp/p2-candidate-runs.json
+            P2_RUN_ID="$(node - <<'NODE'
+          const fs=require('fs');const body=JSON.parse(fs.readFileSync('/tmp/p2-candidate-runs.json'));const matches=(body.workflow_runs||[]).filter(run=>run.path==='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'&&run.head_branch==='main'&&run.head_sha===process.env.GITHUB_SHA&&run.conclusion==='success');if(matches.length<1)process.exit(2);process.stdout.write(String(matches[0].id));
+          NODE
+            )"
+            EVENT_P2_RUN_ID="$P2_RUN_ID"
+            EVENT_P2_HEAD_SHA="$GITHUB_SHA"
+          else
+            test -n "$EVENT_P2_RUN_ID" && test -n "$EVENT_P2_HEAD_SHA"
+            P2_RUN_ID="$EVENT_P2_RUN_ID"
+          fi
           [[ "$P2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P2_RUN_ID}" > /tmp/p2-run.json
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" > /tmp/main-branch.json
-          P2_RUN_ID="$P2_RUN_ID" node - <<'NODE'
+          P2_RUN_ID="$P2_RUN_ID" EVENT_P2_RUN_ID="$EVENT_P2_RUN_ID" EVENT_P2_HEAD_SHA="$EVENT_P2_HEAD_SHA" node - <<'NODE'
           const fs=require('fs');const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));const main=JSON.parse(fs.readFileSync('/tmp/main-branch.json'));
           const completedAt=run.completed_at||run.updated_at||'';const completed=Date.parse(completedAt);const age=Date.now()-completed;
           if(String(run.id)!==String(process.env.P2_RUN_ID)||run.path!=='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'||run.head_branch!=='main'||run.conclusion!=='success'||!(/^[0-9a-f]{40}$/.test(run.head_sha))||run.repository?.full_name!==process.env.GITHUB_REPOSITORY||main.name!=='main'||main.commit?.sha!==run.head_sha||main.commit.sha!==process.env.GITHUB_SHA||!Number.isFinite(completed)||age<0||age>24*60*60*1000)process.exit(2);
@@ -189,7 +202,7 @@ jobs:
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json p0b-bounded-discovery-manifest-v1.json; do copy_unique /tmp/p0b-expanded "$NAME" /tmp/p0b; done
           for NAME in p1-gate1-source-safety-decisions-v1.json p1-evidence-admission-candidate-register-v1.json p1-preflight-action-queue-v1.json p1-source-preflight-manifest-v1.json; do copy_unique /tmp/p1-expanded "$NAME" /tmp/p1; done
-          P2_RUN_ID="$P2_RUN_ID" P2_HEAD_SHA="$P2_HEAD_SHA" node - <<'NODE'
+          P2_RUN_ID="$P2_RUN_ID" P2_HEAD_SHA="$P2_HEAD_SHA" EVENT_P2_RUN_ID="$EVENT_P2_RUN_ID" EVENT_P2_HEAD_SHA="$EVENT_P2_HEAD_SHA" node - <<'NODE'
           const fs=require('fs');const run=JSON.parse(fs.readFileSync('/tmp/p2-run.json'));const main=JSON.parse(fs.readFileSync('/tmp/main-branch.json'));const normalizedRun={...run,completed_at:run.completed_at||run.updated_at};const value={repository:process.env.GITHUB_REPOSITORY,trigger_event:process.env.GITHUB_EVENT_NAME,event_upstream_run_id:process.env.EVENT_P2_RUN_ID,event_upstream_head_sha:process.env.EVENT_P2_HEAD_SHA,observed_main_head_sha:main.commit.sha,readback_observed_at:new Date().toISOString(),p2_run:normalizedRun,artifacts:{p0b:JSON.parse(fs.readFileSync('/tmp/p0b-artifact.json')),p1:JSON.parse(fs.readFileSync('/tmp/p1-artifact.json')),p2:JSON.parse(fs.readFileSync('/tmp/p2-artifact.json'))}};fs.writeFileSync('/tmp/p3-upstream-binding.json',JSON.stringify(value,null,2)+'\n');
           NODE
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs \

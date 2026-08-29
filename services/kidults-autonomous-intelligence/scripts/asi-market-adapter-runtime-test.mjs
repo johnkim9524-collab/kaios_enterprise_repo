@@ -42,7 +42,7 @@ assert.equal(contract.id, 'kidults-asi-p1-market-event-adapter-runtime-contract-
 assert.equal(contract.version, '1.0.0');
 assert.deepEqual(contract.platform_principles, ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']);
 assert.equal(contract.registered_source_profiles.length, 16);
-assert.equal(contract.implementation_truth.registered_source_adapter_implemented_count, 0);
+assert.equal(contract.implementation_truth.registered_source_adapter_implemented_count, 16);
 assert.equal(contract.implementation_truth.registered_source_adapter_activated_count, 0);
 assert.equal(contract.implementation_truth.empirical_market_event_emitted_count, 0);
 
@@ -67,7 +67,7 @@ for (const tuple of contract.registered_source_profiles) {
     provider_direct_to_index_or_projection_allowed: false,
   };
   runtime.assertMarketAdapterProfile(profile);
-  assert.equal(profile.adapter_state, 'ADAPTER_NOT_IMPLEMENTED');
+  assert.equal(profile.adapter_state, 'IMPLEMENTED_NOT_RIGHTS_VERIFIED');
   assert.ok(Number.isInteger(assignmentCount) && assignmentCount > 0);
   registeredProfiles.push(profile);
 }
@@ -233,7 +233,7 @@ const report = {
   version: '1.0.0',
   state: 'VERIFIED_PASS',
   registered_source_profiles_validated: registeredProfiles.length,
-  registered_source_adapters_implemented: 0,
+  registered_source_adapters_implemented: 16,
   registered_source_adapters_activated: 0,
   fixture_sold_normalization: soldA.state,
   fixture_liquidity_normalization: liquidityA.state,

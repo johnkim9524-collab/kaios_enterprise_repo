@@ -16,6 +16,8 @@ const sha256 = (value) => `sha256:${crypto.createHash('sha256').update(value).di
 const unique = (values) => new Set(values).size === values.length;
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
+const lighthousePath = contract.mission_policy?.automobiles_lighthouse_target?.registry;
+const lighthouse = JSON.parse(fs.readFileSync(lighthousePath, 'utf8'));
 
 assert(contract.id === 'kidults-asi-intelligence-preparation-wave-v1', 'CONTRACT_ID');
 assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
@@ -32,6 +34,9 @@ assert(contract.mission_policy?.psa_role === 'PARALLEL_GRADED_SUPPLEMENT_LANE', 
 assert(contract.mission_policy?.non_psa_execution_lanes?.length === 4, 'CONTRACT_NON_PSA_LANES');
 assert(JSON.stringify(contract.mission_policy?.evidence_ladder) === JSON.stringify(['REFERENCE','DISCOVERY','OBSERVATION','CANDIDATE','EVIDENCE','APPROVED_PROJECTION']), 'CONTRACT_EVIDENCE_LADDER');
 assert(contract.mission_policy?.automobiles_lighthouse_target?.minimum === 25 && contract.mission_policy?.automobiles_lighthouse_target?.maximum === 50, 'CONTRACT_LIGHTHOUSE_TARGET');
+assert(contract.mission_policy?.automobiles_lighthouse_target?.created_reference_dossiers === 25, 'CONTRACT_LIGHTHOUSE_CREATED_COUNT');
+assert(lighthouse.dossiers?.length === 25 && lighthouse.evidence_class === 'REFERENCE', 'CONTRACT_LIGHTHOUSE_REGISTRY_BINDING');
+assert(lighthouse.truth_boundary?.reference_is_evidence === false && lighthouse.truth_boundary?.rights_are_granted === false, 'CONTRACT_LIGHTHOUSE_TRUTH_BOUNDARY');
 assert(contract.provider_replaceability_policy?.minimum_operational_slots_per_mission === 3, 'CONTRACT_REPLACEMENT_SLOT_COUNT');
 assert(contract.truth_boundary?.executes_external_collection === false, 'CONTRACT_COLLECTION_BOUNDARY');
 assert(contract.truth_boundary?.creates_collection_right === false, 'CONTRACT_RIGHTS_BOUNDARY');

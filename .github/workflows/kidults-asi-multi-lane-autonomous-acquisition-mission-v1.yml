@@ -1,9 +1,19 @@
 name: KIDULTS ASI Multi-Lane Autonomous Acquisition Mission v1
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs'
+      - '.github/workflows/kidults-asi-multi-lane-autonomous-acquisition-mission-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs'
       - '.github/workflows/kidults-asi-multi-lane-autonomous-acquisition-mission-v1.yml'
   schedule:
@@ -17,15 +27,45 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Validate mission contract
-        run: node scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs | tee asi-multi-lane-mission-receipt-v1.json
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs | tee asi-lighthouse-dossiers-receipt-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs | tee asi-multi-lane-mission-receipt-v1.json
+      - name: Reject lighthouse underpopulation mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json /tmp/lighthouse.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json';const x=JSON.parse(fs.readFileSync(p));x.dossiers=x.dossiers.slice(0,24);fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs; then exit 1; fi
+          mv /tmp/lighthouse.json coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json
+      - name: Reject false evidence and rights mutation
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json /tmp/lighthouse.json
+          node - <<'NODE'
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json';const x=JSON.parse(fs.readFileSync(p));x.truth_boundary.reference_is_evidence=true;x.truth_boundary.rights_are_granted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs; then exit 1; fi
+          mv /tmp/lighthouse.json coordination/kidults/source-intelligence/asi-automobiles-mobility-lighthouse-dossiers-v1.json
+      - name: Revalidate pristine mission and lighthouse
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-asi-automobiles-mobility-lighthouse-dossiers-v1.mjs > /tmp/asi-lighthouse-dossiers-final-validation-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs > /tmp/asi-multi-lane-mission-final-validation-v1.json
       - name: Upload mission receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-multi-lane-autonomous-acquisition-mission-v1
-          path: asi-multi-lane-mission-receipt-v1.json
+          path: |
+            asi-multi-lane-mission-receipt-v1.json
+            asi-lighthouse-dossiers-receipt-v1.json
           if-no-files-found: error
           retention-days: 30

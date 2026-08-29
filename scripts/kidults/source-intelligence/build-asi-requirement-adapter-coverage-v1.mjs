@@ -337,7 +337,7 @@ assert(same(resolutionContract.replacement_policy?.claim_mapping, contract.claim
 const grain = contract.canonical_grain;
 assert(queue.state === 'RIGHTS_GATED_REPLACEMENT_QUEUE_READY' || legacyUpstreamRightsQueue, 'REPLACEMENT_QUEUE_STATE');
 assert(queue.mission_count === grain.expected_mission_count && queue.missions?.length === grain.expected_mission_count, 'REPLACEMENT_MISSION_COUNT');
-assert(queue.registered_profile_is_rights_verified === false && queue.registered_profile_is_adapter_implemented === false, 'STALE_QUEUE_TRUTH_BOUNDARY_CHANGED');
+assert(queue.registered_profile_is_rights_verified === false && queue.registered_profile_is_adapter_implemented === true, 'QUEUE_IMPLEMENTATION_TRUTH_BOUNDARY_CHANGED');
 assert(queue.evidence_admitted === 0 && queue.public_release === 'HOLD' && queue.production === 'HOLD', 'REPLACEMENT_QUEUE_PROMOTION');
 assert(uniq(queue.missions.map((mission) => mission.mission_id)).length === grain.expected_mission_count, 'MISSION_ID_DUPLICATE');
 assert(uniq(queue.missions.map((mission) => mission.replacement_mission_id)).length === grain.expected_mission_count, 'REPLACEMENT_MISSION_ID_DUPLICATE');
@@ -375,7 +375,7 @@ for (const mission of queue.missions) {
     if (selectedProfile && !legacyUpstreamRightsQueue) {
       assert(slot.source_id === selectedProfile.source_id, `MISSION_SLOT_SOURCE:${mission.mission_id}:${slot.slot}`);
       assert(same(uniq(slot.registered_target_claims || []), uniq(selectedProfile.registered_claims)), `MISSION_SLOT_REGISTERED_CLAIMS:${mission.mission_id}:${slot.slot}`);
-      assert(slot.adapter_state === 'ADAPTER_NOT_IMPLEMENTED', `UPSTREAM_STALE_ADAPTER_STATE_CHANGED:${mission.mission_id}:${slot.slot}`);
+      assert(slot.adapter_state === 'IMPLEMENTED_NOT_RIGHTS_VERIFIED', `UPSTREAM_ADAPTER_STATE_CHANGED:${mission.mission_id}:${slot.slot}`);
       assert(slot.rights_state === RIGHTS_CLEAR && slot.rights_eligibility_state === RIGHTS_CLEAR && slot.sold_or_liquidity_semantics_state === 'UNVERIFIED', `MISSION_SLOT_EMPIRICAL_STATE:${mission.mission_id}:${slot.slot}`);
       assert(slot.factual_origin_independence_state === 'UNVERIFIED' && slot.evidence_admitted === false, `MISSION_SLOT_PROMOTION:${mission.mission_id}:${slot.slot}`);
     } else if (!legacyUpstreamRightsQueue) {

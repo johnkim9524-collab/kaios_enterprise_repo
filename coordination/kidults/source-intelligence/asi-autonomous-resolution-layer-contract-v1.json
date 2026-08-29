@@ -71,7 +71,7 @@
       "FACTUAL_ORIGIN_REPLACEMENT_PROFILE"
     ],
     "registered_profile_is_rights_verified": false,
-    "registered_profile_is_adapter_implemented": false,
+    "registered_profile_is_adapter_implemented": true,
     "registered_profile_is_factual_origin_independent": false,
     "profile_assignment_can_admit_evidence": false
   },
