@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "status": "PROGRAM_OWNER_APPROVED_STAGING_GOVERNANCE",
   "implementation_state": "DRAFT_VALIDATED_EXTERNAL_CLOUDFLARE_READBACK_PENDING",
+  "validated_base_main_sha": "993615e4a08a854a30d4b1a01b7289f8a6e9715d",
   "owner": "KPMO",
   "issue": 1234,
   "project": {
