@@ -74,7 +74,9 @@ assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P1 Sour
 assert(registry.automatic_activation?.manual_dispatch_role === 'SELF_HEALING_RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.automatic_activation?.manual_recovery_reuses_active_exact_main_p1_before_dispatch === true, 'REGISTRY_MANUAL_RECOVERY_REUSE');
 assert(registry.automatic_activation?.manual_recovery_dispatches_exact_main_p1_when_absent === true, 'REGISTRY_MANUAL_RECOVERY_DISPATCH');
-assert(registry.automatic_activation?.manual_recovery_wait_is_bounded_seconds === 600, 'REGISTRY_MANUAL_RECOVERY_BOUND');
+assert(registry.automatic_activation?.manual_recovery_terminal_wait_is_bounded_seconds === 600, 'REGISTRY_MANUAL_RECOVERY_TERMINAL_BOUND');
+assert(registry.automatic_activation?.manual_recovery_artifact_readback_is_bounded_seconds === 60, 'REGISTRY_MANUAL_RECOVERY_ARTIFACT_BOUND');
+assert(registry.automatic_activation?.manual_recovery_total_bound_seconds === 660, 'REGISTRY_MANUAL_RECOVERY_TOTAL_BOUND');
 assert(registry.execution_policy?.current_p1_artifact_is_single_coherent_input === true, 'REGISTRY_COHERENT_INPUT');
 assert(registry.execution_policy?.semantic_triage_precedes_expensive_preflight === true, 'REGISTRY_TRIAGE_ORDER');
 assert(registry.execution_policy?.all_current_actions_must_reach_terminal_state === true, 'REGISTRY_TERMINAL_ACTIONS');
@@ -111,6 +113,7 @@ assert(workflow.includes('fetch-depth: 0'), 'WORKFLOW_FULL_HISTORY_REQUIRED');
 assert(workflow.includes('-f branch=main -f status=success -f per_page=100'), 'WORKFLOW_BOUNDED_P1_RUN_QUERY');
 assert(workflow.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'WORKFLOW_P1_RECOVERY_DISPATCH_MISSING');
 assert(workflow.includes('for ATTEMPT in {1..60}; do') && workflow.includes('EXACT_MAIN_P1_RECOVERY_TIMEOUT'), 'WORKFLOW_P1_RECOVERY_BOUND_MISSING');
+assert(workflow.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && workflow.includes('EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE'), 'WORKFLOW_P1_ARTIFACT_READBACK_BOUND_MISSING');
 assert(workflow.includes('ACTIVE_P1_RUN_ID') && workflow.includes('P1_RECOVERY_DISPATCHED=true'), 'WORKFLOW_P1_RECOVERY_REUSE_BEFORE_DISPATCH_MISSING');
 assert(workflow.includes('test "$P1_SOURCE_SHA" = "$TARGET_SHA"'), 'WORKFLOW_EXACT_GENERATION_BINDING');
 assert(workflow.includes('exact_generation_bound:true'), 'WORKFLOW_EXACT_GENERATION_RECEIPT');

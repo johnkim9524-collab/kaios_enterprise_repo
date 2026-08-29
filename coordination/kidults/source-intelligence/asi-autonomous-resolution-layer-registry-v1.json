@@ -56,7 +56,9 @@
     "manual_dispatch_role": "SELF_HEALING_RECOVERY_OR_EXPLICIT_REPLAY_ONLY",
     "manual_recovery_reuses_active_exact_main_p1_before_dispatch": true,
     "manual_recovery_dispatches_exact_main_p1_when_absent": true,
-    "manual_recovery_wait_is_bounded_seconds": 600
+    "manual_recovery_terminal_wait_is_bounded_seconds": 600,
+    "manual_recovery_artifact_readback_is_bounded_seconds": 60,
+    "manual_recovery_total_bound_seconds": 660
   },
   "execution_policy": {
     "current_p1_artifact_is_single_coherent_input": true,

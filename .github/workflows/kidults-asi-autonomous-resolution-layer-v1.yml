@@ -241,20 +241,30 @@ jobs:
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
             '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
             /tmp/p1-run.json >/dev/null
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" \
-            > /tmp/p1-artifacts.json
-          P1_ARTIFACT_COUNT=$(P1_RUN_ID="$P1_RUN_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" node - <<'NODE'
+          for ARTIFACT_ATTEMPT in {1..12}; do
+            rm -f /tmp/p1-artifact.json
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}/artifacts?per_page=100" \
+              > /tmp/p1-artifacts.json
+            P1_ARTIFACT_COUNT=$(P1_RUN_ID="$P1_RUN_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/p1-artifacts.json','utf8'));
           const matches=(x.artifacts||[]).filter((artifact)=>
             artifact.name==='kidults-asi-p1-source-preflight-v1'&&artifact.expired===false&&
             artifact.workflow_run?.id===Number(process.env.P1_RUN_ID)&&
             artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA);
+          if(matches.length>1)throw new Error(`P1_ARTIFACT_CARDINALITY:${matches.length}`);
           if(matches.length===1)fs.writeFileSync('/tmp/p1-artifact.json',JSON.stringify(matches[0],null,2));
           process.stdout.write(String(matches.length));
           NODE
-          )
+            )
+            if [ "$P1_ARTIFACT_COUNT" = 1 ]; then break; fi
+            if [ "$ARTIFACT_ATTEMPT" -eq 12 ]; then
+              echo "EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE:${P1_RUN_ID}" >&2
+              exit 1
+            fi
+            sleep 5
+          done
           test "$P1_ARTIFACT_COUNT" = 1
           P1_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).id")
           test -n "$P1_RUN_ID"
