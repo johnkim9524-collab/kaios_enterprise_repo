@@ -1,0 +1,139 @@
+name: KPMO Temporary Cloudflare Readonly Diagnostic v1
+
+on:
+  push:
+    branches:
+      - kpmo/cloudflare-readonly-diagnostic-v1
+    paths:
+      - .github/workflows/kpmo-temp-cloudflare-readonly-diagnostic-v1.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.actor == github.repository_owner
+    environment: kidults-cloudflare-readonly
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPECTED_ACCOUNT_ID: 235eaa51d04e7f4436a9faa507a04f9d
+      PROJECT_NAME: kidults-workspace-staging
+      RECEIPT_DIR: artifacts/cloudflare-readonly-diagnostic
+    steps:
+      - name: Probe read-only Cloudflare endpoints without exposing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RECEIPT_DIR"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+          account_format_valid=false
+          account_matches_dashboard=false
+          if [[ "$CLOUDFLARE_ACCOUNT_ID" =~ ^[0-9a-f]{32}$ ]]; then
+            account_format_valid=true
+          fi
+          if [[ "$CLOUDFLARE_ACCOUNT_ID" == "$EXPECTED_ACCOUNT_ID" ]]; then
+            account_matches_dashboard=true
+          fi
+
+          sanitize_response() {
+            local label="$1" status="$2" raw="$3" output="$4"
+            if jq -e . "$raw" >/dev/null 2>&1; then
+              jq -n \
+                --arg label "$label" \
+                --arg status "$status" \
+                --slurpfile response "$raw" \
+                '{
+                  label:$label,
+                  http_status:($status|tonumber? // 0),
+                  success:($response[0].success // null),
+                  error_codes:[($response[0].errors // [])[]?.code],
+                  error_messages:[($response[0].errors // [])[]?.message],
+                  message_codes:[($response[0].messages // [])[]?.code],
+                  message_texts:[($response[0].messages // [])[]?.message],
+                  result_type:(if ($response[0].result|type) then ($response[0].result|type) else null end),
+                  result_count:(if ($response[0].result|type)=="array" then ($response[0].result|length) else null end),
+                  result_info:($response[0].result_info // null)
+                }' > "$output"
+            else
+              jq -n --arg label "$label" --arg status "$status" '{
+                label:$label,
+                http_status:($status|tonumber? // 0),
+                success:null,
+                error_codes:[],
+                error_messages:["NON_JSON_RESPONSE_REDACTED"],
+                message_codes:[],
+                message_texts:[],
+                result_type:null,
+                result_count:null,
+                result_info:null
+              }' > "$output"
+            fi
+          }
+
+          probe() {
+            local label="$1" url="$2"
+            local raw="$RECEIPT_DIR/raw-${label}.json"
+            local sanitized="$RECEIPT_DIR/${label}.json"
+            local status
+            status="$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --output "$raw" --write-out '%{http_code}' \
+              --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              --header 'Accept: application/json' \
+              "$url" || true)"
+            sanitize_response "$label" "$status" "$raw" "$sanitized"
+            rm -f "$raw"
+          }
+
+          api_root="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT_NAME}"
+          probe token-verify "https://api.cloudflare.com/client/v4/user/tokens/verify"
+          probe project-get "$api_root"
+          probe deployments-default "$api_root/deployments"
+          probe deployments-per-page-25 "$api_root/deployments?per_page=25&page=1"
+          probe deployments-per-page-100 "$api_root/deployments?per_page=100&page=1"
+
+          jq -n \
+            --arg source_sha "$GITHUB_SHA" \
+            --argjson account_format_valid "$account_format_valid" \
+            --argjson account_matches_dashboard "$account_matches_dashboard" \
+            --slurpfile token "$RECEIPT_DIR/token-verify.json" \
+            --slurpfile project "$RECEIPT_DIR/project-get.json" \
+            --slurpfile default_page "$RECEIPT_DIR/deployments-default.json" \
+            --slurpfile page25 "$RECEIPT_DIR/deployments-per-page-25.json" \
+            --slurpfile page100 "$RECEIPT_DIR/deployments-per-page-100.json" \
+            '{
+              id:"kpmo-cloudflare-readonly-diagnostic-v1",
+              source_sha:$source_sha,
+              credential_presence:{api_token:true,account_id:true},
+              account_id_format_valid:$account_format_valid,
+              account_id_matches_dashboard:$account_matches_dashboard,
+              probes:{
+                token_verify:$token[0],
+                project_get:$project[0],
+                deployments_default:$default_page[0],
+                deployments_per_page_25:$page25[0],
+                deployments_per_page_100:$page100[0]
+              },
+              remote_mutation:false,
+              secret_material_serialized:false,
+              public_release:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > "$RECEIPT_DIR/final.json"
+
+          cat "$RECEIPT_DIR/final.json"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kpmo-cloudflare-readonly-diagnostic-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-readonly-diagnostic
+          if-no-files-found: error
+          retention-days: 1
