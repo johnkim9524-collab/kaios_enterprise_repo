@@ -1,0 +1,40 @@
+name: KPMO Export PostgreSQL Contract Test Source v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-export-postgres-contract-test-source-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-export-postgres-contract-test-source-v1-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  export-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Verify exact source and export one test file
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -s tests/kidults/kpmo/test_postgres_pitr_contract.py
+          python3 -m py_compile tests/kidults/kpmo/test_postgres_pitr_contract.py
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: postgres-contract-test-source-${{ github.event.pull_request.head.sha }}
+          path: tests/kidults/kpmo/test_postgres_pitr_contract.py
+          if-no-files-found: error
+          retention-days: 1
