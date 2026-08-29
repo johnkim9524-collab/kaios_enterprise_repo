@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - name: Reverify protected-main lineage after environment resolution
+      - name: Verify live main before provider credential resolution
         shell: bash
         env:
           SOURCE_SHA: ${{ needs.authorize.outputs.source_sha }}
@@ -193,7 +193,7 @@ jobs:
           bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
           bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
 
-      - name: Execute Preview-only retirement and governed STAGING
+      - name: Execute one-shot Preview retirement and governed STAGING
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
