@@ -1,0 +1,58 @@
+{
+  "id": "kidults-cloudflare-pages-one-shot-recovery-v3",
+  "version": "3.1.0",
+  "operation_id": "KIDULTS_CF_PAGES_PREVIEW_RETIREMENT_GOVERNED_STAGING_2026_08_29",
+  "state": "AUTHORIZED_PENDING_EXECUTION",
+  "project": "kidults-workspace-staging",
+  "expected_repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "canonical_account_id_digest": "sha256:b44611d7b4a31965ba18e4099a76b50faba95101a4a14d405ce07bee9d580683",
+  "execution_gate": {
+    "workflow_file": "kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml",
+    "prior_success_floor_run_id": 33255714663,
+    "execute_until_first_success_after_floor": true,
+    "retry_after_failure_on_next_successful_main_ci": true,
+    "hardcoded_pull_request_identity_forbidden": true
+  },
+  "prior_failed_runs": [
+    {
+      "run_id": 33255295161,
+      "root_cause": "MERGE_COMMIT_TITLE_FORMAT_MISMATCH",
+      "cloudflare_api_called": false,
+      "mutation_observed": false
+    },
+    {
+      "run_id": 33255714663,
+      "root_cause": "INITIAL_PAGES_DEPLOYMENT_INVENTORY_HTTP_404",
+      "cloudflare_api_called": true,
+      "mutation_observed": false,
+      "failure_artifact_id": 9715733544,
+      "failure_artifact_digest": "sha256:aeefe76a08f490c73c7a7f8be19ec5c3530064a56a7667004a01ed8eb905babe"
+    }
+  ],
+  "authorized_operations": [
+    "VERIFY_TOKEN_ACCOUNT_AND_PROJECT_VISIBILITY_WITHOUT_SECRET_DISCLOSURE",
+    "RETIRE_HISTORICAL_MATERIALIZED_PREVIEW_DEPLOYMENTS_ONLY",
+    "PRESERVE_PRODUCTION_DEPLOYMENT_HISTORY",
+    "CREATE_ONE_GOVERNED_EXACT_MAIN_STAGING_DEPLOYMENT",
+    "FINAL_READ_ONLY_API_VERIFICATION"
+  ],
+  "forbidden_operations": [
+    "DELETE_PRODUCTION_DEPLOYMENTS",
+    "DELETE_PAGES_PROJECT",
+    "ENABLE_AUTOMATIC_GIT_DEPLOYMENTS",
+    "PUBLIC_RELEASE",
+    "PLATFORM_PRODUCTION_RELEASE",
+    "G5_PROMOTION"
+  ],
+  "program_owner_authorization": {
+    "authorized": true,
+    "instructions": [
+      "빨리 진행해라",
+      "끝까지 밀어"
+    ],
+    "recorded_at": "2026-08-29T22:00:00+09:00"
+  },
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}

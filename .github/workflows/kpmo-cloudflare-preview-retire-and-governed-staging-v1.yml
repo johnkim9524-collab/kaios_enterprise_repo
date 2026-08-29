@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -14,8 +15,103 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  retire-and-deploy:
+  authorize:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    outputs:
+      should_execute: ${{ steps.one-shot.outputs.should_execute }}
+      source_sha: ${{ steps.one-shot.outputs.source_sha }}
+      operation_id: ${{ steps.one-shot.outputs.operation_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve bounded one-shot execution gate without provider credentials
+        id: one-shot
+        shell: bash
+        env:
+          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EVENT_HEAD_SHA"
+          test "$GITHUB_REF" = "refs/heads/main"
+
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              jq -er '.commit.sha | select(test("^[0-9a-f]{40}$"))'
+          )"
+          if [[ "$LIVE_MAIN_SHA" != "$EVENT_HEAD_SHA" ]]; then
+            COMPARE_STATUS="$(
+              curl --fail-with-body --silent --show-error \
+                --connect-timeout 10 --max-time 30 \
+                --header "Authorization: Bearer $GITHUB_TOKEN" \
+                --header "Accept: application/vnd.github+json" \
+                --header "X-GitHub-Api-Version: 2022-11-28" \
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/${EVENT_HEAD_SHA}...${LIVE_MAIN_SHA}" |
+                jq -er '.status'
+            )"
+            [[ "$COMPARE_STATUS" == "ahead" || "$COMPARE_STATUS" == "identical" ]]
+          fi
+
+          MANIFEST=coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v3.json
+          jq -e '
+            .id == "kidults-cloudflare-pages-one-shot-recovery-v3"
+            and .version == "3.1.0"
+            and .state == "AUTHORIZED_PENDING_EXECUTION"
+            and .project == "kidults-workspace-staging"
+            and .expected_repository == "johnkim9524-collab/kaios_enterprise_repo"
+            and .execution_gate.execute_until_first_success_after_floor == true
+            and .execution_gate.retry_after_failure_on_next_successful_main_ci == true
+            and .execution_gate.hardcoded_pull_request_identity_forbidden == true
+            and .program_owner_authorization.authorized == true
+            and (.authorized_operations | index("RETIRE_HISTORICAL_MATERIALIZED_PREVIEW_DEPLOYMENTS_ONLY")) != null
+            and (.authorized_operations | index("CREATE_ONE_GOVERNED_EXACT_MAIN_STAGING_DEPLOYMENT")) != null
+            and (.forbidden_operations | index("DELETE_PRODUCTION_DEPLOYMENTS")) != null
+            and .public_release == "HOLD"
+            and .production == "HOLD"
+            and .g5 == "HOLD"
+          ' "$MANIFEST" >/dev/null
+
+          OPERATION_ID="$(jq -er '.operation_id' "$MANIFEST")"
+          FLOOR_RUN_ID="$(jq -er '.execution_gate.prior_success_floor_run_id' "$MANIFEST")"
+          WORKFLOW_FILE="$(jq -er '.execution_gate.workflow_file' "$MANIFEST")"
+          RUNS_JSON="$(mktemp)"
+          trap 'rm -f "$RUNS_JSON"' EXIT
+          curl --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$WORKFLOW_FILE/runs?event=workflow_run&per_page=30" \
+            > "$RUNS_JSON"
+          PRIOR_SUCCESS_COUNT="$(
+            jq --argjson current "$GITHUB_RUN_ID" --argjson floor "$FLOOR_RUN_ID" \
+              '[.workflow_runs[] | select(.id != $current and .id > $floor and .conclusion == "success")] | length' \
+              "$RUNS_JSON"
+          )"
+
+          echo "source_sha=$EVENT_HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "operation_id=$OPERATION_ID" >> "$GITHUB_OUTPUT"
+          if [[ "$PRIOR_SUCCESS_COUNT" -gt 0 ]]; then
+            echo "should_execute=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare one-shot already has a successful post-floor run; provider credentials will not be resolved."
+          else
+            echo "should_execute=true" >> "$GITHUB_OUTPUT"
+            echo "No successful post-floor run exists; bounded one-shot execution is authorized."
+          fi
+
+  retire-and-deploy:
+    needs: authorize
+    if: needs.authorize.outputs.should_execute == 'true'
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -23,47 +119,60 @@ jobs:
       - name: Verify live main before provider credential resolution
         shell: bash
         env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.source_sha }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           LIVE_MAIN_SHA="$(
             curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
+              --connect-timeout 10 --max-time 30 \
               --header "Authorization: Bearer $GITHUB_TOKEN" \
               --header "Accept: application/vnd.github+json" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+              jq -er '.commit.sha | select(test("^[0-9a-f]{40}$"))'
           )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+          if [[ "$LIVE_MAIN_SHA" != "$SOURCE_SHA" ]]; then
+            COMPARE_STATUS="$(
+              curl --fail-with-body --silent --show-error \
+                --connect-timeout 10 --max-time 30 \
+                --header "Authorization: Bearer $GITHUB_TOKEN" \
+                --header "Accept: application/vnd.github+json" \
+                --header "X-GitHub-Api-Version: 2022-11-28" \
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/${SOURCE_SHA}...${LIVE_MAIN_SHA}" |
+                jq -er '.status'
+            )"
+            [[ "$COMPARE_STATUS" == "ahead" || "$COMPARE_STATUS" == "identical" ]]
+          fi
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.authorize.outputs.source_sha }}
           fetch-depth: 1
           persist-credentials: false
 
       - name: Initialize sanitized one-shot control receipt
         shell: bash
         env:
-          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.source_sha }}
+          OPERATION_ID: ${{ needs.authorize.outputs.operation_id }}
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           mkdir -p artifacts/cloudflare-one-shot-control
           jq -n \
-            --arg state "PREFLIGHT_PENDING" \
-            --arg source_sha "$GITHUB_SHA" \
-            --arg event_head_sha "$EVENT_HEAD_SHA" \
-            --arg recovery_pr "1562" \
-            --arg failed_run "33255295161" \
+            --arg state "IDENTITY_AND_AUTHORIZATION_VERIFIED" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg operation_id "$OPERATION_ID" \
+            --argjson prior_failed_run_1 33255295161 \
+            --argjson prior_failed_run_2 33255714663 \
             '{
               state:$state,
               source_sha:$source_sha,
-              event_head_sha:$event_head_sha,
-              recovery_pr:($recovery_pr|tonumber),
-              failed_run_id:($failed_run|tonumber),
+              operation_id:$operation_id,
+              prior_failed_run_ids:[$prior_failed_run_1,$prior_failed_run_2],
+              credential_diagnostic_verified:false,
               cloudflare_api_called:false,
               preview_deleted:false,
               production_mutation:false,
@@ -73,42 +182,13 @@ jobs:
               g5:"HOLD"
             }' > artifacts/cloudflare-one-shot-control/final.json
 
-      - name: Verify one-shot target merge identity
-        shell: bash
-        env:
-          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          set -euo pipefail
-          test "$EVENT_HEAD_SHA" = "$GITHUB_SHA"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          COMMIT_MESSAGE="$(git log -1 --format=%B)"
-          grep -q '^Merge PR #1562:' <<<"$COMMIT_MESSAGE"
-          jq -e '
-            .state == "AUTHORIZED_PENDING_EXECUTION"
-            and .project == "kidults-workspace-staging"
-            and .original_authorized_pr == 1560
-            and .failed_workflow_run_id == 33255295161
-            and .root_cause == "MERGE_COMMIT_TITLE_FORMAT_MISMATCH"
-            and .program_owner_authorization.authorized == true
-            and (.authorized_operations | index("RETIRE_HISTORICAL_MATERIALIZED_PREVIEW_DEPLOYMENTS_ONLY")) != null
-            and (.authorized_operations | index("CREATE_ONE_GOVERNED_EXACT_MAIN_STAGING_DEPLOYMENT")) != null
-            and (.forbidden_operations | index("DELETE_PRODUCTION_DEPLOYMENTS")) != null
-            and .public_release == "HOLD"
-            and .production == "HOLD"
-            and .g5 == "HOLD"
-          ' coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v1.json >/dev/null
-          jq --arg state "IDENTITY_AND_AUTHORIZATION_VERIFIED" \
-             --arg message "$COMMIT_MESSAGE" \
-             '.state=$state | .merge_commit_message=$message' \
-             artifacts/cloudflare-one-shot-control/final.json \
-             > artifacts/cloudflare-one-shot-control/final.tmp.json
-          mv artifacts/cloudflare-one-shot-control/final.tmp.json artifacts/cloudflare-one-shot-control/final.json
-
-      - name: Validate governance before mutation
+      - name: Validate governance before provider mutation
         shell: bash
         run: |
           set -euo pipefail
+          jq -e '.state == "AUTHORIZED_PENDING_EXECUTION" and .program_owner_authorization.authorized == true' coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v3.json >/dev/null
           node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
+          bash -n scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh
           bash -n scripts/ops/cloudflare-pages-preview-cleanup.sh
           bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
           bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
@@ -120,6 +200,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
           EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          SOURCE_SHA: ${{ needs.authorize.outputs.source_sha }}
+          OPERATION_ID: ${{ needs.authorize.outputs.operation_id }}
         run: |
           set -euo pipefail
           test -n "$CLOUDFLARE_API_TOKEN"
@@ -127,14 +209,27 @@ jobs:
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"
           echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
 
+          export RECEIPT_DIR=artifacts/cloudflare-staging-credential-diagnostic
+          export EFFECTIVE_ACCOUNT_ID_FILE=/tmp/kidults-cloudflare-effective-account-id
+          bash scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh
+          jq -e '.state == "COMPLETE_VERIFIED" and .cloudflare_api_called == true and .settings_mutated == false and .deployment_deleted == false and .deployment_created == false' "$RECEIPT_DIR/final.json" >/dev/null
+          export CLOUDFLARE_ACCOUNT_ID="$(cat "$EFFECTIVE_ACCOUNT_ID_FILE")"
+          test "$CLOUDFLARE_ACCOUNT_ID" = "235eaa51d04e7f4436a9faa507a04f9d"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          DIAGNOSTIC_SOURCE="$(jq -r '.effective_account_source' "$RECEIPT_DIR/final.json")"
+          jq --arg source "$DIAGNOSTIC_SOURCE" \
+             '.credential_diagnostic_verified=true | .effective_account_source=$source | .cloudflare_api_called=true' \
+             artifacts/cloudflare-one-shot-control/final.json \
+             > artifacts/cloudflare-one-shot-control/final.tmp.json
+          mv artifacts/cloudflare-one-shot-control/final.tmp.json artifacts/cloudflare-one-shot-control/final.json
+
           export RECEIPT_DIR=artifacts/cloudflare-preview-retirement
           export CONTROL_REASON="Retire historical materialized Preview estate after automatic Git deployments were disabled and API-verified"
           bash scripts/ops/cloudflare-pages-preview-cleanup.sh --delete-preview
           jq -e '.state == "COMPLETE_VERIFIED" and (.remaining_preview_ids | length) == 0 and .production_mutation == false' "$RECEIPT_DIR/final.json" >/dev/null
 
-          export SOURCE_SHA="$GITHUB_SHA"
           export SOURCE_DIR=apps/kidults-enterprise-staging/public
-          export DEPLOY_REASON="First governed exact-main STAGING deployment after Preview estate retirement"
+          export DEPLOY_REASON="operation_id=${OPERATION_ID} first governed exact-main STAGING deployment after Preview estate retirement"
           export RECEIPT_DIR=artifacts/cloudflare-governed-staging-deploy
           bash scripts/ops/cloudflare-pages-governed-staging-deploy.sh
           jq -e '.state == "COMPLETE_VERIFIED" and .exact_sha_bound == true and .deployment.trigger_type == "ad_hoc" and .automatic_git_deployments_disabled_after_deploy == true' "$RECEIPT_DIR/final.json" >/dev/null
@@ -143,12 +238,18 @@ jobs:
           bash scripts/ops/cloudflare-pages-boundary-readonly.sh
           jq -e '.state == "COMPLETE_VERIFIED" and .settings_pass == true and .visible_preview_count == 0 and .latest_deployment_governed == true' "$RECEIPT_DIR/final.json" >/dev/null
 
+          DELETED_COUNT="$(jq -r '.deleted_preview_count' artifacts/cloudflare-preview-retirement/final.json)"
+          DEPLOYMENT_ID="$(jq -r '.deployment.id' artifacts/cloudflare-governed-staging-deploy/final.json)"
           jq --arg state "COMPLETE_VERIFIED" \
+             --arg deployment_id "$DEPLOYMENT_ID" \
+             --argjson deleted_preview_count "$DELETED_COUNT" \
              '.state=$state
               | .cloudflare_api_called=true
               | .preview_deleted=true
+              | .deleted_preview_count=$deleted_preview_count
               | .production_mutation=false
-              | .deployment_created=true' \
+              | .deployment_created=true
+              | .governed_deployment_id=$deployment_id' \
              artifacts/cloudflare-one-shot-control/final.json \
              > artifacts/cloudflare-one-shot-control/final.tmp.json
           mv artifacts/cloudflare-one-shot-control/final.tmp.json artifacts/cloudflare-one-shot-control/final.json
@@ -156,9 +257,10 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:
-          name: cloudflare-preview-retirement-governed-staging-${{ github.sha }}-${{ github.run_id }}
+          name: cloudflare-preview-retirement-governed-staging-${{ needs.authorize.outputs.source_sha }}-${{ github.run_id }}
           path: |
             artifacts/cloudflare-one-shot-control
+            artifacts/cloudflare-staging-credential-diagnostic
             artifacts/cloudflare-preview-retirement
             artifacts/cloudflare-governed-staging-deploy
             artifacts/cloudflare-pages-boundary-final-readback
