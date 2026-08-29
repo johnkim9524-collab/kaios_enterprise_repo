@@ -29,6 +29,8 @@
     "failed_lane_does_not_abort_other_lanes": true,
     "minimum_healthy_provider_lanes": 1,
     "minimum_live_candidates_per_successful_cycle": 1,
+    "zero_candidate_cycle_is_terminal_observation": true,
+    "zero_candidate_terminal_status": "SHADOW_MISSION_DIRECTED_NO_CANDIDATE_OBSERVED",
     "intent_selection": "CURSOR_ORDER_WITH_PRIORITY_STABLE_INPUT",
     "manual_orchestration_required": false
   },

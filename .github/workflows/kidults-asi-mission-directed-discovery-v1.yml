@@ -14,6 +14,7 @@ on:
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
@@ -36,6 +37,7 @@ on:
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs'
@@ -81,7 +83,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
 
   mission-directed-discovery:
@@ -102,11 +106,13 @@ jobs:
           node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs \
             | tee /tmp/mission-directed-discovery-registry-validation-v1.json
       - name: Restore exact mission-consumption discovery intents
@@ -290,12 +296,25 @@ jobs:
       - name: Reject terminal-sold metadata mutation
         run: |
           set -euo pipefail
-          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-terminal-sold
-          node - <<'NODE'
-          const fs=require('fs');const p='/tmp/bad-terminal-sold/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].terminal_transaction_asserted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          if jq -e '.candidates | length > 0' /tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json >/dev/null; then
+            cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-terminal-sold
+            node - <<'NODE'
+            const fs=require('fs');const p='/tmp/bad-terminal-sold/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].terminal_transaction_asserted=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-terminal-sold; then
-            echo 'Validator accepted metadata as terminal sold assertion' >&2
+            if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-terminal-sold; then
+              echo 'Validator accepted metadata as terminal sold assertion' >&2
+              exit 1
+            fi
+          fi
+      - name: Reject hidden zero-candidate terminal mutation
+        run: |
+          set -euo pipefail
+          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-zero-terminal
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/bad-zero-terminal/mission-directed-discovery-v1.json';const x=JSON.parse(fs.readFileSync(p));x.candidate_count=0;x.candidates=[];x.status='SHADOW_MISSION_DIRECTED_PUBLIC_METADATA_DISCOVERY_COMPLETE';x.zero_candidate_terminal=false;x.zero_candidate_reason=null;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs /tmp/bad-zero-terminal; then
+            echo 'Validator accepted zero candidates without terminal observation' >&2
             exit 1
           fi
       - name: Reject hidden partial-failure mutation
@@ -312,24 +331,28 @@ jobs:
       - name: Reject metadata-to-market-claim mutation
         run: |
           set -euo pipefail
-          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-market-claim
-          node - <<'NODE'
-          const fs=require('fs');const p='/tmp/bad-market-claim/mission-claim-admission-readiness-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].current_price_eligible=true;x.records[0].market_event_admitted=true;x.claim_ready_count=1;x.current_price_eligible_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          if jq -e '.records | length > 0' /tmp/kidults-asi-mission-directed-discovery-v1/mission-claim-admission-readiness-v1.json >/dev/null; then
+            cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-market-claim
+            node - <<'NODE'
+            const fs=require('fs');const p='/tmp/bad-market-claim/mission-claim-admission-readiness-v1.json';const x=JSON.parse(fs.readFileSync(p));x.records[0].current_price_eligible=true;x.records[0].market_event_admitted=true;x.claim_ready_count=1;x.current_price_eligible_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-market-claim /tmp/bad-market-claim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
-            echo 'Validator accepted metadata as a current-price market event' >&2
-            exit 1
+            if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-market-claim /tmp/bad-market-claim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
+              echo 'Validator accepted metadata as a current-price market event' >&2
+              exit 1
+            fi
           fi
       - name: Reject adapter implementation overclaim mutation
         run: |
           set -euo pipefail
-          cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-adapter-overclaim
-          node - <<'NODE'
-          const fs=require('fs');const p='/tmp/bad-adapter-overclaim/mission-source-adapter-requirements-v1.json';const x=JSON.parse(fs.readFileSync(p));x.requirements[0].adapter_runtime_implemented=true;x.requirements[0].adapter_runtime_tested=true;x.adapter_runtime_implemented_count=1;x.adapter_runtime_tested_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
+          if jq -e '.requirements | length > 0' /tmp/kidults-asi-mission-directed-discovery-v1/mission-source-adapter-requirements-v1.json >/dev/null; then
+            cp -a /tmp/kidults-asi-mission-directed-discovery-v1 /tmp/bad-adapter-overclaim
+            node - <<'NODE'
+            const fs=require('fs');const p='/tmp/bad-adapter-overclaim/mission-source-adapter-requirements-v1.json';const x=JSON.parse(fs.readFileSync(p));x.requirements[0].adapter_runtime_implemented=true;x.requirements[0].adapter_runtime_tested=true;x.adapter_runtime_implemented_count=1;x.adapter_runtime_tested_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-adapter-overclaim /tmp/bad-adapter-overclaim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
-            echo 'Validator accepted an unimplemented adapter as implemented' >&2
-            exit 1
+            if node scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs /tmp/bad-adapter-overclaim /tmp/bad-adapter-overclaim/mission-directed-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v1.json /tmp/asi-gate2-independent-reverification-v1.json /tmp/asi-gate3-admission-runtime-v1.json; then
+              echo 'Validator accepted an unimplemented adapter as implemented' >&2
+              exit 1
+            fi
           fi
       - name: Reject invalid rolling cursor mutation
         run: |

@@ -23,13 +23,15 @@ assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLE_ORDER');
 assert(contract.cycle_policy?.default_batch_size === 24, 'CONTRACT_BATCH_SIZE');
 assert(contract.cycle_policy?.minimum_healthy_provider_lanes === 1, 'CONTRACT_HEALTH_FLOOR');
+assert(contract.cycle_policy?.zero_candidate_cycle_is_terminal_observation === true, 'CONTRACT_ZERO_CANDIDATE_TERMINAL');
 assert(contract.truth_boundary?.live_public_metadata_requests_executed === true, 'CONTRACT_LIVE_REQUESTS');
 assert(contract.truth_boundary?.target_source_body_traversed === false, 'CONTRACT_TARGET_BODY');
 assert(contract.truth_boundary?.collection_right_created === false, 'CONTRACT_RIGHTS');
 
 assert(discovery.id === 'kidults-asi-mission-directed-public-metadata-discovery-v1', 'DISCOVERY_ID');
 assert(discovery.version === '1.0.0', 'DISCOVERY_VERSION');
-assert(discovery.status === 'SHADOW_MISSION_DIRECTED_PUBLIC_METADATA_DISCOVERY_COMPLETE', 'DISCOVERY_STATUS');
+const zeroCandidateTerminal = discovery.candidate_count === 0;
+assert(discovery.status === (zeroCandidateTerminal ? contract.cycle_policy.zero_candidate_terminal_status : 'SHADOW_MISSION_DIRECTED_PUBLIC_METADATA_DISCOVERY_COMPLETE'), 'DISCOVERY_STATUS');
 assert(discovery.contract_id === contract.id && discovery.contract_version === contract.version, 'DISCOVERY_CONTRACT_BINDING');
 assert(Number.isInteger(discovery.cycle_number) && discovery.cycle_number >= 1, 'DISCOVERY_CYCLE');
 assert(Number.isInteger(discovery.total_intent_count) && discovery.total_intent_count >= 1, 'DISCOVERY_TOTAL_INTENTS');
@@ -40,7 +42,13 @@ assert(discovery.attempted_intent_count === discovery.batch_size, 'DISCOVERY_ATT
 assert(discovery.intent_receipts?.length === discovery.attempted_intent_count, 'DISCOVERY_RECEIPT_COUNT');
 assert(discovery.successful_intent_count + discovery.failed_intent_count === discovery.attempted_intent_count, 'DISCOVERY_RESULT_COUNT');
 assert(discovery.partial_failure_state === (discovery.failed_intent_count > 0 ? 'PARTIAL_PROVIDER_FAILURE_VISIBLE' : 'NONE'), 'DISCOVERY_PARTIAL_FAILURE_STATE');
-assert(discovery.candidate_count === discovery.candidates?.length && discovery.candidate_count >= contract.cycle_policy.minimum_live_candidates_per_successful_cycle, 'DISCOVERY_CANDIDATE_COUNT');
+assert(discovery.candidate_count === discovery.candidates?.length && discovery.candidate_count >= 0, 'DISCOVERY_CANDIDATE_COUNT');
+if (zeroCandidateTerminal) {
+  assert(discovery.zero_candidate_terminal === true && discovery.zero_candidate_reason === 'ALL_BOUNDED_PROVIDER_LANES_RETURNED_ZERO', 'DISCOVERY_ZERO_CANDIDATE_RECEIPT');
+  assert(discovery.primary_discovery_fallback_used === true && discovery.candidates.length === 0, 'DISCOVERY_ZERO_CANDIDATE_FALLBACK');
+} else {
+  assert(discovery.candidate_count >= contract.cycle_policy.minimum_live_candidates_per_successful_cycle && discovery.zero_candidate_terminal !== true, 'DISCOVERY_SUCCESS_CANDIDATE_FLOOR');
+}
 assert(discovery.healthy_provider_lanes >= contract.cycle_policy.minimum_healthy_provider_lanes, 'DISCOVERY_HEALTHY_LANES');
 assert(discovery.lane_health?.length === laneIds.length, 'DISCOVERY_LANE_COUNT');
 assert(unique(discovery.intent_receipts.map((receipt) => receipt.receipt_id)), 'DISCOVERY_RECEIPT_DUPLICATE');
@@ -128,6 +136,7 @@ console.log(JSON.stringify({
   successful_intents: discovery.successful_intent_count,
   failed_intents: discovery.failed_intent_count,
   candidates: discovery.candidate_count,
+  zero_candidate_terminal: zeroCandidateTerminal,
   unique_endpoints: discovery.unique_endpoint_count,
   missions_with_candidates: discovery.missions_with_candidates,
   healthy_provider_lanes: discovery.healthy_provider_lanes,

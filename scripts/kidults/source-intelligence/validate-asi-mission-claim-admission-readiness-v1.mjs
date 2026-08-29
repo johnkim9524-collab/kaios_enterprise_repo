@@ -85,7 +85,8 @@ assert(readiness.public_release === 'HOLD' && readiness.production === 'HOLD', '
 
 assert(adapters.id === 'kidults-asi-mission-source-adapter-requirements-v1', 'ADAPTER_ID');
 assert(adapters.state === 'SOURCE_SPECIFIC_ADAPTER_BACKLOG_COMPILED', 'ADAPTER_STATE');
-assert(adapters.unique_host_evidence_class_count === adapters.requirements?.length && adapters.unique_host_evidence_class_count > 0, 'ADAPTER_COUNT');
+assert(adapters.unique_host_evidence_class_count === adapters.requirements?.length, 'ADAPTER_COUNT');
+assert(discovery.candidate_count === 0 ? adapters.unique_host_evidence_class_count === 0 : adapters.unique_host_evidence_class_count > 0, 'ADAPTER_COUNT_BY_DISCOVERY_STATE');
 assert(adapters.adapter_runtime_implemented_count === 0 && adapters.adapter_runtime_tested_count === 0 && adapters.collection_authorized_count === 0 && adapters.market_event_admitted_count === 0, 'ADAPTER_OVERCLAIM');
 assert(unique(adapters.requirements.map((requirement) => requirement.adapter_requirement_id)), 'ADAPTER_DUPLICATE_ID');
 for (const requirement of adapters.requirements) {

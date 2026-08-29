@@ -9,6 +9,7 @@ const files = {
   discoveryRunner: 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs',
   discoveryFallbackRunner: 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs',
   discoveryValidator: 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs',
+  zeroCandidateTest: 'scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs',
   readinessBuilder: 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs',
   readinessValidator: 'scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs',
   gate1Builder: 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs',
@@ -51,6 +52,7 @@ assert(registry.fail_soft_discovery?.primary_zero_candidate_or_runtime_failure_b
 assert(registry.fail_soft_discovery?.fallback_provider_lane === 'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA', 'REGISTRY_FAIL_SOFT_LANE');
 assert(registry.fail_soft_discovery?.primary_failure_must_remain_visible === true, 'REGISTRY_PRIMARY_FAILURE_VISIBILITY');
 assert(registry.fail_soft_discovery?.fallback_usage_must_remain_visible === true, 'REGISTRY_FALLBACK_VISIBILITY');
+assert(registry.fail_soft_discovery?.fallback_zero_candidate_behavior === 'EMIT_TRANSPARENT_TERMINAL_OBSERVATION_AND_CONTINUE_CURSOR', 'REGISTRY_ZERO_CANDIDATE_BEHAVIOR');
 assert(registry.fail_soft_discovery?.fallback_candidate_claim_ceiling === 'DISCOVERY_METADATA_ONLY', 'REGISTRY_FALLBACK_CLAIM_CEILING');
 assert(registry.fail_soft_discovery?.fallback_can_create_rights_admission_or_claim === false, 'REGISTRY_FALLBACK_PERMISSION');
 assert(registry.rolling_state?.batch_size === 24 && registry.rolling_state?.intent_count_at_activation === 426 && registry.rolling_state?.estimated_cycles_per_full_rotation === 18, 'REGISTRY_ROLLING_STATE');
@@ -60,6 +62,7 @@ assert(registry.downstream_p1_state?.source_specific_adapter_requirement_compile
 assert(registry.downstream_p1_state?.source_specific_market_event_adapters_implemented === false, 'REGISTRY_ADAPTER_OVERCLAIM');
 assert(registry.downstream_p1_state?.field_purpose_rights_verified === false, 'REGISTRY_RIGHTS_OVERCLAIM');
 assert(registry.downstream_p1_state?.strict_current_price_eligible_sources === 0 && registry.downstream_p1_state?.strict_liquidity_eligible_sources === 0, 'REGISTRY_CLAIM_OVERCLAIM');
+assert(registry.truth_boundary?.zero_candidate_observation_is_failure_or_evidence === false, 'REGISTRY_ZERO_CANDIDATE_TRUTH');
 
 for (const [key, expected] of Object.entries({
   contract: files.contract,
@@ -68,6 +71,7 @@ for (const [key, expected] of Object.entries({
   discovery_runner: files.discoveryRunner,
   discovery_fallback_runner: files.discoveryFallbackRunner,
   discovery_validator: files.discoveryValidator,
+  zero_candidate_test: files.zeroCandidateTest,
   readiness_builder: files.readinessBuilder,
   readiness_validator: files.readinessValidator,
   gate1_builder: files.gate1Builder,
@@ -120,7 +124,8 @@ for (const marker of [
   'collection_right_created: false'
 ]) assert(runner.includes(marker), `RUNNER_MARKER:${marker}`);
 for (const marker of [
-  'FALLBACK_NO_LIVE_CANDIDATE',
+  'zeroCandidateTerminal',
+  'ALL_BOUNDED_PROVIDER_LANES_RETURNED_ZERO',
   'primary_discovery_fallback_used: true',
   'primary_discovery_failure',
   'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA',

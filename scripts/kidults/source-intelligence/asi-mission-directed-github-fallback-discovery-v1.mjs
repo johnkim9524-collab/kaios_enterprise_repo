@@ -202,7 +202,7 @@ for (const { index, intent } of selected) {
 const deduplicated = new Map();
 for (const candidate of candidates) deduplicated.set(`${candidate.mission_discovery_intent_id}|${candidate.endpoint_url}`, candidate);
 const candidateList = [...deduplicated.values()].sort((left, right) => left.mission_discovery_intent_id.localeCompare(right.mission_discovery_intent_id) || left.endpoint_url.localeCompare(right.endpoint_url));
-if (candidateList.length < 1) throw new Error('FALLBACK_NO_LIVE_CANDIDATE');
+const zeroCandidateTerminal = candidateList.length === 0;
 const laneHealth = contract.provider_lanes.map((lane) => lane.lane_id === 'GITHUB_PUBLIC_REPOSITORY_HOMEPAGE_METADATA'
   ? {
       lane_id: lane.lane_id,
@@ -211,14 +211,14 @@ const laneHealth = contract.provider_lanes.map((lane) => lane.lane_id === 'GITHU
       failed_intents: failedIntents,
       observed_candidates: candidateList.length,
       errors: [...new Set(receipts.filter((receipt) => receipt.error).map((receipt) => receipt.error))],
-      status: failedIntents === selected.length ? 'FAILED' : failedIntents > 0 ? 'PARTIAL_SUCCESS' : 'SUCCESS_WITH_RESULTS'
+      status: failedIntents === selected.length ? 'FAILED' : failedIntents > 0 ? 'PARTIAL_SUCCESS' : zeroCandidateTerminal ? 'SUCCESS_ZERO_RESULTS' : 'SUCCESS_WITH_RESULTS'
     }
   : { lane_id: lane.lane_id, attempted_intents: 0, successful_intents: 0, failed_intents: 0, observed_candidates: 0, errors: [], status: 'NOT_SCHEDULED_THIS_CYCLE' });
 const healthyLanes = laneHealth.filter((lane) => ['SUCCESS_WITH_RESULTS', 'SUCCESS_ZERO_RESULTS', 'PARTIAL_SUCCESS'].includes(lane.status)).length;
 const discovery = {
   id: 'kidults-asi-mission-directed-public-metadata-discovery-v1',
   version: '1.0.0',
-  status: 'SHADOW_MISSION_DIRECTED_PUBLIC_METADATA_DISCOVERY_COMPLETE',
+  status: zeroCandidateTerminal ? contract.cycle_policy.zero_candidate_terminal_status : 'SHADOW_MISSION_DIRECTED_PUBLIC_METADATA_DISCOVERY_COMPLETE',
   contract_id: contract.id,
   contract_version: contract.version,
   cycle_number: cycleNumber,
@@ -236,6 +236,8 @@ const discovery = {
   partial_failure_state: failedIntents > 0 ? 'PARTIAL_PROVIDER_FAILURE_VISIBLE' : 'NONE',
   primary_discovery_fallback_used: true,
   primary_discovery_failure: String(primaryFailure).slice(0, 200),
+  zero_candidate_terminal: zeroCandidateTerminal,
+  zero_candidate_reason: zeroCandidateTerminal ? 'ALL_BOUNDED_PROVIDER_LANES_RETURNED_ZERO' : null,
   candidate_count: candidateList.length,
   unique_endpoint_count: new Set(candidateList.map((candidate) => candidate.endpoint_url)).size,
   missions_with_candidates: new Set(candidateList.map((candidate) => candidate.mission_id)).size,
@@ -285,6 +287,7 @@ fs.writeFileSync(path.join(outputDir, 'mission-directed-discovery-v1.json'), `${
 fs.writeFileSync(path.join(outputDir, 'mission-directed-discovery-cycle-state-v1.json'), `${JSON.stringify(state, null, 2)}\n`);
 console.log(JSON.stringify({
   status: discovery.status,
+  zero_candidate_terminal: discovery.zero_candidate_terminal,
   fallback_used: true,
   primary_failure: discovery.primary_discovery_failure,
   cycle_number: cycleNumber,
