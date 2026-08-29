@@ -34,7 +34,7 @@ for (const prohibited of [
 }
 
 requireTrue(
-  redirects === '/ /index.html 200\n/workspace /workspace.html 200',
+  redirects === '/workspace /workspace.html 200',
   'Enterprise staging must use the default index document for the original responsive Portal and keep Workspace at /workspace.',
 );
 
