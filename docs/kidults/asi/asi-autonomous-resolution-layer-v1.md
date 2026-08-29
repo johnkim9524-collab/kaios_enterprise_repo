@@ -120,7 +120,7 @@ Reject false promotion mutations
 KPMO receipt + 90-day artifact
 ```
 
-Manual dispatch remains recovery or explicit replay only. If no successful exact-main P1 artifact exists, the recovery lane first reuses an already queued or running exact-main P1. Only when none exists does it dispatch one P1 run, wait for its terminal success for at most 600 seconds, and then restore that exact run's single artifact. A failed or timed-out P1 fails the ARL run closed; an ancestor artifact is never substituted.
+Manual dispatch remains recovery or explicit replay only. If no successful exact-main P1 artifact exists, the recovery lane first reuses an already queued or running exact-main P1. Only when none exists does it dispatch one P1 run, wait for its terminal success for at most 600 seconds, and then read back that exact run's single artifact for up to 60 additional seconds to tolerate GitHub artifact-index eventual consistency. A failed or timed-out P1, missing artifact, or duplicate artifact fails the ARL run closed; an ancestor artifact is never substituted. The total recovery bound is 660 seconds.
 
 ## Hard boundaries
 
