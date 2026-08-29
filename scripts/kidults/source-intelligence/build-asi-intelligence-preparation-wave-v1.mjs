@@ -48,7 +48,7 @@ if (mesh.market_cell_count !== 768 || mesh.market_cells?.length !== 768) throw n
 if (mesh.direction_floor_pass_count !== 768) throw new Error('GLOBAL_SOURCE_MESH_DIRECTION_FLOOR_INCOMPLETE');
 if (JSON.stringify(mesh.sourcing_direction_order) !== JSON.stringify(principles)) throw new Error('GLOBAL_SOURCE_MESH_PRINCIPLE_ORDER_INVALID');
 if (baseline.id !== 'kidults-verified-intelligence-surface-baseline-v1') throw new Error('VERIFIED_SURFACE_BASELINE_INVALID');
-if (contract.id !== 'kidults-asi-intelligence-preparation-wave-v1' || contract.version !== '1.0.0') throw new Error('PREPARATION_CONTRACT_INVALID');
+if (contract.id !== 'kidults-asi-intelligence-preparation-wave-v1' || contract.version !== '1.1.0') throw new Error('PREPARATION_CONTRACT_INVALID');
 if (JSON.stringify(contract.platform_principles) !== JSON.stringify(principles)) throw new Error('PREPARATION_PRINCIPLE_ORDER_INVALID');
 if (contract.modules?.length !== 8 || contract.required_outputs?.length !== 9) throw new Error('PREPARATION_MODULE_OR_OUTPUT_COUNT_INVALID');
 if (contract.truth_boundary?.executes_external_collection !== false || contract.truth_boundary?.creates_collection_right !== false) throw new Error('PREPARATION_SIDE_EFFECT_BOUNDARY_INVALID');

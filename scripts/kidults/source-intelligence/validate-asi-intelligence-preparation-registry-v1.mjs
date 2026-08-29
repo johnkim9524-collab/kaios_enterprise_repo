@@ -35,7 +35,7 @@ const modules = [
 
 assert(contract.id === 'kidults-asi-intelligence-preparation-wave-v1', 'CONTRACT_ID');
 assert(registry.id === 'kidults-asi-intelligence-preparation-registry-v1', 'REGISTRY_ID');
-assert(registry.version === '1.0.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
+assert(registry.version === '1.1.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLE_ORDER');
 assert(JSON.stringify(registry.registered_modules) === JSON.stringify(modules), 'REGISTRY_MODULE_ORDER');
 assert(JSON.stringify(contract.canonical_execution_order) === JSON.stringify(modules), 'CONTRACT_MODULE_ORDER');

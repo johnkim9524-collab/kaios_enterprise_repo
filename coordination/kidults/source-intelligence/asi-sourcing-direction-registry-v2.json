@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-sourcing-direction-registry-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "constitutional_order": [
@@ -19,7 +19,10 @@
     "validator": "scripts/kidults/source-intelligence/validate-asi-sourcing-direction-v2.mjs",
     "governance_workflow": ".github/workflows/kidults-asi-sourcing-direction-v2.yml",
     "planning_workflow": ".github/workflows/kidults-global-source-mesh-v1.yml",
-    "scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml"
+    "scale_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "immediate_priority_mission": "coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json",
+    "immediate_priority_validator": "scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs",
+    "immediate_priority_workflow": ".github/workflows/kidults-asi-multi-lane-autonomous-acquisition-mission-v1.yml"
   },
   "governed_value_chain": [
     "DECISION_DEMAND",
@@ -62,5 +65,8 @@
     "requires_version_increment": true
   },
   "public_release": "HOLD",
-  "production": "HOLD"
+  "production": "HOLD",
+  "runtime_priority_owner": "ASI",
+  "governance_boundary_owner": "KPMO",
+  "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION"
 }

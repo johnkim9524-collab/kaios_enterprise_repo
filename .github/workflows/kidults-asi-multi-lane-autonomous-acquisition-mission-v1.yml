@@ -1,0 +1,31 @@
+name: KIDULTS ASI Multi-Lane Autonomous Acquisition Mission v1
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs'
+      - '.github/workflows/kidults-asi-multi-lane-autonomous-acquisition-mission-v1.yml'
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-and-emit-mission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate mission contract
+        run: node scripts/kidults/source-intelligence/validate-asi-multi-lane-autonomous-acquisition-mission-v1.mjs | tee asi-multi-lane-mission-receipt-v1.json
+      - name: Upload mission receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-multi-lane-autonomous-acquisition-mission-v1
+          path: asi-multi-lane-mission-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30

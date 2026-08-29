@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-sourcing-direction-contract-v2",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "precedence": "ASI_SOURCING_DIRECTION_AUTHORITY",
@@ -267,5 +267,19 @@
     "EXPANDED_CREDENTIAL_OR_PERMISSION"
   ],
   "public_release": "HOLD",
-  "production": "HOLD"
+  "production": "HOLD",
+  "immediate_priority_mission": "coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json",
+  "runtime_priority_governance": {
+    "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
+    "governance_owner": "KPMO",
+    "runtime_priority_owner": "ASI",
+    "continuous_reprioritization": true,
+    "psa_is_program_prerequisite": false,
+    "psa_role": "PARALLEL_GRADED_SUPPLEMENT_LANE",
+    "first_execution_lane": "AUTOMOBILES_MOBILITY_LIGHTHOUSE_25_TO_50_OBJECTS",
+    "blocked_current_sold_fallback": [
+      "WATCHES",
+      "CARDS"
+    ]
+  }
 }

@@ -1,0 +1,185 @@
+{
+  "id": "kidults-asi-multi-lane-autonomous-acquisition-mission-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_P0_AFTER_MAIN_MERGE",
+  "governance_owner": "KPMO",
+  "runtime_priority_owner": "ASI",
+  "approved_by": "John",
+  "effective_at": "2026-08-29T22:00:00+09:00",
+  "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
+  "mission": "Without waiting for PSA or any single provider, autonomously build lawful object knowledge, source opportunity, rights, evidence and product-readiness assets while preserving evidence-class and claim boundaries.",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "provider_independence": {
+    "psa_is_program_prerequisite": false,
+    "psa_role": "PARALLEL_GRADED_SUPPLEMENT_LANE",
+    "any_single_provider_mandatory_bottleneck_allowed": false,
+    "provider_unavailable_behavior": "CONTINUE_ELIGIBLE_NON_PROVIDER_AND_ALTERNATE_VERTICAL_LANES",
+    "provider_direct_to_claim_or_projection_allowed": false
+  },
+  "evidence_ladder": [
+    {
+      "state": "REFERENCE",
+      "meaning": "Official specification, history or identity information",
+      "customer_claim_ceiling": "REFERENCE_ONLY"
+    },
+    {
+      "state": "DISCOVERY",
+      "meaning": "Candidate source and public location",
+      "customer_claim_ceiling": "NO_MARKET_CLAIM"
+    },
+    {
+      "state": "OBSERVATION",
+      "meaning": "Time-bound market observation with provenance",
+      "customer_claim_ceiling": "OBSERVATION_ONLY"
+    },
+    {
+      "state": "CANDIDATE",
+      "meaning": "Rights, provenance, normalization and quality gates passed",
+      "customer_claim_ceiling": "NO_PUBLIC_PROJECTION"
+    },
+    {
+      "state": "EVIDENCE",
+      "meaning": "Independent Track B validation completed",
+      "customer_claim_ceiling": "GOVERNED_EVIDENCE"
+    },
+    {
+      "state": "APPROVED_PROJECTION",
+      "meaning": "Explicitly approved customer-facing projection",
+      "customer_claim_ceiling": "APPROVED_FIELDS_ONLY"
+    }
+  ],
+  "immediate_priority_policy": {
+    "policy_owner": "ASI",
+    "governance_boundary_owner": "KPMO",
+    "continuous_reprioritization": true,
+    "priority_dimensions": [
+      "CUSTOMER_DECISION_MATERIALITY",
+      "EVIDENCE_GAP_SEVERITY",
+      "LAWFUL_IMMEDIATE_EXECUTABILITY",
+      "KIDULTS_OWNED_VALUE_GAIN",
+      "GLOBAL_COVERAGE_GAIN",
+      "PROVIDER_REPLACEABILITY",
+      "COST_FRESHNESS_AND_FAILURE_RISK"
+    ],
+    "manual_daily_queue_management_required": false,
+    "score_can_create_rights_admission_or_claim": false
+  },
+  "execution_lanes": [
+    {
+      "order": 1,
+      "lane_id": "AUTOMOBILES_MOBILITY_LIGHTHOUSE",
+      "target": "25_TO_50_CANONICAL_OBJECTS",
+      "actions": [
+        "SELECT_LIGHTHOUSE_OBJECTS",
+        "MAP_MANUFACTURER_MUSEUM_AND_OFFICIAL_ARCHIVE_SOURCES",
+        "NORMALIZE_MAKE_MODEL_GENERATION_VARIANT_YEAR_SPECIFICATION_AND_PRODUCTION",
+        "BUILD_CANONICAL_OBJECT_DOSSIERS"
+      ],
+      "outputs": [
+        "CANONICAL_OBJECT_DOSSIER",
+        "VERTICAL_SOURCE_MAP"
+      ],
+      "fallback": "WATCHES_OR_CARDS"
+    },
+    {
+      "order": 2,
+      "lane_id": "IDENTITY_REFERENCE_GRAPH",
+      "target": "OFFICIAL_AND_INSTITUTIONAL_REFERENCE_COVERAGE",
+      "actions": [
+        "BUILD_IDENTITY_GRAPH",
+        "BIND_REFERENCE_ASSERTIONS",
+        "RECORD_URL_PUBLISHER_ACQUIRED_AT_FRESHNESS_DIGEST_AND_CLAIM_CEILING"
+      ],
+      "outputs": [
+        "IDENTITY_GRAPH",
+        "EVIDENCE_LEDGER"
+      ],
+      "fallback": "CONTINUE_WITH_DISCLOSED_UNKNOWN_FIELDS"
+    },
+    {
+      "order": 3,
+      "lane_id": "RIGHTS_AND_DATED_SOLD_DISCOVERY",
+      "target": "GLOBAL_RIGHTS_AND_FIELD_PURPOSE_PREFLIGHT",
+      "actions": [
+        "DISCOVER_GLOBAL_DATED_SOLD_CANDIDATES",
+        "CLASSIFY_FIELDS_TIME_CURRENCY_EVENT_STATUS_AND_FACTUAL_ORIGIN",
+        "ASSESS_COLLECT_STORE_TRANSFORM_DERIVE_DISPLAY_REDISTRIBUTE_AND_COMMERCIAL_USE_RIGHTS"
+      ],
+      "outputs": [
+        "RIGHTS_AND_SOURCE_REGISTRY",
+        "SOURCE_OPPORTUNITY_QUEUE"
+      ],
+      "fallback": "WATCHES_OR_CARDS"
+    },
+    {
+      "order": 4,
+      "lane_id": "PRODUCT_READINESS",
+      "target": "EVIDENCE_BOUND_PRODUCT_CONTRACTS",
+      "actions": [
+        "VALIDATE_DOSSIER_COMPARE_WATCHLIST_AND_ALERT_SCHEMAS",
+        "SIMULATE_DUPLICATE_CONFLICT_STALE_SOURCE_REMOVAL_AND_PROVIDER_FAILURE",
+        "PRESERVE_UNKNOWN_AND_NOT_VERIFIED_STATES"
+      ],
+      "outputs": [
+        "PRODUCT_READY_SCHEMAS",
+        "NEGATIVE_TEST_RECEIPTS",
+        "TRANSPARENT_PROJECTION_CONTRACT"
+      ],
+      "fallback": "NO_PUBLIC_CLAIM"
+    },
+    {
+      "order": 5,
+      "lane_id": "PSA_GRADED_SUPPLEMENT",
+      "target": "BOUNDED_GRADED_POPULATION_EVALUATION_WHEN_LAWFUL_INPUT_AUTHORITY_EXISTS",
+      "actions": [
+        "KEEP_PSA_PARALLEL_NOT_BLOCKING",
+        "REQUIRE_INDEPENDENT_LAWFUL_KNOWN_CERT_PROVENANCE",
+        "PRESERVE_RAW_RETENTION_AND_NON_RECONSTRUCTIVE_DERIVATION_LIMITS"
+      ],
+      "outputs": [
+        "GRADED_SUPPLEMENT_RECEIPT"
+      ],
+      "fallback": "CONTINUE_LANES_1_TO_4"
+    }
+  ],
+  "required_outputs": [
+    "CANONICAL_OBJECT_DOSSIER",
+    "RIGHTS_AND_SOURCE_REGISTRY",
+    "VERTICAL_SOURCE_MAP",
+    "IDENTITY_GRAPH",
+    "EVIDENCE_LEDGER",
+    "PROVIDER_SUBSTITUTION_MATRIX",
+    "PRODUCT_READY_SCHEMAS",
+    "SOURCE_OPPORTUNITY_QUEUE",
+    "NEGATIVE_TEST_RECEIPTS",
+    "TRANSPARENT_PROJECTION_CONTRACT"
+  ],
+  "execution_boundaries": {
+    "discovery_is_not_collection": true,
+    "collection_is_not_admission": true,
+    "admission_is_not_claim": true,
+    "reference_is_not_current_market_evidence": true,
+    "observation_is_not_evidence": true,
+    "candidate_is_not_approved_projection": true,
+    "unknown_rights_behavior": "PREFLIGHT_HOLD",
+    "unsupported_field_state": "NOT_VERIFIED",
+    "external_spend_or_contract_requires_owner_approval": true,
+    "expanded_credentials_require_owner_approval": true,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "acceptance": {
+    "mission_queue_contains_all_non_psa_lanes": true,
+    "psa_blocking_dependency_count": 0,
+    "lighthouse_target_minimum": 25,
+    "lighthouse_target_maximum": 50,
+    "evidence_ladder_exact_order": true,
+    "provider_direct_projection_paths": 0
+  }
+}
