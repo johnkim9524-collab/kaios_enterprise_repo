@@ -86,7 +86,8 @@ for (const [name, workflow, containmentJob, credentialedJob] of [
   assert.match(credentialedJob, /test "\$LIVE_MAIN_SHA" = "\$GITHUB_SHA"/);
   assert.equal(containmentJob.includes('environment: kidults-do-staging-ssh'), false, `${name} executable containment job entered provider Environment`);
   assert.equal(containmentJob.includes('secrets.'), false, `${name} executable containment job references provider secrets`);
-  assert.equal(containmentJob.includes('KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED'), false, `${name} executable containment job consults standing boolean`);
+  assert.equal(containmentJob.includes('vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED'), false, `${name} executable containment job evaluates standing variable`);
+  assert.equal(containmentJob.includes('ACTIVATION_AUTHORIZED:'), false, `${name} executable containment job materializes standing variable`);
   assert.match(containmentJob, /if: always\(\)/);
   assert.match(containmentJob, /provider_secrets_resolved[^\n]*False/);
   assert.match(containmentJob, /database_contacted[^\n]*False/);
