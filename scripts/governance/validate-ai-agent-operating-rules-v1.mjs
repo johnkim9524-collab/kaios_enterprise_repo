@@ -8,6 +8,10 @@ const files = {
   policy: '.github/AI_AGENT_OPERATING_RULES.md',
   copilot: '.github/copilot-instructions.md',
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
+  githubBootstrapContract: 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json',
+  githubBootstrapEntrypoint: 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs',
+  githubBootstrapValidator: 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs',
+  githubBootstrapVerifier: 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs',
   platform: 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
   schema: 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json',
   registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
@@ -20,6 +24,7 @@ const resolvePath = (p) => path.isAbsolute(p) ? p : path.join(root, p);
 const readText = (p) => fs.readFileSync(resolvePath(p), 'utf8');
 const readJson = (p) => JSON.parse(readText(p));
 const assert = (condition, message) => { if (!condition) fail(message); };
+const exactJson = (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected);
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasTopLevelTrigger = (text, trigger) => new RegExp(`^  ${escapeRegex(trigger)}:\\s*$`, 'm').test(text);
 
@@ -31,6 +36,7 @@ const agents = readText(files.agents);
 const policy = readText(files.policy);
 const copilot = readText(files.copilot);
 const contract = readJson(files.contract);
+const githubBootstrapContract = readJson(files.githubBootstrapContract);
 const platform = readJson(files.platform);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
@@ -61,10 +67,11 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.3.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.7.0', 'CONTRACT_VERSION');
+assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
-assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AUTOMATIONS', 'CONTRACT_SCOPE');
+assert(contract.effective_scope === 'REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE');
 assert(contract.platform_constitution?.path === files.platform, 'CONTRACT_PLATFORM_PATH');
 assert(contract.platform_constitution?.precedence === platform.precedence, 'CONTRACT_PLATFORM_PRECEDENCE');
 assert(JSON.stringify(contract.platform_constitution?.ordered_principles) === JSON.stringify(requiredPlatformPrinciples), 'CONTRACT_PLATFORM_ORDER');
@@ -79,6 +86,133 @@ assert(contract.enforcement?.policy_and_contract_must_change_together === true, 
 assert(contract.enforcement?.proactive_internal_remediation_required === true, 'PROACTIVE_REMEDIATION_REQUIRED');
 assert(contract.enforcement?.verified_closure_and_forward_proposal_required === true, 'VERIFIED_CLOSURE_FORWARD_PROPOSAL_REQUIRED');
 assert(contract.enforcement?.global_scale_stewardship_required === true, 'GLOBAL_SCALE_STEWARDSHIP_REQUIRED');
+assert(contract.github_bootstrap_contract_path === files.githubBootstrapContract, 'CONTRACT_GITHUB_BOOTSTRAP_PATH');
+assert(contract.enforcement?.github_canonical_bootstrap_required === true, 'GITHUB_BOOTSTRAP_REQUIRED');
+assert(contract.enforcement?.bootstrap_receipt_before_task_required === true, 'GITHUB_BOOTSTRAP_RECEIPT_REQUIRED');
+assert(contract.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'GITHUB_BOOTSTRAP_INDEPENDENT_VERIFICATION_REQUIRED');
+assert(contract.enforcement?.bootstrap_agent_task_session_nonce_binding_required === true, 'GITHUB_BOOTSTRAP_BINDINGS_REQUIRED');
+assert(contract.enforcement?.bootstrap_reads_exact_committed_git_blobs === true, 'GITHUB_BOOTSTRAP_COMMITTED_BLOBS_REQUIRED');
+assert(contract.enforcement?.local_expected_sha_establishes_github_provenance === false, 'LOCAL_SHA_MUST_NOT_ESTABLISH_GITHUB_PROVENANCE');
+assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
+assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
+assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
+assert(githubBootstrapContract.version === '1.3.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
+assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
+assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
+assert(githubBootstrapContract.bootstrap_entrypoint?.validator_path === files.githubBootstrapValidator, 'GITHUB_BOOTSTRAP_VALIDATOR');
+assert(githubBootstrapContract.bootstrap_entrypoint?.receipt_verifier_path === files.githubBootstrapVerifier, 'GITHUB_BOOTSTRAP_RECEIPT_VERIFIER');
+assert(githubBootstrapContract.task_dispatch_gate?.bootstrap_receipt_required === true, 'GITHUB_BOOTSTRAP_DISPATCH_GATE');
+assert(githubBootstrapContract.task_dispatch_gate?.independent_receipt_verification_required === true, 'GITHUB_BOOTSTRAP_INDEPENDENT_RECEIPT_VERIFICATION');
+assert(githubBootstrapContract.task_dispatch_gate?.receipt_consumption_required === true, 'GITHUB_BOOTSTRAP_RECEIPT_CONSUMPTION');
+assert(githubBootstrapContract.task_dispatch_gate?.receipt_alone_grants_task_authority === false, 'GITHUB_BOOTSTRAP_RECEIPT_AUTHORITY_BOUNDARY');
+assert(githubBootstrapContract.inheritance?.agent_self_exemption_allowed === false, 'GITHUB_BOOTSTRAP_SELF_EXEMPTION');
+
+const expectedSourceAttestationFields = [
+  'scope',
+  'current_github_state_claims_allowed',
+  'authority_relationship',
+  'remote_ref_presence_does_not_authorize_or_promote',
+  'promotion_eligible',
+  'github_event',
+  'remote'
+];
+const expectedWorktreeStateFields = [
+  'baseline_algorithm',
+  'baseline_digest',
+  'require_clean_enforced',
+  'status'
+];
+const expectedWorktreeAlgorithm = 'SHA256_GIT_STATUS_INDEX_DIFF_AND_UNTRACKED_CONTENT_V1';
+const expectedReceiptAuthorityBoundary = {
+  repository_worktree_mutation_performed: false,
+  git_metadata_receipt_write_performed: true,
+  github_write_performed: false,
+  orchestrator_nonce_read_performed: true,
+  orchestrator_nonce_persisted_or_logged: false,
+  other_secret_or_credential_read_performed: false,
+  task_authority_granted_by_bootstrap: false,
+  merge_authority_granted_by_bootstrap: false,
+  promotion_or_release_authority_granted_by_bootstrap: false,
+  bound_execution_scope: 'EXACT_COMMITTED_GOVERNANCE_TRUST_CLOSURE',
+  full_worktree_immutability_claimed: false,
+  production: 'HOLD',
+  public_release: 'HOLD'
+};
+
+assert(githubBootstrapContract.task_dispatch_gate?.external_expected_sha_required === true, 'GITHUB_BOOTSTRAP_EXTERNAL_EXPECTED_SHA_REQUIRED');
+assert(githubBootstrapContract.task_dispatch_gate?.expected_sha_must_equal_working_sha === true, 'GITHUB_BOOTSTRAP_EXPECTED_SHA_WORKING_SHA_BINDING');
+assert(githubBootstrapContract.task_dispatch_gate?.expected_sha_match_state_must_be_true === true, 'GITHUB_BOOTSTRAP_EXPECTED_SHA_MATCH_STATE');
+assert(githubBootstrapContract.task_dispatch_gate?.verified_result_must_bind_same_agent_task_session_nonce_and_sha === true, 'GITHUB_BOOTSTRAP_VERIFIED_RESULT_BINDINGS');
+assert(exactJson(githubBootstrapContract.github_provenance_policy?.source_attestation_required_fields, expectedSourceAttestationFields), 'GITHUB_BOOTSTRAP_SOURCE_ATTESTATION_FIELDS_EXACT');
+assert(githubBootstrapContract.github_provenance_policy?.remote_authority_relationship_evaluation === 'NOT_EVALUATED', 'GITHUB_BOOTSTRAP_REMOTE_AUTHORITY_NOT_EVALUATED');
+assert(githubBootstrapContract.github_provenance_policy?.remote_ref_presence_does_not_authorize_or_promote === true, 'GITHUB_BOOTSTRAP_REMOTE_REF_NO_AUTHORITY');
+assert(githubBootstrapContract.github_provenance_policy?.bootstrap_promotion_eligible === false, 'GITHUB_BOOTSTRAP_PROMOTION_INELIGIBLE');
+assert(githubBootstrapContract.github_provenance_policy?.promotion_requires_separate_protected_gate === true, 'GITHUB_BOOTSTRAP_PROMOTION_PROTECTED_GATE');
+assert(exactJson(githubBootstrapContract.worktree_baseline_policy?.receipt_field_set, expectedWorktreeStateFields), 'GITHUB_BOOTSTRAP_WORKTREE_FIELDS_EXACT');
+assert(githubBootstrapContract.worktree_baseline_policy?.algorithm === expectedWorktreeAlgorithm, 'GITHUB_BOOTSTRAP_WORKTREE_ALGORITHM');
+assert(githubBootstrapContract.worktree_baseline_policy?.baseline_must_remain_stable_during_bootstrap === true, 'GITHUB_BOOTSTRAP_WORKTREE_BASELINE_STABILITY');
+assert(githubBootstrapContract.worktree_baseline_policy?.baseline_rechecked_immediately_before_consumption === true, 'GITHUB_BOOTSTRAP_WORKTREE_RECHECK');
+assert(githubBootstrapContract.worktree_baseline_policy?.full_worktree_immutability_claimed === false, 'GITHUB_BOOTSTRAP_NO_FULL_WORKTREE_IMMUTABILITY_CLAIM');
+assert(githubBootstrapContract.identity_and_replay_policy?.receipt_integrity_algorithm === 'HMAC_SHA256_WITH_ORCHESTRATOR_NONCE', 'GITHUB_BOOTSTRAP_HMAC_REQUIRED');
+assert(githubBootstrapContract.identity_and_replay_policy?.unkeyed_receipt_digest_allowed === false, 'GITHUB_BOOTSTRAP_UNKEYED_DIGEST_FORBIDDEN');
+assert(githubBootstrapContract.identity_and_replay_policy?.generated_receipt_filename_is_fixed_length_digest === true, 'GITHUB_BOOTSTRAP_FIXED_DIGEST_FILENAME');
+assert(githubBootstrapContract.identity_and_replay_policy?.raw_orchestrator_nonce_allowed_in_receipt_consumption_marker_or_process_output === false, 'GITHUB_BOOTSTRAP_RAW_NONCE_OUTPUT_FORBIDDEN');
+assert(exactJson(githubBootstrapContract.receipt_authority_boundary, expectedReceiptAuthorityBoundary), 'GITHUB_BOOTSTRAP_RECEIPT_AUTHORITY_BOUNDARY_EXACT');
+assert(githubBootstrapContract.trust_model?.full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher === true, 'GITHUB_BOOTSTRAP_EXTERNAL_ROOT_LAUNCHER_REQUIRED');
+assert(githubBootstrapContract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'GITHUB_BOOTSTRAP_CLEAN_CHECKOUT_NOT_ROOT_OF_TRUST');
+assert(githubBootstrapContract.dispatcher_integration?.repository_dispatch_jobs_trust_tier === 'REPOSITORY_BOUND_NOT_FULL_ROOT_OF_TRUST', 'GITHUB_BOOTSTRAP_REPOSITORY_TRUST_TIER');
+assert(githubBootstrapContract.dispatcher_integration?.absence_of_an_external_dispatcher_hook_cannot_be_repaired_by_repository_policy_alone === true, 'GITHUB_BOOTSTRAP_EXTERNAL_HOOK_LIMITATION');
+
+assert(exactJson(contract.enforcement?.required_bootstrap_receipt_fields, githubBootstrapContract.required_receipt_fields), 'OPERATING_BOOTSTRAP_RECEIPT_FIELDS_MISMATCH');
+assert(exactJson(registry.mandatory_inheritance?.required_bootstrap_receipt_fields, githubBootstrapContract.required_receipt_fields), 'REGISTRY_BOOTSTRAP_RECEIPT_FIELDS_MISMATCH');
+assert(exactJson(contract.enforcement?.bootstrap_fail_closed_conditions, githubBootstrapContract.fail_closed_conditions), 'OPERATING_BOOTSTRAP_FAIL_LIST_MISMATCH');
+assert(exactJson(registry.mandatory_inheritance?.bootstrap_fail_closed_conditions, githubBootstrapContract.fail_closed_conditions), 'REGISTRY_BOOTSTRAP_FAIL_LIST_MISMATCH');
+
+const mirroredBootstrapSemantics = {
+  external_expected_sha_required: true,
+  expected_sha_must_equal_working_sha: true,
+  expected_sha_match_state_must_be_true: true,
+  source_attestation_required_fields: expectedSourceAttestationFields,
+  remote_authority_relationship_evaluation: 'NOT_EVALUATED',
+  remote_ref_presence_does_not_authorize_or_promote: true,
+  bootstrap_promotion_eligible: false,
+  promotion_requires_separate_protected_gate: true,
+  receipt_integrity_algorithm: 'HMAC_SHA256_WITH_ORCHESTRATOR_NONCE',
+  unkeyed_receipt_digest_allowed: false,
+  generated_receipt_filename_is_fixed_length_digest: true,
+  raw_orchestrator_nonce_allowed_in_receipt_consumption_marker_or_process_output: false,
+  external_dispatcher_requires_durable_protected_nonce_store: true,
+  receipt_worktree_state_required_fields: expectedWorktreeStateFields,
+  worktree_baseline_algorithm: expectedWorktreeAlgorithm,
+  worktree_baseline_digest_continuity_scope: 'BOOTSTRAP_TO_RECEIPT_CONSUMPTION',
+  worktree_baseline_digest_establishes_full_worktree_immutability: false,
+  ci_release_and_promotion_require_clean_worktree: true,
+  general_coding_agent_dirty_worktree_allowed: true,
+  fixed_receipt_filename_verifier_binding_required: true,
+  full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher: true,
+  clean_github_actions_checkout_alone_is_a_full_root_of_trust: false,
+  merge_promotion_and_release_require_separate_protected_gate: true,
+  merge_authority_granted_by_bootstrap: false,
+  promotion_or_release_authority_granted_by_bootstrap: false
+};
+for (const [key, expected] of Object.entries(mirroredBootstrapSemantics)) {
+  assert(exactJson(contract.enforcement?.[key], expected), `OPERATING_BOOTSTRAP_SEMANTIC_MISMATCH:${key}`);
+  assert(exactJson(registry.mandatory_inheritance?.[key], expected), `REGISTRY_BOOTSTRAP_SEMANTIC_MISMATCH:${key}`);
+}
+assert(contract.enforcement?.repository_dispatch_jobs_trust_tier === githubBootstrapContract.dispatcher_integration?.repository_dispatch_jobs_trust_tier, 'OPERATING_BOOTSTRAP_TRUST_TIER_MISMATCH');
+assert(registry.dispatcher_integration?.repository_dispatch_jobs_trust_tier === githubBootstrapContract.dispatcher_integration?.repository_dispatch_jobs_trust_tier, 'REGISTRY_BOOTSTRAP_TRUST_TIER_MISMATCH');
+assert(contract.enforcement?.full_root_launcher_reference === githubBootstrapContract.dispatcher_integration?.full_root_launcher_reference, 'OPERATING_BOOTSTRAP_ROOT_LAUNCHER_MISMATCH');
+assert(registry.dispatcher_integration?.full_root_launcher_reference === githubBootstrapContract.dispatcher_integration?.full_root_launcher_reference, 'REGISTRY_BOOTSTRAP_ROOT_LAUNCHER_MISMATCH');
+assert(contract.enforcement?.absence_of_an_external_dispatcher_hook_cannot_be_repaired_by_repository_policy_alone === true, 'OPERATING_EXTERNAL_DISPATCHER_LIMITATION');
+assert(registry.dispatcher_integration?.absence_of_an_external_dispatcher_hook_cannot_be_repaired_by_repository_policy_alone === true, 'REGISTRY_EXTERNAL_DISPATCHER_LIMITATION');
+assert(contract.enforcement?.actual_in_repository_ai_model_dispatch_job_count === 0, 'OPERATING_ACTUAL_AI_MODEL_DISPATCH_JOB_COUNT');
+assert(contract.enforcement?.repository_defense_in_depth_bootstrap_jobs_are_ai_or_model_dispatchers === false, 'OPERATING_DEFENSE_IN_DEPTH_DISPATCH_CLASSIFICATION');
+assert(contract.enforcement?.external_ai_model_dispatchers_must_implement_equivalent_bootstrap_gate === true, 'OPERATING_EXTERNAL_AI_MODEL_DISPATCH_GATE');
+assert(exactJson(githubBootstrapContract.dispatcher_integration?.actual_ai_model_dispatch_jobs, []), 'GITHUB_BOOTSTRAP_ACTUAL_AI_MODEL_DISPATCH_JOBS');
+assert(githubBootstrapContract.dispatcher_integration?.repository_defense_in_depth_bootstrap_jobs_are_ai_or_model_dispatchers === false, 'GITHUB_BOOTSTRAP_DEFENSE_IN_DEPTH_DISPATCH_CLASSIFICATION');
+assert(exactJson(registry.dispatcher_integration?.actual_ai_model_dispatch_jobs, githubBootstrapContract.dispatcher_integration?.actual_ai_model_dispatch_jobs), 'REGISTRY_ACTUAL_AI_MODEL_DISPATCH_JOBS_MISMATCH');
+assert(exactJson(registry.dispatcher_integration?.repository_defense_in_depth_bootstrap_jobs, githubBootstrapContract.dispatcher_integration?.repository_defense_in_depth_bootstrap_jobs), 'REGISTRY_DEFENSE_IN_DEPTH_BOOTSTRAP_JOBS_MISMATCH');
 const globalScale = contract.global_scale_operating_standard;
 assert(globalScale?.scope === 'ENTIRE_VALUE_CHAIN', 'GLOBAL_SCALE_SCOPE');
 assert(globalScale?.platform_position === 'GLOBAL_LEADING_PLATFORM', 'GLOBAL_SCALE_POSITION');
@@ -131,6 +265,13 @@ const requiredStates = [
   'PLANNED','IMPLEMENTED_NOT_VERIFIED','RUNNING_VERIFIED','VERIFIED_PASS','VERIFIED_FAIL',
   'MERGED_VERIFIED','DEPLOYED_VERIFIED','BLOCKED','UNKNOWN','HOLD','COMPLETE_VERIFIED'
 ];
+const requiredReportFields = [
+  'agent_id', 'as_of', 'scope', 'state', 'facts', 'evidence_refs', 'inferences',
+  'uncertainties', 'blockers', 'actions_executed', 'next_action', 'authority_boundary',
+  'defect_disposition', 'remediation_sequence', 'verification_evidence_refs',
+  'truth_sync_refs', 'improvement_proposal'
+];
+assert(JSON.stringify(contract.required_report_fields) === JSON.stringify(requiredReportFields), 'REQUIRED_REPORT_FIELDS_EXACT');
 const contractStates = Object.keys(contract.governed_states ?? {});
 assert(contractStates.length === requiredStates.length, 'STATE_COUNT');
 for (const state of requiredStates) {
@@ -152,7 +293,8 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.3.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.7.0', 'REGISTRY_POLICY_VERSION');
+assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
 assert(JSON.stringify(registry.platform_operating_principles?.ordered_principles) === JSON.stringify(requiredPlatformPrinciples), 'REGISTRY_PLATFORM_ORDER');
@@ -163,6 +305,29 @@ assert(registry.automatic_execution_paths?.source_fabric_scale_workflow === file
 assert(registry.automatic_execution_paths?.normal_activation_requires_automatic_trigger === true, 'REGISTRY_AUTOMATIC_TRIGGER');
 assert(registry.mandatory_inheritance?.child_rule_can_weaken_policy === false, 'CHILD_WEAKENING_ALLOWED');
 assert(registry.mandatory_inheritance?.agent_self_exemption_allowed === false, 'REGISTRY_SELF_EXEMPTION_ALLOWED');
+assert(registry.mandatory_inheritance?.github_canonical_bootstrap_required === true, 'REGISTRY_GITHUB_BOOTSTRAP_REQUIRED');
+assert(registry.mandatory_inheritance?.per_agent_bootstrap_receipt_required === true, 'REGISTRY_PER_AGENT_BOOTSTRAP_RECEIPT_REQUIRED');
+assert(registry.mandatory_inheritance?.agent_task_session_nonce_binding_required === true, 'REGISTRY_BOOTSTRAP_BINDINGS_REQUIRED');
+assert(registry.mandatory_inheritance?.independent_receipt_verification_required === true, 'REGISTRY_BOOTSTRAP_INDEPENDENT_VERIFICATION_REQUIRED');
+assert(registry.mandatory_inheritance?.one_time_receipt_consumption_required === true, 'REGISTRY_BOOTSTRAP_ONE_TIME_CONSUMPTION_REQUIRED');
+assert(registry.mandatory_inheritance?.exact_committed_git_blob_loading_required === true, 'REGISTRY_COMMITTED_BLOB_LOADING_REQUIRED');
+assert(registry.mandatory_inheritance?.local_expected_sha_establishes_github_provenance === false, 'REGISTRY_LOCAL_SHA_PROVENANCE_FORBIDDEN');
+assert(registry.mandatory_inheritance?.github_event_context_establishes_current_github_state === false, 'REGISTRY_GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
+assert(registry.mandatory_inheritance?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'REGISTRY_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
+assert(registry.mandatory_inheritance?.task_dispatch_without_bootstrap_receipt_allowed === false, 'REGISTRY_UNVERIFIED_TASK_DISPATCH_ALLOWED');
+assert(registry.leadership_execution?.responsible_agent_owns_authorized_remediation_to_closure === true, 'REGISTRY_RESPONSIBLE_AGENT_OWNS_REMEDIATION');
+assert(registry.leadership_execution?.kpmo_is_unique_remediation_owner === false, 'REGISTRY_KPMO_EXCLUSIVE_REMEDIATION_OWNER');
+assert(registry.violation_classification?.report_only_while_authorized_reversible_remediation_executable === 'P1_OPERATING_DEFECT', 'REGISTRY_REPORT_ONLY_VIOLATION');
+for (const key of [
+  'material_false_or_unsupported_claim',
+  'concealed_known_blocker',
+  'fabricated_metric_or_execution',
+  'stale_state_presented_as_current',
+  'platform_principle_weakened_reordered_or_bypassed',
+  'manual_only_normal_activation_for_ready_governed_runner',
+  'leadership_rule_identity_renumbered_deleted_weakened_or_name_swapped',
+  'false_remediation_or_verification_claim'
+]) assert(registry.violation_classification?.[key] === 'P0_GOVERNANCE_DEFECT', `REGISTRY_P0_CLASSIFICATION:${key}`);
 assert(registry.change_control?.requires_policy_and_contract_sync === true, 'REGISTRY_POLICY_SYNC');
 assert(registry.change_control?.requires_validator_pass === true, 'REGISTRY_VALIDATOR_GATE');
 assert(registry.leadership_execution?.detected_internal_defect_requires_immediate_authorized_remediation === true, 'REGISTRY_PROACTIVE_REMEDIATION');
@@ -185,6 +350,11 @@ for (const [key, expected] of Object.entries({
   human_policy_path: files.policy,
   root_instruction_path: files.agents,
   machine_contract_path: files.contract,
+  github_bootstrap_contract_path: files.githubBootstrapContract,
+  github_bootstrap_entrypoint_path: files.githubBootstrapEntrypoint,
+  github_bootstrap_validator_path: files.githubBootstrapValidator,
+  github_bootstrap_receipt_verifier_path: files.githubBootstrapVerifier,
+  github_bootstrap_workflow_path: '.github/workflows/ci-validation.yml',
   status_receipt_schema_path: files.schema,
   validator_path: 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs',
   workflow_path: '.github/workflows/ai-agent-governance-enforcement-v1.yml'
@@ -215,13 +385,17 @@ const requiredAgentMarkers = [
   'Fail closed on uncertainty',
   '.github/AI_AGENT_OPERATING_RULES.md',
   'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
+  'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json',
+  'Mandatory GitHub-source bootstrap',
+  'npm run agent:bootstrap',
+  'BOOTSTRAP_VERIFIED',
   'Global leading platform scale standard',
   'AI-018 / GLOBAL_SCALE_STEWARDSHIP'
 ];
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.3.0',
+  '**Version:** 1.7.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -242,13 +416,18 @@ const requiredPolicyMarkers = [
   'prioritized risks and forward improvements',
   'Global leading platform scale stewardship',
   'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
-  'Architecture coverage, provider counts, synthetic capacity, or a successful local test does not constitute empirical global proof'
+  'Architecture coverage, provider counts, synthetic capacity, or a successful local test does not constitute empirical global proof',
+  'GitHub canonical source bootstrap',
+  'BOOTSTRAP_VERIFIED'
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
 assert(copilot.includes('.github/AI_AGENT_OPERATING_RULES.md'), 'COPILOT_POLICY_REFERENCE');
 assert(copilot.includes('never fabricate metrics'), 'COPILOT_METRIC_BOUNDARY');
 assert(copilot.includes('AI-018 / GLOBAL_SCALE_STEWARDSHIP'), 'COPILOT_GLOBAL_SCALE_STEWARDSHIP');
+assert(copilot.includes(files.githubBootstrapContract), 'COPILOT_GITHUB_BOOTSTRAP_CONTRACT');
+assert(copilot.includes('npm run agent:bootstrap'), 'COPILOT_GITHUB_BOOTSTRAP_COMMAND');
+assert(copilot.includes('BOOTSTRAP_VERIFIED'), 'COPILOT_GITHUB_BOOTSTRAP_STATE');
 
 const validateReceipt = (receiptPath) => {
   const receipt = readJson(receiptPath);
@@ -282,7 +461,7 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.3.0',
+  version: '1.7.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
@@ -295,6 +474,8 @@ const report = {
   inheritance_fail_closed: true,
   autonomous_scale_triggers_validated: true,
   manual_only_normal_activation_forbidden: true,
+  github_canonical_bootstrap_required: true,
+  per_agent_bootstrap_receipt_required: true,
   self_exemption_allowed: false,
   production: 'HOLD',
   public_release: 'HOLD'
