@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-requirement-adapter-coverage-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P1",
@@ -73,8 +73,22 @@
   "software_coverage_states": [
     "SOFTWARE_IMPLEMENTED",
     "CONTEXT_ONLY",
-    "UNMAPPED"
+    "NO_IMPLEMENTED_CLAIM_PARSER"
   ],
+  "deprecated_compatibility_metrics": {
+    "status": "READ_ONLY_TRANSLATION_NOT_CANONICAL_STATUS",
+    "software_gap_requirements": {
+      "canonical_replacements": [
+        "source_profile_discovery_requirements",
+        "schema_bound_claim_parser_requirements"
+      ],
+      "interpretation_forbidden": "MISSING_INTERNAL_CODE_MODULES"
+    },
+    "unmapped_requirements": {
+      "canonical_replacement": "claim_parser_not_implemented_requirements",
+      "interpretation_forbidden": "UNACCOUNTED_OR_SILENTLY_DROPPED_REQUIREMENTS"
+    }
+  },
   "empirical_state": "RIGHTS_SCHEMA_ACTIVATION_HOLD",
   "empirical_hold_reasons": [
     "PURPOSE_SPECIFIC_RIGHTS_NOT_VERIFIED",
@@ -94,8 +108,8 @@
     "unique_selected_registered_profiles": 0,
     "software_implemented_requirements": 39,
     "context_only_requirements": 15,
-    "unmapped_requirements": 138,
-    "software_gap_requirements": 153,
+    "claim_parser_not_implemented_requirements": 138,
+    "source_discovery_or_schema_activation_hold_requirements": 153,
     "source_profile_discovery_requirements": 120,
     "schema_bound_claim_parser_requirements": 33,
     "internal_unbound_execution_queue_count": 0,

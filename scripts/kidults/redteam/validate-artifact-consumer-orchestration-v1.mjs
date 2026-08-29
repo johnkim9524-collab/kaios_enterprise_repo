@@ -65,6 +65,8 @@ const autonomousResolutionPrStaticContract = "validate-autonomous-resolution-con
 assert(autonomousResolution.includes(autonomousResolutionPrStaticContract), 'AUTONOMOUS_RESOLUTION_PR_STATIC_LANE_MISSING');
 const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')";
 assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_SEPARATION_MISSING');
+assert(autonomousResolution.includes('actions: write') && autonomousResolution.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'AUTONOMOUS_RESOLUTION_SELF_HEALING_P1_DISPATCH_MISSING');
+assert(autonomousResolution.includes('ACTIVE_P1_RUN_ID') && autonomousResolution.includes('for ATTEMPT in {1..60}; do') && autonomousResolution.includes('EXACT_MAIN_P1_RECOVERY_TIMEOUT'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_RECOVERY_MISSING');
 assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
 assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
 assert(supersession.includes('for readback_attempt in $(seq 1 8); do'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
@@ -118,6 +120,10 @@ const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
   "if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
 );
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
+const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.replace('actions: write', 'actions: read');
+assert(autonomousResolutionRecoveryPermissionMutation !== autonomousResolution && !autonomousResolutionRecoveryPermissionMutation.includes('actions: write'), 'AUTONOMOUS_RESOLUTION_RECOVERY_PERMISSION_MUTATION_NOT_DETECTED');
+const autonomousResolutionRecoveryBoundMutation = autonomousResolution.replace('for ATTEMPT in {1..60}; do', 'while true; do');
+assert(autonomousResolutionRecoveryBoundMutation !== autonomousResolution && !autonomousResolutionRecoveryBoundMutation.includes('for ATTEMPT in {1..60}; do'), 'AUTONOMOUS_RESOLUTION_RECOVERY_BOUND_MUTATION_NOT_DETECTED');
 const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do', 'for attempt in 1; do');
 assert(supersessionRetryMutation !== supersession && !supersessionRetryMutation.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_RETRY_MUTATION_NOT_DETECTED');
 const supersessionTerminalProofMutation = supersession.replaceAll('if [[ "${latest_conclusion}" == "cancelled" ]]', 'if [[ -n "${latest_conclusion}" ]]');
@@ -137,7 +143,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 18,
+  adversarial_mutations_rejected: 20,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',

@@ -47,7 +47,7 @@ const resolutionReceipt = JSON.parse(receiptText);
 const artifactBinding = JSON.parse(artifactBindingText);
 const contract = JSON.parse(contractText);
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.0.0', 'COVERAGE_CONTRACT_ID_VERSION');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.1.0', 'COVERAGE_CONTRACT_ID_VERSION');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'COVERAGE_CONTRACT_STATUS');
 assert(same(contract.platform_principles, principles), 'COVERAGE_CONTRACT_PRINCIPLES');
 assert(contract.canonical_grain?.unmerged_v2_adapter_requirement_id_is_authoritative === false, 'UNMERGED_V2_ID_AUTHORITY_FORBIDDEN');
@@ -421,7 +421,7 @@ for (const mission of queue.missions) {
     ? 'SOFTWARE_IMPLEMENTED'
     : evaluations.some((evaluation) => evaluation.adapter_kind === 'CONTEXT_ONLY_CLASSIFIER')
       ? 'CONTEXT_ONLY'
-      : 'UNMAPPED';
+      : 'NO_IMPLEMENTED_CLAIM_PARSER';
   const unresolved = [];
   if (eligible.length === 0) unresolved.push('NO_REGISTERED_PROFILE_FOR_SCOPE_AND_CLAIM');
   if (eligible.length > 0 && rightsEligible.length === 0) unresolved.push('NO_RIGHTS_CLEAR_PROFILE_FOR_PURPOSE');
@@ -515,8 +515,8 @@ const families = [...familyMap.entries()].map(([key, familyRecords]) => {
     regions: uniq(familyRecords.map((record) => record.region)),
     software_implemented_count: softwareImplemented,
     context_only_count: familyRecords.filter((record) => record.software_coverage_state === 'CONTEXT_ONLY').length,
-    unmapped_count: familyRecords.filter((record) => record.software_coverage_state === 'UNMAPPED').length,
-    software_gap_count: familyRecords.length - softwareImplemented,
+    claim_parser_not_implemented_count: familyRecords.filter((record) => record.software_coverage_state === 'NO_IMPLEMENTED_CLAIM_PARSER').length,
+    source_discovery_or_schema_activation_hold_count: familyRecords.length - softwareImplemented,
     family_software_state: softwareImplemented === familyRecords.length
       ? 'FULLY_SOFTWARE_COVERED'
       : softwareImplemented > 0
@@ -560,7 +560,7 @@ assert(effectiveQueueMetrics.filled_source_slots === baseline.filled_registered_
 assert(effectiveQueueMetrics.unique_registered_profiles_selected === baseline.unique_selected_registered_profiles, 'QUEUE_SELECTED_PROFILES_BASELINE');
 assert((coverageCounts.SOFTWARE_IMPLEMENTED || 0) === baseline.software_implemented_requirements, 'SOFTWARE_IMPLEMENTED_BASELINE');
 assert((coverageCounts.CONTEXT_ONLY || 0) === baseline.context_only_requirements, 'CONTEXT_ONLY_BASELINE');
-assert((coverageCounts.UNMAPPED || 0) === baseline.unmapped_requirements, 'UNMAPPED_BASELINE');
+assert((coverageCounts.NO_IMPLEMENTED_CLAIM_PARSER || 0) === baseline.claim_parser_not_implemented_requirements, 'CLAIM_PARSER_NOT_IMPLEMENTED_BASELINE');
 assert((softwareByEvidence.CURRENT_SOLD_TRANSACTION || 0) === baseline.sold_software_implemented_requirements, 'SOLD_SOFTWARE_BASELINE');
 assert((softwareByEvidence.LIQUIDITY_TIME_TO_SALE_EXPOSURE || 0) === baseline.liquidity_software_implemented_requirements, 'LIQUIDITY_SOFTWARE_BASELINE');
 assert((familyStateCounts.FULLY_SOFTWARE_COVERED || 0) === baseline.fully_software_covered_families, 'FULL_FAMILY_BASELINE');
@@ -570,7 +570,7 @@ assert((evidenceCounts.CURRENT_SOLD_TRANSACTION || 0) === 96 && (evidenceCounts.
 
 const coverageLedger = {
   id: 'kidults-asi-requirement-adapter-coverage-ledger-v1',
-  version: '1.0.0',
+  version: contract.version,
   state: 'ALL_AUTHORITATIVE_REQUIREMENTS_CROSSWALKED_TO_CURRENT_CLAIM_CEILINGS',
   platform_principles: principles,
   authoritative_requirement_grain: 'AUTONOMOUS_RESOLUTION_MISSION_V1',
@@ -583,7 +583,7 @@ const coverageLedger = {
   family_count: families.length,
   evidence_class_counts: evidenceCounts,
   software_coverage_counts: coverageCounts,
-  software_gap_count: records.filter((record) => record.software_coverage_state !== 'SOFTWARE_IMPLEMENTED').length,
+  source_discovery_or_schema_activation_hold_count: records.filter((record) => record.software_coverage_state !== 'SOFTWARE_IMPLEMENTED').length,
   rights_schema_activation_hold_count: records.length,
   legacy_v2_adapter_requirement_ids_available: 0,
   legacy_v2_adapter_requirement_ids_synthesized: 0,
@@ -596,7 +596,7 @@ const coverageLedger = {
 };
 const familyCoverage = {
   id: 'kidults-asi-requirement-adapter-family-coverage-v1',
-  version: '1.0.0',
+  version: contract.version,
   state: 'DOMAIN_EVIDENCE_FAMILY_SOFTWARE_COVERAGE_REPORTED_WITHOUT_DENOMINATOR_SUBSTITUTION',
   family_key: ['domain', 'evidence_class'],
   family_count: families.length,
@@ -654,11 +654,11 @@ const gapRecords = records.filter((record) => record.software_coverage_state !==
 }));
 const gapQueue = {
   id: 'kidults-asi-requirement-adapter-gap-queue-v1',
-  version: '1.0.0',
+  version: contract.version,
   state: 'CURRENT_SOURCE_DISCOVERY_AND_SCHEMA_BOUND_CLAIM_GAPS_EXPLICIT',
   gap_count: gapRecords.length,
   context_only_count: gapRecords.filter((record) => record.software_coverage_state === 'CONTEXT_ONLY').length,
-  unmapped_count: gapRecords.filter((record) => record.software_coverage_state === 'UNMAPPED').length,
+  claim_parser_not_implemented_count: gapRecords.filter((record) => record.software_coverage_state === 'NO_IMPLEMENTED_CLAIM_PARSER').length,
   source_profile_discovery_count: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
   schema_bound_claim_parser_count: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
   internally_unbound_execution_queue_count: 0,
@@ -681,7 +681,7 @@ for (const [name, value] of [
 
 const outputManifest = {
   id: 'kidults-asi-requirement-adapter-coverage-manifest-v1',
-  version: '1.0.0',
+  version: contract.version,
   state: 'INTERNAL_EXECUTION_QUEUE_CLOSED_SOURCE_DISCOVERY_AND_ACTIVATION_HOLD_EXPLICIT',
   as_of: resolutionManifest.as_of,
   platform_principles: principles,
@@ -731,8 +731,8 @@ const outputManifest = {
     implemented_source_adapters: normalized.length,
     software_implemented_requirements: coverageCounts.SOFTWARE_IMPLEMENTED || 0,
     context_only_requirements: coverageCounts.CONTEXT_ONLY || 0,
-    unmapped_requirements: coverageCounts.UNMAPPED || 0,
-    software_gap_requirements: gapRecords.length,
+    claim_parser_not_implemented_requirements: coverageCounts.NO_IMPLEMENTED_CLAIM_PARSER || 0,
+    source_discovery_or_schema_activation_hold_requirements: gapRecords.length,
     source_profile_discovery_requirements: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
     schema_bound_claim_parser_requirements: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
     original_preflight_actions: resolutionManifest.results?.original_actions,
@@ -760,6 +760,19 @@ const outputManifest = {
     track_b_results_created: 0,
     projections_created: 0,
   },
+  deprecated_compatibility_metrics: {
+    status: contract.deprecated_compatibility_metrics.status,
+    software_gap_requirements: {
+      value: gapRecords.length,
+      canonical_replacements: contract.deprecated_compatibility_metrics.software_gap_requirements.canonical_replacements,
+      interpretation_forbidden: contract.deprecated_compatibility_metrics.software_gap_requirements.interpretation_forbidden,
+    },
+    unmapped_requirements: {
+      value: coverageCounts.NO_IMPLEMENTED_CLAIM_PARSER || 0,
+      canonical_replacement: contract.deprecated_compatibility_metrics.unmapped_requirements.canonical_replacement,
+      interpretation_forbidden: contract.deprecated_compatibility_metrics.unmapped_requirements.interpretation_forbidden,
+    },
+  },
   output_files: outputs,
   autonomous_effect: 'POSITIVE_ALL_672_PREFLIGHT_ACTIONS_TERMINAL_AND_REMAINING_REQUIREMENTS_SPLIT_TO_SOURCE_DISCOVERY_OR_SCHEMA_BOUND_ACTIVATION',
   global_effect: 'POSITIVE_ALL_192_SCOPE_REGION_EVIDENCE_REQUIREMENTS_RETAINED_WITHOUT_CALLING_SOURCE_COUNT_GLOBAL_EVIDENCE',
@@ -783,8 +796,8 @@ console.log(JSON.stringify({
   registered_source_profiles: normalized.length,
   software_implemented_requirements: coverageCounts.SOFTWARE_IMPLEMENTED || 0,
   context_only_requirements: coverageCounts.CONTEXT_ONLY || 0,
-  unmapped_requirements: coverageCounts.UNMAPPED || 0,
-  software_gap_requirements: gapRecords.length,
+  claim_parser_not_implemented_requirements: coverageCounts.NO_IMPLEMENTED_CLAIM_PARSER || 0,
+  source_discovery_or_schema_activation_hold_requirements: gapRecords.length,
   source_profile_discovery_requirements: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
   schema_bound_claim_parser_requirements: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
   unresolved_preflight_actions: Number(resolutionManifest.results?.original_actions || 0) - Number(resolutionManifest.results?.terminal_actions || 0),

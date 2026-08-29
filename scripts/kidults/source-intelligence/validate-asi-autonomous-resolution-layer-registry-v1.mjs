@@ -44,7 +44,7 @@ const engines = [
 assert(contract.id === 'kidults-asi-autonomous-resolution-layer-contract-v1', 'CONTRACT_ID');
 assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
 assert(registry.id === 'kidults-asi-autonomous-resolution-layer-registry-v1', 'REGISTRY_ID');
-assert(registry.version === '1.0.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
+assert(registry.version === '1.1.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLES');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLES');
 assert(JSON.stringify(contract.engine_order) === JSON.stringify(engines), 'CONTRACT_ENGINE_ORDER');
@@ -71,7 +71,10 @@ for (const [key, expected] of Object.entries({
 assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '22 * * * *', 'REGISTRY_SCHEDULE');
 assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P1 Source Preflight v1', 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.manual_dispatch_role === 'SELF_HEALING_RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.manual_recovery_reuses_active_exact_main_p1_before_dispatch === true, 'REGISTRY_MANUAL_RECOVERY_REUSE');
+assert(registry.automatic_activation?.manual_recovery_dispatches_exact_main_p1_when_absent === true, 'REGISTRY_MANUAL_RECOVERY_DISPATCH');
+assert(registry.automatic_activation?.manual_recovery_wait_is_bounded_seconds === 600, 'REGISTRY_MANUAL_RECOVERY_BOUND');
 assert(registry.execution_policy?.current_p1_artifact_is_single_coherent_input === true, 'REGISTRY_COHERENT_INPUT');
 assert(registry.execution_policy?.semantic_triage_precedes_expensive_preflight === true, 'REGISTRY_TRIAGE_ORDER');
 assert(registry.execution_policy?.all_current_actions_must_reach_terminal_state === true, 'REGISTRY_TERMINAL_ACTIONS');
@@ -102,14 +105,18 @@ for (const marker of [
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
 assert(workflow.includes('contents: read'), 'WORKFLOW_CONTENTS_READ');
 assert(!workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_WRITE');
+assert(workflow.includes('actions: write'), 'WORKFLOW_ACTIONS_WRITE_FOR_BOUNDED_P1_RECOVERY');
 assert(workflow.includes('persist-credentials: false'), 'WORKFLOW_CREDENTIALS');
 assert(workflow.includes('fetch-depth: 0'), 'WORKFLOW_FULL_HISTORY_REQUIRED');
 assert(workflow.includes('-f branch=main -f status=success -f per_page=100'), 'WORKFLOW_BOUNDED_P1_RUN_QUERY');
+assert(workflow.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'WORKFLOW_P1_RECOVERY_DISPATCH_MISSING');
+assert(workflow.includes('for ATTEMPT in {1..60}; do') && workflow.includes('EXACT_MAIN_P1_RECOVERY_TIMEOUT'), 'WORKFLOW_P1_RECOVERY_BOUND_MISSING');
+assert(workflow.includes('ACTIVE_P1_RUN_ID') && workflow.includes('P1_RECOVERY_DISPATCHED=true'), 'WORKFLOW_P1_RECOVERY_REUSE_BEFORE_DISPATCH_MISSING');
 assert(workflow.includes('test "$P1_SOURCE_SHA" = "$TARGET_SHA"'), 'WORKFLOW_EXACT_GENERATION_BINDING');
 assert(workflow.includes('exact_generation_bound:true'), 'WORKFLOW_EXACT_GENERATION_RECEIPT');
 assert(!workflow.includes('/actions/artifacts?per_page=100'), 'WORKFLOW_REPOSITORY_WIDE_ARTIFACT_SCAN_FORBIDDEN');
 assert(!workflow.includes('--paginate'), 'WORKFLOW_UNBOUNDED_PAGINATION_FORBIDDEN');
-assert(!workflow.includes('for ATTEMPT in $(seq'), 'WORKFLOW_FIXED_GH_API_RETRY_FORBIDDEN');
+assert(!workflow.includes('while true'), 'WORKFLOW_UNBOUNDED_GH_API_RETRY_FORBIDDEN');
 assert(!workflow.includes('sleep 15'), 'WORKFLOW_API_RETRY_SLEEP_FORBIDDEN');
 assert(!workflow.includes('git push'), 'WORKFLOW_DIRECT_PUSH');
 assert(!workflow.includes('curl ') && !workflow.includes('wget '), 'WORKFLOW_UNDECLARED_NETWORK');
@@ -165,7 +172,7 @@ for (const [key, expected] of Object.entries({
 
 console.log(JSON.stringify({
   id: 'kidults-asi-autonomous-resolution-layer-registry-validation-v1',
-  version: '1.0.0',
+  version: registry.version,
   state: 'VERIFIED_PASS',
   engine_count: engines.length,
   output_count: registry.registered_outputs.length,

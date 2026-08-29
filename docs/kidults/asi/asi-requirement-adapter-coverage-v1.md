@@ -56,13 +56,15 @@ The 16 normalized source claim-ceiling records and the 192 mission requirements 
 | Pending registered-source adapter implementations | **0** |
 | `SOFTWARE_IMPLEMENTED` | **39 / 192** |
 | `CONTEXT_ONLY` | **15 / 192** |
-| `UNMAPPED` | 138 / 192 |
+| `NO_IMPLEMENTED_CLAIM_PARSER` | **138 / 192** |
 | Source-profile discovery required | **120 / 192** |
 | Schema-bound claim parser unavailable | **33 / 192** |
 | Unresolved internal execution queue | **0** |
 | `RIGHTS_SCHEMA_ACTIVATION_HOLD` | 192 / 192 |
 
 The 39 software matches comprise 24 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, five are partial, and ten have zero matching claim-parser coverage. The remaining 153 requirements are not 153 missing code modules: 120 have no registered source profile for the scope/claim, while 33 have a registered profile but cannot receive a truthful claim parser until source-specific rights, a live schema snapshot, and claim semantics are verified.
+
+`software_gap_requirements` and `unmapped_requirements` are no longer canonical result fields. They remain only under `deprecated_compatibility_metrics` as read-only translations for older artifact readers, with explicit forbidden interpretations. Canonical status uses `source_profile_discovery_requirements`, `schema_bound_claim_parser_requirements`, and `claim_parser_not_implemented_requirements`; no deprecated counter may be reported as an internal defect or an unaccounted requirement.
 
 The upstream Autonomous Resolution Layer has already terminalized all 672 original preflight actions and reduced remaining Gate 1 HOLD decisions to zero. Rejected discovery-metadata candidates are not carried forward as open preflight work.
 

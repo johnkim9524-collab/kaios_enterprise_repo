@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-autonomous-resolution-layer-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -53,7 +53,10 @@
     "main_push": true,
     "schedule": "22 * * * *",
     "upstream_workflow": "KIDULTS ASI P1 Source Preflight v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "manual_dispatch_role": "SELF_HEALING_RECOVERY_OR_EXPLICIT_REPLAY_ONLY",
+    "manual_recovery_reuses_active_exact_main_p1_before_dispatch": true,
+    "manual_recovery_dispatches_exact_main_p1_when_absent": true,
+    "manual_recovery_wait_is_bounded_seconds": 600
   },
   "execution_policy": {
     "current_p1_artifact_is_single_coherent_input": true,
