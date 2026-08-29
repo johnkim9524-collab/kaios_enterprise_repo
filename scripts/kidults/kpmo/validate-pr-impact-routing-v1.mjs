@@ -4,7 +4,9 @@ import path from 'node:path';
 
 const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
+const bootstrapWorkflow = 'ai-agent-bootstrap-remediation-enforcement-v1.yml';
 const allowedUnbounded = new Set([
+  bootstrapWorkflow,
   'ci-validation.yml',
   'kidults-governed-landing-authorization-v1.yml',
   supersessionWorkflow,
@@ -29,30 +31,26 @@ function supersessionViolations(source) {
   const jobsIndex = source.indexOf('\njobs:');
   const workflowScope = jobsIndex >= 0 ? source.slice(0, jobsIndex) : source;
 
-  if (!/pull_request_target:\s*\n\s{4}branches:\s*\[main\]/.test(source)) {
-    problems.push('PULL_REQUEST_TARGET_NOT_RESTRICTED_TO_MAIN');
-  }
-  if (/^\s{2}actions:\s*write\s*$/m.test(workflowScope)) {
-    problems.push('WORKFLOW_LEVEL_ACTIONS_WRITE');
-  }
-  if (!/if:\s*github\.event_name == 'push' \|\| github\.event\.pull_request\.head\.repo\.full_name == github\.repository/.test(source)) {
-    problems.push('MISSING_SAME_REPOSITORY_JOB_GUARD');
-  }
-  if (!/\n\s{4}permissions:\s*\n\s{6}actions:\s*write\s*$/m.test(source)) {
-    problems.push('MISSING_JOB_SCOPED_ACTIONS_WRITE');
-  }
-  if (!source.includes('HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}')) {
-    problems.push('MISSING_HEAD_REPOSITORY_BINDING');
-  }
-  if (!source.includes('[[ "${HEAD_REPOSITORY}" == "${REPOSITORY}" ]] || { echo "Refusing Actions write for fork PR" >&2; exit 1; }')) {
-    problems.push('MISSING_RUNTIME_FORK_REJECTION');
-  }
-  if (!source.includes('--data-urlencode "branch=${HEAD_BRANCH}"')) {
-    problems.push('MISSING_URL_ENCODED_BRANCH_QUERY');
-  }
-  if (source.includes('/actions/runs?branch=${HEAD_BRANCH}')) {
-    problems.push('RAW_BRANCH_QUERY_INTERPOLATION');
-  }
+  if (!/pull_request_target:\s*\n\s{4}branches:\s*\[main\]/.test(source)) problems.push('PULL_REQUEST_TARGET_NOT_RESTRICTED_TO_MAIN');
+  if (/^\s{2}actions:\s*write\s*$/m.test(workflowScope)) problems.push('WORKFLOW_LEVEL_ACTIONS_WRITE');
+  if (!/if:\s*github\.event_name == 'push' \|\| github\.event\.pull_request\.head\.repo\.full_name == github\.repository/.test(source)) problems.push('MISSING_SAME_REPOSITORY_JOB_GUARD');
+  if (!/\n\s{4}permissions:\s*\n\s{6}actions:\s*write\s*$/m.test(source)) problems.push('MISSING_JOB_SCOPED_ACTIONS_WRITE');
+  if (!source.includes('HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}')) problems.push('MISSING_HEAD_REPOSITORY_BINDING');
+  if (!source.includes('[[ "${HEAD_REPOSITORY}" == "${REPOSITORY}" ]] || { echo "Refusing Actions write for fork PR" >&2; exit 1; }')) problems.push('MISSING_RUNTIME_FORK_REJECTION');
+  if (!source.includes('--data-urlencode "branch=${HEAD_BRANCH}"')) problems.push('MISSING_URL_ENCODED_BRANCH_QUERY');
+  if (source.includes('/actions/runs?branch=${HEAD_BRANCH}')) problems.push('RAW_BRANCH_QUERY_INTERPOLATION');
+  return problems;
+}
+
+function bootstrapViolations(source) {
+  const problems = [];
+  if (!/pull_request:\s*\n\s{4}branches:\s*\[main\]/.test(source)) problems.push('BOOTSTRAP_PR_NOT_RESTRICTED_TO_MAIN');
+  if (/^\s+paths:\s*$/m.test(source)) problems.push('BOOTSTRAP_PATH_FILTER_FORBIDDEN');
+  if (!/^\s{2}push:\s*\n\s{4}branches:\s*\[main\]/m.test(source)) problems.push('BOOTSTRAP_MAIN_PUSH_MISSING');
+  if (!/^\s{2}schedule:\s*$/m.test(source)) problems.push('BOOTSTRAP_SCHEDULE_MISSING');
+  if (!/^\s{2}workflow_dispatch:\s*$/m.test(source)) problems.push('BOOTSTRAP_MANUAL_RECOVERY_MISSING');
+  if (!source.includes('persist-credentials: false')) problems.push('BOOTSTRAP_PERSIST_CREDENTIALS_NOT_FALSE');
+  if (!source.includes('node scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs')) problems.push('BOOTSTRAP_VALIDATOR_MISSING');
   return problems;
 }
 
@@ -62,14 +60,10 @@ function assertSupersessionMutationRejected(label, pristine, mutate, violations)
     violations.push({ file: supersessionWorkflow, kind: `TRUST_SELF_TEST_MUTATION_NOT_APPLIED:${label}` });
     return;
   }
-  if (supersessionViolations(mutated).length === 0) {
-    violations.push({ file: supersessionWorkflow, kind: `TRUST_SELF_TEST_FALSE_GREEN:${label}` });
-  }
+  if (supersessionViolations(mutated).length === 0) violations.push({ file: supersessionWorkflow, kind: `TRUST_SELF_TEST_FALSE_GREEN:${label}` });
 }
 
-const files = fs.readdirSync(workflowDir)
-  .filter((name) => /\.ya?ml$/.test(name))
-  .sort();
+const files = fs.readdirSync(workflowDir).filter((name) => /\.ya?ml$/.test(name)).sort();
 const violations = [];
 let prWorkflows = 0;
 let bounded = 0;
@@ -81,26 +75,21 @@ for (const file of files) {
   if (!block) continue;
   prWorkflows += 1;
   const hasBound = block.some((line) => /^    paths(?:-ignore)?:\s*$/.test(line));
-  if (hasBound) {
-    bounded += 1;
-    continue;
-  }
-  if (allowedUnbounded.has(file)) {
-    protectedUnbounded += 1;
-    continue;
-  }
+  if (hasBound) { bounded += 1; continue; }
+  if (allowedUnbounded.has(file)) { protectedUnbounded += 1; continue; }
   violations.push({ file, kind: 'UNBOUNDED_PULL_REQUEST_TRIGGER' });
 }
 
-for (const required of allowedUnbounded) {
-  if (!files.includes(required)) violations.push({ file: required, kind: 'MISSING_PROTECTED_WORKFLOW' });
+for (const required of allowedUnbounded) if (!files.includes(required)) violations.push({ file: required, kind: 'MISSING_PROTECTED_WORKFLOW' });
+
+if (files.includes(bootstrapWorkflow)) {
+  const source = fs.readFileSync(path.join(workflowDir, bootstrapWorkflow), 'utf8');
+  for (const kind of bootstrapViolations(source)) violations.push({ file: bootstrapWorkflow, kind });
 }
 
 if (files.includes(supersessionWorkflow)) {
   const source = fs.readFileSync(path.join(workflowDir, supersessionWorkflow), 'utf8');
-  for (const kind of supersessionViolations(source)) {
-    violations.push({ file: supersessionWorkflow, kind });
-  }
+  for (const kind of supersessionViolations(source)) violations.push({ file: supersessionWorkflow, kind });
 
   assertSupersessionMutationRejected('REMOVE_SAME_REPOSITORY_JOB_GUARD', source,
     (text) => text.replace("if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository", "if: github.event_name == 'push' || true"), violations);
@@ -122,6 +111,13 @@ const receipt = {
   bounded_pull_request_workflow_count: bounded,
   protected_unbounded_workflow_count: protectedUnbounded,
   protected_unbounded_allowlist: [...allowedUnbounded].sort(),
+  bootstrap_enforcement: {
+    repository_wide_pr_validation: true,
+    main_push_validation: true,
+    hourly_sentinel: true,
+    manual_recovery: true,
+    path_filter_allowed: false
+  },
   exact_head_supersession_trust_boundary: {
     fork_pr_actions_write: 'DENIED_BY_JOB_GUARD',
     pull_request_target_base: 'main',
