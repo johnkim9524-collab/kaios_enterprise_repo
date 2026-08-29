@@ -25,8 +25,28 @@ mkdir -p "$RECEIPT_DIR"
 touch "$RECEIPT_DIR/deletions.ndjson"
 
 list_deployments() {
+  local output_file error_file status
+  output_file="$(mktemp)"
+  error_file="$(mktemp)"
+  set +e
   npx --yes wrangler@4.127.1 pages deployment list \
-    --project-name "$PROJECT_NAME" --json
+    --project-name "$PROJECT_NAME" --json >"$output_file" 2>"$error_file"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    mkdir -p "$RECEIPT_DIR"
+    jq -n \
+      --arg project "$PROJECT_NAME" \
+      --arg state "BLOCKED" \
+      --arg blocker "CLOUDFLARE_AUTHENTICATION_OR_API_LIST_FAILURE" \
+      --arg detail "$(tail -n 12 "$error_file" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | cut -c1-700)" \
+      '{project:$project,state:$state,blocker:$blocker,detail:$detail,production_mutation:false,preview_deletions:0}' \
+      > "$RECEIPT_DIR/final.json"
+    rm -f "$output_file" "$error_file"
+    return 69
+  fi
+  cat "$output_file"
+  rm -f "$output_file" "$error_file"
 }
 
 normalize() {
