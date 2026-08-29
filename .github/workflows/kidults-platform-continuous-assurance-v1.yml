@@ -500,6 +500,7 @@ jobs:
           node scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs
 
       - name: Run audit and always retain receipt
+        if: always()
         run: >-
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
