@@ -183,7 +183,8 @@ try {
   );
   const settledPurge = await page.evaluate(snapshotPortal);
   const type = settledPurge.navigationType;
-  if (type !== 'back_forward') functionalFailures.push(`NAVIGATION_TYPE_${type}_EXPECTED_back_forward`);
+  const browserHistoryTraversal = type === 'back_forward';
+  if (!browserHistoryTraversal) functionalFailures.push(`NAVIGATION_TYPE_${type}_EXPECTED_back_forward`);
 
   const pagehide = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pagehide');
   const pageshow = [...settledPurge.lifecycle].reverse().find((entry) => entry.type === 'pageshow' && entry.documentId === firstDocumentId);
