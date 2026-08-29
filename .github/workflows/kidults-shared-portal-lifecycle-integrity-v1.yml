@@ -122,6 +122,7 @@ jobs:
           import {execFileSync} from 'node:child_process';
           const reportPath='/tmp/kidults-shared-portal-lifecycle/report.json';
           const runnerPath='scripts/kidults/portal/runtime/run-shared-portal-lifecycle-integrity-v1.mjs';
+          const workflowPath='.github/workflows/kidults-shared-portal-lifecycle-integrity-v1.yml';
           const lockPath='tooling/kidults-portal-r001-browser-qa/package-lock.json';
           const sha=bytes=>`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
           const report=fs.existsSync(reportPath)?JSON.parse(fs.readFileSync(reportPath,'utf8')):null;
@@ -131,7 +132,7 @@ jobs:
           if(!/^[0-9a-f]{40}$/.test(sourceSha)||checkedOut!==sourceSha)failures.push('SOURCE_SHA_MISMATCH');
           if(report?.result!=='PASS')failures.push('BROWSER_REPORT_NOT_PASS');
           if(report?.real_bfcache?.state!=='VERIFIED_PASS')failures.push('REAL_BFCACHE_NOT_PASS');
-          if(report?.evidence_frozen_after_all_browser_close!==true)failures.push('POST_CLOSE_FREEZE_MISSING');
+          if(report?.diagnostics?.frozen_after_all_browser_close!==true)failures.push('POST_CLOSE_FREEZE_MISSING');
           if(report?.serialized_verdict_bound_to_frozen_evidence!==true)failures.push('SERIALIZED_VERDICT_BINDING_MISSING');
           const receipt={
             id:'kidults-shared-portal-lifecycle-integrity-receipt-v1',
@@ -141,11 +142,15 @@ jobs:
             failures,
             report_sha256:fs.existsSync(reportPath)?sha(fs.readFileSync(reportPath)):null,
             runner_sha256:sha(fs.readFileSync(runnerPath)),
+            workflow_sha256:sha(fs.readFileSync(workflowPath)),
             lock_sha256:sha(fs.readFileSync(lockPath)),
             real_bfcache:report?.real_bfcache?.state||'UNKNOWN',
-            evidence_frozen_after_all_browser_close:report?.evidence_frozen_after_all_browser_close===true,
+            evidence_frozen_after_all_browser_close:report?.diagnostics?.frozen_after_all_browser_close===true,
             serialized_verdict_bound_to_frozen_evidence:report?.serialized_verdict_bound_to_frozen_evidence===true,
-            empirical_gate_effect:'NONE', public_release:'HOLD', production:'HOLD', g5:'HOLD'
+            empirical_gate_effect:'NONE',
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
           };
           fs.mkdirSync('/tmp/kidults-shared-portal-lifecycle',{recursive:true});
           fs.writeFileSync('/tmp/kidults-shared-portal-lifecycle/receipt.json',`${JSON.stringify(receipt,null,2)}\n`);
