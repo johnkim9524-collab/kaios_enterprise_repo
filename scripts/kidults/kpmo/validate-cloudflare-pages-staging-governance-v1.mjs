@@ -46,6 +46,10 @@ for(const s of [ro,dep]){
 req(ro.includes('legacy_deployments_enabled_authoritative:false'),'READONLY_LEGACY_INFORMATIONAL');
 req(ro.includes('preview_branch_rules_authoritative_only_when_custom:true'),'READONLY_PREVIEW_RULE_SCOPE');
 req(ro.includes('select(.environment == "preview" and .materialized == true)'),'READONLY_MATERIALIZED_PREVIEW');
+req(ro.includes('APPROVAL_BOUND_V1')&&ro.includes('LEGACY_GOVERNED_V1'),'READONLY_GOVERNED_LINEAGE_FORMATS');
+req(ro.includes('startswith("[KIDULTS-GOVERNED-STAGING] approval_id=")'),'READONLY_APPROVAL_BOUND_PREFIX');
+req(ro.includes('contains(" repository=" + $expected_repository + " ")'),'READONLY_APPROVAL_REPOSITORY_BINDING');
+req(ro.includes('contains(" source_sha=" + $commit_hash + " ")'),'READONLY_SOURCE_SHA_BINDING');
 req(clean.includes('select(.environment == "preview" and .materialized == true) | .id'),'CLEANUP_PREVIEW_ONLY');
 req(clean.includes('test "$initial_production_ids" = "$final_production_ids"'),'PRODUCTION_HISTORY_GUARD');
 req(!clean.includes('select(.environment == "production") | .id | @sh'),'NO_PROD_DELETE');
@@ -65,6 +69,6 @@ const mutations=[
 ];
 for(const [id,fn] of mutations) req(fn()===false,`MUTATION_FALSE_GREEN:${id}`);
 
-const receipt={id:'kidults-cloudflare-pages-staging-governance-validation-receipt-v1',version:'1.1.0',state:findings.length?'VERIFIED_FAIL':'VERIFIED_PASS',project:'kidults-workspace-staging',granular_controls_authoritative:true,deprecated_deployments_enabled_informational:true,automatic_git_deployments:'DISABLED_REQUIRED',governed_exact_sha_deployment:true,readonly_drift_monitor:true,emergency_preview_cleanup_manual_only:true,findings,public_release:'HOLD',production:'HOLD',g5:'HOLD'};
+const receipt={id:'kidults-cloudflare-pages-staging-governance-validation-receipt-v1',version:'1.1.0',state:findings.length?'VERIFIED_FAIL':'VERIFIED_PASS',project:'kidults-workspace-staging',granular_controls_authoritative:true,deprecated_deployments_enabled_informational:true,automatic_git_deployments:'DISABLED_REQUIRED',governed_exact_sha_deployment:true,approval_bound_lineage_readback:true,readonly_drift_monitor:true,emergency_preview_cleanup_manual_only:true,findings,public_release:'HOLD',production:'HOLD',g5:'HOLD'};
 console.log(JSON.stringify(receipt,null,2));
 if(findings.length) process.exit(1);
