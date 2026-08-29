@@ -46,8 +46,11 @@ function validate(binding, documents) {
   if (binding.trigger_event === 'workflow_run') {
     requireCondition(String(binding.event_upstream_run_id) === String(run.id), 'WORKFLOW_RUN_EVENT_ID_MISMATCH');
     requireCondition(binding.event_upstream_head_sha === run.head_sha, 'WORKFLOW_RUN_EVENT_HEAD_MISMATCH');
+  } else if (binding.trigger_event === 'schedule' || binding.trigger_event === 'workflow_dispatch') {
+    requireCondition(String(binding.event_upstream_run_id) === String(run.id), 'RECOVERY_EVENT_RUN_ID_MISMATCH');
+    requireCondition(binding.event_upstream_head_sha === run.head_sha, 'RECOVERY_EVENT_HEAD_MISMATCH');
   } else {
-    requireCondition(binding.event_upstream_run_id === null && binding.event_upstream_head_sha === null, 'NON_WORKFLOW_RUN_EVENT_BINDING_FORBIDDEN');
+    requireCondition(false, 'UNSUPPORTED_UPSTREAM_BINDING_EVENT');
   }
 
   const { p0b, p1, p2 } = binding.artifacts || {};
@@ -73,6 +76,7 @@ function validate(binding, documents) {
     state: 'VERIFIED_EXACT_UPSTREAM_CHAIN',
     repository: binding.repository,
     trigger_event: binding.trigger_event,
+    exact_main_recovery_event: binding.trigger_event === 'schedule' || binding.trigger_event === 'workflow_dispatch',
     p2_workflow_path: P2_WORKFLOW_PATH,
     p2_run_id: String(run.id),
     p2_head_sha: run.head_sha,
@@ -151,6 +155,11 @@ function selfTest() {
     p2Receipt: { id: 'kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2', source_sha: head, p0b_artifact_id: 10, p1_artifact_id: 20, graph_digest: graphDigest },
   };
   validate(binding, documents);
+  for (const triggerEvent of ['schedule', 'workflow_dispatch']) {
+    const recoveryBinding = clone(binding);
+    recoveryBinding.trigger_event = triggerEvent;
+    validate(recoveryBinding, documents);
+  }
   const mutations = [
     ['wrong-event-run', (b) => { b.event_upstream_run_id = 31; }],
     ['wrong-event-head', (b) => { b.event_upstream_head_sha = '2'.repeat(40); }],
@@ -166,6 +175,9 @@ function selfTest() {
     ['p0-id-not-from-receipt', (b, d) => { d.p2Receipt.p0b_artifact_id = 11; }],
     ['p1-name-mismatch', (b) => { b.artifacts.p1.name = 'wrong'; }],
     ['lineage-content-mismatch', (b, d) => { d.p0Registry.version = 'tampered'; }],
+    ['unsupported-trigger-event', (b) => { b.trigger_event = 'push'; }],
+    ['recovery-run-mismatch', (b) => { b.trigger_event = 'workflow_dispatch'; b.event_upstream_run_id = 31; }],
+    ['recovery-head-mismatch', (b) => { b.trigger_event = 'schedule'; b.event_upstream_head_sha = '2'.repeat(40); }],
   ];
   for (const [id, mutate] of mutations) {
     const candidateBinding = clone(binding);
