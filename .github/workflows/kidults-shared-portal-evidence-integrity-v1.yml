@@ -1,0 +1,109 @@
+name: KIDULTS Shared Portal Evidence Integrity V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/kidults-enterprise-staging/**'
+      - 'scripts/kidults/portal/**'
+      - 'tooling/kidults-portal-r001-browser-qa/**'
+      - '.github/workflows/kidults-shared-portal-evidence-integrity-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-shared-portal-evidence-integrity-v1-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  shared-portal-evidence-integrity:
+    name: KIDULTS Shared Portal Evidence Integrity V1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact source SHA
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate immutable evidence contract and negative mutations
+        run: |
+          node --check scripts/kidults/portal/browser-qa-evidence-v1.mjs
+          node --check scripts/kidults/portal/test-browser-qa-evidence-v1.mjs
+          node --check scripts/kidults/portal/run-shared-portal-evidence-canary-v1.mjs
+          node scripts/kidults/portal/test-browser-qa-evidence-v1.mjs
+
+      - name: Install isolated browser QA dependencies
+        run: |
+          mkdir -p /tmp/kidults-r001-qa
+          cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-qa/package.json
+          cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-qa/package-lock.json
+          npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund
+          node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps webkit
+
+      - name: Start approved-fixture staging Portal
+        shell: bash
+        run: |
+          mkdir -p /tmp/kidults-conversion-data
+          printf 'portal-r001-qa-ci-nonproduction-secret' > /tmp/kidults-conversion-secret
+          printf 'portal-r001-projection-capability-ci-secret-at-least-32-bytes' > /tmp/kidults-projection-secret
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {approvedProjectionFixture} from './scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
+          const projection = approvedProjectionFixture();
+          const now = new Date();
+          projection.generated_at = new Date(now - 120000).toISOString();
+          projection.updated_at = new Date(now - 60000).toISOString();
+          projection.freshness.observed_at = new Date(now - 120000).toISOString();
+          projection.freshness.valid_until = new Date(now.getTime() + 3600000).toISOString();
+          fs.writeFileSync('/tmp/kidults-approved-projection.json', JSON.stringify(projection));
+          NODE
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-conversion-secret \
+          KIDULTS_APPROVED_PROJECTION_FILE=/tmp/kidults-approved-projection.json \
+          KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE=/tmp/kidults-projection-secret \
+          HOST=127.0.0.1 PORT=4174 \
+          node apps/kidults-enterprise-staging/server.mjs >/tmp/kidults-shared-portal-evidence-server.log 2>&1 &
+          echo $! >/tmp/kidults-shared-portal-evidence-server.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4174/health >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4174/health >/dev/null || { cat /tmp/kidults-shared-portal-evidence-server.log; exit 1; }
+
+      - name: Run real history/BFCache and late-error canary
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cp scripts/kidults/portal/run-shared-portal-evidence-canary-v1.mjs /tmp/kidults-r001-qa/run-shared-portal-evidence-canary-v1.mjs
+          cd /tmp/kidults-r001-qa
+          node run-shared-portal-evidence-canary-v1.mjs
+
+      - name: Stop staging Portal
+        if: always()
+        run: |
+          if test -f /tmp/kidults-shared-portal-evidence-server.pid; then
+            kill "$(cat /tmp/kidults-shared-portal-evidence-server.pid)" 2>/dev/null || true
+          fi
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kidults-shared-portal-evidence-integrity-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kidults-shared-portal-evidence-integrity-v1.json
+            /tmp/kidults-shared-portal-evidence-server.log
+          retention-days: 30
