@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-requirement-adapter-coverage-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "REGISTERED_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P1",
@@ -34,7 +34,7 @@
     "replacement_profiles_selected_after_rights_gate": 0,
     "software_implemented_requirements": 39,
     "context_only_requirements": 15,
-    "unmapped_requirements": 138,
+    "claim_parser_not_implemented_requirements": 138,
     "rights_schema_activation_hold_requirements": 192,
     "unmerged_v2_ids_synthesized": 0,
     "duplicate_sdk_or_runtime_introduced": 0,
@@ -50,7 +50,7 @@
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "continuation": {
-    "software_gap_queue_output": "requirement-adapter-gap-queue-v1.json",
+    "source_discovery_and_schema_activation_queue_output": "requirement-adapter-gap-queue-v1.json",
     "next_stage": "SOURCE_SCOPE_AND_CLAIM_GAP_REMEDIATION_WITH_SEPARATE_EMPIRICAL_ACTIVATION_GATES",
     "automatic_continuation_required": true
   },

@@ -27,7 +27,7 @@ const workflow = read(files.workflow);
 const documentation = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.0.0', 'CONTRACT_ID_VERSION');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.1.0', 'CONTRACT_ID_VERSION');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'CONTRACT_STATUS');
 assert(same(contract.platform_principles, principles), 'CONTRACT_PRINCIPLES');
 assert(contract.canonical_grain?.expected_mission_count === 192 && contract.canonical_grain?.expected_unique_market_cell_count === 192, 'CONTRACT_MISSION_GRAIN');
@@ -38,7 +38,10 @@ assert(contract.coverage_policy?.registered_claim_is_implemented_claim === false
 assert(contract.coverage_policy?.software_coverage_rule === 'ELIGIBLE_CURRENT_SOURCE_WITH_LITERAL_REQUIRED_CLAIM_IN_IMPLEMENTED_CLAIM_PARSERS', 'CONTRACT_SOFTWARE_COVERAGE_RULE');
 assert(contract.coverage_policy?.acquisition_eligibility_rule === 'PURPOSE_RIGHTS_PREFLIGHT_DECISION_MUST_EQUAL_RIGHTS_CLEAR_FOR_PURPOSE', 'CONTRACT_ACQUISITION_RIGHTS_RULE');
 assert(contract.coverage_policy?.selected_slot_rule === 'FIRST_THREE_RIGHTS_CLEAR_SOURCES_BY_PRIORITY_RANK_THEN_SOURCE_ID', 'CONTRACT_RIGHTS_SLOT_RULE');
-assert(same(contract.software_coverage_states, ['SOFTWARE_IMPLEMENTED', 'CONTEXT_ONLY', 'UNMAPPED']), 'CONTRACT_COVERAGE_STATES');
+assert(same(contract.software_coverage_states, ['SOFTWARE_IMPLEMENTED', 'CONTEXT_ONLY', 'NO_IMPLEMENTED_CLAIM_PARSER']), 'CONTRACT_COVERAGE_STATES');
+assert(contract.deprecated_compatibility_metrics?.status === 'READ_ONLY_TRANSLATION_NOT_CANONICAL_STATUS', 'CONTRACT_DEPRECATED_METRICS_STATUS');
+assert(contract.deprecated_compatibility_metrics?.software_gap_requirements?.interpretation_forbidden === 'MISSING_INTERNAL_CODE_MODULES', 'CONTRACT_DEPRECATED_SOFTWARE_GAP_BOUNDARY');
+assert(contract.deprecated_compatibility_metrics?.unmapped_requirements?.canonical_replacement === 'claim_parser_not_implemented_requirements', 'CONTRACT_DEPRECATED_UNMAPPED_REPLACEMENT');
 assert(contract.empirical_state === 'RIGHTS_SCHEMA_ACTIVATION_HOLD' && contract.empirical_hold_reasons?.length === 6, 'CONTRACT_EMPIRICAL_HOLD');
 assert(same(contract.required_outputs, [
   'requirement-adapter-coverage-ledger-v1.json',
@@ -49,7 +52,7 @@ assert(same(contract.required_outputs, [
 ]), 'CONTRACT_OUTPUTS');
 const baseline = contract.expected_current_main_baseline;
 assert(baseline.registered_source_profiles === 16 && baseline.implemented_source_adapters === 16 && baseline.pending_source_adapters === 0, 'CONTRACT_SOURCE_BASELINE');
-assert(baseline.software_implemented_requirements === 39 && baseline.context_only_requirements === 15 && baseline.unmapped_requirements === 138 && baseline.software_gap_requirements === 153, 'CONTRACT_COVERAGE_BASELINE');
+assert(baseline.software_implemented_requirements === 39 && baseline.context_only_requirements === 15 && baseline.claim_parser_not_implemented_requirements === 138 && baseline.source_discovery_or_schema_activation_hold_requirements === 153, 'CONTRACT_COVERAGE_BASELINE');
 assert(baseline.source_profile_discovery_requirements === 120 && baseline.schema_bound_claim_parser_requirements === 33 && baseline.internal_unbound_execution_queue_count === 0, 'CONTRACT_GAP_CLASS_BASELINE');
 assert(baseline.rights_schema_activation_hold_requirements === 192 && baseline.evidence_admitted === 0 && baseline.market_events_created === 0, 'CONTRACT_EMPIRICAL_BASELINE');
 assert(contract.truth_boundary?.software_lineage_only === true && contract.truth_boundary?.live_source_request_executed === false && contract.truth_boundary?.provider_contact_executed === false, 'CONTRACT_LIVE_BOUNDARY');
@@ -57,7 +60,7 @@ assert(contract.truth_boundary?.rights_pass_created === false && contract.truth_
 assert(contract.truth_boundary?.evidence_admitted === 0 && contract.truth_boundary?.market_events_created === 0 && contract.truth_boundary?.snapshot_candidates_created === 0, 'CONTRACT_EVIDENCE_BOUNDARY');
 assert(contract.truth_boundary?.public_release === 'HOLD' && contract.truth_boundary?.production === 'HOLD' && contract.truth_boundary?.g5 === 'HOLD', 'CONTRACT_RELEASE_BOUNDARY');
 
-assert(registry.id === 'kidults-asi-requirement-adapter-coverage-registry-v1' && registry.version === '1.0.0', 'REGISTRY_ID_VERSION');
+assert(registry.id === 'kidults-asi-requirement-adapter-coverage-registry-v1' && registry.version === '1.1.0', 'REGISTRY_ID_VERSION');
 assert(registry.status === 'REGISTERED_FAIL_CLOSED_AFTER_MAIN_MERGE', 'REGISTRY_STATUS');
 assert(same(registry.platform_principles, principles), 'REGISTRY_PRINCIPLES');
 for (const [name, expected] of Object.entries({
@@ -77,14 +80,14 @@ assert(registry.implementation_state?.authoritative_requirement_grain === 'AUTON
 assert(registry.implementation_state?.requirements_accounted_for === 192 && registry.implementation_state?.domain_evidence_families_retained === 16, 'REGISTRY_REQUIREMENT_COUNTS');
 assert(registry.implementation_state?.registered_source_profiles === 16 && registry.implementation_state?.implemented_source_adapters === 16, 'REGISTRY_SOURCE_COUNTS');
 assert(registry.implementation_state?.purpose_rights_clear_sources === 0 && registry.implementation_state?.purpose_rights_preflight_hold_sources === 16 && registry.implementation_state?.replacement_profiles_selected_after_rights_gate === 0, 'REGISTRY_RIGHTS_FIRST_COUNTS');
-assert(registry.implementation_state?.software_implemented_requirements === 39 && registry.implementation_state?.context_only_requirements === 15 && registry.implementation_state?.unmapped_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
+assert(registry.implementation_state?.software_implemented_requirements === 39 && registry.implementation_state?.context_only_requirements === 15 && registry.implementation_state?.claim_parser_not_implemented_requirements === 138, 'REGISTRY_COVERAGE_COUNTS');
 assert(registry.implementation_state?.rights_schema_activation_hold_requirements === 192, 'REGISTRY_HOLD_COUNT');
 assert(registry.implementation_state?.unmerged_v2_ids_synthesized === 0 && registry.implementation_state?.duplicate_sdk_or_runtime_introduced === 0, 'REGISTRY_FORBIDDEN_ASSET_COUNTS');
 assert(registry.implementation_state?.evidence_admitted === 0 && registry.implementation_state?.market_events_created === 0, 'REGISTRY_EMPIRICAL_COUNTS');
 assert(registry.automatic_activation?.main_push === false && registry.automatic_activation?.schedule === 'UPSTREAM_WORKFLOW_ONLY', 'REGISTRY_AUTOMATIC_TRIGGER');
 assert(same(registry.automatic_activation?.upstream_workflows, ['KIDULTS ASI Autonomous Resolution Layer v1']), 'REGISTRY_UPSTREAM_WORKFLOWS');
 assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
-assert(registry.continuation?.automatic_continuation_required === true && registry.continuation?.software_gap_queue_output === 'requirement-adapter-gap-queue-v1.json', 'REGISTRY_CONTINUATION');
+assert(registry.continuation?.automatic_continuation_required === true && registry.continuation?.source_discovery_and_schema_activation_queue_output === 'requirement-adapter-gap-queue-v1.json', 'REGISTRY_CONTINUATION');
 assert(registry.truth_boundary?.artifact_must_be_successful_nonexpired_main_lineage === true, 'REGISTRY_ARTIFACT_BOUNDARY');
 assert(registry.truth_boundary?.software_implemented_is_empirically_ready === false, 'REGISTRY_EMPIRICAL_READINESS_BOUNDARY');
 assert(registry.truth_boundary?.evidence_admitted === 0 && registry.truth_boundary?.market_events_created === 0 && registry.truth_boundary?.projections_created === 0, 'REGISTRY_PROMOTION_BOUNDARY');
@@ -128,6 +131,7 @@ for (const marker of [
   'source_sha_ancestor_of_consumer',
   'Build requirement coverage twice',
   'Reject denominator-substitution mutation',
+  'Reject legacy metric reintroduction mutation',
   'Reject registered-claim inheritance mutation',
   'Reject context-as-parser mutation',
   'Reject live-rights-activation promotion mutation',
@@ -150,14 +154,14 @@ assert(documentation.includes('latest exact-main producer at execution time') &&
 
 console.log(JSON.stringify({
   id: 'kidults-asi-requirement-adapter-coverage-registry-validation-v1',
-  version: '1.0.0',
+  version: contract.version,
   state: 'VERIFIED_PASS',
   registered_assets: Object.keys(registry.registered_assets).length,
   requirements_accounted_for: registry.implementation_state.requirements_accounted_for,
   family_count: registry.implementation_state.domain_evidence_families_retained,
   registered_source_profiles: registry.implementation_state.registered_source_profiles,
   software_implemented_requirements: registry.implementation_state.software_implemented_requirements,
-  software_gap_requirements: registry.implementation_state.context_only_requirements + registry.implementation_state.unmapped_requirements,
+  source_discovery_or_schema_activation_hold_requirements: registry.implementation_state.context_only_requirements + registry.implementation_state.claim_parser_not_implemented_requirements,
   legacy_v2_ids_synthesized: 0,
   duplicate_sdk_or_runtime_introduced: 0,
   automatic_activation_registered: 'UPSTREAM_WORKFLOW_ONLY',
