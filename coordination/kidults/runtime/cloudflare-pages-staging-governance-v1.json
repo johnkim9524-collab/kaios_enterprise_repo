@@ -1,11 +1,12 @@
 {
   "id": "kidults-cloudflare-pages-staging-governance-v1",
-  "version": "1.1.0",
-  "status": "PROGRAM_OWNER_APPROVED_STAGING_GOVERNANCE",
-  "implementation_state": "GRANULAR_AUTO_DEPLOYMENT_CONTAINMENT_API_VERIFIED_PREVIEW_RETIREMENT_AND_GOVERNED_DEPLOY_PENDING",
-  "validated_base_main_sha": "64d0cb7b2381c843a8ba26b3c4b0560f80465c4e",
+  "version": "1.2.0",
+  "status": "STAGING_GOVERNANCE_ACTIVE_PRIVILEGED_MUTATION_LANES_FAIL_CLOSED",
+  "implementation_state": "AUTO_DEPLOYMENTS_DISABLED_PREVIEW_ZERO_PRODUCTION_HISTORY_PRESERVED_GOVERNED_STAGING_DEPLOYMENT_EXISTS_FUTURE_MUTATIONS_HOLD_PENDING_ISSUE_1576",
+  "validated_base_main_sha": "afc2383b314aa07705203750edb7271a749b432b",
   "owner": "KPMO",
   "issue": 1234,
+  "authorization_issue": 1576,
   "project": {
     "name": "kidults-workspace-staging",
     "platform_role": "CONTROLLED_STATIC_STAGING_MIRROR",
@@ -22,17 +23,33 @@
     "preview_branch_rules_authoritative_only_when_custom": true,
     "git_push_is_deployment_authority": false
   },
+  "verified_provider_state": {
+    "source_run_id": 33262992819,
+    "artifact_id": 9717897493,
+    "artifact_digest": "sha256:5c642753fad37bebd70555938e2a0e6daed95c88d9d5fb4e6bc6cf49cb33e309",
+    "materialized_preview_initial": 588,
+    "materialized_preview_deleted": 588,
+    "materialized_preview_remaining": 0,
+    "preexisting_production_ids_preserved": 124,
+    "governed_staging_deployment_id": "dc6654a1-ee61-4762-92a1-b3f25e064e91",
+    "source_sha": "14501ac022bdd7c918924a207f257b047b1ba970"
+  },
   "deployment_policy": {
-    "trigger": "workflow_dispatch_only",
+    "state": "FAIL_CLOSED_PENDING_ISSUE_1576",
+    "trigger": "DISABLED",
+    "workflow": ".github/workflows/kidults-cloudflare-pages-staging-deploy-v1.yml",
+    "job": "deploy",
+    "job_condition": "${{ false }}",
     "source_ref": "refs/heads/main",
-    "source_sha": "EXACT_LIVE_MAIN_ONLY",
-    "operator": "REPOSITORY_OWNER_ONLY",
-    "cloudflare_deployment_method": "WRANGLER_DIRECT_UPLOAD_TO_EXISTING_GIT_PROJECT",
-    "cloudflare_branch": "main",
-    "commit_message_prefix": "[KIDULTS-GOVERNED-STAGING]",
-    "authorization_phrase": "DEPLOY_KIDULTS_WORKSPACE_STAGING",
+    "source_sha": "EXACT_LIVE_MAIN_ONLY_WHEN_REAUTHORIZED",
+    "operator_identity_is_authorization": false,
+    "typed_phrase_is_authorization": false,
+    "workflow_input_is_authorization": false,
+    "repository_json_is_authorization": false,
     "environment": "kidults-cloudflare-staging-deploy",
-    "deployment_receipt_required": true
+    "provider_secret_resolution_reachable": false,
+    "provider_call_reachable": false,
+    "deployment_receipt_required_after_reauthorization": true
   },
   "read_only_monitor": {
     "workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml",
@@ -48,11 +65,15 @@
     "remote_mutation": false
   },
   "emergency_control": {
+    "state": "FAIL_CLOSED_PENDING_ISSUE_1576",
     "workflow": ".github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml",
-    "trigger": "workflow_dispatch_only",
-    "default_operation": "contain_auto_deployments",
-    "allowed_operations": ["contain_auto_deployments", "delete_preview_deployments"],
-    "preview_delete_only": true,
+    "job": "control",
+    "job_condition": "${{ false }}",
+    "trigger": "workflow_dispatch_request_surface_only",
+    "request_inputs_are_authorization": false,
+    "provider_secret_resolution_reachable": false,
+    "provider_call_reachable": false,
+    "preview_delete_only_after_fresh_external_authorization": true,
     "production_deployment_delete_forbidden": true,
     "environment": "kidults-cloudflare-staging-deploy",
     "inventory_workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml"
@@ -61,9 +82,19 @@
     "read_only_environment": "kidults-cloudflare-readonly",
     "mutation_environment": "kidults-cloudflare-staging-deploy",
     "required_secret_names": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"],
+    "provider_secret_resolution_currently_reachable": false,
     "write_token_persistent_repository_secret": false,
-    "write_token_lifetime": "TEMPORARY_MINIMUM_SCOPE_REMOVE_AFTER_USE",
+    "environment_secret_presence_or_removal": "EXTERNAL_CONTROL_PLANE_NOT_ASSERTED_BY_REPOSITORY",
     "secret_material_in_receipts": false
+  },
+  "re_enable_gate": {
+    "issue": 1576,
+    "independent_receipt_outside_candidate_change": true,
+    "exact_operation_resource_count_source_control_run_binding": true,
+    "issuer_issued_at_expiry_nonce_binding": true,
+    "atomic_one_time_consumption_before_provider_secret_resolution": true,
+    "replay_stale_widened_self_authored_negative_tests": true,
+    "separate_public_production_g5_approvals": true
   },
   "truth_boundary": {
     "cloudflare_pages_internal_environment_name": "production",
@@ -72,6 +103,7 @@
     "production": "HOLD",
     "g5": "HOLD",
     "staging_deployment_is_public_authorization": false,
-    "staging_deployment_is_production_authorization": false
+    "staging_deployment_is_production_authorization": false,
+    "future_cloudflare_mutation_authorized": false
   }
 }

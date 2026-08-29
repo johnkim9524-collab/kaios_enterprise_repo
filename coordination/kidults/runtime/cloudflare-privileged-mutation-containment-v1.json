@@ -1,0 +1,63 @@
+{
+  "id": "kidults-cloudflare-privileged-mutation-containment-v1",
+  "version": "1.0.0",
+  "state": "FAIL_CLOSED_CONTAINED",
+  "issue": 1576,
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "project": "kidults-workspace-staging",
+  "root_cause": "REPOSITORY_OR_WORKFLOW_INPUT_CAN_SELF_ASSERT_EXTERNAL_AUTHORIZATION",
+  "contained_workflows": [
+    {
+      "workflow": ".github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml",
+      "job": "control",
+      "state": "PERMANENTLY_SKIPPED_PENDING_ISSUE_1576",
+      "provider_secret_resolution_reachable": false,
+      "provider_mutation_reachable": false
+    },
+    {
+      "workflow": ".github/workflows/kidults-cloudflare-pages-staging-deploy-v1.yml",
+      "job": "deploy",
+      "state": "PERMANENTLY_SKIPPED_PENDING_ISSUE_1576",
+      "provider_secret_resolution_reachable": false,
+      "provider_mutation_reachable": false
+    }
+  ],
+  "non_authoritative_inputs": [
+    "TYPED_CONFIRMATION_PHRASE",
+    "WORKFLOW_DISPATCH_INPUT",
+    "GITHUB_ACTOR_IDENTITY",
+    "COMMIT_MESSAGE",
+    "REPOSITORY_JSON",
+    "CHAT_REFERENCE_EMBEDDED_BY_CANDIDATE"
+  ],
+  "re_enable_requirements": [
+    "INDEPENDENTLY_ISSUED_APPROVAL_RECEIPT_OUTSIDE_CANDIDATE_CHANGE",
+    "EXACT_OPERATION_SET_AND_RESOURCE_BOUNDING",
+    "EXACT_SOURCE_SHA_AND_CONTROL_SHA_BINDING",
+    "ISSUER_IDENTITY_ISSUED_AT_EXPIRY_NONCE_BINDING",
+    "ATOMIC_ONE_TIME_CONSUMPTION_BEFORE_PROVIDER_SECRET_RESOLUTION",
+    "REPLAY_STALE_WIDENED_SELF_AUTHORED_NEGATIVE_TESTS",
+    "EXACT_MAIN_CREDENTIAL_FREE_NEGATIVE_CANARY",
+    "SEPARATE_PUBLIC_PRODUCTION_G5_APPROVALS"
+  ],
+  "preserved_truth": {
+    "completed_one_shot_run_id": 33262992819,
+    "completed_one_shot_artifact_id": 9717897493,
+    "materialized_preview_deleted": 588,
+    "materialized_preview_remaining": 0,
+    "preexisting_production_ids_preserved": 124,
+    "governed_staging_deployment_id": "dc6654a1-ee61-4762-92a1-b3f25e064e91"
+  },
+  "mutation_by_containment": {
+    "cloudflare_api_called": false,
+    "preview_deleted": false,
+    "deployment_created": false,
+    "settings_mutated": false,
+    "credentials_read": false
+  },
+  "release_boundary": {
+    "public_release": "HOLD",
+    "platform_production": "HOLD",
+    "g5": "HOLD"
+  }
+}

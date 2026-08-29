@@ -4,15 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Exact protected-main SHA to deploy
+        description: Requested exact protected-main SHA; execution disabled pending #1576
         required: true
         type: string
-      authorization:
-        description: Type DEPLOY_KIDULTS_WORKSPACE_STAGING
+      external_authorization_issue:
+        description: Reserved external authorization issue number; not executable until #1576 closes
         required: true
         type: string
       reason:
-        description: Auditable STAGING deployment reason
+        description: Auditable deployment request reason; this input is not authorization
         required: true
         type: string
 
@@ -25,44 +25,34 @@ concurrency:
 
 jobs:
   validate:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    # Request-only metadata cannot authorize a provider deployment. Keep this
+    # workflow fail-closed until an independently issued, source-bound and
+    # atomically consumed authorization receipt exists under #1576.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - name: Validate explicit owner authorization and exact source
+      - name: Reject repository-self-authorized STAGING request
+        shell: bash
         env:
           REQUESTED_SHA: ${{ inputs.source_sha }}
-          AUTHORIZATION: ${{ inputs.authorization }}
+          EXTERNAL_AUTHORIZATION_ISSUE: ${{ inputs.external_authorization_issue }}
           DEPLOY_REASON: ${{ inputs.reason }}
         run: |
           set -euo pipefail
-          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
-          test "$GITHUB_REF" = "refs/heads/main"
-          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-          [[ "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$REQUESTED_SHA" = "$GITHUB_SHA"
-          test "$AUTHORIZATION" = "DEPLOY_KIDULTS_WORKSPACE_STAGING"
-          test -n "$DEPLOY_REASON"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.source_sha }}
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Validate Portal mirror and governance contract
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ inputs.source_sha }}"
-          node scripts/kidults/kpmo/validate-cloudflare-pages-portal-r001-mirror-v1.mjs
-          node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
-          bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+          echo "Cloudflare governed STAGING deployment is fail-closed under issue #1576."
+          echo "Workflow inputs, actor identity, commit messages and repository files are not authorization."
+          exit 78
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    # Defense in depth: this credentialed job is permanently unreachable while
+    # #1576 is open. The existing registered job/step/secret shape is retained
+    # temporarily so secret-lane inventory cannot drift silently.
+    if: ${{ false }}
     needs: validate
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
       - name: Verify live main before provider credential resolution
         shell: bash
@@ -82,43 +72,19 @@ jobs:
               python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-          test "$LIVE_MAIN_SHA" = "${{ inputs.source_sha }}"
-
-      - name: Re-verify exact owner authorization before deployment credentials
-        env:
-          REQUESTED_SHA: ${{ inputs.source_sha }}
-          AUTHORIZATION: ${{ inputs.authorization }}
-          DEPLOY_REASON: ${{ inputs.reason }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
-          test "$REQUESTED_SHA" = "$GITHUB_SHA"
-          test "$AUTHORIZATION" = "DEPLOY_KIDULTS_WORKSPACE_STAGING"
-          test -n "$DEPLOY_REASON"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ inputs.source_sha }}
-          fetch-depth: 1
-          persist-credentials: false
 
       - name: Execute governed Cloudflare STAGING deployment
         shell: bash
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
-          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
-          SOURCE_DIR: apps/kidults-enterprise-staging/public
-          SOURCE_SHA: ${{ inputs.source_sha }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+          EXTERNAL_AUTHORIZATION_ISSUE: ${{ inputs.external_authorization_issue }}
           DEPLOY_REASON: ${{ inputs.reason }}
-          RECEIPT_DIR: artifacts/cloudflare-governed-staging-deploy
-        run: bash scripts/ops/cloudflare-pages-governed-staging-deploy.sh
-
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
-        with:
-          name: cloudflare-governed-staging-deploy-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/cloudflare-governed-staging-deploy
-          if-no-files-found: error
-          retention-days: 30
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "Cloudflare governed STAGING deployment remains fail-closed under issue #1576."
+          echo "No provider call or deployment is permitted."
+          exit 78
