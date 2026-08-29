@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-intelligence-preparation-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -19,7 +19,9 @@
     "builder": "scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
-    "human_readme": "docs/kidults/asi/asi-intelligence-preparation-wave-v1.md"
+    "human_readme": "docs/kidults/asi/asi-intelligence-preparation-wave-v1.md",
+    "immediate_priority_mission": "coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json",
+    "immediate_priority_workflow": ".github/workflows/kidults-asi-multi-lane-autonomous-acquisition-mission-v1.yml"
   },
   "registered_modules": [
     "UNKNOWN_REGISTRY",
@@ -60,5 +62,11 @@
     "calibration_predictions_are_realized_results": false,
     "public_release": "HOLD",
     "production": "HOLD"
+  },
+  "runtime_priority": {
+    "owner": "ASI",
+    "governance_boundary_owner": "KPMO",
+    "operating_mode": "MULTI_LANE_AUTONOMOUS_ACQUISITION",
+    "psa_blocking_dependency_count": 0
   }
 }
