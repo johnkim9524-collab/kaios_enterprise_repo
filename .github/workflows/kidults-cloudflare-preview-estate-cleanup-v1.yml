@@ -1,4 +1,4 @@
-name: KIDULTS Cloudflare Preview Estate Cleanup v1
+name: KIDULTS Cloudflare Automatic Deployment Containment v1
 
 on:
   push:
@@ -6,47 +6,71 @@ on:
       - codex/cloudflare-preview-estate-cleanup
     paths:
       - .github/workflows/kidults-cloudflare-preview-estate-cleanup-v1.yml
-      - scripts/ops/cloudflare-pages-preview-cleanup.sh
+      - scripts/ops/cloudflare-pages-auto-deployment-containment.sh
 
 permissions:
   contents: read
 
 concurrency:
-  group: kidults-cloudflare-preview-estate-cleanup-v1
+  group: kidults-cloudflare-auto-deployment-containment-v1
   cancel-in-progress: false
 
 jobs:
-  cleanup-preview-only:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+  contain-automatic-deployments:
+    name: Disable Pages Git auto-deployments and verify read-back
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
-      RECEIPT_DIR: artifacts/cloudflare-preview-cleanup
+      EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+      RECEIPT_DIR: artifacts/cloudflare-auto-deployment-containment
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Verify exact cleanup authority and credentials
+      - name: Verify exact containment authority and credentials
         shell: bash
         run: |
           set -euo pipefail
           test "$GITHUB_REF_NAME" = "codex/cloudflare-preview-estate-cleanup"
           test "$CLOUDFLARE_PAGES_PROJECT_NAME" = "kidults-workspace-staging"
+          test "$EXPECTED_REPOSITORY" = "$GITHUB_REPOSITORY"
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"
-          echo "Production deletion is forbidden; Preview-only selection is enforced by the cleanup script."
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
 
-      - name: Delete Preview deployments and preserve Production
+      - name: Disable Production and Preview Git auto-deployments
         shell: bash
-        run: bash scripts/ops/cloudflare-pages-preview-cleanup.sh --execute
+        run: bash scripts/ops/cloudflare-pages-auto-deployment-containment.sh --execute
 
-      - name: Upload sanitized cleanup receipt
+      - name: Verify sanitized receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .state == "COMPLETE_VERIFIED"
+            and .exact_readback.legacy_deployments_enabled == false
+            and .exact_readback.production_deployments_enabled == false
+            and .exact_readback.preview_deployment_setting == "none"
+            and (.exact_readback.preview_branch_includes | length == 0)
+            and (.exact_readback.preview_branch_excludes | length == 0)
+            and .deployment_created == false
+            and .deployment_deleted == false
+            and .public_release == "HOLD"
+            and .production == "HOLD"
+            and .g5 == "HOLD"
+          ' "$RECEIPT_DIR/final.json" >/dev/null
+
+      - uses: actions/upload-artifact@b7c566a772e6b6f058ed0dc250532a479d7789f # v6.0.0
         if: always()
-        uses: actions/upload-artifact@v5
         with:
-          name: cloudflare-preview-estate-cleanup-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: artifacts/cloudflare-preview-cleanup
+          name: cloudflare-auto-deployment-containment-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-auto-deployment-containment
           if-no-files-found: error
           retention-days: 30
