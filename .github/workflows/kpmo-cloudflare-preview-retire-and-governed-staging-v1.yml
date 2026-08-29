@@ -1,18 +1,12 @@
 name: KPMO Cloudflare Preview Retirement and Governed STAGING v1
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Validation"]
+    types: [completed]
     branches: [main]
-    paths:
-      - .github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml
-      - scripts/ops/cloudflare-pages-preview-cleanup.sh
-      - scripts/ops/cloudflare-pages-governed-staging-deploy.sh
-      - scripts/ops/cloudflare-pages-boundary-readonly.sh
-      - coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json
-      - scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
 
 permissions:
-  actions: write
   contents: read
 
 concurrency:
@@ -20,92 +14,94 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  orchestrate:
-    if: github.actor == github.repository_owner
+  retire-and-deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 90
-    env:
-      GH_API: ${{ github.api_url }}
-      REPO: ${{ github.repository }}
-      GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Verify exact protected main
+      - name: Verify live main before provider credential resolution
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/branches/main" | jq -r '.commit.sha')"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Dispatch Preview-only retirement and wait
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify one-shot target merge identity
+        shell: bash
+        env:
+          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$EVENT_HEAD_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          COMMIT_MESSAGE="$(git log -1 --format=%B)"
+          grep -q '^Merge pull request #1560:' <<<"$COMMIT_MESSAGE"
+
+      - name: Validate governance before mutation
         shell: bash
         run: |
           set -euo pipefail
-          WF="kidults-cloudflare-pages-emergency-control-v1.yml"
-          BEFORE="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=1" | jq -r '.workflow_runs[0].id // 0')"
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/dispatches" \
-            -d '{"ref":"main","inputs":{"operation":"delete_preview_deployments","authorization":"DELETE_PREVIEW_ONLY_KIDULTS_WORKSPACE_STAGING","reason":"Retire historical materialized Preview estate after automatic Git deployments were disabled and API-verified"}}'
-          RUN_ID=""
-          for i in $(seq 1 60); do
-            RUN_ID="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=5" | jq -r --arg before "$BEFORE" --arg sha "$GITHUB_SHA" '.workflow_runs[] | select((.id|tostring) != $before and .head_sha == $sha) | .id' | head -1)"
-            [[ -n "$RUN_ID" ]] && break
-            sleep 2
-          done
-          [[ -n "$RUN_ID" ]]
-          for i in $(seq 1 900); do
-            J="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/runs/$RUN_ID")"
-            STATUS="$(jq -r '.status' <<<"$J")"; CONCLUSION="$(jq -r '.conclusion // ""' <<<"$J")"
-            if [[ "$STATUS" == "completed" ]]; then test "$CONCLUSION" = "success"; echo "PREVIEW_RETIREMENT_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"; exit 0; fi
-            sleep 4
-          done
-          exit 68
+          node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
+          bash -n scripts/ops/cloudflare-pages-preview-cleanup.sh
+          bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+          bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
 
-      - name: Dispatch exact-main governed STAGING deployment and wait
+      - name: Execute one-shot Preview retirement and governed STAGING
         shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
         run: |
           set -euo pipefail
-          WF="kidults-cloudflare-pages-staging-deploy-v1.yml"
-          BEFORE="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=1" | jq -r '.workflow_runs[0].id // 0')"
-          jq -n --arg sha "$GITHUB_SHA" '{ref:"main",inputs:{source_sha:$sha,authorization:"DEPLOY_KIDULTS_WORKSPACE_STAGING",reason:"First governed exact-main STAGING deployment after Preview estate retirement"}}' > /tmp/dispatch.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/dispatches" --data-binary @/tmp/dispatch.json
-          RUN_ID=""
-          for i in $(seq 1 60); do
-            RUN_ID="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=5" | jq -r --arg before "$BEFORE" --arg sha "$GITHUB_SHA" '.workflow_runs[] | select((.id|tostring) != $before and .head_sha == $sha) | .id' | head -1)"
-            [[ -n "$RUN_ID" ]] && break
-            sleep 2
-          done
-          [[ -n "$RUN_ID" ]]
-          for i in $(seq 1 300); do
-            J="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/runs/$RUN_ID")"
-            STATUS="$(jq -r '.status' <<<"$J")"; CONCLUSION="$(jq -r '.conclusion // ""' <<<"$J")"
-            if [[ "$STATUS" == "completed" ]]; then test "$CONCLUSION" = "success"; echo "GOVERNED_STAGING_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"; exit 0; fi
-            sleep 4
-          done
-          exit 68
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
 
-      - name: Dispatch final read-only audit and wait
-        shell: bash
-        run: |
-          set -euo pipefail
-          WF="kidults-cloudflare-pages-boundary-readonly-v1.yml"
-          BEFORE="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=1" | jq -r '.workflow_runs[0].id // 0')"
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/dispatches" -d '{"ref":"main"}'
-          RUN_ID=""
-          for i in $(seq 1 60); do
-            RUN_ID="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/workflows/$WF/runs?event=workflow_dispatch&branch=main&per_page=5" | jq -r --arg before "$BEFORE" --arg sha "$GITHUB_SHA" '.workflow_runs[] | select((.id|tostring) != $before and .head_sha == $sha) | .id' | head -1)"
-            [[ -n "$RUN_ID" ]] && break
-            sleep 2
-          done
-          [[ -n "$RUN_ID" ]]
-          for i in $(seq 1 180); do
-            J="$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$GH_API/repos/$REPO/actions/runs/$RUN_ID")"
-            STATUS="$(jq -r '.status' <<<"$J")"; CONCLUSION="$(jq -r '.conclusion // ""' <<<"$J")"
-            if [[ "$STATUS" == "completed" ]]; then test "$CONCLUSION" = "success"; echo "FINAL_READONLY_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"; exit 0; fi
-            sleep 4
-          done
-          exit 68
+          export RECEIPT_DIR=artifacts/cloudflare-preview-retirement
+          export CONTROL_REASON="Retire historical materialized Preview estate after automatic Git deployments were disabled and API-verified"
+          bash scripts/ops/cloudflare-pages-preview-cleanup.sh --delete-preview
+          jq -e '.state == "COMPLETE_VERIFIED" and (.remaining_preview_ids | length) == 0 and .production_mutation == false' "$RECEIPT_DIR/final.json" >/dev/null
 
-      - name: Emit orchestration receipt
-        shell: bash
-        run: |
-          jq -n --arg sha "$GITHUB_SHA" --arg preview "$PREVIEW_RETIREMENT_RUN_ID" --arg deploy "$GOVERNED_STAGING_RUN_ID" --arg audit "$FINAL_READONLY_RUN_ID" '{state:"COMPLETE_VERIFIED",source_sha:$sha,preview_retirement_run_id:$preview,governed_staging_run_id:$deploy,final_readonly_run_id:$audit,public_release:"HOLD",production:"HOLD",g5:"HOLD"}'
+          export SOURCE_SHA="$GITHUB_SHA"
+          export SOURCE_DIR=apps/kidults-enterprise-staging/public
+          export DEPLOY_REASON="First governed exact-main STAGING deployment after Preview estate retirement"
+          export RECEIPT_DIR=artifacts/cloudflare-governed-staging-deploy
+          bash scripts/ops/cloudflare-pages-governed-staging-deploy.sh
+          jq -e '.state == "COMPLETE_VERIFIED" and .exact_sha_bound == true and .deployment.trigger_type == "ad_hoc" and .automatic_git_deployments_disabled_after_deploy == true' "$RECEIPT_DIR/final.json" >/dev/null
+
+          export RECEIPT_DIR=artifacts/cloudflare-pages-boundary-final-readback
+          bash scripts/ops/cloudflare-pages-boundary-readonly.sh
+          jq -e '.state == "COMPLETE_VERIFIED" and .settings_pass == true and .visible_preview_count == 0 and .latest_deployment_governed == true' "$RECEIPT_DIR/final.json" >/dev/null
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: cloudflare-preview-retirement-governed-staging-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            artifacts/cloudflare-preview-retirement
+            artifacts/cloudflare-governed-staging-deploy
+            artifacts/cloudflare-pages-boundary-final-readback
+          if-no-files-found: error
+          retention-days: 30
