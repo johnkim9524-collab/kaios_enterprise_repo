@@ -17,6 +17,8 @@ const basePr = () => ({
   state: 'open',
   merged: false,
   draft: false,
+  mergeable: true,
+  mergeable_state: 'clean',
   title: 'Correct ARL provenance',
   labels: [],
   updated_at: '2026-08-29T08:50:00Z',
@@ -32,8 +34,22 @@ const noMergePolicy = {
 const options = {repository: 'johnkim9524-collab/kaios_enterprise_repo', expectedHeadSha: sha, noMergePolicy};
 const code = (fn, expected) => assert.throws(fn, error => error instanceof GateFailure && error.code === expected);
 
-test('open exact-head PR is promotable', () => {
+test('open exact-head mergeable PR is promotable', () => {
   assert.equal(assertPromotablePullRequest(basePr(), options).head_sha, sha);
+});
+
+test('conflicted and unresolved mergeability fail closed', () => {
+  const conflicted = basePr(); conflicted.mergeable = false; conflicted.mergeable_state = 'dirty';
+  code(() => assertPromotablePullRequest(conflicted, options), 'PULL_REQUEST_NOT_MERGEABLE');
+  const unresolved = basePr(); unresolved.mergeable = null; unresolved.mergeable_state = 'unknown';
+  code(() => assertPromotablePullRequest(unresolved, options), 'PULL_REQUEST_NOT_MERGEABLE');
+  const unknownState = basePr(); unknownState.mergeable_state = 'unknown';
+  code(() => assertPromotablePullRequest(unknownState, options), 'PULL_REQUEST_MERGEABILITY_UNPROVEN');
+});
+
+test('mergeability drift between initial and final read is rejected', () => {
+  const final = basePr(); final.mergeable_state = 'blocked';
+  code(() => assertStableFinalReread(basePr(), final, options), 'PULL_REQUEST_MERGEABILITY_CHANGED_DURING_AUTHORIZATION');
 });
 
 test('closed and explicit NO-MERGE states fail closed', () => {
