@@ -4,6 +4,24 @@ on:
   pull_request_target:
     branches: [main]
     types: [opened, synchronize]
+    paths:
+      - ".github/workflows/**"
+      - "services/kidults-control-plane/**"
+      - "services/kidults-autonomous-intelligence/src/**"
+      - "services/kidults-autonomous-intelligence/package.json"
+      - "services/kidults-autonomous-intelligence/wrangler.jsonc"
+      - "coordination/kidults/redteam/d1-legacy-resource-policy-v1.json"
+      - "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json"
+      - "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json"
+      - "coordination/kidults/kpmo/trusted-governed-control-freeze-v1.json"
+      - "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs"
+      - "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs"
+      - "scripts/kidults/kpmo/validate-trusted-governed-control-freeze-v1.mjs"
+      - "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs"
+      - "scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs"
+      - "scripts/kidults/kpmo/lib/governed-landing-*.mjs"
+      - "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs"
+      - "tests/kidults/kpmo/trusted-governed-control-freeze-v1.test.mjs"
 
 permissions:
   contents: read
