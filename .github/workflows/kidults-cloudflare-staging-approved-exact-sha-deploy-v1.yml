@@ -1,0 +1,252 @@
+name: KIDULTS Cloudflare Staging Approved Exact-SHA Deploy v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact 40-character protected-main commit SHA to deploy
+        required: true
+        type: string
+      authorization_receipt:
+        description: Program Owner/KPMO authorization receipt identifier
+        required: true
+        type: string
+      confirmation:
+        description: Enter DEPLOY_EXACT_SHA_TO_KIDULTS_STAGING
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-staging-approved-exact-sha-deploy-v1
+  cancel-in-progress: false
+
+jobs:
+  approved-exact-sha-deploy:
+    name: Deploy approved protected-main SHA to KIDULTS STAGING
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      AUTHORIZATION_RECEIPT: ${{ inputs.authorization_receipt }}
+      CONFIRMATION: ${{ inputs.confirmation }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_EDIT_TOKEN }}
+      CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
+      EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+      RECEIPT_DIR: artifacts/cloudflare-staging-approved-exact-sha-deploy
+    steps:
+      - name: Initialize fail-closed deployment receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RECEIPT_DIR"
+          jq -n \
+            --arg project "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg authorization_receipt "$AUTHORIZATION_RECEIPT" \
+            '{
+              project:$project,
+              source_sha:$source_sha,
+              authorization_receipt:$authorization_receipt,
+              state:"BLOCKED",
+              blocker:"DEPLOYMENT_NOT_COMPLETED",
+              exact_protected_main_verified:false,
+              automatic_deployment_boundary_verified:false,
+              deployment_created:false,
+              deployment_id:null,
+              deployment_url:null,
+              deployment_source_sha_verified:false,
+              write_token_removal_required:true,
+              public_release:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > "$RECEIPT_DIR/final.json"
+
+      - name: Verify explicit deployment authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$CONFIRMATION" = "DEPLOY_EXACT_SHA_TO_KIDULTS_STAGING"
+          test -n "$AUTHORIZATION_RECEIPT"
+          test "$CLOUDFLARE_PAGES_PROJECT_NAME" = "kidults-workspace-staging"
+          test "$EXPECTED_REPOSITORY" = "$GITHUB_REPOSITORY"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Bind deployment to current protected main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git fetch --no-tags --depth=1 origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$SOURCE_SHA"
+          jq '.exact_protected_main_verified = true' "$RECEIPT_DIR/final.json" > "$RECEIPT_DIR/final.tmp"
+          mv "$RECEIPT_DIR/final.tmp" "$RECEIPT_DIR/final.json"
+
+      - name: Verify ambient Git deployment boundary is already disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${CLOUDFLARE_PAGES_PROJECT_NAME}"
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 1 --retry-all-errors \
+            --connect-timeout 10 --max-time 45 \
+            --request GET \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            "$api" > "$RECEIPT_DIR/project-predeploy-readback.json"
+          jq -e --arg repo "$EXPECTED_REPOSITORY" '
+            .success == true
+            and .result.name == "kidults-workspace-staging"
+            and .result.production_branch == "main"
+            and .result.source.type == "github"
+            and (((.result.source.config.owner // "") + "/" + (.result.source.config.repo_name // "")) == $repo)
+            and .result.source.config.deployments_enabled == false
+            and .result.source.config.production_deployments_enabled == false
+            and .result.source.config.preview_deployment_setting == "none"
+            and ((.result.source.config.preview_branch_includes // []) | length == 0)
+            and ((.result.source.config.preview_branch_excludes // []) | length == 0)
+          ' "$RECEIPT_DIR/project-predeploy-readback.json" >/dev/null
+          jq '.automatic_deployment_boundary_verified = true' "$RECEIPT_DIR/final.json" > "$RECEIPT_DIR/final.tmp"
+          mv "$RECEIPT_DIR/final.tmp" "$RECEIPT_DIR/final.json"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Install lockfile-pinned deployment toolchain and verify source surface
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f package-lock.json
+          test -f apps/kidults-enterprise-staging/public/index.html
+          test -f apps/kidults-enterprise-staging/server.mjs
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --no-install wrangler --version | tee "$RECEIPT_DIR/wrangler-version.txt"
+          node --check apps/kidults-enterprise-staging/server.mjs
+
+      - name: Deploy exact SHA to retained STAGING project
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --no-install wrangler pages deploy apps/kidults-enterprise-staging/public \
+            --project-name "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+            --branch main \
+            --commit-hash "$SOURCE_SHA" \
+            --commit-message "Governed KIDULTS STAGING deployment ${SOURCE_SHA}" \
+            --commit-dirty=false \
+            2>&1 | tee "$RECEIPT_DIR/wrangler-deploy-output.txt"
+
+      - name: Read back exact deployment ID, URL and source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${CLOUDFLARE_PAGES_PROJECT_NAME}/deployments?per_page=25"
+          curl --fail-with-body --silent --show-error \
+            --retry 3 --retry-delay 1 --retry-all-errors \
+            --connect-timeout 10 --max-time 45 \
+            --request GET \
+            --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            --header "Content-Type: application/json" \
+            "$api" > "$RECEIPT_DIR/deployments-readback.json"
+          jq -e --arg sha "$SOURCE_SHA" '
+            .success == true
+            and ([.result[] | select(.source.config.commit_hash == $sha)] | length == 1)
+          ' "$RECEIPT_DIR/deployments-readback.json" >/dev/null
+          jq --arg sha "$SOURCE_SHA" '
+            [.result[] | select(.source.config.commit_hash == $sha)]
+            | sort_by(.created_on)
+            | last
+            | {
+                deployment_id:.id,
+                deployment_url:.url,
+                environment:.environment,
+                created_on:.created_on,
+                source_branch:.source.config.branch,
+                source_sha:.source.config.commit_hash,
+                latest_stage:.latest_stage
+              }
+          ' "$RECEIPT_DIR/deployments-readback.json" > "$RECEIPT_DIR/deployment-readback.json"
+          jq -e --arg sha "$SOURCE_SHA" '
+            .deployment_id != null
+            and (.deployment_url | type == "string" and length > 0)
+            and .environment == "production"
+            and .source_branch == "main"
+            and .source_sha == $sha
+            and .latest_stage.status == "success"
+          ' "$RECEIPT_DIR/deployment-readback.json" >/dev/null
+
+          jq -n \
+            --arg project "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg authorization_receipt "$AUTHORIZATION_RECEIPT" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --slurpfile deployment "$RECEIPT_DIR/deployment-readback.json" \
+            '{
+              project:$project,
+              state:"COMPLETE_VERIFIED",
+              source_sha:$source_sha,
+              authorization_receipt:$authorization_receipt,
+              workflow_run_id:($workflow_run_id | tonumber),
+              workflow_run_attempt:($workflow_run_attempt | tonumber),
+              exact_protected_main_verified:true,
+              automatic_deployment_boundary_verified:true,
+              deployment_created:true,
+              deployment_id:$deployment[0].deployment_id,
+              deployment_url:$deployment[0].deployment_url,
+              deployment_environment:$deployment[0].environment,
+              deployed_at:$deployment[0].created_on,
+              deployment_source_sha_verified:true,
+              deployment_is_staging_project_only:true,
+              write_token_removal_required:true,
+              public_release:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > "$RECEIPT_DIR/final.json"
+
+      - name: Preserve exact failure truth
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$RECEIPT_DIR/final.json" || {
+            jq -n \
+              --arg project "$CLOUDFLARE_PAGES_PROJECT_NAME" \
+              --arg source_sha "$SOURCE_SHA" \
+              --arg authorization_receipt "$AUTHORIZATION_RECEIPT" \
+              '{
+                project:$project,
+                source_sha:$source_sha,
+                authorization_receipt:$authorization_receipt,
+                state:"BLOCKED",
+                blocker:"DEPLOYMENT_WORKFLOW_FAILED",
+                deployment_created:"UNKNOWN",
+                deployment_source_sha_verified:false,
+                write_token_removal_required:true,
+                public_release:"HOLD",
+                production:"HOLD",
+                g5:"HOLD"
+              }' > "$RECEIPT_DIR/final.json"
+          }
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: cloudflare-staging-approved-exact-sha-deploy-${{ inputs.source_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-staging-approved-exact-sha-deploy
+          if-no-files-found: error
+          retention-days: 30
