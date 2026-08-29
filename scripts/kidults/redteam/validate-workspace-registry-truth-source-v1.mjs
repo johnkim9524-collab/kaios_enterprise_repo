@@ -34,8 +34,8 @@ for (const prohibited of [
 }
 
 requireTrue(
-  redirects === '/workspace /workspace.html 200',
-  'Enterprise staging must use the default index document for the original responsive Portal and keep Workspace at /workspace.',
+  redirects === '',
+  'Enterprise staging must use default static documents without rewrite rules; the original responsive Portal remains / and Workspace remains /workspace.html.',
 );
 
 requireTrue(registry?.publication?.candidate_publication === 'PROHIBITED', 'Registry candidate publication must remain fail-closed.');
@@ -65,5 +65,5 @@ console.log(JSON.stringify({
   assessment: registry.assessment?.status ?? 'NOT_AVAILABLE',
   release: registry.release?.status ?? 'NOT_AVAILABLE',
   enterprise_root: 'ORIGINAL_RESPONSIVE_PORTAL',
-  workspace_route: '/workspace',
+  workspace_route: '/workspace.html',
 }, null, 2));
