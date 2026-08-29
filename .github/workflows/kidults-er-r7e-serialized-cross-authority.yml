@@ -39,6 +39,8 @@ defaults:
 
 jobs:
   build-r7e:
+    # HOLD: retired legacy invoker; governed Met owner is the only live path.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

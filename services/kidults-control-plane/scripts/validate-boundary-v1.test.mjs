@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { inspectD1Schema, inspectPostgresSchema, validateBoundary } from './validate-boundary-v1.mjs';
+import {
+  inspectD1Schema,
+  inspectPostgresSchema,
+  legacyRemoteDeployFailsClosed,
+  validateBoundary,
+} from './validate-boundary-v1.mjs';
 
 const serviceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const postgresMigration = path.join(serviceRoot, 'migrations/postgres/0001_system_of_record.sql');
@@ -17,6 +22,13 @@ test('current repository establishes PostgreSQL authority and inventories every 
   assert.equal(receipt.deployed_governed_d1_writer_count, 0);
   assert.equal(receipt.remote_d1_mutation, false);
   assert.equal(receipt.production, 'HOLD');
+});
+
+test('legacy remote deployment accepts a terminal global freeze or the D1 writer guard only', () => {
+  assert.equal(legacyRemoteDeployFailsClosed('node scripts/cloudflare-global-no-rerun.mjs'), true);
+  assert.equal(legacyRemoteDeployFailsClosed('npm run deploy:preflight && npm run d1:writer:remote-guard && wrangler deploy'), true);
+  assert.equal(legacyRemoteDeployFailsClosed('wrangler deploy'), false);
+  assert.equal(legacyRemoteDeployFailsClosed('npm run deploy:preflight'), false);
 });
 
 test('D1 schema rejects a canonical customer table', () => {

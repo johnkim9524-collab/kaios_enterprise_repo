@@ -292,19 +292,26 @@
   line-height:1.3
 }
 .compare-engine__bar{
+  display:block;
+  width:100%;
   height:4px;
   margin-top:9px;
+  border:0;
   border-radius:999px;
+  appearance:none;
   background:#e8e9e4;
   overflow:hidden
 }
-.compare-engine__bar i{
-  display:block;
-  height:100%;
-  border-radius:inherit;
+.compare-engine__bar::-webkit-progress-bar{border-radius:999px;background:#e8e9e4}
+.compare-engine__bar::-webkit-progress-value{
+  border-radius:999px;
   background:var(--forest)
 }
-.compare-engine__bar i[data-side=right]{
+.compare-engine__bar::-moz-progress-bar{border-radius:999px;background:var(--forest)}
+.compare-engine__bar[data-side=right]::-webkit-progress-value{
+  background:#b48a31
+}
+.compare-engine__bar[data-side=right]::-moz-progress-bar{
   background:#b48a31
 }
 .compare-engine__delta{

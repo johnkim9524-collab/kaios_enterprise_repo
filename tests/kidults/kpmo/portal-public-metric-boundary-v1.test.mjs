@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import path from 'node:path';
 import {
   PUBLIC_VERTICAL_METRIC_FIELDS,
   enforcePublicVerticalMetricBoundary,
@@ -14,6 +15,20 @@ const manifest = read('apps/kidults-enterprise-staging/public/portal/data/v502-m
 const verticalData = read('apps/kidults-enterprise-staging/public/portal/data/verticals.json');
 const canonical = read('coordination/kidults/registry/snapshot/records/baseline-provider-independent-v1.json');
 const detailSource = fs.readFileSync('apps/kidults-enterprise-staging/public/portal/detail.js', 'utf8');
+
+const portalRoot = 'apps/kidults-enterprise-staging/public/portal';
+const portalRuntimeFiles = [];
+const collectPortalRuntimeFiles = directory => {
+  for (const entry of fs.readdirSync(directory, {withFileTypes:true})) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) collectPortalRuntimeFiles(entryPath);
+    else if (/\.(?:html|js|mjs)$/.test(entry.name)) portalRuntimeFiles.push(entryPath);
+  }
+};
+collectPortalRuntimeFiles(portalRoot);
+const inlineStyleEmission = /(?:\bstyle\s*=\s*["'`]|\.style\s*(?:\.|\[)|setAttribute\s*\(\s*['"]style['"]|\bcssText\b)/;
+const inlineStyleFiles = portalRuntimeFiles.filter(file => inlineStyleEmission.test(fs.readFileSync(file, 'utf8')));
+assert.deepEqual(inlineStyleFiles, [], `portal runtime must not emit inline styles under style-src 'self': ${inlineStyleFiles.join(', ')}`);
 
 assert.equal(publicVerticalProjectionReady({registry, manifest, verticalData}), false);
 for (const vertical of verticalData.verticals) {

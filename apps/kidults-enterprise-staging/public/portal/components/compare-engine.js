@@ -428,7 +428,7 @@ function rowMarkup(row) {
 
   const bar = (value, side) => value === null
     ? ""
-    : `<div class="compare-engine__bar" aria-hidden="true"><i style="width:${Math.max(0, Math.min(100, value))}%" data-side="${side}"></i></div>`;
+    : `<progress class="compare-engine__bar" max="100" value="${Math.max(0, Math.min(100, value))}" data-side="${side}" aria-hidden="true" tabindex="-1">${Math.max(0, Math.min(100, value))}%</progress>`;
 
   return `
     <div class="compare-engine__row" data-compare-metric="${esc(row.key)}">

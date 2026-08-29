@@ -9,9 +9,12 @@ const paths = [
   'coordination/kidults/runtime/observability-slo-contract-v1.json'
 ];
 const docs = paths.map(path => [path, JSON.parse(fs.readFileSync(path, 'utf8'))]);
+const expectedVersions = new Map([
+  ['coordination/kidults/governance/portal-accessibility-assurance-v1.json', '1.1.0']
+]);
 const errors=[]; const assert=(c,m)=>{if(!c)errors.push(m)};
 for (const [path, doc] of docs) {
-  assert(doc.version === '1.0.0', `${path}: version mismatch`);
+  assert(doc.version === (expectedVersions.get(path) ?? '1.0.0'), `${path}: version mismatch`);
   assert(doc.production === 'HOLD', `${path}: Production must remain HOLD`);
 }
 const rights=docs[1][1], privacy=docs[2][1], accessibility=docs[3][1], security=docs[4][1], obs=docs[5][1];

@@ -34,6 +34,7 @@ const mutationCommand = /\b(?:cf_request|api_request)\s+(?:POST|PUT|PATCH|DELETE
 function walk(root) {
   return fs.readdirSync(root, {withFileTypes: true}).flatMap((entry) => {
     const child = path.join(root, entry.name);
+    if (entry.isDirectory() && ['node_modules', '.git'].includes(entry.name)) return [];
     return entry.isDirectory() ? walk(child) : [child];
   });
 }

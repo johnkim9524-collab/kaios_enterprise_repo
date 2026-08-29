@@ -29,6 +29,14 @@ const formatDate = value => {
 const stateToken = value =>
   String(value ?? "NOT_AVAILABLE").trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_");
 
+const compositionTone = (color, index) => ({
+  "#123f35": 0,
+  "#356456": 1,
+  "#5f8174": 2,
+  "#8fa69d": 3,
+  "#c6c7b8": 4
+}[String(color ?? "").toLowerCase()] ?? index % 5);
+
 function target(selector) {
   return document.querySelector(selector);
 }
@@ -123,12 +131,14 @@ export function renderVerticals(verticalData) {
       const coverage = vertical.right_data_coverage_pct !== null && vertical.right_data_coverage_pct !== "" && Number.isFinite(Number(vertical.right_data_coverage_pct))
         ? Math.max(0, Math.min(100, Number(vertical.right_data_coverage_pct)))
         : 0;
+      const coverageLabel = vertical.right_data_coverage_pct === null || vertical.right_data_coverage_pct === ""
+        ? `${vertical.name} Right Data coverage: not registered`
+        : `${vertical.name} Right Data coverage: ${coverage}%`;
       return `
         <article
           class="vertical-card reveal"
           data-vertical-card
           data-featured="${vertical.featured}"
-          style="--coverage:${coverage}%"
         >
           <div class="vertical-card-top">
             <span class="vertical-order">${String(vertical.structural_order).padStart(2, "0")}</span>
@@ -151,7 +161,7 @@ export function renderVerticals(verticalData) {
                 <span>Demand evidence</span>
               </div>
             </div>
-            <div class="coverage-bar" aria-hidden="true"><i></i></div>
+            <progress class="coverage-bar" max="100" value="${coverage}" aria-label="${esc(coverageLabel)}">${coverage}%</progress>
             <div class="vertical-card-footer">
               <small>${esc(visualState)}</small>
               <div class="vertical-card-actions">
@@ -256,20 +266,30 @@ export function renderEvidence(summary, k100) {
   }
 
   const donut = target("[data-donut]");
+  const donutSegments = target("[data-donut-segments]");
   const compositionList = target("[data-composition-list]");
   if (summary.composition?.length) {
-    const stops = [];
+    const total = summary.composition.reduce((sum, item) => sum + Math.max(0, Number(item.value) || 0), 0) || 1;
     let position = 0;
-    summary.composition.forEach(item => {
-      stops.push(`${item.color} ${position}% ${position + item.value}%`);
-      position += item.value;
-    });
-    donut.style.background = `conic-gradient(${stops.join(",")})`;
-    compositionList.innerHTML = summary.composition.map(item => `
-      <li><span><i style="background:${esc(item.color)}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
+    donut.dataset.compositionState = "registered";
+    donutSegments.innerHTML = summary.composition.map((item, index) => {
+      const value = Math.max(0, Number(item.value) || 0);
+      const normalized = Math.min(100, value / total * 100);
+      const offset = position;
+      position += normalized;
+      return `<circle
+        class="composition-segment composition-tone-${compositionTone(item.color, index)}"
+        cx="20" cy="20" r="16" pathLength="100"
+        stroke-dasharray="${normalized.toFixed(4)} ${(100 - normalized).toFixed(4)}"
+        stroke-dashoffset="${(-offset).toFixed(4)}"
+      ></circle>`;
+    }).join("");
+    compositionList.innerHTML = summary.composition.map((item, index) => `
+      <li><span><i class="composition-key composition-tone-${compositionTone(item.color, index)}" aria-hidden="true"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
     `).join("");
   } else {
-    donut.style.background = "none";
+    donut.dataset.compositionState = "unregistered";
+    donutSegments.replaceChildren();
     compositionList.innerHTML = '<li><span>Current source composition</span><strong>NOT VERIFIED</strong></li>';
   }
 }

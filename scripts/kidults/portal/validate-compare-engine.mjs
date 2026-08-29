@@ -154,19 +154,30 @@ if (verticalData) {
   const ids = new Set(verticals.map(vertical => vertical.id));
   if (contract?.default_left_id && !ids.has(contract.default_left_id)) errors.push("Default left vertical is not registered.");
   if (contract?.default_right_id && !ids.has(contract.default_right_id)) errors.push("Default right vertical is not registered.");
+  const publicationState = verticalData.metric_publication_state;
+  const withheldFields = [
+    "right_data_coverage_pct",
+    "demand_evidence_pct",
+    "relevant",
+    "demand_evidence_count",
+    "demand_denominator",
+    "scarcity_evidence_count",
+    "current_observation_order"
+  ];
+  if (!["WITHHELD_PENDING_APPROVED_PROJECTION", "APPROVED_PROJECTION"].includes(publicationState)) {
+    errors.push(`Unsupported metric publication state: ${publicationState ?? "MISSING"}.`);
+  }
   for (const vertical of verticals) {
-    for (const field of [
-      "right_data_coverage_pct",
-      "demand_evidence_pct",
-      "relevant",
-      "demand_evidence_count",
-      "demand_denominator",
-      "scarcity_evidence_count",
-      "current_observation_order",
-      "structural_order"
-    ]) {
-      if (!Number.isFinite(vertical[field])) errors.push(`${vertical.id}: missing numeric compare field ${field}.`);
+    if (publicationState === "WITHHELD_PENDING_APPROVED_PROJECTION") {
+      for (const field of withheldFields) {
+        if (vertical[field] !== null) errors.push(`${vertical.id}: public compare field ${field} must be withheld as null.`);
+      }
+    } else if (publicationState === "APPROVED_PROJECTION") {
+      for (const field of withheldFields) {
+        if (!Number.isFinite(vertical[field])) errors.push(`${vertical.id}: approved compare field ${field} must be numeric.`);
+      }
     }
+    if (!Number.isFinite(vertical.structural_order)) errors.push(`${vertical.id}: structural_order must be numeric.`);
     if (typeof vertical.featured !== "boolean") errors.push(`${vertical.id}: featured must be boolean.`);
   }
 }

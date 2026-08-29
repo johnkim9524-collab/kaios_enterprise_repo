@@ -29,6 +29,8 @@ concurrency:
 
 jobs:
   assemble-and-run-r3:
+    # HOLD: retired legacy invoker; governed Met owner is the only live path.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:

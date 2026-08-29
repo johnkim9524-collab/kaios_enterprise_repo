@@ -22,6 +22,7 @@ const collectorCommand = "node scripts/kidults/autonomous/collect-met-open-acces
 const requiredWatch = "- 'KIDULTS Autonomous Met Open Access Sample'";
 const allowedCollectorWorkflows = [paths.crossSource, paths.met].sort();
 const allowedEndpointFiles = [paths.collector, paths.offlineTest].sort();
+const expectedLegacyInvokerJobCount = 24;
 
 function filesUnder(root, pattern) {
   const files = [];
@@ -63,9 +64,27 @@ function legacyWorkflowInventory() {
   const invocations = [];
   for (const file of filesUnder(".github/workflows", /\.ya?ml$/)) {
     const content = fs.readFileSync(file, "utf8");
-    for (const line of content.split("\n")) {
-      const command = commands.find(value => line.includes(value));
-      if (command) invocations.push({ file, line: line.trim(), content, command });
+    const lines = content.split("\n");
+    const jobsIndex = lines.findIndex(line => /^jobs:\s*$/.test(line));
+    if (jobsIndex < 0) continue;
+    const jobBlocks = [];
+    let currentJob = null;
+    for (const line of lines.slice(jobsIndex + 1)) {
+      const jobMatch = line.match(/^ {2}([A-Za-z0-9_-]+):\s*(?:#.*)?$/);
+      if (jobMatch) {
+        if (currentJob) jobBlocks.push(currentJob);
+        currentJob = { id: jobMatch[1], lines: [line] };
+      } else if (currentJob) {
+        currentJob.lines.push(line);
+      }
+    }
+    if (currentJob) jobBlocks.push(currentJob);
+    for (const job of jobBlocks) {
+      const jobContent = job.lines.join("\n");
+      for (const line of job.lines) {
+        const command = commands.find(value => line.includes(value));
+        if (command) invocations.push({ file, job: job.id, line: line.trim(), content, jobContent, command });
+      }
     }
   }
   return invocations;
@@ -141,9 +160,18 @@ function validate(input) {
   for (const expected of [paths.legacyAdmission, paths.legacyEntityResolution, paths.legacyOpenChannel].map(file => `node ${file}`)) {
     if (!legacyCommands.has(expected)) failures.push(`MET_LEGACY_WORKFLOW_INVENTORY_MISSING:${expected}`);
   }
+  if (input.legacyWorkflowInvocations.length !== expectedLegacyInvokerJobCount) {
+    failures.push(`MET_LEGACY_WORKFLOW_INVENTORY_COUNT:${input.legacyWorkflowInvocations.length}`);
+  }
   for (const invocation of input.legacyWorkflowInvocations) {
     if (/\|\||&&\s*true|;\s*true/.test(invocation.line) || /continue-on-error:\s*true/.test(invocation.content)) {
       failures.push(`MET_LEGACY_HOLD_EXIT_MASKED:${invocation.file}`);
+    }
+    if (!/^ {4}if: \$\{\{ false \}\}\s*$/m.test(invocation.jobContent)) {
+      failures.push(`MET_LEGACY_INVOKER_JOB_NOT_LITERAL_FALSE:${invocation.file}:${invocation.job}`);
+    }
+    if (!/^ {4}# HOLD: retired legacy invoker;/m.test(invocation.jobContent)) {
+      failures.push(`MET_LEGACY_INVOKER_JOB_HOLD_COMMENT_MISSING:${invocation.file}:${invocation.job}`);
     }
   }
   if (!input.legacyRuntimeWrapper.includes("r.status !== 0") ||
@@ -210,6 +238,7 @@ const mutations = [
   { id: "SECOND_SCHEDULED_OWNER", patch: value => ({ ...value, scheduledCollectorWorkflowCallers: [paths.candidate, paths.met].sort() }) },
   { id: "LEGACY_ENDPOINT_REINTRODUCED", patch: value => ({ ...value, endpointReferences: [...value.endpointReferences, paths.legacyAdmission].sort() }) },
   { id: "LEGACY_HOLD_EXIT_MASKED", patch: value => ({ ...value, legacyWorkflowInvocations: value.legacyWorkflowInvocations.map((item, index) => index === 0 ? { ...item, line: `${item.line} || true` } : item) }) },
+  { id: "LEGACY_INVOKER_JOB_REENABLED", patch: value => ({ ...value, legacyWorkflowInvocations: value.legacyWorkflowInvocations.map((item, index) => index === 0 ? { ...item, jobContent: item.jobContent.replace("if: ${{ false }}", "if: ${{ true }}") } : item) }) },
   { id: "EXACT_RUN_LINEAGE_WEAKENED", patch: value => ({ ...value, validator: value.validator.replace("manifest?.runtime_lineage?.git_sha === process.env.GITHUB_SHA", "/^[a-f0-9]{40}$/.test(manifest?.runtime_lineage?.git_sha ?? '')") }) }
 ];
 const rejected = [];
@@ -225,14 +254,14 @@ if (rejected.length !== mutations.length) {
 }
 
 console.log(JSON.stringify({
-  schema_version: "1.2.0",
+  schema_version: "1.3.0",
   receipt_type: "KIDULTS_MET_ACQUISITION_ASSURANCE_INVARIANT",
   state: "VERIFIED_PASS",
   scheduled_live_producer_count: 1,
   scheduled_live_producer: paths.met,
   governed_collector_workflow_count: allowedCollectorWorkflows.length,
   legacy_direct_provider_call_count: 0,
-  legacy_workflow_invocations_fail_closed: input.legacyWorkflowInvocations.length,
+  legacy_workflow_invocations_literal_false: input.legacyWorkflowInvocations.length,
   source_lock: "ALL_REACHABLE_GOVERNED_CALLERS_SERIALIZED_NO_CANCEL",
   object_binding: "REQUEST_ID_PAYLOAD_ID_DEPARTMENT_SCHEMA_EXACT",
   runtime_lineage: "EXACT_SHA_RUN_ID_RUN_ATTEMPT",

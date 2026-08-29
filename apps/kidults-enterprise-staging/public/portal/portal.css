@@ -180,7 +180,15 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--forest);outline-off
 .coverage-values strong{font-family:var(--serif);font-size:46px;font-weight:400;line-height:1}
 .coverage-values span{font-size:11px;color:var(--muted);margin-top:8px}
 .composition-layout{display:grid;grid-template-columns:175px 1fr;align-items:center;gap:28px;margin:46px 0 30px}
-.donut{width:175px;height:175px;border-radius:50%;position:relative;background:conic-gradient(#123f35 0 42%,#356456 42% 66%,#5f8174 66% 81%,#8fa69d 81% 92%,#c6c7b8 92%)}
+.donut{width:175px;height:175px;border-radius:50%;position:relative;background:#e8e5dc}
+.donut[data-composition-state=unregistered]{background:transparent}
+.donut-chart{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.composition-segment{fill:none;stroke:currentColor;stroke-width:8}
+.composition-tone-0{color:#123f35}
+.composition-tone-1{color:#356456}
+.composition-tone-2{color:#5f8174}
+.composition-tone-3{color:#8fa69d}
+.composition-tone-4{color:#c6c7b8}
 .donut:after{content:"";position:absolute;inset:34px;border-radius:50%;background:var(--card)}
 .donut-center{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .donut-center strong{font-family:var(--serif);font-size:21px;font-weight:400}
@@ -188,7 +196,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--forest);outline-off
 .composition-list{list-style:none;margin:0;padding:0}
 .composition-list li{display:flex;justify-content:space-between;gap:16px;font-size:12px;margin:11px 0}
 .composition-list li span{display:flex;align-items:center;gap:9px}
-.composition-list i{display:inline-block;width:9px;height:9px;border-radius:50%}
+.composition-list i{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor}
 .methodology-card h3{font-family:var(--serif);font-size:31px;line-height:1.16;font-weight:400;color:var(--forest);margin:42px 0 18px}
 .methodology-icons{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:28px 0}
 .methodology-icons span{min-height:70px;border:1px solid var(--line);border-radius:13px;display:flex;align-items:center;gap:13px;padding:15px;font-size:12px}

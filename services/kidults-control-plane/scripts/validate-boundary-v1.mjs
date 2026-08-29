@@ -57,6 +57,12 @@ export function inspectD1Schema(sql) {
   return { created, errors };
 }
 
+export function legacyRemoteDeployFailsClosed(deployCommand) {
+  const command = String(deployCommand || '').trim();
+  return command === 'node scripts/cloudflare-global-no-rerun.mjs'
+    || command.includes('d1:writer:remote-guard');
+}
+
 export function inspectPostgresSchema(sql) {
   const errors = [];
   const requiredTables = [
@@ -160,7 +166,7 @@ export function validateBoundary(root = defaultRoot) {
   const legacyWrangler = fs.readFileSync(path.join(root, 'services/kidults-autonomous-intelligence/wrangler.jsonc'), 'utf8');
   if (!legacyWrangler.includes('"D1_WRITER_MODE": "LEGACY_MIGRATION_HOLD"')) errors.push('LEGACY_D1_WRITER_MODE_NOT_DECLARED');
   const legacyPackage = readJson(path.join(root, 'services/kidults-autonomous-intelligence/package.json'));
-  if (!String(legacyPackage.scripts?.deploy || '').includes('d1:writer:remote-guard')) errors.push('LEGACY_REMOTE_DEPLOY_GUARD_NOT_WIRED');
+  if (!legacyRemoteDeployFailsClosed(legacyPackage.scripts?.deploy)) errors.push('LEGACY_REMOTE_DEPLOY_GUARD_NOT_WIRED');
 
   for (const runtime of [
     'enterprise-access.mjs', 'billing-ledger.mjs', 'observability-ledger.mjs',

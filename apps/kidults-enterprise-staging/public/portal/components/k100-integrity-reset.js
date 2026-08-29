@@ -51,10 +51,11 @@ export function startK100IntegrityReset({ data } = {}) {
     const figure = card.querySelector(".k100-figure");
     const image = figure?.querySelector("img");
     const role = visualLabel(item.visual_role);
+    const registeredScale = Number(item.display_scale);
 
     card.dataset.k100Id = item.id;
     card.dataset.visualRole = item.visual_role ?? "EDITORIAL_INTERPRETATION";
-    card.style.setProperty("--k100-object-scale", String(Number(item.display_scale) || 1));
+    card.dataset.displayScale = String(Number.isFinite(registeredScale) && registeredScale > 0 ? registeredScale : 1);
 
     if (figure) {
       figure.dataset.visualRole = role;

@@ -29,6 +29,14 @@ function textState(value) {
     .replace(/[^A-Z0-9]+/g, "_");
 }
 
+const compositionTone = (color, index) => ({
+  "#123f35": 0,
+  "#356456": 1,
+  "#5f8174": 2,
+  "#8fa69d": 3,
+  "#c6c7b8": 4
+}[String(color ?? "").toLowerCase()] ?? index % 5);
+
 function humanState(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
 }
@@ -392,9 +400,7 @@ function ensureDialog() {
             <div><p class="eyebrow">CONFIDENCE</p><h3>Registered preview confidence</h3></div>
             <strong data-why-confidence-value>—</strong>
           </div>
-          <div class="why-engine__confidence" role="meter" aria-valuemin="0" aria-valuemax="100" data-why-confidence-meter>
-            <i data-why-confidence-bar></i>
-          </div>
+          <progress class="why-engine__confidence" max="100" value="0" aria-label="Registered preview confidence" data-why-confidence-meter>0%</progress>
           <p class="why-engine__note">Confidence is shown as registered. It is not silently upgraded into an independent assessment.</p>
         </section>
 
@@ -453,13 +459,14 @@ function renderPairs(node, pairs) {
 
 function renderComposition(node, composition) {
   const total = composition.reduce((sum, item) => sum + Number(item.value || 0), 0) || 1;
-  node.innerHTML = composition.map(item => `
-    <div class="why-engine__composition-row">
-      <span><i style="--why-color:${esc(item.color)}"></i>${esc(item.label)}</span>
-      <div><b style="width:${Math.max(0, Math.min(100, Number(item.value) / total * 100))}%"></b></div>
+  node.innerHTML = composition.map((item, index) => {
+    const value = Math.max(0, Math.min(100, Number(item.value) / total * 100));
+    return `<div class="why-engine__composition-row">
+      <span><i class="why-engine__composition-key composition-tone-${compositionTone(item.color, index)}" aria-hidden="true"></i>${esc(item.label)}</span>
+      <progress class="why-engine__composition-progress" max="100" value="${value}" aria-label="${esc(`${item.label}: ${item.value}%`)}">${value}%</progress>
       <strong>${esc(item.value)}%</strong>
     </div>
-  `).join("");
+  `;}).join("");
 }
 
 function renderModel(dialog, model) {
@@ -485,8 +492,9 @@ function renderModel(dialog, model) {
     confidenceSection.hidden = false;
     dialog.querySelector("[data-why-confidence-value]").textContent = `${value}%`;
     const meter = dialog.querySelector("[data-why-confidence-meter]");
-    meter.setAttribute("aria-valuenow", String(value));
-    dialog.querySelector("[data-why-confidence-bar]").style.width = `${value}%`;
+    meter.value = value;
+    meter.textContent = `${value}%`;
+    meter.setAttribute("aria-label", `Registered preview confidence: ${value}%`);
   } else {
     confidenceSection.hidden = true;
   }

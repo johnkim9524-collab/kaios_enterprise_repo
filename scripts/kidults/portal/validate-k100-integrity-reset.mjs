@@ -78,12 +78,16 @@ if (manifest?.display_policy?.unverified_visual_policy !== "WITHHOLD") errors.pu
 for (const marker of [
   "startK100IntegrityReset",
   "updateSliceStatus",
-  "--k100-object-scale",
+  "dataset.displayScale",
   "KIDULTS_K100_INTEGRITY",
   'version: "1.1.0"',
   'k100-integrity-reset.css?v=658'
 ]) {
   if (!runtime.includes(marker)) errors.push(`K100 integrity runtime missing marker: ${marker}`);
+}
+
+if (/\.style\s*\.|setAttribute\s*\(\s*["']style|cssText/.test(runtime)) {
+  errors.push("K100 integrity runtime must not emit inline styles under the staging CSP.");
 }
 
 for (const marker of [

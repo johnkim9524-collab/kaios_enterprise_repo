@@ -166,20 +166,33 @@ if (contract) {
 if (verticalData) {
   const verticals = verticalData.verticals ?? [];
   if (verticals.length !== 8) errors.push(`Decision Engine expects 8 Core Verticals, found ${verticals.length}.`);
-  const observationOrders = verticals.map(vertical => vertical.current_observation_order).sort((a, b) => a - b);
-  if (observationOrders.join(",") !== "1,2,3,4,5,6,7,8") {
-    errors.push("Current observation orders must be exactly 1–8.");
+  const publicationState = verticalData.metric_publication_state;
+  const withheldFields = [
+    "right_data_coverage_pct",
+    "demand_evidence_pct",
+    "relevant",
+    "current_observation_order"
+  ];
+  if (!["WITHHELD_PENDING_APPROVED_PROJECTION", "APPROVED_PROJECTION"].includes(publicationState)) {
+    errors.push(`Unsupported metric publication state: ${publicationState ?? "MISSING"}.`);
+  }
+  if (publicationState === "APPROVED_PROJECTION") {
+    const observationOrders = verticals.map(vertical => vertical.current_observation_order).sort((a, b) => a - b);
+    if (observationOrders.join(",") !== "1,2,3,4,5,6,7,8") {
+      errors.push("Approved current observation orders must be exactly 1–8.");
+    }
   }
   for (const vertical of verticals) {
-    for (const field of [
-      "right_data_coverage_pct",
-      "demand_evidence_pct",
-      "relevant",
-      "current_observation_order",
-      "structural_order"
-    ]) {
-      if (!Number.isFinite(vertical[field])) errors.push(`${vertical.id}: missing numeric decision field ${field}.`);
+    if (publicationState === "WITHHELD_PENDING_APPROVED_PROJECTION") {
+      for (const field of withheldFields) {
+        if (vertical[field] !== null) errors.push(`${vertical.id}: public decision field ${field} must be withheld as null.`);
+      }
+    } else if (publicationState === "APPROVED_PROJECTION") {
+      for (const field of withheldFields) {
+        if (!Number.isFinite(vertical[field])) errors.push(`${vertical.id}: approved decision field ${field} must be numeric.`);
+      }
     }
+    if (!Number.isFinite(vertical.structural_order)) errors.push(`${vertical.id}: structural_order must be numeric.`);
     if (typeof vertical.featured !== "boolean") errors.push(`${vertical.id}: featured must be boolean.`);
   }
 }

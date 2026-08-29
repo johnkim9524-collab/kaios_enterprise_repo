@@ -13,7 +13,8 @@ env:
 
 jobs:
   prove-post-r7k-boundary:
-    if: github.ref == 'refs/heads/main'
+    # HOLD: retired legacy invoker; governed Met owner is the only live path.
+    if: ${{ false }}
     environment: kidults-pcgs-bounded-probe
     runs-on: ubuntu-24.04
     timeout-minutes: 45

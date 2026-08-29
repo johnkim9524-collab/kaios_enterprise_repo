@@ -195,7 +195,12 @@
         <article class="evidence-card composition-card">
           <p class="eyebrow">EVIDENCE COMPOSITION · 360° VIEW</p>
           <div class="composition-layout">
-            <div class="donut" data-donut><div class="donut-center"><strong data-total-signals>—</strong><span>Total signals</span></div></div>
+            <div class="donut" data-donut data-composition-state="unregistered">
+              <svg class="donut-chart" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+                <g data-donut-segments></g>
+              </svg>
+              <div class="donut-center"><strong data-total-signals>—</strong><span>Total signals</span></div>
+            </div>
             <ul class="composition-list" data-composition-list></ul>
           </div>
           <button class="text-link" type="button" data-dialog="methodology">View provenance <span>→</span></button>

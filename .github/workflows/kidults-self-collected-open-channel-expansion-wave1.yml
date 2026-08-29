@@ -14,6 +14,8 @@ permissions:
 
 jobs:
   open-channel-wave1:
+    # HOLD: retired legacy invoker; governed Met owner is the only live path.
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
