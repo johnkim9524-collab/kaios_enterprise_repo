@@ -1,0 +1,54 @@
+{
+  "id": "kidults-cloudflare-pages-one-shot-completion-v1",
+  "state": "COMPLETE_VERIFIED",
+  "approval_id": "CF-KIDULTS-14501AC-01",
+  "approval_consumed": true,
+  "approval_one_time": true,
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "project": "kidults-workspace-staging",
+  "target_sha": "14501ac022bdd7c918924a207f257b047b1ba970",
+  "control_sha": "a423d62ca97bdf60a89b3b9a6a1f463ac4326682",
+  "source_tree_sha256": "sha256:a929addc4a2cc048ad4f51637fbf3ad08a419aebe6f50bab7c3036019eaae8bc",
+  "workflow_run_id": 33262992819,
+  "workflow_run_attempt": 1,
+  "artifact_id": 9717897493,
+  "artifact_digest": "sha256:5c642753fad37bebd70555938e2a0e6daed95c88d9d5fb4e6bc6cf49cb33e309",
+  "observed_at": "2026-08-30T01:35:25+09:00",
+  "provider_http_status": 200,
+  "provider_error_codes": [],
+  "preview_retirement": {
+    "initial_materialized_count": 588,
+    "deleted_materialized_count": 588,
+    "remaining_materialized_count": 0,
+    "verified_zero": true
+  },
+  "production_history": {
+    "initial_count": 124,
+    "final_count": 125,
+    "all_preexisting_ids_preserved": true,
+    "preexisting_ids_deleted": 0,
+    "new_governed_deployment_count": 1
+  },
+  "governed_staging_deployment": {
+    "id": "dc6654a1-ee61-4762-92a1-b3f25e064e91",
+    "url": "https://dc6654a1.kidults-workspace-staging.pages.dev",
+    "cloudflare_environment": "production",
+    "platform_environment": "STAGING",
+    "trigger_type": "ad_hoc",
+    "branch": "main",
+    "commit_hash": "14501ac022bdd7c918924a207f257b047b1ba970",
+    "latest_stage_status": "success"
+  },
+  "settings": {
+    "mutated_by_operation": false,
+    "automatic_production_git_deployments_enabled": false,
+    "preview_deployment_setting": "none",
+    "pages_project_deleted": false,
+    "git_connection_preserved": true
+  },
+  "release_boundary": {
+    "public_release": "HOLD",
+    "platform_production": "HOLD",
+    "g5": "HOLD"
+  }
+}
