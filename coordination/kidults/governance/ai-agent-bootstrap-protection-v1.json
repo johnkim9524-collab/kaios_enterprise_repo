@@ -44,6 +44,7 @@
     "scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs",
     "scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs",
     "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
+    "scripts/governance/validate-ai-agent-bootstrap-protection-v1.mjs",
     ".github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml",
     "scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs",
     "coordination/kidults/governance/ai-agent-bootstrap-protection-v1.json"
