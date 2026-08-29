@@ -13,6 +13,7 @@ function validate(text) {
   };
 
   rejectText('/actions/artifacts?per_page=100', 'repository-global artifact lookup');
+  rejectText('-f status=success', 'single-shot success-only producer lookup');
 
   requireText(
     '/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs',
@@ -27,6 +28,14 @@ function validate(text) {
   requireText('EXPECTED_PRODUCER_SHA="$PR_BASE_SHA"', 'PR base compatibility binding');
   requireText('EXPECTED_PRODUCER_SHA="$CURRENT_SHA"', 'current-main exact-generation binding');
   requireText('test "$GITHUB_REF" = "refs/heads/main"', 'non-PR protected-main gate');
+  requireText('AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10', 'bounded producer wait attempt cap');
+  requireText('AUTOBALANCE_PRODUCER_WAIT_SECONDS=3', 'bounded producer wait interval');
+  requireText('for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS")', 'bounded producer poll loop');
+  requireText('sort_by(.created_at) | reverse | .[0] // empty', 'deterministic latest exact-generation producer selection');
+  requireText('if [ "$HOURLY_RUN_STATUS" = "completed" ] && [ "$HOURLY_RUN_CONCLUSION" = "success" ]; then', 'producer success terminal gate');
+  requireText('UPSTREAM_EXACT_GENERATION_TERMINAL_NON_SUCCESS', 'precise terminal non-success diagnosis');
+  requireText('UPSTREAM_EXACT_GENERATION_NOT_TERMINAL', 'precise bounded-wait timeout diagnosis');
+  requireText('sleep "$AUTOBALANCE_PRODUCER_WAIT_SECONDS"', 'bounded producer wait sleep');
 
   for (const artifactName of [
     'kidults-asi-global-any-site-source-pool-v1',
@@ -85,6 +94,18 @@ const mutations = [
   [
     'mixed_generation_allowed: false',
     'mixed_generation_allowed: true'
+  ],
+  [
+    'AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10',
+    'AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'
+  ],
+  [
+    'sort_by(.created_at) | reverse | .[0] // empty',
+    '.[0] // empty'
+  ],
+  [
+    'UPSTREAM_EXACT_GENERATION_NOT_TERMINAL',
+    'UPSTREAM_NOT_FOUND'
   ]
 ];
 
@@ -104,6 +125,12 @@ console.log(JSON.stringify({
   status: 'VERIFIED_PASS',
   control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_PRODUCER_PROVENANCE',
   mutation_cases_rejected: mutations.length,
+  producer_wait: {
+    max_attempts: 10,
+    interval_seconds: 3,
+    terminal_non_success: 'FAIL_CLOSED',
+    timeout: 'FAIL_CLOSED'
+  },
   production: 'HOLD',
   public_release: 'HOLD'
 }, null, 2));
