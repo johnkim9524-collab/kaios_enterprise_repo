@@ -56,6 +56,7 @@ const requirementProducerEventGuard = "github.event.workflow_run.event != 'push'
 const requirementExactTriggerLine = '\n            RUN_ID="$EVENT_ARL_RUN_ID"\n';
 assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_GUARD_MISSING');
 assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
+assert(requirement.includes("exact_triggering_run_bound:run.event==='workflow_run'"), 'REQUIREMENT_UPSTREAM_EVENT_BINDING_SEMANTICS_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
 const snapshotConcurrencyContract = "group: kidults-asi-snapshot-readiness-factory-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}";
@@ -114,6 +115,8 @@ const requirementProducerEventMutation = requirement.replace(requirementProducer
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
 const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
 assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
+const requirementUpstreamEventBindingMutation = requirement.replace("exact_triggering_run_bound:run.event==='workflow_run'", "exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'");
+assert(requirementUpstreamEventBindingMutation !== requirement && !requirementUpstreamEventBindingMutation.includes("exact_triggering_run_bound:run.event==='workflow_run'"), 'REQUIREMENT_UPSTREAM_EVENT_BINDING_MUTATION_NOT_DETECTED');
 const snapshotConcurrencyMutation = snapshot.replace('github.event.workflow_run.id', 'github.ref');
 assert(snapshotConcurrencyMutation !== snapshot && !snapshotConcurrencyMutation.includes(snapshotConcurrencyContract), 'SNAPSHOT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
@@ -146,7 +149,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 21,
+  adversarial_mutations_rejected: 22,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',

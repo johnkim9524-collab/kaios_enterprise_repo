@@ -143,6 +143,7 @@ for (const marker of [
 assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND_TRIGGER_FORBIDDEN');
 assert(!workflow.includes('/actions/artifacts?per_page='), 'WORKFLOW_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(workflow.includes('/actions/runs/${RUN_ID}/artifacts?per_page=100'), 'WORKFLOW_EXACT_RUN_ARTIFACT_BINDING');
+assert(workflow.includes("exact_triggering_run_bound:run.event==='workflow_run'"), 'WORKFLOW_UPSTREAM_EVENT_BINDING_SEMANTICS');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
