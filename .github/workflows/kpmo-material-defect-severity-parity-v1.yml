@@ -1,0 +1,110 @@
+name: KPMO Material Defect Severity Parity V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+  issues:
+    types: [opened, edited, reopened, labeled, unlabeled]
+  schedule:
+    - cron: '9 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: kpmo-material-defect-severity-parity-${{ github.event_name }}-${{ github.ref || github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  validate-severity-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Validate open P0/P1 title-label parity with complete pagination
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --input-type=module <<'NODE'
+          const repo=process.env.GITHUB_REPOSITORY;
+          const token=process.env.GH_TOKEN;
+          if(!repo||!token) throw new Error('REPOSITORY_OR_TOKEN_MISSING');
+          const headers={Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'};
+          async function get(url){
+            const r=await fetch(url,{headers,signal:AbortSignal.timeout(20000)});
+            const text=await r.text();
+            if(!r.ok) throw new Error(`GITHUB_HTTP_${r.status}:${text.slice(0,200)}`);
+            return JSON.parse(text);
+          }
+          async function search(query){
+            const out=[];
+            let total=null;
+            for(let page=1;page<=10;page++){
+              const url=`https://api.github.com/search/issues?q=${encodeURIComponent(`repo:${repo} is:issue is:open ${query}`)}&sort=updated&order=desc&per_page=100&page=${page}`;
+              const data=await get(url);
+              if(data.incomplete_results!==false) throw new Error(`INCOMPLETE_RESULTS:${query}:page=${page}`);
+              if(!Number.isInteger(data.total_count)||data.total_count<0||data.total_count>1000) throw new Error(`INVALID_TOTAL:${query}:${data.total_count}`);
+              if(total===null) total=data.total_count;
+              if(total!==data.total_count) throw new Error(`CARDINALITY_MOVED:${query}:${total}->${data.total_count}`);
+              if(!Array.isArray(data.items)) throw new Error(`INVALID_ITEMS:${query}:page=${page}`);
+              out.push(...data.items);
+              if(out.length>=total) break;
+              if(data.items.length===0||page===10) throw new Error(`PAGINATION_TRUNCATED:${query}:${out.length}/${total}`);
+            }
+            if(out.length!==total) throw new Error(`CARDINALITY_MISMATCH:${query}:${out.length}/${total}`);
+            return out;
+          }
+          const [p0Title,p1Title]=await Promise.all([
+            search('in:title "[P0]"'),
+            search('in:title "[P1]"')
+          ]);
+          const failures=[];
+          for(const [severity,items] of [['P0',p0Title],['P1',p1Title]]){
+            for(const issue of items){
+              const labels=new Set((issue.labels||[]).map(x=>typeof x==='string'?x:x?.name).filter(Boolean));
+              if(!labels.has(severity)) failures.push(`#${issue.number}:${severity}_TITLE_WITHOUT_${severity}_LABEL`);
+            }
+          }
+          // Also reject a P0/P1 label whose title explicitly declares the opposite severity only.
+          for(const severity of ['P0','P1']){
+            const labeled=await search(`label:${severity}`);
+            for(const issue of labeled){
+              const title=String(issue.title||'');
+              const titleP0=title.includes('[P0]');
+              const titleP1=title.includes('[P1]');
+              if(severity==='P0'&&titleP1&&!titleP0) failures.push(`#${issue.number}:P0_LABEL_WITH_P1_ONLY_TITLE`);
+              if(severity==='P1'&&titleP0&&!titleP1) failures.push(`#${issue.number}:P1_LABEL_WITH_P0_ONLY_TITLE`);
+            }
+          }
+          if(failures.length){
+            console.error(JSON.stringify({state:'VERIFIED_FAIL',failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+            process.exit(1);
+          }
+          console.log(JSON.stringify({state:'VERIFIED_PASS',p0_title_count:p0Title.length,p1_title_count:p1Title.length,pagination_complete:true,cardinality_stable:true,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+          NODE
+
+      - name: Negative canary — mismatch must be rejected by contract
+        run: |
+          node --input-type=module <<'NODE'
+          const parity=(title,labels)=>{
+            const set=new Set(labels);
+            if(title.includes('[P0]')&&!set.has('P0')) return false;
+            if(title.includes('[P1]')&&!set.has('P1')) return false;
+            if(set.has('P0')&&title.includes('[P1]')&&!title.includes('[P0]')) return false;
+            if(set.has('P1')&&title.includes('[P0]')&&!title.includes('[P1]')) return false;
+            return true;
+          };
+          if(parity('[P1] synthetic missing label',[])) throw new Error('MISSING_P1_LABEL_NOT_REJECTED');
+          if(parity('[P0] synthetic wrong label',['P1'])) throw new Error('P0_P1_MISMATCH_NOT_REJECTED');
+          if(!parity('[P1] synthetic correct',['P1'])) throw new Error('VALID_PARITY_REJECTED');
+          console.log(JSON.stringify({state:'VERIFIED_PASS',negative_canaries:2,positive_canaries:1}));
+          NODE
