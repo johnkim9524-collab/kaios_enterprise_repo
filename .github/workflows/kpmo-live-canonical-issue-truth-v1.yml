@@ -134,3 +134,4 @@ jobs:
           path: ${{ runner.temp }}/canonical-truth-receipt-v1.json
           if-no-files-found: error
           retention-days: 30
+          overwrite: true

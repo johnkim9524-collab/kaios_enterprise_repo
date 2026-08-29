@@ -53,10 +53,15 @@ function validateWorkflow(text) {
     'CANONICAL_RECEIPT_NON_SUCCESS_CLASSIFICATION_MISSING');
   requireTrue(emit.includes('promotion_eligible: false'),
     'CANONICAL_RECEIPT_PROMOTION_HOLD_MISSING');
+  requireTrue(emit.includes('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)'),
+    'CANONICAL_RECEIPT_RUN_ATTEMPT_BINDING_MISSING');
 
   const upload = text.slice(uploadIndex);
   requireTrue(upload.includes('if: always()'), 'CANONICAL_RECEIPT_UPLOAD_NOT_ALWAYS');
   requireTrue(upload.includes('if-no-files-found: error'), 'CANONICAL_RECEIPT_UPLOAD_MISSING_FILE_NOT_FATAL');
+  requireTrue(upload.includes('name: kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}'),
+    'CANONICAL_RECEIPT_RUN_ID_ARTIFACT_NAME_MISSING');
+  requireTrue(upload.includes('overwrite: true'), 'CANONICAL_RECEIPT_RERUN_OVERWRITE_MISSING');
 
   return true;
 }
@@ -68,15 +73,17 @@ if (process.argv.includes('--self-test')) {
   const mutations = [
     source.replace('- name: Initialize fail-closed canonical-truth receipt', '- name: Initialize canonical-truth receipt'),
     source.replace('if [ -z "${VALIDATION_OUTCOME:-}" ]; then', 'if [ -n "${VALIDATION_OUTCOME:-}" ]; then'),
-    source.replace('"promotion_eligible": false', '"promotion_eligible": true')
+    source.replace('"promotion_eligible": false', '"promotion_eligible": true'),
+    source.replace('overwrite: true', 'overwrite: false'),
+    source.replace('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)', 'run_attempt: 1')
   ];
   for (const [index, mutation] of mutations.entries()) {
     let rejected = false;
     try { validateWorkflow(mutation); } catch { rejected = true; }
     requireTrue(rejected, `CANONICAL_RECEIPT_NEGATIVE_MUTATION_NOT_REJECTED:${index}`);
   }
-  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',negative_mutations_rejected:mutations.length}));
+  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true,negative_mutations_rejected:mutations.length}));
 } else {
   validateWorkflow(source);
-  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1'}));
+  console.log(JSON.stringify({status:'VERIFIED_PASS',contract:'CANONICAL_TRUTH_RECEIPT_BOOTSTRAP_V1',rerun_safe_artifact:true}));
 }
