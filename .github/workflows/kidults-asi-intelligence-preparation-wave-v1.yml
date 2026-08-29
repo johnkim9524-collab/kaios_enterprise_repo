@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-multi-lane-autonomous-acquisition-mission-v1.json'
       - 'coordination/kidults/source-intelligence/asi-intelligence-preparation-registry-v1.json'
       - 'coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json'
       - 'coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json'
@@ -40,6 +42,7 @@ on:
     workflows:
       - 'KIDULTS Global Source Mesh v1'
       - 'KIDULTS ASI Source Fabric Scale PI1'
+      - 'KIDULTS ASI Multi-Lane Autonomous Acquisition Mission v1'
     branches: [main]
     types: [completed]
 
