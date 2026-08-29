@@ -636,11 +636,11 @@
       },
       "output_fingerprints": {
         "acquisition-priority-queue.json": "sha256:900566390f64bf5ee73feaaa0abd17833fc3cab8d7cca624c6e7a9defa075f7b",
-        "global-source-discovery-funnel.json": "sha256:8a1ff364b44ed0498a55c16952834a6d8e6859155e54e678469a798b09049fb3",
+        "global-source-discovery-funnel.json": "sha256:70934bcf5ee54074902caab11224e8bbf2b63ccd10623a9fc16f94c4543de59a",
         "scope-source-pool-readiness.json": "sha256:a0bf14f421beaf96e965d6d42a4417a9a90ba7d8b38afa37108b45baf93e2ce0",
         "source-role-gap-matrix.json": "sha256:b4069d69078b29b74516aec71ed9179ba9511e4207f9420332765ae7c9151253"
       },
-      "run_fingerprint": "sha256:008edbea37befb2f876b8ce0db37d95a87226ef9461ab696e390b9eca4571801"
+      "run_fingerprint": "sha256:420daa15d87e6ad1107451735aad4538492bc1217fcf5901bc596b94f0942833"
     },
     "mainline_rights_admitted_pilot_declarations": {
       "identity_context_pool_id": "rights-admitted-pilot-source-pool-r1",
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:1023dd11fbec5eae5be5b8116b319b20384dff3ab3c8f6fc8f47e177455c7161"
+  "evidence_fingerprint": "sha256:83a1451ab79282432396252f15787f9955875ad37797e82353716af8cbf5debb"
 }
