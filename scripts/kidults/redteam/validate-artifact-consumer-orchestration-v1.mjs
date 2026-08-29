@@ -74,9 +74,17 @@ assert(autonomousResolution.includes('request-p1-recovery:') && autonomousResolu
 assert(autonomousResolution.includes("group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}") && autonomousResolution.includes('cancel-in-progress: false'), 'AUTONOMOUS_RESOLUTION_SHARED_GENERATION_LEADER_MISSING');
 assert(autonomousResolution.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && autonomousResolution.includes("artifact_role:'AUTHORITATIVE_CONSUMABLE'") && autonomousResolution.includes('authoritative_producer:true'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(autonomousResolution.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && autonomousResolution.includes('EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_ARTIFACT_READBACK_MISSING');
+
+// Authority contract: ordinary cancellation only, followed by a bounded passive terminal read-back.
 assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
-assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
-assert(supersession.includes('for readback_attempt in $(seq 1 8); do'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
+assert(supersession.includes('"${code}" == "429" || "${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
+assert(supersession.includes('PASSIVE_TERMINAL_ATTEMPTS: "42"'), 'EXACT_HEAD_SUPERSESSION_PASSIVE_ATTEMPT_BOUND_MISSING');
+assert(supersession.includes('PASSIVE_TERMINAL_SLEEP_SECONDS: "5"'), 'EXACT_HEAD_SUPERSESSION_PASSIVE_SLEEP_BOUND_MISSING');
+assert(supersession.includes('for readback_attempt in $(seq 1 "${PASSIVE_TERMINAL_ATTEMPTS}"); do'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
+assert(supersession.includes('sleep "${PASSIVE_TERMINAL_SLEEP_SECONDS}"'), 'EXACT_HEAD_SUPERSESSION_PASSIVE_WAIT_MISSING');
+assert(supersession.includes('/actions/runs/${run_id}/cancel'), 'EXACT_HEAD_SUPERSESSION_NORMAL_CANCEL_MISSING');
+assert(!supersession.includes('/force-cancel'), 'EXACT_HEAD_SUPERSESSION_FORCE_CANCEL_FORBIDDEN');
+assert(!supersession.includes('force_cancel_run'), 'EXACT_HEAD_SUPERSESSION_FORCE_CANCEL_HELPER_FORBIDDEN');
 assert(supersession.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 'EXACT_HEAD_SUPERSESSION_CANCELLED_CONCLUSION_PROOF_MISSING');
 assert(supersession.includes('Cancellation not terminally confirmed for run'), 'EXACT_HEAD_SUPERSESSION_FAIL_CLOSED_MISSING');
 assert(!supersession.includes('if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'), 'EXACT_HEAD_SUPERSESSION_ACCEPTED_AS_TERMINAL_FORBIDDEN');
@@ -145,6 +153,10 @@ const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do
 assert(supersessionRetryMutation !== supersession && !supersessionRetryMutation.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_RETRY_MUTATION_NOT_DETECTED');
 const supersessionTerminalProofMutation = supersession.replaceAll('if [[ "${latest_conclusion}" == "cancelled" ]]', 'if [[ -n "${latest_conclusion}" ]]');
 assert(supersessionTerminalProofMutation !== supersession && !supersessionTerminalProofMutation.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 'EXACT_HEAD_SUPERSESSION_TERMINAL_PROOF_MUTATION_NOT_DETECTED');
+const supersessionReadbackShrinkMutation = supersession.replace('PASSIVE_TERMINAL_ATTEMPTS: "42"', 'PASSIVE_TERMINAL_ATTEMPTS: "8"');
+assert(supersessionReadbackShrinkMutation !== supersession && !supersessionReadbackShrinkMutation.includes('PASSIVE_TERMINAL_ATTEMPTS: "42"'), 'EXACT_HEAD_SUPERSESSION_READBACK_SHRINK_MUTATION_NOT_DETECTED');
+const supersessionForceCancelMutation = supersession.replace('/actions/runs/${run_id}/cancel', '/actions/runs/${run_id}/force-cancel');
+assert(supersessionForceCancelMutation !== supersession && supersessionForceCancelMutation.includes('/force-cancel'), 'EXACT_HEAD_SUPERSESSION_FORCE_CANCEL_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
@@ -160,7 +172,10 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 26,
+  adversarial_mutations_rejected: 28,
+  exact_head_supersession_authority: 'NORMAL_CANCEL_ONLY',
+  exact_head_supersession_terminal_readback_bound: { attempts: 42, sleep_seconds: 5 },
+  force_cancel_endpoint_present: false,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',
