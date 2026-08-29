@@ -1,0 +1,52 @@
+{
+  "id": "CF-KIDULTS-14501AC-01",
+  "authorization_issue": 1583,
+  "authorization_state_required": "AUTHORIZED",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "project": "kidults-workspace-staging",
+  "expected_account_id": "235eaa51d04e7f4436a9faa507a04f9d",
+  "target_sha": "14501ac022bdd7c918924a207f257b047b1ba970",
+  "max_materialized_preview_deletions": 588,
+  "one_time": true,
+  "nonce": "e7563f7a-90b2-448b-9488-935d56ff9158",
+  "accepted_at": "2026-08-30T00:54:47+09:00",
+  "expires_at": "2026-08-30T01:44:47+09:00",
+  "required_preflight": [
+    "TOKEN_ACTIVE",
+    "ACCOUNT_ID_EXACT",
+    "PROJECT_VISIBLE",
+    "PROJECT_NAME_EXACT",
+    "GITHUB_REPOSITORY_BINDING_EXACT",
+    "PRODUCTION_BRANCH_MAIN",
+    "PRODUCTION_GIT_DEPLOYMENTS_DISABLED",
+    "PREVIEW_DEPLOYMENT_SETTING_NONE",
+    "MATERIALIZED_PREVIEW_COUNT_LTE_588",
+    "PRODUCTION_DEPLOYMENT_SET_NONEMPTY"
+  ],
+  "authorized_operations": [
+    "READ_ONLY_ACCOUNT_PROJECT_REPOSITORY_PREFLIGHT",
+    "DELETE_MATERIALIZED_PREVIEW_ONLY_MAX_588",
+    "PRESERVE_ALL_EXISTING_PRODUCTION_DEPLOYMENT_IDS_AND_HISTORY",
+    "DEPLOY_TARGET_SHA_TO_GOVERNED_STAGING_ONCE",
+    "FINAL_READ_ONLY_VERIFICATION"
+  ],
+  "abort_on": [
+    "HTTP_401",
+    "HTTP_403",
+    "HTTP_404",
+    "HTTP_5XX",
+    "TIMEOUT",
+    "ACCOUNT_PROJECT_REPOSITORY_MISMATCH"
+  ],
+  "forbidden_operations": [
+    "ENABLE_AUTOMATIC_GIT_DEPLOYMENTS",
+    "DELETE_PRODUCTION_DEPLOYMENT",
+    "DELETE_PAGES_PROJECT",
+    "PUBLIC_RELEASE",
+    "PLATFORM_PRODUCTION_RELEASE",
+    "G5_PROMOTION"
+  ],
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
