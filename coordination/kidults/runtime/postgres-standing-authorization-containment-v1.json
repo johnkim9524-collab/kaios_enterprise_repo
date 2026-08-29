@@ -1,0 +1,87 @@
+{
+  "id": "kidults-postgres-standing-authorization-containment-v1",
+  "version": "1.0.0",
+  "state": "FAIL_CLOSED_CONTAINED",
+  "issues": [1481, 1482],
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "validated_base_main_sha": "06a0b646f3cbbadbbba204afbf7a911c8c9ebf41",
+  "root_cause": "REPLAYABLE_STANDING_BOOLEAN_ACCEPTED_AS_CREDENTIAL_BEARING_REMOTE_EXECUTION_AUTHORITY",
+  "legacy_variable": {
+    "name": "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED",
+    "repository_code_accepts_as_executable_authority": false,
+    "external_value_read_by_containment": false,
+    "external_false_readback_still_required": true,
+    "required_external_value": "false"
+  },
+  "contained_workflows": [
+    {
+      "workflow": ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
+      "credentialed_job": "remote-persistence-pitr-fixture",
+      "job_condition": "${{ false }}",
+      "push_can_enter_credentialed_job": false,
+      "workflow_dispatch_can_enter_credentialed_job": false,
+      "provider_environment_entered": false,
+      "provider_secrets_resolved": false,
+      "ssh_executed": false,
+      "database_contacted": false,
+      "source_fixture_executed": false,
+      "pitr_proven": false
+    },
+    {
+      "workflow": ".github/workflows/p0-postgres-target-time-restore-verification.yml",
+      "credentialed_job": "verify-target-time-restore",
+      "job_condition": "${{ false }}",
+      "workflow_dispatch_can_enter_credentialed_job": false,
+      "provider_environment_entered": false,
+      "provider_secrets_resolved": false,
+      "ssh_executed": false,
+      "database_contacted": false,
+      "restore_probe_executed": false,
+      "restore_performed": false,
+      "target_time_restore_verified": false
+    }
+  ],
+  "containment_receipts": {
+    "source_workflow": "artifacts/p0-remote-postgres/activation-containment.json",
+    "restore_workflow": "artifacts/p0-postgres-target-time-restore/activation-containment.json",
+    "always_emit_non_secret": true,
+    "if_no_files_found": "error"
+  },
+  "prohibited_until_fresh_authority": [
+    "SSH_PRIVATE_KEY_RESOLUTION",
+    "POSTGRES_DSN_RESOLUTION",
+    "SSH_OR_TUNNEL_EXECUTION",
+    "DATABASE_CONTACT",
+    "SOURCE_FIXTURE_WRITE",
+    "TARGET_TIME_RESTORE_PROBE",
+    "TARGET_TIME_RESTORE_CLAIM"
+  ],
+  "replacement_authorization_contract": [
+    "INDEPENDENTLY_ISSUED_OUTSIDE_CANDIDATE_CHANGE",
+    "EXACT_REPOSITORY_WORKFLOW_PROTECTED_MAIN_SHA_AND_RUN_BINDING",
+    "EXACT_OPERATION_AND_RESOURCE_BINDING",
+    "ISSUER_ISSUED_AT_EXPIRY_AND_NONCE_BINDING",
+    "ATOMIC_SINGLE_USE_CONSUMPTION_BEFORE_ENVIRONMENT_OR_SECRET_RESOLUTION",
+    "REPLAY_WRONG_SHA_WRONG_WORKFLOW_WRONG_EVENT_EXPIRY_AND_NONCE_NEGATIVES",
+    "SANITIZED_NON_EMPTY_RECEIPT_ON_EVERY_FAILURE_PATH"
+  ],
+  "mutation_by_containment": {
+    "provider_environment_entered": false,
+    "provider_secrets_read": false,
+    "ssh_executed": false,
+    "database_contacted": false,
+    "remote_mutation_performed": false,
+    "external_variable_mutated": false,
+    "credential_mutated": false
+  },
+  "truth_boundary": {
+    "source_fixture_receipt": "NONE",
+    "target_time_restore_receipt": "NONE",
+    "pitr": "NOT_PROVEN",
+    "candidate": "NONE",
+    "evidence": "NONE",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
