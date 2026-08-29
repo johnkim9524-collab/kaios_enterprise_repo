@@ -1,0 +1,443 @@
+{
+  "id": "kidults-ai-agent-github-bootstrap-contract-v1",
+  "version": "1.3.0",
+  "change_rationale": "Require an external exact-SHA dispatch binding, digest-bound receipt filenames, reproducible dirty-or-clean worktree baselines, explicit non-promotion authority boundaries, and an evidence-true distinction between zero actual in-repository AI/model dispatchers and deterministic defense-in-depth bootstrap jobs.",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "effective_after": "MERGE_TO_MAIN",
+  "owner": "KPMO",
+  "scope": "ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS",
+  "purpose": "Bind every AI agent task to the canonical GitHub repository, an exact committed governance snapshot, a unique orchestrator task session and an independently verified one-time bootstrap receipt before dispatch.",
+  "canonical_repository": {
+    "owner": "johnkim9524-collab",
+    "name": "kaios_enterprise_repo",
+    "slug": "johnkim9524-collab/kaios_enterprise_repo",
+    "remote_name": "origin",
+    "authority_ref": "refs/heads/main",
+    "https_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo.git",
+    "accepted_origin_urls": [
+      "https://github.com/johnkim9524-collab/kaios_enterprise_repo.git",
+      "https://github.com/johnkim9524-collab/kaios_enterprise_repo"
+    ],
+    "origin_must_match": true
+  },
+  "trust_model": {
+    "contract_is_first_document": true,
+    "required_documents_are_read_from_exact_head_git_blobs": true,
+    "worktree_copies_of_trust_files_must_match_exact_head": true,
+    "symlinks_and_non_regular_trust_files_are_rejected": true,
+    "local_expected_sha_is_binding_only_not_github_provenance": true,
+    "github_event_context_binding_is_not_cryptographic_or_current_state_proof": true,
+    "current_github_state_requires_authenticated_remote_working_ref_verification": true,
+    "repository_bootstrap_is_not_a_cryptographic_agent_identity": true,
+    "external_orchestrator_must_supply_nonce_and_verify_then_consume_receipt": true,
+    "receipt_top_level_field_set_is_exact_and_versioned": true,
+    "raw_orchestrator_nonce_may_appear_in_receipt_marker_or_output": false,
+    "full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher": true,
+    "clean_github_actions_checkout_alone_is_a_full_root_of_trust": false,
+    "target_revision_must_be_treated_as_data_by_the_root_launcher": true,
+    "exact_committed_governance_trust_closure_is_bound": true,
+    "full_worktree_immutability_is_claimed": false,
+    "git_child_process_environment_is_minimal_and_excludes_orchestrator_nonce": true,
+    "repository_git_config_with_execution_or_transport_overrides_is_rejected": true,
+    "trusted_git_executable_and_parent_directories_are_platform_constrained": true,
+    "trusted_git_evidence_is_inventory_not_root_of_trust": true,
+    "local_git_transport_is_default_deny_and_partial_clone_lazy_fetch_is_forbidden": true,
+    "already_started_node_process_preexec_environment_is_sanitized_by_repository_code": false,
+    "protected_launcher_must_sanitize_preexec_loader_and_node_environment": true,
+    "windows_full_executable_acl_authenticode_and_process_tree_parity_requires_protected_launcher": true
+  },
+  "bootstrap_entrypoint": {
+    "path": "scripts/governance/bootstrap-ai-agent-from-github-v1.mjs",
+    "package_command": "KIDULTS_BOOTSTRAP_NONCE=<orchestrator-nonce> npm run agent:bootstrap -- --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha>",
+    "validator_path": "scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs",
+    "receipt_verifier_path": "scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs",
+    "verifier_package_command": "KIDULTS_BOOTSTRAP_NONCE=<same-nonce> npm run verify:agent-bootstrap -- --receipt <controlled-receipt-path> --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha> --consume",
+    "receipt_directory": "GIT_DIR/kidults-agent-bootstrap/receipts",
+    "receipt_write_mode": "CREATE_EXCLUSIVE_NO_OVERWRITE"
+  },
+  "required_documents": [
+    {
+      "order": 1,
+      "path": "coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json",
+      "purpose": "GITHUB_SOURCE_BOOTSTRAP_TRUST_ANCHOR"
+    },
+    {
+      "order": 2,
+      "path": "package.json",
+      "purpose": "BOOTSTRAP_PACKAGE_COMMAND"
+    },
+    {
+      "order": 3,
+      "path": "AGENTS.md",
+      "purpose": "ROOT_REPOSITORY_INSTRUCTIONS"
+    },
+    {
+      "order": 4,
+      "path": ".github/AI_AGENT_OPERATING_RULES.md",
+      "purpose": "HUMAN_READABLE_AI_POLICY"
+    },
+    {
+      "order": 5,
+      "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+      "purpose": "PLATFORM_CONSTITUTION"
+    },
+    {
+      "order": 6,
+      "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+      "purpose": "AI_MACHINE_CONTRACT"
+    },
+    {
+      "order": 7,
+      "path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
+      "purpose": "FIX_FIRST_BOOTSTRAP_SEQUENCE"
+    },
+    {
+      "order": 8,
+      "path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
+      "purpose": "REPORT_AFTER_REMEDIATION_GATE"
+    },
+    {
+      "order": 9,
+      "path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
+      "purpose": "CANONICAL_STATUS_RECEIPT_SCHEMA"
+    },
+    {
+      "order": 10,
+      "path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
+      "purpose": "GOVERNANCE_SYSTEM_OF_RECORD"
+    },
+    {
+      "order": 11,
+      "path": "coordination/kidults/bootstrap/README.md",
+      "purpose": "TRACK_AND_ROLE_STARTUP_ROUTER"
+    },
+    {
+      "order": 12,
+      "path": ".github/copilot-instructions.md",
+      "purpose": "GITHUB_AGENT_ADAPTER"
+    }
+  ],
+  "mandatory_phases": [
+    "DISCOVER_REPOSITORY_ROOT",
+    "VERIFY_CANONICAL_GITHUB_ORIGIN",
+    "RESOLVE_WORKING_REF_AND_EXACT_HEAD_SHA",
+    "LOAD_CONTRACT_FROM_EXACT_HEAD_GIT_BLOB",
+    "VALIDATE_HARDCODED_TRUST_INVARIANTS",
+    "LOAD_REQUIRED_DOCUMENTS_FROM_EXACT_HEAD_GIT_BLOBS_IN_ORDER",
+    "REJECT_DIRTY_OR_NON_REGULAR_TRUST_FILES",
+    "BIND_AGENT_TASK_SESSION_AND_ORCHESTRATOR_NONCE",
+    "EMIT_EXCLUSIVE_EXPIRING_RECEIPT_INSIDE_GIT_DIR",
+    "INDEPENDENTLY_VERIFY_AND_CONSUME_RECEIPT",
+    "ALLOW_ONLY_BOUND_TASK_DISPATCH_AFTER_BOOTSTRAP_VERIFIED"
+  ],
+  "identity_and_replay_policy": {
+    "agent_id_required": true,
+    "agent_class_required": true,
+    "task_id_required": true,
+    "session_id_required": true,
+    "orchestrator_nonce_required": true,
+    "nonce_minimum_bytes": 32,
+    "parent_agent_id_recorded_when_applicable": true,
+    "default_ttl_seconds": 900,
+    "maximum_ttl_seconds": 1800,
+    "one_time_consumption_required": true,
+    "one_time_consumption_scope": "REPOSITORY_GIT_DIR",
+    "external_dispatcher_requires_durable_protected_nonce_store": true,
+    "receipt_integrity_algorithm": "HMAC_SHA256_WITH_ORCHESTRATOR_NONCE",
+    "unkeyed_receipt_digest_allowed": false,
+    "additional_receipt_top_level_fields_allowed": false,
+    "generated_receipt_filename_is_fixed_length_digest": true,
+    "raw_orchestrator_nonce_allowed_in_receipt_consumption_marker_or_process_output": false,
+    "expiry_rechecked_immediately_before_consumption": true,
+    "replay_behavior": "REJECT_TASK_DISPATCH"
+  },
+  "github_provenance_policy": {
+    "local_expected_sha_establishes_github_provenance": false,
+    "local_checkout_scope": "LOCAL_COMMIT_BOUND",
+    "github_event_context_scope": "GITHUB_CONTEXT_BOUND",
+    "github_event_context_establishes_current_github_state": false,
+    "github_actions_repository_must_match": true,
+    "github_event_sha_must_match_working_sha": true,
+    "pull_request_target_head_execution_allowed": false,
+    "remote_verification_requires_authority_ref_and_exact_working_branch_ref": true,
+    "remote_verification_uses_canonical_https_url_without_credential_helpers": true,
+    "remote_attestation_scope": "TLS_SERVER_IDENTITY_AND_EXACT_REF_STATE",
+    "source_attestation_required_fields": [
+      "scope",
+      "current_github_state_claims_allowed",
+      "authority_relationship",
+      "remote_ref_presence_does_not_authorize_or_promote",
+      "promotion_eligible",
+      "github_event",
+      "remote"
+    ],
+    "remote_authority_relationship_evaluation": "NOT_EVALUATED",
+    "remote_ref_presence_does_not_authorize_or_promote": true,
+    "bootstrap_promotion_eligible": false,
+    "promotion_requires_separate_protected_gate": true,
+    "detached_head_remote_working_ref_attestation_allowed": false,
+    "current_github_state_claim_without_attestation_allowed": false
+  },
+  "worktree_baseline_policy": {
+    "algorithm": "SHA256_GIT_STATUS_INDEX_DIFF_AND_UNTRACKED_CONTENT_V1",
+    "receipt_field_set": [
+      "baseline_algorithm",
+      "baseline_digest",
+      "require_clean_enforced",
+      "status"
+    ],
+    "tracked_status_bound": true,
+    "tracked_index_bound": true,
+    "tracked_staged_and_unstaged_diffs_bound": true,
+    "untracked_file_content_bound": true,
+    "dirty_worktree_allowed_when_clean_not_required": true,
+    "require_clean_enforces_clean_status_and_no_index_visibility_flags": true,
+    "baseline_must_remain_stable_during_bootstrap": true,
+    "baseline_rechecked_immediately_before_consumption": true,
+    "full_worktree_immutability_claimed": false
+  },
+  "required_receipt_fields": [
+    "id",
+    "version",
+    "state",
+    "contract",
+    "agent_id",
+    "agent_class",
+    "task_id",
+    "session_id",
+    "parent_agent_id",
+    "nonce_sha256",
+    "issued_at",
+    "expires_at",
+    "ttl_seconds",
+    "canonical_repository",
+    "origin",
+    "authority_ref",
+    "local_authority_sha",
+    "working_ref",
+    "working_sha",
+    "worktree_state",
+    "expected_checkout_binding",
+    "source_attestation",
+    "trusted_git",
+    "committed_documents",
+    "bootstrap_artifacts",
+    "dispatch_gate",
+    "authority_boundary",
+    "receipt_digest"
+  ],
+  "bootstrap_result_state": "BOOTSTRAP_PREREQUISITES_SATISFIED",
+  "audit_verified_state": "BOOTSTRAP_AUDIT_VERIFIED",
+  "verified_state": "BOOTSTRAP_VERIFIED",
+  "task_dispatch_gate": {
+    "bootstrap_receipt_required": true,
+    "independent_receipt_verification_required": true,
+    "receipt_consumption_required": true,
+    "receipt_alone_grants_task_authority": false,
+    "non_consuming_audit_state_grants_task_authority": false,
+    "external_expected_sha_required": true,
+    "expected_sha_must_equal_working_sha": true,
+    "expected_sha_match_state_must_be_true": true,
+    "verified_result_must_bind_same_agent_task_session_nonce_and_sha": true,
+    "missing_invalid_expired_or_replayed_behavior": "REJECT_TASK_DISPATCH"
+  },
+  "inheritance": {
+    "applies_to": [
+      "KPMO",
+      "TRACK_A",
+      "TRACK_B",
+      "TRACK_C",
+      "TRACK_D",
+      "TRACK_E",
+      "RED_TEAM",
+      "ASI",
+      "CODING_AGENTS",
+      "REVIEW_AGENTS",
+      "TEST_AGENTS",
+      "RELEASE_AGENTS",
+      "DOCUMENTATION_AGENTS",
+      "DISCOVERY_AGENTS",
+      "EVIDENCE_AGENTS",
+      "GRAPH_AGENTS",
+      "PROVIDER_AGENTS",
+      "RUNTIME_AGENTS",
+      "SCHEDULED_AGENT_AUTOMATIONS",
+      "EXTERNAL_MODEL_AGENTS"
+    ],
+    "every_agent_instance_must_emit_own_receipt": true,
+    "parent_receipt_may_replace_child_receipt": false,
+    "child_rule_can_be_stricter": true,
+    "child_rule_can_weaken": false,
+    "agent_self_exemption_allowed": false
+  },
+  "dispatcher_integration": {
+    "repository_dispatchers_must_invoke_bootstrap_and_verifier_before_agent_logic": true,
+    "external_dispatchers_must_implement_equivalent_gate": true,
+    "repository_dispatch_jobs_trust_tier": "REPOSITORY_BOUND_NOT_FULL_ROOT_OF_TRUST",
+    "full_root_launcher_reference": "EXTERNAL_PINNED_OR_PROTECTED_BASE_LAUNCHER",
+    "repository_instruction_convergence_points": [
+      "AGENTS.md",
+      ".github/copilot-instructions.md"
+    ],
+    "actual_ai_model_dispatch_jobs": [],
+    "repository_defense_in_depth_bootstrap_jobs_are_ai_or_model_dispatchers": false,
+    "repository_defense_in_depth_bootstrap_jobs": [
+      {
+        "workflow": ".github/workflows/ci-validation.yml",
+        "job": "validate",
+        "agent_class": "RUNTIME_AGENTS",
+        "first_task_step": "Reject unbounded GitHub Actions API access"
+      },
+      {
+        "workflow": ".github/workflows/ai-agent-governance-enforcement-v1.yml",
+        "job": "enforce-ai-agent-governance",
+        "agent_class": "KPMO",
+        "first_task_step": "Verify exact source SHA, syntax and machine contracts"
+      },
+      {
+        "workflow": ".github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml",
+        "job": "validate-bootstrap-remediation",
+        "agent_class": "CODING_AGENTS",
+        "first_task_step": "Verify exact source revision"
+      },
+      {
+        "workflow": ".github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml",
+        "job": "enforce-report-after-remediation",
+        "agent_class": "DOCUMENTATION_AGENTS",
+        "first_task_step": "Verify exact source revision and contracts"
+      },
+      {
+        "workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        "job": "validate-sharded-source-reserve-contract",
+        "agent_class": "ASI",
+        "first_task_step": "Validate reserve contract without producer artifact consumption"
+      },
+      {
+        "workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        "job": "rolling-live-reserve",
+        "agent_class": "ASI",
+        "first_task_step": "Verify exact source, syntax, provenance and autonomous trigger"
+      },
+      {
+        "workflow": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        "job": "capacity-100k-proof",
+        "agent_class": "TEST_AGENTS",
+        "first_task_step": "Verify exact source"
+      },
+      {
+        "workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+        "job": "validate-source-fabric-contract",
+        "agent_class": "ASI",
+        "first_task_step": "Validate source-fabric contracts without live provider requests"
+      },
+      {
+        "workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+        "job": "source-fabric-scale-pi1",
+        "agent_class": "ASI",
+        "first_task_step": "Verify exact source, syntax and platform principles"
+      }
+    ],
+    "defense_in_depth_registration_reclassifies_job_as_ai_agent": false,
+    "application_runtime_exclusions": [
+      {
+        "symbol": "app/agent.py:KAIOSAgent",
+        "classification": "DETERMINISTIC_APPLICATION_PIPELINE",
+        "reason": "The class name is historical; this runtime executes collectors, normalizers, scoring, quality gates and publishing without dispatching an AI model agent.",
+        "may_dispatch_ai_or_model_agents": false,
+        "does_not_exempt_ai_or_scheduled_workflows": true
+      }
+    ],
+    "generic_ci_jobs_without_ai_agent_dispatch_are_out_of_scope": true,
+    "absence_of_an_external_dispatcher_hook_cannot_be_repaired_by_repository_policy_alone": true,
+    "external_dispatch_without_verified_capability_is_forbidden_after_activation": true
+  },
+  "bootstrap_authority": {
+    "github_read_allowed": true,
+    "github_write_allowed": false,
+    "repository_worktree_mutation_allowed": false,
+    "git_metadata_receipt_write_allowed": true,
+    "orchestrator_nonce_read_allowed": true,
+    "orchestrator_nonce_log_or_persist_allowed": false,
+    "other_secret_or_credential_read_allowed": false,
+    "external_spend_or_commitment_allowed": false,
+    "task_authority_granted": false
+  },
+  "receipt_authority_boundary": {
+    "repository_worktree_mutation_performed": false,
+    "git_metadata_receipt_write_performed": true,
+    "github_write_performed": false,
+    "orchestrator_nonce_read_performed": true,
+    "orchestrator_nonce_persisted_or_logged": false,
+    "other_secret_or_credential_read_performed": false,
+    "task_authority_granted_by_bootstrap": false,
+    "merge_authority_granted_by_bootstrap": false,
+    "promotion_or_release_authority_granted_by_bootstrap": false,
+    "bound_execution_scope": "EXACT_COMMITTED_GOVERNANCE_TRUST_CLOSURE",
+    "full_worktree_immutability_claimed": false,
+    "production": "HOLD",
+    "public_release": "HOLD"
+  },
+  "fail_closed_conditions": [
+    "NOT_INSIDE_GIT_REPOSITORY",
+    "CANONICAL_ORIGIN_MISSING_OR_MISMATCHED",
+    "TRUSTED_GIT_EXECUTABLE_UNAVAILABLE",
+    "GIT_REPLACEMENT_REFS_FORBIDDEN",
+    "GIT_OBJECT_ALTERNATES_FORBIDDEN",
+    "UNSAFE_REPOSITORY_GIT_CONFIG_FORBIDDEN",
+    "UNEXPECTED_GIT_CONFIG_SCOPE",
+    "GIT_COMMAND_TIMEOUT",
+    "WORKING_SHA_UNRESOLVED",
+    "EXPECTED_CHECKOUT_SHA_REQUIRED",
+    "EXPECTED_CHECKOUT_SHA_INVALID",
+    "EXPECTED_CHECKOUT_SHA_MISMATCH",
+    "CLEAN_WORKTREE_REQUIRED",
+    "WORKTREE_PATH_ENCODING_INVALID",
+    "WORKTREE_PATH_ESCAPES_REPOSITORY",
+    "WORKTREE_BASELINE_UNSUPPORTED_FILE_TYPE",
+    "WORKTREE_FILE_CHANGED_DURING_HASH",
+    "WORKTREE_BASELINE_CHANGED_DURING_BOOTSTRAP",
+    "CURRENT_WORKTREE_BASELINE_CHANGED",
+    "RECEIPT_WORKTREE_STATE_INVALID",
+    "COMMITTED_TRUST_BLOB_MISSING_OR_NON_REGULAR",
+    "TRUST_PATH_DIFFERS_FROM_COMMITTED_HEAD",
+    "INDEX_VISIBILITY_FLAGS_FORBIDDEN_WHEN_CLEAN_REQUIRED",
+    "CANONICAL_GITHUB_REPOSITORY_ENV_MISMATCH",
+    "GITHUB_EVENT_CHECKOUT_SHA_MISMATCH",
+    "PULL_REQUEST_TARGET_BOOTSTRAP_FORBIDDEN",
+    "REMOTE_VERIFICATION_TIMEOUT",
+    "REMOTE_REF_UNAVAILABLE_WHEN_REQUIRED",
+    "REMOTE_REF_UNAVAILABLE_DURING_VERIFICATION",
+    "REMOTE_REF_RESPONSE_AMBIGUOUS",
+    "REMOTE_REF_SHA_UNRESOLVED",
+    "REMOTE_WORKING_REF_REQUIRED_FOR_DETACHED_HEAD",
+    "REMOTE_WORKING_REF_SHA_MISMATCH",
+    "ORCHESTRATOR_NONCE_REQUIRED_MIN_32_BYTES",
+    "BOOTSTRAP_RECEIPT_ALREADY_EXISTS",
+    "RECEIPT_FIELD_SET_MISMATCH",
+    "RAW_NONCE_PRESENT_IN_RECEIPT",
+    "RECEIPT_DIGEST_MISMATCH",
+    "TRUSTED_GIT_EVIDENCE_MISMATCH",
+    "BOOTSTRAP_RECEIPT_EXPIRED",
+    "RECEIPT_DIRECTORY_MISSING",
+    "RECEIPT_ID_OR_VERSION_INVALID",
+    "RECEIPT_FILENAME_BINDING_MISMATCH",
+    "RECEIPT_EXPECTED_SHA_BINDING_INVALID",
+    "SOURCE_ATTESTATION_FIELD_SET_MISMATCH",
+    "SOURCE_ATTESTATION_AUTHORITY_BOUNDARY_INVALID",
+    "AUTHORITY_BOUNDARY_FIELD_SET_MISMATCH",
+    "RAW_NONCE_PRESENT_IN_CONSUMPTION_MARKER",
+    "BOOTSTRAP_NONCE_REPLAY",
+    "AGENT_CLASS_NOT_GOVERNED",
+    "PARENT_AGENT_ID_BINDING_MISMATCH"
+  ],
+  "protected_gates": [
+    "PRODUCTION_G5",
+    "PROTECTED_BRANCH_MERGE",
+    "PROTECTED_PROMOTION_OR_RELEASE",
+    "IRREVERSIBLE_LEGAL_CHANGE",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "EXPANDED_CREDENTIAL_OR_PERMISSION"
+  ]
+}

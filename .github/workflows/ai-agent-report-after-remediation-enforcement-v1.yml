@@ -7,10 +7,15 @@ on:
       - 'AGENTS.md'
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'package.json'
+      - 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs'
+      - 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
@@ -20,10 +25,15 @@ on:
       - 'AGENTS.md'
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - '.github/copilot-instructions.md'
+      - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
       - 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json'
       - 'coordination/kidults/registry/ai-agent-governance-registry-v1.json'
+      - 'package.json'
+      - 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs'
+      - 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs'
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - '.github/workflows/ai-agent-report-after-remediation-enforcement-v1.yml'
@@ -50,6 +60,37 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Verify mandatory GitHub-source agent bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
+          node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
+          node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
+          TASK_ID="report-after-remediation-${GITHUB_RUN_ID}"
+          SESSION_ID="report-after-remediation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"
+          BOOTSTRAP_RESULT="$(node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs \
+            --require-clean \
+            --agent-id KPMO_REPORT_AFTER_REMEDIATION_CI \
+            --agent-class DOCUMENTATION_AGENTS \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA")"
+          RECEIPT_PATH="$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.receipt_path)' "$BOOTSTRAP_RESULT")"
+          VERIFY_RESULT="$(node scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs \
+            --receipt "$RECEIPT_PATH" \
+            --agent-id KPMO_REPORT_AFTER_REMEDIATION_CI \
+            --agent-class DOCUMENTATION_AGENTS \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA" \
+            --consume \
+            )"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.state!=="BOOTSTRAP_VERIFIED"||x.consumed!==true||x.task_dispatch_allowed_for_bound_task_session!==true||x.working_sha!==process.env.EXPECTED_SHA) throw new Error("BOOTSTRAP_VERIFICATION_RESULT_INVALID")' "$VERIFY_RESULT"
+          printf '%s\n' "$VERIFY_RESULT" > /tmp/report-after-remediation-bootstrap-verification-v1.json
+          node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs \
+            > /tmp/report-after-remediation-bootstrap-validation-v1.json
       - name: Verify exact source revision and contracts
         shell: bash
         run: |

@@ -16,7 +16,12 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'package.json'
+      - 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs'
+      - 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   pull_request:
     paths:
@@ -29,7 +34,12 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
+      - 'package.json'
+      - 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs'
+      - 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs'
+      - 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs'
       - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 
 permissions:
@@ -45,17 +55,49 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ env.EXPECTED_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Verify mandatory GitHub-source agent bootstrap
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
+          node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
+          node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
+          TASK_ID="source-fabric-contract-${GITHUB_RUN_ID}"
+          SESSION_ID="source-fabric-contract-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"
+          BOOTSTRAP_RESULT="$(node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs \
+            --require-clean \
+            --agent-id ASI_SOURCE_FABRIC_CONTRACT_CI \
+            --agent-class ASI \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA")"
+          RECEIPT_PATH="$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.receipt_path)' "$BOOTSTRAP_RESULT")"
+          VERIFY_RESULT="$(node scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs \
+            --receipt "$RECEIPT_PATH" \
+            --agent-id ASI_SOURCE_FABRIC_CONTRACT_CI \
+            --agent-class ASI \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA" \
+            --consume \
+            )"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.state!=="BOOTSTRAP_VERIFIED"||x.consumed!==true||x.task_dispatch_allowed_for_bound_task_session!==true||x.working_sha!==process.env.EXPECTED_SHA) throw new Error("BOOTSTRAP_VERIFICATION_RESULT_INVALID")' "$VERIFY_RESULT"
+          printf '%s\n' "$VERIFY_RESULT"
+          node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
       - name: Validate source-fabric contracts without live provider requests
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           for script in \
             asi-openalex-gdelt-public-metadata-discovery-v1.mjs \
             validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs \
@@ -75,17 +117,49 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ env.EXPECTED_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Verify mandatory GitHub-source agent bootstrap
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
+          node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
+          node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
+          TASK_ID="source-fabric-scale-${GITHUB_RUN_ID}"
+          SESSION_ID="source-fabric-scale-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"
+          BOOTSTRAP_RESULT="$(node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs \
+            --require-clean \
+            --agent-id ASI_SOURCE_FABRIC_SCALE \
+            --agent-class ASI \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA")"
+          RECEIPT_PATH="$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.receipt_path)' "$BOOTSTRAP_RESULT")"
+          VERIFY_RESULT="$(node scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs \
+            --receipt "$RECEIPT_PATH" \
+            --agent-id ASI_SOURCE_FABRIC_SCALE \
+            --agent-class ASI \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA" \
+            --consume \
+            )"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.state!=="BOOTSTRAP_VERIFIED"||x.consumed!==true||x.task_dispatch_allowed_for_bound_task_session!==true||x.working_sha!==process.env.EXPECTED_SHA) throw new Error("BOOTSTRAP_VERIFICATION_RESULT_INVALID")' "$VERIFY_RESULT"
+          printf '%s\n' "$VERIFY_RESULT"
+          node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
       - name: Verify exact source, syntax and platform principles
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs

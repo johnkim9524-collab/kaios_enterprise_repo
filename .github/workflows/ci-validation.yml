@@ -16,17 +16,17 @@ jobs:
   validate:
     name: Validate KAIOS Foundation
     runs-on: ubuntu-24.04
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     steps:
       - name: Checkout repository at exact source SHA
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ env.EXPECTED_SHA }}
           persist-credentials: false
 
       - name: Verify exact source SHA
-        env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
@@ -45,6 +45,37 @@ jobs:
         with:
           node-version: "24.19.0"
           package-manager-cache: false
+
+      - name: Verify mandatory GitHub-source agent bootstrap
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
+          node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
+          node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
+          TASK_ID="ci-validation-${GITHUB_RUN_ID}"
+          SESSION_ID="ci-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"
+          BOOTSTRAP_RESULT="$(node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs \
+            --require-clean \
+            --agent-id KPMO_CI_VALIDATION \
+            --agent-class RUNTIME_AGENTS \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA")"
+          RECEIPT_PATH="$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x.receipt_path)' "$BOOTSTRAP_RESULT")"
+          VERIFY_RESULT="$(node scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs \
+            --receipt "$RECEIPT_PATH" \
+            --agent-id KPMO_CI_VALIDATION \
+            --agent-class RUNTIME_AGENTS \
+            --task-id "$TASK_ID" \
+            --session-id "$SESSION_ID" \
+            --expected-sha "$EXPECTED_SHA" \
+            --consume \
+            )"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.state!=="BOOTSTRAP_VERIFIED"||x.consumed!==true||x.task_dispatch_allowed_for_bound_task_session!==true||x.working_sha!==process.env.EXPECTED_SHA) throw new Error("BOOTSTRAP_VERIFICATION_RESULT_INVALID")' "$VERIFY_RESULT"
+          printf '%s\n' "$VERIFY_RESULT" > /tmp/kpmo-ci-agent-bootstrap-verification-v1.json
+          node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs \
+            > /tmp/kpmo-ci-agent-bootstrap-static-validation-v1.json
 
       - name: Reject unbounded GitHub Actions API access
         run: |

@@ -1,0 +1,89 @@
+{
+  "id": "ih-group-provider-sourcing-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY",
+  "effective_date": "2026-08-29",
+  "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "scope": [
+    "Intelligence Holdings",
+    "KIDULTS",
+    "Artfund",
+    "Capitaltimes",
+    "Muchmoney",
+    "Humanpool",
+    "Autobit",
+    "Kompare"
+  ],
+  "operating_model": {
+    "contracting": "actual-incorporated-entity-with-group-master-and-vertical-schedules",
+    "control_plane_owner": "Intelligence Holdings",
+    "provider_role": "replaceable-evidence-infrastructure",
+    "owned_value": [
+      "canonical-identifiers",
+      "entity-resolution",
+      "provenance-and-evidence-ledger",
+      "rights-retention-deletion-registry",
+      "source-switching-adapters",
+      "derived-intelligence"
+    ]
+  },
+  "economic_gates": {
+    "group_monthly_discovery_pilot_budget_usd": {"min": 500, "max": 2500},
+    "maximum_concurrent_paid_pilots": 3,
+    "maximum_provider_cost_percent_of_attributable_monthly_gross_profit": 10,
+    "maximum_target_payback_months": 6,
+    "product_evidence_threshold": "attributable-gross-profit-at-least-10x-monthly-provider-cost-for-two-consecutive-months",
+    "group_reuse_threshold": "two-revenue-products-or-at-least-25-percent-duplicate-cost-saving",
+    "critical_dependency_threshold": "at-least-20-percent-of-revenue-or-release-critical-capability",
+    "default_terms": ["monthly", "cancellable", "non-exclusive", "usage-capped", "no-annual-prepay-before-pilot"]
+  },
+  "rights_hard_gates": [
+    "approved-legal-entity-and-authority",
+    "named-affiliates-and-approved-products",
+    "explicit-internal-display-saas-api-and-analytics-rights-as-applicable",
+    "territory-language-user-and-environment-scope",
+    "retention-deletion-audit-and-termination-duties",
+    "derived-artifact-survival-and-pre-existing-ip",
+    "privacy-consent-transfer-and-security-roles-where-applicable"
+  ],
+  "vertical_posture": {
+    "Intelligence Holdings": "open-authority-first; buy shared utility only after measured multi-product reuse",
+    "KIDULTS": "collectible identity, authentication, provenance and lawful SOLD evidence",
+    "Artfund": "one same-sample ARTDAI-Artnet-Artprice comparison; at most one paid pilot",
+    "Capitaltimes": "official filings and macro first; choose one enterprise market-data primary at product evidence",
+    "Muchmoney": "one consented open-finance aggregator per launch-region coverage result",
+    "Humanpool": "ONET-ESCO-national taxonomies first; commercial job-skills data only for monetised lift",
+    "Autobit": "official VIN seed plus one evaluated market-data primary and regional history adapters",
+    "Kompare": "GS1-manufacturer-authorised merchant and affiliate feeds; no uncontrolled production scraping"
+  },
+  "standing_decisions": {
+    "eBay Marketplace Insights": {"state": "CLOSED", "reopen": "written-authorised-licensed-path"},
+    "PSA Premium": {"state": "BOUNDED", "reopen": "not-applicable"},
+    "PSA Enterprise": {"state": "CURRENT-ROI DROP", "reopen": "product-evidence-or-group-reuse-threshold"},
+    "GemRate": {"state": "CONDITIONAL", "reopen": "measured-incremental-lift"},
+    "ALT": {"state": "COMPETITOR-REFERENCE ONLY", "reopen": "approved-formal-partnership"},
+    "FNDATA": {"state": "COMPETITOR-REFERENCE ONLY", "reopen": "approved-formal-partnership"}
+  },
+  "agent_requirements": {
+    "bootstrap_required": true,
+    "read_exact_head_strategy_and_contract": true,
+    "read_provider_registry_and_communication_evidence": true,
+    "duplicate_outreach_forbidden": true,
+    "resend_sent_email_without_explicit_authority_forbidden": true,
+    "separate_fact_provider_claim_inference_and_recommendation": true,
+    "truth_sync_before_reporting": true,
+    "report_dimensions": [
+      "source-layer",
+      "brand-or-vertical",
+      "provider",
+      "state",
+      "evidence-date",
+      "owner",
+      "deadline",
+      "next-action",
+      "cost-exposure",
+      "blocker"
+    ]
+  },
+  "protected_gates": ["legal", "spend", "credential", "production", "public-release", "external-communication"]
+}
