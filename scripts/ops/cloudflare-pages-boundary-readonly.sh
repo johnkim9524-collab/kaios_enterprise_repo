@@ -19,12 +19,49 @@ if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
   echo "MAX_PAGES must be an integer from 1 to 100" >&2
   exit 64
 fi
+
+mkdir -p "$RECEIPT_DIR"
+
+write_blocked_receipt() {
+  local blocker="$1"
+  jq -n \
+    --arg state "VERIFIED_FAIL" \
+    --arg blocker "$blocker" \
+    --arg project "$PROJECT_NAME" \
+    --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
+    '{
+      id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",
+      state:$state,
+      blockers:[$blocker],
+      project:$project,
+      current_main_sha:$current_main_sha,
+      settings_pass:false,
+      latest_deployment_governed:false,
+      visible_preview_count:null,
+      project_readback:null,
+      latest_deployment:null,
+      latest_deployment_matches_current_main:false,
+      current_main_match_is_informational:true,
+      read_only:true,
+      settings_mutated:false,
+      deployment_created:false,
+      deployment_deleted:false,
+      provider_credential_activated:false,
+      secret_material_emitted:false,
+      platform_environment:"STAGING",
+      public_release:"HOLD",
+      production:"HOLD",
+      g5:"HOLD"
+    }' > "$RECEIPT_DIR/final.json"
+  cat "$RECEIPT_DIR/final.json"
+}
+
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+  write_blocked_receipt "CLOUDFLARE_READONLY_CREDENTIALS_ABSENT"
   echo "Cloudflare read-only credentials are absent" >&2
   exit 65
 fi
 
-mkdir -p "$RECEIPT_DIR"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
