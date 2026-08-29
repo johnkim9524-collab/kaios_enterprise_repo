@@ -19,10 +19,18 @@ const COLLECTOR_PATH = 'scripts/kidults/kpmo/github-trusted-ref-environment-read
 const CHECKOUT_SHA = '3d3c42e5aac5ba805825da76410c181273ba90b1';
 const SETUP_NODE_SHA = '820762786026740c76f36085b0efc47a31fe5020';
 const UPLOAD_ARTIFACT_SHA = 'ea165f8d65b6e75b540449e92b4886f43607fa02';
+
+function expectedRegisteredLaneCountFromRegistry(root = process.cwd()) {
+  const registry = JSON.parse(fs.readFileSync(path.join(root, REGISTRY_PATH), 'utf8'));
+  if (!Number.isInteger(registry?.registered_count) || registry.registered_count < 1) {
+    throw new Error('REGISTERED_SECRET_BEARING_LANE_COUNT_INVALID');
+  }
+  return registry.registered_count;
+}
 const EXPECTED_SOURCE_EXPR = '${{ github.event.pull_request.head.sha || github.sha }}';
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-export function validateReceipt(receipt, { requireExternalProof = false } = {}) {
+export function validateReceipt(receipt, { requireExternalProof = false, expectedRegisteredLaneCount = expectedRegisteredLaneCountFromRegistry() } = {}) {
   const failures = [];
   const require = (condition, id) => { if (!condition) failures.push(id); };
   const forbiddenKeys = new Set(['authorization', 'password', 'private_key', 'secret', 'secret_names', 'secret_value', 'secrets', 'token']);
@@ -72,8 +80,8 @@ export function validateReceipt(receipt, { requireExternalProof = false } = {}) 
   require(receipt?.external_partner_ingestion_authorized === false, 'partner_ingestion_boundary');
   require(receipt?.production === 'HOLD' && receipt?.public === 'HOLD', 'release_boundary');
   require(receipt?.g5 === 'EXPLICIT_APPROVAL_REQUIRED', 'g5_boundary');
-  require(receipt?.registered_secret_bearing_lanes === 17, 'registered_secret_lane_count');
-  require(receipt?.registered_privileged_manual_lanes === 17, 'registered_lane_count_legacy_alias');
+  require(receipt?.registered_secret_bearing_lanes === expectedRegisteredLaneCount, 'registered_secret_lane_count');
+  require(receipt?.registered_privileged_manual_lanes === expectedRegisteredLaneCount, 'registered_lane_count_legacy_alias');
   require(Array.isArray(receipt?.binding_results) && receipt.binding_results.length === receipt?.secret_bearing_jobs, 'binding_partition');
   require(receipt?.verified_secret_bearing_jobs === receipt?.binding_results?.filter((item) => item.state === 'VERIFIED_PASS').length, 'verified_binding_count');
   require(receipt?.binding_results?.every((item) => (
@@ -244,6 +252,9 @@ export function validateRepository(root = process.cwd()) {
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
   assert(contract.version === '1.4.0', 'CONTRACT_VERSION');
+  assert(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_SECRET_BEARING_LANE_COUNT');
+  assert(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_LEGACY_MANUAL_LANE_ALIAS');
+  assert(contract.scope.legacy_manual_lane_alias_is_registry_lane_count === true, 'LEGACY_ALIAS_REGISTRY_SEMANTICS');
   assert(contract.issue === 974 && contract.parent_gate_issue === 881, 'CONTRACT_ISSUE_BINDING');
   assert(contract.status === 'IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED', 'CONTRACT_STATUS');
   assert(JSON.stringify(contract.platform_principles) === JSON.stringify(['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT']), 'PRINCIPLE_ORDER');
@@ -280,8 +291,10 @@ export function validateRepository(root = process.cwd()) {
   assert(registry.internal_readback_control?.state === contract.status, 'REGISTRY_READBACK_STATE');
   assert(registry.internal_readback_control?.settings_mutated === false && registry.internal_readback_control?.secret_material_read === false, 'REGISTRY_READBACK_SAFETY_BOUNDARY');
   assert(registry.internal_readback_control?.issue_974_closed === false && registry.internal_readback_control?.issue_881_control_pass_promoted === false, 'REGISTRY_SEMANTIC_BOUNDARY');
-  assert(inventory.registered_lane_count === registry.registered_count && registry.registered_count === 17, 'REGISTRY_LANE_PARTITION');
-  assert(inventory.secret_bearing_job_count === 17, 'SECRET_BEARING_JOB_PARTITION');
+  assert(registry.registered_count === registry.registered_workflows.length, 'REGISTRY_REGISTERED_COUNT');
+  assert(registry.required_environment_bindings.length === registry.registered_count, 'REGISTRY_BINDING_COUNT');
+  assert(inventory.registered_lane_count === registry.registered_count, 'REGISTRY_LANE_PARTITION');
+  assert(inventory.secret_bearing_job_count === registry.required_environment_bindings.length, 'SECRET_BEARING_JOB_PARTITION');
   const repositoryBindingFailures = validateRequiredEnvironmentBindings(inventory, registry);
   assert(repositoryBindingFailures.length === 0, `REPOSITORY_ENVIRONMENT_BINDINGS:${repositoryBindingFailures.join(',')}`);
   const repositoryGuardedLanes = inventory.lanes
@@ -303,8 +316,8 @@ export function validateRepository(root = process.cwd()) {
   assert(collector.includes("stored_repository_or_environment_secret_activated: false"), 'STORED_SECRET_FALSE_RECEIPT');
   assert(collector.includes("provider_credential_activated: false"), 'PROVIDER_CREDENTIAL_FALSE_RECEIPT');
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
-  assert(testSource.includes('all 17 secret-bearing jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
-  assert(testSource.includes('all 17 secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
+  assert(testSource.includes('all registered secret-bearing jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
+  assert(testSource.includes('all registered secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
   assert(testSource.includes('activation receipt body and first-step ordering fail closed under mutation'), 'ACTIVATION_RECEIPT_MUTATION_TEST_MISSING');
   assert(testSource.includes('trigger transformation and missing explicit activation guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
@@ -313,7 +326,7 @@ export function validateRepository(root = process.cwd()) {
   assert(docs.includes('EPHEMERAL_GITHUB_TOKEN_METADATA_READ'), 'DOC_EPHEMERAL_TOKEN_SEMANTICS');
   assert(docs.includes('external_proof_validator_fail_closed_until_trusted_attestor'), 'DOC_EXTERNAL_ATTESTOR_FAIL_CLOSED');
   assert(docs.includes('## Repository live-main and credential-lifetime controls'), 'DOC_PRIVILEGED_EXECUTION_CONTROL');
-  assert(docs.includes('17/17 guards') && docs.includes('zero workflow-scope bindings') && docs.includes('zero job-scope bindings'), 'DOC_PRIVILEGED_EXECUTION_COUNTS');
+  assert(docs.includes('guard and step-scope counts are derived from the registry') && docs.includes('zero workflow-scope bindings') && docs.includes('zero job-scope bindings'), 'DOC_PRIVILEGED_EXECUTION_COUNTS');
   assert(docs.includes('They therefore do not close #974.'), 'DOC_ISSUE_974_BOUNDARY');
 
   const workflowMutations = [

@@ -19,7 +19,7 @@ process.on('exit', () => fs.rmSync(tempRoot, {recursive: true, force: true}));
 const fakeBin = path.join(tempRoot, 'bin');
 fs.mkdirSync(fakeBin, {recursive: true});
 
-const fakeCurl = `#!/usr/bin/env node
+const fakeCurl = String.raw`#!/usr/bin/env node
 const fs = require('node:fs');
 const path = require('node:path');
 const args = process.argv.slice(2);

@@ -19,6 +19,7 @@ const contract = JSON.parse(fs.readFileSync(CONTRACT_PATH, 'utf8'));
 const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const currentInventory = buildWorkflowInventory(process.cwd(), registry);
 const mainSha = 'a'.repeat(40);
+const expectedRegisteredLaneCount = registry.registered_count;
 
 function replaceInLiveMainGuard(source, before, after) {
   const header = `      - name: ${LIVE_MAIN_GUARD_STEP_NAME}`;
@@ -185,9 +186,9 @@ function receipt({ inventory = verifiedInventory(), snapshot = null, ref = 'refs
   });
 }
 
-test('current exact registry binds all 17 secret-bearing lanes but external policy remains fail closed', () => {
-  assert.equal(currentInventory.registered_lane_count, 17);
-  assert.equal(currentInventory.secret_bearing_job_count, 17);
+test('current exact registry binds every registered secret-bearing lane but external policy remains fail closed', () => {
+  assert.equal(currentInventory.registered_lane_count, expectedRegisteredLaneCount);
+  assert.equal(currentInventory.secret_bearing_job_count, registry.required_environment_bindings.length);
   assert.deepEqual(validateRequiredEnvironmentBindings(currentInventory, registry), []);
   const repositoryGuardedLanes = currentInventory.lanes
     .filter((lane) => lane.secret_bearing_jobs.some((job) => job.explicit_main_ref_guard))
@@ -205,6 +206,20 @@ test('current exact registry binds all 17 secret-bearing lanes but external poli
   assert.ok(current.binding_results.every((result) => result.blockers.includes('DECLARED_ENVIRONMENT_NOT_OBSERVED')));
   assert.equal(current.issue_881_control_pass_promoted, false);
   assert.equal(current.empirical_evidence_promoted, false);
+});
+
+test('registered lane counts are derived from registry rather than a frozen legacy cardinality', () => {
+  assert.equal(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry, true);
+  assert.equal(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry, true);
+  assert.equal(contract.scope.legacy_manual_lane_alias_is_registry_lane_count, true);
+  const positive = receipt();
+  assert.equal(positive.registered_secret_bearing_lanes, expectedRegisteredLaneCount);
+  assert.equal(positive.registered_privileged_manual_lanes, expectedRegisteredLaneCount);
+  const staleLegacyCount = structuredClone(positive);
+  staleLegacyCount.registered_secret_bearing_lanes = 17;
+  staleLegacyCount.registered_privileged_manual_lanes = 17;
+  assert.ok(validateReceipt(staleLegacyCount).includes('registered_secret_lane_count'));
+  assert.ok(validateReceipt(staleLegacyCount).includes('registered_lane_count_legacy_alias'));
 });
 
 test('synthetic exact-main environment and secret-name metadata is a test-only positive control', () => {
@@ -275,7 +290,7 @@ test('selected non-main ref and stale main SHA are independently rejected', () =
   assert.ok(stale.blockers.includes('EXACT_SOURCE_SHA_NOT_OBSERVED_DEFAULT_BRANCH_HEAD'));
 });
 
-test('all 17 secret-bearing jobs reject unreadable, stale, and non-main live-main guards', () => {
+test('all registered secret-bearing jobs reject unreadable, stale, and non-main live-main guards', () => {
   const mutations = [
     [
       'unreadable_api_fail_open',
@@ -312,7 +327,7 @@ test('all 17 secret-bearing jobs reject unreadable, stale, and non-main live-mai
   assert.equal(rejected, currentInventory.lanes.length * mutations.length);
 });
 
-test('all 17 secret-bearing jobs reject secret scope and guard order mutations', () => {
+test('all registered secret-bearing jobs reject secret scope and guard order mutations', () => {
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
     const job = lane.secret_bearing_jobs[0];
