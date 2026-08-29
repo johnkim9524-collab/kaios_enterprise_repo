@@ -34,8 +34,8 @@ for (const prohibited of [
 }
 
 requireTrue(
-  redirects === '/ /index.html 200\n/workspace /workspace.html 200',
-  'Enterprise staging must serve the original responsive Portal at / and keep Workspace at /workspace.',
+  redirects === '/workspace /workspace.html 200',
+  'Enterprise staging must use the default index document for the original responsive Portal and keep Workspace at /workspace.',
 );
 
 requireTrue(registry?.publication?.candidate_publication === 'PROHIBITED', 'Registry candidate publication must remain fail-closed.');
