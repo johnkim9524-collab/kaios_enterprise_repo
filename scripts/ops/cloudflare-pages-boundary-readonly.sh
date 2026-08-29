@@ -5,26 +5,91 @@ PROJECT_NAME="${CLOUDFLARE_PAGES_PROJECT_NAME:-kidults-workspace-staging}"
 EXPECTED_REPOSITORY="${EXPECTED_REPOSITORY:-johnkim9524-collab/kaios_enterprise_repo}"
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-pages-boundary-readonly}"
 MAX_PAGES="${MAX_PAGES:-100}"
-API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID:-MISSING}/pages/projects/${PROJECT_NAME}"
+
+mkdir -p "$RECEIPT_DIR"
+
+write_preflight_failure_receipt() {
+  local state="$1"
+  local reason_code="$2"
+  local exit_code="$3"
+  local token_present=false
+  local account_id_present=false
+
+  if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+    token_present=true
+  fi
+  if [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+    account_id_present=true
+  fi
+
+  jq -n \
+    --arg state "$state" \
+    --arg reason_code "$reason_code" \
+    --arg project "$PROJECT_NAME" \
+    --arg expected_repository "$EXPECTED_REPOSITORY" \
+    --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
+    --argjson exit_code "$exit_code" \
+    --argjson api_token_present "$token_present" \
+    --argjson account_id_present "$account_id_present" \
+    '{
+      id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",
+      state:$state,
+      reason_code:$reason_code,
+      exit_code:$exit_code,
+      project:$project,
+      expected_repository:$expected_repository,
+      current_main_sha:$current_main_sha,
+      credential_presence:{
+        api_token_present:$api_token_present,
+        account_id_present:$account_id_present
+      },
+      cloudflare_api_called:false,
+      settings_readback_complete:false,
+      deployment_inventory_complete:false,
+      read_only:true,
+      settings_mutated:false,
+      deployment_created:false,
+      deployment_deleted:false,
+      platform_environment:"STAGING",
+      public_release:"HOLD",
+      production:"HOLD",
+      g5:"HOLD"
+    }' > "$RECEIPT_DIR/final.json"
+
+  cat "$RECEIPT_DIR/final.json"
+  exit "$exit_code"
+}
 
 if [[ "$PROJECT_NAME" != "kidults-workspace-staging" ]]; then
   echo "Refusing unexpected Pages project: $PROJECT_NAME" >&2
-  exit 64
+  write_preflight_failure_receipt \
+    "REFUSED_INVALID_INPUT" \
+    "UNEXPECTED_PAGES_PROJECT" \
+    64
 fi
 if [[ "$EXPECTED_REPOSITORY" != "johnkim9524-collab/kaios_enterprise_repo" ]]; then
   echo "Refusing unexpected repository: $EXPECTED_REPOSITORY" >&2
-  exit 64
+  write_preflight_failure_receipt \
+    "REFUSED_INVALID_INPUT" \
+    "UNEXPECTED_REPOSITORY" \
+    64
 fi
 if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
   echo "MAX_PAGES must be an integer from 1 to 100" >&2
-  exit 64
+  write_preflight_failure_receipt \
+    "REFUSED_INVALID_INPUT" \
+    "INVALID_MAX_PAGES" \
+    64
 fi
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
   echo "Cloudflare read-only credentials are absent" >&2
-  exit 65
+  write_preflight_failure_receipt \
+    "BLOCKED_CREDENTIALS_ABSENT" \
+    "CLOUDFLARE_READONLY_CREDENTIALS_ABSENT" \
+    65
 fi
 
-mkdir -p "$RECEIPT_DIR"
+API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT_NAME}"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -152,6 +217,9 @@ jq -n \
     latest_deployment:$latest[0],
     latest_deployment_matches_current_main:(($latest[0].commit_hash // null) == $current_main_sha),
     current_main_match_is_informational:true,
+    cloudflare_api_called:true,
+    settings_readback_complete:true,
+    deployment_inventory_complete:true,
     read_only:true,
     settings_mutated:false,
     deployment_created:false,
