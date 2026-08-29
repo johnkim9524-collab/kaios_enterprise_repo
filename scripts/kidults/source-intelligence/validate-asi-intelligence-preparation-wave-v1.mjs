@@ -18,13 +18,20 @@ const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'
 const contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
 
 assert(contract.id === 'kidults-asi-intelligence-preparation-wave-v1', 'CONTRACT_ID');
-assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLE_ORDER');
 assert(contract.modules?.length === 8, 'CONTRACT_MODULE_COUNT');
 assert(unique(contract.modules.map((module) => module.module_id)), 'CONTRACT_MODULE_DUPLICATE');
 assert(JSON.stringify(contract.canonical_execution_order) === JSON.stringify(contract.modules.map((module) => module.module_id)), 'CONTRACT_EXECUTION_ORDER');
 assert(contract.required_outputs?.length === 9, 'CONTRACT_REQUIRED_OUTPUT_COUNT');
 assert(contract.mission_policy?.expected_mission_count === 192, 'CONTRACT_MISSION_COUNT');
+assert(contract.mission_policy?.operating_mode === 'MULTI_LANE_AUTONOMOUS_ACQUISITION', 'CONTRACT_OPERATING_MODE');
+assert(contract.mission_policy?.runtime_priority_owner === 'ASI', 'CONTRACT_RUNTIME_PRIORITY_OWNER');
+assert(contract.mission_policy?.psa_is_program_prerequisite === false, 'CONTRACT_PSA_PREREQUISITE');
+assert(contract.mission_policy?.psa_role === 'PARALLEL_GRADED_SUPPLEMENT_LANE', 'CONTRACT_PSA_ROLE');
+assert(contract.mission_policy?.non_psa_execution_lanes?.length === 4, 'CONTRACT_NON_PSA_LANES');
+assert(JSON.stringify(contract.mission_policy?.evidence_ladder) === JSON.stringify(['REFERENCE','DISCOVERY','OBSERVATION','CANDIDATE','EVIDENCE','APPROVED_PROJECTION']), 'CONTRACT_EVIDENCE_LADDER');
+assert(contract.mission_policy?.automobiles_lighthouse_target?.minimum === 25 && contract.mission_policy?.automobiles_lighthouse_target?.maximum === 50, 'CONTRACT_LIGHTHOUSE_TARGET');
 assert(contract.provider_replaceability_policy?.minimum_operational_slots_per_mission === 3, 'CONTRACT_REPLACEMENT_SLOT_COUNT');
 assert(contract.truth_boundary?.executes_external_collection === false, 'CONTRACT_COLLECTION_BOUNDARY');
 assert(contract.truth_boundary?.creates_collection_right === false, 'CONTRACT_RIGHTS_BOUNDARY');
