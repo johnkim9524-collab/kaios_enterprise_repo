@@ -102,22 +102,48 @@ settings_pass="$(jq -r '
 preview_count="$(jq '[.[] | select(.environment == "preview" and .materialized == true)] | length' "$RECEIPT_DIR/deployments.json")"
 skipped_preview_attempt_count="$(jq '[.[] | select(.environment == "preview" and .is_skipped == true)] | length' "$RECEIPT_DIR/deployments.json")"
 latest_governed="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
-  . != null and .environment == "production" and .trigger_type == "ad_hoc" and .branch == "main"
-  and (.commit_hash | type == "string" and test("^[0-9a-f]{40}$"))
-  and (.commit_message | type == "string" and startswith("[KIDULTS-GOVERNED-STAGING] repository=" + $expected_repository + " "))
-  and .latest_stage_status == "success"
+  . as $deployment
+  | ($deployment.commit_hash // "") as $commit_hash
+  | ($deployment.commit_message // "") as $commit_message
+  | $deployment != null
+  and $deployment.environment == "production"
+  and $deployment.trigger_type == "ad_hoc"
+  and $deployment.branch == "main"
+  and ($commit_hash | type == "string" and test("^[0-9a-f]{40}$"))
+  and ($commit_message | type == "string")
+  and (
+    ($commit_message | startswith("[KIDULTS-GOVERNED-STAGING] repository=" + $expected_repository + " "))
+    or (
+      ($commit_message | startswith("[KIDULTS-GOVERNED-STAGING] approval_id="))
+      and ($commit_message | contains(" repository=" + $expected_repository + " "))
+    )
+  )
+  and ($commit_message | contains(" source_sha=" + $commit_hash + " "))
+  and $deployment.latest_stage_status == "success"
+' "$RECEIPT_DIR/latest-deployment.json")"
+latest_lineage_format="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
+  (.commit_message // "") as $message
+  | if ($message | startswith("[KIDULTS-GOVERNED-STAGING] approval_id=") and contains(" repository=" + $expected_repository + " ")) then
+      "APPROVAL_BOUND_V1"
+    elif ($message | startswith("[KIDULTS-GOVERNED-STAGING] repository=" + $expected_repository + " ")) then
+      "LEGACY_GOVERNED_V1"
+    else
+      "UNRECOGNIZED"
+    end
 ' "$RECEIPT_DIR/latest-deployment.json")"
 
 state="VERIFIED_FAIL"
 [[ "$settings_pass" == "true" && "$latest_governed" == "true" && "$preview_count" -eq 0 ]] && state="COMPLETE_VERIFIED"
 
 jq -n --arg state "$state" --arg project "$PROJECT_NAME" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
+  --arg latest_deployment_lineage_format "$latest_lineage_format" \
   --argjson settings_pass "$settings_pass" --argjson latest_deployment_governed "$latest_governed" \
   --argjson visible_preview_count "$preview_count" --argjson skipped_preview_attempt_count "$skipped_preview_attempt_count" \
   --slurpfile project_readback "$RECEIPT_DIR/project-readback.json" --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \
   --slurpfile latest_attempt "$RECEIPT_DIR/latest-attempt.json" '{
     id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:$state,project:$project,current_main_sha:$current_main_sha,
     settings_pass:$settings_pass,latest_deployment_governed:$latest_deployment_governed,
+    latest_deployment_lineage_format:$latest_deployment_lineage_format,
     visible_preview_count:$visible_preview_count,skipped_preview_attempt_count:$skipped_preview_attempt_count,
     project_readback:$project_readback[0],latest_attempt:$latest_attempt[0],latest_deployment:$latest[0],
     latest_deployment_matches_current_main:(($latest[0].commit_hash // null) == $current_main_sha),current_main_match_is_informational:true,
