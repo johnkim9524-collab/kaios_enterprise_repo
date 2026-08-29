@@ -14,10 +14,11 @@
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "default_branch": "main",
     "registry": "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
-    "privileged_manual_lane_count_is_dynamic_from_registry": false,
+    "privileged_manual_lane_count_is_dynamic_from_registry": true,
     "secret_values_must_never_be_requested_or_recorded": true,
     "secret_bearing_lane_count_is_dynamic_from_registry": true,
-    "trigger_class_does_not_reduce_authority": true
+    "trigger_class_does_not_reduce_authority": true,
+    "legacy_manual_lane_alias_is_registry_lane_count": true
   },
   "approved_closure_patterns": {
     "github_environment": {

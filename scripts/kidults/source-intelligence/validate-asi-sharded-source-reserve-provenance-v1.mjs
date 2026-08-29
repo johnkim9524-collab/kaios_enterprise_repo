@@ -2,11 +2,14 @@
 import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
+const expectedShaBinding = "EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}";
+const exactUpstreamBinding = 'test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"';
 
 function failuresFor(text) {
   const failures = [];
   const required = [
     "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",
+    expectedShaBinding,
     "UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}",
     "UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}",
     "UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}",
@@ -14,7 +17,7 @@ function failuresFor(text) {
     "PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}",
     'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
     'test "$UPSTREAM_HEAD_BRANCH" = "main"',
-    'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
+    exactUpstreamBinding,
     '/actions/runs/${run_id}/artifacts?per_page=100',
     'expected exactly one producer-bound v2 discovery artifact',
     'kidults-asi-global-any-site-hourly-cycle-v2',
@@ -29,6 +32,11 @@ function failuresFor(text) {
     if (!text.includes(marker)) failures.push(`missing provenance marker: ${marker}`);
   }
 
+  const expectedShaBindingCount = text.split(expectedShaBinding).length - 1;
+  if (expectedShaBindingCount < 2) {
+    failures.push(`trusted EXPECTED_SHA binding must cover both jobs; observed ${expectedShaBindingCount}`);
+  }
+
   const workflowRunBlock = text.match(/if \[ "\$GITHUB_EVENT_NAME" = "workflow_run" \]; then([\s\S]*?)else/);
   if (!workflowRunBlock) {
     failures.push('workflow_run producer-binding block missing');
@@ -38,7 +46,7 @@ function failuresFor(text) {
       'DISCOVERY_RUN_ID="$UPSTREAM_RUN_ID"',
       'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
       'test "$UPSTREAM_HEAD_BRANCH" = "main"',
-      'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"'
+      exactUpstreamBinding
     ]) {
       if (!block.includes(marker)) failures.push(`workflow_run exact binding missing: ${marker}`);
     }
@@ -78,9 +86,14 @@ const mutations = [
     'repository-global artifact lookup'
   ],
   [
-    'test "$UPSTREAM_HEAD_SHA" = "$GITHUB_SHA"',
+    exactUpstreamBinding,
     'test -n "$UPSTREAM_HEAD_SHA"',
     'exact upstream SHA binding'
+  ],
+  [
+    expectedShaBinding,
+    "EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}",
+    'trusted execution SHA source binding'
   ],
   [
     'TARGET_SHA="$PR_BASE_SHA"',
@@ -114,7 +127,7 @@ for (const [from, to, label] of mutations) {
     console.error(`Sharded Source Reserve provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  const mutated = current.replace(from, to);
+  const mutated = current.replaceAll(from, to);
   if (failuresFor(mutated).length === 0) {
     console.error(`Sharded Source Reserve provenance self-test failed to reject: ${label}`);
     process.exit(3);
@@ -126,6 +139,7 @@ console.log(JSON.stringify({
   control: 'SHARDED_SOURCE_RESERVE_EXACT_PRODUCER_PROVENANCE',
   workflow_run_exact_upstream_id: true,
   exact_head_sha: true,
+  exact_head_binding_symbol: 'EXPECTED_SHA',
   exact_artifact_cardinality: true,
   producer_workflow_path_bound: true,
   concurrency_isolated_by_upstream_run: true,

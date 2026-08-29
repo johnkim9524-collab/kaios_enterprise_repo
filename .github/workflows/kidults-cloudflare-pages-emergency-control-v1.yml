@@ -1,0 +1,110 @@
+name: KIDULTS Cloudflare Pages Emergency Control v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Approved mutation operation
+        required: true
+        default: contain_auto_deployments
+        type: choice
+        options:
+          - contain_auto_deployments
+          - delete_preview_deployments
+      authorization:
+        description: Exact operation-specific confirmation phrase
+        required: true
+        type: string
+      reason:
+        description: Auditable control reason
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-pages-emergency-control-v1
+  cancel-in-progress: false
+
+jobs:
+  control:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    environment: kidults-cloudflare-staging-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Validate exact emergency authorization
+        env:
+          OPERATION: ${{ inputs.operation }}
+          AUTHORIZATION: ${{ inputs.authorization }}
+          CONTROL_REASON: ${{ inputs.reason }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
+          test -n "$CONTROL_REASON"
+          case "$OPERATION" in
+            contain_auto_deployments)
+              test "$AUTHORIZATION" = "CONTAIN_KIDULTS_WORKSPACE_STAGING"
+              ;;
+            delete_preview_deployments)
+              test "$AUTHORIZATION" = "DELETE_PREVIEW_ONLY_KIDULTS_WORKSPACE_STAGING"
+              ;;
+            *)
+              exit 64
+              ;;
+          esac
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Execute approved Cloudflare Pages emergency control
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          OPERATION: ${{ inputs.operation }}
+          CONTROL_REASON: ${{ inputs.reason }}
+          RECEIPT_DIR: artifacts/cloudflare-pages-emergency-control
+        run: |
+          set -euo pipefail
+          case "$OPERATION" in
+            contain_auto_deployments)
+              bash scripts/ops/cloudflare-pages-auto-deployment-containment.sh --execute
+              ;;
+            delete_preview_deployments)
+              bash scripts/ops/cloudflare-pages-preview-cleanup.sh --delete-preview
+              ;;
+          esac
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: cloudflare-pages-emergency-control-${{ inputs.operation }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-pages-emergency-control
+          if-no-files-found: error
+          retention-days: 30
