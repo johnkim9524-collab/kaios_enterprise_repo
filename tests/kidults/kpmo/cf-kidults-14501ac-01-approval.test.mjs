@@ -17,6 +17,7 @@ assert.equal(approval.source_event_id, 'CF-KIDULTS-14501AC-01');
 assert.equal(approval.source_text_sha256, 'sha256:69bb0b446992e067269b36beb11f936f52e2a08d104d94d9f9940f2a6c9ad71f');
 assert.equal(approval.one_time, true);
 assert.equal(approval.target_sha, '14501ac022bdd7c918924a207f257b047b1ba970');
+assert.equal(approval.expected_account_id, '235eaa51d04e7f4436a9faa507a04f9d');
 assert.equal(approval.max_materialized_preview_deletions, 588);
 assert.equal(approval.authorization.read_only_parity_preflight, true);
 assert.equal(approval.authorization.delete_materialized_preview_only, true);
@@ -57,6 +58,10 @@ assert.match(workflow, /Execute one-shot Preview retirement and governed STAGING
 assert.match(workflow, /test "\$GITHUB_RUN_ATTEMPT" = "1"/);
 assert.match(workflow, /ref: 14501ac022bdd7c918924a207f257b047b1ba970/);
 assert.match(workflow, /approval_id=CF-KIDULTS-14501AC-01/);
+assert.match(workflow, /CLOUDFLARE_ACCOUNT_ID_SOURCE_OF_RECORD: \$\{\{ secrets\.CLOUDFLARE_ACCOUNT_ID \}\}/);
+assert.match(workflow, /CLOUDFLARE_ACCOUNT_ID: 235eaa51d04e7f4436a9faa507a04f9d/);
+assert.match(workflow, /test -n "\$CLOUDFLARE_ACCOUNT_ID_SOURCE_OF_RECORD"/);
+assert.match(workflow, /add-mask::\$CLOUDFLARE_ACCOUNT_ID_SOURCE_OF_RECORD/);
 assert.equal(workflow.includes('workflow_dispatch:'), false);
 
 const preflight = fs.readFileSync(preflightPath, 'utf8');
@@ -70,6 +75,8 @@ console.log(JSON.stringify({
   result: 'PASS',
   explicit_operation_specific_approval: true,
   exact_target_sha: true,
+  approved_account_id_bound: true,
+  environment_account_secret_presence_verified_without_trusting_value: true,
   max_materialized_preview_deletions: 588,
   production_history_preservation: true,
   fail_closed_provider_classes: ['401','403','404','5xx','timeout'],
