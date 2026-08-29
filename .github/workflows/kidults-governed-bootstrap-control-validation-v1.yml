@@ -1,0 +1,143 @@
+name: KIDULTS Governed Bootstrap Control Validation V1
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
+    # KIDULTS_STAGE_B_PATHS_START
+    paths:
+      - ".github/workflows/kidults-governed-bootstrap-control-validation-v1.yml"
+      - "scripts/kidults/kpmo/validate-governed-bootstrap-candidate-v1.mjs"
+      - "coordination/kidults/kpmo/governed-bootstrap-control-policy-v1.json"
+      - "tests/kidults/kpmo/governed-bootstrap-control-validation-v1.test.mjs"
+      - ".github/workflows/kidults-atomic-governed-landing-v1.yml"
+      - "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs"
+      - "scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs"
+      - "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs"
+      - "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json"
+      - "scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs"
+      - "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json"
+      - "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs"
+      - "coordination/kidults/governance/governed-landing-one-shot-approval-ledger-v1.json"
+      - "scripts/governance/governed-landing-one-shot-approval-ledger-v1.mjs"
+      - "tests/kidults/kpmo/governed-landing-one-shot-approval-ledger-v1.test.mjs"
+      - "services/kidults-governed-landing-approval-trust-root/src/index.mjs"
+      - "services/kidults-governed-landing-approval-trust-root/test/approval-ledger.test.mjs"
+      - "services/kidults-governed-landing-approval-trust-root/wrangler.jsonc"
+      - "tests/kidults/kpmo/governed-landing-producer-provenance-v1.test.mjs"
+      - "coordination/kidults/kpmo/governed-bootstrap-canary-v1.json"
+    # KIDULTS_STAGE_B_PATHS_END
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: kidults-governed-bootstrap-control-validation-v1-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  governed-bootstrap-control-validation:
+    name: KIDULTS Governed Bootstrap Control Validation V1
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Reject wrong repository, fork, base or event before checkout
+        shell: bash
+        env:
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          EVENT_REPOSITORY: ${{ github.repository }}
+          BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$EVENT_NAME" = pull_request_target
+          test "$EVENT_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$HEAD_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test "$BASE_REF" = main
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]
+          [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$BASE_SHA" != "$HEAD_SHA"
+
+      - name: Checkout exact trusted base without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          path: trusted-base
+
+      - name: Checkout exact candidate as inert data without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+          path: candidate
+
+      - name: Validate candidate only with trusted-base code
+        env:
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          EVENT_REPOSITORY: ${{ github.repository }}
+          EVENT_BASE_REPOSITORY: ${{ github.event.pull_request.base.repo.full_name }}
+          EVENT_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          node trusted-base/scripts/kidults/kpmo/validate-governed-bootstrap-candidate-v1.mjs \
+            --trusted-root trusted-base \
+            --candidate-root candidate
+
+      - name: Final live read-only PR binding check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const repository = process.env.EXPECTED_REPOSITORY;
+          const response = await fetch(`https://api.github.com/repos/${repository}/pulls/${process.env.PR_NUMBER}`, {
+            headers: {
+              Authorization: `Bearer ${process.env.GH_TOKEN}`,
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'kidults-governed-bootstrap-control-validation-v1'
+            },
+            redirect: 'error'
+          });
+          if (!response.ok) throw new Error(`LIVE_PR_READ_FAILED:${response.status}`);
+          const pr = await response.json();
+          if (pr.state !== 'open' || pr.merged === true) throw new Error('LIVE_PR_NOT_OPEN');
+          if (pr.base?.repo?.full_name !== repository || pr.head?.repo?.full_name !== repository) throw new Error('LIVE_PR_REPOSITORY_DRIFT');
+          if (pr.base?.ref !== 'main' || pr.base?.sha !== process.env.EXPECTED_BASE_SHA) throw new Error('LIVE_PR_BASE_DRIFT');
+          if (pr.head?.sha !== process.env.EXPECTED_HEAD_SHA) throw new Error('LIVE_PR_HEAD_DRIFT');
+          console.log(JSON.stringify({
+            id: 'kidults-governed-bootstrap-final-reread-v1',
+            state: 'VERIFIED_PASS',
+            pull_request: Number(process.env.PR_NUMBER),
+            exact_base_sha: pr.base.sha,
+            exact_head_sha: pr.head.sha,
+            read_only: true,
+            candidate_executable_used_as_authority: false,
+            external_mutation_authorized: false,
+            public_release: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD'
+          }, null, 2));
+          NODE
