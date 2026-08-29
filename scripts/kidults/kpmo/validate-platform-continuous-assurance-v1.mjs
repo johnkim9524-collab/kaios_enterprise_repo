@@ -87,6 +87,7 @@ if (!errors.length) {
     'ref: ${{ env.KPMO_SOURCE_SHA }}'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
+  if (!/- name: Run audit and always retain receipt\n\s+if: always\(\)/.test(activeWorkflow)) errors.push('audit receipt step must explicitly run under if: always()');
   for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'concurrency:', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
     if (activeWorkflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
   }
