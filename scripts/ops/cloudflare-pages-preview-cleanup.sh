@@ -106,6 +106,7 @@ jq -n \
     project:$project,mode:$mode,
     production_ids:$production_ids,
     preview_ids:$preview_ids,
+    force_non_production_preview_delete:true,
     production_delete_forbidden:true
   }' > "$RECEIPT_DIR/preflight.json"
 
@@ -120,6 +121,7 @@ if [[ "$MODE" == "--inventory" ]]; then
       project:$project,state:$state,
       preview_ids:$preview_ids,
       production_ids_preserved:$production_ids,
+      force_non_production_preview_delete:false,
       deletion_performed:false,
       production_mutation:false,
       platform_environment:"STAGING",
@@ -134,15 +136,17 @@ failed=0
 while IFS= read -r deployment_id; do
   [[ -n "$deployment_id" ]] || continue
   set +e
-  api_request DELETE "$API_ROOT/deployments/$deployment_id" "$tmp_dir/delete-$deployment_id.json"
+  api_request DELETE "$API_ROOT/deployments/$deployment_id" "$tmp_dir/delete-$deployment_id.json" --url-query "force=true"
   rc=$?
   set -e
   if [[ "$rc" -eq 0 ]] && jq -e '.success == true' "$tmp_dir/delete-$deployment_id.json" >/dev/null 2>&1; then
     deleted=$((deleted + 1))
-    jq -cn --arg id "$deployment_id" '{deployment_id:$id,result:"DELETED_PREVIEW"}' >> "$RECEIPT_DIR/deletions.ndjson"
+    jq -cn --arg id "$deployment_id" '{deployment_id:$id,result:"DELETED_PREVIEW_FORCE_TRUE"}' >> "$RECEIPT_DIR/deletions.ndjson"
   else
     failed=$((failed + 1))
-    jq -cn --arg id "$deployment_id" '{deployment_id:$id,result:"FAILED"}' >> "$RECEIPT_DIR/deletions.ndjson"
+    error_codes="$(jq -c 'if type == "object" then [(.errors // [])[]?.code] else [] end' "$tmp_dir/delete-$deployment_id.json" 2>/dev/null || true)"
+    [[ -n "$error_codes" ]] || error_codes='[]'
+    jq -cn --arg id "$deployment_id" --argjson error_codes "$error_codes" '{deployment_id:$id,result:"FAILED",error_codes:$error_codes}' >> "$RECEIPT_DIR/deletions.ndjson"
   fi
 done < <(jq -r '.[]' <<<"$initial_preview_ids")
 
@@ -161,6 +165,7 @@ jq -n \
   --arg project "$PROJECT_NAME" \
   --arg state "$state" \
   --arg control_reason "${CONTROL_REASON:-NOT_PROVIDED}" \
+  --argjson attempted "$(jq 'length' <<<"$initial_preview_ids")" \
   --argjson deleted "$deleted" \
   --argjson failed "$failed" \
   --argjson remaining_preview_ids "$remaining_preview_ids" \
@@ -168,10 +173,12 @@ jq -n \
   '{
     id:"kidults-cloudflare-preview-cleanup-receipt-v1",
     project:$project,state:$state,control_reason:$control_reason,
+    attempted_preview_count:$attempted,
     deleted_preview_count:$deleted,
     failed_attempts:$failed,
     remaining_preview_ids:$remaining_preview_ids,
     production_ids_preserved:$production_ids,
+    force_non_production_preview_delete:true,
     production_mutation:false,
     platform_environment:"STAGING",
     public_release:"HOLD",production:"HOLD",g5:"HOLD"

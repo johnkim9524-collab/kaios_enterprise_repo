@@ -56,14 +56,15 @@ jobs:
             --arg state "PREFLIGHT_PENDING" \
             --arg source_sha "$GITHUB_SHA" \
             --arg event_head_sha "$EVENT_HEAD_SHA" \
-            --arg recovery_pr "1562" \
-            --arg failed_run "33255295161" \
+            --arg recovery_pr "1565" \
+            --arg failed_run "33255714663" \
             '{
               state:$state,
               source_sha:$source_sha,
               event_head_sha:$event_head_sha,
               recovery_pr:($recovery_pr|tonumber),
               failed_run_id:($failed_run|tonumber),
+              credential_diagnostic_verified:false,
               cloudflare_api_called:false,
               preview_deleted:false,
               production_mutation:false,
@@ -82,13 +83,18 @@ jobs:
           test "$EVENT_HEAD_SHA" = "$GITHUB_SHA"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           COMMIT_MESSAGE="$(git log -1 --format=%B)"
-          grep -q '^Merge PR #1562:' <<<"$COMMIT_MESSAGE"
+          grep -q '^Merge PR #1565:' <<<"$COMMIT_MESSAGE"
           jq -e '
-            .state == "AUTHORIZED_PENDING_EXECUTION"
+            .state == "AUTHORIZED_PENDING_CREDENTIAL_DIAGNOSTIC_AND_EXECUTION"
             and .project == "kidults-workspace-staging"
             and .original_authorized_pr == 1560
-            and .failed_workflow_run_id == 33255295161
-            and .root_cause == "MERGE_COMMIT_TITLE_FORMAT_MISMATCH"
+            and .identity_recovery_pr == 1562
+            and .failed_workflow_run_id == 33255714663
+            and .failed_exact_main_sha == "5d0590e2f01589061069ce560fab814e70832fab"
+            and .root_cause_observed == "INITIAL_PAGES_DEPLOYMENT_INVENTORY_HTTP_404"
+            and .mutation_observed_before_failure == false
+            and .failure_artifact_id == 9715733544
+            and .failure_artifact_digest == "sha256:aeefe76a08f490c73c7a7f8be19ec5c3530064a56a7667004a01ed8eb905babe"
             and .program_owner_authorization.authorized == true
             and (.authorized_operations | index("RETIRE_HISTORICAL_MATERIALIZED_PREVIEW_DEPLOYMENTS_ONLY")) != null
             and (.authorized_operations | index("CREATE_ONE_GOVERNED_EXACT_MAIN_STAGING_DEPLOYMENT")) != null
@@ -96,7 +102,7 @@ jobs:
             and .public_release == "HOLD"
             and .production == "HOLD"
             and .g5 == "HOLD"
-          ' coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v1.json >/dev/null
+          ' coordination/kidults/runtime/cloudflare-pages-one-shot-recovery-v2.json >/dev/null
           jq --arg state "IDENTITY_AND_AUTHORIZATION_VERIFIED" \
              --arg message "$COMMIT_MESSAGE" \
              '.state=$state | .merge_commit_message=$message' \
@@ -109,6 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs
+          bash -n scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh
           bash -n scripts/ops/cloudflare-pages-preview-cleanup.sh
           bash -n scripts/ops/cloudflare-pages-governed-staging-deploy.sh
           bash -n scripts/ops/cloudflare-pages-boundary-readonly.sh
@@ -126,6 +133,20 @@ jobs:
           test -n "$CLOUDFLARE_ACCOUNT_ID"
           echo "::add-mask::$CLOUDFLARE_API_TOKEN"
           echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+
+          export RECEIPT_DIR=artifacts/cloudflare-staging-credential-diagnostic
+          export EFFECTIVE_ACCOUNT_ID_FILE=/tmp/kidults-cloudflare-effective-account-id
+          bash scripts/ops/cloudflare-pages-staging-credential-diagnostic.sh
+          jq -e '.state == "COMPLETE_VERIFIED" and .cloudflare_api_called == true and .settings_mutated == false and .deployment_deleted == false and .deployment_created == false' "$RECEIPT_DIR/final.json" >/dev/null
+          export CLOUDFLARE_ACCOUNT_ID="$(cat "$EFFECTIVE_ACCOUNT_ID_FILE")"
+          test "$CLOUDFLARE_ACCOUNT_ID" = "235eaa51d04e7f4436a9faa507a04f9d"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          DIAGNOSTIC_SOURCE="$(jq -r '.effective_account_source' "$RECEIPT_DIR/final.json")"
+          jq --arg source "$DIAGNOSTIC_SOURCE" \
+             '.credential_diagnostic_verified=true | .effective_account_source=$source | .cloudflare_api_called=true' \
+             artifacts/cloudflare-one-shot-control/final.json \
+             > artifacts/cloudflare-one-shot-control/final.tmp.json
+          mv artifacts/cloudflare-one-shot-control/final.tmp.json artifacts/cloudflare-one-shot-control/final.json
 
           export RECEIPT_DIR=artifacts/cloudflare-preview-retirement
           export CONTROL_REASON="Retire historical materialized Preview estate after automatic Git deployments were disabled and API-verified"
@@ -159,6 +180,7 @@ jobs:
           name: cloudflare-preview-retirement-governed-staging-${{ github.sha }}-${{ github.run_id }}
           path: |
             artifacts/cloudflare-one-shot-control
+            artifacts/cloudflare-staging-credential-diagnostic
             artifacts/cloudflare-preview-retirement
             artifacts/cloudflare-governed-staging-deploy
             artifacts/cloudflare-pages-boundary-final-readback
