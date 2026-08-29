@@ -110,7 +110,10 @@
       "known_path": "DEALER_PORTAL_API",
       "rights_confirmed": {
         "internal_data_validation_and_intelligence_use_can_qualify": true,
-        "two_industry_references_mandatory_and_contacted": true
+        "two_industry_references_mandatory": true,
+        "provider_will_contact_submitted_references": true,
+        "references_submitted": false,
+        "reference_contact_observed": false
       },
       "rights_pending": [
         "cert_identity_grade",
