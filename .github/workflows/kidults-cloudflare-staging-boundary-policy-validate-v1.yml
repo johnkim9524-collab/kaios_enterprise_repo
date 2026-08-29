@@ -1,0 +1,74 @@
+name: KIDULTS Cloudflare Staging Boundary Policy Validate v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-preview-estate-cleanup-v1.yml'
+      - '.github/workflows/kidults-cloudflare-staging-drift-monitor-v1.yml'
+      - '.github/workflows/kidults-cloudflare-staging-boundary-policy-validate-v1.yml'
+      - 'scripts/ops/cloudflare-pages-auto-deployment-containment.sh'
+      - 'scripts/ops/cloudflare-pages-staging-drift-readback.sh'
+      - 'scripts/ops/validate-cloudflare-staging-deployment-policy-v1.mjs'
+      - 'coordination/kidults/kpmo/cloudflare-staging-deployment-policy-v1.json'
+  push:
+    branches:
+      - codex/cloudflare-preview-estate-cleanup
+    paths:
+      - '.github/workflows/kidults-cloudflare-preview-estate-cleanup-v1.yml'
+      - '.github/workflows/kidults-cloudflare-staging-drift-monitor-v1.yml'
+      - '.github/workflows/kidults-cloudflare-staging-boundary-policy-validate-v1.yml'
+      - 'scripts/ops/cloudflare-pages-auto-deployment-containment.sh'
+      - 'scripts/ops/cloudflare-pages-staging-drift-readback.sh'
+      - 'scripts/ops/validate-cloudflare-staging-deployment-policy-v1.mjs'
+      - 'coordination/kidults/kpmo/cloudflare-staging-deployment-policy-v1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-staging-boundary-policy-validate-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-policy:
+    name: Validate manual mutation and read-only monitoring boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate policy, workflows, scripts and negative mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/ops/validate-cloudflare-staging-deployment-policy-v1.mjs
+          node scripts/ops/validate-cloudflare-staging-deployment-policy-v1.mjs | tee /tmp/cloudflare-staging-boundary-policy-validation-v1.json
+          jq -e '
+            .state == "VERIFIED_PASS"
+            and .manual_mutation_only == true
+            and .read_only_hourly_monitor == true
+            and .automatic_git_deployment_target == false
+            and .negative_mutations_rejected == 10
+            and .public_release == "HOLD"
+            and .production == "HOLD"
+            and .g5 == "HOLD"
+          ' /tmp/cloudflare-staging-boundary-policy-validation-v1.json >/dev/null
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: cloudflare-staging-boundary-policy-validation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/cloudflare-staging-boundary-policy-validation-v1.json
+          if-no-files-found: error
+          retention-days: 30
