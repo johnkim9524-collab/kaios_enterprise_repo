@@ -1,27 +1,96 @@
 {
   "contract_id": "met-costume-open-access-r1",
-  "version": "1.0.0",
-  "status": "APPROVED_FOR_BOUNDED_POC",
+  "version": "1.2.0",
+  "status": "APPROVED_FOR_GOVERNED_SCHEDULED_REFERENCE_DISCOVERY",
   "created_at": "2026-08-16T10:20:00+09:00",
   "owner": "Track A / Autonomous Source Discovery",
   "source_id": "met-costume-institute-open-access",
   "source_tier": 1,
   "vertical_id": "fashion-accessories",
   "source_class": "MUSEUM_AUTHORITY_OPEN_DATA",
+  "source_layer": "OPEN_AUTHORITY",
+  "admission_class": "REFERENCE_DISCOVERY_ONLY",
+  "market_evidence_class": "NONE",
+  "current_sold_eligible": false,
   "api_base_url": "https://collectionapi.metmuseum.org/public/collection/v1",
   "department_id": 8,
   "department_name": "The Costume Institute",
   "access_mode": "PUBLIC_REST_API_NO_KEY",
+  "external_communication_performed": false,
+  "credential_required": false,
+  "cost_exposure_usd": 0,
   "rights_state": "CC0_COLLECTION_METADATA; IMAGE_USE_REQUIRES_OBJECT_PUBLIC_DOMAIN_FLAG",
+  "rights_provenance": {
+    "reviewed_at": "2026-08-29T00:00:00.000Z",
+    "official_policy_urls": [
+      "https://metmuseum.github.io/",
+      "https://github.com/metmuseum/openaccess"
+    ],
+    "repository_contract_path": "coordination/kidults/autonomous/source-discovery/contracts/met-costume-open-access-r1.json",
+    "allowed_scope": "PUBLIC_COLLECTION_METADATA_REFERENCE_AND_DISCOVERY",
+    "excluded_scope": [
+      "NON_OPEN_ACCESS_IMAGE_DOWNLOAD_OR_REUSE",
+      "TRADEMARK_OR_ENDORSEMENT_RIGHTS",
+      "PRIVACY_OR_PERSONAL_DATA_RIGHTS",
+      "CURRENT_SOLD_TRANSACTION",
+      "PUBLICATION_AUTHORIZATION"
+    ],
+    "unknown_rights_fail_closed": true
+  },
   "collection_mode": "METADATA_ONLY_NO_IMAGE_DOWNLOAD",
   "query": "dress",
   "bounded_limits": {
     "normalized_record_target": 12,
     "minimum_successful_records": 8,
     "maximum_object_requests": 50,
+    "maximum_logical_requests_per_run": 51,
+    "maximum_http_attempts_per_logical_request": 3,
+    "maximum_http_attempts_per_run": 153,
     "maximum_requests_per_second": 4,
     "retry_attempts": 3,
-    "request_timeout_ms": 15000
+    "request_timeout_ms": 15000,
+    "maximum_observation_age_hours": 168,
+    "retry_backoff": "EXPONENTIAL_WITH_BOUNDED_RETRY_AFTER_FOR_408_425_429_5XX"
+  },
+  "scheduled_activation": {
+    "owner_workflow": ".github/workflows/kidults-autonomous-met-sample.yml",
+    "cadence": "30 22 * * *",
+    "single_scheduled_live_producer": true,
+    "candidate_r2_runtime_state": "NOT_ACTIVATED_VAM_EXTERNAL_VERIFIER_HARD_HOLD",
+    "candidate_workflow_provider_call_count": 0,
+    "standalone_workflow_role": "GOVERNED_DAILY_LIVE_REFERENCE_DISCOVERY",
+    "provider_wide_concurrency_group": "kidults-met-public-source-read",
+    "cancel_in_progress": false,
+    "redirect_policy": "ERROR_AND_FINAL_URL_ALLOWLIST_RECHECK",
+    "failed_attempt_accounting": "EVERY_HTTP_OR_TRANSPORT_ATTEMPT_LOGGED_BEFORE_FETCH",
+    "zero_result_disposition": "TERMINAL_ZERO_CANDIDATE_NON_ADMISSION",
+    "stale_or_rights_failure_disposition": "FAIL_CLOSED_NO_CANDIDATE_PATHWAY"
+  },
+  "object_response_binding": {
+    "requested_object_id_must_equal_payload_object_id": true,
+    "payload_object_id_type": "POSITIVE_INTEGER",
+    "required_department": "The Costume Institute",
+    "required_fields": [
+      "objectID",
+      "accessionNumber",
+      "title",
+      "objectName",
+      "department",
+      "objectURL",
+      "isPublicDomain"
+    ],
+    "object_url_host_allowlist": [
+      "www.metmuseum.org"
+    ],
+    "invalid_response_disposition": "COUNT_FAILED_OBJECT_ATTEMPT_AND_FAIL_MINIMUM_GATE_CLOSED"
+  },
+  "candidate_r2_boundary": {
+    "pathway_input_role": "REFERENCE_DISCOVERY_PREFLIGHT_ONLY",
+    "may_create_snapshot_candidate": false,
+    "may_create_immutable_evidence_package": false,
+    "immutable_candidate_evidence_pair_required": true,
+    "track_b_independent_assessment_required": true,
+    "workflow_success_is_track_b_pass": false
   },
   "required_outputs": [
     "run-manifest.json",

@@ -1,2 +1,37 @@
 #!/usr/bin/env node
-import fs from 'node:fs';import path from 'node:path';const d=process.argv[2]||'scope-open-wave1-out';const x=JSON.parse(fs.readFileSync(path.join(d,'open-channel-expansion-wave1.json'),'utf8'));const req=(v,m)=>{if(!v)throw new Error(m)};req(x.scope_count===32&&x.product_count===64,'shape');req(Array.isArray(x.channels_attempted)&&x.channels_attempted.length===3,'channels');req(x.provider_contact_authorized===false&&x.production==='HOLD','holds');req(x.candidates.every(c=>c.scope_id&&c.representative_product_id&&c.source_family&&c.roles?.length&&c.rights_state),'traceability');req(x.candidates.every(c=>!c.roles.includes('SOLD_TRANSACTION')),'no sold substitution');req(x.north_star.AUTONOMOUS&&x.north_star.GLOBAL&&x.north_star.IRREPLACEABLE_VALUE&&x.north_star.TRANSPARENT,'north star');console.log(JSON.stringify({status:'PASS',scopes:32,products:64,candidates:x.candidate_count,rights_clear:x.candidates.filter(c=>['CC0_COLLECTION_DATASET_METADATA','CORE_DATA_CC0_ONLY'].includes(c.rights_state)).length,errors:x.error_count,provider_contact:'HOLD',production:'HOLD'},null,2));
+import fs from "node:fs";
+import path from "node:path";
+
+const directory = process.argv[2] ?? "scope-open-wave1-out";
+const receipt = JSON.parse(fs.readFileSync(path.join(directory, "open-channel-expansion-wave1.json"), "utf8"));
+const assert = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+
+assert(receipt.status === "HOLD_GOVERNED_MET_OWNER_ONLY", "LEGACY_LANE_NOT_HOLD");
+assert(receipt.reason === "LEGACY_MULTI_PROVIDER_COLLECTOR_DISABLED_SINGLE_GOVERNED_MET_OWNER_REQUIRED",
+  "LEGACY_HOLD_REASON_INVALID");
+assert(receipt.provider_call_count === 0 && receipt.requests_executed === 0,
+  "LEGACY_PROVIDER_CALL_COUNT_NONZERO");
+assert(receipt.provider_call_counts?.MET_OPEN_ACCESS === 0 &&
+  receipt.provider_call_counts?.LOC_JSON_API === 0 &&
+  receipt.provider_call_counts?.MUSICBRAINZ_CORE === 0,
+"LEGACY_PROVIDER_CALL_BREAKDOWN_NONZERO");
+assert(receipt.candidate_count === 0 && Array.isArray(receipt.candidates) && receipt.candidates.length === 0,
+  "LEGACY_CANDIDATE_CREATED");
+assert(receipt.evidence_record_count === 0 && receipt.immutable_candidate_evidence_pair_created === false,
+  "LEGACY_EVIDENCE_CREATED");
+assert(receipt.track_b_submission_count === 0 && receipt.track_b_assessment_count === 0,
+  "LEGACY_TRACK_B_BYPASS");
+assert(receipt.admission_performed === false && receipt.current_sold_transaction_count === 0,
+  "LEGACY_ADMISSION_BOUNDARY_CROSSED");
+assert(receipt.publication === "HOLD" && receipt.production === "HOLD" && receipt.g5 === "HOLD",
+  "LEGACY_RELEASE_HOLD_MISSING");
+
+console.error(JSON.stringify({
+  state: "HOLD_VERIFIED",
+  status: receipt.status,
+  provider_call_count: 0,
+  candidate_count: 0
+}, null, 2));
+process.exitCode = 3;

@@ -8,6 +8,14 @@
   "observed_at": "2026-08-30T00:54:47+09:00",
   "expires_at": "2026-08-30T01:44:47+09:00",
   "one_time": true,
+  "durable_consumption": {
+    "required": true,
+    "binding": "coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json",
+    "historical_state": "CONSUMED",
+    "signed_exact_binding_state_receipt": "BLOCKED_NOT_ISSUED",
+    "repository_boolean_is_authority": false,
+    "rerun": "HOLD"
+  },
   "repository": "johnkim9524-collab/kaios_enterprise_repo",
   "project": "kidults-workspace-staging",
   "expected_account_id": "235eaa51d04e7f4436a9faa507a04f9d",

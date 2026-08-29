@@ -233,3 +233,56 @@ export function assertRealNavigationCanarySource(source) {
   if (findings.length) throw new Error(`REAL_NAVIGATION_CANARY_SOURCE_INVALID:${findings.join(',')}`);
   return Object.freeze({state: 'VERIFIED_PASS', findings: Object.freeze([])});
 }
+
+const THIRTY_CYCLE_MOBILE_FACTS = Object.freeze([
+  ['evidenceClass', 'NON_PHYSICAL_WEBKIT_SURROGATE'],
+  ['engine', 'PLAYWRIGHT_WEBKIT'],
+  ['physicalDevice', false],
+  ['voiceOverEnabled', false],
+  ['syntheticLifecycleDispatch', false],
+  ['requiredCycles', 30],
+  ['completedCycles', 30],
+  ['navigationPassCount', 30],
+  ['backgroundForegroundExerciseCount', 30],
+  ['nativeBackgroundForegroundObservation', 'NOT_AVAILABLE_IN_HEADLESS_WEBKIT'],
+  ['historyRestorationPassCount', 30],
+  ['menuRestorationPassCount', 30],
+  ['focusRestorationPassCount', 30],
+  ['scrollRestorationPassCount', 30],
+  ['accessibilitySurrogatePassCount', 30],
+  ['staleProjectionLeakCount', 0],
+  ['runtimeErrorCount', 0],
+  ['crashCount', 0],
+  ['failedCycleCount', 0],
+]);
+
+/**
+ * Assess the deterministic WebKit/mobile surrogate without turning it into a
+ * physical-device or screen-reader receipt. A full surrogate PASS remains
+ * non-promotable and keeps every external release gate on HOLD.
+ */
+export function assessThirtyCycleMobileSurrogate(evidence) {
+  if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) {
+    throw new TypeError('evidence must be an object');
+  }
+  const findings = mismatches(evidence, THIRTY_CYCLE_MOBILE_FACTS);
+  const traversalTotal = Number(evidence.bfcacheRestoredCount) + Number(evidence.historyReloadContainedCount);
+  if (!Number.isInteger(traversalTotal) || traversalTotal !== 30) {
+    findings.push(`historyOutcomeCount:expected=30:actual=${JSON.stringify(traversalTotal)}`);
+  }
+  if (evidence.claimsPhysicalIphoneAcceptance === true) findings.push('physical_iphone_false_claim');
+  if (evidence.claimsVoiceOverAcceptance === true) findings.push('voiceover_false_claim');
+
+  return Object.freeze({
+    state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
+    evidenceClass: 'NON_PHYSICAL_WEBKIT_SURROGATE',
+    findings: Object.freeze(findings),
+    automatedWebkitAcceptance: findings.length ? 'FAIL' : 'PASS',
+    physicalIphoneAcceptance: 'HOLD_PENDING_PHYSICAL_DEVICE',
+    voiceOverAcceptance: 'HOLD_PENDING_HUMAN_REVIEW',
+    promotionEligible: false,
+    publicRelease: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  });
+}

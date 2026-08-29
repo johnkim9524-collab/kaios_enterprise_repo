@@ -6,6 +6,9 @@ import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 const DEFAULTS = Object.freeze({
+  metDir: null,
+  vamDir: null,
+  evaluationAt: process.env.CANDIDATE_R2_EVALUATION_AT ?? null,
   smithsonianDir: "artifacts/autonomous-source-samples/smithsonian-open-access-r1",
   articDir: "artifacts/autonomous-source-samples/artic-design-open-access-r1",
   gettyDir: "artifacts/autonomous-source-samples/getty-provenance-sale-r1",
@@ -18,6 +21,9 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--write") continue;
+    else if (argument === "--met-dir") config.metDir = argv[++index];
+    else if (argument === "--vam-dir") config.vamDir = argv[++index];
+    else if (argument === "--evaluation-at") config.evaluationAt = argv[++index];
     else if (argument === "--smithsonian-dir") config.smithsonianDir = argv[++index];
     else if (argument === "--artic-dir") config.articDir = argv[++index];
     else if (argument === "--getty-dir") config.gettyDir = argv[++index];
@@ -67,7 +73,55 @@ function yearFrom(...values) {
 }
 
 function maxTimestamp(values) {
-  return new Date(Math.max(...values.map(value => new Date(value).getTime()).filter(Number.isFinite))).toISOString();
+  const timestamps = values.map(value => new Date(value).getTime()).filter(Number.isFinite);
+  if (!timestamps.length) throw new Error("NO_VALID_SOURCE_OBSERVATION_TIMESTAMPS");
+  return new Date(Math.max(...timestamps)).toISOString();
+}
+
+function strictUtc(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value);
+}
+
+export function requiredProviderCallCount(value, sourceId) {
+  if (!Number.isInteger(value) || value < 0) throw new Error(`${sourceId}: PROVIDER_CALL_COUNT_REQUIRED`);
+  return value;
+}
+
+function transformMet(record) {
+  return {
+    source_record_id: record.evidence_id,
+    source_id: record.source_id,
+    source_family: "THE_MET",
+    live_metadata_binding: true,
+    source_object_id: record.source_object_id,
+    source_qualified_key: `${record.source_id}:${record.source_object_id}`,
+    evidence_class: "PRIMARY_AUTHORITY",
+    evidence_role: record.evidence_role,
+    market_observation_type: record.market_observation_type,
+    current_sold_eligible: record.current_sold_eligible,
+    core_domain_hint: "fashion-accessories",
+    title: record.title,
+    object_type: record.object_name ?? record.classification ?? "Object",
+    maker: record.maker_or_artist ?? null,
+    production_year: yearFrom(record.object_begin_date, record.object_date),
+    date_text: record.object_date ?? null,
+    accession_number: record.accession_number ?? null,
+    culture_or_place: record.culture ?? record.country ?? null,
+    medium: record.medium ?? null,
+    observed_at: record.observed_at ?? record.fetched_at,
+    observation_valid_until: record.observation_valid_until,
+    provenance_reference: record.evidence_reference,
+    source_payload_sha256: record.source_payload_sha256,
+    rights_state: record.metadata_rights_state,
+    license_provenance: structuredClone(record.license_provenance),
+    image_state: "NOT_INGESTED",
+    critical_field_completeness: record.critical_field_completeness,
+    publication_state: "INTERNAL_SHADOW_ONLY",
+    public_commercial_authorized: false,
+    provider_id_is_canonical_id: false,
+    physical_object_candidate_id: `physical:${record.source_id}:${record.source_object_id}`,
+    canonical_design_candidate_key: record.canonical_candidate_key
+  };
 }
 
 function transformSmithsonian(record) {
@@ -142,8 +196,28 @@ function transformGetty(event) {
 }
 
 export function loadCandidateR2PreflightInput(config = DEFAULTS) {
-  const met = readJson(path.join(root, "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-met-records-r1.json"));
-  const vam = readJson(path.join(root, "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-vam-records-r1.json"));
+  const liveMetVam = Boolean(config.metDir || config.vamDir);
+  if (liveMetVam && !(config.metDir && config.vamDir)) throw new Error("LIVE_MET_VAM_DIRECTORIES_MUST_BE_PAIRED");
+  const metManifest = liveMetVam ? readJson(path.resolve(config.metDir, "run-manifest.json")) : null;
+  const vamManifest = liveMetVam ? readJson(path.resolve(config.vamDir, "run-manifest.json")) : null;
+  const metProviderCallCount = liveMetVam
+    ? requiredProviderCallCount(metManifest.provider_call_count, "met-costume-institute-open-access")
+    : null;
+  const vamProviderCallCount = liveMetVam
+    ? requiredProviderCallCount(vamManifest.provider_call_count, "vam-collections-api-fashion")
+    : null;
+  const met = liveMetVam
+    ? readJson(path.resolve(config.metDir, "normalized-evidence-records.json")).map(transformMet)
+    : readJson(path.join(root, "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-met-records-r1.json"));
+  const vamRaw = liveMetVam ? readJson(path.resolve(config.vamDir, "normalized-evidence-records.json")) : null;
+  if (liveMetVam && (vamManifest.status !== "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED" ||
+      vamProviderCallCount !== 0 || vamManifest.requests_executed !== 0 || vamManifest.license_provenance_created !== false ||
+      !Array.isArray(vamRaw) || vamRaw.length !== 0 || vamManifest.license_provenance != null)) {
+    throw new Error("VAM_LIVE_INPUT_MUST_BE_EXTERNAL_VERIFIER_HARD_HOLD");
+  }
+  const vam = liveMetVam
+    ? []
+    : readJson(path.join(root, "coordination/kidults/engine-v2/shadow-inputs/authority-shadow-vam-records-r1.json"));
   const smithsonian = readJson(path.resolve(config.smithsonianDir, "normalized-evidence-records.json")).map(transformSmithsonian);
   const artic = readJson(path.resolve(config.articDir, "normalized-evidence-records.json")).map(transformArtic);
   const getty = readJson(path.resolve(config.gettyDir, "normalized-market-events.json")).map(transformGetty);
@@ -153,32 +227,85 @@ export function loadCandidateR2PreflightInput(config = DEFAULTS) {
     ...authorityRecords.map(record => record.observed_at),
     ...transactionEvents.map(event => event.fetched_at)
   ];
+  const sourceObservedThrough = maxTimestamp(timestamps);
+  const evaluationAt = config.evaluationAt ?? process.env.CANDIDATE_R2_EVALUATION_AT ?? sourceObservedThrough;
+  if (liveMetVam && !strictUtc(evaluationAt)) throw new Error("LIVE_EVALUATION_TIMESTAMP_REQUIRED");
   return {
     input_id: "candidate-r2-preflight-input-r1",
-    run_at: maxTimestamp(timestamps),
+    input_mode: liveMetVam ? "LIVE_MET_VAM_PUBLIC_METADATA" : "STATIC_SHADOW_MET_VAM",
+    run_at: sourceObservedThrough,
+    evaluation_at: evaluationAt,
     freshness_max_age_days: config.freshnessMaxAgeDays,
     authority_records: authorityRecords,
     transaction_events: transactionEvents,
+    source_observations: liveMetVam ? [
+      {
+        source_id: "met-costume-institute-open-access",
+        source_family: "THE_MET",
+        status: metManifest.status,
+        normalized_records: met.length,
+        minimum_records: Number(metManifest.minimum_records ?? 0),
+        observed_at: metManifest.completed_at,
+        license_provenance: structuredClone(metManifest.license_provenance ?? null),
+        provider_call_count: metProviderCallCount,
+        runtime_lineage: structuredClone(metManifest.runtime_lineage ?? null)
+      },
+      {
+        source_id: "vam-collections-api-fashion",
+        source_family: "V_AND_A",
+        status: vamManifest.status,
+        normalized_records: vam.length,
+        minimum_records: Number(vamManifest.minimum_records ?? 0),
+        observed_at: vamManifest.completed_at,
+        license_provenance: structuredClone(vamManifest.license_provenance ?? null),
+        rights_scope_gate: structuredClone(vamManifest.rights_scope_gate ?? null),
+        license_contract_sha256: vamManifest.license_contract_sha256 ?? vamManifest.license_provenance?.repository_contract_sha256 ?? null,
+        provider_call_count: vamProviderCallCount,
+        runtime_lineage: structuredClone(vamManifest.runtime_lineage ?? null)
+      }
+    ] : [],
     sources: [
-      { source_id: "met-costume-institute-open-access", source_family: "THE_MET", source_role: "AUTHORITY", rights_state: "CC0_COLLECTION_METADATA" },
-      { source_id: "vam-collections-api-fashion", source_family: "V_AND_A", source_role: "AUTHORITY", rights_state: "INTERNAL_NONCOMMERCIAL_POC_ONLY" },
-      { source_id: "smithsonian-open-access-art-design", source_family: "SMITHSONIAN", source_role: "AUTHORITY", rights_state: "CC0_METADATA_PORTIONS_MEDIA_EXCLUDED" },
-      { source_id: "art-institute-chicago-design-api", source_family: "ART_INSTITUTE_CHICAGO", source_role: "AUTHORITY", rights_state: "CC0_FIELDS_DESCRIPTION_EXCLUDED" },
-      { source_id: "getty-provenance-index-sale-activity", source_family: "GETTY_PROVENANCE_INDEX", source_role: "TRANSACTION", rights_state: "CC0" }
+      { source_id: "met-costume-institute-open-access", source_family: "THE_MET", source_role: "AUTHORITY", evidence_role: "REFERENCE_DISCOVERY", current_sold_eligible: false, rights_state: "CC0_COLLECTION_METADATA", license_provenance: structuredClone(metManifest?.license_provenance ?? null) },
+      { source_id: "vam-collections-api-fashion", source_family: "V_AND_A", source_role: "AUTHORITY", evidence_role: "REFERENCE_DISCOVERY", current_sold_eligible: false, rights_state: "UNVERIFIED_RUNTIME_HOLD", license_provenance: null },
+      { source_id: "smithsonian-open-access-art-design", source_family: "SMITHSONIAN", source_role: "AUTHORITY", evidence_role: "REFERENCE_DISCOVERY", current_sold_eligible: false, rights_state: "CC0_METADATA_PORTIONS_MEDIA_EXCLUDED" },
+      { source_id: "art-institute-chicago-design-api", source_family: "ART_INSTITUTE_CHICAGO", source_role: "AUTHORITY", evidence_role: "REFERENCE_DISCOVERY", current_sold_eligible: false, rights_state: "CC0_FIELDS_DESCRIPTION_EXCLUDED" },
+      { source_id: "getty-provenance-index-sale-activity", source_family: "GETTY_PROVENANCE_INDEX", source_role: "TRANSACTION", evidence_role: "HISTORICAL_TRANSACTION_CONTEXT", current_sold_eligible: false, rights_state: "CC0" }
     ]
   };
 }
 
 function authorityRejectionReasons(record, seen, runAt, maxAgeDays) {
   const reasons = [];
+  if (record.source_family === "V_AND_A") reasons.push("VAM_EXTERNAL_VERIFIER_HARD_HOLD");
   if (seen.has(record.source_qualified_key)) reasons.push("DUPLICATE_SOURCE_RECORD");
   if (!record.rights_state) reasons.push("RIGHTS_STATE_MISSING");
   if (!record.provenance_reference) reasons.push("PROVENANCE_REFERENCE_MISSING");
+  if (!/^[a-f0-9]{64}$/i.test(record.source_payload_sha256 ?? "")) reasons.push("SOURCE_PAYLOAD_SHA256_INVALID");
   if (!record.canonical_design_candidate_key) reasons.push("CANONICAL_CANDIDATE_KEY_MISSING");
   if (!record.physical_object_candidate_id) reasons.push("PHYSICAL_OBJECT_CANDIDATE_ID_MISSING");
   if (!Number.isFinite(new Date(record.observed_at).getTime())) reasons.push("INVALID_OBSERVED_AT");
-  else if (ageDays(runAt, record.observed_at) > maxAgeDays) reasons.push("STALE_OBSERVATION");
+  else {
+    const age = ageDays(runAt, record.observed_at);
+    if (age > maxAgeDays) reasons.push("STALE_OBSERVATION");
+    if (age < -1 / 24) reasons.push("FUTURE_OBSERVATION");
+  }
   if (record.provider_id_is_canonical_id === true) reasons.push("PROVIDER_ID_PROMOTED_TO_CANONICAL");
+  if (record.live_metadata_binding === true) {
+    if (record.evidence_role !== "REFERENCE_DISCOVERY") reasons.push("PUBLIC_METADATA_ROLE_INVALID");
+    if (record.market_observation_type !== "NONE") reasons.push("PUBLIC_METADATA_MARKET_EVENT_LAUNDERING");
+    if (record.current_sold_eligible !== false) reasons.push("PUBLIC_METADATA_CURRENT_SOLD_LAUNDERING");
+    if (!Number.isFinite(new Date(record.observation_valid_until).getTime()) ||
+        new Date(record.observation_valid_until).getTime() <= new Date(record.observed_at).getTime() ||
+        new Date(runAt).getTime() > new Date(record.observation_valid_until).getTime()) {
+      reasons.push("OBSERVATION_VALIDITY_WINDOW_INVALID_OR_EXPIRED");
+    }
+    const license = record.license_provenance;
+    if (!/^sha256:[a-f0-9]{64}$/.test(license?.repository_contract_sha256 ?? "") ||
+        !Array.isArray(license?.official_policy_urls) || !license.official_policy_urls.length ||
+        !license.official_policy_urls.every(value => /^https:\/\//.test(value))) {
+      reasons.push("LICENSE_PROVENANCE_INVALID");
+    }
+  }
   return [...new Set(reasons)].sort();
 }
 
@@ -199,6 +326,11 @@ function transactionRejectionReasons(event, seen, runAt, maxAgeDays) {
 }
 
 export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput()) {
+  const evaluationAt = input.input_mode === "LIVE_MET_VAM_PUBLIC_METADATA" ? input.evaluation_at : input.run_at;
+  if (!strictUtc(evaluationAt)) throw new Error("EVALUATION_TIMESTAMP_REQUIRED");
+  const evaluationAgeMs = Date.now() - new Date(evaluationAt).getTime();
+  const evaluationTimestampInvalid = input.input_mode === "LIVE_MET_VAM_PUBLIC_METADATA" &&
+    (evaluationAgeMs > 7 * 86_400_000 || evaluationAgeMs < -5 * 60_000);
   const authorityRecords = [...input.authority_records].sort((a, b) => a.source_record_id.localeCompare(b.source_record_id));
   const transactionEvents = [...input.transaction_events].sort((a, b) => a.market_event_id.localeCompare(b.market_event_id));
   const authoritySeen = new Set();
@@ -206,9 +338,17 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
   const admittedAuthority = [];
   const admittedEvents = [];
   const quarantined = [];
+  if (evaluationTimestampInvalid) {
+    quarantined.push({
+      record_class: "RUN_CONTEXT",
+      record_id: "candidate-r2-evaluation-context",
+      reasons: ["EVALUATION_TIMESTAMP_STALE_OR_FUTURE"],
+      disposition: "FAIL_CLOSED_NOT_CANDIDATE"
+    });
+  }
 
   for (const record of authorityRecords) {
-    const reasons = authorityRejectionReasons(record, authoritySeen, input.run_at, input.freshness_max_age_days);
+    const reasons = authorityRejectionReasons(record, authoritySeen, evaluationAt, input.freshness_max_age_days);
     if (reasons.length) {
       quarantined.push({ record_class: "AUTHORITY_RECORD", record_id: record.source_record_id, reasons, disposition: "QUARANTINED_NOT_INDEX_ELIGIBLE" });
       continue;
@@ -218,7 +358,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
   }
 
   for (const event of transactionEvents) {
-    const reasons = transactionRejectionReasons(event, eventSeen, input.run_at, input.freshness_max_age_days);
+    const reasons = transactionRejectionReasons(event, eventSeen, evaluationAt, input.freshness_max_age_days);
     if (reasons.length) {
       quarantined.push({ record_class: "MARKET_EVENT", record_id: event.market_event_id, reasons, disposition: "QUARANTINED_NOT_INDEX_ELIGIBLE" });
       continue;
@@ -226,6 +366,34 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     eventSeen.add(event.market_event_id);
     admittedEvents.push(structuredClone(event));
   }
+
+  const admittedAuthorityFamilies = new Set(admittedAuthority.map(record => record.source_family));
+  const admittedTransactionFamilies = new Set(admittedEvents.map(event => event.source_family));
+  const zeroCandidateSourceIds = (input.source_observations ?? [])
+    .filter(observation => observation.status === "TERMINAL_ZERO_CANDIDATE")
+    .map(observation => observation.source_id)
+    .sort();
+  const rightsHoldSourceIds = (input.source_observations ?? [])
+    .filter(observation => observation.status === "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED")
+    .map(observation => observation.source_id)
+    .sort();
+  const externalVerifierHoldSourceIds = (input.source_observations ?? [])
+    .filter(observation => observation.status === "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED")
+    .map(observation => observation.source_id)
+    .sort();
+  const inputRejectionCount = quarantined.length;
+  const sourceCoverageReady = admittedAuthorityFamilies.size >= 4 && admittedTransactionFamilies.size >= 1;
+  const livePathwayReady = sourceCoverageReady && inputRejectionCount === 0 &&
+    zeroCandidateSourceIds.length === 0 && rightsHoldSourceIds.length === 0;
+  const livePathwayState = inputRejectionCount
+    ? "FAIL_CLOSED_INPUT_REJECTED"
+    : externalVerifierHoldSourceIds.length
+      ? "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED"
+      : zeroCandidateSourceIds.length
+        ? "ZERO_CANDIDATE_TERMINAL_NO_IMMUTABLE_PAIR"
+        : sourceCoverageReady
+          ? "PREFLIGHT_READY_IMMUTABLE_PAIR_STILL_REQUIRED"
+          : "HOLD_INSUFFICIENT_SOURCE_FAMILY_COVERAGE";
 
   const designCounts = new Map();
   for (const record of admittedAuthority) {
@@ -267,7 +435,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     record_type: "raw_quarantine_report",
     version: "1.0.0",
     status: quarantined.length ? "PASS_FAIL_CLOSED" : "PASS_NO_REJECTIONS",
-    created_at: input.run_at,
+    created_at: evaluationAt,
     created_by: "Track A / Raw Quarantine Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     input_record_count: authorityRecords.length + transactionEvents.length,
@@ -288,14 +456,21 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     id: "universe-admission-candidate-r2-preflight-r1",
     record_type: "universe_admission_report",
     version: "1.0.0",
-    status: "INTERNAL_AUTHORITY_AND_MARKET_EVENT_CANDIDATES_READY",
-    created_at: input.run_at,
+    status: livePathwayReady || input.input_mode !== "LIVE_MET_VAM_PUBLIC_METADATA"
+      ? "INTERNAL_AUTHORITY_AND_MARKET_EVENT_CANDIDATES_READY"
+      : "INTERNAL_CANDIDATE_PATHWAY_HOLD",
+    created_at: evaluationAt,
     created_by: "Track A / Universe Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     universe_id: "universe-global-collectibles-v1",
-    source_family_count: new Set(input.sources.map(source => source.source_family)).size,
-    authority_source_family_count: new Set(input.sources.filter(source => source.source_role === "AUTHORITY").map(source => source.source_family)).size,
-    transaction_source_family_count: new Set(input.sources.filter(source => source.source_role === "TRANSACTION").map(source => source.source_family)).size,
+    declared_source_family_count: new Set(input.sources.map(source => source.source_family)).size,
+    source_family_count: new Set([...admittedAuthorityFamilies, ...admittedTransactionFamilies]).size,
+    authority_source_family_count: admittedAuthorityFamilies.size,
+    transaction_source_family_count: admittedTransactionFamilies.size,
+    zero_candidate_source_ids: zeroCandidateSourceIds,
+    rights_hold_source_ids: rightsHoldSourceIds,
+    external_rights_verifier_hold_source_ids: externalVerifierHoldSourceIds,
+    candidate_r2_pathway_state: livePathwayState,
     authority_admission_candidate_count: admittedAuthority.length,
     market_event_admission_candidate_count: admittedEvents.length,
     quarantined_record_count: quarantined.length,
@@ -323,7 +498,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     record_type: "entity_resolution_report",
     version: "1.0.0",
     status: reviewGroups.length || linkedObjectReferences.length ? "PASS_WITH_REVIEW" : "PASS",
-    created_at: input.run_at,
+    created_at: evaluationAt,
     created_by: "Track A / Entity Resolution Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     source_record_count: admittedAuthority.length,
@@ -355,7 +530,10 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
       node_type: "SOURCE",
       source_family: source.source_family,
       source_role: source.source_role,
-      rights_state: source.rights_state
+      evidence_role: source.evidence_role,
+      current_sold_eligible: source.current_sold_eligible,
+      rights_state: source.rights_state,
+      license_provenance: structuredClone(source.license_provenance ?? null)
     });
   }
 
@@ -367,7 +545,19 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     nodeMap.set(sourceRecordNode, { node_id: sourceRecordNode, node_type: "SOURCE_RECORD", source_record_id: record.source_record_id });
     nodeMap.set(physicalNode, { node_id: physicalNode, node_type: "PHYSICAL_OBJECT_CANDIDATE", identity_state: record.identity_state });
     nodeMap.set(designNode, { node_id: designNode, node_type: "CANONICAL_DESIGN_CANDIDATE", candidate_key: record.canonical_design_candidate_key });
-    nodeMap.set(assertionNode, { node_id: assertionNode, node_type: "EVIDENCE_ASSERTION", assertion_type: "AUTHORITY_COLLECTION_IDENTITY", provenance_reference: record.provenance_reference, rights_state: record.rights_state });
+    nodeMap.set(assertionNode, {
+      node_id: assertionNode,
+      node_type: "EVIDENCE_ASSERTION",
+      assertion_type: "AUTHORITY_COLLECTION_IDENTITY",
+      evidence_role: record.evidence_role ?? "REFERENCE_DISCOVERY",
+      market_observation_type: record.market_observation_type ?? "NONE",
+      current_sold_eligible: false,
+      observed_at: record.observed_at,
+      observation_valid_until: record.observation_valid_until ?? null,
+      provenance_reference: record.provenance_reference,
+      rights_state: record.rights_state,
+      license_provenance: structuredClone(record.license_provenance ?? null)
+    });
     evidenceEdges.push(
       { from: `source:${record.source_id}`, to: sourceRecordNode, edge_type: "PUBLISHED_SOURCE_RECORD" },
       { from: sourceRecordNode, to: assertionNode, edge_type: "SUPPORTS_ASSERTION" },
@@ -407,8 +597,10 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     id: "evidence-graph-candidate-r2-preflight-r1",
     record_type: "evidence_graph",
     version: "1.0.0",
-    status: "INTERNAL_FOUR_AUTHORITY_PLUS_TRANSACTION_GRAPH_READY",
-    created_at: input.run_at,
+    status: livePathwayReady || input.input_mode !== "LIVE_MET_VAM_PUBLIC_METADATA"
+      ? "INTERNAL_FOUR_AUTHORITY_PLUS_TRANSACTION_GRAPH_READY"
+      : "INTERNAL_GRAPH_PARTIAL_HOLD_NOT_CANDIDATE",
+    created_at: evaluationAt,
     created_by: "Track A / Evidence Graph Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     source_family_count: universe.source_family_count,
@@ -470,7 +662,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     record_type: "market_graph",
     version: "1.0.0",
     status: "HISTORICAL_TRANSACTION_PATH_READY_LIMITED_COVERAGE",
-    created_at: input.run_at,
+    created_at: evaluationAt,
     created_by: "Track A / Market Graph Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     authority_design_candidate_nodes: designKeys.length,
@@ -510,7 +702,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     record_type: "cluster_discovery_preflight",
     version: "1.0.0",
     status: "PREFLIGHT_DISCOVERY_ONLY_NO_DYNAMIC_VERTICAL",
-    created_at: input.run_at,
+    created_at: evaluationAt,
     created_by: "Track A / Cluster Discovery Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     candidate_count: 3,
@@ -569,15 +761,17 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
   const rightsProbe = { ...authorityRecords[0], source_qualified_key: `${authorityRecords[0].source_qualified_key}:rights-probe`, rights_state: null };
   probeSeen.add(authorityRecords[0].source_qualified_key);
   const duplicateProbe = { ...authorityRecords[0] };
-  const staleReasons = authorityRejectionReasons(staleProbe, new Set(), input.run_at, input.freshness_max_age_days);
-  const rightsReasons = authorityRejectionReasons(rightsProbe, new Set(), input.run_at, input.freshness_max_age_days);
-  const duplicateReasons = authorityRejectionReasons(duplicateProbe, probeSeen, input.run_at, input.freshness_max_age_days);
+  const staleReasons = authorityRejectionReasons(staleProbe, new Set(), evaluationAt, input.freshness_max_age_days);
+  const rightsReasons = authorityRejectionReasons(rightsProbe, new Set(), evaluationAt, input.freshness_max_age_days);
+  const duplicateReasons = authorityRejectionReasons(duplicateProbe, probeSeen, evaluationAt, input.freshness_max_age_days);
   const stress = {
     id: "stress-stability-candidate-r2-preflight-r1",
     record_type: "stress_stability_preflight",
     version: "1.0.0",
-    status: "PARTIAL_PASS_GOLDEN_DATASET_AND_TRANSACTION_DIVERSITY_PENDING",
-    created_at: input.run_at,
+    status: livePathwayReady || input.input_mode !== "LIVE_MET_VAM_PUBLIC_METADATA"
+      ? "PARTIAL_PASS_GOLDEN_DATASET_AND_TRANSACTION_DIVERSITY_PENDING"
+      : "HOLD_OR_FAIL_CLOSED_LIVE_SOURCE_BOUNDARY",
+    created_at: evaluationAt,
     created_by: "Track A / Stress and Stability Engine",
     run_id: "engine-candidate-r2-preflight-r1",
     deterministic_rerun: "PASS",
@@ -604,6 +798,38 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
   };
   stress.report_fingerprint = sha(stress);
 
+  const pathwayReceipt = {
+    id: "candidate-r2-live-public-metadata-pathway-receipt-v1",
+    record_type: "candidate_r2_pathway_receipt",
+    version: "1.0.0",
+    status: livePathwayState,
+    generated_at: evaluationAt,
+    input_mode: input.input_mode,
+    source_observations: structuredClone(input.source_observations ?? []),
+    declared_source_family_count: new Set(input.sources.map(source => source.source_family)).size,
+    observed_authority_source_family_count: admittedAuthorityFamilies.size,
+    observed_transaction_source_family_count: admittedTransactionFamilies.size,
+    admitted_reference_discovery_record_count: admittedAuthority.filter(record => ["THE_MET", "V_AND_A"].includes(record.source_family)).length,
+    current_sold_transaction_count: 0,
+    zero_candidate_source_ids: zeroCandidateSourceIds,
+    rights_hold_source_ids: rightsHoldSourceIds,
+    external_rights_verifier_hold_source_ids: externalVerifierHoldSourceIds,
+    quarantined_record_count: quarantined.length,
+    snapshot_candidate_created: false,
+    immutable_evidence_package_created: false,
+    immutable_candidate_evidence_pair_created: false,
+    candidate_r2_activation: "NOT_ACTIVATED_IMMUTABLE_PAIR_REQUIRED",
+    track_b_submission_count: 0,
+    track_b_assessment_count: 0,
+    track_b_pass_count: 0,
+    approved_projection_created: false,
+    publication: "HOLD",
+    production: "HOLD",
+    g5: "HOLD",
+    truth_boundary: "Met and V&A public catalog metadata is REFERENCE/DISCOVERY only and never Current-SOLD. This preflight cannot create or activate Candidate R2, cannot mint the immutable Candidate+Evidence pair, and cannot perform or inherit Track B assessment or PASS."
+  };
+  pathwayReceipt.receipt_fingerprint = sha(pathwayReceipt);
+
   const outputs = {
     "raw-quarantine-report.json": quarantine,
     "universe-admission-report.json": universe,
@@ -611,17 +837,27 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     "evidence-graph-shadow.json": evidenceGraph,
     "market-graph-shadow.json": marketGraph,
     "cluster-discovery-preflight.json": cluster,
-    "stress-stability-preflight.json": stress
+    "stress-stability-preflight.json": stress,
+    "candidate-r2-pathway-receipt.json": pathwayReceipt
   };
 
   const manifest = {
     id: "engine-candidate-r2-preflight-r1",
     record_type: "engine_shadow_run",
     version: "1.0.0",
-    state: "CANDIDATE_R2_PREFLIGHT_PARTIAL_PASS",
-    run_mode: "FOUR_AUTHORITY_PLUS_RIGHTS_CLEARED_TRANSACTION_BOUNDED_LIVE",
-    generated_at: input.run_at,
+    state: input.input_mode === "LIVE_MET_VAM_PUBLIC_METADATA" && !livePathwayReady
+      ? "CANDIDATE_R2_PATHWAY_HOLD"
+      : "CANDIDATE_R2_PREFLIGHT_PARTIAL_PASS",
+    run_mode: input.input_mode === "LIVE_MET_VAM_PUBLIC_METADATA"
+      ? "LIVE_PUBLIC_METADATA_REFERENCE_DISCOVERY_PLUS_HISTORICAL_TRANSACTION_PREFLIGHT"
+      : "FOUR_AUTHORITY_PLUS_RIGHTS_CLEARED_TRANSACTION_BOUNDED_LIVE",
+    generated_at: evaluationAt,
+    source_observed_through: input.run_at,
+    evaluation_at: evaluationAt,
     input_id: input.input_id,
+    input_mode: input.input_mode,
+    source_observations: structuredClone(input.source_observations ?? []),
+    declared_source_family_count: universe.declared_source_family_count,
     source_family_count: universe.source_family_count,
     authority_source_family_count: universe.authority_source_family_count,
     transaction_source_family_count: universe.transaction_source_family_count,
@@ -644,7 +880,18 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     discovered_cluster_count: cluster.candidate_count,
     approved_dynamic_vertical_count: 0,
     golden_dataset_status: entity.golden_dataset_status,
+    candidate_r2_pathway_state: livePathwayState,
     candidate_r2_state: "NOT_CREATED_GOLDEN_DATASET_AND_STRESS_EXIT_PENDING",
+    immutable_candidate_evidence_pair_created: false,
+    snapshot_candidate_created: false,
+    immutable_evidence_package_created: false,
+    track_b_submission_count: 0,
+    track_b_assessment_count: 0,
+    track_b_pass_count: 0,
+    zero_candidate_source_ids: zeroCandidateSourceIds,
+    rights_hold_source_ids: rightsHoldSourceIds,
+    reference_discovery_record_count: admittedAuthority.filter(record => ["THE_MET", "V_AND_A"].includes(record.source_family)).length,
+    current_sold_transaction_count: 0,
     vertical_intelligence_state: "NOT_COMPUTED",
     kidult_500_state: "NOT_COMPUTED",
     kidult_100_state: "NOT_COMPUTED",
@@ -663,7 +910,7 @@ export function buildCandidateR2Preflight(input = loadCandidateR2PreflightInput(
     publication_eligible: false,
     production_eligible: false,
     output_fingerprints: Object.fromEntries(
-      Object.entries(outputs).map(([name, value]) => [name, value.report_fingerprint ?? value.graph_fingerprint])
+      Object.entries(outputs).map(([name, value]) => [name, value.report_fingerprint ?? value.graph_fingerprint ?? value.receipt_fingerprint])
     )
   };
   manifest.run_fingerprint = sha(manifest);
@@ -684,7 +931,7 @@ async function main() {
   const outputs = buildCandidateR2Preflight(input);
   if (process.argv.includes("--write")) writeOutputs(outputs, path.resolve(config.output));
   const run = outputs["run-manifest.json"];
-  console.log("AGCI-OS Candidate R2 preflight: PARTIAL PASS");
+  console.log(`AGCI-OS Candidate R2 pathway: ${run.state}`);
   console.log(`Source families total / authority / transaction: ${run.source_family_count} / ${run.authority_source_family_count} / ${run.transaction_source_family_count}`);
   console.log(`Authority / transaction inputs: ${run.authority_input_record_count} / ${run.transaction_input_event_count}`);
   console.log(`Physical / design candidates: ${run.physical_object_candidate_count} / ${run.canonical_design_candidate_count}`);
@@ -692,7 +939,8 @@ async function main() {
   console.log(`Market events / sold / listings: ${run.admitted_market_event_count} / ${run.sold_transaction_count} / ${run.listing_count}`);
   console.log(`Historical price coverage: ${run.historical_price_coverage}`);
   console.log(`Golden Dataset: ${run.golden_dataset_status}`);
-  console.log("Candidate R2: NOT_CREATED");
+  console.log(`Candidate R2 pathway: ${run.candidate_r2_pathway_state}`);
+  console.log("Candidate R2: NOT_ACTIVATED_IMMUTABLE_PAIR_REQUIRED");
   console.log("KIDULT 500 / KIDULT 100: NOT_COMPUTED");
   console.log("Production: HOLD");
 }

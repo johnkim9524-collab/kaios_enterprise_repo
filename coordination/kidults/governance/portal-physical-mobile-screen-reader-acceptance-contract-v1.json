@@ -1,0 +1,119 @@
+{
+  "id": "portal-physical-mobile-screen-reader-acceptance-contract-v1",
+  "version": "1.1.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "scope": "GOVERNED_STAGING_SHARED_RESPONSIVE_PORTAL",
+  "receipts": {
+    "physical_mobile": {
+      "evidence_class": "PHYSICAL_IPHONE_MOBILE_SAFARI_HUMAN_ACCEPTANCE",
+      "required_cycles": 30,
+      "required_operations": [
+        "navigation",
+        "background_foreground",
+        "history_traversal",
+        "bfcache_or_reload_containment",
+        "menu_restoration",
+        "focus_restoration",
+        "scroll_restoration",
+        "stale_value_prevention"
+      ],
+      "runtime_errors_max": 0,
+      "crashes_max": 0,
+      "failed_cycles_max": 0,
+      "simulator_or_emulation_eligible": false,
+      "minimum_hashed_evidence_refs": 2,
+      "signed_human_attestation_required": true,
+      "cryptographic_machine_verification_required": true,
+      "self_asserted_signed_boolean_eligible": false
+    },
+    "screen_reader": {
+      "evidence_class": "PHYSICAL_IPHONE_VOICEOVER_HUMAN_ACCEPTANCE",
+      "technology": "VoiceOver",
+      "required_checks": [
+        "landmarks",
+        "name_role_value",
+        "focus_order",
+        "focus_restoration",
+        "menu_announcement",
+        "status_announcement",
+        "error_announcement"
+      ],
+      "same_physical_device_session_required": true,
+      "minimum_hashed_evidence_refs": 2,
+      "signed_human_attestation_required": true,
+      "cryptographic_machine_verification_required": true,
+      "self_asserted_signed_boolean_eligible": false
+    }
+  },
+  "source_binding": {
+    "governed_staging_current_main_parity": "VERIFIED_PASS",
+    "exact_sha_equality_required": true,
+    "https_required": true
+  },
+  "attestation_verifiers": {
+    "physical_mobile": {
+      "status": "NOT_PROVISIONED",
+      "verification_method": "ED25519_PINNED_PUBLIC_KEY",
+      "algorithm": "Ed25519",
+      "authority": null,
+      "environment": null,
+      "key_purpose": null,
+      "key_id": null,
+      "public_key_raw_base64url": null,
+      "public_key_sha256": null,
+      "revoked": null,
+      "provisioned_by": null,
+      "provisioned_at": null,
+      "provisioning_receipt_digest": null
+    },
+    "screen_reader": {
+      "status": "NOT_PROVISIONED",
+      "verification_method": "ED25519_PINNED_PUBLIC_KEY",
+      "algorithm": "Ed25519",
+      "authority": null,
+      "environment": null,
+      "key_purpose": null,
+      "key_id": null,
+      "public_key_raw_base64url": null,
+      "public_key_sha256": null,
+      "revoked": null,
+      "provisioned_by": null,
+      "provisioned_at": null,
+      "provisioning_receipt_digest": null
+    }
+  },
+  "signed_payload": {
+    "domain": "KIDULTS.PORTAL.PHYSICAL-MOBILE.VOICEOVER-ACCEPTANCE.V1",
+    "canonicalization": "KIDULTS_SORTED_JSON_V1",
+    "payload_hash": "SHA-256",
+    "signature_algorithm": "Ed25519",
+    "binds": [
+      "receipt_and_contract_identity",
+      "exact_current_main_and_governed_staging_sha",
+      "deployment_identity_and_https_url",
+      "physical_device_and_browser_identity",
+      "device_and_review_sessions",
+      "cycle_and_screen_reader_results",
+      "evidence_uris_and_sha256_digests",
+      "attester_identity_timestamp_and_statement"
+    ],
+    "self_asserted_boolean_or_signature_reference_sufficient": false,
+    "document_supplied_or_environment_override_verifier_key_allowed": false,
+    "contract_verifier_declaration_is_trust_root": false,
+    "verifier_trust_root": "INDEPENDENT_VALIDATOR_PIN_WITH_EXTERNAL_PROVISIONING_RECEIPT",
+    "contract_and_validator_pin_exact_match_required": true,
+    "verifier_key_absent_result": "HOLD"
+  },
+  "automated_surrogates": {
+    "playwright_webkit": "NON_PHYSICAL_NON_AUTHORIZING",
+    "mobile_emulation": "NON_PHYSICAL_NON_AUTHORIZING",
+    "dom_or_axe_checks": "NOT_SCREEN_READER_ACCEPTANCE"
+  },
+  "pending_rule": "UNEXECUTED_UNSIGNED_INCOMPLETE_OR_UNVERIFIABLE_RECEIPT_IS_HOLD",
+  "authority": {
+    "promotion_authority": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

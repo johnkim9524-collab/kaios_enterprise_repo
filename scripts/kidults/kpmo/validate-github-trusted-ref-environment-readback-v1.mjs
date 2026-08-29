@@ -9,6 +9,7 @@ import {
   analyzeWorkflow,
   buildWorkflowInventory,
   computeReadbackDigest,
+  evaluateNativeRequiredStatusBinding,
   validateRequiredEnvironmentBindings
 } from './github-trusted-ref-environment-readback-v1.mjs';
 
@@ -27,6 +28,9 @@ function expectedRegisteredLaneCountFromRegistry(root = process.cwd()) {
   }
   return registry.registered_count;
 }
+function expectedReadbackContract(root = process.cwd()) {
+  return JSON.parse(fs.readFileSync(path.join(root, CONTRACT_PATH), 'utf8'));
+}
 const EXPECTED_SOURCE_EXPR = '${{ github.event.pull_request.head.sha || github.sha }}';
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
@@ -40,7 +44,7 @@ export function validateReceipt(receipt, { requireExternalProof = false, expecte
     return Object.entries(value).some(([key, nested]) => forbiddenKeys.has(key.toLowerCase()) || hasForbiddenKey(nested));
   };
   require(receipt?.id === 'kidults-github-trusted-ref-environment-readback-receipt-v1', 'receipt_id');
-  require(receipt?.version === '1.4.0', 'receipt_version');
+  require(receipt?.version === '1.5.0', 'receipt_version');
   require(receipt?.issue === 974 && receipt?.parent_gate_issue === 881, 'issue_binding');
   require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.state), 'governed_state');
   require(!Number.isNaN(Date.parse(String(receipt?.observed_at || ''))), 'observed_at');
@@ -91,6 +95,65 @@ export function validateReceipt(receipt, { requireExternalProof = false, expecte
     && (item?.registry_required_secret_name_digest === null || /^sha256:[0-9a-f]{64}$/.test(String(item?.registry_required_secret_name_digest)))
   )), 'registry_binding_receipt_shape');
   require(receipt?.ruleset_context_only === true, 'ruleset_context_boundary');
+  const rulesetContext = receipt?.ruleset_context;
+  require(Array.isArray(rulesetContext), 'ruleset_context_partition');
+  require(rulesetContext?.every((ruleset) => (
+    Number.isSafeInteger(ruleset?.ruleset_id) && ruleset.ruleset_id > 0
+      && typeof ruleset?.readable === 'boolean'
+      && Number.isSafeInteger(ruleset?.http_status)
+      && (ruleset.readable === false || (
+        typeof ruleset?.name === 'string'
+          && typeof ruleset?.target === 'string'
+          && typeof ruleset?.enforcement === 'string'
+          && (ruleset?.source_type === null || typeof ruleset?.source_type === 'string')
+          && (ruleset?.source === null || typeof ruleset?.source === 'string')
+          && (ruleset?.ref_name_include === null || (Array.isArray(ruleset.ref_name_include) && ruleset.ref_name_include.every((item) => typeof item === 'string')))
+          && (ruleset?.ref_name_exclude === null || (Array.isArray(ruleset.ref_name_exclude) && ruleset.ref_name_exclude.every((item) => typeof item === 'string')))
+          && (ruleset?.bypass_actor_count === null || (Number.isSafeInteger(ruleset.bypass_actor_count) && ruleset.bypass_actor_count >= 0))
+          && typeof ruleset?.default_branch_targeted === 'boolean'
+          && Array.isArray(ruleset?.rule_types) && ruleset.rule_types.every((item) => typeof item === 'string')
+          && (ruleset?.strict_required_status_checks_policy === null || typeof ruleset.strict_required_status_checks_policy === 'boolean')
+          && (ruleset?.required_status_checks === null || (
+            Array.isArray(ruleset.required_status_checks)
+              && ruleset.required_status_checks.every((entry) => (
+                (entry?.context === null || typeof entry?.context === 'string')
+                  && (entry?.integration_id === null || Number.isSafeInteger(entry?.integration_id))
+              ))
+          ))
+      ))
+  )), 'ruleset_context_shape');
+  const expectedNativeBinding = expectedReadbackContract().native_required_status_binding;
+  let recomputedNativeBinding = null;
+  try {
+    recomputedNativeBinding = evaluateNativeRequiredStatusBinding(rulesetContext, expectedNativeBinding);
+  } catch {
+    recomputedNativeBinding = null;
+  }
+  require(
+    recomputedNativeBinding !== null
+      && JSON.stringify(receipt?.native_required_status_binding) === JSON.stringify(recomputedNativeBinding),
+    'native_required_status_binding_integrity'
+  );
+  require(['BLOCKED', 'VERIFIED_PASS'].includes(receipt?.native_required_status_binding?.state), 'native_required_status_binding_state');
+  if (receipt?.native_required_status_binding?.state === 'VERIFIED_PASS') {
+    require(receipt.native_required_status_binding.blockers?.length === 0, 'native_required_status_verified_blockers');
+  } else {
+    require(receipt.native_required_status_binding.blockers?.length > 0, 'native_required_status_blocked_without_blocker');
+    require(receipt?.blockers?.includes('NATIVE_REQUIRED_STATUS_BINDING_NOT_VERIFIED'), 'native_required_status_global_blocker');
+  }
+  const rulesetEndpoint = receipt?.endpoint_http_statuses?.rulesets;
+  require(
+    typeof rulesetEndpoint?.list_complete === 'boolean'
+      && typeof rulesetEndpoint?.detail_complete === 'boolean'
+      && Number.isSafeInteger(rulesetEndpoint?.listed_count)
+      && Number.isSafeInteger(rulesetEndpoint?.readable_detail_count)
+      && rulesetEndpoint.complete === Boolean(rulesetEndpoint.list_complete && rulesetEndpoint.detail_complete),
+    'ruleset_endpoint_completeness_shape'
+  );
+  if (receipt?.state === 'VERIFIED_PASS') {
+    require(receipt?.native_required_status_binding?.state === 'VERIFIED_PASS', 'verified_native_required_status_binding');
+    require(rulesetEndpoint?.complete === true, 'verified_ruleset_detail_readback');
+  }
   const negativeControls = receipt?.negative_execution_proof;
   require(negativeControls && typeof negativeControls === 'object', 'negative_execution_proof_partition');
   for (const control of ['selected_non_main_ref', 'branch_controlled_workflow_replacement']) {
@@ -251,7 +314,7 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
-  assert(contract.version === '1.4.0', 'CONTRACT_VERSION');
+  assert(contract.version === '1.5.0', 'CONTRACT_VERSION');
   assert(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_SECRET_BEARING_LANE_COUNT');
   assert(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_LEGACY_MANUAL_LANE_ALIAS');
   assert(contract.scope.legacy_manual_lane_alias_is_registry_lane_count === true, 'LEGACY_ALIAS_REGISTRY_SEMANTICS');
@@ -272,6 +335,24 @@ export function validateRepository(root = process.cwd()) {
   assert(contract.receipt_requirements.repository_exact_main_guard_results === true, 'REPOSITORY_MAIN_GUARD_RECEIPT_REQUIRED');
   assert(contract.receipt_requirements.trusted_post_run_attestor_required_for_external_proof === true, 'TRUSTED_ATTESTOR_REQUIRED');
   assert(contract.receipt_requirements.external_proof_validator_fail_closed_until_attestor_is_implemented === true, 'EXTERNAL_VALIDATOR_FAIL_CLOSED');
+  assert(contract.receipt_requirements.ruleset_list_and_each_detail_readback_must_be_complete === true, 'RULESET_DETAIL_READBACK_REQUIRED');
+  assert(contract.receipt_requirements.ruleset_source_conditions_bypass_strict_and_status_bindings_are_digest_bound === true, 'RULESET_SEMANTIC_READBACK_REQUIRED');
+  assert(contract.receipt_requirements.native_required_status_binding_results === true, 'NATIVE_STATUS_BINDING_RECEIPT_REQUIRED');
+  const expectedNativeBinding = contract.native_required_status_binding;
+  assert(expectedNativeBinding?.ruleset_name === 'KAIOS Solo Owner Preflight', 'NATIVE_RULESET_NAME');
+  assert(expectedNativeBinding?.enforcement === 'active' && expectedNativeBinding?.target === 'branch', 'NATIVE_RULESET_TARGET');
+  assert(expectedNativeBinding?.source_type === 'Repository' && expectedNativeBinding?.source === contract.scope.repository, 'NATIVE_RULESET_SOURCE');
+  assert(JSON.stringify(expectedNativeBinding?.ref_name_include) === JSON.stringify(['~DEFAULT_BRANCH']), 'NATIVE_RULESET_INCLUDE');
+  assert(JSON.stringify(expectedNativeBinding?.ref_name_exclude) === JSON.stringify([]), 'NATIVE_RULESET_EXCLUDE');
+  assert(expectedNativeBinding?.bypass_actor_count === 0, 'NATIVE_RULESET_BYPASS_COUNT');
+  assert(expectedNativeBinding?.strict_required_status_checks_policy === true, 'NATIVE_RULESET_STRICT');
+  assert(JSON.stringify(expectedNativeBinding?.required_status_checks) === JSON.stringify([
+    {context: 'KAIOS Solo Owner Preflight', integration_id: 15368},
+    {context: 'Validate KAIOS Foundation', integration_id: 15368},
+    {context: 'Validate Production Container', integration_id: 15368},
+    {context: 'KIDULTS Governed Landing Authorization V1', integration_id: 15368},
+    {context: 'KIDULTS Scope-Aware Authoritative Status V1', integration_id: 15368}
+  ]), 'NATIVE_RULESET_STATUS_BINDINGS');
   assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_APP_ENVIRONMENTS_AND_SECRETS_READ === 'EPHEMERAL_GITHUB_APP_INSTALLATION_TOKEN_ENVIRONMENTS_AND_SECRETS_READ', 'GITHUB_APP_TOKEN_SEMANTICS');
   assert(contract.receipt_requirements.stored_repository_or_environment_secret_activated === false, 'STORED_SECRET_ACTIVATION_BOUNDARY');
   assert(contract.receipt_requirements.provider_credential_activated === false, 'PROVIDER_CREDENTIAL_ACTIVATION_BOUNDARY');
@@ -292,7 +373,8 @@ export function validateRepository(root = process.cwd()) {
   assert(registry.internal_readback_control?.settings_mutated === false && registry.internal_readback_control?.secret_material_read === false, 'REGISTRY_READBACK_SAFETY_BOUNDARY');
   assert(registry.internal_readback_control?.issue_974_closed === false && registry.internal_readback_control?.issue_881_control_pass_promoted === false, 'REGISTRY_SEMANTIC_BOUNDARY');
   assert(registry.registered_count === registry.registered_workflows.length, 'REGISTRY_REGISTERED_COUNT');
-  assert(registry.required_environment_bindings.length === registry.registered_count, 'REGISTRY_BINDING_COUNT');
+  assert(Number.isInteger(registry.registered_secret_bearing_job_count) && registry.registered_secret_bearing_job_count >= registry.registered_count, 'REGISTRY_SECRET_BEARING_JOB_COUNT');
+  assert(registry.required_environment_bindings.length === registry.registered_secret_bearing_job_count, 'REGISTRY_BINDING_COUNT');
   assert(inventory.registered_lane_count === registry.registered_count, 'REGISTRY_LANE_PARTITION');
   assert(inventory.secret_bearing_job_count === registry.required_environment_bindings.length, 'SECRET_BEARING_JOB_PARTITION');
   const repositoryBindingFailures = validateRequiredEnvironmentBindings(inventory, registry);
@@ -318,8 +400,10 @@ export function validateRepository(root = process.cwd()) {
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
   assert(testSource.includes('all registered secret-bearing jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
   assert(testSource.includes('all registered secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
-  assert(testSource.includes('activation receipt body and first-step ordering fail closed under mutation'), 'ACTIVATION_RECEIPT_MUTATION_TEST_MISSING');
-  assert(testSource.includes('trigger transformation and missing explicit activation guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
+  assert(testSource.includes('one-shot receipt body and provider-secret ordering fail closed under mutation'), 'ONE_SHOT_RECEIPT_MUTATION_TEST_MISSING');
+  assert(testSource.includes('trigger transformation and missing explicit one-shot standing-false guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
+  assert(testSource.includes('one-shot artifact token step rejects stale, ambiguous, truncated, or unsafe handoff mutations'), 'ONE_SHOT_ARTIFACT_MUTATION_TEST_MISSING');
+  assert(testSource.includes('ruleset detail readback preserves native binding and fails closed on drift'), 'RULESET_DETAIL_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');
@@ -380,8 +464,11 @@ export function validateRepository(root = process.cwd()) {
     ['live_guard_api_unreadable_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
     ['live_guard_stale_sha_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
     ['live_guard_non_main_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
-    ['github_token_scope_expanded', (job) => { job.live_main_guard.github_token_step_count = 2; }],
-    ['github_token_job_permission_override', (job) => { job.job_permissions_override = true; }],
+    ['github_token_scope_expanded', (job) => { job.live_main_guard.github_token_step_names.push('Unapproved token step'); }],
+    ['github_token_job_permission_override', (job) => {
+      if (job.job_permissions_override) job.job_permissions_exact_actions_contents_read = false;
+      else job.job_permissions_override = true;
+    }],
     ['guard_after_provider_secret', (job) => { job.live_main_guard.before_all_provider_secret_steps = false; }],
     ['workflow_scope_provider_secret', (job) => { job.workflow_scope_secret_names = ['MUTATED_SECRET']; }],
     ['job_scope_provider_secret', (job) => { job.job_scope_secret_names = ['MUTATED_SECRET']; }],
@@ -404,6 +491,34 @@ export function validateRepository(root = process.cwd()) {
     }
   }
 
+  const oneShotBindings = registry.required_environment_bindings.filter((binding) => binding.required_one_shot_authorization);
+  const oneShotMutationCases = [
+    ['receipt_removed', (job) => { job.one_shot_authorization.receipt_step_count = 0; }],
+    ['receipt_before_live_main', (job) => { job.one_shot_authorization.after_live_main_guard = false; }],
+    ['receipt_after_provider_secret', (job) => { job.one_shot_authorization.before_all_provider_secret_steps = false; }],
+    ['consume_dependency_removed', (job) => { job.one_shot_authorization.needs_jobs = []; }],
+    ['authorized_output_guard_removed', (job) => { job.one_shot_authorization.authorized_output_jobs = []; }],
+    ['standing_false_guard_removed', (job) => { job.one_shot_authorization.standing_false_variables = []; }],
+    ['artifact_readback_contract_removed', (job) => { job.one_shot_authorization.artifact_readback_contract = false; }],
+    ['exact_binding_removed', (job) => { job.one_shot_authorization.binds_exact_sha_run_workflow_target_and_receipt = false; }],
+  ];
+  let oneShotMutationsRejected = 0;
+  for (const binding of oneShotBindings) {
+    const laneIndex = inventory.lanes.findIndex((lane) => lane.workflow === binding.workflow);
+    const jobIndex = inventory.lanes[laneIndex]?.secret_bearing_jobs.findIndex((job) => job.job === binding.job) ?? -1;
+    assert(laneIndex >= 0 && jobIndex >= 0, `ONE_SHOT_MUTATION_FIXTURE:${binding.workflow}#${binding.job}`);
+    for (const [id, mutate] of oneShotMutationCases) {
+      const mutatedInventory = structuredClone(inventory);
+      const job = mutatedInventory.lanes[laneIndex].secret_bearing_jobs[jobIndex];
+      mutate(job);
+      assert(
+        validateRequiredEnvironmentBindings(mutatedInventory, registry).length > 0,
+        `ONE_SHOT_MUTATION_ACCEPTED:${binding.workflow}#${binding.job}:${id}`
+      );
+      oneShotMutationsRejected += 1;
+    }
+  }
+
   const secretBearingJobs = inventory.lanes.flatMap((lane) => lane.secret_bearing_jobs);
 
   return {
@@ -423,6 +538,7 @@ export function validateRepository(root = process.cwd()) {
     required_environment_count: registry.required_environment_count,
     repository_binding_mutations_rejected: bindingMutations.length,
     privileged_execution_mutations_rejected: privilegedExecutionMutationsRejected,
+    one_shot_authorization_mutations_rejected: oneShotMutationsRejected,
     live_main_sha_guarded_secret_bearing_jobs: secretBearingJobs.filter((job) => (
       job.live_main_guard.count === 1
       && job.live_main_guard.contract_valid

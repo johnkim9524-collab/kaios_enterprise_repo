@@ -1,14 +1,58 @@
 #!/usr/bin/env node
-import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
-const selectionPath=process.argv[2]||'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json';const topologyPath=process.argv[3]||'coordination/kidults/scope-data/self-collected-open-channel-topology-v1.json';const outDir=process.argv[4]||'scope-open-wave1-out';fs.mkdirSync(outDir,{recursive:true});const sel=JSON.parse(fs.readFileSync(selectionPath,'utf8'));const top=JSON.parse(fs.readFileSync(topologyPath,'utf8'));const sleep=ms=>new Promise(r=>setTimeout(r,ms));const h=s=>crypto.createHash('sha256').update(String(s)).digest('hex').slice(0,20);const clean=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-function parseName(x){const p=x.display_name.split(' — ');return {maker:(p[0]||'').trim(),product:p.slice(1).join(' — ').trim()}}
-function relevant(row,text){const hay=clean(text),parts=clean(row.product).split(' ').filter(x=>x.length>=3||/\d/.test(x));const maker=clean(row.maker).split(' ').filter(x=>x.length>=3);const ph=parts.filter(x=>hay.includes(x)).length,mh=maker.some(x=>hay.includes(x));return parts.length>=2?(ph>=2||(mh&&ph>=1)):(ph>=1&&mh)}
-async function j(url,opts={},tries=0){const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);try{const r=await fetch(url,{...opts,signal:c.signal});if((r.status===429||r.status>=500)&&tries<3){await sleep(700*(2**tries));return j(url,opts,tries+1)}if(!r.ok)throw new Error(`HTTP_${r.status}`);return await r.json()}finally{clearTimeout(t)}}
-const channels=top.channels,records=[],errors=[],filtered=[];
-for(const s of sel.records){const name=parseName(s);for(const ch of channels.filter(c=>c.scopes.includes(s.target_scope_id))){const q=`${name.maker} ${name.product}`.trim(),observed_at=new Date().toISOString();try{
- if(ch.channel_id==='MET_OPEN_ACCESS'){const u=new URL('https://collectionapi.metmuseum.org/public/collection/v1/search');u.searchParams.set('q',q);const x=await j(u);for(const id of (x.objectIDs||[]).slice(0,3)){const d=await j(`https://collectionapi.metmuseum.org/public/collection/v1/objects/${id}`);const text=`${d.title||''} ${d.artistDisplayName||''} ${d.objectName||''} ${d.medium||''} ${d.creditLine||''}`;if(!relevant(name,text)){filtered.push({channel:ch.channel_id,product:s.representative_product_id,id,reason:'PRODUCT_RELEVANCE_FAIL'});continue}const roles=['CATALOG_REFERENCE','CULTURE_ATTENTION'];if(d.provenance)roles.push('PROVENANCE_HISTORY');records.push({candidate_id:`met-${h(s.representative_product_id+id)}`,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,display_name:s.display_name,channel_id:ch.channel_id,source_family:ch.source_family,provider_record_id:String(id),endpoint_url:d.objectURL||`https://www.metmuseum.org/art/collection/search/${id}`,source_name:d.title||String(id),observed_at,roles,rights_state:'CC0_COLLECTION_DATASET_METADATA',is_public_domain:Boolean(d.isPublicDomain),content_class:'STRUCTURED_COLLECTION_METADATA',qualification_state:'CANDIDATE_NOT_EVIDENCE_ADMITTED'})}}
- else if(ch.channel_id==='LOC_JSON_API'){const u=new URL('https://www.loc.gov/search/');u.searchParams.set('q',q);u.searchParams.set('fo','json');u.searchParams.set('c','3');const x=await j(u,{headers:{'User-Agent':'KIDULTS-Scope-Open-Wave1'}});for(const d of x.results||[]){const text=`${d.title||''} ${(d.contributor||[]).join(' ')} ${(d.subject||[]).join(' ')} ${(d.description||[]).join(' ')}`;if(!relevant(name,text)){filtered.push({channel:ch.channel_id,product:s.representative_product_id,id:d.id,reason:'PRODUCT_RELEVANCE_FAIL'});continue}records.push({candidate_id:`loc-${h(s.representative_product_id+(d.id||d.url||''))}`,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,display_name:s.display_name,channel_id:ch.channel_id,source_family:ch.source_family,provider_record_id:d.id||null,endpoint_url:d.id||d.url||null,source_name:d.title||'LOC record',observed_at,roles:['CATALOG_REFERENCE','PROVENANCE_HISTORY','CULTURE_ATTENTION'],rights_state:'ITEM_LEVEL_RIGHTS_REVIEW_REQUIRED',rights_advisory:d.rights_advisory||d.rights||[],content_class:'PUBLIC_API_METADATA_REFERENCE',qualification_state:'CANDIDATE_RIGHTS_NOT_VERIFIED'})}}
- else if(ch.channel_id==='MUSICBRAINZ_CORE'){const u=new URL('https://musicbrainz.org/ws/2/release/');u.searchParams.set('query',q);u.searchParams.set('fmt','json');u.searchParams.set('limit','3');const x=await j(u,{headers:{'User-Agent':'KIDULTS/1.0 (https://kidults.com)'}});for(const d of x.releases||[]){const text=`${d.title||''} ${(d['artist-credit']||[]).map(a=>a.name||'').join(' ')} ${(d['release-group']?.['primary-type']||'')}`;if(!relevant(name,text)){filtered.push({channel:ch.channel_id,product:s.representative_product_id,id:d.id,reason:'PRODUCT_RELEVANCE_FAIL'});continue}records.push({candidate_id:`mb-${h(s.representative_product_id+d.id)}`,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,display_name:s.display_name,channel_id:ch.channel_id,source_family:ch.source_family,provider_record_id:d.id,endpoint_url:`https://musicbrainz.org/release/${d.id}`,source_name:d.title||d.id,observed_at,roles:['CATALOG_REFERENCE','INDEPENDENT_VERIFICATION'],rights_state:'CORE_DATA_CC0_ONLY',content_class:'STRUCTURED_CORE_METADATA',qualification_state:'CANDIDATE_NOT_EVIDENCE_ADMITTED'})}await sleep(1100)}
- }catch(e){errors.push({channel_id:ch.channel_id,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,error:e.message})}await sleep(180)}}
-const uniq=[...new Map(records.map(r=>[`${r.representative_product_id}|${r.source_family}|${r.provider_record_id}`,r])).values()];const byScope={};for(const sc of [...new Set(sel.records.map(x=>x.target_scope_id))]){const rs=uniq.filter(r=>r.scope_id===sc);byScope[sc]={candidate_count:rs.length,products_with_candidates:new Set(rs.map(x=>x.representative_product_id)).size,source_families:[...new Set(rs.map(x=>x.source_family))],roles:[...new Set(rs.flatMap(x=>x.roles))],rights_clear_candidates:rs.filter(x=>['CC0_COLLECTION_DATASET_METADATA','CORE_DATA_CC0_ONLY'].includes(x.rights_state)).length,rights_review_candidates:rs.filter(x=>x.rights_state.includes('REVIEW')).length}}
-const out={id:'kidults-self-collected-open-channel-expansion-wave1',version:'1.0.0',status:'EXECUTED_CANDIDATES_NOT_EVIDENCE_ADMITTED',scope_count:32,product_count:64,channels_attempted:channels.map(x=>x.channel_id),candidate_count:uniq.length,filtered_irrelevant:filtered.length,error_count:errors.length,candidates:uniq,filtered,errors,scope_summary:byScope,north_star:{AUTONOMOUS:'PASS_DECLARATIVE_ROUTING_AND_RETRY',GLOBAL:'AMBER_US_EU_INSTITUTIONAL_WAVE1',IRREPLACEABLE_VALUE:'PASS_REQUIREMENT_DRIVEN',TRANSPARENT:'PASS_RIGHTS_FIELD_LEVEL'},provider_contact_authorized:false,production:'HOLD'};fs.writeFileSync(path.join(outDir,'open-channel-expansion-wave1.json'),JSON.stringify(out,null,2));console.log(JSON.stringify({scopes:32,products:64,candidates:uniq.length,filtered:filtered.length,errors:errors.length,scopes_with_candidates:Object.values(byScope).filter(x=>x.candidate_count).length,rights_clear_candidates:uniq.filter(x=>['CC0_COLLECTION_DATASET_METADATA','CORE_DATA_CC0_ONLY'].includes(x.rights_state)).length},null,2));
+import fs from "node:fs";
+import path from "node:path";
+
+const selectionPath = process.argv[2] ?? "coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json";
+const topologyPath = process.argv[3] ?? "coordination/kidults/scope-data/self-collected-open-channel-topology-v1.json";
+const outputDirectory = process.argv[4] ?? "scope-open-wave1-out";
+
+const selection = JSON.parse(fs.readFileSync(selectionPath, "utf8"));
+const topology = JSON.parse(fs.readFileSync(topologyPath, "utf8"));
+const channels = Array.isArray(topology.channels) ? topology.channels.map(item => item.channel_id) : [];
+
+const receipt = {
+  id: "kidults-self-collected-open-channel-expansion-wave1",
+  version: "1.1.0",
+  status: "HOLD_GOVERNED_MET_OWNER_ONLY",
+  reason: "LEGACY_MULTI_PROVIDER_COLLECTOR_DISABLED_SINGLE_GOVERNED_MET_OWNER_REQUIRED",
+  scope_count: Array.isArray(selection.records)
+    ? new Set(selection.records.map(item => item.target_scope_id)).size
+    : 0,
+  product_count: Array.isArray(selection.records) ? selection.records.length : 0,
+  channels_configured_not_called: channels,
+  provider_call_counts: {
+    MET_OPEN_ACCESS: 0,
+    LOC_JSON_API: 0,
+    MUSICBRAINZ_CORE: 0
+  },
+  provider_call_count: 0,
+  requests_executed: 0,
+  candidate_count: 0,
+  candidates: [],
+  evidence_record_count: 0,
+  immutable_candidate_evidence_pair_created: false,
+  track_b_submission_count: 0,
+  track_b_assessment_count: 0,
+  current_sold_transaction_count: 0,
+  admission_performed: false,
+  provider_contact_authorized: false,
+  publication: "HOLD",
+  production: "HOLD",
+  g5: "HOLD",
+  release_condition: "USE_ONLY_THE_GOVERNED_MET_SCHEDULE_OWNER_AND_ITS_RIGHTS_TIME_LINEAGE_BOUND_ARTIFACT",
+  governed_met_owner_workflow: ".github/workflows/kidults-autonomous-met-sample.yml"
+};
+
+fs.mkdirSync(outputDirectory, { recursive: true });
+fs.writeFileSync(
+  path.join(outputDirectory, "open-channel-expansion-wave1.json"),
+  `${JSON.stringify(receipt, null, 2)}\n`
+);
+
+console.error(JSON.stringify({
+  status: receipt.status,
+  provider_call_count: 0,
+  candidate_count: 0,
+  production: "HOLD"
+}, null, 2));
+process.exitCode = 3;

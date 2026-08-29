@@ -1,7 +1,7 @@
 {
   "id": "candidate-r2-source-transaction-preflight-v1",
   "record_type": "source_transaction_preflight",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_P0_PREFLIGHT",
   "created_at": "2026-08-16T17:45:00+09:00",
   "created_by": "KPMO / Atlas",
@@ -10,6 +10,53 @@
   "first_value": "AUTONOMOUS",
   "objective": "Prepare four-or-more independent authority source families, a rights-explicit transaction lane, and an approved Golden Dataset for a new immutable Candidate R2.",
   "source_families": [
+    {
+      "lane": "SOURCE_FAMILY_1",
+      "source_id": "met-costume-institute-open-access",
+      "source_name": "The Metropolitan Museum of Art Open Access Collection API",
+      "role": "OPEN_AUTHORITY_REFERENCE_DISCOVERY",
+      "status": "APPROVED_FOR_GOVERNED_SCHEDULED_REFERENCE_DISCOVERY",
+      "access": "OFFICIAL_PUBLIC_API_NO_KEY",
+      "metadata_rights_state": "CC0_COLLECTION_METADATA_NON_OPEN_ACCESS_IMAGES_EXCLUDED",
+      "initial_field_policy": "METADATA_ALLOWLIST_ONLY_NO_IMAGES",
+      "current_sold_eligible": false,
+      "candidate_r2_effect": "PREFLIGHT_INPUT_ONLY_IMMUTABLE_PAIR_AND_TRACK_B_STILL_REQUIRED",
+      "request_budget": "MAX_51_REQUESTS_PER_RUN_MAX_4_PER_SECOND_RETRY_BACKOFF",
+      "zero_result_disposition": "TERMINAL_ZERO_CANDIDATE_NON_ADMISSION",
+      "required_controls": [
+        "exact source URL and payload hash",
+        "strict observation timestamp and validity window",
+        "exact repository contract digest and official policy URLs",
+        "REFERENCE_DISCOVERY_ONLY",
+        "no Current-SOLD or Market Event promotion",
+        "no Provider ID promotion to canonical ID"
+      ]
+    },
+    {
+      "lane": "SOURCE_FAMILY_2",
+      "source_id": "vam-collections-api-fashion",
+      "source_name": "Victoria and Albert Museum Collections API",
+      "role": "OPEN_AUTHORITY_REFERENCE_DISCOVERY",
+      "status": "SCHEDULED_READ_CAPABLE_EXTERNAL_RIGHTS_VERIFIER_HOLD",
+      "access": "OFFICIAL_PUBLIC_API_NO_KEY_AFTER_RIGHTS_SCOPE_GATE",
+      "metadata_rights_state": "INTERNAL_NONCOMMERCIAL_POC_ONLY_UNLESS_WRITTEN_COMMERCIAL_PERMISSION",
+      "initial_field_policy": "SUMMARY_METADATA_ONLY_NO_IMAGES",
+      "current_sold_eligible": false,
+      "candidate_r2_effect": "PREFLIGHT_INPUT_ONLY_IMMUTABLE_PAIR_AND_TRACK_B_STILL_REQUIRED",
+      "request_budget": "MAX_3000_PER_DAY_MAX_1_PER_SECOND_RETRY_BACKOFF",
+      "retention_days_max": 28,
+      "runtime_gate": "EXPLICIT_UNEXPIRED_RIGHTS_SCOPE_AND_EXACT_RECEIPT_REQUIRED_BUT_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED_SO_PROVIDER_CALLS_REMAIN_ZERO",
+      "zero_result_disposition": "TERMINAL_ZERO_CANDIDATE_NON_ADMISSION",
+      "required_controls": [
+        "provider call zero when rights scope is absent or expired",
+        "rights determination receipt SHA-256 binding",
+        "exact source URL and payload hash",
+        "strict observation timestamp validity window and retention deadline",
+        "exact repository contract digest and official policy URLs",
+        "REFERENCE_DISCOVERY_ONLY",
+        "no Current-SOLD commercial-publication or Market Event promotion"
+      ]
+    },
     {
       "lane": "SOURCE_FAMILY_3",
       "source_id": "smithsonian-open-access",
@@ -185,6 +232,10 @@
     "raw_provider_to_index": false,
     "automatic_dynamic_vertical_promotion": false,
     "public_index_computation": false,
-    "production_mutation": false
+    "production_mutation": false,
+    "met_vam_public_metadata_is_current_sold": false,
+    "preflight_creates_immutable_candidate_evidence_pair": false,
+    "preflight_performs_track_b_assessment": false,
+    "preflight_success_is_track_b_pass": false
   }
 }

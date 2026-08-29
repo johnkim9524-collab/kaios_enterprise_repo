@@ -21,6 +21,10 @@ if [[ "$MODE" != "--dry-run" && "$MODE" != "--execute" ]]; then
   echo "Usage: $0 [--dry-run|--execute]" >&2
   exit 64
 fi
+if [[ "$MODE" == "--execute" ]]; then
+  echo "Cloudflare mutation NO-RERUN: durable one-shot ledger trust root is not activated" >&2
+  exit 78
+fi
 if [[ ! "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] || (( MAX_PAGES > 100 )); then
   echo "MAX_PAGES must be an integer from 1 to 100" >&2
   exit 64

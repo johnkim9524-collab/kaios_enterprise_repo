@@ -31,7 +31,7 @@
     "No rankability assessment is registered.",
     "Methodology and evidence-lineage versions are not registered.",
     "Three verticals do not yet have approved editorial visual assets.",
-    "The current metrics are provider-independent observability values and not permanent rankings."
+    "Historical provider-independent baseline metrics remain in the internal Registry record but are withheld from the public portal until an approved Projection exists."
   ],
   "rollback_target": "V501",
   "created_by": "Track C",

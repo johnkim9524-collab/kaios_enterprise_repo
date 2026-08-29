@@ -9,6 +9,9 @@ DEPLOY_REASON="${DEPLOY_REASON:-}"
 RECEIPT_DIR="${RECEIPT_DIR:-artifacts/cloudflare-governed-staging-deploy}"
 API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID:-MISSING}/pages/projects/${PROJECT_NAME}"
 
+echo "Cloudflare mutation NO-RERUN: durable one-shot ledger trust root is not activated" >&2
+exit 78
+
 [[ "$PROJECT_NAME" == "kidults-workspace-staging" ]] || { echo "Refusing unexpected Pages project" >&2; exit 64; }
 [[ "$EXPECTED_REPOSITORY" == "johnkim9524-collab/kaios_enterprise_repo" ]] || { echo "Refusing unexpected repository" >&2; exit 64; }
 [[ "$SOURCE_DIR" == "apps/kidults-enterprise-staging/public" ]] || { echo "Refusing unexpected source directory" >&2; exit 64; }

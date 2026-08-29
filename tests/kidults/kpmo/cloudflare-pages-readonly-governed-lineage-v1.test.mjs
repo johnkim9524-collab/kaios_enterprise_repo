@@ -35,7 +35,7 @@ const deployment = ({id,message,sha=targetSha,created='2026-08-29T16:35:16Z',ski
   latest_stage:{status},deployment_trigger:{type:trigger,metadata:{branch:'main',commit_hash:sha,commit_message:message}}
 });
 let message;
-if (scenario === 'approval-bound') {
+if (scenario === 'approval-bound' || scenario === 'stale-main') {
   message='[KIDULTS-GOVERNED-STAGING] approval_id=CF-KIDULTS-14501AC-01 repository=' + repository + ' source_sha=' + targetSha + ' run=33262992819 attempt=1';
 } else if (scenario === 'legacy') {
   message='[KIDULTS-GOVERNED-STAGING] repository=' + repository + ' source_sha=' + targetSha + ' run=1 attempt=1 reason=test';
@@ -74,7 +74,9 @@ function runCase(scenario) {
       CLOUDFLARE_ACCOUNT_ID: 'test-account',
       CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
       EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
-      GITHUB_SHA: '31602fcb127c962ff69f1d35eb3623c871a67efb',
+      GITHUB_SHA: scenario === 'stale-main'
+        ? '31602fcb127c962ff69f1d35eb3623c871a67efb'
+        : '14501ac022bdd7c918924a207f257b047b1ba970',
       RECEIPT_DIR: receiptDir,
     },
   });
@@ -83,22 +85,36 @@ function runCase(scenario) {
 }
 
 const approvalBound = runCase('approval-bound');
-assert.equal(approvalBound.result.status, 0, approvalBound.result.stderr || approvalBound.result.stdout);
-assert.equal(approvalBound.receipt.state, 'COMPLETE_VERIFIED');
+assert.notEqual(approvalBound.result.status, 0);
+assert.equal(approvalBound.receipt.state, 'VERIFIED_FAIL');
 assert.equal(approvalBound.receipt.settings_pass, true);
 assert.equal(approvalBound.receipt.visible_preview_count, 0);
-assert.equal(approvalBound.receipt.latest_deployment_governed, true);
-assert.equal(approvalBound.receipt.latest_deployment_lineage_format, 'APPROVAL_BOUND_V1');
+assert.equal(approvalBound.receipt.latest_deployment_message_claim, true);
+assert.equal(approvalBound.receipt.latest_deployment_governed, false);
+assert.equal(approvalBound.receipt.signed_ledger_lineage_verified, false);
+assert.equal(approvalBound.receipt.latest_deployment_lineage_format, 'UNVERIFIED_APPROVAL_MESSAGE_V1');
 assert.equal(approvalBound.receipt.latest_deployment.commit_hash, '14501ac022bdd7c918924a207f257b047b1ba970');
 assert.equal(approvalBound.receipt.latest_attempt.is_skipped, true);
-assert.equal(approvalBound.receipt.latest_deployment_matches_current_main, false);
-assert.equal(approvalBound.receipt.current_main_match_is_informational, true);
+assert.equal(approvalBound.receipt.latest_deployment_matches_current_main, true);
+assert.equal(approvalBound.receipt.current_main_match_required, true);
+assert.equal(approvalBound.receipt.current_main_match_is_informational, false);
+assert.equal(approvalBound.receipt.governed_staging_current_main_parity, 'HOLD_UNVERIFIED_LINEAGE');
+assert.equal(approvalBound.receipt.parity_blocker, 'LATEST_DEPLOYMENT_SIGNED_LEDGER_LINEAGE_UNVERIFIED');
 
 const legacy = runCase('legacy');
-assert.equal(legacy.result.status, 0, legacy.result.stderr || legacy.result.stdout);
-assert.equal(legacy.receipt.state, 'COMPLETE_VERIFIED');
-assert.equal(legacy.receipt.latest_deployment_governed, true);
-assert.equal(legacy.receipt.latest_deployment_lineage_format, 'LEGACY_GOVERNED_V1');
+assert.notEqual(legacy.result.status, 0);
+assert.equal(legacy.receipt.state, 'VERIFIED_FAIL');
+assert.equal(legacy.receipt.latest_deployment_message_claim, true);
+assert.equal(legacy.receipt.latest_deployment_governed, false);
+assert.equal(legacy.receipt.latest_deployment_lineage_format, 'LEGACY_SELF_ASSERTED_MESSAGE_V1');
+
+const staleMain = runCase('stale-main');
+assert.notEqual(staleMain.result.status, 0);
+assert.equal(staleMain.receipt.state, 'VERIFIED_FAIL');
+assert.equal(staleMain.receipt.latest_deployment_governed, false);
+assert.equal(staleMain.receipt.latest_deployment_matches_current_main, false);
+assert.equal(staleMain.receipt.governed_staging_current_main_parity, 'VERIFIED_FAIL');
+assert.equal(staleMain.receipt.parity_blocker, 'LATEST_DEPLOYMENT_SOURCE_SHA_DIFFERS_FROM_CURRENT_MAIN');
 
 const malformed = runCase('malformed');
 assert.notEqual(malformed.result.status, 0);
@@ -111,10 +127,11 @@ assert.equal(malformed.receipt.latest_deployment_lineage_format, 'UNRECOGNIZED')
 console.log(JSON.stringify({
   suite:'KIDULTS_CLOUDFLARE_PAGES_READONLY_GOVERNED_LINEAGE_V1',
   result:'PASS',
-  approval_bound_lineage_accepted:true,
-  legacy_lineage_retained:true,
+  approval_message_without_signed_ledger_rejected:true,
+  legacy_self_asserted_lineage_rejected:true,
   wrong_repository_rejected:true,
-  skipped_current_main_informational:true,
+  current_main_parity_required:true,
+  stale_governed_staging_rejected:true,
   remote_mutation:false,
   public_release:'HOLD',
   production:'HOLD',

@@ -51,6 +51,7 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
           node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/public-metric-boundary.js
           node --check apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
           node --check apps/kidults-enterprise-staging/public/portal/components/editorial-assets.js
           node --check apps/kidults-enterprise-staging/public/portal/components/living-pulse.js
@@ -80,6 +81,7 @@ jobs:
           node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
           node --check scripts/kidults/portal/validate-v663-hero-layout.mjs
           node --check scripts/kidults/portal/capture-v662-visual-check.mjs
+          node --check scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -95,6 +97,12 @@ jobs:
 
       - name: Validate Portal V502 / V662 Release Candidate
         run: node scripts/kidults/portal/validate-v502-portal.mjs
+
+      - name: Validate fail-closed metric and physical acceptance contracts
+        run: |
+          node tests/kidults/kpmo/portal-public-metric-boundary-v1.test.mjs
+          node tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs
+          node scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs
 
       - name: Validate Living Pulse Engine
         run: node scripts/kidults/portal/validate-living-pulse.mjs

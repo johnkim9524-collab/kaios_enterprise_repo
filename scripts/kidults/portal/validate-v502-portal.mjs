@@ -52,6 +52,7 @@ const requiredFiles = [
   `${portalRoot}/components/data-store.js`,
   `${portalRoot}/components/renderers.js`,
   `${portalRoot}/components/interactions.js`,
+  `${portalRoot}/components/public-metric-boundary.js`,
   `${portalRoot}/components/editorial-assets.js`,
   `${portalRoot}/components/homepage-structure.js`,
   `${portalRoot}/components/v662-stability-freeze.css`,
@@ -180,6 +181,7 @@ const trackIndex = readJson("coordination/kidults/registry/track/index.json");
 const trackC = readJson("coordination/kidults/registry/track/records/track-c-portal-v502-experience-layer.json");
 const blockerC = readJson("coordination/kidults/registry/blocker/records/blocker-track-c-role-acceptance-pending.json");
 const missionC = readJson("coordination/kidults/registry/mission/records/mission-track-c-v502-registry-consumer.json");
+const canonicalBaseline = readJson("coordination/kidults/registry/snapshot/records/baseline-provider-independent-v1.json");
 
 if (manifest) {
   if (manifest.status !== "RELEASE_CANDIDATE") errors.push("V502 manifest status must be RELEASE_CANDIDATE.");
@@ -214,12 +216,44 @@ if (verticalData) {
   if (new Set(verticals.map(item => item.id)).size !== verticals.length) errors.push("Core Vertical IDs must be unique.");
   if (verticals.filter(item => item.featured).length !== 5) errors.push("Featured baseline must contain five verticals.");
   if (verticalData.source_snapshot_id !== manifest?.snapshot_id) errors.push("Vertical data and manifest snapshot IDs differ.");
+  if (verticalData.metric_publication_state !== "WITHHELD_PENDING_APPROVED_PROJECTION") {
+    errors.push("Public vertical metric publication state must remain withheld without an approved Projection.");
+  }
   const orders = verticals.map(item => item.structural_order).sort((a, b) => a - b).join(",");
   if (orders !== "1,2,3,4,5,6,7,8") errors.push("Structural orders must be exactly 1–8.");
+  const publicMetricFields = [
+    "current_observation_order",
+    "relevant",
+    "right_data_coverage_pct",
+    "demand_evidence_count",
+    "demand_denominator",
+    "demand_evidence_pct",
+    "scarcity_evidence_count"
+  ];
+  const projectionReady = Boolean(
+    registryView?.snapshot?.candidate_id
+    && registryView?.snapshot?.candidate_publication_eligible === true
+    && registryView?.assessment?.current_id
+    && registryView?.assessment?.overall_rankability === true
+    && registryView?.assessment?.publication_eligible === true
+    && registryView?.publication?.public_index_projection
+    && registryView.publication.public_index_projection !== "NOT_AVAILABLE"
+  );
+  if (!projectionReady) {
+    for (const vertical of verticals) {
+      for (const field of publicMetricFields) {
+        if (vertical[field] !== null) errors.push(`${vertical.id}: ${field} must be null while approved Projection is absent.`);
+      }
+    }
+  }
   const toys = verticals.find(item => item.id === "vertical-toys-models");
   if (toys?.visual_asset !== null || toys?.visual_status !== "VISUAL_WITHHELD_PENDING_EVIDENCE") {
     errors.push("Toys & Models evidence visual must remain withheld pending evidence.");
   }
+}
+
+if (!canonicalBaseline?.vertical_metrics?.some(vertical => Number.isFinite(vertical.right_data_coverage_pct))) {
+  errors.push("Canonical internal baseline metrics were not preserved outside the public portal surface.");
 }
 
 if (k100) {

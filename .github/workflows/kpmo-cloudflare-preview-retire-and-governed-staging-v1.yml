@@ -2,7 +2,7 @@ name: KPMO Cloudflare Preview Retirement and Governed STAGING v1
 
 on:
   workflow_run:
-    workflows: ["KPMO CF-KIDULTS-14501AC-01 Preflight"]
+    workflows: ["KPMO Cloudflare External One-Shot Approval Consume v1"]
     types: [completed]
     branches: [main]
 
@@ -18,8 +18,9 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.event == 'push' &&
-      contains(github.event.workflow_run.head_commit.message, 'CF-KIDULTS-14501AC-01')
+      github.event.workflow_run.event == 'workflow_run' &&
+      contains(github.event.workflow_run.head_commit.message, 'CF-KIDULTS-14501AC-01') &&
+      false
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -29,6 +30,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
@@ -45,6 +47,23 @@ jobs:
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
           test "$EVENT_HEAD_SHA" = "$GITHUB_SHA"
+          artifact_name="cf-external-one-shot-approval-receipt-${EVENT_HEAD_SHA}-${EVENT_RUN_ID}"
+          curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$EVENT_RUN_ID/artifacts?per_page=100" \
+            > /tmp/approval-artifacts.json
+          artifact_id="$(jq -r --arg name "$artifact_name" \
+            '[.artifacts[] | select(.name==$name and .expired==false)] | if length==1 then .[0].id else empty end' \
+            /tmp/approval-artifacts.json)"
+          [[ "$artifact_id" =~ ^[1-9][0-9]*$ ]]
+          curl --fail-with-body --silent --show-error --location --proto '=https' --max-redirs 1 \
+            --connect-timeout 10 --max-time 60 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            --output /tmp/approval-receipt.zip
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -88,6 +107,46 @@ jobs:
             and .truth_boundary.g5 == "HOLD"
           ' coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json >/dev/null
 
+      - name: Block current lane until signed exact-binding receipt delivery exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            (.state | startswith("BLOCKED_"))
+            and .global_no_rerun.state == "HOLD"
+            and .global_no_rerun.provider_calls_authorized == false
+            and ([.mutation_lanes[] | select(.workflow == ".github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml" and .hard_disabled == true)] | length == 1)
+            and .external_blockers.signed_exact_binding_state_readback_issued == false
+            and .authority_rules.repository_boolean_is_authority == false
+          ' coordination/kidults/runtime/cloudflare-external-one-shot-approval-future-activation-v1.json >/dev/null
+          exit 78
+
+      - name: Materialize exact triggering signed receipt artifact
+        if: ${{ false }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /tmp/approval-receipt.zip
+          mkdir -p artifacts
+          unzip -q /tmp/approval-receipt.zip -d artifacts
+
+      - name: Verify downloaded exact signed consume receipt before provider credentials
+        if: ${{ false }}
+        shell: bash
+        env:
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -f artifacts/external-one-shot-approval-consume-request-v1.json
+          test -f artifacts/external-one-shot-approval-client-receipt-v1.json
+          export KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256="$(
+            jq -r '.response_verification.public_key_spki_sha256' \
+              coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json
+          )"
+          node scripts/governance/external-one-shot-approval-ledger-v1.mjs verify \
+            --request artifacts/external-one-shot-approval-consume-request-v1.json \
+            --receipt artifacts/external-one-shot-approval-client-receipt-v1.json
+
       - name: Validate governance before mutation
         shell: bash
         run: |
@@ -107,6 +166,11 @@ jobs:
           EXPECTED_CLOUDFLARE_ACCOUNT_ID: 235eaa51d04e7f4436a9faa507a04f9d
           APPROVAL_ID: CF-KIDULTS-14501AC-01
           APPROVAL_RECEIPT_PATH: coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json
+          APPROVAL_LEDGER_BINDING_PATH: coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+          UPSTREAM_APPROVAL_CONSUME_RUN_ID: ${{ github.event.workflow_run.id }}
+          EXPECTED_APPROVAL_OPERATION_ID: CLOUDFLARE_PAGES_PREVIEW_RETIRE_AND_GOVERNED_STAGING
+          EXPECTED_APPROVAL_WORKFLOW_REF: .github/workflows/kpmo-cloudflare-approval-consume-v1.yml@refs/heads/main
           TARGET_SHA: 14501ac022bdd7c918924a207f257b047b1ba970
           SOURCE_DIR: target-source/apps/kidults-enterprise-staging/public
           MAX_PREVIEW_DELETIONS: '588'

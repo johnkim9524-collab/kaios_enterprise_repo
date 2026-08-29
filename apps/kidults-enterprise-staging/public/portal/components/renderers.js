@@ -9,8 +9,13 @@ const esc = value =>
     "'": "&#039;"
   }[character]));
 
-const formatPct = value =>
-  Number.isFinite(Number(value)) ? `${Number(value).toFixed(2).replace(/\.00$/, "")}%` : "NOT REGISTERED";
+export const formatPct = value =>
+  value !== null &&
+  value !== undefined &&
+  value !== "" &&
+  Number.isFinite(Number(value))
+    ? `${Number(value).toFixed(2).replace(/\.00$/, "")}%`
+    : "NOT REGISTERED";
 
 const formatDate = value => {
   const parsed = Date.parse(value ?? "");
@@ -113,19 +118,23 @@ export function renderVerticals(verticalData) {
     .sort((a, b) => a.structural_order - b.structural_order)
     .map(vertical => {
       const visualState = vertical.visual_status.replaceAll("_", " ");
-      const currentOrder = String(vertical.current_observation_order).padStart(2, "0");
+      const observationRegistered = Number.isInteger(Number(vertical.current_observation_order)) && vertical.current_observation_order !== null && vertical.current_observation_order !== "";
+      const currentOrder = observationRegistered ? String(vertical.current_observation_order).padStart(2, "0") : null;
+      const coverage = vertical.right_data_coverage_pct !== null && vertical.right_data_coverage_pct !== "" && Number.isFinite(Number(vertical.right_data_coverage_pct))
+        ? Math.max(0, Math.min(100, Number(vertical.right_data_coverage_pct)))
+        : 0;
       return `
         <article
           class="vertical-card reveal"
           data-vertical-card
           data-featured="${vertical.featured}"
-          style="--coverage:${Number(vertical.right_data_coverage_pct)}%"
+          style="--coverage:${coverage}%"
         >
           <div class="vertical-card-top">
             <span class="vertical-order">${String(vertical.structural_order).padStart(2, "0")}</span>
             <div class="vertical-flags">
-              ${vertical.featured ? '<span class="vertical-flag featured">CURRENT FEATURED</span>' : ""}
-              <span class="vertical-flag">OBSERVATION ${currentOrder}</span>
+              ${vertical.featured ? '<span class="vertical-flag featured">EDITORIAL FOCUS</span>' : ""}
+              <span class="vertical-flag">${observationRegistered ? `OBSERVATION ${currentOrder}` : "OBSERVATION WITHHELD"}</span>
             </div>
             <span class="vertical-glyph" aria-hidden="true">${String(vertical.structural_order).padStart(2, "0")}</span>
           </div>
@@ -157,7 +166,7 @@ export function renderVerticals(verticalData) {
   interpretation.innerHTML = `
     <b>Interpretation.</b>
     ${esc(verticalData.interpretation)}
-    Structural order is not the current observation order. The Featured 5 may change when a new immutable snapshot is registered.
+    Structural order is not a market rank. Editorial focus may change independently of a later approved Projection.
   `;
 }
 

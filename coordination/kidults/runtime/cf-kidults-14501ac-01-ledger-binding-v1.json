@@ -1,0 +1,54 @@
+{
+  "id": "cf-kidults-14501ac-01-ledger-binding-v1",
+  "version": "1.0.0",
+  "approval_id": "CF-KIDULTS-14501AC-01",
+  "operation_id": "CLOUDFLARE_PAGES_PREVIEW_RETIRE_AND_GOVERNED_STAGING",
+  "state": "HISTORICAL_CONSUMED_BACKFILL_REQUIRED",
+  "external_ledger_contract": "coordination/kidults/governance/external-one-shot-approval-ledger-v1.json",
+  "external_ledger_service": "services/kidults-cloudflare-approval-trust-root",
+  "response_verification": {
+    "algorithm": "Ed25519",
+    "public_key_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64",
+    "public_key_spki_sha256": "UNPROVISIONED",
+    "state": "BLOCKED_EXTERNAL_KEY_PROVISIONING",
+    "github_private_signing_key_forbidden": true
+  },
+  "target": {
+    "provider": "CLOUDFLARE",
+    "resource_type": "PAGES_PROJECT",
+    "resource_id": "kidults-workspace-staging",
+    "environment": "STAGING",
+    "target_digest": "sha256:373a95517f07ad5db7a78085737f00ff2077ce9bda4ad729feca70ee2dc775d3"
+  },
+  "historical_consumption": {
+    "state": "CONSUMED",
+    "control_sha": "a423d62ca97bdf60a89b3b9a6a1f463ac4326682",
+    "source_sha": "14501ac022bdd7c918924a207f257b047b1ba970",
+    "workflow_ref": ".github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml@refs/heads/main",
+    "github_run_id": "33262992819",
+    "github_run_attempt": 1,
+    "approval_expires_at": "2026-08-29T16:44:47Z",
+    "consumed_at": "2026-08-29T16:35:25Z",
+    "evidence": "coordination/kidults/runtime/cloudflare-pages-one-shot-completion-v1.json"
+  },
+  "backfill_policy": {
+    "required_before_consumer_endpoint_enablement": true,
+    "required_external_state": "CONSUMED",
+    "active_or_reissued_state_forbidden": true,
+    "repository_record_cannot_reset_external_state": true,
+    "repository_boolean_is_authority": false,
+    "signed_exact_binding_state_receipt": {
+      "required": true,
+      "state": "BLOCKED_NOT_ISSUED",
+      "ed25519_signature_verified": false,
+      "receipt_sha256": "BLOCKED_NOT_AVAILABLE",
+      "immutable_binding_match_verified": false
+    }
+  },
+  "future_activation_contract": "coordination/kidults/runtime/cloudflare-external-one-shot-approval-future-activation-v1.json",
+  "runtime_state": "BLOCKED_EXTERNAL_LEDGER_NOT_DEPLOYED_BACKFILLED_KEY_PINNED_OR_SIGNED_READBACK_VERIFIED",
+  "cloudflare_mutation_rerun": "HOLD",
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}

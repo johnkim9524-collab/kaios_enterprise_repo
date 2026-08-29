@@ -30,8 +30,12 @@ assert.equal(contract.performance_budgets.LCP_ms_max,2500);
 assert.equal(contract.performance_budgets.CLS_max,0.1);
 assert.equal(contract.performance_budgets.INP_ms_max,200);
 assert.equal(contract.accessibility.manual_screen_reader_human_review_required,true);
-assert.equal(contract.accessibility.manual_receipt,'NONE');
-assert.equal(contract.accessibility.screen_reader_gate,'HOLD');
+assert.equal(contract.accessibility.automated_mobile_surrogate,'NON_PHYSICAL_WEBKIT_SURROGATE_NON_AUTHORIZING');
+assert.equal(contract.accessibility.manual_receipt,'coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json');
+assert.equal(contract.accessibility.manual_receipt_cryptographic_verifiers,'NOT_PROVISIONED');
+assert.equal(contract.accessibility.self_asserted_signed_receipt_eligible,false);
+assert.equal(contract.accessibility.physical_iphone_mobile_safari_gate,'HOLD_PENDING_PHYSICAL_DEVICE');
+assert.equal(contract.accessibility.screen_reader_gate,'HOLD_PENDING_HUMAN_REVIEW');
 
 assert.equal(contract.conversion_security['pii_at_rest'],'AES-256-GCM-v1');
 assert.equal(contract.conversion_security.retention_days,90);

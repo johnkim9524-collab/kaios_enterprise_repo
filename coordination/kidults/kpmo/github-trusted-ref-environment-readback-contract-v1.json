@@ -1,6 +1,6 @@
 {
   "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "issue": 974,
   "parent_gate_issue": 881,
   "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
@@ -58,6 +58,41 @@
     "GET /repos/{owner}/{repo}/rulesets",
     "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
   ],
+  "native_required_status_binding": {
+    "ruleset_name": "KAIOS Solo Owner Preflight",
+    "enforcement": "active",
+    "target": "branch",
+    "source_type": "Repository",
+    "source": "johnkim9524-collab/kaios_enterprise_repo",
+    "ref_name_include": [
+      "~DEFAULT_BRANCH"
+    ],
+    "ref_name_exclude": [],
+    "bypass_actor_count": 0,
+    "strict_required_status_checks_policy": true,
+    "required_status_checks": [
+      {
+        "context": "KAIOS Solo Owner Preflight",
+        "integration_id": 15368
+      },
+      {
+        "context": "Validate KAIOS Foundation",
+        "integration_id": 15368
+      },
+      {
+        "context": "Validate Production Container",
+        "integration_id": 15368
+      },
+      {
+        "context": "KIDULTS Governed Landing Authorization V1",
+        "integration_id": 15368
+      },
+      {
+        "context": "KIDULTS Scope-Aware Authoritative Status V1",
+        "integration_id": 15368
+      }
+    ]
+  },
   "forbidden_operations": [
     "PUT_OR_DELETE_ENVIRONMENT",
     "PUT_OR_DELETE_DEPLOYMENT_BRANCH_POLICY",
@@ -86,6 +121,9 @@
     "readback_digest_must_recompute_from_all_material_fields": true,
     "trusted_post_run_attestor_required_for_external_proof": true,
     "external_proof_validator_fail_closed_until_attestor_is_implemented": true,
+    "ruleset_list_and_each_detail_readback_must_be_complete": true,
+    "ruleset_source_conditions_bypass_strict_and_status_bindings_are_digest_bound": true,
+    "native_required_status_binding_results": true,
     "ruleset_context_is_not_issue_936_closure": true,
     "settings_mutated": false,
     "secret_material_read": false,

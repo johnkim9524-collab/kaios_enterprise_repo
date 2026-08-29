@@ -1,0 +1,109 @@
+{
+  "id": "cloudflare-external-one-shot-approval-future-activation-v1",
+  "version": "1.2.0",
+  "state": "BLOCKED_EXTERNAL_ISSUANCE_BACKFILL_DEPLOYMENT_KEY_PIN_AND_SIGNED_READBACK",
+  "global_no_rerun": {
+    "state": "HOLD",
+    "scope": "ALL_REPOSITORY_CLOUDFLARE_MUTATION_ENTRYPOINTS",
+    "provider_calls_authorized": false,
+    "owner_entered_phrase_is_authority": false,
+    "release_condition": "EXTERNAL_DURABLE_LEDGER_DEPLOYED_PINNED_BACKFILLED_SIGNED_EXACT_STATE_READBACK_AND_DEPLOYED_NEGATIVE_CANARIES_VERIFIED"
+  },
+  "mutation_lanes": [
+    {
+      "workflow": ".github/workflows/kpmo-cloudflare-preview-retire-and-governed-staging-v1.yml",
+      "hard_disabled": true
+    },
+    {
+      "workflow": ".github/workflows/kidults-cloudflare-pages-staging-deploy-v1.yml",
+      "hard_disabled": true
+    },
+    {
+      "workflow": ".github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml",
+      "hard_disabled": true
+    }
+  ],
+  "direct_mutation_entrypoints": [
+    {
+      "path": "services/kidults-autonomous-intelligence/package.json",
+      "hard_disabled": true,
+      "covers": ["Worker deploy", "remote D1 migration", "remote D1 canary", "remote finalize"]
+    },
+    {
+      "path": "services/kidults-autonomous-intelligence/scripts/remote-d1-preflight.mjs",
+      "hard_disabled": true
+    },
+    {
+      "path": "services/kidults-autonomous-intelligence/scripts/a14-remote-capacity-canary.mjs",
+      "hard_disabled": true
+    },
+    {
+      "path": "services/kidults-autonomous-intelligence/scripts/a9-finalize.ps1",
+      "hard_disabled": true
+    }
+  ],
+  "external_blockers": {
+    "durable_ledger_deployed": false,
+    "historical_consumed_record_backfilled": false,
+    "operation_specific_active_approval_issued": false,
+    "response_public_key_spki_sha256_pinned": false,
+    "signed_exact_binding_state_readback_issued": false,
+    "deployed_consumed_expired_replay_provider_call_zero_canaries_passed": false,
+    "downstream_actions_read_permission_granted": false,
+    "blocker_owner": "PROGRAM_OWNER_AND_EXTERNAL_TRUST_ROOT_OPERATOR"
+  },
+  "authority_rules": {
+    "repository_boolean_is_authority": false,
+    "repository_binding_file_is_authority": false,
+    "signed_ledger_receipt_without_exact_binding_verification_is_authority": false,
+    "only_atomic_consume_receipt_signed_by_pinned_ed25519_key_and_exactly_verified_is_provider_job_authority": true,
+    "github_response_private_signing_key_forbidden": true
+  },
+  "future_required_chain": [
+    {
+      "order": 1,
+      "step": "GENERATE_EXACT_CONSUME_REQUEST",
+      "requirements": ["fresh UUIDv4 consume_nonce", "strict UTC Z timestamps", "github_run_id string", "github_run_attempt exactly 1", "exact repository/workflow_ref/control_sha/source_sha/target digest"]
+    },
+    {
+      "order": 2,
+      "step": "ATOMIC_EXTERNAL_CONSUME",
+      "requirements": ["HTTPS no redirect", "request raw-body HMAC", "ACTIVE to CONSUMED durable CAS", "201 only", "raw response Ed25519 verification with pinned SPKI public-key digest"]
+    },
+    {
+      "order": 3,
+      "step": "UPLOAD_SIGNED_RECEIPT_ARTIFACT",
+      "requirements": ["request and client receipt together", "exact workflow run and head SHA", "artifact cardinality exactly 1", "retention receipt"]
+    },
+    {
+      "order": 4,
+      "step": "DOWNLOAD_EXACT_TRIGGERING_RECEIPT",
+      "requirements": ["triggering consume workflow_run id", "same head SHA", "exact artifact name", "not expired", "cardinality exactly 1"]
+    },
+    {
+      "order": 5,
+      "step": "VERIFY_RECEIPT_BEFORE_PROVIDER_CREDENTIALS",
+      "requirements": ["generic CLI verify", "Ed25519 raw-body detached signature", "pinned SPKI SHA-256", "request/response exact binding equality", "state CONSUMED", "provider secret steps strictly later"]
+    }
+  ],
+  "historical_readback_requirement": {
+    "method": "AUTHENTICATED_READ_ONLY_POST",
+    "path": "/v1/approvals/readback",
+    "exact_immutable_binding_required": true,
+    "ed25519_signed_state_receipt_required": true,
+    "current_state": "BLOCKED_ENDPOINT_AND_RECEIPT_NOT_DEPLOYED_OR_ISSUED",
+    "signed_409_is_exact_record_proof": false
+  },
+  "unsafe_endpoints": {
+    "issue": false,
+    "reset": false,
+    "delete": false,
+    "revoke": false,
+    "backfill": false
+  },
+  "release_boundary": {
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

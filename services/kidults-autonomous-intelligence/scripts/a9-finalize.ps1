@@ -4,6 +4,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+Write-Error "CLOUDFLARE_GLOBAL_NO_RERUN: Worker deploy and remote D1 mutation are disabled."
+exit 78
+
 function Step($text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }
 function Pass($text) { Write-Host "PASS: $text" -ForegroundColor Green }
 function Fail($text) { throw "FAIL: $text" }

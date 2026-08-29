@@ -1,4 +1,5 @@
 import { loadDataConnections, sourceIsOverlayEligible } from "./data-source-gateway.js";
+import { enforcePublicVerticalMetricBoundary } from "./public-metric-boundary.js";
 
 const LOCAL = {
   manifest: "data/v502-manifest.json?v=502",
@@ -210,7 +211,9 @@ export async function loadPortalData() {
     : null;
 
   const verifiedFields = overlayVerified(summary, quality, monthly);
-  const searchIndex = buildSearchIndex({ verticals, k100, research, archive });
+  const publicVerticalBoundary = enforcePublicVerticalMetricBoundary({ registry, manifest, verticalData: verticals });
+  const publicVerticals = publicVerticalBoundary.verticalData;
+  const searchIndex = buildSearchIndex({ verticals: publicVerticals, k100, research, archive });
 
   return {
     manifest,
@@ -222,7 +225,7 @@ export async function loadPortalData() {
     compare,
     decision,
     workspace,
-    verticals,
+    verticals: publicVerticals,
     summary,
     k100,
     signals,
@@ -239,7 +242,10 @@ export async function loadPortalData() {
       monthlyOverlayEligible: sourceIsOverlayEligible(connections, "monthly_intelligence"),
       registryProjectionConnected: Boolean(registry),
       dataConnectionState: connections.summary.state,
-      releaseCandidate: manifest.status === "RELEASE_CANDIDATE"
+      releaseCandidate: manifest.status === "RELEASE_CANDIDATE",
+      publicVerticalMetricState: publicVerticalBoundary.state,
+      publicVerticalMetricProjectionReady: publicVerticalBoundary.projectionReady,
+      withheldPublicVerticalMetricFields: publicVerticalBoundary.withheldFieldCount
     }
   };
 }

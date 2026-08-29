@@ -65,15 +65,22 @@ const run = spawnSync('bash', [files.readonly], {
     GITHUB_SHA: '1111111111111111111111111111111111111111',
   },
 });
-assert.equal(run.status, 0, run.stderr || run.stdout);
+assert.equal(run.status, 1, run.stderr || run.stdout);
 const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-assert.equal(receipt.state, 'COMPLETE_VERIFIED');
+assert.equal(receipt.state, 'VERIFIED_FAIL');
 assert.equal(receipt.visible_preview_count, 0);
 assert.equal(receipt.skipped_preview_attempt_count, 1);
-assert.equal(receipt.latest_deployment_governed, true);
+assert.equal(receipt.latest_deployment_message_claim, true);
+assert.equal(receipt.latest_deployment_governed, false);
+assert.equal(receipt.signed_ledger_lineage_verified, false);
+assert.equal(receipt.latest_deployment_matches_current_main, true);
+assert.equal(receipt.governed_staging_current_main_parity, 'HOLD_UNVERIFIED_LINEAGE');
+assert.equal(receipt.parity_blocker, 'LATEST_DEPLOYMENT_SIGNED_LEDGER_LINEAGE_UNVERIFIED');
 assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
 assert.equal(receipt.settings_mutated, false);
+assert.equal(receipt.deployment_created, false);
+assert.equal(receipt.deployment_deleted, false);
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
@@ -81,7 +88,8 @@ console.log(JSON.stringify({
   invalid_per_page_100_rejected: true,
   bounded_page_size_25: true,
   skipped_preview_not_materialized: true,
-  latest_materialized_governed_selection: true,
+  latest_materialized_selection: true,
+  self_asserted_governance_rejected: true,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

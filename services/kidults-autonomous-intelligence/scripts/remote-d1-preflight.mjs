@@ -2,6 +2,9 @@ import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+console.error('CLOUDFLARE_GLOBAL_NO_RERUN: remote D1 preflight is disabled.');
+process.exit(78);
+
 const cwd = process.cwd();
 const config = JSON.parse(readFileSync(resolve(cwd, 'wrangler.jsonc'), 'utf8').replace(/^\uFEFF/, ''));
 if (config?.vars?.KIDULTS_ENV === 'production') {

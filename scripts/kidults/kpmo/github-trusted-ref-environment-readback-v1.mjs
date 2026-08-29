@@ -10,6 +10,9 @@ const DEFAULT_REPOSITORY = 'johnkim9524-collab/kaios_enterprise_repo';
 const DEFAULT_BRANCH = 'main';
 export const LIVE_MAIN_GUARD_STEP_NAME = 'Verify live main before provider credential resolution';
 export const ACTIVATION_RECEIPT_STEP_NAME = 'Verify explicit STAGING activation authorization before secret resolution';
+export const ONE_SHOT_RECEIPT_STEP_NAME = 'Verify consumed external one-shot authorization binding before provider credentials';
+export const ONE_SHOT_PIN_STEP_NAME = 'Load repository-machine-pinned ledger verification digest';
+export const ONE_SHOT_ARTIFACT_STEP_NAME = 'Download exact same-run signed authorization receipt';
 
 const digest = (value) => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const uniqueSorted = (values) => [...new Set(values)].sort();
@@ -168,6 +171,10 @@ function jobSteps(block) {
 
 function liveMainGuardContract(step) {
   if (!step || step.name !== LIVE_MAIN_GUARD_STEP_NAME) return false;
+  const curlInvocationCount = (step.text.match(/\bcurl\s+--/g) || []).length;
+  const failClosedCurlInvocationCount = (
+    step.text.match(/\bcurl\s+--fail-with-body\s+--silent\s+--show-error/g) || []
+  ).length;
   const required = [
     'GITHUB_TOKEN: ${{ github.token }}',
     'set -euo pipefail',
@@ -184,6 +191,8 @@ function liveMainGuardContract(step) {
     'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"'
   ];
   return required.every((marker) => step.text.includes(marker))
+    && curlInvocationCount > 0
+    && failClosedCurlInvocationCount === curlInvocationCount
     && (step.text.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 1
     && !secretMetadata(step.text).secret_bearing
     && !/continue-on-error\s*:\s*true/i.test(step.text)
@@ -207,6 +216,50 @@ function activationReceiptContract(step, requiredVariable, triggerClasses) {
   return required.every((marker) => step.text.includes(marker))
     && eventContract
     && !secretMetadata(step.text).secret_bearing
+    && !/continue-on-error\s*:\s*true/i.test(step.text)
+    && !/\|\|\s*true|continue\s*$/m.test(step.text);
+}
+
+function oneShotArtifactReadbackContract(step, pinStep, receiptStep) {
+  if (!step || !pinStep || !receiptStep) return false;
+  if (step.name !== ONE_SHOT_ARTIFACT_STEP_NAME) return false;
+  if (!(step.index > pinStep.index && step.index < receiptStep.index)) return false;
+  const count = (needle) => step.text.split(needle).length - 1;
+  const required = [
+    'GITHUB_TOKEN: ${{ github.token }}',
+    'set -euo pipefail',
+    '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100&name=$ARTIFACT_NAME',
+    "item.get('name')==os.environ['ARTIFACT_NAME']",
+    "and not item.get('expired')",
+    "item.get('workflow_run',{}).get('id')==int(os.environ['GITHUB_RUN_ID'])",
+    "item.get('workflow_run',{}).get('head_sha')==os.environ['GITHUB_SHA']",
+    "re.fullmatch(r'sha256:[a-f0-9]{64}',str(item.get('digest','')))",
+    "assert payload.get('total_count')==1 and len(matches)==1",
+    "write_text(str(matches[0]['id']))",
+    "write_text(matches[0]['digest'])",
+    'test "$found" = "true"',
+    'artifact_id="$(<"$RUNNER_TEMP/postgres-authorization-artifact-id")"',
+    '"$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \\',
+    '--output "$RUNNER_TEMP/postgres-authorization.zip"',
+    'test "$downloaded" = "true"',
+    "assert not path.is_absolute() and '..' not in path.parts",
+    'assert not stat.S_ISLNK(member.external_attr >> 16)',
+    "assert sorted(item.filename for item in files)==['authorization-consumption.json','authorization-context.json']",
+    'zf.extractall(destination)',
+    "assert len(contexts)==len(receipts)==1",
+    "outputs={'context_path':str(contexts[0]),'receipt_path':str(receipts[0]),'artifact_digest':expected}",
+  ];
+  return required.every((marker) => step.text.includes(marker))
+    && count('for attempt in $(seq 1 12); do') === 1
+    && count('if [ "$attempt" -lt 12 ]; then sleep 5; fi') === 1
+    && count('for attempt in $(seq 1 6); do') === 1
+    && count('if [ "$attempt" -lt 6 ]; then sleep 5; fi') === 1
+    && count("'sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()==expected") === 2
+    && (step.text.match(/\bcurl\s+--/g) || []).length === 2
+    && (step.text.match(/\bcurl\s+--fail-with-body\s+--silent\s+--show-error/g) || []).length === 2
+    && count('--location') === 1
+    && (step.text.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 1
+    && !step.secret_bearing
     && !/continue-on-error\s*:\s*true/i.test(step.text)
     && !/\|\|\s*true|continue\s*$/m.test(step.text);
 }
@@ -269,6 +322,10 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       : block;
     const jobScopeSecrets = secretMetadata(jobPreamble);
     const jobPermissionsOverride = /^ {4}permissions\s*:/m.test(jobPreamble);
+    const jobPermissionsBlock = jobPreamble.match(/^ {4}permissions:\s*\n((?: {6}[^\n]+(?:\n|$))*)/m)?.[1] || '';
+    const jobPermissionEntries = jobPermissionsBlock.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const jobPermissionsExactActionsContentsRead = jobPermissionsOverride
+      && JSON.stringify(jobPermissionEntries) === JSON.stringify(['actions: read', 'contents: read']);
     const providerSecretSteps = parsedSteps.steps.filter((step) => step.secret_bearing);
     const liveMainGuardSteps = parsedSteps.steps.filter((step) => step.name === LIVE_MAIN_GUARD_STEP_NAME);
     const liveMainGuard = liveMainGuardSteps.length === 1 ? liveMainGuardSteps[0] : null;
@@ -284,6 +341,22 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
     );
     const activationReceiptSteps = parsedSteps.steps.filter((step) => step.name === ACTIVATION_RECEIPT_STEP_NAME);
     const activationReceipt = activationReceiptSteps.length === 1 ? activationReceiptSteps[0] : null;
+    const oneShotReceiptSteps = parsedSteps.steps.filter((step) => step.name === ONE_SHOT_RECEIPT_STEP_NAME);
+    const oneShotReceipt = oneShotReceiptSteps.length === 1 ? oneShotReceiptSteps[0] : null;
+    const oneShotPinSteps = parsedSteps.steps.filter((step) => step.name === ONE_SHOT_PIN_STEP_NAME);
+    const oneShotPin = oneShotPinSteps.length === 1 ? oneShotPinSteps[0] : null;
+    const oneShotArtifactSteps = parsedSteps.steps.filter((step) => step.name === ONE_SHOT_ARTIFACT_STEP_NAME);
+    const oneShotArtifact = oneShotArtifactSteps.length === 1 ? oneShotArtifactSteps[0] : null;
+    const githubTokenSteps = parsedSteps.steps.filter((step) => step.github_token_context);
+    const oneShotNeedsJobs = uniqueSorted(
+      [...block.matchAll(/needs\.([A-Za-z0-9_-]+)\.(?:result|outputs\.)/g)].map((match) => match[1])
+    );
+    const oneShotAuthorizedOutputJobs = uniqueSorted(
+      [...block.matchAll(/needs\.([A-Za-z0-9_-]+)\.outputs\.authorized\s*==\s*['"]true['"]/g)].map((match) => match[1])
+    );
+    const standingFalseVariables = uniqueSorted(
+      [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]false['"]/g)].map((match) => match[1])
+    );
     return {
       job: header.id,
       secret_bearing: secretBearing,
@@ -294,6 +367,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       explicit_main_ref_guard: explicitMainRefGuard,
       workflow_permissions_contents_read_only: contentsReadOnly,
       job_permissions_override: jobPermissionsOverride,
+      job_permissions_exact_actions_contents_read: jobPermissionsExactActionsContentsRead,
       workflow_scope_secret_names: workflowSecrets.secret_names,
       job_scope_secret_names: jobScopeSecrets.secret_names,
       step_secret_bindings: providerSecretSteps.map((step) => ({
@@ -326,11 +400,55 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
           && providerSecretSteps.every((step) => activationReceipt.index < step.index)
         )
       },
+      one_shot_authorization: {
+        receipt_step_count: oneShotReceiptSteps.length,
+        receipt_step_index: oneShotReceipt?.index ?? null,
+        needs_jobs: oneShotNeedsJobs,
+        authorized_output_jobs: oneShotAuthorizedOutputJobs,
+        standing_false_variables: standingFalseVariables,
+        after_live_main_guard: Boolean(
+          oneShotReceipt
+          && liveMainGuard
+          && oneShotReceipt.index > liveMainGuard.index
+        ),
+        artifact_readback_contract: oneShotArtifactReadbackContract(oneShotArtifact, oneShotPin, oneShotReceipt),
+        before_all_provider_secret_steps: Boolean(
+          oneShotReceipt
+          && providerSecretSteps.length > 0
+          && providerSecretSteps.every((step) => oneShotReceipt.index < step.index)
+        ),
+        binds_exact_sha_run_workflow_target_and_receipt: Boolean(
+          oneShotReceipt
+          && oneShotPin
+          && oneShotPin.index < oneShotReceipt.index
+          && [
+            "['external_ledger']['response_verification']['public_key_spki_sha256']",
+            '[[ "$PIN" =~ ^sha256:[a-f0-9]{64}$ ]]',
+            "printf 'KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256=%s\\n' \"$PIN\" >> \"$GITHUB_ENV\"",
+          ].every((marker) => oneShotPin.text.includes(marker))
+          && [
+            'scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 1800',
+            'AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}',
+            'AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}',
+            'KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}',
+            "ledger=receipt['ledger_receipt']",
+            "assert ledger[field]==context[field]",
+            "assert context['repository']==os.environ['GITHUB_REPOSITORY']",
+            "assert context['workflow_ref']==os.environ['GITHUB_WORKFLOW_REF']",
+            "assert context['control_sha']==context['source_sha']==os.environ['GITHUB_SHA']",
+            "assert context['github_run_id']==os.environ['GITHUB_RUN_ID']",
+            "assert context['github_run_attempt']==int(os.environ['GITHUB_RUN_ATTEMPT'])==1",
+            "receipt['verification_key_spki_sha256']",
+            'datetime.timedelta(seconds=1800) < expiry',
+          ].every((marker) => oneShotReceipt.text.includes(marker))
+        )
+      },
       live_main_guard: {
         count: liveMainGuardSteps.length,
         step_index: liveMainGuard?.index ?? null,
         contract_valid: liveMainGuardContract(liveMainGuard),
-        github_token_step_count: parsedSteps.steps.filter((step) => step.github_token_context).length,
+        github_token_step_count: githubTokenSteps.length,
+        github_token_step_names: githubTokenSteps.map((step) => step.name),
         before_all_provider_secret_steps: Boolean(
           liveMainGuard
           && providerSecretSteps.length > 0
@@ -409,7 +527,9 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
   const expectedByKey = new Map();
   const privilegedPolicy = registry?.repository_privileged_execution_policy || {};
 
-  require(bindings.length === registry?.registered_count, 'REQUIRED_BINDING_COUNT');
+  const registeredSecretBearingJobCount = registry?.registered_secret_bearing_job_count ?? registry?.registered_count;
+  require(bindings.length === registeredSecretBearingJobCount, 'REQUIRED_BINDING_COUNT');
+  require(Number.isInteger(registeredSecretBearingJobCount) && registeredSecretBearingJobCount >= registry?.registered_count, 'REGISTERED_SECRET_BEARING_JOB_COUNT');
   require(privilegedPolicy.required_live_main_guard_step_name === LIVE_MAIN_GUARD_STEP_NAME, 'LIVE_MAIN_GUARD_POLICY_NAME');
   require(privilegedPolicy.required_branch_endpoint === '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main', 'LIVE_MAIN_BRANCH_ENDPOINT_POLICY');
   require(privilegedPolicy.guard_token_context === '${{ github.token }}', 'LIVE_MAIN_GUARD_TOKEN_CONTEXT_POLICY');
@@ -443,6 +563,25 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
       && new Set(binding.required_secret_step_names).size === binding.required_secret_step_names.length,
       `INVALID_REQUIRED_SECRET_STEP_NAMES:${key}`
     );
+    if (binding?.required_one_shot_authorization) {
+      require(
+        /^[A-Za-z0-9][A-Za-z0-9_-]{2,127}$/.test(String(binding.required_one_shot_authorization.consume_job || '')),
+        `INVALID_ONE_SHOT_CONSUME_JOB:${key}`
+      );
+      require(
+        /^[A-Z0-9][A-Z0-9_]{7,127}$/.test(String(binding.required_one_shot_authorization.operation_id || '')),
+        `INVALID_ONE_SHOT_OPERATION_ID:${key}`
+      );
+      require(
+        binding.required_one_shot_authorization.receipt_step_name === ONE_SHOT_RECEIPT_STEP_NAME,
+        `INVALID_ONE_SHOT_RECEIPT_STEP:${key}`
+      );
+      require(
+        /^[A-Z][A-Z0-9_]{7,127}$/.test(String(binding.required_one_shot_authorization.standing_variable || ''))
+          && binding.required_one_shot_authorization.standing_required_value === 'false',
+        `INVALID_ONE_SHOT_STANDING_FALSE_CONTRACT:${key}`
+      );
+    }
   }
 
   const observedKeys = [];
@@ -472,12 +611,33 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
         require(job.activation_receipt?.before_live_main_guard === true, `ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:${key}`);
         require(job.activation_receipt?.before_all_provider_secret_steps === true, `ACTIVATION_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
       }
+      if (expected.required_one_shot_authorization) {
+        const oneShot = expected.required_one_shot_authorization;
+        require(job.one_shot_authorization?.receipt_step_count === 1, `ONE_SHOT_RECEIPT_STEP_COUNT:${key}`);
+        require(Number.isInteger(job.one_shot_authorization?.receipt_step_index) && job.one_shot_authorization.receipt_step_index > 0, `ONE_SHOT_RECEIPT_STEP_ORDER:${key}`);
+        require(job.one_shot_authorization?.needs_jobs.includes(oneShot.consume_job), `ONE_SHOT_NEEDS_JOB_MISSING:${key}`);
+        require(job.one_shot_authorization?.authorized_output_jobs.includes(oneShot.consume_job), `ONE_SHOT_AUTHORIZED_OUTPUT_GUARD_MISSING:${key}`);
+        require(job.one_shot_authorization?.standing_false_variables.includes(oneShot.standing_variable), `ONE_SHOT_STANDING_FALSE_GUARD_MISSING:${key}`);
+        require(job.one_shot_authorization?.after_live_main_guard === true, `ONE_SHOT_RECEIPT_AFTER_LIVE_MAIN:${key}`);
+        require(job.one_shot_authorization?.before_all_provider_secret_steps === true, `ONE_SHOT_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
+        require(job.one_shot_authorization?.artifact_readback_contract === true, `ONE_SHOT_ARTIFACT_READBACK_CONTRACT:${key}`);
+        require(job.one_shot_authorization?.binds_exact_sha_run_workflow_target_and_receipt === true, `ONE_SHOT_RECEIPT_BINDING_CONTRACT:${key}`);
+        require(job.job_permissions_override === true && job.job_permissions_exact_actions_contents_read === true, `ONE_SHOT_ARTIFACT_READ_JOB_PERMISSION:${key}`);
+      }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
       require(job.workflow_permissions_contents_read_only, `GITHUB_TOKEN_PERMISSION_NOT_CONTENTS_READ_ONLY:${key}`);
-      require(job.job_permissions_override === false, `GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:${key}`);
+      if (!expected.required_one_shot_authorization) {
+        require(job.job_permissions_override === false, `GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:${key}`);
+      }
       require(job.live_main_guard?.count === 1, `LIVE_MAIN_GUARD_COUNT:${key}`);
       require(job.live_main_guard?.contract_valid === true, `LIVE_MAIN_GUARD_CONTRACT:${key}`);
-      require(job.live_main_guard?.github_token_step_count === 1, `GITHUB_TOKEN_SCOPE_COUNT:${key}`);
+      const expectedGithubTokenSteps = expected.required_one_shot_authorization
+        ? [LIVE_MAIN_GUARD_STEP_NAME, ONE_SHOT_ARTIFACT_STEP_NAME]
+        : [LIVE_MAIN_GUARD_STEP_NAME];
+      require(
+        JSON.stringify(job.live_main_guard?.github_token_step_names) === JSON.stringify(expectedGithubTokenSteps),
+        `GITHUB_TOKEN_SCOPE_COUNT:${key}`
+      );
       require(job.live_main_guard?.before_all_provider_secret_steps === true, `LIVE_MAIN_GUARD_ORDER:${key}`);
       require(job.workflow_scope_secret_names.length === 0, `WORKFLOW_SCOPE_PROVIDER_SECRET:${key}`);
       require(job.job_scope_secret_names.length === 0, `JOB_SCOPE_PROVIDER_SECRET:${key}`);
@@ -551,16 +711,164 @@ function exactMainPolicy(environment, policyReadback) {
   );
 }
 
+function sortedStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+    ? [...value].sort()
+    : null;
+}
+
+function sanitizedStatusChecks(rule) {
+  const entries = rule?.parameters?.required_status_checks;
+  if (!Array.isArray(entries)) return null;
+  return entries.map((entry) => ({
+    context: typeof entry?.context === 'string' ? entry.context : null,
+    integration_id: Number.isSafeInteger(entry?.integration_id) ? entry.integration_id : null
+  })).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+}
+
+function rulesetReadbackComplete(snapshot) {
+  const listed = snapshot.rulesets?.body;
+  const details = snapshot.rulesetDetails;
+  return Boolean(
+    snapshot.rulesets?.ok
+      && snapshot.rulesets?.complete === true
+      && Array.isArray(listed)
+      && Array.isArray(details)
+      && details.length === listed.length
+      && details.every((result, index) => (
+        result?.ok
+          && Number.isSafeInteger(result?.ruleset_id)
+          && result.ruleset_id === listed[index]?.id
+          && result.body?.id === result.ruleset_id
+      ))
+  );
+}
+
 function sanitizedRulesets(snapshot) {
-  return (snapshot.rulesetDetails || []).map((result) => ({
-    readable: Boolean(result.ok),
-    http_status: Number(result.status || 0),
-    name: result.ok ? String(result.body?.name || '') : null,
-    target: result.ok ? String(result.body?.target || '') : null,
-    enforcement: result.ok ? String(result.body?.enforcement || '') : null,
-    default_branch_targeted: Boolean(result.ok && result.body?.conditions?.ref_name?.include?.includes('~DEFAULT_BRANCH')),
-    rule_types: result.ok ? uniqueSorted((result.body?.rules || []).map((rule) => String(rule?.type || '')).filter(Boolean)) : []
-  }));
+  return (snapshot.rulesetDetails || []).map((result) => {
+    const body = result?.body;
+    const statusRule = result?.ok && Array.isArray(body?.rules)
+      ? body.rules.find((rule) => rule?.type === 'required_status_checks')
+      : null;
+    const bypassActorCount = result?.ok && Array.isArray(body?.bypass_actors)
+      ? body.bypass_actors.length
+      : null;
+    const refNameInclude = result?.ok ? sortedStringArray(body?.conditions?.ref_name?.include) : null;
+    const refNameExclude = result?.ok ? sortedStringArray(body?.conditions?.ref_name?.exclude) : null;
+    return {
+      ruleset_id: Number.isSafeInteger(result?.ruleset_id) ? result.ruleset_id : null,
+      readable: Boolean(result?.ok),
+      http_status: Number(result?.status || 0),
+      name: result?.ok && typeof body?.name === 'string' ? body.name : null,
+      target: result?.ok && typeof body?.target === 'string' ? body.target : null,
+      enforcement: result?.ok && typeof body?.enforcement === 'string' ? body.enforcement : null,
+      source_type: result?.ok && typeof body?.source_type === 'string' ? body.source_type : null,
+      source: result?.ok && typeof body?.source === 'string' ? body.source : null,
+      ref_name_include: refNameInclude,
+      ref_name_exclude: refNameExclude,
+      bypass_actor_count: bypassActorCount,
+      default_branch_targeted: Boolean(
+        result?.ok
+          && refNameInclude?.length === 1
+          && refNameInclude[0] === '~DEFAULT_BRANCH'
+          && refNameExclude?.length === 0
+      ),
+      rule_types: result?.ok && Array.isArray(body?.rules)
+        ? uniqueSorted(body.rules.map((rule) => String(rule?.type || '')).filter(Boolean))
+        : null,
+      strict_required_status_checks_policy: statusRule
+        ? (typeof statusRule.parameters?.strict_required_status_checks_policy === 'boolean'
+            ? statusRule.parameters.strict_required_status_checks_policy
+            : null)
+        : null,
+      required_status_checks: statusRule ? sanitizedStatusChecks(statusRule) : null
+    };
+  });
+}
+
+function sortedStatusChecks(value) {
+  return Array.isArray(value)
+    ? value.map((entry) => ({
+        context: typeof entry?.context === 'string' ? entry.context : null,
+        integration_id: Number.isSafeInteger(entry?.integration_id) ? entry.integration_id : null
+      })).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+    : null;
+}
+
+export function evaluateNativeRequiredStatusBinding(rulesetContext, expected) {
+  const expectedChecks = sortedStatusChecks(expected?.required_status_checks) || [];
+  const expectedInclude = sortedStringArray(expected?.ref_name_include);
+  const expectedExclude = sortedStringArray(expected?.ref_name_exclude);
+  const candidates = (rulesetContext || []).filter((ruleset) => (
+    ruleset?.readable === true && ruleset?.name === expected?.ruleset_name
+  ));
+  const observed = candidates.length === 1 ? candidates[0] : null;
+  const observedChecks = observed?.required_status_checks;
+  const blockers = [];
+  if (!expected || expectedChecks.length === 0 || !expectedInclude || !expectedExclude) {
+    blockers.push('NATIVE_REQUIRED_STATUS_CONTRACT_MISSING');
+  }
+  if (candidates.length === 0) blockers.push('NATIVE_REQUIRED_STATUS_RULESET_NOT_OBSERVED');
+  if (candidates.length > 1) blockers.push('NATIVE_REQUIRED_STATUS_RULESET_AMBIGUOUS');
+  if (observed && (
+    observed.enforcement !== expected.enforcement
+      || observed.target !== expected.target
+      || observed.source_type !== expected.source_type
+      || observed.source !== expected.source
+  )) blockers.push('NATIVE_REQUIRED_STATUS_RULESET_IDENTITY_MISMATCH');
+  if (observed && (
+    JSON.stringify(observed.ref_name_include) !== JSON.stringify(expectedInclude)
+      || JSON.stringify(observed.ref_name_exclude) !== JSON.stringify(expectedExclude)
+  )) blockers.push('NATIVE_REQUIRED_STATUS_REF_CONDITION_MISMATCH');
+  if (observed && observed.bypass_actor_count !== expected.bypass_actor_count) {
+    blockers.push('NATIVE_REQUIRED_STATUS_BYPASS_COUNT_MISMATCH');
+  }
+  if (observed && observed.strict_required_status_checks_policy !== expected.strict_required_status_checks_policy) {
+    blockers.push('NATIVE_REQUIRED_STATUS_STRICT_POLICY_MISMATCH');
+  }
+  if (observed && !Array.isArray(observedChecks)) blockers.push('NATIVE_REQUIRED_STATUS_CHECKS_NOT_READABLE');
+
+  const observedContexts = Array.isArray(observedChecks)
+    ? observedChecks.map((entry) => entry.context)
+    : [];
+  const duplicateContexts = uniqueSorted(observedContexts.filter((context, index) => (
+    context !== null && observedContexts.indexOf(context) !== index
+  )));
+  if (duplicateContexts.length > 0) blockers.push('NATIVE_REQUIRED_STATUS_CONTEXT_DUPLICATE');
+  const missingContexts = expectedChecks
+    .filter((expectedCheck) => !observedContexts.includes(expectedCheck.context))
+    .map((entry) => entry.context);
+  if (missingContexts.length > 0) blockers.push('NATIVE_REQUIRED_STATUS_CONTEXT_MISSING');
+  const integrationMismatches = expectedChecks.flatMap((expectedCheck) => {
+    const entries = Array.isArray(observedChecks)
+      ? observedChecks.filter((entry) => entry.context === expectedCheck.context)
+      : [];
+    return entries.length > 0 && entries.every((entry) => entry.integration_id === expectedCheck.integration_id)
+      ? []
+      : (entries.length > 0 ? [{
+          context: expectedCheck.context,
+          expected_integration_id: expectedCheck.integration_id,
+          observed_integration_ids: uniqueSorted(entries.map((entry) => String(entry.integration_id)))
+        }] : []);
+  });
+  if (integrationMismatches.length > 0) blockers.push('NATIVE_REQUIRED_STATUS_INTEGRATION_MISMATCH');
+  const expectedContexts = expectedChecks.map((entry) => entry.context);
+  const additionalContexts = uniqueSorted(observedContexts.filter((context) => (
+    typeof context === 'string' && !expectedContexts.includes(context)
+  )));
+  const uniqueBlockers = uniqueSorted(blockers);
+  return {
+    state: uniqueBlockers.length === 0 ? 'VERIFIED_PASS' : 'BLOCKED',
+    ruleset_name: expected?.ruleset_name || null,
+    ruleset_id: observed?.ruleset_id || null,
+    expected_status_checks: expectedChecks,
+    observed_status_checks: Array.isArray(observedChecks) ? observedChecks : null,
+    missing_contexts: missingContexts,
+    duplicate_contexts: duplicateContexts,
+    integration_mismatches: integrationMismatches,
+    additional_contexts: additionalContexts,
+    blockers: uniqueBlockers
+  };
 }
 
 export function buildReadbackReceipt({
@@ -575,6 +883,12 @@ export function buildReadbackReceipt({
   const repositoryBody = snapshot.repository?.body || {};
   const branchBody = snapshot.branch?.body || {};
   const observedBranchSha = branchBody.sha || branchBody.commit?.sha || null;
+  const rulesetContext = sanitizedRulesets(snapshot);
+  const nativeRequiredStatusBinding = evaluateNativeRequiredStatusBinding(
+    rulesetContext,
+    contract.native_required_status_binding
+  );
+  const rulesetsComplete = rulesetReadbackComplete(snapshot);
   const environmentsComplete = completeListReadback(snapshot.environments, 'environments');
   const repositorySecretsComplete = completeListReadback(snapshot.repositorySecrets, 'secrets');
   const organizationSecretsComplete = completeListReadback(snapshot.organizationSecrets, 'secrets');
@@ -678,7 +992,10 @@ export function buildReadbackReceipt({
   if (branchBody.name !== contract.scope.default_branch) globalBlockers.push('OBSERVED_BRANCH_NAME_MISMATCH');
   if (!branchBody.protected) globalBlockers.push('DEFAULT_BRANCH_NOT_PROTECTED');
   if (!environmentsComplete) globalBlockers.push('ENVIRONMENT_LIST_INCOMPLETE');
-  if (!snapshot.rulesets?.ok || snapshot.rulesets?.complete !== true) globalBlockers.push('RULESET_METADATA_INCOMPLETE');
+  if (!rulesetsComplete) globalBlockers.push('RULESET_METADATA_INCOMPLETE');
+  if (nativeRequiredStatusBinding.state !== 'VERIFIED_PASS') {
+    globalBlockers.push('NATIVE_REQUIRED_STATUS_BINDING_NOT_VERIFIED');
+  }
   if (!repositorySecretsComplete) globalBlockers.push('REPOSITORY_SECRET_METADATA_INCOMPLETE');
   if (!organizationSecretsComplete) globalBlockers.push('ORGANIZATION_SECRET_METADATA_INCOMPLETE');
   if (sourceContext.ref !== `refs/heads/${contract.scope.default_branch}`) globalBlockers.push('READBACK_SOURCE_REF_NOT_DEFAULT_BRANCH');
@@ -721,7 +1038,13 @@ export function buildReadbackReceipt({
     repository: endpoint(snapshot.repository?.status, snapshot.repository?.ok),
     default_branch: endpoint(snapshot.branch?.status, snapshot.branch?.ok),
     environments: endpoint(snapshot.environments?.status, snapshot.environments?.ok, environmentsComplete),
-    rulesets: endpoint(snapshot.rulesets?.status, snapshot.rulesets?.ok, snapshot.rulesets?.complete === true),
+    rulesets: {
+      ...endpoint(snapshot.rulesets?.status, snapshot.rulesets?.ok, rulesetsComplete),
+      list_complete: Boolean(snapshot.rulesets?.ok && snapshot.rulesets?.complete === true),
+      detail_complete: rulesetsComplete,
+      listed_count: Array.isArray(snapshot.rulesets?.body) ? snapshot.rulesets.body.length : 0,
+      readable_detail_count: (snapshot.rulesetDetails || []).filter((result) => result?.ok).length
+    },
     repository_secrets: endpoint(snapshot.repositorySecrets?.status, snapshot.repositorySecrets?.ok, repositorySecretsComplete),
     organization_secrets: endpoint(snapshot.organizationSecrets?.status, snapshot.organizationSecrets?.ok, organizationSecretsComplete)
   };
@@ -741,7 +1064,7 @@ export function buildReadbackReceipt({
 
   const receipt = {
     id: 'kidults-github-trusted-ref-environment-readback-receipt-v1',
-    version: '1.4.0',
+    version: '1.5.0',
     issue: 974,
     parent_gate_issue: 881,
     observed_at: observedAt,
@@ -775,7 +1098,8 @@ export function buildReadbackReceipt({
     verified_secret_bearing_jobs: bindingResults.filter((result) => result.state === 'VERIFIED_PASS').length,
     binding_results: bindingResults,
     environment_summary: environmentSummary,
-    ruleset_context: sanitizedRulesets(snapshot),
+    ruleset_context: rulesetContext,
+    native_required_status_binding: nativeRequiredStatusBinding,
     negative_execution_proof: negativeExecutionProof,
     trusted_execution_attestation: {
       state: 'NOT_IMPLEMENTED',
@@ -916,7 +1240,10 @@ export async function collectLiveSnapshot(repository, token = '') {
   }));
 
   const listedRulesets = rulesetsResult.ok && Array.isArray(rulesetsResult.body) ? rulesetsResult.body : [];
-  const rulesetDetails = await Promise.all(listedRulesets.map((ruleset) => githubGet(repository, `/rulesets/${ruleset.id}`, token)));
+  const rulesetDetails = await Promise.all(listedRulesets.map(async (ruleset) => ({
+    ...await githubGet(repository, `/rulesets/${ruleset.id}`, token),
+    ruleset_id: ruleset.id
+  })));
   return {
     repository: repositoryResult,
     branch: branchResult,

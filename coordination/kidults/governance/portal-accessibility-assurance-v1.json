@@ -1,9 +1,24 @@
 {
   "id":"portal-accessibility-assurance-v1",
-  "version":"1.0.0",
-  "status":"CONTRACT_READY_TEST_EVIDENCE_PENDING",
+  "version":"1.1.0",
+  "status":"AUTOMATED_SURROGATE_READY_PHYSICAL_HUMAN_HOLD",
   "standard":"WCAG_2_2",
   "required_checks":["keyboard_navigation","visible_focus","semantic_landmarks","form_and_control_labels","text_and_ui_contrast","responsive_reflow_320px","zoom_and_text_resize","screen_reader_name_role_value","reduced_motion_where_applicable","error_and_status_announcement"],
-  "release_rule":"PORTAL_PUBLIC_RELEASE_REQUIRES_EVIDENCE_PASS",
+  "automated_surrogate": {
+    "evidence_class": "NON_PHYSICAL_WEBKIT_SURROGATE",
+    "scope": "DOM_KEYBOARD_FOCUS_REFLOW_HISTORY_RUNTIME",
+    "physical_device_authority": "NONE",
+    "screen_reader_authority": "NONE"
+  },
+  "physical_mobile_receipt_contract":"portal-physical-mobile-screen-reader-acceptance-contract-v1#physical_mobile",
+  "screen_reader_receipt_contract":"portal-physical-mobile-screen-reader-acceptance-contract-v1#screen_reader",
+  "canonical_pending_receipt":"coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json",
+  "physical_mobile_attestation_verifier":"NOT_PROVISIONED",
+  "screen_reader_attestation_verifier":"NOT_PROVISIONED",
+  "self_asserted_signed_receipt_eligible":false,
+  "physical_iphone_mobile_safari":"HOLD_PENDING_PHYSICAL_DEVICE",
+  "voiceover_screen_reader":"HOLD_PENDING_HUMAN_REVIEW",
+  "release_rule":"PORTAL_PUBLIC_RELEASE_REQUIRES_SEPARATE_PHYSICAL_MOBILE_AND_SCREEN_READER_RECEIPTS_PASS",
+  "public":"HOLD",
   "production":"HOLD"
 }

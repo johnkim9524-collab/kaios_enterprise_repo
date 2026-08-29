@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import {
-  ACTIVATION_RECEIPT_STEP_NAME,
   CONTRACT_PATH,
   LIVE_MAIN_GUARD_STEP_NAME,
+  ONE_SHOT_ARTIFACT_STEP_NAME,
+  ONE_SHOT_RECEIPT_STEP_NAME,
   REGISTRY_PATH,
   analyzeWorkflow,
   buildReadbackReceipt,
@@ -31,6 +32,30 @@ function replaceInLiveMainGuard(source, before, after) {
   assert.ok(block.includes(before), `live-main guard marker missing: ${before}`);
   const mutatedBlock = block.replace(before, after);
   return `${source.slice(0, start)}${mutatedBlock}${source.slice(boundary)}`;
+}
+
+function replaceInNamedJob(source, jobName, before, after) {
+  const header = `  ${jobName}:`;
+  const start = source.indexOf(header);
+  assert.notEqual(start, -1, `job fixture missing: ${jobName}`);
+  const endMatch = source.slice(start + header.length).search(/^  [A-Za-z0-9_-]+:\s*$/m);
+  const end = endMatch < 0 ? source.length : start + header.length + endMatch;
+  const block = source.slice(start, end);
+  assert.ok(block.includes(before), `job marker missing in ${jobName}: ${before}`);
+  return `${source.slice(0, start)}${block.replace(before, after)}${source.slice(end)}`;
+}
+
+function replaceInNamedStep(source, stepName, before, after, { last = false } = {}) {
+  const header = `      - name: ${stepName}`;
+  const start = source.indexOf(header);
+  assert.notEqual(start, -1, `step fixture missing: ${stepName}`);
+  const endMatch = source.indexOf('\n      - ', start + header.length);
+  const end = endMatch < 0 ? source.length : endMatch;
+  const block = source.slice(start, end);
+  const at = last ? block.lastIndexOf(before) : block.indexOf(before);
+  assert.notEqual(at, -1, `step marker missing in ${stepName}: ${before}`);
+  const mutated = `${block.slice(0, at)}${after}${block.slice(at + before.length)}`;
+  return `${source.slice(0, start)}${mutated}${source.slice(end)}`;
 }
 
 function replaceLaneSource(inventory, workflow, source) {
@@ -159,18 +184,53 @@ function verifiedSnapshot(inventory = verifiedInventory()) {
         observed_at: '2026-08-23T00:00:00.000Z'
       }
     },
-    rulesets: { ok: true, status: 200, complete: true, body: [{ id: 1 }] },
-    rulesetDetails: [{
-      ok: true,
-      status: 200,
-      body: {
-        name: 'Protect main',
-        target: 'branch',
-        enforcement: 'active',
-        conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } },
-        rules: [{ type: 'pull_request' }, { type: 'non_fast_forward' }]
+    rulesets: { ok: true, status: 200, complete: true, body: [{ id: 1 }, { id: 2 }] },
+    rulesetDetails: [
+      {
+        ok: true,
+        status: 200,
+        ruleset_id: 1,
+        body: {
+          id: 1,
+          name: 'KAIOS Solo Owner Preflight',
+          target: 'branch',
+          enforcement: 'active',
+          source_type: 'Repository',
+          source: contract.scope.repository,
+          bypass_actors: [],
+          conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } },
+          rules: [{
+            type: 'required_status_checks',
+            parameters: {
+              strict_required_status_checks_policy: true,
+              required_status_checks: [
+                { context: 'KAIOS Solo Owner Preflight', integration_id: 15368 },
+                { context: 'Validate KAIOS Foundation', integration_id: 15368 },
+                { context: 'Validate Production Container', integration_id: 15368 },
+                { context: 'KIDULTS Governed Landing Authorization V1', integration_id: 15368 },
+                { context: 'KIDULTS Scope-Aware Authoritative Status V1', integration_id: 15368 }
+              ]
+            }
+          }, { type: 'pull_request' }]
+        }
+      },
+      {
+        ok: true,
+        status: 200,
+        ruleset_id: 2,
+        body: {
+          id: 2,
+          name: 'Protect main',
+          target: 'branch',
+          enforcement: 'active',
+          source_type: 'Repository',
+          source: contract.scope.repository,
+          bypass_actors: [],
+          conditions: { ref_name: { include: ['~DEFAULT_BRANCH'], exclude: [] } },
+          rules: [{ type: 'pull_request' }, { type: 'non_fast_forward' }]
+        }
       }
-    }]
+    ]
   };
 }
 
@@ -514,11 +574,15 @@ jobs:
   assert.equal(analysis.secret_bearing_jobs[1].dynamic_secret_context, true);
 });
 
-test('trigger transformation and missing explicit activation guard fail closed', () => {
+test('trigger transformation and missing explicit one-shot standing-false guard fail closed', () => {
   const workflow = '.github/workflows/p0-remote-postgres-persistence-pitr.yml';
   const source = fs.readFileSync(workflow, 'utf8');
   const lane = analyzeWorkflow(source, workflow);
   assert.deepEqual(lane.trigger_classes, ['push', 'workflow_dispatch']);
+  const oneShotBinding = registry.required_environment_bindings.find((binding) => (
+    binding.workflow === workflow && binding.required_one_shot_authorization
+  ));
+  assert.ok(oneShotBinding, 'one-shot provider binding fixture missing');
 
   const noDispatch = source.replace('  workflow_dispatch:\n', '');
   let failures = validateRequiredEnvironmentBindings(
@@ -527,76 +591,198 @@ test('trigger transformation and missing explicit activation guard fail closed',
   );
   assert.ok(failures.some((failure) => failure.startsWith('TRIGGER_CLASS_MISMATCH:')));
 
-  const noActivationGuard = source.replace(
-    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'",
-    ''
+  const noStandingFalseGuard = replaceInNamedJob(
+    source,
+    oneShotBinding.job,
+    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'false'",
+    '',
   );
   failures = validateRequiredEnvironmentBindings(
-    replaceLaneSource(currentInventory, workflow, noActivationGuard),
+    replaceLaneSource(currentInventory, workflow, noStandingFalseGuard),
     registry
   );
-  assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_GUARD_MISSING:')));
+  assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_STANDING_FALSE_GUARD_MISSING:')));
 });
 
-test('activation receipt body and first-step ordering fail closed under mutation', () => {
-  for (const workflow of [
-    '.github/workflows/p0-remote-postgres-persistence-pitr.yml',
-    '.github/workflows/p0-postgres-target-time-restore-verification.yml'
-  ]) {
+test('one-shot receipt body and provider-secret ordering fail closed under mutation', () => {
+  const bindings = registry.required_environment_bindings.filter((binding) => binding.required_one_shot_authorization);
+  assert.equal(bindings.length, 2);
+  for (const binding of bindings) {
+    const workflow = binding.workflow;
     const source = fs.readFileSync(workflow, 'utf8');
     const lane = analyzeWorkflow(source, workflow);
-    const job = lane.secret_bearing_jobs[0];
-    assert.equal(job.activation_receipt.count, 1);
-    assert.equal(job.activation_receipt.step_index, 0);
-    assert.equal(job.activation_receipt.contract_valid, true);
-    assert.equal(job.activation_receipt.before_live_main_guard, true);
-    assert.equal(job.activation_receipt.before_all_provider_secret_steps, true);
+    const job = lane.secret_bearing_jobs.find((candidate) => candidate.job === binding.job);
+    assert.ok(job, `one-shot provider job fixture missing: ${workflow}#${binding.job}`);
+    assert.equal(job.one_shot_authorization.receipt_step_count, 1);
+    assert.equal(job.one_shot_authorization.after_live_main_guard, true);
+    assert.equal(job.one_shot_authorization.before_all_provider_secret_steps, true);
+    assert.equal(job.one_shot_authorization.binds_exact_sha_run_workflow_target_and_receipt, true);
 
-    const noAuthorizationAssertion = source.replace(
-      '          test "$ACTIVATION_AUTHORIZED" = "true"\n',
-      '          test -n "$ACTIVATION_AUTHORIZED"\n'
+    const noAuthorizationAssertion = replaceInNamedStep(
+      source,
+      ONE_SHOT_RECEIPT_STEP_NAME,
+      '          assert ledger[field]==context[field]\n',
+      '',
     );
     let failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, workflow, noAuthorizationAssertion),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_RECEIPT_BINDING_CONTRACT:')));
 
-    const reordered = moveNamedStepAfter(source, ACTIVATION_RECEIPT_STEP_NAME, LIVE_MAIN_GUARD_STEP_NAME);
+    const reordered = moveNamedStepAfter(
+      source,
+      ONE_SHOT_RECEIPT_STEP_NAME,
+      binding.required_secret_step_names[0],
+    );
     failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, workflow, reordered),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_ORDER:')));
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:')));
-
-    const secretExpression = '$' + '{{ secrets.MUTATED_ACTIVATION_SECRET }}';
-    const activationEnvironmentBlock = (
-      `      - name: ${ACTIVATION_RECEIPT_STEP_NAME}\n` +
-      '        shell: bash\n' +
-      '        env:\n' +
-      '          ACTIVATION_AUTHORIZED: $' +
-      '{{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}\n'
-    );
-    assert.ok(source.includes(activationEnvironmentBlock));
-    const leaked = source.replace(
-      activationEnvironmentBlock,
-      activationEnvironmentBlock + `          MUTATED_ACTIVATION_SECRET: ${secretExpression}\n`
-    );
-    assert.notEqual(leaked, source);
-    failures = validateRequiredEnvironmentBindings(
-      replaceLaneSource(currentInventory, workflow, leaked),
-      registry
-    );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_RECEIPT_BEFORE_PROVIDER_SECRET:')));
   }
+});
+
+test('one-shot artifact token step rejects stale, ambiguous, truncated, or unsafe handoff mutations', () => {
+  const bindings = registry.required_environment_bindings.filter((binding) => binding.required_one_shot_authorization);
+  const digestCheck = "'sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()==expected";
+  const cardinality = "assert payload.get('total_count')==1 and len(matches)==1";
+  const mutations = [
+    ['expired artifact accepted', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, "              and not item.get('expired')\n", '')],
+    ['duplicate artifact accepted', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, cardinality, "assert payload.get('total_count')>=1 and len(matches)>=1")],
+    ['missing artifact accepted', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, cardinality, "assert payload.get('total_count')>=0 and len(matches)>=0")],
+    ['listing retry removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, 'for attempt in $(seq 1 12); do', 'for attempt in $(seq 1 1); do')],
+    ['zip retry removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, 'for attempt in $(seq 1 6); do', 'for attempt in $(seq 1 1); do')],
+    ['zip endpoint drift', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, '/actions/artifacts/$artifact_id/zip" \\', '/actions/artifacts/$artifact_id/zip?unsafe=true" \\')],
+    ['download digest check removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, digestCheck, 'True')],
+    ['pre-extract digest recheck removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, digestCheck, 'True', { last: true })],
+    ['path traversal rejection removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, "                  assert not path.is_absolute() and '..' not in path.parts\n", '')],
+    ['symlink rejection removed', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, '                  assert not stat.S_ISLNK(member.external_attr >> 16)\n', '')],
+    ['root file shape weakened', (source) => replaceInNamedStep(source, ONE_SHOT_ARTIFACT_STEP_NAME, 'assert sorted(item.filename for item in files)', 'assert sorted(PurePosixPath(item.filename).name for item in files)')],
+  ];
+  let rejected = 0;
+  for (const binding of bindings) {
+    const source = fs.readFileSync(binding.workflow, 'utf8');
+    for (const [name, mutate] of mutations) {
+      const mutated = mutate(source);
+      const failures = validateRequiredEnvironmentBindings(
+        replaceLaneSource(currentInventory, binding.workflow, mutated),
+        registry,
+      );
+      assert.ok(
+        failures.some((failure) => failure.startsWith('ONE_SHOT_ARTIFACT_READBACK_CONTRACT:')),
+        `${binding.workflow} accepted ${name}: ${failures.join(',')}`,
+      );
+      rejected += 1;
+    }
+  }
+  assert.equal(rejected, bindings.length * mutations.length);
 });
 
 test('ruleset context is recorded but never promoted to issue 936 closure', () => {
   const current = receipt();
   assert.equal(current.ruleset_context_only, true);
   assert.equal(current.effective_ruleset_readback_issue_936_closed, false);
-  assert.ok(current.ruleset_context.some((ruleset) => ruleset.default_branch_targeted));
+  assert.equal(current.endpoint_http_statuses.rulesets.complete, true);
+  assert.equal(current.endpoint_http_statuses.rulesets.list_complete, true);
+  assert.equal(current.endpoint_http_statuses.rulesets.detail_complete, true);
+  const native = current.ruleset_context.find((ruleset) => ruleset.name === 'KAIOS Solo Owner Preflight');
+  assert.deepEqual({
+    source_type: native.source_type,
+    source: native.source,
+    include: native.ref_name_include,
+    exclude: native.ref_name_exclude,
+    bypass_actor_count: native.bypass_actor_count,
+    strict: native.strict_required_status_checks_policy
+  }, {
+    source_type: 'Repository',
+    source: contract.scope.repository,
+    include: ['~DEFAULT_BRANCH'],
+    exclude: [],
+    bypass_actor_count: 0,
+    strict: true
+  });
+  assert.deepEqual(native.required_status_checks, [...contract.native_required_status_binding.required_status_checks]
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))));
+  assert.equal(current.native_required_status_binding.state, 'VERIFIED_PASS');
+  assert.deepEqual(current.native_required_status_binding.blockers, []);
+  assert.deepEqual(current.native_required_status_binding.missing_contexts, []);
+  assert.deepEqual(current.native_required_status_binding.integration_mismatches, []);
+});
+
+test('ruleset detail readback preserves native binding and fails closed on drift', () => {
+  const additional = verifiedSnapshot();
+  additional.rulesetDetails[0].body.rules[0].parameters.required_status_checks.push({
+    context: 'Additional Non-Weakening Check', integration_id: 15368
+  });
+  const additionalReceipt = receipt({ snapshot: additional });
+  assert.equal(additionalReceipt.state, 'VERIFIED_PASS');
+  assert.deepEqual(additionalReceipt.native_required_status_binding.additional_contexts, ['Additional Non-Weakening Check']);
+  assert.ok(additionalReceipt.ruleset_context[0].required_status_checks.some((entry) => (
+    entry.context === 'Additional Non-Weakening Check' && entry.integration_id === 15368
+  )));
+
+  const mutations = [
+    ['unreadable detail', 'NATIVE_REQUIRED_STATUS_RULESET_NOT_OBSERVED', (snapshot) => {
+      snapshot.rulesetDetails[0] = {ok: false, status: 403, ruleset_id: 1, body: null};
+    }],
+    ['wrong source type', 'NATIVE_REQUIRED_STATUS_RULESET_IDENTITY_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.source_type = 'Organization';
+    }],
+    ['wrong source', 'NATIVE_REQUIRED_STATUS_RULESET_IDENTITY_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.source = 'other/repository';
+    }],
+    ['extra included ref', 'NATIVE_REQUIRED_STATUS_REF_CONDITION_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.conditions.ref_name.include.push('refs/heads/release');
+    }],
+    ['excluded ref', 'NATIVE_REQUIRED_STATUS_REF_CONDITION_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.conditions.ref_name.exclude.push('refs/heads/emergency');
+    }],
+    ['missing bypass list', 'NATIVE_REQUIRED_STATUS_BYPASS_COUNT_MISMATCH', (snapshot) => {
+      delete snapshot.rulesetDetails[0].body.bypass_actors;
+    }],
+    ['nonzero bypass list', 'NATIVE_REQUIRED_STATUS_BYPASS_COUNT_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.bypass_actors.push({actor_id: 7});
+    }],
+    ['non-strict status policy', 'NATIVE_REQUIRED_STATUS_STRICT_POLICY_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.rules[0].parameters.strict_required_status_checks_policy = false;
+    }],
+    ['missing strict status policy', 'NATIVE_REQUIRED_STATUS_STRICT_POLICY_MISMATCH', (snapshot) => {
+      delete snapshot.rulesetDetails[0].body.rules[0].parameters.strict_required_status_checks_policy;
+    }],
+    ['missing governed context', 'NATIVE_REQUIRED_STATUS_CONTEXT_MISSING', (snapshot) => {
+      snapshot.rulesetDetails[0].body.rules[0].parameters.required_status_checks.pop();
+    }],
+    ['duplicate context', 'NATIVE_REQUIRED_STATUS_CONTEXT_DUPLICATE', (snapshot) => {
+      snapshot.rulesetDetails[0].body.rules[0].parameters.required_status_checks.push({
+        context: 'KAIOS Solo Owner Preflight', integration_id: 15368
+      });
+    }],
+    ['wrong integration', 'NATIVE_REQUIRED_STATUS_INTEGRATION_MISMATCH', (snapshot) => {
+      snapshot.rulesetDetails[0].body.rules[0].parameters.required_status_checks[3].integration_id = 7;
+    }],
+    ['list detail identity mismatch', 'NATIVE_REQUIRED_STATUS_RULESET_NOT_OBSERVED', (snapshot) => {
+      snapshot.rulesetDetails[0] = {ok: false, status: 404, ruleset_id: 9, body: null};
+    }]
+  ];
+  for (const [name, expectedBlocker, mutate] of mutations) {
+    const snapshot = verifiedSnapshot();
+    mutate(snapshot);
+    const observed = receipt({ snapshot });
+    assert.equal(observed.state, 'BLOCKED', `${name} did not block receipt`);
+    assert.ok(observed.blockers.includes('NATIVE_REQUIRED_STATUS_BINDING_NOT_VERIFIED'), name);
+    assert.ok(observed.native_required_status_binding.blockers.includes(expectedBlocker), name);
+  }
+
+  const sensitiveBypass = verifiedSnapshot();
+  sensitiveBypass.rulesetDetails[0].body.bypass_actors = [{
+    actor_id: 424242,
+    actor_type: 'Team',
+    actor_name: 'MUST_NOT_BE_EMITTED'
+  }];
+  const sanitized = receipt({ snapshot: sensitiveBypass });
+  assert.equal(sanitized.ruleset_context[0].bypass_actor_count, 1);
+  assert.ok(!JSON.stringify(sanitized).includes('MUST_NOT_BE_EMITTED'));
 });
 
 test('receipt validator rejects mutation and semantic-boundary promotion claims', () => {
@@ -610,6 +796,11 @@ test('receipt validator rejects mutation and semantic-boundary promotion claims'
   const parentPromotion = structuredClone(positive);
   parentPromotion.issue_881_control_pass_promoted = true;
   assert.ok(validateReceipt(parentPromotion).includes('issue_881_promotion_forbidden'));
+
+  const forgedNativeBinding = structuredClone(positive);
+  forgedNativeBinding.native_required_status_binding.state = 'BLOCKED';
+  forgedNativeBinding.readback_digest = computeReadbackDigest(forgedNativeBinding);
+  assert.ok(validateReceipt(forgedNativeBinding).includes('native_required_status_binding_integrity'));
 
   const secretLeak = structuredClone(positive);
   secretLeak.secret_names_emitted = true;

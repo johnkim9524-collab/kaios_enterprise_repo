@@ -130,11 +130,14 @@ function run(script, args, {scenario, cwd = repoRoot, env = {}}) {
     scenario: 'readonly-pass',
     env: {RECEIPT_DIR: receiptDir, GITHUB_SHA: '1111111111111111111111111111111111111111'},
   });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.notEqual(result.status, 0, 'self-asserted deployment message cannot establish governed lineage');
   const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-  assert.equal(receipt.state, 'COMPLETE_VERIFIED');
+  assert.equal(receipt.state, 'VERIFIED_FAIL');
   assert.equal(receipt.settings_mutated, false);
   assert.equal(receipt.visible_preview_count, 0);
+  assert.equal(receipt.latest_deployment_message_claim, true);
+  assert.equal(receipt.latest_deployment_governed, false);
+  assert.equal(receipt.signed_ledger_lineage_verified, false);
 }
 
 {
@@ -156,12 +159,8 @@ function run(script, args, {scenario, cwd = repoRoot, env = {}}) {
     scenario: 'contain-pass',
     env: {RECEIPT_DIR: receiptDir, CONTROL_REASON: 'test containment'},
   });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-  assert.equal(receipt.state, 'COMPLETE_VERIFIED');
-  assert.equal(receipt.deployment_created, false);
-  assert.equal(receipt.deployment_deleted, false);
-  assert.deepEqual(receipt.deployment_ids_preserved, ['prod-old']);
+  assert.equal(result.status, 78, result.stderr || result.stdout);
+  assert.match(result.stderr, /NO-RERUN/);
 }
 
 {
@@ -170,14 +169,9 @@ function run(script, args, {scenario, cwd = repoRoot, env = {}}) {
     scenario: 'cleanup-pass',
     env: {RECEIPT_DIR: receiptDir, CONTROL_REASON: 'test preview cleanup'},
   });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-  assert.equal(receipt.state, 'COMPLETE_VERIFIED');
-  assert.equal(receipt.deleted_preview_count, 1);
-  assert.deepEqual(receipt.production_ids_preserved, ['prod-old']);
-  const deleted = fs.readFileSync(path.join(stateDir, 'deleted.log'), 'utf8');
-  assert.match(deleted, /preview-1/);
-  assert.doesNotMatch(deleted, /prod-old/);
+  assert.equal(result.status, 78, result.stderr || result.stdout);
+  assert.match(result.stderr, /NO-RERUN/);
+  assert.equal(fs.existsSync(path.join(stateDir, 'deleted.log')), false);
 }
 
 {
@@ -209,26 +203,20 @@ function run(script, args, {scenario, cwd = repoRoot, env = {}}) {
       FAKE_DEPLOY_MESSAGE: message,
     },
   });
-  assert.equal(result.status, 0, result.stderr || result.stdout);
-  const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-  assert.equal(receipt.state, 'COMPLETE_VERIFIED');
-  assert.equal(receipt.source_sha, sha);
-  assert.equal(receipt.deployment.id, 'governed-new');
-  assert.equal(receipt.deployment.trigger_type, 'ad_hoc');
-  const npxLog = fs.readFileSync(path.join(stateDir, 'npx.log'), 'utf8');
-  assert.match(npxLog, /--commit-hash/);
-  assert.match(npxLog, /--branch main/);
+  assert.equal(result.status, 78, result.stderr || result.stdout);
+  assert.match(result.stderr, /NO-RERUN/);
+  assert.equal(fs.existsSync(path.join(stateDir, 'npx.log')), false);
 }
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_STAGING_GOVERNANCE_EXECUTABLE_TEST_V1',
   result: 'PASS',
   cases: 5,
-  readonly_pass: true,
+  self_asserted_readonly_lineage_rejected: true,
   unauthorized_preview_rejected: true,
-  containment_preserves_deployments: true,
-  cleanup_deletes_preview_only: true,
-  governed_exact_sha_deploy: true,
+  containment_execute_no_rerun: true,
+  cleanup_execute_no_rerun: true,
+  governed_deploy_no_rerun: true,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

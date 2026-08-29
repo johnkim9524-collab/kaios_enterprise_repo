@@ -1,0 +1,118 @@
+name: KPMO Cloudflare External One-Shot Approval Consume v1
+
+on:
+  workflow_run:
+    workflows: ["KPMO CF-KIDULTS-14501AC-01 Preflight"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-cf-kidults-14501ac-01-external-consume
+  cancel-in-progress: false
+
+jobs:
+  consume-approval:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      contains(github.event.workflow_run.head_commit.message, 'CF-KIDULTS-14501AC-01')
+    environment: kidults-approval-ledger-consume
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EVENT_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+          test "$EVENT_HEAD_SHA" = "$GITHUB_SHA"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Validate historical approval is not reusable
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .state == "HISTORICAL_CONSUMED_BACKFILL_REQUIRED"
+            and .backfill_policy.required_external_state == "CONSUMED"
+            and .backfill_policy.active_or_reissued_state_forbidden == true
+            and .backfill_policy.repository_boolean_is_authority == false
+            and .backfill_policy.signed_exact_binding_state_receipt.state == "BLOCKED_NOT_ISSUED"
+            and .backfill_policy.signed_exact_binding_state_receipt.ed25519_signature_verified == false
+            and .cloudflare_mutation_rerun == "HOLD"
+          ' coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json >/dev/null
+          # The completed historical approval is intentionally ineligible for a new consume request.
+          exit 78
+
+      - name: Generate exact consume request from externally issued activation binding
+        if: ${{ false }}
+        shell: bash
+        env:
+          CONTROL_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const crypto=require('crypto'),fs=require('fs');
+          const inputPath='artifacts/external-one-shot-approval-activation-binding-v1.json';
+          const outputPath='artifacts/external-one-shot-approval-consume-request-v1.json';
+          const binding=JSON.parse(fs.readFileSync(inputPath,'utf8'));
+          if(binding.id!=='kidults-external-one-shot-approval-activation-binding-v1'||binding.version!=='1.0.0'||binding.state!=='EXTERNALLY_ISSUED_ACTIVE')throw new Error('ACTIVE_EXTERNAL_BINDING_REQUIRED');
+          if(process.env.RUN_ATTEMPT!=='1'||!/^[0-9a-f]{40}$/.test(process.env.CONTROL_SHA||'')||!/^[1-9][0-9]*$/.test(process.env.RUN_ID||''))throw new Error('EXACT_RUN_BINDING_INVALID');
+          const requestedAt=new Date(); const requestExpiresAt=new Date(requestedAt.getTime()+300000);
+          if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(binding.approval_expires_at||'')||Date.parse(binding.approval_expires_at)<=requestExpiresAt.getTime())throw new Error('APPROVAL_EXPIRY_INSUFFICIENT');
+          const request={id:'kidults-external-one-shot-approval-consume-request-v1',version:'1.0.0',approval_id:binding.approval_id,operation_id:binding.operation_id,repository:'johnkim9524-collab/kaios_enterprise_repo',workflow_ref:'.github/workflows/kpmo-cloudflare-approval-consume-v1.yml@refs/heads/main',control_sha:process.env.CONTROL_SHA,source_sha:binding.source_sha,github_run_id:String(process.env.RUN_ID),github_run_attempt:1,consume_nonce:crypto.randomUUID(),requested_at:requestedAt.toISOString(),request_expires_at:requestExpiresAt.toISOString(),approval_expires_at:binding.approval_expires_at,target:binding.target};
+          fs.writeFileSync(outputPath,JSON.stringify(request,null,2)+'\n',{flag:'wx',mode:0o600});
+          NODE
+
+      - name: Consume external durable approval atomically
+        if: ${{ false }}
+        shell: bash
+        env:
+          KIDULTS_APPROVAL_LEDGER_BASE_URL: ${{ vars.KIDULTS_APPROVAL_LEDGER_BASE_URL }}
+          KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64: ${{ secrets.KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64 }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -f artifacts/external-one-shot-approval-consume-request-v1.json
+          export KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256="$(
+            jq -r '.response_verification.public_key_spki_sha256' \
+              coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json
+          )"
+          node scripts/governance/external-one-shot-approval-ledger-v1.mjs consume \
+            --request artifacts/external-one-shot-approval-consume-request-v1.json \
+            --receipt-out artifacts/external-one-shot-approval-client-receipt-v1.json
+
+      - name: Upload exact signed consume receipt for downstream verification
+        if: ${{ false }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: cf-external-one-shot-approval-receipt-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            artifacts/external-one-shot-approval-consume-request-v1.json
+            artifacts/external-one-shot-approval-client-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30

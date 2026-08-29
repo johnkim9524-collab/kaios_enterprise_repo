@@ -1,13 +1,184 @@
 #!/usr/bin/env node
-import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
-const selectionPath=process.argv[2]||'coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json';const topologyPath=process.argv[3]||'coordination/kidults/scope-data/self-collected-open-channel-topology-v2.json';const outDir=process.argv[4]||'scope-open-wave2-out';fs.mkdirSync(outDir,{recursive:true});const sel=JSON.parse(fs.readFileSync(selectionPath,'utf8'));const top=JSON.parse(fs.readFileSync(topologyPath,'utf8'));const sleep=ms=>new Promise(r=>setTimeout(r,ms));const h=s=>crypto.createHash('sha256').update(String(s)).digest('hex').slice(0,20);const clean=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-function parseName(x){const p=x.display_name.split(' — ');return {maker:(p[0]||'').trim(),product:p.slice(1).join(' — ').trim()}}
-function relevant(row,text){const hay=clean(text),parts=clean(row.product).split(' ').filter(x=>x.length>=3||/\d/.test(x));const maker=clean(row.maker).split(' ').filter(x=>x.length>=3);const ph=parts.filter(x=>hay.includes(x)).length,mh=maker.some(x=>hay.includes(x));return parts.length>=2?(ph>=2||(mh&&ph>=1)):(ph>=1&&mh)}
-async function j(url,opts={},tries=0){const c=new AbortController(),t=setTimeout(()=>c.abort(),15000);try{const r=await fetch(url,{...opts,signal:c.signal});if((r.status===429||r.status>=500)&&tries<3){await sleep(800*(2**tries));return j(url,opts,tries+1)}if(!r.ok)throw new Error(`HTTP_${r.status}`);return await r.json()}finally{clearTimeout(t)}}
-const records=[],errors=[],filtered=[];
-for(const s of sel.records){const name=parseName(s),q=`${name.maker} ${name.product}`.trim();for(const ch of top.channels.filter(c=>c.scopes.includes(s.target_scope_id))){const observed_at=new Date().toISOString();try{
- if(ch.channel_id==='VAM_COLLECTIONS_API'){const u=new URL('https://api.vam.ac.uk/v2/objects/search');u.searchParams.set('q',q);u.searchParams.set('page_size','3');const x=await j(u,{headers:{'User-Agent':'KIDULTS-Scope-Open-Wave2'}});for(const d of x.records||[]){const text=`${d._primaryTitle||''} ${d._primaryMaker?.name||d._primaryMaker__name||''} ${d.objectType||''} ${d._primaryDate||''}`;if(!relevant(name,text)){filtered.push({channel:ch.channel_id,product:s.representative_product_id,id:d.systemNumber,reason:'PRODUCT_RELEVANCE_FAIL'});continue}records.push({candidate_id:`vam-${h(s.representative_product_id+d.systemNumber)}`,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,display_name:s.display_name,channel_id:ch.channel_id,source_family:ch.source_family,provider_record_id:d.systemNumber||null,endpoint_url:d.systemNumber?`https://collections.vam.ac.uk/item/${d.systemNumber}`:null,source_name:d._primaryTitle||d.objectType||d.systemNumber,observed_at,roles:['CATALOG_REFERENCE','PROVENANCE_HISTORY','CULTURE_ATTENTION'],rights_state:'OFFICIAL_COLLECTION_METADATA_FIELD_RIGHTS_REVIEW_REQUIRED',content_class:'STRUCTURED_COLLECTION_METADATA',qualification_state:'CANDIDATE_RIGHTS_REVIEW_REQUIRED'})}}
- else if(ch.channel_id==='AIC_COLLECTION_API'){const u=new URL('https://api.artic.edu/api/v1/artworks/search');u.searchParams.set('q',q);u.searchParams.set('limit','3');u.searchParams.set('fields','id,title,artist_display,date_display,medium_display,provenance_text,is_public_domain');const x=await j(u,{headers:{'AIC-User-Agent':'KIDULTS (https://kidults.com)'}});for(const d of x.data||[]){const text=`${d.title||''} ${d.artist_display||''} ${d.date_display||''} ${d.medium_display||''}`;if(!relevant(name,text)){filtered.push({channel:ch.channel_id,product:s.representative_product_id,id:d.id,reason:'PRODUCT_RELEVANCE_FAIL'});continue}const roles=['CATALOG_REFERENCE','CULTURE_ATTENTION'];if(d.provenance_text)roles.push('PROVENANCE_HISTORY');records.push({candidate_id:`aic-${h(s.representative_product_id+d.id)}`,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,display_name:s.display_name,channel_id:ch.channel_id,source_family:ch.source_family,provider_record_id:String(d.id),endpoint_url:`https://www.artic.edu/artworks/${d.id}`,source_name:d.title||String(d.id),observed_at,roles,rights_state:'ARTWORK_API_DATA_CC0_SUBJECT_TO_TERMS',is_public_domain:Boolean(d.is_public_domain),content_class:'STRUCTURED_ARTWORK_METADATA',qualification_state:'CANDIDATE_NOT_EVIDENCE_ADMITTED'})}await sleep(1100)}
- }catch(e){errors.push({channel_id:ch.channel_id,scope_id:s.target_scope_id,representative_product_id:s.representative_product_id,error:e.message})}await sleep(150)}}
-const uniq=[...new Map(records.map(r=>[`${r.representative_product_id}|${r.source_family}|${r.provider_record_id}`,r])).values()];const byScope={};for(const sc of [...new Set(sel.records.map(x=>x.target_scope_id))]){const rs=uniq.filter(r=>r.scope_id===sc);byScope[sc]={candidate_count:rs.length,products_with_candidates:new Set(rs.map(x=>x.representative_product_id)).size,source_families:[...new Set(rs.map(x=>x.source_family))],roles:[...new Set(rs.flatMap(x=>x.roles))],rights_clear_candidates:rs.filter(x=>x.rights_state==='ARTWORK_API_DATA_CC0_SUBJECT_TO_TERMS').length,rights_review_candidates:rs.filter(x=>x.rights_state.includes('REVIEW')).length}}
-const out={id:'kidults-self-collected-open-channel-expansion-wave2',version:'2.0.0',status:'EXECUTED_CANDIDATES_NOT_EVIDENCE_ADMITTED',scope_count:32,product_count:64,channels_attempted:top.channels.map(x=>x.channel_id),candidate_count:uniq.length,filtered_irrelevant:filtered.length,error_count:errors.length,candidates:uniq,filtered,errors,scope_summary:byScope,north_star:{AUTONOMOUS:'PASS_REQUIREMENT_ROUTING_AND_RETRY',GLOBAL:'AMBER_US_UK_EU_INSTITUTIONAL_COVERAGE_MORE_REGIONS_REQUIRED',IRREPLACEABLE_VALUE:'PASS_REQUIREMENT_DRIVEN',TRANSPARENT:'PASS_RIGHTS_FIELD_LEVEL'},provider_contact_authorized:false,production:'HOLD'};fs.writeFileSync(path.join(outDir,'open-channel-expansion-wave2.json'),JSON.stringify(out,null,2));console.log(JSON.stringify({scopes:32,products:64,candidates:uniq.length,filtered:filtered.length,errors:errors.length,scopes_with_candidates:Object.values(byScope).filter(x=>x.candidate_count).length,rights_clear_candidates:uniq.filter(x=>x.rights_state==='ARTWORK_API_DATA_CC0_SUBJECT_TO_TERMS').length},null,2));
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+
+const selectionPath = process.argv[2] || "coordination/kidults/scope-data/scope-poc-anchor-selection-v1.json";
+const topologyPath = process.argv[3] || "coordination/kidults/scope-data/self-collected-open-channel-topology-v2.json";
+const outDir = process.argv[4] || "scope-open-wave2-out";
+const selection = JSON.parse(fs.readFileSync(selectionPath, "utf8"));
+const topology = JSON.parse(fs.readFileSync(topologyPath, "utf8"));
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const digest = value => crypto.createHash("sha256").update(String(value)).digest("hex").slice(0, 20);
+const clean = value => String(value || "").toLowerCase().normalize("NFKD")
+  .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+
+function parseName(item) {
+  const parts = item.display_name.split(" — ");
+  return { maker: (parts[0] || "").trim(), product: parts.slice(1).join(" — ").trim() };
+}
+
+function relevant(row, text) {
+  const haystack = clean(text);
+  const productParts = clean(row.product).split(" ").filter(value => value.length >= 3 || /\d/.test(value));
+  const makerParts = clean(row.maker).split(" ").filter(value => value.length >= 3);
+  const productHits = productParts.filter(value => haystack.includes(value)).length;
+  const makerHit = makerParts.some(value => haystack.includes(value));
+  return productParts.length >= 2 ? productHits >= 2 || (makerHit && productHits >= 1) : productHits >= 1 && makerHit;
+}
+
+function ensureAicUrl(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.hostname !== "api.artic.edu") throw new Error("AIC_URL_OUTSIDE_ALLOWLIST");
+}
+
+async function requestAicJson(url, providerCallCounts, options = {}, attempt = 0) {
+  ensureAicUrl(url);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  providerCallCounts.AIC_COLLECTION_API += 1;
+  try {
+    const response = await fetch(url, { ...options, redirect: "error", signal: controller.signal });
+    ensureAicUrl(response.url || url);
+    if (response.redirected === true) throw new Error("AIC_REDIRECT_REJECTED");
+    if ((response.status === 429 || response.status >= 500) && attempt < 3) {
+      await sleep(1_100 * (2 ** attempt));
+      return requestAicJson(url, providerCallCounts, options, attempt + 1);
+    }
+    if (!response.ok) throw new Error(`HTTP_${response.status}`);
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+fs.mkdirSync(outDir, { recursive: true });
+const records = [];
+const errors = [];
+const filtered = [];
+const channelHolds = [];
+const providerCallCounts = { VAM_COLLECTIONS_API: 0, AIC_COLLECTION_API: 0 };
+
+for (const selected of selection.records) {
+  const name = parseName(selected);
+  const query = `${name.maker} ${name.product}`.trim();
+  for (const channel of topology.channels.filter(item => item.scopes.includes(selected.target_scope_id))) {
+    const observedAt = new Date().toISOString();
+    if (channel.channel_id === "VAM_COLLECTIONS_API") {
+      channelHolds.push({
+        channel_id: channel.channel_id,
+        scope_id: selected.target_scope_id,
+        representative_product_id: selected.representative_product_id,
+        state: "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED",
+        provider_call_count: 0,
+        license_provenance_created: false,
+        data_admission_performed: false
+      });
+      continue;
+    }
+    if (channel.channel_id !== "AIC_COLLECTION_API") continue;
+    try {
+      const url = new URL("https://api.artic.edu/api/v1/artworks/search");
+      url.searchParams.set("q", query);
+      url.searchParams.set("limit", "3");
+      url.searchParams.set("fields", "id,title,artist_display,date_display,medium_display,provenance_text,is_public_domain");
+      const payload = await requestAicJson(url, providerCallCounts, {
+        headers: { "AIC-User-Agent": "KIDULTS (https://kidults.com)" }
+      });
+      for (const item of payload.data || []) {
+        const text = `${item.title || ""} ${item.artist_display || ""} ${item.date_display || ""} ${item.medium_display || ""}`;
+        if (!relevant(name, text)) {
+          filtered.push({ channel: channel.channel_id, product: selected.representative_product_id, id: item.id, reason: "PRODUCT_RELEVANCE_FAIL" });
+          continue;
+        }
+        const roles = ["CATALOG_REFERENCE", "CULTURE_ATTENTION"];
+        if (item.provenance_text) roles.push("PROVENANCE_HISTORY");
+        records.push({
+          candidate_id: `aic-${digest(selected.representative_product_id + item.id)}`,
+          scope_id: selected.target_scope_id,
+          representative_product_id: selected.representative_product_id,
+          display_name: selected.display_name,
+          channel_id: channel.channel_id,
+          source_family: channel.source_family,
+          provider_record_id: String(item.id),
+          endpoint_url: `https://www.artic.edu/artworks/${item.id}`,
+          source_name: item.title || String(item.id),
+          observed_at: observedAt,
+          roles,
+          rights_state: "ARTWORK_API_DATA_CC0_SUBJECT_TO_TERMS",
+          is_public_domain: Boolean(item.is_public_domain),
+          content_class: "STRUCTURED_ARTWORK_METADATA",
+          qualification_state: "CANDIDATE_NOT_EVIDENCE_ADMITTED"
+        });
+      }
+    } catch (error) {
+      errors.push({
+        channel_id: channel.channel_id,
+        scope_id: selected.target_scope_id,
+        representative_product_id: selected.representative_product_id,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    await sleep(1_100);
+  }
+}
+
+const unique = [...new Map(records.map(record => [
+  `${record.representative_product_id}|${record.source_family}|${record.provider_record_id}`,
+  record
+])).values()];
+const byScope = {};
+for (const scope of [...new Set(selection.records.map(item => item.target_scope_id))]) {
+  const scopeRecords = unique.filter(record => record.scope_id === scope);
+  byScope[scope] = {
+    candidate_count: scopeRecords.length,
+    products_with_candidates: new Set(scopeRecords.map(item => item.representative_product_id)).size,
+    source_families: [...new Set(scopeRecords.map(item => item.source_family))],
+    roles: [...new Set(scopeRecords.flatMap(item => item.roles))],
+    rights_clear_candidates: scopeRecords.filter(item => item.rights_state === "ARTWORK_API_DATA_CC0_SUBJECT_TO_TERMS").length,
+    rights_review_candidates: 0
+  };
+}
+
+const output = {
+  id: "kidults-self-collected-open-channel-expansion-wave2",
+  version: "2.1.0",
+  status: "EXECUTED_AIC_VAM_HARD_HOLD_NOT_EVIDENCE_ADMITTED",
+  scope_count: 32,
+  product_count: 64,
+  channels_evaluated: topology.channels.map(item => item.channel_id),
+  provider_call_counts: providerCallCounts,
+  vam_runtime_activation: "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED",
+  vam_license_provenance_created: false,
+  vam_retention_days_max: 28,
+  channel_holds: channelHolds,
+  candidate_count: unique.length,
+  filtered_irrelevant: filtered.length,
+  error_count: errors.length,
+  candidates: unique,
+  filtered,
+  errors,
+  scope_summary: byScope,
+  candidate_r2_activation: "NOT_ACTIVATED_IMMUTABLE_PAIR_REQUIRED",
+  immutable_candidate_evidence_pair_created: false,
+  track_b_submission_count: 0,
+  track_b_assessment_count: 0,
+  north_star: {
+    AUTONOMOUS: "PASS_REQUIREMENT_ROUTING_AND_RETRY",
+    GLOBAL: "AMBER_US_UK_EU_INSTITUTIONAL_COVERAGE_MORE_REGIONS_REQUIRED",
+    IRREPLACEABLE_VALUE: "PASS_REQUIREMENT_DRIVEN",
+    TRANSPARENT: "PASS_RIGHTS_FIELD_LEVEL"
+  },
+  provider_contact_authorized: false,
+  production: "HOLD"
+};
+fs.writeFileSync(path.join(outDir, "open-channel-expansion-wave2.json"), `${JSON.stringify(output, null, 2)}\n`);
+console.log(JSON.stringify({
+  scopes: 32,
+  products: 64,
+  candidates: unique.length,
+  filtered: filtered.length,
+  errors: errors.length,
+  vam_provider_calls: 0,
+  vam_state: output.vam_runtime_activation
+}, null, 2));

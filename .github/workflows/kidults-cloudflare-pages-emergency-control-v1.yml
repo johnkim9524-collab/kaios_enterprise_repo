@@ -29,7 +29,8 @@ concurrency:
 
 jobs:
   control:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    # Global NO-RERUN: owner-entered phrases are not durable one-shot authority.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && false
     environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 20

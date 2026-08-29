@@ -1,8 +1,8 @@
 {
   "id": "kidults-cloudflare-pages-staging-governance-v1",
   "version": "1.1.0",
-  "status": "PROGRAM_OWNER_APPROVED_STAGING_GOVERNANCE",
-  "implementation_state": "GRANULAR_AUTO_DEPLOYMENT_CONTAINMENT_API_VERIFIED_PREVIEW_RETIREMENT_AND_GOVERNED_DEPLOY_PENDING",
+  "status": "ACTIVE_FAIL_CLOSED_GLOBAL_NO_RERUN",
+  "implementation_state": "STAGING_EXISTS_SIGNED_LINEAGE_UNVERIFIED_STALE_CURRENT_MAIN_PARITY_REQUIRED_GLOBAL_NO_RERUN",
   "validated_base_main_sha": "64d0cb7b2381c843a8ba26b3c4b0560f80465c4e",
   "owner": "KPMO",
   "issue": 1234,
@@ -23,6 +23,7 @@
     "git_push_is_deployment_authority": false
   },
   "deployment_policy": {
+    "execution_state": "HOLD_HARD_DISABLED_PENDING_DURABLE_LEDGER",
     "trigger": "workflow_dispatch_only",
     "source_ref": "refs/heads/main",
     "source_sha": "EXACT_LIVE_MAIN_ONLY",
@@ -31,6 +32,8 @@
     "cloudflare_branch": "main",
     "commit_message_prefix": "[KIDULTS-GOVERNED-STAGING]",
     "authorization_phrase": "DEPLOY_KIDULTS_WORKSPACE_STAGING",
+    "authorization_phrase_is_authority": false,
+    "external_durable_one_shot_consume_required": true,
     "environment": "kidults-cloudflare-staging-deploy",
     "deployment_receipt_required": true
   },
@@ -42,18 +45,22 @@
     "settings_readback_required": true,
     "latest_materialized_deployment_must_be_governed": true,
     "visible_preview_count_must_be_zero": true,
-    "current_main_match_is_informational": true,
+    "current_main_match_required": true,
+    "current_main_match_is_informational": false,
     "current_main_auto_attempt_should_be_skipped": true,
     "skipped_attempts_are_not_visible_deployments": true,
     "remote_mutation": false
   },
   "emergency_control": {
+    "execution_state": "HOLD_HARD_DISABLED_PENDING_DURABLE_LEDGER",
     "workflow": ".github/workflows/kidults-cloudflare-pages-emergency-control-v1.yml",
     "trigger": "workflow_dispatch_only",
     "default_operation": "contain_auto_deployments",
     "allowed_operations": ["contain_auto_deployments", "delete_preview_deployments"],
     "preview_delete_only": true,
     "production_deployment_delete_forbidden": true,
+    "owner_entered_phrase_is_authority": false,
+    "external_durable_one_shot_consume_required": true,
     "environment": "kidults-cloudflare-staging-deploy",
     "inventory_workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml"
   },

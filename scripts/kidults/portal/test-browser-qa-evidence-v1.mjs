@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   assessRealBfcacheEvidence,
   assessRealHistoryTraversalEvidence,
+  assessThirtyCycleMobileSurrogate,
   assertRealNavigationCanarySource,
   classifyConsoleError,
   closeAndFreezePageDiagnostics,
@@ -76,6 +77,61 @@ assert.throws(
   }),
   /DIAGNOSTICS_NOT_FROZEN_AFTER_FULL_BROWSER_CLOSE/,
 );
+
+const validMobileSurrogate = {
+  evidenceClass: 'NON_PHYSICAL_WEBKIT_SURROGATE',
+  engine: 'PLAYWRIGHT_WEBKIT',
+  physicalDevice: false,
+  voiceOverEnabled: false,
+  syntheticLifecycleDispatch: false,
+  requiredCycles: 30,
+  completedCycles: 30,
+  navigationPassCount: 30,
+  backgroundForegroundExerciseCount: 30,
+  nativeBackgroundForegroundObservation: 'NOT_AVAILABLE_IN_HEADLESS_WEBKIT',
+  historyRestorationPassCount: 30,
+  menuRestorationPassCount: 30,
+  focusRestorationPassCount: 30,
+  scrollRestorationPassCount: 30,
+  accessibilitySurrogatePassCount: 30,
+  staleProjectionLeakCount: 0,
+  runtimeErrorCount: 0,
+  crashCount: 0,
+  failedCycleCount: 0,
+  bfcacheRestoredCount: 18,
+  historyReloadContainedCount: 12,
+  claimsPhysicalIphoneAcceptance: false,
+  claimsVoiceOverAcceptance: false,
+};
+const mobileAssessment = assessThirtyCycleMobileSurrogate(validMobileSurrogate);
+assert.equal(mobileAssessment.state, 'VERIFIED_PASS');
+assert.equal(mobileAssessment.physicalIphoneAcceptance, 'HOLD_PENDING_PHYSICAL_DEVICE');
+assert.equal(mobileAssessment.voiceOverAcceptance, 'HOLD_PENDING_HUMAN_REVIEW');
+assert.equal(mobileAssessment.promotionEligible, false);
+
+const mobileMutations = [
+  ['EMULATION_LABELED_PHYSICAL', {physicalDevice: true}],
+  ['VOICEOVER_FALSE_CLAIM', {claimsVoiceOverAcceptance: true}],
+  ['PHYSICAL_FALSE_CLAIM', {claimsPhysicalIphoneAcceptance: true}],
+  ['CYCLE_SHORTFALL', {completedCycles: 29}],
+  ['BACKGROUND_EXERCISE_SHORTFALL', {backgroundForegroundExerciseCount: 29}],
+  ['HEADLESS_FALSE_NATIVE_OBSERVATION', {nativeBackgroundForegroundObservation: 'PASS'}],
+  ['HISTORY_SHORTFALL', {historyRestorationPassCount: 29}],
+  ['MENU_SHORTFALL', {menuRestorationPassCount: 29}],
+  ['FOCUS_SHORTFALL', {focusRestorationPassCount: 29}],
+  ['SCROLL_SHORTFALL', {scrollRestorationPassCount: 29}],
+  ['ACCESSIBILITY_SHORTFALL', {accessibilitySurrogatePassCount: 29}],
+  ['STALE_VALUE_LEAK', {staleProjectionLeakCount: 1}],
+  ['RUNTIME_ERROR', {runtimeErrorCount: 1}],
+  ['PAGE_CRASH', {crashCount: 1}],
+  ['SYNTHETIC_LIFECYCLE', {syntheticLifecycleDispatch: true}],
+  ['OUTCOME_ACCOUNTING_GAP', {bfcacheRestoredCount: 17}],
+];
+for (const [id, mutation] of mobileMutations) {
+  const result = assessThirtyCycleMobileSurrogate({...validMobileSurrogate, ...mutation});
+  assert.equal(result.state, 'VERIFIED_FAIL', id);
+  assert.ok(result.findings.length > 0, id);
+}
 
 assert.equal(
   classifyConsoleError({
@@ -193,7 +249,9 @@ console.log(JSON.stringify({
   real_bfcache_contract: 'PASS',
   real_history_reload_containment_contract: 'PASS',
   false_bfcache_green_rejected: 'PASS',
-  negative_mutations_rejected: strictMutations.length + reloadMutations.length + 1,
+  thirty_cycle_mobile_surrogate_contract: 'PASS_NON_PHYSICAL',
+  physical_iphone_voiceover_acceptance: 'HOLD',
+  negative_mutations_rejected: strictMutations.length + reloadMutations.length + mobileMutations.length + 1,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

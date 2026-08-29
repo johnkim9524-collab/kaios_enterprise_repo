@@ -12,23 +12,90 @@ export function setupNavigation() {
   const nav = document.querySelector("#primary-nav");
   if (!button || !nav) return;
 
-  const close = () => {
+  const historyStateKey = "kidultsPortalResponsiveUiV1";
+
+  const close = ({ returnFocus = false } = {}) => {
     button.setAttribute("aria-expanded", "false");
     nav.classList.remove("is-open");
     document.body.classList.remove("menu-open");
+    if (returnFocus) button.focus({ preventScroll: true });
+  };
+
+  const open = () => {
+    button.setAttribute("aria-expanded", "true");
+    nav.classList.add("is-open");
+    document.body.classList.add("menu-open");
+  };
+
+  const focusIdentity = () => {
+    if (document.activeElement === button) return { type: "MENU_TOGGLE" };
+    const link = document.activeElement?.closest?.("#primary-nav a[href]");
+    return link ? { type: "PRIMARY_NAV_LINK", href: link.getAttribute("href") } : { type: "NONE" };
+  };
+
+  const captureResponsiveUiState = () => {
+    try {
+      const current = history.state && typeof history.state === "object" ? history.state : {};
+      const token = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+      history.replaceState({
+        ...current,
+        [historyStateKey]: {
+          version: 1,
+          token,
+          scrollX: globalThis.scrollX,
+          scrollY: globalThis.scrollY,
+          menuOpen: button.getAttribute("aria-expanded") === "true",
+          focus: focusIdentity()
+        }
+      }, "");
+      document.documentElement.dataset.historyUiCaptured = token;
+    } catch {
+      document.documentElement.dataset.historyUiCaptured = "UNAVAILABLE";
+    }
+  };
+
+  const restoreResponsiveUiState = event => {
+    const navigationType = performance.getEntriesByType("navigation").at(-1)?.type;
+    if (event?.persisted !== true && navigationType !== "back_forward") return;
+    const state = history.state?.[historyStateKey];
+    if (!state || state.version !== 1 || typeof state.token !== "string") return;
+
+    if (state.menuOpen === true && globalThis.innerWidth <= 1020) open();
+    else close();
+
+    const finish = () => {
+      globalThis.scrollTo(Number(state.scrollX) || 0, Number(state.scrollY) || 0);
+      if (state.focus?.type === "MENU_TOGGLE") button.focus({ preventScroll: true });
+      else if (state.focus?.type === "PRIMARY_NAV_LINK" && typeof state.focus.href === "string") {
+        [...nav.querySelectorAll("a[href]")]
+          .find(link => link.getAttribute("href") === state.focus.href)
+          ?.focus({ preventScroll: true });
+      }
+      document.documentElement.dataset.historyUiRestored = state.token;
+      document.dispatchEvent(new CustomEvent("kidults:responsive-ui-restored", {
+        detail: Object.freeze({ token: state.token, persisted: event?.persisted === true, navigationType })
+      }));
+    };
+    Promise.resolve(document.fonts?.ready).catch(() => {}).then(() => {
+      requestAnimationFrame(() => requestAnimationFrame(finish));
+    });
   };
 
   button.addEventListener("click", () => {
-    const open = button.getAttribute("aria-expanded") === "true";
-    button.setAttribute("aria-expanded", String(!open));
-    nav.classList.toggle("is-open", !open);
-    document.body.classList.toggle("menu-open", !open);
+    const isOpen = button.getAttribute("aria-expanded") === "true";
+    if (isOpen) close();
+    else open();
   });
 
   nav.querySelectorAll("a").forEach(link => link.addEventListener("click", close));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") close({ returnFocus: true });
+  });
   window.addEventListener("resize", () => {
     if (window.innerWidth > 1020) close();
   }, { passive: true });
+  globalThis.addEventListener("pagehide", captureResponsiveUiState);
+  globalThis.addEventListener("pageshow", restoreResponsiveUiState);
 }
 
 export function setupDialogs(data) {

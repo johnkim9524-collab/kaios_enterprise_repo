@@ -3,7 +3,20 @@
   "as_of": "2026-08-25T12:38:00+09:00",
   "canonical_keep": [
     "kidults",
-    "kidults-autonomous-intelligence"
+    "kidults-autonomous-intelligence",
+    "kidults-approval-trust-root"
+  ],
+  "control_plane_services": [
+    {
+      "name": "kidults-approval-trust-root",
+      "type": "WORKER_DURABLE_OBJECT",
+      "repository_path": "services/kidults-cloudflare-approval-trust-root",
+      "state": "IMPLEMENTED_NOT_DEPLOYED",
+      "allowed_operation": "ATOMIC_ACTIVE_TO_CONSUMED_ONLY",
+      "issue_reset_delete_endpoints": false,
+      "provider_credentials_bound": false,
+      "deployment_and_secret_configuration": "EXPLICIT_EXTERNAL_CONFIGURATION_REQUIRED"
+    }
   ],
   "temporary_staging_keep": [
     "kidults-workspace-staging"

@@ -101,7 +101,7 @@ settings_pass="$(jq -r '
 ' "$RECEIPT_DIR/project-readback.json")"
 preview_count="$(jq '[.[] | select(.environment == "preview" and .materialized == true)] | length' "$RECEIPT_DIR/deployments.json")"
 skipped_preview_attempt_count="$(jq '[.[] | select(.environment == "preview" and .is_skipped == true)] | length' "$RECEIPT_DIR/deployments.json")"
-latest_governed="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
+latest_message_claim="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
   . as $deployment
   | ($deployment.commit_hash // "") as $commit_hash
   | ($deployment.commit_message // "") as $commit_message
@@ -124,29 +124,44 @@ latest_governed="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
 latest_lineage_format="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
   (.commit_message // "") as $message
   | if ($message | startswith("[KIDULTS-GOVERNED-STAGING] approval_id=") and contains(" repository=" + $expected_repository + " ")) then
-      "APPROVAL_BOUND_V1"
+      "UNVERIFIED_APPROVAL_MESSAGE_V1"
     elif ($message | startswith("[KIDULTS-GOVERNED-STAGING] repository=" + $expected_repository + " ")) then
-      "LEGACY_GOVERNED_V1"
+      "LEGACY_SELF_ASSERTED_MESSAGE_V1"
     else
       "UNRECOGNIZED"
     end
 ' "$RECEIPT_DIR/latest-deployment.json")"
 
+latest_deployment_matches_current_main="$(jq -r --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" '
+  . != null
+  and (.commit_hash // null) == $current_main_sha
+' "$RECEIPT_DIR/latest-deployment.json")"
+
+# A provider commit message is attacker/self-assertable metadata. Until an
+# exact run/SHA ledger artifact is verified with the pinned Ed25519 trust root,
+# no materialized deployment is classified as governed.
+latest_governed=false
+signed_ledger_lineage_verified=false
 state="VERIFIED_FAIL"
-[[ "$settings_pass" == "true" && "$latest_governed" == "true" && "$preview_count" -eq 0 ]] && state="COMPLETE_VERIFIED"
 
 jq -n --arg state "$state" --arg project "$PROJECT_NAME" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
   --arg latest_deployment_lineage_format "$latest_lineage_format" \
-  --argjson settings_pass "$settings_pass" --argjson latest_deployment_governed "$latest_governed" \
+  --argjson settings_pass "$settings_pass" --argjson latest_deployment_message_claim "$latest_message_claim" \
+  --argjson latest_deployment_governed "$latest_governed" --argjson signed_ledger_lineage_verified "$signed_ledger_lineage_verified" \
+  --argjson latest_deployment_matches_current_main "$latest_deployment_matches_current_main" \
   --argjson visible_preview_count "$preview_count" --argjson skipped_preview_attempt_count "$skipped_preview_attempt_count" \
   --slurpfile project_readback "$RECEIPT_DIR/project-readback.json" --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \
   --slurpfile latest_attempt "$RECEIPT_DIR/latest-attempt.json" '{
     id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:$state,project:$project,current_main_sha:$current_main_sha,
-    settings_pass:$settings_pass,latest_deployment_governed:$latest_deployment_governed,
+    settings_pass:$settings_pass,latest_deployment_message_claim:$latest_deployment_message_claim,
+    latest_deployment_governed:$latest_deployment_governed,signed_ledger_lineage_verified:$signed_ledger_lineage_verified,
     latest_deployment_lineage_format:$latest_deployment_lineage_format,
     visible_preview_count:$visible_preview_count,skipped_preview_attempt_count:$skipped_preview_attempt_count,
     project_readback:$project_readback[0],latest_attempt:$latest_attempt[0],latest_deployment:$latest[0],
-    latest_deployment_matches_current_main:(($latest[0].commit_hash // null) == $current_main_sha),current_main_match_is_informational:true,
+    latest_deployment_matches_current_main:$latest_deployment_matches_current_main,
+    current_main_match_required:true,current_main_match_is_informational:false,
+    governed_staging_current_main_parity:(if $latest_deployment_matches_current_main then "HOLD_UNVERIFIED_LINEAGE" else "VERIFIED_FAIL" end),
+    parity_blocker:(if $latest_deployment_matches_current_main then "LATEST_DEPLOYMENT_SIGNED_LEDGER_LINEAGE_UNVERIFIED" else "LATEST_DEPLOYMENT_SOURCE_SHA_DIFFERS_FROM_CURRENT_MAIN" end),
     cloudflare_api_called:true,settings_readback_complete:true,deployment_inventory_complete:true,read_only:true,
     settings_mutated:false,deployment_created:false,deployment_deleted:false,platform_environment:"STAGING",
     public_release:"HOLD",production:"HOLD",g5:"HOLD"

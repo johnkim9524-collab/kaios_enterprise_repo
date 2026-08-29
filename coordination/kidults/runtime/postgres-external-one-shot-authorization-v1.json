@@ -1,0 +1,210 @@
+{
+  "id": "kidults-postgres-external-one-shot-authorization-v1",
+  "version": "1.0.0",
+  "state": "IMPLEMENTED_NOT_ACTIVATED",
+  "status": "BLOCKED_EXTERNAL_LEDGER_DEPLOYMENT_RESPONSE_KEY_PIN_SIGNED_READBACK_AND_POST_LANDING_CONFIG_READBACK",
+  "issues": [240, 921],
+  "environment": "STAGING",
+  "purpose": "Replace reusable PostgreSQL activation state with an operation-specific authorization that is atomically consumed in an external durable ledger before any PostgreSQL, SSH, or provider credential is used or any provider connection begins.",
+  "standing_activation": {
+    "repository_variable": "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED",
+    "required_value": "false",
+    "missing_value_behavior": "BLOCK",
+    "true_value_behavior": "BLOCK_STANDING_AUTHORIZATION_FORBIDDEN",
+    "may_authorize_provider_credentials": false
+  },
+  "external_readback_baseline": {
+    "reported_at_implementation": true,
+    "repository_variable_value": "false",
+    "kidults_do_staging_ssh_environment_variable_shadow_present": false,
+    "readback_reperformed_by_this_change": false,
+    "configuration_mutated_by_this_change": false,
+    "truth_boundary": "This records the KPMO-supplied control-plane read-back baseline for implementation. Exact post-landing GitHub read-back remains required before any grant or provider run."
+  },
+  "external_ledger": {
+    "contract": "coordination/kidults/governance/external-one-shot-approval-ledger-v1.json",
+    "contract_id": "external-one-shot-approval-ledger-v1",
+    "contract_version": "1.0.0",
+    "client": "scripts/governance/external-one-shot-approval-ledger-v1.mjs",
+    "consume_environment": "kidults-approval-ledger-consume",
+    "base_url_variable": "KIDULTS_APPROVAL_LEDGER_BASE_URL",
+    "required_secrets": [
+      "KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64"
+    ],
+    "required_public_variables": [
+      "KIDULTS_APPROVAL_LEDGER_BASE_URL",
+      "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64"
+    ],
+    "response_signature": "ED25519_DETACHED_OVER_EXACT_RAW_BODY",
+    "verification_key_format": "SPKI_DER_BASE64",
+    "verification_key_digest_receipt_field": "verification_key_spki_sha256",
+    "response_verification": {
+      "algorithm": "Ed25519",
+      "public_key_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64",
+      "public_key_spki_sha256": "UNPROVISIONED",
+      "pin_source": "REPOSITORY_MACHINE_BINDING_AT_EXACT_CONTROL_SHA",
+      "state": "BLOCKED_EXTERNAL_KEY_PROVISIONING_AND_REPOSITORY_PIN_LANDING",
+      "github_private_signing_key_forbidden": true
+    },
+    "ledger_only_private_key_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PRIVATE_KEY_B64",
+    "ledger_private_key_allowed_in_github": false,
+    "atomic_transition": "ACTIVE_TO_CONSUMED_COMPARE_AND_SWAP",
+    "success_http_status": 201,
+    "replay_http_status": 409,
+    "expired_http_status": 410,
+    "unknown_http_status": 404,
+    "binding_mismatch_http_status": 422,
+    "offline_or_ambiguous_behavior": "FAIL_CLOSED"
+  },
+  "workflow_inputs": {
+    "approval_id": {
+      "required": true,
+      "pattern": "^[A-Z0-9][A-Z0-9._:-]{7,127}$"
+    },
+    "approval_expires_at": {
+      "required": true,
+      "role": "EXPECTED_IMMUTABLE_LEDGER_BINDING_NOT_AUTHORITY",
+      "format": "RFC3339_UTC",
+      "maximum_seconds_after_readiness": 3600,
+      "mismatch_behavior": "LEDGER_422_AND_NO_PROVIDER_CREDENTIAL_USE"
+    }
+  },
+  "request_window": {
+    "created_by_credential_free_job": true,
+    "source_fixture_created_by": "ACTIVATION_READINESS_RECEIPT",
+    "restore_created_by": "POST_SOURCE_FIXTURE_BINDING",
+    "seconds": 600,
+    "minimum_approval_seconds_remaining_at_consume_and_provider_start": 1800,
+    "minimum_approval_seconds_remaining_at_signed_consumed_at": 1800,
+    "operator_registers_exact_binding_before_environment_approval": true,
+    "expired_window_behavior": "NO_LEDGER_WINNER_AND_NO_PROVIDER_CREDENTIAL_USE"
+  },
+  "operations": [
+    {
+      "operation_id": "KIDULTS_POSTGRES_SOURCE_FIXTURE_V1",
+      "workflow": ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
+      "provider_job": "remote-persistence-pitr-fixture",
+      "target": {
+        "provider": "DIGITALOCEAN",
+        "resource_type": "MANAGED_POSTGRESQL_CLUSTER",
+        "resource_id": "kidults-staging-postgres-source",
+        "environment": "STAGING",
+        "target_digest": "sha256:53d988ca6b138c4340d7da117e1da5aba6d0c0eb5206cddd2edacbbf17d87778"
+      }
+    },
+    {
+      "operation_id": "KIDULTS_POSTGRES_TARGET_TIME_RESTORE_VERIFY_V1",
+      "workflow": ".github/workflows/p0-postgres-target-time-restore-verification.yml",
+      "provider_job": "verify-target-time-restore",
+      "target": {
+        "mode": "DYNAMIC_DIGEST_BOUND_RESOURCE_ID",
+        "provider": "DIGITALOCEAN",
+        "resource_type": "MANAGED_POSTGRESQL_RESTORE_CLUSTER",
+        "resource_id_prefix": "kidults-staging-postgres-pitr-restore/",
+        "environment": "STAGING"
+      },
+      "target_binding": {
+        "id": "kidults-postgres-restore-target-binding-v1",
+        "canonical_json": "UTF8_SORTED_KEYS_NO_WHITESPACE",
+        "source_run_id_type": "DECIMAL_STRING",
+        "source_artifact_id_type": "DECIMAL_STRING",
+        "required_fields": [
+          "id",
+          "source_run_id",
+          "source_artifact_id",
+          "source_artifact_digest",
+          "source_receipt_sha256",
+          "restore_operation_reference_sha256"
+        ],
+        "restore_operation_reference": "BOUND_NOT_VERIFIED",
+        "resource_id_formula": "resource_id_prefix + lowercase_sha256_hex(canonical_json)",
+        "target_digest_formula": "generic external-one-shot canonical target SHA-256"
+      }
+    }
+  ],
+  "required_request_bindings": [
+    "approval_id",
+    "operation_id",
+    "repository",
+    "workflow_ref",
+    "control_sha",
+    "source_sha",
+    "github_run_id",
+    "github_run_attempt",
+    "consume_nonce",
+    "requested_at",
+    "request_expires_at",
+    "approval_expires_at",
+    "target.provider",
+    "target.resource_type",
+    "target.resource_id",
+    "target.environment",
+    "target.target_digest"
+  ],
+  "required_signed_response_bindings": [
+    "approval_expires_at",
+    "consumed_at",
+    "consume_nonce",
+    "state",
+    "consumption_id",
+    "ledger_transaction_id",
+    "all_request_identity_and_target_bindings"
+  ],
+  "execution_order": [
+    "EXACT_LIVE_MAIN_READBACK_WITHOUT_LEDGER_OR_PROVIDER_SECRETS",
+    "STANDING_ACTIVATION_EXPLICITLY_FALSE",
+    "NON_SECRET_INPUT_AND_TARGET_BINDING",
+    "RESTORE_SOURCE_FIXTURE_BINDING_BEFORE_RESTORE_NONCE_AND_REQUEST_WINDOW",
+    "MINIMUM_30_MINUTE_APPROVAL_TTL_AT_CONSUME_AND_PROVIDER_START",
+    "EXTERNAL_LEDGER_ATOMIC_CONSUME_WITH_LEDGER_ONLY_SECRETS",
+    "SIGNED_CONSUMED_AT_PROVES_MINIMUM_30_MINUTE_APPROVAL_TTL",
+    "SIGNED_CONSUMPTION_RECEIPT_VERIFICATION",
+    "SAME_RUN_SIGNED_RECEIPT_ARTIFACT_BOUNDED_READBACK",
+    "NEEDS_BOUND_PROVIDER_JOB_RECEIPT_RECHECK",
+    "IN_STEP_SIGNATURE_AND_EXPIRY_RECHECK_BEFORE_PROVIDER_CREDENTIAL_USE_OR_CALL",
+    "PROVIDER_CREDENTIAL_USE",
+    "STAGING_PROVIDER_CONNECTION"
+  ],
+  "fail_closed_before_provider_credentials": [
+    "STANDING_ACTIVATION_NOT_FALSE",
+    "NON_WORKFLOW_DISPATCH_EVENT",
+    "NON_MAIN_REF",
+    "CONTROL_SHA_NOT_LIVE_MAIN",
+    "RUN_ATTEMPT_NOT_ONE",
+    "INVALID_APPROVAL_ID",
+    "INVALID_EXCESSIVE_EXPIRED_OR_LEDGER_MISMATCHED_APPROVAL_TIME",
+    "MISSING_OR_INVALID_NONCE",
+    "REUSED_NONCE",
+    "LEDGER_OFFLINE_TIMEOUT_OR_REDIRECT",
+    "LEDGER_UNKNOWN_CONSUMED_REPLAY_OR_EXPIRED",
+    "LEDGER_BINDING_MISMATCH",
+    "LEDGER_NON_201_RESPONSE",
+    "LEDGER_RESPONSE_SCHEMA_OR_SIGNATURE_MISMATCH",
+    "LEDGER_RESPONSE_PUBLIC_KEY_DIGEST_MISMATCH",
+    "LEDGER_RECEIPT_TIME_OR_BINDING_MISMATCH",
+    "RESTORE_SOURCE_RUN_ARTIFACT_RECEIPT_OR_OPERATION_REFERENCE_BINDING_MISMATCH",
+    "LESS_THAN_30_MINUTES_APPROVAL_TTL_AT_CONSUME_OR_PROVIDER_START",
+    "MISSING_OR_MISMATCHED_NEEDS_RECEIPT",
+    "SAME_RUN_RECEIPT_ARTIFACT_MISSING_DUPLICATED_OR_DIGEST_MISMATCHED"
+  ],
+  "authority_boundary": {
+    "repository_control_implementation": "AUTHORIZED_REVERSIBLE_NON_PRODUCTION",
+    "runtime_activation": "IMPLEMENTED_NOT_ACTIVATED",
+    "external_durable_ledger_deployed": false,
+    "repository_response_key_pin_provisioned": false,
+    "signed_exact_state_readback_verified": false,
+    "post_landing_github_configuration_readback_verified": false,
+    "ledger_or_github_configuration_mutation": "NOT_PERFORMED_BY_THIS_CHANGE",
+    "postgresql_or_provider_connection": "NOT_PERFORMED_BY_THIS_CHANGE",
+    "external_restore": "SEPARATE_OPERATION_SPECIFIC_AUTHORIZATION_REQUIRED",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "platform_principle_effects": {
+    "autonomous_effect": "A valid externally issued one-shot grant can advance one exact STAGING run without reopening a reusable activation switch; every other run fails closed.",
+    "global_effect": "The reusable authorization protocol is provider-neutral while each PostgreSQL target remains operation-specific and bounded to STAGING.",
+    "irreplaceable_value_effect": "Authorization state and replay history live in a KIDULTS-controlled durable ledger rather than a provider or mutable workflow variable.",
+    "transparency_effect": "Every allowed provider-credential activation is bound to exact repository, workflow, SHA, run, attempt, fresh request nonce, ledger-authoritative expiry, operation, target digest, and durable transaction receipt."
+  }
+}

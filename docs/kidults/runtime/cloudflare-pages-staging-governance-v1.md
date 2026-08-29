@@ -11,42 +11,43 @@
 - Preview branch setting: `none`.
 - Preview include/exclude lists: empty.
 - Visible Preview deployments: `0` after approved cleanup.
-- Deployments: explicit owner-authorized `workflow_dispatch` only.
+- All repository mutation entrypoints: **NO-RERUN / hard-disabled**.
+- Owner-entered workflow phrases: historical operator metadata only; not authorization.
 - Source: exact live protected-main SHA only.
 - Deployment method: Wrangler Direct Upload to the existing Git-integrated Pages project.
 - Read-only drift audit: every 30 minutes, on protected-main push, and on demand.
 - Deployment inventory pagination: Cloudflare Pages maximum `per_page=25`; all pages are bounded, and skipped attempts are separated from materialized deployments.
-- Preview deletion: emergency manual operation only.
+- Preview deletion and settings containment: HOLD until durable one-shot trust-root activation.
 - Production-environment deployment deletion: prohibited.
 - Public / platform Production / G5: HOLD.
 
 Cloudflare calls the stable branch of a Pages project its “production” environment. In this policy that label remains internal to the STAGING project and never constitutes platform Production authorization.
 
-## Safe landing sequence
+## Current safe sequence
 
-The governance PR must not merge while the Pages project can still auto-deploy `main`, because the merge itself would create another ambient deployment.
+The repository may perform read-only inventory only. Do not dispatch or directly invoke a Cloudflare mutation script. The existing STAGING deployment is not classified as governed merely because its provider commit message asserts an approval ID.
 
-1. In Cloudflare Pages, open `kidults-workspace-staging` and disable automatic production branch deployments.
-2. Set Preview branch deployments to `None` and save.
-3. Verify the existing `kidults-cloudflare-readonly` token has Pages Read permission; do not grant it Pages Edit.
-4. Confirm the project settings read back as:
+1. Keep automatic production branch deployments disabled and Preview branch deployments set to `None`.
+2. Keep the existing `kidults-cloudflare-readonly` token read-only.
+3. Confirm the project settings read back as:
    - `production_deployments_enabled=false`
    - `preview_deployment_setting=none`
-5. Merge the governance PR only after that external read-back.
-6. Create GitHub Environment `kidults-cloudflare-staging-deploy` with deployment branch policy restricted to protected `main`.
-7. Add a temporary minimum-scope Pages Edit token and account ID as environment secrets:
-   - `CLOUDFLARE_API_TOKEN`
-   - `CLOUDFLARE_ACCOUNT_ID`
-8. Run `KIDULTS Cloudflare Pages Emergency Control v1` only when settings containment or Preview deletion is required.
-9. Run `KIDULTS Cloudflare Pages Governed STAGING Deploy v1` for the exact live main SHA.
-10. Confirm `KIDULTS Cloudflare Pages Boundary Readonly v1` returns `COMPLETE_VERIFIED`.
-11. Remove the temporary write token after the governed deployment unless another explicitly approved operation is pending.
+4. Require read-only inventory to report Preview `0` and exact current-main SHA equality.
+5. Treat provider commit-message lineage as unverified and keep governed parity on HOLD.
+6. Before any future mutation, independently complete every activation prerequisite:
+   - deploy the external durable ledger endpoint;
+   - provision and independently pin its Ed25519 response key;
+   - backfill the historical approval as `CONSUMED`, never `ACTIVE`;
+   - verify a signed exact-binding state read-back;
+   - prove deployed consumed/expired/replay negative canaries make provider calls `0`;
+   - issue a new operation-specific approval for a new exact run/SHA/target.
+7. Change the hard-disabled workflow and script gates only in a separately reviewed trust-root change.
 
 The existing `kidults-cloudflare-readonly` environment remains read-only and must not be repurposed for mutation. On-demand inventory is performed by the read-only workflow, not by the mutation workflow.
 
-## Manual workflow confirmations
+## Historical confirmation phrases — non-authorizing
 
-Governed STAGING deploy:
+These strings must not be used to dispatch a mutation while NO-RERUN is active:
 
 ```text
 DEPLOY_KIDULTS_WORKSPACE_STAGING
@@ -64,4 +65,4 @@ Delete Preview deployments only:
 DELETE_PREVIEW_ONLY_KIDULTS_WORKSPACE_STAGING
 ```
 
-No workflow in this package deletes a Cloudflare Pages production-environment deployment.
+All mutation workflows and direct mutation script modes are currently blocked before provider calls. Public / platform Production / G5 remain HOLD.

@@ -28,8 +28,12 @@
   "accessibility": {
     "automated": "WCAG_2_2_AA_AXE_SERIOUS_CRITICAL_ZERO",
     "manual_screen_reader_human_review_required": true,
-    "manual_receipt": "NONE",
-    "screen_reader_gate": "HOLD"
+    "automated_mobile_surrogate": "NON_PHYSICAL_WEBKIT_SURROGATE_NON_AUTHORIZING",
+    "manual_receipt": "coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json",
+    "manual_receipt_cryptographic_verifiers": "NOT_PROVISIONED",
+    "self_asserted_signed_receipt_eligible": false,
+    "physical_iphone_mobile_safari_gate": "HOLD_PENDING_PHYSICAL_DEVICE",
+    "screen_reader_gate": "HOLD_PENDING_HUMAN_REVIEW"
   },
   "conversion_security": {
     "pii_at_rest": "AES-256-GCM-v1",

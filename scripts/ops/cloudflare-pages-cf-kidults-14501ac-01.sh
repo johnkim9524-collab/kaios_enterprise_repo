@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "Cloudflare mutation NO-RERUN: durable one-shot ledger trust root is not activated" >&2
+exit 78
+
 APPROVAL_ID="${APPROVAL_ID:-CF-KIDULTS-14501AC-01}"
 APPROVAL_RECEIPT_PATH="${APPROVAL_RECEIPT_PATH:-coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json}"
+APPROVAL_LEDGER_BINDING_PATH="${APPROVAL_LEDGER_BINDING_PATH:-coordination/kidults/runtime/cf-kidults-14501ac-01-ledger-binding-v1.json}"
+APPROVAL_CONSUME_REQUEST_PATH="${APPROVAL_CONSUME_REQUEST_PATH:-artifacts/external-one-shot-approval-consume-request-v1.json}"
+APPROVAL_CLIENT_RECEIPT_PATH="${APPROVAL_CLIENT_RECEIPT_PATH:-artifacts/external-one-shot-approval-client-receipt-v1.json}"
 TARGET_SHA="${TARGET_SHA:-14501ac022bdd7c918924a207f257b047b1ba970}"
 PROJECT_NAME="${CLOUDFLARE_PAGES_PROJECT_NAME:-kidults-workspace-staging}"
 EXPECTED_REPOSITORY="${EXPECTED_REPOSITORY:-johnkim9524-collab/kaios_enterprise_repo}"
+EXPECTED_APPROVAL_OPERATION_ID="${EXPECTED_APPROVAL_OPERATION_ID:-CLOUDFLARE_PAGES_PREVIEW_RETIRE_AND_GOVERNED_STAGING}"
+EXPECTED_APPROVAL_WORKFLOW_REF="${EXPECTED_APPROVAL_WORKFLOW_REF:-.github/workflows/kpmo-cloudflare-approval-consume-v1.yml@refs/heads/main}"
 EXPECTED_ACCOUNT_ID="${EXPECTED_CLOUDFLARE_ACCOUNT_ID:-235eaa51d04e7f4436a9faa507a04f9d}"
 SOURCE_DIR="${SOURCE_DIR:-target-source/apps/kidults-enterprise-staging/public}"
 RECEIPT_ROOT="${RECEIPT_ROOT:-artifacts/cf-kidults-14501ac-01}"
@@ -118,6 +126,7 @@ current_stage="VALIDATE_LOCAL_INPUTS"
 [[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || fail "CLOUDFLARE_CREDENTIALS_ABSENT" 65
 [[ "$CLOUDFLARE_ACCOUNT_ID" == "$EXPECTED_ACCOUNT_ID" ]] || fail "CONFIGURED_ACCOUNT_ID_PARITY_FAILURE" 65
 [[ -f "$APPROVAL_RECEIPT_PATH" ]] || fail "APPROVAL_RECEIPT_MISSING" 65
+[[ -f "$APPROVAL_LEDGER_BINDING_PATH" ]] || fail "APPROVAL_LEDGER_BINDING_MISSING" 65
 [[ -d "$SOURCE_DIR" ]] || fail "TARGET_SOURCE_DIRECTORY_MISSING" 65
 [[ "${GITHUB_RUN_ATTEMPT:-}" == "1" ]] || fail "ONE_TIME_APPROVAL_REPLAY_REFUSED" 65
 
@@ -153,8 +162,42 @@ jq -e \
    and .forbidden.platform_production == true
    and .forbidden.g5 == true' \
   "$APPROVAL_RECEIPT_PATH" >/dev/null || fail "APPROVAL_RECEIPT_INVALID" 65
+
+current_stage="VALIDATE_EXTERNAL_DURABLE_CONSUMPTION"
+[[ -f "$APPROVAL_CONSUME_REQUEST_PATH" && -f "$APPROVAL_CLIENT_RECEIPT_PATH" ]] || fail "SIGNED_EXACT_APPROVAL_RECEIPT_MISSING_NO_RERUN" 65
+public_key_pin="$(jq -r '.response_verification.public_key_spki_sha256' "$APPROVAL_LEDGER_BINDING_PATH")"
+[[ "$public_key_pin" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "RESPONSE_PUBLIC_KEY_PIN_UNPROVISIONED_NO_RERUN" 65
+[[ -n "${KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64:-}" ]] || fail "RESPONSE_PUBLIC_KEY_MISSING_NO_RERUN" 65
+KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256="$public_key_pin" \
+  node scripts/governance/external-one-shot-approval-ledger-v1.mjs verify \
+    --request "$APPROVAL_CONSUME_REQUEST_PATH" \
+    --receipt "$APPROVAL_CLIENT_RECEIPT_PATH" \
+    >"$tmp_dir/approval-verification.json" || fail "SIGNED_EXACT_APPROVAL_RECEIPT_INVALID_NO_RERUN" 65
+jq -e \
+  --arg approval_id "$APPROVAL_ID" \
+  --arg operation_id "$EXPECTED_APPROVAL_OPERATION_ID" \
+  --arg repository "$EXPECTED_REPOSITORY" \
+  --arg workflow_ref "$EXPECTED_APPROVAL_WORKFLOW_REF" \
+  --arg control_sha "${GITHUB_SHA:-}" \
+  --arg source_sha "$TARGET_SHA" \
+  --arg project "$PROJECT_NAME" \
+  --arg upstream_run_id "${UPSTREAM_APPROVAL_CONSUME_RUN_ID:-}" \
+  '.ledger_receipt.state == "CONSUMED"
+   and .ledger_receipt.approval_id == $approval_id
+   and .ledger_receipt.operation_id == $operation_id
+   and .ledger_receipt.repository == $repository
+   and .ledger_receipt.workflow_ref == $workflow_ref
+   and .ledger_receipt.control_sha == $control_sha
+   and .ledger_receipt.source_sha == $source_sha
+   and .ledger_receipt.github_run_id == $upstream_run_id
+   and .ledger_receipt.github_run_attempt == 1
+   and .ledger_receipt.target.provider == "CLOUDFLARE"
+   and .ledger_receipt.target.resource_type == "PAGES_PROJECT"
+   and .ledger_receipt.target.resource_id == $project
+   and .ledger_receipt.target.environment == "STAGING"' \
+  "$APPROVAL_CLIENT_RECEIPT_PATH" >/dev/null || fail "SIGNED_EXACT_APPROVAL_BINDING_MISMATCH_NO_RERUN" 65
 approval_consumed=true
-write_receipt "APPROVAL_CONSUMED_PREFLIGHT_PENDING" "NONE" 0
+write_receipt "EXTERNAL_DURABLE_APPROVAL_VERIFIED_PREFLIGHT_PENDING" "NONE" 0
 
 echo "::add-mask::$CLOUDFLARE_API_TOKEN"
 echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"

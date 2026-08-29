@@ -1,0 +1,103 @@
+{
+  "id": "portal-physical-mobile-screen-reader-acceptance-receipt-v1",
+  "receipt_version": "1.1.0",
+  "contract_id": "portal-physical-mobile-screen-reader-acceptance-contract-v1",
+  "source_binding": {
+    "current_main_sha": null,
+    "governed_staging_source_sha": null,
+    "governed_staging_deployment_id": null,
+    "governed_staging_url": null,
+    "current_main_parity": "HOLD_NOT_EXECUTED"
+  },
+  "physical_mobile_receipt": {
+    "state": "HOLD_PENDING_PHYSICAL_DEVICE",
+    "evidence_class": null,
+    "session_id": null,
+    "executed": false,
+    "physical_device": false,
+    "simulator": null,
+    "automation_only": null,
+    "device_model": null,
+    "ios_version": null,
+    "browser": null,
+    "browser_version": null,
+    "started_at": null,
+    "completed_at": null,
+    "reviewer_id": null,
+    "human_reviewer": false,
+    "cycles": {
+      "required": 30,
+      "completed": 0,
+      "navigation_pass": 0,
+      "background_foreground_pass": 0,
+      "history_traversal_pass": 0,
+      "bfcache_or_reload_containment_pass": 0,
+      "menu_restoration_pass": 0,
+      "focus_restoration_pass": 0,
+      "scroll_restoration_pass": 0,
+      "stale_value_leak_count": 0,
+      "runtime_error_count": 0,
+      "crash_count": 0,
+      "failed_cycle_count": 0
+    },
+    "evidence_refs": [],
+    "attestation": {
+      "signed": false,
+      "signer_id": null,
+      "signed_at": null,
+      "statement": null,
+      "algorithm": null,
+      "verifier_key_id": null,
+      "attestation_id": null,
+      "payload_digest": null,
+      "payload_base64url": null,
+      "signature_base64url": null,
+      "verification_state": "HOLD_VERIFIER_NOT_PROVISIONED"
+    }
+  },
+  "screen_reader_receipt": {
+    "state": "HOLD_PENDING_HUMAN_REVIEW",
+    "evidence_class": null,
+    "session_id": null,
+    "device_session_id": null,
+    "executed": false,
+    "screen_reader": null,
+    "enabled": false,
+    "human_operated": false,
+    "reviewer_id": null,
+    "started_at": null,
+    "completed_at": null,
+    "checks": {
+      "landmarks": "NOT_EXECUTED",
+      "name_role_value": "NOT_EXECUTED",
+      "focus_order": "NOT_EXECUTED",
+      "focus_restoration": "NOT_EXECUTED",
+      "menu_announcement": "NOT_EXECUTED",
+      "status_announcement": "NOT_EXECUTED",
+      "error_announcement": "NOT_EXECUTED"
+    },
+    "evidence_refs": [],
+    "attestation": {
+      "signed": false,
+      "signer_id": null,
+      "signed_at": null,
+      "statement": null,
+      "algorithm": null,
+      "verifier_key_id": null,
+      "attestation_id": null,
+      "payload_digest": null,
+      "payload_base64url": null,
+      "signature_base64url": null,
+      "verification_state": "HOLD_VERIFIER_NOT_PROVISIONED"
+    }
+  },
+  "decision": {
+    "physical_iphone_mobile_safari": "HOLD_PENDING_PHYSICAL_DEVICE",
+    "voiceover_screen_reader": "HOLD_PENDING_HUMAN_REVIEW",
+    "combined_acceptance": "HOLD",
+    "promotion_authority": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

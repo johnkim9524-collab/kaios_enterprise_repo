@@ -3,6 +3,9 @@ import { resolve, relative } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 
+console.error('CLOUDFLARE_GLOBAL_NO_RERUN: remote D1 capacity mutation is disabled.');
+process.exit(78);
+
 const cwd = process.cwd();
 const configText = readFileSync(resolve(cwd, 'wrangler.jsonc'), 'utf8').replace(/^\uFEFF/, '');
 const config = JSON.parse(configText);

@@ -2,15 +2,14 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
+
+const CONTRACT_PATH = "coordination/kidults/autonomous/source-discovery/contracts/vam-fashion-collections-r1.json";
 
 const DEFAULTS = Object.freeze({
-  apiBase: "https://api.vam.ac.uk/v2",
   query: "dress",
-  pageSize: 100,
   limit: 12,
   minimumRecords: 8,
-  timeoutMs: 15_000,
-  retryAttempts: 3,
   output: "artifacts/autonomous-source-samples/vam-fashion-collections-r1"
 });
 
@@ -37,124 +36,39 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (value && typeof value === "object") {
-    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function ensureAllowedUrl(url) {
-  const parsed = new URL(url);
-  if (parsed.protocol !== "https:" || parsed.hostname !== "api.vam.ac.uk") {
-    throw new Error(`Source URL is outside the approved allowlist: ${url}`);
-  }
-}
-
-async function requestJson(url, config, requestLog) {
-  ensureAllowedUrl(url);
-  let lastError = null;
-  for (let attempt = 1; attempt <= config.retryAttempts; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-    const startedAt = Date.now();
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "User-Agent": "KIDULTS-Autonomous-Source-PoC/1.0 (+https://kidults.com)"
-        },
-        signal: controller.signal
-      });
-      const text = await response.text();
-      requestLog.push({
-        url,
-        method: "GET",
-        attempt,
-        status: response.status,
-        duration_ms: Date.now() - startedAt,
-        response_sha256: sha256(text)
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return JSON.parse(text);
-    } catch (error) {
-      lastError = error;
-      if (attempt < config.retryAttempts) await sleep(250 * (2 ** (attempt - 1)));
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-  throw lastError ?? new Error(`Request failed: ${url}`);
-}
-
-function relevanceText(record) {
-  return [record.objectType, record._primaryTitle, record._primaryMaker?.name]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function isFashionRelevant(record) {
-  return /dress|gown|costume|garment|jacket|coat|cape|hat|shoe|boot|bag|handbag|jewel|brooch|earring|necklace|bracelet|accessor|textile|fashion/i
-    .test(relevanceText(record));
-}
-
-function sanitizeRecord(record) {
-  const {
-    _images: _images,
-    _imagesMeta: _imagesMeta,
-    _primaryImageId: _primaryImageId,
-    ...metadataOnly
-  } = record;
+function runtimeLineage() {
   return {
-    raw_payload_state: "SANITIZED_SUMMARY_METADATA_ONLY",
-    image_downloaded: false,
-    metadata: metadataOnly
+    git_sha: /^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA ?? "") ? process.env.GITHUB_SHA : null,
+    github_run_id: /^\d+$/.test(process.env.GITHUB_RUN_ID ?? "") ? Number(process.env.GITHUB_RUN_ID) : null,
+    github_run_attempt: /^\d+$/.test(process.env.GITHUB_RUN_ATTEMPT ?? "") ? Number(process.env.GITHUB_RUN_ATTEMPT) : null
   };
 }
 
-function normalizeRecord(record, fetchedAt, payloadHash) {
-  const sourceObjectId = String(record.systemNumber ?? "");
-  const critical = {
-    system_number: sourceObjectId || null,
-    accession_number: record.accessionNumber || null,
-    object_type: record.objectType || null,
-    title: record._primaryTitle || null,
-    maker: record._primaryMaker?.name || null,
-    production_date: record._primaryDate || null
-  };
-  const present = Object.values(critical).filter(value => value !== null && value !== "").length;
-  return {
-    evidence_id: `vam:${sourceObjectId}`,
-    evidence_class: "PRIMARY_AUTHORITY",
-    vertical_id: "fashion-accessories",
-    source_id: "vam-collections-api-fashion",
-    source_tier: 1,
-    source_object_id: sourceObjectId,
-    canonical_id_candidate: `vam-object-${sourceObjectId}`,
-    accession_number: record.accessionNumber || null,
-    object_type: record.objectType || null,
-    title: record._primaryTitle || null,
-    maker_or_artist: record._primaryMaker?.name || null,
-    maker_association: record._primaryMaker?.association || null,
-    production_date: record._primaryDate || null,
-    primary_place: record._primaryPlace || null,
-    current_location: record._currentLocation?.displayName || null,
-    on_display: record._currentLocation?.onDisplay === true,
-    warning_types: Array.isArray(record._warningTypes) ? record._warningTypes : [],
-    metadata_rights_state: "V_AND_A_API_TERMS_INTERNAL_NONCOMMERCIAL_POC_ONLY",
-    image_state: "NOT_INGESTED",
-    fetched_at: fetchedAt,
-    evidence_reference: `https://collections.vam.ac.uk/item/${encodeURIComponent(sourceObjectId)}/`,
-    source_payload_sha256: payloadHash,
-    critical_field_completeness: Number((present / Object.keys(critical).length).toFixed(4)),
-    publication_state: "POC_INTERNAL_ONLY"
-  };
+function readContract() {
+  const raw = fs.readFileSync(path.resolve(CONTRACT_PATH), "utf8");
+  const contract = JSON.parse(raw);
+  if (contract.contract_id !== "vam-fashion-collections-r1" ||
+      contract.status !== "IMPLEMENTED_SCHEDULED_READ_CAPABLE_RIGHTS_SCOPE_HOLD" ||
+      contract.admission_class !== "REFERENCE_DISCOVERY_ONLY" ||
+      contract.current_sold_eligible !== false ||
+      contract.scheduled_activation?.runtime_activation !== "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED" ||
+      contract.scheduled_activation?.workflow_receipt_secret_binding !== "NONE_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED") {
+    throw new Error("V&A governed source contract is not in the required hard-HOLD state.");
+  }
+  return { contractDigest: `sha256:${sha256(raw)}` };
+}
+
+// No receipt is accepted inside this process. Until a separately protected verifier
+// exists, every invocation terminates before DNS, HTTP, or license provenance creation.
+export function evaluateRightsScope() {
+  return Object.freeze({
+    authorized: false,
+    reason: "EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED",
+    provider_call_authorized: false,
+    receipt_content_loaded: false,
+    receipt_claims_accepted: false,
+    license_provenance_created: false
+  });
 }
 
 function writeJson(directory, name, value) {
@@ -162,122 +76,109 @@ function writeJson(directory, name, value) {
   fs.writeFileSync(path.join(directory, name), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-const config = parseArgs(process.argv.slice(2));
-const outputDirectory = path.resolve(config.output);
-const requestLog = [];
-const startedAt = new Date().toISOString();
-const searchUrl = new URL(`${config.apiBase}/objects/search`);
-searchUrl.searchParams.set("q", config.query);
-searchUrl.searchParams.set("page_size", String(config.pageSize));
-searchUrl.searchParams.set("response_format", "json");
+function writeHardHold(outputDirectory, config, contractDigest, startedAt) {
+  const completedAt = new Date().toISOString();
+  const rightsScopeGate = evaluateRightsScope();
+  const blockers = [
+    rightsScopeGate.reason,
+    "V&A_PROVIDER_CALL_NOT_ATTEMPTED",
+    "V&A_LICENSE_PROVENANCE_NOT_CREATED",
+    "CANDIDATE_R2_NOT_ACTIVATED_IMMUTABLE_PAIR_REQUIRED"
+  ];
+  const runManifest = {
+    run_id: `vam-fashion-collections-hard-hold-${completedAt.replace(/[:.]/g, "-")}`,
+    contract_id: "vam-fashion-collections-r1",
+    version: "1.2.0",
+    status: "HOLD_EXTERNAL_RIGHTS_VERIFIER_NOT_IMPLEMENTED",
+    outcome_class: "FAIL_CLOSED_PRE_PROVIDER_CALL",
+    started_at: startedAt,
+    completed_at: completedAt,
+    mode: "GOVERNED_SCHEDULED_PUBLIC_METADATA_REFERENCE_DISCOVERY",
+    source_id: "vam-collections-api-fashion",
+    source_tier: 1,
+    source_layer: "OPEN_AUTHORITY",
+    evidence_role: "REFERENCE_DISCOVERY",
+    market_observation_type: "NONE",
+    current_sold_eligible: false,
+    query: config.query,
+    target_records: config.limit,
+    minimum_records: config.minimumRecords,
+    rights_scope_gate: rightsScopeGate,
+    runtime_lineage: runtimeLineage(),
+    license_contract_sha256: contractDigest,
+    license_provenance_created: false,
+    requests_executed: 0,
+    provider_call_count: 0,
+    normalized_records: 0,
+    credential_used: false,
+    paid_access_used: false,
+    image_downloaded: false,
+    mutation_performed: false,
+    data_admission_performed: false,
+    current_sold_transaction_count: 0,
+    immutable_candidate_evidence_pair_created: false,
+    track_b_submission_count: 0,
+    track_b_assessment_count: 0,
+    production_eligible: false,
+    commercial_publication_authorized: false,
+    candidate_publication_authorized: false,
+    request_log: []
+  };
+  const qualityReport = {
+    run_id: runManifest.run_id,
+    unique_record_count: 0,
+    duplicate_record_count: 0,
+    provenance_reference_coverage: 0,
+    metadata_rights_state: "UNVERIFIED_RUNTIME_HOLD",
+    image_ingestion_count: 0,
+    minimum_record_gate: runManifest.status,
+    candidate_eligible: false,
+    zero_candidate_terminal: false,
+    current_sold_transaction_count: 0,
+    candidate_blockers: blockers
+  };
+  const evidencePackage = {
+    evidence_package_id: null,
+    version: "1.2.0",
+    status: "RIGHTS_HOLD_NOT_EVIDENCE_NOT_CANDIDATE",
+    generated_at: completedAt,
+    snapshot_id: null,
+    evidence_role: "REFERENCE_DISCOVERY",
+    market_observation_type: "NONE",
+    current_sold_eligible: false,
+    license_provenance_created: false,
+    source_ids: ["vam-collections-api-fashion"],
+    record_count: 0,
+    records: [],
+    known_limitations: blockers,
+    production_eligible: false,
+    commercial_publication_authorized: false
+  };
+  writeJson(outputDirectory, "run-manifest.json", runManifest);
+  writeJson(outputDirectory, "sanitized-raw-records.json", []);
+  writeJson(outputDirectory, "normalized-evidence-records.json", []);
+  writeJson(outputDirectory, "evidence-package.json", evidencePackage);
+  writeJson(outputDirectory, "quality-report.json", qualityReport);
+  return runManifest;
+}
 
-const payload = await requestJson(searchUrl.href, config, requestLog);
-const sourceRecords = Array.isArray(payload?.records) ? payload.records : [];
-const selected = sourceRecords
-  .filter(record => record && typeof record === "object")
-  .filter(isFashionRelevant)
-  .filter(record => record.systemNumber && record.accessionNumber && record.objectType)
-  .sort((left, right) => String(left.systemNumber).localeCompare(String(right.systemNumber)))
-  .slice(0, config.limit);
+export async function runVamCollection(config = parseArgs(process.argv.slice(2))) {
+  const outputDirectory = path.resolve(config.output);
+  const startedAt = new Date().toISOString();
+  const { contractDigest } = readContract();
+  const runManifest = writeHardHold(outputDirectory, config, contractDigest, startedAt);
+  console.log(JSON.stringify({
+    status: runManifest.status,
+    provider_call_count: 0,
+    blocker: runManifest.rights_scope_gate.reason,
+    output: config.output
+  }));
+  return { runManifest, exitCode: 3 };
+}
 
-const fetchedAt = new Date().toISOString();
-const sanitizedRawRecords = selected.map(record => ({
-  source_object_id: String(record.systemNumber),
-  fetched_at: fetchedAt,
-  source_payload_sha256: sha256(stableJson(record)),
-  source_url: searchUrl.href,
-  ...sanitizeRecord(record)
-}));
-const normalizedRecords = selected.map(record => normalizeRecord(record, fetchedAt, sha256(stableJson(record))));
-const uniqueIds = new Set(normalizedRecords.map(record => record.source_object_id));
-const averageCompleteness = normalizedRecords.length
-  ? normalizedRecords.reduce((sum, record) => sum + record.critical_field_completeness, 0) / normalizedRecords.length
-  : 0;
-const completedAt = new Date().toISOString();
-const minimumGatePassed = normalizedRecords.length >= config.minimumRecords;
+async function main() {
+  const result = await runVamCollection(parseArgs(process.argv.slice(2)));
+  if (result.exitCode) process.exitCode = result.exitCode;
+}
 
-const runManifest = {
-  run_id: `vam-fashion-collections-${completedAt.replace(/[:.]/g, "-")}`,
-  contract_id: "vam-fashion-collections-r1",
-  version: "1.0.0",
-  status: minimumGatePassed ? "COMPLETED" : "FAILED_MINIMUM_RECORD_GATE",
-  started_at: startedAt,
-  completed_at: completedAt,
-  mode: "BOUNDED_LIVE_METADATA_POC",
-  source_id: "vam-collections-api-fashion",
-  source_tier: 1,
-  vertical_id: "fashion-accessories",
-  query: config.query,
-  search_result_count: Number(payload?.info?.record_count ?? sourceRecords.length),
-  search_records_returned: sourceRecords.length,
-  requests_executed: requestLog.length,
-  target_records: config.limit,
-  minimum_records: config.minimumRecords,
-  normalized_records: normalizedRecords.length,
-  rights_model: {
-    metadata: "V_AND_A_API_TERMS_SECTION_9_3_INTERNAL_NONCOMMERCIAL_POC_ONLY",
-    images: "NOT_INGESTED"
-  },
-  credential_used: false,
-  paid_access_used: false,
-  image_downloaded: false,
-  mutation_performed: false,
-  production_eligible: false,
-  commercial_publication_authorized: false,
-  candidate_publication_authorized: false,
-  request_log: requestLog
-};
-
-const qualityReport = {
-  run_id: runManifest.run_id,
-  unique_record_count: uniqueIds.size,
-  duplicate_record_count: normalizedRecords.length - uniqueIds.size,
-  average_critical_field_completeness: Number(averageCompleteness.toFixed(4)),
-  provenance_reference_coverage: normalizedRecords.length
-    ? normalizedRecords.filter(record => Boolean(record.evidence_reference)).length / normalizedRecords.length
-    : 0,
-  metadata_rights_state: "INTERNAL_NONCOMMERCIAL_POC_ONLY",
-  image_ingestion_count: 0,
-  minimum_record_gate: minimumGatePassed ? "PASS" : "FAIL",
-  candidate_eligible: false,
-  candidate_blockers: [
-    "V&A terms do not provide commercial-publication clearance for this PoC.",
-    "Cross-source entity resolution against The Met has not yet been completed.",
-    "No rights-cleared transaction evidence is present.",
-    "Source Trust and Evidence Density methodologies remain pending Track B validation."
-  ]
-};
-
-const evidencePackage = {
-  evidence_package_id: `evidence-${runManifest.run_id}`,
-  version: "1.0.0",
-  status: "POC_EVIDENCE_NOT_CANDIDATE",
-  generated_at: completedAt,
-  snapshot_id: null,
-  methodology_version: "source-trust-methodology-v1",
-  evidence_lineage_version: "vam-fashion-collections-lineage-r1",
-  source_mode: "BOUNDED_LIVE_METADATA_POC",
-  source_ids: ["vam-collections-api-fashion"],
-  record_count: normalizedRecords.length,
-  records: normalizedRecords,
-  known_limitations: qualityReport.candidate_blockers,
-  production_eligible: false,
-  commercial_publication_authorized: false
-};
-
-writeJson(outputDirectory, "run-manifest.json", runManifest);
-writeJson(outputDirectory, "sanitized-raw-records.json", sanitizedRawRecords);
-writeJson(outputDirectory, "normalized-evidence-records.json", normalizedRecords);
-writeJson(outputDirectory, "evidence-package.json", evidencePackage);
-writeJson(outputDirectory, "quality-report.json", qualityReport);
-
-console.log(JSON.stringify({
-  status: runManifest.status,
-  run_id: runManifest.run_id,
-  search_result_count: runManifest.search_result_count,
-  normalized_records: normalizedRecords.length,
-  average_completeness: qualityReport.average_critical_field_completeness,
-  output: config.output
-}));
-
-if (!minimumGatePassed) process.exitCode = 2;
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

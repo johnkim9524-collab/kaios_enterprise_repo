@@ -205,8 +205,8 @@
     },
     "met_real_source_admission_runner": {
       "path": "scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs",
-      "sha256": "sha256:d88875bc07d8cc167df2006b8eddf02a45a301b38ff6631f52a6c1ce1ad03abb",
-      "byte_count": 3374
+      "sha256": "sha256:9638b40a4130ced55e0fda252946b451b165e7f8ae4405a094c765148f1defae",
+      "byte_count": 1065
     },
     "getty_historical_sale_runner": {
       "path": "scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs",
@@ -265,8 +265,8 @@
     },
     "entity_resolution_real_dataset_assembler": {
       "path": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
-      "sha256": "sha256:3eae02fce34bbcb9b2abc7af6ca8861d6907fb2763b42f4580491fab5eed2efb",
-      "byte_count": 4496
+      "sha256": "sha256:9df75760505994fa4331466d799de3603287feb41ca18569324b8d8d5f0580bf",
+      "byte_count": 1227
     },
     "entity_resolution_getty_transaction_r2_extender": {
       "path": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",
@@ -965,8 +965,8 @@
       },
       "real_source_constructed_control_assembler_ref": {
         "path": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
-        "sha256": "sha256:3eae02fce34bbcb9b2abc7af6ca8861d6907fb2763b42f4580491fab5eed2efb",
-        "byte_count": 4496
+        "sha256": "sha256:9df75760505994fa4331466d799de3603287feb41ca18569324b8d8d5f0580bf",
+        "byte_count": 1227
       },
       "getty_transaction_r2_extender_ref": {
         "path": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",
@@ -2269,5 +2269,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:1023dd11fbec5eae5be5b8116b319b20384dff3ab3c8f6fc8f47e177455c7161"
+  "evidence_fingerprint": "sha256:3123d3898af9b95edd885870df7bde5cc22bad2533c80d6d9f4fe680dcc39020"
 }
