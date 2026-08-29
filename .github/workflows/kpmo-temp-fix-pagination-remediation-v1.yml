@@ -1,0 +1,46 @@
+name: KPMO Temporary Fix Pagination Remediation v1
+
+on:
+  push:
+    branches:
+      - kpmo/cloudflare-pages-pagination-fix-v1
+    paths:
+      - .github/workflows/kpmo-temp-fix-pagination-remediation-v1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: kpmo/cloudflare-pages-pagination-fix-v1
+          fetch-depth: 1
+          persist-credentials: true
+      - name: Correct temporary remediation generator syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/kpmo-temp-cloudflare-pagination-remediation-v1.yml')
+          text = path.read_text()
+          replacements = [
+            ('          from pathlib import Path\n', '          from pathlib import Path\n          import textwrap\n'),
+            ("          test_path.write_text(r'''#!/usr/bin/env node", "          test_path.write_text(textwrap.dedent(r'''#!/usr/bin/env node"),
+            ("          '''.replace(/^          /gm, ''))", "          '''))"),
+          ]
+          for old, new in replacements:
+            if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one match for {old!r}, found {text.count(old)}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+          git config user.name 'johnkim9524-collab'
+          git config user.email 'john.kim9524@gmail.com'
+          git add .github/workflows/kpmo-temp-cloudflare-pagination-remediation-v1.yml
+          git commit -m '[CF-Pages-Skip] fix(kpmo): correct remediation generator syntax'
+          git push origin HEAD:kpmo/cloudflare-pages-pagination-fix-v1
