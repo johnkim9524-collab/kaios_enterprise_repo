@@ -52,11 +52,14 @@ assert(ownedGraph.includes(ownedGraphConcurrencyContract), 'OWNEDGRAPH_EVENT_SCO
 const requirementConcurrencyContract = "group: kidults-asi-requirement-adapter-coverage-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}";
 assert(requirement.includes(requirementConcurrencyContract), 'REQUIREMENT_EVENT_SCOPED_CONCURRENCY_MISSING');
 assert(requirement.includes('cancel-in-progress: true'), 'REQUIREMENT_CONCURRENCY_FAIL_CLOSED_MISSING');
-const requirementProducerEventGuard = "github.event.workflow_run.event != 'push'";
+const requirementProducerEventGuard = "github.event.workflow_run.event == 'workflow_run'";
 const requirementExactTriggerLine = '\n            RUN_ID="$EVENT_ARL_RUN_ID"\n';
 assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_GUARD_MISSING');
 assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
-assert(requirement.includes("exact_triggering_run_bound:run.event==='workflow_run'"), 'REQUIREMENT_UPSTREAM_EVENT_BINDING_SEMANTICS_MISSING');
+assert(requirement.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MISSING');
+assert(requirement.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'REQUIREMENT_EXACT_TRIGGER_CONSUMER_SEMANTICS_MISSING');
+assert(requirement.includes("authoritative_producer_event:run.event==='workflow_run'"), 'REQUIREMENT_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
+assert(requirement.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && requirement.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'REQUIREMENT_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
 const snapshotConcurrencyContract = "group: kidults-asi-snapshot-readiness-factory-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}";
@@ -64,10 +67,12 @@ assert(snapshot.includes(snapshotConcurrencyContract), 'SNAPSHOT_EVENT_SCOPED_CO
 assert(snapshot.includes('cancel-in-progress: true'), 'SNAPSHOT_CONCURRENCY_FAIL_CLOSED_MISSING');
 const autonomousResolutionPrStaticContract = "validate-autonomous-resolution-contract:\n    if: github.event_name == 'pull_request' || github.event_name == 'push'";
 assert(autonomousResolution.includes(autonomousResolutionPrStaticContract), 'AUTONOMOUS_RESOLUTION_PR_STATIC_LANE_MISSING');
-const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')";
+const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'";
 assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_SEPARATION_MISSING');
 assert(autonomousResolution.includes('actions: write') && autonomousResolution.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'AUTONOMOUS_RESOLUTION_SELF_HEALING_P1_DISPATCH_MISSING');
-assert(autonomousResolution.includes('ACTIVE_P1_RUN_ID') && autonomousResolution.includes('for ATTEMPT in {1..60}; do') && autonomousResolution.includes('EXACT_MAIN_P1_RECOVERY_TIMEOUT'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_RECOVERY_MISSING');
+assert(autonomousResolution.includes('request-p1-recovery:') && autonomousResolution.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'") && autonomousResolution.includes('downstream_consumable:false') && autonomousResolution.includes('canonical_artifact_published:false'), 'AUTONOMOUS_RESOLUTION_NONCONSUMABLE_RECOVERY_MISSING');
+assert(autonomousResolution.includes("group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}") && autonomousResolution.includes('cancel-in-progress: false'), 'AUTONOMOUS_RESOLUTION_SHARED_GENERATION_LEADER_MISSING');
+assert(autonomousResolution.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && autonomousResolution.includes("artifact_role:'AUTHORITATIVE_CONSUMABLE'") && autonomousResolution.includes('authoritative_producer:true'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(autonomousResolution.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && autonomousResolution.includes('EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_ARTIFACT_READBACK_MISSING');
 assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
 assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
@@ -115,19 +120,25 @@ const requirementProducerEventMutation = requirement.replace(requirementProducer
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
 const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
 assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
-const requirementUpstreamEventBindingMutation = requirement.replace("exact_triggering_run_bound:run.event==='workflow_run'", "exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'");
-assert(requirementUpstreamEventBindingMutation !== requirement && !requirementUpstreamEventBindingMutation.includes("exact_triggering_run_bound:run.event==='workflow_run'"), 'REQUIREMENT_UPSTREAM_EVENT_BINDING_MUTATION_NOT_DETECTED');
+const requirementConsumerEventBindingMutation = requirement.replace("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'", "exact_triggering_run_bound:run.event==='workflow_run'");
+assert(requirementConsumerEventBindingMutation !== requirement && !requirementConsumerEventBindingMutation.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MUTATION_NOT_DETECTED');
+const requirementProducerAuthorityMutation = requirement.replace("authoritative_producer_event:run.event==='workflow_run'", 'authoritative_producer_event:true');
+assert(requirementProducerAuthorityMutation !== requirement && !requirementProducerAuthorityMutation.includes("authoritative_producer_event:run.event==='workflow_run'"), 'REQUIREMENT_PRODUCER_AUTHORITY_MUTATION_NOT_DETECTED');
+const requirementProducerCardinalityMutation = requirement.replace('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1', 'test -n "$AUTHORITATIVE_PRODUCER_CARDINALITY"');
+assert(requirementProducerCardinalityMutation !== requirement && !requirementProducerCardinalityMutation.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'REQUIREMENT_PRODUCER_CARDINALITY_MUTATION_NOT_DETECTED');
 const snapshotConcurrencyMutation = snapshot.replace('github.event.workflow_run.id', 'github.ref');
 assert(snapshotConcurrencyMutation !== snapshot && !snapshotConcurrencyMutation.includes(snapshotConcurrencyContract), 'SNAPSHOT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
-  "if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
-  "if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
+  "if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'",
+  "if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'",
 );
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
-const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.replace('actions: write', 'actions: read');
+const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.replaceAll('actions: write', 'actions: read');
 assert(autonomousResolutionRecoveryPermissionMutation !== autonomousResolution && !autonomousResolutionRecoveryPermissionMutation.includes('actions: write'), 'AUTONOMOUS_RESOLUTION_RECOVERY_PERMISSION_MUTATION_NOT_DETECTED');
-const autonomousResolutionRecoveryBoundMutation = autonomousResolution.replace('for ATTEMPT in {1..60}; do', 'while true; do');
-assert(autonomousResolutionRecoveryBoundMutation !== autonomousResolution && !autonomousResolutionRecoveryBoundMutation.includes('for ATTEMPT in {1..60}; do'), 'AUTONOMOUS_RESOLUTION_RECOVERY_BOUND_MUTATION_NOT_DETECTED');
+const autonomousResolutionRecoveryConsumableMutation = autonomousResolution.replace("artifact_role:'RECOVERY_NON_CONSUMABLE'", "artifact_role:'AUTHORITATIVE_CONSUMABLE'");
+assert(autonomousResolutionRecoveryConsumableMutation !== autonomousResolution && !autonomousResolutionRecoveryConsumableMutation.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'"), 'AUTONOMOUS_RESOLUTION_RECOVERY_CONSUMPTION_MUTATION_NOT_DETECTED');
+const autonomousResolutionDuplicateMutation = autonomousResolution.replace('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED');
+assert(autonomousResolutionDuplicateMutation !== autonomousResolution && !autonomousResolutionDuplicateMutation.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_MUTATION_NOT_DETECTED');
 const autonomousResolutionArtifactReadbackMutation = autonomousResolution.replace('for ARTIFACT_ATTEMPT in {1..12}; do', 'while true; do');
 assert(autonomousResolutionArtifactReadbackMutation !== autonomousResolution && !autonomousResolutionArtifactReadbackMutation.includes('for ARTIFACT_ATTEMPT in {1..12}; do'), 'AUTONOMOUS_RESOLUTION_ARTIFACT_READBACK_MUTATION_NOT_DETECTED');
 const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do', 'for attempt in 1; do');
@@ -149,7 +160,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 22,
+  adversarial_mutations_rejected: 26,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',

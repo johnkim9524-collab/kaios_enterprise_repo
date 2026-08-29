@@ -7,6 +7,7 @@ const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const allowedUnbounded = new Set([
   'ci-validation.yml',
   'kidults-governed-landing-authorization-v1.yml',
+  'kidults-scope-aware-authoritative-status-v1.yml',
   supersessionWorkflow,
   'solo-owner-preflight.yml'
 ]);

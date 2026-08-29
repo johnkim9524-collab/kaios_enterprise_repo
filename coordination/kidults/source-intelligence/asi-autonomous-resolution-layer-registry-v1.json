@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-autonomous-resolution-layer-registry-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -56,12 +56,19 @@
     "manual_dispatch_role": "SELF_HEALING_RECOVERY_OR_EXPLICIT_REPLAY_ONLY",
     "manual_recovery_reuses_active_exact_main_p1_before_dispatch": true,
     "manual_recovery_dispatches_exact_main_p1_when_absent": true,
-    "manual_recovery_terminal_wait_is_bounded_seconds": 600,
-    "manual_recovery_artifact_readback_is_bounded_seconds": 60,
-    "manual_recovery_total_bound_seconds": 660
+    "manual_and_scheduled_recovery_artifact_role": "RECOVERY_NON_CONSUMABLE",
+    "manual_and_scheduled_recovery_canonical_publication": false,
+    "manual_and_scheduled_recovery_downstream_consumable": false,
+    "canonical_publication_event": "P1_WORKFLOW_RUN_COMPLETED_SUCCESS",
+    "canonical_generation_leader": "EXACT_P1_WORKFLOW_RUN_ID",
+    "canonical_producer_cardinality": 1
   },
   "execution_policy": {
     "current_p1_artifact_is_single_coherent_input": true,
+    "shared_exact_generation_concurrency": true,
+    "recovery_defers_to_workflow_run_leader": true,
+    "prior_successful_authoritative_generation_blocks_republication": true,
+    "downstream_duplicate_authoritative_producer_rejected": true,
     "semantic_triage_precedes_expensive_preflight": true,
     "all_current_actions_must_reach_terminal_state": true,
     "terminal_semantic_rejection_may_supersede_nonsemantic_actions": true,

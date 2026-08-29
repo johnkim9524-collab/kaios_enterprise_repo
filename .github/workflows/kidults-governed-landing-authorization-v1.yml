@@ -3,7 +3,7 @@ name: KIDULTS Governed Landing Authorization V1
 on:
   pull_request_target:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]
   pull_request_review:
     types: [submitted, dismissed]
 
@@ -11,6 +11,7 @@ permissions:
   contents: read
   pull-requests: read
   issues: read
+  statuses: write
 
 concurrency:
   group: kidults-governed-landing-authorization-v1-${{ github.event.pull_request.number || github.run_id }}
@@ -18,12 +19,20 @@ concurrency:
 
 jobs:
   governed-landing-authorization:
-    name: KIDULTS Governed Landing Authorization V1
+    name: Evaluate governed landing readiness
     if: github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Checkout trusted base implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
       - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
+        id: evaluate
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -62,6 +71,10 @@ jobs:
           const pr = await api(`/pulls/${prNumber}`);
           if (pr.base?.ref !== 'main') fail('base branch is not main');
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
+          if (pr.state !== 'open' || pr.merged === true) fail('pull request is closed, merged, or NO-MERGE');
+          const labels = new Set((pr.labels || []).map(label => String(label.name || '').toLowerCase()));
+          if (['no-merge','do-not-merge','merge-hold'].some(label => labels.has(label))) fail('NO-MERGE label is active');
+          if (/\[(?:NO-MERGE|DO-NOT-MERGE)\]/i.test(pr.title || '')) fail('NO-MERGE title marker is active');
 
           const files = await pages(`/pulls/${prNumber}/files`);
           if (!files.length) {
@@ -187,4 +200,36 @@ jobs:
             ruleset_bypass_actor_count:0,
             public_release:'HOLD',production:'HOLD',g5:'HOLD'
           },null,2));
+          NODE
+
+      - name: Publish fail-closed exact-head readiness status after final live re-read
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          AUTHORIZATION_OUTCOME: ${{ steps.evaluate.outcome }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {assertStableFinalReread} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA;
+          const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
+          const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
+          const api=async(path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error'});if(!r.ok)throw new Error(`GITHUB_API_${r.status}:${path}`);return r.json();};
+          const status=async(state,description)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context:policy.required_status_context,description})});
+          let failure=null;
+          try {
+            const final=await api(`/pulls/${number}`);
+            assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
+            if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
+            await status('pending','Ready; operation-specific atomic landing is required');
+            console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'READY_PENDING_ATOMIC_LANDING',pull_request:Number(number),exact_head_sha:head,final_live_reread:true,ordinary_readiness_published_success:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
+          } catch(error) {
+            failure=error;
+            try{await status('failure',String(error.code||error.message||'governed landing blocked').slice(0,140));}catch{}
+          }
+          if(failure)throw failure;
           NODE

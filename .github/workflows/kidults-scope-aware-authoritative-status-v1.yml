@@ -1,0 +1,45 @@
+name: KIDULTS Scope-Aware Authoritative Status V1
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]
+
+concurrency:
+  group: kidults-scope-aware-authoritative-status-v1-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  publish-exact-head-authoritative-status:
+    name: Publish exact-head scope-aware authoritative status
+    if: github.event.pull_request.base.ref == 'main'
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout trusted base implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Verify trusted base checkout
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Publish exact-head aggregate status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          AGGREGATOR_MAX_ATTEMPTS: 60
+          AGGREGATOR_DELAY_MS: 10000
+        run: node scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs

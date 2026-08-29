@@ -78,8 +78,9 @@ const eventConsumerControls = [
   {
     label: 'Autonomous Resolution Layer',
     text: autonomousResolutionWorkflow,
-    expected: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}",
-    unsafe: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.ref }}"
+    expected: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}",
+    unsafe: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.sha }}",
+    cancelInProgress: false
   }
 ];
 
@@ -97,7 +98,8 @@ function validateEventConsumer(control) {
   if (!control.text.includes('workflow_run:')) findings.push(`${control.label} workflow_run trigger missing`);
   if (!control.text.includes(control.expected)) findings.push(`${control.label} concurrency is not isolated by event and upstream run id`);
   if (control.text.includes(control.unsafe)) findings.push(`${control.label} unsafe ref-only concurrency remains`);
-  if (!control.text.includes('cancel-in-progress: true')) findings.push(`${control.label} isolated cancellation policy missing`);
+  const expectedCancellation = control.cancelInProgress === false ? 'cancel-in-progress: false' : 'cancel-in-progress: true';
+  if (!control.text.includes(expectedCancellation)) findings.push(`${control.label} generation leadership serialization policy missing`);
   return findings;
 }
 
