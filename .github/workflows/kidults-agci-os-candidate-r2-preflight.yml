@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Verify live main before source resolution
+      - name: Verify live main before provider credential resolution
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
