@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/kidults-postgres-d1-boundary-v1.yml"
+      - ".github/workflows/kidults-governed-landing-control-validation-v1.yml"
       - "services/kidults-control-plane/**"
       - "services/kidults-autonomous-intelligence/src/**"
       - "services/kidults-autonomous-intelligence/package.json"
