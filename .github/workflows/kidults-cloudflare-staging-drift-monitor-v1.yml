@@ -1,0 +1,55 @@
+name: KIDULTS Cloudflare Staging Drift Monitor v1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-staging-drift-monitor-v1
+  cancel-in-progress: false
+
+jobs:
+  read-only-drift-monitor:
+    name: Read-only Pages settings and deployment inventory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_READ_API_TOKEN: ${{ secrets.CLOUDFLARE_READ_API_TOKEN }}
+      CLOUDFLARE_PAGES_PROJECT_NAME: kidults-workspace-staging
+      EXPECTED_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+      RECEIPT_DIR: artifacts/cloudflare-staging-drift-readback
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify read-only credential boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CLOUDFLARE_PAGES_PROJECT_NAME" = "kidults-workspace-staging"
+          test "$EXPECTED_REPOSITORY" = "$GITHUB_REPOSITORY"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_READ_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          echo "::add-mask::$CLOUDFLARE_READ_API_TOKEN"
+
+      - name: Read back settings and recent deployments
+        shell: bash
+        run: bash scripts/ops/cloudflare-pages-staging-drift-readback.sh
+
+      - name: Upload exact drift receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: cloudflare-staging-drift-readback-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-staging-drift-readback
+          if-no-files-found: error
+          retention-days: 30
