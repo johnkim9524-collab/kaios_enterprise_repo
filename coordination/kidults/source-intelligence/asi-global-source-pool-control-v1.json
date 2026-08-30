@@ -213,7 +213,7 @@
   "rights_analysis_capacity": {
     "contract": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json",
     "launch_fast_lane_sources": 12,
-    "minimum_vertical_coverage": 5,
+    "minimum_vertical_coverage": 3,
     "automated_official_evidence_wip": 12,
     "track_z_commercial_wip": 6,
     "counsel_exception_wip": 3,
