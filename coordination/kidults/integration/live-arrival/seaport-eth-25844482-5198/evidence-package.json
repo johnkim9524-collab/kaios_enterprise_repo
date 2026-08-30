@@ -1,0 +1,60 @@
+{
+  "package_id": "evidence-seaport-eth-25844482-5198-v1",
+  "evidence_package_id": "evidence-seaport-eth-25844482-5198-v1",
+  "package_status": "IMMUTABLE",
+  "bound_snapshot_id": "candidate-seaport-eth-25844482-5198-v1",
+  "registry_version": "current-sold-admission-contract-v1",
+  "methodology_version": "onchain-fulfillment-fact-v1",
+  "evidence_lineage_version": "seaport-ethereum-receipt-v1",
+  "evidence_records": [
+    {
+      "evidence_id": "evidence-order-fulfilled-log-639",
+      "canonical_object_id": "ethereum-mainnet:25844482:0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061:639",
+      "asset_identity_id": "ethereum-mainnet:erc721:0x387C…6392C:5198",
+      "temporality": "CURRENT_MARKET",
+      "market_observation_type": "ORDER_FULFILLED",
+      "rights_state": "CONDITIONAL",
+      "sold_claim": false,
+      "evidence_strength": 0.88,
+      "source_owner_id": "ethereum-protocol",
+      "factual_origin_id": "ethereum-mainnet-block-25844482",
+      "source_url": "https://etherscan.io/tx/0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061",
+      "source_payload_sha256": "sha256:1cc6f6c586c8bce4009f8ad12ae9ae504ea32f9c9b7ab1ec83ac6b2cb65b0a74",
+      "license_evidence_refs": [
+        "https://ethereum.org/en/developers/apis/json-rpc/",
+        "https://github.com/ProjectOpenSea/seaport"
+      ],
+      "observed_at": "2026-08-30T00:00:00Z",
+      "valid_until": "2026-09-03T05:30:59Z",
+      "transaction_occurred_at": "2026-08-27T05:30:59Z",
+      "realized_consideration": {
+        "amount": "0.389005",
+        "currency": "ETH"
+      },
+      "market_venue_id": "ethereum-mainnet/seaport-1.6",
+      "transaction_hash": "0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061",
+      "log_index": 639,
+      "token_id": "5198",
+      "claim_ceiling": "STRICT_CURRENT_ONCHAIN_SEAPORT_PAID_FULFILLMENT_FACT_ONLY"
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "claim-onchain-paid-fulfillment-fact-001",
+      "claim_type": "ONCHAIN_PAID_FULFILLMENT_FACT",
+      "temporality": "CURRENT_MARKET",
+      "rights_state": "CONDITIONAL",
+      "sold_claim": false,
+      "claim_strength": 0.88,
+      "evidence_refs": [
+        "evidence-order-fulfilled-log-639"
+      ],
+      "current_market_evidence_present": true,
+      "listing_only": false
+    }
+  ],
+  "unresolved_critical_contradiction_count": 0,
+  "unknown_or_denied_claim_input_count": 1,
+  "publication_authorized": false,
+  "production_authorized": false
+}
