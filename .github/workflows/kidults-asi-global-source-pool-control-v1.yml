@@ -10,7 +10,9 @@ on:
       - "scripts/kidults/source-intelligence/*asi-product-value-backfill-v1.mjs"
       - "scripts/kidults/source-intelligence/*asi-product-value-gate*v1.mjs"
       - "scripts/kidults/source-intelligence/*asi-rights-analysis-fast-lane-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs"
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json"
+      - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json"
       - ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
       - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
 permissions:
@@ -41,5 +43,6 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-product-value-backfill-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json /tmp/asi-rights-analysis-fast-lane-v1.json
           node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json
       - name: Prove provider preflight fail-closed without network
         run: node scripts/kidults/source-intelligence/test-provider-operation-receipt-v1.mjs

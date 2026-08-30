@@ -16,7 +16,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs'
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
       - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
@@ -30,7 +32,9 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs'
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
@@ -162,6 +166,7 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-product-value-backfill-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json /tmp/asi-rights-analysis-fast-lane-v1.json
           node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json
       - name: Gate1 classify merged ingress into Safe, Review and Hard Block
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v2.json
