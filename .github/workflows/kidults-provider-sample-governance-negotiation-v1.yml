@@ -1,0 +1,54 @@
+name: KIDULTS Provider Sample Governance Negotiation V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-provider-sample-governance-negotiation-v1.yml'
+      - 'coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/provider/provider-sample-governance-negotiation-v1.json'
+      - 'coordination/kidults/provider/provider-contact-readiness-gate-v1.json'
+      - 'coordination/kidults/provider/provider-adapter-contract-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/templates/provider-staged-evaluation-content-v1.md'
+      - 'coordination/kidults/provider/PHASE2_CONTENT_DATA_PROVIDER_PLAN_V1.md'
+      - 'docs/strategy/IH_PROVIDER_SAMPLE_GOVERNANCE_NEGOTIATION_V1.md'
+      - 'scripts/kidults/provider/validate-provider-sample-governance-negotiation-v1.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-provider-sample-governance-negotiation-v1.yml'
+      - 'coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/provider/provider-sample-governance-negotiation-v1.json'
+      - 'coordination/kidults/provider/provider-contact-readiness-gate-v1.json'
+      - 'coordination/kidults/provider/provider-adapter-contract-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/templates/provider-staged-evaluation-content-v1.md'
+      - 'coordination/kidults/provider/PHASE2_CONTENT_DATA_PROVIDER_PLAN_V1.md'
+      - 'docs/strategy/IH_PROVIDER_SAMPLE_GOVERNANCE_NEGOTIATION_V1.md'
+      - 'scripts/kidults/provider/validate-provider-sample-governance-negotiation-v1.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate provider sample-governance negotiation bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/provider/validate-provider-sample-governance-negotiation-v1.mjs
+          node scripts/kidults/provider/validate-provider-sample-governance-negotiation-v1.mjs
