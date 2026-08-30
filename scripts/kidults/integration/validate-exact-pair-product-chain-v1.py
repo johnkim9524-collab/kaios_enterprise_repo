@@ -438,14 +438,8 @@ with tempfile.TemporaryDirectory(prefix="official-track-b-live-cli-", dir=ROOT /
         str((directory / "assessment.json").relative_to(ROOT)),
         str((directory / "handoff.json").relative_to(ROOT)),
     ], cwd=ROOT, text=True, capture_output=True, check=False)
-    check(live_cli.returncode == 2, "live official Track B CLI accepted the historical structural fixture")
-    check((directory / "assessment.json").exists(), "blocked live CLI did not complete a Track B HOLD assessment")
-    if (directory / "assessment.json").exists():
-        blocked_assessment = json.loads((directory / "assessment.json").read_text(encoding="utf-8"))
-        check(blocked_assessment["assessment"]["assessment_status"] == "COMPLETED", "blocked live CLI assessment incomplete")
-        check(blocked_assessment["assessment"]["overall_rankability"] is False, "blocked live CLI promoted rankability")
-        check(blocked_assessment["assessment"]["publication_eligible"] is False, "blocked live CLI preauthorized Public")
-        check(blocked_assessment["assessment"]["production_eligible"] is False, "blocked live CLI preauthorized Production")
+    check(live_cli.returncode != 0, "live official Track B CLI accepted the historical structural fixture")
+    check(not (directory / "assessment.json").exists(), "identity-invalid historical fixture emitted an assessment")
     if (directory / "handoff.json").exists():
         handoff_state = json.loads((directory / "handoff.json").read_text(encoding="utf-8"))
         check(handoff_state.get("handoff_state") == "BLOCKED", "historical live CLI handoff did not remain BLOCKED")
