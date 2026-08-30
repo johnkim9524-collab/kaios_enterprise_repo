@@ -81,12 +81,13 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         "rights_assertion": {
             "assertion_id": "rights-camera-001",
             "source_owner_id": "auction-owner-a",
-            "purpose_binding_id": "purpose-product-internal",
+            "purpose_binding_id": "KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY",
             "jurisdiction": "US",
             "rights_atoms": ["COLLECT", "DERIVE", "DISPLAY", "STORE"],
             "effective_at": "2026-08-01T00:00:00.000Z",
             "expires_at": "2026-12-01T00:00:00.000Z",
             "document_sha256": "sha256:" + "2" * 64,
+            "source_content_snapshot_sha256": "sha256:" + "1" * 64,
             "evidence_uri": "https://rights.example.invalid/test-only",
         },
     }
@@ -113,15 +114,35 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         "rights_assertion": {
             "assertion_id": "rights-camera-002",
             "source_owner_id": "auction-owner-b",
-            "purpose_binding_id": "purpose-product-internal",
+            "purpose_binding_id": "KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY",
             "jurisdiction": "GB",
             "rights_atoms": ["COLLECT", "DERIVE", "DISPLAY", "STORE"],
             "effective_at": "2026-08-01T00:00:00.000Z",
             "expires_at": "2026-12-01T00:00:00.000Z",
             "document_sha256": "sha256:" + "4" * 64,
+            "source_content_snapshot_sha256": "sha256:" + "3" * 64,
             "evidence_uri": "https://rights.example.invalid/test-only",
         },
     }
+    sold_records = []
+    for index in range(119):
+        record = copy.deepcopy(sold)
+        record["evidence_id"] = f"evidence-sold-camera-{index + 1:03d}"
+        record["source_payload_sha256"] = "sha256:" + f"{index + 1:064x}"
+        record["rights_assertion"]["assertion_id"] = f"rights-camera-{index + 1:03d}"
+        record["rights_assertion"]["source_content_snapshot_sha256"] = record["source_payload_sha256"]
+        sold_records.append(record)
+    event_ids = sorted(record["evidence_id"] for record in sold_records)
+    launch_cohort = {
+        "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
+        "sample_tier": "CONTROL_ONLY_FUNCTIONAL",
+        "cohort_mode": "CONTROL_ONLY_FIXTURE",
+        "sample_size": 119,
+        "terminal_state": "SOLD",
+        "event_ids": event_ids,
+        "event_digests": sorted(assessor.digest_json(record) for record in sold_records),
+    }
+    launch_cohort["cohort_digest"] = assessor.digest_json(launch_cohort)
     evidence = {
         "package_id": evidence_id,
         "evidence_package_id": evidence_id,
@@ -130,7 +151,8 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         "registry_version": "e2e-test-v1",
         "methodology_version": "canonical-method-v1",
         "evidence_lineage_version": "lineage-v1",
-        "evidence_records": [sold, liquidity],
+        "evidence_records": [*sold_records, liquidity],
+        "launch_cohort": launch_cohort,
         "claims": [
             {
                 "claim_id": "claim-camera-current-sold",
@@ -138,7 +160,7 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
                 "temporality": "CURRENT_MARKET",
                 "rights_state": "ALLOW",
                 "claim_strength": 0.9,
-                "evidence_refs": [sold["evidence_id"]],
+                "evidence_refs": event_ids,
                 "current_market_evidence_present": True,
                 "listing_only": False,
             }
@@ -160,6 +182,24 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         "production_authorized": False,
     }
     return snapshot, evidence
+
+
+def remote_attestation(snapshot: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
+    value = {
+        "record_type": "kidults_remote_staging_replay_attestation",
+        "version": "1.0.0",
+        "issuer": "KIDULTS_PROTECTED_REMOTE_STAGING_RUNNER",
+        "environment": "STAGING",
+        "remote_execution": True,
+        "exact_pair_digest": assessor.digest_json({"snapshot": snapshot, "evidence": evidence}),
+        "launch_cohort_digest": evidence["launch_cohort"]["cohort_digest"],
+        "postgres_receipt_ids": [f"pg-receipt-{index + 1:03d}" for index in range(119)],
+        "pitr_proven": True,
+        "pitr_restore_receipt_id": "pitr-restore-test-only-001",
+        "metrics": {key: 1 for key in replay_builder.REQUIRED_RUNTIME_METRICS},
+    }
+    value["attestation_fingerprint"] = assessor.digest_json(value)
+    return value
 
 
 def ready_handoff(snapshot: dict[str, Any], evidence: dict[str, Any]) -> dict[str, Any]:
@@ -187,6 +227,7 @@ def ready_handoff(snapshot: dict[str, Any], evidence: dict[str, Any]) -> dict[st
 
 snapshot, evidence = fixture_pair()
 handoff = ready_handoff(snapshot, evidence)
+attestation = remote_attestation(snapshot, evidence)
 envelope = assessor.build_assessment_envelope(
     snapshot,
     evidence,
@@ -196,12 +237,13 @@ envelope = assessor.build_assessment_envelope(
     evidence_reference="TEST_ONLY/evidence-package.json",
     handoff_reference="TEST_ONLY/handoff-r2.json",
 )
-replay = replay_builder.build_replay_receipt(snapshot, evidence, envelope)
+replay = replay_builder.build_replay_receipt(snapshot, evidence, envelope, remote_attestation=attestation)
 assessment = envelope["assessment"]
 check(assessment["recommendation"] == "PUBLISHABLE_INTERNAL", "official Track B recommendation mismatch")
 check(assessment["overall_rankability"] is True, "official Track B did not establish internal rankability")
 check(assessment["publication_eligible"] is False and assessment["production_eligible"] is False, "Track B preauthorized release")
 check(replay["workload_result"] == "PASS" and replay["projection_ready"] is True, "staging replay did not pass")
+check(replay["current_sold_record_count"] == 119, "launch cohort did not preserve policy-derived sample size")
 check(replay["public_touch"] is False and replay["production_touch"] is False and replay["g5"] == "HOLD", "staging replay boundary changed")
 
 expect_rejection(
@@ -237,7 +279,67 @@ bad_handoff = ready_handoff(snapshot, bad_evidence)
 expect_rejection(
     "listing-not-sold",
     lambda: assessor.build_assessment_envelope(snapshot, bad_evidence, bad_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
-    "TRACK_B_CURRENT_SOLD_EVIDENCE_MISSING",
+    "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS",
+)
+for label, mutate, code in [
+    ("expired-rights", lambda record: record["rights_assertion"].update({"expires_at": "2026-08-02T00:00:00.000Z"}), "RIGHTS_NOT_EFFECTIVE_AT_ASSESSMENT"),
+    ("wrong-purpose-rights", lambda record: record["rights_assertion"].update({"purpose_binding_id": "PUBLIC_WEB_REFERENCE_ONLY"}), "RIGHTS_PURPOSE_BINDING_INVALID"),
+    ("unbound-rights-snapshot", lambda record: record["rights_assertion"].update({"source_content_snapshot_sha256": "sha256:" + "f" * 64}), "RIGHTS_SOURCE_SNAPSHOT_DIGEST_MISMATCH"),
+]:
+    mutated = copy.deepcopy(evidence)
+    mutate(mutated["evidence_records"][0])
+    mutated_handoff = ready_handoff(snapshot, mutated)
+    expect_rejection(
+        label,
+        lambda mutated=mutated, mutated_handoff=mutated_handoff: assessor.build_assessment_envelope(
+            snapshot, mutated, mutated_handoff, generated_at=snapshot["as_of"],
+            candidate_reference="x", evidence_reference="y", handoff_reference="z",
+        ),
+        code,
+    )
+
+short_cohort = copy.deepcopy(evidence)
+short_cohort["evidence_records"] = short_cohort["evidence_records"][:-2] + [short_cohort["evidence_records"][-1]]
+short_handoff = ready_handoff(snapshot, short_cohort)
+expect_rejection(
+    "119-sold-not-launch-cell",
+    lambda: assessor.build_assessment_envelope(snapshot, short_cohort, short_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS",
+)
+expect_rejection(
+    "local-replay-without-remote-attestation",
+    lambda: replay_builder.build_replay_receipt(snapshot, evidence, envelope),
+    "REMOTE_STAGING_ATTESTATION_REQUIRED",
+)
+
+# A single object remains usable for deterministic plumbing diagnostics, but
+# it is explicitly non-launch and can produce only a Track B HOLD envelope.
+control_snapshot, control_evidence = fixture_pair("object-single-control-001")
+control_evidence["execution_scope"] = "SINGLE_OBJECT_CONTROL_ONLY"
+control_evidence["evidence_records"] = [control_evidence["evidence_records"][0]]
+control_evidence.pop("launch_cohort", None)
+control_handoff = {
+    "handoff_state": "BLOCKED",
+    "handoff_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+    "blocker_count": 1,
+    "blockers": ["SINGLE_OBJECT_CONTROL_ONLY_NOT_LAUNCH_COHORT"],
+    "pair_digest": assessor.digest_json({"snapshot": control_snapshot, "evidence": control_evidence}),
+    "snapshot_id": control_snapshot["snapshot_id"],
+    "evidence_package_id": control_evidence["package_id"],
+}
+control_envelope = assessor.build_hold_assessment_envelope(
+    control_snapshot, control_evidence, control_handoff, generated_at=control_snapshot["as_of"],
+    candidate_reference="TEST_ONLY/control-candidate.json",
+    evidence_reference="TEST_ONLY/control-evidence.json",
+    handoff_reference="TEST_ONLY/control-handoff.json",
+)
+check(control_envelope["assessment"]["overall_rankability"] is False, "single-object control became rankable")
+check("SINGLE_OBJECT_CONTROL_ONLY_NOT_LAUNCH_COHORT" in control_envelope["assessment"]["blocking_dimensions"],
+      "single-object control boundary was not preserved")
+expect_rejection(
+    "single-object-control-replay-forbidden",
+    lambda: replay_builder.build_replay_receipt(control_snapshot, control_evidence, control_envelope),
+    "ASSESSMENT_NOT_RANKABLE",
 )
 
 conditional_snapshot, conditional_evidence = fixture_pair("ethereum-erc721-0x387c-token-5198")
@@ -291,6 +393,8 @@ other = copy.deepcopy(multi_evidence["evidence_records"][0])
 other["evidence_id"] = "evidence-other-object"
 other["canonical_object_id"] = "object-other"
 other["asset_identity_id"] = "object-other"
+other["temporality"] = "HISTORICAL"
+other["market_observation_type"] = "IDENTITY_REFERENCE"
 multi_evidence["evidence_records"].append(other)
 multi_handoff = ready_handoff(snapshot, multi_evidence)
 multi_envelope = assessor.build_assessment_envelope(snapshot, multi_evidence, multi_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z")
@@ -330,6 +434,7 @@ with tempfile.TemporaryDirectory(prefix="exact-pair-chain-", dir=ROOT / "artifac
         actions = {action["action_id"]: action for action in projection["actions"]}
         check(projection["product_type"] == "OBJECT_PASSPORT", "Projection product type mismatch")
         check(projection["projection_state"] == "APPROVED_INTERNAL" and projection["display_eligibility"] == "INTERNAL_ONLY", "Projection release state mismatch")
+        check(projection["rights"]["public_display"] == "BLOCKED", "internal Projection overclaimed public display rights")
         check(projection["payload"]["canonical_object_id"] == replay["canonical_object_id"], "Projection object identity dropped")
         check(projection["payload"]["fields"]["evidence"]["value"] == replay["evidence_record_ids"], "Projection evidence identity dropped")
         for action_id in ["COMPARE", "WATCHLIST"]:
@@ -337,35 +442,18 @@ with tempfile.TemporaryDirectory(prefix="exact-pair-chain-", dir=ROOT / "artifac
         check(admission["fixture"] is False and admission["synthetic"] is False and admission["promotable"] is True, "Projection admission is fixture/promotability ambiguous")
         check(admission["public"] is False and admission["production"] is False and admission["g5"] == "HOLD", "Projection admission release boundary changed")
 
-        # Full bounded E2E: producer bytes -> signed server mapper -> browser
-        # envelope admission -> Dossier action model.  The test Projection
-        # remains temporary and never enters a live manifest or public asset.
+        # An internal-only Projection must not be transformed into a Portal
+        # payload by a public-display capability. The controlled object and
+        # actions remain in the internal Projection for later authorized use.
         portal_e2e = r"""
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
-import {authorizeProjection,toPortalView} from './apps/kidults-enterprise-staging/projection-capability-v1.mjs';
-import {readPortalProjection} from './apps/kidults-enterprise-staging/public/portal-r001/projection-store.js';
-import {objectIntelligenceModel} from './apps/kidults-enterprise-staging/public/portal-r001/object-intelligence.js';
+import {authorizeProjection} from './apps/kidults-enterprise-staging/projection-capability-v1.mjs';
 const projection=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));
-const objectId=process.argv[2];
 const now=new Date(projection.generated_at);
 const secret='exact-pair-product-chain-e2e-secret-at-least-32-bytes';
-const authorized=authorizeProjection({projection,surface:'PORTAL_RENDER',secret,now});
-const envelope={ok:true,capability_expires_at:authorized.claims.expires_at,revalidate_after_ms:5000,
-  consumption_receipt:authorized.admission.receipt,portal_view:toPortalView(projection,authorized.admission.receipt)};
-const previous=globalThis.fetch;
-globalThis.fetch=async()=>new Response(JSON.stringify(envelope),{status:200,headers:{'content-type':'application/json'}});
-try{
-  const portal=await readPortalProjection();
-  const model=objectIntelligenceModel(portal,{objectId});
-  assert.equal(portal.projection.state,'LIVE_APPROVED');
-  assert.equal(portal.objects[0].canonical_object_id,objectId);
-  assert.ok(portal.evidence.length>0);
-  assert.ok(portal.signals.length>0);
-  assert.deepEqual(model.actions.map(action=>action.action_id),['COMPARE','WATCHLIST']);
-  assert.ok(model.actions.every(action=>action.state==='ENABLED'&&action.destination.startsWith('/portal/')));
-  console.log(JSON.stringify({result:'PASS',canonical_object_id:objectId,actions:model.actions.map(action=>action.action_id)}));
-}finally{globalThis.fetch=previous}
+assert.throws(()=>authorizeProjection({projection,surface:'PORTAL_RENDER',secret,now}),/CONSUMER_RIGHT_BLOCKED:PUBLIC_DISPLAY/);
+console.log(JSON.stringify({result:'PASS',public_display:'BLOCKED'}));
 """
         portal_process = subprocess.run(
             ["node", "--input-type=module", "-e", portal_e2e, str(paths["projection"]), replay["canonical_object_id"]],
@@ -459,7 +547,7 @@ print(json.dumps({
     "official_track_b": "GENERIC_EXACT_PAIR_BOUND",
     "staging_replay": "PASS",
     "projection_producer": "NONFIXTURE_OBJECT_PASSPORT",
-    "producer_to_signed_server_browser_dossier": "PASS",
+    "internal_projection_public_display_boundary": "PASS",
     "negative_tests": negative_count,
     "enabled_actions": ["COMPARE", "WATCHLIST"],
     "no_live_fixture_bypass": True,

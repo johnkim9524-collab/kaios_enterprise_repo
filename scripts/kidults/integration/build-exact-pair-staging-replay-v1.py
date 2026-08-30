@@ -11,6 +11,16 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[3]
+REQUIRED_RUNTIME_METRICS = {
+    "acquisition_to_evidence_latency",
+    "evidence_to_market_event_latency",
+    "projection_refresh_latency",
+    "portal_eos_read_latency_where_applicable",
+    "product_marketcell_evidence_throughput",
+    "storage_retention_growth",
+    "workload_specific_usage_observation",
+    "rollback_recovery_audit_binding",
+}
 
 
 def canonical(value: Any) -> Any:
@@ -65,6 +75,7 @@ def build_replay_receipt(
     envelope: dict[str, Any],
     *,
     canonical_object_id: str | None = None,
+    remote_attestation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     pair_digest = digest_json({"snapshot": snapshot, "evidence": evidence})
     expected_correlation = correlation_id(pair_digest)
@@ -103,6 +114,35 @@ def build_replay_receipt(
     require(sold_records, "OBJECT_CURRENT_SOLD_EVIDENCE_MISSING")
     require(all(nonempty(record.get("evidence_id")) for record in records), "OBJECT_EVIDENCE_ID_MISSING")
     require(all(record.get("rights_state") == "ALLOW" for record in records), "OBJECT_EVIDENCE_RIGHTS_NOT_ALLOW")
+    cohort = evidence.get("launch_cohort") or {}
+    cohort_size = len(sold_records)
+    require(cohort_size > 0 and len({record.get("evidence_id") for record in sold_records}) == cohort_size,
+            "LAUNCH_COHORT_SAMPLE_UNIQUE_REQUIRED")
+    require(assessment.get("quantitative_summary", {}).get("launch_cohort_digest") == cohort.get("cohort_digest"),
+            "ASSESSMENT_LAUNCH_COHORT_BINDING_MISMATCH")
+
+    attestation = remote_attestation or {}
+    require(attestation.get("record_type") == "kidults_remote_staging_replay_attestation",
+            "REMOTE_STAGING_ATTESTATION_REQUIRED")
+    require(attestation.get("version") == "1.0.0" and attestation.get("issuer") == "KIDULTS_PROTECTED_REMOTE_STAGING_RUNNER",
+            "REMOTE_STAGING_ATTESTATION_INVALID")
+    require(attestation.get("environment") == "STAGING" and attestation.get("remote_execution") is True,
+            "REMOTE_STAGING_EXECUTION_NOT_PROVEN")
+    require(attestation.get("exact_pair_digest") == pair_digest and
+            attestation.get("launch_cohort_digest") == cohort.get("cohort_digest"),
+            "REMOTE_STAGING_ATTESTATION_BINDING_MISMATCH")
+    postgres_ids = attestation.get("postgres_receipt_ids") or []
+    require(len(postgres_ids) == cohort_size and len(set(postgres_ids)) == cohort_size,
+            "POSTGRES_RECEIPTS_DO_NOT_MATCH_COHORT")
+    require(attestation.get("pitr_proven") is True and nonempty(attestation.get("pitr_restore_receipt_id")),
+            "PITR_NOT_PROVEN")
+    metrics = attestation.get("metrics") or {}
+    require(set(metrics) == REQUIRED_RUNTIME_METRICS and all(value is not None for value in metrics.values()),
+            "REMOTE_STAGING_REQUIRED_METRICS_MISSING")
+    attestation_fingerprint = attestation.get("attestation_fingerprint")
+    require(attestation_fingerprint == digest_json({
+        key: value for key, value in attestation.items() if key != "attestation_fingerprint"
+    }), "REMOTE_STAGING_ATTESTATION_FINGERPRINT_INVALID")
 
     assessment_id = assessment.get("assessment_id") or assessment.get("id")
     seed = {
@@ -129,6 +169,11 @@ def build_replay_receipt(
         "canonical_object_id": selected,
         "evidence_record_ids": sorted(record["evidence_id"] for record in records),
         "current_sold_record_count": len(sold_records),
+        "launch_cohort_digest": cohort.get("cohort_digest"),
+        "remote_staging_attestation_fingerprint": attestation_fingerprint,
+        "postgres_receipt_ids": sorted(postgres_ids),
+        "pitr_restore_receipt_id": attestation["pitr_restore_receipt_id"],
+        "runtime_metrics": metrics,
         "expected_product_type": "OBJECT_PASSPORT",
         "expected_actions": ["COMPARE", "WATCHLIST"],
         "projection_ready": True,
@@ -151,22 +196,24 @@ def resolve_repository_path(value: str) -> Path:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) not in {4, 5}:
+    if len(argv) not in {5, 6}:
         raise RuntimeError(
             "Usage: build-exact-pair-staging-replay-v1.py "
             "<snapshot-candidate.json> <evidence-package.json> <assessment-envelope.json> "
-            "<output-receipt.json> [canonical-object-id]"
+            "<remote-staging-attestation.json> <output-receipt.json> [canonical-object-id]"
         )
-    candidate_path, evidence_path, assessment_path, output_path = map(resolve_repository_path, argv[:4])
-    requested_object_id = argv[4] if len(argv) == 5 else None
+    candidate_path, evidence_path, assessment_path, attestation_path, output_path = map(resolve_repository_path, argv[:5])
+    requested_object_id = argv[5] if len(argv) == 6 else None
     snapshot = json.loads(candidate_path.read_text(encoding="utf-8"))
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     envelope = json.loads(assessment_path.read_text(encoding="utf-8"))
+    remote_attestation = json.loads(attestation_path.read_text(encoding="utf-8"))
     receipt = build_replay_receipt(
         snapshot,
         evidence,
         envelope,
         canonical_object_id=requested_object_id,
+        remote_attestation=remote_attestation,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")

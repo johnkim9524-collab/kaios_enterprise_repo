@@ -34,7 +34,7 @@ export function validateProviderOperatingState(documents) {
     'PROVIDER_REGISTRY_RECORD');
   check(operating.status === 'ACTIVE_FAIL_CLOSED', 'OPERATING_STATE_STATUS');
   check(operating.canonical_machine_contract === PATHS.contract, 'MACHINE_CONTRACT_BINDING');
-  check(providers.length === 4 && byId.size === 4, 'RECONCILED_PROVIDER_CARDINALITY');
+  check(providers.length === 13 && byId.size === 13, 'CANONICAL_PROVIDER_CARDINALITY');
   check(operating.communication_reconciliation?.duplicate_or_automatic_outbound_allowed === false,
     'GLOBAL_DUPLICATE_OUTREACH_BOUNDARY');
   check(operating.authority_boundary?.external_communication === 'NOT_AUTHORIZED_BY_THIS_RECORD' &&
@@ -46,7 +46,16 @@ export function validateProviderOperatingState(documents) {
     ['EBAY_MARKETPLACE_INSIGHTS', 'CLOSED'],
     ['PSA_PREMIUM', 'BOUNDED'],
     ['GEMRATE', 'CONDITIONAL'],
-    ['CLASSIC_COM', 'HOLD']
+    ['CLASSIC_COM', 'HOLD'],
+    ['BONHAMS', 'HOLD'],
+    ['BROAD_ARROW', 'HOLD'],
+    ['CHRISTIES', 'HOLD'],
+    ['GOODING_CHRISTIES', 'HOLD'],
+    ['SOTHEBYS', 'HOLD'],
+    ['BARRETT_JACKSON', 'HOLD'],
+    ['COLLECTING_CARS', 'HOLD'],
+    ['ICONIC_AUCTIONEERS', 'HOLD'],
+    ['MECUM', 'HOLD']
   ]);
   for (const [providerId, state] of expected) {
     const provider = byId.get(providerId);
@@ -63,6 +72,12 @@ export function validateProviderOperatingState(documents) {
       provider.new_spend_authorized === false && provider.public_release === 'HOLD' && provider.production === 'HOLD',
     `PROTECTED_BOUNDARY:${providerId}`);
   }
+  const fastLaneProviders = providers.filter(provider => Array.isArray(provider.fast_lane_source_ids));
+  const fastLaneSourceIds = fastLaneProviders.flatMap(provider => provider.fast_lane_source_ids);
+  check(fastLaneProviders.every(provider => typeof provider.operator_id === 'string' && provider.operator_id.length > 2 && typeof provider.ultimate_parent_id === 'string' && provider.ultimate_parent_id.length > 2), 'FAST_LANE_OPERATOR_IDENTITY');
+  check(fastLaneSourceIds.length === 12 && new Set(fastLaneSourceIds).size === 12, 'FAST_LANE_SOURCE_PROVIDER_COVERAGE');
+  check(fastLaneProviders.every(provider => provider.external_communication_authorized === false && provider.communication?.duplicate_outreach_prohibited === true && provider.communication?.resend_authorized === false && provider.communication?.automatic_followup_authorized === false), 'FAST_LANE_CONTACT_HOLD');
+  check(fastLaneProviders.filter(provider => provider.provider_id !== 'CLASSIC_COM').every(provider => provider.communication?.state === 'NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY' && provider.communication?.contact_evidence_state === 'UNKNOWN_FAIL_CLOSED'), 'UNSUPPORTED_FAST_LANE_CONTACT_CLAIM');
 
   check(contract.standing_decisions?.['eBay Marketplace Insights']?.state === byId.get('EBAY_MARKETPLACE_INSIGHTS')?.state,
     'EBAY_STRATEGY_STATE_DRIFT');
@@ -87,7 +102,7 @@ export function validateProviderOperatingState(documents) {
     ebayAction?.resend_authorized === false, 'EBAY_ACTION_QUEUE');
 
   const reconciledIds = new Set((contactGate.groups?.RECONCILED_NO_DUPLICATE_OUTREACH || []).map(record => record.canonical_provider_id));
-  check([...expected.keys()].every(providerId => reconciledIds.has(providerId)), 'CONTACT_GATE_RECONCILIATION');
+  check(['EBAY_MARKETPLACE_INSIGHTS', 'PSA_PREMIUM', 'GEMRATE', 'CLASSIC_COM'].every(providerId => reconciledIds.has(providerId)), 'CONTACT_GATE_RECONCILIATION');
 
   const psa = byId.get('PSA_PREMIUM');
   check(psaManifest.declared_known_count === 2 && psaManifest.provenance_bound_admissible_count === 0 &&
@@ -136,7 +151,9 @@ const negativeMutations = [];
 for (const [name, mutate, expectedCode] of [
   ['duplicate-ebay-outreach', value => value.dispatch.events.push(structuredClone(value.dispatch.events[0])), 'EBAY_CONTACT_EVENT_RECONCILIATION'],
   ['inflate-psa-declared-hints', value => { value.operating.providers.find(record => record.provider_id === 'PSA_PREMIUM').manifest_progress.provenance_bound_admissible = 2; }, 'PSA_CANONICAL_PROGRESS'],
-  ['authorize-classic-resend', value => { value.operating.providers.find(record => record.provider_id === 'CLASSIC_COM').communication.resend_authorized = true; }, 'COMMUNICATION_GUARD:CLASSIC_COM']
+  ['authorize-classic-resend', value => { value.operating.providers.find(record => record.provider_id === 'CLASSIC_COM').communication.resend_authorized = true; }, 'COMMUNICATION_GUARD:CLASSIC_COM'],
+  ['drop-fast-lane-provider-binding', value => { delete value.operating.providers.find(record => record.provider_id === 'MECUM').operator_id; }, 'FAST_LANE_OPERATOR_IDENTITY'],
+  ['invent-fast-lane-outreach', value => { value.operating.providers.find(record => record.provider_id === 'MECUM').communication.state = 'OUTBOUND_SENT'; }, 'UNSUPPORTED_FAST_LANE_CONTACT_CLAIM']
 ]) {
   const candidate = structuredClone(documents);
   mutate(candidate);

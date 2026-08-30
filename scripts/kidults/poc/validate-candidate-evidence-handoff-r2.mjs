@@ -16,8 +16,11 @@ const BENCHMARK_CONTRACT_REPOSITORY_PATH =
   'coordination/kidults/entity-resolution/entity-resolution-benchmark-v2-contract.json';
 const APPROVED_STRATA_REPOSITORY_PATH =
   'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json';
+const CURRENT_SOLD_SAMPLE_GOVERNANCE_REPOSITORY_PATH =
+  'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json';
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const STRICT_UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const INTERNAL_PRODUCT_PURPOSE = 'KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY';
 
 const canonical = (value) => Array.isArray(value)
   ? value.map(canonical)
@@ -56,12 +59,13 @@ const wilsonLowerBound = (successes, total, z = 1.959963984540054) => {
   return (centre - margin) / denominator;
 };
 
-const [snapshot, evidence, handoffContract, benchmarkContract, approvedStrata] = await Promise.all([
+const [snapshot, evidence, handoffContract, benchmarkContract, approvedStrata, currentSoldSampleGovernance] = await Promise.all([
   fs.readFile(snapshotPath, 'utf8').then(JSON.parse),
   fs.readFile(evidencePath, 'utf8').then(JSON.parse),
   readRepositoryJson(HANDOFF_CONTRACT_REPOSITORY_PATH),
   readRepositoryJson(BENCHMARK_CONTRACT_REPOSITORY_PATH),
   readRepositoryJson(APPROVED_STRATA_REPOSITORY_PATH),
+  readRepositoryJson(CURRENT_SOLD_SAMPLE_GOVERNANCE_REPOSITORY_PATH),
 ]);
 
 const governance = handoffContract.canonical_governance || {};
@@ -85,6 +89,9 @@ if (handoffContract.id !== 'candidate-evidence-handoff-preflight-contract-r2' ||
     governance.entity_resolution_benchmark_contract_id !== benchmarkContract.id ||
     governance.approved_strata_manifest_id !== approvedStrata.id ||
     governance.approved_strata_manifest_status !== approvedStrata.status ||
+    governance.current_sold_sample_governance_path !== CURRENT_SOLD_SAMPLE_GOVERNANCE_REPOSITORY_PATH ||
+    governance.current_sold_sample_governance_id !== currentSoldSampleGovernance.id ||
+    currentSoldSampleGovernance.id !== 'KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1' ||
     benchmarkContract.id !== 'entity-resolution-benchmark-v2-contract' ||
     policy.approved_calibration_strata_path !== APPROVED_STRATA_REPOSITORY_PATH ||
     policy.approved_calibration_strata_id !== approvedStrata.id ||
@@ -310,6 +317,19 @@ const currentMarketRecordValid = (record) => {
     validUntilMs > observedAtMs && validUntilMs - observedAtMs <= maximumWindowMs &&
     snapshotAsOfMs - observedAtMs <= maximumWindowMs;
 };
+const rightsAssertionValid = (record) => {
+  const assertion = record?.rights_assertion || {};
+  const effectiveAtMs = strictUtcTimestamp(assertion.effective_at) ? Date.parse(assertion.effective_at) : null;
+  const expiresAtMs = strictUtcTimestamp(assertion.expires_at) ? Date.parse(assertion.expires_at) : null;
+  const observedAtMs = strictUtcTimestamp(record?.observed_at) ? Date.parse(record.observed_at) : null;
+  return assertion.source_owner_id === record?.source_owner_id &&
+    assertion.purpose_binding_id === INTERNAL_PRODUCT_PURPOSE &&
+    ['COLLECT', 'STORE', 'DERIVE', 'DISPLAY'].every((atom) => assertion.rights_atoms?.includes(atom)) &&
+    SHA256_PATTERN.test(assertion.document_sha256 || '') && !/^sha256:0{64}$/.test(assertion.document_sha256) &&
+    assertion.source_content_snapshot_sha256 === record?.source_payload_sha256 &&
+    effectiveAtMs !== null && expiresAtMs !== null && observedAtMs !== null && snapshotAsOfMs !== null &&
+    effectiveAtMs <= observedAtMs && observedAtMs <= snapshotAsOfMs && snapshotAsOfMs < expiresAtMs;
+};
 for (const record of evidenceRecords) {
   if (!nonempty(record?.evidence_id) || evidenceRecordById.has(record.evidence_id)) {
     block(`EVIDENCE_RECORD_ID_INVALID_OR_DUPLICATE:${record?.evidence_id || 'UNKNOWN'}`);
@@ -318,7 +338,30 @@ for (const record of evidenceRecords) {
     if (record.temporality === 'CURRENT_MARKET' && !currentMarketRecordValid(record)) {
       block(`CURRENT_MARKET_EVIDENCE_RECORD_INVALID:${record.evidence_id}`);
     }
+    if (record.rights_state === 'ALLOW' && !rightsAssertionValid(record)) {
+      block(`RIGHTS_ASSERTION_INVALID_OR_EXPIRED:${record.evidence_id}`);
+    }
   }
+}
+const launchSoldRecords = evidenceRecords.filter((record) => currentMarketRecordValid(record) && record.rights_state === 'ALLOW');
+const launchSoldIds = launchSoldRecords.map((record) => record.evidence_id);
+const cohort = evidence.launch_cohort || {};
+const sampleTier = (currentSoldSampleGovernance.tiers || []).find((tier) => tier.id === cohort.sample_tier);
+const computedCohortDigest = digest({
+  cohort_class: cohort.cohort_class,
+  sample_tier: cohort.sample_tier,
+  cohort_mode: cohort.cohort_mode ?? null,
+  sample_size: cohort.sample_size,
+  terminal_state: cohort.terminal_state,
+  event_ids: [...launchSoldIds].sort(),
+  event_digests: launchSoldRecords.map((record) => digest(record)).sort(),
+});
+if (cohort.cohort_class !== 'LAWFUL_CURRENT_SOLD_SAMPLE' || cohort.terminal_state !== 'SOLD' ||
+    !sampleTier || !Number.isInteger(cohort.sample_size) || cohort.sample_size !== launchSoldIds.length ||
+    launchSoldIds.length < Number(sampleTier?.min_n) || launchSoldIds.length > Number(sampleTier?.max_n) ||
+    new Set(launchSoldIds).size !== launchSoldIds.length ||
+    !sameCanonical(cohort.event_ids, [...launchSoldIds].sort()) || cohort.cohort_digest !== computedCohortDigest) {
+  block('LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID');
 }
 const claims = Array.isArray(evidence.claims) ? evidence.claims : [];
 if (claims.length === 0) block('CLAIMS_REQUIRED');

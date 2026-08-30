@@ -183,6 +183,8 @@ const requiredCandidateHandoffBlockedSelftestBlockers = Object.freeze([
   "ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
   "EVIDENCE_PACKAGE_DIGEST_REQUIRED",
   "EVIDENCE_PACKAGE_NOT_IMMUTABLE",
+  "LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID",
+  "RIGHTS_ASSERTION_INVALID_OR_EXPIRED:selftest-historical-only",
   "SNAPSHOT_DIGEST_REQUIRED"
 ]);
 
@@ -353,7 +355,7 @@ function executeCandidateHandoffBlockedSelftest(fixture, validatorRelativePath) 
     if (!bytesA.equals(bytesB)) throw new Error("CANDIDATE_HANDOFF_BLOCKED_SELFTEST_NONDETERMINISTIC");
     const result = JSON.parse(bytesA.toString("utf8"));
     const gates = result.computed_entity_resolution_gates;
-    if (result.handoff_state !== "BLOCKED" || result.blocker_count !== 30 ||
+    if (result.handoff_state !== "BLOCKED" || result.blocker_count !== 32 ||
         JSON.stringify(result.blockers) !== JSON.stringify(requiredCandidateHandoffBlockedSelftestBlockers) ||
         result.handoff_semantics !== "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY" ||
         result.track_b_assessment !== "NOT_PERFORMED_BY_THIS_PREFLIGHT" ||
@@ -532,7 +534,7 @@ export async function buildAsiShadowOperatingEvidence() {
   }
   const candidateFixtureEr = candidateHandoffBlockedSelftestR2.evidence?.entity_resolution;
   if (candidateHandoffContractR2.id !== "candidate-evidence-handoff-preflight-contract-r2" ||
-      candidateHandoffContractR2.version !== "2.1.0" ||
+      candidateHandoffContractR2.version !== "2.2.0" ||
       candidateHandoffContractR2.current_state !== "BLOCKED" ||
       candidateHandoffContractR2.downstream_track !== "TRACK_B_INDEPENDENT_VALIDATION" ||
       candidateHandoffContractR2.canonical_governance?.caller_supplied_governance_allowed !== false ||
@@ -1462,7 +1464,7 @@ export async function buildAsiShadowOperatingEvidence() {
       designer_maker_r3_production: "HOLD",
       candidate_handoff_r2_blocked_selftest_executed_locally: true,
       candidate_handoff_r2_blocked_selftest_two_run_byte_identical: true,
-      candidate_handoff_r2_blocker_count: 30,
+      candidate_handoff_r2_blocker_count: 32,
       candidate_handoff_r2_current_state: "BLOCKED",
       candidate_handoff_r2_constructed_control: true,
       candidate_handoff_r2_empirical_metrics_present: false,
@@ -1896,7 +1898,7 @@ export async function buildAsiShadowOperatingEvidence() {
       designer_maker_r3_production: "HOLD",
       candidate_handoff_r2_blocked_selftest_executed_locally: true,
       candidate_handoff_r2_blocked_selftest_two_run_byte_identical: true,
-      candidate_handoff_r2_blocker_count: 30,
+      candidate_handoff_r2_blocker_count: 32,
       candidate_handoff_r2_current_state: "BLOCKED",
       candidate_handoff_r2_constructed_control: true,
       candidate_handoff_r2_empirical_metrics_present: false,

@@ -70,7 +70,9 @@ def main(argv: list[str]) -> int:
     require(manifest.get("synthetic") is False and manifest.get("promotable") is True, "NON_PROMOTABLE_INPUT_REJECTED")
     candidate_path = resolve_repository_path(manifest.get("candidate_path", ""))
     evidence_path = resolve_repository_path(manifest.get("evidence_path", ""))
+    remote_attestation_path = resolve_repository_path(manifest.get("remote_staging_attestation_path", ""))
     require(candidate_path.exists() and evidence_path.exists(), "EXACT_PAIR_FILE_MISSING")
+    require(remote_attestation_path.exists(), "REMOTE_STAGING_ATTESTATION_REQUIRED")
 
     # Downstream paths are always produced in this run.  A source manifest may
     # never inject a precomputed assessment, replay, or Projection around the
@@ -113,6 +115,7 @@ def main(argv: list[str]) -> int:
         relative(candidate_path),
         relative(evidence_path),
         relative(assessment_path),
+        relative(remote_attestation_path),
         relative(replay_path),
     ]
     if manifest.get("canonical_object_id"):

@@ -123,6 +123,8 @@ jobs:
             'ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET',
             'EVIDENCE_PACKAGE_DIGEST_REQUIRED',
             'EVIDENCE_PACKAGE_NOT_IMMUTABLE',
+            'LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID',
+            'RIGHTS_ASSERTION_INVALID_OR_EXPIRED:selftest-historical-only',
             'SNAPSHOT_DIGEST_REQUIRED',
           ];
           if (JSON.stringify(result.blockers) !== JSON.stringify(expected)) throw new Error('EXACT_BLOCKER_SET_MISMATCH');

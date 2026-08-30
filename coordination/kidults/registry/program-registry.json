@@ -6,7 +6,7 @@
   "program":{
     "program_id":"kidults-integrated-intelligence-program",
     "display_name":"KIDULTS Integrated Intelligence Program",
-    "mission":"Build a provider-aware, evidence-driven, scalable and increasingly autonomous global collectibles intelligence operating system under the 120 Standard.",
+    "mission":"Build a provider-aware, evidence-driven, scalable and increasingly autonomous global collectibles intelligence operating system under claim-specific sample governance and per-record rights census.",
     "program_owner":"johnkim9524-collab",
     "integration_conductor":"Atlas",
     "canonical_board_issue":344,
@@ -14,6 +14,7 @@
     "status":"active"
   },
   "official_books":["Master Book","Baseline Book","Architecture Book"],
+  "governance_policy_refs":["coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json","coordination/kidults/governance/current-sold-sample-governance-alignment-v1.json"],
   "tracks":[
     {"track_id":"A","track_key":"kidults-120-score","display_name":"120 Intelligence Factory","role":"PoC intelligence producer and current-readiness measurement","canonical_issue":235,"official_output":"snapshot-candidate.json + Evidence Package"},
     {"track_id":"B","track_key":"rankability-gate","display_name":"Rankability & Validation Gate","role":"Independent validation before release promotion","canonical_issue":236,"official_output":"rankability-assessment.json"},

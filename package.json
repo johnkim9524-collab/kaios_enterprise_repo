@@ -9,6 +9,7 @@
     "validate:agent-bootstrap": "node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs",
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
     "validate:control-plane": "npm --prefix services/kidults-control-plane run validate && npm --prefix services/kidults-control-plane test",
+    "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",
     "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs"
   },
   "dependencies": {

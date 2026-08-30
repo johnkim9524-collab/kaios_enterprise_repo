@@ -5,9 +5,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  admitProofProductProjectionWithVerifiedCapability,
-} from '../portal/runtime/proof-product-admission.js';
+import { validateProofProductProjectionSchema } from '../portal/runtime/proof-product-schema-validator.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const [
@@ -38,6 +36,8 @@ const digest = (value) => `sha256:${crypto.createHash('sha256')
 const digestText = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const requireValue = (condition, code) => { if (!condition) throw new Error(code); };
 const nonempty = (value) => typeof value === 'string' && value.trim().length > 0;
+const SHA256 = /^sha256:[a-f0-9]{64}$/;
+const INTERNAL_PRODUCT_PURPOSE = 'KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY';
 const parseTime = (value, code) => {
   const parsed = Date.parse(value || '');
   requireValue(nonempty(value) && Number.isFinite(parsed), code);
@@ -132,6 +132,12 @@ requireValue(replay.exact_pair_digest === pairDigest && replay.correlation_id ==
 const replayWithoutFingerprint = { ...replay };
 delete replayWithoutFingerprint.replay_fingerprint;
 requireValue(replay.replay_fingerprint === digest(replayWithoutFingerprint), 'REPLAY_FINGERPRINT_INVALID');
+requireValue(replay.current_sold_record_count === (evidence.launch_cohort?.sample_size || 0) && replay.launch_cohort_digest === evidence.launch_cohort?.cohort_digest,
+  'REPLAY_LAUNCH_COHORT_BINDING_MISMATCH');
+requireValue(SHA256.test(replay.remote_staging_attestation_fingerprint || '')
+  && Array.isArray(replay.postgres_receipt_ids) && replay.postgres_receipt_ids.length === replay.current_sold_record_count
+  && new Set(replay.postgres_receipt_ids).size === replay.current_sold_record_count
+  && nonempty(replay.pitr_restore_receipt_id), 'REPLAY_REMOTE_PERSISTENCE_EVIDENCE_MISSING');
 
 const allRecords = Array.isArray(evidence.evidence_records) ? evidence.evidence_records : [];
 const objectIds = [...new Set(allRecords.map(objectIdentity).filter(Boolean))].sort();
@@ -178,6 +184,18 @@ const rightsAssertions = records.map((record) => record.rights_assertion).filter
 requireValue(rightsAssertions.length === records.length, 'RIGHTS_ASSERTION_MISSING');
 requireValue(rightsAssertions.every((assertion) => Array.isArray(assertion.rights_atoms)
   && ['COLLECT', 'DERIVE', 'DISPLAY', 'STORE'].every((atom) => assertion.rights_atoms.includes(atom))), 'RIGHTS_ATOMS_INCOMPLETE');
+requireValue(records.every((record) => {
+  const assertion = record.rights_assertion || {};
+  const effective = parseTime(assertion.effective_at, 'RIGHTS_EFFECTIVE_AT_INVALID');
+  const expires = parseTime(assertion.expires_at, 'RIGHTS_EXPIRES_AT_INVALID');
+  return assertion.source_owner_id === record.source_owner_id
+    && assertion.purpose_binding_id === INTERNAL_PRODUCT_PURPOSE
+    && SHA256.test(assertion.document_sha256 || '')
+    && assertion.document_sha256 !== `sha256:${'0'.repeat(64)}`
+    && assertion.source_content_snapshot_sha256 === record.source_payload_sha256
+    && effective <= parseTime(record.observed_at, 'RIGHTS_RECORD_OBSERVED_AT_INVALID')
+    && generatedAtMs < expires;
+}), 'RIGHTS_ASSERTION_NOT_EFFECTIVE_OR_BOUND');
 const rightsProfileId = `rights-${digest(rightsAssertions).split(':')[1].slice(0, 24)}`;
 
 const transactionValues = soldRecords.map((record) => ({
@@ -269,7 +287,7 @@ const projection = {
   rights: {
     state: 'PARTIAL',
     internal_analysis: 'ALLOWED',
-    public_display: 'ALLOWED',
+    public_display: 'BLOCKED',
     api_redistribution: 'UNKNOWN',
     profile_id: rightsProfileId,
   },
@@ -325,16 +343,12 @@ const projection = {
   updated_at: generatedAt,
 };
 
-const admission = admitProofProductProjectionWithVerifiedCapability(projection, {
-  surface: 'PORTAL_RENDER',
-  trustedNow: new Date(generatedAt),
-  clockAuthority: 'KIDULTS_CONTROL_PLANE',
-  releaseAuthority: 'SIGNED_SERVER_CAPABILITY',
-  capabilityVerified: true,
-  capabilityId: `producer-${projectionId}`,
-  capabilityDigest: digest(projectionSeed),
-});
-requireValue(admission.accepted === true && admission.receipt.payload_exposed === true, `PROJECTION_SCHEMA_OR_SEMANTICS_REJECTED:${admission.receipt.reason}`);
+const schemaErrors = validateProofProductProjectionSchema(projection);
+requireValue(schemaErrors.length === 0, `PROJECTION_SCHEMA_REJECTED:${schemaErrors.join('|')}`);
+requireValue(projection.projection_state === 'APPROVED_INTERNAL'
+  && projection.display_eligibility === 'INTERNAL_ONLY'
+  && projection.rights.internal_analysis === 'ALLOWED'
+  && projection.rights.public_display === 'BLOCKED', 'INTERNAL_PROJECTION_RIGHTS_BOUNDARY_INVALID');
 
 const projectionText = stableText(projection);
 const projectionFileSha256 = digestText(projectionText);

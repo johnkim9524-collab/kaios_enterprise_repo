@@ -67,8 +67,8 @@
     "candidate_handoff_preflight_contract_r2": {
       "path": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
       "id": "candidate-evidence-handoff-preflight-contract-r2",
-      "version": "2.1.0",
-      "fingerprint": "sha256:e9fda9bde7b338a6487eeae32a9e778613ce887a33e803058e752d9cc7483428"
+      "version": "2.2.0",
+      "fingerprint": "sha256:146321c190b9e35a5e54b2a186f857d6b9ccaf6a3fef7837db2b1784d69a0b1d"
     },
     "candidate_handoff_blocked_selftest_r2": {
       "path": "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json",
@@ -460,13 +460,13 @@
     },
     "candidate_handoff_preflight_validator_r2": {
       "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
-      "sha256": "sha256:0370eb0d271545529f267cdb12403e091f6c2d10f3b788ac47707a4038bc2f61",
-      "byte_count": 26709
+      "sha256": "sha256:7ff905b342e5d6200c2227e7f569bec26b474cbf6d67930ebedba5553d180fa3",
+      "byte_count": 29788
     },
     "candidate_handoff_preflight_workflow_r2": {
       "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
-      "sha256": "sha256:0ecd16c04d79ec9886a31eca6641d1f4ffd8c4dddd8457c8db5ab8a1f857d64c",
-      "byte_count": 13489
+      "sha256": "sha256:f45f18fce28a333f6a7784b7b0be094a66fa847c143a97d598ab831084a1760a",
+      "byte_count": 13627
     },
     "autonomous_runtime_workflow": {
       "path": ".github/workflows/kidults-autonomous-runtime.yml",
@@ -520,13 +520,13 @@
     },
     "shadow_evidence_builder": {
       "path": "scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs",
-      "sha256": "sha256:48feab104daaaf216f530c5f309d6afdce7181b3a826e76c4aee9344b0c6081b",
-      "byte_count": 131119
+      "sha256": "sha256:450bbb0459018ddfac2d036d703e8add489f2cd06adafd76a4f63f547150c9a1",
+      "byte_count": 131237
     },
     "shadow_evidence_validator": {
       "path": "scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs",
-      "sha256": "sha256:3ffb2d1b47950234ca54d6c9140bc79c348b860a3189658ae6a4ea55151707fe",
-      "byte_count": 99560
+      "sha256": "sha256:9ae759181b5af4667db8efb19e0148a09590d58104c3b1f0680c8b81c385f6a2",
+      "byte_count": 99678
     },
     "shadow_evidence_workflow": {
       "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
@@ -535,8 +535,8 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:d849baa1556c2361b05bb04e930615ef8dd915604bebe6b1c1f6c31c06961048",
-      "byte_count": 844
+      "sha256": "sha256:547fe264b3c686862911daf222243c97d9b42261effd2682d3fc5f80e2edfbb3",
+      "byte_count": 947
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
@@ -717,8 +717,8 @@
       "contract_ref": {
         "path": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
         "id": "candidate-evidence-handoff-preflight-contract-r2",
-        "version": "2.1.0",
-        "fingerprint": "sha256:e9fda9bde7b338a6487eeae32a9e778613ce887a33e803058e752d9cc7483428"
+        "version": "2.2.0",
+        "fingerprint": "sha256:146321c190b9e35a5e54b2a186f857d6b9ccaf6a3fef7837db2b1784d69a0b1d"
       },
       "blocked_selftest_fixture_ref": {
         "path": "coordination/kidults/poc/candidate-evidence-handoff-blocked-selftest-r2.json",
@@ -728,17 +728,17 @@
       },
       "validator_ref": {
         "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
-        "sha256": "sha256:0370eb0d271545529f267cdb12403e091f6c2d10f3b788ac47707a4038bc2f61",
-        "byte_count": 26709
+        "sha256": "sha256:7ff905b342e5d6200c2227e7f569bec26b474cbf6d67930ebedba5553d180fa3",
+        "byte_count": 29788
       },
       "workflow_ref": {
         "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
-        "sha256": "sha256:0ecd16c04d79ec9886a31eca6641d1f4ffd8c4dddd8457c8db5ab8a1f857d64c",
-        "byte_count": 13489
+        "sha256": "sha256:f45f18fce28a333f6a7784b7b0be094a66fa847c143a97d598ab831084a1760a",
+        "byte_count": 13627
       },
       "materiality": "DOWNSTREAM_TRACK_B_SUBMISSION_TRUTH_BOUNDARY_NOT_UPSTREAM_SHADOW_EXECUTION_OR_PROMOTION_EVIDENCE",
       "local_blocked_selftest": {
-        "blocker_count": 30,
+        "blocker_count": 32,
         "blockers": [
           "BLIND_CRITICAL_FALSE_AUTO_MERGE_NONZERO_OR_UNMEASURED",
           "CLAIM_STRENGTH_EXCEEDS_EVIDENCE:selftest-current-market-claim-r2",
@@ -769,6 +769,8 @@
           "ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
           "EVIDENCE_PACKAGE_DIGEST_REQUIRED",
           "EVIDENCE_PACKAGE_NOT_IMMUTABLE",
+          "LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID",
+          "RIGHTS_ASSERTION_INVALID_OR_EXPIRED:selftest-historical-only",
           "SNAPSHOT_DIGEST_REQUIRED"
         ],
         "constructed_control": true,
@@ -783,7 +785,7 @@
         "publication_authorized_count": 0,
         "ready_pair_count": 0,
         "represented_approved_strata_complete": false,
-        "result_sha256": "sha256:2051adb1692cc97ed318b62f0edfdb61b585cf4b4056fa12e9fad2f78a86844c",
+        "result_sha256": "sha256:21b4daa72f3bafd23913aefec61f5b6290d4818a353650a5551770e5f5258eaa",
         "track_b_assessment_count": 0,
         "track_b_pass_count": 0,
         "track_b_submission_count": 0,
@@ -1529,7 +1531,7 @@
     "designer_maker_r3_production": "HOLD",
     "candidate_handoff_r2_blocked_selftest_executed_locally": true,
     "candidate_handoff_r2_blocked_selftest_two_run_byte_identical": true,
-    "candidate_handoff_r2_blocker_count": 30,
+    "candidate_handoff_r2_blocker_count": 32,
     "candidate_handoff_r2_current_state": "BLOCKED",
     "candidate_handoff_r2_constructed_control": true,
     "candidate_handoff_r2_empirical_metrics_present": false,
@@ -2084,7 +2086,7 @@
     "designer_maker_r3_production": "HOLD",
     "candidate_handoff_r2_blocked_selftest_executed_locally": true,
     "candidate_handoff_r2_blocked_selftest_two_run_byte_identical": true,
-    "candidate_handoff_r2_blocker_count": 30,
+    "candidate_handoff_r2_blocker_count": 32,
     "candidate_handoff_r2_current_state": "BLOCKED",
     "candidate_handoff_r2_constructed_control": true,
     "candidate_handoff_r2_empirical_metrics_present": false,
@@ -2269,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:1023dd11fbec5eae5be5b8116b319b20384dff3ab3c8f6fc8f47e177455c7161"
+  "evidence_fingerprint": "sha256:7225cbe552dc0b4761cb48a63f91e02402c35f99f95707ddfbba0468169852fe"
 }

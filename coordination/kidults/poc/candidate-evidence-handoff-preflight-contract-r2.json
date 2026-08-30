@@ -1,6 +1,6 @@
 {
   "id": "candidate-evidence-handoff-preflight-contract-r2",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "issue": 457,
   "downstream_track": "TRACK_B_INDEPENDENT_VALIDATION",
   "current_state": "BLOCKED",
@@ -13,6 +13,8 @@
     "approved_strata_manifest_path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
     "approved_strata_manifest_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
     "approved_strata_manifest_status": "APPROVED_BOUNDED_POC_CALIBRATION",
+    "current_sold_sample_governance_path": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+    "current_sold_sample_governance_id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1",
     "caller_supplied_governance_allowed": false
   },
   "canonical_digest_rules": {
@@ -79,6 +81,14 @@
         "snapshot_as_of_must_be_inside_validity_window": true,
         "maximum_window_days": 30
       }
+    },
+    "current_sold_cohort": {
+      "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
+      "sample_tier_from_canonical_policy_required": true,
+      "sample_size_must_equal_unique_admitted_event_count": true,
+      "sample_size_must_be_inside_tier_bounds": true,
+      "fixed_platform_wide_120_forbidden": true,
+      "canonical_cohort_digest_required": true
     },
     "evidence_package": {
       "package_status": "IMMUTABLE",
