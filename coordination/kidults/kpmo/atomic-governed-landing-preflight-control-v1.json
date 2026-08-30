@@ -1,0 +1,61 @@
+{
+  "id": "KIDULTS_ATOMIC_GOVERNED_LANDING_PREFLIGHT_CONTROL_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-30T11:15:00Z",
+  "state": "IMPLEMENTED_PENDING_GOVERNED_LANDING",
+  "purpose": "Convert Program Owner approval into a trusted preflight-controlled atomic landing without requiring repeated manual SHA and authorization input after bootstrap.",
+  "approval_command": "/kpmo-land pr=<number> head=<40-char-sha>",
+  "approval_binding": {
+    "comment_author_must_equal_repository_owner": true,
+    "comment_author_association": "OWNER",
+    "comment_issue_must_equal_pull_request": true,
+    "approved_initial_head_sha_required": true,
+    "same_repository_head_required": true,
+    "pull_request_author_must_equal_repository_owner": true,
+    "draft_or_closed_or_no_merge": "REJECT"
+  },
+  "preflight": {
+    "trusted_implementation_ref": "main",
+    "candidate_delta_manifest_digest": "SHA256_SORTED_FILENAME_STATUS_BLOB_AND_CHANGE_COUNTS",
+    "auto_base_sync": "ALLOWED_ONLY_WHEN_DELTA_DIGEST_IS_UNCHANGED",
+    "max_main_sync_cycles": 3,
+    "required_scope_status": "KIDULTS Scope-Aware Authoritative Status V1",
+    "required_technical_contexts": [
+      "KAIOS Solo Owner Preflight",
+      "Validate KAIOS Foundation",
+      "Validate Production Container"
+    ],
+    "server_mergeability_required": true,
+    "global_main_landing_concurrency": true
+  },
+  "landing": {
+    "final_exact_head_authorization_id": "LAND-PR-<number>-<first-12-final-head-sha>",
+    "server_side_expected_head_compare": true,
+    "initial_final_and_immediate_premerge_rereads": true,
+    "failure_revokes_exact_head_status": true,
+    "manual_workflow_dispatch_fallback": true
+  },
+  "receipt": {
+    "sanitized_terminal_artifact_required": true,
+    "approval_comment_body_persisted": false,
+    "approval_comment_digest_only": true,
+    "candidate_delta_digest_persisted": true,
+    "sync_count_and_aligned_main_sha_persisted": true,
+    "failure_code_bounded": true
+  },
+  "negative_controls": [
+    "NON_OWNER_COMMENT_CANNOT_RUN",
+    "NON_PR_COMMENT_CANNOT_RUN",
+    "STALE_INITIAL_HEAD_COMMAND_CANNOT_RUN",
+    "CANDIDATE_DELTA_DRIFT_DURING_SYNC_CANNOT_RUN",
+    "MAIN_DRIFT_RETRY_EXHAUSTION_CANNOT_MERGE",
+    "MISSING_OR_FAILED_REQUIRED_CONTEXT_CANNOT_MERGE",
+    "FORK_DRAFT_CLOSED_OR_NO_MERGE_CANNOT_RUN",
+    "CONCURRENT_MAIN_LANDINGS_ARE_SERIALIZED",
+    "PRODUCTION_PUBLIC_AND_G5_REMAIN_HOLD"
+  ],
+  "bootstrap_boundary": "The issue-comment preflight trigger becomes available only after this control is separately landed on protected main. The existing manual atomic workflow remains the one-time bootstrap fallback.",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
