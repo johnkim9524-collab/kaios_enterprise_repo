@@ -1,0 +1,29 @@
+name: KIDULTS ASI Global Source Pool Control V1
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "coordination/kidults/source-intelligence/asi-global-source-pool-control-v1.json"
+      - "scripts/kidults/source-intelligence/*provider-operation-receipt-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-source-pool-control-v1.mjs"
+      - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
+permissions:
+  contents: read
+concurrency:
+  group: kidults-asi-global-source-pool-control-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+jobs:
+  validate-control-plane:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24.19.0"
+      - name: Validate global source pool control
+        run: node scripts/kidults/source-intelligence/validate-asi-global-source-pool-control-v1.mjs
+      - name: Prove provider preflight fail-closed without network
+        run: node scripts/kidults/source-intelligence/test-provider-operation-receipt-v1.mjs
