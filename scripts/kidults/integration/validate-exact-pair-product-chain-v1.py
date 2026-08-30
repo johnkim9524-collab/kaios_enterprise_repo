@@ -239,6 +239,46 @@ expect_rejection(
     lambda: assessor.build_assessment_envelope(snapshot, bad_evidence, bad_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
     "TRACK_B_CURRENT_SOLD_EVIDENCE_MISSING",
 )
+
+conditional_snapshot, conditional_evidence = fixture_pair("ethereum-erc721-0x387c-token-5198")
+conditional_evidence["evidence_records"] = [conditional_evidence["evidence_records"][0]]
+conditional_evidence["evidence_records"][0]["market_observation_type"] = "ORDER_FULFILLED"
+conditional_evidence["evidence_records"][0]["rights_state"] = "CONDITIONAL"
+conditional_evidence["evidence_records"][0]["sold_claim"] = False
+conditional_evidence["claims"][0].update({
+    "claim_type": "ONCHAIN_PAID_FULFILLMENT_FACT",
+    "rights_state": "CONDITIONAL",
+    "sold_claim": False,
+})
+conditional_handoff = {
+    "handoff_state": "BLOCKED",
+    "handoff_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+    "blocker_count": 2,
+    "blockers": ["CURRENT_SOLD_EVIDENCE_MISSING", "RIGHTS_NOT_ALLOW"],
+    "pair_digest": assessor.digest_json({"snapshot": conditional_snapshot, "evidence": conditional_evidence}),
+    "snapshot_id": conditional_snapshot["snapshot_id"],
+    "evidence_package_id": conditional_evidence["package_id"],
+}
+conditional_envelope = assessor.build_hold_assessment_envelope(
+    conditional_snapshot,
+    conditional_evidence,
+    conditional_handoff,
+    generated_at=conditional_snapshot["as_of"],
+    candidate_reference="TEST_ONLY/seaport-snapshot-candidate.json",
+    evidence_reference="TEST_ONLY/seaport-evidence-package.json",
+    handoff_reference="TEST_ONLY/seaport-handoff-r2.json",
+)
+check(conditional_envelope["assessment"]["assessment_status"] == "COMPLETED", "Track B HOLD assessment was not completed")
+check(conditional_envelope["assessment"]["recommendation"] == "CONDITIONAL", "Track B HOLD recommendation mismatch")
+check(conditional_envelope["assessment"]["overall_rankability"] is False, "conditional event was promoted")
+check(conditional_envelope["assessment"]["quantitative_summary"]["admitted_current_sold_count"] == 0, "ORDER_FULFILLED was relabeled SOLD")
+check(conditional_envelope["assessment"]["test_results"]["sold_claim"] == "FALSE", "sold_claim ceiling was lost")
+expect_rejection(
+    "conditional-replay-forbidden",
+    lambda: replay_builder.build_replay_receipt(conditional_snapshot, conditional_evidence, conditional_envelope),
+    "ASSESSMENT_NOT_RANKABLE",
+)
+
 bad_envelope = copy.deepcopy(envelope)
 bad_envelope["assessment"]["overall_rankability"] = False
 expect_rejection(
@@ -399,7 +439,13 @@ with tempfile.TemporaryDirectory(prefix="official-track-b-live-cli-", dir=ROOT /
         str((directory / "handoff.json").relative_to(ROOT)),
     ], cwd=ROOT, text=True, capture_output=True, check=False)
     check(live_cli.returncode == 2, "live official Track B CLI accepted the historical structural fixture")
-    check(not (directory / "assessment.json").exists(), "blocked live CLI emitted an assessment")
+    check((directory / "assessment.json").exists(), "blocked live CLI did not complete a Track B HOLD assessment")
+    if (directory / "assessment.json").exists():
+        blocked_assessment = json.loads((directory / "assessment.json").read_text(encoding="utf-8"))
+        check(blocked_assessment["assessment"]["assessment_status"] == "COMPLETED", "blocked live CLI assessment incomplete")
+        check(blocked_assessment["assessment"]["overall_rankability"] is False, "blocked live CLI promoted rankability")
+        check(blocked_assessment["assessment"]["publication_eligible"] is False, "blocked live CLI preauthorized Public")
+        check(blocked_assessment["assessment"]["production_eligible"] is False, "blocked live CLI preauthorized Production")
     if (directory / "handoff.json").exists():
         handoff_state = json.loads((directory / "handoff.json").read_text(encoding="utf-8"))
         check(handoff_state.get("handoff_state") == "BLOCKED", "historical live CLI handoff did not remain BLOCKED")
