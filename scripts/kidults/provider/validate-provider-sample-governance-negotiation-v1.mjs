@@ -86,8 +86,13 @@ assert(contact.sample_policy === paths.sample && contact.negotiation_policy === 
 assert(contact.content_template === paths.content, 'CONTACT_TEMPLATE_BINDING_INVALID');
 assert(contact.contact_authorized === false, 'CONTACT_GATE_MUST_REMAIN_FALSE');
 assert(contact.program_owner_decision.current === 'HOLD_ALL_CONTACTS', 'CURRENT_CONTACT_DECISION_NOT_HOLD');
-assert(contact.groups.RECONCILED_NO_DUPLICATE_OUTREACH.some(entry => entry.provider === 'PSA Premium' && entry.resend_authorized === false), 'PSA_RESEND_HOLD_MISSING');
-assert(contact.groups.RECONCILED_NO_DUPLICATE_OUTREACH.some(entry => entry.provider === 'HobbyKorea' && entry.resend_authorized === false), 'HOBBYKOREA_RESEND_HOLD_MISSING');
+const psaContact = contact.groups.RECONCILED_NO_DUPLICATE_OUTREACH.find(entry => entry.provider === 'PSA Premium');
+assert(psaContact?.resend_authorized === false, 'PSA_RESEND_HOLD_MISSING');
+assert(psaContact?.follow_up_state === 'DRAFT_HELD_NO_SEND', 'PSA_FOLLOW_UP_DRAFT_HOLD_MISSING');
+const hobbyKoreaContact = contact.groups.EXTERNAL_SOURCE_PATH_DRAFT_HOLD?.find(entry => entry.provider === 'HobbyKorea');
+assert(hobbyKoreaContact?.resend_authorized === false, 'HOBBYKOREA_RESEND_HOLD_MISSING');
+assert(hobbyKoreaContact?.communication_state === 'FOLLOW_UP_DRAFT_HELD_NO_SEND', 'HOBBYKOREA_FOLLOW_UP_DRAFT_HOLD_MISSING');
+assert(hobbyKoreaContact?.canonical_provider_registry_record_required_before_outreach === true, 'HOBBYKOREA_CANONICAL_REGISTRY_PREFLIGHT_MISSING');
 
 assert(adapter.sample_policy === paths.sample && adapter.negotiation_policy === paths.negotiation, 'ADAPTER_POLICY_BINDING_INVALID');
 assert(adapter.sample_and_quality_gate.zero_failure_targets.ADAPTER_QUALIFICATION === 459, 'ADAPTER_459_INVALID');
@@ -102,7 +107,7 @@ assert(raci.truth_language.forbidden_conflations.includes('SAMPLE_TARGET_EQUALS_
 assert(raci.current_external_execution_state.contact_authorized === false, 'RACI_CONTACT_MUST_REMAIN_FALSE');
 
 for (const [text, markers, label] of [
-  [content, ['five-record live canary', 'bounded private functional pilot', 'option expansion band up to approximately 459', 'DRAFT_ONLY_NO_SEND'], 'CONTENT'],
+  [content, ['five-record live canary', 'bounded private functional pilot', 'optional expansion band up to approximately 459', 'DRAFT_ONLY_NO_SEND'], 'CONTENT'],
   [strategy, ['Canary 5', 'Bounded functional pilot 30–120', '459 zero-failure observations', '1,840', '4,603', 'PSA and HobbyKorea follow-up content remains draft-only'], 'STRATEGY'],
   [phase2, ['Canary 5', 'Bounded Functional Pilot 30–120', 'Provider negotiation content', 'DRAFT_ONLY_NO_SEND'], 'PHASE2'],
 ]) {
