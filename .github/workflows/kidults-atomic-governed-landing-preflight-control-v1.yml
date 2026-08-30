@@ -1,0 +1,50 @@
+name: KIDULTS Atomic Governed Landing Preflight Control V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-atomic-governed-landing-v1.yml'
+      - '.github/workflows/kidults-atomic-governed-landing-preflight-control-v1.yml'
+      - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-governed-landing-preflight-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs'
+      - 'coordination/kidults/kpmo/atomic-governed-landing-preflight-control-v1.json'
+      - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-atomic-governed-landing-v1.yml'
+      - '.github/workflows/kidults-atomic-governed-landing-preflight-control-v1.yml'
+      - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-governed-landing-preflight-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs'
+      - 'coordination/kidults/kpmo/atomic-governed-landing-preflight-control-v1.json'
+      - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate trusted preflight, mutation boundary and governed landing coverage
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
+          node --check scripts/kidults/kpmo/validate-atomic-governed-landing-preflight-v1.mjs
+          node scripts/kidults/kpmo/validate-atomic-governed-landing-preflight-v1.mjs
+          node scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs
+          node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs
