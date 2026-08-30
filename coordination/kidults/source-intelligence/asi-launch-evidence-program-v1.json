@@ -69,6 +69,7 @@
       "ordinal": 4,
       "id": "VALUE_RIGHTS_SCHEMA_ELIGIBILITY",
       "state": "HOLD",
+      "control_issue": 1649,
       "observed": {"eligible_sources": 0, "eligible_source_ids": [], "target_min": 1, "target_recommended": 2},
       "exit_criteria": "One or two sources independently pass product value, purpose rights, immutable snapshot and source-specific schema gates.",
       "release_condition": "Authoritative value, rights, snapshot and schema receipts for the exact same source ID; aggregate count substitution is forbidden."
