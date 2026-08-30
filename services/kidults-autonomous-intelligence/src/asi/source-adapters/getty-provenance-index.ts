@@ -18,6 +18,8 @@ export interface GettyProvenanceObservation {
     credential_used: boolean;
     paid_access: boolean;
     network_requests: number;
+    machine_proven_acquisition_receipts: number;
+    acquisition_time_http_receipt: null;
   };
   rights: {
     decision: string;
@@ -39,6 +41,7 @@ export interface GettyProvenanceObservation {
     amount_semantics: string;
     event_time_precision: string;
     historical_transaction: boolean;
+    committed_reference_replay: boolean;
     verified_current_sold_event: boolean;
     current_price: boolean;
     liquidity: boolean;
@@ -207,8 +210,8 @@ export async function parseGettyHistoricalTransaction(
   const boundary = observation?.semantic_boundary;
   if (boundary?.evidence_class !== 'HISTORICAL_TRANSACTION_PROVENANCE' ||
       boundary?.amount_semantics !== 'DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE' ||
-      boundary?.event_time_precision !== 'MONTH' || boundary?.historical_transaction !== true ||
-      boundary?.verified_current_sold_event !== false || boundary?.current_price !== false ||
+      boundary?.event_time_precision !== 'MONTH' || boundary?.historical_transaction !== false ||
+      boundary?.committed_reference_replay !== true || boundary?.verified_current_sold_event !== false || boundary?.current_price !== false ||
       boundary?.liquidity !== false || boundary?.demand !== false || boundary?.generic_market_event !== false) {
     failures.push('SEMANTIC_CLAIM_CEILING_INVALID');
   }
