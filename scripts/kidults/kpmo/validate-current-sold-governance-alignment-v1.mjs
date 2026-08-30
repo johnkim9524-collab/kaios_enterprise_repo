@@ -13,4 +13,5 @@ if (p.coverage_gate.separate_from_sample_size !== true) fail('COVERAGE_NOT_SEPAR
 if (p.statistical_method.optional_stopping !== false || p.statistical_method.threshold_change_after_observation !== false) fail('OPTIONAL_STOPPING_OR_POSTHOC_POLICY');
 for (const id of ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','TRACK_Z','ASI']) if (!a.track_alignment[id]) fail(`TRACK_ALIGNMENT_MISSING:${id}`);
 if (a.legacy_migration.platform_current_sold_120 !== 'DEPRECATED') fail('LEGACY_120_NOT_DEPRECATED');
+if (a.automatic_release_escalation.public_request !== 'ROUTED_TO_PRODUCTION_TIER' || a.automatic_release_escalation.downgrade_after_observation !== 'FORBIDDEN') fail('AUTO_RELEASE_ESCALATION_NOT_BOUND');
 console.log(JSON.stringify({suite:'CURRENT_SOLD_GOVERNANCE_ALIGNMENT_V1',result:'VERIFIED_PASS',scope:a.scope.length,tracks:Object.keys(a.track_alignment).length,rights:'CENSUS',sample:'CLAIM_SPECIFIC',legacy_120:'DEPRECATED',production:'HOLD',public:'HOLD',g5:'HOLD'}));

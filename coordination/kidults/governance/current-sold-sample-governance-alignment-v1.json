@@ -41,4 +41,12 @@
     "current_sold_launch_claim": "MUST_USE_SAMPLE_POLICY_AND_DYNAMIC_COHORT_BINDING"
   },
   "release_state": "INTERNAL_POLICY_READY_EXTERNAL_EMPIRICAL_HOLD"
+  ,"automatic_release_escalation": {
+    "control_only_or_canary_to_production": "FORBIDDEN",
+    "adapter_or_private_e2e_to_production": "FORBIDDEN",
+    "beta_to_production": "REQUIRES_30_NATURAL_RUNS_OVER_7_DAYS_AND_SLO_RECEIPT",
+    "public_request": "ROUTED_TO_PRODUCTION_TIER",
+    "downgrade_after_observation": "FORBIDDEN",
+    "final_authority": "PROGRAM_OWNER_EXPLICIT_APPROVAL"
+  }
 }
