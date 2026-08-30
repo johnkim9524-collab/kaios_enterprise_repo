@@ -1,0 +1,31 @@
+name: KIDULTS Seaport Lighthouse Cohort V1
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+permissions:
+  contents: read
+concurrency:
+  group: kidults-seaport-lighthouse-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  collect-and-validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4
+        with:
+          node-version: "24.19.0"
+      - name: Collect bounded strict-current cohort
+        run: node scripts/kidults/integration/collect-seaport-lighthouse-cohort-v1.mjs
+      - name: Validate no-promotion boundary
+        run: node scripts/kidults/integration/validate-seaport-lighthouse-cohort-v1.mjs
+      - name: Preserve transient validation receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kidults-seaport-lighthouse-${{ github.run_id }}
+          path: artifacts/kidults-seaport-lighthouse/
+          if-no-files-found: error
+          retention-days: 7
