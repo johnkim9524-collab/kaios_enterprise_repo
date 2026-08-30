@@ -103,13 +103,16 @@ export interface GettyHistoricalTransactionRecord {
 
 export interface GettyAdapterResult {
   source_id: 'getty-provenance-index';
-  adapter_state: 'ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY';
-  decision_state: 'NORMALIZED_HISTORICAL_TRANSACTION_READY_FOR_ADMISSION' | 'REJECTED_FAIL_CLOSED';
+  adapter_state: 'REFERENCE_REPLAY_CONTROL_ONLY';
+  decision_state: 'NORMALIZED_REFERENCE_REPLAY_NOT_ADMISSIBLE' | 'REJECTED_FAIL_CLOSED';
   reason_codes: string[];
   normalized_record: GettyHistoricalTransactionRecord | null;
+  committed_reference_snapshots_verified: number;
   immutable_live_snapshots_verified: number;
+  machine_proven_acquisition_receipts: number;
   purpose_specific_rights_verified: boolean;
   historical_transaction_evidence_ready: boolean;
+  promotable: false;
   generic_market_event_created: false;
   verified_current_sold_event_created: false;
   current_price_created: false;
@@ -149,13 +152,16 @@ async function hashRaw(raw: string): Promise<string> {
 function rejected(reasonCodes: string[]): GettyAdapterResult {
   return {
     source_id: 'getty-provenance-index',
-    adapter_state: 'ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY',
+    adapter_state: 'REFERENCE_REPLAY_CONTROL_ONLY',
     decision_state: 'REJECTED_FAIL_CLOSED',
     reason_codes: uniqueSorted(reasonCodes),
     normalized_record: null,
+    committed_reference_snapshots_verified: 0,
     immutable_live_snapshots_verified: 0,
+    machine_proven_acquisition_receipts: 0,
     purpose_specific_rights_verified: false,
     historical_transaction_evidence_ready: false,
+    promotable: false,
     generic_market_event_created: false,
     verified_current_sold_event_created: false,
     current_price_created: false,
@@ -173,7 +179,7 @@ export async function parseGettyHistoricalTransaction(
 ): Promise<GettyAdapterResult> {
   const failures: string[] = [];
   if (observation?.id !== 'kidults-getty-provenance-historical-transaction-observation-v1' ||
-      observation?.version !== '1.0.0' || observation?.state !== 'VERIFIED_PASS' ||
+      observation?.version !== '1.0.0' || observation?.state !== 'COMMITTED_REFERENCE_SNAPSHOT_REPLAY' ||
       !rfc3339.test(observation?.as_of ?? '')) failures.push('OBSERVATION_ID_VERSION_STATE_OR_TIME_INVALID');
 
   const source = observation?.source;
@@ -183,8 +189,9 @@ export async function parseGettyHistoricalTransaction(
       source?.registered_top_16_source_profile !== false) failures.push('SOURCE_IDENTITY_OR_SCOPE_INVALID');
 
   const capture = observation?.capture;
-  if (capture?.mode !== 'BOUNDED_PUBLIC_REST_JSON_LD_EXACT_RECORDS' || capture?.authenticated !== false ||
-      capture?.credential_used !== false || capture?.paid_access !== false || capture?.network_requests !== 4) {
+  if (capture?.mode !== 'COMMITTED_SNAPSHOT_REPLAY_NO_ACQUISITION_RECEIPT' || capture?.authenticated !== false ||
+      capture?.credential_used !== false || capture?.paid_access !== false || capture?.network_requests !== 0 ||
+      capture?.machine_proven_acquisition_receipts !== 0 || capture?.acquisition_time_http_receipt !== null) {
     failures.push('CAPTURE_BOUNDARY_INVALID');
   }
 
@@ -308,13 +315,16 @@ export async function parseGettyHistoricalTransaction(
   };
   return {
     source_id: 'getty-provenance-index',
-    adapter_state: 'ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY',
-    decision_state: 'NORMALIZED_HISTORICAL_TRANSACTION_READY_FOR_ADMISSION',
+    adapter_state: 'REFERENCE_REPLAY_CONTROL_ONLY',
+    decision_state: 'NORMALIZED_REFERENCE_REPLAY_NOT_ADMISSIBLE',
     reason_codes: [],
     normalized_record: normalized,
-    immutable_live_snapshots_verified: 2,
+    committed_reference_snapshots_verified: 2,
+    immutable_live_snapshots_verified: 0,
+    machine_proven_acquisition_receipts: 0,
     purpose_specific_rights_verified: true,
-    historical_transaction_evidence_ready: true,
+    historical_transaction_evidence_ready: false,
+    promotable: false,
     generic_market_event_created: false,
     verified_current_sold_event_created: false,
     current_price_created: false,
