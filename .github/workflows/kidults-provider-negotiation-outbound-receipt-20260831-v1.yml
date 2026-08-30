@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json'
       - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
       - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json'
       - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
       - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
 
@@ -30,7 +32,7 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Validate selected negotiation outbound receipt
+      - name: Validate selected negotiation outbound receipts
         run: |
           set -euo pipefail
           node --check scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
