@@ -15,11 +15,12 @@
     "staging_admission": "coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json",
     "runtime_boundary": "coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json",
     "provider_registry": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json"
+    ,"sample_governance": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json"
   },
   "targets": {
     "launch_sources_min": 1,
     "launch_sources_recommended": 2,
-    "lawful_current_sold_events": 120,
+    "lawful_current_sold_events": null,
     "scale_verticals": 8,
     "scale_independent_source_owners": 32,
     "scale_current_sold_events": 40000
@@ -73,18 +74,18 @@
     },
     {
       "ordinal": 5,
-      "id": "ADAPTER_AND_LAWFUL_120",
+      "id": "ADAPTER_AND_LAWFUL_SAMPLE_GATE",
       "state": "HOLD",
-      "observed": {"empirically_active_adapters": 0, "lawful_current_sold_events": 0, "target": 120},
-      "exit_criteria": "A rights-and-schema-eligible adapter admits 120 provenance-bound terminal-SOLD events without synthetic substitution.",
-      "release_condition": "Eligible source plus private runtime authority and a validated 120-event provenance manifest."
+      "observed": {"empirically_active_adapters": 0, "lawful_current_sold_events": 0, "sample_policy": "PRIVATE_E2E", "target": null},
+      "exit_criteria": "A rights-and-schema-eligible adapter passes the pre-registered claim-specific sample policy; rights remain a per-event census.",
+      "release_condition": "Eligible source plus a sealed sampling plan, exact confidence bound, independent-owner coverage and validated provenance manifest."
     },
     {
       "ordinal": 6,
       "id": "POSTGRESQL_IMMUTABLE_RECEIPTS",
       "state": "HOLD",
       "observed": {"remote_staging_execution": false, "pitr_proven": false, "persistent_receipts": 0},
-      "exit_criteria": "All 120 events have run ID, source snapshot digest, rights receipt, schema version and event digest persisted in remotely verified PostgreSQL with RLS, PITR and restore evidence.",
+      "exit_criteria": "Every admitted event in the selected cohort has run ID, source snapshot digest, rights receipt, schema version and event digest persisted in remotely verified PostgreSQL with RLS, PITR and restore evidence.",
       "release_condition": "Protected runtime provisioning and remote PostgreSQL/PITR validation."
     },
     {
@@ -92,7 +93,7 @@
       "id": "TRACK_B_TO_PROJECTION",
       "state": "HOLD",
       "observed": {"track_b_results": 0, "approved_projections": 0},
-      "exit_criteria": "The same immutable 120-event pair completes Evidence, Track B assessment, staging replay and server-owned Projection with digest continuity.",
+      "exit_criteria": "The same immutable, policy-qualified cohort completes Evidence, Track B assessment, staging replay and server-owned Projection with digest continuity.",
       "release_condition": "Stages 2 through 6 pass and an official Track B assessment is approved."
     },
     {
@@ -110,7 +111,9 @@
     "public_visibility_is_permission": false,
     "reference_only_is_acquisition_authority": false,
     "adapter_implementation_is_activation": false,
-    "synthetic_events_count_toward_120": false,
+    "synthetic_events_count_toward_sample": false,
+    "rights_are_census_not_sample": true,
+    "market_representativeness_requires_separate_coverage_gate": true,
     "local_postgres_is_remote_runtime_evidence": false,
     "track_b_may_precede_persistent_receipts": false,
     "scale_may_precede_launch_cell": false
@@ -127,7 +130,7 @@
   },
   "platform_principles": {
     "autonomous_effect": "A scheduled validator derives bounded counters from authoritative inputs, rejects manual promotion and keeps unresolved external work on HOLD.",
-    "global_effect": "The bounded 120-event launch cell is an enforced prerequisite to the eight-vertical, 32-owner, 40000-event scale target.",
+    "global_effect": "A claim-specific statistically governed pilot is an enforced prerequisite to the eight-vertical, 32-owner, 40000-event scale target.",
     "irreplaceable_value_effect": "Rights, snapshot, schema, run and event digests accumulate in KIDULTS-owned receipts independent of provider identity.",
     "transparency_effect": "Every blocked stage names its observed count, evidence dependency and release condition."
   }

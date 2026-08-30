@@ -132,11 +132,11 @@ requireValue(replay.exact_pair_digest === pairDigest && replay.correlation_id ==
 const replayWithoutFingerprint = { ...replay };
 delete replayWithoutFingerprint.replay_fingerprint;
 requireValue(replay.replay_fingerprint === digest(replayWithoutFingerprint), 'REPLAY_FINGERPRINT_INVALID');
-requireValue(replay.current_sold_record_count === 120 && replay.launch_cohort_digest === evidence.launch_cohort?.cohort_digest,
+requireValue(replay.current_sold_record_count === (evidence.launch_cohort?.sample_size || 0) && replay.launch_cohort_digest === evidence.launch_cohort?.cohort_digest,
   'REPLAY_LAUNCH_COHORT_BINDING_MISMATCH');
 requireValue(SHA256.test(replay.remote_staging_attestation_fingerprint || '')
-  && Array.isArray(replay.postgres_receipt_ids) && replay.postgres_receipt_ids.length === 120
-  && new Set(replay.postgres_receipt_ids).size === 120
+  && Array.isArray(replay.postgres_receipt_ids) && replay.postgres_receipt_ids.length === replay.current_sold_record_count
+  && new Set(replay.postgres_receipt_ids).size === replay.current_sold_record_count
   && nonempty(replay.pitr_restore_receipt_id), 'REPLAY_REMOTE_PERSISTENCE_EVIDENCE_MISSING');
 
 const allRecords = Array.isArray(evidence.evidence_records) ? evidence.evidence_records : [];

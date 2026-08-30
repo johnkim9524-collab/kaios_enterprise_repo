@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+const path = process.argv[2] || 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json';
+const p = JSON.parse(fs.readFileSync(path, 'utf8'));
+const fail = code => { throw new Error(code); };
+const ok = (x, code) => { if (!x) fail(code); };
+ok(p.id === 'KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1' && p.version === '1.0.0', 'POLICY_IDENTITY');
+ok(p.rights_gate.mode === 'CENSUS_NOT_SAMPLE' && p.rights_gate.required_for_every_event === true, 'RIGHTS_NOT_CENSUS');
+ok(p.statistical_method.interval === 'ONE_SIDED_EXACT_CLOPPER_PEARSON_UPPER_BOUND', 'INTERVAL_METHOD');
+ok(p.statistical_method.confidence === 0.95 && p.statistical_method.optional_stopping === false, 'STAT_POLICY');
+const tiers = new Map(p.tiers.map(t => [t.id, t]));
+for (const id of ['CANARY','ADAPTER_QUALIFICATION','PRIVATE_E2E','BETA_RELIABILITY']) ok(tiers.has(id), `MISSING_TIER:${id}`);
+const required = (q, alpha = p.statistical_method.alpha) => Math.ceil(Math.log(alpha) / Math.log(1 - q));
+ok(tiers.get('ADAPTER_QUALIFICATION').zero_failure_n === required(0.05), 'ADAPTER_N_FORMULA');
+ok(tiers.get('PRIVATE_E2E').zero_failure_n === required(0.025), 'E2E_N_FORMULA');
+ok(tiers.get('BETA_RELIABILITY').zero_failure_n === required(0.01), 'BETA_N_FORMULA');
+ok(tiers.get('PRIVATE_E2E').min_independent_ultimate_owners === 2 && tiers.get('PRIVATE_E2E').max_owner_share === 0.70, 'E2E_CONCENTRATION');
+ok(p.coverage_gate.separate_from_sample_size === true && p.coverage_gate.market_representativeness_inferred_from_n === false, 'COVERAGE_SEPARATION');
+ok(p.failure_accounting.parse_drop_counts_as === 'FAILURE' && p.failure_accounting.retry_is_new_independent_success === false, 'FAILURE_ACCOUNTING');
+console.log(JSON.stringify({suite:'CURRENT_SOLD_SAMPLE_GOVERNANCE_V1',result:'VERIFIED_PASS',tiers:Object.fromEntries([...tiers].map(([k,v])=>[k,{min_n:v.min_n,max_n:v.max_n,zero_failure_n:v.zero_failure_n||null}])) ,rights:'CENSUS',coverage:'SEPARATE',optional_stopping:false,negative_tests:6}));

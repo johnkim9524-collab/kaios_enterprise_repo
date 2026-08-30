@@ -115,8 +115,9 @@ def build_replay_receipt(
     require(all(nonempty(record.get("evidence_id")) for record in records), "OBJECT_EVIDENCE_ID_MISSING")
     require(all(record.get("rights_state") == "ALLOW" for record in records), "OBJECT_EVIDENCE_RIGHTS_NOT_ALLOW")
     cohort = evidence.get("launch_cohort") or {}
-    require(len(sold_records) == 120 and len({record.get("evidence_id") for record in sold_records}) == 120,
-            "LAUNCH_COHORT_EXACTLY_120_UNIQUE_SOLD_REQUIRED")
+    cohort_size = len(sold_records)
+    require(cohort_size > 0 and len({record.get("evidence_id") for record in sold_records}) == cohort_size,
+            "LAUNCH_COHORT_SAMPLE_UNIQUE_REQUIRED")
     require(assessment.get("quantitative_summary", {}).get("launch_cohort_digest") == cohort.get("cohort_digest"),
             "ASSESSMENT_LAUNCH_COHORT_BINDING_MISMATCH")
 
@@ -131,8 +132,8 @@ def build_replay_receipt(
             attestation.get("launch_cohort_digest") == cohort.get("cohort_digest"),
             "REMOTE_STAGING_ATTESTATION_BINDING_MISMATCH")
     postgres_ids = attestation.get("postgres_receipt_ids") or []
-    require(len(postgres_ids) == 120 and len(set(postgres_ids)) == 120,
-            "POSTGRES_120_RECEIPTS_NOT_PROVEN")
+    require(len(postgres_ids) == cohort_size and len(set(postgres_ids)) == cohort_size,
+            "POSTGRES_RECEIPTS_DO_NOT_MATCH_COHORT")
     require(attestation.get("pitr_proven") is True and nonempty(attestation.get("pitr_restore_receipt_id")),
             "PITR_NOT_PROVEN")
     metrics = attestation.get("metrics") or {}

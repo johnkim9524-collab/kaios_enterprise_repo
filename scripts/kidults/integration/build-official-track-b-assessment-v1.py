@@ -24,7 +24,7 @@ ASSESSMENT_SCHEMA = ROOT / "coordination/kidults/schemas/rankability-assessment.
 ENVELOPE_SCHEMA = ROOT / "coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json"
 SHA256_PREFIX = "sha256:"
 PASS_RECOMMENDATION = "PUBLISHABLE_INTERNAL"
-LAUNCH_COHORT_SIZE = 120
+SAMPLE_POLICY = ROOT / "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json"
 INTERNAL_PRODUCT_PURPOSE = "KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY"
 
 
@@ -92,14 +92,19 @@ def validate_rights_assertion(record: dict[str, Any], reference_time: str) -> No
 
 def launch_cohort_digest(evidence: dict[str, Any], current_sold: list[dict[str, Any]]) -> str:
     cohort = evidence.get("launch_cohort") or {}
-    require(cohort.get("cohort_class") == "LAWFUL_CURRENT_SOLD_120", "LAUNCH_COHORT_CLASS_INVALID")
+    require(cohort.get("cohort_class") == "LAWFUL_CURRENT_SOLD_SAMPLE", "LAUNCH_COHORT_CLASS_INVALID")
+    policy = json.loads(SAMPLE_POLICY.read_text(encoding="utf-8"))
+    tier = next((item for item in policy["tiers"] if item["id"] == cohort.get("sample_tier")), None)
+    require(tier is not None and tier.get("statistical_claim") is True, "SAMPLE_TIER_INVALID")
     ids = [record.get("evidence_id") for record in current_sold]
-    require(len(ids) == LAUNCH_COHORT_SIZE and len(set(ids)) == LAUNCH_COHORT_SIZE,
-            "LAUNCH_COHORT_EXACTLY_120_UNIQUE_SOLD_REQUIRED")
+    require(len(ids) == cohort.get("sample_size") and len(set(ids)) == len(ids), "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS")
+    require(tier["min_n"] <= len(ids) <= tier["max_n"], "LAUNCH_COHORT_OUTSIDE_POLICY_BOUNDS")
     require(cohort.get("terminal_state") == "SOLD", "LAUNCH_COHORT_TERMINAL_STATE_INVALID")
     require(cohort.get("event_ids") == sorted(ids), "LAUNCH_COHORT_EVENT_SET_MISMATCH")
     computed = digest_json({
         "cohort_class": cohort["cohort_class"],
+        "sample_tier": cohort["sample_tier"],
+        "sample_size": cohort["sample_size"],
         "terminal_state": cohort["terminal_state"],
         "event_ids": sorted(ids),
         "event_digests": sorted(digest_json(record) for record in current_sold),

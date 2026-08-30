@@ -24,6 +24,8 @@ on:
       - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs'
@@ -117,6 +119,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs
           node --check scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs
           node --check scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs

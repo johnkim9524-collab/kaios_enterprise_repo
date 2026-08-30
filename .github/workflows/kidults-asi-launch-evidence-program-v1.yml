@@ -15,6 +15,8 @@ on:
       - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
       - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
   pull_request:
     paths:
@@ -56,3 +58,5 @@ jobs:
         run: node --check scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
       - name: Validate stage truth and fail-closed negative paths
         run: node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
+      - name: Validate scientific sample governance
+        run: node scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs

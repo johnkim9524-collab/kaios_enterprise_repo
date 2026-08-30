@@ -1,0 +1,43 @@
+{
+  "id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1",
+  "version": "1.0.0",
+  "purpose": "Pre-register claim-specific sample sizes and stopping rules. Sample size never substitutes for per-record rights or schema admission.",
+  "rights_gate": {
+    "mode": "CENSUS_NOT_SAMPLE",
+    "required_for_every_event": true,
+    "unknown_or_expired_is": "HOLD",
+    "critical_rights_defect_tolerance": 0
+  },
+  "statistical_method": {
+    "interval": "ONE_SIDED_EXACT_CLOPPER_PEARSON_UPPER_BOUND",
+    "confidence": 0.95,
+    "alpha": 0.05,
+    "zero_failure_formula": "ceil(log(alpha) / log(1 - defect_tolerance))",
+    "optional_stopping": false,
+    "threshold_change_after_observation": false
+  },
+  "tiers": [
+    {"id":"CANARY","purpose":"SCHEMA_AND_BOUNDARY_SMOKE","min_n":5,"max_n":5,"critical_defect_tolerance":0,"statistical_claim":false},
+    {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","defect_tolerance":0.05,"zero_failure_n":59,"min_n":59,"max_n":180,"statistical_claim":true},
+    {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","defect_tolerance":0.025,"zero_failure_n":119,"min_n":119,"max_n":300,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
+    {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","defect_tolerance":0.01,"zero_failure_n":299,"min_n":299,"max_n":600,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
+  ],
+  "coverage_gate": {
+    "separate_from_sample_size": true,
+    "required_strata": ["ultimate_owner", "source", "vertical", "territory", "currency", "time_bucket"],
+    "duplicate_cluster_is_independent_sample": false,
+    "market_representativeness_inferred_from_n": false
+  },
+  "failure_accounting": {
+    "parse_drop_counts_as": "FAILURE",
+    "timeout_counts_as": "FAILURE",
+    "retry_is_new_independent_success": false,
+    "duplicate_event_counts_as": "INVALID_AND_HOLD"
+  },
+  "claim_ceiling": {
+    "private_e2e": "BOUNDED_PRIVATE_FUNCTIONAL_PROOF",
+    "single_owner": "SINGLE_SOURCE_FUNCTIONAL_PROOF_ONLY",
+    "beta": "RELEASE_RELIABILITY_ONLY",
+    "rights_or_market_claim": "FORBIDDEN_FROM_SAMPLE_SIZE"
+  }
+}

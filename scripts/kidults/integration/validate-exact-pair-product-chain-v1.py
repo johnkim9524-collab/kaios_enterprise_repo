@@ -125,7 +125,7 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         },
     }
     sold_records = []
-    for index in range(120):
+    for index in range(119):
         record = copy.deepcopy(sold)
         record["evidence_id"] = f"evidence-sold-camera-{index + 1:03d}"
         record["source_payload_sha256"] = "sha256:" + f"{index + 1:064x}"
@@ -134,7 +134,9 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         sold_records.append(record)
     event_ids = sorted(record["evidence_id"] for record in sold_records)
     launch_cohort = {
-        "cohort_class": "LAWFUL_CURRENT_SOLD_120",
+        "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
+        "sample_tier": "PRIVATE_E2E",
+        "sample_size": 119,
         "terminal_state": "SOLD",
         "event_ids": event_ids,
         "event_digests": sorted(assessor.digest_json(record) for record in sold_records),
@@ -190,7 +192,7 @@ def remote_attestation(snapshot: dict[str, Any], evidence: dict[str, Any]) -> di
         "remote_execution": True,
         "exact_pair_digest": assessor.digest_json({"snapshot": snapshot, "evidence": evidence}),
         "launch_cohort_digest": evidence["launch_cohort"]["cohort_digest"],
-        "postgres_receipt_ids": [f"pg-receipt-{index + 1:03d}" for index in range(120)],
+        "postgres_receipt_ids": [f"pg-receipt-{index + 1:03d}" for index in range(119)],
         "pitr_proven": True,
         "pitr_restore_receipt_id": "pitr-restore-test-only-001",
         "metrics": {key: 1 for key in replay_builder.REQUIRED_RUNTIME_METRICS},
@@ -240,7 +242,7 @@ check(assessment["recommendation"] == "PUBLISHABLE_INTERNAL", "official Track B 
 check(assessment["overall_rankability"] is True, "official Track B did not establish internal rankability")
 check(assessment["publication_eligible"] is False and assessment["production_eligible"] is False, "Track B preauthorized release")
 check(replay["workload_result"] == "PASS" and replay["projection_ready"] is True, "staging replay did not pass")
-check(replay["current_sold_record_count"] == 120, "launch cohort did not preserve exactly 120 sold records")
+check(replay["current_sold_record_count"] == 119, "launch cohort did not preserve policy-derived sample size")
 check(replay["public_touch"] is False and replay["production_touch"] is False and replay["g5"] == "HOLD", "staging replay boundary changed")
 
 expect_rejection(
@@ -276,7 +278,7 @@ bad_handoff = ready_handoff(snapshot, bad_evidence)
 expect_rejection(
     "listing-not-sold",
     lambda: assessor.build_assessment_envelope(snapshot, bad_evidence, bad_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
-    "LAUNCH_COHORT_EXACTLY_120_UNIQUE_SOLD_REQUIRED",
+    "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS",
 )
 for label, mutate, code in [
     ("expired-rights", lambda record: record["rights_assertion"].update({"expires_at": "2026-08-02T00:00:00.000Z"}), "RIGHTS_NOT_EFFECTIVE_AT_ASSESSMENT"),
@@ -301,7 +303,7 @@ short_handoff = ready_handoff(snapshot, short_cohort)
 expect_rejection(
     "119-sold-not-launch-cell",
     lambda: assessor.build_assessment_envelope(snapshot, short_cohort, short_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
-    "LAUNCH_COHORT_EXACTLY_120_UNIQUE_SOLD_REQUIRED",
+    "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS",
 )
 expect_rejection(
     "local-replay-without-remote-attestation",

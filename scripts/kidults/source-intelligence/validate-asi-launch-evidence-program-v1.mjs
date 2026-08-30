@@ -10,7 +10,9 @@ function validate(program) {
   assert(program.id === 'kidults-asi-launch-evidence-program-v1' && program.version === '1.0.0', 'PROGRAM_IDENTITY');
   assert(program.status === 'ACTIVE_FAIL_CLOSED_EXTERNAL_EVIDENCE_REQUIRED', 'PROGRAM_STATUS');
   assert(program.targets.launch_sources_min === 1 && program.targets.launch_sources_recommended === 2, 'LAUNCH_SOURCE_TARGET');
-  assert(program.targets.lawful_current_sold_events === 120, 'LAWFUL_120_TARGET');
+  const samplePolicy = read(program.authoritative_inputs.sample_governance);
+  assert(program.targets.lawful_current_sold_events === null, 'FIXED_SAMPLE_TARGET_REMAINS');
+  assert(samplePolicy.rights_gate.mode === 'CENSUS_NOT_SAMPLE' && samplePolicy.coverage_gate.separate_from_sample_size === true, 'SAMPLE_POLICY_BOUNDARY');
   assert(program.targets.scale_verticals === 8 && program.targets.scale_independent_source_owners === 32 && program.targets.scale_current_sold_events === 40000, 'GLOBAL_SCALE_TARGET');
   assert(program.stages.length === 8 && program.stages.every((stage, index) => stage.ordinal === index + 1), 'STRICT_STAGE_SEQUENCE');
 
@@ -42,7 +44,7 @@ function validate(program) {
   assert(capture.observed.reference_only === snapshots.summary.reference_only_not_captured_due_restriction, 'REFERENCE_ONLY_COUNT_DRIFT');
   assert(capture.observed.rights_clear_current_sold === rights.summary.rights_clear_for_current_sold, 'RIGHTS_CLEAR_COUNT_DRIFT');
 
-  const activation = stage('ADAPTER_AND_LAWFUL_120');
+  const activation = stage('ADAPTER_AND_LAWFUL_SAMPLE_GATE');
   assert(activation.observed.empirically_active_adapters === controlPlane.summary.empirically_active_adapters, 'ACTIVE_ADAPTER_COUNT_DRIFT');
   assert(activation.observed.lawful_current_sold_events === adapters.truth_boundary.market_events_created, 'LAWFUL_EVENT_COUNT_DRIFT');
   const postgres = stage('POSTGRESQL_IMMUTABLE_RECEIPTS');
@@ -90,7 +92,7 @@ const expectFailure = (code, mutate) => {
   try { validate(candidate); } catch (caught) { error = caught; }
   assert(error?.message === code, `NEGATIVE_TEST_DID_NOT_FAIL:${code}:${error?.message || 'NONE'}`);
 };
-expectFailure('ACTIVE_ADAPTER_COUNT_DRIFT', candidate => { candidate.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_120').observed.empirically_active_adapters = 1; });
+expectFailure('ACTIVE_ADAPTER_COUNT_DRIFT', candidate => { candidate.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_SAMPLE_GATE').observed.empirically_active_adapters = 1; });
 expectFailure('TRACK_B_COUNT_DRIFT', candidate => { candidate.stages.find(stage => stage.id === 'TRACK_B_TO_PROJECTION').observed.track_b_results = 1; });
 expectFailure('PROJECTION_COUNT_DRIFT', candidate => { const stage = candidate.stages.find(item => item.id === 'TRACK_B_TO_PROJECTION'); stage.observed.approved_projections = 1; });
 expectFailure('SCALE_BEFORE_LAUNCH_CELL', candidate => { candidate.stages.find(stage => stage.id === 'GLOBAL_BETA_SCALE').observed.active_verticals = 1; });
@@ -104,7 +106,7 @@ console.log(JSON.stringify({
   negotiation_active: result.active.length,
   negotiation_queued: result.queued.length,
   rights_clear_sources: program.stages.find(stage => stage.id === 'CAPTURE_AND_REUSE_RIGHTS').observed.rights_clear_current_sold,
-  lawful_current_sold_events: program.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_120').observed.lawful_current_sold_events,
+  lawful_current_sold_events: program.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_SAMPLE_GATE').observed.lawful_current_sold_events,
   protected_gates: 'HOLD',
   negative_tests: 6
 }));
