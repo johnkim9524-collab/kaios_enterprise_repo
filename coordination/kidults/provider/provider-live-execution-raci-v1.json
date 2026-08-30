@@ -1,0 +1,124 @@
+{
+  "id": "KIDULTS_PROVIDER_LIVE_EXECUTION_RACI_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-30T09:03:16Z",
+  "state": "ACTIVE_CONTROL",
+  "scope": "ALL_EXTERNAL_DATA_AND_CAPABILITY_PROVIDERS",
+  "provider_state_machine": [
+    "DISCOVERED",
+    "RIGHTS_VERIFIED",
+    "COMMERCIAL_ENTITLEMENT_VERIFIED",
+    "CREDENTIAL_BOUND",
+    "SCHEMA_PROBED",
+    "PRIVATE_RUNTIME_VERIFIED",
+    "LAWFUL_INPUT_ADMITTED",
+    "BOUNDED_LIVE_ACQUISITION",
+    "EVIDENCE_READY",
+    "TRACK_B_ACCEPTED",
+    "PRODUCT_PIPELINE_ADMITTED"
+  ],
+  "raci": [
+    {
+      "role": "TRACK_Z",
+      "accountable_for": [
+        "PROVIDER_STRATEGY",
+        "COMPANY_AND_PRODUCT_ANALYSIS",
+        "RIGHTS_AND_TERMS",
+        "COST_AND_ENTITLEMENT",
+        "CREDENTIAL_AND_LAWFUL_SOURCE_HANDOFF",
+        "ALTERNATIVE_PROVIDER_PLAN"
+      ]
+    },
+    {
+      "role": "KPMO",
+      "accountable_for": [
+        "EXECUTION_ORCHESTRATION",
+        "MAIN_SHA_BINDING",
+        "SECRET_BEARING_WORKFLOW_REGISTRY",
+        "PRIVATE_RUNTIME_AND_DELETION",
+        "RUN_RECEIPTS",
+        "CROSS_PROVIDER_STATUS_TRUTH",
+        "ROOT_CAUSE_REMEDIATION"
+      ]
+    },
+    {
+      "role": "PROVIDER_ENGINEERING",
+      "responsible_for": [
+        "ADAPTERS",
+        "SCHEMA_CONTRACTS",
+        "QUOTA_AND_RETRY_CONTROLS",
+        "NORMALIZATION",
+        "TESTS"
+      ]
+    },
+    {
+      "role": "TRACK_D",
+      "responsible_for": [
+        "PRIVATE_STORAGE",
+        "SYSTEM_LEDGER",
+        "OBSERVABILITY",
+        "RECOVERY",
+        "DOWNSTREAM_HANDOFF"
+      ]
+    },
+    {
+      "role": "TRACK_B",
+      "responsible_for": [
+        "INDEPENDENT_EVIDENCE_AND_RANKABILITY_VALIDATION"
+      ]
+    },
+    {
+      "role": "TRACK_C_PRODUCT",
+      "responsible_for": [
+        "ADMITTED_DATA_CONSUMPTION_ONLY",
+        "PORTAL_AND_PRODUCT_PROJECTION_AFTER_UPSTREAM_GATES"
+      ]
+    },
+    {
+      "role": "PROGRAM_OWNER",
+      "approval_for": [
+        "EXTERNAL_SPEND_AND_CONTRACTS",
+        "PRODUCTION_G5",
+        "IRREVERSIBLE_LEGAL_OR_SECURITY_CHANGES"
+      ]
+    }
+  ],
+  "mandatory_provider_record": [
+    "PROVIDER_ID",
+    "CAPABILITY_AND_VERTICAL",
+    "OWNER",
+    "RIGHTS_SOURCE",
+    "COMMERCIAL_STATE",
+    "CREDENTIAL_STATE",
+    "SCHEMA_STATE",
+    "LAWFUL_INPUT_COUNT",
+    "LIVE_ACQUISITION_COUNT",
+    "PRODUCT_ADMISSION_COUNT",
+    "RETENTION_AND_DELETION_STATE",
+    "LAST_MAIN_SHA",
+    "LAST_RUN_RECEIPT",
+    "BLOCKER_OWNER",
+    "NEXT_ACTION"
+  ],
+  "truth_language": {
+    "connected_definition": "PRODUCT_PIPELINE_ADMITTED_WITH_LIVE_RECEIPT",
+    "schema_connected_definition": "CREDENTIAL_BOUND_SCHEMA_PROBE_ONLY",
+    "ready_definition": "ALL_INTERNAL_CONTROLS_PASS_BUT_EXTERNAL_OR_LIVE_EXECUTION_PENDING",
+    "forbidden_conflations": [
+      "SCHEMA_PROBE_EQUALS_PRODUCT_CONNECTION",
+      "ADAPTER_CODE_EQUALS_PROVIDER_ACTIVATION",
+      "CONTACT_SENT_EQUALS_RIGHTS_GRANTED",
+      "LOCAL_TEST_EQUALS_MAIN_RUNTIME"
+    ]
+  },
+  "universal_fail_closed_rules": [
+    "NO_CREDENTIAL_OR_RAW_IDENTIFIER_IN_REPOSITORY",
+    "NO_LIVE_CALL_WITHOUT_RIGHTS_PURPOSE_AND_QUOTA_BINDING",
+    "NO_ENUMERATION_GUESSING_OR_TERMS_BYPASS",
+    "NO_RAW_PUBLIC_DISPLAY_OR_REDISTRIBUTION_OUTSIDE_EXPLICIT_RIGHTS",
+    "NO_PRODUCT_COUNT_INCREMENT_WITHOUT_LIVE_RECEIPT",
+    "NO_TRACK_B_START_WITHOUT_CANDIDATE_AND_EVIDENCE_PACKAGE",
+    "NO_PRODUCTION_OR_G5_WITHOUT_EXPLICIT_APPROVAL"
+  ],
+  "provider_specific_overlays": "REQUIRED_FOR_ENDPOINTS_FIELDS_RETENTION_QUOTA_COST_AND_EXIT_RIGHTS"
+}
