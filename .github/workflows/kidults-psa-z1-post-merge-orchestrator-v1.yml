@@ -12,26 +12,17 @@ on:
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
-  push:
+      - 'coordination/kidults/provider/psa-z1-followup-trigger-remediation-v1.json'
+  workflow_run:
+    workflows: ["KIDULTS Atomic Governed Landing V1"]
+    types: [completed]
     branches: [main]
-    paths:
-      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
-      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
-      - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
-      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
-      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
-      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
-      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
-      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
-      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
-      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
   workflow_dispatch:
 
 permissions:
-  contents: read
   actions: write
+  contents: read
+  pull-requests: read
 
 concurrency:
   group: kidults-psa-z1-post-merge-orchestrator-main
@@ -63,73 +54,198 @@ jobs:
           node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
 
   dispatch-and-prove:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'KIDULTS Atomic Governed Landing V1' &&
+       github.event.workflow_run.event == 'workflow_dispatch' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     needs: contract-proof
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Verify live exact main before Z1 dispatch
+      - name: Resolve exact atomic-landing target and PSA relevance
+        id: landing
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          SOURCE_EVENT_NAME: ${{ github.event_name }}
+          SOURCE_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          SOURCE_WORKFLOW_NAME: ${{ github.event.workflow_run.name || '' }}
+          SOURCE_WORKFLOW_EVENT: ${{ github.event.workflow_run.event || '' }}
+          SOURCE_WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+          SOURCE_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}
         run: |
           set -euo pipefail
-          LIVE_MAIN_SHA="$(
-            gh api "/repos/${GITHUB_REPOSITORY}/branches/main" \
-              -H 'Accept: application/vnd.github+json' \
-              --jq '.commit.sha'
-          )"
+          LIVE_MAIN_JSON="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/commits/main")"
+          LIVE_MAIN_SHA="$(jq -r '.sha // empty' <<<"$LIVE_MAIN_JSON")"
           [[ "$LIVE_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$GITHUB_REF" = 'refs/heads/main'
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
+          SHOULD_DISPATCH='true'
+          LANDING_PR_NUMBER='MANUAL'
+          LANDED_HEAD_SHA="$LIVE_MAIN_SHA"
+          SOURCE_RUN_ID="${SOURCE_WORKFLOW_RUN_ID:-MANUAL}"
+
+          if [ "$SOURCE_EVENT_NAME" = 'workflow_run' ]; then
+            test "$SOURCE_WORKFLOW_NAME" = 'KIDULTS Atomic Governed Landing V1'
+            test "$SOURCE_WORKFLOW_EVENT" = 'workflow_dispatch'
+            test "$SOURCE_WORKFLOW_CONCLUSION" = 'success'
+            test "$SOURCE_HEAD_BRANCH" = 'main'
+            [[ "$SOURCE_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$SOURCE_RUN_ID" =~ ^[0-9]+$ ]]
+
+            PARENT_COUNT="$(jq '.parents | length' <<<"$LIVE_MAIN_JSON")"
+            test "$PARENT_COUNT" -eq 2
+            FIRST_PARENT_SHA="$(jq -r '.parents[0].sha // empty' <<<"$LIVE_MAIN_JSON")"
+            LANDED_HEAD_SHA="$(jq -r '.parents[1].sha // empty' <<<"$LIVE_MAIN_JSON")"
+            [[ "$FIRST_PARENT_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$LANDED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+            test "$FIRST_PARENT_SHA" = "$SOURCE_HEAD_SHA"
+
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/commits/${LIVE_MAIN_SHA}/pulls" > /tmp/psa-z1-associated-prs.json
+            jq --arg merge "$LIVE_MAIN_SHA" --arg landed "$LANDED_HEAD_SHA" '
+              [.[] |
+                select(.merged_at != null) |
+                select(.merge_commit_sha == $merge) |
+                select(.head.sha == $landed) |
+                select(.base.ref == "main")]
+            ' /tmp/psa-z1-associated-prs.json > /tmp/psa-z1-landing-pr.json
+            test "$(jq 'length' /tmp/psa-z1-landing-pr.json)" -eq 1
+            LANDING_PR_NUMBER="$(jq -r '.[0].number' /tmp/psa-z1-landing-pr.json)"
+            [[ "$LANDING_PR_NUMBER" =~ ^[0-9]+$ ]]
+
+            gh api --paginate \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/pulls/${LANDING_PR_NUMBER}/files?per_page=100" \
+              --jq '.[].filename' > /tmp/psa-z1-landing-files.txt
+            test -s /tmp/psa-z1-landing-files.txt
+
+            SHOULD_DISPATCH='false'
+            while IFS= read -r changed_path; do
+              case "$changed_path" in
+                .github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml|\
+                .github/workflows/kidults-psa-z1-private-runtime-v1.yml|\
+                .github/workflows/kidults-psa-live-execution-control-v1.yml|\
+                scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs|\
+                scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs|\
+                coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json|\
+                coordination/kidults/provider/psa-live-execution-raci-v1.json|\
+                coordination/kidults/provider/provider-live-execution-raci-v1.json|\
+                coordination/kidults/provider/psa-activation-state-receipt-v1.json|\
+                coordination/kidults/provider/psa-z1-followup-trigger-remediation-v1.json|\
+                coordination/kidults/provider/psa-120-field-map-v1.json|\
+                coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json|\
+                services/kidults-control-plane/src/psa-private-evaluation.mjs|\
+                services/kidults-control-plane/src/psa-private-evaluation-store.mjs)
+                  SHOULD_DISPATCH='true'
+                  break
+                  ;;
+              esac
+            done < /tmp/psa-z1-landing-files.txt
+          fi
+
+          if [ "$SHOULD_DISPATCH" = 'false' ]; then
+            jq -n \
+              --arg sha "$LIVE_MAIN_SHA" \
+              --arg source_run "$SOURCE_RUN_ID" \
+              --arg pr "$LANDING_PR_NUMBER" \
+              '{
+                receipt_id: "KIDULTS_PSA_Z1_POST_MERGE_ORCHESTRATION_RECEIPT_V1",
+                state: "SKIPPED_NOT_PSA_RELEVANT",
+                exact_main_sha: $sha,
+                source_atomic_landing_run_id: $source_run,
+                landing_pull_request: $pr,
+                acquisition_120_increment: 0,
+                product_pipeline_admission_increment: 0,
+                production: "HOLD",
+                public: "HOLD",
+                g5: "EXPLICIT_APPROVAL_REQUIRED"
+              }' > /tmp/psa-z1-post-merge-orchestration-receipt.json
+          fi
+
+          echo "exact_main_sha=${LIVE_MAIN_SHA}" >> "$GITHUB_OUTPUT"
+          echo "should_dispatch=${SHOULD_DISPATCH}" >> "$GITHUB_OUTPUT"
+          echo "landing_pr_number=${LANDING_PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "landed_head_sha=${LANDED_HEAD_SHA}" >> "$GITHUB_OUTPUT"
+          echo "source_atomic_landing_run_id=${SOURCE_RUN_ID}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        if: steps.landing.outputs.should_dispatch == 'true'
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ steps.landing.outputs.exact_main_sha }}
           persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        if: steps.landing.outputs.should_dispatch == 'true'
         with:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Dispatch and await exact-main Z1 private runtime
+      - name: Dispatch or reuse and await exact-main Z1 private runtime
+        if: steps.landing.outputs.should_dispatch == 'true'
         id: z1
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: ${{ steps.landing.outputs.exact_main_sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
           WF='kidults-psa-z1-private-runtime-v1.yml'
           WF_PATH='.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
           WF_NAME='KIDULTS PSA Z1 Private Runtime'
           API="/repos/${GITHUB_REPOSITORY}/actions/workflows/${WF}"
-          EXPECTED_SHA="$GITHUB_SHA"
 
-          before="$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=30" --jq '[.workflow_runs[].id]')"
-          gh api -X POST -H 'Accept: application/vnd.github+json' "${API}/dispatches" -f ref=main >/dev/null
+          gh api -H 'Accept: application/vnd.github+json' \
+            "${API}/runs?event=workflow_dispatch&branch=main&per_page=100" > /tmp/psa-z1-existing-runs.json
+          jq --arg sha "$EXPECTED_MAIN_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
+            [.workflow_runs[] |
+              select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")]
+          ' /tmp/psa-z1-existing-runs.json > /tmp/psa-z1-matching-runs.json
+
+          successful_count="$(jq '[.[] | select(.status == "completed" and .conclusion == "success")] | length' /tmp/psa-z1-matching-runs.json)"
+          active_count="$(jq '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")] | length' /tmp/psa-z1-matching-runs.json)"
+          test "$active_count" -le 1
 
           run_id=''
-          for _ in $(seq 1 60); do
-            sleep 5
-            candidates="$(
-              gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=30" |
-                jq --argjson before "$before" --arg sha "$EXPECTED_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
-                  [.workflow_runs[] |
-                    select(.id as $id | ($before | index($id) | not)) |
-                    select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")]
-                '
-            )"
-            count="$(jq 'length' <<<"$candidates")"
-            if [ "$count" -gt 1 ]; then
-              echo 'FAIL: ambiguous concurrent PSA Z1 dispatches' >&2
-              exit 1
-            fi
-            run_id="$(jq -r 'if length == 1 then .[0].id else empty end' <<<"$candidates")"
-            [ -n "$run_id" ] && break
-          done
-          test -n "$run_id"
+          dispatch_mode=''
+          if [ "$successful_count" -gt 0 ]; then
+            run_id="$(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")] | sort_by(.created_at, .id) | last | .id' /tmp/psa-z1-matching-runs.json)"
+            dispatch_mode='REUSED_SUCCESSFUL_EXACT_MAIN_RUN'
+          elif [ "$active_count" -eq 1 ]; then
+            run_id="$(jq -r '[.[] | select(.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending")][0].id' /tmp/psa-z1-matching-runs.json)"
+            dispatch_mode='REUSED_ACTIVE_EXACT_MAIN_RUN'
+          else
+            before="$(jq '[.workflow_runs[].id]' /tmp/psa-z1-existing-runs.json)"
+            gh api -X POST -H 'Accept: application/vnd.github+json' "${API}/dispatches" -f ref=main >/dev/null
+            dispatch_mode='DISPATCHED_NEW_EXACT_MAIN_RUN'
+
+            for _ in $(seq 1 60); do
+              sleep 5
+              candidates="$(
+                gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=100" |
+                  jq --argjson before "$before" --arg sha "$EXPECTED_MAIN_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
+                    [.workflow_runs[] |
+                      select(.id as $id | ($before | index($id) | not)) |
+                      select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")]
+                  '
+              )"
+              count="$(jq 'length' <<<"$candidates")"
+              if [ "$count" -gt 1 ]; then
+                echo 'FAIL: ambiguous concurrent PSA Z1 dispatches' >&2
+                exit 1
+              fi
+              run_id="$(jq -r 'if length == 1 then .[0].id else empty end' <<<"$candidates")"
+              [ -n "$run_id" ] && break
+            done
+          fi
+          [[ "$run_id" =~ ^[0-9]+$ ]]
 
           status=''
           conclusion=''
@@ -141,7 +257,7 @@ jobs:
           done
           test "$status" = 'completed'
           test "$conclusion" = 'success'
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_MAIN_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
             .repository.full_name == $repo and
             .head_branch == "main" and
             .head_sha == $sha and
@@ -157,6 +273,7 @@ jobs:
           test "$artifact_count" -eq 1
           artifact_id="$(jq -r '[.artifacts[] | select(.name == "kidults-psa-z1-private-runtime-receipt" and .expired == false)][0].id' /tmp/psa-z1-artifacts.json)"
           artifact_digest="$(jq -r '[.artifacts[] | select(.name == "kidults-psa-z1-private-runtime-receipt" and .expired == false)][0].digest // empty' /tmp/psa-z1-artifacts.json)"
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
           [[ "$artifact_digest" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
 
           mkdir -p /tmp/psa-z1-artifact
@@ -169,13 +286,20 @@ jobs:
           echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
           echo "artifact_id=${artifact_id}" >> "$GITHUB_OUTPUT"
           echo "artifact_digest=${artifact_digest}" >> "$GITHUB_OUTPUT"
+          echo "dispatch_mode=${dispatch_mode}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify Z1 receipt and bind post-merge orchestration receipt
+      - name: Verify Z1 receipt and bind post-landing orchestration receipt
+        if: steps.landing.outputs.should_dispatch == 'true'
         shell: bash
         env:
+          EXPECTED_MAIN_SHA: ${{ steps.landing.outputs.exact_main_sha }}
+          SOURCE_ATOMIC_LANDING_RUN_ID: ${{ steps.landing.outputs.source_atomic_landing_run_id }}
+          LANDING_PR_NUMBER: ${{ steps.landing.outputs.landing_pr_number }}
+          LANDED_HEAD_SHA: ${{ steps.landing.outputs.landed_head_sha }}
           Z1_RUN_ID: ${{ steps.z1.outputs.run_id }}
           Z1_ARTIFACT_ID: ${{ steps.z1.outputs.artifact_id }}
           Z1_ARTIFACT_DIGEST: ${{ steps.z1.outputs.artifact_digest }}
+          Z1_DISPATCH_MODE: ${{ steps.z1.outputs.dispatch_mode }}
         run: |
           set -euo pipefail
           node - <<'NODE'
@@ -188,7 +312,7 @@ jobs:
           }
           if (receipt.receipt_id !== 'KIDULTS_PSA_Z1_PRIVATE_RUNTIME_RECEIPT_V1') throw new Error('PSA_Z1_RECEIPT_ID_INVALID');
           if (receipt.state !== 'VERIFIED_PASS') throw new Error('PSA_Z1_RECEIPT_NOT_PASS');
-          if (receipt.protected_main_sha !== process.env.GITHUB_SHA) throw new Error('PSA_Z1_ORCHESTRATOR_SHA_MISMATCH');
+          if (receipt.protected_main_sha !== process.env.EXPECTED_MAIN_SHA) throw new Error('PSA_Z1_ORCHESTRATOR_SHA_MISMATCH');
           if (receipt.private_store_encryption !== 'AES-256-GCM') throw new Error('PSA_Z1_ORCHESTRATOR_ENCRYPTION_INVALID');
           if (receipt.runtime_key_persisted !== false || receipt.private_record_deleted !== true || receipt.deletion_verified !== true) {
             throw new Error('PSA_Z1_ORCHESTRATOR_DELETION_INVALID');
@@ -205,9 +329,13 @@ jobs:
           const result = {
             receipt_id: 'KIDULTS_PSA_Z1_POST_MERGE_ORCHESTRATION_RECEIPT_V1',
             state: 'VERIFIED_PASS',
-            exact_main_sha: process.env.GITHUB_SHA,
+            exact_main_sha: process.env.EXPECTED_MAIN_SHA,
+            source_atomic_landing_run_id: process.env.SOURCE_ATOMIC_LANDING_RUN_ID,
+            landing_pull_request: process.env.LANDING_PR_NUMBER,
+            landed_head_sha: process.env.LANDED_HEAD_SHA,
             orchestrator_workflow_run_id: process.env.GITHUB_RUN_ID,
             z1_workflow_run_id: process.env.Z1_RUN_ID,
+            z1_dispatch_mode: process.env.Z1_DISPATCH_MODE,
             z1_artifact_id: process.env.Z1_ARTIFACT_ID,
             z1_artifact_digest: process.env.Z1_ARTIFACT_DIGEST,
             z1_private_runtime_state: receipt.state,
@@ -225,12 +353,22 @@ jobs:
           console.log(JSON.stringify(result));
           NODE
 
-      - name: Upload sanitized post-merge orchestration evidence
+      - name: Upload sanitized verified post-landing evidence
+        if: steps.landing.outputs.should_dispatch == 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-psa-z1-post-merge-orchestration-receipt
           path: |
             /tmp/psa-z1-private-runtime-receipt.json
             /tmp/psa-z1-post-merge-orchestration-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload sanitized non-relevant landing receipt
+        if: steps.landing.outputs.should_dispatch == 'false'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-psa-z1-post-merge-orchestration-skip-receipt
+          path: /tmp/psa-z1-post-merge-orchestration-receipt.json
           if-no-files-found: error
           retention-days: 30
