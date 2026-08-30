@@ -6,7 +6,7 @@
   "purpose": "Convert the globally meaningful source pool into a bounded, evidence-first rights decision pipeline without treating access, discovery or automation as permission.",
   "launch_fast_lane": {
     "target_sources": 12,
-    "minimum_vertical_coverage": 5,
+    "minimum_vertical_coverage": 3,
     "selection": [
       "SOLD_TRANSACTION_ROLE_REQUIRED",
       "THEN_HIGHEST_RESEARCH_PRIORITY_WITH_LOWER_ACCESS_FRICTION",
