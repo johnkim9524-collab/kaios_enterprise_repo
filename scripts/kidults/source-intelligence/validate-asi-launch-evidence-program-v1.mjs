@@ -13,17 +13,22 @@ function deriveEligibleSourceIds(rights, snapshots, controlPlane) {
   assert(Array.isArray(snapshots.records), 'SNAPSHOT_RECORDS_UNREADABLE');
   assert(Array.isArray(controlPlane.source_records), 'CONTROL_PLANE_SOURCE_RECORDS_UNREADABLE');
 
-  const rightsIds = new Set(rights.records
-    .filter(record => record.decision === 'PASS')
+  const valueRightsIds = new Set(rights.records
+    .filter(record =>
+      record.decision === 'PASS' &&
+      record.value_qualification_state === 'VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW' &&
+      Number.isFinite(record.verified_value_score) &&
+      record.verified_value_score >= 70 &&
+      record.hard_minimum_complete === true)
     .map(record => record.source_id));
   const snapshotIds = new Set(snapshots.records
     .filter(record => record.decision_promotion_eligible === true)
     .map(record => record.source_id));
-  const activationIds = new Set(controlPlane.source_records
-    .filter(record => record.activation_eligible === true)
+  const schemaActivationIds = new Set(controlPlane.source_records
+    .filter(record => record.activation_eligible === true && record.immutable_live_schema_verified === true)
     .map(record => record.canonical_source_id));
 
-  return sortedUnique([...rightsIds].filter(sourceId => snapshotIds.has(sourceId) && activationIds.has(sourceId)));
+  return sortedUnique([...valueRightsIds].filter(sourceId => snapshotIds.has(sourceId) && schemaActivationIds.has(sourceId)));
 }
 
 function validateEligibility(eligibilityStage, rights, snapshots, controlPlane) {
@@ -114,12 +119,15 @@ expectFailure('PROJECTION_COUNT_DRIFT', candidate => { const stage = candidate.s
 expectFailure('SCALE_BEFORE_LAUNCH_CELL', candidate => { candidate.stages.find(stage => stage.id === 'GLOBAL_BETA_SCALE').observed.active_verticals = 1; });
 expectFailure('PROTECTED_GATE_WEAKENED', candidate => { candidate.authority_boundary.production = 'ALLOW'; });
 
-const disjointEligibilityStage = { observed: { eligible_sources: 1, eligible_source_ids: ['source-a'] } };
-const disjointRights = { records: [{ source_id: 'source-a', decision: 'PASS' }] };
+const sameSourceEligibilityStage = { observed: { eligible_sources: 1, eligible_source_ids: ['source-a'] } };
+const sameSourceRights = { records: [{ source_id: 'source-a', decision: 'PASS', value_qualification_state: 'VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW', verified_value_score: 80, hard_minimum_complete: true }] };
+const sameSourceSnapshots = { records: [{ source_id: 'source-a', decision_promotion_eligible: true }] };
+const sameSourceControlPlane = { source_records: [{ canonical_source_id: 'source-a', activation_eligible: true, immutable_live_schema_verified: true }] };
+assert(sameArray(validateEligibility(sameSourceEligibilityStage, sameSourceRights, sameSourceSnapshots, sameSourceControlPlane), ['source-a']), 'SAME_SOURCE_POSITIVE_CANARY');
+
 const disjointSnapshots = { records: [{ source_id: 'source-b', decision_promotion_eligible: true }] };
-const disjointControlPlane = { source_records: [{ canonical_source_id: 'source-a', activation_eligible: true }] };
 let disjointError;
-try { validateEligibility(disjointEligibilityStage, disjointRights, disjointSnapshots, disjointControlPlane); } catch (caught) { disjointError = caught; }
+try { validateEligibility(sameSourceEligibilityStage, sameSourceRights, disjointSnapshots, sameSourceControlPlane); } catch (caught) { disjointError = caught; }
 assert(disjointError?.message === 'ELIGIBLE_SOURCE_ID_JOIN_DRIFT', `NEGATIVE_TEST_DID_NOT_FAIL:ELIGIBLE_SOURCE_ID_JOIN_DRIFT:${disjointError?.message || 'NONE'}`);
 
 console.log(JSON.stringify({
@@ -132,5 +140,6 @@ console.log(JSON.stringify({
   rights_clear_sources: program.stages.find(stage => stage.id === 'CAPTURE_AND_REUSE_RIGHTS').observed.rights_clear_current_sold,
   lawful_current_sold_events: program.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_120').observed.lawful_current_sold_events,
   protected_gates: 'HOLD',
-  negative_tests: 6
+  negative_tests: 6,
+  positive_exact_source_join_canary: 1
 }));
