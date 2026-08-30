@@ -41,4 +41,19 @@
     "beta": "RELEASE_RELIABILITY_ONLY",
     "rights_or_market_claim": "FORBIDDEN_FROM_SAMPLE_SIZE"
   }
+  ,"promotion_matrix": {
+    "CONTROL_ONLY_FUNCTIONAL": {"maximum_claim":"DETERMINISTIC_PLUMBING_ONLY","release_allowed":false},
+    "CANARY": {"maximum_claim":"SCHEMA_BOUNDARY_SMOKE_ONLY","release_allowed":false},
+    "ADAPTER_QUALIFICATION": {"maximum_claim":"SOURCE_PIPELINE_QUALIFIED","release_allowed":false},
+    "PRIVATE_E2E": {"maximum_claim":"BOUNDED_PRIVATE_FUNCTIONAL_PROOF","release_allowed":false},
+    "BETA_RELIABILITY": {"maximum_claim":"BOUNDED_BETA_RELIABILITY","release_allowed":false},
+    "PRODUCTION": {"required_tier":"BETA_RELIABILITY","required_natural_runs":30,"required_window_days":7,"release_allowed":true}
+  },
+  "automatic_escalation": {
+    "requested_claim_is_authoritative": true,
+    "lower_tier_cannot_satisfy_higher_claim": true,
+    "public_or_production_request_requires": "PRODUCTION",
+    "policy_version_and_digest_sealed_before_observation": true,
+    "threshold_downgrade_at_runtime": false
+  }
 }

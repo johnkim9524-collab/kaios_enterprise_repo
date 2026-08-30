@@ -19,4 +19,7 @@ for (const id of ['ADAPTER_QUALIFICATION','PRIVATE_E2E','BETA_RELIABILITY']) ok(
 ok(tiers.get('PRIVATE_E2E').min_independent_ultimate_owners === 2 && tiers.get('PRIVATE_E2E').max_owner_share === 0.70, 'E2E_CONCENTRATION');
 ok(p.coverage_gate.separate_from_sample_size === true && p.coverage_gate.market_representativeness_inferred_from_n === false, 'COVERAGE_SEPARATION');
 ok(p.failure_accounting.parse_drop_counts_as === 'FAILURE' && p.failure_accounting.retry_is_new_independent_success === false, 'FAILURE_ACCOUNTING');
+ok(p.automatic_escalation.requested_claim_is_authoritative === true && p.automatic_escalation.lower_tier_cannot_satisfy_higher_claim === true, 'AUTO_ESCALATION_POLICY');
+ok(p.automatic_escalation.public_or_production_request_requires === 'PRODUCTION' && p.automatic_escalation.threshold_downgrade_at_runtime === false, 'RELEASE_ESCALATION_POLICY');
+ok(p.promotion_matrix.PRODUCTION.required_tier === 'BETA_RELIABILITY' && p.promotion_matrix.PRODUCTION.required_natural_runs === 30 && p.promotion_matrix.PRODUCTION.required_window_days === 7, 'PRODUCTION_PROMOTION_MATRIX');
 console.log(JSON.stringify({suite:'CURRENT_SOLD_SAMPLE_GOVERNANCE_V1',result:'VERIFIED_PASS',tiers:Object.fromEntries([...tiers].map(([k,v])=>[k,{min_n:v.min_n,max_n:v.max_n,zero_failure_n:v.zero_failure_n||null}])) ,rights:'CENSUS',coverage:'SEPARATE',optional_stopping:false,negative_tests:6}));

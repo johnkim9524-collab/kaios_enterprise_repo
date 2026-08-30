@@ -36,3 +36,7 @@ The former 120 is not sufficient for any statistical reliability claim under thi
 - ASI applies rights census first, then sample and coverage policy.
 
 No sample count can authorize Public, Production, G5, provider contact, spend, credentials or legal commitment.
+
+## Automatic release escalation
+
+The requested claim determines the minimum tier automatically. A control fixture, canary, adapter qualification or Private E2E result can never satisfy a Beta or Production claim. Any Public or Production request is routed to the Production tier, which additionally requires at least 30 natural scheduled runs over 7 days and an SLO/error-budget receipt. Threshold downgrades after observation are rejected.
