@@ -455,13 +455,14 @@ jobs:
           maximum_total = 32 * 1024 * 1024
 
           def serialize_final_receipt(payload_files, payload_total):
+              receipt_file = {"name": receipt_name, "bytes": 0}
               receipt = {
                   "id": "kidults-asi-p1-authoritative-bundle-preflight-v1",
                   "state": "VERIFIED_FINAL_BUNDLE_BOUNDED_BEFORE_UPLOAD",
                   "source_sha": os.environ["GITHUB_SHA"],
                   "workflow_run_id": os.environ["GITHUB_RUN_ID"],
                   "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-                  "files": payload_files + [{"name": receipt_name, "bytes": 0}],
+                  "files": sorted(payload_files + [receipt_file], key=lambda item: item["name"]),
                   "total_uncompressed_bytes": 0,
                   "limits": {
                       "max_entry_uncompressed_bytes": maximum_entry,
@@ -480,11 +481,11 @@ jobs:
                   if final_total > maximum_total:
                       raise ValueError(f"P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:{final_total}")
                   if (
-                      receipt["files"][-1]["bytes"] == receipt_bytes
+                      receipt_file["bytes"] == receipt_bytes
                       and receipt["total_uncompressed_bytes"] == final_total
                   ):
                       return encoded
-                  receipt["files"][-1]["bytes"] = receipt_bytes
+                  receipt_file["bytes"] = receipt_bytes
                   receipt["total_uncompressed_bytes"] = final_total
               raise ValueError("P1_AUTHORITATIVE_RECEIPT_SIZE_NOT_STABLE")
 
