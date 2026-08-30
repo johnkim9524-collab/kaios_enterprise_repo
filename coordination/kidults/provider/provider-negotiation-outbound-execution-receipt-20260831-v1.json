@@ -51,7 +51,9 @@
     {
       "provider": "PSA_PREMIUM",
       "capability": "GRADING_AUTHENTICATION_AND_POPULATION_REFERENCE",
-      "to": ["collectors-apis@collectors.com"],
+      "to": [
+        "collectors-apis@collectors.com"
+      ],
       "subject": "Re: Request for PSA Public API Customer Approval — Bounded Cert Verification Evaluation",
       "gmail_message_id": "1a0535522bb7b510",
       "gmail_thread_id": "1a0196deda4c61f3",
@@ -62,7 +64,9 @@
     {
       "provider": "HOBBYKOREA",
       "capability": "LAWFULLY_CONTROLLED_PSA_QUERY_KEY_SOURCE",
-      "to": ["info@hobbykorea.com"],
+      "to": [
+        "info@hobbykorea.com"
+      ],
       "subject": "Re: PSA 인증번호 120건의 제한적 내부 API 평가 협력 문의 — KIDULTS",
       "gmail_message_id": "1a05355487f616d8",
       "gmail_thread_id": "1a0460d8c2ce3e1e",
@@ -73,7 +77,9 @@
     {
       "provider": "CLASSIC_COM",
       "capability": "COLLECTOR_CAR_AUCTION_SOLD_EVENTS",
-      "to": ["datasupport@classic.com"],
+      "to": [
+        "datasupport@classic.com"
+      ],
       "subject": "Re: API/Data Licensing Inquiry for Limited Internal Market Intelligence Use",
       "gmail_message_id": "1a05355da1037496",
       "gmail_thread_id": "1a01d87e01b06ad4",
@@ -85,8 +91,13 @@
     {
       "provider": "BONHAMS",
       "capability": "CARS_AND_WATCHES_AUCTION_SOLD_EVENTS",
-      "to": ["info@bonhams.com"],
-      "cc": ["ukcars@bonhams.com", "watches@bonhams.com"],
+      "to": [
+        "info@bonhams.com"
+      ],
+      "cc": [
+        "ukcars@bonhams.com",
+        "watches@bonhams.com"
+      ],
       "subject": "Written data-licensing inquiry — staged Cars and Watches auction-results evaluation",
       "gmail_message_id": "1a0535626f0c9617",
       "gmail_thread_id": "1a0535626f0c9617",
@@ -97,8 +108,12 @@
     {
       "provider": "CHRISTIES",
       "capability": "WATCHES_AND_HANDBAGS_AUCTION_SOLD_EVENTS",
-      "to": ["info@christies.com"],
-      "cc": ["nyhandbags@christies.com"],
+      "to": [
+        "info@christies.com"
+      ],
+      "cc": [
+        "nyhandbags@christies.com"
+      ],
       "subject": "Please route to Data Licensing / Business Development — staged Watches and Handbags auction-results evaluation",
       "gmail_message_id": "1a053566c244d55d",
       "gmail_thread_id": "1a053566c244d55d",
@@ -109,7 +124,9 @@
     {
       "provider": "ICONIC_AUCTIONEERS",
       "capability": "COLLECTOR_CAR_AND_MOTORCYCLE_AUCTION_SOLD_EVENTS",
-      "to": ["enquiries@iconicauctioneers.com"],
+      "to": [
+        "enquiries@iconicauctioneers.com"
+      ],
       "subject": "Data-licensing inquiry — staged private evaluation of Iconic Auctioneers results",
       "gmail_message_id": "1a053572a23e9e5e",
       "gmail_thread_id": "1a053572a23e9e5e",
@@ -120,7 +137,9 @@
     {
       "provider": "MECUM",
       "capability": "COLLECTOR_CAR_AND_MOTORCYCLE_AUCTION_SOLD_EVENTS",
-      "to": ["info@mecum.com"],
+      "to": [
+        "info@mecum.com"
+      ],
       "subject": "Data-licensing inquiry — staged private evaluation of Mecum auction results",
       "gmail_message_id": "1a053575c7371ec7",
       "gmail_thread_id": "1a053575c7371ec7",
@@ -161,5 +180,18 @@
     ],
     "future_outbound_after_this_receipt": "HOLD_UNTIL_NEW_EXPLICIT_PROGRAM_OWNER_AUTHORITY",
     "provider_rights_and_activation": "UNCHANGED_PENDING_PROVIDER_RESPONSE_AND_SEPARATE_GATES"
+  },
+  "authorization_provenance": {
+    "state": "NOT_MACHINE_PROVEN",
+    "evidence_class": "POST_SEND_EXECUTION_RECEIPT_ONLY",
+    "independently_issued_pre_send_authorization_receipt": null,
+    "issuer_identity_verified": false,
+    "nonce_verified": false,
+    "expiry_verified": false,
+    "provider_recipient_content_scope_verified": false,
+    "one_shot_atomic_consumption_verified": false,
+    "candidate_branch_self_attestation_is_authorization_proof": false,
+    "post_send_receipt_can_retroactively_create_authority": false,
+    "promotable": false
   }
 }
