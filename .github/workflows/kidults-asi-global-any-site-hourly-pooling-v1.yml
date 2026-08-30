@@ -1,8 +1,9 @@
 name: KIDULTS ASI Global Any-Site Hourly Pooling v1
 
 on:
-  schedule:
-    - cron: '37 * * * *'
+  # Legacy recovery path only. v2 is the single canonical hourly producer.
+  # Keeping a second cron would duplicate semantic work, external requests,
+  # artifacts, and cost without adding independent evidence.
   workflow_dispatch:
   pull_request:
     paths:
