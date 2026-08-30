@@ -12,6 +12,17 @@
     "NATURAL_RUNTIME_RELIABILITY_SLO",
     "PROTECTED_PROGRAM_OWNER_RELEASE_GATE"
   ],
+  "canonical_tier_semantics": {
+    "CONTROL_ONLY_FUNCTIONAL": "1+ deterministic plumbing only",
+    "CANARY": "5 schema/boundary smoke cases only",
+    "BOUNDED_FUNCTIONAL_PILOT": "30-120 real-data end-to-end functional cases; no statistical claim",
+    "ADAPTER_QUALIFICATION": "459 zero-failure minimum for 1% operational defect claim",
+    "PRIVATE_E2E": "1840 zero-failure minimum for 0.25% private reliability claim",
+    "BETA_RELIABILITY": "4603 zero-failure minimum for 0.10% beta reliability claim",
+    "PRODUCTION": "BETA plus 30 natural runs over at least 7 days and SLO/error budget receipt"
+  },
+  "defect_taxonomy": {"CRITICAL": "0 tolerance", "MAJOR_A": "0.10%", "MAJOR_B": "0.25%", "OPERATIONAL": "1.00%", "MINOR_UI": "separate UX/data-quality SLO"},
+  "number_scope_rule": "120 is permitted only for bounded pilot/provider-specific or separately registered domain cohorts; it is forbidden as a platform-wide current-SOLD target. 459, 1840 and 4603 are claim-tier minima, not acquisition quotas.",
   "non_negotiable_rules": [
     "Sample size never proves legality, permission, provenance or market representativeness.",
     "Critical rights, provenance, identity and terminal-state defects have zero tolerance; statistical allowance applies only to pre-declared non-critical defects.",
