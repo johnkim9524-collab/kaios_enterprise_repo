@@ -1,9 +1,17 @@
 {
   "id": "ih-group-provider-sourcing-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY",
   "effective_date": "2026-08-29",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "mandatory_provider_governance_bundle": [
+    "coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json",
+    "coordination/kidults/provider/provider-sample-governance-negotiation-v1.json",
+    "docs/strategy/IH_PROVIDER_SAMPLE_GOVERNANCE_NEGOTIATION_V1.md",
+    "coordination/kidults/provider/templates/provider-staged-evaluation-content-v1.md",
+    "coordination/kidults/provider/provider-contact-readiness-gate-v1.json",
+    "coordination/kidults/provider/provider-live-execution-raci-v1.json"
+  ],
   "scope": [
     "Intelligence Holdings",
     "KIDULTS",
@@ -24,6 +32,7 @@
       "provenance-and-evidence-ledger",
       "rights-retention-deletion-registry",
       "source-switching-adapters",
+      "quality-and-sample-methodology",
       "derived-intelligence"
     ]
   },
@@ -35,16 +44,54 @@
     "product_evidence_threshold": "attributable-gross-profit-at-least-10x-monthly-provider-cost-for-two-consecutive-months",
     "group_reuse_threshold": "two-revenue-products-or-at-least-25-percent-duplicate-cost-saving",
     "critical_dependency_threshold": "at-least-20-percent-of-revenue-or-release-critical-capability",
-    "default_terms": ["monthly", "cancellable", "non-exclusive", "usage-capped", "no-annual-prepay-before-pilot"]
+    "default_terms": [
+      "monthly",
+      "cancellable",
+      "non-exclusive",
+      "usage-capped",
+      "no-annual-prepay-before-pilot",
+      "no-take-or-pay-on-statistical-evidence-targets",
+      "no-automatic-pilot-to-production-conversion"
+    ],
+    "sample_governance_pricing_bands": [
+      "canary-1-to-5",
+      "pilot-6-to-120",
+      "qualification-option-121-to-459",
+      "private-reliability-option-460-to-1840",
+      "beta-capacity-option-1841-to-4603-plus"
+    ],
+    "higher_band_rule": "capacity-and-option-pricing-only-until-separate-value-spend-and-contract-approval"
+  },
+  "sample_governance": {
+    "universal_fixed_120_launch_requirement": "PROHIBITED",
+    "rights_schema_identity_and_critical_state": "PER_RECORD_CENSUS_ZERO_TOLERANCE",
+    "canary": 5,
+    "bounded_functional_pilot": {"min": 30, "max": 120, "statistical_reliability_claim": false},
+    "adapter_qualification_zero_failure_target": 459,
+    "private_e2e_reliability_zero_failure_target": 1840,
+    "beta_reliability_zero_failure_target": 4603,
+    "production_additional_requirement": "30-natural-scheduled-runs-over-at-least-7-days-plus-slo-coverage-track-b-and-owner-approval",
+    "provider_volume_semantics": "acceptance-evidence-options-not-purchase-minimums-or-release-authority",
+    "single_provider_market_representativeness": "FORBIDDEN"
   },
   "rights_hard_gates": [
     "approved-legal-entity-and-authority",
     "named-affiliates-and-approved-products",
     "explicit-internal-display-saas-api-and-analytics-rights-as-applicable",
+    "query-temporary-store-transform-internal-qa-and-derived-output-rights-separated",
     "territory-language-user-and-environment-scope",
     "retention-deletion-audit-and-termination-duties",
     "derived-artifact-survival-and-pre-existing-ip",
     "privacy-consent-transfer-and-security-roles-where-applicable"
+  ],
+  "negotiation_hard_gates": [
+    "stage-and-claim-ceiling-named-before-volume-discussion",
+    "initial-volume-is-not-described-as-launch-minimum",
+    "no-enterprise-minimum-before-canary-and-bounded-pilot-pass",
+    "no-duplicate-invalid-or-retry-inflation",
+    "correction-credit-schema-change-and-exit-terms-requested",
+    "single-provider-sample-not-described-as-market-representative",
+    "external-message-and-commercial-commitment-authority-verified-separately"
   ],
   "vertical_posture": {
     "Intelligence Holdings": "open-authority-first; buy shared utility only after measured multi-product reuse",
@@ -58,7 +105,7 @@
   },
   "standing_decisions": {
     "eBay Marketplace Insights": {"state": "CLOSED", "reopen": "written-authorised-licensed-path"},
-    "PSA Premium": {"state": "BOUNDED", "reopen": "not-applicable"},
+    "PSA Premium": {"state": "BOUNDED", "reopen": "not-applicable", "sample_position": "1-then-5-then-30-to-120-then-optional-459"},
     "PSA Enterprise": {"state": "CURRENT-ROI DROP", "reopen": "product-evidence-or-group-reuse-threshold"},
     "GemRate": {"state": "CONDITIONAL", "reopen": "measured-incremental-lift"},
     "ALT": {"state": "COMPETITOR-REFERENCE ONLY", "reopen": "approved-formal-partnership"},
@@ -67,15 +114,25 @@
   "agent_requirements": {
     "bootstrap_required": true,
     "read_exact_head_strategy_and_contract": true,
+    "read_mandatory_provider_governance_bundle": true,
     "read_provider_registry_and_communication_evidence": true,
     "duplicate_outreach_forbidden": true,
     "resend_sent_email_without_explicit_authority_forbidden": true,
+    "bind_each_message_to_stage_claim_ceiling_rights_ask_and_volume_semantics": true,
+    "never_call_120_a_universal_launch_minimum": true,
+    "never_promise_459_1840_or_4603_as_purchase_volume_without_separate_approval": true,
     "separate_fact_provider_claim_inference_and_recommendation": true,
     "truth_sync_before_reporting": true,
     "report_dimensions": [
       "source-layer",
       "brand-or-vertical",
       "provider",
+      "sample-tier",
+      "claim-ceiling",
+      "raw-n",
+      "effective-n",
+      "critical-defect-count",
+      "rights-census-state",
       "state",
       "evidence-date",
       "owner",
@@ -85,5 +142,17 @@
       "blocker"
     ]
   },
-  "protected_gates": ["legal", "spend", "credential", "production", "public-release", "external-communication"]
+  "current_external_communication_state": {
+    "psa_follow_up": "DRAFT_ONLY_NO_SEND",
+    "hobbykorea_follow_up": "DRAFT_ONLY_NO_SEND",
+    "contact_authorized": false
+  },
+  "protected_gates": [
+    "legal",
+    "spend",
+    "credential",
+    "production",
+    "public-release",
+    "external-communication"
+  ]
 }
