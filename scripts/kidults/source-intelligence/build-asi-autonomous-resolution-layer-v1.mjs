@@ -2,9 +2,18 @@
 import { fs, readJson, stableJson, hash, parsePsv, makeWriter } from './lib/asi-autonomous-resolution-common-v1.mjs';
 import { resolveCurrent } from './lib/asi-autonomous-resolution-current-v1.mjs';
 import { buildReplacement } from './lib/asi-autonomous-resolution-replacement-v1.mjs';
+import { validateP1RuntimeLineageFromEnvironment } from './validate-asi-p1-runtime-lineage-v1.mjs';
 
 const [candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,rightsPreflightPath,outputDir] = process.argv.slice(2);
 if (![candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,frontierPath,crosswalkPath,adapterContractPath,contractPath,rightsPreflightPath,outputDir].every(Boolean)) throw new Error('AUTONOMOUS_RESOLUTION_ARGUMENTS_REQUIRED');
+if (process.env.GITHUB_ACTIONS === 'true') {
+  await validateP1RuntimeLineageFromEnvironment({
+    eventName: process.env.GITHUB_EVENT_NAME,
+    eventPath: process.env.GITHUB_EVENT_PATH,
+    expandedRoot: '/tmp/p1-expanded',
+    expectedSourceSha: process.env.GITHUB_SHA
+  });
+}
 
 const [candidates,bindings,gate1,admissions,actionQueue,crosswalk,adapterContract,contract,rightsPreflight,frontierText] = await Promise.all([
   readJson(candidateRegistryPath), readJson(bindingLedgerPath), readJson(gate1Path), readJson(admissionPath), readJson(actionQueuePath),
