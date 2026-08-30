@@ -4,8 +4,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 CONTRACT = ROOT / 'coordination/kidults/integration/exact-pair-arrival-orchestrator-v1.json'
-MANIFEST = ROOT / 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'artifacts/exact-pair-arrival/arrival-state.json'
+MANIFEST = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / 'coordination/kidults/integration/live-arrival/live-admission-manifest.json'
 
 
 def load(p):
@@ -48,9 +48,10 @@ def write(state, **extra):
     OUT.write_text(json.dumps(payload, indent=2, sort_keys=True)+'\n', encoding='utf-8')
     print(json.dumps(payload, indent=2, sort_keys=True))
 
+MANIFEST=resolve(str(MANIFEST))
 c=load(CONTRACT)
 assert c['id']=='kidults-exact-pair-arrival-orchestrator-v1'
-assert c['version']=='1.1.0'
+assert c['version']=='1.2.0'
 assert c['current_truth']['expected_state']=='WAITING_PAIR'
 assert 'TRACK_B_BYPASS' in c['forbidden_shortcuts'] and 'PRODUCTION_BYPASS' in c['forbidden_shortcuts']
 assert 'TRACK_B_BLOCKED_TO_RUNTIME' in c['forbidden_shortcuts']
@@ -107,7 +108,9 @@ a=env.get('assessment')
 if not isinstance(a, dict): raise RuntimeError('ASSESSMENT_BODY_MISSING')
 if a.get('record_type')!='rankability_assessment' or a.get('immutable') is not True or a.get('assessment_status')!='COMPLETED':
     raise RuntimeError('ASSESSMENT_BODY_INVALID')
+if a.get('assessment_fingerprint')!=digest_json({k:v for k,v in a.items() if k!='assessment_fingerprint'}): raise RuntimeError('ASSESSMENT_FINGERPRINT_INVALID')
 if a.get('production_eligible') is not False: raise RuntimeError('ASSESSMENT_PRODUCTION_PREAUTH_FORBIDDEN')
+if a.get('publication_eligible') is not False: raise RuntimeError('ASSESSMENT_PUBLIC_PREAUTH_FORBIDDEN')
 if a.get('snapshot_id')!=snapshot_id or a.get('evidence_package_id')!=evidence_package_id:
     raise RuntimeError('ASSESSMENT_INPUT_ID_MISMATCH')
 assessment_id=a.get('assessment_id') or a.get('id')
@@ -122,18 +125,44 @@ if not replay_path:
     write('READY_FOR_STAGING_REPLAY', **base_state, assessment_id=assessment_id, track_b='PASS_FOR_INTERNAL_STAGING', recommendation=recommendation, final_business_workload='NOT_RUN')
     sys.exit(0)
 r=load(resolve(replay_path))
+if r.get('record_type')!='kidults_internal_staging_replay_receipt' or r.get('version')!='1.0.0': raise RuntimeError('REPLAY_RECEIPT_INVALID')
+if r.get('replay_fingerprint')!=digest_json({k:v for k,v in r.items() if k!='replay_fingerprint'}): raise RuntimeError('REPLAY_FINGERPRINT_INVALID')
+if r.get('result')!='PASS' or r.get('workload_result')!='PASS' or r.get('projection_ready') is not True: raise RuntimeError('REPLAY_NOT_PASS')
 if r.get('exact_pair_digest')!=pair or r.get('correlation_id')!=correlation or r.get('assessment_id')!=assessment_id: raise RuntimeError('REPLAY_BINDING_MISMATCH')
 if r.get('environment')!='STAGING' or r.get('production_touch') is not False or r.get('public_touch') is not False or r.get('g5')!='HOLD': raise RuntimeError('REPLAY_BOUNDARY_VIOLATION')
+if r.get('synthetic') is not False or r.get('promotable') is not True: raise RuntimeError('REPLAY_NON_PROMOTABLE')
 replay_id=r.get('replay_id') or r.get('id')
 if not replay_id: raise RuntimeError('REPLAY_ID_MISSING')
+canonical_object_id=r.get('canonical_object_id')
+if not canonical_object_id: raise RuntimeError('REPLAY_CANONICAL_OBJECT_ID_MISSING')
 
 projection_path=m.get('projection_admission_path')
 if not projection_path:
     write('READY_FOR_PROJECTION', **base_state, assessment_id=assessment_id, replay_id=replay_id, track_b='PASS_FOR_INTERNAL_STAGING', final_business_workload='PASS', live_projection='NONE')
     sys.exit(0)
 p=load(resolve(projection_path))
+if p.get('record_type')!='kidults_canonical_projection_admission_receipt' or p.get('version')!='1.0.0' or p.get('result')!='PASS': raise RuntimeError('PROJECTION_ADMISSION_INVALID')
+if p.get('admission_fingerprint')!=digest_json({k:v for k,v in p.items() if k!='admission_fingerprint'}): raise RuntimeError('PROJECTION_ADMISSION_FINGERPRINT_INVALID')
 if p.get('exact_pair_digest')!=pair or p.get('correlation_id')!=correlation or p.get('assessment_id')!=assessment_id or p.get('replay_id')!=replay_id: raise RuntimeError('PROJECTION_BINDING_MISMATCH')
 if p.get('production') is not False or p.get('public') is not False: raise RuntimeError('PROJECTION_BOUNDARY_VIOLATION')
+if p.get('synthetic') is not False or p.get('fixture') is not False or p.get('promotable') is not True: raise RuntimeError('PROJECTION_NON_PROMOTABLE')
+if p.get('canonical_object_id')!=canonical_object_id: raise RuntimeError('PROJECTION_OBJECT_ID_MISMATCH')
+if p.get('product_type')!='OBJECT_PASSPORT' or p.get('projection_state')!='APPROVED_INTERNAL': raise RuntimeError('PROJECTION_PRODUCT_STATE_INVALID')
+if p.get('schema_and_semantics_admitted') is not True: raise RuntimeError('PROJECTION_SCHEMA_ADMISSION_MISSING')
+enabled_actions=p.get('enabled_actions')
+if not isinstance(enabled_actions,list) or not {'COMPARE','WATCHLIST'}.issubset(set(enabled_actions)): raise RuntimeError('PROJECTION_REQUIRED_ACTIONS_MISSING')
 projection_id=p.get('projection_id') or p.get('id')
 if not projection_id: raise RuntimeError('PROJECTION_ID_MISSING')
-write('CHAIN_COMPLETE_INTERNAL', **base_state, assessment_id=assessment_id, replay_id=replay_id, projection_id=projection_id, track_b='PASS_FOR_INTERNAL_STAGING', final_business_workload='PASS', live_projection='GOVERNED_INTERNAL')
+projection_record_path=resolve(p.get('projection_path'))
+if not projection_record_path.exists(): raise RuntimeError('PROJECTION_RECORD_MISSING')
+if digest_file(projection_record_path)!=p.get('projection_file_sha256'): raise RuntimeError('PROJECTION_FILE_DIGEST_MISMATCH')
+projection=load(projection_record_path)
+if projection.get('record_type')!='kidults_proof_product_projection' or projection.get('projection_id')!=projection_id: raise RuntimeError('PROJECTION_RECORD_INVALID')
+if projection.get('product_type')!='OBJECT_PASSPORT' or projection.get('projection_state')!='APPROVED_INTERNAL' or projection.get('display_eligibility')!='INTERNAL_ONLY': raise RuntimeError('PROJECTION_RECORD_STATE_INVALID')
+if projection.get('lineage',{}).get('snapshot_id')!=snapshot_id or projection.get('lineage',{}).get('evidence_package_id')!=evidence_package_id or projection.get('lineage',{}).get('assessment_id')!=assessment_id: raise RuntimeError('PROJECTION_LINEAGE_MISMATCH')
+if projection.get('rankability',{}).get('assessment_id')!=assessment_id: raise RuntimeError('PROJECTION_RANKABILITY_BINDING_MISMATCH')
+if projection.get('payload',{}).get('canonical_object_id')!=canonical_object_id: raise RuntimeError('PROJECTION_PAYLOAD_OBJECT_ID_MISMATCH')
+actions={x.get('action_id'):x for x in projection.get('actions',[]) if isinstance(x,dict)}
+for action in ['COMPARE','WATCHLIST']:
+    if actions.get(action,{}).get('state')!='ENABLED' or not actions.get(action,{}).get('destination'): raise RuntimeError('PROJECTION_ACTION_INVALID:'+action)
+write('CHAIN_COMPLETE_INTERNAL', **base_state, assessment_id=assessment_id, replay_id=replay_id, projection_id=projection_id, projection_path=p.get('projection_path'), product_type='OBJECT_PASSPORT', canonical_object_id=canonical_object_id, enabled_actions=['COMPARE','WATCHLIST'], track_b='PASS_FOR_INTERNAL_STAGING', final_business_workload='PASS', live_projection='GOVERNED_INTERNAL')

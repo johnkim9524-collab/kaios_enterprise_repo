@@ -105,6 +105,22 @@ test("portal, API and export use signed exact-projection admission and revoke im
   }, { projection, now: () => new Date("2026-08-22T10:30:00Z") });
 });
 
+test("portal response carries the approved Object Passport into dossier and action views", async () => {
+  const { approvedObjectPassportFixture } = await import("../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs");
+  const projection = approvedObjectPassportFixture();
+  await withServer(async (base) => {
+    const response = await fetch(`${base}/api/v1/projection`);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.portal_view.projection.canonical_object_id, projection.payload.canonical_object_id);
+    assert.equal(body.portal_view.objects[0].object_id, projection.payload.canonical_object_id);
+    assert.deepEqual(body.portal_view.actions.map((action) => action.action_id), ["COMPARE", "WATCHLIST"]);
+    assert.deepEqual(body.portal_view.objects[0].actions, body.portal_view.actions);
+    assert.ok(body.portal_view.evidence.length > 0);
+    assert.ok(body.portal_view.signals.length > 0);
+  }, { projection, now: () => new Date("2026-08-22T10:30:00Z") });
+});
+
 test("persists encrypted personal data and a non-PII audit event", async () => {
   await withServer(async (base, dataDir) => {
     const response = await submit(base, validSubmission());

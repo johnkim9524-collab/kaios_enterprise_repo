@@ -45,6 +45,10 @@ after the ordered migrations and runtime persistence are verified in STAGING.
     receipt chains without manual retry.
 13. Revalidate the merged protected-main SHA and bind the post-merge result to
    the final STAGING activation receipt.
+14. Evaluate the final bundle only with the protected Ed25519 public key. Reject
+    unsigned or invalidly signed manifests, duplicate or extra receipt IDs,
+    schema-less receipts, non-regular files, symlinks, real-path root escapes,
+    missing PostgreSQL authority digests and producer/run/artifact mismatches.
 
 ## PSA connection-day procedure (bounded, non-promotional)
 
@@ -98,6 +102,8 @@ All must be rejected and must produce an attributable receipt where applicable.
 - workflow receipt UPDATE, DELETE or TRUNCATE;
 - unregistered, suspended or wrong-role workflow receipt writer;
 - secret-like or over-256-KiB workflow result payload;
+- `api_key`, `access_key_id`, `client_secret` or equivalent credential-like
+  result keys, even when their values do not match a known token prefix;
 - conflicting replay for one repository/run/attempt/receipt type;
 - forged LEADER/ALIAS relation, binding digest, workflow path/run/attempt or
   cross-claim binding, and ALIAS receipt without its exact alias row/parent
@@ -106,6 +112,8 @@ All must be rejected and must produce an attributable receipt where applicable.
   contract digest;
 - same canonical key with divergent canonical input being accepted as alias;
 - one workflow run attempt claiming two canonical identities;
+- unsigned/tampered remote activation manifest, duplicate/extra receipt ID,
+  schema-less PASS receipt, symlinked receipt or real-path evidence-root escape;
 
 ## Acceptance evidence
 

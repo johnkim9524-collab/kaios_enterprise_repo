@@ -16,6 +16,9 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'package.json'
@@ -34,6 +37,9 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
       - 'package.json'
@@ -71,6 +77,9 @@ jobs:
           node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
           node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
           node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
+          node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
           export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
           TASK_ID="source-fabric-contract-${GITHUB_RUN_ID}"
           SESSION_ID="source-fabric-contract-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"
@@ -168,6 +177,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs
+          node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
+          node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
           node scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs
           node - <<'NODE'
           const fs=require('fs');
@@ -184,25 +196,28 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/previous-scale /tmp/previous-reserve /tmp/rotations
-          SCALE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-source-fabric-scale-pi1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-          if [ -n "$SCALE_ID" ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SCALE_ID}/zip" > /tmp/previous-scale.zip
-            unzip -q -o /tmp/previous-scale.zip -d /tmp/previous-scale
-          fi
+          node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
+            --workflow-path .github/workflows/kidults-asi-source-fabric-scale-pi1.yml \
+            --workflow-name 'KIDULTS ASI Source Fabric Scale PI1' \
+            --artifact-name kidults-asi-source-fabric-scale-pi1 \
+            --branch main \
+            --archive /tmp/previous-scale.zip \
+            --extract-dir /tmp/previous-scale \
+            --receipt /tmp/previous-scale-exact-restore-receipt-v1.json \
+            --required-basename asi-discovery-provider-health-circuit-v1.json \
+            --required-basename asi-sharded-source-reserve-manifest-v1.json \
+            --max-pages 40 \
+            --lookback-days 95 \
+            --max-compressed-bytes 67108864 \
+            --allow-no-producer-history
           CIRCUIT=$(find /tmp/previous-scale -type f -name asi-discovery-provider-health-circuit-v1.json -print -quit || true)
           if [ -n "$CIRCUIT" ]; then cp "$CIRCUIT" /tmp/previous-scale/previous-circuit.json; fi
           RESERVE=$(find /tmp/previous-scale -type f -name asi-sharded-source-reserve-manifest-v1.json -print -quit || true)
           if [ -n "$RESERVE" ]; then
             ROOT=$(dirname "$RESERVE")
             cp -a "$ROOT"/. /tmp/previous-reserve/
-          else
-            RESERVE_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-            if [ -n "$RESERVE_ID" ]; then
-              gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${RESERVE_ID}/zip" > /tmp/previous-reserve.zip
-              unzip -q -o /tmp/previous-reserve.zip -d /tmp/previous-reserve
-            fi
           fi
-          echo "prior_scale_artifact=${SCALE_ID:-NONE}"
+          node -e 'const x=JSON.parse(require("fs").readFileSync("/tmp/previous-scale-exact-restore-receipt-v1.json")); console.log(`prior_scale_restore_state=${x.state}`); console.log(`prior_scale_artifact=${x.artifact_id||"NONE"}`)'
       - name: Execute four governed scope rotations
         shell: bash
         run: |

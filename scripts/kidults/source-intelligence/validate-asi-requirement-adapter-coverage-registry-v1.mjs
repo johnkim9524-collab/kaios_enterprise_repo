@@ -30,6 +30,8 @@ const read = (file) => fs.readFileSync(file, 'utf8');
 const json = (file) => JSON.parse(read(file));
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 for (const [name, file] of Object.entries(files)) assert(fs.existsSync(file), `REGISTERED_ASSET_MISSING:${name}:${file}`);
+const runHistoryPath = 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs';
+assert(fs.existsSync(runHistoryPath), `RUN_HISTORY_ASSET_MISSING:${runHistoryPath}`);
 
 const contract = json(files.contract);
 const registry = json(files.registry);
@@ -37,6 +39,7 @@ const artifactBindingSchema = json(files.artifactBindingSchema);
 const builder = read(files.builder);
 const validator = read(files.validator);
 const workflow = read(files.workflow);
+const runHistory = read(runHistoryPath);
 const semanticInputProjector = read(files.semanticInputProjector);
 const documentation = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
@@ -225,7 +228,8 @@ for (const marker of [
   'build-asi-requirement-adapter-coverage-semantic-input-v1.mjs',
   'coverage-semantic-input-receipt-v1.json',
   'SEMANTIC_INPUT_RECEIPT_DIGEST',
-  'expectedTitle=`KIDULTS Coverage / source-${process.env.SOURCE_SHA}`',
+  '--mode coverage-exact-producer',
+  '--mode coverage-prior-success',
   'KIDULTS_COVERAGE_EXECUTE_FULL',
   'Publish successful bounded Coverage canonical leader artifact',
   'retention-days: 90',
@@ -233,7 +237,8 @@ for (const marker of [
 const canonicalCoverageConcurrency = "group: kidults-asi-requirement-adapter-coverage-v1-${{ github.event_name == 'workflow_run' && format('{0}-{1}', github.event.workflow_run.head_sha, 'ASI_AUTONOMOUS_RESOLUTION') || github.run_id }}";
 assert(workflow.includes(canonicalCoverageConcurrency) && workflow.includes('cancel-in-progress: false'), 'WORKFLOW_CANONICAL_FANOUT_CONCURRENCY');
 assert(workflow.indexOf(canonicalCoverageConcurrency) > workflow.indexOf('verify-requirement-adapter-coverage:'), 'WORKFLOW_JOB_LEVEL_CONCURRENCY_REQUIRED');
-assert(workflow.includes('-f name="$CANONICAL_ARTIFACT_NAME"') && !workflow.includes('-f head_sha="$TARGET_SOURCE_SHA"') && !workflow.includes('-f head_sha="$SOURCE_SHA"'), 'WORKFLOW_EXACT_CANONICAL_ARTIFACT_LOOKUP');
+assert(workflow.includes('-f name="$CANONICAL_ARTIFACT_NAME"'), 'WORKFLOW_EXACT_CANONICAL_ARTIFACT_LOOKUP');
+assert(workflow.includes('-f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_SERVER_FILTERS');
 assert(workflow.includes("if: success() && env.KIDULTS_COVERAGE_EXECUTE_FULL == 'true' && env.KIDULTS_COVERAGE_EPHEMERAL_LEADER == 'true'"), 'WORKFLOW_FINAL_LEADER_PUBLICATION_GUARD');
 assert(workflow.includes("upstream_class:upstreamClass") && workflow.includes("canonical_run_key:canonicalRunKey"), 'WORKFLOW_CANONICAL_RUN_BINDING');
 assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND_TRIGGER_FORBIDDEN');
@@ -243,7 +248,8 @@ assert(workflow.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'WORKF
 assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
 assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
-assert(workflow.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
+assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
+assert(runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_QUERY_GUARD_MISSING');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',

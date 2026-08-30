@@ -30,9 +30,11 @@ function readJson(root, relativePath) {
 function parseFrontier(root, relativePath) {
   const text = fs.readFileSync(path.join(root, relativePath), 'utf8').trim();
   const [headerLine, ...lines] = text.split(/\r?\n/);
-  const headers = headerLine.split('|');
+  const headers = headerLine.split('|').map(value => value.trim());
   return lines.filter(Boolean).map((line, index) => {
-    const values = line.split('|');
+    const rawValues = line.split('|');
+    if (rawValues[0] !== rawValues[0].trim()) throw new Error(`CURATED_FRONTIER_SOURCE_ID_NOT_TRIMMED:${index + 2}`);
+    const values = rawValues.map(value => value.trim());
     if (values.length !== headers.length) throw new Error(`CURATED_FRONTIER_COLUMN_COUNT:${index + 2}`);
     return Object.fromEntries(headers.map((header, offset) => [header, values[offset]]));
   });
@@ -126,7 +128,11 @@ function purposeDecision(source, purpose) {
 
 export function buildSourceChannelControlPlane({ root = process.cwd(), contractPath = DEFAULT_CONTRACT } = {}) {
   const contract = readJson(root, contractPath);
-  const canonicalId = sourceId => contract.source_aliases[sourceId] || sourceId;
+  const canonicalId = sourceId => {
+    const normalized = String(sourceId || '').trim();
+    if (!normalized) throw new Error('CANONICAL_SOURCE_ID_EMPTY_AFTER_NORMALIZATION');
+    return contract.source_aliases[normalized] || normalized;
+  };
   const frontier = parseFrontier(root, contract.inputs.curated_frontier);
   const adapters = readJson(root, contract.inputs.adapter_registry);
   const top16 = readJson(root, contract.inputs.top16_preflight);

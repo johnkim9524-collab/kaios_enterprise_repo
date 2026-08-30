@@ -54,7 +54,9 @@ The normal path is:
   only the registry-column and function privileges required by the existing
   SECURITY INVOKER writer guard.
 - The local writer performs strict type/shape checks, rejects secret-like and
-  over-256-KiB result payloads before database access, inserts then reads back
+  over-256-KiB result payloads before database access. Credential-key denial
+  includes API/access keys, client secrets, authorization, cookies, DSNs,
+  passwords, private keys, generic secrets and tokens. The writer inserts then reads back
   every immutable field, accepts only exact idempotent replay and rolls back a
   conflicting replay. A SECURITY INVOKER database trigger and runtime checks
   both require a LEADER receipt to match the exact claim
@@ -96,6 +98,14 @@ DSN, protected environment and migration read-back are unavailable. The future
 finalizer must be a separate, fail-closed workflow; it must not add database
 writes to Continuous Assurance. Canonical failed/stale-leader takeover also
 remains unimplemented and on HOLD.
+
+The dormant remote-activation evaluator is also fail-closed until it receives
+an Ed25519-signed exact-head manifest from a separately protected public-key
+trust root. Its receipt set must be exact and duplicate-free; every receipt
+must be a regular non-symlink file whose real path remains under the declared
+evidence root, match the exact schema and producer/run/artifact identity, and
+carry a PostgreSQL system-of-record authority digest. A co-located digest or a
+self-declared `PASS` is not activation authority.
 
 ## Required next runtime evidence
 

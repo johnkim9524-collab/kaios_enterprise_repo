@@ -14,6 +14,7 @@ const files = {
   p1: '.github/workflows/kidults-asi-p1-source-preflight-v1.yml',
   supersession: '.github/workflows/kpmo-exact-head-ci-supersession-v1.yml',
   assurance: '.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+  runHistory: 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs',
 };
 
 for (const path of Object.values(files)) assert(fs.existsSync(path), `WORKFLOW_MISSING:${path}`);
@@ -26,6 +27,7 @@ const ownedGraph = read(files.ownedGraph);
 const p1 = read(files.p1);
 const supersession = read(files.supersession);
 const assurance = read(files.assurance);
+const runHistory = read(files.runHistory);
 
 const independentTrigger = /^\s{2}(schedule|push):/m;
 const globalArtifactListing = '/actions/artifacts?per_page=';
@@ -57,9 +59,9 @@ assert(requirement.includes('cancel-in-progress: false'), 'REQUIREMENT_CONCURREN
 assert(requirement.indexOf(requirementConcurrencyContract) > requirement.indexOf('verify-requirement-adapter-coverage:'), 'REQUIREMENT_JOB_LEVEL_CONCURRENCY_MISSING');
 assert(requirement.includes('resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs') && requirement.includes('-f name="$CANONICAL_ARTIFACT_NAME"'), 'REQUIREMENT_CANONICAL_LEADER_READBACK_MISSING');
 assert(requirement.includes('build-asi-requirement-adapter-coverage-semantic-input-v1.mjs') && requirement.includes('coverage-semantic-input-receipt-v1.json'), 'REQUIREMENT_SEMANTIC_INPUT_RECEIPT_MISSING');
-assert(requirement.includes('run-name: KIDULTS Coverage /') && !requirement.includes('-f head_sha="$SOURCE_SHA"'), 'REQUIREMENT_SOURCE_TITLE_PRIOR_SUCCESS_BINDING_MISSING');
+assert(requirement.includes('run-name: KIDULTS Coverage /') && requirement.includes('-f head_sha="$SOURCE_SHA"'), 'REQUIREMENT_SOURCE_TITLE_PRIOR_SUCCESS_BINDING_MISSING');
 assert(requirement.includes('PRIOR_SUCCESS_COUNT') && requirement.includes('prior-success-runs.json'), 'REQUIREMENT_EVENTUAL_VISIBILITY_GUARD_MISSING');
-assert(!requirement.includes('--paginate') && requirement.includes('PRIOR_SUCCESS_PAGE" -le 20') && requirement.includes('-f page="$PRIOR_SUCCESS_PAGE"') && requirement.includes('PRIOR_SUCCESS_PAGINATION_BOUND_EXCEEDED') && requirement.includes('expectedTitle=`KIDULTS Coverage / source-${process.env.SOURCE_SHA}`') && requirement.includes('run.display_title===expectedTitle'), 'REQUIREMENT_PRIOR_SUCCESS_SOURCE_TITLE_QUERY_MISSING');
+assert(!requirement.includes('--paginate') && requirement.includes('-f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success') && requirement.includes('--mode coverage-prior-success') && runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'REQUIREMENT_PRIOR_SUCCESS_SOURCE_TITLE_QUERY_MISSING');
 assert(requirement.includes("if: success() && env.KIDULTS_COVERAGE_EXECUTE_FULL == 'true' && env.KIDULTS_COVERAGE_EPHEMERAL_LEADER == 'true'"), 'REQUIREMENT_FINAL_LEADER_PUBLICATION_MISSING');
 assert(requirement.includes('validate-safe-zip-archive-v1.py'), 'REQUIREMENT_PRE_EXTRACTION_LIMITS_MISSING');
 assert(requirement.includes("const upstreamClass='ASI_AUTONOMOUS_RESOLUTION'") && requirement.includes('canonical_run_key:canonicalRunKey'), 'REQUIREMENT_CANONICAL_RUN_BINDING_MISSING');
@@ -91,8 +93,9 @@ assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContrac
 assert(autonomousResolution.includes('actions: write') && autonomousResolution.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'AUTONOMOUS_RESOLUTION_SELF_HEALING_P1_DISPATCH_MISSING');
 assert(autonomousResolution.includes('request-p1-recovery:') && autonomousResolution.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'") && autonomousResolution.includes('downstream_consumable:false') && autonomousResolution.includes('canonical_artifact_published:false'), 'AUTONOMOUS_RESOLUTION_NONCONSUMABLE_RECOVERY_MISSING');
 assert(autonomousResolution.includes("group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}") && autonomousResolution.includes('cancel-in-progress: false'), 'AUTONOMOUS_RESOLUTION_SHARED_GENERATION_LEADER_MISSING');
-assert(autonomousResolution.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && autonomousResolution.includes("artifact_role:'AUTHORITATIVE_CONSUMABLE'") && autonomousResolution.includes('authoritative_producer:true'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_REJECTION_MISSING');
+assert(runHistory.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && autonomousResolution.includes("artifact_role:'AUTHORITATIVE_CONSUMABLE'") && autonomousResolution.includes('authoritative_producer:true'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(autonomousResolution.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && autonomousResolution.includes('EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_ARTIFACT_READBACK_MISSING');
+assert(autonomousResolution.includes('--expected-digest "$P1_DIGEST"') && autonomousResolution.includes('--required-basename p1-preflight-action-queue-v1.json') && autonomousResolution.indexOf('--expected-digest "$P1_DIGEST"') < autonomousResolution.indexOf('unzip -q -o /tmp/p1.zip'), 'AUTONOMOUS_RESOLUTION_P1_SAFE_ZIP_PRE_EXTRACTION_MISSING');
 assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
 assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
 assert(supersession.includes('for readback_attempt in $(seq 1 8); do'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
@@ -114,6 +117,10 @@ assert(!p1.includes(globalArtifactListing), 'P1_GLOBAL_ARTIFACT_LISTING_FORBIDDE
 assert(p1.includes("if: github.event_name == 'pull_request'") && p1.includes("if: github.event_name != 'pull_request'"), 'P1_PR_AND_LIVE_DISCOVERY_SEPARATION_MISSING');
 assert(p1.includes('/actions/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml/runs') && p1.includes('/actions/runs/${P0B_ORIGIN_RUN_ID}/artifacts'), 'P1_EXACT_ANCESTOR_P0B_RESTORE_MISSING');
 assert(p1.includes('git merge-base --is-ancestor') && p1.includes('.path==".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"'), 'P1_P0B_PROVENANCE_BINDING_MISSING');
+const p0bDigestGuards = [...p1.matchAll(/--expected-digest "\$P0B_ARTIFACT_DIGEST"/g)].map((match) => match.index);
+const p0bExtractions = [...p1.matchAll(/unzip -q -o \/tmp\/p0b\.zip/g)].map((match) => match.index);
+assert(p0bDigestGuards.length === 2 && p0bExtractions.length === 2 && p0bDigestGuards.every((index, position) => index < p0bExtractions[position]), 'P1_P0B_SAFE_ZIP_PRE_EXTRACTION_MISSING');
+assert((p1.match(/--required-basename p0b-bounded-discovery-manifest-v1\.json/g) || []).length === 2, 'P1_P0B_REQUIRED_FILE_CARDINALITY_MISSING');
 const p1ConcurrencyContract = "group: kidults-asi-p1-source-preflight-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}";
 assert(p1.includes(p1ConcurrencyContract), 'P1_EVENT_SCOPED_CONCURRENCY_MISSING');
 assert(p1.includes('cancel-in-progress: true'), 'P1_CONCURRENCY_FAIL_CLOSED_MISSING');
@@ -176,8 +183,8 @@ const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.repl
 assert(autonomousResolutionRecoveryPermissionMutation !== autonomousResolution && !autonomousResolutionRecoveryPermissionMutation.includes('actions: write'), 'AUTONOMOUS_RESOLUTION_RECOVERY_PERMISSION_MUTATION_NOT_DETECTED');
 const autonomousResolutionRecoveryConsumableMutation = autonomousResolution.replace("artifact_role:'RECOVERY_NON_CONSUMABLE'", "artifact_role:'AUTHORITATIVE_CONSUMABLE'");
 assert(autonomousResolutionRecoveryConsumableMutation !== autonomousResolution && !autonomousResolutionRecoveryConsumableMutation.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'"), 'AUTONOMOUS_RESOLUTION_RECOVERY_CONSUMPTION_MUTATION_NOT_DETECTED');
-const autonomousResolutionDuplicateMutation = autonomousResolution.replace('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED');
-assert(autonomousResolutionDuplicateMutation !== autonomousResolution && !autonomousResolutionDuplicateMutation.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_MUTATION_NOT_DETECTED');
+const autonomousResolutionDuplicateMutation = runHistory.replace('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED');
+assert(autonomousResolutionDuplicateMutation !== runHistory && !autonomousResolutionDuplicateMutation.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_MUTATION_NOT_DETECTED');
 const autonomousResolutionArtifactReadbackMutation = autonomousResolution.replace('for ARTIFACT_ATTEMPT in {1..12}; do', 'while true; do');
 assert(autonomousResolutionArtifactReadbackMutation !== autonomousResolution && !autonomousResolutionArtifactReadbackMutation.includes('for ARTIFACT_ATTEMPT in {1..12}; do'), 'AUTONOMOUS_RESOLUTION_ARTIFACT_READBACK_MUTATION_NOT_DETECTED');
 const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do', 'for attempt in 1; do');
@@ -199,7 +206,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 33,
+  adversarial_mutations_rejected: 35,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',

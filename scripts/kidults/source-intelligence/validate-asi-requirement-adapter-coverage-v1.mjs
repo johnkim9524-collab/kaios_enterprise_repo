@@ -26,6 +26,13 @@ const same = (left, right) => stableJson(left) === stableJson(right);
 const hash = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const shaId = (prefix, value) => `${prefix}::${crypto.createHash('sha256').update(stableJson(value)).digest('hex')}`;
 const uniq = (values) => [...new Set((values || []).filter(Boolean))].sort();
+const assertRuntimeHold = (runtime, label) => {
+  assert(runtime?.state === 'NOT_EXECUTED_NO_DURABLE_CONSUMER_RECEIPT' &&
+    runtime?.durable_consumer_implemented === false && runtime?.first_admission_count === 0 &&
+    runtime?.acknowledgement_count === 0 && runtime?.retry_count === 0 &&
+    runtime?.dead_letter_queue_count === 0 && runtime?.runtime_receipt_ref === null &&
+    runtime?.zero_counts_are_not_readiness === true, `GAP_RUNTIME_EXECUTION_OVERCLAIM:${label}`);
+};
 const countBy = (values, keyFn) => Object.fromEntries([...values.reduce((map, value) => {
   const key = keyFn(value);
   map.set(key, (map.get(key) || 0) + 1);
@@ -210,6 +217,7 @@ for (const record of gapQueue.records) {
   assert(record.fallback_path?.path_id === policy.fallback_path_id && same(record.fallback_path?.steps, operatingModel.fallback_paths[policy.fallback_path_id]), `GAP_FALLBACK_PATH:${record.coverage_record_id}`);
   assert(record.fallback_path?.external_contact_authorized === false && record.fallback_path?.live_source_request_authorized === false && record.fallback_path?.adapter_activation_authorized === false && record.fallback_path?.terminal_state_without_prerequisites === 'HOLD', `GAP_FALLBACK_AUTHORITY:${record.coverage_record_id}`);
   assert(record.external_contact_authorized === false && record.live_source_request_authorized === false && record.adapter_activation_authorized === false && record.production_authorized === false, `GAP_RECORD_AUTHORITY:${record.coverage_record_id}`);
+  assertRuntimeHold(record.runtime_execution, `RECORD:${record.coverage_record_id}`);
   assert(record.work_unit_ids?.length > 0 && record.work_unit_ids.every((workUnitId) => workUnitById.has(workUnitId)), `GAP_WORK_UNIT_BINDING:${record.coverage_record_id}`);
   if (expectedClass === 'SOURCE_PROFILE_DISCOVERY_REQUIRED') {
     discoveryGroupKeys.add(`${record.domain}::${record.region}::${record.evidence_class}`);
@@ -220,6 +228,10 @@ for (const record of gapQueue.records) {
   }
 }
 assert(discoveryGroupKeys.size === 42 && schemaGroupKeys.size === 10, 'GAP_RECOMPUTED_WORK_UNIT_COUNTS');
+const forwardMembership = gapQueue.records.flatMap((record) => record.work_unit_ids.map((workUnitId) => `${record.coverage_record_id}::${workUnitId}`)).sort();
+const reverseMembership = gapQueue.work_units.flatMap((unit) => unit.coverage_record_ids.map((coverageRecordId) => `${coverageRecordId}::${unit.work_unit_id}`)).sort();
+assert(same(forwardMembership, reverseMembership), 'GAP_RECORD_WORK_UNIT_BIDIRECTIONAL_MEMBERSHIP');
+assert(gapQueue.record_to_work_unit_membership_count === forwardMembership.length, 'GAP_RECORD_WORK_UNIT_MEMBERSHIP_COUNT');
 for (const unit of gapQueue.work_units) {
   const policy = unit.unit_class === 'SOURCE_PROFILE_DISCOVERY_BUNDLE' ? operatingModel.source_discovery_bundle : operatingModel.schema_bound_source_claim_unit;
   assert(['SOURCE_PROFILE_DISCOVERY_BUNDLE', 'SCHEMA_BOUND_SOURCE_CLAIM_UNIT'].includes(unit.unit_class), `GAP_WORK_UNIT_CLASS:${unit.work_unit_id}`);
@@ -227,9 +239,11 @@ for (const unit of gapQueue.work_units) {
   assert(unit.requirement_count === unit.coverage_record_ids?.length && unit.requirement_count > 0 && unit.coverage_record_ids.every((coverageRecordId) => expectedGapIds.includes(coverageRecordId)), `GAP_WORK_UNIT_MEMBERSHIP:${unit.work_unit_id}`);
   assert(unit.accountable_owner === 'KPMO' && unit.execution_owner === policy.execution_owner && unit.queue_state === 'QUEUED_PREREQUISITES_PENDING' && unit.priority === 'P1', `GAP_WORK_UNIT_OWNER_STATE:${unit.work_unit_id}`);
   assert(unit.sla?.policy_id === policy.sla_policy_id && unit.fallback_path?.path_id === policy.fallback_path_id && unit.fallback_path?.external_contact_authorized === false && unit.fallback_path?.terminal_state_without_prerequisites === 'HOLD', `GAP_WORK_UNIT_SLA_FALLBACK:${unit.work_unit_id}`);
+  assertRuntimeHold(unit.runtime_execution, `WORK_UNIT:${unit.work_unit_id}`);
   assert(unit.public_release === 'HOLD' && unit.production === 'HOLD' && unit.g5 === 'HOLD', `GAP_WORK_UNIT_RELEASE_BOUNDARY:${unit.work_unit_id}`);
 }
 assert(same(uniq(gapQueue.records.map((record) => record.coverage_record_id)), uniq(expectedGapIds)), 'GAP_QUEUE_RECORD_SET');
+assertRuntimeHold(gapQueue.runtime_execution, 'QUEUE');
 assert(gapQueue.evidence_admitted === 0 && gapQueue.public_release === 'HOLD' && gapQueue.production === 'HOLD' && gapQueue.g5 === 'HOLD', 'GAP_QUEUE_BOUNDARY');
 
 assert(outputManifest.id === 'kidults-asi-requirement-adapter-coverage-manifest-v1' && outputManifest.version === contract.version, 'OUTPUT_MANIFEST_ID_VERSION');
@@ -259,6 +273,10 @@ assert(outputManifest.results?.source_discovery_or_schema_activation_hold_requir
 assert(outputManifest.results?.source_profile_discovery_requirements === 120 && outputManifest.results?.schema_bound_claim_parser_requirements === 33, 'OUTPUT_MANIFEST_GAP_CLASS_COUNTS');
 assert(outputManifest.results?.accountable_gap_records === 153 && outputManifest.results?.gap_records_with_sla === 153 && outputManifest.results?.gap_records_with_idempotency_key === 153 && outputManifest.results?.gap_records_with_generic_fallback === 153, 'OUTPUT_MANIFEST_GAP_ACCOUNTABILITY_COUNTS');
 assert(outputManifest.results?.gap_work_units === 52 && outputManifest.results?.source_discovery_work_units === 42 && outputManifest.results?.schema_bound_source_claim_work_units === 10, 'OUTPUT_MANIFEST_GAP_WORK_UNIT_COUNTS');
+assert(outputManifest.results?.gap_record_to_work_unit_memberships === gapQueue.record_to_work_unit_membership_count &&
+  outputManifest.results?.durable_consumer_implemented === false && outputManifest.results?.first_admission_count === 0 &&
+  outputManifest.results?.acknowledgement_count === 0 && outputManifest.results?.retry_count === 0 &&
+  outputManifest.results?.dead_letter_queue_count === 0, 'OUTPUT_MANIFEST_RUNTIME_EXECUTION_OVERCLAIM');
 assert(!Object.hasOwn(outputManifest.results, 'software_gap_requirements') && !Object.hasOwn(outputManifest.results, 'unmapped_requirements'), 'OUTPUT_MANIFEST_LEGACY_METRICS_NOT_ISOLATED');
 assert(outputManifest.deprecated_compatibility_metrics?.status === 'READ_ONLY_TRANSLATION_NOT_CANONICAL_STATUS', 'OUTPUT_MANIFEST_DEPRECATED_METRICS_STATUS');
 assert(outputManifest.deprecated_compatibility_metrics?.software_gap_requirements?.value === 153 && outputManifest.deprecated_compatibility_metrics?.software_gap_requirements?.interpretation_forbidden === 'MISSING_INTERNAL_CODE_MODULES', 'OUTPUT_MANIFEST_DEPRECATED_SOFTWARE_GAP_TRANSLATION');

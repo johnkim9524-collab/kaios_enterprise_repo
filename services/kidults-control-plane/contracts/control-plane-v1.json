@@ -60,6 +60,19 @@
     ],
     "result_json_max_bytes": 262144,
     "secret_like_result_material": "DENIED_BEFORE_INSERT",
+    "credential_key_classes_denied": [
+      "AUTHORIZATION",
+      "COOKIE",
+      "CREDENTIAL",
+      "DSN",
+      "PASSWORD",
+      "PRIVATE_KEY",
+      "API_KEY",
+      "ACCESS_KEY",
+      "CLIENT_SECRET",
+      "SECRET",
+      "TOKEN"
+    ],
     "receipt_idempotency_key": [
       "repository",
       "workflow_run_id",
@@ -100,6 +113,15 @@
     "remote_persistence": "HOLD",
     "finalizer_activation": "HOLD",
     "continuous_assurance_direct_database_writes": "PROHIBITED",
+    "remote_activation_evidence": {
+      "state": "IMPLEMENTED_FAIL_CLOSED_NOT_WIRED",
+      "manifest_signature": "ED25519_PROTECTED_PUBLIC_KEY_REQUIRED",
+      "receipt_set": "EXACT_UNIQUE_NO_EXTRA_IDS",
+      "receipt_files": "REGULAR_NON_SYMLINK_REALPATH_UNDER_EVIDENCE_ROOT",
+      "receipt_schema": "EXACT_TYPE_SPECIFIC_PRODUCER_RUN_ARTIFACT_BINDING",
+      "authority": "POSTGRESQL_SYSTEM_OF_RECORD_DIGEST_REQUIRED",
+      "self_declared_pass_is_authority": false
+    },
     "canonical_dedupe": {
       "state": "SCHEMA_AND_LOCAL_RUNTIME_READY_NOT_REMOTE_ACTIVATED",
       "classifier_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",

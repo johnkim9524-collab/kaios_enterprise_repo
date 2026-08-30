@@ -14,6 +14,8 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-p1-source-preflight-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
       - 'services/kidults-autonomous-intelligence/src/asi/event.ts'
       - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
       - 'services/kidults-autonomous-intelligence/src/asi/alignment.ts'
@@ -35,6 +37,8 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-p1-source-preflight-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
       - 'services/kidults-autonomous-intelligence/src/asi/event.ts'
       - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
       - 'services/kidults-autonomous-intelligence/src/asi/alignment.ts'
@@ -101,6 +105,8 @@ jobs:
           done
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json','utf8'))"
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
       - name: Validate P1 registry and autonomous activation
         run: |
           set -euo pipefail
@@ -128,11 +134,26 @@ jobs:
              and .status=="completed"
              and .conclusion=="success"'             /tmp/p0b-trigger-run.json >/dev/null
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_EVENT_RUN_ID}/artifacts?per_page=100"             > /tmp/p0b-artifacts.json
-          P0B_ARTIFACT_ID=$(jq -r --argjson run "$P0B_EVENT_RUN_ID" --arg sha "$P0B_EVENT_SOURCE_SHA"             '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end'             /tmp/p0b-artifacts.json)
+          P0B_ARTIFACT_COUNT=$(jq -r --argjson run "$P0B_EVENT_RUN_ID" --arg sha "$P0B_EVENT_SOURCE_SHA"             '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/p0b-artifacts.json)
+          test "$P0B_ARTIFACT_COUNT" = 1
+          P0B_ARTIFACT_ID=$(jq -r --argjson run "$P0B_EVENT_RUN_ID" --arg sha "$P0B_EVENT_SOURCE_SHA"             '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id'             /tmp/p0b-artifacts.json)
+          P0B_ARTIFACT_DIGEST=$(jq -r --argjson run "$P0B_EVENT_RUN_ID" --arg sha "$P0B_EVENT_SOURCE_SHA"             '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest'             /tmp/p0b-artifacts.json)
           [[ "$P0B_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$P0B_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ARTIFACT_ID}/zip"             > /tmp/p0b.zip
           rm -rf /tmp/p0b-expanded /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
           mkdir -p /tmp/p0b-expanded /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b.zip --expected-digest "$P0B_ARTIFACT_DIGEST" \
+            --receipt /tmp/p0b-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 4194304 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json \
+            --required-basename p0b-candidate-gap-register-v1.json \
+            --required-basename p0b-provider-host-diversity-v1.json \
+            --required-basename p0b-bounded-discovery-manifest-v1.json
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           for NAME in             p0b-source-candidate-registry-v1.json             p0b-mission-candidate-binding-ledger-v1.json             p0b-candidate-gap-register-v1.json             p0b-provider-host-diversity-v1.json             p0b-bounded-discovery-manifest-v1.json; do
             mapfile -t FILES < <(find /tmp/p0b-expanded -type f -name "$NAME" -print)
@@ -173,14 +194,33 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_ORIGIN_RUN_ID}/artifacts?per_page=100" \
             > /tmp/p0b-artifacts.json
+          P0B_ARTIFACT_COUNT=$(jq -r --argjson run "$P0B_ORIGIN_RUN_ID" --arg sha "$P0B_ORIGIN_SOURCE_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            /tmp/p0b-artifacts.json)
+          test "$P0B_ARTIFACT_COUNT" = 1
           P0B_ARTIFACT_ID=$(jq -r --argjson run "$P0B_ORIGIN_RUN_ID" --arg sha "$P0B_ORIGIN_SOURCE_SHA" \
-            '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0].id else empty end' \
+            '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+            /tmp/p0b-artifacts.json)
+          P0B_ARTIFACT_DIGEST=$(jq -r --argjson run "$P0B_ORIGIN_RUN_ID" --arg sha "$P0B_ORIGIN_SOURCE_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-p0b-bounded-discovery-candidates-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest' \
             /tmp/p0b-artifacts.json)
           [[ "$P0B_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$P0B_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ARTIFACT_ID}/zip" \
             > /tmp/p0b.zip
           mkdir -p /tmp/p0b-expanded /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b.zip --expected-digest "$P0B_ARTIFACT_DIGEST" \
+            --receipt /tmp/p0b-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 4194304 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json \
+            --required-basename p0b-candidate-gap-register-v1.json \
+            --required-basename p0b-provider-host-diversity-v1.json \
+            --required-basename p0b-bounded-discovery-manifest-v1.json
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           for NAME in \
             p0b-source-candidate-registry-v1.json \
@@ -412,5 +452,6 @@ jobs:
             /tmp/kidults-asi-p1-source-preflight-validation-v1.json
             /tmp/kidults-asi-p1-source-preflight-final-validation-v1.json
             /tmp/kidults-asi-p1-source-preflight-receipt-v1.json
+            /tmp/p0b-archive-validation-receipt-v1.json
           retention-days: 90
           if-no-files-found: error

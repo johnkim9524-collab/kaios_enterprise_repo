@@ -205,6 +205,11 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
       if (generationKind !== 'SOURCE_GENERATION') fail('UPSTREAM_GENERATION_RULE_INVALID', upstreamEvent);
       generationDiscriminator = 'source-generation';
     }
+    if (specialExactArtifactClass && !terminalObservation) {
+      generationKind = 'SPECIAL_EXACT_ARTIFACT_OBSERVATION';
+      generationDiscriminator = `exact-upstream-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
+      dedupeEligible = false;
+    }
     upstream = {
       workflow_name: workflowName,
       workflow_path: workflowPath,

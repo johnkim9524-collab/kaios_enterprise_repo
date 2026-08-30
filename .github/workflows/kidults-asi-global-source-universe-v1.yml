@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "coordination/kidults/source-intelligence/asi-global-source-universe-v1.json"
+      - "coordination/kidults/source-intelligence/asi-global-discovery-channel-accounting-v1.json"
       - "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json"
       - "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
       - "coordination/kidults/source-intelligence/scope-source-pool-readiness-contract-v1.json"
@@ -16,6 +17,7 @@ on:
       - "coordination/kidults/runtime/digitalocean-irreplaceable-value-runtime-foundation-v1.json"
       - "scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs"
       - "scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-discovery-channel-accounting-v1.mjs"
       - "scripts/kidults/source-intelligence/compile-asi-global-open-market-candidates-v1.mjs"
       - "scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs"
       - "scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs"
@@ -56,6 +58,7 @@ jobs:
         run: |
           node --check scripts/kidults/source-intelligence/build-asi-global-source-universe-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-global-discovery-channel-accounting-v1.mjs
           node --check scripts/kidults/source-intelligence/compile-asi-global-open-market-candidates-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs
           node --check scripts/kidults/source-intelligence/build-scope-source-pool-readiness-v1.mjs
@@ -72,6 +75,7 @@ jobs:
       - name: Validate global open-market frontier and legal admission boundary
         run: |
           node scripts/kidults/source-intelligence/validate-asi-global-source-universe-v1.mjs /tmp/global-source-1
+          node scripts/kidults/source-intelligence/validate-asi-global-discovery-channel-accounting-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-global-open-market-candidate-compiler-v1.mjs
 
       - name: Revalidate source-pool and strategy reset contracts

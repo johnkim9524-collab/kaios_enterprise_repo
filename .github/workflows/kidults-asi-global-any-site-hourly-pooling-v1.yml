@@ -24,6 +24,9 @@ on:
       - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml'
 
 permissions:
@@ -66,6 +69,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
+          node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
+          node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
       - name: Restore immutable anchor foundation and previous Any-Site pool
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,13 +81,38 @@ jobs:
           mkdir -p input queue discovery-out /tmp/previous-any-site-pool
           node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
             /tmp/anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
+          ANCHOR_DIGEST=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/kidults-canonical-anchor-restore-receipt-v1.json")).artifact_digest')
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/anchor-foundation.zip \
+            --expected-digest "$ANCHOR_DIGEST" \
+            --receipt /tmp/anchor-foundation-safe-zip-receipt-v1.json \
+            --max-compressed-bytes 67108864 \
+            --max-entries 2048 \
+            --max-entry-uncompressed-bytes 67108864 \
+            --max-total-uncompressed-bytes 268435456 \
+            --max-compression-ratio 100 \
+            --required-basename category-representative-product-registry-v1.json \
+            --required-basename representative-product-evidence-plan-v1.json \
+            --required-basename representative-product-gap-matrix-v1.json \
+            --required-basename representative-product-engine-alignment-v1.json \
+            --required-basename representative-product-source-sufficiency-driver-v1.json \
+            --required-basename run-manifest.json
           unzip -q -o /tmp/anchor-foundation.zip -d input
           node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
-          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-          if [ -n "$PREV_ID" ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-any-site-pool.zip
-            unzip -q -o /tmp/previous-any-site-pool.zip -d /tmp/previous-any-site-pool
-          fi
+          node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
+            --workflow-path .github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml \
+            --workflow-name 'KIDULTS ASI Global Any-Site Hourly Pooling v1' \
+            --artifact-name kidults-asi-global-any-site-source-pool-v1 \
+            --branch main \
+            --archive /tmp/previous-any-site-pool.zip \
+            --extract-dir /tmp/previous-any-site-pool \
+            --receipt /tmp/previous-any-site-pool-exact-restore-receipt-v1.json \
+            --required-basename asi-admitted-metadata-pool-v1.json \
+            --required-basename asi-proactive-source-pool-v1.json \
+            --max-pages 40 \
+            --lookback-days 95 \
+            --max-compressed-bytes 67108864 \
+            --allow-no-producer-history
       - name: Build governed 160-anchor / 32-scope demand queue
         run: |
           node scripts/kidults/source-intelligence/build-product-linked-targeted-asi-queue-v1.mjs input queue

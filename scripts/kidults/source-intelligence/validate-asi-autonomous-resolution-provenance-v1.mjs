@@ -8,8 +8,9 @@ import {
 
 const workflowPath = '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml';
 const builderPath = 'scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs';
+const runHistoryPath = 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs';
 
-function failuresFor(workflowSource, builderSource) {
+function failuresFor(workflowSource, builderSource, runHistorySource) {
   const failures = [];
   const required = [
     "run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || format('recovery-{0}', github.sha) }}",
@@ -37,7 +38,13 @@ function failuresFor(workflowSource, builderSource) {
     'promotion_authority:false',
     'artifact_cardinality:1',
     'Claim single authoritative producer for exact P1 generation',
-    'ARL_AUTHORITATIVE_PRODUCER_DUPLICATE',
+    'for ARL_HISTORY_PAGE in $(seq 1 20); do',
+    '-f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE"',
+    '--mode arl-generation-pages',
+    'validate-safe-zip-archive-v1.py',
+    '--expected-digest "$P1_DIGEST"',
+    '--receipt /tmp/p1-archive-validation-receipt-v1.json',
+    '--required-basename p1-preflight-action-queue-v1.json',
     "artifact_role:'AUTHORITATIVE_CONSUMABLE'",
     'authoritative_producer:true',
     'downstream_consumable:true',
@@ -56,6 +63,15 @@ function failuresFor(workflowSource, builderSource) {
   ];
   for (const marker of builderRequired) {
     if (!builderSource.includes(marker)) failures.push(`missing runtime-lineage marker: ${marker}`);
+  }
+  for (const marker of [
+    'ARL_AUTHORITATIVE_PRODUCER_QUERY_PAGINATION_INCOMPLETE',
+    'ARL_AUTHORITATIVE_PRODUCER_DUPLICATE',
+    'MAX_ARL_HISTORY_PAGES = 20',
+    'pagination_reconciled_complete: true',
+  ]) if (!runHistorySource.includes(marker)) failures.push(`missing run-history marker: ${marker}`);
+  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) {
+    failures.push('P1 safe ZIP validation must precede extraction');
   }
 
   const forbidden = [
@@ -77,7 +93,8 @@ function failuresFor(workflowSource, builderSource) {
 
 const workflowSource = fs.readFileSync(workflowPath, 'utf8');
 const builderSource = fs.readFileSync(builderPath, 'utf8');
-const failures = failuresFor(workflowSource, builderSource);
+const runHistorySource = fs.readFileSync(runHistoryPath, 'utf8');
+const failures = failuresFor(workflowSource, builderSource, runHistorySource);
 if (failures.length) {
   console.error('Autonomous Resolution provenance validation: FAIL');
   for (const failure of failures) console.error(`- ${failure}`);
@@ -92,14 +109,15 @@ const workflowMutations = [
   ['artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA', 'true', 'artifact source SHA binding'],
   ["artifact_role:'RECOVERY_NON_CONSUMABLE'", "artifact_role:'AUTHORITATIVE_CONSUMABLE'", 'recovery artifact non-consumability'],
   ["resolve-current-p1-actions:\n    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'", "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch'", 'canonical producer event boundary'],
-  ['ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED', 'duplicate producer rejection']
+  ['--expected-digest "$P1_DIGEST"', '--expected-digest "sha256:unbound"', 'pre-extraction archive digest binding'],
+  ['--required-basename p1-preflight-action-queue-v1.json', '--required-basename unbound.json', 'pre-extraction required-file cardinality'],
 ];
 for (const [from, to, label] of workflowMutations) {
   if (!workflowSource.includes(from)) {
     console.error(`Autonomous Resolution provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  if (failuresFor(workflowSource.replace(from, to), builderSource).length === 0) {
+  if (failuresFor(workflowSource.replace(from, to), builderSource, runHistorySource).length === 0) {
     console.error(`Autonomous Resolution provenance self-test failed to reject: ${label}`);
     process.exit(3);
   }
@@ -115,9 +133,25 @@ for (const [from, to, label] of builderMutations) {
     console.error(`Autonomous Resolution runtime-lineage fixture missing: ${label}`);
     process.exit(4);
   }
-  if (failuresFor(workflowSource, builderSource.replace(from, to)).length === 0) {
+  if (failuresFor(workflowSource, builderSource.replace(from, to), runHistorySource).length === 0) {
     console.error(`Autonomous Resolution runtime-lineage self-test failed to reject: ${label}`);
     process.exit(5);
+  }
+}
+
+const runHistoryMutations = [
+  ['ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED', 'duplicate producer rejection'],
+  ['MAX_ARL_HISTORY_PAGES = 20', 'MAX_ARL_HISTORY_PAGES = 1', 'bounded complete multi-page history'],
+  ['pagination_reconciled_complete: true', 'pagination_reconciled_complete: false', 'complete pagination receipt'],
+];
+for (const [from, to, label] of runHistoryMutations) {
+  if (!runHistorySource.includes(from)) {
+    console.error(`Autonomous Resolution run-history fixture missing: ${label}`);
+    process.exit(6);
+  }
+  if (failuresFor(workflowSource, builderSource, runHistorySource.replace(from, to)).length === 0) {
+    console.error(`Autonomous Resolution run-history self-test failed to reject: ${label}`);
+    process.exit(7);
   }
 }
 

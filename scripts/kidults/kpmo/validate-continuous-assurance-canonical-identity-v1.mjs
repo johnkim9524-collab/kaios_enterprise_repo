@@ -105,10 +105,46 @@ const exactClasses = [
   ['KIDULTS ASI SHADOW Operating Evidence v1', '.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml', 'ASI_SHADOW_OPERATING_EVIDENCE'],
 ];
 const exactKeys = new Set();
+let exactBurstCases = 0;
 for (const [name, sourcePath, expectedClass] of exactClasses) {
-  const classified = classifyCanonicalIdentity({ ...base, run_id: String(9100 + exactKeys.size), upstream_run_id: String(8100 + exactKeys.size), upstream_workflow_name: name, upstream_workflow_path: sourcePath }, contract, contractText);
+  const classIndex = exactKeys.size;
+  const classified = classifyCanonicalIdentity({ ...base, run_id: String(9100 + classIndex), upstream_run_id: String(8100 + classIndex), upstream_workflow_name: name, upstream_workflow_path: sourcePath }, contract, contractText);
   assert(classified.upstream_class === expectedClass && classified.special_exact_artifact_class === true, `SPECIAL_CLASS_INVALID:${expectedClass}`);
   assert(classified.ephemeral_actions_alias_eligible === false, `SPECIAL_CLASS_ALIAS_FORBIDDEN:${expectedClass}`);
+  assert(classified.dedupe_eligible === false, `SPECIAL_CLASS_DEDUPE_FORBIDDEN:${expectedClass}`);
+  assert(classified.generation_discriminator === `exact-upstream-run:${8100 + classIndex}:attempt:1`, `SPECIAL_CLASS_EXACT_DISCRIMINATOR:${expectedClass}`);
+  const burst = [0, 1, 2].map((offset) => classifyCanonicalIdentity({
+    ...base,
+    run_id: String(9600 + (classIndex * 10) + offset),
+    upstream_run_id: String(8600 + (classIndex * 10) + offset),
+    upstream_workflow_name: name,
+    upstream_workflow_path: sourcePath,
+  }, contract, contractText));
+  assert(new Set(burst.map((entry) => entry.canonical_key)).size === 3, `SPECIAL_CLASS_THREE_WAY_KEY_COLLISION:${expectedClass}`);
+  assert(new Set(burst.map((entry) => entry.concurrency_group)).size === 3, `SPECIAL_CLASS_THREE_WAY_CONCURRENCY_COLLISION:${expectedClass}`);
+  assert(new Set(burst.map((entry) => entry.canonical_input_digest)).size === 3, `SPECIAL_CLASS_THREE_WAY_INPUT_COLLISION:${expectedClass}`);
+  const duplicateConsumer = classifyCanonicalIdentity({
+    ...base,
+    run_id: String(9700 + classIndex),
+    upstream_run_id: String(8600 + (classIndex * 10)),
+    upstream_workflow_name: name,
+    upstream_workflow_path: sourcePath,
+  }, contract, contractText);
+  assert(duplicateConsumer.canonical_key === burst[0].canonical_key && duplicateConsumer.concurrency_group === burst[0].concurrency_group,
+    `SPECIAL_CLASS_SAME_UPSTREAM_NOT_SERIALIZED:${expectedClass}`);
+  const upstreamAttemptTwo = classifyCanonicalIdentity({
+    ...base,
+    run_id: String(9800 + classIndex),
+    upstream_run_id: String(8600 + (classIndex * 10)),
+    upstream_run_attempt: '2',
+    upstream_workflow_name: name,
+    upstream_workflow_path: sourcePath,
+  }, contract, contractText);
+  assert(upstreamAttemptTwo.generation_discriminator === `exact-upstream-run:${8600 + (classIndex * 10)}:attempt:2`,
+    `SPECIAL_CLASS_ATTEMPT_DISCRIMINATOR:${expectedClass}`);
+  assert(upstreamAttemptTwo.canonical_key !== burst[0].canonical_key && upstreamAttemptTwo.concurrency_group !== burst[0].concurrency_group,
+    `SPECIAL_CLASS_ATTEMPT_COLLISION:${expectedClass}`);
+  exactBurstCases += 1;
   exactKeys.add(classified.canonical_key);
 }
 assert(exactKeys.size === exactClasses.length, 'SPECIAL_EXACT_CLASSES_NOT_DISTINCT');
@@ -197,6 +233,8 @@ process.stdout.write(`${JSON.stringify({
   grouped_adapter_evidence_workflows: contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_ADAPTER_EVIDENCE_CASCADE').length,
   grouped_control_plane_workflows: contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'KPMO_CONTROL_PLANE_VALIDATORS').length,
   special_exact_artifact_classes: exactKeys.size,
+  special_exact_three_way_bursts_isolated: exactBurstCases,
+  special_exact_upstream_attempts_isolated: exactBurstCases,
   non_success_conclusions_non_dedupable: 7,
   negative_cases_rejected: negativeCases.length + 1,
   runtime_dedupe_state: contract.runtime_dedupe.state,

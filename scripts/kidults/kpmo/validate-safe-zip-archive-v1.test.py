@@ -20,7 +20,13 @@ def digest(path: Path) -> str:
     return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
-def invoke(path: Path, *, expected: str | None = None, overrides: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def invoke(
+    path: Path,
+    *,
+    expected: str | None = None,
+    overrides: dict[str, str] | None = None,
+    required_basenames: list[str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     limits = {
         "max-compressed-bytes": "2097152",
         "max-entries": "8",
@@ -38,6 +44,8 @@ def invoke(path: Path, *, expected: str | None = None, overrides: dict[str, str]
     ]
     for name, value in limits.items():
         command.extend([f"--{name}", value])
+    for required_basename in required_basenames or []:
+        command.extend(["--required-basename", required_basename])
     return subprocess.run(command, check=False, capture_output=True, text=True)
 
 
@@ -60,6 +68,20 @@ def main() -> int:
         accepted = invoke(valid)
         if accepted.returncode != 0:
             raise AssertionError(accepted.stderr)
+        required_accepted = invoke(valid, required_basenames=["a.json", "data.txt"])
+        if required_accepted.returncode != 0:
+            raise AssertionError(required_accepted.stderr)
+        assert_rejected(
+            invoke(valid, required_basenames=["missing.json"]),
+            "ARCHIVE_REQUIRED_BASENAME_CARDINALITY",
+        )
+
+        duplicate_basename = root / "duplicate-basename.zip"
+        make_zip(duplicate_basename, [("one/receipt.json", b"{}"), ("two/receipt.json", b"{}")])
+        assert_rejected(
+            invoke(duplicate_basename, required_basenames=["receipt.json"]),
+            "ARCHIVE_REQUIRED_BASENAME_CARDINALITY",
+        )
 
         cases = [
             ("traversal", [("../escape.json", b"x")], "ARCHIVE_ENTRY_NAME_NONCANONICAL", {}),

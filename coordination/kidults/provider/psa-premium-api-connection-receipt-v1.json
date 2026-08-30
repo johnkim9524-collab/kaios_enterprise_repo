@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "provider_id": "psa-public-api",
   "generated_at": "2026-08-27T22:39:54Z",
-  "state": "CONNECTION_VERIFIED_BOUNDED_PRIVATE_EVALUATION_CONTROLS_PENDING",
+  "state": "CONNECTION_VERIFIED_CONTROLS_IMPLEMENTED_PERSISTENT_RUNTIME_NOT_PROVISIONED",
   "commercial_entitlement": {
     "plan": "PREMIUM_COLLECTORS_CLUB_API",
     "membership_state": "PAID_ACTIVE",
@@ -86,11 +86,14 @@
     "raw_commercial_resale": "BLOCK"
   },
   "operational_readiness": {
-    "exact_field_map": "PENDING_APPROVAL",
+    "exact_field_map": "APPROVED_AND_RUNTIME_ENFORCED_IN_MODULE_NOT_LIVE_ACTIVATED",
     "immutable_rights_binding": "VERIFIED_BY_RFC_AND_GMAIL_IMMUTABLE_MESSAGE_IDS",
-    "concrete_encrypted_private_store": "NOT_IMPLEMENTED",
-    "retention_deletion_scheduler_and_receipt": "NOT_CONNECTED",
-    "lawful_known_cert_manifest": "2_KNOWN_OF_120_REQUIRED",
+    "concrete_encrypted_private_store": "IMPLEMENTED_CODE_RUNTIME_KEY_AND_MOUNT_NOT_PROVISIONED",
+    "retention_deletion_scheduler_and_receipt": "IMPLEMENTED_NOT_CONNECTED_TO_PERSISTENT_RUNTIME",
+    "declared_known_cert_hints": 2,
+    "declared_known_cert_hints_count_as_progress": false,
+    "provenance_bound_admissible_manifest": "0_OF_120",
+    "remaining_provenance_bound_admissible": 120,
     "multi_day_quota_plan": "PENDING_MINIMUM_TWO_WAVES",
     "independent_two_sided_er_evidence": "NOT_ASSEMBLED",
     "acquisition_progress": "0_OF_120",

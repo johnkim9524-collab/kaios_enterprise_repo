@@ -1,6 +1,6 @@
 {
   "id": "kidults-exact-pair-arrival-orchestrator-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "issue": 916,
   "hardening_issue": 918,
   "parents": [914, 538, 236, 481, 884, 238],
@@ -12,6 +12,10 @@
   "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
   "live_assessment_envelope_schema": "coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json",
   "canonical_assessment_schema": "coordination/kidults/schemas/rankability-assessment.schema.json",
+  "official_track_b_assessor": "scripts/kidults/integration/build-official-track-b-assessment-v1.py",
+  "staging_replay_builder": "scripts/kidults/integration/build-exact-pair-staging-replay-v1.py",
+  "canonical_projection_producer": "scripts/kidults/integration/build-canonical-object-projection-v1.mjs",
+  "autonomous_product_chain_runner": "scripts/kidults/integration/run-exact-pair-product-chain-v1.py",
   "audit_chain_builder": "scripts/kidults/integration/build-live-chain-audit-v1.py",
   "required_pair_files": ["snapshot-candidate.json", "evidence-package.json"],
   "state_machine": [
@@ -54,11 +58,25 @@
       "record_type=rankability_assessment",
       "assessment_status=COMPLETED",
       "immutable=true",
+      "assessment_fingerprint",
       "production_eligible=false"
     ],
     "staging_replay_pass_recommendations": ["PUBLISHABLE_INTERNAL", "PUBLISHABLE_PUBLIC"],
     "blocked_recommendations": ["BLOCKED", "CONDITIONAL"],
     "public_recommendation_does_not_authorize_public_release": true
+  },
+  "autonomous_chain": {
+    "canonical_handoff_rerun_required": true,
+    "caller_supplied_downstream_paths_ignored": true,
+    "assessment_generated_only_after_ready_for_track_b": true,
+    "replay_generated_only_after_official_track_b_pass": true,
+    "projection_generated_only_after_staging_replay_pass": true,
+    "canonical_object_selection": "EXACTLY_ONE_OR_MANIFEST_CANONICAL_OBJECT_ID_REQUIRED",
+    "product_type": "OBJECT_PASSPORT",
+    "projection_state": "APPROVED_INTERNAL",
+    "required_enabled_actions": ["COMPARE", "WATCHLIST"],
+    "fixture_or_synthetic_promotion_forbidden": true,
+    "no_pair_or_blocked_pair_projection": "NO_PROJECTION"
   },
   "replay_binding_required": [
     "replay_receipt_path",
@@ -68,14 +86,25 @@
     "environment=STAGING",
     "production_touch=false",
     "public_touch=false",
-    "g5=HOLD"
+    "g5=HOLD",
+    "replay_fingerprint"
   ],
   "projection_binding_required": [
     "projection_admission_path",
+    "projection_path",
+    "projection_file_sha256",
     "assessment_id",
     "replay_id",
     "exact_pair_digest",
     "correlation_id",
+    "canonical_object_id",
+    "product_type=OBJECT_PASSPORT",
+    "projection_state=APPROVED_INTERNAL",
+    "enabled_actions=COMPARE,WATCHLIST",
+    "synthetic=false",
+    "fixture=false",
+    "promotable=true",
+    "admission_fingerprint",
     "production=false",
     "public=false"
   ],

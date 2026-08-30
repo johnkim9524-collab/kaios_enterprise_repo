@@ -62,7 +62,20 @@ def validate_archive(
     max_entry_uncompressed_bytes: int,
     max_total_uncompressed_bytes: int,
     max_compression_ratio: float,
+    required_basenames: list[str] | None = None,
 ) -> dict[str, object]:
+    required_basenames = required_basenames or []
+    if len(set(required_basenames)) != len(required_basenames):
+        fail("REQUIRED_BASENAME_DUPLICATE")
+    for required_basename in required_basenames:
+        if (
+            not required_basename
+            or required_basename in {".", ".."}
+            or "/" in required_basename
+            or "\\" in required_basename
+            or "\x00" in required_basename
+        ):
+            fail("REQUIRED_BASENAME_INVALID", repr(required_basename))
     try:
         archive_stat = os.lstat(archive)
     except FileNotFoundError:
@@ -81,6 +94,9 @@ def validate_archive(
     maximum_entry_size = 0
     maximum_ratio = 0.0
     normalized_names: set[str] = set()
+    required_basename_cardinality = {
+        required_basename: 0 for required_basename in required_basenames
+    }
     try:
         with zipfile.ZipFile(archive, "r", allowZip64=True) as bundle:
             entries = bundle.infolist()
@@ -91,6 +107,10 @@ def validate_archive(
                 if normalized in normalized_names:
                     fail("ARCHIVE_DUPLICATE_NORMALIZED_ENTRY", normalized)
                 normalized_names.add(normalized)
+                if not entry.is_dir():
+                    basename = PurePosixPath(normalized).name
+                    if basename in required_basename_cardinality:
+                        required_basename_cardinality[basename] += 1
                 if entry.flag_bits & 0x1:
                     fail("ARCHIVE_ENCRYPTED_ENTRY_FORBIDDEN", entry.filename)
                 unix_mode = entry.external_attr >> 16
@@ -124,6 +144,13 @@ def validate_archive(
     except zipfile.BadZipFile as error:
         fail("ARCHIVE_FORMAT_INVALID", str(error))
 
+    for required_basename, cardinality in required_basename_cardinality.items():
+        if cardinality != 1:
+            fail(
+                "ARCHIVE_REQUIRED_BASENAME_CARDINALITY",
+                f"{required_basename}:{cardinality}",
+            )
+
     return {
         "id": "kidults-safe-zip-archive-validation-receipt-v1",
         "version": "1.0.0",
@@ -144,6 +171,8 @@ def validate_archive(
         "safe_names_verified": True,
         "safe_regular_file_or_directory_types_verified": True,
         "encrypted_entries_allowed": False,
+        "required_basename_cardinality": required_basename_cardinality,
+        "required_basename_cardinality_verified": True,
         "extraction_performed": False,
         "public": "HOLD",
         "production": "HOLD",
@@ -175,6 +204,7 @@ def main() -> int:
     parser.add_argument("--max-entry-uncompressed-bytes", type=positive_integer, required=True)
     parser.add_argument("--max-total-uncompressed-bytes", type=positive_integer, required=True)
     parser.add_argument("--max-compression-ratio", type=positive_float, required=True)
+    parser.add_argument("--required-basename", action="append", default=[])
     arguments = parser.parse_args()
     try:
         receipt = validate_archive(
@@ -185,6 +215,7 @@ def main() -> int:
             arguments.max_entry_uncompressed_bytes,
             arguments.max_total_uncompressed_bytes,
             arguments.max_compression_ratio,
+            arguments.required_basename,
         )
     except ArchiveValidationError as error:
         print(str(error), file=sys.stderr)

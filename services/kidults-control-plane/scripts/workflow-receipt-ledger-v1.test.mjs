@@ -383,6 +383,9 @@ test('requires an exact artifact for a successful canonical job', async () => {
 test('rejects secret-like keys and high-confidence credential values before database access', async () => {
   for (const result of [
     { state: 'HOLD', access_token: 'redacted' },
+    { state: 'HOLD', api_key: 'redacted' },
+    { state: 'HOLD', access_key_id: 'redacted' },
+    { state: 'HOLD', client_secret: 'redacted' },
     { state: 'HOLD', endpoint: 'postgresql://operator:password@example.invalid/db' },
     { state: 'HOLD', header: 'Bearer abc.def.ghi' },
   ]) {

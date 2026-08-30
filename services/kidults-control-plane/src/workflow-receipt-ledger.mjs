@@ -14,7 +14,7 @@ const CONCLUSIONS = new Set([
   'action_required', 'neutral', 'skipped', 'stale',
 ]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SECRET_KEY = /authorization|cookie|credential|dsn|password|passwd|private[_-]?key|secret|token/i;
+const SECRET_KEY = /authorization|cookie|credential|dsn|password|passwd|private[_-]?key|(?:api|access)[_-]?key|client[_-]?secret|secret|token/i;
 const SECRET_VALUE = /(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9_]{20,}|(?:Bearer|Basic)\s+[A-Za-z0-9._~+\/-]+=*|postgres(?:ql)?:\/\/[^\s@]+@|-----BEGIN [A-Z ]*PRIVATE KEY-----)/i;
 
 function fail(code) {

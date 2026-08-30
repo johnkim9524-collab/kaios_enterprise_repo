@@ -5,9 +5,14 @@ on:
     paths:
       - 'coordination/kidults/integration/exact-pair-arrival-orchestrator-v1.json'
       - 'coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json'
+      - 'scripts/kidults/integration/build-official-track-b-assessment-v1.py'
+      - 'scripts/kidults/integration/build-exact-pair-staging-replay-v1.py'
+      - 'scripts/kidults/integration/build-canonical-object-projection-v1.mjs'
+      - 'scripts/kidults/integration/run-exact-pair-product-chain-v1.py'
       - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
       - 'scripts/kidults/integration/build-live-chain-audit-v1.py'
       - 'scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py'
+      - 'scripts/kidults/integration/validate-exact-pair-product-chain-v1.py'
       - '.github/workflows/kidults-exact-pair-arrival-orchestrator.yml'
       - '**/snapshot-candidate.json'
       - '**/evidence-package.json'
@@ -21,9 +26,14 @@ on:
     paths:
       - 'coordination/kidults/integration/exact-pair-arrival-orchestrator-v1.json'
       - 'coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json'
+      - 'scripts/kidults/integration/build-official-track-b-assessment-v1.py'
+      - 'scripts/kidults/integration/build-exact-pair-staging-replay-v1.py'
+      - 'scripts/kidults/integration/build-canonical-object-projection-v1.mjs'
+      - 'scripts/kidults/integration/run-exact-pair-product-chain-v1.py'
       - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
       - 'scripts/kidults/integration/build-live-chain-audit-v1.py'
       - 'scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py'
+      - 'scripts/kidults/integration/validate-exact-pair-product-chain-v1.py'
       - '.github/workflows/kidults-exact-pair-arrival-orchestrator.yml'
       - '**/snapshot-candidate.json'
       - '**/evidence-package.json'
@@ -71,10 +81,25 @@ jobs:
           package-manager-cache: false
 
       - name: Validate live Track B envelope and audit hardening
-        run: python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
+        run: |
+          python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
+          python scripts/kidults/integration/validate-exact-pair-product-chain-v1.py
+
+      - name: Advance genuine pair through official Track B and canonical Projection
+        run: >-
+          python scripts/kidults/integration/run-exact-pair-product-chain-v1.py
+          coordination/kidults/integration/live-arrival/live-admission-manifest.json
+          artifacts/exact-pair-arrival
 
       - name: Evaluate exact live chain
-        run: python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/exact-pair-arrival/arrival-state.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f artifacts/exact-pair-arrival/runtime-live-admission-manifest.json; then
+            python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/exact-pair-arrival/arrival-state.json artifacts/exact-pair-arrival/runtime-live-admission-manifest.json
+          else
+            python scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py artifacts/exact-pair-arrival/arrival-state.json
+          fi
 
       - name: Build deterministic Unified Audit chain receipt
         run: python scripts/kidults/integration/build-live-chain-audit-v1.py artifacts/exact-pair-arrival/arrival-state.json artifacts/exact-pair-arrival/audit-chain.json
@@ -92,6 +117,12 @@ jobs:
               assert p['track_b']=='NOT_STARTED'
               assert p['final_business_workload']=='NOT_RUN'
               assert p['live_projection']=='NONE'
+          else:
+              assert p['state'] in {'PAIR_BLOCKED_PRE_TRACK_B','TRACK_B_BLOCKED','CHAIN_COMPLETE_INTERNAL'}
+              if p['state']=='CHAIN_COMPLETE_INTERNAL':
+                  assert p['product_type']=='OBJECT_PASSPORT'
+                  assert p['enabled_actions']==['COMPARE','WATCHLIST']
+                  assert p['live_projection']=='GOVERNED_INTERNAL'
           assert p['production']=='HOLD'
           assert p['public_intelligence']=='HOLD'
           assert a['production']=='HOLD'

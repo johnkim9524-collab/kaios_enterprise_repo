@@ -32,11 +32,24 @@ function bindHero(){
   image.fetchPriority='high';
 }
 
-function gateWorkspace(state){
+function gateWorkspace(data={}){
+  const state=normalizeIntelligenceState(data?.projection?.state);
   const blocked=BLOCKING_STATES.has(state);
+  const actions=Array.isArray(data?.actions)?data.actions:[];
   queryAll('.workspace-grid article').forEach(card=>{
-    card.dataset.access=blocked?'blocked':'available';
-    card.setAttribute('aria-disabled',String(blocked));
+    const actionId=card.dataset.workspaceAction;
+    const action=actionId?actions.find(item=>item?.action_id===actionId&&item?.state==='ENABLED'):null;
+    const actionBlocked=blocked||Boolean(actionId&&!action);
+    card.dataset.access=actionBlocked?'blocked':'available';
+    card.dataset.actionState=actionId?(action?'ENABLED':'DISABLED'):(actionBlocked?'DISABLED':'AVAILABLE');
+    card.setAttribute('aria-disabled',String(actionBlocked));
+    const destination=query('[data-workspace-destination]',card);
+    if(destination){
+      destination.textContent=action?'Open':'Unavailable';
+      destination.setAttribute('aria-disabled',String(!action));
+      if(action)destination.setAttribute('href',action.destination);
+      else destination.removeAttribute('href');
+    }
   });
 }
 
@@ -176,7 +189,7 @@ function render(data){
   renderAudit(data.audit||{});
   write('[data-audit-seal]',state==='LIVE_APPROVED'?'TRACE BOUND':'CONTROL BOUNDARY');
   renderObjectIntelligence(data);
-  gateWorkspace(state);
+  gateWorkspace(data);
   updateControlFixtureMarker(data.fixture_type==='NON_PROMOTABLE_CONTROL');
 }
 
@@ -201,7 +214,7 @@ function renderFailure(){
   renderAudit({});
   write('[data-audit-seal]','CONTROL BOUNDARY');
   renderObjectIntelligence(fallback);
-  gateWorkspace('INVALID');
+  gateWorkspace(fallback);
   updateControlFixtureMarker(false);
 }
 
@@ -265,7 +278,7 @@ initializeNavigation();
 bindHero();
 // The static document starts at NO_PROJECTION. Mark the workspace fail-closed
 // synchronously before any asynchronous Projection read can complete.
-gateWorkspace('NO_PROJECTION');
+gateWorkspace({projection:{state:'NO_PROJECTION'},actions:[]});
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){
     if(portalDisposed){

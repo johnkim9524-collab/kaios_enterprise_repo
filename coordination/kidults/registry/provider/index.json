@@ -1,22 +1,24 @@
 {
   "registry_id": "kidults-provider-registry",
   "registry_name": "Provider Registry",
-  "registry_version": "1.1.0",
+  "registry_version": "2.0.0",
   "schema_version": "1.0.0",
   "owner": "Program Owner / Provider Lead",
   "custodian": "Atlas",
   "status": "ACTIVE",
-  "effective_at": "2026-08-16T04:30:00+09:00",
+  "effective_at": "2026-08-30T02:32:50Z",
   "record_directory": "records",
-  "record_count": 1,
+  "record_count": 2,
   "current_record_id": "provider-requirements-v1",
+  "current_operating_state_record_id": "provider-operating-state-v1",
   "allowed_states": [
     "RESEARCHING",
     "SHADOW",
     "APPROVED",
     "REJECTED",
     "CONTRACTED",
-    "OFFBOARDED"
+    "OFFBOARDED",
+    "ACTIVE_FAIL_CLOSED"
   ],
   "records": [
     {
@@ -24,9 +26,21 @@
       "path": "records/provider-requirements-v1.json",
       "version": "1.0.0",
       "status": "RESEARCHING"
+    },
+    {
+      "id": "provider-operating-state-v1",
+      "path": "records/provider-operating-state-v1.json",
+      "version": "1.0.0",
+      "status": "ACTIVE_FAIL_CLOSED"
     }
   ],
   "change_history": [
+    {
+      "version": "2.0.0",
+      "changed_at": "2026-08-30T02:32:50Z",
+      "changed_by": "KPMO / Provider Lead",
+      "change": "Registered one canonical current provider and communication state for eBay Marketplace Insights, PSA Premium, GemRate and CLASSIC.COM; historical staging records are subordinate and cannot authorize duplicate outreach, spend, credentials, acquisition, adapter activation, Public, Production or G5."
+    },
     {
       "version": "1.1.0",
       "changed_at": "2026-08-16T04:30:00+09:00",

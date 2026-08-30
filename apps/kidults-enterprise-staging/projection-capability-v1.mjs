@@ -86,17 +86,93 @@ export function authorizeProjection({projection,surface,secret,now=new Date(),to
   return Object.freeze({token:effectiveToken,claims,admission});
 }
 
+const ACTION_IDS=new Set(['COMPARE','WATCHLIST']);
+const SIGNAL_FIELDS=['market_observations','comparables','liquidity','scarcity','condition','risks'];
+const publicFieldValue=field=>['VERIFIED','INFERRED'].includes(field?.state)?field.value:null;
+const list=value=>Array.isArray(value)?value:value==null?[]:[value];
+const uniqueStrings=values=>[...new Set(values.filter(value=>typeof value==='string'&&value.length>0))];
+
+function safePortalDestination(destination){
+  if(typeof destination!=='string'||destination.length===0||/[\\\u0000-\u001f\u007f]/.test(destination))throw new Error('ACTION_DESTINATION_UNSAFE');
+  let parsed;
+  try{parsed=new URL(destination,'https://portal.kidults.invalid/portal/')}catch{throw new Error('ACTION_DESTINATION_UNSAFE')}
+  if(parsed.origin!=='https://portal.kidults.invalid'||parsed.username||parsed.password)throw new Error('ACTION_DESTINATION_UNSAFE');
+  return destination;
+}
+
+function portalActions(projection,objectId){
+  if(projection.product_type!=='OBJECT_PASSPORT')return [];
+  const actions=[];
+  const seen=new Set();
+  for(const action of projection.actions||[]){
+    if(!ACTION_IDS.has(action?.action_id)||action?.state!=='ENABLED')continue;
+    if(seen.has(action.action_id))throw new Error('ACTION_ID_DUPLICATE');
+    seen.add(action.action_id);
+    actions.push(Object.freeze({
+      action_id:action.action_id,state:'ENABLED',destination:safePortalDestination(action.destination),
+      canonical_object_id:objectId
+    }));
+  }
+  return actions;
+}
+
+function objectPassportView(projection){
+  if(projection.product_type!=='OBJECT_PASSPORT')return {objects:[],signals:[],evidence:[],actions:[]};
+  const fields=projection.payload.fields;
+  const objectId=projection.payload.canonical_object_id;
+  const actions=portalActions(projection,objectId);
+  const evidenceRefs=uniqueStrings([
+    ...(projection.evidence_summary.evidence_references||[]),
+    ...Object.values(fields).flatMap(field=>field.evidence_references||[])
+  ]);
+  const maker=publicFieldValue(fields.maker);
+  const model=publicFieldValue(fields.model);
+  const identity=publicFieldValue(fields.identity);
+  const title=identity||[maker,model].filter(Boolean).join(' ')||objectId;
+  const limitations=uniqueStrings([
+    ...(projection.limitations||[]),
+    ...Object.values(fields).flatMap(field=>field.limitations||[])
+  ]);
+  const object=Object.freeze({
+    object_id:objectId,canonical_object_id:objectId,title,maker,model,
+    variant:publicFieldValue(fields.variant),year:publicFieldValue(fields.year),aliases:[],
+    market_observations:list(publicFieldValue(fields.market_observations)),
+    comparables:list(publicFieldValue(fields.comparables)),evidence_refs:evidenceRefs,
+    confidence:projection.confidence.classification,
+    evidence_coverage:projection.evidence_summary.source_count>1?'SUFFICIENT':'BOUNDED',
+    source_owner_independence:projection.evidence_summary.independent_source_family_count>1?'MULTI_SOURCE_VERIFIED':'VERIFIED',
+    rights_state:projection.rights.state,limitations,actions
+  });
+  const signals=SIGNAL_FIELDS.flatMap(fieldId=>{
+    const field=fields[fieldId];
+    const value=publicFieldValue(field);
+    if(value===null)return [];
+    return [Object.freeze({
+      signal_id:`${objectId}:${fieldId}`,label:fieldId,value,state:'LIVE_APPROVED',
+      confidence:field.confidence_classification,evidence_refs:[...(field.evidence_references||[])],
+      as_of:projection.freshness.observed_at,canonical_object_id:objectId
+    })];
+  });
+  const evidence=evidenceRefs.map(evidenceRef=>Object.freeze({
+    evidence_ref:evidenceRef,state:'LIVE_APPROVED',canonical_object_id:objectId
+  }));
+  return {objects:[object],signals,evidence,actions};
+}
+
 export function toPortalView(projection,receipt){
   const collector=projection.payload?.collector_lens||{};
-  const signals=Object.values(collector).filter(field=>field?.state==='VERIFIED').slice(0,6).map(field=>({
+  const marketSignals=Object.values(collector).filter(field=>field?.state==='VERIFIED').slice(0,6).map(field=>({
     label:field.field_id,value:field.value,state:'LIVE_APPROVED',confidence:field.confidence_classification,
     evidence_refs:[...(field.evidence_references||[])],as_of:projection.freshness.observed_at
   }));
+  const passport=objectPassportView(projection);
   return Object.freeze({
     source:'SIGNED_SERVER_CAPABILITY',
     projection:{state:'LIVE_APPROVED',projection_id:projection.projection_id,as_of:projection.freshness.observed_at,
-      assessment_id:projection.lineage.assessment_id,rights_state:projection.rights.state,freshness:projection.freshness.state},
-    release:{state:'READY'},verticals:[],signals,objects:[],evidence:[],
+      assessment_id:projection.lineage.assessment_id,rights_state:projection.rights.state,freshness:projection.freshness.state,
+      product_type:projection.product_type,canonical_object_id:projection.product_type==='OBJECT_PASSPORT'?projection.payload.canonical_object_id:null},
+    release:{state:'READY'},verticals:[],signals:passport.signals.length?passport.signals:marketSignals,
+    objects:passport.objects,evidence:passport.evidence,actions:passport.actions,
     evidence_methodology:{coverage:`${projection.evidence_summary.source_count} sources`,independence:`${projection.evidence_summary.independent_source_family_count} families`,freshness:projection.freshness.state,rights:projection.rights.state,methodology_version:projection.method_version,lineage_version:projection.contract_version},
     kidult_100:{state:'NOT_AVAILABLE',index_value:null,change:null,as_of:null,constituents:[],methodology_version:null},
     research_archive:{state:'NOT_AVAILABLE',items:[]},

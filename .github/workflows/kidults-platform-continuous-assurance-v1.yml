@@ -743,10 +743,14 @@ jobs:
                 RESERVE_ARTIFACT_NAME=kidults-asi-sharded-source-reserve-waiting-v1
                 RESERVE_RECEIPT_NAME=asi-sharded-source-reserve-waiting-receipt-v1.json
               fi
-              RESERVE_ARTIFACT_ID=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
-                '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/reserve-upstream-artifacts.json)
-              RESERVE_ARTIFACT_DIGEST=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
-                '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/reserve-upstream-artifacts.json)
+              RESERVE_ARTIFACT_ID=$(jq -r \
+                --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" --arg name "$RESERVE_ARTIFACT_NAME" \
+                '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+                /tmp/reserve-upstream-artifacts.json)
+              RESERVE_ARTIFACT_DIGEST=$(jq -r \
+                --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" --arg name "$RESERVE_ARTIFACT_NAME" \
+                '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
+                /tmp/reserve-upstream-artifacts.json)
               [[ "$RESERVE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
               [[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
               rm -rf /tmp/reserve-observer /tmp/reserve-observer.zip
@@ -754,9 +758,16 @@ jobs:
               gh api -H 'Accept: application/vnd.github+json' \
                 "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${RESERVE_ARTIFACT_ID}/zip" \
                 > /tmp/reserve-observer.zip
+              python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+                --archive /tmp/reserve-observer.zip --expected-digest "$RESERVE_ARTIFACT_DIGEST" \
+                --receipt /tmp/reserve-observer-archive-validation-v1.json \
+                --max-compressed-bytes 4194304 --max-entries 32 \
+                --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608 \
+                --max-compression-ratio 100
               unzip -q -o /tmp/reserve-observer.zip -d /tmp/reserve-observer
-              RESERVE_RECEIPT=$(find /tmp/reserve-observer -type f -name "$RESERVE_RECEIPT_NAME" -print -quit)
-              test -n "$RESERVE_RECEIPT"
+              mapfile -d '' -t RESERVE_RECEIPTS < <(find /tmp/reserve-observer -type f -name "$RESERVE_RECEIPT_NAME" -print0)
+              test "${#RESERVE_RECEIPTS[@]}" -eq 1
+              RESERVE_RECEIPT="${RESERVE_RECEIPTS[0]}"
               if [ "$RESERVE_OBSERVED_STATE" = VERIFIED_PASS ]; then
                 jq -e --arg sha "$RESERVE_UPSTREAM_SHA" --arg event "$RESERVE_UPSTREAM_EVENT" \
                   '.id=="kidults-asi-sharded-source-reserve-activation-receipt-v1"
@@ -835,16 +846,18 @@ jobs:
           TRUTH_ARTIFACT_NAME="kpmo-live-canonical-issue-truth-v1-${TRUTH_UPSTREAM_RUN_ID}"
           TRUTH_ARTIFACT_COUNT=$(jq             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/truth-upstream-artifacts.json)
           test "$TRUTH_ARTIFACT_COUNT" -eq 1
-          TRUTH_ARTIFACT_ID=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/truth-upstream-artifacts.json)
-          TRUTH_ARTIFACT_DIGEST=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/truth-upstream-artifacts.json)
+          TRUTH_ARTIFACT_ID=$(jq -r             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id'             /tmp/truth-upstream-artifacts.json)
+          TRUTH_ARTIFACT_DIGEST=$(jq -r             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty'             /tmp/truth-upstream-artifacts.json)
           [[ "$TRUTH_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$TRUTH_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
           rm -rf /tmp/truth-observer /tmp/truth-observer.zip
           mkdir -p /tmp/truth-observer
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TRUTH_ARTIFACT_ID}/zip"             > /tmp/truth-observer.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py             --archive /tmp/truth-observer.zip --expected-digest "$TRUTH_ARTIFACT_DIGEST"             --receipt /tmp/truth-observer-archive-validation-v1.json             --max-compressed-bytes 4194304 --max-entries 32             --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608             --max-compression-ratio 100
           unzip -q -o /tmp/truth-observer.zip -d /tmp/truth-observer
-          TRUTH_RECEIPT=$(find /tmp/truth-observer -type f -name canonical-truth-receipt-v1.json -print -quit)
-          test -n "$TRUTH_RECEIPT"
+          mapfile -d '' -t TRUTH_RECEIPTS < <(find /tmp/truth-observer -type f -name canonical-truth-receipt-v1.json -print0)
+          test "${#TRUTH_RECEIPTS[@]}" -eq 1
+          TRUTH_RECEIPT="${TRUTH_RECEIPTS[0]}"
           EXPECTED_TRUTH_STATE=VERIFIED_FAIL
           EXPECTED_VALIDATION_OUTCOME=failure
           if [ "$TRUTH_UPSTREAM_CONCLUSION" = success ]; then
