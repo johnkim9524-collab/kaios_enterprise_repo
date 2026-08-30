@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-global-source-pool-control-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE_AFTER_PROTECTED_MAIN_MERGE",
   "owner": "KPMO",
   "purpose": "Continuously manage only globally meaningful sources that can improve a defined KIDULTS customer decision or paid product, without converting discovery, access, or software coverage into rights or product claims.",
@@ -221,14 +221,14 @@
   "product_value_gate": {
     "gate_order": "PRODUCT_VALUE_BEFORE_ACQUISITION_PRIORITY",
     "eligible_verticals": [
-      "CARS",
-      "WATCHES",
-      "TRADING_CARDS",
-      "TOYS",
-      "ART",
-      "SNEAKERS",
-      "HANDBAGS",
-      "WINE_AND_SPIRITS"
+      "toys-models",
+      "watches-jewelry",
+      "automobiles-mobility",
+      "fashion-accessories",
+      "design-furniture",
+      "technology-cameras",
+      "gaming-music-screen",
+      "cards-comics-memorabilia"
     ],
     "customer_decisions": [
       "IDENTIFY_OBJECT",
@@ -296,6 +296,59 @@
       "preferred_independent_sources_per_active_vertical": 3,
       "maximum_sources_per_vertical": "NO_FIXED_MAXIMUM_WHILE_INCREMENTAL_VALUE_REMAINS_POSITIVE",
       "redundant_source_without_incremental_value": "REJECT_OR_RETAIN_AS_DECLARED_FALLBACK_ONLY"
+    },
+    "canonical_domain_source": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+  },
+  "operationalization": {
+    "stage_order": [
+      "DISCOVERY_METADATA",
+      "PRODUCT_VALUE_ENRICHMENT",
+      "PRODUCT_VALUE_GATE",
+      "RIGHTS_REVIEW",
+      "SCHEMA_REVIEW",
+      "BOUNDED_COHORT",
+      "EVIDENCE",
+      "TRACK_B",
+      "PROJECTION"
+    ],
+    "hourly_gate_position": "AFTER_DISCOVERY_BEFORE_GATE1_RIGHTS",
+    "baseline_backfill": {
+      "curated_rows": 64,
+      "adapter_profiles": 16,
+      "discovery_requirements": 120,
+      "schema_requirements": 33,
+      "no_unverified_score_may_promote": true
+    },
+    "portfolio_target": {
+      "active_verticals": 8,
+      "minimum_independent_sources_per_vertical": 2,
+      "preferred_independent_sources_per_vertical": 3,
+      "minimum_total_value_eligible_sources": 16,
+      "preferred_total_value_eligible_sources": 24,
+      "fixed_maximum": false
+    },
+    "durable_ledger": {
+      "backend": "POSTGRESQL",
+      "state": "ACTIVATION_HOLD",
+      "required_identity": "source_id:purpose:claim_class",
+      "required_events": [
+        "DISCOVERED",
+        "ENRICHED",
+        "SCORED",
+        "RIGHTS_DECIDED",
+        "SCHEMA_VERIFIED",
+        "COHORT_RUN",
+        "EVIDENCE_ADMITTED",
+        "TRACK_B_DECIDED",
+        "PROJECTION_DECIDED"
+      ],
+      "artifact_only_is_durable": false
+    },
+    "external_authority_boundary": {
+      "provider_contact": false,
+      "contract_acceptance": false,
+      "spend": false,
+      "credential_creation": false
     }
   }
 }
