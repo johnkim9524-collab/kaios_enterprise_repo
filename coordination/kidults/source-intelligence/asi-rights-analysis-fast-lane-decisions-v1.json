@@ -5,6 +5,7 @@
   "as_of": "2026-08-30T00:00:00Z",
   "purpose": "Bind the launch Fast Lane to official rights evidence and route every source without converting public visibility into collection, storage, derivation or commercial-use permission.",
   "decision_scope": "AUTOMATED_COLLECTION_OF_TERMINAL_SOLD_RECORDS_FOR_INTERNAL_DERIVATION_AND_LATER_COMMERCIAL_PRODUCT_USE",
+  "source_content_snapshot_manifest": "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json",
   "records": [
     {
       "source_id": "classic-com-market-data",
