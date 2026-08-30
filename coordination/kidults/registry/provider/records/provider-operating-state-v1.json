@@ -160,6 +160,9 @@
     {
       "provider_id": "CLASSIC_COM",
       "provider_name": "CLASSIC.COM",
+      "operator_id": "CLASSIC_COM",
+      "ultimate_parent_id": "CLASSIC_COM",
+      "fast_lane_source_ids": ["classic-com-market-data"],
       "aliases": [
         "classic.com",
         "CLASSIC_COM_LICENSED_BUNDLE_3"
@@ -206,6 +209,84 @@
       "new_spend_authorized": false,
       "public_release": "HOLD",
       "production": "HOLD"
+    },
+    {
+      "provider_id": "BONHAMS",
+      "provider_name": "Bonhams",
+      "operator_id": "BONHAMS",
+      "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED",
+      "fast_lane_source_ids": ["bonhams-cars-results", "bonhams-watches-results"],
+      "source_layer": "VERTICAL_AUTHORITY",
+      "brands_or_verticals": ["KIDULTS", "Autobit"],
+      "owner": "KPMO / Provider Lead",
+      "state": "HOLD",
+      "evidence_date": "2026-08-30",
+      "deadline": null,
+      "next_action": "PREPARE_ONE_OPERATOR_LEVEL_MACHINE_READABLE_RESULTS_LICENSE_INQUIRY_WITH_SEPARATE_CARS_AND_WATCHES_PRODUCT_SCHEDULES",
+      "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED",
+      "blocker": "WRITTEN_PERMISSION_SCHEMA_FIELD_RIGHTS_RETENTION_DERIVATION_DISPLAY_AND_ECONOMICS_UNRESOLVED",
+      "rights_state": "PUBLIC_WEB_NO_GO_WRITTEN_PERMISSION_REQUIRED",
+      "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED",
+      "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"},
+      "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#bonhams-cars-results", "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#bonhams-watches-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "BROAD_ARROW", "provider_name": "Broad Arrow Auctions", "operator_id": "BROAD_ARROW", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["broad-arrow-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "CAPTURE_AND_REUSE_PERMISSION_EVIDENCE_MISSING", "rights_state": "UNKNOWN_FAIL_CLOSED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#broad-arrow-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "CHRISTIES", "provider_name": "Christie's", "operator_id": "CHRISTIES", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["christies-watches-results", "christies-handbags-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Artfund"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "PREPARE_ONE_OPERATOR_LEVEL_LICENSE_INQUIRY_WITH_SEPARATE_WATCHES_AND_HANDBAGS_PRODUCT_SCHEDULES", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "PUBLIC_WEB_COLLECTION_CACHING_DERIVATION_AND_COMMERCIAL_USE_PROHIBITED", "rights_state": "PUBLIC_WEB_NO_GO_LICENSE_REQUIRED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#christies-watches-results", "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#christies-handbags-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "GOODING_CHRISTIES", "provider_name": "Gooding Christie's", "operator_id": "GOODING_CHRISTIES", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["gooding-christies-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "CONFIRM_CONTROLLING_OPERATOR_AND_ROUTE_THROUGH_CHRISTIES_PARENT_LEVEL_LICENSE_WORK", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "CONTROLLING_OPERATOR_RIGHTS_AND_LICENSED_FEED_UNRESOLVED", "rights_state": "PUBLIC_WEB_NO_GO_LICENSE_REQUIRED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#gooding-christies-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "SOTHEBYS", "provider_name": "Sotheby's", "operator_id": "SOTHEBYS", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["sothebys-watches-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Artfund"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "PREPARE_SEPARATE_LICENSED_FEED_PERMISSION_INQUIRY", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "AUTOMATED_MINING_DENIED_AND_REMAINING_RIGHTS_UNKNOWN", "rights_state": "PUBLIC_WEB_NO_GO_LICENSE_REQUIRED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#sothebys-watches-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "BARRETT_JACKSON", "provider_name": "Barrett-Jackson", "operator_id": "BARRETT_JACKSON", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["barrett-jackson-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "PREPARE_SEPARATE_LICENSED_FEED_PERMISSION_INQUIRY", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "AUTOMATED_MINING_RESTRICTED_AND_REMAINING_RIGHTS_UNKNOWN", "rights_state": "PUBLIC_WEB_NO_GO_LICENSE_REQUIRED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#barrett-jackson-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "COLLECTING_CARS", "provider_name": "Collecting Cars", "operator_id": "COLLECTING_CARS", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["collecting-cars-sold"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "PREPARE_PRIOR_WRITTEN_CONSENT_AND_PRODUCT_DATA_LICENSE_INQUIRY", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "PRIOR_WRITTEN_CONSENT_REQUIRED_FOR_ALL_REQUIRED_RIGHTS", "rights_state": "PUBLIC_WEB_NO_GO_WRITTEN_CONSENT_REQUIRED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#collecting-cars-sold"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "ICONIC_AUCTIONEERS", "provider_name": "Iconic Auctioneers", "operator_id": "ICONIC_AUCTIONEERS", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["iconic-auctioneers-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "CAPTURE_AND_REUSE_PERMISSION_EVIDENCE_MISSING", "rights_state": "UNKNOWN_FAIL_CLOSED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#iconic-auctioneers-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
+    },
+    {
+      "provider_id": "MECUM", "provider_name": "Mecum Auctions", "operator_id": "MECUM", "ultimate_parent_id": "UNKNOWN_FAIL_CLOSED", "fast_lane_source_ids": ["mecum-auction-results"],
+      "source_layer": "VERTICAL_AUTHORITY", "brands_or_verticals": ["KIDULTS", "Autobit"], "owner": "KPMO / Provider Lead", "state": "HOLD", "evidence_date": "2026-08-30", "deadline": null,
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS", "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED", "blocker": "CAPTURE_AND_REUSE_PERMISSION_EVIDENCE_MISSING", "rights_state": "UNKNOWN_FAIL_CLOSED", "schema_state": "LICENSED_FEED_SCHEMA_NOT_RECEIVED", "adapter_state": "NOT_ACTIVE",
+      "communication": {"state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","duplicate_outreach_prohibited":true,"resend_authorized":false,"automatic_followup_authorized":false,"contact_evidence_state":"UNKNOWN_FAIL_CLOSED"}, "evidence_refs": ["coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json#mecum-auction-results"],
+      "acquisition_authorized": false, "external_communication_authorized": false, "credential_authorized": false, "new_spend_authorized": false, "public_release": "HOLD", "production": "HOLD"
     }
   ],
   "communication_reconciliation": {

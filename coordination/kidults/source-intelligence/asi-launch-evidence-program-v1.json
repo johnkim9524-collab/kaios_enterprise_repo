@@ -8,6 +8,8 @@
   "authoritative_inputs": {
     "rights_decisions": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
     "rights_snapshots": "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json",
+    "source_schema_snapshots": "coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json",
+    "source_eligibility_contract": "coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json",
     "adapter_registry": "coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json",
     "source_control_plane": "coordination/kidults/source-intelligence/source-channel-control-plane-v1.json",
     "staging_admission": "coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json",
@@ -24,23 +26,18 @@
   },
   "negotiation_queue": {
     "wip_limit": 6,
-    "active_source_ids": [
-      "classic-com-market-data",
-      "bonhams-cars-results",
-      "bonhams-watches-results",
-      "broad-arrow-results",
-      "christies-handbags-results",
-      "christies-watches-results"
-    ],
-    "queued_source_ids": [
-      "gooding-christies-results",
-      "sothebys-watches-results",
-      "barrett-jackson-results",
-      "collecting-cars-sold",
-      "iconic-auctioneers-results",
-      "mecum-auction-results"
-    ],
+    "membership_source": "DERIVED_FROM_RIGHTS_DECISIONS_WORK_STATE",
     "external_contact_policy": "NO_DUPLICATE_OUTREACH_AND_NO_SEND_WITHOUT_PROVIDER_SPECIFIC_AUTHORITY"
+  },
+  "qualification_queue_control": {
+    "wip_limit": 64,
+    "backpressure_at": 64,
+    "current_pending": 64,
+    "new_curated_admission": "PAUSED_AT_BACKPRESSURE",
+    "ack_due_runs": 1,
+    "resolution_due_runs": 5,
+    "timeout_action": "MOVE_TO_DLQ_AND_RETAIN_RESEARCH_ONLY",
+    "promotion_from_dlq": false
   },
   "stages": [
     {
@@ -54,16 +51,17 @@
       "ordinal": 2,
       "id": "CAPTURE_AND_REUSE_RIGHTS",
       "state": "HOLD",
-      "observed": {"reviewed_sources": 12, "snapshot_bound": 0, "authorized_capture_pending": 3, "reference_only": 9, "rights_clear_current_sold": 0},
+      "observed": {"reviewed_sources": 12, "snapshot_bound": 0, "capture_permission_evidence_pending": 3, "reference_only": 9, "rights_clear_current_sold": 0},
       "exit_criteria": "At least one source has immutable source-content evidence and explicit collect, store, derive and commercial-use rights for the intended product purpose.",
       "release_condition": "Purpose-specific written permission or licensed feed terms plus governed snapshot receipt."
     },
     {
       "ordinal": 3,
       "id": "NEGOTIATION_WIP_SIX",
-      "state": "RUNNING_VERIFIED",
+      "state": "HOLD",
       "observed": {"commercial_queue": 12, "active": 6, "queued": 6},
-      "exit_criteria": "Each active source is terminalized to PASS, CONDITIONAL, HOLD or NO_GO with evidence; WIP never exceeds six."
+      "exit_criteria": "Each active source is terminalized to PASS, CONDITIONAL, HOLD or NO_GO with evidence; WIP never exceeds six.",
+      "release_condition": "Provider-specific execution receipt with observed_at and evidence reference; ACTIVE is queue assignment, not execution proof."
     },
     {
       "ordinal": 4,
@@ -128,7 +126,7 @@
     "g5": "HOLD"
   },
   "platform_principles": {
-    "autonomous_effect": "A scheduled validator continuously recomputes stage truth and removes internal manual status drift.",
+    "autonomous_effect": "A scheduled validator derives bounded counters from authoritative inputs, rejects manual promotion and keeps unresolved external work on HOLD.",
     "global_effect": "The bounded 120-event launch cell is an enforced prerequisite to the eight-vertical, 32-owner, 40000-event scale target.",
     "irreplaceable_value_effect": "Rights, snapshot, schema, run and event digests accumulate in KIDULTS-owned receipts independent of provider identity.",
     "transparency_effect": "Every blocked stage names its observed count, evidence dependency and release condition."

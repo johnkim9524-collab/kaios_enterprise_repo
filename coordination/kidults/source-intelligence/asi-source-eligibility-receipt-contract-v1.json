@@ -1,0 +1,27 @@
+{
+  "id": "kidults-asi-source-eligibility-receipt-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "purpose": "Authorize product-content admission only when the same source and purpose are bound to current product-value, rights, immutable source-content snapshot and source-specific schema evidence.",
+  "purpose_id": "KIDULTS_CURRENT_SOLD_INTERNAL_ANALYTICS",
+  "required_bindings": ["source_id", "product_value_digest", "rights_record_digest", "source_content_snapshot_digest", "source_schema_digest", "purpose_id", "evaluated_at", "expires_at"],
+  "eligibility_rules": {
+    "minimum_value_score": 70,
+    "value_status": "VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW",
+    "rights_decision": "PASS",
+    "required_rights": {"collect":"ALLOW", "store":"ALLOW", "derive":"ALLOW", "commercial_use":"ALLOW"},
+    "snapshot_state": "SOURCE_CONTENT_SNAPSHOT_BOUND",
+    "snapshot_promotion_eligible": true,
+    "schema_state": "SOURCE_SPECIFIC_SCHEMA_BOUND",
+    "terminal_sold_compatible": true,
+    "expiry_policy": "EARLIEST_OF_RIGHTS_RECHECK_AND_SCHEMA_EXPIRY",
+    "missing_or_stale_evidence": "HOLD"
+  },
+  "admission_boundary": {
+    "metadata_discovery_admission_is_product_content_admission": false,
+    "receipt_is_adapter_implementation": false,
+    "adapter_activation_requires_eligible_unexpired_receipt": true,
+    "production": "HOLD",
+    "public_release": "HOLD"
+  }
+}

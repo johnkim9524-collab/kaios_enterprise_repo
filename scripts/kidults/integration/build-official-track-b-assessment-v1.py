@@ -24,6 +24,8 @@ ASSESSMENT_SCHEMA = ROOT / "coordination/kidults/schemas/rankability-assessment.
 ENVELOPE_SCHEMA = ROOT / "coordination/kidults/schemas/live-rankability-assessment-envelope-v1.schema.json"
 SHA256_PREFIX = "sha256:"
 PASS_RECOMMENDATION = "PUBLISHABLE_INTERNAL"
+LAUNCH_COHORT_SIZE = 120
+INTERNAL_PRODUCT_PURPOSE = "KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY"
 
 
 def canonical(value: Any) -> Any:
@@ -61,6 +63,49 @@ def utc_timestamp(value: Any) -> bool:
         return datetime.fromisoformat(candidate).tzinfo is not None
     except ValueError:
         return False
+
+
+def timestamp_ms(value: Any) -> float | None:
+    if not utc_timestamp(value):
+        return None
+    candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
+    return datetime.fromisoformat(candidate).timestamp() * 1000
+
+
+def validate_rights_assertion(record: dict[str, Any], reference_time: str) -> None:
+    assertion = record.get("rights_assertion") or {}
+    required_atoms = {"COLLECT", "STORE", "DERIVE", "DISPLAY"}
+    require(assertion.get("source_owner_id") == record.get("source_owner_id"), "RIGHTS_SOURCE_OWNER_MISMATCH")
+    require(assertion.get("purpose_binding_id") == INTERNAL_PRODUCT_PURPOSE, "RIGHTS_PURPOSE_BINDING_INVALID")
+    require(required_atoms.issubset(set(assertion.get("rights_atoms") or [])), "RIGHTS_ATOMS_INCOMPLETE")
+    require(nonempty(assertion.get("document_sha256")) and assertion["document_sha256"].startswith(SHA256_PREFIX)
+            and assertion["document_sha256"] != SHA256_PREFIX + "0" * 64, "RIGHTS_DOCUMENT_DIGEST_INVALID")
+    require(assertion.get("source_content_snapshot_sha256") == record.get("source_payload_sha256"),
+            "RIGHTS_SOURCE_SNAPSHOT_DIGEST_MISMATCH")
+    effective = timestamp_ms(assertion.get("effective_at"))
+    expires = timestamp_ms(assertion.get("expires_at"))
+    reference = timestamp_ms(reference_time)
+    observed = timestamp_ms(record.get("observed_at"))
+    require(None not in {effective, expires, reference, observed}, "RIGHTS_TIME_INVALID")
+    require(effective <= observed <= reference < expires, "RIGHTS_NOT_EFFECTIVE_AT_ASSESSMENT")
+
+
+def launch_cohort_digest(evidence: dict[str, Any], current_sold: list[dict[str, Any]]) -> str:
+    cohort = evidence.get("launch_cohort") or {}
+    require(cohort.get("cohort_class") == "LAWFUL_CURRENT_SOLD_120", "LAUNCH_COHORT_CLASS_INVALID")
+    ids = [record.get("evidence_id") for record in current_sold]
+    require(len(ids) == LAUNCH_COHORT_SIZE and len(set(ids)) == LAUNCH_COHORT_SIZE,
+            "LAUNCH_COHORT_EXACTLY_120_UNIQUE_SOLD_REQUIRED")
+    require(cohort.get("terminal_state") == "SOLD", "LAUNCH_COHORT_TERMINAL_STATE_INVALID")
+    require(cohort.get("event_ids") == sorted(ids), "LAUNCH_COHORT_EVENT_SET_MISMATCH")
+    computed = digest_json({
+        "cohort_class": cohort["cohort_class"],
+        "terminal_state": cohort["terminal_state"],
+        "event_ids": sorted(ids),
+        "event_digests": sorted(digest_json(record) for record in current_sold),
+    })
+    require(cohort.get("cohort_digest") == computed, "LAUNCH_COHORT_DIGEST_MISMATCH")
+    return computed
 
 
 def _required_schema_fields() -> set[str]:
@@ -149,6 +194,9 @@ def build_assessment_envelope(
         and record.get("rights_state") == "ALLOW"
     ]
     require(len(current_sold) > 0, "TRACK_B_CURRENT_SOLD_EVIDENCE_MISSING")
+    for record in evidence_records:
+        validate_rights_assertion(record, generated_at)
+    cohort_digest = launch_cohort_digest(evidence, current_sold)
     source_owners = sorted({record.get("source_owner_id") for record in evidence_records if nonempty(record.get("source_owner_id"))})
     factual_origins = sorted({record.get("factual_origin_id") for record in evidence_records if nonempty(record.get("factual_origin_id"))})
     require(source_owners and factual_origins, "TRACK_B_SOURCE_INDEPENDENCE_IDENTITIES_MISSING")
@@ -225,6 +273,7 @@ def build_assessment_envelope(
             "empirical_blind_holdout_cases": empirical_blind,
             "empirical_overall_accuracy": gates.get("overall_accuracy"),
             "empirical_blind_accuracy": gates.get("blind_accuracy"),
+            "launch_cohort_digest": cohort_digest,
         },
         "quantitative_reasons": [
             {"dimension": "exact_pair", "observed": pair_digest, "required": "canonical digest equality", "result": "PASS", "evidence_reference": handoff_reference},

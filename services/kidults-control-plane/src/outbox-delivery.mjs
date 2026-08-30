@@ -14,13 +14,21 @@ async function configure(client, organizationId) {
   await client.query("SELECT set_config('kidults.organization_id', $1, true)", [organizationId]);
 }
 
-async function recordFinalReceipt({ client, organizationId, event, attemptNo, state, result, error, now, id }) {
+async function recordFinalReceipt({ client, organizationId, event, attemptNo, claimToken, workerId, state, result, error, now, id }) {
   const occurredAt = now().toISOString();
   const resultDigest = result ? sha256(JSON.stringify(result)) : null;
   const errorCode = error ? String(error.message || error).split(':', 1)[0].slice(0, 160) : null;
   await client.query('BEGIN');
   try {
     await configure(client, organizationId);
+    const fenced = await client.query(`
+      UPDATE kidults_control.outbox_delivery_claims
+      SET claimed_until=$1,updated_at=$1,writer_id=$2
+      WHERE outbox_event_id=$3 AND projector_id=$4
+        AND claim_token=$5 AND worker_id=$6 AND attempt_no=$7
+      RETURNING outbox_event_id
+    `, [occurredAt, WRITER_ID, event.outbox_event_id, PROJECTOR_ID, claimToken, workerId, attemptNo]);
+    if (fenced.rowCount !== 1 || fenced.rows?.length !== 1) throw new Error('STALE_PROJECTOR_CLAIM');
     await client.query(`
       INSERT INTO kidults_control.outbox_delivery_receipts (
         receipt_id,outbox_event_id,organization_id,projector_id,attempt_no,state,
@@ -28,11 +36,6 @@ async function recordFinalReceipt({ client, organizationId, event, attemptNo, st
       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [id(), event.outbox_event_id, organizationId, PROJECTOR_ID, attemptNo, state,
       event.created_at, resultDigest, errorCode, WRITER_ID, occurredAt]);
-    await client.query(`
-      UPDATE kidults_control.outbox_delivery_claims
-      SET claimed_until=$1,updated_at=$1,writer_id=$2
-      WHERE outbox_event_id=$3 AND projector_id=$4
-    `, [occurredAt, WRITER_ID, event.outbox_event_id, PROJECTOR_ID]);
     await client.query('COMMIT');
   } catch (finalizeError) {
     await client.query('ROLLBACK');
@@ -96,9 +99,9 @@ export async function deliverNextOutboxEvent({
           claimed_until=excluded.claimed_until,writer_id=excluded.writer_id,
           updated_at=excluded.updated_at
         WHERE kidults_control.outbox_delivery_claims.claimed_until<=$3
-        RETURNING outbox_event_id,attempt_no
+        RETURNING outbox_event_id,attempt_no,claim_token,worker_id,claimed_until
       )
-      SELECT o.*,claimed.attempt_no FROM claimed
+      SELECT o.*,claimed.attempt_no,claimed.claim_token,claimed.worker_id,claimed.claimed_until FROM claimed
       JOIN kidults_control.outbox_events o USING (outbox_event_id)
     `, [organizationId, PROJECTOR_ID, claimedAt.toISOString(), claimToken, workerId, claimedUntil.toISOString()]);
     claimed = result.rows?.[0] || null;
@@ -114,6 +117,7 @@ export async function deliverNextOutboxEvent({
     const projection = await projectOutboxEvent(db, claimed);
     const receipt = await recordFinalReceipt({
       client, organizationId, event: claimed, attemptNo: claimed.attempt_no,
+      claimToken: claimed.claim_token, workerId: claimed.worker_id,
       state: 'PROJECTED', result: projection, error: null, now, id,
     });
     return {
@@ -125,6 +129,7 @@ export async function deliverNextOutboxEvent({
     const terminalState = claimed.attempt_no >= maxAttempts ? 'QUARANTINED' : 'FAILED';
     await recordFinalReceipt({
       client, organizationId, event: claimed, attemptNo: claimed.attempt_no,
+      claimToken: claimed.claim_token, workerId: claimed.worker_id,
       state: terminalState, result: null, error: projectionError, now, id,
     });
     throw projectionError;

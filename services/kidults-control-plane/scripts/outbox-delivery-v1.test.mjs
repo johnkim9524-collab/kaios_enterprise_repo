@@ -11,7 +11,11 @@ const ids = [
 ];
 
 class PgClient {
-  constructor({ idle = false } = {}) { this.calls = []; this.idle = idle; }
+  constructor({ idle = false, staleFinalize = false } = {}) {
+    this.calls = [];
+    this.idle = idle;
+    this.staleFinalize = staleFinalize;
+  }
   async query(sql, params = []) {
     this.calls.push({ sql: String(sql).trim(), params });
     if (String(sql).includes('WITH candidate AS')) return { rows: this.idle ? [] : [{
@@ -19,7 +23,11 @@ class PgClient {
       event_type: 'control.health.changed', payload_hash: `sha256:${'a'.repeat(64)}`,
       source_schema_version: 'control-plane-v1', created_at: '2026-08-26T00:00:00.000Z',
       payload_json: { service_name: 'control-plane', state: 'HOLD' }, attempt_no: 1,
+      claim_token: ids[0], worker_id: 'worker-test-1', claimed_until: '2026-08-26T00:02:00.000Z',
     }] };
+    if (String(sql).includes('UPDATE kidults_control.outbox_delivery_claims')) {
+      return this.staleFinalize ? { rowCount: 0, rows: [] } : { rowCount: 1, rows: [{ outbox_event_id: eventId }] };
+    }
     return { rows: [] };
   }
 }
@@ -49,7 +57,11 @@ test('outbox delivery claims one event, projects it and records an append-only s
   const receipt = await deliverNextOutboxEvent(input(client, db));
   assert.equal(receipt.state, 'PROJECTED');
   assert.equal(receipt.sourceEventId, eventId);
-  assert(client.calls.some(call => call.sql.includes('INSERT INTO kidults_control.outbox_delivery_claims')));
+  const claim = client.calls.find(call => call.sql.includes('INSERT INTO kidults_control.outbox_delivery_claims'));
+  assert(claim);
+  assert(claim.sql.includes('claimed.claim_token'));
+  assert(claim.sql.includes('claimed.worker_id'));
+  assert(claim.sql.includes('claimed.claimed_until'));
   const final = client.calls.find(call => call.sql.includes('INSERT INTO kidults_control.outbox_delivery_receipts'));
   assert(final);
   assert(final.params.includes('PROJECTED'));
@@ -83,4 +95,17 @@ test('outbox delivery returns IDLE without touching D1 when no event is claimabl
   const receipt = await deliverNextOutboxEvent(input(client, db));
   assert.equal(receipt.state, 'IDLE');
   assert.equal(db.calls.length, 0);
+});
+
+test('stale lease owner cannot write a terminal receipt or overwrite the successor claim', async () => {
+  const client = new PgClient({ staleFinalize: true });
+  const db = new D1();
+  await assert.rejects(() => deliverNextOutboxEvent(input(client, db)), /STALE_PROJECTOR_CLAIM/);
+  const fence = client.calls.find(call => call.sql.includes('UPDATE kidults_control.outbox_delivery_claims'));
+  assert(fence.sql.includes('claim_token=$5'));
+  assert(fence.sql.includes('worker_id=$6'));
+  assert(fence.sql.includes('attempt_no=$7'));
+  assert.deepEqual(fence.params.slice(4), [ids[0], 'worker-test-1', 1]);
+  assert.equal(client.calls.some(call => call.sql.includes('INSERT INTO kidults_control.outbox_delivery_receipts')), false);
+  assert.equal(client.calls.at(-1).sql, 'ROLLBACK');
 });

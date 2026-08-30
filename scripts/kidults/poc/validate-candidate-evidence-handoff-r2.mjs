@@ -18,6 +18,8 @@ const APPROVED_STRATA_REPOSITORY_PATH =
   'coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json';
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const STRICT_UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const INTERNAL_PRODUCT_PURPOSE = 'KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY';
+const LAUNCH_COHORT_SIZE = 120;
 
 const canonical = (value) => Array.isArray(value)
   ? value.map(canonical)
@@ -310,6 +312,19 @@ const currentMarketRecordValid = (record) => {
     validUntilMs > observedAtMs && validUntilMs - observedAtMs <= maximumWindowMs &&
     snapshotAsOfMs - observedAtMs <= maximumWindowMs;
 };
+const rightsAssertionValid = (record) => {
+  const assertion = record?.rights_assertion || {};
+  const effectiveAtMs = strictUtcTimestamp(assertion.effective_at) ? Date.parse(assertion.effective_at) : null;
+  const expiresAtMs = strictUtcTimestamp(assertion.expires_at) ? Date.parse(assertion.expires_at) : null;
+  const observedAtMs = strictUtcTimestamp(record?.observed_at) ? Date.parse(record.observed_at) : null;
+  return assertion.source_owner_id === record?.source_owner_id &&
+    assertion.purpose_binding_id === INTERNAL_PRODUCT_PURPOSE &&
+    ['COLLECT', 'STORE', 'DERIVE', 'DISPLAY'].every((atom) => assertion.rights_atoms?.includes(atom)) &&
+    SHA256_PATTERN.test(assertion.document_sha256 || '') && !/^sha256:0{64}$/.test(assertion.document_sha256) &&
+    assertion.source_content_snapshot_sha256 === record?.source_payload_sha256 &&
+    effectiveAtMs !== null && expiresAtMs !== null && observedAtMs !== null && snapshotAsOfMs !== null &&
+    effectiveAtMs <= observedAtMs && observedAtMs <= snapshotAsOfMs && snapshotAsOfMs < expiresAtMs;
+};
 for (const record of evidenceRecords) {
   if (!nonempty(record?.evidence_id) || evidenceRecordById.has(record.evidence_id)) {
     block(`EVIDENCE_RECORD_ID_INVALID_OR_DUPLICATE:${record?.evidence_id || 'UNKNOWN'}`);
@@ -318,7 +333,24 @@ for (const record of evidenceRecords) {
     if (record.temporality === 'CURRENT_MARKET' && !currentMarketRecordValid(record)) {
       block(`CURRENT_MARKET_EVIDENCE_RECORD_INVALID:${record.evidence_id}`);
     }
+    if (record.rights_state === 'ALLOW' && !rightsAssertionValid(record)) {
+      block(`RIGHTS_ASSERTION_INVALID_OR_EXPIRED:${record.evidence_id}`);
+    }
   }
+}
+const launchSoldRecords = evidenceRecords.filter((record) => currentMarketRecordValid(record) && record.rights_state === 'ALLOW');
+const launchSoldIds = launchSoldRecords.map((record) => record.evidence_id);
+const cohort = evidence.launch_cohort || {};
+const computedCohortDigest = digest({
+  cohort_class: cohort.cohort_class,
+  terminal_state: cohort.terminal_state,
+  event_ids: [...launchSoldIds].sort(),
+  event_digests: launchSoldRecords.map((record) => digest(record)).sort(),
+});
+if (cohort.cohort_class !== 'LAWFUL_CURRENT_SOLD_120' || cohort.terminal_state !== 'SOLD' ||
+    launchSoldIds.length !== LAUNCH_COHORT_SIZE || new Set(launchSoldIds).size !== LAUNCH_COHORT_SIZE ||
+    !sameCanonical(cohort.event_ids, [...launchSoldIds].sort()) || cohort.cohort_digest !== computedCohortDigest) {
+  block('LAUNCH_COHORT_EXACT_120_DIGEST_BINDING_INVALID');
 }
 const claims = Array.isArray(evidence.claims) ? evidence.claims : [];
 if (claims.length === 0) block('CLAIMS_REQUIRED');
