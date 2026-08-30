@@ -10,16 +10,18 @@ const paths = {
   psaRaci: 'coordination/kidults/provider/psa-live-execution-raci-v1.json',
   providerRaci: 'coordination/kidults/provider/provider-live-execution-raci-v1.json',
   state: 'coordination/kidults/provider/psa-activation-state-receipt-v1.json',
+  remediation: 'coordination/kidults/provider/psa-z1-followup-trigger-remediation-v1.json',
   registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
   runner: 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs',
   workflow: '.github/workflows/kidults-psa-z1-private-runtime-v1.yml',
   orchestrator: '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml',
 };
 
-const [psaRaci, providerRaci, state, registry, runner, workflow, orchestrator] = await Promise.all([
+const [psaRaci, providerRaci, state, remediation, registry, runner, workflow, orchestrator] = await Promise.all([
   parse(paths.psaRaci),
   parse(paths.providerRaci),
   parse(paths.state),
+  parse(paths.remediation),
   parse(paths.registry),
   read(paths.runner),
   read(paths.workflow),
@@ -48,6 +50,15 @@ assert(state.state === 'READY_BUT_NOT_ACTIVATED', 'PSA_STATE_RECEIPT_INVALID');
 assert(state.counts?.lawful_manifest_admitted === 0, 'PSA_MANIFEST_COUNT_INVALID');
 assert(state.counts?.live_acquired === 0, 'PSA_LIVE_ACQUIRED_COUNT_INVALID');
 assert(state.counts?.product_pipeline_admitted === 0, 'PSA_PRODUCT_ADMITTED_COUNT_INVALID');
+
+assert(remediation.id === 'KIDULTS_PSA_Z1_FOLLOWUP_TRIGGER_REMEDIATION_V1', 'PSA_FOLLOWUP_REMEDIATION_ID_INVALID');
+assert(remediation.state === 'ROOT_CAUSE_FIXED_PENDING_GOVERNED_LANDING', 'PSA_FOLLOWUP_REMEDIATION_STATE_INVALID');
+assert(remediation.incident?.atomic_landing_run_id === 33305053359, 'PSA_FOLLOWUP_INCIDENT_RUN_INVALID');
+assert(remediation.incident?.merged_main_sha === 'a514c0cdba4f371610d8de243a4c086e692e63c9', 'PSA_FOLLOWUP_INCIDENT_MAIN_SHA_INVALID');
+assert(remediation.root_cause === 'GITHUB_TOKEN_GENERATED_MERGE_DID_NOT_EMIT_A_RECURSIVE_PUSH_WORKFLOW_RUN', 'PSA_FOLLOWUP_ROOT_CAUSE_INVALID');
+assert(remediation.remediation?.trigger === 'WORKFLOW_RUN_COMPLETED_KIDULTS_ATOMIC_GOVERNED_LANDING_V1', 'PSA_FOLLOWUP_TRIGGER_FIX_INVALID');
+assert(remediation.counts?.live_acquisition === 0, 'PSA_FOLLOWUP_REMEDIATION_ACQUISITION_TRUTH_INVALID');
+assert(remediation.counts?.product_pipeline_admission === 0, 'PSA_FOLLOWUP_REMEDIATION_ADMISSION_TRUTH_INVALID');
 
 const z1WorkflowPath = '.github/workflows/kidults-psa-z1-private-runtime-v1.yml';
 assert(registry.id === 'kidults-secret-bearing-workflow-dispatch-registry-v1', 'SECRET_REGISTRY_ID_INVALID');
@@ -108,34 +119,53 @@ assert(!workflow.includes('path: ${{ github.workspace }}'), 'PSA_WORKSPACE_ARTIF
 
 for (const marker of [
   'name: KIDULTS PSA Z1 Post-Merge Orchestrator V1',
-  'push:',
+  'workflow_run:',
+  'workflows: ["KIDULTS Atomic Governed Landing V1"]',
+  'types: [completed]',
   'branches: [main]',
   'workflow_dispatch:',
   'actions: write',
-  "if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'",
-  'Verify live exact main before Z1 dispatch',
+  'pull-requests: read',
+  "github.event.workflow_run.event == 'workflow_dispatch'",
+  "github.event.workflow_run.conclusion == 'success'",
+  "github.event.workflow_run.head_branch == 'main'",
+  'Resolve exact atomic-landing target and PSA relevance',
+  'SOURCE_HEAD_SHA',
+  'FIRST_PARENT_SHA',
+  'test "$FIRST_PARENT_SHA" = "$SOURCE_HEAD_SHA"',
+  '/commits/${LIVE_MAIN_SHA}/pulls',
+  '/pulls/${LANDING_PR_NUMBER}/files?per_page=100',
+  'SKIPPED_NOT_PSA_RELEVANT',
+  'Dispatch or reuse and await exact-main Z1 private runtime',
+  'REUSED_SUCCESSFUL_EXACT_MAIN_RUN',
+  'REUSED_ACTIVE_EXACT_MAIN_RUN',
+  'DISPATCHED_NEW_EXACT_MAIN_RUN',
   "WF='kidults-psa-z1-private-runtime-v1.yml'",
   'gh api -X POST',
   '"${API}/dispatches" -f ref=main',
   'select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")',
   'kidults-psa-z1-private-runtime-receipt',
   'KIDULTS_PSA_Z1_POST_MERGE_ORCHESTRATION_RECEIPT_V1',
+  'source_atomic_landing_run_id',
+  'landing_pull_request',
   'acquisition_120_increment: 0',
   'product_pipeline_admission_increment: 0',
 ]) {
   assert(orchestrator.includes(marker), `PSA_POST_MERGE_ORCHESTRATOR_MARKER_MISSING:${marker}`);
 }
+assert(!orchestrator.includes('\n  push:'), 'PSA_POST_MERGE_PUSH_TRIGGER_FORBIDDEN_AFTER_GITHUB_TOKEN_INCIDENT');
 assert(!orchestrator.includes('secrets.'), 'PSA_POST_MERGE_ORCHESTRATOR_SECRET_CONTEXT_FORBIDDEN');
 assert(!orchestrator.includes('contents: write'), 'PSA_POST_MERGE_ORCHESTRATOR_CONTENTS_WRITE_FORBIDDEN');
 assert(!orchestrator.includes('pull_request_target:'), 'PSA_POST_MERGE_ORCHESTRATOR_PULL_REQUEST_TARGET_FORBIDDEN');
 assert(!orchestrator.includes('environment: kidults-psa'), 'PSA_POST_MERGE_ORCHESTRATOR_PROVIDER_ENVIRONMENT_FORBIDDEN');
+assert(!orchestrator.includes("github.event.workflow_run.conclusion != 'success'"), 'PSA_FAILED_LANDING_FOLLOWUP_FORBIDDEN');
 
 process.stdout.write(`${JSON.stringify({
   receipt_id: 'KIDULTS_PSA_LIVE_EXECUTION_CONTROL_VALIDATION_V1',
   state: 'VERIFIED_PASS',
   truth_state: state.state,
   secret_registry_state: 'REGISTERED_AND_BOUND',
-  post_merge_orchestration_state: 'STATICALLY_VERIFIED_AUTO_DISPATCH_AND_RECEIPT_BINDING',
+  post_merge_orchestration_state: 'ATOMIC_LANDING_WORKFLOW_RUN_BOUND_EXACT_MAIN_AND_PSA_PATH_FILTERED',
   acquisition_count: state.counts.live_acquired,
   product_pipeline_admission_count: state.counts.product_pipeline_admitted,
 })}\n`);
