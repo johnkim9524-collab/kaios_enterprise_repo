@@ -277,7 +277,7 @@ check(conditional_envelope["assessment"]["test_results"]["sold_claim"] == "FALSE
 expect_rejection(
     "conditional-replay-forbidden",
     lambda: replay_builder.build_replay_receipt(conditional_snapshot, conditional_evidence, conditional_envelope),
-    "ASSESSMENT_NOT_RANKABLE",
+    "ASSESSMENT_NON_PROMOTABLE",
 )
 
 bad_envelope = copy.deepcopy(envelope)
