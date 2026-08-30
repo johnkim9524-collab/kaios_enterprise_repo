@@ -19,10 +19,12 @@
   "tiers": [
     {"id":"CONTROL_ONLY_FUNCTIONAL","purpose":"DETERMINISTIC_PLUMBING_REPLAY","min_n":1,"max_n":300,"critical_defect_tolerance":0,"statistical_claim":false},
     {"id":"CANARY","purpose":"SCHEMA_AND_BOUNDARY_SMOKE","min_n":5,"max_n":5,"critical_defect_tolerance":0,"statistical_claim":false},
+    {"id":"BOUNDED_FUNCTIONAL_PILOT","purpose":"BOUNDED_REAL_DATA_END_TO_END_FUNCTIONAL_PROOF","min_n":30,"max_n":120,"critical_defect_tolerance":0,"statistical_claim":false,"coverage_required":true},
     {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","defect_tolerance":0.01,"zero_failure_n":459,"min_n":459,"max_n":1000,"critical_defect_tolerance":0,"statistical_claim":true},
     {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","defect_tolerance":0.0025,"zero_failure_n":1840,"min_n":1840,"max_n":3000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
     {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","defect_tolerance":0.001,"zero_failure_n":4603,"min_n":4603,"max_n":10000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
   ],
+  "defect_taxonomy": {"CRITICAL":{"tolerance":0,"examples":["illegal_or_unlicensed_use","unknown_provenance","wrong_identity","non_sold_labeled_sold","tampering"]},"MAJOR_A":{"tolerance":0.001},"MAJOR_B":{"tolerance":0.0025},"OPERATIONAL":{"tolerance":0.01},"MINOR_UI":{"tolerance":"separate_ux_data_quality_slo"}},
   "coverage_gate": {
     "separate_from_sample_size": true,
     "required_strata": ["ultimate_owner", "source", "vertical", "territory", "currency", "time_bucket"],
@@ -36,7 +38,8 @@
     "duplicate_event_counts_as": "INVALID_AND_HOLD"
   },
   "claim_ceiling": {
-    "private_e2e": "BOUNDED_PRIVATE_FUNCTIONAL_PROOF",
+    "bounded_functional_pilot": "BOUNDED_PRIVATE_FUNCTIONAL_PROOF_NO_STATISTICAL_CLAIM",
+    "private_e2e": "BOUNDED_PRIVATE_RELIABILITY",
     "single_owner": "SINGLE_SOURCE_FUNCTIONAL_PROOF_ONLY",
     "beta": "RELEASE_RELIABILITY_ONLY",
     "rights_or_market_claim": "FORBIDDEN_FROM_SAMPLE_SIZE"
@@ -45,7 +48,8 @@
     "CONTROL_ONLY_FUNCTIONAL": {"maximum_claim":"DETERMINISTIC_PLUMBING_ONLY","release_allowed":false},
     "CANARY": {"maximum_claim":"SCHEMA_BOUNDARY_SMOKE_ONLY","release_allowed":false},
     "ADAPTER_QUALIFICATION": {"maximum_claim":"SOURCE_PIPELINE_QUALIFIED","release_allowed":false},
-    "PRIVATE_E2E": {"maximum_claim":"BOUNDED_PRIVATE_FUNCTIONAL_PROOF","release_allowed":false},
+    "BOUNDED_FUNCTIONAL_PILOT": {"maximum_claim":"BOUNDED_PRIVATE_FUNCTIONAL_PROOF_NO_STATISTICAL_CLAIM","release_allowed":false},
+    "PRIVATE_E2E": {"maximum_claim":"BOUNDED_PRIVATE_RELIABILITY","release_allowed":false},
     "BETA_RELIABILITY": {"maximum_claim":"BOUNDED_BETA_RELIABILITY","release_allowed":false},
     "PRODUCTION": {"required_tier":"BETA_RELIABILITY","required_natural_runs":30,"required_window_days":7,"release_allowed":true}
   },
