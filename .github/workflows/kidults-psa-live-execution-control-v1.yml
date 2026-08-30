@@ -7,6 +7,7 @@ on:
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
       - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
@@ -18,6 +19,7 @@ on:
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
       - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
       - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
@@ -40,12 +42,13 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Validate PSA execution controls
+      - name: Validate PSA execution controls and secret registry
         run: |
           set -euo pipefail
           node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
           node --check scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
           node scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
 
       - name: Regress private-store and private-evaluation contracts
         run: |
