@@ -1,0 +1,117 @@
+name: KIDULTS PSA Z1 Private Runtime
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-psa-z1-private-runtime-main
+  cancel-in-progress: false
+
+jobs:
+  z1-private-runtime:
+    if: github.ref == 'refs/heads/main'
+    # Reuse the protected environment that already holds the paid PSA token.
+    # Raw provider data remains inside the encrypted ephemeral runner boundary and is deleted before the job exits.
+    environment: kidults-psa-public-single-cert
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PSA_Z1_CERT_NUMBER: '08178895'
+      PSA_PRIVATE_RUNTIME_MODE: EPHEMERAL_ENCRYPTED_IMMEDIATE_DELETE
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify exact dispatch checkout and script syntax
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
+          node scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+
+      - name: Execute encrypted private Z1 runtime and immediate deletion
+        shell: bash
+        env:
+          PSA_PUBLIC_API_TOKEN: ${{ secrets.PSA_PUBLIC_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PSA_PUBLIC_API_TOKEN"
+          echo "::add-mask::$PSA_PUBLIC_API_TOKEN"
+          echo "::add-mask::$PSA_Z1_CERT_NUMBER"
+          node scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
+
+      - name: Verify sanitized Z1 receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECEIPT="$RUNNER_TEMP/psa-z1-private-runtime-receipt.json"
+          test -s "$RECEIPT"
+          node - "$RECEIPT" <<'NODE'
+          const fs = require('node:fs');
+          const path = process.argv[2];
+          const text = fs.readFileSync(path, 'utf8');
+          const receipt = JSON.parse(text);
+          if (text.includes(process.env.PSA_Z1_CERT_NUMBER)) throw new Error('PSA_CERT_VALUE_PERSISTED');
+          if (text.includes('PSA_PUBLIC_API_TOKEN') || text.includes('ciphertext_b64') || text.includes('PSACert')) {
+            throw new Error('PSA_RAW_OR_SECRET_MARKER_PERSISTED');
+          }
+          if (receipt.state !== 'VERIFIED_PASS') throw new Error('PSA_Z1_PRIVATE_RUNTIME_NOT_PASS');
+          if (receipt.protected_main_sha !== process.env.GITHUB_SHA) throw new Error('PSA_Z1_MAIN_SHA_MISMATCH');
+          if (receipt.private_store_encryption !== 'AES-256-GCM') throw new Error('PSA_Z1_ENCRYPTION_NOT_VERIFIED');
+          if (receipt.runtime_key_persisted !== false || receipt.private_record_deleted !== true || receipt.deletion_verified !== true) {
+            throw new Error('PSA_Z1_DELETION_BOUNDARY_NOT_VERIFIED');
+          }
+          if (receipt.acquisition_120_increment !== 0 || receipt.product_pipeline_admission_increment !== 0) {
+            throw new Error('PSA_Z1_PROBE_FALSELY_INCREMENTED_PRODUCT_STATE');
+          }
+          console.log('PSA Z1 private runtime receipt PASS: encrypted, deleted, non-promotable, and main-bound.');
+          NODE
+
+      - name: Upload sanitized private-runtime receipt only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-psa-z1-private-runtime-receipt
+          path: ${{ runner.temp }}/psa-z1-private-runtime-receipt.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Enforce terminal cleanup
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "$RUNNER_TEMP" -mindepth 1 -maxdepth 1 -type d -name 'kidults-psa-z1-*' -exec rm -rf -- {} +
+          test -z "$(find "$RUNNER_TEMP" -mindepth 1 -maxdepth 1 -type d -name 'kidults-psa-z1-*' -print -quit)"
