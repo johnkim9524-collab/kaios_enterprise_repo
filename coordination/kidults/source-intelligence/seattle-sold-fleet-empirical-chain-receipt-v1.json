@@ -1,0 +1,58 @@
+{
+  "id": "seattle-sold-fleet-empirical-chain-0cade54092e2bc62",
+  "version": "1.0.0",
+  "state": "VERIFIED_EMPIRICAL_REFERENCE_CHAIN_FAIL_CLOSED",
+  "executed_at": "2026-08-30T04:03:10Z",
+  "input_path": "coordination/kidults/source-intelligence/seattle-sold-fleet-empirical-admission-v1.json",
+  "input_sha256": "sha256:b272338a46e1fb845256dc2a6b86fbe5a51e245967c930919890cfa46b2432c1",
+  "pair_digest": "sha256:0cade54092e2bc6247b228921b561ea8f4d07b0eb3c4520409aeb568318acd50",
+  "results": {
+    "source_records_acquired": 120,
+    "normalized_observations_created": 120,
+    "dated_sold_reference_evidence_admitted": 120,
+    "strict_current_sold_transaction_evidence_admitted": 0,
+    "canonical_candidates_created": 0,
+    "track_b_contract_mock_executed": true,
+    "official_track_b_assessments_created": 0,
+    "approved_projections_created": 0,
+    "negative_mutations_verified": 8
+  },
+  "freshness": {
+    "latest_sale_at": "2025-12-19T00:00:00.000Z",
+    "earliest_sale_at": "2025-07-16T00:00:00.000Z",
+    "latest_age_days_at_acquisition": 254,
+    "current_window_days": 30,
+    "scope_market_window_days": 7,
+    "decision": "DATED_REFERENCE_ONLY_NOT_CURRENT"
+  },
+  "control_candidate": {
+    "candidate_class": "EMPIRICAL_REFERENCE_CONTROL_NOT_CANONICAL",
+    "pair_digest": "sha256:0cade54092e2bc6247b228921b561ea8f4d07b0eb3c4520409aeb568318acd50",
+    "observation_count": 120,
+    "evidence_count": 120,
+    "canonical_handoff_eligible": false
+  },
+  "track_b": {
+    "assessment_class": "TRACK_B_CONTRACT_COMPATIBLE_MOCK_ASSESSMENT",
+    "decision": "CONTROL_CONTRACT_PASS",
+    "pair_digest": "sha256:0cade54092e2bc6247b228921b561ea8f4d07b0eb3c4520409aeb568318acd50",
+    "official_track_b_started": false,
+    "rankable": false,
+    "promotable": false
+  },
+  "projection": {
+    "state": "NO_PROJECTION",
+    "reason": "DATED_NON_COLLECTOR_REFERENCE_CANNOT_AUTHORIZE_CURRENT_COLLECTOR_MARKET_PRODUCT",
+    "pair_digest": "sha256:0cade54092e2bc6247b228921b561ea8f4d07b0eb3c4520409aeb568318acd50",
+    "approved": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "truth_boundary": {
+    "product_current_sold_blocker_removed": false,
+    "empirical_pipeline_mechanics_blocker_removed": true,
+    "collector_domain_rights_freshness_source_still_required": true,
+    "production_authorized": false
+  }
+}
