@@ -1,0 +1,142 @@
+{
+  "id": "kidults-global-current-sold-scale-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "effective_date": "2026-08-30",
+  "owner": "KPMO",
+  "scope": "KIDULTS_GLOBAL_CURRENT_SOLD_PRODUCT_CHAIN",
+  "core_vertical_count": 8,
+  "principles": {
+    "autonomous_effect": "POSITIVE_CONTINUOUS_MEASUREMENT_AND_AUTOMATED_GATE_EVALUATION",
+    "global_effect": "POSITIVE_EIGHT_VERTICAL_REGION_CURRENCY_AND_SOURCE_DIVERSITY_FLOORS",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_CANONICAL_OBJECT_EVIDENCE_AND_DERIVED_INTELLIGENCE_DENSITY",
+    "transparency_effect": "POSITIVE_EXPLICIT_STAGE_THRESHOLDS_AND_FAIL_CLOSED_CLAIM_BOUNDARIES"
+  },
+  "truth_boundary": {
+    "total_record_count_alone_never_proves_global_readiness": true,
+    "reference_records_are_not_current_sold_events": true,
+    "listed_asking_prices_are_not_current_sold_events": true,
+    "synthetic_fixture_records_are_not_empirical_events": true,
+    "one_transaction_never_establishes_current_price": true,
+    "one_hundred_or_one_hundred_twenty_records_are_admission_only": true,
+    "stage_self_promotion_forbidden": true,
+    "production_public_paid_and_g5_require_separate_authority": true
+  },
+  "event_admission": {
+    "required_fields": [
+      "sold_status",
+      "sale_date",
+      "realized_price",
+      "currency",
+      "venue",
+      "source_owner",
+      "object_identity",
+      "category_taxonomy",
+      "deduplication_identifier",
+      "rights_attestation",
+      "provenance_digest"
+    ],
+    "rights_clear_for_exact_purpose_required": true,
+    "normalization_required": true,
+    "deduplication_required": true,
+    "immutable_evidence_receipt_required": true,
+    "track_b_required_before_projection": true
+  },
+  "stages": [
+    {
+      "stage": "E2E_EMPIRICAL_ADMISSION",
+      "minimum_total_current_sold_events": 120,
+      "minimum_events_per_active_vertical": 0,
+      "minimum_active_verticals": 1,
+      "minimum_independent_source_owners_per_active_vertical": 1,
+      "minimum_macro_regions_per_active_vertical": 1,
+      "minimum_currencies_per_active_vertical": 1,
+      "minimum_objects_with_three_comparable_events_per_active_vertical": 1,
+      "minimum_freshness_compliance_ratio": 0.8,
+      "claim_ceiling": "EMPIRICAL_PIPELINE_VALIDATED_ONLY",
+      "public_market_intelligence_allowed": false,
+      "paid_product_allowed": false,
+      "production_authorized": false,
+      "g5_authorized": false
+    },
+    {
+      "stage": "GLOBAL_MARKET_INTELLIGENCE_BETA",
+      "minimum_total_current_sold_events": 40000,
+      "minimum_events_per_active_vertical": 5000,
+      "minimum_active_verticals": 8,
+      "minimum_independent_source_owners_per_active_vertical": 4,
+      "minimum_macro_regions_per_active_vertical": 3,
+      "minimum_currencies_per_active_vertical": 3,
+      "minimum_objects_with_three_comparable_events_per_active_vertical": 1000,
+      "minimum_freshness_compliance_ratio": 0.8,
+      "claim_ceiling": "BOUNDED_GLOBAL_BETA_BY_VERIFIED_VERTICAL_AND_REGION",
+      "public_market_intelligence_allowed": false,
+      "paid_product_allowed": false,
+      "production_authorized": false,
+      "g5_authorized": false
+    },
+    {
+      "stage": "GLOBAL_COMMERCIAL_LAUNCH_EVIDENCE_READY",
+      "minimum_total_current_sold_events": 400000,
+      "minimum_events_per_active_vertical": 50000,
+      "minimum_active_verticals": 8,
+      "minimum_independent_source_owners_per_active_vertical": 5,
+      "minimum_macro_regions_per_active_vertical": 5,
+      "minimum_currencies_per_active_vertical": 5,
+      "minimum_objects_with_three_comparable_events_per_active_vertical": 5000,
+      "minimum_freshness_compliance_ratio": 0.9,
+      "claim_ceiling": "EVIDENCE_READY_NOT_AUTHORIZED",
+      "public_market_intelligence_allowed": false,
+      "paid_product_allowed": false,
+      "production_authorized": false,
+      "g5_authorized": false
+    },
+    {
+      "stage": "GLOBAL_NORMAL_OPERATIONS_EVIDENCE_READY",
+      "minimum_total_current_sold_events": 2000000,
+      "minimum_events_per_active_vertical": 250000,
+      "minimum_active_verticals": 8,
+      "minimum_independent_source_owners_per_active_vertical": 8,
+      "minimum_macro_regions_per_active_vertical": 6,
+      "minimum_currencies_per_active_vertical": 8,
+      "minimum_objects_with_three_comparable_events_per_active_vertical": 5000,
+      "minimum_freshness_compliance_ratio": 0.95,
+      "claim_ceiling": "NORMAL_OPERATIONS_EVIDENCE_READY_NOT_AUTHORIZED",
+      "public_market_intelligence_allowed": false,
+      "paid_product_allowed": false,
+      "production_authorized": false,
+      "g5_authorized": false
+    },
+    {
+      "stage": "GLOBAL_LEADERSHIP_EVIDENCE_READY",
+      "minimum_total_current_sold_events": 10000000,
+      "minimum_events_per_active_vertical": 1000000,
+      "minimum_active_verticals": 8,
+      "minimum_independent_source_owners_per_active_vertical": 12,
+      "minimum_macro_regions_per_active_vertical": 8,
+      "minimum_currencies_per_active_vertical": 12,
+      "minimum_objects_with_three_comparable_events_per_active_vertical": 10000,
+      "minimum_freshness_compliance_ratio": 0.97,
+      "claim_ceiling": "GLOBAL_LEADERSHIP_EVIDENCE_READY_NOT_AUTHORIZED",
+      "public_market_intelligence_allowed": false,
+      "paid_product_allowed": false,
+      "production_authorized": false,
+      "g5_authorized": false
+    }
+  ],
+  "maximums": {
+    "fixed_record_cap": null,
+    "fixed_object_cap": null,
+    "policy": "NO_FIXED_CAP_GROW_WITH_RIGHTS_QUALITY_UTILITY_AND_UNIT_ECONOMICS",
+    "retention_rights_cost_and_privacy_controls_remain_binding": true
+  },
+  "current_state": {
+    "measured_at": null,
+    "rights_clear_collector_current_sold_events": 0,
+    "highest_verified_stage": "NONE",
+    "state": "HOLD_EMPIRICAL_CURRENT_SOLD_NOT_ADMITTED",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

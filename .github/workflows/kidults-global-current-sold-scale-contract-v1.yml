@@ -1,0 +1,51 @@
+name: KIDULTS Global Current-SOLD Scale Contract v1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/market/global-current-sold-scale-contract-v1.json'
+      - 'scripts/kidults/market/validate-global-current-sold-scale-contract-v1.mjs'
+      - 'docs/kidults/asi/global-current-sold-scale-standard-v1.md'
+      - 'docs/kidults/asi/asi-multi-lane-autonomous-acquisition-mission-v1.md'
+      - 'coordination/kidults/data-scope/category-scale-floor-policy-v1.json'
+      - 'scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs'
+      - '.github/workflows/kidults-global-current-sold-scale-contract-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/market/global-current-sold-scale-contract-v1.json'
+      - 'scripts/kidults/market/validate-global-current-sold-scale-contract-v1.mjs'
+      - 'docs/kidults/asi/global-current-sold-scale-standard-v1.md'
+      - 'docs/kidults/asi/asi-multi-lane-autonomous-acquisition-mission-v1.md'
+      - 'coordination/kidults/data-scope/category-scale-floor-policy-v1.json'
+      - 'scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs'
+      - '.github/workflows/kidults-global-current-sold-scale-contract-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-global-current-sold-scale-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate global Current-SOLD scale and protected gates
+        run: |
+          node scripts/kidults/market/validate-global-current-sold-scale-contract-v1.mjs
+          node scripts/kidults/data-scope/validate-category-scale-floor-policy-v1.mjs
+      - name: Reject weakened launch and authority boundaries
+        run: |
+          cp coordination/kidults/market/global-current-sold-scale-contract-v1.json /tmp/global-scale.json
+          node -e "const fs=require('fs');const p='/tmp/global-scale.json';const x=require(p);x.stages[1].minimum_total_current_sold_events=120;fs.writeFileSync(p,JSON.stringify(x));"
+          if node scripts/kidults/market/validate-global-current-sold-scale-contract-v1.mjs /tmp/global-scale.json; then exit 1; fi
+          node -e "const fs=require('fs');const p='/tmp/global-scale.json';const x=require('fs').readFileSync('coordination/kidults/market/global-current-sold-scale-contract-v1.json','utf8');const y=JSON.parse(x);y.stages[2].production_authorized=true;fs.writeFileSync(p,JSON.stringify(y));"
+          if node scripts/kidults/market/validate-global-current-sold-scale-contract-v1.mjs /tmp/global-scale.json; then exit 1; fi

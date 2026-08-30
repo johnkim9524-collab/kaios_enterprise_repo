@@ -16,6 +16,12 @@ ASI must not wait for PSA or any single provider. PSA is one parallel GRADED sup
 5. Fill Dossier, Compare, Watchlist, Evidence Ledger and transparent projection contracts with governed states.
 6. Run PSA only as a parallel bounded GRADED supplement when lawful known-cert authority exists.
 
+## Global scale boundary
+
+The mandatory Current-SOLD volume and diversity gates are defined in `coordination/kidults/market/global-current-sold-scale-contract-v1.json`. The 25–50 lighthouse-object mission is a bounded product proving lane, not the platform scale target. `100` or `120` empirical events may validate admission mechanics only; they cannot establish global beta, commercial launch, normal operations or leadership readiness.
+
+Global scale claims require all eight Core Verticals to pass the applicable per-vertical transaction, independent-source-owner, region, currency, comparable-object and freshness floors. Qualified-object scale and Current-SOLD scale must pass together. Neither threshold grants Public, paid, Production or G5 authority.
+
 ## Evidence ladder
 
 `REFERENCE → DISCOVERY → OBSERVATION → CANDIDATE → EVIDENCE → APPROVED_PROJECTION`

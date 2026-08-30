@@ -10,6 +10,8 @@
   "governing_value": "IRREPLACEABLE_CUSTOMER_AND_INSTITUTIONAL_VALUE",
   "supersedes_semantics_of": "category-1000-scale-contract-v1",
   "governing_rule": "CATEGORY_1000_IS_A_MINIMUM_ADMISSION_FLOOR_NOT_A_COMPLETION_TARGET_OR_CAP",
+  "current_sold_scale_contract": "coordination/kidults/market/global-current-sold-scale-contract-v1.json",
+  "current_sold_scale_rule": "QUALIFIED_OBJECT_AND_CURRENT_SOLD_FLOORS_MUST_PASS_TOGETHER_AND_NEITHER_ALONE_AUTHORIZES_RELEASE",
   "floor_definition": {
     "core_domain_category_count": 8,
     "minimum_qualified_objects_per_category": 1000,

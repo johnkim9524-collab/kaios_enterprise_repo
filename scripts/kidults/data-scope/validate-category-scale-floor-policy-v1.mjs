@@ -43,6 +43,10 @@ assert(policy.scope_allocation_policy?.fixed_scope_quota === false,
   "Collection Scopes must not use fixed quotas.");
 assert(policy.scope_allocation_policy?.dynamic_reallocation_required === true,
   "Scope allocation must be dynamically rebalanced.");
+assert(policy.current_sold_scale_contract === "coordination/kidults/market/global-current-sold-scale-contract-v1.json",
+  "Category scale must bind the mandatory global Current-SOLD scale contract.");
+assert(policy.current_sold_scale_rule === "QUALIFIED_OBJECT_AND_CURRENT_SOLD_FLOORS_MUST_PASS_TOGETHER_AND_NEITHER_ALONE_AUTHORIZES_RELEASE",
+  "Object and Current-SOLD floors must pass together without self-authorizing release.");
 
 const levels = Object.fromEntries((policy.scale_ladder ?? []).map(item => [item.level, item]));
 assert(levels.L1_MINIMUM_MARKET_POC_FLOOR?.qualified_objects_per_category_minimum === 1000,
