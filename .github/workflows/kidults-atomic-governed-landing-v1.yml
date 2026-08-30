@@ -4,34 +4,43 @@ on:
   workflow_dispatch:
     inputs:
       pull_request_number:
-        description: Exact pull request number
+        description: Exact pull request number (manual fallback)
         required: true
         type: string
       expected_head_sha:
-        description: Exact 40-character pull request head SHA
+        description: Exact 40-character pull request head SHA (manual fallback)
         required: true
         type: string
       landing_authorization_id:
-        description: LAND-PR-<number>-<first-12-head-sha>
+        description: LAND-PR-<number>-<first-12-head-sha> (manual fallback)
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 concurrency:
-  group: kidults-atomic-governed-landing-v1-${{ inputs.pull_request_number }}
+  group: kidults-atomic-governed-landing-main
   cancel-in-progress: false
 
 jobs:
   atomic-governed-landing:
     name: Atomic governed landing executor
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       startsWith(github.event.comment.body, '/kpmo-land ') &&
+       github.event.comment.user.login == github.repository_owner &&
+       github.event.comment.author_association == 'OWNER')
     permissions:
       actions: read
       checks: read
       contents: write
-      issues: read
+      issues: write
       pull-requests: write
       statuses: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout protected main implementation
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,12 +54,30 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
-      - name: Re-read live authority and execute exact-head server merge
+      - name: Validate trusted atomic preflight control
+        run: node scripts/kidults/kpmo/validate-atomic-governed-landing-preflight-v1.mjs
+
+      - name: Preflight base sync, exact-head validation and server merge
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ inputs.pull_request_number }}
-          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
-          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_TRIGGER_MODE: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.pull_request_number || github.event.issue.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_head_sha || '' }}
+          LANDING_AUTHORIZATION_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.landing_authorization_id || '' }}
           LANDING_ACTOR: ${{ github.actor }}
+          APPROVAL_COMMENT_BODY: ${{ github.event_name == 'issue_comment' && github.event.comment.body || '' }}
+          APPROVAL_COMMENT_ID: ${{ github.event_name == 'issue_comment' && github.event.comment.id || '' }}
+          APPROVAL_ISSUE_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || '' }}
+          APPROVAL_AUTHOR_ASSOCIATION: ${{ github.event_name == 'issue_comment' && github.event.comment.author_association || '' }}
+          ATOMIC_LANDING_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-governed-landing-terminal-receipt.json
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
+
+      - name: Upload sanitized atomic preflight and landing receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-governed-landing-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-atomic-governed-landing-terminal-receipt.json
+          if-no-files-found: error
+          retention-days: 30
