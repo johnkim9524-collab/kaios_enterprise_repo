@@ -25,7 +25,9 @@
   "message": {
     "provider": "BROAD_ARROW",
     "capability": "COLLECTOR_CAR_AUCTION_SOLD_EVENTS",
-    "to": ["info@broadarrowauctions.com"],
+    "to": [
+      "info@broadarrowauctions.com"
+    ],
     "subject": "Data-licensing inquiry — staged private evaluation of Broad Arrow auction results",
     "gmail_message_id": "1a0535d6fbc9039d",
     "gmail_thread_id": "1a0535d6fbc9039d",
@@ -60,9 +62,25 @@
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
   },
   "truth_precedence": {
-    "supersedes_base_receipt_selection_hold_for": ["BROAD_ARROW"],
+    "supersedes_base_receipt_selection_hold_for": [
+      "BROAD_ARROW"
+    ],
     "does_not_modify_other_base_receipt_messages": true,
     "future_outbound_after_this_supplement": "HOLD_UNTIL_NEW_EXPLICIT_PROGRAM_OWNER_AUTHORITY",
     "provider_rights_and_activation": "UNCHANGED_PENDING_PROVIDER_RESPONSE_AND_SEPARATE_GATES"
+  },
+  "authorization_provenance": {
+    "state": "NOT_MACHINE_PROVEN",
+    "evidence_class": "POST_SEND_EXECUTION_RECEIPT_ONLY",
+    "independently_issued_pre_send_authorization_receipt": null,
+    "issuer_identity_verified": false,
+    "nonce_verified": false,
+    "expiry_verified": false,
+    "provider_recipient_content_scope_verified": false,
+    "one_shot_atomic_consumption_verified": false,
+    "candidate_branch_self_attestation_is_authorization_proof": false,
+    "post_send_receipt_can_retroactively_create_authority": false,
+    "base_one_time_assertion_reusable_for_supplement": false,
+    "promotable": false
   }
 }
