@@ -77,13 +77,23 @@ export function validateCanonicalIdentityContract(contract) {
   if (!Array.isArray(allowlist) || allowlist.length !== 19) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
   const names = new Set();
   const pairs = new Set();
+  const paths = new Set();
   for (const entry of allowlist) {
     if (!entry?.workflow_name || !entry?.workflow_path || !CLASS_PATTERN.test(entry?.upstream_class || '')) fail('WORKFLOW_CLASS_ALLOWLIST_ENTRY');
     if (!entry.workflow_path.startsWith('.github/workflows/') || !entry.workflow_path.endsWith('.yml')) fail('WORKFLOW_CLASS_PATH', entry.workflow_path);
     if (names.has(entry.workflow_name)) fail('WORKFLOW_CLASS_NAME_DUPLICATE', entry.workflow_name);
+    if (paths.has(entry.workflow_path)) fail('WORKFLOW_CLASS_PATH_DUPLICATE', entry.workflow_path);
+    if (entry.runtime_name_patterns !== undefined) {
+      if (!Array.isArray(entry.runtime_name_patterns) || entry.runtime_name_patterns.length < 1) fail('WORKFLOW_RUNTIME_NAME_PATTERNS', entry.workflow_name);
+      for (const pattern of entry.runtime_name_patterns) {
+        if (typeof pattern !== 'string' || !pattern.startsWith('^') || !pattern.endsWith('$')) fail('WORKFLOW_RUNTIME_NAME_PATTERN_UNANCHORED', entry.workflow_name);
+        try { new RegExp(pattern); } catch { fail('WORKFLOW_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
+      }
+    }
     const pair = `${entry.workflow_name}\u0000${entry.workflow_path}`;
     if (pairs.has(pair)) fail('WORKFLOW_CLASS_PAIR_DUPLICATE', entry.workflow_name);
     names.add(entry.workflow_name);
+    paths.add(entry.workflow_path);
     pairs.add(pair);
   }
   const special = contract.special_exact_artifact_classes || [];
@@ -143,9 +153,11 @@ export function validateCanonicalIdentityContract(contract) {
 }
 
 function workflowClass(contract, workflowName, workflowPath) {
-  const entry = contract.workflow_run_class_allowlist.find((candidate) => candidate.workflow_name === workflowName);
-  if (!entry) fail('UPSTREAM_WORKFLOW_NOT_ALLOWLISTED', workflowName);
-  if (entry.workflow_path !== workflowPath) fail('UPSTREAM_WORKFLOW_PATH_MISMATCH', `${workflowName}:${workflowPath}`);
+  const entry = contract.workflow_run_class_allowlist.find((candidate) => candidate.workflow_path === workflowPath);
+  if (!entry) fail('UPSTREAM_WORKFLOW_PATH_NOT_ALLOWLISTED', workflowPath);
+  const runtimeNameAllowed = workflowName === entry.workflow_name ||
+    (entry.runtime_name_patterns || []).some((pattern) => new RegExp(pattern).test(workflowName));
+  if (!runtimeNameAllowed) fail('UPSTREAM_WORKFLOW_NAME_MISMATCH', `${workflowName}:${workflowPath}`);
   return entry;
 }
 
