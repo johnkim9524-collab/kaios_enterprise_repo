@@ -118,6 +118,7 @@ const receipt = {
   preflight_aligned_main_sha: null,
   merge_commit_sha: null,
   failure_code: null,
+  no_merge_label_server_transactionality_claimed: false,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
@@ -403,7 +404,7 @@ try {
   receipt.exact_head_sha = /^[0-9a-f]{40}$/.test(expectedHeadSha || '') ? expectedHeadSha : receipt.exact_head_sha;
   writeReceipt();
   if (statusTouched) {
-    try { await publish('failure', failureCode); } catch {}
+    try { await publish('failure', error?.code || error?.message || 'atomic landing failed'); } catch {}
   }
   await postComment([
     '## KPMO Atomic Landing Preflight',
