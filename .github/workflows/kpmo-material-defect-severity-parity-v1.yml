@@ -32,6 +32,35 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Initialize fail-closed parity diagnostic packet
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/material-defect-severity-parity-v1.log"
+          RECEIPT="$RUNNER_TEMP/material-defect-severity-parity-receipt-v1.json"
+          printf '%s\n' 'severity parity validation not yet executed' > "$LOG"
+          cat > "$RECEIPT" <<EOF
+          {
+            "receipt_id": "kpmo-material-defect-severity-parity-receipt-v1",
+            "version": "1.0.0",
+            "repository": "$GITHUB_REPOSITORY",
+            "workflow": "$GITHUB_WORKFLOW",
+            "run_id": $GITHUB_RUN_ID,
+            "run_attempt": $GITHUB_RUN_ATTEMPT,
+            "source_sha": "$SOURCE_SHA",
+            "event": "$EVENT_NAME",
+            "validator_exit_code": null,
+            "state": "VERIFIED_FAIL",
+            "failure_class": "VALIDATION_NOT_COMPLETED",
+            "promotion_eligible": false,
+            "production": "HOLD",
+            "public": "HOLD",
+            "g5": "HOLD"
+          }
+          EOF
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -46,10 +75,79 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate open material-defect severity parity with complete pagination
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Validate durable parity diagnostic contract
+        shell: bash
         run: |
           set -euo pipefail
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = '.github/workflows/kpmo-material-defect-severity-parity-v1.yml';
+          const text = fs.readFileSync(path, 'utf8');
+          const required = [
+            'Initialize fail-closed parity diagnostic packet',
+            'material-defect-severity-parity-v1.log',
+            'material-defect-severity-parity-receipt-v1.json',
+            'if: always()',
+            'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+            'kpmo-material-defect-severity-parity-v1-${{ github.run_id }}-${{ github.run_attempt }}',
+            'if-no-files-found: error',
+            'validator_exit_code',
+            'exit "$rc"'
+          ];
+          const missing = required.filter((token) => !text.includes(token));
+          if (missing.length) throw new Error(`PARITY_DIAGNOSTIC_CONTRACT_MISSING:${missing.join(',')}`);
+          NODE
+      - name: Validate open material-defect severity parity with complete pagination
+        id: parity
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          LOG="$RUNNER_TEMP/material-defect-severity-parity-v1.log"
+          RECEIPT="$RUNNER_TEMP/material-defect-severity-parity-receipt-v1.json"
+          : > "$LOG"
+          rc=0
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test >> "$LOG" 2>&1 || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs >> "$LOG" 2>&1 || rc=$?
+          fi
+          cat "$LOG"
+          export VALIDATOR_EXIT_CODE="$rc"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const rc = Number(process.env.VALIDATOR_EXIT_CODE);
+          if (!Number.isInteger(rc) || rc < 0) throw new Error('PARITY_VALIDATOR_EXIT_CODE_INVALID');
+          const receipt = {
+            receipt_id: 'kpmo-material-defect-severity-parity-receipt-v1',
+            version: '1.0.0',
+            repository: process.env.GITHUB_REPOSITORY,
+            workflow: process.env.GITHUB_WORKFLOW,
+            run_id: Number(process.env.GITHUB_RUN_ID),
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            source_sha: process.env.SOURCE_SHA,
+            event: process.env.EVENT_NAME,
+            validator_exit_code: rc,
+            state: rc === 0 ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_class: rc === 0 ? null : 'SEVERITY_PARITY_VALIDATOR_NONZERO',
+            promotion_eligible: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync(`${process.env.RUNNER_TEMP}/material-defect-severity-parity-receipt-v1.json`, `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+          exit "$rc"
+      - name: Upload durable severity-parity diagnostic packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kpmo-material-defect-severity-parity-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/material-defect-severity-parity-v1.log
+            ${{ runner.temp }}/material-defect-severity-parity-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
