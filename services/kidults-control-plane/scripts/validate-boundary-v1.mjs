@@ -324,7 +324,10 @@ export function inspectWorkflowReceiptRelationTruth(contract, readme, runbook) {
 
 export function discoverProductionD1Writers(root) {
   const sourceRoot = path.join(root, 'services');
-  return walk(sourceRoot, (file) => /\/src\/.*\.(?:ts|js|mjs)$/.test(file.replaceAll('\\', '/')))
+  return walk(sourceRoot, (file) => {
+    const normalized = file.replaceAll('\\', '/');
+    return /\/src\/.*\.(?:ts|js|mjs)$/.test(normalized) && !normalized.endsWith('.d.ts');
+  })
     .filter((file) => {
       const source = fs.readFileSync(file, 'utf8');
       return writeSql.test(source) && d1Signal.test(source);

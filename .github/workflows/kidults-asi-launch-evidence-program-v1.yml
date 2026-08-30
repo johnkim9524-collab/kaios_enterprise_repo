@@ -1,0 +1,54 @@
+name: KIDULTS ASI Launch Evidence Program V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-launch-evidence-program-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
+      - 'coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json'
+      - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/asi-launch-evidence-program-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/source-channel-control-plane-v1.json'
+      - 'coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json'
+      - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-launch-evidence-program-v1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-launch-evidence-program:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Validate syntax
+        run: node --check scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
+      - name: Validate stage truth and fail-closed negative paths
+        run: node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs

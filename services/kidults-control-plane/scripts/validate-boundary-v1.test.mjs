@@ -29,6 +29,7 @@ test('current repository establishes PostgreSQL authority and inventories every 
   assert.equal(receipt.deployed_governed_d1_writer_count, 0);
   assert.equal(receipt.remote_d1_mutation, false);
   assert.equal(receipt.production, 'HOLD');
+  assert.equal(receipt.discovered_production_d1_writer_sources.some((file) => file.endsWith('.d.ts')), false);
   assert.deepEqual(receipt.postgres_migrations, [
     '0001_system_of_record.sql',
     '0002_workflow_run_receipts.sql',
