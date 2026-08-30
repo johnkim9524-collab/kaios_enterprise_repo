@@ -69,9 +69,9 @@
       "ordinal": 4,
       "id": "VALUE_RIGHTS_SCHEMA_ELIGIBILITY",
       "state": "HOLD",
-      "observed": {"eligible_sources": 0, "target_min": 1, "target_recommended": 2},
+      "observed": {"eligible_sources": 0, "eligible_source_ids": [], "target_min": 1, "target_recommended": 2},
       "exit_criteria": "One or two sources independently pass product value, purpose rights, immutable snapshot and source-specific schema gates.",
-      "release_condition": "Authoritative value, rights, snapshot and schema receipts for the same source ID."
+      "release_condition": "Authoritative value, rights, snapshot and schema receipts for the exact same source ID; aggregate count substitution is forbidden."
     },
     {
       "ordinal": 5,
@@ -115,7 +115,8 @@
     "synthetic_events_count_toward_120": false,
     "local_postgres_is_remote_runtime_evidence": false,
     "track_b_may_precede_persistent_receipts": false,
-    "scale_may_precede_launch_cell": false
+    "scale_may_precede_launch_cell": false,
+    "aggregate_count_substitution_for_source_identity": false
   },
   "authority_boundary": {
     "autonomous_internal_reversible_work": true,
