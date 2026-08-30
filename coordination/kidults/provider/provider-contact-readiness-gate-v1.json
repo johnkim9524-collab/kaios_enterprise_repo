@@ -40,7 +40,7 @@
       "API_KEY_OR_MEMBERSHIP_EQUALS_REUSE_RIGHTS",
       "IMPLIED_SPEND_CONTRACT_PRODUCTION_PUBLIC_OR_G5_APPROVAL"
     ],
-    "minimum_external_disclosure": "DISCLOSE_ONLY_THE_CURRENT_STAGE_VOLUME_BAND_AND_RIGHTS_ASK; HIGHER_STATISTICAL_TARGETS ARE OPTIONAL_CAPACITY INFORMATION",
+    "minimum_external_disclosure": "DISCLOSE_ONLY_THE_CURRENT_STAGE_VOLUME_BAND_AND_RIGHTS_ASK; HIGHER_STATISTICAL_TARGETS_ARE_OPTIONAL_CAPACITY_INFORMATION",
     "exact_head_and_duplicate_outreach_check_required": true
   },
   "groups": {
@@ -132,7 +132,8 @@
         "provider": "PSA Premium",
         "canonical_provider_id": "PSA_PREMIUM",
         "state": "BOUNDED",
-        "communication_state": "WRITTEN_PROVIDER_RESPONSES_RECORDED_FOLLOW_UP_DRAFT_HELD",
+        "communication_state": "WRITTEN_PROVIDER_RESPONSES_RECORDED_NO_NEW_OUTBOUND_REQUIRED",
+        "follow_up_state": "DRAFT_HELD_NO_SEND",
         "sample_position": "Z1_1_THEN_CANARY_5_THEN_BOUNDED_30_TO_120_THEN_OPTIONAL_459",
         "bounded_120_claim": "PRIVATE_FUNCTIONAL_PILOT_ONLY",
         "resend_authorized": false
@@ -150,13 +151,16 @@
         "state": "HOLD",
         "communication_state": "OUTBOUND_SENT_AWAITING_PROVIDER_RESPONSE",
         "resend_authorized": false
-      },
+      }
+    ],
+    "EXTERNAL_SOURCE_PATH_DRAFT_HOLD": [
       {
         "provider": "HobbyKorea",
         "canonical_provider_id": "HOBBYKOREA",
         "state": "SOURCE_PATH_INQUIRY_HELD",
         "communication_state": "FOLLOW_UP_DRAFT_HELD_NO_SEND",
-        "resend_authorized": false
+        "resend_authorized": false,
+        "canonical_provider_registry_record_required_before_outreach": true
       }
     ],
     "REJECT_FOR_SOLD_TRANSACTION_EVIDENCE": [
