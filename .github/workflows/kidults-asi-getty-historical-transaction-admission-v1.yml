@@ -177,7 +177,7 @@ jobs:
           if(process.env.CASE==='EMPIRICAL_ADMISSION') x.historical_transaction_evidence_admitted=1;
           if(process.env.CASE==='HISTORICAL_EVENT') x.historical_transaction_events_created=1;
           if(process.env.CASE==='CURRENT_PRICE') x.records[0].current_price_eligible=true;
-          if(process.env.CASE==='GENERIC_EVENT') x.events[0].generic_market_event_admitted=true;
+          if(process.env.CASE==='GENERIC_EVENT') x.events=[{generic_market_event_admitted:true}];
           if(process.env.CASE==='TOP16_ACTIVATION') x.empirically_activated=1;
           if(process.env.CASE==='PUBLIC_RELEASE') x.public_release='ALLOW';
           fs.writeFileSync(p,JSON.stringify(x,null,2));
