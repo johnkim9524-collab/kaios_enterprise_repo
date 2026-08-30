@@ -7,18 +7,22 @@ STAGING control plane. It does not authorize Production, Public, G5, provider
 contact, contracts, spend or credential creation.
 
 Governance mode: `SOLO_OWNER_AUTOMATED_EVIDENCE`. Human reviewer approval is
-not a required gate. Required exact-head checks, immutable runtime receipts and
-post-merge main revalidation are authoritative.
+not a required gate. Required exact-head checks and post-merge main
+revalidation are authoritative repository evidence. Expiring Actions artifacts
+are not permanent ledger receipts; PostgreSQL receipt authority begins only
+after the ordered migrations and runtime persistence are verified in STAGING.
 
 ## Immutable activation order
 
 1. Bind the exact PR head SHA and migration digest to the activation receipt.
 2. Provision an approved ephemeral PostgreSQL STAGING instance with PITR and a
    separately encrypted backup target.
-3. Apply `migrations/postgres/0001_system_of_record.sql` as a migration owner.
+3. Apply `migrations/postgres/0001_system_of_record.sql`, then
+   `migrations/postgres/0002_workflow_run_receipts.sql`, as a migration owner.
 4. Create separate LOGIN principals outside the repository and grant each
    exactly one NOLOGIN group role created by the migration. Store credentials
-   only in the approved secret manager.
+   only in the approved secret manager. The workflow-receipt LOGIN receives
+   only `kidults_control_workflow_receipt`.
 5. Prove RLS, writer identity, append-only history and exact-resource access by
    running every negative mutation below.
 6. Deploy the command, audit and supply paths without a D1 write binding.
@@ -27,10 +31,20 @@ post-merge main revalidation are authoritative.
    source hash, schema version, projector ID and canonical row digest.
 9. Keep the legacy ASI D1 writer disabled and prove its direct-write site count
    and remote write attempts are both zero.
-10. Run two natural protected-main command → outbox → projector → immutable
+10. With an approved protected environment and DSN, activate a separate
+    fail-closed receipt finalizer. It consumes a verified producer artifact,
+    writes through the dedicated role, performs exact insert/read-back and
+    emits HOLD on any unavailable or mismatched prerequisite. Do not attach
+    PostgreSQL writes to Continuous Assurance.
+11. Prove with two real concurrent PostgreSQL clients that one eligible
+    canonical business key creates exactly one leader and one immutable alias;
+    divergent canonical input must HOLD without an alias. Failed/stale-leader
+    takeover remains blocked until an append-only epoch/predecessor protocol is
+    separately approved and evidenced.
+12. Run two natural protected-main command → outbox → projector → immutable
     receipt chains without manual retry.
-11. Revalidate the merged protected-main SHA and bind the post-merge result to
-    the final STAGING activation receipt.
+13. Revalidate the merged protected-main SHA and bind the post-merge result to
+   the final STAGING activation receipt.
 
 ## PSA connection-day procedure (bounded, non-promotional)
 
@@ -81,12 +95,29 @@ All must be rejected and must produce an attributable receipt where applicable.
 - stale D1 event overwriting a newer read model;
 - concurrent projector claim, expired lease and poison-event quarantine;
 - direct legacy ASI D1 write after cutover.
+- workflow receipt UPDATE, DELETE or TRUNCATE;
+- unregistered, suspended or wrong-role workflow receipt writer;
+- secret-like or over-256-KiB workflow result payload;
+- conflicting replay for one repository/run/attempt/receipt type;
+- forged LEADER/ALIAS relation, binding digest, workflow path/run/attempt or
+  cross-claim binding, and ALIAS receipt without its exact alias row/parent
+  claim;
+- canonical claim from `dedupe_eligible=false` or an untrusted classifier
+  contract digest;
+- same canonical key with divergent canonical input being accepted as alias;
+- one workflow run attempt claiming two canonical identities;
 
 ## Acceptance evidence
 
 - exact source SHA, exact-head required checks PASS and post-merge main revalidation receipt;
 - PostgreSQL migration digest and server version;
 - zero-bypass role/privilege read-back;
+- workflow-receipt dedicated role read-back proving SELECT/INSERT only;
+- exact receipt insert/read-back, idempotent replay and conflicting-replay
+  rollback receipts, including exact LEADER/ALIAS relation read-back and every
+  forged/cross-claim/missing-alias negative above;
+- two-client canonical claim result proving exactly one leader, one alias and
+  divergence HOLD, plus the trusted classifier contract digest;
 - tenant-isolation and writer-spoof negative receipts;
 - billing, access, supply and observability transaction receipts;
 - D1 full-rebuild parity digest and unknown-writer count `0`;
@@ -108,14 +139,16 @@ All must be rejected and must produce an attributable receipt where applicable.
 
 ## Truth boundary
 
-Repository tests and this runbook do not prove remote PostgreSQL, backup/PITR,
-D1 parity, provider rights, GRADED population, Candidate/Evidence, Track B,
-Projection, Production or G5. Those remain `HOLD`, `NONE` or `NOT_STARTED` until
-their canonical evidence exists.
+Repository tests and this runbook do not prove remote PostgreSQL, workflow
+receipt persistence, canonical claim concurrency/permissions, backup/PITR, D1
+parity, provider rights, GRADED population, Candidate/Evidence, Track B,
+Projection, Public, Production or G5. Those remain `HOLD`, `NONE` or
+`NOT_STARTED` until their canonical evidence exists.
 
 Constitution effects:
 
-- `autonomous_effect`: `POSITIVE` — normal dispatch and receipts are automatic.
+- `autonomous_effect`: `POSITIVE` — repository validation and dispatch
+  definitions are deterministic; remote receipt finalization remains `HOLD`.
 - `global_effect`: `POSITIVE` — tenant, jurisdiction, locale, currency and source
   rights are explicit rather than provider-specific assumptions.
 - `irreplaceable_value_effect`: `POSITIVE` — customer context, lineage, rights,

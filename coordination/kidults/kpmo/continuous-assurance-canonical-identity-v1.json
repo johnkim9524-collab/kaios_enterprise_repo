@@ -1,0 +1,258 @@
+{
+  "id": "kidults-continuous-assurance-canonical-identity-v1",
+  "version": "1.0.0",
+  "governing_owner": "KPMO",
+  "state": "IMPLEMENTED_EPHEMERAL_ACTIONS_GUARD_REMOTE_LEDGER_ACTIVATION_HOLD",
+  "purpose": "Classify every Continuous Assurance trigger into an explicit, provenance-bound canonical identity and suppress repeated grouped-success audits only through a serialized, exact-receipt Actions readback guard whose authority expires with 90-day artifact retention.",
+  "identity_namespace": "KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_V1",
+  "canonical_key_components": [
+    "repository",
+    "consumer_workflow_id",
+    "source_sha",
+    "upstream_class",
+    "generation_discriminator",
+    "classifier_contract_digest"
+  ],
+  "workflow_run_success_generation_rules": {
+    "push": "SOURCE_GENERATION",
+    "pull_request": "SOURCE_GENERATION",
+    "workflow_run": "SOURCE_GENERATION",
+    "schedule": "UPSTREAM_LOGICAL_SCHEDULE_SLOT",
+    "workflow_dispatch": "UPSTREAM_MANUAL_REQUEST_RUN"
+  },
+  "direct_event_generation_rules": {
+    "push": "SOURCE_GENERATION",
+    "pull_request": "PULL_REQUEST_HEAD_GENERATION",
+    "schedule": "ASSURANCE_LOGICAL_SCHEDULE_SLOT",
+    "workflow_dispatch": "ASSURANCE_MANUAL_REQUEST_RUN"
+  },
+  "logical_schedule_slot_minutes": 30,
+  "terminal_conclusions": [
+    "success",
+    "failure",
+    "cancelled",
+    "timed_out",
+    "action_required",
+    "neutral",
+    "skipped",
+    "stale"
+  ],
+  "non_success_policy": {
+    "dedupe_eligible": false,
+    "generation_discriminator": "UPSTREAM_RUN_ID_ATTEMPT_CONCLUSION",
+    "reason": "A prior success or another failure must never suppress an exact failed, cancelled, skipped, timed-out, action-required, neutral, or stale terminal observation."
+  },
+  "workflow_run_class_allowlist": [
+    {
+      "workflow_name": "KIDULTS ASI Snapshot Readiness Factory v2",
+      "workflow_path": ".github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml",
+      "upstream_class": "ASI_SNAPSHOT_READINESS"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Intelligence Preparation Wave v1",
+      "workflow_path": ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
+      "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS Autonomous Met Open Access Sample",
+      "workflow_path": ".github/workflows/kidults-autonomous-met-sample.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS Autonomous V&A Fashion Sample",
+      "workflow_path": ".github/workflows/kidults-autonomous-vam-fashion-sample.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS Full Value Chain Red-Team Orchestrator V1",
+      "workflow_path": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
+      "upstream_class": "KPMO_CONTROL_PLANE_VALIDATORS"
+    },
+    {
+      "workflow_name": "KIDULTS Unified Audit Control Plane",
+      "workflow_path": ".github/workflows/kidults-unified-audit-control-plane.yml",
+      "upstream_class": "KPMO_CONTROL_PLANE_VALIDATORS"
+    },
+    {
+      "workflow_name": "KIDULTS Trusted Merge Control Monotonicity",
+      "workflow_path": ".github/workflows/kidults-trusted-control-monotonicity.yml",
+      "upstream_class": "KPMO_CONTROL_PLANE_VALIDATORS"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Source Adapter Wave 2 v1",
+      "workflow_path": ".github/workflows/kidults-asi-source-adapter-wave2-v1.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Source Adapter Wave 3 v1",
+      "workflow_path": ".github/workflows/kidults-asi-source-adapter-wave3-v1.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Source Adapter Wave 4 v1",
+      "workflow_path": ".github/workflows/kidults-asi-source-adapter-wave4-v1.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI State Department Camera Evidence v1",
+      "workflow_path": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Getty Historical Transaction Admission v1",
+      "workflow_path": ".github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI P0 Mission Consumption v1",
+      "workflow_path": ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
+      "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+      "workflow_path": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+      "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Autonomous Resolution Layer v1",
+      "workflow_path": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml",
+      "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Requirement-to-Adapter Coverage v1",
+      "workflow_path": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+      "upstream_class": "ASI_REQUIREMENT_COVERAGE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Sharded Source Reserve v1",
+      "workflow_path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+      "upstream_class": "ASI_SHARDED_SOURCE_RESERVE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI SHADOW Operating Evidence v1",
+      "workflow_path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+      "upstream_class": "ASI_SHADOW_OPERATING_EVIDENCE"
+    },
+    {
+      "workflow_name": "KPMO Live Canonical Issue Truth V1",
+      "workflow_path": ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml",
+      "upstream_class": "KPMO_LIVE_CANONICAL_ISSUE_TRUTH"
+    }
+  ],
+  "special_exact_artifact_classes": [
+    "ASI_REQUIREMENT_COVERAGE",
+    "ASI_SHARDED_SOURCE_RESERVE",
+    "ASI_SHADOW_OPERATING_EVIDENCE"
+  ],
+  "ephemeral_actions_alias_eligible_classes": [
+    "ASI_SOURCE_ACQUISITION_CASCADE",
+    "ASI_ADAPTER_EVIDENCE_CASCADE",
+    "KPMO_CONTROL_PLANE_VALIDATORS"
+  ],
+  "runtime_dedupe": {
+    "state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+    "leader_election_authority": "REMOTE_POSTGRES_ATOMIC_CLAIM_LEDGER",
+    "github_actions_artifact_readback_is_sufficient_leader_election": false,
+    "github_actions_artifact_readback_is_sufficient_for_bounded_ephemeral_success_alias": true,
+    "github_actions_concurrency_is_serialization_not_leader_proof": true,
+    "job_level_concurrency_required": true,
+    "cancel_in_progress": false,
+    "canonical_execution_claimed_default": false,
+    "alias_emission_allowed_before_remote_claim_verification": false,
+    "bounded_ephemeral_alias_after_serialized_exact_receipt_readback_allowed": true,
+    "ephemeral_actions_guard": {
+      "state": "ACTIVE_BOUNDED_90_DAY_NON_DURABLE",
+      "artifact_retention_days": 90,
+      "canonical_leader_artifact_name_template": "kidults-continuous-assurance-canonical-{canonical_key_hex}",
+      "canonical_leader_artifact_publish_condition": "SUCCESS_AFTER_AUDIT_PLANNER_PACKET_VERIFICATION",
+      "success_only": true,
+      "workflow_run_only": true,
+      "terminal_non_success_bypass_required": true,
+      "manual_recovery_bypass_required": true,
+      "special_exact_artifact_class_bypass_required": true,
+      "candidate_readback_must_complete_before_alias": true,
+      "candidate_lookup_exact_name_required": true,
+      "blind_source_sha_lookup_forbidden": true,
+      "canonical_receipt_digest_recomputation_required": true,
+      "candidate_canonical_key_cardinality": {
+        "zero": "EXECUTE_EPHEMERAL_CANONICAL_AUDIT",
+        "one": "EMIT_DIGEST_BOUND_ALIAS",
+        "more_than_one": "INPUT_DIVERGENCE_HOLD"
+      },
+      "leader_readback_and_alias_required_bindings": [
+        "canonical_key",
+        "source_sha",
+        "upstream_class",
+        "generation_discriminator",
+        "classifier_contract_digest",
+        "canonical_run_id",
+        "canonical_run_attempt",
+        "canonical_receipt_digest",
+        "canonical_artifact_digest"
+      ],
+      "claim_scope": "EPHEMERAL_ACTIONS_ARTIFACT_90_DAY",
+      "github_concurrency_running_capacity": 1,
+      "github_concurrency_pending_capacity": 1,
+      "additional_pending_runs_may_be_replaced": true,
+      "every_noncanonical_trigger_alias_receipt_guaranteed": false,
+      "replacement_caveat": "GitHub Actions may replace an older pending job in the same concurrency group; only jobs that enter the serialized guard can emit an alias receipt until the PostgreSQL claim ledger is active.",
+      "durable_claim_created": false,
+      "postgres_activation_state": "REMOTE_LEDGER_ACTIVATION_HOLD"
+    },
+    "activation_exit_criteria": [
+      "atomic unique claim on the complete canonical key",
+      "lease and compare-and-swap takeover for a failed or stale leader",
+      "durable leader receipt digest and run binding",
+      "durable alias receipt linking the exact canonical leader run and receipt digest",
+      "negative replay and concurrent-claim tests",
+      "failure observations proven non-dedupable"
+    ]
+  },
+  "alias_receipt_contract": {
+    "state": "DEDUPED_ALIAS",
+    "required_fields": [
+      "canonical_key",
+      "source_sha",
+      "upstream_class",
+      "generation_discriminator",
+      "alias_run_id",
+      "canonical_run_id",
+      "canonical_run_attempt",
+      "canonical_receipt_digest",
+      "canonical_artifact_digest",
+      "classifier_contract_digest",
+      "receipt_digest"
+    ],
+    "canonical_run_id_must_differ_from_alias_run_id": true,
+    "canonical_receipt_digest_required": true,
+    "required_field_paths": [
+      "execution.canonical_identity.canonical_key",
+      "execution.canonical_identity.source_sha",
+      "execution.canonical_identity.upstream_class",
+      "execution.canonical_identity.generation_discriminator",
+      "execution.canonical_identity.alias_run_id",
+      "execution.canonical_identity.alias_run_attempt",
+      "execution.canonical_identity.canonical_run_id",
+      "execution.canonical_identity.canonical_run_attempt",
+      "execution.canonical_identity.canonical_receipt_digest",
+      "execution.canonical_identity.canonical_artifact_digest",
+      "execution.canonical_identity.classifier_contract_digest",
+      "receipt_digest"
+    ]
+  },
+  "truth_boundary": {
+    "detector_authority": "READ_ONLY",
+    "repository_mutation_allowed": false,
+    "external_mutation_allowed": false,
+    "runtime_dedupe_active": false,
+    "ephemeral_actions_alias_guard_active": true,
+    "durable_runtime_dedupe_active": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "autonomous_effect": "POSITIVE_WITH_HOLD: grouped successful workflow_run cascades can reuse one exact successful canonical audit within Actions retention; every non-success, manual recovery, special exact-artifact observation, incomplete readback, and post-retention replay still executes independently until the remote ledger is proven.",
+  "global_effect": "NEUTRAL: no source, geography, language, rights, or empirical-coverage claim changes.",
+  "irreplaceable_value_effect": "POSITIVE: creates a durable canonical identity namespace that can bind future permanent receipts independently of any one Actions artifact.",
+  "transparency_effect": "POSITIVE: makes dedupe eligibility, generation semantics, exact upstream class, activation hold, and alias requirements explicit."
+}

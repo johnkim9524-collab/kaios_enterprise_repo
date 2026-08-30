@@ -5,7 +5,9 @@ import path from 'node:path';
 const root = process.cwd();
 const contractPath = 'coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json';
 const assurancePath = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+const canonicalIdentityPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const contract = JSON.parse(fs.readFileSync(path.join(root, contractPath), 'utf8'));
+const canonicalIdentity = JSON.parse(fs.readFileSync(path.join(root, canonicalIdentityPath), 'utf8'));
 
 function fail(message) {
   throw new Error(message);
@@ -118,6 +120,42 @@ function validate(overrides = new Map()) {
     if (observer.producers.length > 0 && graph.edges.some(({ producer }) => producer === observerContract.consumer)) {
       findings.push('control observer must be terminal');
     }
+    const guard = observerContract.canonical_success_guard;
+    if (guard?.identity_contract !== canonicalIdentityPath || guard?.durable_runtime_state !== 'REMOTE_LEDGER_ACTIVATION_HOLD' ||
+        guard?.canonical_execution_claimed !== false || guard?.special_manual_direct_rerun_and_non_success_bypass !== true ||
+        guard?.job_level_serialization !== true || guard?.cancel_in_progress !== false ||
+        guard?.fixed_leader_artifact_retention_days !== 90 || guard?.github_pending_capacity !== 1 ||
+        guard?.verified_coverage_alias_observer_no_full_audit !== true ||
+        guard?.verified_coverage_alias_requires_single_active_leader !== true ||
+        guard?.verified_coverage_alias_splits_audit_and_canonical_source_sha !== true ||
+        guard?.verified_coverage_alias_exact_current_and_canonical_run_metadata !== true ||
+        guard?.verified_coverage_alias_semantic_receipt_exact_file_and_material_readback !== true ||
+        guard?.coverage_alias_tamper_or_incomplete_readback !== 'FAIL_CLOSED' ||
+        guard?.additional_pending_runs_may_be_replaced !== true || guard?.every_alias_receipt_guaranteed !== false) {
+      findings.push('control observer canonical success guard drift');
+    }
+    if (JSON.stringify([...(guard?.grouped_classes || [])].sort()) !== JSON.stringify([...canonicalIdentity.ephemeral_actions_alias_eligible_classes].sort())) {
+      findings.push('control observer grouped class allowlist drift');
+    }
+    if (JSON.stringify([...(guard?.special_exact_artifact_classes || [])].sort()) !== JSON.stringify([...canonicalIdentity.special_exact_artifact_classes].sort())) {
+      findings.push('control observer special exact-artifact class drift');
+    }
+    for (const marker of [
+      'needs.classify-canonical-identity.outputs.concurrency_group',
+      'cancel-in-progress: false',
+      'resolve-continuous-assurance-ephemeral-guard-v1.mjs',
+      '-f name="$CANONICAL_ARTIFACT_NAME"',
+      'Publish successful bounded canonical leader artifact',
+      "if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'",
+      'observe-continuous-assurance-coverage-alias-v1.mjs',
+      'COVERAGE_CANONICAL_ARTIFACT_ACTIVE_CARDINALITY',
+      'COVERAGE_SEMANTIC_RECEIPT_DIGEST',
+      'canonical_artifact_workflow_run_id',
+      'coverage_canonical_source_sha',
+      'KPMO_COVERAGE_ALIAS_OBSERVATION',
+      'validate-safe-zip-archive-v1.py',
+    ]) if (!observer.text.includes(marker)) findings.push(`control observer canonical guard marker missing: ${marker}`);
+    if (observer.text.includes('-f head_sha=')) findings.push('control observer blind source-SHA artifact election detected');
   }
 
   const metrics = graphMetrics(graph, controlObserverEdges);
@@ -196,6 +234,12 @@ const unapprovedEdgeMutation = assuranceOriginal.replace(
 if (validate(new Map([[assurancePath, unapprovedEdgeMutation]])).findings.length === 0) {
   fail('unapproved control observer edge mutation escaped');
 }
+const cancelMutation = assuranceOriginal.replace('cancel-in-progress: false', 'cancel-in-progress: true');
+if (validate(new Map([[assurancePath, cancelMutation]])).findings.length === 0) fail('canonical guard cancellation mutation escaped');
+const blindShaMutation = assuranceOriginal.replace('-f name="$CANONICAL_ARTIFACT_NAME"', '-f head_sha="$KPMO_SOURCE_SHA"');
+if (validate(new Map([[assurancePath, blindShaMutation]])).findings.length === 0) fail('blind source-SHA election mutation escaped');
+const earlyLeaderMutation = assuranceOriginal.replace("if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'", 'if: always()');
+if (validate(new Map([[assurancePath, earlyLeaderMutation]])).findings.length === 0) fail('unverified leader publication mutation escaped');
 
 process.stdout.write(`${JSON.stringify({
   id: contract.id,

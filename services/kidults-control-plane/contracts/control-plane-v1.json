@@ -42,6 +42,96 @@
     "external_identity_provider": "NOT_SELECTED",
     "external_billing_provider": "NOT_SELECTED"
   },
+  "workflow_receipt_ledger": {
+    "state": "IMPLEMENTED_NOT_REMOTE_VERIFIED",
+    "ordered_postgresql_migrations": [
+      "migrations/postgres/0001_system_of_record.sql",
+      "migrations/postgres/0002_workflow_run_receipts.sql"
+    ],
+    "receipt_table": "kidults_control.workflow_run_receipts",
+    "canonical_claim_table": "kidults_control.workflow_canonical_run_claims",
+    "canonical_alias_table": "kidults_control.workflow_canonical_run_aliases",
+    "writer_id": "kpmo-workflow-receipt-writer-v1",
+    "database_role": "kidults_control_workflow_receipt",
+    "database_role_login": "NOLOGIN",
+    "database_privileges": [
+      "SELECT",
+      "INSERT"
+    ],
+    "result_json_max_bytes": 262144,
+    "secret_like_result_material": "DENIED_BEFORE_INSERT",
+    "receipt_idempotency_key": [
+      "repository",
+      "workflow_run_id",
+      "workflow_run_attempt",
+      "receipt_type"
+    ],
+    "exact_replay": "IDEMPOTENT_REPLAY",
+    "conflicting_replay": "ROLLBACK_AND_HOLD",
+    "canonical_relation_binding": {
+      "state": "DATABASE_AND_RUNTIME_EXACT_FAIL_CLOSED",
+      "none": "ALL_CANONICAL_FIELDS_NULL",
+      "leader_match": [
+        "canonical_claim_id",
+        "repository",
+        "leader_workflow_path",
+        "leader_workflow_run_id",
+        "leader_workflow_run_attempt",
+        "leader_claim_binding_digest"
+      ],
+      "alias_match": [
+        "canonical_claim_id",
+        "parent_claim_repository",
+        "repository",
+        "alias_workflow_path",
+        "alias_workflow_run_id",
+        "alias_workflow_run_attempt",
+        "alias_binding_digest"
+      ],
+      "runtime_verification": [
+        "PRE_INSERT",
+        "READBACK"
+      ],
+      "forged_relation_digest_run_cross_claim_or_missing_alias": "ROLLBACK_AND_HOLD",
+      "row_locking": "NOT_USED_UPDATE_PRIVILEGE_NOT_GRANTED"
+    },
+    "update_delete_truncate": "DENIED",
+    "artifact_role": "EXPIRING_TRANSFER_EVIDENCE_NOT_PERMANENT_SYSTEM_OF_RECORD",
+    "remote_persistence": "HOLD",
+    "finalizer_activation": "HOLD",
+    "continuous_assurance_direct_database_writes": "PROHIBITED",
+    "canonical_dedupe": {
+      "state": "SCHEMA_AND_LOCAL_RUNTIME_READY_NOT_REMOTE_ACTIVATED",
+      "classifier_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
+      "business_key": [
+        "repository",
+        "consumer_workflow_id",
+        "source_sha",
+        "upstream_class",
+        "generation_discriminator",
+        "classifier_contract_digest"
+      ],
+      "canonical_input_digest_match_required": true,
+      "dedupe_eligible_true_required": true,
+      "special_exact_artifact_classes": [
+        "ASI_REQUIREMENT_COVERAGE",
+        "ASI_SHARDED_SOURCE_RESERVE",
+        "ASI_SHADOW_OPERATING_EVIDENCE"
+      ],
+      "provisional_special_class_digest_claim": "PROHIBITED",
+      "special_class_claim_requires": [
+        "VERIFIED_EXACT_ARTIFACT_INPUT",
+        "UPSTREAM_BINDING_DIGEST",
+        "SOURCE_RECEIPT_DIGEST"
+      ],
+      "first_writer_cas": "EXPLICIT_UNIQUE_CONSTRAINT_INSERT_THEN_EXACT_READBACK",
+      "leader_binding": "APPEND_ONLY",
+      "alias_binding": "APPEND_ONLY",
+      "input_divergence": "HOLD_NO_ALIAS",
+      "failed_or_stale_leader_takeover": "NOT_IMPLEMENTED_HOLD",
+      "real_postgresql_concurrency_and_permission_evidence": "NOT_RUN"
+    }
+  },
   "fail_closed_invariants": [
     "UNREGISTERED_WRITER_DENIED",
     "CROSS_TENANT_ACCESS_DENIED",
@@ -56,7 +146,15 @@
     "POISON_OUTBOX_EVENT_RETRIES_ARE_BOUNDED_THEN_QUARANTINED",
     "SUPPLY_RUN_SOURCE_RIGHTS_PURPOSE_FIELD_SET_AND_CARDINALITY_MUST_MATCH",
     "AUDIT_UPDATE_OR_DELETE_DENIED",
-    "PROJECTION_WITHOUT_SOURCE_EVENT_AND_HASH_DENIED"
+    "PROJECTION_WITHOUT_SOURCE_EVENT_AND_HASH_DENIED",
+    "WORKFLOW_RECEIPT_SECRET_LIKE_OR_OVERSIZED_RESULT_DENIED_BEFORE_INSERT",
+    "WORKFLOW_RECEIPT_CONFLICTING_REPLAY_ROLLS_BACK",
+    "WORKFLOW_RECEIPT_CANONICAL_RELATION_MUST_EXACTLY_MATCH_LEADER_OR_ALIAS_AND_PARENT_CLAIM",
+    "WORKFLOW_RECEIPT_UPDATE_DELETE_TRUNCATE_DENIED",
+    "CANONICAL_RUN_CLAIM_REQUIRES_TRUSTED_CLASSIFIER_AND_DEDUPE_ELIGIBLE_TRUE",
+    "SPECIAL_EXACT_ARTIFACT_CLASS_CANNOT_CLAIM_FROM_PROVISIONAL_OBSERVATION_DIGEST",
+    "CANONICAL_RUN_SAME_KEY_INPUT_DIVERGENCE_HOLDS_WITHOUT_ALIAS",
+    "EXPIRING_ACTIONS_ARTIFACT_IS_NOT_PERMANENT_LEDGER_EVIDENCE"
   ],
   "empirical_truth": {
     "graded_population": "0/120",

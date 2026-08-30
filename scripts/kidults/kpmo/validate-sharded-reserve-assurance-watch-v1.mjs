@@ -23,7 +23,7 @@ function validateAssurance(source) {
   if (count(source, watch) !== 1) fail('RESERVE_WATCH_CARDINALITY_NOT_ONE');
   const block = extractStep(source, 'Validate exact Sharded Reserve upstream terminal binding');
   const required = [
-    "if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'",
+    "if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'",
     'GH_TOKEN: ${{ github.token }}',
     'RESERVE_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
     'RESERVE_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}',
@@ -72,7 +72,7 @@ function validateAssurance(source) {
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`ASSURANCE_MARKER_MISSING:${marker}`);
   if (block.includes('{status:"VERIFIED_PASS"')) fail('RESERVE_HARD_CODED_PASS_FORBIDDEN');
-  const header = source.match(/jobs:\n  audit:\n([\s\S]*?)\n    runs-on:/)?.[1] || '';
+  const header = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
   if (/workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header)) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
 }
 
