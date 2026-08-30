@@ -15,6 +15,21 @@ on:
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json"
       - ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
       - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
+  push:
+    branches: [main]
+    paths:
+      - "coordination/kidults/source-intelligence/asi-global-source-pool-control-v1.json"
+      - "scripts/kidults/source-intelligence/*provider-operation-receipt-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-global-source-pool-control-v1.mjs"
+      - "scripts/kidults/source-intelligence/*asi-source-product-value-v1.mjs"
+      - "scripts/kidults/source-intelligence/*asi-product-value-backfill-v1.mjs"
+      - "scripts/kidults/source-intelligence/*asi-product-value-gate*v1.mjs"
+      - "scripts/kidults/source-intelligence/*asi-rights-analysis-fast-lane-v1.mjs"
+      - "scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs"
+      - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json"
+      - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json"
+      - ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
+      - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
 permissions:
   contents: read
 concurrency:
@@ -34,7 +49,9 @@ jobs:
       - name: Validate global source pool control
         run: node scripts/kidults/source-intelligence/validate-asi-global-source-pool-control-v1.mjs
       - name: Prove product-value admission and rejection boundaries
-        run: node scripts/kidults/source-intelligence/test-asi-source-product-value-v1.mjs
+        run: |
+          node scripts/kidults/source-intelligence/test-asi-source-product-value-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs
       - name: Prove canonical 64 value backfill and no false promotion
         run: |
           node scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json /tmp/asi-product-value-backfill-v1.json
