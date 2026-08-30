@@ -95,7 +95,7 @@ def launch_cohort_digest(evidence: dict[str, Any], current_sold: list[dict[str, 
     require(cohort.get("cohort_class") == "LAWFUL_CURRENT_SOLD_SAMPLE", "LAUNCH_COHORT_CLASS_INVALID")
     policy = json.loads(SAMPLE_POLICY.read_text(encoding="utf-8"))
     tier = next((item for item in policy["tiers"] if item["id"] == cohort.get("sample_tier")), None)
-    require(tier is not None and tier.get("statistical_claim") is True, "SAMPLE_TIER_INVALID")
+    require(tier is not None and (tier.get("statistical_claim") is True or cohort.get("cohort_mode") == "CONTROL_ONLY_FIXTURE"), "SAMPLE_TIER_INVALID")
     ids = [record.get("evidence_id") for record in current_sold]
     require(len(ids) == cohort.get("sample_size") and len(set(ids)) == len(ids), "LAUNCH_COHORT_SAMPLE_SIZE_OR_UNIQUENESS")
     require(tier["min_n"] <= len(ids) <= tier["max_n"], "LAUNCH_COHORT_OUTSIDE_POLICY_BOUNDS")
@@ -104,6 +104,7 @@ def launch_cohort_digest(evidence: dict[str, Any], current_sold: list[dict[str, 
     computed = digest_json({
         "cohort_class": cohort["cohort_class"],
         "sample_tier": cohort["sample_tier"],
+        "cohort_mode": cohort.get("cohort_mode"),
         "sample_size": cohort["sample_size"],
         "terminal_state": cohort["terminal_state"],
         "event_ids": sorted(ids),

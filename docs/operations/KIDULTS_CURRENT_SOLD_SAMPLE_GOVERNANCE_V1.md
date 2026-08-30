@@ -14,15 +14,15 @@ The platform no longer treats `120 current-SOLD events` as a universal launch re
 | Tier | Claim | Rule |
 |---|---|---|
 | Canary | schema/boundary smoke | 5 cases; no statistical or market claim |
-| Adapter qualification | source pipeline reliability | one-sided exact 95% UCB, defect tolerance 5%; zero-failure floor 59 |
-| Private E2E | bounded internal product proof | one-sided exact 95% UCB, critical-defect tolerance 2.5%; zero-failure floor 119; at least 2 ultimate owners for multi-source proof |
-| Beta reliability | release evidence reliability | one-sided exact 95% UCB, tolerance 1%; zero-failure floor 299 |
+| Adapter qualification | source pipeline reliability | one-sided exact 99% UCB, major-defect tolerance 1%, critical defects 0; zero-failure floor 459 |
+| Private E2E | bounded internal product proof | one-sided exact 99% UCB, major-defect tolerance 0.25%, critical defects 0; zero-failure floor 1,840; at least 2 ultimate owners |
+| Beta reliability | release evidence reliability | one-sided exact 99% UCB, major-defect tolerance 0.1%, critical defects 0; zero-failure floor 4,603 |
 
 The zero-failure floor is calculated as:
 
 `ceil(log(alpha) / log(1 - tolerated_defect_rate))`
 
-The former 120 is therefore only an operational rounding of the Private E2E tier; it is not a legal, market-representativeness or Production threshold.
+The former 120 is not sufficient for any statistical reliability claim under this policy. A 119/120 or 120/120 control fixture may exercise plumbing only; it cannot satisfy Private E2E reliability. The thresholds are risk-policy choices informed by enterprise SLO practice, not claims that Google, AWS or Microsoft publish these exact data-defect rates.
 
 ## Stakeholder alignment
 

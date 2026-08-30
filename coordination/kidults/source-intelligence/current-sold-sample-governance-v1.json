@@ -10,17 +10,18 @@
   },
   "statistical_method": {
     "interval": "ONE_SIDED_EXACT_CLOPPER_PEARSON_UPPER_BOUND",
-    "confidence": 0.95,
-    "alpha": 0.05,
+    "confidence": 0.99,
+    "alpha": 0.01,
     "zero_failure_formula": "ceil(log(alpha) / log(1 - defect_tolerance))",
     "optional_stopping": false,
     "threshold_change_after_observation": false
   },
   "tiers": [
+    {"id":"CONTROL_ONLY_FUNCTIONAL","purpose":"DETERMINISTIC_PLUMBING_REPLAY","min_n":1,"max_n":300,"critical_defect_tolerance":0,"statistical_claim":false},
     {"id":"CANARY","purpose":"SCHEMA_AND_BOUNDARY_SMOKE","min_n":5,"max_n":5,"critical_defect_tolerance":0,"statistical_claim":false},
-    {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","defect_tolerance":0.05,"zero_failure_n":59,"min_n":59,"max_n":180,"statistical_claim":true},
-    {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","defect_tolerance":0.025,"zero_failure_n":119,"min_n":119,"max_n":300,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
-    {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","defect_tolerance":0.01,"zero_failure_n":299,"min_n":299,"max_n":600,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
+    {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","defect_tolerance":0.01,"zero_failure_n":459,"min_n":459,"max_n":1000,"critical_defect_tolerance":0,"statistical_claim":true},
+    {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","defect_tolerance":0.0025,"zero_failure_n":1840,"min_n":1840,"max_n":3000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
+    {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","defect_tolerance":0.001,"zero_failure_n":4603,"min_n":4603,"max_n":10000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
   ],
   "coverage_gate": {
     "separate_from_sample_size": true,

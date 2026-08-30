@@ -135,7 +135,8 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
     event_ids = sorted(record["evidence_id"] for record in sold_records)
     launch_cohort = {
         "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
-        "sample_tier": "PRIVATE_E2E",
+        "sample_tier": "CONTROL_ONLY_FUNCTIONAL",
+        "cohort_mode": "CONTROL_ONLY_FIXTURE",
         "sample_size": 119,
         "terminal_state": "SOLD",
         "event_ids": event_ids,
