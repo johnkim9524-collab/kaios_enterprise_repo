@@ -124,7 +124,7 @@ const evidenceRecord = {
   generic_market_event_eligible: false,
   machine_proven_acquisition_receipt: false,
   promotable: false,
-  verified_current_sold_event: false;
+  verified_current_sold_event: false,
   current_price_eligible: false,
   current_market_signal_eligible: false,
   liquidity_eligible: false,
