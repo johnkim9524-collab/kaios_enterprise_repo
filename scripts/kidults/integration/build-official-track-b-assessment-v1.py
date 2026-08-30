@@ -447,7 +447,7 @@ def build_hold_assessment_envelope(
         "exact_pair_digest": pair_digest,
         "correlation_id": correlation_id(pair_digest),
         "synthetic": False,
-        "promotable": True,
+        "promotable": False,
         "assessment": assessment,
     }
     return envelope
