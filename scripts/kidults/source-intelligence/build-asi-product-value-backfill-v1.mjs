@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+import fs from 'node:fs';import crypto from 'node:crypto';
+const frontierPath=process.argv[2]||'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv';
+const top16Path=process.argv[3]||'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json';
+const outputPath=process.argv[4]||'/tmp/asi-product-value-backfill-v1.json';
+const lines=fs.readFileSync(frontierPath,'utf8').trim().split(/\r?\n/);const headers=lines.shift().split('|');
+const rows=lines.map((line,n)=>{const values=line.split('|');if(values.length!==headers.length)throw new Error('PSV_COLUMNS:'+(n+2));return Object.fromEntries(headers.map((h,i)=>[h,values[i]]))});
+const top16=JSON.parse(fs.readFileSync(top16Path,'utf8'));if(!Array.isArray(top16.rows)||top16.rows.length!==16)throw new Error('TOP16_COUNT');
+const mapRoles=roles=>{
+ const r=new Set(roles);const decisions=new Set(),products=new Set();let impact=0,identity=0,signal=0;
+ if(r.has('SOLD_TRANSACTION')){decisions.add('UNDERSTAND_REALIZED_VALUE');decisions.add('COMPARE_COMPARABLES');products.add('COMPARE');products.add('INDEX');products.add('MARKET_REPORT');products.add('PROJECTION');impact=Math.max(impact,25);signal=Math.max(signal,20)}
+ if(r.has('PRIMARY_AUTHORITY')||r.has('CATALOG_REFERENCE')){decisions.add('IDENTIFY_OBJECT');products.add('DOSSIER');impact=Math.max(impact,18);identity=Math.max(identity,14)}
+ if(r.has('AUTHENTICATION_CONDITION')){decisions.add('VERIFY_AUTHENTICITY_OR_GRADE');products.add('DOSSIER');impact=Math.max(impact,22);identity=Math.max(identity,16)}
+ if(r.has('LISTING_SUPPLY')){decisions.add('MONITOR_MARKET');products.add('WATCHLIST');impact=Math.max(impact,17);signal=Math.max(signal,10)}
+ if(r.has('PROVENANCE_HISTORY')){decisions.add('MANAGE_COLLECTION');products.add('DOSSIER');impact=Math.max(impact,18);identity=Math.max(identity,12)}
+ if(r.has('CULTURE_ATTENTION')){decisions.add('MONITOR_MARKET');products.add('MARKET_REPORT');impact=Math.max(impact,12);signal=Math.max(signal,6)}
+ return{customer_decisions:[...decisions],product_surfaces:[...products],research_priority_dimensions:{customer_decision_impact:impact,object_identity_and_joinability:identity,transaction_or_market_signal:signal,freshness_and_update_reliability:0,global_coverage_increment:8,source_resilience_and_fallback_value:0}};
+};
+const records=rows.map(row=>{const roles=row.source_roles.split(';').filter(Boolean);const m=mapRoles(roles);const score=Object.values(m.research_priority_dimensions).reduce((a,b)=>a+b,0);return{source_id:row.source_id,display_name:row.display_name,vertical:row.core_domain,collection_scope_ids:row.collection_scope_ids.split(';'),source_roles:roles,official_url:row.official_endpoint,official_documentation_url:row.official_documentation_url,access_mode:row.access_mode,...m,research_priority_score:score,value_score:null,value_score_state:'NEEDS_SOURCE_SPECIFIC_ENRICHMENT_AND_EVIDENCE',hard_minimum_complete:false,value_admission_status:'NOT_VALUE_ADMITTED',rights_status:'SEPARATE_GATE_NOT_EVALUATED_BY_THIS_BACKFILL',acquisition_authorized:false,production_authorized:false}});
+const domains=[...new Set(records.map(x=>x.vertical))].sort();const counts=Object.fromEntries(domains.map(d=>[d,records.filter(x=>x.vertical===d).length]));
+const payload={id:'kidults-asi-product-value-backfill-v1',version:'1.0.0',state:'STATIC_TRIAGE_COMPLETE_VALUE_ADMISSION_HOLD',source_grain:'CURATED_64',summary:{curated_rows:records.length,canonical_domains:domains.length,domain_counts:counts,adapter_profiles_accounted:top16.rows.length,discovery_requirements_accounted:120,schema_requirements_accounted:33,value_admitted:0,rights_clear_for_current_sold:0,acquisition_authorized:0},records,queue:{product_value_enrichment:records.map(x=>({queue_id:'VALUE:'+x.source_id,source_id:x.source_id,owner:'KPMO_TRACK_Z',ack_due_runs:1,resolution_due_runs:5,idempotency_key:x.source_id+':PRODUCT_VALUE_ENRICHMENT',fallback:'RETAIN_RESEARCH_ONLY_AND_PRIORITIZE_NEXT_SOURCE'}))},truth_boundary:{static_role_semantics_are_empirical_value:false,research_priority_score_is_value_score:false,open_access_is_product_value:false,production_authorized:false,public:'HOLD',production:'HOLD',g5:'HOLD'}};
+payload.digest='sha256:'+crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');fs.writeFileSync(outputPath,JSON.stringify(payload,null,2)+'\n');console.log(JSON.stringify(payload.summary,null,2));
