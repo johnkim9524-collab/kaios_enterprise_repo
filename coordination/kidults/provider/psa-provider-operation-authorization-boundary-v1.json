@@ -1,0 +1,68 @@
+{
+  "id": "KIDULTS_PSA_PROVIDER_OPERATION_AUTHORIZATION_BOUNDARY_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-30T11:55:00Z",
+  "state": "BLOCKED_NOT_PROVISIONED",
+  "purpose": "Separate protected-main code landing from credential resolution and PSA provider activation.",
+  "root_issue": 1637,
+  "authority_separation": {
+    "repository_landing_authorizes_provider_call": false,
+    "atomic_landing_authorizes_provider_call": false,
+    "post_merge_workflow_may_dispatch_provider": false,
+    "manual_workflow_dispatch_alone_authorizes_provider_call": false,
+    "provider_secret_may_resolve_before_authorization_consumption": false
+  },
+  "required_authorization": {
+    "issuer": "INDEPENDENT_EXTERNAL_WRITER_IMMUTABLE_AUTHORITY",
+    "consumption": "ATOMIC_ONE_SHOT",
+    "replay": "REJECT",
+    "self_authored_repository_receipt": "REJECT",
+    "required_bindings": [
+      "APPROVAL_ID",
+      "PROVIDER_ID_PSA_PUBLIC_API",
+      "ENDPOINT_GET_CERT_BY_NUMBER",
+      "PURPOSE_BOUNDED_PRIVATE_RUNTIME_VALIDATION",
+      "EXACT_PROTECTED_MAIN_SHA",
+      "WORKFLOW_PATH",
+      "GITHUB_RUN_ID",
+      "GITHUB_RUN_ATTEMPT_1",
+      "UUID_V4_NONCE",
+      "ISSUED_AT",
+      "EXPIRES_AT",
+      "QUOTA_ONE_PROVIDER_CALL",
+      "BOUNDED_CERT_SUBJECT_DIGEST"
+    ],
+    "maximum_ttl_seconds": 600,
+    "sanitized_consumption_receipt_required": true
+  },
+  "current_enforcement": {
+    "post_merge_control_receipt_only": true,
+    "post_merge_provider_dispatch": false,
+    "private_runtime_authorization_hold_job": true,
+    "private_runtime_provider_job_literal_if_false": true,
+    "provider_calls_possible_from_landing": 0,
+    "provider_calls_possible_from_manual_dispatch": 0,
+    "provider_secret_resolution_possible": false
+  },
+  "activation_prerequisites": [
+    "EXTERNAL_ONE_SHOT_LEDGER_PROVISIONED",
+    "WRITER_IMMUTABLE_ISSUER_PROVEN",
+    "SIGNED_CONSUMPTION_RESPONSE_KEY_PINNED",
+    "ATOMIC_REPLAY_REJECTION_PROVEN",
+    "EXACT_MAIN_AND_RUN_BINDINGS_PROVEN",
+    "NATURAL_NEGATIVE_CANARIES_PASS",
+    "SEPARATELY_APPROVED_PROTECTED_MAIN_PROVIDER_CANARY"
+  ],
+  "counts": {
+    "historical_schema_probe_successes": 1,
+    "approved_private_runtime_successes": 0,
+    "lawful_manifest_admitted": 0,
+    "live_acquisition": 0,
+    "product_pipeline_admission": 0,
+    "target": 120
+  },
+  "truth_statement": "PSA_API_SCHEMA_CONNECTION_VERIFIED; PROVIDER_ACTIVATION_AUTHORIZATION_NOT_PROVISIONED; PRIVATE_RUNTIME_AND_120_PRODUCT_CONNECTION_NOT_ACTIVATED",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}

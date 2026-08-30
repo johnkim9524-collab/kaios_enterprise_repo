@@ -12,6 +12,7 @@ on:
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-provider-operation-authorization-boundary-v1.json'
       - 'coordination/kidults/provider/psa-z1-followup-trigger-remediation-v1.json'
       - 'coordination/kidults/provider/psa-120-field-map-v1.json'
       - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
@@ -28,6 +29,7 @@ on:
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-provider-operation-authorization-boundary-v1.json'
       - 'coordination/kidults/provider/psa-z1-followup-trigger-remediation-v1.json'
       - 'coordination/kidults/provider/psa-120-field-map-v1.json'
       - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
@@ -50,7 +52,7 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Validate PSA execution controls, orchestration, and secret registry
+      - name: Validate PSA code-landing and provider-activation separation
         run: |
           set -euo pipefail
           node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
