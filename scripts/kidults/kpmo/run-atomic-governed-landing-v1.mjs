@@ -65,6 +65,14 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
 
+const assertAtomicLandingMergeable = (pr, errorCode) => {
+  // The operation-specific authorization context is required natively and is pending
+  // while this job runs, so GitHub reports "blocked" until this job publishes success.
+  // All independent checks are re-read below and the server-side merge remains final enforcement.
+  const allowedStates = ['clean', 'unstable', 'has_hooks', 'blocked'];
+  if (pr?.mergeable !== true || !allowedStates.includes(pr?.mergeable_state)) throw new Error(errorCode);
+};
+
 let statusTouched = false;
 try {
   await publish('pending', 'Atomic landing final checks in progress');
@@ -78,7 +86,7 @@ try {
     noMergePolicy: policy.no_merge_policy,
   });
   if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
-  if (initial.mergeable !== true || !['clean', 'unstable', 'has_hooks'].includes(initial.mergeable_state)) throw new Error('PULL_REQUEST_NOT_SERVER_MERGEABLE');
+  assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -113,7 +121,7 @@ try {
     expectedHeadSha,
     noMergePolicy: policy.no_merge_policy,
   });
-  if (final.mergeable !== true || !['clean', 'unstable', 'has_hooks'].includes(final.mergeable_state)) throw new Error('FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
+  assertAtomicLandingMergeable(final, 'FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   await publish('success', 'Exact-head atomic landing authorized');
   const immediatePreMerge = await request(`/pulls/${prNumber}`);
