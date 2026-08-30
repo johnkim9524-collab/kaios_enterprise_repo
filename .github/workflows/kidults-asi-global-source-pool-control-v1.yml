@@ -13,6 +13,7 @@ on:
       - "scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs"
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json"
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json"
+      - "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json"
       - ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
       - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
   push:
@@ -28,6 +29,7 @@ on:
       - "scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs"
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json"
       - "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json"
+      - "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json"
       - ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
       - ".github/workflows/kidults-asi-global-source-pool-control-v1.yml"
 permissions:
