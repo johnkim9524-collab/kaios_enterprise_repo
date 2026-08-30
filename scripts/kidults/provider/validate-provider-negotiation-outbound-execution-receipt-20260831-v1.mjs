@@ -105,7 +105,7 @@ process.stdout.write(`${JSON.stringify({
   authorization_provenance: receipt.authorization_provenance.state,
   promotable: false,
   repository: process.env.GITHUB_REPOSITORY || null,
-  source_sha: process.env.GITHUB_SHA || null,
+  source_sha: process.env.SOURCE_SHA || process.env.GITHUB_SHA || null,
   workflow_run_id: process.env.GITHUB_RUN_ID || null,
   workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
   trigger_event: process.env.GITHUB_EVENT_NAME || null,
