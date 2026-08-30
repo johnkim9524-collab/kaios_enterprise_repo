@@ -149,6 +149,24 @@ for (const [name, sourcePath, expectedClass] of exactClasses) {
 }
 assert(exactKeys.size === exactClasses.length, 'SPECIAL_EXACT_CLASSES_NOT_DISTINCT');
 
+const dynamicArl = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9850',
+  upstream_run_id: '8850',
+  upstream_workflow_name: `KIDULTS ARL / recovery-${shaA}`,
+  upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+}, contract, contractText);
+assert(dynamicArl.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE', 'ARL_DYNAMIC_RUN_NAME_NOT_PATH_BOUND');
+const dynamicCoverage = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9851',
+  upstream_run_id: '8851',
+  upstream_workflow_name: `KIDULTS Coverage / source-${shaA}`,
+  upstream_workflow_path: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
+  upstream_conclusion: 'skipped',
+}, contract, contractText);
+assert(dynamicCoverage.upstream_class === 'ASI_REQUIREMENT_COVERAGE' && dynamicCoverage.terminal_observation_non_dedupable === true, 'COVERAGE_DYNAMIC_RUN_NAME_NOT_PATH_BOUND');
+
 for (const conclusion of ['failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale']) {
   const terminal = classifyCanonicalIdentity({ ...base, run_id: '9201', upstream_run_id: '8201', upstream_conclusion: conclusion }, contract, contractText);
   const otherTerminal = classifyCanonicalIdentity({ ...base, run_id: '9202', upstream_run_id: '8202', upstream_conclusion: conclusion }, contract, contractText);
@@ -209,6 +227,8 @@ assert(otherClass.ephemeral_actions_alias_eligible === false, 'SNAPSHOT_ALIAS_FO
 const negativeCases = [
   ['UNKNOWN_WORKFLOW', { ...base, upstream_workflow_name: 'UNKNOWN' }],
   ['WORKFLOW_PATH_MISMATCH', { ...base, upstream_workflow_path: '.github/workflows/other.yml' }],
+  ['ARL_DYNAMIC_NAME_SHA_MALFORMED', { ...base, upstream_workflow_name: 'KIDULTS ARL / recovery-main', upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml' }],
+  ['COVERAGE_DYNAMIC_NAME_CROSS_PATH', { ...base, upstream_workflow_name: `KIDULTS Coverage / source-${shaA}`, upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml' }],
   ['SOURCE_SHA_INVALID', { ...base, source_sha: 'bad' }],
   ['UPSTREAM_CONCLUSION_INVALID', { ...base, upstream_conclusion: 'queued' }],
   ['UPSTREAM_EVENT_INVALID', { ...base, upstream_event: 'repository_dispatch' }],
