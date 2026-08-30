@@ -5,6 +5,37 @@ const programPath = process.argv[2] || 'coordination/kidults/source-intelligence
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
 const clone = value => structuredClone(value);
+const sortedUnique = values => [...new Set(values)].sort();
+const sameArray = (left, right) => JSON.stringify(left) === JSON.stringify(right);
+
+function deriveEligibleSourceIds(rights, snapshots, controlPlane) {
+  assert(Array.isArray(rights.records), 'RIGHTS_RECORDS_UNREADABLE');
+  assert(Array.isArray(snapshots.records), 'SNAPSHOT_RECORDS_UNREADABLE');
+  assert(Array.isArray(controlPlane.source_records), 'CONTROL_PLANE_SOURCE_RECORDS_UNREADABLE');
+
+  const rightsIds = new Set(rights.records
+    .filter(record => record.decision === 'PASS')
+    .map(record => record.source_id));
+  const snapshotIds = new Set(snapshots.records
+    .filter(record => record.decision_promotion_eligible === true)
+    .map(record => record.source_id));
+  const activationIds = new Set(controlPlane.source_records
+    .filter(record => record.activation_eligible === true)
+    .map(record => record.canonical_source_id));
+
+  return sortedUnique([...rightsIds].filter(sourceId => snapshotIds.has(sourceId) && activationIds.has(sourceId)));
+}
+
+function validateEligibility(eligibilityStage, rights, snapshots, controlPlane) {
+  const observed = eligibilityStage?.observed;
+  assert(observed && Array.isArray(observed.eligible_source_ids), 'ELIGIBLE_SOURCE_IDS_MISSING');
+  assert(observed.eligible_source_ids.every(sourceId => typeof sourceId === 'string' && sourceId.length > 0), 'ELIGIBLE_SOURCE_ID_INVALID');
+  assert(sameArray(observed.eligible_source_ids, sortedUnique(observed.eligible_source_ids)), 'ELIGIBLE_SOURCE_IDS_NOT_SORTED_UNIQUE');
+  assert(observed.eligible_sources === observed.eligible_source_ids.length, 'ELIGIBLE_SOURCE_COUNT_ID_DRIFT');
+  const derived = deriveEligibleSourceIds(rights, snapshots, controlPlane);
+  assert(sameArray(observed.eligible_source_ids, derived), 'ELIGIBLE_SOURCE_ID_JOIN_DRIFT');
+  return derived;
+}
 
 function validate(program) {
   assert(program.id === 'kidults-asi-launch-evidence-program-v1' && program.version === '1.0.0', 'PROGRAM_IDENTITY');
@@ -37,6 +68,11 @@ function validate(program) {
   assert(capture.observed.reference_only === snapshots.summary.reference_only_not_captured_due_restriction, 'REFERENCE_ONLY_COUNT_DRIFT');
   assert(capture.observed.rights_clear_current_sold === rights.summary.rights_clear_for_current_sold, 'RIGHTS_CLEAR_COUNT_DRIFT');
 
+  const eligibility = stage('VALUE_RIGHTS_SCHEMA_ELIGIBILITY');
+  const eligibleSourceIds = validateEligibility(eligibility, rights, snapshots, controlPlane);
+  const eligible = eligibility.observed.eligible_sources;
+  assert(eligible <= rights.summary.rights_clear_for_current_sold && eligible <= snapshots.summary.promotion_eligible, 'ELIGIBLE_WITHOUT_RIGHTS_SNAPSHOT');
+
   const activation = stage('ADAPTER_AND_LAWFUL_120');
   assert(activation.observed.empirically_active_adapters === controlPlane.summary.empirically_active_adapters, 'ACTIVE_ADAPTER_COUNT_DRIFT');
   assert(activation.observed.lawful_current_sold_events === adapters.truth_boundary.market_events_created, 'LAWFUL_EVENT_COUNT_DRIFT');
@@ -48,8 +84,6 @@ function validate(program) {
   assert(trackB.observed.approved_projections === adapters.truth_boundary.projections_created, 'PROJECTION_COUNT_DRIFT');
   assert(staging.empty_state.track_b === 'NOT_STARTED' || trackB.observed.track_b_results > 0, 'STAGING_TRACK_B_DRIFT');
 
-  const eligible = stage('VALUE_RIGHTS_SCHEMA_ELIGIBILITY').observed.eligible_sources;
-  assert(eligible <= rights.summary.rights_clear_for_current_sold && eligible <= snapshots.summary.promotion_eligible, 'ELIGIBLE_WITHOUT_RIGHTS_SNAPSHOT');
   assert(activation.observed.empirically_active_adapters <= eligible, 'ADAPTER_BEFORE_ELIGIBILITY');
   assert(activation.observed.lawful_current_sold_events === 0 || activation.observed.empirically_active_adapters > 0, 'EVENTS_WITHOUT_ACTIVE_ADAPTER');
   assert(postgres.observed.persistent_receipts <= activation.observed.lawful_current_sold_events, 'RECEIPTS_EXCEED_LAWFUL_EVENTS');
@@ -60,8 +94,9 @@ function validate(program) {
   assert(scale.active_verticals <= program.targets.scale_verticals && scale.independent_source_owners <= program.targets.scale_independent_source_owners && scale.lawful_current_sold_events <= program.targets.scale_current_sold_events, 'SCALE_OBSERVED_EXCEEDS_TARGET');
 
   assert(program.promotion_law.strict_stage_order === true && program.promotion_law.rights_unknown_is_hold === true && program.promotion_law.public_visibility_is_permission === false, 'PROMOTION_LAW_WEAKENED');
+  assert(program.promotion_law.aggregate_count_substitution_for_source_identity === false, 'SOURCE_IDENTITY_LAW_WEAKENED');
   assert(program.authority_boundary.production === 'HOLD' && program.authority_boundary.public_release === 'HOLD' && program.authority_boundary.g5 === 'HOLD', 'PROTECTED_GATE_WEAKENED');
-  return {active, queued};
+  return {active, queued, eligibleSourceIds};
 }
 
 const program = read(programPath);
@@ -79,14 +114,23 @@ expectFailure('PROJECTION_COUNT_DRIFT', candidate => { const stage = candidate.s
 expectFailure('SCALE_BEFORE_LAUNCH_CELL', candidate => { candidate.stages.find(stage => stage.id === 'GLOBAL_BETA_SCALE').observed.active_verticals = 1; });
 expectFailure('PROTECTED_GATE_WEAKENED', candidate => { candidate.authority_boundary.production = 'ALLOW'; });
 
+const disjointEligibilityStage = { observed: { eligible_sources: 1, eligible_source_ids: ['source-a'] } };
+const disjointRights = { records: [{ source_id: 'source-a', decision: 'PASS' }] };
+const disjointSnapshots = { records: [{ source_id: 'source-b', decision_promotion_eligible: true }] };
+const disjointControlPlane = { source_records: [{ canonical_source_id: 'source-a', activation_eligible: true }] };
+let disjointError;
+try { validateEligibility(disjointEligibilityStage, disjointRights, disjointSnapshots, disjointControlPlane); } catch (caught) { disjointError = caught; }
+assert(disjointError?.message === 'ELIGIBLE_SOURCE_ID_JOIN_DRIFT', `NEGATIVE_TEST_DID_NOT_FAIL:ELIGIBLE_SOURCE_ID_JOIN_DRIFT:${disjointError?.message || 'NONE'}`);
+
 console.log(JSON.stringify({
   suite: 'KIDULTS_ASI_LAUNCH_EVIDENCE_PROGRAM_V1',
   result: 'VERIFIED_PASS',
   stages: program.stages.length,
   negotiation_active: result.active.length,
   negotiation_queued: result.queued.length,
+  eligible_source_ids: result.eligibleSourceIds,
   rights_clear_sources: program.stages.find(stage => stage.id === 'CAPTURE_AND_REUSE_RIGHTS').observed.rights_clear_current_sold,
   lawful_current_sold_events: program.stages.find(stage => stage.id === 'ADAPTER_AND_LAWFUL_120').observed.lawful_current_sold_events,
   protected_gates: 'HOLD',
-  negative_tests: 5
+  negative_tests: 6
 }));
