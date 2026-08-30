@@ -1,0 +1,136 @@
+{
+  "id": "kidults-asi-launch-evidence-program-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED_EXTERNAL_EVIDENCE_REQUIRED",
+  "as_of": "2026-08-30T10:00:00Z",
+  "purpose": "Bind the launch path from rights evidence through lawful scale without allowing a later stage to bypass an earlier gate.",
+  "program_owner": "KPMO / Provider Lead",
+  "authoritative_inputs": {
+    "rights_decisions": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
+    "rights_snapshots": "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json",
+    "adapter_registry": "coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json",
+    "source_control_plane": "coordination/kidults/source-intelligence/source-channel-control-plane-v1.json",
+    "staging_admission": "coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json",
+    "runtime_boundary": "coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json",
+    "provider_registry": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json"
+  },
+  "targets": {
+    "launch_sources_min": 1,
+    "launch_sources_recommended": 2,
+    "lawful_current_sold_events": 120,
+    "scale_verticals": 8,
+    "scale_independent_source_owners": 32,
+    "scale_current_sold_events": 40000
+  },
+  "negotiation_queue": {
+    "wip_limit": 6,
+    "active_source_ids": [
+      "classic-com-market-data",
+      "bonhams-cars-results",
+      "bonhams-watches-results",
+      "broad-arrow-results",
+      "christies-handbags-results",
+      "christies-watches-results"
+    ],
+    "queued_source_ids": [
+      "gooding-christies-results",
+      "sothebys-watches-results",
+      "barrett-jackson-results",
+      "collecting-cars-sold",
+      "iconic-auctioneers-results",
+      "mecum-auction-results"
+    ],
+    "external_contact_policy": "NO_DUPLICATE_OUTREACH_AND_NO_SEND_WITHOUT_PROVIDER_SPECIFIC_AUTHORITY"
+  },
+  "stages": [
+    {
+      "ordinal": 1,
+      "id": "PROTECTED_MAIN_LANDING",
+      "state": "MERGED_VERIFIED",
+      "observed": {"pull_request": 1646, "merge_commit_sha": "c83e08b1c96294cd9a77e223737a58d727c28d01", "target_branch": "main"},
+      "exit_criteria": "Exact approved head is atomically landed on protected main."
+    },
+    {
+      "ordinal": 2,
+      "id": "CAPTURE_AND_REUSE_RIGHTS",
+      "state": "HOLD",
+      "observed": {"reviewed_sources": 12, "snapshot_bound": 0, "authorized_capture_pending": 3, "reference_only": 9, "rights_clear_current_sold": 0},
+      "exit_criteria": "At least one source has immutable source-content evidence and explicit collect, store, derive and commercial-use rights for the intended product purpose.",
+      "release_condition": "Purpose-specific written permission or licensed feed terms plus governed snapshot receipt."
+    },
+    {
+      "ordinal": 3,
+      "id": "NEGOTIATION_WIP_SIX",
+      "state": "RUNNING_VERIFIED",
+      "observed": {"commercial_queue": 12, "active": 6, "queued": 6},
+      "exit_criteria": "Each active source is terminalized to PASS, CONDITIONAL, HOLD or NO_GO with evidence; WIP never exceeds six."
+    },
+    {
+      "ordinal": 4,
+      "id": "VALUE_RIGHTS_SCHEMA_ELIGIBILITY",
+      "state": "HOLD",
+      "observed": {"eligible_sources": 0, "target_min": 1, "target_recommended": 2},
+      "exit_criteria": "One or two sources independently pass product value, purpose rights, immutable snapshot and source-specific schema gates.",
+      "release_condition": "Authoritative value, rights, snapshot and schema receipts for the same source ID."
+    },
+    {
+      "ordinal": 5,
+      "id": "ADAPTER_AND_LAWFUL_120",
+      "state": "HOLD",
+      "observed": {"empirically_active_adapters": 0, "lawful_current_sold_events": 0, "target": 120},
+      "exit_criteria": "A rights-and-schema-eligible adapter admits 120 provenance-bound terminal-SOLD events without synthetic substitution.",
+      "release_condition": "Eligible source plus private runtime authority and a validated 120-event provenance manifest."
+    },
+    {
+      "ordinal": 6,
+      "id": "POSTGRESQL_IMMUTABLE_RECEIPTS",
+      "state": "HOLD",
+      "observed": {"remote_staging_execution": false, "pitr_proven": false, "persistent_receipts": 0},
+      "exit_criteria": "All 120 events have run ID, source snapshot digest, rights receipt, schema version and event digest persisted in remotely verified PostgreSQL with RLS, PITR and restore evidence.",
+      "release_condition": "Protected runtime provisioning and remote PostgreSQL/PITR validation."
+    },
+    {
+      "ordinal": 7,
+      "id": "TRACK_B_TO_PROJECTION",
+      "state": "HOLD",
+      "observed": {"track_b_results": 0, "approved_projections": 0},
+      "exit_criteria": "The same immutable 120-event pair completes Evidence, Track B assessment, staging replay and server-owned Projection with digest continuity.",
+      "release_condition": "Stages 2 through 6 pass and an official Track B assessment is approved."
+    },
+    {
+      "ordinal": 8,
+      "id": "GLOBAL_BETA_SCALE",
+      "state": "HOLD",
+      "observed": {"active_verticals": 0, "independent_source_owners": 0, "lawful_current_sold_events": 0},
+      "exit_criteria": "Eight verticals, 32 independent source owners and 40000 lawful current-SOLD events meet freshness, provenance, rights and rollback controls.",
+      "release_condition": "Stage 7 passes for the bounded launch cell before scale admission."
+    }
+  ],
+  "promotion_law": {
+    "strict_stage_order": true,
+    "rights_unknown_is_hold": true,
+    "public_visibility_is_permission": false,
+    "reference_only_is_acquisition_authority": false,
+    "adapter_implementation_is_activation": false,
+    "synthetic_events_count_toward_120": false,
+    "local_postgres_is_remote_runtime_evidence": false,
+    "track_b_may_precede_persistent_receipts": false,
+    "scale_may_precede_launch_cell": false
+  },
+  "authority_boundary": {
+    "autonomous_internal_reversible_work": true,
+    "external_communication": "PROVIDER_SPECIFIC_APPROVAL_REQUIRED",
+    "legal_commitment": "EXPLICIT_APPROVAL_REQUIRED",
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_or_private_runtime": "PROTECTED_GATE_REQUIRED",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "platform_principles": {
+    "autonomous_effect": "A scheduled validator continuously recomputes stage truth and removes internal manual status drift.",
+    "global_effect": "The bounded 120-event launch cell is an enforced prerequisite to the eight-vertical, 32-owner, 40000-event scale target.",
+    "irreplaceable_value_effect": "Rights, snapshot, schema, run and event digests accumulate in KIDULTS-owned receipts independent of provider identity.",
+    "transparency_effect": "Every blocked stage names its observed count, evidence dependency and release condition."
+  }
+}
