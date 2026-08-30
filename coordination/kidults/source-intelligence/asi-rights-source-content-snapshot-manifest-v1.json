@@ -1,0 +1,48 @@
+{
+  "id": "kidults-asi-rights-source-content-snapshot-manifest-v1",
+  "version": "1.0.0",
+  "status": "FAIL_CLOSED_REFERENCE_ONLY_AND_AUTHORIZED_CAPTURE_PENDING",
+  "as_of": "2026-08-30T00:00:00Z",
+  "decision_contract": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
+  "snapshot_policy": {
+    "repository_page_bytes_allowed": false,
+    "repository_rendered_content_allowed": false,
+    "bound_snapshot_storage": "EXTERNAL_GOVERNED_OBJECT_ONLY",
+    "promotion_requires_source_content_sha256": true,
+    "promotion_requires_precise_locator": true,
+    "promotion_requires_document_version": true,
+    "promotion_requires_retention_and_deletion_class": true,
+    "reference_only_is_snapshot_bound": false
+  },
+  "summary": {
+    "sources": 12,
+    "source_content_snapshot_bound": 0,
+    "authorized_capture_pending": 3,
+    "reference_only_not_captured_due_restriction": 9,
+    "promotion_eligible": 0
+  },
+  "records": [
+    {"source_id":"classic-com-market-data","official_evidence_urls":["https://www.classic.com/about/terms-conditions/","https://www.classic.com/data"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"bonhams-cars-results","official_evidence_urls":["https://www.bonhams.com/legals/terms-and-conditions/","https://cars.bonhams.com/auction-results/"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"bonhams-watches-results","official_evidence_urls":["https://www.bonhams.com/legals/terms-and-conditions/","https://www.bonhams.com/auction-results/"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"broad-arrow-results","official_evidence_urls":["https://bid.broadarrowauctions.com/terms-of-use","https://www.broadarrowauctions.com/auction-results"],"capture_state":"AUTHORIZED_CAPTURE_PENDING","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"PENDING_RIGHTS_APPROVED_CAPTURE_CLASS","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"christies-handbags-results","official_evidence_urls":["https://www.christies.com/about-us/contact/terms-and-conditions/","https://www.christies.com/en/help/auction-results"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"christies-watches-results","official_evidence_urls":["https://www.christies.com/about-us/contact/terms-and-conditions/","https://www.christies.com/en/help/auction-results"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"gooding-christies-results","official_evidence_urls":["https://www.goodingco.com/terms","https://www.goodingco.com/auction-results"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"sothebys-watches-results","official_evidence_urls":["https://www.sothebys.com/en/terms-conditions","https://www.sothebys.com/en/results"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"barrett-jackson-results","official_evidence_urls":["https://www.barrett-jackson.com/conditions-of-use","https://www.barrett-jackson.com/results"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"collecting-cars-sold","official_evidence_urls":["https://collectingcars.com/terms-conditions","https://collectingcars.com/sold"],"capture_state":"REFERENCE_ONLY_NOT_CAPTURED_DUE_RESTRICTION","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"REFERENCE_METADATA_ONLY_NO_PAGE_BYTES","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"iconic-auctioneers-results","official_evidence_urls":["https://www.iconicauctioneers.com/terms-and-conditions","https://www.iconicauctioneers.com/auction-results"],"capture_state":"AUTHORIZED_CAPTURE_PENDING","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"PENDING_RIGHTS_APPROVED_CAPTURE_CLASS","capture_authorized":false,"decision_promotion_eligible":false},
+    {"source_id":"mecum-auction-results","official_evidence_urls":["https://www.mecum.com/terms-of-use/","https://www.mecum.com/results/"],"capture_state":"AUTHORIZED_CAPTURE_PENDING","evidence_mode":"OFFICIAL_URL_AND_NORMALIZED_CLAIM_ONLY","retrieved_at":null,"final_url":null,"http_status":null,"document_version":null,"precise_locator":null,"source_content_sha256":null,"governed_object_ref":null,"raw_content_in_repository":false,"retention_and_deletion_class":"PENDING_RIGHTS_APPROVED_CAPTURE_CLASS","capture_authorized":false,"decision_promotion_eligible":false}
+  ],
+  "truth_boundary": {
+    "reference_only_is_permission": false,
+    "source_content_snapshot_bound": 0,
+    "rights_clear_for_current_sold": 0,
+    "acquisition_authorized": false,
+    "external_communication_authorized": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
