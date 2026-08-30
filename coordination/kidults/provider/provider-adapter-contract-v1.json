@@ -1,7 +1,9 @@
 {
   "id": "kidults-provider-adapter-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "INTERNAL_FOUNDATION",
+  "sample_policy": "coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json",
+  "negotiation_policy": "coordination/kidults/provider/provider-sample-governance-negotiation-v1.json",
   "provider_classes": {
     "GRADING_EVIDENCE": {
       "examples": ["PSA", "CGC", "BGS", "SGC"],
@@ -10,14 +12,18 @@
         "canonical_identity_fields",
         "grade",
         "observed_at",
-        "source_record_ref"
+        "source_record_ref",
+        "provider_schema_version",
+        "rights_receipt_digest",
+        "source_provenance_digest"
       ],
       "optional_source_fields": [
         "certification_number",
         "population_at_grade",
         "population_higher",
         "population_total",
-        "population_as_of"
+        "population_as_of",
+        "correction_or_revocation_state"
       ],
       "canonical_output": "grading-evidence-v1",
       "hard_rules": [
@@ -25,7 +31,10 @@
         "NO_GRADE_SCALE_EQUIVALENCE_WITHOUT_EXPLICIT_NORMALIZATION",
         "RIGHTS_UNKNOWN_IS_HOLD",
         "LINEAGE_REQUIRED",
-        "MISSING_POPULATION_REMAINS_UNKNOWN"
+        "MISSING_POPULATION_REMAINS_UNKNOWN",
+        "KNOWN_IDENTIFIER_ONLY_NO_ENUMERATION",
+        "BOUNDED_120_IS_FUNCTIONAL_PILOT_NOT_RELIABILITY",
+        "SINGLE_GRADING_PROVIDER_DOES_NOT_PROVE_MARKET_REPRESENTATIVENESS"
       ]
     },
     "COLLECTOR_MARKET_EVENT": {
@@ -36,12 +45,16 @@
         "event_at",
         "event_state",
         "venue_id",
-        "source_record_ref"
+        "source_record_ref",
+        "provider_schema_version",
+        "rights_receipt_digest",
+        "source_provenance_digest"
       ],
       "sold_event_required_fields": [
         "price_amount",
         "price_currency",
-        "price_type"
+        "price_type",
+        "terminal_state_evidence"
       ],
       "optional_source_fields": [
         "physical_object_id",
@@ -49,7 +62,9 @@
         "listing_id",
         "lot_id",
         "high_bid",
-        "buyer_premium_included"
+        "buyer_premium_included",
+        "tax_or_fee_semantics",
+        "correction_or_reversal_state"
       ],
       "canonical_output": "market-event-v1",
       "hard_rules": [
@@ -58,22 +73,79 @@
         "CORROBORATING_SOURCE_OWNERS_ARE_PRESERVED",
         "RIGHTS_UNKNOWN_IS_HOLD",
         "FAILED_SALE_IS_NOT_ZERO_PRICE",
-        "MISSING_IS_NOT_ZERO"
+        "MISSING_IS_NOT_ZERO",
+        "FALSE_TERMINAL_SOLD_STATE_IS_CRITICAL_DEFECT",
+        "SINGLE_PROVIDER_ADAPTER_QUALIFICATION_IS_NOT_PLATFORM_MARKET_REPRESENTATIVENESS"
       ]
     }
   },
   "rights_gate": {
-    "required_for_admission": ["collect", "store", "transform"],
+    "required_for_admission": [
+      "collect_or_query",
+      "temporary_store",
+      "transform_and_normalize",
+      "internal_qa",
+      "derived_non_reconstructive_output",
+      "retention_and_deletion"
+    ],
     "required_state": "ALLOW",
     "unknown_behavior": "HOLD",
-    "deny_behavior": "REJECT"
+    "deny_behavior": "REJECT",
+    "per_record_or_authorized_dataset_census": true,
+    "sample_majority_cannot_override": true
+  },
+  "sample_and_quality_gate": {
+    "tier_must_be_pre_registered": true,
+    "required_runtime_fields": [
+      "sample_policy_id",
+      "sample_policy_digest",
+      "tier_id",
+      "claim_ceiling",
+      "raw_n",
+      "effective_n",
+      "failure_count_by_class",
+      "critical_defect_count",
+      "duplicate_count",
+      "retry_count",
+      "parse_drop_count",
+      "timeout_count",
+      "ultimate_owner_distribution",
+      "coverage_receipt_digest",
+      "track_b_assessment_ref"
+    ],
+    "functional_sequence": [
+      "CONTROL_ONLY_FUNCTIONAL",
+      "CANARY",
+      "BOUNDED_FUNCTIONAL_PILOT"
+    ],
+    "statistical_sequence": [
+      "ADAPTER_QUALIFICATION",
+      "PRIVATE_E2E_RELIABILITY",
+      "BETA_RELIABILITY"
+    ],
+    "zero_failure_targets": {
+      "ADAPTER_QUALIFICATION": 459,
+      "PRIVATE_E2E_RELIABILITY": 1840,
+      "BETA_RELIABILITY": 4603
+    },
+    "general_statistical_pass": "EXACT_99_PERCENT_ONE_SIDED_CLOPPER_PEARSON_UPPER_BOUND_LE_TIER_TOLERANCE",
+    "critical_defect_tolerance": 0,
+    "duplicate_retry_and_republication_inflate_n": false,
+    "parse_drop_and_timeout_are_failures": true,
+    "track_b_independent_recomputation_required": true
   },
   "adapter_lifecycle": [
     "DISCOVER",
     "RIGHTS_PREFLIGHT",
+    "NEGOTIATE_STAGE_AND_VOLUME_BAND",
     "FIELD_MAP",
+    "CONTROL_REPLAY",
+    "CANARY_5",
+    "BOUNDED_FUNCTIONAL_PILOT_30_TO_120",
+    "OPTIONAL_ADAPTER_QUALIFICATION",
     "NORMALIZE",
-    "VALIDATE",
+    "VALIDATE_RIGHTS_SCHEMA_QUALITY_AND_COVERAGE",
+    "TRACK_B_ASSESS",
     "ADMIT_OR_HOLD",
     "EMIT_CANONICAL_EVIDENCE"
   ],
@@ -81,6 +153,8 @@
     "credential_required_for_foundation": false,
     "credential_required_for_live_provider_execution": true,
     "contract_or_spend_authorization_required_before_paid_activation": true,
+    "sample_target_is_purchase_commitment": false,
+    "pilot_success_is_production_authorization": false,
     "production_allowed": false
   }
 }
