@@ -19,7 +19,8 @@
     "ADAPTER_QUALIFICATION": "459 zero-failure minimum for 1% operational defect claim",
     "PRIVATE_E2E": "1840 zero-failure minimum for 0.25% private reliability claim",
     "BETA_RELIABILITY": "4603 zero-failure minimum for 0.10% beta reliability claim",
-    "PRODUCTION": "BETA plus 30 natural runs over at least 7 days and SLO/error budget receipt"
+    "PRODUCTION_READINESS": "BETA plus 30 natural runs over at least 7 days, SLO/error budget, PITR and rollback receipts",
+    "PRODUCTION": "Production Readiness plus explicit Program Owner release receipt"
   },
   "defect_taxonomy": {"CRITICAL": "0 tolerance", "MAJOR_A": "0.10%", "MAJOR_B": "0.25%", "OPERATIONAL": "1.00%", "MINOR_UI": "separate UX/data-quality SLO"},
   "number_scope_rule": "120 is permitted only for bounded pilot/provider-specific or separately registered domain cohorts; it is forbidden as a platform-wide current-SOLD target. 459, 1840 and 4603 are claim-tier minima, not acquisition quotas.",
@@ -37,9 +38,9 @@
   "track_alignment": {
     "KPMO": "Own policy versioning, cross-track digest binding, exception register and escalation; cannot waive statistical or rights gates.",
     "TRACK_A": "Pre-register population, sampling frame, strata and claim ceiling; produce evidence and sample decision receipt; never convert n into market claim.",
-    "TRACK_B": "Independently recompute exact confidence bounds, cluster/effective n, strata and stopping decision; reject post-hoc plans and pooled masking.",
+    "TRACK_B": "Independently recompute exact confidence bounds, cluster/effective n, strata and stopping decision; reject post-hoc plans and pooled masking; emit decision receipt.",
     "TRACK_C": "Render only approved Projection and claim ceiling; expose tier, scope and HOLD state; never infer readiness from record count.",
-    "TRACK_D": "Bind admitted cohort dynamically to PostgreSQL/PITR receipts; measure natural run SLO and error budget, not event-count proxies.",
+    "TRACK_D": "Bind admitted cohort dynamically to PostgreSQL/PITR receipts; each natural run requires source SHA, run/attempt ID, cohort/policy/rights/schema digests, restore/rollback receipt, SLO and error-budget state.",
     "TRACK_E": "Consume read-only approved metrics with policy version, uncertainty and claim ceiling; no executive override of evidence.",
     "TRACK_Z": "Negotiate adaptive volume bands and rights purpose schedules; no contract or price is implied by a fixed 120 quantity.",
     "ASI": "Apply census rights gate first, then claim-specific sample policy and source/vertical coverage gates; all unresolved external evidence remains HOLD."
