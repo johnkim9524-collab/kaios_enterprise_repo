@@ -14,6 +14,7 @@
   ],
   "non_negotiable_rules": [
     "Sample size never proves legality, permission, provenance or market representativeness.",
+    "Critical rights, provenance, identity and terminal-state defects have zero tolerance; statistical allowance applies only to pre-declared non-critical defects.",
     "Every admitted event must pass the rights and schema census; unknown, expired, revoked or mismatched evidence is HOLD.",
     "Canary, adapter reliability, private E2E, beta reliability and production SLO are separate claims and separate gates.",
     "Sampling plan, endpoint, tolerance, confidence and stopping rule are sealed before observation.",
