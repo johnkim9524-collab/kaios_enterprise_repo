@@ -431,6 +431,122 @@ jobs:
           const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-p1-source-preflight-v1/p1-source-preflight-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const runtime=JSON.parse(fs.readFileSync('/tmp/kidults-asi-p1-source-preflight-runtime-receipts-v1.json'));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-p1-source-preflight-receipt-v1',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,p0b_input_mode:process.env.P0B_INPUT_MODE,p0b_origin_run_id:process.env.P0B_ORIGIN_RUN_ID||null,p0b_origin_source_sha:process.env.P0B_ORIGIN_SOURCE_SHA,manifest_digest:digest,results:m.results,runtime_preflight:{grains:runtime.candidate_mission_grains_runtime_preflighted,tasks:runtime.source_preflight_tasks_runtime_preflighted,classification_tasks:runtime.classification_tasks_runtime_preflighted,qualification_tasks:runtime.qualification_tasks_runtime_preflighted,fleets:runtime.runtime_registered_fleets_exercised,receipts:runtime.alignment_receipts},autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-p1-source-preflight-receipt-v1.json
+      - name: Stage bounded authoritative P1 consumer bundle
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/kidults-asi-p1-authoritative-v1
+          mkdir -p /tmp/kidults-asi-p1-authoritative-v1
+          for NAME in \
+            p1-gate1-source-safety-decisions-v1.json \
+            p1-evidence-admission-candidate-register-v1.json \
+            p1-preflight-action-queue-v1.json \
+            p1-source-preflight-manifest-v1.json; do
+            test -f "/tmp/kidults-asi-p1-source-preflight-v1/$NAME"
+            cp -- "/tmp/kidults-asi-p1-source-preflight-v1/$NAME" "/tmp/kidults-asi-p1-authoritative-v1/$NAME"
+          done
+          cp -- /tmp/kidults-asi-p1-source-preflight-receipt-v1.json /tmp/kidults-asi-p1-authoritative-v1/
+          python3 - <<'PY'
+          import json, os, stat
+
+          root = "/tmp/kidults-asi-p1-authoritative-v1"
+          receipt_name = "p1-authoritative-bundle-preflight-v1.json"
+          receipt_path = os.path.join(root, receipt_name)
+          maximum_entry = 8 * 1024 * 1024
+          maximum_total = 32 * 1024 * 1024
+
+          def serialize_final_receipt(payload_files, payload_total):
+              receipt_file = {"name": receipt_name, "bytes": 0}
+              receipt = {
+                  "id": "kidults-asi-p1-authoritative-bundle-preflight-v1",
+                  "state": "VERIFIED_FINAL_BUNDLE_BOUNDED_BEFORE_UPLOAD",
+                  "source_sha": os.environ["GITHUB_SHA"],
+                  "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+                  "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                  "files": sorted(payload_files + [receipt_file], key=lambda item: item["name"]),
+                  "total_uncompressed_bytes": 0,
+                  "limits": {
+                      "max_entry_uncompressed_bytes": maximum_entry,
+                      "max_total_uncompressed_bytes": maximum_total,
+                  },
+                  "diagnostic_payloads_in_authoritative_bundle": False,
+                  "public_release": "HOLD",
+                  "production": "HOLD",
+              }
+              for _ in range(16):
+                  encoded = (json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                  receipt_bytes = len(encoded)
+                  final_total = payload_total + receipt_bytes
+                  if receipt_bytes > maximum_entry:
+                      raise ValueError(f"P1_AUTHORITATIVE_ENTRY_SIZE_LIMIT:{receipt_name}:{receipt_bytes}")
+                  if final_total > maximum_total:
+                      raise ValueError(f"P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:{final_total}")
+                  if (
+                      receipt_file["bytes"] == receipt_bytes
+                      and receipt["total_uncompressed_bytes"] == final_total
+                  ):
+                      return encoded
+                  receipt_file["bytes"] = receipt_bytes
+                  receipt["total_uncompressed_bytes"] = final_total
+              raise ValueError("P1_AUTHORITATIVE_RECEIPT_SIZE_NOT_STABLE")
+
+          payload_total = 0
+          payload_files = []
+          for name in sorted(os.listdir(root)):
+              if name == receipt_name:
+                  raise SystemExit("P1_AUTHORITATIVE_PREEXISTING_RECEIPT")
+              path = os.path.join(root, name)
+              info = os.lstat(path)
+              if not stat.S_ISREG(info.st_mode):
+                  raise SystemExit(f"P1_AUTHORITATIVE_ENTRY_NOT_REGULAR:{name}")
+              if info.st_size <= 0 or info.st_size > maximum_entry:
+                  raise SystemExit(f"P1_AUTHORITATIVE_ENTRY_SIZE_LIMIT:{name}:{info.st_size}")
+              payload_total += info.st_size
+              payload_files.append({"name": name, "bytes": info.st_size})
+
+          try:
+              serialize_final_receipt(
+                  [{"name": "payload-at-limit.bin", "bytes": maximum_total}],
+                  maximum_total,
+              )
+          except ValueError as error:
+              if not str(error).startswith("P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:"):
+                  raise
+          else:
+              raise SystemExit("P1_AUTHORITATIVE_PAYLOAD_PLUS_RECEIPT_BOUNDARY_ACCEPTED")
+
+          try:
+              encoded_receipt = serialize_final_receipt(payload_files, payload_total)
+          except ValueError as error:
+              raise SystemExit(str(error)) from error
+          with open(receipt_path, "wb") as handle:
+              handle.write(encoded_receipt)
+
+          final_files = []
+          final_total = 0
+          for name in sorted(os.listdir(root)):
+              path = os.path.join(root, name)
+              info = os.lstat(path)
+              if not stat.S_ISREG(info.st_mode):
+                  raise SystemExit(f"P1_AUTHORITATIVE_FINAL_ENTRY_NOT_REGULAR:{name}")
+              if info.st_size <= 0 or info.st_size > maximum_entry:
+                  raise SystemExit(f"P1_AUTHORITATIVE_FINAL_ENTRY_SIZE_LIMIT:{name}:{info.st_size}")
+              final_total += info.st_size
+              final_files.append({"name": name, "bytes": info.st_size})
+          if final_total > maximum_total:
+              raise SystemExit(f"P1_AUTHORITATIVE_FINAL_TOTAL_SIZE_LIMIT:{final_total}")
+
+          receipt = json.loads(encoded_receipt)
+          if receipt["files"] != final_files:
+              raise SystemExit("P1_AUTHORITATIVE_FINAL_FILE_MANIFEST_MISMATCH")
+          if receipt["total_uncompressed_bytes"] != final_total:
+              raise SystemExit("P1_AUTHORITATIVE_FINAL_TOTAL_MISMATCH")
+          print(json.dumps({
+              "state": "VERIFIED_FINAL_BUNDLE_BOUNDED_BEFORE_UPLOAD",
+              "final_entry_count": len(final_files),
+              "final_total_uncompressed_bytes": final_total,
+              "payload_plus_receipt_boundary_rejected": True,
+          }, sort_keys=True))
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-p0b-bounded-discovery-candidates-v1
@@ -440,18 +556,37 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-p1-source-preflight-v1
-          path: |
-            /tmp/p1-rotations
-            /tmp/asi-public-metadata-source-fabric-v1.json
-            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
-            /tmp/kidults-asi-p1-source-preflight-v1
-            /tmp/kidults-asi-p1-source-preflight-runtime-receipts-v1.json
-            /tmp/kidults-asi-p1-source-preflight-runtime-validation-v1.json
-            /tmp/kidults-asi-p1-registry-validation-v1.json
-            /tmp/kidults-asi-p1-registry-final-validation-v1.json
-            /tmp/kidults-asi-p1-source-preflight-validation-v1.json
-            /tmp/kidults-asi-p1-source-preflight-final-validation-v1.json
-            /tmp/kidults-asi-p1-source-preflight-receipt-v1.json
-            /tmp/p0b-archive-validation-receipt-v1.json
+          path: /tmp/kidults-asi-p1-authoritative-v1
+          retention-days: 90
+          if-no-files-found: error
+      - name: Emit terminal P1 artifact-contract diagnostic
+        if: always()
+        env:
+          TERMINAL_JOB_STATUS: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          state = "VERIFIED_PASS" if os.environ["TERMINAL_JOB_STATUS"] == "success" else "FAILURE_CONTAINED"
+          value = {
+              "id": "kidults-asi-p1-artifact-contract-terminal-v1",
+              "state": state,
+              "job_status": os.environ["TERMINAL_JOB_STATUS"],
+              "source_sha": os.environ["GITHUB_SHA"],
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "authoritative_bundle_staged": os.path.isfile("/tmp/kidults-asi-p1-authoritative-v1/p1-authoritative-bundle-preflight-v1.json"),
+              "diagnostic_payloads_promotable": False,
+              "public_release": "HOLD",
+              "production": "HOLD",
+          }
+          with open("/tmp/kidults-asi-p1-artifact-contract-terminal-v1.json", "w", encoding="utf-8") as handle:
+              json.dump(value, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-asi-p1-artifact-contract-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-p1-artifact-contract-terminal-v1.json
           retention-days: 90
           if-no-files-found: error
