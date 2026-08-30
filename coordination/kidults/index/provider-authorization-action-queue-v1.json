@@ -28,16 +28,18 @@
     {
       "priority": 2,
       "provider": "eBay",
-      "goal": "Apply for approved partner access to Marketplace Insights sold-history capability",
+      "goal": "Do not re-contact or resend the completed Marketplace Insights inquiry; reopen only on a written authorized licensed path",
       "required_external_input": [
-        "EBAY_DEVELOPER_ACCOUNT",
-        "MARKETPLACE_INSIGHTS_APPROVAL",
-        "PRODUCTION_KEYSET"
+        "WRITTEN_AUTHORIZED_LICENSED_PATH_FROM_EBAY",
+        "EXPLICIT_PROGRAM_OWNER_REOPEN_AUTHORITY"
       ],
       "allowed_after_approval": [
         "AUTHORIZED_SOLD_HISTORY_FIELDS"
       ],
-      "state": "WAITING_LIMITED_RELEASE_APPROVAL"
+      "state": "CLOSED_NO_DUPLICATE_OUTREACH",
+      "canonical_state_ref": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+      "external_communication_authorized": false,
+      "resend_authorized": false
     },
     {
       "priority": 3,

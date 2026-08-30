@@ -21,6 +21,10 @@ on:
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
       - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
       - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-*.json'
@@ -48,6 +52,10 @@ on:
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
       - 'docs/kidults/asi/asi-autonomous-resolution-layer-v1.md'
       - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
       - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-*.json'
@@ -97,7 +105,12 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
 
   request-p1-recovery:
@@ -184,7 +197,10 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json','utf8'))"
       - name: Validate registered resolution engines and automatic activation
@@ -254,7 +270,22 @@ jobs:
           test -n "$P1_ID"
           P1_DIGEST=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).digest")
           test -n "$P1_DIGEST"
+          [[ "$P1_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p1.zip \
+            --expected-digest "$P1_DIGEST" \
+            --receipt /tmp/p1-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 4194304 \
+            --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 \
+            --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json \
+            --required-basename p1-gate1-source-safety-decisions-v1.json \
+            --required-basename p1-evidence-admission-candidate-register-v1.json \
+            --required-basename p1-preflight-action-queue-v1.json
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in \
             p0b-source-candidate-registry-v1.json \
@@ -275,6 +306,8 @@ jobs:
           echo "P1_RUN_ID=$P1_RUN_ID" >> "$GITHUB_ENV"
           echo "P1_SOURCE_SHA=$P1_SOURCE_SHA" >> "$GITHUB_ENV"
           echo "P1_ARTIFACT_DIGEST=$P1_DIGEST" >> "$GITHUB_ENV"
+          P1_GENERATION_WINDOW_START=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-run.json')).created_at")
+          echo "P1_GENERATION_WINDOW_START=$P1_GENERATION_WINDOW_START" >> "$GITHUB_ENV"
           echo "P1_VALIDATION_ONLY=$VALIDATION_ONLY" >> "$GITHUB_ENV"
           echo "p1_run_id=$P1_RUN_ID p1_artifact_id=$P1_ID source_sha=$P1_SOURCE_SHA consumer_sha=$CURRENT_SHA exact_generation=true validation_only=$VALIDATION_ONLY"
       - name: Build autonomous resolution layer twice
@@ -392,22 +425,45 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          [[ "$P1_GENERATION_WINDOW_START" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]
           gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs?head_sha=${GITHUB_SHA}&event=workflow_run&status=success&per_page=100" \
-            > /tmp/arl-authoritative-generation-runs.json
-          EXPECTED_DISPLAY_TITLE="KIDULTS ARL / p1-${P1_RUN_ID}" node - <<'NODE'
-          const fs=require('fs');
-          const payload=JSON.parse(fs.readFileSync('/tmp/arl-authoritative-generation-runs.json','utf8'));
-          const runs=payload.workflow_runs||[];
-          if(Number(payload.total_count||0)>runs.length)throw new Error('ARL_AUTHORITATIVE_PRODUCER_QUERY_PAGINATION_INCOMPLETE');
-          const prior=runs.filter(run=>run.id!==Number(process.env.GITHUB_RUN_ID)&&
-            run.name==='KIDULTS ASI Autonomous Resolution Layer v1'&&
-            run.path==='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'&&
-            run.display_title===process.env.EXPECTED_DISPLAY_TITLE&&
-            run.event==='workflow_run'&&run.status==='completed'&&run.conclusion==='success'&&
-            run.head_sha===process.env.GITHUB_SHA&&run.head_branch==='main');
-          if(prior.length)throw new Error(`ARL_AUTHORITATIVE_PRODUCER_DUPLICATE:${prior.map(run=>run.id).join(',')}`);
-          NODE
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            > /tmp/arl-current-run.json
+          CURRENT_ARL_CREATED_AT=$(jq -er --argjson run "$GITHUB_RUN_ID" \
+            'select(.id==$run and .name=="KIDULTS ASI Autonomous Resolution Layer v1" and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run" and .head_sha==env.GITHUB_SHA and .head_branch=="main") | .created_at' \
+            /tmp/arl-current-run.json)
+          CREATED_WINDOW="${P1_GENERATION_WINDOW_START}..${CURRENT_ARL_CREATED_AT}"
+          printf '[]\n' > /tmp/arl-authoritative-generation-run-pages.json
+          ARL_HISTORY_COMPLETE=false
+          for ARL_HISTORY_PAGE in $(seq 1 20); do
+            PAGE_FILE="/tmp/arl-authoritative-generation-runs-page-${ARL_HISTORY_PAGE}.json"
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f head_sha="$GITHUB_SHA" -f branch=main -f event=workflow_run \
+              -f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE" \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs" \
+              > "$PAGE_FILE"
+            jq -e '.total_count|numbers' "$PAGE_FILE" >/dev/null
+            jq -e '.workflow_runs|arrays' "$PAGE_FILE" >/dev/null
+            jq --slurp '.[0] + [.[1]]' \
+              /tmp/arl-authoritative-generation-run-pages.json "$PAGE_FILE" \
+              > /tmp/arl-authoritative-generation-run-pages.next.json
+            mv /tmp/arl-authoritative-generation-run-pages.next.json /tmp/arl-authoritative-generation-run-pages.json
+            ARL_HISTORY_TOTAL=$(jq -r '.[0].total_count' /tmp/arl-authoritative-generation-run-pages.json)
+            ARL_HISTORY_RETURNED=$(jq '[.[].workflow_runs[]] | length' /tmp/arl-authoritative-generation-run-pages.json)
+            if [ "$ARL_HISTORY_RETURNED" -ge "$ARL_HISTORY_TOTAL" ]; then
+              ARL_HISTORY_COMPLETE=true
+              break
+            fi
+          done
+          test "$ARL_HISTORY_COMPLETE" = true
+          node scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs \
+            --mode arl-generation-pages \
+            --input /tmp/arl-authoritative-generation-run-pages.json \
+            --source-sha "$GITHUB_SHA" --head-branch main \
+            --display-title "KIDULTS ARL / p1-${P1_RUN_ID}" \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --created-since "$P1_GENERATION_WINDOW_START" --created-through "$CURRENT_ARL_CREATED_AT" \
+            --output /tmp/arl-authoritative-generation-history-receipt-v1.json
       - name: Emit KPMO autonomous-resolution receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
@@ -420,6 +476,8 @@ jobs:
           path: |
             /tmp/kidults-asi-autonomous-resolution-layer-run-1
             /tmp/p1-input/p1-upstream-artifact-binding-v1.json
+            /tmp/p1-archive-validation-receipt-v1.json
+            /tmp/arl-authoritative-generation-history-receipt-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-validation-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-registry-final-validation-v1.json

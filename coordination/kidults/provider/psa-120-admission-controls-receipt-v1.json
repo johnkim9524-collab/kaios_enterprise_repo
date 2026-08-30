@@ -12,7 +12,10 @@
     "ci_workflow": "IMPLEMENTED"
   },
   "empirical": {
-    "lawful_known_cert_manifest": "2/120",
+    "declared_known_cert_hints": 2,
+    "declared_known_cert_hints_count_as_progress": false,
+    "provenance_bound_admissible_manifest": "0/120",
+    "remaining_provenance_bound_admissible": 120,
     "live_acquisition": "NOT_RUN",
     "graded_population": "0/120"
   },

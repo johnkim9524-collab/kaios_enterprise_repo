@@ -18,7 +18,11 @@
       "role": "transactions",
       "subject": "Kidults data pilot inquiry — sold-history intelligence",
       "request": "Request limited pilot access, permitted retention scope, production-use rights, quota, latency, uptime and commercial terms.",
-      "status": "draft"
+      "status": "sent-closed",
+      "canonicalProviderId": "EBAY_MARKETPLACE_INSIGHTS",
+      "canonicalStateRef": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+      "duplicateOutreachProhibited": true,
+      "resendAuthorized": false
     },
     {
       "candidateId": "pricecharting-prices-api",

@@ -89,11 +89,15 @@
         "detailed_population_census_method_and_endpoint_entitlement",
         "public_non_raw_derived_output_scope"
       ],
-      "activation_state": "HOLD_PENDING_EXACT_FIELD_MAP_PRIVATE_STORE_DELETION_SCHEDULER_AND_120_KNOWN_CERT_MANIFEST",
+      "activation_state": "HOLD_CONTROLS_IMPLEMENTED_PERSISTENT_RUNTIME_NOT_PROVISIONED_AND_PROVENANCE_BOUND_MANIFEST_0_OF_120",
       "evidence_refs": [
         "gmail:message:1a0345ff34f722e9",
         "gmail:message:1a0396dc3b4b7528",
-        "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json"
+        "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+        "coordination/kidults/provider/psa-120-field-map-v1.json",
+        "coordination/kidults/provider/psa-120-private-store-retention-v1.json",
+        "coordination/kidults/provider/psa-120-known-cert-manifest-v1.json",
+        "coordination/kidults/provider/psa-120-admission-controls-receipt-v1.json"
       ],
       "connection_state": "VERIFIED_PASS_RUN_33123384792",
       "acquisition_progress": "0_OF_120"

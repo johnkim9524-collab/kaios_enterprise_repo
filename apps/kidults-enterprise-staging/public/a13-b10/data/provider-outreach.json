@@ -3,10 +3,10 @@
   "environment": "staging",
   "productionPromotionAuthorized": false,
   "requiredRoles": ["transactions", "supply", "culturalDemand"],
-  "responseStates": ["not-contacted", "contacted", "responded", "diligence", "pilot-approved", "rejected"],
+  "responseStates": ["not-contacted", "contacted", "responded", "diligence", "pilot-approved", "rejected", "closed"],
   "evidenceRequirements": ["commercial-terms", "api-access", "quota", "latency", "uptime", "freshness", "production-use-rights", "retention-rights"],
   "outreachQueue": [
-    {"role":"transactions","candidateId":"ebay-marketplace-insights","priority":1,"status":"not-contacted","evidence":[]},
+    {"role":"transactions","candidateId":"ebay-marketplace-insights","priority":1,"status":"closed","canonicalProviderId":"EBAY_MARKETPLACE_INSIGHTS","canonicalStateRef":"coordination/kidults/registry/provider/records/provider-operating-state-v1.json","duplicateOutreachProhibited":true,"resendAuthorized":false,"evidence":[{"type":"contact-history","status":"verified","ref":"provider-dispatch-ledger.json#ebay-marketplace-insights-contacted-1785744085013"}]},
     {"role":"transactions","candidateId":"pricecharting-prices-api","priority":2,"status":"not-contacted","evidence":[]},
     {"role":"supply","candidateId":"ebay-browse-api","priority":1,"status":"not-contacted","evidence":[]},
     {"role":"supply","candidateId":"tcgplayer-api-supply","priority":2,"status":"not-contacted","evidence":[]},

@@ -1,0 +1,293 @@
+name: KIDULTS E2E State Department Camera Lawful Control v1
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact main-branch source SHA bound to the upstream recovery run
+        required: true
+        type: string
+      upstream_run_id:
+        description: Exact successful State Department camera Evidence workflow run ID
+        required: true
+        type: string
+  workflow_run:
+    workflows:
+      - KIDULTS ASI State Department Camera Evidence v1
+    types: [completed]
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json'
+      - 'coordination/kidults/e2e/state-department-camera-lawful-control-chain-v1.json'
+      - 'coordination/kidults/e2e/lawful-control-snapshot-candidate-v1.schema.json'
+      - 'coordination/kidults/e2e/lawful-control-evidence-package-v1.schema.json'
+      - 'coordination/kidults/e2e/track-b-contract-mock-assessment-v1.schema.json'
+      - 'coordination/kidults/e2e/non-promotable-control-projection-v1.schema.json'
+      - 'coordination/kidults/e2e/state-department-camera-upstream-lineage-v1.schema.json'
+      - 'scripts/kidults/e2e/lawful-control-chain-common-v1.mjs'
+      - 'scripts/kidults/e2e/emit-state-department-camera-upstream-lineage-v1.mjs'
+      - 'scripts/kidults/e2e/build-state-department-camera-lawful-control-pair-v1.mjs'
+      - 'scripts/kidults/e2e/assess-state-department-camera-control-interface-v1.mjs'
+      - 'scripts/kidults/e2e/build-state-department-camera-control-projection-v1.mjs'
+      - 'scripts/kidults/e2e/validate-state-department-camera-lawful-control-chain-v1.mjs'
+      - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
+      - 'coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json'
+      - 'scripts/kidults/runtime/validate-staging-real-workload-admission-v1.mjs'
+      - 'apps/kidults-enterprise-staging/public/portal-r001/projection-store.js'
+      - '.github/workflows/kidults-e2e-state-department-camera-lawful-control-v1.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_SHA: ${{ inputs.source_sha || github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
+  UPSTREAM_RUN_ID: ${{ inputs.upstream_run_id || github.event.workflow_run.id || '' }}
+
+concurrency:
+  # KIDULTS_STATE_DEPARTMENT_CAMERA_LAWFUL_CONTROL has no schedule or direct
+  # main push. Canonical runs coalesce by upstream class + head SHA; an explicit
+  # recovery remains independently addressable by its supplied upstream run ID.
+  group: KIDULTS_STATE_DEPARTMENT_CAMERA_LAWFUL_CONTROL-${{ github.event_name == 'workflow_dispatch' && inputs.upstream_run_id || github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  track-a-control-pair:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source generation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source and scripts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          node --check scripts/kidults/e2e/lawful-control-chain-common-v1.mjs
+          node --check scripts/kidults/e2e/emit-state-department-camera-upstream-lineage-v1.mjs
+          node --check scripts/kidults/e2e/build-state-department-camera-lawful-control-pair-v1.mjs
+      - name: Read exact canonical upstream run and artifact metadata
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > /tmp/state-department-camera-upstream-run-api.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" > /tmp/state-department-camera-upstream-artifacts-api.json
+      - name: Download and automatically verify the exact upstream artifact
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: kidults-asi-state-department-camera-evidence-v1
+          path: /tmp/state-department-camera-upstream-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.UPSTREAM_RUN_ID }}
+      - name: Reverify upstream archive digest against GitHub artifact metadata
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          const envelope=JSON.parse(fs.readFileSync('/tmp/state-department-camera-upstream-artifacts-api.json','utf8'));
+          if(envelope.total_count!==1||!Array.isArray(envelope.artifacts)||envelope.artifacts.length!==1) throw new Error('UPSTREAM_ARTIFACT_COUNT_NOT_ONE');
+          const artifact=envelope.artifacts[0];
+          if(artifact.name!=='kidults-asi-state-department-camera-evidence-v1'||artifact.expired!==false||!Number.isSafeInteger(artifact.id)||!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||'')) throw new Error('UPSTREAM_ARTIFACT_METADATA_INVALID');
+          fs.writeFileSync('/tmp/state-department-camera-upstream-artifact.env',`UPSTREAM_ARTIFACT_ID=${artifact.id}\nUPSTREAM_ARTIFACT_DIGEST=${artifact.digest}\n`,{flag:'wx'});
+          NODE
+          source /tmp/state-department-camera-upstream-artifact.env
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${UPSTREAM_ARTIFACT_ID}/zip" > /tmp/state-department-camera-upstream-artifact.zip
+          ACTUAL_ARCHIVE_DIGEST="sha256:$(sha256sum /tmp/state-department-camera-upstream-artifact.zip | cut -d' ' -f1)"
+          test "$ACTUAL_ARCHIVE_DIGEST" = "$UPSTREAM_ARTIFACT_DIGEST"
+      - name: Emit exact upstream run and artifact digest lineage
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          KIDULTS_UPSTREAM_ARCHIVE_DIGEST_REVERIFIED: '1'
+          LINEAGE_MODE: ${{ github.event_name == 'workflow_run' && 'CANONICAL_WORKFLOW_RUN' || 'MANUAL_RECOVERY' }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/e2e/emit-state-department-camera-upstream-lineage-v1.mjs verify \
+            /tmp/state-department-camera-upstream-run-api.json \
+            /tmp/state-department-camera-upstream-artifacts-api.json \
+            /tmp/state-department-camera-upstream-evidence \
+            "$UPSTREAM_RUN_ID" \
+            "$SOURCE_SHA" \
+            "$GITHUB_REPOSITORY" \
+            "$LINEAGE_MODE" \
+            /tmp/state-department-camera-upstream-lineage/upstream-evidence-lineage.json
+      - name: Emit explicit PR validation-only lineage
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/e2e/emit-state-department-camera-upstream-lineage-v1.mjs validation-only \
+            "$SOURCE_SHA" \
+            /tmp/state-department-camera-upstream-lineage/upstream-evidence-lineage.json
+      - name: Build content-addressed Track A control pair twice
+        run: |
+          set -euo pipefail
+          node scripts/kidults/e2e/build-state-department-camera-lawful-control-pair-v1.mjs \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            coordination/kidults/e2e/state-department-camera-lawful-control-chain-v1.json \
+            /tmp/state-department-camera-control-pair-run-1
+          node scripts/kidults/e2e/build-state-department-camera-lawful-control-pair-v1.mjs \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            coordination/kidults/e2e/state-department-camera-lawful-control-chain-v1.json \
+            /tmp/state-department-camera-control-pair-run-2
+          diff -qr /tmp/state-department-camera-control-pair-run-1 /tmp/state-department-camera-control-pair-run-2
+          test ! -e /tmp/state-department-camera-control-pair-run-1/rankability-assessment.json
+      - name: Transfer only the non-promotable Track A pair
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: state-department-camera-track-a-control-pair
+          path: /tmp/state-department-camera-control-pair-run-1
+          if-no-files-found: error
+          retention-days: 30
+      - name: Transfer only run and artifact digest lineage
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: state-department-camera-upstream-lineage
+          path: /tmp/state-department-camera-upstream-lineage/upstream-evidence-lineage.json
+          if-no-files-found: error
+          retention-days: 90
+
+  track-b-contract-mock:
+    needs: track-a-control-pair
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source generation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Download the exact Track A control pair
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: state-department-camera-track-a-control-pair
+          path: /tmp/state-department-camera-track-a-control-pair
+      - name: Assess only the pair artifacts against the Track B interface
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -f /tmp/state-department-camera-track-a-control-pair/snapshot-candidate.json
+          test -f /tmp/state-department-camera-track-a-control-pair/evidence-package.json
+          test ! -e /tmp/state-department-camera-track-a-control-pair/rankability-assessment.json
+          node scripts/kidults/e2e/assess-state-department-camera-control-interface-v1.mjs \
+            /tmp/state-department-camera-track-a-control-pair/snapshot-candidate.json \
+            /tmp/state-department-camera-track-a-control-pair/evidence-package.json \
+            /tmp/state-department-camera-track-b-mock/track-b-contract-mock-assessment.json
+          test ! -e /tmp/state-department-camera-track-b-mock/rankability-assessment.json
+      - name: Transfer only the Track B contract mock
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: state-department-camera-track-b-contract-mock
+          path: /tmp/state-department-camera-track-b-mock/track-b-contract-mock-assessment.json
+          if-no-files-found: error
+          retention-days: 30
+
+  non-promotable-projection:
+    needs:
+      - track-a-control-pair
+      - track-b-contract-mock
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact source generation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Download the Track A control pair
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: state-department-camera-track-a-control-pair
+          path: /tmp/state-department-camera-track-a-control-pair
+      - name: Download the Track B contract mock
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: state-department-camera-track-b-contract-mock
+          path: /tmp/state-department-camera-track-b-mock
+      - name: Build the payloadless non-promotable control record
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test ! -e /tmp/state-department-camera-track-b-mock/rankability-assessment.json
+          node scripts/kidults/e2e/build-state-department-camera-control-projection-v1.mjs \
+            /tmp/state-department-camera-track-a-control-pair/snapshot-candidate.json \
+            /tmp/state-department-camera-track-a-control-pair/evidence-package.json \
+            /tmp/state-department-camera-track-b-mock/track-b-contract-mock-assessment.json \
+            /tmp/state-department-camera-control-projection/control-projection.json
+      - name: Transfer only the payloadless NO_PROJECTION control
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: state-department-camera-non-promotable-projection
+          path: /tmp/state-department-camera-control-projection/control-projection.json
+          if-no-files-found: error
+          retention-days: 30
+
+  validate-lawful-control-chain:
+    needs:
+      - track-a-control-pair
+      - track-b-contract-mock
+      - non-promotable-projection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact source generation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Set up pinned Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Download all isolated stage artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: state-department-camera-*
+          path: /tmp/state-department-camera-artifacts
+      - name: Validate lineage, negative mutations and protected boundaries
+        env:
+          KIDULTS_REQUIRE_CANONICAL_UPSTREAM_LINEAGE: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test ! -e /tmp/state-department-camera-artifacts/state-department-camera-track-b-contract-mock/rankability-assessment.json
+          node scripts/kidults/e2e/validate-state-department-camera-lawful-control-chain-v1.mjs \
+            /tmp/state-department-camera-artifacts/state-department-camera-track-a-control-pair \
+            /tmp/state-department-camera-artifacts/state-department-camera-track-b-contract-mock/track-b-contract-mock-assessment.json \
+            /tmp/state-department-camera-artifacts/state-department-camera-non-promotable-projection/control-projection.json \
+            /tmp/state-department-camera-artifacts/state-department-camera-upstream-lineage/upstream-evidence-lineage.json \
+            | tee /tmp/state-department-camera-lawful-control-validation-v1.json
+      - name: Retain the bounded validation receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: state-department-camera-lawful-control-validation
+          path: /tmp/state-department-camera-lawful-control-validation-v1.json
+          if-no-files-found: error
+          retention-days: 90

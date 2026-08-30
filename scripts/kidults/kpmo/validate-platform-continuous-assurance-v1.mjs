@@ -10,6 +10,9 @@ const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1
 const policyPath = 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json';
 const auditPath = 'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs';
 const plannerPath = 'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs';
+const canonicalContractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
+const classifierPath = 'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs';
+const resolverPath = 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
 const errors = [];
 
 function activeWorkflowText(text) {
@@ -49,7 +52,7 @@ function signReceipt(receipt) {
   };
 }
 
-for (const file of [workflowPath, policyPath, auditPath, plannerPath]) {
+for (const file of [workflowPath, policyPath, auditPath, plannerPath, canonicalContractPath, classifierPath, resolverPath]) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`required file missing: ${file}`);
 }
 
@@ -84,20 +87,52 @@ if (!errors.length) {
     'ea165f8d65b6e75b540449e92b4886f43607fa02',
     'retention-days: 90',
     'KPMO_SOURCE_SHA',
-    'ref: ${{ env.KPMO_SOURCE_SHA }}'
+    'ref: ${{ env.KPMO_SOURCE_SHA }}',
+    'classify-canonical-identity:',
+    'Resolve bounded ephemeral canonical leader or alias',
+    'kidults-continuous-assurance-canonical-${KPMO_CANONICAL_KEY#sha256:}',
+    'KPMO_EXECUTE_FULL_AUDIT',
+    'KPMO_EPHEMERAL_ACTIONS_LEADER',
+    'KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST',
+    '-f name="$CANONICAL_ARTIFACT_NAME"',
+    'ACTUAL_ARCHIVE_DIGEST',
+    'CANONICAL_ARTIFACT_DIGEST_MISMATCH',
+    'CANONICAL_ARTIFACT_UNSAFE_ARCHIVE_ENTRY',
+    'validate-safe-zip-archive-v1.py',
+    '--max-total-uncompressed-bytes',
+    'observe-continuous-assurance-coverage-alias-v1.mjs',
+    'COVERAGE_CANONICAL_ARTIFACT_ACTIVE_CARDINALITY',
+    'REQUIREMENT_UPSTREAM_RUN_ATTEMPT',
+    '/actions/runs/${CANONICAL_WORKFLOW_RUN_ID}',
+    'canonical_artifact_workflow_run_id',
+    'canonical_artifact_workflow_run_head_sha',
+    'audit_source_sha:$auditSource',
+    'coverage_canonical_source_sha:$canonicalSource',
+    'coverage-semantic-input-receipt-v1.json',
+    'semantic_input_receipt_file_digest:$semanticFileDigest',
+    'semantic_input_receipt:$semantic[0]',
+    'KPMO_COVERAGE_ALIAS_OBSERVATION',
+    'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_COVERAGE_ALIAS_OBSERVER',
+    'zipinfo -1',
+    'cancel-in-progress: false'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
-  if (!/- name: Run audit and always retain receipt\n\s+if: always\(\)/.test(activeWorkflow)) errors.push('audit receipt step must explicitly run under if: always()');
-  for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'concurrency:', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
+  if (!/- name: Run audit and always retain receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
+  if (!/audit:\n[\s\S]*?concurrency:\n\s+group: \$\{\{ needs\.classify-canonical-identity\.outputs\.concurrency_group \}\}\n\s+cancel-in-progress: false/.test(activeWorkflow)) errors.push('canonical audit job concurrency binding missing');
+  for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'cancel-in-progress: true', '-f head_sha=', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
     if (activeWorkflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
   }
   if (activeWorkflow.includes('path: artifacts/kpmo/continuous-assurance/')) errors.push('bootstrap packet must not live in checkout-cleaned workspace');
   if (activeWorkflow.includes('set +e') || activeWorkflow.includes('exit 0')) errors.push('audit or planner failure must not be swallowed');
-  for (const marker of ['p.source_receipt_digest!==r.receipt_digest', 'p.integrity_findings?.length', "p.activation?.eligible!==false"]) {
+  for (const marker of ['plan.source_receipt_digest === receipt.receipt_digest', 'plan.integrity_findings?.length', 'plan.activation?.eligible === false']) {
     if (!activeWorkflow.includes(marker)) errors.push(`final fail-closed binding missing: ${marker}`);
   }
+  const verifierIndex = activeWorkflow.indexOf('Preserve control result without promoting overall HOLD');
+  const leaderUploadIndex = activeWorkflow.indexOf('Publish successful bounded canonical leader artifact');
+  if (verifierIndex < 0 || leaderUploadIndex <= verifierIndex) errors.push('canonical leader artifact must publish only after final packet verification');
+  if (/Publish successful bounded canonical leader artifact\n\s+if: always\(\)/.test(activeWorkflow)) errors.push('canonical leader artifact must never upload under always()');
 
-  for (const marker of ['auditDeadline', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv', 'SOURCE_SHA_BINDING', 'UPSTREAM_WORKFLOW_CONCLUSION', 'AUDIT_INPUT_TREE_IMMUTABILITY', 'AUDIT_EXECUTION_INPUT_IMMUTABILITY', 'finding_fingerprint', 'observation_id', 'runEphemeralPair', 'EPHEMERAL_REBUILD_EXHAUSTED']) {
+  for (const marker of ['auditDeadline', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv', 'SOURCE_SHA_BINDING', 'UPSTREAM_WORKFLOW_CONCLUSION', 'AUDIT_INPUT_TREE_IMMUTABILITY', 'AUDIT_EXECUTION_INPUT_IMMUTABILITY', 'finding_fingerprint', 'observation_id', 'runEphemeralPair', 'EPHEMERAL_REBUILD_EXHAUSTED', 'canonical_identity', 'canonical_key', 'canonical_input_digest', 'classifier_contract_digest', 'classification_receipt_digest', 'ephemeral_guard_receipt_digest', 'workflow_path', 'workflow_event', 'run_attempt', 'exact_binding_digest']) {
     if (!audit.includes(marker)) errors.push(`audit hardening marker missing: ${marker}`);
   }
   if (audit.includes('env: { ...process.env')) errors.push('audit must not inherit complete process.env');
@@ -115,6 +150,37 @@ if (!errors.length) {
   if (policy.immediate_improvement?.attempt_ledger_authority !== 'KPMO_EXTERNAL_INCIDENT_LEDGER') errors.push('circuit-breaker ledger authority drift');
   if (policy.state_model?.generic_top_level_pass_forbidden !== true) errors.push('generic top-level PASS must be forbidden');
   if (!policy.hard_denies?.includes('PUBLIC_PRODUCTION_OR_G5_PROMOTION')) errors.push('release hard deny missing');
+  const expectedCoverageAliasBindings = [
+    'exact_coverage_workflow_run',
+    'exact_coverage_workflow_run_attempt_event_head_and_display_title',
+    'exact_coverage_artifact_digest',
+    'coverage_alias_receipt_digest',
+    'canonical_input_digest',
+    'coverage_canonical_source_sha_separate_from_audit_source_sha',
+    'single_active_canonical_artifact',
+    'canonical_artifact_digest',
+    'canonical_artifact_workflow_run_id_and_head_sha',
+    'canonical_workflow_run_id_attempt_name_path_repository_status_conclusion_head_and_display_title',
+    'canonical_leader_receipt_digest',
+    'canonical_semantic_receipt_exact_file_digest',
+    'canonical_semantic_material_digest_recomputation',
+  ];
+  const coverageAliasBindingsExact = stableJson([...(policy.dedupe_control?.verified_coverage_upstream_alias_required_bindings || [])].sort()) === stableJson([...expectedCoverageAliasBindings].sort());
+  if (policy.dedupe_control?.durable_runtime_state !== 'REMOTE_LEDGER_ACTIVATION_HOLD' ||
+      policy.dedupe_control?.ephemeral_actions_guard_state !== 'ACTIVE_BOUNDED_90_DAY_NON_DURABLE' ||
+      policy.dedupe_control?.success_only !== true ||
+      policy.dedupe_control?.special_exact_artifact_classes_always_execute !== true ||
+      policy.dedupe_control?.special_exact_artifact_classes_always_execute_exact_observer !== true ||
+      policy.dedupe_control?.special_exact_artifact_classes_full_audit_default !== true ||
+      policy.dedupe_control?.verified_coverage_upstream_alias_no_full_audit !== true ||
+      !coverageAliasBindingsExact ||
+      policy.dedupe_control?.manual_direct_rerun_and_non_success_always_execute !== true ||
+      policy.dedupe_control?.canonical_execution_claimed_default !== false ||
+      policy.dedupe_control?.concurrency_cancel_in_progress !== false ||
+      policy.dedupe_control?.concurrency_pending_capacity !== 1 ||
+      policy.dedupe_control?.additional_pending_runs_may_be_replaced !== true ||
+      policy.dedupe_control?.every_noncanonical_trigger_alias_receipt_guaranteed !== false ||
+      policy.dedupe_control?.fixed_leader_artifact_retention_days !== 90) errors.push('bounded dedupe control policy drift');
 
   let baseReceipt = {
     source: {

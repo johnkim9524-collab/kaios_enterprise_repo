@@ -1,8 +1,8 @@
 const collectorFields=['what_changed','why_it_matters','comparable_context','liquidity','risk','possible_action'];
 const institutionalFields=['universe','coverage','market_scale','depth','turnover','concentration','exposure','confidence'];
 
-const verifiedField=field_id=>({
-  field_id,state:'VERIFIED',value:`fixture-${field_id}`,
+const verifiedField=(field_id,value=`fixture-${field_id}`)=>({
+  field_id,state:'VERIFIED',value,
   evidence_references:[`fixture:evidence:${field_id}`],rights_state:'CLEARED',
   freshness_state:'CURRENT',confidence_classification:'HIGH',limitations:['TEST_FIXTURE_ONLY']
 });
@@ -38,6 +38,33 @@ const baseProjection=productPayload=>({
 
 export function approvedProjectionFixture(){
   return baseProjection(payload(verifiedField));
+}
+
+export function approvedObjectPassportFixture(){
+  const projection=baseProjection({
+    canonical_object_id:'fixture:object:camera:leica-m3',
+    fields:{
+      identity:verifiedField('identity','Leica M3 camera'),maker:verifiedField('maker','Leica'),
+      model:verifiedField('model','M3'),variant:verifiedField('variant','Chrome'),year:verifiedField('year',1955),
+      provenance:verifiedField('provenance','Fixture provenance'),specification:verifiedField('specification','35mm rangefinder'),
+      condition:verifiedField('condition','Fixture assessed'),
+      market_observations:verifiedField('market_observations',['Fixture observation']),
+      comparables:verifiedField('comparables',['Fixture comparable']),liquidity:verifiedField('liquidity','Fixture bounded'),
+      scarcity:verifiedField('scarcity','Fixture bounded'),cultural_significance:verifiedField('cultural_significance','Fixture only'),
+      risks:verifiedField('risks',['TEST_FIXTURE_ONLY']),evidence:verifiedField('evidence',['fixture:evidence:1','fixture:evidence:2']),
+      rights:verifiedField('rights','CLEARED'),audit_history:verifiedField('audit_history',['fixture:event:1'])
+    }
+  });
+  Object.assign(projection,{
+    projection_id:'fixture-approved-object-passport-v1',product_type:'OBJECT_PASSPORT',
+    actions:[
+      {action_id:'COMPARE',state:'ENABLED',destination:'index.html?compare=fixture%3Aobject%3Acamera%3Aleica-m3#workspace',reason:''},
+      {action_id:'WATCHLIST',state:'ENABLED',destination:'index.html?watch=fixture%3Aobject%3Acamera%3Aleica-m3#workspace',reason:''},
+      {action_id:'EXPORT',state:'DISABLED',destination:null,reason:'Public export remains disabled'}
+    ]
+  });
+  projection.audit.projection_record_uri='/governance/projections/fixture-approved-object-passport-v1';
+  return projection;
 }
 
 export function stateOnlyProjectionFixture(projectionState='AWAITING_APPROVED_PROJECTION'){

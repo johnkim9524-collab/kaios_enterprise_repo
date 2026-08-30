@@ -51,7 +51,12 @@ if (!errors.length) {
   for (const marker of ["KIDULTS_DATA_CONNECTIONS","dataConnectionState","providerConnectionState","runtimeObservationState"]) if (!portal.includes(marker)) errors.push(`Portal connection projection missing: ${marker}`);
 
   const providerIndex = json("coordination/kidults/registry/provider/index.json");
-  if (providerIndex.current_record_id !== "provider-requirements-v1" || providerIndex.record_count !== 1) errors.push("Provider Registry requirement record is not active.");
+  if (providerIndex.current_record_id !== "provider-requirements-v1" ||
+      providerIndex.current_operating_state_record_id !== "provider-operating-state-v1" ||
+      providerIndex.record_count !== 2 ||
+      !providerIndex.records.some(record => record.id === "provider-operating-state-v1" && record.status === "ACTIVE_FAIL_CLOSED")) {
+    errors.push("Provider Registry requirements and canonical operating-state records are not active.");
+  }
   const track = json("coordination/kidults/registry/track/index.json");
   if (!track.records.some(record => record.id === "track-e-executive-operating-system")) errors.push("Track E is not registered.");
   const mission = json("coordination/kidults/registry/mission/index.json");

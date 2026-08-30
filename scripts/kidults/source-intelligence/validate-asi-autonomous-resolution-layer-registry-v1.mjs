@@ -22,10 +22,13 @@ const assert = (condition, message) => { if (!condition) fail(message); };
 const read = (p) => fs.readFileSync(p, 'utf8');
 const json = (p) => JSON.parse(read(p));
 for (const [key, value] of Object.entries(files)) assert(fs.existsSync(value), `MISSING_${key.toUpperCase()}:${value}`);
+const runHistoryPath = 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs';
+assert(fs.existsSync(runHistoryPath), `MISSING_RUN_HISTORY:${runHistoryPath}`);
 
 const contract = json(files.contract);
 const registry = json(files.registry);
 const workflow = read(files.workflow);
+const runHistory = read(runHistoryPath);
 const builder = read(files.builder);
 const implementation = [builder, read(files.commonModule), read(files.currentModule), read(files.replacementModule)].join('\n');
 const validator = read(files.validator);
@@ -116,11 +119,17 @@ for (const marker of [
   'canonical_artifact_published:false',
   "if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'",
   'Claim single authoritative producer for exact P1 generation',
-  'ARL_AUTHORITATIVE_PRODUCER_DUPLICATE',
+  'for ARL_HISTORY_PAGE in $(seq 1 20); do',
+  '--mode arl-generation-pages',
+  'validate-safe-zip-archive-v1.py',
+  '--expected-digest "$P1_DIGEST"',
+  '--required-basename p1-preflight-action-queue-v1.json',
   "artifact_role:'AUTHORITATIVE_CONSUMABLE'",
   'authoritative_producer:true',
   'downstream_consumable:true'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
+assert(runHistory.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && runHistory.includes('pagination_reconciled_complete: true'), 'RUN_HISTORY_DUPLICATE_AND_COMPLETENESS_GUARD');
+assert(workflow.indexOf('--expected-digest "$P1_DIGEST"') < workflow.indexOf('unzip -q -o /tmp/p1.zip'), 'WORKFLOW_P1_SAFE_ZIP_PRE_EXTRACTION');
 assert(workflow.includes('contents: read'), 'WORKFLOW_CONTENTS_READ');
 assert(!workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_WRITE');
 assert(workflow.includes('actions: write'), 'WORKFLOW_ACTIONS_WRITE_FOR_BOUNDED_P1_RECOVERY');

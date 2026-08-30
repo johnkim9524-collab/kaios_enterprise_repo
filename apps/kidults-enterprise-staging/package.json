@@ -55,7 +55,7 @@
     "retention": "node operations.mjs enforce-retention",
     "start": "node server.mjs",
     "status": "node operations.mjs status",
-    "test": "node --test server.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs governed-publisher.test.mjs portal-intelligence-bridge.test.mjs homepage-live-intelligence-binding.test.mjs"
+    "test": "node --test server.test.mjs projection-capability-v1.test.mjs portal-projection-consumption-v1.test.mjs operations.test.mjs collector-evidence.test.mjs quality-alerts.test.mjs operations-notify.test.mjs operations-crm.test.mjs ai-operations.test.mjs executive-dashboard.test.mjs global-collector.test.mjs normalization-engine.test.mjs intelligence-graph.test.mjs insight-engine.test.mjs governed-publisher.test.mjs portal-intelligence-bridge.test.mjs homepage-live-intelligence-binding.test.mjs"
   },
   "engines": {
     "node": ">=20"

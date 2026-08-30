@@ -37,6 +37,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-legacy-bounded-discovery-retirement-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
   push:
     branches: [main]
@@ -65,6 +68,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-legacy-bounded-discovery-retirement-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
 permissions:
   contents: read
@@ -97,6 +103,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs
+          node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
+          node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
       - name: OBSERVE — rebuild structural acquisition matrix
         run: |
           node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
@@ -123,26 +132,42 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p input queue discovery-out /tmp/previous-source-pool /tmp/autobalance-raw /tmp/live-balance
-          PREV_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq '[.artifacts[] | select(.name=="kidults-asi-proactive-source-pool-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty')
-          if [ -n "$PREV_ID" ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${PREV_ID}/zip" > /tmp/previous-source-pool.zip
-            unzip -q -o /tmp/previous-source-pool.zip -d /tmp/previous-source-pool
-          fi
+          node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
+            --workflow-path .github/workflows/kidults-asi-self-driving-control-loop-v1.yml \
+            --workflow-name 'KIDULTS ASI Self-Driving Control Loop v1' \
+            --artifact-name kidults-asi-proactive-source-pool-v1 \
+            --branch main \
+            --archive /tmp/previous-source-pool.zip \
+            --extract-dir /tmp/previous-source-pool \
+            --receipt /tmp/previous-source-pool-exact-restore-receipt-v1.json \
+            --required-basename asi-proactive-source-pool-v1.json \
+            --required-basename asi-discovery-steering-plan-v1.json \
+            --max-pages 40 \
+            --lookback-days 95 \
+            --max-compressed-bytes 67108864 \
+            --allow-no-producer-history
+          PREV_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/previous-source-pool-exact-restore-receipt-v1.json")).artifact_id || ""')
           PREP=$(node scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs /tmp/previous-source-pool/asi-proactive-source-pool-v1.json)
           echo "$PREP"
           CYCLE_INDEX=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);process.stdout.write(String(Number(x.cycle_index||0)))})")
           PREV_COUNT=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);process.stdout.write(String(Number(x.previous_cycle_count||0)))})")
           PREV_VALID=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(Boolean(JSON.parse(s).previous_pool_valid))))")
 
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false)][0].id // empty'
-          else
-            BAL_JQ='[.artifacts[] | select(.name=="kidults-asi-throughput-coverage-autobalance-live-v1" and .expired==false and .workflow_run.head_branch=="main")][0].id // empty'
-          fi
-          BAL_ID=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" --jq "$BAL_JQ")
+          node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
+            --workflow-path .github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml \
+            --workflow-name 'KIDULTS ASI Throughput Coverage Autobalance Live v1' \
+            --artifact-name kidults-asi-throughput-coverage-autobalance-live-v1 \
+            --branch main \
+            --archive /tmp/autobalance.zip \
+            --extract-dir /tmp/autobalance-raw \
+            --receipt /tmp/autobalance-exact-restore-receipt-v1.json \
+            --required-basename asi-throughput-coverage-autobalance-live-v1.json \
+            --max-pages 40 \
+            --lookback-days 35 \
+            --max-compressed-bytes 4194304 \
+            --allow-no-producer-history
+          BAL_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/autobalance-exact-restore-receipt-v1.json")).artifact_id || ""')
           if [ -n "$BAL_ID" ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BAL_ID}/zip" > /tmp/autobalance.zip
-            unzip -q -o /tmp/autobalance.zip -d /tmp/autobalance-raw
             BAL_SRC=$(find /tmp/autobalance-raw -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
             if [ -n "$BAL_SRC" ]; then
               cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
@@ -152,6 +177,22 @@ jobs:
 
           node scripts/kidults/supply-chain/restore-canonical-anchor-artifact-v1.mjs \
             /tmp/anchor-foundation.zip /tmp/kidults-canonical-anchor-restore-receipt-v1.json
+          ANCHOR_DIGEST=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/kidults-canonical-anchor-restore-receipt-v1.json")).artifact_digest')
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/anchor-foundation.zip \
+            --expected-digest "$ANCHOR_DIGEST" \
+            --receipt /tmp/anchor-foundation-safe-zip-receipt-v1.json \
+            --max-compressed-bytes 67108864 \
+            --max-entries 2048 \
+            --max-entry-uncompressed-bytes 67108864 \
+            --max-total-uncompressed-bytes 268435456 \
+            --max-compression-ratio 100 \
+            --required-basename category-representative-product-registry-v1.json \
+            --required-basename representative-product-evidence-plan-v1.json \
+            --required-basename representative-product-gap-matrix-v1.json \
+            --required-basename representative-product-engine-alignment-v1.json \
+            --required-basename representative-product-source-sufficiency-driver-v1.json \
+            --required-basename run-manifest.json
           unzip -q -o /tmp/anchor-foundation.zip -d input
           node scripts/kidults/supply-chain/validate-canonical-anchor-extracted-v1.mjs input
           echo "cycle_index=$CYCLE_INDEX" >> "$GITHUB_OUTPUT"

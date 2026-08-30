@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
+import Ajv2020 from 'ajv/dist/2020.js';
 import {
   fs,
   path,
@@ -47,7 +48,7 @@ const resolutionReceipt = JSON.parse(receiptText);
 const artifactBinding = JSON.parse(artifactBindingText);
 const contract = JSON.parse(contractText);
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.1.0', 'COVERAGE_CONTRACT_ID_VERSION');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'COVERAGE_CONTRACT_ID_VERSION');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'COVERAGE_CONTRACT_STATUS');
 assert(same(contract.platform_principles, principles), 'COVERAGE_CONTRACT_PRINCIPLES');
 assert(contract.canonical_grain?.unmerged_v2_adapter_requirement_id_is_authoritative === false, 'UNMERGED_V2_ID_AUTHORITY_FORBIDDEN');
@@ -58,9 +59,11 @@ assert(contract.truth_boundary?.software_lineage_only === true, 'SOFTWARE_LINEAG
 assert(contract.truth_boundary?.live_source_request_executed === false && contract.truth_boundary?.provider_contact_executed === false, 'LIVE_OR_PROVIDER_ACTION_FORBIDDEN');
 assert(contract.truth_boundary?.evidence_admitted === 0 && contract.truth_boundary?.market_events_created === 0, 'EMPIRICAL_PROMOTION_FORBIDDEN');
 assert(contract.truth_boundary?.public_release === 'HOLD' && contract.truth_boundary?.production === 'HOLD' && contract.truth_boundary?.g5 === 'HOLD', 'RELEASE_BOUNDARY_INVALID');
+assert(contract.truth_boundary?.main_scope_validated_is_production_authority === false && contract.truth_boundary?.production_authorized === false, 'PRODUCTION_AUTHORITY_BOUNDARY_INVALID');
 
 const input = contract.authoritative_inputs;
 const staticEntries = [
+  ['artifactBindingSchema', input.artifact_binding_schema],
   ['resolutionContract', input.resolution_contract],
   ['runtimeContract', input.runtime_contract],
   ['frontier', input.source_frontier],
@@ -79,6 +82,7 @@ for (const [name, file] of staticEntries) {
   assert(typeof file === 'string' && file.length > 0, `STATIC_INPUT_PATH_MISSING:${name}`);
 }
 const staticTexts = Object.fromEntries(await Promise.all(staticEntries.map(async ([name, file]) => [name, await fs.readFile(file, 'utf8')])));
+const artifactBindingSchema = JSON.parse(staticTexts.artifactBindingSchema);
 const resolutionContract = JSON.parse(staticTexts.resolutionContract);
 const runtimeContract = JSON.parse(staticTexts.runtimeContract);
 const frontier = parsePsv(staticTexts.frontier);
@@ -95,7 +99,9 @@ const purposeRightsPreflight = JSON.parse(staticTexts.purposeRightsPreflight);
 const explicitPurposeRightsPreflight = JSON.parse(await fs.readFile(purposeRightsPreflightPath, 'utf8'));
 assert(same(purposeRightsPreflight, explicitPurposeRightsPreflight), 'PURPOSE_RIGHTS_PREFLIGHT_BINDING_DRIFT');
 
-assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.2.0', 'ARTIFACT_BINDING_ID_VERSION');
+const artifactBindingValidator = new Ajv2020({ allErrors: true, strict: true }).compile(artifactBindingSchema);
+assert(artifactBindingValidator(artifactBinding), `ARTIFACT_BINDING_SCHEMA_INVALID:${JSON.stringify(artifactBindingValidator.errors || [])}`);
+assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.3.0', 'ARTIFACT_BINDING_ID_VERSION');
 const artifactProducingEvents = new Set(['workflow_run']);
 assert(artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_WORKFLOW_EVENT');
 assert(['workflow_run', 'workflow_dispatch'].includes(artifactBinding.consumer_event), 'ARTIFACT_BINDING_CONSUMER_EVENT');
@@ -103,6 +109,8 @@ assert(typeof artifactBinding.exact_triggering_run_bound === 'boolean', 'ARTIFAC
 assert(artifactBinding.exact_triggering_run_bound === (artifactBinding.consumer_event === 'workflow_run'), 'ARTIFACT_BINDING_EXACT_TRIGGER_SEMANTICS');
 assert(artifactBinding.authoritative_producer_event === true && artifactBinding.workflow_event === 'workflow_run', 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_REQUIRED');
 assert(artifactBinding.authoritative_producer_cardinality === 1, 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_CARDINALITY');
+assert(artifactBinding.upstream_class === contract.canonical_fanout?.upstream_class, 'ARTIFACT_BINDING_UPSTREAM_CLASS');
+assert(artifactBinding.canonical_run_key === `${artifactBinding.head_sha}:${artifactBinding.upstream_class}`, 'ARTIFACT_BINDING_CANONICAL_RUN_KEY');
 assert(artifactBinding.artifact_name === input.upstream_artifact_name, 'ARTIFACT_NAME_MISMATCH');
 assert(Number.isInteger(artifactBinding.artifact_id) && artifactBinding.artifact_id > 0, 'ARTIFACT_ID_INVALID');
 assert(artifactBinding.expired === false, 'ARTIFACT_EXPIRED');
@@ -113,9 +121,11 @@ assert(artifactBinding.expected_source_sha === artifactBinding.head_sha, 'ARTIFA
 assert(artifactBinding.expected_head_branch === artifactBinding.head_branch, 'ARTIFACT_EXPECTED_HEAD_BRANCH_MISMATCH');
 assert(shaPattern.test(artifactBinding.execution_sha), 'ARTIFACT_EXECUTION_SHA_INVALID');
 const trustedMainArtifact = artifactBinding.validation_scope === 'MAIN' &&
-  artifactBinding.head_branch === 'main' && artifactBinding.production_eligible === true;
+  artifactBinding.head_branch === 'main' && artifactBinding.main_scope_validated === true &&
+  artifactBinding.production_authorized === false;
 const trustedPullRequestArtifact = artifactBinding.validation_scope === 'PULL_REQUEST_HEAD' &&
-  artifactBinding.head_branch !== 'main' && artifactBinding.production_eligible === false &&
+  artifactBinding.head_branch !== 'main' && artifactBinding.main_scope_validated === false &&
+  artifactBinding.production_authorized === false &&
   artifactBinding.head_sha !== artifactBinding.consumer_sha &&
   artifactBinding.execution_sha === artifactBinding.consumer_sha;
 assert(trustedMainArtifact || trustedPullRequestArtifact, 'ARTIFACT_PROVENANCE_SCOPE_INVALID');
@@ -642,7 +652,13 @@ const claimCeilingRegistry = {
   production: 'HOLD',
   g5: 'HOLD',
 };
-const gapRecords = records.filter((record) => record.software_coverage_state !== 'SOFTWARE_IMPLEMENTED').map((record) => ({
+const operatingModel = contract.gap_queue_operating_model;
+assert(operatingModel?.record_accountable_owner === 'KPMO' && operatingModel?.record_priority === 'P1', 'GAP_OPERATING_MODEL_OWNER_PRIORITY');
+assert(operatingModel?.record_queue_state === 'QUEUED_PREREQUISITES_PENDING', 'GAP_OPERATING_MODEL_QUEUE_STATE');
+assert(operatingModel?.record_queue_id?.includes('coverage_record_id,gap_class') && operatingModel?.record_idempotency_key?.includes('coverage_record_id,gap_class,required_adapter_claim') && operatingModel?.work_unit_idempotency_key?.includes('unit_class,grouping_keys'), 'GAP_OPERATING_MODEL_IDEMPOTENCY_FORMULAS');
+assert(operatingModel?.external_contact_authorized === false && operatingModel?.live_source_request_authorized === false &&
+  operatingModel?.adapter_activation_authorized === false && operatingModel?.production_authorized === false, 'GAP_OPERATING_MODEL_AUTHORITY_BOUNDARY');
+const baseGapRecords = records.filter((record) => record.software_coverage_state !== 'SOFTWARE_IMPLEMENTED').map((record) => ({
   coverage_record_id: record.coverage_record_id,
   mission_id: record.mission_id,
   scope_id: record.scope_id,
@@ -662,16 +678,184 @@ const gapRecords = records.filter((record) => record.software_coverage_state !==
   production: 'HOLD',
   g5: 'HOLD',
 }));
+
+const makeSla = (policy) => ({
+  policy_id: policy.sla_policy_id,
+  clock: 'SUCCESSFUL_CANONICAL_COVERAGE_RUNS',
+  start_event: 'FIRST_CANONICAL_QUEUE_ADMISSION',
+  acknowledgement_due_after_successful_canonical_runs: policy.ack_due_after_successful_canonical_runs,
+  resolution_due_after_successful_canonical_runs: policy.resolution_due_after_successful_canonical_runs,
+  protected_gate_wait_pauses_resolution_clock: true,
+});
+const allowedGenericFallbacks = {
+  KPMO_TRACK_Z_TRACK_A_GENERIC_DISCOVERY_FALLBACK: [
+    'KPMO_RETAIN_FAIL_CLOSED_HOLD',
+    'TRACK_Z_IDENTIFY_ALTERNATE_LAWFUL_SOURCE_PROFILE_WITHOUT_CONTACT',
+    'TRACK_A_VALIDATE_IMMUTABLE_SCHEMA_AND_CLAIM_CAPABILITY',
+  ],
+  KPMO_TRACK_A_TRACK_Z_GENERIC_SCHEMA_FALLBACK: [
+    'KPMO_RETAIN_FAIL_CLOSED_HOLD',
+    'TRACK_A_VALIDATE_COMPATIBLE_SCHEMA_OR_PRESERVE_MISSING',
+    'TRACK_Z_IDENTIFY_ALTERNATE_RIGHTS_CLEAR_SOURCE_ROUTE_WITHOUT_CONTACT',
+  ],
+};
+const makeFallback = (policy) => {
+  const steps = operatingModel.fallback_paths?.[policy.fallback_path_id];
+  assert(Array.isArray(steps) && same(steps, allowedGenericFallbacks[policy.fallback_path_id]), `GAP_FALLBACK_PATH_INVALID:${policy.fallback_path_id}`);
+  assert(!normalized.some((source) => steps.some((step) => step.includes(source.source_id))), `GAP_PROVIDER_SPECIFIC_FALLBACK_FORBIDDEN:${policy.fallback_path_id}`);
+  return {
+    path_id: policy.fallback_path_id,
+    steps,
+    external_contact_authorized: false,
+    live_source_request_authorized: false,
+    adapter_activation_authorized: false,
+    terminal_state_without_prerequisites: 'HOLD',
+  };
+};
+const makeRuntimeHold = () => ({
+  state: 'NOT_EXECUTED_NO_DURABLE_CONSUMER_RECEIPT',
+  durable_consumer_implemented: false,
+  first_admission_count: 0,
+  acknowledgement_count: 0,
+  retry_count: 0,
+  dead_letter_queue_count: 0,
+  runtime_receipt_ref: null,
+  zero_counts_are_not_readiness: true,
+});
+const bindWorkUnit = (index, coverageRecordIds, workUnitId) => {
+  for (const coverageRecordId of coverageRecordIds) {
+    if (!index.has(coverageRecordId)) index.set(coverageRecordId, []);
+    index.get(coverageRecordId).push(workUnitId);
+  }
+};
+
+const workUnitIdsByCoverageRecord = new Map();
+const discoveryPolicy = operatingModel.source_discovery_bundle;
+assert(discoveryPolicy?.ack_due_after_successful_canonical_runs === 1 && discoveryPolicy?.resolution_due_after_successful_canonical_runs === 5, 'DISCOVERY_WORK_UNIT_SLA_POLICY');
+const discoveryGroups = new Map();
+for (const record of baseGapRecords.filter((item) => item.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED')) {
+  const key = stableJson({ domain: record.domain, region: record.region, evidence_class: record.evidence_class });
+  if (!discoveryGroups.has(key)) discoveryGroups.set(key, []);
+  discoveryGroups.get(key).push(record);
+}
+const discoveryWorkUnits = [...discoveryGroups.entries()].map(([key, groupRecords]) => {
+  const grouping = JSON.parse(key);
+  const coverageRecordIds = sorted(groupRecords.map((record) => record.coverage_record_id));
+  const workUnitId = shaId('requirement-adapter-gap-work-unit', { unit_class: 'SOURCE_PROFILE_DISCOVERY_BUNDLE', ...grouping });
+  bindWorkUnit(workUnitIdsByCoverageRecord, coverageRecordIds, workUnitId);
+  return {
+    work_unit_id: workUnitId,
+    unit_class: 'SOURCE_PROFILE_DISCOVERY_BUNDLE',
+    grouping,
+    requirement_count: groupRecords.length,
+    coverage_record_ids: coverageRecordIds,
+    scope_ids: uniq(groupRecords.map((record) => record.scope_id)),
+    accountable_owner: operatingModel.record_accountable_owner,
+    execution_owner: discoveryPolicy.execution_owner,
+    queue_state: operatingModel.record_queue_state,
+    priority: operatingModel.record_priority,
+    sla: makeSla(discoveryPolicy),
+    idempotency_key: shaId('requirement-adapter-gap-work-unit-idempotency', { unit_class: 'SOURCE_PROFILE_DISCOVERY_BUNDLE', ...grouping }),
+    fallback_path: makeFallback(discoveryPolicy),
+    runtime_execution: makeRuntimeHold(),
+    public_release: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  };
+}).sort((a, b) => a.work_unit_id.localeCompare(b.work_unit_id));
+
+const schemaPolicy = operatingModel.schema_bound_source_claim_unit;
+assert(schemaPolicy?.ack_due_after_successful_canonical_runs === 1 && schemaPolicy?.resolution_due_after_successful_canonical_runs === 3, 'SCHEMA_WORK_UNIT_SLA_POLICY');
+const schemaGroups = new Map();
+for (const record of baseGapRecords.filter((item) => item.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE')) {
+  for (const sourceId of record.eligible_source_ids) {
+    const key = stableJson({ source_id: sourceId, required_adapter_claim: record.required_adapter_claim });
+    if (!schemaGroups.has(key)) schemaGroups.set(key, []);
+    schemaGroups.get(key).push(record);
+  }
+}
+const schemaWorkUnits = [...schemaGroups.entries()].map(([key, groupRecords]) => {
+  const grouping = JSON.parse(key);
+  const coverageRecordIds = sorted(groupRecords.map((record) => record.coverage_record_id));
+  const workUnitId = shaId('requirement-adapter-gap-work-unit', { unit_class: 'SCHEMA_BOUND_SOURCE_CLAIM_UNIT', ...grouping });
+  bindWorkUnit(workUnitIdsByCoverageRecord, coverageRecordIds, workUnitId);
+  return {
+    work_unit_id: workUnitId,
+    unit_class: 'SCHEMA_BOUND_SOURCE_CLAIM_UNIT',
+    grouping,
+    requirement_count: groupRecords.length,
+    coverage_record_ids: coverageRecordIds,
+    scope_ids: uniq(groupRecords.map((record) => record.scope_id)),
+    accountable_owner: operatingModel.record_accountable_owner,
+    execution_owner: schemaPolicy.execution_owner,
+    queue_state: operatingModel.record_queue_state,
+    priority: operatingModel.record_priority,
+    sla: makeSla(schemaPolicy),
+    idempotency_key: shaId('requirement-adapter-gap-work-unit-idempotency', { unit_class: 'SCHEMA_BOUND_SOURCE_CLAIM_UNIT', ...grouping }),
+    fallback_path: makeFallback(schemaPolicy),
+    runtime_execution: makeRuntimeHold(),
+    public_release: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  };
+}).sort((a, b) => a.work_unit_id.localeCompare(b.work_unit_id));
+const workUnits = [...discoveryWorkUnits, ...schemaWorkUnits].sort((a, b) => a.work_unit_id.localeCompare(b.work_unit_id));
+assert(discoveryWorkUnits.length === discoveryPolicy.expected_work_unit_count, `DISCOVERY_WORK_UNIT_COUNT:${discoveryWorkUnits.length}`);
+assert(schemaWorkUnits.length === schemaPolicy.expected_work_unit_count, `SCHEMA_WORK_UNIT_COUNT:${schemaWorkUnits.length}`);
+assert(uniq(workUnits.map((unit) => unit.work_unit_id)).length === workUnits.length, 'GAP_WORK_UNIT_ID_DUPLICATE');
+assert(uniq(workUnits.map((unit) => unit.idempotency_key)).length === workUnits.length, 'GAP_WORK_UNIT_IDEMPOTENCY_DUPLICATE');
+
+const gapRecords = baseGapRecords.map((record) => {
+  const policy = record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED' ? discoveryPolicy : schemaPolicy;
+  const workUnitIds = sorted(workUnitIdsByCoverageRecord.get(record.coverage_record_id) || []);
+  assert(workUnitIds.length > 0, `GAP_RECORD_WORK_UNIT_MISSING:${record.coverage_record_id}`);
+  return {
+    ...record,
+    queue_record_id: shaId('requirement-adapter-gap-queue-record', { coverage_record_id: record.coverage_record_id, gap_class: record.gap_class }),
+    work_unit_ids: workUnitIds,
+    accountable_owner: operatingModel.record_accountable_owner,
+    execution_owner: policy.execution_owner,
+    queue_state: operatingModel.record_queue_state,
+    priority: operatingModel.record_priority,
+    sla: makeSla(policy),
+    idempotency_key: shaId('requirement-adapter-gap-idempotency', {
+      coverage_record_id: record.coverage_record_id,
+      gap_class: record.gap_class,
+      required_adapter_claim: record.required_adapter_claim,
+    }),
+    fallback_path: makeFallback(policy),
+    runtime_execution: makeRuntimeHold(),
+    external_contact_authorized: false,
+    live_source_request_authorized: false,
+    adapter_activation_authorized: false,
+    production_authorized: false,
+  };
+});
+assert(uniq(gapRecords.map((record) => record.queue_record_id)).length === gapRecords.length, 'GAP_QUEUE_RECORD_ID_DUPLICATE');
+assert(uniq(gapRecords.map((record) => record.idempotency_key)).length === gapRecords.length, 'GAP_RECORD_IDEMPOTENCY_DUPLICATE');
 const gapQueue = {
   id: 'kidults-asi-requirement-adapter-gap-queue-v1',
   version: contract.version,
-  state: 'CURRENT_SOURCE_DISCOVERY_AND_SCHEMA_BOUND_CLAIM_GAPS_EXPLICIT',
+  state: 'CURRENT_GAPS_BOUND_TO_ACCOUNTABLE_WORK_UNITS_EXTERNAL_ACTIVATION_HOLD',
   gap_count: gapRecords.length,
   context_only_count: gapRecords.filter((record) => record.software_coverage_state === 'CONTEXT_ONLY').length,
   claim_parser_not_implemented_count: gapRecords.filter((record) => record.software_coverage_state === 'NO_IMPLEMENTED_CLAIM_PARSER').length,
   source_profile_discovery_count: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
   schema_bound_claim_parser_count: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
   internally_unbound_execution_queue_count: 0,
+  accountable_owner_bound_count: gapRecords.filter((record) => record.accountable_owner === 'KPMO').length,
+  sla_bound_count: gapRecords.filter((record) => record.sla?.policy_id).length,
+  idempotency_key_bound_count: gapRecords.filter((record) => record.idempotency_key).length,
+  generic_fallback_bound_count: gapRecords.filter((record) => record.fallback_path?.external_contact_authorized === false).length,
+  unique_record_idempotency_key_count: uniq(gapRecords.map((record) => record.idempotency_key)).length,
+  duplicate_record_idempotency_key_count: gapRecords.length - uniq(gapRecords.map((record) => record.idempotency_key)).length,
+  work_unit_count: workUnits.length,
+  source_discovery_work_unit_count: discoveryWorkUnits.length,
+  schema_bound_source_claim_work_unit_count: schemaWorkUnits.length,
+  work_unit_owner_sla_fallback_bound_count: workUnits.filter((unit) => unit.accountable_owner === 'KPMO' && unit.sla?.policy_id && unit.fallback_path?.terminal_state_without_prerequisites === 'HOLD').length,
+  record_to_work_unit_membership_count: gapRecords.reduce((total, record) => total + record.work_unit_ids.length, 0),
+  runtime_execution: makeRuntimeHold(),
+  work_units: workUnits,
   records: gapRecords,
   evidence_admitted: 0,
   public_release: 'HOLD',
@@ -692,7 +876,7 @@ for (const [name, value] of [
 const outputManifest = {
   id: 'kidults-asi-requirement-adapter-coverage-manifest-v1',
   version: contract.version,
-  state: 'INTERNAL_EXECUTION_QUEUE_CLOSED_SOURCE_DISCOVERY_AND_ACTIVATION_HOLD_EXPLICIT',
+  state: 'ACCOUNTABLE_INTERNAL_GAP_QUEUE_READY_EXTERNAL_ACTIVATION_HOLD',
   as_of: resolutionManifest.as_of,
   platform_principles: principles,
   source_sha: artifactBinding.execution_sha,
@@ -700,18 +884,23 @@ const outputManifest = {
   consumer_sha: artifactBinding.consumer_sha,
   input_bindings: {
     upstream_artifact: {
+      artifact_binding_id: artifactBinding.id,
+      artifact_binding_version: artifactBinding.version,
       artifact_id: artifactBinding.artifact_id,
       artifact_name: artifactBinding.artifact_name,
       workflow_run_id: artifactBinding.workflow_run_id,
       workflow_name: artifactBinding.workflow_name,
       workflow_path: artifactBinding.workflow_path,
+      upstream_class: artifactBinding.upstream_class,
+      canonical_run_key: artifactBinding.canonical_run_key,
       head_branch: artifactBinding.head_branch,
       expected_head_branch: artifactBinding.expected_head_branch,
       head_sha: artifactBinding.head_sha,
       expected_source_sha: artifactBinding.expected_source_sha,
       execution_sha: artifactBinding.execution_sha,
       validation_scope: artifactBinding.validation_scope,
-      production_eligible: artifactBinding.production_eligible,
+      main_scope_validated: artifactBinding.main_scope_validated,
+      production_authorized: artifactBinding.production_authorized,
       conclusion: artifactBinding.conclusion,
       expired: artifactBinding.expired,
       source_sha_ancestor_of_consumer: artifactBinding.source_sha_ancestor_of_consumer,
@@ -719,6 +908,7 @@ const outputManifest = {
       created_at: artifactBinding.created_at,
       expires_at: artifactBinding.expires_at,
     },
+    artifact_binding_schema: { path: input.artifact_binding_schema, digest: hash(staticTexts.artifactBindingSchema) },
     replacement_queue: { id: queue.id, digest: hash(queueText), mission_count: queue.mission_count },
     resolution_manifest: { id: resolutionManifest.id, digest: hash(manifestText) },
     resolution_receipt: { id: resolutionReceipt.id, digest: hash(receiptText), source_sha: resolutionReceipt.source_sha },
@@ -745,6 +935,19 @@ const outputManifest = {
     source_discovery_or_schema_activation_hold_requirements: gapRecords.length,
     source_profile_discovery_requirements: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
     schema_bound_claim_parser_requirements: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
+    accountable_gap_records: gapQueue.accountable_owner_bound_count,
+    gap_records_with_sla: gapQueue.sla_bound_count,
+    gap_records_with_idempotency_key: gapQueue.idempotency_key_bound_count,
+    gap_records_with_generic_fallback: gapQueue.generic_fallback_bound_count,
+    gap_work_units: gapQueue.work_unit_count,
+    source_discovery_work_units: gapQueue.source_discovery_work_unit_count,
+    schema_bound_source_claim_work_units: gapQueue.schema_bound_source_claim_work_unit_count,
+    gap_record_to_work_unit_memberships: gapQueue.record_to_work_unit_membership_count,
+    durable_consumer_implemented: false,
+    first_admission_count: 0,
+    acknowledgement_count: 0,
+    retry_count: 0,
+    dead_letter_queue_count: 0,
     original_preflight_actions: resolutionManifest.results?.original_actions,
     terminal_preflight_actions: resolutionManifest.results?.terminal_actions,
     unresolved_preflight_actions: Number(resolutionManifest.results?.original_actions || 0) - Number(resolutionManifest.results?.terminal_actions || 0),
@@ -788,6 +991,10 @@ const outputManifest = {
   global_effect: 'POSITIVE_ALL_192_SCOPE_REGION_EVIDENCE_REQUIREMENTS_RETAINED_WITHOUT_CALLING_SOURCE_COUNT_GLOBAL_EVIDENCE',
   irreplaceable_value_effect: 'POSITIVE_KIDULTS_OWNED_REQUIREMENT_TO_SOURCE_CLAIM_CEILING_LINEAGE_AND_SWITCHING_GAPS',
   transparency_effect: 'POSITIVE_REGISTERED_IMPLEMENTED_CONTEXT_EMPIRICAL_AND_RELEASE_STATES_SEPARATED_WITH_DIGESTS',
+  upstream_class: artifactBinding.upstream_class,
+  canonical_run_key: artifactBinding.canonical_run_key,
+  main_scope_validated: artifactBinding.main_scope_validated,
+  production_authorized: false,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
@@ -810,6 +1017,12 @@ console.log(JSON.stringify({
   source_discovery_or_schema_activation_hold_requirements: gapRecords.length,
   source_profile_discovery_requirements: gapRecords.filter((record) => record.gap_class === 'SOURCE_PROFILE_DISCOVERY_REQUIRED').length,
   schema_bound_claim_parser_requirements: gapRecords.filter((record) => record.gap_class === 'SCHEMA_BOUND_CLAIM_PARSER_NOT_AVAILABLE').length,
+  gap_record_to_work_unit_memberships: gapQueue.record_to_work_unit_membership_count,
+  durable_consumer_implemented: false,
+  first_admission_count: 0,
+  acknowledgement_count: 0,
+  retry_count: 0,
+  dead_letter_queue_count: 0,
   unresolved_preflight_actions: Number(resolutionManifest.results?.original_actions || 0) - Number(resolutionManifest.results?.terminal_actions || 0),
   internal_unbound_execution_queue_count: 0,
   rights_schema_activation_hold_requirements: records.length,

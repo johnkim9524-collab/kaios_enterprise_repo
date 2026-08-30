@@ -18,6 +18,43 @@
     "diagnostic_payload": "DIGEST_ONLY_REDACTED",
     "receipt_retention_days": 90
   },
+  "dedupe_control": {
+    "canonical_identity_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
+    "durable_runtime_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+    "ephemeral_actions_guard_state": "ACTIVE_BOUNDED_90_DAY_NON_DURABLE",
+    "success_only": true,
+    "eligible_upstream_classes": [
+      "ASI_SOURCE_ACQUISITION_CASCADE",
+      "ASI_ADAPTER_EVIDENCE_CASCADE",
+      "KPMO_CONTROL_PLANE_VALIDATORS"
+    ],
+    "special_exact_artifact_classes_always_execute": true,
+    "special_exact_artifact_classes_always_execute_exact_observer": true,
+    "special_exact_artifact_classes_full_audit_default": true,
+    "verified_coverage_upstream_alias_no_full_audit": true,
+    "verified_coverage_upstream_alias_required_bindings": [
+      "exact_coverage_workflow_run",
+      "exact_coverage_workflow_run_attempt_event_head_and_display_title",
+      "exact_coverage_artifact_digest",
+      "coverage_alias_receipt_digest",
+      "canonical_input_digest",
+      "coverage_canonical_source_sha_separate_from_audit_source_sha",
+      "single_active_canonical_artifact",
+      "canonical_artifact_digest",
+      "canonical_artifact_workflow_run_id_and_head_sha",
+      "canonical_workflow_run_id_attempt_name_path_repository_status_conclusion_head_and_display_title",
+      "canonical_leader_receipt_digest",
+      "canonical_semantic_receipt_exact_file_digest",
+      "canonical_semantic_material_digest_recomputation"
+    ],
+    "manual_direct_rerun_and_non_success_always_execute": true,
+    "canonical_execution_claimed_default": false,
+    "concurrency_cancel_in_progress": false,
+    "concurrency_pending_capacity": 1,
+    "additional_pending_runs_may_be_replaced": true,
+    "every_noncanonical_trigger_alias_receipt_guaranteed": false,
+    "fixed_leader_artifact_retention_days": 90
+  },
   "state_model": {
     "axes": [
       "internal_control_state",

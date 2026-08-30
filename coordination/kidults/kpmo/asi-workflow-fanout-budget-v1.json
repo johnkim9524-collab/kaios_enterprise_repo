@@ -75,6 +75,35 @@
     ],
     "terminal_observer_only": true,
     "repository_mutation_allowed": false,
+    "canonical_success_guard": {
+      "identity_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
+      "key": "source_sha + upstream_class + generation_discriminator + classifier_contract_digest",
+      "grouped_classes": [
+        "ASI_SOURCE_ACQUISITION_CASCADE",
+        "ASI_ADAPTER_EVIDENCE_CASCADE",
+        "KPMO_CONTROL_PLANE_VALIDATORS"
+      ],
+      "special_exact_artifact_classes": [
+        "ASI_REQUIREMENT_COVERAGE",
+        "ASI_SHARDED_SOURCE_RESERVE",
+        "ASI_SHADOW_OPERATING_EVIDENCE"
+      ],
+      "verified_coverage_alias_observer_no_full_audit": true,
+      "verified_coverage_alias_requires_single_active_leader": true,
+      "verified_coverage_alias_splits_audit_and_canonical_source_sha": true,
+      "verified_coverage_alias_exact_current_and_canonical_run_metadata": true,
+      "verified_coverage_alias_semantic_receipt_exact_file_and_material_readback": true,
+      "coverage_alias_tamper_or_incomplete_readback": "FAIL_CLOSED",
+      "special_manual_direct_rerun_and_non_success_bypass": true,
+      "job_level_serialization": true,
+      "cancel_in_progress": false,
+      "fixed_leader_artifact_retention_days": 90,
+      "github_pending_capacity": 1,
+      "additional_pending_runs_may_be_replaced": true,
+      "every_alias_receipt_guaranteed": false,
+      "durable_runtime_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+      "canonical_execution_claimed": false
+    },
     "reason": "Continuous Assurance is a read-only terminal observer. SHADOW, Requirement Coverage, Sharded Reserve, and live canonical issue truth are explicitly included so failed, cancelled, waiting, missing, ambiguously-artifacted, or stale-truth producers cannot coexist with an estate-wide ASI-green interpretation."
   },
   "critical_static_producers_watched_by_continuous_assurance": [

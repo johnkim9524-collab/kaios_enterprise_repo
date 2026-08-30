@@ -18,7 +18,7 @@
     "coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json": "sha256:812108c16763dba55ba7e13e9ea5bec89b29abf5627f2fdcad8ece39d85f108c",
     "coordination/kidults/source-intelligence/source-channel-control-plane-contract-v1.json": "sha256:6a9deb21ccea06d707d3042f3e45afe090cca9877de36d9d0b15fbfb1aa34be7",
     "coordination/kidults/source-intelligence/state-department-online-auction-sold-event-admission-r1.json": "sha256:0a65f2501b072b5ad26bcac576236c056ebcaea96b8a19b10074dadc55c1e571",
-    "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv": "sha256:af68614e0622555b34ab94f6b94c46055e9d8fe84c967f07ff5dcf468f1e8833",
+    "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv": "sha256:a8804af1ee0f716fd4dfd88a2438636d49455a910f62241dbc7764c3dea0923d",
     "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json": "sha256:a38b2dd2d4b346e909d33209da943c8ead4ac6a6c661ee9fa30977d160ceb983",
     "coordination/kidults/source-intelligence/wikidata-regional-vinyl-catalog-observation-admission-r1.json": "sha256:0c2fa67cd7a54e2107e4cdbe392ad3673f754dcb7619cd6253d1746d526a9f22"
   },
@@ -88,83 +88,6 @@
     "activation_backlog_eligible": []
   },
   "source_records": [
-    {
-      "canonical_source_id": " grand-comics-database",
-      "aliases": [],
-      "display_name": "Grand Comics Database",
-      "display_name_variants": [
-        "Grand Comics Database"
-      ],
-      "core_domains": [
-        "cards-comics-memorabilia"
-      ],
-      "collection_scope_ids": [
-        "scope-comics-graphic-narratives"
-      ],
-      "source_roles": [
-        "CATALOG_REFERENCE",
-        "PROVENANCE_HISTORY"
-      ],
-      "official_locators": [
-        "https://www.comics.org/",
-        "https://www.comics.org/wiki/En:API"
-      ],
-      "evidence_refs": [],
-      "channel_types": [
-        "SPECIALIST_COMICS_DATABASE"
-      ],
-      "access_modes": [
-        "PUBLIC_WEB_AND_API"
-      ],
-      "curated_frontier_ids": [
-        " grand-comics-database"
-      ],
-      "in_curated_64": true,
-      "adapter_implemented_fixture_verified": false,
-      "adapter_active": false,
-      "immutable_live_source_snapshot_verified": false,
-      "origin_proof_verified": false,
-      "admission_declarations": [],
-      "admission_classes": [],
-      "bounded_admission_present": false,
-      "strict_r1_bounded_admission_present": false,
-      "current_sold_rights": {
-        "purpose": "CURRENT_SOLD_TRANSACTION",
-        "decision": "RIGHTS_HOLD",
-        "eligible_for_acquisition_or_adapter_backlog": false,
-        "reason_codes": [
-          "EXACT_SOURCE_PURPOSE_PREFLIGHT_MISSING"
-        ],
-        "evidence_refs": [],
-        "evidence_digest": null,
-        "purpose_binding_id": null
-      },
-      "current_sold_reference_rights": {
-        "purpose": "CURRENT_SOLD_TRANSACTION_REFERENCE",
-        "decision": "RIGHTS_HOLD",
-        "eligible_for_acquisition_or_adapter_backlog": false,
-        "reason_codes": [
-          "EXACT_SOURCE_PURPOSE_PREFLIGHT_MISSING"
-        ],
-        "evidence_refs": [],
-        "evidence_digest": null,
-        "purpose_binding_id": null
-      },
-      "activation_eligible": false,
-      "activation_blockers": [
-        "CURRENT_SOLD_EXACT_PURPOSE_RIGHTS_HOLD",
-        "IMMUTABLE_LIVE_SOURCE_SNAPSHOT_NOT_VERIFIED",
-        "SOURCE_OWNER_AND_FACTUAL_ORIGIN_NOT_VERIFIED",
-        "SOURCE_SPECIFIC_ACTIVATION_RECEIPT_MISSING",
-        "SOURCE_SPECIFIC_ADAPTER_NOT_IMPLEMENTED"
-      ],
-      "source_state": "CURATED_OR_REVIEWED_DISCOVERY_ONLY",
-      "acquisition_authorized": false,
-      "evidence_admitted": false,
-      "current_market_event_created": false,
-      "public_release": "HOLD",
-      "production": "HOLD"
-    },
     {
       "canonical_source_id": "afi-catalog",
       "aliases": [],
@@ -2927,6 +2850,83 @@
       ],
       "curated_frontier_ids": [
         "gooding-christies-results"
+      ],
+      "in_curated_64": true,
+      "adapter_implemented_fixture_verified": false,
+      "adapter_active": false,
+      "immutable_live_source_snapshot_verified": false,
+      "origin_proof_verified": false,
+      "admission_declarations": [],
+      "admission_classes": [],
+      "bounded_admission_present": false,
+      "strict_r1_bounded_admission_present": false,
+      "current_sold_rights": {
+        "purpose": "CURRENT_SOLD_TRANSACTION",
+        "decision": "RIGHTS_HOLD",
+        "eligible_for_acquisition_or_adapter_backlog": false,
+        "reason_codes": [
+          "EXACT_SOURCE_PURPOSE_PREFLIGHT_MISSING"
+        ],
+        "evidence_refs": [],
+        "evidence_digest": null,
+        "purpose_binding_id": null
+      },
+      "current_sold_reference_rights": {
+        "purpose": "CURRENT_SOLD_TRANSACTION_REFERENCE",
+        "decision": "RIGHTS_HOLD",
+        "eligible_for_acquisition_or_adapter_backlog": false,
+        "reason_codes": [
+          "EXACT_SOURCE_PURPOSE_PREFLIGHT_MISSING"
+        ],
+        "evidence_refs": [],
+        "evidence_digest": null,
+        "purpose_binding_id": null
+      },
+      "activation_eligible": false,
+      "activation_blockers": [
+        "CURRENT_SOLD_EXACT_PURPOSE_RIGHTS_HOLD",
+        "IMMUTABLE_LIVE_SOURCE_SNAPSHOT_NOT_VERIFIED",
+        "SOURCE_OWNER_AND_FACTUAL_ORIGIN_NOT_VERIFIED",
+        "SOURCE_SPECIFIC_ACTIVATION_RECEIPT_MISSING",
+        "SOURCE_SPECIFIC_ADAPTER_NOT_IMPLEMENTED"
+      ],
+      "source_state": "CURATED_OR_REVIEWED_DISCOVERY_ONLY",
+      "acquisition_authorized": false,
+      "evidence_admitted": false,
+      "current_market_event_created": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "canonical_source_id": "grand-comics-database",
+      "aliases": [],
+      "display_name": "Grand Comics Database",
+      "display_name_variants": [
+        "Grand Comics Database"
+      ],
+      "core_domains": [
+        "cards-comics-memorabilia"
+      ],
+      "collection_scope_ids": [
+        "scope-comics-graphic-narratives"
+      ],
+      "source_roles": [
+        "CATALOG_REFERENCE",
+        "PROVENANCE_HISTORY"
+      ],
+      "official_locators": [
+        "https://www.comics.org/",
+        "https://www.comics.org/wiki/En:API"
+      ],
+      "evidence_refs": [],
+      "channel_types": [
+        "SPECIALIST_COMICS_DATABASE"
+      ],
+      "access_modes": [
+        "PUBLIC_WEB_AND_API"
+      ],
+      "curated_frontier_ids": [
+        "grand-comics-database"
       ],
       "in_curated_64": true,
       "adapter_implemented_fixture_verified": false,
@@ -6890,51 +6890,6 @@
   ],
   "source_purpose_records": [
     {
-      "source_purpose_id": " grand-comics-database::IDENTITY_CATALOG",
-      "canonical_source_id": " grand-comics-database",
-      "purpose": "IDENTITY_CATALOG",
-      "decision": "RIGHTS_HOLD",
-      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
-      "reason_codes": [
-        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
-      ],
-      "eligible_for_acquisition_or_adapter_backlog": false,
-      "activation_eligible": false,
-      "acquisition_authorized": false,
-      "public_release": "HOLD",
-      "production": "HOLD"
-    },
-    {
-      "source_purpose_id": " grand-comics-database::PROVENANCE_HISTORY",
-      "canonical_source_id": " grand-comics-database",
-      "purpose": "PROVENANCE_HISTORY",
-      "decision": "RIGHTS_HOLD",
-      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
-      "reason_codes": [
-        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
-      ],
-      "eligible_for_acquisition_or_adapter_backlog": false,
-      "activation_eligible": false,
-      "acquisition_authorized": false,
-      "public_release": "HOLD",
-      "production": "HOLD"
-    },
-    {
-      "source_purpose_id": " grand-comics-database::SOURCE_ROLE_CLASSIFICATION",
-      "canonical_source_id": " grand-comics-database",
-      "purpose": "SOURCE_ROLE_CLASSIFICATION",
-      "decision": "RIGHTS_HOLD",
-      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
-      "reason_codes": [
-        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
-      ],
-      "eligible_for_acquisition_or_adapter_backlog": false,
-      "activation_eligible": false,
-      "acquisition_authorized": false,
-      "public_release": "HOLD",
-      "production": "HOLD"
-    },
-    {
       "source_purpose_id": "afi-catalog::IDENTITY_CATALOG",
       "canonical_source_id": "afi-catalog",
       "purpose": "IDENTITY_CATALOG",
@@ -8164,6 +8119,51 @@
     {
       "source_purpose_id": "gooding-christies-results::SOURCE_ROLE_CLASSIFICATION",
       "canonical_source_id": "gooding-christies-results",
+      "purpose": "SOURCE_ROLE_CLASSIFICATION",
+      "decision": "RIGHTS_HOLD",
+      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
+      "reason_codes": [
+        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
+      ],
+      "eligible_for_acquisition_or_adapter_backlog": false,
+      "activation_eligible": false,
+      "acquisition_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "source_purpose_id": "grand-comics-database::IDENTITY_CATALOG",
+      "canonical_source_id": "grand-comics-database",
+      "purpose": "IDENTITY_CATALOG",
+      "decision": "RIGHTS_HOLD",
+      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
+      "reason_codes": [
+        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
+      ],
+      "eligible_for_acquisition_or_adapter_backlog": false,
+      "activation_eligible": false,
+      "acquisition_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "source_purpose_id": "grand-comics-database::PROVENANCE_HISTORY",
+      "canonical_source_id": "grand-comics-database",
+      "purpose": "PROVENANCE_HISTORY",
+      "decision": "RIGHTS_HOLD",
+      "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
+      "reason_codes": [
+        "PURPOSE_SPECIFIC_ADMISSION_MISSING"
+      ],
+      "eligible_for_acquisition_or_adapter_backlog": false,
+      "activation_eligible": false,
+      "acquisition_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "source_purpose_id": "grand-comics-database::SOURCE_ROLE_CLASSIFICATION",
+      "canonical_source_id": "grand-comics-database",
       "purpose": "SOURCE_ROLE_CLASSIFICATION",
       "decision": "RIGHTS_HOLD",
       "claim_ceiling": "DISCOVERY_METADATA_ONLY_NO_EVIDENCE_OR_MARKET_CLAIM",
@@ -9975,5 +9975,5 @@
   "public_release": "HOLD",
   "production": "HOLD",
   "g5": "HOLD",
-  "ledger_digest": "sha256:4b995ca17b28303bed6b73eec0663d3a6c9909188b6118fe9d815da83d0a45da"
+  "ledger_digest": "sha256:8bd962a0eda03b736667dbc9b1000e21015f1a23b06afad24bdd2da0c88dae92"
 }

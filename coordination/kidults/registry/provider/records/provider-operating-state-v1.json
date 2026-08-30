@@ -1,0 +1,236 @@
+{
+  "id": "provider-operating-state-v1",
+  "record_type": "provider_operating_state",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "created_at": "2026-08-30T02:32:50Z",
+  "created_by": "KPMO / Provider Lead",
+  "as_of": "2026-08-30",
+  "source_of_truth_scope": "CURRENT_PROVIDER_STATE_AND_COMMUNICATION_DECISION",
+  "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "canonical_machine_contract": "coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json",
+  "evidence_precedence": [
+    "THIS_CANONICAL_PROVIDER_OPERATING_STATE",
+    "IMMUTABLE_COMMUNICATION_EVENT_OR_PROVIDER_RECEIPT",
+    "PROVIDER_SPECIFIC_RIGHTS_SCHEMA_AND_ECONOMICS_RECORD",
+    "HISTORICAL_STAGING_OUTREACH_PROJECTION"
+  ],
+  "allowed_operating_states": [
+    "CLOSED",
+    "BOUNDED",
+    "CONDITIONAL",
+    "HOLD"
+  ],
+  "providers": [
+    {
+      "provider_id": "EBAY_MARKETPLACE_INSIGHTS",
+      "provider_name": "eBay Marketplace Insights",
+      "aliases": [
+        "eBay",
+        "ebay-marketplace-insights"
+      ],
+      "source_layer": "VERTICAL_AUTHORITY",
+      "brands_or_verticals": [
+        "KIDULTS"
+      ],
+      "owner": "Program Owner / Provider Lead",
+      "state": "CLOSED",
+      "evidence_date": "2026-08-29",
+      "deadline": null,
+      "next_action": "WAIT_FOR_A_WRITTEN_AUTHORIZED_LICENSED_PATH_WITH_ACCEPTABLE_RIGHTS_AND_ECONOMICS",
+      "cost_exposure": "UNKNOWN_NO_NEW_SPEND_AUTHORIZED",
+      "blocker": "MARKETPLACE_INSIGHTS_RESTRICTED_NOT_OPEN_AND_NO_WRITTEN_AUTHORIZED_LICENSED_PATH",
+      "rights_state": "COMMERCIAL_INTELLIGENCE_RIGHTS_NOT_AUTHORIZED",
+      "schema_state": "LIVE_SCHEMA_NOT_VERIFIED",
+      "adapter_state": "NOT_ACTIVE",
+      "communication": {
+        "state": "PREVIOUSLY_CONTACTED_CLOSED",
+        "last_outbound_at": "2026-08-03T08:01:25.013Z",
+        "last_outbound_evidence_ref": "apps/kidults-enterprise-staging/public/a13-b10/data/provider-dispatch-ledger.json#ebay-marketplace-insights-contacted-1785744085013",
+        "duplicate_outreach_prohibited": true,
+        "resend_authorized": false,
+        "automatic_followup_authorized": false,
+        "reopen_condition": "WRITTEN_AUTHORIZED_LICENSED_PATH"
+      },
+      "evidence_refs": [
+        "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md#10-immediate-standing-decisions",
+        "coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json#standing_decisions",
+        "apps/kidults-enterprise-staging/public/a13-b10/data/provider-dispatch-ledger.json"
+      ],
+      "acquisition_authorized": false,
+      "external_communication_authorized": false,
+      "credential_authorized": false,
+      "new_spend_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "provider_id": "PSA_PREMIUM",
+      "provider_name": "PSA Premium",
+      "aliases": [
+        "PSA",
+        "psa-public-api"
+      ],
+      "source_layer": "VERTICAL_AUTHORITY",
+      "brands_or_verticals": [
+        "KIDULTS"
+      ],
+      "owner": "Program Owner / Provider Lead",
+      "state": "BOUNDED",
+      "evidence_date": "2026-08-27",
+      "deadline": null,
+      "next_action": "ASSEMBLE_MACHINE_VALIDATED_PROVENANCE_BOUND_MANIFEST_AND_PROVISION_PRIVATE_RUNTIME_CONTROLS_BEFORE_ANY_LIVE_WAVE",
+      "cost_exposure": "USD_199_ANNUAL_MEMBERSHIP_RECORDED_NO_NEW_SPEND_AUTHORIZED",
+      "blocker": "PROVENANCE_BOUND_ADMISSIBLE_MANIFEST_0_OF_120_AND_PRIVATE_RUNTIME_NOT_PROVISIONED",
+      "rights_state": "BOUNDED_PRIVATE_REFERENCE_AND_AUTHENTICATION_ONLY",
+      "schema_state": "ONE_BOUNDED_17_FIELD_RESPONSE_SCHEMA_VERIFIED_NOT_LIVE_ADAPTER",
+      "adapter_state": "NOT_ACTIVE",
+      "manifest_progress": {
+        "target": 120,
+        "declared_known_hints": 2,
+        "declared_known_hints_count_as_progress": false,
+        "provenance_bound_admissible": 0,
+        "remaining_admissible": 120,
+        "lawful_progress": "0_OF_120"
+      },
+      "communication": {
+        "state": "WRITTEN_PROVIDER_RESPONSES_RECORDED_NO_NEW_OUTBOUND_REQUIRED",
+        "latest_provider_response_at": "2026-08-25T14:57:33Z",
+        "latest_provider_response_evidence_ref": "gmail:message:1a0396dc3b4b7528",
+        "duplicate_outreach_prohibited": true,
+        "resend_authorized": false,
+        "automatic_followup_authorized": false,
+        "reopen_condition": "NOT_APPLICABLE_BOUNDED_USE_ONLY"
+      },
+      "evidence_refs": [
+        "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+        "coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json",
+        "coordination/kidults/provider/psa-120-known-cert-manifest-v1.json",
+        "coordination/kidults/provider/psa-120-admission-controls-receipt-v1.json"
+      ],
+      "acquisition_authorized": false,
+      "external_communication_authorized": false,
+      "credential_authorized": false,
+      "new_spend_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "provider_id": "GEMRATE",
+      "provider_name": "GemRate",
+      "aliases": [
+        "gemrate"
+      ],
+      "source_layer": "VERTICAL_AUTHORITY",
+      "brands_or_verticals": [
+        "KIDULTS"
+      ],
+      "owner": "Program Owner / Provider Lead",
+      "state": "CONDITIONAL",
+      "evidence_date": "2026-08-27",
+      "deadline": null,
+      "next_action": "KEEP_ACTIVATION_ON_HOLD_UNTIL_MEASURED_INCREMENTAL_LIFT_AND_ALL_SPEND_TERMS_CREDENTIAL_STORAGE_DELETION_AND_CANCELLATION_GATES_PASS",
+      "cost_exposure": "USD_200_MONTHLY_AUTO_CONVERTING_TRIAL_PATH_NOT_AUTHORIZED",
+      "blocker": "MEASURED_INCREMENTAL_LIFT_ABSENT_AND_PROTECTED_ACTIVATION_GATES_UNMET",
+      "rights_state": "WRITTEN_BOUNDED_PILOT_RIGHTS_WITH_POST_TERMINATION_DERIVED_HOLD",
+      "schema_state": "EXACT_FIELD_MAP_PENDING",
+      "adapter_state": "NOT_IMPLEMENTED_NOT_ACTIVE",
+      "communication": {
+        "state": "PROVIDER_RESPONSE_RECEIVED_NO_NEW_OUTBOUND_REQUIRED",
+        "last_outbound_at": "2026-08-26T15:58:24Z",
+        "last_outbound_evidence_ref": "gmail:message:1a03ecb47ea56741",
+        "latest_provider_response_at": "2026-08-27T14:18:21Z",
+        "latest_provider_response_evidence_ref": "gmail:message:1a0439617a831715",
+        "duplicate_outreach_prohibited": true,
+        "resend_authorized": false,
+        "automatic_followup_authorized": false,
+        "reopen_condition": "MEASURED_INCREMENTAL_LIFT_AND_PROTECTED_GATES_PASS"
+      },
+      "evidence_refs": [
+        "coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json",
+        "coordination/kidults/internalization/provider-commercial-rights-ledger-v1.json"
+      ],
+      "acquisition_authorized": false,
+      "external_communication_authorized": false,
+      "credential_authorized": false,
+      "new_spend_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    },
+    {
+      "provider_id": "CLASSIC_COM",
+      "provider_name": "CLASSIC.COM",
+      "aliases": [
+        "classic.com",
+        "CLASSIC_COM_LICENSED_BUNDLE_3"
+      ],
+      "source_layer": "VERTICAL_AUTHORITY",
+      "brands_or_verticals": [
+        "KIDULTS",
+        "Autobit"
+      ],
+      "owner": "Program Owner / Provider Lead",
+      "state": "HOLD",
+      "operating_substate": "AWAITING_PROVIDER_RESPONSE",
+      "evidence_date": "2026-08-27",
+      "deadline": "2026-08-31T16:00:00Z",
+      "next_action": "NO_SEND_BEFORE_DEADLINE_THEN_REQUIRE_LIVE_NO_REPLY_CHECK_AND_EXPLICIT_OWNER_AUTHORIZATION_IN_THE_EXISTING_THREAD",
+      "cost_exposure": "UNKNOWN_NO_SPEND_AUTHORIZED",
+      "blocker": "RIGHTS_PROVIDER_SPEC_SCHEMA_SOLD_SEMANTICS_AND_ECONOMICS_UNRESOLVED",
+      "rights_state": "NEEDS_CLARIFICATION",
+      "schema_state": "REPRESENTATIVE_SCHEMA_NOT_RECEIVED",
+      "adapter_state": "NOT_ACTIVE",
+      "communication": {
+        "state": "OUTBOUND_SENT_AWAITING_PROVIDER_RESPONSE",
+        "last_outbound_at": "2026-08-26T15:58:33Z",
+        "last_outbound_evidence_ref": "gmail:message:1a03ecb6a6b5f290",
+        "response_after_last_outbound_observed": false,
+        "observed_through": "2026-08-27T22:58:39Z",
+        "followup_state": "PLANNED_NOT_SENT",
+        "followup_not_before": "2026-08-31T16:00:00Z",
+        "same_thread_required": true,
+        "live_no_reply_check_required": true,
+        "explicit_owner_authorization_required": true,
+        "duplicate_outreach_prohibited": true,
+        "resend_authorized": false,
+        "automatic_followup_authorized": false,
+        "reopen_condition": "MATERIAL_COMPLETE_PROVIDER_RESPONSE_AND_RIGHTS_DECISION_PASS"
+      },
+      "evidence_refs": [
+        "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json",
+        "coordination/kidults/internalization/provider-commercial-rights-ledger-v1.json"
+      ],
+      "acquisition_authorized": false,
+      "external_communication_authorized": false,
+      "credential_authorized": false,
+      "new_spend_authorized": false,
+      "public_release": "HOLD",
+      "production": "HOLD"
+    }
+  ],
+  "communication_reconciliation": {
+    "ebay_legacy_candidate_id": "ebay-marketplace-insights",
+    "historical_staging_dispatch_event_count": 1,
+    "historical_staging_current_projection_required": "closed",
+    "historical_outreach_pack_projection_required": "sent-closed",
+    "all_other_provider_communications": "USE_PROVIDER_SPECIFIC_IMMUTABLE_EVIDENCE_REFS_ABOVE",
+    "current_action_source": "THIS_CANONICAL_PROVIDER_OPERATING_STATE",
+    "duplicate_or_automatic_outbound_allowed": false
+  },
+  "authority_boundary": {
+    "legal_or_rights_state_promotion": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "external_communication": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "contract_or_terms_acceptance": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "credential_creation_or_activation": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "new_spend": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "acquisition": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "adapter_activation": "NOT_AUTHORIZED_BY_THIS_RECORD",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "autonomous_effect": "A single fail-closed provider and communication state prevents duplicate or stale autonomous outreach decisions.",
+  "global_effect": "Provider state remains vertical- and source-layer-specific; no bounded provider is widened into global coverage.",
+  "irreplaceable_value_effect": "All providers remain replaceable evidence inputs and no provider identifier or feed becomes the KIDULTS canonical product layer.",
+  "transparency_effect": "Current state, evidence date, owner, deadline, next action, cost exposure, blocker and communication boundary are explicit for every reconciled provider."
+}

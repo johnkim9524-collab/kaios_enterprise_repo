@@ -49,12 +49,83 @@ permissions:
   actions: read
 
 jobs:
-  audit:
+  classify-canonical-identity:
     if: >-
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main')) &&
       (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      canonical_key: ${{ steps.classify.outputs.canonical_key }}
+      concurrency_group: ${{ steps.classify.outputs.concurrency_group }}
+      upstream_class: ${{ steps.classify.outputs.upstream_class }}
+      generation_discriminator: ${{ steps.classify.outputs.generation_discriminator }}
+      classifier_contract_digest: ${{ steps.classify.outputs.classifier_contract_digest }}
+      classification_receipt_digest: ${{ steps.classify.outputs.classification_receipt_digest }}
+      canonical_input_digest: ${{ steps.classify.outputs.canonical_input_digest }}
+      dedupe_eligible: ${{ steps.classify.outputs.dedupe_eligible }}
+      terminal_observation_non_dedupable: ${{ steps.classify.outputs.terminal_observation_non_dedupable }}
+      special_exact_artifact_class: ${{ steps.classify.outputs.special_exact_artifact_class }}
+      ephemeral_actions_alias_eligible: ${{ steps.classify.outputs.ephemeral_actions_alias_eligible }}
+      runtime_dedupe_state: ${{ steps.classify.outputs.runtime_dedupe_state }}
+    env:
+      KPMO_CLASSIFIER_PACKET: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate canonical classifier and negative cases
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
+          node --check scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
+          node scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
+      - name: Classify exact trigger into canonical identity
+        id: classify
+        env:
+          KPMO_EVENT_NAME: ${{ github.event_name }}
+          KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          KPMO_SCHEDULE_EXPRESSION: ${{ github.event.schedule || '' }}
+          KPMO_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+          KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
+          KPMO_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+          KPMO_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt || '' }}
+          KPMO_UPSTREAM_WORKFLOW_NAME: ${{ github.event.workflow_run.name || '' }}
+          KPMO_UPSTREAM_WORKFLOW_PATH: ${{ github.event.workflow_run.path || '' }}
+          KPMO_UPSTREAM_EVENT: ${{ github.event.workflow_run.event || '' }}
+          KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+          KPMO_UPSTREAM_CREATED_AT: ${{ github.event.workflow_run.created_at || '' }}
+        run: >-
+          node scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
+          --output "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/canonical-identity-receipt.json"
+      - name: Upload exact-run canonical classification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/${{ env.KPMO_CLASSIFIER_PACKET }}/canonical-identity-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+  audit:
+    needs: classify-canonical-identity
+    if: >-
+      needs.classify-canonical-identity.result == 'success' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.repository.full_name == github.repository &&
+        github.event.workflow_run.head_branch == 'main')) &&
+      (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
+    concurrency:
+      group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -64,10 +135,29 @@ jobs:
       KPMO_PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
       KPMO_PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
       KPMO_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}
+      KPMO_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt || '' }}
       KPMO_UPSTREAM_WORKFLOW_NAME: ${{ github.event.workflow_run.name || '' }}
+      KPMO_UPSTREAM_WORKFLOW_PATH: ${{ github.event.workflow_run.path || '' }}
+      KPMO_UPSTREAM_EVENT: ${{ github.event.workflow_run.event || '' }}
       KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      KPMO_UPSTREAM_CREATED_AT: ${{ github.event.workflow_run.created_at || '' }}
       KPMO_UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
       KPMO_UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
+      KPMO_CANONICAL_KEY: ${{ needs.classify-canonical-identity.outputs.canonical_key }}
+      KPMO_UPSTREAM_CLASS: ${{ needs.classify-canonical-identity.outputs.upstream_class }}
+      KPMO_GENERATION_DISCRIMINATOR: ${{ needs.classify-canonical-identity.outputs.generation_discriminator }}
+      KPMO_CLASSIFIER_CONTRACT_DIGEST: ${{ needs.classify-canonical-identity.outputs.classifier_contract_digest }}
+      KPMO_CLASSIFICATION_RECEIPT_DIGEST: ${{ needs.classify-canonical-identity.outputs.classification_receipt_digest }}
+      KPMO_CANONICAL_INPUT_DIGEST: ${{ needs.classify-canonical-identity.outputs.canonical_input_digest }}
+      KPMO_DEDUPE_ELIGIBLE: ${{ needs.classify-canonical-identity.outputs.dedupe_eligible }}
+      KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE: ${{ needs.classify-canonical-identity.outputs.terminal_observation_non_dedupable }}
+      KPMO_SPECIAL_EXACT_ARTIFACT_CLASS: ${{ needs.classify-canonical-identity.outputs.special_exact_artifact_class }}
+      KPMO_EPHEMERAL_ACTIONS_ALIAS_ELIGIBLE: ${{ needs.classify-canonical-identity.outputs.ephemeral_actions_alias_eligible }}
+      KPMO_RUNTIME_DEDUPE_STATE: ${{ needs.classify-canonical-identity.outputs.runtime_dedupe_state }}
+      KPMO_EXECUTE_FULL_AUDIT: 'true'
+      KPMO_EPHEMERAL_ACTIONS_LEADER: 'false'
+      KPMO_AUDIT_EXECUTION_DISPOSITION: EXECUTE_FULL_AUDIT_GUARD_NOT_RESOLVED
+      KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST: UNAVAILABLE
       KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
       KPMO_PACKET_SUFFIX: kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -95,6 +185,39 @@ jobs:
               expected_sha: process.env.KPMO_SOURCE_SHA || 'UNAVAILABLE',
               actual_sha: 'UNAVAILABLE',
               kind: process.env.KPMO_SOURCE_KIND || 'UNKNOWN'
+            },
+            execution: {
+              trigger: process.env.GITHUB_EVENT_NAME || 'UNKNOWN',
+              workflow_run_id: process.env.GITHUB_RUN_ID || 'UNKNOWN',
+              workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+              upstream: process.env.KPMO_UPSTREAM_RUN_ID ? {
+                run_id: process.env.KPMO_UPSTREAM_RUN_ID,
+                run_attempt: process.env.KPMO_UPSTREAM_RUN_ATTEMPT || '1',
+                workflow_name: process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
+                workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
+                workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
+                conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+                created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null
+              } : null,
+              canonical_identity: {
+                canonical_key: process.env.KPMO_CANONICAL_KEY || 'UNAVAILABLE',
+                canonical_input_digest: process.env.KPMO_CANONICAL_INPUT_DIGEST || 'UNAVAILABLE',
+                source_sha: process.env.KPMO_SOURCE_SHA || 'UNAVAILABLE',
+                upstream_class: process.env.KPMO_UPSTREAM_CLASS || 'UNAVAILABLE',
+                generation_discriminator: process.env.KPMO_GENERATION_DISCRIMINATOR || 'UNAVAILABLE',
+                classifier_contract_digest: process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST || 'UNAVAILABLE',
+                classification_receipt_digest: process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST || 'UNAVAILABLE',
+                ephemeral_guard_receipt_digest: 'UNAVAILABLE',
+                runtime_dedupe_state: 'REMOTE_LEDGER_ACTIVATION_HOLD',
+                canonical_execution_claimed: false,
+                ephemeral_actions_leader: false,
+                alias: false,
+                canonical_run_id: process.env.GITHUB_RUN_ID || 'UNKNOWN',
+                canonical_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+                claim_scope: 'NONE',
+                durable_claim_created: false,
+                audit_execution_disposition: 'BOOTSTRAP_NOT_COMPLETED'
+              }
             },
             states: {
               internal_control_state: 'VERIFIED_FAIL',
@@ -155,8 +278,162 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
+      - name: Resolve bounded ephemeral canonical leader or alias
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKET_DIR="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX"
+          GUARD_WORK_DIR="$RUNNER_TEMP/${KPMO_PACKET_SUFFIX}-guard-readback"
+          CANDIDATE_DIR="$GUARD_WORK_DIR/canonical-candidates"
+          mkdir -p "$CANDIDATE_DIR"
+          [[ "$KPMO_DEDUPE_ELIGIBLE" =~ ^(true|false)$ ]]
+          [[ "$KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE" =~ ^(true|false)$ ]]
+          [[ "$KPMO_SPECIAL_EXACT_ARTIFACT_CLASS" =~ ^(true|false)$ ]]
+          [[ "$KPMO_EPHEMERAL_ACTIONS_ALIAS_ELIGIBLE" =~ ^(true|false)$ ]]
+          CANONICAL_ARTIFACT_NAME="kidults-continuous-assurance-canonical-${KPMO_CANONICAL_KEY#sha256:}"
+          READBACK_STATE=BYPASS
+          READBACK_TOTAL=0
+          READBACK_RETURNED=0
+          if [ "$KPMO_EPHEMERAL_ACTIONS_ALIAS_ELIGIBLE" = true ]; then
+            READBACK_STATE=COMPLETE
+            if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f name="$CANONICAL_ARTIFACT_NAME" -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts" > "$GUARD_WORK_DIR/canonical-artifact-index.json"; then
+              READBACK_STATE=API_READBACK_FAILED
+              printf '{"total_count":0,"artifacts":[]}\n' > "$GUARD_WORK_DIR/canonical-artifact-index.json"
+            fi
+            if ! jq -e '.total_count|numbers' "$GUARD_WORK_DIR/canonical-artifact-index.json" >/dev/null; then
+              READBACK_STATE=API_RESPONSE_INVALID
+              printf '{"total_count":0,"artifacts":[]}\n' > "$GUARD_WORK_DIR/canonical-artifact-index.json"
+            fi
+            READBACK_TOTAL=$(jq -r '.total_count' "$GUARD_WORK_DIR/canonical-artifact-index.json")
+            READBACK_RETURNED=$(jq -r '.artifacts | length' "$GUARD_WORK_DIR/canonical-artifact-index.json")
+            if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then
+              READBACK_STATE=API_RESPONSE_TRUNCATED
+            fi
+            mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_WORK_DIR/canonical-artifact-index.json")
+            for ARTIFACT_ROW in "${ARTIFACT_ROWS[@]}"; do
+              ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ARTIFACT_ROW")
+              EXPIRED=$(jq -r '.expired // true' <<<"$ARTIFACT_ROW")
+              CANDIDATE_FILE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
+              if [ "$EXPIRED" = true ]; then
+                jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              if ! [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]; then
+                jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              RUN_ID=$(jq -r '.workflow_run.id // 0' <<<"$ARTIFACT_ROW")
+              if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" > "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json"; then
+                READBACK_STATE=CANONICAL_RUN_READBACK_FAILED
+                jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              SIZE=$(jq -r '.size_in_bytes // 0' <<<"$ARTIFACT_ROW")
+              DIGEST=$(jq -r '.digest // empty' <<<"$ARTIFACT_ROW")
+              if ! [[ "$SIZE" =~ ^[1-9][0-9]*$ ]] || [ "$SIZE" -gt 4194304 ] || ! [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              EXTRACT_DIR="$CANDIDATE_DIR/extract-${ARTIFACT_ID}"
+              mkdir -p "$EXTRACT_DIR"
+              if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip"; then
+                READBACK_STATE=CANONICAL_ARTIFACT_DOWNLOAD_FAILED
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              ACTUAL_ARCHIVE_DIGEST="sha256:$(sha256sum "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip" | cut -d ' ' -f1)"
+              if [ "$ACTUAL_ARCHIVE_DIGEST" != "$DIGEST" ]; then
+                READBACK_STATE=CANONICAL_ARTIFACT_DIGEST_MISMATCH
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              if ! python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+                --archive "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip" \
+                --expected-digest "$DIGEST" \
+                --receipt "$CANDIDATE_DIR/archive-validation-${ARTIFACT_ID}.json" \
+                --max-compressed-bytes 4194304 \
+                --max-entries 32 \
+                --max-entry-uncompressed-bytes 2097152 \
+                --max-total-uncompressed-bytes 8388608 \
+                --max-compression-ratio 100; then
+                READBACK_STATE=CANONICAL_ARTIFACT_PRE_EXTRACTION_LIMIT_FAILED
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              if ! zipinfo -1 "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip" > "$CANDIDATE_DIR/entries-${ARTIFACT_ID}.txt" || \
+                 [ ! -s "$CANDIDATE_DIR/entries-${ARTIFACT_ID}.txt" ] || \
+                 grep -Eq '(^/|(^|/)\.\.(/|$)|\\)' "$CANDIDATE_DIR/entries-${ARTIFACT_ID}.txt" || \
+                 zipinfo -l "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip" | awk '$1 ~ /^l/ { found=1 } END { exit(found ? 0 : 1) }'; then
+                READBACK_STATE=CANONICAL_ARTIFACT_UNSAFE_ARCHIVE_ENTRY
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              if ! unzip -q "$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip" -d "$EXTRACT_DIR"; then
+                READBACK_STATE=CANONICAL_ARTIFACT_ARCHIVE_INVALID
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              mapfile -d '' -t RECEIPTS < <(find "$EXTRACT_DIR" -type f -name audit-receipt.json -print0)
+              if [ "${#RECEIPTS[@]}" -ne 1 ] || [ "$(du -sb "$EXTRACT_DIR" | cut -f1)" -gt 8388608 ]; then
+                READBACK_STATE=CANONICAL_ARTIFACT_RECEIPT_CARDINALITY_OR_SIZE_INVALID
+                jq -n --argjson artifact "$ARTIFACT_ROW" --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" \
+                  '{artifact:$artifact,run:$run[0],receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
+              jq -n --argjson artifact "$ARTIFACT_ROW" \
+                --slurpfile run "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json" --slurpfile receipt "${RECEIPTS[0]}" \
+                '{artifact:$artifact,run:$run[0],receipt:$receipt[0]}' > "$CANDIDATE_FILE"
+            done
+          fi
+          if compgen -G "$CANDIDATE_DIR/candidate-*.json" >/dev/null; then
+            jq -s '.' "$CANDIDATE_DIR"/candidate-*.json > "$GUARD_WORK_DIR/canonical-candidates.json"
+          else
+            printf '[]\n' > "$GUARD_WORK_DIR/canonical-candidates.json"
+          fi
+          jq -n \
+            --arg observed "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --arg repository "$GITHUB_REPOSITORY" --arg source "$KPMO_SOURCE_SHA" --arg kind "$KPMO_SOURCE_KIND" \
+            --arg trigger "$GITHUB_EVENT_NAME" --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg key "$KPMO_CANONICAL_KEY" --arg inputDigest "$KPMO_CANONICAL_INPUT_DIGEST" \
+            --arg class "$KPMO_UPSTREAM_CLASS" --arg generation "$KPMO_GENERATION_DISCRIMINATOR" \
+            --arg contract "$KPMO_CLASSIFIER_CONTRACT_DIGEST" --arg classification "$KPMO_CLASSIFICATION_RECEIPT_DIGEST" \
+            --argjson dedupe "$KPMO_DEDUPE_ELIGIBLE" --argjson terminal "$KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE" \
+            --argjson special "$KPMO_SPECIAL_EXACT_ARTIFACT_CLASS" --argjson eligible "$KPMO_EPHEMERAL_ACTIONS_ALIAS_ELIGIBLE" \
+            --arg upstreamRun "$KPMO_UPSTREAM_RUN_ID" --arg upstreamAttempt "$KPMO_UPSTREAM_RUN_ATTEMPT" \
+            --arg upstreamName "$KPMO_UPSTREAM_WORKFLOW_NAME" --arg upstreamPath "$KPMO_UPSTREAM_WORKFLOW_PATH" \
+            --arg upstreamEvent "$KPMO_UPSTREAM_EVENT" --arg upstreamConclusion "$KPMO_UPSTREAM_CONCLUSION" \
+            --arg upstreamCreated "$KPMO_UPSTREAM_CREATED_AT" --arg readback "$READBACK_STATE" \
+            --argjson total "$READBACK_TOTAL" --argjson returned "$READBACK_RETURNED" \
+            --slurpfile candidates "$GUARD_WORK_DIR/canonical-candidates.json" \
+            '{observed_at:$observed,current:{repository:$repository,source_sha:$source,source_kind:$kind,trigger_event:$trigger,
+              run_id:$run,run_attempt:$attempt,canonical_key:$key,canonical_input_digest:$inputDigest,upstream_class:$class,
+              generation_discriminator:$generation,classifier_contract_digest:$contract,classification_receipt_digest:$classification,
+              dedupe_eligible:$dedupe,terminal_observation_non_dedupable:$terminal,special_exact_artifact_class:$special,
+              ephemeral_actions_alias_eligible:$eligible,upstream:(if $upstreamRun=="" then null else {workflow_run_id:($upstreamRun|tonumber),
+              workflow_run_attempt:(if $upstreamAttempt=="" then 1 else ($upstreamAttempt|tonumber) end),workflow_name:$upstreamName,
+              workflow_path:$upstreamPath,workflow_event:$upstreamEvent,conclusion:$upstreamConclusion,created_at:$upstreamCreated} end)},
+              readback:{state:$readback,total_count:$total,returned_count:$returned,reason_codes:(if $readback=="COMPLETE" or $readback=="BYPASS" then [] else [$readback] end)},candidates:$candidates[0]}' \
+            > "$GUARD_WORK_DIR/ephemeral-guard-input.json"
+          node scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs \
+            --input "$GUARD_WORK_DIR/ephemeral-guard-input.json" \
+            --output "$PACKET_DIR/ephemeral-guard-receipt.json" \
+            --audit-output "$PACKET_DIR/audit-receipt.json" \
+            --remediation-output "$PACKET_DIR/remediation-plan.json"
+
       - name: Validate exact ASI SHADOW upstream evidence binding
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'
         env:
           GH_TOKEN: ${{ github.token }}
           SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -181,6 +458,7 @@ jobs:
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
+             and .event=="workflow_run"
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
@@ -211,19 +489,22 @@ jobs:
             --argjson artifact "$SHADOW_ARTIFACT_ID" \
             --arg digest "$SHADOW_ARTIFACT_DIGEST" \
             '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,artifact_id:$artifact,artifact_digest:$digest,production:"HOLD"}' \
-            > /tmp/kidults-shadow-upstream-binding.json
+            > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json"
+          echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Validate exact Requirement Coverage upstream evidence binding
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
         env:
           GH_TOKEN: ${{ github.token }}
           REQUIREMENT_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          REQUIREMENT_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
           REQUIREMENT_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
           REQUIREMENT_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$REQUIREMENT_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
           [[ "$REQUIREMENT_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
           [[ "$REQUIREMENT_UPSTREAM_CONCLUSION" =~ ^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
@@ -231,24 +512,31 @@ jobs:
             > /tmp/requirement-upstream-run.json
           jq -e \
             --argjson run "$REQUIREMENT_UPSTREAM_RUN_ID" \
+            --argjson attempt "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT" \
             --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
             --arg repo "$GITHUB_REPOSITORY" \
             --arg conclusion "$REQUIREMENT_UPSTREAM_CONCLUSION" \
             '.id==$run
+             and .run_attempt==$attempt
              and .name=="KIDULTS ASI Requirement-to-Adapter Coverage v1"
              and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
+             and .event=="workflow_run"
              and .status=="completed"
              and .conclusion==$conclusion' \
             /tmp/requirement-upstream-run.json >/dev/null
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}/artifacts?per_page=100" \
             > /tmp/requirement-upstream-artifacts.json
+          REQUIREMENT_UPSTREAM_EVENT=$(jq -r '.event' /tmp/requirement-upstream-run.json)
+          REQUIREMENT_UPSTREAM_DISPLAY_TITLE=$(jq -r '.display_title' /tmp/requirement-upstream-run.json)
           REQUIREMENT_ARTIFACT_COUNT=$(jq \
             --argjson run "$REQUIREMENT_UPSTREAM_RUN_ID" \
+            --argjson attempt "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT" \
             --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
+            --arg event "$REQUIREMENT_UPSTREAM_EVENT" --arg title "$REQUIREMENT_UPSTREAM_DISPLAY_TITLE" \
             '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
             /tmp/requirement-upstream-artifacts.json)
           REQUIREMENT_BINDING_STATUS=VERIFIED_FAIL
@@ -266,28 +554,130 @@ jobs:
               --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
               '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
               /tmp/requirement-upstream-artifacts.json)
+            REQUIREMENT_ARTIFACT_SIZE=$(jq -r \
+              --argjson run "$REQUIREMENT_UPSTREAM_RUN_ID" --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
+              '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].size_in_bytes // 0' \
+              /tmp/requirement-upstream-artifacts.json)
+            REQUIREMENT_ARTIFACT_EXPIRES_AT=$(jq -r \
+              --argjson run "$REQUIREMENT_UPSTREAM_RUN_ID" --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
+              '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].expires_at // empty' \
+              /tmp/requirement-upstream-artifacts.json)
             [[ "$REQUIREMENT_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
             [[ "$REQUIREMENT_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
+            [[ "$REQUIREMENT_ARTIFACT_SIZE" =~ ^[1-9][0-9]*$ ]]
+            REQUIREMENT_ARTIFACT_EXPIRES_AT="$REQUIREMENT_ARTIFACT_EXPIRES_AT" node -e "const x=Date.parse(process.env.REQUIREMENT_ARTIFACT_EXPIRES_AT);if(!Number.isFinite(x)||x<=Date.now())throw new Error('REQUIREMENT_ARTIFACT_EXPIRY_INVALID')"
             REQUIREMENT_BINDING_STATUS=VERIFIED_PASS
           else
             test "$REQUIREMENT_ARTIFACT_COUNT" -eq 0
           fi
           jq -n \
             --argjson run "$REQUIREMENT_UPSTREAM_RUN_ID" \
+            --argjson attempt "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT" \
             --arg sha "$REQUIREMENT_UPSTREAM_SHA" \
+            --arg event "$REQUIREMENT_UPSTREAM_EVENT" \
+            --arg title "$REQUIREMENT_UPSTREAM_DISPLAY_TITLE" \
             --arg conclusion "$REQUIREMENT_UPSTREAM_CONCLUSION" \
             --arg status "$REQUIREMENT_BINDING_STATUS" \
             --argjson artifacts "$REQUIREMENT_ARTIFACT_COUNT" \
             --argjson artifact "$REQUIREMENT_ARTIFACT_ID" \
             --arg digest "$REQUIREMENT_ARTIFACT_DIGEST" \
-            '{status:$status,upstream_run_id:$run,upstream_sha:$sha,upstream_conclusion:$conclusion,artifact_cardinality:$artifacts,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}' \
-            > /tmp/kidults-requirement-upstream-binding.json
+            '{status:$status,upstream_run_id:$run,upstream_run_attempt:$attempt,upstream_sha:$sha,upstream_event:$event,upstream_display_title:$title,upstream_conclusion:$conclusion,artifact_cardinality:$artifacts,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}' \
+            > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/requirement-upstream-binding.json"
+          echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/requirement-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
           if [ "$REQUIREMENT_UPSTREAM_CONCLUSION" != success ]; then
             exit 1
           fi
+          REQUIREMENT_ARCHIVE=/tmp/requirement-upstream-artifact.zip
+          REQUIREMENT_EXTRACT=/tmp/requirement-upstream-artifact
+          rm -rf "$REQUIREMENT_ARCHIVE" "$REQUIREMENT_EXTRACT"
+          mkdir -p "$REQUIREMENT_EXTRACT"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${REQUIREMENT_ARTIFACT_ID}/zip" > "$REQUIREMENT_ARCHIVE"
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive "$REQUIREMENT_ARCHIVE" --expected-digest "$REQUIREMENT_ARTIFACT_DIGEST" \
+            --receipt /tmp/requirement-upstream-archive-validation-v1.json \
+            --max-compressed-bytes 4194304 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100
+          unzip -q -o "$REQUIREMENT_ARCHIVE" -d "$REQUIREMENT_EXTRACT"
+          mapfile -d '' -t COVERAGE_ALIASES < <(find "$REQUIREMENT_EXTRACT" -type f -name coverage-canonical-alias-receipt-v1.json -print0)
+          if [ "${#COVERAGE_ALIASES[@]}" -gt 1 ]; then
+            echo 'COVERAGE_ALIAS_RECEIPT_CARDINALITY_INVALID' >&2
+            exit 1
+          fi
+          if [ "${#COVERAGE_ALIASES[@]}" -eq 1 ]; then
+            COVERAGE_ALIAS_RECEIPT="${COVERAGE_ALIASES[0]}"
+            CANONICAL_ARTIFACT_ID=$(jq -r '.canonical_artifact_id // 0' "$COVERAGE_ALIAS_RECEIPT")
+            CANONICAL_ARTIFACT_NAME=$(jq -r '.canonical_artifact_name // empty' "$COVERAGE_ALIAS_RECEIPT")
+            CANONICAL_ARTIFACT_DIGEST=$(jq -r '.canonical_artifact_digest // empty' "$COVERAGE_ALIAS_RECEIPT")
+            [[ "$CANONICAL_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+            [[ "$CANONICAL_ARTIFACT_NAME" =~ ^kidults-asi-requirement-adapter-coverage-canonical-[a-f0-9]{64}$ ]]
+            [[ "$CANONICAL_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+            gh api --method GET -H 'Accept: application/vnd.github+json' \
+              -f name="$CANONICAL_ARTIFACT_NAME" -f per_page=100 \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts" > /tmp/coverage-canonical-artifacts.json
+            COVERAGE_ALIAS_RECEIPT="$COVERAGE_ALIAS_RECEIPT" node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/coverage-canonical-artifacts.json','utf8'));
+          const alias=JSON.parse(fs.readFileSync(process.env.COVERAGE_ALIAS_RECEIPT,'utf8'));
+          const rows=x.artifacts||[];
+          if(Number(x.total_count||0)!==rows.length)throw new Error('COVERAGE_CANONICAL_ARTIFACT_READBACK_INCOMPLETE');
+          const active=rows.filter((a)=>a.name===alias.canonical_artifact_name&&a.expired===false&&Date.parse(a.expires_at)>Date.now());
+          if(active.length!==1)throw new Error(`COVERAGE_CANONICAL_ARTIFACT_ACTIVE_CARDINALITY:${active.length}`);
+          const a=active[0];
+          if(a.id!==alias.canonical_artifact_id||a.digest!==alias.canonical_artifact_digest)throw new Error('COVERAGE_CANONICAL_ARTIFACT_ALIAS_BINDING_MISMATCH');
+          if(a.workflow_run?.id!==alias.canonical_workflow_run_id||a.workflow_run?.head_sha!==alias.canonical_coverage_run_head_sha)throw new Error('COVERAGE_CANONICAL_ARTIFACT_RUN_BINDING_MISMATCH');
+          fs.writeFileSync('/tmp/coverage-canonical-artifact.json',JSON.stringify(a,null,2));
+          NODE
+            CANONICAL_WORKFLOW_RUN_ID=$(jq -r '.canonical_workflow_run_id // 0' "$COVERAGE_ALIAS_RECEIPT")
+            [[ "$CANONICAL_WORKFLOW_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${CANONICAL_WORKFLOW_RUN_ID}" > /tmp/coverage-canonical-run.json
+            CANONICAL_ARCHIVE=/tmp/coverage-canonical-leader.zip
+            CANONICAL_EXTRACT=/tmp/coverage-canonical-leader
+            rm -rf "$CANONICAL_ARCHIVE" "$CANONICAL_EXTRACT"
+            mkdir -p "$CANONICAL_EXTRACT"
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${CANONICAL_ARTIFACT_ID}/zip" > "$CANONICAL_ARCHIVE"
+            python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+              --archive "$CANONICAL_ARCHIVE" --expected-digest "$CANONICAL_ARTIFACT_DIGEST" \
+              --receipt /tmp/coverage-canonical-archive-validation-v1.json \
+              --max-compressed-bytes 4194304 --max-entries 32 \
+              --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608 \
+              --max-compression-ratio 100
+            unzip -q -o "$CANONICAL_ARCHIVE" -d "$CANONICAL_EXTRACT"
+            mapfile -d '' -t COVERAGE_LEADERS < <(find "$CANONICAL_EXTRACT" -type f -name coverage-canonical-leader-receipt-v1.json -print0)
+            mapfile -d '' -t COVERAGE_SEMANTIC_RECEIPTS < <(find "$CANONICAL_EXTRACT" -type f -name coverage-semantic-input-receipt-v1.json -print0)
+            test "${#COVERAGE_LEADERS[@]}" -eq 1
+            test "${#COVERAGE_SEMANTIC_RECEIPTS[@]}" -eq 1
+            COVERAGE_SEMANTIC_RECEIPT_DIGEST="sha256:$(sha256sum "${COVERAGE_SEMANTIC_RECEIPTS[0]}" | cut -d ' ' -f1)"
+            test "$COVERAGE_SEMANTIC_RECEIPT_DIGEST" = "$(jq -r '.semantic_input_receipt_digest // empty' "${COVERAGE_LEADERS[0]}")"
+            CURRENT_UPSTREAM_BINDING_DIGEST=$(jq -r '.current_upstream_binding_digest // empty' "$COVERAGE_ALIAS_RECEIPT")
+            COVERAGE_CANONICAL_SOURCE_SHA=$(jq -r '.source_sha // empty' "$COVERAGE_ALIAS_RECEIPT")
+            CANONICAL_ARTIFACT_WORKFLOW_RUN_ID=$(jq -r '.workflow_run.id // 0' /tmp/coverage-canonical-artifact.json)
+            CANONICAL_ARTIFACT_WORKFLOW_RUN_HEAD_SHA=$(jq -r '.workflow_run.head_sha // empty' /tmp/coverage-canonical-artifact.json)
+            jq -n \
+              --arg observed "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" --arg repository "$GITHUB_REPOSITORY" \
+              --arg auditSource "$REQUIREMENT_UPSTREAM_SHA" --arg canonicalSource "$COVERAGE_CANONICAL_SOURCE_SHA" --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+              --argjson upstreamRun "$REQUIREMENT_UPSTREAM_RUN_ID" --argjson upstreamAttempt "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT" --arg upstreamHead "$REQUIREMENT_UPSTREAM_SHA" --arg upstreamTitle "$REQUIREMENT_UPSTREAM_DISPLAY_TITLE" --argjson artifact "$REQUIREMENT_ARTIFACT_ID" --arg artifactDigest "$REQUIREMENT_ARTIFACT_DIGEST" \
+              --arg upstreamEvent "$REQUIREMENT_UPSTREAM_EVENT" --argjson canonicalArtifact "$CANONICAL_ARTIFACT_ID" --arg canonicalArtifactName "$CANONICAL_ARTIFACT_NAME" --arg canonicalArtifactDigest "$CANONICAL_ARTIFACT_DIGEST" \
+              --argjson canonicalArtifactRun "$CANONICAL_ARTIFACT_WORKFLOW_RUN_ID" --arg canonicalArtifactHead "$CANONICAL_ARTIFACT_WORKFLOW_RUN_HEAD_SHA" \
+              --arg binding "$CURRENT_UPSTREAM_BINDING_DIGEST" --arg key "$KPMO_CANONICAL_KEY" --arg input "$KPMO_CANONICAL_INPUT_DIGEST" \
+              --arg class "$KPMO_UPSTREAM_CLASS" --arg generation "$KPMO_GENERATION_DISCRIMINATOR" --arg contract "$KPMO_CLASSIFIER_CONTRACT_DIGEST" \
+              --arg classification "$KPMO_CLASSIFICATION_RECEIPT_DIGEST" --arg guard "$KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST" \
+              --arg semanticFileDigest "$COVERAGE_SEMANTIC_RECEIPT_DIGEST" \
+              --slurpfile alias "$COVERAGE_ALIAS_RECEIPT" --slurpfile leader "${COVERAGE_LEADERS[0]}" --slurpfile semantic "${COVERAGE_SEMANTIC_RECEIPTS[0]}" --slurpfile canonicalRun /tmp/coverage-canonical-run.json \
+              '{observed_at:$observed,repository:$repository,audit_source_sha:$auditSource,coverage_canonical_source_sha:$canonicalSource,workflow_run_id:$run,workflow_run_attempt:$attempt,coverage_upstream_run_id:$upstreamRun,coverage_upstream_run_attempt:$upstreamAttempt,coverage_run_head_sha:$upstreamHead,coverage_run_display_title:$upstreamTitle,coverage_run_event:$upstreamEvent,coverage_artifact_id:$artifact,coverage_artifact_digest:$artifactDigest,canonical_artifact_id:$canonicalArtifact,canonical_artifact_name:$canonicalArtifactName,canonical_artifact_digest:$canonicalArtifactDigest,canonical_artifact_workflow_run_id:$canonicalArtifactRun,canonical_artifact_workflow_run_head_sha:$canonicalArtifactHead,current_upstream_binding_digest:$binding,semantic_input_receipt_file_digest:$semanticFileDigest,classifier:{canonical_key:$key,canonical_input_digest:$input,upstream_class:$class,generation_discriminator:$generation,classifier_contract_digest:$contract,classification_receipt_digest:$classification,ephemeral_guard_receipt_digest:$guard},alias_receipt:$alias[0],leader_receipt:$leader[0],semantic_input_receipt:$semantic[0],canonical_run:$canonicalRun[0]}' \
+              > /tmp/coverage-alias-observer-input.json
+            node scripts/kidults/kpmo/observe-continuous-assurance-coverage-alias-v1.mjs \
+              --input /tmp/coverage-alias-observer-input.json \
+              --audit-output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json" \
+              --plan-output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json" \
+              --binding-output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/requirement-upstream-binding.json"
+          fi
 
       - name: Validate exact Sharded Reserve upstream terminal binding
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'
         env:
           GH_TOKEN: ${{ github.token }}
           RESERVE_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -353,10 +743,14 @@ jobs:
                 RESERVE_ARTIFACT_NAME=kidults-asi-sharded-source-reserve-waiting-v1
                 RESERVE_RECEIPT_NAME=asi-sharded-source-reserve-waiting-receipt-v1.json
               fi
-              RESERVE_ARTIFACT_ID=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
-                '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/reserve-upstream-artifacts.json)
-              RESERVE_ARTIFACT_DIGEST=$(jq -r --arg name "$RESERVE_ARTIFACT_NAME" \
-                '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/reserve-upstream-artifacts.json)
+              RESERVE_ARTIFACT_ID=$(jq -r \
+                --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" --arg name "$RESERVE_ARTIFACT_NAME" \
+                '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+                /tmp/reserve-upstream-artifacts.json)
+              RESERVE_ARTIFACT_DIGEST=$(jq -r \
+                --argjson run "$RESERVE_UPSTREAM_RUN_ID" --arg sha "$RESERVE_UPSTREAM_SHA" --arg name "$RESERVE_ARTIFACT_NAME" \
+                '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
+                /tmp/reserve-upstream-artifacts.json)
               [[ "$RESERVE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
               [[ "$RESERVE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
               rm -rf /tmp/reserve-observer /tmp/reserve-observer.zip
@@ -364,9 +758,16 @@ jobs:
               gh api -H 'Accept: application/vnd.github+json' \
                 "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${RESERVE_ARTIFACT_ID}/zip" \
                 > /tmp/reserve-observer.zip
+              python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+                --archive /tmp/reserve-observer.zip --expected-digest "$RESERVE_ARTIFACT_DIGEST" \
+                --receipt /tmp/reserve-observer-archive-validation-v1.json \
+                --max-compressed-bytes 4194304 --max-entries 32 \
+                --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608 \
+                --max-compression-ratio 100
               unzip -q -o /tmp/reserve-observer.zip -d /tmp/reserve-observer
-              RESERVE_RECEIPT=$(find /tmp/reserve-observer -type f -name "$RESERVE_RECEIPT_NAME" -print -quit)
-              test -n "$RESERVE_RECEIPT"
+              mapfile -d '' -t RESERVE_RECEIPTS < <(find /tmp/reserve-observer -type f -name "$RESERVE_RECEIPT_NAME" -print0)
+              test "${#RESERVE_RECEIPTS[@]}" -eq 1
+              RESERVE_RECEIPT="${RESERVE_RECEIPTS[0]}"
               if [ "$RESERVE_OBSERVED_STATE" = VERIFIED_PASS ]; then
                 jq -e --arg sha "$RESERVE_UPSTREAM_SHA" --arg event "$RESERVE_UPSTREAM_EVENT" \
                   '.id=="kidults-asi-sharded-source-reserve-activation-receipt-v1"
@@ -412,12 +813,13 @@ jobs:
             --arg digest "$RESERVE_ARTIFACT_DIGEST" \
             '{status:$status,upstream_run_id:$run,upstream_sha:$sha,upstream_conclusion:$conclusion,upstream_event:$event,reserve_state:$state,artifact_cardinality:$artifacts,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}' \
             > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/reserve-upstream-binding.json"
+          echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/reserve-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
           if [ "$RESERVE_BINDING_STATUS" = VERIFIED_FAIL ]; then
             exit 1
           fi
 
       - name: Validate exact Canonical Truth upstream terminal binding
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Live Canonical Issue Truth V1'
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Live Canonical Issue Truth V1'
         env:
           GH_TOKEN: ${{ github.token }}
           TRUTH_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -444,16 +846,18 @@ jobs:
           TRUTH_ARTIFACT_NAME="kpmo-live-canonical-issue-truth-v1-${TRUTH_UPSTREAM_RUN_ID}"
           TRUTH_ARTIFACT_COUNT=$(jq             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/truth-upstream-artifacts.json)
           test "$TRUTH_ARTIFACT_COUNT" -eq 1
-          TRUTH_ARTIFACT_ID=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].id' /tmp/truth-upstream-artifacts.json)
-          TRUTH_ARTIFACT_DIGEST=$(jq -r --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' /tmp/truth-upstream-artifacts.json)
+          TRUTH_ARTIFACT_ID=$(jq -r             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id'             /tmp/truth-upstream-artifacts.json)
+          TRUTH_ARTIFACT_DIGEST=$(jq -r             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty'             /tmp/truth-upstream-artifacts.json)
           [[ "$TRUTH_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$TRUTH_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
           rm -rf /tmp/truth-observer /tmp/truth-observer.zip
           mkdir -p /tmp/truth-observer
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${TRUTH_ARTIFACT_ID}/zip"             > /tmp/truth-observer.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py             --archive /tmp/truth-observer.zip --expected-digest "$TRUTH_ARTIFACT_DIGEST"             --receipt /tmp/truth-observer-archive-validation-v1.json             --max-compressed-bytes 4194304 --max-entries 32             --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608             --max-compression-ratio 100
           unzip -q -o /tmp/truth-observer.zip -d /tmp/truth-observer
-          TRUTH_RECEIPT=$(find /tmp/truth-observer -type f -name canonical-truth-receipt-v1.json -print -quit)
-          test -n "$TRUTH_RECEIPT"
+          mapfile -d '' -t TRUTH_RECEIPTS < <(find /tmp/truth-observer -type f -name canonical-truth-receipt-v1.json -print0)
+          test "${#TRUTH_RECEIPTS[@]}" -eq 1
+          TRUTH_RECEIPT="${TRUTH_RECEIPTS[0]}"
           EXPECTED_TRUTH_STATE=VERIFIED_FAIL
           EXPECTED_VALIDATION_OUTCOME=failure
           if [ "$TRUTH_UPSTREAM_CONCLUSION" = success ]; then
@@ -473,26 +877,32 @@ jobs:
              and .production=="HOLD"
              and .public=="HOLD"'             "$TRUTH_RECEIPT" >/dev/null
           jq -n             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg conclusion "$TRUTH_UPSTREAM_CONCLUSION"             --arg event "$TRUTH_UPSTREAM_EVENT"             --arg state "$EXPECTED_TRUTH_STATE"             --argjson artifact "$TRUTH_ARTIFACT_ID"             --arg digest "$TRUTH_ARTIFACT_DIGEST"             '{status:$state,upstream_run_id:$run,upstream_sha:$sha,upstream_conclusion:$conclusion,upstream_event:$event,artifact_cardinality:1,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}'             > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/canonical-truth-upstream-binding.json"
+          echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/canonical-truth-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
           if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then
             exit 1
           fi
 
       - name: Validate Met acquisition cancellation and Assurance binding
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
 
       - name: Validate V&A acquisition cancellation and Assurance binding
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs
 
       - name: Validate continuous assurance contract
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: |
           node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
           node --check scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
           node scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
 
       - name: Validate adapter cancellation watch coverage
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs
 
       - name: Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: |
           node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
           node scripts/kidults/kpmo/validate-requirement-assurance-watch-v1.mjs
@@ -500,14 +910,14 @@ jobs:
           node scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs
 
       - name: Run audit and always retain receipt
-        if: always()
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
 
       - name: Emit safe remediation packet
-        if: always()
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-
           node scripts/kidults/kpmo/plan-safe-remediation-v1.mjs
           --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
@@ -525,9 +935,77 @@ jobs:
 
       - name: Preserve control result without promoting overall HOLD
         if: always()
-        run: >-
-          node -e
-          "const d=process.env.RUNNER_TEMP+'/'+process.env.KPMO_PACKET_SUFFIX;
-          const r=require(d+'/audit-receipt.json');const p=require(d+'/remediation-plan.json');
-          if(r.states?.internal_control_state!=='VERIFIED_PASS'||r.states?.promotion_eligible!==false||
-          p.source_receipt_digest!==r.receipt_digest||p.integrity_findings?.length||p.activation?.eligible!==false)process.exit(1)"
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const stable = (value) => {
+            if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
+            if (value && typeof value === 'object') {
+              return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
+            }
+            return JSON.stringify(value);
+          };
+          const digest = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+          const packet = `${process.env.RUNNER_TEMP}/${process.env.KPMO_PACKET_SUFFIX}`;
+          const receipt = JSON.parse(fs.readFileSync(`${packet}/audit-receipt.json`, 'utf8'));
+          const plan = JSON.parse(fs.readFileSync(`${packet}/remediation-plan.json`, 'utf8'));
+          const guard = JSON.parse(fs.readFileSync(`${packet}/ephemeral-guard-receipt.json`, 'utf8'));
+          const unsignedReceipt = structuredClone(receipt);
+          delete unsignedReceipt.observed_at;
+          delete unsignedReceipt.receipt_digest;
+          const unsignedGuard = structuredClone(guard);
+          delete unsignedGuard.observed_at;
+          delete unsignedGuard.receipt_digest;
+          const canonical = receipt.execution?.canonical_identity;
+          const baseValid = receipt.receipt_digest === digest(stable(unsignedReceipt)) &&
+            guard.receipt_digest === digest(stable(unsignedGuard)) &&
+            receipt.states?.internal_control_state === 'VERIFIED_PASS' && receipt.states?.promotion_eligible === false &&
+            plan.source_receipt_digest === receipt.receipt_digest && !(plan.integrity_findings?.length) &&
+            plan.activation?.eligible === false && canonical?.canonical_key === process.env.KPMO_CANONICAL_KEY &&
+            canonical?.canonical_input_digest === process.env.KPMO_CANONICAL_INPUT_DIGEST &&
+            canonical?.source_sha === process.env.KPMO_SOURCE_SHA && canonical?.upstream_class === process.env.KPMO_UPSTREAM_CLASS &&
+            canonical?.generation_discriminator === process.env.KPMO_GENERATION_DISCRIMINATOR &&
+            canonical?.classifier_contract_digest === process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST &&
+            canonical?.classification_receipt_digest === process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST &&
+            canonical?.runtime_dedupe_state === 'REMOTE_LEDGER_ACTIVATION_HOLD' &&
+            canonical?.canonical_execution_claimed === false && canonical?.durable_claim_created === false;
+          let branchValid = false;
+          if (process.env.KPMO_EXECUTE_FULL_AUDIT === 'true') {
+            branchValid = receipt.receipt_type === 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE' && canonical?.alias === false &&
+              canonical?.ephemeral_guard_receipt_digest === guard.receipt_digest &&
+              canonical?.ephemeral_actions_leader === (process.env.KPMO_EPHEMERAL_ACTIONS_LEADER === 'true') &&
+              guard.state !== 'DEDUPED_ALIAS';
+          } else if (process.env.KPMO_COVERAGE_ALIAS_OBSERVATION === 'true') {
+            branchValid = receipt.receipt_type === 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_COVERAGE_ALIAS_OBSERVER' &&
+              canonical?.alias === false && canonical?.coverage_upstream_alias_observation === true &&
+              canonical?.coverage_execution_disposition === 'VERIFIED_ALIAS_OBSERVER_NO_FULL_AUDIT' &&
+              canonical?.ephemeral_actions_leader === false && guard.state === 'FULL_AUDIT_BYPASS_NON_ALIASABLE' &&
+              guard.alias !== true && /^sha256:[a-f0-9]{64}$/.test(canonical?.coverage_binding_digest || '') &&
+              canonical?.coverage_binding_digest === digest(stable(JSON.parse(fs.readFileSync(`${packet}/requirement-upstream-binding.json`, 'utf8')))) &&
+              canonical?.coverage_binding_digest === process.env.KPMO_UPSTREAM_BINDING_DIGEST &&
+              /^sha256:[a-f0-9]{64}$/.test(canonical?.coverage_alias_receipt_digest || '') &&
+              /^sha256:[a-f0-9]{64}$/.test(canonical?.coverage_canonical_receipt_digest || '');
+          } else {
+            branchValid = receipt.receipt_type === 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_ALIAS' && canonical?.alias === true &&
+              canonical?.ephemeral_actions_leader === false && guard.state === 'DEDUPED_ALIAS' && guard.alias === true &&
+              guard.alias_receipt_digest === receipt.receipt_digest && /^sha256:[a-f0-9]{64}$/.test(canonical?.canonical_receipt_digest || '') &&
+              /^sha256:[a-f0-9]{64}$/.test(canonical?.canonical_artifact_digest || '') &&
+              Number(canonical?.canonical_run_id) > 0 && Number(canonical?.canonical_run_attempt) > 0;
+          }
+          if (!baseValid || !branchValid) process.exit(1);
+          NODE
+
+      - name: Publish successful bounded canonical leader artifact
+        if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ env.KPMO_CANONICAL_ARTIFACT_NAME }}
+          path: |
+            ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/audit-receipt.json
+            ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/remediation-plan.json
+            ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/ephemeral-guard-receipt.json
+          if-no-files-found: error
+          retention-days: 90

@@ -17,7 +17,8 @@
     "responded",
     "diligence",
     "pilot-approved",
-    "rejected"
+    "rejected",
+    "closed"
   ],
   "productionPromotionAuthorized": false
 }

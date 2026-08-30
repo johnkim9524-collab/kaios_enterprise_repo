@@ -25,7 +25,7 @@ function validate(source) {
 
   const block = extractShadowStep(source);
   const required = [
-    "if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'",
+    "if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'",
     'GH_TOKEN: ${{ github.token }}',
     'SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
     'SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}',
@@ -37,6 +37,7 @@ function validate(source) {
     '.repository.full_name==$repo',
     '.head_branch=="main"',
     'and .head_sha==$sha',
+    'and .event=="workflow_run"',
     '.status=="completed"',
     '.conclusion=="success"',
     '/actions/runs/${SHADOW_UPSTREAM_RUN_ID}/artifacts?per_page=100',
@@ -49,7 +50,9 @@ function validate(source) {
     if (!block.includes(marker)) fail(`MISSING_IN_SHADOW_BINDING:${marker}`);
   }
 
-  if (!/and \.head_sha==\$sha\s*\n\s*and \.status=="completed"/.test(block)) {
+  const runHeadIndex = block.indexOf('and .head_sha==$sha');
+  const runStatusIndex = block.indexOf('and .status=="completed"', runHeadIndex + 1);
+  if (runHeadIndex < 0 || runStatusIndex <= runHeadIndex) {
     fail('RUN_LEVEL_EXACT_SHA_BINDING_MISSING');
   }
 
@@ -60,7 +63,7 @@ function validate(source) {
   if (shaBindingCount !== 3) fail(`ARTIFACT_SHA_BINDING_CARDINALITY:${shaBindingCount}`);
   if (pairedBindingCount !== 3) fail(`ARTIFACT_RUN_SHA_PAIR_CARDINALITY:${pairedBindingCount}`);
 
-  const jobHeader = source.match(/jobs:\n  audit:\n([\s\S]*?)\n    runs-on:/)?.[1] || '';
+  const jobHeader = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
   if (/workflow_run\.conclusion\s*==\s*['\"]success['\"]/.test(jobHeader)) {
     fail('SUCCESS_ONLY_JOB_FILTER_FORBIDDEN');
   }
@@ -75,6 +78,7 @@ const mutations = [
   ['test "$SHADOW_UPSTREAM_CONCLUSION" = "success"', 'test -n "$SHADOW_UPSTREAM_CONCLUSION"'],
   ['.path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"', '.path!=".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
+  ['and .event=="workflow_run"', 'and .event!="workflow_run"'],
   ['test "$SHADOW_ARTIFACT_COUNT" -eq 1', 'test "$SHADOW_ARTIFACT_COUNT" -ge 1'],
   ['.workflow_run.id==$run', '.workflow_run.id!=$run'],
   ['.workflow_run.head_sha==$sha', '.workflow_run.head_sha!=$sha'],
@@ -92,9 +96,9 @@ for (const [from, to] of mutations) {
   if (!rejected) fail(`NEGATIVE_MUTATION_NOT_REJECTED:${from}`);
 }
 
-const successOnlyMutation = text.replace(
-  "      (github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
-  "      (github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
+const successOnlyMutation = text.replaceAll(
+  "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
+  "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
 );
 if (successOnlyMutation === text) fail('SELF_TEST_SOURCE_MARKER_MISSING:SUCCESS_ONLY_JOB_FILTER');
 let successOnlyRejected = false;
