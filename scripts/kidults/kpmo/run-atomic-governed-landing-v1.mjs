@@ -165,10 +165,11 @@ const waitForChangedHead = async priorHead => {
 };
 
 const waitForServerMergeable = async headSha => {
+  const mergeableStates = new Set(['blocked', 'clean', 'has_hooks', 'unstable']);
   for (let attempt = 1; attempt <= 30; attempt += 1) {
     const pr = await request(`/pulls/${prNumber}`);
     if (pr?.head?.sha !== headSha) throw new Error('PREFLIGHT_HEAD_CHANGED_DURING_MERGEABILITY_WAIT');
-    if (pr.mergeable === true && ['clean', 'unstable', 'has_hooks', 'blocked'].includes(pr.mergeable_state)) return pr;
+    if (pr.mergeable === true && mergeableStates.has(pr.mergeable_state)) return pr;
     if (pr.mergeable === false || pr.mergeable_state === 'dirty') throw new Error('PREFLIGHT_SERVER_NOT_MERGEABLE');
     await sleep(2000);
   }
@@ -387,7 +388,7 @@ try {
   await postComment([
     '## KPMO Atomic Landing Receipt',
     '',
-    '- State: **MERGED_VERIFIED**',
+    `- State: **MERGED_VERIFIED**`,
     `- PR: \`#${prNumber}\``,
     `- Exact head: \`${expectedHeadSha}\``,
     `- Merge commit: \`${merged.sha}\``,
@@ -407,7 +408,7 @@ try {
   await postComment([
     '## KPMO Atomic Landing Preflight',
     '',
-    '- State: **VERIFIED_FAIL**',
+    `- State: **VERIFIED_FAIL**`,
     `- PR: \`#${prNumber}\``,
     `- Failure: \`${failureCode.replace(/`/g, '')}\``,
     '- No merge or production/public promotion occurred.',
