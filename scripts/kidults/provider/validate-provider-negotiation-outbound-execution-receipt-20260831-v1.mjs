@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 
-const basePath = 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json';
-const supplementPath = 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json';
+const [basePath = 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json',
+  supplementPath = 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json'] = process.argv.slice(2);
 const [receipt, supplement] = await Promise.all([
   readFile(basePath, 'utf8').then(JSON.parse),
   readFile(supplementPath, 'utf8').then(JSON.parse),
@@ -13,6 +13,12 @@ assert(receipt.authority?.type === 'PROGRAM_OWNER_EXPLICIT_SELECTED_OUTREACH_INS
 assert(receipt.authority?.one_time_authority_consumed === true, 'ONE_TIME_AUTHORITY_NOT_CONSUMED');
 assert(receipt.authority?.future_external_communication_authorized === false, 'FUTURE_OUTBOUND_MUST_RELOCK');
 assert(receipt.authority?.automatic_followup_authorized === false, 'AUTOMATIC_FOLLOWUP_FORBIDDEN');
+assert(receipt.authorization_provenance?.state === 'NOT_MACHINE_PROVEN', 'BASE_AUTHORIZATION_PROVENANCE_MUST_FAIL_CLOSED');
+assert(receipt.authorization_provenance?.evidence_class === 'POST_SEND_EXECUTION_RECEIPT_ONLY', 'BASE_EVIDENCE_CLASS_INVALID');
+assert(receipt.authorization_provenance?.independently_issued_pre_send_authorization_receipt === null, 'BASE_UNPROVEN_EXTERNAL_RECEIPT_MUST_BE_NULL');
+assert(receipt.authorization_provenance?.candidate_branch_self_attestation_is_authorization_proof === false, 'BASE_SELF_ATTESTATION_MUST_NOT_AUTHORIZE');
+assert(receipt.authorization_provenance?.post_send_receipt_can_retroactively_create_authority === false, 'BASE_POST_HOC_AUTHORITY_FORBIDDEN');
+assert(receipt.authorization_provenance?.promotable === false, 'BASE_AUTHORITY_MUST_BE_NON_PROMOTABLE');
 
 assert(receipt.messages?.length === 7, 'BASE_SELECTED_MESSAGE_COUNT_INVALID');
 assert(receipt.execution_summary?.selected_messages === 7, 'BASE_SUMMARY_SELECTED_COUNT_INVALID');
@@ -55,6 +61,13 @@ assert(supplement.id === 'KIDULTS_PROVIDER_NEGOTIATION_OUTBOUND_BROAD_ARROW_SUPP
 assert(supplement.base_receipt === basePath, 'SUPPLEMENT_BASE_RECEIPT_BINDING_INVALID');
 assert(supplement.authority?.one_time_authority_consumed_for_this_message === true, 'SUPPLEMENT_AUTHORITY_NOT_CONSUMED');
 assert(supplement.authority?.future_external_communication_authorized === false, 'SUPPLEMENT_FUTURE_OUTBOUND_MUST_RELOCK');
+assert(supplement.authorization_provenance?.state === 'NOT_MACHINE_PROVEN', 'SUPPLEMENT_AUTHORIZATION_PROVENANCE_MUST_FAIL_CLOSED');
+assert(supplement.authorization_provenance?.evidence_class === 'POST_SEND_EXECUTION_RECEIPT_ONLY', 'SUPPLEMENT_EVIDENCE_CLASS_INVALID');
+assert(supplement.authorization_provenance?.independently_issued_pre_send_authorization_receipt === null, 'SUPPLEMENT_UNPROVEN_EXTERNAL_RECEIPT_MUST_BE_NULL');
+assert(supplement.authorization_provenance?.candidate_branch_self_attestation_is_authorization_proof === false, 'SUPPLEMENT_SELF_ATTESTATION_MUST_NOT_AUTHORIZE');
+assert(supplement.authorization_provenance?.post_send_receipt_can_retroactively_create_authority === false, 'SUPPLEMENT_POST_HOC_AUTHORITY_FORBIDDEN');
+assert(supplement.authorization_provenance?.base_one_time_assertion_reusable_for_supplement === false, 'BASE_ONE_TIME_ASSERTION_REUSE_FORBIDDEN');
+assert(supplement.authorization_provenance?.promotable === false, 'SUPPLEMENT_AUTHORITY_MUST_BE_NON_PROMOTABLE');
 assert(supplement.contact_resolution?.provider === 'BROAD_ARROW', 'SUPPLEMENT_PROVIDER_INVALID');
 assert(supplement.contact_resolution?.resolved_state === 'VERIFIED_GENERAL_INQUIRY_ROUTE_FOUND_AND_USED', 'BROAD_ARROW_ROUTE_NOT_RESOLVED');
 assert(supplement.contact_resolution?.verified_recipient === 'info@broadarrowauctions.com', 'BROAD_ARROW_RECIPIENT_INVALID');
@@ -88,7 +101,9 @@ assert(supplement.cumulative_execution_summary?.g5 === 'EXPLICIT_APPROVAL_REQUIR
 process.stdout.write(`${JSON.stringify({
   receipt_id: receipt.id,
   supplement_id: supplement.id,
-  state: 'VERIFIED_PASS',
+  state: 'VERIFIED_EXECUTION_ONLY_AUTHORITY_NOT_MACHINE_PROVEN',
+  authorization_provenance: receipt.authorization_provenance.state,
+  promotable: false,
   base_sent: receipt.execution_summary.sent,
   supplemental_sent: supplement.cumulative_execution_summary.supplement_messages,
   cumulative_sent: supplement.cumulative_execution_summary.total_sent,
