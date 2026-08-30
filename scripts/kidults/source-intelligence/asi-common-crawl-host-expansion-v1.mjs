@@ -131,6 +131,7 @@ if (!seedHosts.length) throw new Error('NO_SEED_HOSTS');
 
 let indexId = null;
 let indexApi = null;
+let indexState = 'UNAVAILABLE_FAIL_SOFT';
 const observations = [];
 const errors = [...frontierErrors];
 const seedHostResults = [];
@@ -140,6 +141,8 @@ try {
   const latest = indexes?.[0];
   indexId = latest?.id || null;
   indexApi = latest?.['cdx-api'] || null;
+  if (!indexId || !indexApi) throw new Error('NO_LATEST_INDEX_METADATA');
+  indexState = 'DISCOVERED';
   if (!indexApi) throw new Error('NO_LATEST_INDEX_API');
 } catch (error) {
   errors.push(`INDEX_DISCOVERY:${error.message}`);
@@ -234,7 +237,7 @@ const deduplicated = [...new Map(observations.map(candidate => [candidate.endpoi
   .sort((a, b) => a.endpoint_url.localeCompare(b.endpoint_url));
 const output = {
   id: 'kidults-asi-common-crawl-host-expansion-v1',
-  version: '1.2.0',
+  version: '1.3.0',
   status: deduplicated.length ? 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_COMPLETE' : 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS',
   universe_target: 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',
   input_candidate_count: Number(discovery.candidate_count || 0),
@@ -255,6 +258,7 @@ const output = {
   seed_host_count: seedHosts.length,
   seed_hosts: seedHosts,
   seed_host_results: seedHostResults,
+  common_crawl_index_state: indexState,
   common_crawl_index_id: indexId,
   common_crawl_index_api: indexApi,
   expanded_candidate_count: deduplicated.length,
@@ -273,6 +277,7 @@ fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, `${JSON.stringify(output, null, 2)}\n`);
 console.log(JSON.stringify({
   status: output.status,
+  index_state: indexState,
   index_id: indexId,
   frontier_runtime_managed: frontierRuntimeManaged,
   frontier_bootstrap_state: frontierBootstrapState,
