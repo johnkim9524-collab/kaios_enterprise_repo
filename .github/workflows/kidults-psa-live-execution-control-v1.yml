@@ -1,0 +1,55 @@
+name: KIDULTS PSA Live Execution Control
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
+      - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
+      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
+      - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
+      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate PSA execution controls
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
+          node --check scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+          node scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+
+      - name: Regress private-store and private-evaluation contracts
+        run: |
+          set -euo pipefail
+          node --test \
+            services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs \
+            services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs
