@@ -1,0 +1,67 @@
+{
+  "id": "KIDULTS_PSA_Z1_FOLLOWUP_TRIGGER_REMEDIATION_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-30T10:06:00Z",
+  "state": "ROOT_CAUSE_FIXED_PENDING_GOVERNED_LANDING",
+  "incident": {
+    "atomic_landing_run_id": 33305053359,
+    "attempt_1_failure": "PULL_REQUEST_NOT_OPEN",
+    "attempt_2_failure": "STATUS_CONTEXT_NOT_SUCCESS:KIDULTS Scope-Aware Authoritative Status V1",
+    "attempt_3_state": "MERGED_VERIFIED",
+    "merged_pull_request": 1636,
+    "merged_head_sha": "28b51e2f7a23a448fee274ed60eafdd9486d3959",
+    "merged_main_sha": "a514c0cdba4f371610d8de243a4c086e692e63c9",
+    "post_merge_push_workflow_runs_observed": 0,
+    "z1_private_runtime_receipts_observed": 0
+  },
+  "root_cause": "GITHUB_TOKEN_GENERATED_MERGE_DID_NOT_EMIT_A_RECURSIVE_PUSH_WORKFLOW_RUN",
+  "contributing_conditions": [
+    "THE_POST_MERGE_ORCHESTRATOR_DEPENDED_ON_A_PUSH_TRIGGER",
+    "THE_ATOMIC_LANDING_MERGE_WAS_CREATED_BY_THE_WORKFLOW_GITHUB_TOKEN",
+    "THE_ORCHESTRATOR_WAS_NOT_BOUND_TO_THE_ATOMIC_LANDING_WORKFLOW_COMPLETION_EVENT"
+  ],
+  "remediation": {
+    "trigger": "WORKFLOW_RUN_COMPLETED_KIDULTS_ATOMIC_GOVERNED_LANDING_V1",
+    "source_requirements": [
+      "SOURCE_WORKFLOW_NAME_EXACT_MATCH",
+      "SOURCE_EVENT_WORKFLOW_DISPATCH",
+      "SOURCE_CONCLUSION_SUCCESS",
+      "SOURCE_HEAD_BRANCH_MAIN"
+    ],
+    "exact_landing_binding": [
+      "LIVE_MAIN_EQUALS_EVENT_GITHUB_SHA",
+      "LIVE_MAIN_HAS_EXACTLY_TWO_PARENTS",
+      "SOURCE_WORKFLOW_HEAD_SHA_EQUALS_LIVE_MAIN_FIRST_PARENT",
+      "LANDED_HEAD_SHA_EQUALS_LIVE_MAIN_SECOND_PARENT",
+      "EXACTLY_ONE_ASSOCIATED_MERGED_PR_MATCHES_MERGE_SHA_HEAD_SHA_AND_BASE_MAIN"
+    ],
+    "scope_filter": "DISPATCH_Z1_ONLY_WHEN_THE_LANDED_PR_CHANGES_PSA_EXECUTION_CONTROL_OR_SCHEMA_PATHS",
+    "idempotency": [
+      "REUSE_SUCCESSFUL_EXACT_MAIN_Z1_RUN",
+      "REUSE_SINGLE_ACTIVE_EXACT_MAIN_Z1_RUN",
+      "OTHERWISE_DISPATCH_EXACTLY_ONE_NEW_MAIN_RUN",
+      "FAIL_ON_AMBIGUOUS_CONCURRENT_ACTIVE_RUNS"
+    ],
+    "receipt_boundary": "SANITIZED_RECEIPTS_ONLY_WITH_EXACT_MAIN_RUN_AND_ARTIFACT_DIGEST_BINDING"
+  },
+  "negative_controls": [
+    "FAILED_OR_CANCELLED_ATOMIC_LANDING_CANNOT_TRIGGER_Z1",
+    "NON_MAIN_SOURCE_CANNOT_TRIGGER_Z1",
+    "STALE_SOURCE_HEAD_CANNOT_BIND_TO_A_NEWER_MAIN",
+    "NON_PSA_LANDING_IS_RECORDED_AS_SKIPPED_NOT_PSA_RELEVANT",
+    "ORCHESTRATOR_READS_NO_PROVIDER_SECRET",
+    "Z1_ACQUISITION_AND_PRODUCT_ADMISSION_INCREMENT_REMAIN_ZERO"
+  ],
+  "counts": {
+    "historical_schema_probe_successes": 1,
+    "z1_private_runtime_successes": 0,
+    "lawful_manifest_admitted": 0,
+    "live_acquisition": 0,
+    "product_pipeline_admission": 0,
+    "target": 120
+  },
+  "truth_statement": "PSA_API_SCHEMA_CONNECTION_VERIFIED; PRIVATE_RUNTIME_AND_120_PRODUCT_CONNECTION_NOT_YET_ACTIVATED",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
