@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 32810)
-Total output lines: 2063
-
 #!/usr/bin/env node
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -939,7 +936,185 @@ export async function buildAsiShadowOperatingEvidence() {
       },
       global_pool_bootstrap_capture: {
         id: bootstrap.id,
-        input_fingerprints: stable(b…2810 tokens truncated…kflow_ref:
+        input_fingerprints: stable(bootstrap.input_fingerprints),
+        bootstrap_fingerprint: bootstrap.bootstrap_fingerprint
+      },
+      scope_source_pool_readiness: {
+        id: readiness.id,
+        input_fingerprints: stable(readiness.inputs),
+        output_fingerprints: stable(readiness.outputs),
+        run_fingerprint: readiness.run_fingerprint
+      },
+      mainline_rights_admitted_pilot_declarations: {
+        identity_context_pool_id: mainlineIdentityContextPool.id,
+        identity_context_pool_fingerprint: fingerprint(mainlineIdentityContextPool),
+        historical_transaction_pool_id: mainlineHistoricalTransactionPool.id,
+        historical_transaction_pool_fingerprint: fingerprint(mainlineHistoricalTransactionPool),
+        sealed_evidence_live_retrieval_artifact_refs: [],
+        sealed_evidence_bridge_artifact_refs: [],
+        sealed_evidence_external_workflow_attestation_refs: []
+      },
+      global_rights_r2_declaration: {
+        id: globalRightsR2.id,
+        fingerprint: fingerprint(globalRightsR2),
+        count_scope: globalRightsR2.evidence_assurance.count_scope,
+        declared_source_record_count: globalRightsR2.sources.length,
+        declared_identity_context_source_count:
+          globalRightsR2.pool_effect.new_admitted_identity_context_sources,
+        conditional_market_candidate_count:
+          globalRightsR2.pool_effect.new_current_market_candidates_conditional,
+        strict_r1_revalidated_source_count:
+          globalRightsR2.pool_effect.strict_r1_revalidated_admitted_sources,
+        runtime_admitted_source_count: globalRightsR2.pool_effect.runtime_admitted_sources,
+        current_market_evidence_source_count: globalRightsR2.pool_effect.current_market_evidence_sources,
+        independent_legal_review_complete: false,
+        counts_are_additive_to_prior_pilot_declarations: false,
+        sealed_execution_attestation_refs: []
+      },
+      designer_maker_r3_repository_declaration: {
+        id: designerMakerAdmissionR3.id,
+        version: designerMakerAdmissionR3.version,
+        fingerprint: fingerprint(designerMakerAdmissionR3),
+        canonical_input_ref: inputReference(
+          contract.canonical_inputs.designer_maker_repository_declared_identity_calibration_admission_r3
+        ),
+        workflow_ref: fileReference(
+          requiredCanonicalCodeInputs.designer_maker_repository_declared_identity_calibration_admission_r3_workflow
+        ),
+        admission_scope: designerMakerAdmissionR3.admission_scope,
+        admission_class: designerMakerAdmissionR3.admission_class,
+        admitted_state_definition: designerMakerAdmissionR3.admitted_state_definition,
+        source_ids: designerMakerAdmissionR3.sources.map(source => source.source_id).sort(),
+        repository_declared_identity_calibration_metadata_source_count:
+          designerAdmissionAccounting.repository_declared_identity_calibration_metadata_source_count,
+        strict_r1_evidence_bound_admitted_source_count: 0,
+        full_source_pool_admitted_source_count: 0,
+        current_market_ready_source_count: 0,
+        runtime_admitted_source_count: 0,
+        image_admitted_source_count: 0,
+        repository_declaration_only: true,
+        strict_r1_evidence_bound_revalidation_complete: false,
+        independent_legal_review_complete: false,
+        source_content_bytes_archived: false,
+        source_content_archive_state: "NOT_ARCHIVED",
+        live_workflow_probe_is_archival_or_independent_review_evidence: false,
+        current_market_claim_authorized: false,
+        full_source_pool_admission_authorized: false,
+        public_release_authorized: false,
+        commercial_use_authorized: false,
+        public_commercial_admission_authorized: false,
+        runtime_admission_authorized: false,
+        runtime_admission_events_emitted: 0,
+        image_admission_authorized: false,
+        market_observation_count: 0,
+        production_promotion_authorized: false,
+        production: "HOLD",
+        purpose_rights_interpretation:
+          "SOURCE_LICENSE_FIELD_USE_CEILING_ONLY_NOT_PLATFORM_ADMISSION_OR_PUBLICATION_AUTHORIZATION",
+        sealed_execution_attestation_refs: []
+      },
+      candidate_handoff_r2_downstream_blocked_selftest: {
+        contract_ref: inputReference(contract.canonical_inputs.candidate_handoff_preflight_contract_r2),
+        blocked_selftest_fixture_ref: inputReference(contract.canonical_inputs.candidate_handoff_blocked_selftest_r2),
+        validator_ref: fileReference(requiredCanonicalCodeInputs.candidate_handoff_preflight_validator_r2),
+        workflow_ref: fileReference(requiredCanonicalCodeInputs.candidate_handoff_preflight_workflow_r2),
+        materiality:
+          "DOWNSTREAM_TRACK_B_SUBMISSION_TRUTH_BOUNDARY_NOT_UPSTREAM_SHADOW_EXECUTION_OR_PROMOTION_EVIDENCE",
+        local_blocked_selftest: stable(candidateHandoffBlockedSelftest),
+        current_state: "BLOCKED",
+        ready_semantics: "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+        sealed_ready_pair_refs: [],
+        sealed_track_b_submission_refs: [],
+        sealed_track_b_assessment_refs: [],
+        sealed_track_b_pass_refs: [],
+        ready_pair_count: 0,
+        track_b_submission_count: 0,
+        track_b_assessment_count: 0,
+        track_b_pass_count: 0,
+        publication_authorized_count: 0,
+        production_authorized_count: 0,
+        publication: "HOLD",
+        production: "HOLD"
+      },
+      entity_resolution_control_implementations: {
+        contract_id: entityResolutionContract.id,
+        contract_fingerprint: fingerprint(entityResolutionContract),
+        synthetic_selftest_id: entityResolutionSelftest.id,
+        synthetic_selftest_fingerprint: fingerprint(entityResolutionSelftest),
+        canonical_scope_matrix_ref: inputReference(contract.canonical_inputs.entity_resolution_scope_matrix),
+        approved_calibration_strata_ref:
+          inputReference(contract.canonical_inputs.entity_resolution_approved_calibration_strata),
+        approved_calibration_strata_id: entityResolutionApprovedCalibrationStrata.id,
+        approved_calibration_strata_status: entityResolutionApprovedCalibrationStrata.status,
+        approved_calibration_strata_fingerprint:
+          entityResolutionContract.empirical_attestation_policy.approved_calibration_strata_sha256,
+        approved_calibration_strata_count: entityResolutionApprovedCalibrationStrataGrammar.length,
+        required_calibration_strata_ids: approvedCalibrationStrataIds,
+        approved_calibration_strata_ids: approvedCalibrationStrataIds,
+        approved_calibration_strata_grammar: stable(entityResolutionApprovedCalibrationStrataGrammar),
+        canonical_scope_matrix_fingerprint:
+          entityResolutionContract.empirical_attestation_policy.canonical_scope_matrix_sha256,
+        canonical_scope_archetype_mapping_fingerprint:
+          entityResolutionContract.empirical_attestation_policy.canonical_scope_archetype_mapping_sha256,
+        canonical_scope_count: entityResolutionScopeMatrix.scopes.length,
+        required_scope_archetypes: entityResolutionRequiredScopeArchetypes,
+        required_scope_archetype_count: entityResolutionRequiredScopeArchetypes.length,
+        benchmark_runner_ref: fileReference(requiredCanonicalCodeInputs.entity_resolution_benchmark_runner),
+        real_source_constructed_control_assembler_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_real_dataset_assembler),
+        getty_transaction_r2_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_getty_transaction_r2_extender),
+        wikidata_design_r3_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_wikidata_design_r3_extender),
+        real_holdout_r4_freezer_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_real_holdout_r4_freezer),
+        cross_market_alias_r5_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_cross_market_alias_r5_extender),
+        ambiguous_review_r6_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_ambiguous_review_r6_extender),
+        approved_calibration_strata_validator_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_approved_strata_validator),
+        approved_strata_r7a_promoter_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_approved_strata_r7a_promoter),
+        serialized_reference_r7b_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_serialized_reference_r7b_extender),
+        variant_release_r7c_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_variant_release_r7c_extender),
+        serialized_cross_authority_r7e_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_serialized_cross_authority_r7e_extender),
+        vehicle_minimums_r7f_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_vehicle_minimums_r7f_extender),
+        variant_minimums_r7g_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_variant_minimums_r7g_extender),
+        pressing_minimums_r7h_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_pressing_minimums_r7h_extender),
+        provenance_minimums_r7i_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_provenance_minimums_r7i_extender),
+        designer_maker_minimums_r7j_extender_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_designer_maker_minimums_r7j_extender),
+        approved_dataset_finalizer_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_approved_dataset_finalizer),
+        benchmark_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_benchmark_v2_workflow),
+        real_source_constructed_control_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_real_dataset_workflow),
+        getty_transaction_r2_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_getty_transaction_r2_workflow),
+        canonical_design_r3_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_canonical_design_r3_workflow),
+        real_holdout_r4_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_real_holdout_r4_workflow),
+        cross_market_alias_r5_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_cross_market_alias_r5_workflow),
+        ambiguous_review_r6_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_ambiguous_review_r6_workflow),
+        approved_calibration_strata_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_approved_strata_workflow),
+        approved_strata_r7a_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_approved_strata_r7a_workflow),
+        serialized_reference_r7b_workflow_ref:
+          fileReference(requiredCanonicalCodeInputs.entity_resolution_serialized_reference_r7b_workflow),
+        variant_release_r7c_workflow_ref:
           fileReference(requiredCanonicalCodeInputs.entity_resolution_variant_release_r7c_workflow),
         serialized_cross_authority_r7e_workflow_ref:
           fileReference(requiredCanonicalCodeInputs.entity_resolution_serialized_cross_authority_r7e_workflow),
