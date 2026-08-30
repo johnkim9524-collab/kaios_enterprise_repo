@@ -1,9 +1,9 @@
 {
   "id": "kidults-asi-global-source-pool-control-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_PROTECTED_MAIN_MERGE",
   "owner": "KPMO",
-  "purpose": "Continuously manage globally meaningful source candidates without converting discovery, software coverage, or transport access into rights or product claims.",
+  "purpose": "Continuously manage only globally meaningful sources that can improve a defined KIDULTS customer decision or paid product, without converting discovery, access, or software coverage into rights or product claims.",
   "authoritative_baseline": {
     "registered_source_profiles": 16,
     "source_profile_discovery_requirements": 120,
@@ -59,6 +59,12 @@
     "rights.commercial_use",
     "rights_evidence_url",
     "rights_reviewed_at",
+    "customer_decisions",
+    "product_surfaces",
+    "value_hypothesis",
+    "value_score",
+    "marginal_value_vs_existing_pool",
+    "coverage_gap_ids",
     "decision",
     "claim_ceiling",
     "accountable_owner",
@@ -81,6 +87,7 @@
   },
   "promotion_gates": {
     "PASS": [
+      "product value score >= 70 and hard minimum satisfied",
       "all mandatory fields complete",
       "official rights evidence independently verified",
       "collect/store/derive/commercial-use each explicit for stated purpose",
@@ -105,6 +112,7 @@
   },
   "autonomous_actions": {
     "allowed": [
+      "product-value triage against customer decisions and product surfaces",
       "official-source discovery",
       "official terms/license research",
       "read-only metadata comparison",
@@ -193,13 +201,101 @@
       "DISCOVERY_DEMAND": 5,
       "SCHEMA_BOUND_DEMAND": 3
     },
-    "expired_sla_action": "ESCALATE_KPMO_AND_ACTIVATE_DECLARED_FALLBACK"
+    "expired_sla_action": "ESCALATE_KPMO_AND_ACTIVATE_DECLARED_FALLBACK",
+    "priority_order": [
+      "PRODUCT_VALUE_SCORE_DESC",
+      "RIGHTS_CLARITY_DESC",
+      "STRICT_CURRENT_FIRST",
+      "COVERAGE_GAP_SEVERITY_DESC",
+      "SOURCE_RESILIENCE_DESC"
+    ]
   },
   "truth_boundary": {
     "main_scope_validated": true,
     "production_authorized": false,
     "public": "HOLD",
     "production": "HOLD",
-    "g5": "HOLD"
+    "g5": "HOLD",
+    "open_source_is_product_value": false
+  },
+  "product_value_gate": {
+    "gate_order": "PRODUCT_VALUE_BEFORE_ACQUISITION_PRIORITY",
+    "eligible_verticals": [
+      "CARS",
+      "WATCHES",
+      "TRADING_CARDS",
+      "TOYS",
+      "ART",
+      "SNEAKERS",
+      "HANDBAGS",
+      "WINE_AND_SPIRITS"
+    ],
+    "customer_decisions": [
+      "IDENTIFY_OBJECT",
+      "VERIFY_AUTHENTICITY_OR_GRADE",
+      "UNDERSTAND_REALIZED_VALUE",
+      "COMPARE_COMPARABLES",
+      "ASSESS_LIQUIDITY",
+      "MONITOR_MARKET",
+      "MANAGE_COLLECTION",
+      "DECIDE_BUY_SELL_HOLD"
+    ],
+    "product_surfaces": [
+      "DOSSIER",
+      "COMPARE",
+      "WATCHLIST",
+      "INDEX",
+      "MARKET_REPORT",
+      "PROJECTION"
+    ],
+    "hard_minimum": {
+      "named_customer_decision_required": true,
+      "named_product_surface_required": true,
+      "coverage_gap_binding_required": true,
+      "primary_object_identifier_required": true,
+      "provenance_required": true,
+      "one_of": [
+        "terminal_state_and_realized_price",
+        "authoritative_identity_or_specification",
+        "population_or_supply_measure",
+        "repeatable_market_activity_measure"
+      ]
+    },
+    "weighted_score": {
+      "customer_decision_impact": 25,
+      "object_identity_and_joinability": 20,
+      "transaction_or_market_signal": 20,
+      "freshness_and_update_reliability": 15,
+      "global_coverage_increment": 10,
+      "source_resilience_and_fallback_value": 10,
+      "minimum_active_pool_score": 70
+    },
+    "disposition": {
+      "score_70_to_100": "VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW",
+      "score_50_to_69": "WATCHLIST_ONLY_RESEARCH_NO_ACQUISITION",
+      "score_0_to_49": "REJECT_LOW_CUSTOMER_VALUE",
+      "hard_minimum_failure": "REJECT_NOT_PRODUCT_MEANINGFUL"
+    },
+    "forbidden_proxy_metrics": [
+      "source_count",
+      "record_count_without_product_fit",
+      "open_access_alone",
+      "API_availability_alone",
+      "brand_fame",
+      "traffic_rank"
+    ],
+    "ranking_tiebreakers": [
+      "fills_more_uncovered_product_requirements",
+      "stronger_rights_clarity",
+      "strict_current_over_bounded_current",
+      "more_independent_provenance",
+      "lower_switching_risk"
+    ],
+    "portfolio_rules": {
+      "minimum_independent_sources_per_active_vertical": 2,
+      "preferred_independent_sources_per_active_vertical": 3,
+      "maximum_sources_per_vertical": "NO_FIXED_MAXIMUM_WHILE_INCREMENTAL_VALUE_REMAINS_POSITIVE",
+      "redundant_source_without_incremental_value": "REJECT_OR_RETAIN_AS_DECLARED_FALLBACK_ONLY"
+    }
   }
 }
