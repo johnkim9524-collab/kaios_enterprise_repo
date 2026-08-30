@@ -1,0 +1,39 @@
+name: KIDULTS Seaport Track B HOLD E2E V1
+
+on:
+  pull_request:
+    paths:
+      - "scripts/kidults/integration/build-official-track-b-assessment-v1.py"
+      - "scripts/kidults/integration/validate-exact-pair-product-chain-v1.py"
+      - "scripts/kidults/integration/validate-seaport-track-b-hold-e2e-v1.py"
+      - "coordination/kidults/integration/live-arrival/seaport-eth-25844482-5198/**"
+      - ".github/workflows/kidults-seaport-track-b-hold-e2e-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-track-b-hold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run exact-pair regression suite
+        run: python scripts/kidults/integration/validate-exact-pair-product-chain-v1.py
+      - name: Run real Seaport pair through Track B
+        run: python scripts/kidults/integration/validate-seaport-track-b-hold-e2e-v1.py
+      - name: Preserve immutable receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidults-seaport-track-b-hold-receipts
+          path: artifacts/kidults-track-b-seaport-eth-25844482-5198/
+          if-no-files-found: error
+          retention-days: 90
