@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const file = path.join(import.meta.dirname, 'public/executive/control-tower.html');
 const html = fs.readFileSync(file, 'utf8');
+const snapshot = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'public/executive/control-tower-snapshot-v1.json'), 'utf8'));
 
 test('management control tower is a governed read-only surface', () => {
   assert.match(html, /INTERNAL · READ-ONLY · GOVERNED SNAPSHOT/);
@@ -16,7 +17,8 @@ test('management control tower is a governed read-only surface', () => {
 });
 
 test('dashboard exposes decision queue and source truth boundaries', () => {
-  assert.match(html, /3개 HOLD 소스/);
+  assert.equal(snapshot.rights_summary.hold, 3);
+  assert.match(html, /HOLD 소스의 capture·reuse 권리 증거 확보/);
   assert.match(html, /30 natural runs/);
   assert.match(html, /current-sold-sample-governance-v1\.json/);
   assert.match(html, /management-control-tower-contract-v1\.json/);
@@ -26,4 +28,8 @@ test('dashboard exposes decision queue and source truth boundaries', () => {
 test('dashboard supports latest governed snapshot refresh', () => {
   assert.match(html, /control-tower-snapshot-v1\.json/);
   assert.match(html, /cache:'no-store'/);
+  assert.doesNotMatch(html, /PR #1655|protected landing 대기/);
+  const embedded = html.match(/const D = (\{.*?\});\n\s+const esc=/s);
+  assert.ok(embedded, 'embedded governed fallback snapshot is required');
+  assert.deepEqual(JSON.parse(embedded[1]), snapshot);
 });
