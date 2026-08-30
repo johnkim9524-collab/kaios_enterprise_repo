@@ -86,6 +86,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   ]) require(atomicWorkflow.includes(marker), `ATOMIC_WORKFLOW_MARKER_MISSING:${marker}`);
   for (const marker of [
     'assertStableFinalReread(initial, final',
+    'assertAtomicLandingMergeable',
+    "['clean', 'unstable', 'has_hooks', 'blocked']",
     'assertNativeRequiredContexts',
     'SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS',
     'assertLandingActorAndAuthorization',
@@ -219,6 +221,17 @@ const mutations = [
     aggregateWorkflow,
     aggregatePolicy,
     atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'ATOMIC_SELF_STATUS_BLOCKED_STATE_REMOVED',
+    policy,
+    workflow,
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner: atomicRunner.replace(", 'blocked']", "]"),
     aggregateRunner,
   },
   {
