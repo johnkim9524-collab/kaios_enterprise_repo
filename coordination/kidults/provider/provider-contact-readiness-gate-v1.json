@@ -1,30 +1,175 @@
 {
-  "id":"kidults-provider-contact-readiness-gate-v1",
-  "version":"1.0.0",
-  "status":"PROGRAM_OWNER_DECISION_READY",
-  "canonical_input":"coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
-  "contact_authorized":false,
-  "groups":{
-    "HIGH_FIT_APPLICATION_OR_LICENSE_INQUIRY":[
-      {"provider":"GIA","capability":"AUTHENTICATION_CONDITION","scopes":["fine_jewelry"],"ask":["Report Results API eligibility for intelligence platform use","commercial reuse/display rights for derived intelligence","sandbox and production key path","rate limits and pricing","revocation/retention terms"],"reason":"Direct grading/analysis report data fit"}
+  "id": "kidults-provider-contact-readiness-gate-v1",
+  "version": "1.1.0",
+  "status": "PROGRAM_OWNER_DECISION_READY",
+  "canonical_input": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+  "sample_policy": "coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json",
+  "negotiation_policy": "coordination/kidults/provider/provider-sample-governance-negotiation-v1.json",
+  "content_template": "coordination/kidults/provider/templates/provider-staged-evaluation-content-v1.md",
+  "contact_authorized": false,
+  "sample_governance_contact_preflight": {
+    "required_internal_brief_fields": [
+      "PROVIDER_AND_EXACT_CAPABILITY",
+      "NAMED_CUSTOMER_DECISION",
+      "EVIDENCE_GAP",
+      "REQUESTED_SAMPLE_TIER",
+      "INITIAL_VOLUME_BAND",
+      "CLAIM_CEILING",
+      "RIGHTS_SCHEDULE",
+      "REQUIRED_FIELDS_AND_SCHEMA",
+      "COMMERCIAL_CEILING",
+      "STOP_CRITERIA",
+      "ALTERNATIVE_SOURCE",
+      "PRIOR_COMMUNICATION_EVIDENCE"
     ],
-    "RIGHTS_OR_BULK_ACCESS_INQUIRY":[
-      {"provider":"CGC","capability":"AUTHENTICATION_CONDITION","scopes":["comic_books","trading_cards","video_games_consoles"],"ask":["Whether official bulk/API certification verification access exists","commercial use rights for grade/certification data","population data access","rate limits/pricing","scope by collectible type"],"reason":"Strong public certification semantics but bulk rights/API not verified"},
-      {"provider":"Discogs","capability":"SOLD_TRANSACTION_HISTORY","scopes":["vinyl_recorded_music"],"ask":["License path for Restricted Marketplace sales-history data","per-field reuse and derived intelligence rights","time depth and geography","rate limits and pricing"],"reason":"Sales history exists but is Restricted Data"},
-      {"provider":"Cardmarket","capability":"SOLD_TRANSACTION_HISTORY","scopes":["trading_cards"],"ask":["Written agreement path for sales/price data use","transaction-level field availability","commercial derived intelligence rights","coverage/time depth/pricing"],"reason":"Sales-data candidate requires written agreement"},
-      {"provider":"StockX","capability":"AUTHENTICATION_CONDITION","scopes":["sneakers","collectible_electronics","trading_cards"],"ask":["Developer access eligibility","whether authenticationDetails can be used beyond own-order context","commercial aggregated intelligence rights","coverage/rate limits/pricing"],"reason":"Authentication fields exist but account-context and reuse scope require confirmation"}
+    "required_provider_facing_blocks": [
+      "PRIVATE_NON_PRODUCTION_PURPOSE",
+      "STAGED_EVALUATION_SEQUENCE",
+      "INITIAL_VOLUME_IS_NOT_A_PURCHASE_OR_LAUNCH_COMMITMENT",
+      "PURPOSE_SPECIFIC_RIGHTS_QUESTIONS",
+      "RETENTION_AND_DELETION_POSTURE",
+      "SCHEMA_PROVENANCE_RATE_LIMIT_AND_PRICING_REQUEST",
+      "NO_RAW_PUBLIC_REDISTRIBUTION_UNLESS_SEPARATELY_AGREED"
     ],
-    "RECONCILED_NO_DUPLICATE_OUTREACH":[
-      {"provider":"eBay Marketplace Insights","canonical_provider_id":"EBAY_MARKETPLACE_INSIGHTS","state":"CLOSED","communication_state":"PREVIOUSLY_CONTACTED_CLOSED","resend_authorized":false},
-      {"provider":"PSA Premium","canonical_provider_id":"PSA_PREMIUM","state":"BOUNDED","communication_state":"WRITTEN_PROVIDER_RESPONSES_RECORDED_NO_NEW_OUTBOUND_REQUIRED","resend_authorized":false},
-      {"provider":"GemRate","canonical_provider_id":"GEMRATE","state":"CONDITIONAL","communication_state":"PROVIDER_RESPONSE_RECEIVED_NO_NEW_OUTBOUND_REQUIRED","resend_authorized":false},
-      {"provider":"CLASSIC.COM","canonical_provider_id":"CLASSIC_COM","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_PROVIDER_RESPONSE","resend_authorized":false}
+    "forbidden_content": [
+      "120_IS_UNIVERSAL_LAUNCH_MINIMUM",
+      "120_OF_120_PROVES_RELIABILITY",
+      "PROMISE_TO_PURCHASE_459_1840_OR_4603",
+      "SCHEMA_PROBE_EQUALS_PRODUCT_CONNECTION",
+      "SINGLE_PROVIDER_EQUALS_MARKET_REPRESENTATIVENESS",
+      "API_KEY_OR_MEMBERSHIP_EQUALS_REUSE_RIGHTS",
+      "IMPLIED_SPEND_CONTRACT_PRODUCTION_PUBLIC_OR_G5_APPROVAL"
     ],
-    "REJECT_FOR_SOLD_TRANSACTION_EVIDENCE":[
-      {"provider":"StockX Market Data","reason":"Highest Bid / Lowest Ask and pricing signals are not a sold-event corpus"},
-      {"provider":"TCGplayer Pricing API","reason":"Pricing/catalog endpoints are not transaction-level sold events"}
+    "minimum_external_disclosure": "DISCLOSE_ONLY_THE_CURRENT_STAGE_VOLUME_BAND_AND_RIGHTS_ASK; HIGHER_STATISTICAL_TARGETS ARE OPTIONAL_CAPACITY INFORMATION",
+    "exact_head_and_duplicate_outreach_check_required": true
+  },
+  "groups": {
+    "HIGH_FIT_APPLICATION_OR_LICENSE_INQUIRY": [
+      {
+        "provider": "GIA",
+        "capability": "AUTHENTICATION_CONDITION",
+        "scopes": ["fine_jewelry"],
+        "sample_sequence": [5, "30_TO_120", "OPTIONAL_459"],
+        "ask": [
+          "Report Results API eligibility for intelligence platform use",
+          "commercial reuse/display rights for derived intelligence",
+          "sandbox and production key path",
+          "rate limits and staged pricing bands",
+          "revocation/retention/deletion terms",
+          "correction and schema-change process"
+        ],
+        "reason": "Direct grading/analysis report data fit"
+      }
     ],
-    "DISCOVERY_GAP_REMAINS":[
+    "RIGHTS_OR_BULK_ACCESS_INQUIRY": [
+      {
+        "provider": "CGC",
+        "capability": "AUTHENTICATION_CONDITION",
+        "scopes": ["comic_books", "trading_cards", "video_games_consoles"],
+        "sample_sequence": [5, "30_TO_120", "OPTIONAL_459"],
+        "ask": [
+          "Whether official bulk/API certification verification access exists",
+          "commercial use rights for grade/certification data",
+          "population data access and as-of semantics",
+          "rate limits and staged pricing bands",
+          "scope by collectible type",
+          "correction and revocation events"
+        ],
+        "reason": "Strong public certification semantics but bulk rights/API not verified"
+      },
+      {
+        "provider": "Discogs",
+        "capability": "SOLD_TRANSACTION_HISTORY",
+        "scopes": ["vinyl_recorded_music"],
+        "sample_sequence": [5, "30_TO_120", "OPTIONAL_459"],
+        "ask": [
+          "License path for Restricted Marketplace sales-history data",
+          "per-field reuse and derived intelligence rights",
+          "terminal sale state and correction semantics",
+          "time depth, geography and source ownership",
+          "staged pricing and cancellation"
+        ],
+        "reason": "Sales history exists but is Restricted Data"
+      },
+      {
+        "provider": "Cardmarket",
+        "capability": "SOLD_TRANSACTION_HISTORY",
+        "scopes": ["trading_cards"],
+        "sample_sequence": [5, "30_TO_120", "OPTIONAL_459"],
+        "ask": [
+          "Written agreement path for sales/price data use",
+          "transaction-level field availability",
+          "commercial non-reconstructive derived intelligence rights",
+          "terminal state, correction, coverage and time depth",
+          "staged pricing and exit terms"
+        ],
+        "reason": "Sales-data candidate requires written agreement"
+      },
+      {
+        "provider": "StockX",
+        "capability": "AUTHENTICATION_CONDITION",
+        "scopes": ["sneakers", "collectible_electronics", "trading_cards"],
+        "sample_sequence": [5, "30_TO_120", "OPTIONAL_459"],
+        "ask": [
+          "Developer access eligibility",
+          "whether authenticationDetails can be used beyond own-order context",
+          "commercial aggregated intelligence rights",
+          "coverage, rate limits and staged pricing",
+          "correction, retention and deletion terms"
+        ],
+        "reason": "Authentication fields exist but account-context and reuse scope require confirmation"
+      }
+    ],
+    "RECONCILED_NO_DUPLICATE_OUTREACH": [
+      {
+        "provider": "eBay Marketplace Insights",
+        "canonical_provider_id": "EBAY_MARKETPLACE_INSIGHTS",
+        "state": "CLOSED",
+        "communication_state": "PREVIOUSLY_CONTACTED_CLOSED",
+        "resend_authorized": false
+      },
+      {
+        "provider": "PSA Premium",
+        "canonical_provider_id": "PSA_PREMIUM",
+        "state": "BOUNDED",
+        "communication_state": "WRITTEN_PROVIDER_RESPONSES_RECORDED_FOLLOW_UP_DRAFT_HELD",
+        "sample_position": "Z1_1_THEN_CANARY_5_THEN_BOUNDED_30_TO_120_THEN_OPTIONAL_459",
+        "bounded_120_claim": "PRIVATE_FUNCTIONAL_PILOT_ONLY",
+        "resend_authorized": false
+      },
+      {
+        "provider": "GemRate",
+        "canonical_provider_id": "GEMRATE",
+        "state": "CONDITIONAL",
+        "communication_state": "PROVIDER_RESPONSE_RECEIVED_NO_NEW_OUTBOUND_REQUIRED",
+        "resend_authorized": false
+      },
+      {
+        "provider": "CLASSIC.COM",
+        "canonical_provider_id": "CLASSIC_COM",
+        "state": "HOLD",
+        "communication_state": "OUTBOUND_SENT_AWAITING_PROVIDER_RESPONSE",
+        "resend_authorized": false
+      },
+      {
+        "provider": "HobbyKorea",
+        "canonical_provider_id": "HOBBYKOREA",
+        "state": "SOURCE_PATH_INQUIRY_HELD",
+        "communication_state": "FOLLOW_UP_DRAFT_HELD_NO_SEND",
+        "resend_authorized": false
+      }
+    ],
+    "REJECT_FOR_SOLD_TRANSACTION_EVIDENCE": [
+      {
+        "provider": "StockX Market Data",
+        "reason": "Highest Bid / Lowest Ask and pricing signals are not a sold-event corpus"
+      },
+      {
+        "provider": "TCGplayer Pricing API",
+        "reason": "Pricing/catalog endpoints are not transaction-level sold events"
+      }
+    ],
+    "DISCOVERY_GAP_REMAINS": [
       "toys_models: authentication",
       "watches_jewelry: watches authentication + sold transaction beyond generic eBay",
       "automobiles_mobility: motorcycles authentication/sold specialization",
@@ -35,7 +180,27 @@
       "cards_comics_memorabilia: sports/historical memorabilia authentication and specialized sold history"
     ]
   },
-  "program_owner_decision":{"required":true,"allowed_decisions":["AUTHORIZE_SELECTED_CONTACTS","HOLD_ALL_CONTACTS","AUTHORIZE_APPLICATIONS_ONLY","AUTHORIZE_RIGHTS_INQUIRIES_ONLY"],"default":"HOLD_ALL_CONTACTS"},
-  "guards":{"canonical_provider_state_must_be_checked":true,"duplicate_or_resend_forbidden_without_explicit_authority":true,"no_contact_without_owner_decision":true,"no_contract_commitment_without_separate_approval":true,"no_credentials_in_registry":true,"no_production":true},
-  "production":"HOLD"
+  "program_owner_decision": {
+    "required": true,
+    "allowed_decisions": [
+      "AUTHORIZE_SELECTED_CONTACTS",
+      "HOLD_ALL_CONTACTS",
+      "AUTHORIZE_APPLICATIONS_ONLY",
+      "AUTHORIZE_RIGHTS_INQUIRIES_ONLY"
+    ],
+    "default": "HOLD_ALL_CONTACTS",
+    "current": "HOLD_ALL_CONTACTS"
+  },
+  "guards": {
+    "canonical_provider_state_must_be_checked": true,
+    "sample_policy_and_negotiation_content_must_be_exact_head_bound": true,
+    "duplicate_or_resend_forbidden_without_explicit_authority": true,
+    "no_contact_without_owner_decision": true,
+    "no_contract_commitment_without_separate_approval": true,
+    "no_credentials_in_registry": true,
+    "no_production": true
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
 }
