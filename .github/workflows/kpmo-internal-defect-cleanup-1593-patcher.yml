@@ -8,7 +8,7 @@ on:
       - '.github/workflows/kpmo-internal-defect-cleanup-1593-patcher.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: kpmo-internal-defect-cleanup-1593-patcher
@@ -22,10 +22,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.ref_name }}
-          fetch-depth: 0
-          persist-credentials: true
+          fetch-depth: 1
+          persist-credentials: false
 
-      - name: Apply deterministic transitive-lineage correction
+      - name: Apply and prove deterministic transitive-lineage correction
         shell: bash
         run: |
           set -euo pipefail
@@ -35,13 +35,14 @@ jobs:
           node tests/kidults/source-intelligence/asi-p1-authoritative-lineage-v1.test.mjs
           git diff --check
 
-      - name: Commit correction to cleanup branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'KPMO Internal Defect Remediator'
-          git config user.email 'actions@users.noreply.github.com'
-          git add -A
-          git diff --cached --quiet && { echo 'No correction produced' >&2; exit 1; }
-          git commit -m 'fix(asi): enforce transitive P0B lineage before ARL publication'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: internal-defect-1593-patched-files-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            .github/workflows/kidults-asi-p1-source-preflight-v1.yml
+            .github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml
+            scripts/kidults/source-intelligence/validate-asi-p1-authoritative-lineage-v1.mjs
+            tests/kidults/source-intelligence/asi-p1-authoritative-lineage-v1.test.mjs
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
