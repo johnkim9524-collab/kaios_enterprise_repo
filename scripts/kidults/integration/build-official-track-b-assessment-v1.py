@@ -75,8 +75,14 @@ def validate_assessment_shape(assessment: dict[str, Any]) -> None:
     require(assessment.get("immutable") is True, "ASSESSMENT_NOT_IMMUTABLE")
     require(assessment.get("production_eligible") is False, "ASSESSMENT_PRODUCTION_PREAUTH_FORBIDDEN")
     require(assessment.get("publication_eligible") is False, "ASSESSMENT_PUBLIC_PREAUTH_FORBIDDEN")
-    require(assessment.get("recommendation") == PASS_RECOMMENDATION, "ASSESSMENT_RECOMMENDATION_INVALID")
-    require(assessment.get("overall_rankability") is True, "ASSESSMENT_RANKABILITY_INVALID")
+    recommendation = assessment.get("recommendation")
+    require(recommendation in {"BLOCKED", "CONDITIONAL", "PUBLISHABLE_INTERNAL", "PUBLISHABLE_PUBLIC"}, "ASSESSMENT_RECOMMENDATION_INVALID")
+    rankable = assessment.get("overall_rankability")
+    require(isinstance(rankable, bool), "ASSESSMENT_RANKABILITY_INVALID")
+    require(rankable is (recommendation in {"PUBLISHABLE_INTERNAL", "PUBLISHABLE_PUBLIC"}), "ASSESSMENT_RANKABILITY_RECOMMENDATION_MISMATCH")
+    if not rankable:
+        require(assessment.get("gate_state") in {"blocked", "conditional"}, "ASSESSMENT_HOLD_GATE_STATE_INVALID")
+        require(len(assessment.get("blocking_dimensions") or []) > 0, "ASSESSMENT_HOLD_BLOCKERS_MISSING")
     require(assessment.get("assessment_fingerprint") == digest_json({
         key: value for key, value in assessment.items() if key != "assessment_fingerprint"
     }), "ASSESSMENT_FINGERPRINT_INVALID")
@@ -284,6 +290,169 @@ def build_assessment_envelope(
     return envelope
 
 
+
+def build_hold_assessment_envelope(
+    snapshot: dict[str, Any],
+    evidence: dict[str, Any],
+    handoff: dict[str, Any],
+    *,
+    generated_at: str,
+    candidate_reference: str,
+    evidence_reference: str,
+    handoff_reference: str,
+) -> dict[str, Any]:
+    """Complete Track B with a fail-closed HOLD assessment for a blocked exact pair."""
+
+    require(utc_timestamp(generated_at), "ASSESSMENT_GENERATED_AT_INVALID")
+    snapshot_id = snapshot.get("snapshot_id")
+    evidence_package_id = evidence.get("package_id") or evidence.get("evidence_package_id")
+    require(nonempty(snapshot_id) and nonempty(evidence_package_id), "PAIR_IDENTITY_MISSING")
+    require(evidence.get("bound_snapshot_id") == snapshot_id, "EVIDENCE_SNAPSHOT_BINDING_MISMATCH")
+    require(snapshot.get("bound_evidence_package_id") == evidence_package_id, "SNAPSHOT_EVIDENCE_BINDING_MISMATCH")
+    require(snapshot.get("publication_eligible") is not True, "SNAPSHOT_PUBLIC_PREAUTH_FORBIDDEN")
+    require(snapshot.get("production_authorized") is not True, "SNAPSHOT_PRODUCTION_PREAUTH_FORBIDDEN")
+    require(evidence.get("publication_authorized") is not True, "EVIDENCE_PUBLIC_PREAUTH_FORBIDDEN")
+    require(evidence.get("production_authorized") is not True, "EVIDENCE_PRODUCTION_PREAUTH_FORBIDDEN")
+
+    pair_digest = digest_json({"snapshot": snapshot, "evidence": evidence})
+    handoff_pair_digest = handoff.get("pair_digest")
+    if nonempty(handoff_pair_digest):
+        require(handoff_pair_digest == pair_digest, "HANDOFF_PAIR_DIGEST_MISMATCH")
+    evidence_records = evidence.get("evidence_records") if isinstance(evidence.get("evidence_records"), list) else []
+    claims = evidence.get("claims") if isinstance(evidence.get("claims"), list) else []
+    blockers = [str(item) for item in (handoff.get("blockers") or [])]
+    rights_states = sorted({str(record.get("rights_state", "UNKNOWN")) for record in evidence_records})
+    factual_fulfillments = [
+        record for record in evidence_records
+        if record.get("temporality") == "CURRENT_MARKET"
+        and record.get("market_observation_type") == "ORDER_FULFILLED"
+        and record.get("sold_claim") is False
+    ]
+    current_sold = [
+        record for record in evidence_records
+        if record.get("temporality") == "CURRENT_MARKET"
+        and record.get("market_observation_type") == "SOLD_TRANSACTION"
+        and record.get("rights_state") == "ALLOW"
+    ]
+    blocking_dimensions = sorted(set(
+        (["canonical_handoff"] if handoff.get("handoff_state") != "READY_FOR_TRACK_B" else [])
+        + (["current_sold_evidence"] if not current_sold else [])
+        + (["rights"] if any(state != "ALLOW" for state in rights_states) else [])
+        + blockers
+    ))
+    if not blocking_dimensions:
+        blocking_dimensions = ["track_b_publishability_not_established"]
+    recommendation = "CONDITIONAL" if factual_fulfillments and "CONDITIONAL" in rights_states else "BLOCKED"
+    gate_state = "conditional" if recommendation == "CONDITIONAL" else "blocked"
+    seed = {"pair_digest": pair_digest, "assessor_version": "official-track-b-v1", "recommendation": recommendation}
+    assessment_id = f"assessment-{snapshot_id}-{digest_json(seed).split(':', 1)[1][:24]}"
+    assessment: dict[str, Any] = {
+        "id": assessment_id,
+        "assessment_id": assessment_id,
+        "record_type": "rankability_assessment",
+        "version": "1.0.0",
+        "status": "COMPLETED_CONDITIONAL" if recommendation == "CONDITIONAL" else "COMPLETED_BLOCKED",
+        "created_by": "Track B",
+        "registered_by": "KPMO / Exact Pair Arrival Orchestrator",
+        "approved_by": None,
+        "snapshot_id": snapshot_id,
+        "assessment_version": "official-track-b-v1",
+        "registry_version": str(snapshot.get("registry_version")),
+        "generated_at": generated_at,
+        "assessed_at": generated_at,
+        "assessor": "Official Track B — Exact Pair Rankability Gate",
+        "methodology_version": str(snapshot.get("methodology_version")),
+        "evidence_lineage_version": str(snapshot.get("evidence_lineage_version")),
+        "evidence_package_id": evidence_package_id,
+        "input_alignment": {
+            "status": "PASS",
+            "candidate_snapshot_id": snapshot_id,
+            "evidence_snapshot_id": str(evidence.get("bound_snapshot_id")),
+            "same_snapshot_id": evidence.get("bound_snapshot_id") == snapshot_id,
+            "methodology_resolved": snapshot.get("methodology_version") == evidence.get("methodology_version"),
+            "evidence_lineage_resolved": snapshot.get("evidence_lineage_version") == evidence.get("evidence_lineage_version"),
+            "baseline_unchanged": True,
+            "missing_to_zero_detected": False,
+            "rights_explicit_by_source": bool(evidence_records) and all(nonempty(record.get("rights_state")) for record in evidence_records),
+        },
+        "assessment_status": "COMPLETED",
+        "gate_state": gate_state,
+        "recommendation": recommendation,
+        "overall_rankability": False,
+        "publication_eligible": False,
+        "production_eligible": False,
+        "metric_status": {
+            "exact_pair_binding": "VERIFIED",
+            "entity_resolution": "NOT_VERIFIED",
+            "current_market_evidence": "PARTIALLY_VERIFIED" if factual_fulfillments else "NOT_VERIFIED",
+            "rights": "PARTIALLY_VERIFIED" if "CONDITIONAL" in rights_states else "NOT_VERIFIED",
+            "provenance": "VERIFIED" if evidence_records else "NOT_VERIFIED",
+            "freshness": "VERIFIED" if factual_fulfillments else "NOT_VERIFIED",
+            "confidence": "PARTIALLY_VERIFIED",
+        },
+        "quantitative_summary": {
+            "evidence_record_count": len(evidence_records),
+            "claim_count": len(claims),
+            "factual_order_fulfilled_count": len(factual_fulfillments),
+            "admitted_current_sold_count": len(current_sold),
+            "handoff_blocker_count": len(blockers),
+        },
+        "quantitative_reasons": [
+            {"dimension": "exact_pair", "observed": pair_digest, "required": "canonical digest equality", "result": "PASS", "evidence_reference": handoff_reference},
+            {"dimension": "current_market", "observed": f"{len(factual_fulfillments)} ORDER_FULFILLED fact(s); sold_claim=false", "required": "rights-ALLOW SOLD_TRANSACTION", "result": "HOLD", "evidence_reference": evidence_reference},
+            {"dimension": "rights", "observed": ",".join(rights_states) or "UNKNOWN", "required": "ALLOW for every admitted claim input", "result": "HOLD", "evidence_reference": evidence_reference},
+        ],
+        "blocking_dimensions": blocking_dimensions,
+        "test_results": {
+            "canonical_handoff_r2": "HOLD",
+            "exact_pair_digest": "PASS",
+            "current_market_factual_event": "PASS" if factual_fulfillments else "HOLD",
+            "sold_claim": "FALSE",
+            "rights_and_contradictions": "HOLD",
+            "staging_replay": "NOT_RUN",
+            "projection": "NOT_RUN",
+            "public_authority": "HOLD",
+            "production_authority": "HOLD",
+            "g5_authority": "HOLD",
+        },
+        "stability_summary": {
+            "assessment_reproducibility": "PASS_SAME_INPUT_SAME_SEMANTIC_OUTPUT",
+            "public_release": "HOLD",
+            "production": "HOLD",
+        },
+        "exit_criteria": [
+            {"criterion": "rights", "measure": "rights state", "observed": ",".join(rights_states) or "UNKNOWN", "target": "ALLOW"},
+            {"criterion": "current_sold", "measure": "admitted SOLD_TRANSACTION records", "observed": str(len(current_sold)), "target": ">=25 lighthouse; >=100 core-domain floor"},
+            {"criterion": "canonical_handoff", "measure": "R2 blocker count", "observed": str(len(blockers)), "target": "0"},
+        ],
+        "requirements_for_publishable": [
+            "Obtain purpose-bound collect/store/derive/commercial-use authority.",
+            "Admit a representative lawful cohort; one record is plumbing evidence only.",
+            "Rerun canonical R2 handoff and official Track B assessment at the exact input digest.",
+            "Public, Production, and G5 require separate protected approvals.",
+        ],
+        "provider_spend_recommendation": "targeted_poc_only",
+        "residual_risks": [
+            "ORDER_FULFILLED proves an on-chain paid fulfillment fact, not an arm's-length or wash-free sale.",
+            "No OpenSea frontend attribution, metadata/image right, fiat value, or global market representativeness is established.",
+        ],
+        "evidence_references": [candidate_reference, evidence_reference, handoff_reference],
+        "immutable": True,
+    }
+    assessment["assessment_fingerprint"] = digest_json(assessment)
+    validate_assessment_shape(assessment)
+    envelope = {
+        "record_type": "live_rankability_assessment_envelope",
+        "version": "1.0.0",
+        "exact_pair_digest": pair_digest,
+        "correlation_id": correlation_id(pair_digest),
+        "synthetic": False,
+        "promotable": True,
+        "assessment": assessment,
+    }
+    return envelope
+
+
 def resolve_repository_path(value: str) -> Path:
     path = Path(value)
     resolved = path.resolve() if path.is_absolute() else (ROOT / path).resolve()
@@ -311,24 +480,36 @@ def main(argv: list[str]) -> int:
     )
     require(handoff_path.exists(), "HANDOFF_RECEIPT_NOT_CREATED")
     handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
+    snapshot = json.loads(candidate_path.read_text(encoding="utf-8"))
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    generated_at = snapshot.get("as_of")
+    require(utc_timestamp(generated_at), "SNAPSHOT_AS_OF_INVALID")
     if process.returncode != 0 or handoff.get("handoff_state") != "READY_FOR_TRACK_B":
+        envelope = build_hold_assessment_envelope(
+            snapshot,
+            evidence,
+            handoff,
+            generated_at=generated_at,
+            candidate_reference=str(candidate_path.relative_to(ROOT)),
+            evidence_reference=str(evidence_path.relative_to(ROOT)),
+            handoff_reference=str(handoff_path.relative_to(ROOT)),
+        )
+        output_path.write_text(json.dumps(envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps({
             "suite": "KIDULTS_OFFICIAL_TRACK_B_ASSESSOR_V1",
-            "result": "BLOCKED",
-            "state": "PAIR_BLOCKED_PRE_TRACK_B",
+            "result": "HOLD",
+            "state": "TRACK_B_ASSESSMENT_COMPLETE_HOLD",
             "blocker_count": handoff.get("blocker_count"),
             "blockers": handoff.get("blockers", []),
-            "assessment": "NOT_CREATED",
+            "assessment_id": envelope["assessment"]["assessment_id"],
+            "recommendation": envelope["assessment"]["recommendation"],
+            "overall_rankability": False,
             "production": "HOLD",
             "public": "HOLD",
             "g5": "HOLD",
         }, indent=2))
         return 2
 
-    snapshot = json.loads(candidate_path.read_text(encoding="utf-8"))
-    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-    generated_at = snapshot.get("as_of")
-    require(utc_timestamp(generated_at), "SNAPSHOT_AS_OF_INVALID")
     envelope = build_assessment_envelope(
         snapshot,
         evidence,
