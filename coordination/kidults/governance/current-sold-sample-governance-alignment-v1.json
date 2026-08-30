@@ -1,0 +1,43 @@
+{
+  "id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_ALIGNMENT_V1",
+  "version": "1.0.0",
+  "effective_at": "2026-08-30T13:00:00Z",
+  "authority": "PROGRAM_OWNER_APPROVED_OPERATING_DOCTRINE_PENDING_PROTECTED_MAIN_LANDING",
+  "canonical_policy": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+  "scope": ["KPMO", "TRACK_A", "TRACK_B", "TRACK_C", "TRACK_D", "TRACK_E", "TRACK_Z", "ASI", "FULL_VALUE_CHAIN", "ALL_ENGINES_AND_LOGIC"],
+  "precedence": [
+    "PER_RECORD_RIGHTS_AND_SCHEMA_CENSUS",
+    "CLAIM_SPECIFIC_PRE_REGISTERED_SAMPLE_POLICY",
+    "STRATIFIED_COVERAGE_AND_CONCENTRATION_GATE",
+    "NATURAL_RUNTIME_RELIABILITY_SLO",
+    "PROTECTED_PROGRAM_OWNER_RELEASE_GATE"
+  ],
+  "non_negotiable_rules": [
+    "Sample size never proves legality, permission, provenance or market representativeness.",
+    "Every admitted event must pass the rights and schema census; unknown, expired, revoked or mismatched evidence is HOLD.",
+    "Canary, adapter reliability, private E2E, beta reliability and production SLO are separate claims and separate gates.",
+    "Sampling plan, endpoint, tolerance, confidence and stopping rule are sealed before observation.",
+    "Duplicates, retries, parse drops and timeouts cannot inflate the denominator or success count.",
+    "A source owner is an ultimate legal owner; brand aliases do not create independence.",
+    "Coverage, diversity, territory, currency, time and vertical claims require their own strata gate.",
+    "Public, Production, G5, provider contact, spend, credentials and legal commitments remain separate approvals."
+  ],
+  "track_alignment": {
+    "KPMO": "Own policy versioning, cross-track digest binding, exception register and escalation; cannot waive statistical or rights gates.",
+    "TRACK_A": "Pre-register population, sampling frame, strata and claim ceiling; produce evidence and sample decision receipt; never convert n into market claim.",
+    "TRACK_B": "Independently recompute exact confidence bounds, cluster/effective n, strata and stopping decision; reject post-hoc plans and pooled masking.",
+    "TRACK_C": "Render only approved Projection and claim ceiling; expose tier, scope and HOLD state; never infer readiness from record count.",
+    "TRACK_D": "Bind admitted cohort dynamically to PostgreSQL/PITR receipts; measure natural run SLO and error budget, not event-count proxies.",
+    "TRACK_E": "Consume read-only approved metrics with policy version, uncertainty and claim ceiling; no executive override of evidence.",
+    "TRACK_Z": "Negotiate adaptive volume bands and rights purpose schedules; no contract or price is implied by a fixed 120 quantity.",
+    "ASI": "Apply census rights gate first, then claim-specific sample policy and source/vertical coverage gates; all unresolved external evidence remains HOLD."
+  },
+  "legacy_migration": {
+    "platform_current_sold_120": "DEPRECATED",
+    "track_a_120_score": "RETAINED_AS_PROGRAM_NAME_ONLY",
+    "psa_or_gemrate_120": "PROVIDER_SPECIFIC_BOUNDED_PILOT_ONLY",
+    "entity_resolution_120": "ER_REVIEW_COHORT_ONLY",
+    "current_sold_launch_claim": "MUST_USE_SAMPLE_POLICY_AND_DYNAMIC_COHORT_BINDING"
+  },
+  "release_state": "INTERNAL_POLICY_READY_EXTERNAL_EMPIRICAL_HOLD"
+}

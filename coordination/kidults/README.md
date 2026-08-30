@@ -76,6 +76,8 @@ Legacy flat JSON files in `registry/` remain compatibility inputs during migrati
 10. No chat-only doctrine becomes official without Registry and change-control evidence.
 11. Master Book, Baseline Book and Architecture Book remain the only official Book structure.
 12. Proof before procurement.
+13. Current-SOLD sample size is claim-specific and policy-derived; rights and schema are per-record census gates.
+14. All tracks, engines and provider negotiations consume `current-sold-sample-governance-v1.json` and its alignment contract.
 
 ## Standard artifact chain
 
