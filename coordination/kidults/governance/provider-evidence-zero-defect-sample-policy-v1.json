@@ -1,0 +1,253 @@
+{
+  "id": "KIDULTS_PROVIDER_EVIDENCE_ZERO_DEFECT_SAMPLE_POLICY_V1",
+  "version": "1.0.0",
+  "effective_at": "2026-08-30T14:03:00Z",
+  "status": "PROPOSED_FOR_PROTECTED_MAIN",
+  "owner": "PROGRAM_OWNER_KPMO",
+  "scope": [
+    "KPMO",
+    "TRACK_A",
+    "TRACK_B",
+    "TRACK_C",
+    "TRACK_D",
+    "TRACK_E",
+    "TRACK_Z",
+    "ASI",
+    "PROVIDER_ENGINEERING",
+    "ALL_EXTERNAL_DATA_AND_CAPABILITY_PROVIDERS"
+  ],
+  "purpose": "Separate functional proof from statistical reliability and bind each provider negotiation, evaluation volume, claim ceiling, and release request to a pre-registered evidence tier.",
+  "non_negotiable_invariants": [
+    "SAMPLE_SIZE_NEVER_PROVES_LEGALITY_PERMISSION_PROVENANCE_OR_MARKET_REPRESENTATIVENESS",
+    "RIGHTS_SCHEMA_IDENTITY_AND_CRITICAL_STATE_ARE_PER_RECORD_CENSUS_GATES",
+    "CRITICAL_DEFECT_TOLERANCE_IS_ZERO_AT_EVERY_TIER",
+    "LOWER_TIER_EVIDENCE_CANNOT_SATISFY_A_HIGHER_TIER_CLAIM",
+    "THRESHOLDS_AND_STOPPING_RULES_ARE_SEALED_BEFORE_OBSERVATION",
+    "DUPLICATES_RETRIES_PARSE_DROPS_AND_TIMEOUTS_CANNOT_INFLATE_SUCCESS_OR_DENOMINATOR",
+    "A_PROVIDER_VOLUME_BAND_IS_NOT_A PURCHASE_COMMITMENT_OR_RELEASE AUTHORIZATION",
+    "PUBLIC_PRODUCTION_G5_SPEND_CONTRACT_CREDENTIAL_AND_EXTERNAL_COMMUNICATION_REMAIN_SEPARATE_GATES"
+  ],
+  "rights_and_schema_census": {
+    "required_for_every_record": true,
+    "required_rights_dimensions": [
+      "collect_or_query",
+      "temporary_store",
+      "transform_and_normalize",
+      "internal_qa",
+      "derived_non_reconstructive_output",
+      "retention_and_deletion",
+      "audit_and_correction",
+      "territory_and_product_scope"
+    ],
+    "unknown_expired_revoked_or_mismatched": "HOLD",
+    "deny": "REJECT",
+    "sample_pass_cannot_override": true
+  },
+  "defect_taxonomy": {
+    "CRITICAL": {
+      "examples": [
+        "UNLAWFUL_OR_UNAUTHORIZED_USE",
+        "PROVENANCE_MISSING_OR_FALSE",
+        "CANONICAL_IDENTITY_WRONG",
+        "TERMINAL_SOLD_STATE_FALSE",
+        "DATA_TAMPERING_OR_NON_REPRODUCIBLE_LINEAGE",
+        "RAW_DATA_PUBLICLY_EXPOSED_OUTSIDE_RIGHTS"
+      ],
+      "tolerance": 0,
+      "behavior": "IMMEDIATE_HOLD_ROOT_CAUSE_FIX_AND_NEW_INDEPENDENT_EVIDENCE"
+    },
+    "MAJOR_A": {
+      "examples": [
+        "PRICE_AMOUNT_WRONG",
+        "CURRENCY_WRONG",
+        "TRANSACTION_STATE_WRONG",
+        "VALUATION_CRITICAL_INPUT_WRONG"
+      ],
+      "default_target_rate": 0.001
+    },
+    "MAJOR_B": {
+      "examples": [
+        "ANALYTICALLY_MATERIAL_NON_CRITICAL_FIELD_WRONG",
+        "GRADE_OR_POPULATION_FIELD_MAPPING_WRONG"
+      ],
+      "default_target_rate": 0.0025
+    },
+    "OPERATIONAL": {
+      "examples": [
+        "PARSER_FAILURE",
+        "SCHEMA_MAPPING_FAILURE",
+        "TIMEOUT",
+        "UNEXPLAINED_DROP"
+      ],
+      "default_target_rate": 0.01
+    },
+    "MINOR_UI": {
+      "examples": [
+        "NON_CRITICAL_FORMATTING_OR_DISPLAY_DEFECT"
+      ],
+      "governed_by": "SEPARATE_UI_AND_DATA_QUALITY_SLO"
+    }
+  },
+  "statistical_method": {
+    "interval": "ONE_SIDED_EXACT_CLOPPER_PEARSON_UPPER_BOUND",
+    "confidence": 0.99,
+    "alpha": 0.01,
+    "zero_failure_formula": "ceil(log(alpha) / log(1 - tolerated_defect_rate))",
+    "general_pass_rule": "PASS_IFF_EXACT_UPPER_BOUND_X_N_AT_99_PERCENT_LE_TIER_TOLERANCE_AND_CRITICAL_DEFECTS_EQ_0_AND_ALL_CENSUS_AND_COVERAGE_GATES_PASS",
+    "optional_stopping": false,
+    "threshold_change_after_observation": false,
+    "post_hoc_tier_downgrade": false,
+    "track_b_recomputation_required": true
+  },
+  "tiers": [
+    {
+      "id": "CONTROL_ONLY_FUNCTIONAL",
+      "purpose": "DETERMINISTIC_PLUMBING_AND_REPLAY",
+      "min_n": 1,
+      "max_n": 300,
+      "statistical_claim": false,
+      "critical_defect_tolerance": 0,
+      "maximum_claim": "DETERMINISTIC_PLUMBING_ONLY"
+    },
+    {
+      "id": "CANARY",
+      "purpose": "LIVE_SCHEMA_AND_BOUNDARY_SMOKE",
+      "min_n": 5,
+      "max_n": 5,
+      "statistical_claim": false,
+      "critical_defect_tolerance": 0,
+      "maximum_claim": "SCHEMA_BOUNDARY_SMOKE_ONLY"
+    },
+    {
+      "id": "BOUNDED_FUNCTIONAL_PILOT",
+      "purpose": "PRIVATE_END_TO_END_FUNCTIONAL_PROOF",
+      "min_n": 30,
+      "max_n": 120,
+      "statistical_claim": false,
+      "critical_defect_tolerance": 0,
+      "maximum_claim": "BOUNDED_PRIVATE_FUNCTIONAL_PROOF",
+      "provider_specific_exact_120_allowed": true
+    },
+    {
+      "id": "ADAPTER_QUALIFICATION",
+      "purpose": "SOURCE_PIPELINE_RELIABILITY",
+      "defect_class": "OPERATIONAL",
+      "defect_tolerance": 0.01,
+      "zero_failure_n": 459,
+      "min_n": 459,
+      "max_n": 1000,
+      "statistical_claim": true,
+      "critical_defect_tolerance": 0,
+      "maximum_claim": "SOURCE_PIPELINE_QUALIFIED"
+    },
+    {
+      "id": "PRIVATE_E2E_RELIABILITY",
+      "purpose": "BOUNDED_INTERNAL_PRODUCT_RELIABILITY",
+      "defect_class": "MAJOR_B",
+      "defect_tolerance": 0.0025,
+      "zero_failure_n": 1840,
+      "min_n": 1840,
+      "max_n": 3000,
+      "statistical_claim": true,
+      "critical_defect_tolerance": 0,
+      "min_independent_ultimate_owners": 2,
+      "max_owner_share": 0.7,
+      "maximum_claim": "BOUNDED_PRIVATE_RELIABILITY"
+    },
+    {
+      "id": "BETA_RELIABILITY",
+      "purpose": "RELEASE_CANDIDATE_EVIDENCE_RELIABILITY",
+      "defect_class": "MAJOR_A",
+      "defect_tolerance": 0.001,
+      "zero_failure_n": 4603,
+      "min_n": 4603,
+      "max_n": 10000,
+      "statistical_claim": true,
+      "critical_defect_tolerance": 0,
+      "min_independent_ultimate_owners": 3,
+      "max_owner_share": 0.5,
+      "maximum_claim": "BOUNDED_BETA_RELIABILITY"
+    },
+    {
+      "id": "PRODUCTION_READINESS",
+      "required_tier": "BETA_RELIABILITY",
+      "required_natural_scheduled_runs": 30,
+      "required_observation_window_days": 7,
+      "required_receipts": [
+        "SLO_AND_ERROR_BUDGET",
+        "POSTGRES_SYSTEM_LEDGER_AND_PITR",
+        "COVERAGE_AND_CONCENTRATION",
+        "TRACK_B_ACCEPTANCE",
+        "SERVER_OWNED_PROJECTION"
+      ],
+      "program_owner_explicit_approval_required": true,
+      "maximum_claim": "ELIGIBLE_TO_REQUEST_PRODUCTION_APPROVAL"
+    }
+  ],
+  "effective_sample_size": {
+    "raw_n_and_effective_n_both_required": true,
+    "independence_unit": "UNIQUE_UNDERLYING_EVENT_OR_OBJECT_OBSERVATION_WITH_DISTINCT_LINEAGE",
+    "duplicate_or_republication": "ONE_CLUSTER_ONE_EFFECTIVE_OBSERVATION",
+    "retry": "SAME_OBSERVATION_NOT_NEW_SUCCESS",
+    "shared_root_cause_batch": "CLUSTER_AND_REPORT_CONCENTRATION",
+    "ultimate_legal_owner_aliases": "ONE_OWNER",
+    "track_b_must_recompute": true
+  },
+  "coverage_gate": {
+    "separate_from_sample_size": true,
+    "required_strata_when_claimed": [
+      "ultimate_owner",
+      "source",
+      "capability_or_vertical",
+      "territory",
+      "currency",
+      "time_bucket"
+    ],
+    "single_provider_can_qualify_its_adapter": true,
+    "single_provider_can_prove_platform_market_representativeness": false,
+    "market_representativeness_inferred_from_n": false
+  },
+  "failure_accounting": {
+    "parse_drop_counts_as": "FAILURE",
+    "timeout_counts_as": "FAILURE",
+    "silent_null_substitution_counts_as": "FAILURE",
+    "retry_is_new_independent_success": false,
+    "duplicate_event_counts_as": "INVALID_AND_HOLD",
+    "critical_defect_requires": "ROOT_CAUSE_FIX_REGRESSION_NEGATIVE_TEST_AND_NEW_INDEPENDENT_EVIDENCE",
+    "noncritical_defect_requires": "EXACT_BOUND_RECOMPUTATION_AND_PRE_REGISTERED_REMEDIATION_RULE"
+  },
+  "provider_volume_semantics": {
+    "control_1": "MECHANICS_ONLY",
+    "canary_5": "LIVE_SMOKE_ONLY",
+    "pilot_30_to_120": "FUNCTIONAL_EVALUATION_ONLY",
+    "qualification_459": "OPTION_TO_ACCUMULATE_ADAPTER_RELIABILITY_EVIDENCE",
+    "private_1840": "OPTIONAL_HIGHER_TIER_NOT_INITIAL_COMMITMENT",
+    "beta_4603": "PLATFORM_RELEASE_EVIDENCE_NOT_SINGLE_PROVIDER_PURCHASE_MINIMUM",
+    "fixed_120_as_universal_launch_requirement": "PROHIBITED"
+  },
+  "promotion_matrix": {
+    "CONTROL_ONLY_FUNCTIONAL": {"release_allowed": false},
+    "CANARY": {"release_allowed": false},
+    "BOUNDED_FUNCTIONAL_PILOT": {"release_allowed": false},
+    "ADAPTER_QUALIFICATION": {"release_allowed": false},
+    "PRIVATE_E2E_RELIABILITY": {"release_allowed": false},
+    "BETA_RELIABILITY": {"release_allowed": false},
+    "PRODUCTION_READINESS": {"release_allowed": false, "approval_request_allowed": true},
+    "PRODUCTION": {"release_allowed": true, "explicit_program_owner_approval_required": true}
+  },
+  "automatic_escalation": {
+    "requested_claim_selects_minimum_tier": true,
+    "public_or_production_request_requires": "PRODUCTION_READINESS_PLUS_EXPLICIT_APPROVAL",
+    "lower_tier_cannot_satisfy_higher_claim": true,
+    "policy_version_and_digest_sealed_before_observation": true,
+    "downgrade_after_observation": false
+  },
+  "external_gates": {
+    "provider_contact": "EXPLICIT_APPROVAL_REQUIRED",
+    "spend_or_contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential_or_expanded_permission": "EXPLICIT_APPROVAL_REQUIRED",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
