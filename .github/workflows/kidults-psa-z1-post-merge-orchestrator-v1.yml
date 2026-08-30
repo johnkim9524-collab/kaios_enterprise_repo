@@ -118,13 +118,18 @@ jobs:
             ' /tmp/psa-z1-associated-prs.json > /tmp/psa-z1-landing-pr.json
             test "$(jq 'length' /tmp/psa-z1-landing-pr.json)" -eq 1
             LANDING_PR_NUMBER="$(jq -r '.[0].number' /tmp/psa-z1-landing-pr.json)"
+            LANDING_CHANGED_FILE_COUNT="$(jq -r '.[0].changed_files' /tmp/psa-z1-landing-pr.json)"
             [[ "$LANDING_PR_NUMBER" =~ ^[0-9]+$ ]]
+            [[ "$LANDING_CHANGED_FILE_COUNT" =~ ^[0-9]+$ ]]
+            test "$LANDING_CHANGED_FILE_COUNT" -gt 0
+            test "$LANDING_CHANGED_FILE_COUNT" -le 100
 
-            gh api --paginate \
+            gh api \
               -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/pulls/${LANDING_PR_NUMBER}/files?per_page=100" \
               --jq '.[].filename' > /tmp/psa-z1-landing-files.txt
             test -s /tmp/psa-z1-landing-files.txt
+            test "$(wc -l < /tmp/psa-z1-landing-files.txt | tr -d ' ')" -eq "$LANDING_CHANGED_FILE_COUNT"
 
             SHOULD_DISPATCH='false'
             while IFS= read -r changed_path; do
