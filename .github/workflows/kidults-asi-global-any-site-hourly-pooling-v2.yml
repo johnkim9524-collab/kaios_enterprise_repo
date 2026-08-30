@@ -14,6 +14,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
       - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
@@ -25,6 +28,9 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
@@ -81,6 +87,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs
           node --check scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
@@ -150,6 +158,10 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs /tmp/asi-product-value-backfill-v1.json
           node scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/asi-product-value-backfill-v1.json /tmp/asi-product-value-gated-discovery-v1.json
           node scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json
+      - name: Build launch rights-analysis Fast Lane
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-product-value-backfill-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json /tmp/asi-rights-analysis-fast-lane-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json
       - name: Gate1 classify merged ingress into Safe, Review and Hard Block
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v2.json
@@ -229,6 +241,7 @@ jobs:
           path: |
             /tmp/asi-product-value-backfill-v1.json
             /tmp/asi-product-value-gated-discovery-v1.json
+            /tmp/asi-rights-analysis-fast-lane-v1.json
             /tmp/asi-proactive-source-pool-v2.json
             /tmp/asi-gate1-safe-candidate-pool-v2.json
             /tmp/asi-gate2-independent-reverification-v2.json
