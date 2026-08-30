@@ -263,6 +263,7 @@ jobs:
                 objectTitle:document.querySelector('[data-object-title]')?.textContent,
                 objectCount:document.querySelector('[data-object-count]')?.textContent,
                 workspaceBlocked:document.querySelectorAll('.workspace-grid article').length===4&&[...document.querySelectorAll('.workspace-grid article')].every(node=>node.getAttribute('aria-disabled')==='true'),
+                workspaceActions:Object.fromEntries([...document.querySelectorAll('.workspace-grid article')].map(node=>[node.dataset.workspaceAction||node.querySelector('b')?.textContent,node.getAttribute('aria-disabled')])),
                 kidultReady:document.querySelector('[data-k100-state]')?.dataset.contentState==='LIVE_APPROVED',
                 researchText:document.querySelector('[data-research-record]')?.textContent||'',
                 evidenceText:document.querySelector('[data-evidence-grid]')?.textContent||'',
@@ -277,6 +278,7 @@ jobs:
               if(obs.state!=='LIVE_APPROVED')failures.push(`APPROVED_POSITIVE:w${width}:STATE_${obs.state}`);
               if(obs.objectTitle!=='No governed object'||obs.objectCount!=='WAITING')failures.push(`APPROVED_QUARANTINE:w${width}:OBJECT_VALUE_EXPOSED`);
               if(obs.workspaceBlocked||obs.auditSeal!=='TRACE BOUND')failures.push(`APPROVED_POSITIVE:w${width}:CAPABILITY_NOT_UNLOCKED`);
+              if(obs.workspaceActions.COMPARE!=='true'||obs.workspaceActions.WATCHLIST!=='true'||obs.workspaceActions.Search!=='false'||obs.workspaceActions.Decide!=='false')failures.push(`APPROVED_QUARANTINE:w${width}:WORKSPACE_SCOPE_${JSON.stringify(obs.workspaceActions)}`);
               if(obs.indexSeriesLabel!=='Index display withheld until governed Projection')failures.push(`APPROVED_QUARANTINE:w${width}:INDEX_SERIES_EXPOSED`);
               if(!/fixture-(?:what_changed|liquidity|market_scale)/.test(obs.bodyText))failures.push(`APPROVED_POSITIVE:w${width}:SIGNED_VALUE_MISSING`);
               if(!obs.signInEnabled)failures.push(`APPROVED_QUARANTINE:w${width}:SIGN_IN_PROJECTION_GATED`);
@@ -377,13 +379,13 @@ jobs:
             }
             const webkitObs=await page.evaluate(()=>({
               state:document.documentElement.dataset.state,
-              workspaceBlocked:[...document.querySelectorAll('.workspace-grid article')].some(node=>node.getAttribute('aria-disabled')==='true'),
+              workspaceActions:Object.fromEntries([...document.querySelectorAll('.workspace-grid article')].map(node=>[node.dataset.workspaceAction||node.querySelector('b')?.textContent,node.getAttribute('aria-disabled')])),
               objectTitle:document.querySelector('[data-object-title]')?.textContent,
               objectCount:document.querySelector('[data-object-count]')?.textContent
             }));
             if(crashed)failures.push('WEBKIT_IPHONE_LIFECYCLE:PAGE_CRASH');
             if(runtimeErrors.length)failures.push(`WEBKIT_IPHONE_LIFECYCLE:RUNTIME_${runtimeErrors.join('|')}`);
-            if(webkitObs.state!=='LIVE_APPROVED'||webkitObs.workspaceBlocked)failures.push(`WEBKIT_IPHONE_LIFECYCLE:STATE_${JSON.stringify(webkitObs)}`);
+            if(webkitObs.state!=='LIVE_APPROVED'||webkitObs.workspaceActions.COMPARE!=='true'||webkitObs.workspaceActions.WATCHLIST!=='true'||webkitObs.workspaceActions.Search!=='false'||webkitObs.workspaceActions.Decide!=='false')failures.push(`WEBKIT_IPHONE_LIFECYCLE:STATE_${JSON.stringify(webkitObs)}`);
             if(webkitObs.objectTitle!=='No governed object'||webkitObs.objectCount!=='WAITING')failures.push('WEBKIT_IPHONE_LIFECYCLE:OBJECT_QUARANTINE_BROKEN');
             results.push({route:'/portal-r001/index.html',viewport:'webkit-iphone-390x844',state:'APPROVED_WEBKIT_LIFECYCLE_30_CYCLES',obs:webkitObs,runtimeErrors,crashed});
             await context.close();
