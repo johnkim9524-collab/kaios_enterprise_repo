@@ -1,0 +1,170 @@
+{
+  "id": "KIDULTS_PSA_LIVE_EXECUTION_RACI_V1",
+  "version": "1.0.0",
+  "as_of": "2026-08-30T09:03:16Z",
+  "source_main_sha": "433008c87f630a92c8b7901c2a24ad0b641b699d",
+  "state": "READY_BUT_NOT_ACTIVATED",
+  "current_truth": {
+    "schema_probe_successes": 1,
+    "private_runtime_probe_successes": 0,
+    "lawful_manifest_admitted": 0,
+    "acquisition_count": 0,
+    "product_pipeline_admission_count": 0,
+    "track_b_assessment_count": 0
+  },
+  "roles": [
+    {
+      "role": "TRACK_Z",
+      "raci": "ACCOUNTABLE_AND_RESPONSIBLE",
+      "owns": [
+        "PSA_ACCOUNT_ENTITLEMENT",
+        "PSA_CREDENTIAL_AVAILABILITY",
+        "LAWFUL_KNOWN_CERT_SOURCE_INTAKE",
+        "PER_CERT_PROVENANCE_AND_PURPOSE_RIGHTS_BINDING",
+        "120_CERT_PRIVATE_MANIFEST_HANDOFF"
+      ],
+      "must_not": [
+        "COMMIT_TOKEN",
+        "COMMIT_RAW_CERT_VALUES",
+        "GUESS_OR_ENUMERATE_CERTS",
+        "DECLARE_CONNECTION_FROM_SCHEMA_PROBE_ONLY"
+      ]
+    },
+    {
+      "role": "KPMO",
+      "raci": "ACCOUNTABLE_AND_RESPONSIBLE",
+      "owns": [
+        "EXACT_MAIN_EXECUTION",
+        "PROTECTED_SECRET_CONTEXT_BINDING",
+        "PRIVATE_RUNTIME_ORCHESTRATION",
+        "EPHEMERAL_AES_256_KEY_GENERATION",
+        "RAW_RECORD_TERMINAL_DELETION",
+        "SANITIZED_RECEIPT_CUSTODY",
+        "90_PLUS_30_EXECUTION_CONTROL",
+        "REGISTRY_AND_ISSUE_TRUTH_SYNC"
+      ],
+      "must_not": [
+        "FABRICATE_EXTERNAL_INPUTS",
+        "LOG_OR_PERSIST_TOKEN",
+        "PROMOTE_PROBE_TO_PRODUCT_COUNT",
+        "BYPASS_RIGHTS_OR_RETENTION_GATES"
+      ]
+    },
+    {
+      "role": "PROVIDER_ENGINEERING",
+      "raci": "RESPONSIBLE",
+      "owns": [
+        "PSA_ADAPTER",
+        "OFFICIAL_SCHEMA_CONTRACT",
+        "EXACT_FIELD_MAP",
+        "FAIL_CLOSED_RETRIES_AND_QUOTA",
+        "REGRESSION_TESTS"
+      ],
+      "consulted_by": [
+        "TRACK_Z",
+        "KPMO",
+        "TRACK_D"
+      ]
+    },
+    {
+      "role": "TRACK_D",
+      "raci": "RESPONSIBLE",
+      "owns": [
+        "PRIVATE_NORMALIZED_SINK",
+        "SYSTEM_LEDGER_BINDING",
+        "RAW_DATA_BOUNDARY",
+        "DELETION_OBSERVABILITY",
+        "PRODUCT_PIPELINE_HANDOFF"
+      ],
+      "activation_condition": "Z1_PRIVATE_RUNTIME_VERIFIED_AND_120_MANIFEST_ADMITTED"
+    },
+    {
+      "role": "TRACK_B",
+      "raci": "INDEPENDENT_VALIDATOR",
+      "owns": [
+        "EVIDENCE_PACKAGE_ACCEPTANCE",
+        "RANKABILITY_ASSESSMENT",
+        "NO_PORTAL_OR_CHAT_ONLY_INPUT"
+      ],
+      "starts_after": "OBSERVATION_CANDIDATE_AND_EVIDENCE_PACKAGE_COMPLETE"
+    },
+    {
+      "role": "PROGRAM_OWNER",
+      "raci": "APPROVAL_AUTHORITY_AT_EXISTING_GATES",
+      "owns": [
+        "EXTERNAL_SPEND_OR_CONTRACT_CHANGE",
+        "PRODUCTION_G5",
+        "IRREVERSIBLE_LEGAL_OR_SECURITY_CHANGE"
+      ],
+      "not_required_for": "REVERSIBLE_PREPRODUCTION_CONTROL_FIXES_WITHIN_EXISTING_PSA_RIGHTS_AND_PAID_ENTITLEMENT"
+    }
+  ],
+  "activation_bundle": [
+    {
+      "id": "E1_PSA_CREDENTIAL",
+      "owner": "TRACK_Z",
+      "artifact": "VALID_PAID_PSA_API_TOKEN",
+      "delivery": "PROTECTED_GITHUB_ENVIRONMENT_SECRET_PSA_PUBLIC_API_TOKEN",
+      "availability": "UNVERIFIED_UNTIL_MAIN_DISPATCH",
+      "repository_persistence": "PROHIBITED"
+    },
+    {
+      "id": "E2_LAWFUL_CERT_SET",
+      "owner": "TRACK_Z",
+      "artifact": "EXACTLY_120_UNIQUE_LAWFULLY_KNOWN_CERT_REFERENCES",
+      "delivery": "PRIVATE_MANIFEST_INGRESS",
+      "current_admitted": 0,
+      "synthetic_guessed_or_enumerated": "REJECT"
+    },
+    {
+      "id": "E3_PROVENANCE_BINDING",
+      "owner": "TRACK_Z",
+      "artifact": "PER_CERT_SOURCE_PROVENANCE_PURPOSE_RIGHTS_AND_CAPTURE_TIME_BINDING",
+      "delivery": "PROVENANCE_BOUND_MANIFEST_RECEIPT",
+      "current_admitted": 0,
+      "missing_or_unverifiable": "REJECT"
+    }
+  ],
+  "kpmo_internal_controls": [
+    "MAIN_ONLY_LIVE_HEAD_VERIFICATION_BEFORE_SECRET_RESOLUTION",
+    "PROTECTED_ENVIRONMENT_SECRET_REFERENCE_ONLY",
+    "EPHEMERAL_RUNNER_PRIVATE_ROOT_OUTSIDE_REPOSITORY",
+    "RUNTIME_GENERATED_256_BIT_KEY_NEVER_PERSISTED",
+    "AES_256_GCM_PRIVATE_RECORD",
+    "IMMEDIATE_DELETE_AFTER_NORMALIZATION_AND_RECEIPT",
+    "SANITIZED_RECEIPT_ONLY_ARTIFACT",
+    "NO_ACQUISITION_OR_PRODUCT_INCREMENT_FROM_Z1"
+  ],
+  "execution_sequence": [
+    "MERGE_CONTROL_PR_TO_PROTECTED_MAIN",
+    "DISPATCH_Z1_PRIVATE_RUNTIME_ON_EXACT_MAIN",
+    "REQUIRE_VERIFIED_PASS_Z1_RECEIPT",
+    "IMPORT_AND_VALIDATE_E1_E2_E3_ACTIVATION_BUNDLE",
+    "EXECUTE_WAVE_1_MAX_90",
+    "VERIFY_QUOTA_SCHEMA_RIGHTS_DELETION_AND_LEDGER_RECEIPTS",
+    "EXECUTE_WAVE_2_REMAINDER_30",
+    "VERIFY_120_OF_120_ACQUISITION",
+    "BUILD_OBSERVATION_CANDIDATE_AND_EVIDENCE_PACKAGES",
+    "TRACK_B_INDEPENDENT_ASSESSMENT",
+    "PRODUCT_PIPELINE_ADMISSION"
+  ],
+  "completion_definition": [
+    "Z1_PRIVATE_RUNTIME_VERIFIED_PASS_ON_PROTECTED_MAIN",
+    "120_OF_120_PROVENANCE_BOUND_LAWFUL_MANIFEST_ADMITTED",
+    "90_PLUS_30_LIVE_ACQUISITION_RECEIPTS_PASS",
+    "RAW_PROVIDER_DATA_DELETED_OR_WITHIN_VERIFIED_RETENTION_WINDOW",
+    "120_NORMALIZED_RECORDS_BOUND_TO_SYSTEM_LEDGER",
+    "TRACK_B_ACCEPTED_EVIDENCE",
+    "PRODUCT_PIPELINE_ADMISSION_RECEIPT_PASS"
+  ],
+  "truth_language": {
+    "current_allowed_statement": "PSA_API_SCHEMA_CONNECTION_VERIFIED; PRIVATE_RUNTIME_AND_120_PRODUCT_CONNECTION_NOT_YET_ACTIVATED",
+    "current_forbidden_statement": "PSA_PRODUCT_DATA_CONNECTED",
+    "connected_definition": "PRODUCT_PIPELINE_ADMISSION_RECEIPT_PASS"
+  },
+  "gates": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}

@@ -1,0 +1,236 @@
+name: KIDULTS PSA Z1 Post-Merge Orchestrator V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
+      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
+      - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
+      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
+      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
+      - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
+      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
+      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
+      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
+      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
+      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: kidults-psa-z1-post-merge-orchestrator-main
+  cancel-in-progress: false
+
+jobs:
+  contract-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate exact-source post-merge orchestration contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
+          node --check scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+          node scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
+          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
+
+  dispatch-and-prove:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: contract-proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Verify live exact main before Z1 dispatch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LIVE_MAIN_SHA="$(
+            gh api "/repos/${GITHUB_REPOSITORY}/branches/main" \
+              -H 'Accept: application/vnd.github+json' \
+              --jq '.commit.sha'
+          )"
+          [[ "$LIVE_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_REF" = 'refs/heads/main'
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Dispatch and await exact-main Z1 private runtime
+        id: z1
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          WF='kidults-psa-z1-private-runtime-v1.yml'
+          WF_PATH='.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
+          WF_NAME='KIDULTS PSA Z1 Private Runtime'
+          API="/repos/${GITHUB_REPOSITORY}/actions/workflows/${WF}"
+          EXPECTED_SHA="$GITHUB_SHA"
+
+          before="$(gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=30" --jq '[.workflow_runs[].id]')"
+          gh api -X POST -H 'Accept: application/vnd.github+json' "${API}/dispatches" -f ref=main >/dev/null
+
+          run_id=''
+          for _ in $(seq 1 60); do
+            sleep 5
+            candidates="$(
+              gh api -H 'Accept: application/vnd.github+json' "${API}/runs?event=workflow_dispatch&branch=main&per_page=30" |
+                jq --argjson before "$before" --arg sha "$EXPECTED_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
+                  [.workflow_runs[] |
+                    select(.id as $id | ($before | index($id) | not)) |
+                    select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")]
+                '
+            )"
+            count="$(jq 'length' <<<"$candidates")"
+            if [ "$count" -gt 1 ]; then
+              echo 'FAIL: ambiguous concurrent PSA Z1 dispatches' >&2
+              exit 1
+            fi
+            run_id="$(jq -r 'if length == 1 then .[0].id else empty end' <<<"$candidates")"
+            [ -n "$run_id" ] && break
+          done
+          test -n "$run_id"
+
+          status=''
+          conclusion=''
+          for _ in $(seq 1 120); do
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" > /tmp/psa-z1-run.json
+            read -r status conclusion < <(jq -r '[.status, (.conclusion // "NONE")] | @tsv' /tmp/psa-z1-run.json)
+            [ "$status" = 'completed' ] && break
+            sleep 5
+          done
+          test "$status" = 'completed'
+          test "$conclusion" = 'success'
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_SHA" --arg path "$WF_PATH" --arg name "$WF_NAME" '
+            .repository.full_name == $repo and
+            .head_branch == "main" and
+            .head_sha == $sha and
+            .path == $path and
+            .name == $name and
+            .event == "workflow_dispatch" and
+            .status == "completed" and
+            .conclusion == "success"
+          ' /tmp/psa-z1-run.json >/dev/null
+
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100" > /tmp/psa-z1-artifacts.json
+          artifact_count="$(jq '[.artifacts[] | select(.name == "kidults-psa-z1-private-runtime-receipt" and .expired == false)] | length' /tmp/psa-z1-artifacts.json)"
+          test "$artifact_count" -eq 1
+          artifact_id="$(jq -r '[.artifacts[] | select(.name == "kidults-psa-z1-private-runtime-receipt" and .expired == false)][0].id' /tmp/psa-z1-artifacts.json)"
+          artifact_digest="$(jq -r '[.artifacts[] | select(.name == "kidults-psa-z1-private-runtime-receipt" and .expired == false)][0].digest // empty' /tmp/psa-z1-artifacts.json)"
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-fA-F]{64}$ ]]
+
+          mkdir -p /tmp/psa-z1-artifact
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" > /tmp/psa-z1-artifact.zip
+          unzip -q -o /tmp/psa-z1-artifact.zip -d /tmp/psa-z1-artifact
+          receipt="$(find /tmp/psa-z1-artifact -type f -name 'psa-z1-private-runtime-receipt.json' -print -quit)"
+          test -n "$receipt"
+          cp "$receipt" /tmp/psa-z1-private-runtime-receipt.json
+
+          echo "run_id=${run_id}" >> "$GITHUB_OUTPUT"
+          echo "artifact_id=${artifact_id}" >> "$GITHUB_OUTPUT"
+          echo "artifact_digest=${artifact_digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Z1 receipt and bind post-merge orchestration receipt
+        shell: bash
+        env:
+          Z1_RUN_ID: ${{ steps.z1.outputs.run_id }}
+          Z1_ARTIFACT_ID: ${{ steps.z1.outputs.artifact_id }}
+          Z1_ARTIFACT_DIGEST: ${{ steps.z1.outputs.artifact_digest }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const sourcePath = '/tmp/psa-z1-private-runtime-receipt.json';
+          const text = fs.readFileSync(sourcePath, 'utf8');
+          const receipt = JSON.parse(text);
+          if (text.includes('PSA_PUBLIC_API_TOKEN') || text.includes('ciphertext_b64') || text.includes('PSACert')) {
+            throw new Error('PSA_Z1_ORCHESTRATOR_RAW_OR_SECRET_MARKER_FOUND');
+          }
+          if (receipt.receipt_id !== 'KIDULTS_PSA_Z1_PRIVATE_RUNTIME_RECEIPT_V1') throw new Error('PSA_Z1_RECEIPT_ID_INVALID');
+          if (receipt.state !== 'VERIFIED_PASS') throw new Error('PSA_Z1_RECEIPT_NOT_PASS');
+          if (receipt.protected_main_sha !== process.env.GITHUB_SHA) throw new Error('PSA_Z1_ORCHESTRATOR_SHA_MISMATCH');
+          if (receipt.private_store_encryption !== 'AES-256-GCM') throw new Error('PSA_Z1_ORCHESTRATOR_ENCRYPTION_INVALID');
+          if (receipt.runtime_key_persisted !== false || receipt.private_record_deleted !== true || receipt.deletion_verified !== true) {
+            throw new Error('PSA_Z1_ORCHESTRATOR_DELETION_INVALID');
+          }
+          if (receipt.raw_payload_in_receipt !== false || receipt.raw_payload_artifact_uploaded !== false) {
+            throw new Error('PSA_Z1_ORCHESTRATOR_RAW_BOUNDARY_INVALID');
+          }
+          if (receipt.acquisition_120_increment !== 0 || receipt.product_pipeline_admission_increment !== 0) {
+            throw new Error('PSA_Z1_ORCHESTRATOR_FALSE_PROMOTION');
+          }
+          if (!/^sha256:[0-9a-f]{64}$/i.test(process.env.Z1_ARTIFACT_DIGEST || '')) {
+            throw new Error('PSA_Z1_ARTIFACT_DIGEST_INVALID');
+          }
+          const result = {
+            receipt_id: 'KIDULTS_PSA_Z1_POST_MERGE_ORCHESTRATION_RECEIPT_V1',
+            state: 'VERIFIED_PASS',
+            exact_main_sha: process.env.GITHUB_SHA,
+            orchestrator_workflow_run_id: process.env.GITHUB_RUN_ID,
+            z1_workflow_run_id: process.env.Z1_RUN_ID,
+            z1_artifact_id: process.env.Z1_ARTIFACT_ID,
+            z1_artifact_digest: process.env.Z1_ARTIFACT_DIGEST,
+            z1_private_runtime_state: receipt.state,
+            private_record_deleted: receipt.private_record_deleted,
+            deletion_verified: receipt.deletion_verified,
+            acquisition_120_increment: 0,
+            product_pipeline_admission_increment: 0,
+            next_gate: receipt.next_gate,
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'EXPLICIT_APPROVAL_REQUIRED',
+            verified_at: new Date().toISOString(),
+          };
+          fs.writeFileSync('/tmp/psa-z1-post-merge-orchestration-receipt.json', `${JSON.stringify(result, null, 2)}\n`, {mode: 0o600});
+          console.log(JSON.stringify(result));
+          NODE
+
+      - name: Upload sanitized post-merge orchestration evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-psa-z1-post-merge-orchestration-receipt
+          path: |
+            /tmp/psa-z1-private-runtime-receipt.json
+            /tmp/psa-z1-post-merge-orchestration-receipt.json
+          if-no-files-found: error
+          retention-days: 30

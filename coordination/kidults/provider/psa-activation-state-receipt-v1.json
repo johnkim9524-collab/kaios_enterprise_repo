@@ -1,0 +1,50 @@
+{
+  "id": "KIDULTS_PSA_ACTIVATION_STATE_RECEIPT_V1",
+  "version": "1.0.0",
+  "generated_at": "2026-08-30T09:03:16Z",
+  "source_main_sha": "433008c87f630a92c8b7901c2a24ad0b641b699d",
+  "implementation_branch": "codex/psa-z1-private-execution-v1-20260830",
+  "state": "READY_BUT_NOT_ACTIVATED",
+  "historical_schema_probe": {
+    "state": "VERIFIED_PASS",
+    "workflow_run_id": 33123384792,
+    "http_status": 200,
+    "provider_calls": 1,
+    "raw_payload_retained": false,
+    "scope": "SCHEMA_ONLY_NO_PRODUCT_INCREMENT"
+  },
+  "counts": {
+    "schema_probe_successes": 1,
+    "private_runtime_probe_successes": 0,
+    "lawful_manifest_admitted": 0,
+    "live_acquired": 0,
+    "normalized_system_ledger_bound": 0,
+    "track_b_accepted": 0,
+    "product_pipeline_admitted": 0,
+    "target": 120
+  },
+  "internal_controls_on_branch": [
+    "PSA_AND_ALL_PROVIDER_RACI_RESTORED",
+    "MAIN_ONLY_PRIVATE_Z1_WORKFLOW_ADDED",
+    "EPHEMERAL_AES_256_GCM_PRIVATE_STORE_ADDED",
+    "IN_MEMORY_RUNTIME_KEY_AND_ZEROIZATION_ADDED",
+    "IMMEDIATE_RAW_RECORD_DELETION_AND_RECEIPT_ADDED",
+    "SANITIZED_RECEIPT_ONLY_ARTIFACT_BOUNDARY_ADDED",
+    "STATIC_CONTROL_VALIDATOR_AND_REGRESSION_WORKFLOW_ADDED"
+  ],
+  "activation_inputs": {
+    "E1_valid_paid_token": "REQUIRED_AT_RUNTIME_UNVERIFIED_UNTIL_DISPATCH",
+    "E2_120_unique_lawful_known_certs": "MISSING_0_OF_120",
+    "E3_per_cert_provenance_and_purpose_rights": "MISSING_0_OF_120"
+  },
+  "next_main_action": "AFTER_MERGE_DISPATCH_KIDULTS_PSA_Z1_PRIVATE_RUNTIME_AND_RECORD_VERIFIED_PASS_RECEIPT",
+  "next_after_z1": "ADMIT_E1_E2_E3_THEN_EXECUTE_90_PLUS_30",
+  "blocked_claims": [
+    "PSA_PRODUCT_DATA_CONNECTED",
+    "PSA_120_ACQUISITION_STARTED",
+    "PSA_PRODUCT_PIPELINE_ADMITTED"
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+}
