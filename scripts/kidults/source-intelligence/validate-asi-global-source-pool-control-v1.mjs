@@ -4,7 +4,7 @@ const path=process.argv[2]||'coordination/kidults/source-intelligence/asi-global
 const v=JSON.parse(fs.readFileSync(path,'utf8'));
 const assert=(x,c)=>{if(!x)throw new Error(c)};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-assert(v.id==='kidults-asi-global-source-pool-control-v1'&&v.version==='1.1.0','IDENTITY');
+assert(v.id==='kidults-asi-global-source-pool-control-v1'&&v.version==='1.2.0','IDENTITY');
 assert(v.owner==='KPMO','OWNER');
 assert(v.authoritative_baseline.registered_source_profiles===16,'REGISTERED');
 assert(v.authoritative_baseline.source_profile_discovery_requirements===120,'DISCOVERY');
@@ -16,7 +16,8 @@ assert(v.pool_layers.find(x=>x.layer==='QUARANTINED_OBSERVATION')?.count===50,'Q
 const fields=new Set(v.mandatory_source_record_fields);
 for(const f of ['source_id','vertical','official_owner','official_url','freshness_class','rights.collect','rights.store','rights.derive','rights.commercial_use','decision','claim_ceiling','accountable_owner','ack_sla','resolution_sla','fallback_source_ids'])assert(fields.has(f),'MISSING_FIELD:'+f);
 assert(v.product_value_gate?.gate_order==='PRODUCT_VALUE_BEFORE_ACQUISITION_PRIORITY','VALUE_GATE_ORDER');
-assert(v.product_value_gate?.eligible_verticals?.length===8,'VALUE_GATE_VERTICALS');
+assert(same(v.product_value_gate?.eligible_verticals,['toys-models','watches-jewelry','automobiles-mobility','fashion-accessories','design-furniture','technology-cameras','gaming-music-screen','cards-comics-memorabilia']),'VALUE_GATE_CANONICAL_VERTICALS');
+assert(v.product_value_gate?.canonical_domain_source==='coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv','VALUE_GATE_DOMAIN_SOURCE');
 assert(v.product_value_gate?.weighted_score?.minimum_active_pool_score===70,'VALUE_GATE_THRESHOLD');
 assert(Object.values(v.product_value_gate.weighted_score).filter(Number.isFinite).reduce((a,b)=>a+b,0)===170,'VALUE_GATE_WEIGHT_AND_THRESHOLD_ACCOUNTING');
 assert(Object.entries(v.product_value_gate.weighted_score).filter(([k])=>k!=='minimum_active_pool_score').reduce((n,[,x])=>n+x,0)===100,'VALUE_GATE_WEIGHTS');
@@ -26,6 +27,11 @@ assert(v.product_value_gate?.portfolio_rules?.minimum_independent_sources_per_ac
 for(const f of ['customer_decisions','product_surfaces','value_score','marginal_value_vs_existing_pool','coverage_gap_ids'])assert(fields.has(f),'MISSING_VALUE_FIELD:'+f);
 assert(v.queue_policy?.priority_order?.[0]==='PRODUCT_VALUE_SCORE_DESC','VALUE_PRIORITY');
 assert(v.truth_boundary?.open_source_is_product_value===false,'OPEN_NOT_VALUE');
+assert(same(v.operationalization?.stage_order,['DISCOVERY_METADATA','PRODUCT_VALUE_ENRICHMENT','PRODUCT_VALUE_GATE','RIGHTS_REVIEW','SCHEMA_REVIEW','BOUNDED_COHORT','EVIDENCE','TRACK_B','PROJECTION']),'STAGE_ORDER');
+assert(v.operationalization?.hourly_gate_position==='AFTER_DISCOVERY_BEFORE_GATE1_RIGHTS','HOURLY_GATE_POSITION');
+assert(v.operationalization?.baseline_backfill?.curated_rows===64&&v.operationalization?.baseline_backfill?.adapter_profiles===16&&v.operationalization?.baseline_backfill?.discovery_requirements===120&&v.operationalization?.baseline_backfill?.schema_requirements===33,'BACKFILL_SCOPE');
+assert(v.operationalization?.portfolio_target?.minimum_total_value_eligible_sources===16&&v.operationalization?.portfolio_target?.preferred_total_value_eligible_sources===24,'PORTFOLIO_TARGET');
+assert(v.operationalization?.durable_ledger?.backend==='POSTGRESQL'&&v.operationalization?.durable_ledger?.state==='ACTIVATION_HOLD'&&v.operationalization?.durable_ledger?.artifact_only_is_durable===false,'DURABLE_LEDGER_TRUTH');
 assert(same(v.decisions,['PASS','CONDITIONAL','HOLD','NO_GO']),'DECISIONS');
 for(const atom of ['collect','store','derive','commercial_use'])assert(v.provider_operation_receipt.required_fields.includes(atom),'RECEIPT_RIGHT:'+atom);
 for(const f of ['exact_head_sha','workflow_run_id','workflow_run_attempt','approval_nonce','expires_at'])assert(v.provider_operation_receipt.required_fields.includes(f),'RECEIPT_BINDING:'+f);
