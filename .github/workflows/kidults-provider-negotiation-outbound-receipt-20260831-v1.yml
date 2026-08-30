@@ -1,0 +1,37 @@
+name: KIDULTS Provider Negotiation Outbound Receipt 20260831 V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
+      - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
+      - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate selected negotiation outbound receipt
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
+          node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
