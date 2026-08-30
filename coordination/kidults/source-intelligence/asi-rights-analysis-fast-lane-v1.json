@@ -43,6 +43,18 @@
   },
   "rights_atoms": ["collect", "store", "derive", "commercial_use"],
   "initial_atom_state": "UNKNOWN",
+  "sold_semantics_exclusions": [
+    {
+      "source_id": "pricecharting-api",
+      "reason": "OFFICIAL_API_DOCUMENTATION_SAYS_HISTORIC_PRICES_AND_HISTORIC_SALES_NOT_SUPPORTED",
+      "evidence_url": "https://www.pricecharting.com/api-documentation"
+    },
+    {
+      "source_id": "reverb-price-guide",
+      "reason": "INDIVIDUAL_TERMINAL_SOLD_EVENT_SCHEMA_NOT_ESTABLISHED_FOR_PRICE_GUIDE_OR_API",
+      "evidence_url": "https://reverb.com/page/api"
+    }
+  ],
   "evidence_minimum": ["official_owner", "official_url", "evidence_url", "retrieved_at", "content_digest", "purpose", "method", "claim_class"],
   "decision_rules": {
     "PASS": "ALL_FOUR_ATOMS_EXPLICITLY_ALLOW_STATED_PURPOSE_AND_METHOD",
