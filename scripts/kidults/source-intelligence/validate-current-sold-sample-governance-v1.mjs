@@ -9,7 +9,8 @@ ok(p.rights_gate.mode === 'CENSUS_NOT_SAMPLE' && p.rights_gate.required_for_ever
 ok(p.statistical_method.interval === 'ONE_SIDED_EXACT_CLOPPER_PEARSON_UPPER_BOUND', 'INTERVAL_METHOD');
 ok(p.statistical_method.confidence === 0.99 && p.statistical_method.optional_stopping === false, 'STAT_POLICY');
 const tiers = new Map(p.tiers.map(t => [t.id, t]));
-for (const id of ['CANARY','ADAPTER_QUALIFICATION','PRIVATE_E2E','BETA_RELIABILITY']) ok(tiers.has(id), `MISSING_TIER:${id}`);
+for (const id of ['CANARY','BOUNDED_FUNCTIONAL_PILOT','ADAPTER_QUALIFICATION','PRIVATE_E2E','BETA_RELIABILITY']) ok(tiers.has(id), `MISSING_TIER:${id}`);
+ok(tiers.get('BOUNDED_FUNCTIONAL_PILOT').min_n === 30 && tiers.get('BOUNDED_FUNCTIONAL_PILOT').max_n === 120 && tiers.get('BOUNDED_FUNCTIONAL_PILOT').statistical_claim === false, 'BOUNDED_PILOT_POLICY');
 const required = (q, alpha = p.statistical_method.alpha) => Math.ceil(Math.log(alpha) / Math.log(1 - q));
 ok(p.statistical_method.alpha === 0.01 && p.statistical_method.confidence === 0.99, 'TOP_TIER_CONFIDENCE');
 ok(tiers.get('ADAPTER_QUALIFICATION').zero_failure_n === required(0.01), 'ADAPTER_N_FORMULA');
