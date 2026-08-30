@@ -144,6 +144,19 @@ export interface AdapterDecision<T> {
   production: 'HOLD';
 }
 
+export interface OutlierDuplicateControlReceipt {
+  receipt_id: string;
+  method_id: 'kidults-outlier-duplicate-control-v1';
+  method_version: '1.0.0';
+  decision: 'VERIFIED_PASS' | 'HOLD';
+  evaluated_at: string;
+  normalized_record_ids: string[];
+  record_set_digest: string;
+  duplicate_count: number;
+  outlier_count: number;
+  receipt_digest: string;
+}
+
 const requiredRights = ['COLLECT_RIGHT', 'BOUNDED_STORE_RIGHT', 'INTERNAL_DERIVE_RIGHT'] as const;
 const allowedAdapterStates = new Set<MarketAdapterState>([
   'ADAPTER_NOT_IMPLEMENTED',
@@ -429,18 +442,33 @@ export async function normalizeLiquidityObservation(
   };
 }
 
-export function assessCurrentPriceReadiness(
+function currentPriceControlRecordSet(records: NormalizedDatedSoldRecord[]): NormalizedDatedSoldRecord[] {
+  return [...records].sort((left, right) => left.normalized_record_id.localeCompare(right.normalized_record_id));
+}
+
+export async function digestCurrentPriceControlRecordSet(records: NormalizedDatedSoldRecord[]): Promise<string> {
+  return sha256(currentPriceControlRecordSet(records));
+}
+
+export async function digestOutlierDuplicateControlReceipt(
+  receipt: Omit<OutlierDuplicateControlReceipt, 'receipt_digest'>,
+): Promise<string> {
+  return sha256(receipt);
+}
+
+export async function assessCurrentPriceReadiness(
   records: NormalizedDatedSoldRecord[],
   asOf: string,
   minimumSample = 3,
-): {
+  controlReceipt: OutlierDuplicateControlReceipt | null = null,
+): Promise<{
   state: 'HOLD' | 'READY_FOR_SEPARATE_CURRENT_PRICE_GATE';
   reason_codes: string[];
   sample_count: number;
   source_owner_count: number;
   factual_origin_count: number;
   current_price_eligible: false;
-} {
+}> {
   const reasons: string[] = [];
   let asOfMs = Number.NaN;
   try { asOfMs = Date.parse(normalizedTime(asOf, 'AS_OF_INVALID')); } catch { reasons.push('AS_OF_INVALID'); }
@@ -461,7 +489,40 @@ export function assessCurrentPriceReadiness(
   const factualOrigins = new Set(records.map((record) => record.factual_origin_id));
   if (sourceOwners.size < 2) reasons.push('SOURCE_OWNER_INDEPENDENCE_NOT_MET');
   if (factualOrigins.size < 2) reasons.push('FACTUAL_ORIGIN_INDEPENDENCE_NOT_MET');
-  if (!reasons.includes('OUTLIER_AND_DUPLICATE_CONTROL_VERIFIED')) reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_NOT_VERIFIED');
+  if (!controlReceipt) {
+    reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_NOT_VERIFIED');
+  } else {
+    const expectedRecordIds = currentPriceControlRecordSet(records).map((record) => record.normalized_record_id);
+    const suppliedRecordIds = controlReceipt.normalized_record_ids;
+    if (controlReceipt.method_id !== 'kidults-outlier-duplicate-control-v1' || controlReceipt.method_version !== '1.0.0') {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_METHOD_INVALID');
+    }
+    if (controlReceipt.decision !== 'VERIFIED_PASS' || controlReceipt.duplicate_count !== 0 || controlReceipt.outlier_count !== 0) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_NOT_PASS');
+    }
+    if (!Array.isArray(suppliedRecordIds) || suppliedRecordIds.length !== records.length ||
+        new Set(suppliedRecordIds).size !== suppliedRecordIds.length ||
+        JSON.stringify(suppliedRecordIds) !== JSON.stringify(expectedRecordIds)) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_RECORD_IDS_MISMATCH');
+    }
+    if (!sha256RefPattern.test(controlReceipt.receipt_id || '') || !sha256RefPattern.test(controlReceipt.receipt_digest || '')) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_RECEIPT_ID_OR_DIGEST_INVALID');
+    }
+    let evaluatedAt = Number.NaN;
+    try { evaluatedAt = Date.parse(normalizedTime(controlReceipt.evaluated_at, 'CONTROL_EVALUATED_AT_INVALID')); } catch {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_EVALUATED_AT_INVALID');
+    }
+    if (Number.isFinite(evaluatedAt) && Number.isFinite(asOfMs) && evaluatedAt > asOfMs) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_AFTER_AS_OF');
+    }
+    if (controlReceipt.record_set_digest !== await digestCurrentPriceControlRecordSet(records)) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_RECORD_SET_DIGEST_MISMATCH');
+    }
+    const { receipt_digest: suppliedReceiptDigest, ...unsignedReceipt } = controlReceipt;
+    if (suppliedReceiptDigest !== await digestOutlierDuplicateControlReceipt(unsignedReceipt)) {
+      reasons.push('OUTLIER_AND_DUPLICATE_CONTROL_RECEIPT_DIGEST_MISMATCH');
+    }
+  }
   const sortedReasons = uniqueSorted(reasons);
   return {
     state: sortedReasons.length === 0 ? 'READY_FOR_SEPARATE_CURRENT_PRICE_GATE' : 'HOLD',
