@@ -13,15 +13,17 @@ const paths = {
   registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
   runner: 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs',
   workflow: '.github/workflows/kidults-psa-z1-private-runtime-v1.yml',
+  orchestrator: '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml',
 };
 
-const [psaRaci, providerRaci, state, registry, runner, workflow] = await Promise.all([
+const [psaRaci, providerRaci, state, registry, runner, workflow, orchestrator] = await Promise.all([
   parse(paths.psaRaci),
   parse(paths.providerRaci),
   parse(paths.state),
   parse(paths.registry),
   read(paths.runner),
   read(paths.workflow),
+  read(paths.orchestrator),
 ]);
 
 assert(psaRaci.id === 'KIDULTS_PSA_LIVE_EXECUTION_RACI_V1', 'PSA_RACI_ID_INVALID');
@@ -100,14 +102,40 @@ for (const marker of [
   assert(workflow.includes(marker), `PSA_PRIVATE_WORKFLOW_MARKER_MISSING:${marker}`);
 }
 assert(!workflow.includes('pull_request_target:'), 'PSA_SECRET_WORKFLOW_PULL_REQUEST_TARGET_FORBIDDEN');
+assert(!/^\s{2}(?:push|pull_request|schedule|workflow_run):/m.test(workflow), 'PSA_SECRET_WORKFLOW_MUST_REMAIN_DISPATCH_ONLY');
 assert(!/workflow_dispatch:\s*\n\s+inputs:/m.test(workflow), 'PSA_SECRET_OR_CERT_WORKFLOW_INPUTS_FORBIDDEN');
 assert(!workflow.includes('path: ${{ github.workspace }}'), 'PSA_WORKSPACE_ARTIFACT_UPLOAD_FORBIDDEN');
+
+for (const marker of [
+  'name: KIDULTS PSA Z1 Post-Merge Orchestrator V1',
+  'push:',
+  'branches: [main]',
+  'workflow_dispatch:',
+  'actions: write',
+  "if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'",
+  'Verify live exact main before Z1 dispatch',
+  "WF='kidults-psa-z1-private-runtime-v1.yml'",
+  'gh api -X POST',
+  '"${API}/dispatches" -f ref=main',
+  'select(.head_sha == $sha and .path == $path and .name == $name and .event == "workflow_dispatch")',
+  'kidults-psa-z1-private-runtime-receipt',
+  'KIDULTS_PSA_Z1_POST_MERGE_ORCHESTRATION_RECEIPT_V1',
+  'acquisition_120_increment: 0',
+  'product_pipeline_admission_increment: 0',
+]) {
+  assert(orchestrator.includes(marker), `PSA_POST_MERGE_ORCHESTRATOR_MARKER_MISSING:${marker}`);
+}
+assert(!orchestrator.includes('secrets.'), 'PSA_POST_MERGE_ORCHESTRATOR_SECRET_CONTEXT_FORBIDDEN');
+assert(!orchestrator.includes('contents: write'), 'PSA_POST_MERGE_ORCHESTRATOR_CONTENTS_WRITE_FORBIDDEN');
+assert(!orchestrator.includes('pull_request_target:'), 'PSA_POST_MERGE_ORCHESTRATOR_PULL_REQUEST_TARGET_FORBIDDEN');
+assert(!orchestrator.includes('environment: kidults-psa'), 'PSA_POST_MERGE_ORCHESTRATOR_PROVIDER_ENVIRONMENT_FORBIDDEN');
 
 process.stdout.write(`${JSON.stringify({
   receipt_id: 'KIDULTS_PSA_LIVE_EXECUTION_CONTROL_VALIDATION_V1',
   state: 'VERIFIED_PASS',
   truth_state: state.state,
   secret_registry_state: 'REGISTERED_AND_BOUND',
+  post_merge_orchestration_state: 'STATICALLY_VERIFIED_AUTO_DISPATCH_AND_RECEIPT_BINDING',
   acquisition_count: state.counts.live_acquired,
   product_pipeline_admission_count: state.counts.product_pipeline_admitted,
 })}\n`);
