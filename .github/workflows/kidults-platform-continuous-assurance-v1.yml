@@ -928,11 +928,13 @@ jobs:
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
           import fs from 'node:fs';
-          const stable = (value) => Array.isArray(value)
-            ? `[${value.map(stable).join(',')}]`
-            : value && typeof value === 'object'
-              ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
-              : JSON.stringify(value);
+          const stable = (value) => {
+            if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`;
+            if (value && typeof value === 'object') {
+              return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`;
+            }
+            return JSON.stringify(value);
+          };
           const digest = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
           const packet = `${process.env.RUNNER_TEMP}/${process.env.KPMO_PACKET_SUFFIX}`;
           const receipt = JSON.parse(fs.readFileSync(`${packet}/audit-receipt.json`, 'utf8'));

@@ -259,12 +259,37 @@ jobs:
             READBACK_RETURNED=$(jq -r '.artifacts|length' "$GUARD_DIR/artifacts.json")
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then READBACK_STATE=API_RESPONSE_TRUNCATED; fi
             CREATED_SINCE=$(date -u -d '90 days ago' +%Y-%m-%d)
-            if ! gh api --method GET --paginate --slurp -H 'Accept: application/vnd.github+json' \
-              -f event=workflow_run -f status=success -f created=">=${CREATED_SINCE}" -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-requirement-adapter-coverage-v1.yml/runs" \
-              > "$GUARD_DIR/prior-success-runs.json"; then
-              READBACK_STATE=PRIOR_SUCCESS_READBACK_FAILED
-              printf '{"total_count":0,"workflow_runs":[]}\n' > "$GUARD_DIR/prior-success-runs.json"
+            printf '[]\n' > "$GUARD_DIR/prior-success-runs.json"
+            PRIOR_SUCCESS_PAGE=1
+            PRIOR_SUCCESS_COMPLETE=false
+            while [ "$PRIOR_SUCCESS_PAGE" -le 20 ]; do
+              PRIOR_SUCCESS_PAGE_FILE="$GUARD_DIR/prior-success-runs-page-${PRIOR_SUCCESS_PAGE}.json"
+              if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                -f event=workflow_run -f status=success -f created=">=${CREATED_SINCE}" \
+                -f per_page=100 -f page="$PRIOR_SUCCESS_PAGE" \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-requirement-adapter-coverage-v1.yml/runs" \
+                > "$PRIOR_SUCCESS_PAGE_FILE"; then
+                READBACK_STATE=PRIOR_SUCCESS_READBACK_FAILED
+                break
+              fi
+              if ! jq -e '.total_count|numbers' "$PRIOR_SUCCESS_PAGE_FILE" >/dev/null || \
+                ! jq -e '.workflow_runs|arrays' "$PRIOR_SUCCESS_PAGE_FILE" >/dev/null; then
+                READBACK_STATE=PRIOR_SUCCESS_RESPONSE_INVALID
+                break
+              fi
+              jq --slurp '.[0] + [.[1]]' \
+                "$GUARD_DIR/prior-success-runs.json" "$PRIOR_SUCCESS_PAGE_FILE" \
+                > "$GUARD_DIR/prior-success-runs.next.json"
+              cp "$GUARD_DIR/prior-success-runs.next.json" "$GUARD_DIR/prior-success-runs.json"
+              PRIOR_SUCCESS_PAGE_COUNT=$(jq -r '.workflow_runs|length' "$PRIOR_SUCCESS_PAGE_FILE")
+              if [ "$PRIOR_SUCCESS_PAGE_COUNT" -lt 100 ]; then
+                PRIOR_SUCCESS_COMPLETE=true
+                break
+              fi
+              PRIOR_SUCCESS_PAGE=$((PRIOR_SUCCESS_PAGE + 1))
+            done
+            if [ "$PRIOR_SUCCESS_COMPLETE" != true ] && [ "$READBACK_STATE" = COMPLETE ]; then
+              READBACK_STATE=PRIOR_SUCCESS_PAGINATION_BOUND_EXCEEDED
             fi
             PRIOR_SUCCESS_COUNT=$(SOURCE_SHA="$SOURCE_SHA" node - <<'NODE'
           const fs=require('fs');
