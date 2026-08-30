@@ -3,6 +3,7 @@ name: KIDULTS PSA Live Execution Control
 on:
   pull_request:
     paths:
+      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
       - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
       - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
@@ -11,10 +12,13 @@ on:
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
+      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
   push:
     branches: [main]
     paths:
+      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
       - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
       - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
@@ -23,6 +27,8 @@ on:
       - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
       - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
+      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
+      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
 
 permissions:
@@ -42,7 +48,7 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Validate PSA execution controls and secret registry
+      - name: Validate PSA execution controls, orchestration, and secret registry
         run: |
           set -euo pipefail
           node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
