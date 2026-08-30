@@ -2,7 +2,7 @@
   "id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_ALIGNMENT_V1",
   "version": "1.0.0",
   "effective_at": "2026-08-30T13:00:00Z",
-  "authority": "PROGRAM_OWNER_APPROVED_OPERATING_DOCTRINE_PENDING_PROTECTED_MAIN_LANDING",
+  "authority": "PROGRAM_OWNER_APPROVED_OPERATING_DOCTRINE_PROTECTED_MAIN_ACTIVE",
   "canonical_policy": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
   "scope": ["KPMO", "TRACK_A", "TRACK_B", "TRACK_C", "TRACK_D", "TRACK_E", "TRACK_Z", "ASI", "FULL_VALUE_CHAIN", "ALL_ENGINES_AND_LOGIC"],
   "precedence": [

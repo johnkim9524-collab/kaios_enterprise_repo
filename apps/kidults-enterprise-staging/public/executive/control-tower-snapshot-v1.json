@@ -10,6 +10,13 @@
     "alignment": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_ALIGNMENT_V1",
     "tower_contract": "kidults-management-control-tower-contract-v1"
   },
+  "sources": {
+    "tower_contract": "coordination/kidults/governance/management-control-tower-contract-v1.json",
+    "rights_fast_lane": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
+    "preflight": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "sample_policy": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+    "release_assurance": "coordination/kidults/governance/release-assurance-contract-v1.json"
+  },
   "kpis": [
     [
       "권리-clear SOLD",
@@ -37,9 +44,9 @@
       "Public · Production · G5"
     ],
     [
-      "PR #1655",
-      "OPEN",
-      "protected landing 대기"
+      "표본·무결성 정책",
+      "ACTIVE",
+      "protected main 기준"
     ]
   ],
   "funnel": [
