@@ -37,3 +37,37 @@ jobs:
           set -euo pipefail
           node --check scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
           node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
+
+      - name: Reject self-attested or retroactive authority promotion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json /tmp/base.json
+          cp coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json /tmp/supplement.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const base = JSON.parse(fs.readFileSync('/tmp/base.json', 'utf8'));
+          base.authorization_provenance.state = 'INDEPENDENTLY_PROVEN';
+          base.authorization_provenance.promotable = true;
+          base.authorization_provenance.post_send_receipt_can_retroactively_create_authority = true;
+          fs.writeFileSync('/tmp/base.json', JSON.stringify(base, null, 2));
+          NODE
+          if node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs /tmp/base.json /tmp/supplement.json; then
+            echo 'Validator accepted self-attested or retroactive authorization promotion' >&2
+            exit 1
+          fi
+
+      - name: Reject supplement reuse of consumed base assertion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json /tmp/base.json
+          cp coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json /tmp/supplement.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const supplement = JSON.parse(fs.readFileSync('/tmp/supplement.json', 'utf8'));
+          supplement.authorization_provenance.base_one_time_assertion_reusable_for_supplement = true;
+          fs.writeFileSync('/tmp/supplement.json', JSON.stringify(supplement, null, 2));
+          NODE
+          if node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs /tmp/base.json /tmp/supplement.json; then
+            echo 'Validator accepted reuse of consumed base authority assertion' >&2
+            exit 1
+          fi
