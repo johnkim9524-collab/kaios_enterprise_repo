@@ -1,0 +1,153 @@
+{
+  "id": "kidults-asi-rights-analysis-fast-lane-decisions-v1",
+  "version": "1.0.0",
+  "status": "OFFICIAL_TERMS_TRIAGE_COMPLETE_NO_RIGHTS_PROMOTION",
+  "as_of": "2026-08-30T00:00:00Z",
+  "purpose": "Bind the launch Fast Lane to official rights evidence and route every source without converting public visibility into collection, storage, derivation or commercial-use permission.",
+  "decision_scope": "AUTOMATED_COLLECTION_OF_TERMINAL_SOLD_RECORDS_FOR_INTERNAL_DERIVATION_AND_LATER_COMMERCIAL_PRODUCT_USE",
+  "records": [
+    {
+      "source_id": "classic-com-market-data",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "PUBLIC_TERMS_RESTRICT_LISTING_PRICE_COLLECTION_DERIVATIVE_AND_COMMERCIAL_USE",
+      "official_evidence_urls": ["https://www.classic.com/about/terms-conditions/", "https://www.classic.com/data"],
+      "rights": {"collect": "DENY_PUBLIC_WEB", "store": "DENY_PUBLIC_WEB", "derive": "DENY_PUBLIC_WEB", "commercial_use": "DENY_PUBLIC_WEB"},
+      "next_action": "RESOLVE_LICENSED_BUNDLE_FIELDS_RETENTION_DERIVATION_DISPLAY_AND_TERMINATION_RIGHTS"
+    },
+    {
+      "source_id": "bonhams-cars-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "CATALOG_COPYRIGHT_AND_WRITTEN_PERMISSION_REQUIRED",
+      "official_evidence_urls": ["https://www.bonhams.com/legals/terms-and-conditions/", "https://cars.bonhams.com/auction-results/"],
+      "rights": {"collect": "DENY_WITHOUT_WRITTEN_CONSENT", "store": "DENY_WITHOUT_WRITTEN_CONSENT", "derive": "DENY_WITHOUT_WRITTEN_CONSENT", "commercial_use": "DENY_WITHOUT_WRITTEN_CONSENT"},
+      "next_action": "REQUEST_MACHINE_READABLE_RESULTS_LICENSE_WITH_FIELD_AND_DERIVED_OUTPUT_SCHEDULE"
+    },
+    {
+      "source_id": "bonhams-watches-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "CATALOG_COPYRIGHT_AND_WRITTEN_PERMISSION_REQUIRED",
+      "official_evidence_urls": ["https://www.bonhams.com/legals/terms-and-conditions/", "https://www.bonhams.com/auction-results/"],
+      "rights": {"collect": "DENY_WITHOUT_WRITTEN_CONSENT", "store": "DENY_WITHOUT_WRITTEN_CONSENT", "derive": "DENY_WITHOUT_WRITTEN_CONSENT", "commercial_use": "DENY_WITHOUT_WRITTEN_CONSENT"},
+      "next_action": "REQUEST_MACHINE_READABLE_RESULTS_LICENSE_WITH_FIELD_AND_DERIVED_OUTPUT_SCHEDULE"
+    },
+    {
+      "source_id": "broad-arrow-results",
+      "decision": "HOLD",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "PUBLIC_RESULTS_DO_NOT_GRANT_REUSE_RIGHTS",
+      "official_evidence_urls": ["https://bid.broadarrowauctions.com/terms-of-use", "https://www.broadarrowauctions.com/auction-results"],
+      "rights": {"collect": "UNKNOWN", "store": "UNKNOWN", "derive": "UNKNOWN", "commercial_use": "UNKNOWN"},
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS"
+    },
+    {
+      "source_id": "christies-handbags-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "AUTOMATED_COLLECTION_CACHING_ARCHIVING_DERIVATION_AND_COMMERCIAL_USE_PROHIBITED",
+      "official_evidence_urls": ["https://www.christies.com/about-us/contact/terms-and-conditions/", "https://www.christies.com/en/help/auction-results"],
+      "rights": {"collect": "DENY_AUTOMATED_WEB", "store": "DENY_CACHE_OR_ARCHIVE", "derive": "DENY_PUBLIC_WEB", "commercial_use": "DENY_PUBLIC_WEB"},
+      "next_action": "NEGOTIATE_RESULT_FIELDS_RETENTION_DERIVED_INTELLIGENCE_AND_DISPLAY_RIGHTS"
+    },
+    {
+      "source_id": "christies-watches-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "ACTIVE",
+      "reason_code": "AUTOMATED_COLLECTION_CACHING_ARCHIVING_DERIVATION_AND_COMMERCIAL_USE_PROHIBITED",
+      "official_evidence_urls": ["https://www.christies.com/about-us/contact/terms-and-conditions/", "https://www.christies.com/en/help/auction-results"],
+      "rights": {"collect": "DENY_AUTOMATED_WEB", "store": "DENY_CACHE_OR_ARCHIVE", "derive": "DENY_PUBLIC_WEB", "commercial_use": "DENY_PUBLIC_WEB"},
+      "next_action": "NEGOTIATE_RESULT_FIELDS_RETENTION_DERIVED_INTELLIGENCE_AND_DISPLAY_RIGHTS"
+    },
+    {
+      "source_id": "gooding-christies-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "MANUAL_OR_AUTOMATED_EXTRACTION_AND_COMMERCIAL_USE_PROHIBITED",
+      "official_evidence_urls": ["https://www.goodingco.com/terms", "https://www.goodingco.com/auction-results"],
+      "rights": {"collect": "DENY_PUBLIC_WEB", "store": "DENY_PUBLIC_WEB", "derive": "DENY_PUBLIC_WEB", "commercial_use": "DENY_PUBLIC_WEB"},
+      "next_action": "CONFIRM_CONTROLLING_OPERATOR_TERMS_AND_NEGOTIATE_LICENSED_RESULTS_FEED"
+    },
+    {
+      "source_id": "sothebys-watches-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "AUTOMATED_DATA_MINING_AND_DATABASE_SCRAPING_PROHIBITED_WITHOUT_SEPARATE_PERMISSION",
+      "official_evidence_urls": ["https://www.sothebys.com/en/terms-conditions", "https://www.sothebys.com/en/results"],
+      "rights": {"collect": "DENY_AUTOMATED_WEB", "store": "UNKNOWN", "derive": "UNKNOWN", "commercial_use": "UNKNOWN"},
+      "next_action": "SEEK_SEPARATE_LICENSED_FEED_PERMISSION_OR_DROP_PUBLIC_WEB_ADAPTER"
+    },
+    {
+      "source_id": "barrett-jackson-results",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "AUTOMATED_DATA_MINING_OR_ROBOTS_RESTRICTED_WITHOUT_SEPARATE_PERMISSION",
+      "official_evidence_urls": ["https://www.barrett-jackson.com/conditions-of-use", "https://www.barrett-jackson.com/results"],
+      "rights": {"collect": "DENY_AUTOMATED_WEB", "store": "UNKNOWN", "derive": "UNKNOWN", "commercial_use": "UNKNOWN"},
+      "next_action": "SEEK_SEPARATE_LICENSED_FEED_PERMISSION_OR_DROP_PUBLIC_WEB_ADAPTER"
+    },
+    {
+      "source_id": "collecting-cars-sold",
+      "decision": "NO_GO",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "SCRAPING_AND_THIRD_PARTY_DATA_USE_REQUIRE_PRIOR_WRITTEN_CONSENT",
+      "official_evidence_urls": ["https://collectingcars.com/terms-conditions", "https://collectingcars.com/sold"],
+      "rights": {"collect": "DENY_WITHOUT_WRITTEN_CONSENT", "store": "DENY_WITHOUT_WRITTEN_CONSENT", "derive": "DENY_WITHOUT_WRITTEN_CONSENT", "commercial_use": "DENY_WITHOUT_WRITTEN_CONSENT"},
+      "next_action": "REQUEST_PRIOR_WRITTEN_CONSENT_AND_PRODUCT_DATA_LICENSE_OR_DROP"
+    },
+    {
+      "source_id": "iconic-auctioneers-results",
+      "decision": "HOLD",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "PUBLIC_RESULTS_DO_NOT_GRANT_REUSE_RIGHTS",
+      "official_evidence_urls": ["https://www.iconicauctioneers.com/terms-and-conditions", "https://www.iconicauctioneers.com/auction-results"],
+      "rights": {"collect": "UNKNOWN", "store": "UNKNOWN", "derive": "UNKNOWN", "commercial_use": "UNKNOWN"},
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS"
+    },
+    {
+      "source_id": "mecum-auction-results",
+      "decision": "HOLD",
+      "route": "TRACK_Z_COMMERCIAL",
+      "work_state": "QUEUED",
+      "reason_code": "ALL_RIGHTS_RESERVED_AND_PRODUCT_REUSE_RIGHTS_NOT_GRANTED",
+      "official_evidence_urls": ["https://www.mecum.com/terms-of-use/", "https://www.mecum.com/results/"],
+      "rights": {"collect": "UNKNOWN", "store": "UNKNOWN", "derive": "UNKNOWN", "commercial_use": "UNKNOWN"},
+      "next_action": "OBTAIN_PURPOSE_SPECIFIC_WRITTEN_PERMISSION_OR_LICENSED_FEED_TERMS"
+    }
+  ],
+  "summary": {
+    "sources_reviewed": 12,
+    "pass": 0,
+    "conditional": 0,
+    "hold": 3,
+    "no_go_public_web": 9,
+    "track_z_commercial": 12,
+    "track_z_active": 6,
+    "track_z_queued": 6,
+    "counsel_exception": 0,
+    "rights_clear_for_current_sold": 0,
+    "active_adapters": 0
+  },
+  "truth_boundary": {
+    "official_page_visibility_is_permission": false,
+    "terms_triage_is_legal_advice": false,
+    "provider_contact_authorized_by_this_record": false,
+    "acquisition_authorized": false,
+    "production_authorized": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
