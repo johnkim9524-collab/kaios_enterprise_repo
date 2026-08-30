@@ -14,7 +14,9 @@
     "alpha": 0.01,
     "zero_failure_formula": "ceil(log(alpha) / log(1 - defect_tolerance))",
     "optional_stopping": false,
-    "threshold_change_after_observation": false
+    "threshold_change_after_observation": false,
+    "independence_rule": "Track B independently recomputes effective_n after duplicate-cluster, retry, owner/source/time correlation review; raw record count cannot substitute for effective_n",
+    "pass_formula": "exact_one_sided_CP_UCB(defects,effective_n) <= tier_tolerance AND critical_defects=0 AND rights_census=PASS AND schema_census=PASS AND coverage_gate=PASS AND concentration_gate=PASS"
   },
   "tiers": [
     {"id":"CONTROL_ONLY_FUNCTIONAL","purpose":"DETERMINISTIC_PLUMBING_REPLAY","min_n":1,"max_n":300,"critical_defect_tolerance":0,"statistical_claim":false},
@@ -51,7 +53,8 @@
     "BOUNDED_FUNCTIONAL_PILOT": {"maximum_claim":"BOUNDED_PRIVATE_FUNCTIONAL_PROOF_NO_STATISTICAL_CLAIM","release_allowed":false},
     "PRIVATE_E2E": {"maximum_claim":"BOUNDED_PRIVATE_RELIABILITY","release_allowed":false},
     "BETA_RELIABILITY": {"maximum_claim":"BOUNDED_BETA_RELIABILITY","release_allowed":false},
-    "PRODUCTION": {"required_tier":"BETA_RELIABILITY","required_natural_runs":30,"required_window_days":7,"release_allowed":true}
+    "PRODUCTION_READINESS": {"required_tier":"BETA_RELIABILITY","required_natural_runs":30,"required_window_days":7,"requires_slo_error_budget":true,"requires_pitr_rollback_receipt":true,"release_allowed":false},
+    "PRODUCTION": {"required_tier":"PRODUCTION_READINESS","release_allowed":true,"program_owner_approval_required":true}
   },
   "automatic_escalation": {
     "requested_claim_is_authoritative": true,
