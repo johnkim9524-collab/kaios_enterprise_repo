@@ -4,7 +4,7 @@ const path=process.argv[2]||'coordination/kidults/source-intelligence/asi-global
 const v=JSON.parse(fs.readFileSync(path,'utf8'));
 const assert=(x,c)=>{if(!x)throw new Error(c)};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-assert(v.id==='kidults-asi-global-source-pool-control-v1'&&v.version==='1.2.0','IDENTITY');
+assert(v.id==='kidults-asi-global-source-pool-control-v1'&&v.version==='1.3.0','IDENTITY');
 assert(v.owner==='KPMO','OWNER');
 assert(v.authoritative_baseline.registered_source_profiles===16,'REGISTERED');
 assert(v.authoritative_baseline.source_profile_discovery_requirements===120,'DISCOVERY');
@@ -41,6 +41,9 @@ assert(v.seaport_boundary.prior_pr===1626&&v.seaport_boundary.state==='QUARANTIN
 assert(v.seaport_boundary.recurring_external_lane_authorized===false&&v.seaport_boundary.promotable===false&&v.seaport_boundary.sold_claim===false,'SEAPORT_PROMOTION');
 for(const marker of ['eth_chainId equals pinned chain','exact receipt-log tuple match','block hash match','minimum finality met','no network call on unauthorized path'])assert(v.seaport_boundary.reactivation_requirements.includes(marker),'SEAPORT_GATE:'+marker);
 assert(v.queue_policy.canonical_key==='source_id:purpose:claim_class'&&v.queue_policy.duplicate_active_work_forbidden===true,'DEDUPE');
+assert(v.rights_analysis_capacity?.launch_fast_lane_sources===12&&v.rights_analysis_capacity?.minimum_vertical_coverage===3,'RIGHTS_FAST_LANE');
+assert(v.rights_analysis_capacity?.automated_official_evidence_wip===12&&v.rights_analysis_capacity?.track_z_commercial_wip===6&&v.rights_analysis_capacity?.counsel_exception_wip===3,'RIGHTS_CAPACITY');
+assert(v.rights_analysis_capacity?.general_research_headcount_is_first_response===false&&v.rights_analysis_capacity?.rights_ops_before_counsel===true&&v.rights_analysis_capacity?.unknown_atom_fails_closed===true,'RIGHTS_ROUTING');
 assert(v.queue_policy.resolution_runs.DISCOVERY_DEMAND===5&&v.queue_policy.resolution_runs.SCHEMA_BOUND_DEMAND===3,'SLA');
 assert(v.truth_boundary.main_scope_validated===true&&v.truth_boundary.production_authorized===false,'AUTHORITY');
 assert(v.truth_boundary.public==='HOLD'&&v.truth_boundary.production==='HOLD'&&v.truth_boundary.g5==='HOLD','RELEASE');

@@ -1,0 +1,82 @@
+{
+  "id": "kidults-asi-rights-analysis-fast-lane-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_AFTER_PROTECTED_MAIN_MERGE",
+  "owner": "KPMO",
+  "purpose": "Convert the globally meaningful source pool into a bounded, evidence-first rights decision pipeline without treating access, discovery or automation as permission.",
+  "launch_fast_lane": {
+    "target_sources": 12,
+    "minimum_vertical_coverage": 3,
+    "selection": [
+      "SOLD_TRANSACTION_ROLE_REQUIRED",
+      "THEN_HIGHEST_RESEARCH_PRIORITY_WITH_LOWER_ACCESS_FRICTION",
+      "EIGHT_VERTICAL_BALANCE_IS_A_LATER_SCALE_GATE_NOT_A_LAUNCH_FAST_LANE_OVERRIDE"
+    ],
+    "selection_is_rights_approval": false,
+    "selection_is_value_admission": false
+  },
+  "lanes": {
+    "AUTOMATED_OFFICIAL_EVIDENCE": {
+      "wip_limit": 12,
+      "owner": "KPMO_RIGHTS_OPS",
+      "allowed": ["READ_OFFICIAL_TERMS", "READ_OFFICIAL_LICENSE", "READ_OFFICIAL_API_OR_DOWNLOAD_DOCUMENTATION", "CAPTURE_URL_TIMESTAMP_DIGEST", "CLASSIFY_RIGHTS_ATOMS"],
+      "forbidden": ["ACCEPT_TERMS", "CREATE_ACCOUNT", "LOGIN", "CONTACT_PROVIDER", "SPEND", "COLLECT_SOURCE_PAYLOAD"],
+      "ack_due_runs": 1,
+      "resolution_due_runs": 3
+    },
+    "TRACK_Z_COMMERCIAL": {
+      "wip_limit": 6,
+      "owner": "KPMO_TRACK_Z",
+      "entry_condition": "ACCOUNT_CONTRACT_CONTACT_OR_COMMERCIAL_PERMISSION_REQUIRED",
+      "external_action_requires_independent_receipt": true,
+      "ack_due_runs": 1,
+      "resolution_due_runs": 5
+    },
+    "COUNSEL_EXCEPTION": {
+      "wip_limit": 3,
+      "owner": "LEGAL_COUNSEL",
+      "entry_condition": "HIGH_VALUE_AND_MATERIAL_RIGHTS_AMBIGUITY_REMAINS_AFTER_OFFICIAL_EVIDENCE_REVIEW",
+      "legal_conclusion_may_not_be_self_authored": true,
+      "ack_due_runs": 1,
+      "resolution_due_runs": 5
+    }
+  },
+  "rights_atoms": ["collect", "store", "derive", "commercial_use"],
+  "initial_atom_state": "UNKNOWN",
+  "sold_semantics_exclusions": [
+    {
+      "source_id": "pricecharting-api",
+      "reason": "OFFICIAL_API_DOCUMENTATION_SAYS_HISTORIC_PRICES_AND_HISTORIC_SALES_NOT_SUPPORTED",
+      "evidence_url": "https://www.pricecharting.com/api-documentation"
+    },
+    {
+      "source_id": "reverb-price-guide",
+      "reason": "INDIVIDUAL_TERMINAL_SOLD_EVENT_SCHEMA_NOT_ESTABLISHED_FOR_PRICE_GUIDE_OR_API",
+      "evidence_url": "https://reverb.com/page/api"
+    }
+  ],
+  "evidence_minimum": ["official_owner", "official_url", "evidence_url", "retrieved_at", "content_digest", "purpose", "method", "claim_class"],
+  "decision_rules": {
+    "PASS": "ALL_FOUR_ATOMS_EXPLICITLY_ALLOW_STATED_PURPOSE_AND_METHOD",
+    "CONDITIONAL": "PERMISSION_IS_EXPLICIT_BUT_PURPOSE_METHOD_ATTRIBUTION_OR_SHARE_ALIKE_LIMIT_IS_REQUIRED",
+    "HOLD": "ANY_ATOM_UNKNOWN_OR_ACCOUNT_CONTRACT_CONTACT_SPEND_OR_COUNSEL_REQUIRED",
+    "NO_GO": "COLLECTION_OR_REQUIRED_COMMERCIAL_REUSE_IS_EXPLICITLY_PROHIBITED"
+  },
+  "capacity_policy": {
+    "add_general_researchers_before_automation_saturation": false,
+    "add_rights_operations_capacity_when": "AUTOMATED_OFFICIAL_EVIDENCE_BACKLOG_EXCEEDS_12_FOR_3_CONSECUTIVE_RUNS",
+    "add_commercial_capacity_when": "TRACK_Z_COMMERCIAL_BACKLOG_EXCEEDS_6_FOR_3_CONSECUTIVE_RUNS",
+    "add_counsel_capacity_when": "COUNSEL_EXCEPTION_BACKLOG_EXCEEDS_3_FOR_3_CONSECUTIVE_RUNS",
+    "expired_sla_action": "ESCALATE_OWNER_AND_ACTIVATE_DECLARED_FALLBACK",
+    "duplicate_key": "source_id:purpose:claim_class"
+  },
+  "truth_boundary": {
+    "rights_clear_for_current_sold": 0,
+    "active_adapters": 0,
+    "queue_creation_is_permission": false,
+    "production_authorized": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

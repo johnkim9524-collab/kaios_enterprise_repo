@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+import fs from 'node:fs';import crypto from 'node:crypto';
+const backfillPath=process.argv[2]||'/tmp/asi-product-value-backfill-v1.json';
+const contractPath=process.argv[3]||'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json';
+const outputPath=process.argv[4]||'/tmp/asi-rights-analysis-fast-lane-v1.json';
+const b=JSON.parse(fs.readFileSync(backfillPath,'utf8'));const c=JSON.parse(fs.readFileSync(contractPath,'utf8'));
+if(b.records?.length!==64)throw new Error('CANONICAL_64_REQUIRED');
+const friction=x=>/PUBLIC_WEB|PUBLIC_API|DOWNLOAD/i.test(x.access_mode)?0:/API_KEY/i.test(x.access_mode)?1:/OAUTH|ACCOUNT|CONTRACT/i.test(x.access_mode)?3:2;
+const sold=x=>x.source_roles.includes('SOLD_TRANSACTION')?1:0;
+const cmp=(a,z)=>sold(z)-sold(a)||z.research_priority_score-a.research_priority_score||friction(a)-friction(z)||a.source_id.localeCompare(z.source_id);
+const excluded=new Set((c.sold_semantics_exclusions||[]).map(x=>x.source_id));
+const soldCandidates=b.records.filter(x=>sold(x)===1&&!excluded.has(x.source_id)).sort(cmp);if(soldCandidates.length<c.launch_fast_lane.target_sources)throw new Error('INSUFFICIENT_SOLD_CANDIDATES');
+const picked=soldCandidates.slice(0,c.launch_fast_lane.target_sources);
+const items=picked.map((x,i)=>({priority:i+1,queue_id:`RIGHTS:${x.source_id}:PRODUCT_INPUT:${x.source_roles.includes('SOLD_TRANSACTION')?'SOLD_TRANSACTION':'REFERENCE_OR_MARKET'}`,idempotency_key:`${x.source_id}:PRODUCT_INPUT:${x.source_roles.includes('SOLD_TRANSACTION')?'SOLD_TRANSACTION':'REFERENCE_OR_MARKET'}`,source_id:x.source_id,vertical:x.vertical,display_name:x.display_name,official_url:x.official_url,official_documentation_url:x.official_documentation_url,access_mode:x.access_mode,source_roles:x.source_roles,customer_decisions:x.customer_decisions,product_surfaces:x.product_surfaces,lane:'AUTOMATED_OFFICIAL_EVIDENCE',owner:c.lanes.AUTOMATED_OFFICIAL_EVIDENCE.owner,rights:{collect:'UNKNOWN',store:'UNKNOWN',derive:'UNKNOWN',commercial_use:'UNKNOWN'},decision:'HOLD',claim_ceiling:'OFFICIAL_RIGHTS_EVIDENCE_RESEARCH_ONLY',ack_due_runs:c.lanes.AUTOMATED_OFFICIAL_EVIDENCE.ack_due_runs,resolution_due_runs:c.lanes.AUTOMATED_OFFICIAL_EVIDENCE.resolution_due_runs,next_action:'CAPTURE_AND_DIGEST_OFFICIAL_TERMS_LICENSE_AND_ACCESS_DOCUMENTATION',external_action_authorized:false,acquisition_authorized:false,production_authorized:false}));
+const artifact={id:c.id,version:c.version,state:'LAUNCH_RIGHTS_FAST_LANE_READY_FAIL_CLOSED',contract_id:c.id,summary:{canonical_sources_considered:b.records.length,fast_lane_sources:items.length,verticals_covered:new Set(items.map(x=>x.vertical)).size,sold_transaction_candidates:items.filter(x=>x.source_roles.includes('SOLD_TRANSACTION')).length,rights_clear_for_current_sold:0,active_adapters:0},capacity:{automated_official_evidence_wip_limit:c.lanes.AUTOMATED_OFFICIAL_EVIDENCE.wip_limit,track_z_commercial_wip_limit:c.lanes.TRACK_Z_COMMERCIAL.wip_limit,counsel_exception_wip_limit:c.lanes.COUNSEL_EXCEPTION.wip_limit},items,truth_boundary:c.truth_boundary};
+artifact.digest='sha256:'+crypto.createHash('sha256').update(JSON.stringify(artifact)).digest('hex');fs.writeFileSync(outputPath,JSON.stringify(artifact,null,2)+'\n');console.log(JSON.stringify(artifact.summary));
