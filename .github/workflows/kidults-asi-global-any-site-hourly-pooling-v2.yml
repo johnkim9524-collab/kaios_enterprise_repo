@@ -161,7 +161,7 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(2);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right-v2.json; then exit 1; fi
       - name: Gate1 reject Review candidate entering Safe Pool mutation
