@@ -1,0 +1,68 @@
+{
+  "record_type": "lawful_current_market_observation",
+  "version": "1.0.0",
+  "observation_id": "eth-mainnet-25844482-tx-8180cca2-log-639",
+  "strict_current_as_of": "2026-08-30T00:00:00Z",
+  "event": {
+    "chain": "ethereum-mainnet",
+    "block_number": 25844482,
+    "block_hash": "0x67911e…46da",
+    "transaction_hash": "0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061",
+    "receipt_status": 1,
+    "log_index": 639,
+    "occurred_at": "2026-08-27T05:30:59Z",
+    "protocol": "Seaport 1.6",
+    "protocol_contract": "0x0000000000000068f116a894984e2db1123eb395",
+    "event_name": "OrderFulfilled",
+    "order_hash": "0x5cf951…b5172",
+    "asset_standard": "ERC-721",
+    "asset_contract_observed": "0x387C…6392C",
+    "token_id": "5198",
+    "amount": "1",
+    "consideration": {
+      "gross": {
+        "amount": "0.389005",
+        "currency": "ETH"
+      },
+      "seller_net": {
+        "amount": "0.38511495",
+        "currency": "ETH"
+      },
+      "fee": {
+        "amount": "0.00389005",
+        "currency": "ETH"
+      }
+    },
+    "bundle": false,
+    "barter": false,
+    "partial": false
+  },
+  "claim_ceiling": "STRICT_CURRENT_ONCHAIN_SEAPORT_PAID_FULFILLMENT_FACT_ONLY",
+  "sold_claim": false,
+  "not_established": [
+    "OpenSea frontend venue",
+    "arm's-length sale",
+    "wash-free transaction",
+    "fiat value",
+    "metadata or image rights",
+    "commercial redistribution right"
+  ],
+  "provenance": {
+    "factual_origin_owner": "Ethereum protocol",
+    "source_url": "https://etherscan.io/tx/0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061",
+    "canonical_protocol_source": "https://github.com/ProjectOpenSea/seaport",
+    "normalized_payload_sha256": "sha256:1cc6f6c586c8bce4009f8ad12ae9ae504ea32f9c9b7ab1ec83ac6b2cb65b0a74"
+  },
+  "rights": {
+    "collect": "PASS_SELF_HOSTED_NODE_MINIMUM_FACTS",
+    "store": "CONDITIONAL_PURPOSE_BOUND_REVIEW_REQUIRED",
+    "derive": "CONDITIONAL_PURPOSE_BOUND_REVIEW_REQUIRED",
+    "commercial_use": "CONDITIONAL_PURPOSE_BOUND_REVIEW_REQUIRED",
+    "scrape": "NO_GO",
+    "third_party_api_redistribution": "NO_GO_WITHOUT_PERMISSION",
+    "metadata_images": "HOLD"
+  },
+  "public_authorized": false,
+  "production_authorized": false,
+  "g5_authorized": false
+}
