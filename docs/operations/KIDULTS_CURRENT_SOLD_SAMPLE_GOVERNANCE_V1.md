@@ -1,8 +1,10 @@
 # KIDULTS Current-SOLD Sample Governance
 
-**Effective:** 2026-08-30  
-**Owner:** Program Owner / KPMO  
-**Canonical contract:** `coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json`  
+**Effective:** 2026-08-30
+
+**Owner:** Program Owner / KPMO
+
+**Canonical contract:** `coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json`
 **Alignment contract:** `coordination/kidults/governance/current-sold-sample-governance-alignment-v1.json`
 
 ## Decision

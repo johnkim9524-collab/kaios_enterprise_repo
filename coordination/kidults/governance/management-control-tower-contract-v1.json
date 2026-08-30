@@ -1,0 +1,35 @@
+{
+  "id": "kidults-management-control-tower-contract-v1",
+  "version": "1.0.0",
+  "status": "INTERNAL_READ_ONLY_APPROVED",
+  "owner": "TRACK_E_IH_EOS",
+  "purpose": "Give management one decision surface without allowing record counts or internal test results to masquerade as market, rights or production evidence.",
+  "audience": ["PROGRAM_OWNER", "KPMO", "TRACK_A", "TRACK_B", "TRACK_C", "TRACK_D", "TRACK_E", "TRACK_Z"],
+  "show": [
+    {"id":"truth_state","label":"현재 진실 상태","rule":"Show internal control state, external empirical state, and release state separately."},
+    {"id":"release_funnel","label":"출시 funnel","rule":"Show each gate, its claim tier, owner, evidence count, and exact HOLD reason."},
+    {"id":"decision_queue","label":"결정 대기열","rule":"Show only actions that have an owner, a due condition, and an allowed decision authority."},
+    {"id":"rights_portfolio","label":"권리 portfolio","rule":"Show source-level PASS, CONDITIONAL, HOLD, NO-GO, purpose and next evidence action."},
+    {"id":"evidence_health","label":"증거 건강도","rule":"Show rights census, schema verification, provenance, freshness, natural-run SLO, and receipt integrity."},
+    {"id":"operating_capacity","label":"운영 capacity","rule":"Show WIP against policy limits and escalation triggers for Rights Ops, Track Z and Counsel."},
+    {"id":"cost_and_exposure","label":"비용·노출 guardrails","rule":"Show approved spend, credentials, external contact, data retention and public exposure as explicit states."},
+    {"id":"change_log","label":"최근 변경","rule":"Show source snapshot time, policy digest, release decision changes and unresolved exceptions."}
+  ],
+  "decide": [
+    {"id":"release_claim","question":"어떤 claim tier를 요청할 것인가?","authority":"PROGRAM_OWNER","guardrail":"Requested tier automatically sets the minimum evidence tier; downgrade is forbidden."},
+    {"id":"source_priority","question":"어떤 source를 다음 협상·증거 처리 대상으로 할 것인가?","authority":"KPMO_TRACK_Z","guardrail":"Prioritize customer value, rights feasibility, independence and replaceability; source count alone is invalid."},
+    {"id":"capacity_escalation","question":"Rights Ops·상업협상·Counsel capacity를 늘릴 것인가?","authority":"KPMO","guardrail":"Escalate only after the declared WIP threshold is exceeded for three consecutive runs."},
+    {"id":"risk_response","question":"HOLD·NO-GO·SLO breach에 어떤 containment를 적용할 것인가?","authority":"KPMO_TRACK_D","guardrail":"Fail closed, quarantine affected outputs, preserve receipt and activate fallback."},
+    {"id":"provider_commitment","question":"외부 연락·계약·지출을 승인할 것인가?","authority":"PROGRAM_OWNER","guardrail":"No account, contact, contract, spend or credential is implied by queue creation."},
+    {"id":"promotion","question":"다음 gate로 승격할 것인가?","authority":"PROGRAM_OWNER","guardrail":"All claim-specific rights, schema, coverage, reliability and receipt gates must pass."}
+  ],
+  "do_not_decide_from": ["candidate_count", "implemented_adapter_count", "static_research_priority", "single_successful_probe", "control_fixture_sample", "dashboard_color_or_score"],
+  "non_goals": ["live provider scraping", "legal conclusion", "automatic external commitment", "public market claim", "production authorization", "vanity KPI leaderboard"],
+  "refresh_contract": {"trigger":"hourly governed run completion", "failure":"retain last verified snapshot and show stale/error banner", "freshness_slo_minutes":90, "writer":"KPMO_TRACK_D", "reader":"TRACK_E_READ_ONLY"},
+  "source_contracts": [
+    "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
+    "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+    "coordination/kidults/governance/release-assurance-contract-v1.json"
+  ]
+}
