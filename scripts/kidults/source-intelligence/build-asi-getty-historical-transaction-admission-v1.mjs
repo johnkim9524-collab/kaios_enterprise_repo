@@ -32,9 +32,9 @@ const expectedOutputs = [
   'getty-historical-transaction-manifest-v1.json',
 ];
 assert(contract.id === 'kidults-asi-getty-historical-transaction-admission-contract-v1' && contract.version === '1.0.0', 'CONTRACT_ID_VERSION');
-assert(contract.status === 'EXECUTION_CONTRACT_ACTIVE', 'CONTRACT_STATUS');
+assert(contract.status === 'CONTROL_REPLAY_CONTRACT_ACTIVE', 'CONTRACT_STATUS');
 assert(JSON.stringify(contract.required_outputs) === JSON.stringify(expectedOutputs), 'CONTRACT_OUTPUTS');
-assert(observation.id === 'kidults-getty-provenance-historical-transaction-observation-v1' && observation.state === 'VERIFIED_PASS', 'OBSERVATION_STATE');
+assert(observation.id === 'kidults-getty-provenance-historical-transaction-observation-v1' && observation.state === 'COMMITTED_REFERENCE_SNAPSHOT_REPLAY', 'OBSERVATION_STATE');
 assert(top16Preflight.id === 'kidults-top16-empirical-activation-preflight-v1' && top16Preflight.status === 'VERIFIED_FAIL_CLOSED', 'TOP16_PREFLIGHT_STATE');
 assert(top16Preflight.rows.length === 16 && new Set(top16Preflight.rows.map((row) => row.source_id)).size === 16, 'TOP16_PREFLIGHT_ROWS');
 assert(rightsPool.sources?.some((source) => source.source_id === 'getty-provenance-index' && source.admission_state === 'ADMITTED' && source.rights_basis === 'CC0'), 'GETTY_RIGHTS_POOL_ADMISSION');
@@ -42,12 +42,16 @@ assert(sourceMesh.evidence_classes?.includes('HISTORICAL_TRANSACTION_PROVENANCE'
 assert(top16Registry.implementation_state?.portfolio_source_specific_adapters_implemented === 16 &&
   top16Registry.implementation_state?.source_specific_adapters_activated === 0, 'TOP16_REGISTRY_BOUNDARY');
 assert(testReceipt.id === 'kidults-getty-provenance-index-adapter-test-receipt-v1' && testReceipt.state === 'VERIFIED_PASS', 'ADAPTER_TEST_RECEIPT');
-assert(testReceipt.immutable_live_snapshots_verified === 2 && testReceipt.purpose_specific_rights_verified === 1 &&
-  testReceipt.positive_historical_transactions_parsed === 1 && testReceipt.negative_mutations_rejected === 15, 'ADAPTER_TEST_COUNTS');
+assert(testReceipt.committed_reference_snapshots_verified === 2 && testReceipt.immutable_live_snapshots_verified === 0 &&
+  testReceipt.machine_proven_acquisition_receipts === 0 && testReceipt.purpose_specific_rights_verified === 1 &&
+  testReceipt.positive_reference_records_parsed === 1 && testReceipt.positive_historical_transactions_parsed === 0 &&
+  testReceipt.negative_mutations_rejected === 17, 'ADAPTER_TEST_COUNTS');
 const adapter = testReceipt.adapter_result;
-assert(adapter?.decision_state === 'NORMALIZED_HISTORICAL_TRANSACTION_READY_FOR_ADMISSION' &&
-  adapter?.adapter_state === 'ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY' &&
-  adapter?.historical_transaction_evidence_ready === true && adapter?.generic_market_event_created === false, 'ADAPTER_READY_STATE');
+assert(adapter?.decision_state === 'NORMALIZED_REFERENCE_REPLAY_NOT_ADMISSIBLE' &&
+  adapter?.adapter_state === 'REFERENCE_REPLAY_CONTROL_ONLY' && adapter?.committed_reference_snapshots_verified === 2 &&
+  adapter?.immutable_live_snapshots_verified === 0 && adapter?.machine_proven_acquisition_receipts === 0 &&
+  adapter?.historical_transaction_evidence_ready === false && adapter?.promotable === false &&
+  adapter?.generic_market_event_created === false, 'ADAPTER_CONTROL_STATE');
 const normalized = adapter.normalized_record;
 assert(normalized?.evidence_class === 'HISTORICAL_TRANSACTION_PROVENANCE' &&
   normalized?.amount_semantics === 'DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE' &&
@@ -78,7 +82,7 @@ const receiptId = id('historical-admission-receipt', {
 const evidenceRecord = {
   evidence_id: evidenceId,
   admission_receipt_id: receiptId,
-  admission_state: 'ADMITTED_BOUNDED_HISTORICAL_TRANSACTION_PROVENANCE',
+  admission_state: 'CONTROL_ONLY_COMMITTED_REFERENCE_REPLAY',
   evidence_class: normalized.evidence_class,
   source_id: normalized.source_id,
   source_owner_id: normalized.source_owner_id,
@@ -118,7 +122,9 @@ const evidenceRecord = {
   observed_at: observation.as_of,
   historical_only: true,
   generic_market_event_eligible: false,
-  verified_current_sold_event: false,
+  machine_proven_acquisition_receipt: false,
+  promotable: false,
+  verified_current_sold_event: false;
   current_price_eligible: false,
   current_market_signal_eligible: false,
   liquidity_eligible: false,
@@ -133,9 +139,10 @@ const evidenceRecord = {
 const evidenceLedger = {
   id: 'kidults-getty-historical-transaction-evidence-ledger-v1',
   version: '1.0.0',
-  status: 'VERIFIED_PASS',
+  status: 'CONTROL_ONLY_HOLD',
   as_of: observation.as_of,
-  historical_transaction_evidence_admitted: 1,
+  committed_reference_records_parsed: 1,
+  historical_transaction_evidence_admitted: 0,
   current_market_evidence_admitted: 0,
   records: [evidenceRecord],
   public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
@@ -170,27 +177,30 @@ const historicalEvent = {
 const eventLedger = {
   id: 'kidults-getty-historical-transaction-event-ledger-v1',
   version: '1.0.0',
-  status: 'VERIFIED_PASS_HISTORICAL_ONLY',
+  status: 'CONTROL_ONLY_NO_EMPIRICAL_EVENT',
   as_of: observation.as_of,
-  historical_transaction_events_created: 1,
+  historical_transaction_events_created: 0,
   generic_market_events_admitted: 0,
   verified_current_sold_events_created: 0,
   current_prices_created: 0,
   liquidity_measures_created: 0,
   demand_measures_created: 0,
-  events: [historicalEvent],
+  events: [],
   public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
 };
 const admissionReceipt = {
   id: receiptId,
   version: '1.0.0',
-  state: 'VERIFIED_PASS_ADMITTED_BOUNDED_HISTORICAL_ONLY',
+  state: 'VERIFIED_CONTROL_REPLAY_ACQUISITION_NOT_PROVEN',
   as_of: observation.as_of,
   source_id: normalized.source_id,
-  evidence_id: evidenceId,
-  historical_transaction_event_id: eventId,
+  evidence_id: null,
+  historical_transaction_event_id: null,
+  reference_record_id: evidenceId,
   gates: {
-    immutable_live_snapshot_gate: { state: 'PASS', verified_snapshots: 2 },
+    committed_reference_snapshot_gate: { state: 'PASS_CONTROL_ONLY', verified_snapshots: 2 },
+    immutable_live_snapshot_gate: { state: 'HOLD_ACQUISITION_RECEIPT_MISSING', verified_snapshots: 0 },
+    acquisition_receipt_gate: { state: 'HOLD', machine_proven_receipts: 0 },
     purpose_specific_rights_gate: { state: 'PASS', basis: 'CC0' },
     source_schema_gate: { state: 'PASS', schema: 'LINKED_ART_JSON_LD_EXACT_DIGEST_BOUND' },
     transaction_semantics_gate: { state: 'PASS_HISTORICAL_ONLY', transaction_state: normalized.transaction_state },
@@ -201,7 +211,7 @@ const admissionReceipt = {
     top16_inheritance_gate: { state: 'REJECT_SOURCE_OUTSIDE_TOP16' },
     public_production_g5_gate: { public_release: 'HOLD', production: 'HOLD', g5: 'HOLD' },
   },
-  decision: 'ADMIT_ONE_HISTORICAL_TRANSACTION_PROVENANCE_RECORD_AND_ONE_HISTORICAL_EVENT_ONLY',
+  decision: 'RETAIN_ONE_COMMITTED_REFERENCE_REPLAY_RECORD_WITH_ZERO_EMPIRICAL_ADMISSION_AND_ZERO_EVENTS',
   forbidden_promotions: contract.claim_ceiling.forbidden,
   public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
 };
@@ -238,15 +248,18 @@ for (const [file, value] of payloads) {
 const manifest = {
   id: 'kidults-getty-historical-transaction-manifest-v1',
   version: '1.0.0',
-  status: 'VERIFIED_PASS',
+  status: 'CONTROL_ONLY_HOLD',
   as_of: observation.as_of,
   contract_id: contract.id,
+  promotable: false,
   artifacts,
   counts: {
-    immutable_live_source_snapshots_verified: 2,
+    committed_reference_snapshots_verified: 2,
+    immutable_live_source_snapshots_verified: 0,
+    machine_proven_acquisition_receipts: 0,
     purpose_specific_rights_verified_sources: 1,
-    historical_transaction_evidence_admitted: 1,
-    historical_transaction_events_created: 1,
+    historical_transaction_evidence_admitted: 0,
+    historical_transaction_events_created: 0,
     generic_market_events_admitted: 0,
     verified_current_sold_events_created: 0,
     top16_source_adapters_activated: 0,
@@ -261,7 +274,7 @@ const manifest = {
 };
 await fs.writeFile(path.join(outputDir, expectedOutputs[4]), stableJson(manifest), 'utf8');
 console.log(JSON.stringify({
-  status: 'PASS',
+  status: 'CONTROL_ONLY_PASS',
   output_dir: outputDir,
   artifact_count: expectedOutputs.length,
   package_digest: manifest.package_digest,
