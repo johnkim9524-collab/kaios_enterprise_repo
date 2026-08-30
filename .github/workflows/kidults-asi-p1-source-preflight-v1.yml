@@ -447,41 +447,104 @@ jobs:
           cp -- /tmp/kidults-asi-p1-source-preflight-receipt-v1.json /tmp/kidults-asi-p1-authoritative-v1/
           python3 - <<'PY'
           import json, os, stat
+
           root = "/tmp/kidults-asi-p1-authoritative-v1"
+          receipt_name = "p1-authoritative-bundle-preflight-v1.json"
+          receipt_path = os.path.join(root, receipt_name)
           maximum_entry = 8 * 1024 * 1024
           maximum_total = 32 * 1024 * 1024
-          total = 0
-          files = []
+
+          def serialize_final_receipt(payload_files, payload_total):
+              receipt = {
+                  "id": "kidults-asi-p1-authoritative-bundle-preflight-v1",
+                  "state": "VERIFIED_FINAL_BUNDLE_BOUNDED_BEFORE_UPLOAD",
+                  "source_sha": os.environ["GITHUB_SHA"],
+                  "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+                  "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                  "files": payload_files + [{"name": receipt_name, "bytes": 0}],
+                  "total_uncompressed_bytes": 0,
+                  "limits": {
+                      "max_entry_uncompressed_bytes": maximum_entry,
+                      "max_total_uncompressed_bytes": maximum_total,
+                  },
+                  "diagnostic_payloads_in_authoritative_bundle": False,
+                  "public_release": "HOLD",
+                  "production": "HOLD",
+              }
+              for _ in range(16):
+                  encoded = (json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                  receipt_bytes = len(encoded)
+                  final_total = payload_total + receipt_bytes
+                  if receipt_bytes > maximum_entry:
+                      raise ValueError(f"P1_AUTHORITATIVE_ENTRY_SIZE_LIMIT:{receipt_name}:{receipt_bytes}")
+                  if final_total > maximum_total:
+                      raise ValueError(f"P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:{final_total}")
+                  if (
+                      receipt["files"][-1]["bytes"] == receipt_bytes
+                      and receipt["total_uncompressed_bytes"] == final_total
+                  ):
+                      return encoded
+                  receipt["files"][-1]["bytes"] = receipt_bytes
+                  receipt["total_uncompressed_bytes"] = final_total
+              raise ValueError("P1_AUTHORITATIVE_RECEIPT_SIZE_NOT_STABLE")
+
+          payload_total = 0
+          payload_files = []
           for name in sorted(os.listdir(root)):
+              if name == receipt_name:
+                  raise SystemExit("P1_AUTHORITATIVE_PREEXISTING_RECEIPT")
               path = os.path.join(root, name)
               info = os.lstat(path)
               if not stat.S_ISREG(info.st_mode):
                   raise SystemExit(f"P1_AUTHORITATIVE_ENTRY_NOT_REGULAR:{name}")
               if info.st_size <= 0 or info.st_size > maximum_entry:
                   raise SystemExit(f"P1_AUTHORITATIVE_ENTRY_SIZE_LIMIT:{name}:{info.st_size}")
-              total += info.st_size
-              files.append({"name": name, "bytes": info.st_size})
-          if total > maximum_total:
-              raise SystemExit(f"P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:{total}")
-          receipt = {
-              "id": "kidults-asi-p1-authoritative-bundle-preflight-v1",
-              "state": "VERIFIED_BOUNDED_BEFORE_UPLOAD",
-              "source_sha": os.environ["GITHUB_SHA"],
-              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
-              "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
-              "files": files,
-              "total_uncompressed_bytes": total,
-              "limits": {
-                  "max_entry_uncompressed_bytes": maximum_entry,
-                  "max_total_uncompressed_bytes": maximum_total,
-              },
-              "diagnostic_payloads_in_authoritative_bundle": False,
-              "public_release": "HOLD",
-              "production": "HOLD",
-          }
-          with open(os.path.join(root, "p1-authoritative-bundle-preflight-v1.json"), "w", encoding="utf-8") as handle:
-              json.dump(receipt, handle, indent=2, sort_keys=True)
-              handle.write("\n")
+              payload_total += info.st_size
+              payload_files.append({"name": name, "bytes": info.st_size})
+
+          try:
+              serialize_final_receipt(
+                  [{"name": "payload-at-limit.bin", "bytes": maximum_total}],
+                  maximum_total,
+              )
+          except ValueError as error:
+              if not str(error).startswith("P1_AUTHORITATIVE_TOTAL_SIZE_LIMIT:"):
+                  raise
+          else:
+              raise SystemExit("P1_AUTHORITATIVE_PAYLOAD_PLUS_RECEIPT_BOUNDARY_ACCEPTED")
+
+          try:
+              encoded_receipt = serialize_final_receipt(payload_files, payload_total)
+          except ValueError as error:
+              raise SystemExit(str(error)) from error
+          with open(receipt_path, "wb") as handle:
+              handle.write(encoded_receipt)
+
+          final_files = []
+          final_total = 0
+          for name in sorted(os.listdir(root)):
+              path = os.path.join(root, name)
+              info = os.lstat(path)
+              if not stat.S_ISREG(info.st_mode):
+                  raise SystemExit(f"P1_AUTHORITATIVE_FINAL_ENTRY_NOT_REGULAR:{name}")
+              if info.st_size <= 0 or info.st_size > maximum_entry:
+                  raise SystemExit(f"P1_AUTHORITATIVE_FINAL_ENTRY_SIZE_LIMIT:{name}:{info.st_size}")
+              final_total += info.st_size
+              final_files.append({"name": name, "bytes": info.st_size})
+          if final_total > maximum_total:
+              raise SystemExit(f"P1_AUTHORITATIVE_FINAL_TOTAL_SIZE_LIMIT:{final_total}")
+
+          receipt = json.loads(encoded_receipt)
+          if receipt["files"] != final_files:
+              raise SystemExit("P1_AUTHORITATIVE_FINAL_FILE_MANIFEST_MISMATCH")
+          if receipt["total_uncompressed_bytes"] != final_total:
+              raise SystemExit("P1_AUTHORITATIVE_FINAL_TOTAL_MISMATCH")
+          print(json.dumps({
+              "state": "VERIFIED_FINAL_BUNDLE_BOUNDED_BEFORE_UPLOAD",
+              "final_entry_count": len(final_files),
+              "final_total_uncompressed_bytes": final_total,
+              "payload_plus_receipt_boundary_rejected": True,
+          }, sort_keys=True))
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
