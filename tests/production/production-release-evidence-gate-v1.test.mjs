@@ -2027,7 +2027,7 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     workflow.replace('test "$GITHUB_RUN_ATTEMPT" = 1', 'true'),
     workflow.replace('persist-credentials: false', 'persist-credentials: true'),
     workflow.replace('runs-on: [self-hosted, linux, x64, kidults-production-evidence]', 'runs-on: ubuntu-24.04'),
-    workflow.replace('overwrite: false', 'overwrite: true'),
+    workflow.replaceAll('overwrite: false', 'overwrite: true'),
   ];
   const guards = [
     'test "$GITHUB_REF" = refs/heads/main',
@@ -2055,4 +2055,63 @@ test('standalone promotion binds Owner-approved compose bytes and image IDs thro
   assert.match(rollback, /payload\.get\("rollback_pin_root_identity"\) == sys\.argv\[5\]/);
   assert.match(rollback, /payload\.get\("prepared_rollback_identity"\) == sys\.argv\[6\]/);
   assert.match(rollback, /PREDEPLOYMENT_SNAPSHOT_DIR="\/proc\/self\/fd\/8"/);
+});
+
+
+const productionEvidenceProducerWorkflowPath = path.join(
+  root,
+  '.github/workflows/kidults-production-release-evidence-v1.yml',
+);
+
+const assertProductionEvidenceTerminalInvariant = (raw) => {
+  for (const id of [
+    'verify_dispatch',
+    'checkout',
+    'verify_boundaries',
+    'seal',
+    'upload_evidence',
+    'preserve_hold',
+    'emit_terminal',
+    'upload_terminal',
+  ]) assert.match(raw, new RegExp(`\\bid: ${id}\\b`));
+
+  const emitStart = raw.indexOf('- name: Emit durable terminal receipt');
+  const uploadStart = raw.indexOf('- name: Upload durable terminal receipt');
+  assert.ok(emitStart >= 0 && uploadStart > emitStart);
+  const emit = raw.slice(emitStart, uploadStart);
+  const upload = raw.slice(uploadStart);
+
+  assert.match(emit, /if: \${{ always\(\) }}/);
+  assert.match(upload, /if: \${{ always\(\) }}/);
+  assert.match(emit, /KIDULTS_PRODUCTION_RELEASE_EVIDENCE_TERMINAL_RECEIPT_V1/);
+  assert.match(emit, /source_sha:/);
+  assert.match(emit, /run_id:/);
+  assert.match(emit, /run_attempt:/);
+  assert.match(emit, /job_status:/);
+  assert.match(emit, /production_mutation_executed: false/);
+  assert.match(emit, /production_authority: 'HARD_DISABLED'/);
+  assert.match(upload, /kidults-production-release-evidence-terminal-\${{ github\.run_id }}-\${{ github\.run_attempt }}-\${{ github\.sha }}/);
+  assert.match(upload, /kidults-production-release-evidence-terminal\/terminal-receipt-v1\.json/);
+  assert.match(upload, /if-no-files-found: error/);
+  assert.match(upload, /overwrite: false/);
+  assert.equal((raw.match(/overwrite: false/g) ?? []).length, 2);
+  assert.doesNotMatch(emit, /KIDULTS_EVIDENCE_INTAKE|KIDULTS_ARCHIVE_ROOT|GITHUB_TOKEN|program-owner-ed25519|private[_-]?key|credential/i);
+  assert.doesNotMatch(upload, /kidults-production-release-evidence\.tar\.gz(?:\s|$)/);
+};
+
+test('Production evidence producer preserves a minimal durable terminal receipt without changing the original verdict', () => {
+  const raw = fs.readFileSync(productionEvidenceProducerWorkflowPath, 'utf8');
+  assertProductionEvidenceTerminalInvariant(raw);
+
+  const mutations = [
+    value => value.replace('if: ${{ always() }}', 'if: ${{ success() }}'),
+    value => value.replace('-${{ github.run_attempt }}-${{ github.sha }}', ''),
+    value => value.replace(
+      '${{ runner.temp }}/kidults-production-release-evidence-terminal/terminal-receipt-v1.json',
+      '${{ runner.temp }}/kidults-production-release-evidence',
+    ),
+    value => value.replace('production_mutation_executed: false', 'production_mutation_executed: true'),
+    value => value.replace("production_authority: 'HARD_DISABLED'", "production_authority: 'ENABLED'"),
+  ];
+  for (const mutate of mutations) assert.throws(() => assertProductionEvidenceTerminalInvariant(mutate(raw)));
 });

@@ -23,6 +23,7 @@ jobs:
 
     steps:
       - name: Verify exact protected-main dispatch before checkout
+        id: verify_dispatch
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -44,6 +45,7 @@ jobs:
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
       - name: Checkout exact protected-main source
+        id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
@@ -51,6 +53,7 @@ jobs:
           persist-credentials: false
 
       - name: Verify fixed protected evidence boundaries
+        id: verify_boundaries
         shell: bash
         run: |
           set -euo pipefail
@@ -73,6 +76,7 @@ jobs:
           test -f /etc/kaios/kidults-production-release/program-owner-ed25519-key-id
 
       - name: Seal exact evidence without Production mutation
+        id: seal
         shell: bash
         run: |
           set -euo pipefail
@@ -116,6 +120,7 @@ jobs:
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
       - name: Upload exact-SHA sealed evidence
+        id: upload_evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-production-release-evidence-${{ github.sha }}
@@ -126,7 +131,82 @@ jobs:
           overwrite: false
 
       - name: Preserve HOLD boundary
+        id: preserve_hold
         shell: bash
         run: |
           set -euo pipefail
           printf '%s\n' 'Evidence artifact produced; Production/Public/G5 remain HOLD pending separate exact artifact certification, protected executor consumption, and explicit release.'
+
+      - name: Emit durable terminal receipt
+        id: emit_terminal
+        if: ${{ always() }}
+        shell: bash
+        env:
+          KIDULTS_JOB_STATUS: ${{ job.status }}
+          KIDULTS_VERIFY_DISPATCH_OUTCOME: ${{ steps.verify_dispatch.outcome }}
+          KIDULTS_CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          KIDULTS_VERIFY_BOUNDARIES_OUTCOME: ${{ steps.verify_boundaries.outcome }}
+          KIDULTS_SEAL_OUTCOME: ${{ steps.seal.outcome }}
+          KIDULTS_EVIDENCE_UPLOAD_OUTCOME: ${{ steps.upload_evidence.outcome }}
+          KIDULTS_HOLD_OUTCOME: ${{ steps.preserve_hold.outcome }}
+        run: |
+          set -euo pipefail
+          TERMINAL_DIR="$RUNNER_TEMP/kidults-production-release-evidence-terminal"
+          install -d -m 0700 "$TERMINAL_DIR"
+          node --input-type=module - "$TERMINAL_DIR/terminal-receipt-v1.json" <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const output = process.argv[2];
+          const required = (name, pattern) => {
+            const value = String(process.env[name] ?? '');
+            if (!pattern.test(value)) throw new Error(`TERMINAL_FIELD_INVALID:${name}`);
+            return value;
+          };
+          const outcome = name => required(name, /^(success|failure|cancelled|skipped)$/);
+          const jobStatus = required('KIDULTS_JOB_STATUS', /^(success|failure|cancelled)$/);
+          const receipt = {
+            id: 'KIDULTS_PRODUCTION_RELEASE_EVIDENCE_TERMINAL_RECEIPT_V1',
+            version: '1.0.0',
+            state: jobStatus === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            repository: required('GITHUB_REPOSITORY', /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/),
+            workflow_path: '.github/workflows/kidults-production-release-evidence-v1.yml',
+            workflow_ref: required('GITHUB_WORKFLOW_REF', /^.{1,512}$/),
+            source_sha: required('GITHUB_SHA', /^[0-9a-f]{40}$/),
+            run_id: required('GITHUB_RUN_ID', /^[1-9][0-9]*$/),
+            run_attempt: Number(required('GITHUB_RUN_ATTEMPT', /^[1-9][0-9]*$/)),
+            event_name: required('GITHUB_EVENT_NAME', /^workflow_dispatch$/),
+            ref: required('GITHUB_REF', /^refs\/heads\/main$/),
+            job_status: jobStatus,
+            step_outcomes: {
+              verify_dispatch: outcome('KIDULTS_VERIFY_DISPATCH_OUTCOME'),
+              checkout: outcome('KIDULTS_CHECKOUT_OUTCOME'),
+              verify_boundaries: outcome('KIDULTS_VERIFY_BOUNDARIES_OUTCOME'),
+              seal: outcome('KIDULTS_SEAL_OUTCOME'),
+              upload_evidence: outcome('KIDULTS_EVIDENCE_UPLOAD_OUTCOME'),
+              preserve_hold: outcome('KIDULTS_HOLD_OUTCOME')
+            },
+            sealed_evidence_published: process.env.KIDULTS_EVIDENCE_UPLOAD_OUTCOME === 'success',
+            production_mutation_executed: false,
+            certification_state: 'HOLD',
+            production_authority: 'HARD_DISABLED',
+            public_release: 'HOLD',
+            g5: 'EXPLICIT_APPROVAL_REQUIRED'
+          };
+          fs.writeFileSync(output, `${JSON.stringify(receipt, null, 2)}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+          const metadata = fs.statSync(output, { bigint: false });
+          if (!metadata.isFile() || (metadata.mode & 0o777) !== 0o600) throw new Error('TERMINAL_RECEIPT_MODE');
+          if (path.basename(output) !== 'terminal-receipt-v1.json') throw new Error('TERMINAL_RECEIPT_BASENAME');
+          NODE
+
+      - name: Upload durable terminal receipt
+        id: upload_terminal
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-production-release-evidence-terminal-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: ${{ runner.temp }}/kidults-production-release-evidence-terminal/terminal-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+          overwrite: false

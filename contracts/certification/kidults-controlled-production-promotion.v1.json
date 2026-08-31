@@ -10,7 +10,11 @@
     "certification_state": "HOLD",
     "production_authority": "HARD_DISABLED",
     "must_be_landed_on_protected_main_before_evidence_runs": true,
-    "repository_internal_controls_do_not_substitute_for_producer_execution": true
+    "repository_internal_controls_do_not_substitute_for_producer_execution": true,
+    "terminal_receipt_required_on_success_failure_or_cancellation": true,
+    "terminal_receipt_exact_run_attempt_source_sha_binding_required": true,
+    "terminal_receipt_contains_evidence_or_authority_material": false,
+    "missing_or_ambiguous_terminal_receipt_is": "HOLD_NON_CERTIFIABLE"
   },
   "technical_readiness": {
     "required_tier": "BETA_RELIABILITY",
