@@ -1,19 +1,19 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
-  "status": "NOT_AUTHORIZED_PENDING_EXPLICIT_EXTERNAL_MUTATION_APPROVAL",
-  "authorized_by": "NONE",
-  "authorization_receipt": null,
+  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION",
+  "authorized_by": "PROGRAM_OWNER",
+  "authorization_receipt": "PROGRAM_OWNER_EXPLICIT_CHAT_APPROVAL_2026-08-31_NONPROD_WORKERS_SHADOW_MINIMUM_CREDENTIAL_NO_PRODUCTION_ROUTE_NO_CUSTOM_DOMAIN",
   "authorized_scope": {
     "service": "kidults-public-portal-shadow",
-    "deployment_count_max": 0,
+    "deployment_count_max": 1,
     "target": "workers_dev_non_production_only",
     "production_routes_allowed": false,
     "custom_domains_allowed": false,
     "production_public_g5_promotion_allowed": false,
-    "credential_scope": "NONE_UNTIL_EXPLICIT_APPROVAL"
+    "credential_scope": "MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
   },
   "source_branch": "codex/cloudflare-pages-to-workers-migration-v1",
-  "source_head_before_execution": null,
+  "source_head_before_execution": "TO_BE_BOUND_TO_EXACT_MAIN_AT_EXECUTION",
   "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
   "required_preflight": [
     "EXPLICIT_EXTERNAL_MUTATION_APPROVAL_RECEIPT",
@@ -35,7 +35,6 @@
   ],
   "replay": "FORBIDDEN_AFTER_FIRST_SUCCESSFUL_PROVIDER_DEPLOYMENT_ATTEMPT",
   "authority_excludes": [
-    "PROVIDER_ACTIVATION_WITHOUT_EXPLICIT_APPROVAL",
     "PRODUCTION_ROUTE",
     "CUSTOM_DOMAIN",
     "PUBLIC_RELEASE",
