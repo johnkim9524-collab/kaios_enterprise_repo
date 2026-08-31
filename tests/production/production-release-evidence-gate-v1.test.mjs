@@ -2027,7 +2027,7 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     workflow.replace('test "$GITHUB_RUN_ATTEMPT" = 1', 'true'),
     workflow.replace('persist-credentials: false', 'persist-credentials: true'),
     workflow.replace('runs-on: [self-hosted, linux, x64, kidults-production-evidence]', 'runs-on: ubuntu-24.04'),
-    workflow.replace('overwrite: false', 'overwrite: true'),
+    workflow.replaceAll('overwrite: false', 'overwrite: true'),
   ];
   const guards = [
     'test "$GITHUB_REF" = refs/heads/main',
@@ -2094,6 +2094,7 @@ const assertProductionEvidenceTerminalInvariant = (raw) => {
   assert.match(upload, /kidults-production-release-evidence-terminal\/terminal-receipt-v1\.json/);
   assert.match(upload, /if-no-files-found: error/);
   assert.match(upload, /overwrite: false/);
+  assert.equal((raw.match(/overwrite: false/g) ?? []).length, 2);
   assert.doesNotMatch(emit, /KIDULTS_EVIDENCE_INTAKE|KIDULTS_ARCHIVE_ROOT|GITHUB_TOKEN|program-owner-ed25519|private[_-]?key|credential/i);
   assert.doesNotMatch(upload, /kidults-production-release-evidence\.tar\.gz(?:\s|$)/);
 };
