@@ -123,11 +123,11 @@ jobs:
           const start = builder.indexOf("const requiredCanonicalCodeInputs");
           const end = builder.indexOf("const requiredApprovedCalibrationStrata");
           if (start < 0 || end <= start) throw new Error("REQUIRED_INPUT_REGISTRY_NOT_FOUND");
-          const required = [...builder.slice(start, end).matchAll(/:\\s*"([^"]+)"/g)].map(match => match[1]);
+          const required = [...builder.slice(start, end).matchAll(/:\s*"([^"]+)"/g)].map(match => match[1]);
           const pullStart = workflow.indexOf("  pull_request:");
           const dispatchStart = workflow.indexOf("\n  workflow_dispatch:");
           if (pullStart < 0 || dispatchStart <= pullStart) throw new Error("PULL_REQUEST_TRIGGER_NOT_FOUND");
-          const patterns = [...workflow.slice(pullStart, dispatchStart).matchAll(/-\\s+"([^"]+)"/g)].map(match => match[1]);
+          const patterns = [...workflow.slice(pullStart, dispatchStart).matchAll(/-\s+"([^"]+)"/g)].map(match => match[1]);
           const covered = (pattern, input) => pattern.endsWith("/**")
             ? input.startsWith(pattern.slice(0, -3))
             : pattern === input;
