@@ -15,6 +15,7 @@ assert(receipt.authority?.future_external_communication_authorized === false, 'F
 assert(receipt.authority?.automatic_followup_authorized === false, 'AUTOMATIC_FOLLOWUP_FORBIDDEN');
 assert(receipt.authorization_provenance?.state === 'NOT_MACHINE_PROVEN', 'BASE_AUTHORIZATION_PROVENANCE_MUST_FAIL_CLOSED');
 assert(receipt.authorization_provenance?.evidence_class === 'POST_SEND_EXECUTION_RECEIPT_ONLY', 'BASE_EVIDENCE_CLASS_INVALID');
+assert(receipt.authorization_provenance?.execution_fact_machine_proven_by_this_repository_artifact === false, 'BASE_EXECUTION_FACT_MUST_NOT_SELF_PROVE');
 assert(receipt.authorization_provenance?.independently_issued_pre_send_authorization_receipt === null, 'BASE_UNPROVEN_EXTERNAL_RECEIPT_MUST_BE_NULL');
 assert(receipt.authorization_provenance?.candidate_branch_self_attestation_is_authorization_proof === false, 'BASE_SELF_ATTESTATION_MUST_NOT_AUTHORIZE');
 assert(receipt.authorization_provenance?.post_send_receipt_can_retroactively_create_authority === false, 'BASE_POST_HOC_AUTHORITY_FORBIDDEN');
@@ -63,6 +64,7 @@ assert(supplement.authority?.one_time_authority_consumed_for_this_message === tr
 assert(supplement.authority?.future_external_communication_authorized === false, 'SUPPLEMENT_FUTURE_OUTBOUND_MUST_RELOCK');
 assert(supplement.authorization_provenance?.state === 'NOT_MACHINE_PROVEN', 'SUPPLEMENT_AUTHORIZATION_PROVENANCE_MUST_FAIL_CLOSED');
 assert(supplement.authorization_provenance?.evidence_class === 'POST_SEND_EXECUTION_RECEIPT_ONLY', 'SUPPLEMENT_EVIDENCE_CLASS_INVALID');
+assert(supplement.authorization_provenance?.execution_fact_machine_proven_by_this_repository_artifact === false, 'SUPPLEMENT_EXECUTION_FACT_MUST_NOT_SELF_PROVE');
 assert(supplement.authorization_provenance?.independently_issued_pre_send_authorization_receipt === null, 'SUPPLEMENT_UNPROVEN_EXTERNAL_RECEIPT_MUST_BE_NULL');
 assert(supplement.authorization_provenance?.candidate_branch_self_attestation_is_authorization_proof === false, 'SUPPLEMENT_SELF_ATTESTATION_MUST_NOT_AUTHORIZE');
 assert(supplement.authorization_provenance?.post_send_receipt_can_retroactively_create_authority === false, 'SUPPLEMENT_POST_HOC_AUTHORITY_FORBIDDEN');
@@ -101,7 +103,7 @@ assert(supplement.cumulative_execution_summary?.g5 === 'EXPLICIT_APPROVAL_REQUIR
 process.stdout.write(`${JSON.stringify({
   receipt_id: receipt.id,
   supplement_id: supplement.id,
-  state: 'VERIFIED_EXECUTION_ONLY_AUTHORITY_NOT_MACHINE_PROVEN',
+  state: 'RECORDED_POST_SEND_RECEIPT_AUTHORITY_AND_EXECUTION_NOT_MACHINE_PROVEN',
   authorization_provenance: receipt.authorization_provenance.state,
   promotable: false,
   repository: process.env.GITHUB_REPOSITORY || null,
