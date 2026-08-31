@@ -6,6 +6,7 @@
   "scope": "ALL_AI_AGENTS_AND_AUTOMATIONS",
   "prerequisite_contract_path": "coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json",
   "autonomous_role_contract_path": "coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json",
+  "track_job_description_contract_path": "coordination/kidults/governance/track-abcdez-job-description-contract-v1.json",
   "github_bootstrap_receipt_required": true,
   "required_precondition_state": "BOOTSTRAP_VERIFIED",
   "bootstrap_receipt_state_before_independent_verification": "BOOTSTRAP_PREREQUISITES_SATISFIED",
@@ -31,6 +32,7 @@
     "TRACK_C": true,
     "TRACK_D": true,
     "TRACK_E": true,
+    "TRACK_Z": true,
     "RED_TEAM": true,
     "ASI": true,
     "CODING_AGENTS": true,
@@ -62,6 +64,7 @@
     "EXTERNAL_SPEND",
     "CONTRACTUAL_COMMITMENT",
     "EXPANDED_CREDENTIAL_OR_PERMISSION",
+    "PROVIDER_ACTIVATION_REQUIRING_SEPARATE_AUTHORITY",
     "MISSING_REQUIRED_TOOL_OR_PERMISSION"
   ],
   "stop_condition_behavior": "FAIL_CLOSED_AND_REPORT_EXACT_BLOCKER_WITH_UNBLOCK_CONDITION",
@@ -81,8 +84,9 @@
     "known_internally_solvable_defect_left_open_without_active_remediation": "P1_OPERATING_DEFECT",
     "repeated_human_prompt_required_for_normal_internal_fix": "P1_OPERATING_DEFECT",
     "material_strategy_implication_ignored": "P1_OPERATING_DEFECT",
+    "track_job_description_missing_weakened_or_bypassed": "P0_GOVERNANCE_DEFECT",
     "autonomous_role_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT"
   },
   "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING",
-  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate. The separately required Autonomous Role contract carries strategic stewardship and provider-activation boundaries without changing this versioned execution sequence."
+  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate. Autonomous Role and Track ABCDEZ JD contracts must load before applicable task execution."
 }
