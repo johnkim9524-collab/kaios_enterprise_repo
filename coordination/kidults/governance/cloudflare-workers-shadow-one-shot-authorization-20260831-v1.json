@@ -1,0 +1,88 @@
+{
+  "id": "CF-WORKERS-SHADOW-20260831-01",
+  "version": "1.0.0",
+  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "authorized_by": {
+    "github_login": "johnkim9524-collab",
+    "author_association": "OWNER"
+  },
+  "authorization_receipt": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "issue_number": 1702,
+    "comment_id": 5480203136,
+    "comment_node_id": "IC_kwDOTF-G-M8AAAABRqVDgA",
+    "api_url": "https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/comments/5480203136",
+    "html_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1702#issuecomment-5480203136",
+    "created_at": "2026-08-31T15:00:24Z",
+    "updated_at": "2026-08-31T15:00:24Z",
+    "performed_via_github_app": "chatgpt-codex-connector",
+    "body_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01.md",
+    "verification": "FETCH_EXACT_COMMENT_ID_AND_MATCH_METADATA_AND_BODY_BEFORE_PROVIDER_SECRET_RESOLUTION"
+  },
+  "authorized_scope": {
+    "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml",
+    "trigger": "workflow_dispatch",
+    "source_ref": "refs/heads/main",
+    "service": "kidults-public-portal-shadow",
+    "target": "workers_dev_non_production_only",
+    "dispatch_count_max": 1,
+    "provider_deployment_attempt_count_max": 1,
+    "authorization_consumed_on": "FIRST_WORKFLOW_DISPATCH_PASS_OR_FAIL",
+    "production_routes_allowed": false,
+    "custom_domains_allowed": false,
+    "pages_delete_allowed": false,
+    "pages_domain_detach_allowed": false,
+    "public_promotion_allowed": false,
+    "production_promotion_allowed": false,
+    "g5_promotion_allowed": false,
+    "external_spend_allowed": false,
+    "contract_change_allowed": false,
+    "new_credential_creation_allowed": false,
+    "credential_scope_expansion_allowed": false,
+    "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+  },
+  "clean_recut": {
+    "source_base_main_sha": "ffac1b93492704f57f6125ef67e9b83336083840",
+    "source_branch": "kpmo/cloudflare-workers-shadow-approved-clean-v1",
+    "prohibited_history_source": "codex/cloudflare-pages-to-workers-migration-v1",
+    "execution_sha_binding": "LIVE_PROTECTED_MAIN_SHA_AT_DISPATCH"
+  },
+  "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
+  "required_preflight": [
+    "UNIQUE_FIRST_MAIN_WORKFLOW_DISPATCH",
+    "GITHUB_RUN_ATTEMPT_ONE",
+    "EXACT_CURRENT_MAIN_SHA",
+    "EXACT_EXTERNAL_APPROVAL_COMMENT_METADATA_AND_BODY",
+    "WORKER_NAME_EXACT",
+    "WORKERS_DEV_TRUE",
+    "PREVIEW_URLS_FALSE",
+    "PRODUCTION_ROUTES_ZERO",
+    "CUSTOM_DOMAINS_ZERO",
+    "PORTAL_ASSET_SOURCE_EXACT",
+    "WRANGLER_EXACT_LOCK_4_127_1",
+    "STATIC_VALIDATOR_PASS"
+  ],
+  "required_postflight": [
+    "DEPLOYMENT_TERMINAL_SUCCESS",
+    "WORKERS_DEV_URL_CAPTURED",
+    "WORKERS_DEV_HTTP_200_READBACK",
+    "NONEMPTY_HTML_BODY_READBACK",
+    "NO_PRODUCTION_ROUTE_OR_CUSTOM_DOMAIN_CREATED_BY_CONFIG",
+    "SANITIZED_RUN_SHA_ATTEMPT_RECEIPT",
+    "PUBLIC_PRODUCTION_G5_HOLD"
+  ],
+  "replay": "FORBIDDEN_AFTER_FIRST_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
+  "authority_excludes": [
+    "SECOND_DISPATCH_OR_RERUN",
+    "PRODUCTION_ROUTE",
+    "CUSTOM_DOMAIN",
+    "PUBLIC_RELEASE",
+    "PRODUCTION_APPROVAL",
+    "G5",
+    "PAGES_DELETE",
+    "PAGES_DOMAIN_DETACH",
+    "SPEND_OR_CONTRACT_EXPANSION",
+    "NEW_CREDENTIAL_OR_SCOPE_EXPANSION",
+    "UNRELATED_PROVIDER_MUTATION"
+  ]
+}
