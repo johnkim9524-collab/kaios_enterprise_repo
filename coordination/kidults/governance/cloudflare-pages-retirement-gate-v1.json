@@ -1,0 +1,41 @@
+{
+  "id": "kidults-cloudflare-pages-retirement-gate-v1",
+  "version": "1.0.0",
+  "status": "FAIL_CLOSED_RETIREMENT_GATE",
+  "owner": "KPMO",
+  "legacy_surface": "CLOUDFLARE_PAGES",
+  "required_before_delete": [
+    "WORKERS_TARGET_DOMAIN_SERVING",
+    "POST_CUTOVER_SMOKE_PASS",
+    "OBSERVATION_WINDOW_PASS",
+    "ROLLBACK_READINESS_CONFIRMED",
+    "ZERO_REQUIRED_CALLERS",
+    "ZERO_REQUIRED_ROUTES",
+    "CUSTOM_DOMAIN_DETACHED_FROM_PAGES",
+    "PAGES_FUNCTIONS_AND_BINDINGS_ZERO_OR_MIGRATED",
+    "AUDIT_EVIDENCE_PRESERVED",
+    "INDEPENDENT_CLOUDFLARE_READBACK"
+  ],
+  "hard_fail": [
+    "UNKNOWN_CALLER",
+    "UNKNOWN_ROUTE",
+    "UNKNOWN_DOMAIN_BINDING",
+    "UNKNOWN_FUNCTION_BINDING",
+    "FAILED_WORKERS_SMOKE",
+    "ACTIVE_ROLLBACK_DEPENDENCY_ON_PAGES",
+    "OBSERVATION_INCOMPLETE"
+  ],
+  "retirement_receipt": [
+    "legacy_project_identity",
+    "replacement_worker_identity",
+    "cutover_deployment_id",
+    "domain_route_readback",
+    "zero_dependency_proof_digest",
+    "observation_receipt_digest",
+    "audit_preservation_digest",
+    "provider_delete_readback",
+    "terminal_state"
+  ],
+  "rule": "DELETE_IS_LAST_OPERATION_AFTER_ZERO_DEPENDENCY_PROOF",
+  "production_public_g5": "HOLD_UNLESS_SEPARATELY_AUTHORIZED"
+}
