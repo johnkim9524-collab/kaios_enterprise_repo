@@ -373,12 +373,13 @@ conditional_envelope = assessor.build_hold_assessment_envelope(
 check(conditional_envelope["assessment"]["assessment_status"] == "COMPLETED", "Track B HOLD assessment was not completed")
 check(conditional_envelope["assessment"]["recommendation"] == "CONDITIONAL", "Track B HOLD recommendation mismatch")
 check(conditional_envelope["assessment"]["overall_rankability"] is False, "conditional event was promoted")
+check(conditional_envelope["promotable"] is False, "conditional HOLD envelope was marked promotable")
 check(conditional_envelope["assessment"]["quantitative_summary"]["admitted_current_sold_count"] == 0, "ORDER_FULFILLED was relabeled SOLD")
 check(conditional_envelope["assessment"]["test_results"]["sold_claim"] == "FALSE", "sold_claim ceiling was lost")
 expect_rejection(
     "conditional-replay-forbidden",
     lambda: replay_builder.build_replay_receipt(conditional_snapshot, conditional_evidence, conditional_envelope),
-    "ASSESSMENT_NOT_RANKABLE",
+    "ASSESSMENT_NON_PROMOTABLE",
 )
 
 bad_envelope = copy.deepcopy(envelope)
