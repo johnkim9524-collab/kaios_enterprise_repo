@@ -22,6 +22,7 @@ function violations(text) {
     'producer_run_id:run.id',
     'producer_head_sha:run.head_sha',
     'consumer_execution_sha:process.env.GITHUB_SHA',
+    'const prHeadSha=process.env.PR_HEAD_SHA;',
     'consumer_pr_head_sha:prHeadSha',
     "correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC'",
     'artifact_id:artifact.id',
@@ -67,6 +68,7 @@ if (pristine.length) {
 
 const mutations = [
   ['DROP_EXECUTION_SHA', t => t.replace("run.head_sha===expectedSha&&\n", '')],
+  ['DROP_PR_HEAD_DECLARATION', t => t.replace('const prHeadSha=process.env.PR_HEAD_SHA;', '')],
   ['DROP_PR_HEAD_IDENTITY', t => t.replace('consumer_pr_head_sha:prHeadSha,', '')],
   ['CHANGE_CORRELATION_CONTRACT', t => t.replace("correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC'", "correlation_contract:'UNBOUND'")],
   ['DROP_REPOSITORY_BINDING', t => t.replace("run.repository?.full_name===repository&&\n", '')],
