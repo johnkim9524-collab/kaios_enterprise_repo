@@ -64,6 +64,7 @@ if (role.bootstrap_requirement?.missing_or_invalid_contract_behavior !== 'REJECT
 
 if (seq.autonomous_role_contract_path !== rolePath) fail('SEQUENCE_ROLE_PATH');
 if (seq.track_job_description_contract_path !== trackJdPath) fail('SEQUENCE_TRACK_JD_PATH');
+if (seq.integrated_strategy_contract_path !== strategyPath) fail('SEQUENCE_STRATEGY_PATH');
 if (seq.bootstrap_must_load_before_task_execution !== true) fail('SEQUENCE_BOOTSTRAP_ORDER');
 if (seq.report_only_before_remediation_allowed !== false) fail('SEQUENCE_REPORT_ONLY');
 if (seq.repeated_human_prompting_required !== false) fail('SEQUENCE_REPEATED_PROMPT');
@@ -84,14 +85,17 @@ if (seq.version !== '1.2.0') fail('SEQUENCE_VERSION_COMPATIBILITY');
 if (seq.strategic_stewardship?.intelligence_holdings_group_future_strategy_required !== true) fail('SEQUENCE_GROUP_STRATEGY_LINK');
 if (seq.strategic_stewardship?.vertical_future_strategy_required_when_affected !== true) fail('SEQUENCE_VERTICAL_STRATEGY_LINK');
 if (seq.strategic_stewardship?.current_improvement_proposal_required !== true) fail('SEQUENCE_IMPROVEMENT_LINK');
+if (seq.strategic_stewardship?.integrated_product_customer_platform_provider_internalization_strategy_required_when_material !== true) fail('SEQUENCE_INTEGRATED_STRATEGY_LINK');
 if (!seq.stop_conditions?.includes('PROVIDER_ACTIVATION_REQUIRING_SEPARATE_AUTHORITY')) fail('SEQUENCE_PROVIDER_ACTIVATION_GATE');
 
 if (trackJd.id !== 'kidults-track-abcdez-job-description-contract-v1') fail('TRACK_JD_ID');
 if (trackJd.status !== 'MANDATORY_FAIL_CLOSED') fail('TRACK_JD_STATUS');
+if (trackJd.integrated_strategy_contract_path !== strategyPath) fail('TRACK_JD_STRATEGY_PATH');
 if (JSON.stringify(trackJd.platform_principles) !== JSON.stringify(expectedPrinciples)) fail('TRACK_JD_PRINCIPLES');
 if (trackJd.common_role_contract?.autonomous_fix_first_required !== true) fail('TRACK_JD_FIX_FIRST');
 if (trackJd.common_role_contract?.report_only_while_fix_executable !== 'FORBIDDEN') fail('TRACK_JD_REPORT_ONLY');
 if (trackJd.bootstrap_requirement?.must_load_before_track_task_execution !== true) fail('TRACK_JD_PRELOAD');
+if (trackJd.bootstrap_requirement?.integrated_strategy_contract_required_for_material_strategy_tasks !== true) fail('TRACK_JD_STRATEGY_PRELOAD');
 const tracks = ['TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','TRACK_Z'];
 for (const key of tracks) {
   const t = trackJd.tracks?.[key];
@@ -101,9 +105,13 @@ for (const key of tracks) {
   if (!Array.isArray(t?.required_outputs) || t.required_outputs.length < 3) fail(`TRACK_JD_OUTPUTS:${key}`);
   if (!t?.success_definition) fail(`TRACK_JD_SUCCESS:${key}`);
 }
+if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('PRODUCT_STRATEGY')) fail('TRACK_E_PRODUCT_STRATEGY');
+if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('CUSTOMER_STRATEGY')) fail('TRACK_E_CUSTOMER_STRATEGY');
+if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('PLATFORM_STRATEGY')) fail('TRACK_E_PLATFORM_STRATEGY');
 if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY')) fail('TRACK_E_GROUP_STRATEGY');
 if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('VERTICAL_AND_BRAND_FUTURE_STRATEGY')) fail('TRACK_E_VERTICAL_STRATEGY');
 if (!trackJd.tracks?.TRACK_Z?.accountabilities?.includes('PROVIDER_DISCOVERY_AND_PORTFOLIO_STRATEGY')) fail('TRACK_Z_PROVIDER_STRATEGY');
+if (!trackJd.tracks?.TRACK_Z?.accountabilities?.includes('INTERNALIZATION_CANDIDATE_IDENTIFICATION')) fail('TRACK_Z_INTERNALIZATION');
 if (trackJd.cross_track_failure_rules?.downstream_may_not_promote_when_upstream_authority_is_red_unknown_or_hold !== true) fail('TRACK_HANDOFF_FAIL_CLOSED');
 
 if (strategy.id !== 'ih-integrated-product-customer-platform-provider-internalization-strategy-v1') fail('STRATEGY_ID');
