@@ -1,23 +1,39 @@
 {
   "id": "kidults-cloudflare-workers-shadow-v2-execution-contract-v1",
   "version": "1.0.0",
-  "status": "PENDING_EXPLICIT_PROGRAM_OWNER_EXTERNAL_MUTATION_APPROVAL",
+  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
   "owner": "KPMO",
   "approval_id": "CF-WORKERS-SHADOW-20260901-02",
   "approval_issue": 1711,
   "prepared_from_protected_main_sha": "8d4a89b81d523f533ded56eae7c9a0617d158866",
   "authorization": {
-    "authorized": false,
-    "authorized_by": null,
-    "authorization_receipt": null,
+    "authorized": true,
+    "authorization_record": "coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json",
+    "authorized_by": {
+      "github_login": "johnkim9524-collab",
+      "author_association": "OWNER"
+    },
+    "authorization_receipt": {
+      "repository": "johnkim9524-collab/kaios_enterprise_repo",
+      "issue_number": 1711,
+      "comment_id": 5481462895,
+      "comment_node_id": "IC_kwDOTF-G-M8AAAABRrh8bw",
+      "api_url": "https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/comments/5481462895",
+      "html_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895",
+      "created_at": "2026-08-31T16:43:16Z",
+      "updated_at": "2026-08-31T16:43:16Z",
+      "performed_via_github_app": "chatgpt-codex-connector",
+      "body_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md",
+      "verification": "FETCH_EXACT_COMMENT_ID_AND_MATCH_METADATA_AND_BODY_BEFORE_PROVIDER_SECRET_RESOLUTION"
+    },
     "self_attestation_allowed": false,
     "issue_creation_is_authority": false,
     "merge_is_authority": false,
     "workflow_dispatch_is_authority": false
   },
-  "proposed_scope": {
+  "authorized_scope": {
     "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
-    "trigger": "workflow_dispatch_only",
+    "trigger": "workflow_dispatch",
     "source_ref": "refs/heads/main",
     "service": "kidults-public-portal-shadow",
     "target": "workers_dev_non_production_only",
@@ -39,20 +55,23 @@
   },
   "implementation_state": {
     "approval_ready_internal_contract": true,
-    "materialized_secret_bearing_workflow_present": false,
-    "secret_registry_mutated_for_v2": false,
-    "provider_mutation_authorized": false,
+    "materialized_secret_bearing_workflow_present": true,
+    "secret_registry_mutated_for_v2": true,
+    "provider_mutation_authorized": true,
     "provider_mutation_executed": false,
     "cloudflare_mutation_count": 0
   },
-  "required_before_materializing_v2_lane": [
-    "EXPLICIT_PROGRAM_OWNER_APPROVAL_COMMENT_BOUND_TO_ISSUE_1711_AND_APPROVAL_ID",
-    "IMMUTABLE_COMMENT_ID_NODE_ID_OWNER_ASSOCIATION_TIMESTAMPS_URL_AND_BODY",
-    "AUTHORIZED_SCOPE_MATCHES_THIS_CONTRACT_EXACTLY",
+  "required_before_execution": [
+    "EXACT_PROGRAM_OWNER_APPROVAL_COMMENT_METADATA_AND_BODY",
     "NEW_VERSIONED_WORKFLOW_PATH",
+    "CANONICAL_RECEIPT_UNDER_RUNNER_TEMP",
+    "PROVIDER_ATTEMPT_MARKER_IMMEDIATELY_BEFORE_WRANGLER",
+    "TRUTHFUL_ALWAYS_FINALIZER",
     "ATOMIC_SECRET_REGISTRY_UPDATE",
     "EXACT_HEAD_REQUIRED_CHECKS_GREEN",
-    "GOVERNED_LANDING_TO_PROTECTED_MAIN"
+    "GOVERNED_LANDING_TO_PROTECTED_MAIN",
+    "UNIQUE_FIRST_MAIN_V2_WORKFLOW_DISPATCH",
+    "LIVE_PROTECTED_MAIN_SHA_MATCH_BEFORE_PROVIDER_SECRET_STEP"
   ],
   "receipt_lifetime": {
     "contract": "coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json",

@@ -1,12 +1,13 @@
 {
   "id": "kidults-cloudflare-workers-shadow-v2-workflow-spec-v1",
   "version": "1.0.0",
-  "status": "APPROVAL_READY_NON_EXECUTABLE_SPEC",
+  "status": "AUTHORIZED_EXECUTABLE_ONE_SHOT_PENDING_GOVERNED_LANDING",
   "approval_id": "CF-WORKERS-SHADOW-20260901-02",
   "approval_issue": 1711,
+  "authorization_record": "coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json",
   "materialized_workflow_path": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
-  "materialized_workflow_present": false,
-  "provider_mutation_authorized": false,
+  "materialized_workflow_present": true,
+  "provider_mutation_authorized": true,
   "trigger": [
     "workflow_dispatch"
   ],
@@ -29,8 +30,8 @@
   },
   "ordered_steps": [
     "Initialize canonical runner-temp receipt",
-    "Verify live main before provider credential resolution",
     "Consume unique first v2 authorization",
+    "Verify live main before provider credential resolution",
     "Checkout exact execution SHA",
     "Verify exact Program Owner v2 approval receipt",
     "Set up governed Node",
@@ -55,11 +56,11 @@
   },
   "always_finalizer": {
     "required": true,
-    "missing_receipt_without_provider_marker": {
+    "missing_or_invalid_receipt_without_provider_marker": {
       "provider_mutation_attempted": false,
       "state": "VERIFIED_FAIL_PRE_PROVIDER_RECEIPT_RECOVERED"
     },
-    "missing_receipt_with_provider_marker": {
+    "missing_or_invalid_receipt_with_provider_marker": {
       "provider_mutation_attempted": "UNKNOWN_REQUIRES_PROVIDER_READBACK",
       "state": "VERIFIED_FAIL_POST_PROVIDER_ATTEMPT_RECEIPT_RECOVERED"
     },
@@ -91,7 +92,7 @@
     "WORKSPACE_SCOPED_CANONICAL_RECEIPT",
     "PRODUCTION_ROUTE",
     "CUSTOM_DOMAIN",
-    "PAGES_DELETE",
+    "PAGES_DELETE_OR_DOMAIN_DETACH",
     "PUBLIC_PROMOTION",
     "PRODUCTION_PROMOTION",
     "G5_PROMOTION",
