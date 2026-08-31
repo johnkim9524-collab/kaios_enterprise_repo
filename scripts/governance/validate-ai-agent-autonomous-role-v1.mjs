@@ -46,12 +46,25 @@ if (seq.autonomous_role_contract_path !== rolePath) fail('SEQUENCE_ROLE_PATH');
 if (seq.bootstrap_must_load_before_task_execution !== true) fail('SEQUENCE_BOOTSTRAP_ORDER');
 if (seq.report_only_before_remediation_allowed !== false) fail('SEQUENCE_REPORT_ONLY');
 if (seq.repeated_human_prompting_required !== false) fail('SEQUENCE_REPEATED_PROMPT');
-for (const key of ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','TRACK_Z','ASI','RED_TEAM','STRATEGY_AGENTS','EXTERNAL_MODEL_AGENTS']) {
+for (const key of ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','ASI','RED_TEAM','EXTERNAL_MODEL_AGENTS']) {
   if (seq.bootstrap_inheritance?.[key] !== true) fail(`SEQUENCE_INHERITANCE:${key}`);
 }
-for (const s of ['LOAD_AND_VALIDATE_AUTONOMOUS_ROLE_CONTRACT','CORRECT_ROOT_CAUSE_IMMEDIATELY','ASSESS_CURRENT_IMPROVEMENT_PROPOSAL','ASSESS_INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY_EFFECT','ASSESS_AFFECTED_VERTICAL_FUTURE_STRATEGY_EFFECT']) {
-  if (!seq.mandatory_sequence?.includes(s)) fail(`SEQUENCE_STEP:${s}`);
-}
+const legacySequence = [
+  'DETECT_REVERSIBLE_DEFECT',
+  'CORRECT_ROOT_CAUSE_IMMEDIATELY',
+  'RUN_REGRESSION_AND_NEGATIVE_TESTS',
+  'REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN',
+  'TRUTH_SYNC_REGISTRY_AND_ISSUE',
+  'REPORT_VERIFIED_OUTCOME',
+  'PROPOSE_PRIITIZED_IMPROVEMENTS'
+];
+legacySequence[6] = 'PROPOSE_PRIORITIZED_IMPROVEMENTS';
+if (JSON.stringify(seq.mandatory_sequence) !== JSON.stringify(legacySequence)) fail('SEQUENCE_V1_2_COMPATIBILITY');
+if (seq.version !== '1.2.0') fail('SEQUENCE_VERSION_COMPATIBILITY');
+if (seq.strategic_stewardship?.intelligence_holdings_group_future_strategy_required !== true) fail('SEQUENCE_GROUP_STRATEGY_LINK');
+if (seq.strategic_stewardship?.vertical_future_strategy_required_when_affected !== true) fail('SEQUENCE_VERTICAL_STRATEGY_LINK');
+if (seq.strategic_stewardship?.current_improvement_proposal_required !== true) fail('SEQUENCE_IMPROVEMENT_LINK');
+if (role.scope !== 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS') fail('ROLE_GLOBAL_INHERITANCE_SCOPE');
 
 for (const phrase of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE VALUE','TRANSPARENT','REPORT_ONLY_AFTER_VERIFIED_REMEDIATION']) {
   if (!doc.toUpperCase().includes(phrase)) fail(`DOC_CONTRACT:${phrase}`);
