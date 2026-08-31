@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "amended_at": "2026-09-01T00:00:00Z",
   "parent_issues": [1166,1153,952,945,951],
-  "objective": "NEGOTIATE_ONLY_NON_INTERNALIZABLE_FACTS_AND_REQUIRED_RIGHTS_THROUGH_WRITTEN_EMAIL_ONLY",
+  "objective": "NEGOTIATE_ONLY_NON_INTERNALIZABLE_FACTS_AND_REQUIRED_RIGHTS",
   "required_order": [
     "company_product_analysis",
     "external_fact_vs_internalizable_split",
