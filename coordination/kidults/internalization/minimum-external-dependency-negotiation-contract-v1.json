@@ -1,7 +1,9 @@
 {
   "contract_id": "KIDULTS_MINIMUM_EXTERNAL_DEPENDENCY_NEGOTIATION_V1",
+  "version": "1.1.0",
+  "amended_at": "2026-09-01T00:00:00Z",
   "parent_issues": [1166,1153,952,945,951],
-  "objective": "NEGOTIATE_ONLY_NON_INTERNALIZABLE_FACTS_AND_REQUIRED_RIGHTS",
+  "objective": "NEGOTIATE_ONLY_NON_INTERNALIZABLE_FACTS_AND_REQUIRED_RIGHTS_THROUGH_WRITTEN_EMAIL_ONLY",
   "required_order": [
     "company_product_analysis",
     "external_fact_vs_internalizable_split",
@@ -11,7 +13,7 @@
     "rights_requirements",
     "termination_and_portability",
     "economics",
-    "written_negotiation"
+    "written_email_only_negotiation"
   ],
   "rights_requirements": [
     "private_storage",
@@ -34,12 +36,30 @@
     "provider_switching_control",
     "historical_learning_control"
   ],
+  "communication_policy": {
+    "negotiation_channel": "WRITTEN_EMAIL_ONLY",
+    "program_owner_native_language": "NOT_ENGLISH",
+    "phone_voice_video_calls_available": false,
+    "call_as_prerequisite": "REJECT",
+    "call_after_written_alignment": "REJECT",
+    "verbal_only_material_terms": "NON_ADMISSIBLE",
+    "provider_call_request": "POLITELY_DECLINE_AND_REQUEST_WRITTEN_RESPONSE",
+    "provider_refuses_written_terms": "HOLD_OR_REPLACE",
+    "standard_reason": "Accurate technical, rights, commercial and contractual review requires written email because English is not the Program Owner's native language and the record must remain auditable.",
+    "agent_prohibitions": [
+      "DO_NOT_OFFER_OR_ACCEPT_PHONE_VOICE_OR_VIDEO_CALL",
+      "DO_NOT_ASK_PROGRAM_OWNER_FOR_CALL_TIMES",
+      "DO_NOT_DESCRIBE_A_CALL_AS_NEXT_STEP",
+      "DO_NOT_SUGGEST_A_CALL_AFTER_EMAIL_ALIGNMENT",
+      "DO_NOT_TREAT_VERBAL_TERMS_AS_EVIDENCE"
+    ]
+  },
   "provider_request_strategy": {
     "PSA": "AUTHORITATIVE_CERT_GRADE_POPULATION_FACTS_ONLY_PLUS_REQUIRED_INTERNAL_USE_RIGHTS",
     "CGC_CCG": "AUTHORITATIVE_CERT_GRADE_POPULATION_FACTS_ONLY_PLUS_REQUIRED_INTERNAL_USE_RIGHTS",
     "GEMRATE": "CROSS_GRADER_MAPPING_AND_POPULATION_EVIDENCE_AS_ACCELERATOR_NOT_CANONICAL_CORE",
     "ALT_FNDATA": "ACTUAL_MARKET_OBSERVATIONS_AND_TRANSACTION_FACTS_NOT_PROVIDER_ANALYTICS_CORE",
-    "CLASSIC_COM": "COLLECTOR_CAR_TRANSACTION_AND_LISTING_FACTS_NOT_PROVIDER_ANALYTICS_CORE",
+    "CLASSIC_COM": "TAXONOMY_AND_SALES_HISTORY_FACTS_ONLY; REQUEST_SCHEMA_MATCHED_SAMPLE_PRICING_AND_TERMS_BY_EMAIL; DO_NOT_ACCEPT_CALL_AS_A_PREREQUISITE",
     "LIVEART": "FINE_ART_MARKET_FACTS_NOT_PROVIDER_TAXONOMY_OR_ANALYTICS_CORE",
     "HAGERTY": "AUTHORIZED_COLLECTOR_CAR_FACTS_AS_SUPPLEMENT_NOT_PROVIDER_VALUATION_CORE"
   },
@@ -47,7 +67,9 @@
     "unknown_material_rights": "HOLD",
     "provider_core_capture": "NO_GO",
     "termination_erases_kidults_legal_derived_intelligence": "NO_GO_OR_RENEGOTIATE",
-    "provider_removal_requires_platform_rewrite": "NO_GO_OR_INTERNALIZE_FIRST"
+    "provider_removal_requires_platform_rewrite": "NO_GO_OR_INTERNALIZE_FIRST",
+    "provider_requires_phone_voice_or_video_negotiation": "HOLD_OR_REPLACE",
+    "material_terms_not_supplied_in_writing": "NOT_ADMISSIBLE"
   },
   "non_bypass": {
     "spend": "EXPLICIT_APPROVAL_REQUIRED",
