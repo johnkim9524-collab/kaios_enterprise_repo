@@ -184,6 +184,7 @@
   "authorization_provenance": {
     "state": "NOT_MACHINE_PROVEN",
     "evidence_class": "POST_SEND_EXECUTION_RECEIPT_ONLY",
+    "execution_fact_machine_proven_by_this_repository_artifact": false,
     "independently_issued_pre_send_authorization_receipt": null,
     "issuer_identity_verified": false,
     "nonce_verified": false,
