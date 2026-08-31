@@ -53,7 +53,7 @@ Production. GitHub certification remains fail-closed `HOLD` until a successful
 exact-SHA producer run and every downstream protected-executor gate are present.
 
 Release dashboard state for this revision is therefore explicit:
-`evidence producer = IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE`,
+`evidence producer = IMPLEMENTED_FAIL_CLOSED_AWAITING_ROOT_HELPER_INSTALL_AND_EVIDENCE`,
 `certification = HOLD`, and `Production authority = HARD_DISABLED`. Internal
 validators cannot convert that missing producer execution into release evidence.
 
@@ -64,18 +64,30 @@ Owner signature, and the independent protected-executor consumption chain.
 
 ## Server execution
 
+The GitHub runner service remains unprivileged as `kidults-runner`. After the
+first exact-main checkout has populated the fixed workspace, a root
+administrator installs the narrow privilege bridge once from that checkout:
+
 ```bash
-cd /opt/intelligence-holdings/staging/kaios-enterprise
-
-git fetch origin main
-git switch main
-git reset --hard origin/main
-
-chmod +x scripts/production/seal-kidults-production-evidence.sh
-
-EVIDENCE_DIR="$PWD/artifacts/production-audit" \
-bash scripts/production/seal-kidults-production-evidence.sh
+cd /opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterprise_repo
+bash scripts/production/install-kidults-production-evidence-root-helper.sh
 ```
+
+The installer copies one root-owned helper to `/usr/local/libexec`, writes a
+mode-`0600` root-owned pin file containing the exact checkout SHA and SHA-256
+digests of the sealer, release gate, policy, and promotion contract, and creates
+one exact no-argument sudoers capability for `kidults-runner`. `visudo` must
+validate the rule before it is published. The helper rejects arguments,
+non-`kidults-runner` sudo callers, a redirected or wrongly owned workspace,
+noncanonical origin, checkout-SHA drift, and any pinned-file digest drift. It
+then launches only the fixed sealer with an empty environment and the fixed
+root-owned evidence intake. It is not a general shell or root Runner.
+
+Every protected-main revision that changes a pinned file intentionally requires
+an administrator to reinstall the helper from that exact reviewed checkout.
+Until then the producer fails closed before sealing. Normal sealing is invoked
+only by `.github/workflows/kidults-production-release-evidence-v1.yml`; operators
+must not run the sealer directly as root.
 
 The archive root is fixed at
 `/mnt/ih_prod_01/backups/production-certification`; Production callers cannot
