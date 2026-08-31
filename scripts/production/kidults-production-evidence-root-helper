@@ -41,9 +41,18 @@ done
 [[ -d "$WORKSPACE" && ! -L "$WORKSPACE" ]] || fail WORKSPACE_INVALID
 [[ "$(readlink -f -- "$WORKSPACE")" == "$WORKSPACE" ]] || fail WORKSPACE_REDIRECTED
 [[ "$(stat -c '%U' "$WORKSPACE")" == kidults-runner ]] || fail WORKSPACE_OWNER_INVALID
-[[ -d "$EVIDENCE_INTAKE" && ! -L "$EVIDENCE_INTAKE" ]] || fail EVIDENCE_INTAKE_INVALID
-[[ "$(readlink -f -- "$EVIDENCE_INTAKE")" == "$EVIDENCE_INTAKE" ]] || fail EVIDENCE_INTAKE_REDIRECTED
-[[ "$(stat -c '%u:%g' "$EVIDENCE_INTAKE")" == 0:0 ]] || fail EVIDENCE_INTAKE_OWNER_INVALID
+
+verify_protected_directory() {
+  local label=$1 path=$2 metadata
+  [[ -d "$path" && ! -L "$path" ]] || fail "${label}_INVALID"
+  [[ "$(readlink -f -- "$path")" == "$path" ]] || fail "${label}_REDIRECTED"
+  metadata="$(stat -c '%u:%g:%a' -- "$path")"
+  [[ "$metadata" =~ ^0:0:([0-7]+)$ ]] || fail "${label}_OWNER_INVALID"
+  (( (8#${BASH_REMATCH[1]} & 8#022) == 0 )) || fail "${label}_WRITABLE"
+}
+
+verify_protected_directory EVIDENCE_INTAKE "$EVIDENCE_INTAKE"
+verify_protected_directory ARCHIVE_ROOT "$ARCHIVE_ROOT"
 
 readonly ACTUAL_SHA="$(/usr/bin/git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" rev-parse HEAD)"
 [[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED
