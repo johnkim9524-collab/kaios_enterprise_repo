@@ -1,0 +1,209 @@
+{
+  "id": "ih-integrated-product-customer-platform-provider-internalization-strategy-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_STRATEGIC_STEWARDSHIP",
+  "owner": "KPMO",
+  "accountable_program_owner": "PROGRAM_OWNER",
+  "scope": "INTELLIGENCE_HOLDINGS_AND_ALL_VERTICALS",
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
+  "strategic_objective": "Build a globally scalable intelligence group whose durable value accumulates in proprietary identity, evidence, methodology, decision memory and customer workflows while external providers remain substitutable inputs rather than owners of the core.",
+  "strategy_domains": {
+    "PRODUCT_STRATEGY": {
+      "mission": "Turn evidence and derived intelligence into differentiated, repeatable, monetizable decision products rather than undifferentiated data access.",
+      "required_decisions": [
+        "TARGET_JOBS_TO_BE_DONE",
+        "CORE_PAID_PRODUCTS_AND_FREE_ENTRY_PRODUCTS",
+        "EVIDENCE_AND_CONFIDENCE_DISCLOSURE_MODEL",
+        "PRODUCT_PACKAGING_AND_TIERING",
+        "RECURRING_VS_TRANSACTIONAL_REVENUE_MIX",
+        "API_EXPORT_WORKSPACE_REPORT_AND_INDEX_ROLES",
+        "VERTICAL_SPECIFIC_DIFFERENTIATION",
+        "PRODUCT_KILL_SCALE_OR_ITERATE_CRITERIA"
+      ],
+      "product_ladder": [
+        "DISCOVERY_AND_REFERENCE",
+        "EVIDENCE_BACKED_MARKET_INTELLIGENCE",
+        "DECISION_SUPPORT_AND_RANKABILITY",
+        "WORKFLOW_AND_MONITORING",
+        "INSTITUTIONAL_DATA_API_AND_ENTERPRISE_INTELLIGENCE"
+      ],
+      "success_test": "A product must create a repeatable customer decision advantage that cannot be replicated by copying one provider feed or one public dataset."
+    },
+    "CUSTOMER_STRATEGY": {
+      "mission": "Segment customers by decision value, urgency, willingness to pay and evidence needs, then design products, channels and service levels around those jobs.",
+      "priority_segments": [
+        "SERIOUS_COLLECTORS_AND_HIGH_VALUE_INDIVIDUALS",
+        "DEALERS_MARKETPLACES_AND_AUCTION_ECOSYSTEMS",
+        "INSURERS_LENDERS_ADVISERS_AND_ASSET_MANAGERS",
+        "BRANDS_MANUFACTURERS_AND_IP_OWNERS",
+        "RESEARCH_MEDIA_AND_DATA_TEAMS",
+        "INSTITUTIONAL_AND_ENTERPRISE_BUYERS"
+      ],
+      "required_controls": [
+        "SEGMENT_SPECIFIC_VALUE_PROPOSITION",
+        "CUSTOMER_EVIDENCE_REQUIREMENT",
+        "WILLINGNESS_TO_PAY_AND_PRICE_SENSITIVITY",
+        "ACQUISITION_RETENTION_EXPANSION_PATH",
+        "TRUST_AND_PROVENANCE_EXPECTATION",
+        "GLOBAL_REGION_LANGUAGE_AND_CURRENCY_NEEDS",
+        "ENTERPRISE_SECURITY_AND_GOVERNANCE_REQUIREMENTS",
+        "CHURN_AND_NON_USAGE_ROOT_CAUSE_LOOP"
+      ],
+      "north_star": "Optimize for trusted recurring decision utility and retention, not traffic or raw-data volume alone."
+    },
+    "PLATFORM_STRATEGY": {
+      "mission": "Operate one reusable Intelligence Holdings control plane and intelligence fabric with vertical specialization at the product/evidence layer, avoiding duplicated brand-by-brand infrastructure.",
+      "shared_group_core": [
+        "IDENTITY_AND_ENTITY_RESOLUTION",
+        "RIGHTS_AND_PURPOSE_CONTROL",
+        "EVIDENCE_AND_PROVENANCE_GRAPH",
+        "CANONICAL_ONTOLOGY_AND_NORMALIZATION",
+        "CONFIDENCE_AND_METHODOLOGY",
+        "DECISION_MEMORY",
+        "PROVIDER_ABSTRACTION_AND_SOURCE_SWITCHING",
+        "OBSERVABILITY_LEDGER_AND_RECOVERY",
+        "AI_AGENT_GOVERNANCE",
+        "SECURITY_AND_ACCESS_CONTROL"
+      ],
+      "vertical_owned_layers": [
+        "VERTICAL_ONTOLOGY_EXTENSIONS",
+        "DOMAIN_SPECIFIC_EVIDENCE_RULES",
+        "VERTICAL_PRODUCTS_AND_WORKFLOWS",
+        "VERTICAL_BRAND_EXPERIENCE",
+        "VERTICAL_PROVIDER_MIX",
+        "VERTICAL_CUSTOMER_SEGMENT_STRATEGY"
+      ],
+      "architecture_rule": "Shared capabilities are group-core by default; vertical duplication requires a documented reason, measurable advantage and exit criterion."
+    },
+    "PROVIDER_STRATEGY": {
+      "mission": "Use providers as a diversified, rights-clear, economically rational evidence supply network without allowing any provider to become the platform's intelligence core or single point of failure.",
+      "provider_layers": [
+        "PRIMARY_AUTHORITATIVE_SOURCE",
+        "MARKET_TRANSACTION_SOURCE",
+        "REFERENCE_AND_CATALOG_SOURCE",
+        "DISCOVERY_SOURCE",
+        "VALIDATION_OR_CERTIFICATION_SOURCE",
+        "DERIVED_OR_AGGREGATED_SOURCE"
+      ],
+      "evaluation_dimensions": [
+        "RIGHTS_AND_PURPOSE_FIT",
+        "SOURCE_AUTHORITY",
+        "COVERAGE_AND_GLOBAL_REACH",
+        "FRESHNESS_AND_RELIABILITY",
+        "INCREMENTAL_INFORMATION_VALUE",
+        "FIELD_LEVEL_QUALITY",
+        "COST_AND_UNIT_ECONOMICS",
+        "QUOTA_AND_OPERATIONAL_LIMITS",
+        "LOCK_IN_AND_EXIT_COST",
+        "SUBSTITUTABILITY",
+        "DERIVED_INTELLIGENCE_RIGHTS",
+        "AUDITABILITY_AND_PROVENANCE"
+      ],
+      "portfolio_rules": [
+        "NO_SINGLE_PROVIDER_AS_CANONICAL_TRUTH",
+        "TWO_OR_MORE_SUBSTITUTION_PATHS_FOR_MATERIAL_DEPENDENCIES_WHEN_FEASIBLE",
+        "PROOF_BEFORE_PROCUREMENT",
+        "RIGHTS_BEFORE_RECURRING_ACTIVATION",
+        "MEASURE_INCREMENTAL_VALUE_NOT_RAW_RECORD_COUNT",
+        "CENTRAL_PROVIDER_REGISTRY_WITH_VERTICAL_USAGE_MAP",
+        "NO_DUPLICATE_OUTREACH_OR_CONTRACTING_WITHOUT_CURRENT_READBACK",
+        "TERMINATION_AND_DATA_RETENTION_PLAN_REQUIRED"
+      ]
+    },
+    "INTERNALIZATION_STRATEGY": {
+      "mission": "Internalize every capability whose ownership materially compounds differentiation, switching power, margin, learning or trust; outsource commodity access and legally constrained source ownership.",
+      "must_internalize": [
+        "CANONICAL_IDENTITY_AND_ENTITY_RESOLUTION",
+        "NORMALIZATION_AND_ONTOLOGY",
+        "PROVENANCE_AND_EVIDENCE_GRAPH",
+        "RIGHTS_DECISION_MEMORY",
+        "CONFIDENCE_SCORING_AND_METHODOLOGY",
+        "RANKABILITY_AND_DECISION_LOGIC",
+        "PROVIDER_ROUTING_FUSION_AND_SWITCHING",
+        "DATA_QUALITY_DUPLICATE_OUTLIER_AND_FRESHNESS_CONTROLS",
+        "GROUP_INTELLIGENCE_LEDGER",
+        "CUSTOMER_BEHAVIOR_AND_PRODUCT_LEARNING_LOOP",
+        "DERIVED_INDICES_SIGNALS_AND_RESEARCH",
+        "AI_AGENT_GOVERNANCE_AND_AUTONOMOUS_OPERATIONS"
+      ],
+      "normally_externalize": [
+        "SOURCE_ORIGINATING_DATA_OWNERSHIP",
+        "PAYMENTS_AND_COMMODITY_INFRASTRUCTURE",
+        "GENERIC_CLOUD_COMPUTE_AND_STORAGE",
+        "CERTIFICATION_OR_OFFICIAL_REGISTRY_FUNCTIONS_OWNED_BY_THIRD_PARTIES",
+        "COMMODITY_MESSAGING_EMAIL_AND_OBSERVABILITY_COMPONENTS_WHEN_REPLACEABLE"
+      ],
+      "internalization_test": [
+        "DOES_OWNERSHIP_CREATE_COMPOUNDING_DATA_OR_DECISION_ADVANTAGE",
+        "DOES_IT_REDUCE_PROVIDER_LOCK_IN",
+        "DOES_IT_IMPROVE_MARGIN_OR_UNIT_ECONOMICS_AT_SCALE",
+        "DOES_IT_PRESERVE_PROPRIETARY_METHOD_OR_LEARNING",
+        "DOES_IT_CONTROL_A_CRITICAL_TRUST_OR_PROVENANCE_BOUNDARY",
+        "CAN_THE_CAPABILITY_BE_REUSED_ACROSS_MULTIPLE_VERTICALS"
+      ],
+      "rule": "If three or more internalization tests are materially true, KPMO must evaluate an owned-core path before approving long-term provider dependence."
+    },
+    "GO_TO_MARKET_AND_MONETIZATION": {
+      "mission": "Match product depth, distribution and pricing to customer decision value while preserving a trusted free discovery surface where strategically useful.",
+      "required_design": [
+        "FREE_TO_PAID_CONVERSION_PATH",
+        "SELF_SERVE_PROFESSIONAL_AND_ENTERPRISE_TIERS",
+        "INDEX_REPORT_WORKSPACE_API_AND_ALERT_PACKAGING",
+        "VERTICAL_PARTNERSHIP_AND_DISTRIBUTION_CHANNELS",
+        "REGIONAL_PRICE_AND_CURRENCY_STRATEGY",
+        "TRIAL_AND_PROOF_OF_VALUE_DESIGN",
+        "RETENTION_EXPANSION_AND_CROSS_VERTICAL_PATH",
+        "SALES_ASSIST_THRESHOLD_AND_ENTERPRISE_BUYING_JOURNEY"
+      ]
+    }
+  },
+  "portfolio_prioritization": {
+    "score_dimensions": [
+      "CUSTOMER_DECISION_VALUE",
+      "IRREPLACEABILITY_POTENTIAL",
+      "GLOBAL_MARKET_SIZE",
+      "RIGHTS_FEASIBILITY",
+      "DATA_AVAILABILITY",
+      "TIME_TO_EVIDENCE",
+      "GROSS_MARGIN_POTENTIAL",
+      "CROSS_VERTICAL_REUSE",
+      "PROVIDER_DEPENDENCY_RISK",
+      "EXECUTION_COMPLEXITY"
+    ],
+    "decision_states": ["INVEST","PILOT","HOLD","PARTNER","INTERNALIZE","SUNSET"],
+    "rule": "Every material product, provider or platform initiative must have an evidence-bound score, owner, next gate, kill criterion and strategic rationale."
+  },
+  "strategic_review_cadence": {
+    "continuous_trigger": "MATERIAL_DEFECT_OPPORTUNITY_PROVIDER_CHANGE_CUSTOMER_SIGNAL_OR_NEW_EVIDENCE",
+    "periodic_review": "AT_LEAST_MONTHLY_FOR_ACTIVE_PORTFOLIO_AND_QUARTERLY_FOR_GROUP_VERTICAL_DIRECTION",
+    "required_outputs": [
+      "CURRENT_IMPROVEMENT_ACTION",
+      "PRODUCT_STRATEGY_CHANGE_OR_NO_CHANGE",
+      "CUSTOMER_STRATEGY_CHANGE_OR_NO_CHANGE",
+      "PLATFORM_STRATEGY_CHANGE_OR_NO_CHANGE",
+      "PROVIDER_STRATEGY_CHANGE_OR_NO_CHANGE",
+      "INTERNALIZATION_DECISION_OR_NO_CHANGE",
+      "VERTICAL_IMPLICATION",
+      "GROUP_IMPLICATION"
+    ]
+  },
+  "track_ownership": {
+    "KPMO": ["INTEGRATED_STRATEGY_ACCOUNTABILITY","PORTFOLIO_CONFLICT_RESOLUTION","CANONICAL_STRATEGIC_TRUTH"],
+    "TRACK_A": ["PRODUCT_EVIDENCE_FEASIBILITY","DATA_PRODUCT_INPUT_QUALITY","SOURCE_TO_PRODUCT_FEEDBACK"],
+    "TRACK_B": ["PRODUCT_CLAIM_SAFETY","DECISION_UTILITY_VALIDATION","METHODOLOGY_DIFFERENTIATION"],
+    "TRACK_C": ["CUSTOMER_EXPERIENCE","PRODUCT_PACKAGING_SURFACE","ADOPTION_AND_USAGE_FEEDBACK"],
+    "TRACK_D": ["PLATFORM_ECONOMICS","SCALE_RELIABILITY","OWNED_CORE_RUNTIME_FEASIBILITY"],
+    "TRACK_E": ["PRODUCT_CUSTOMER_PLATFORM_PORTFOLIO_STRATEGY","GROUP_AND_VERTICAL_FUTURE_STRATEGY","IMPROVEMENT_PRIORITIZATION"],
+    "TRACK_Z": ["PROVIDER_PORTFOLIO","RIGHTS_AND_ECONOMICS","SUBSTITUTION_AND_INTERNALIZATION_INPUTS"]
+  },
+  "prohibited_strategy_claims": [
+    "TRAFFIC_EQUALS_PRODUCT_MARKET_FIT",
+    "PROVIDER_ACCESS_EQUALS_IRREPLACEABLE_VALUE",
+    "ARCHITECTURE_COMPLETE_EQUALS_CUSTOMER_VALUE_PROVEN",
+    "CONTROL_TEST_EQUALS_MARKET_DEMAND",
+    "SINGLE_VERTICAL_SUCCESS_AUTOMATICALLY_GENERALIZES_TO_GROUP",
+    "OUTSOURCED_CORE_WITHOUT_EXIT_PATH_IS_ACCEPTABLE",
+    "STRATEGY_PROPOSAL_MAY_DELAY_AN_EXECUTABLE_INTERNAL_DEFECT_FIX"
+  ],
+  "authority_boundary": "Strategy work may recommend but does not itself authorize external spend, contracts, provider activation, credentials, irreversible legal/security changes, Public, Production or G5. Reversible internal analysis, design, testing and preparation remain autonomous obligations."
+}
