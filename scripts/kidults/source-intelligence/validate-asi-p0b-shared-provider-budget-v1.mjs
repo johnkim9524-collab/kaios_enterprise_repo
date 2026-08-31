@@ -38,8 +38,8 @@ export function validateWorkflow(source) {
   }
   const liveInvocation = /node\s+scripts\/kidults\/source-intelligence\/asi-openalex-gdelt-public-metadata-discovery-v1\.mjs\s+/;
   if (liveInvocation.test(source)) fail('P0B_LIVE_PROVIDER_INVOCATION_PRESENT');
-  const restoreCount = (source.match(/restore-exact-github-artifact-v1\.mjs/g) || []).length;
-  if (restoreCount !== 2) fail('P0B_RESTORE_REFERENCE_CARDINALITY_INVALID:' + restoreCount);
+  const restoreCount = (source.match(/node\s+scripts\/kidults\/supply-chain\/restore-exact-github-artifact-v1\.mjs\s+/g) || []).length;
+  if (restoreCount !== 1) fail('P0B_RESTORE_EXECUTION_CARDINALITY_INVALID:' + restoreCount);
   return {
     state: 'VERIFIED_PASS',
     p0b_live_provider_invocations: 0,
@@ -68,16 +68,16 @@ if (process.argv[1] && import.meta.url === new URL('file://' + process.argv[1]).
   const source = fs.readFileSync(workflowPath, 'utf8');
   const receipt = validateWorkflow(source);
   expectReject(source.replace(
-    ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
-    ".github/workflows/wrong-producer.yml",
+    "--workflow-path .github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "--workflow-path .github/workflows/wrong-producer.yml",
   ), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
   expectReject(source.replace(
     '--required-basename asi-discovery-provider-health-circuit-v1.json',
     '--required-basename wrong-circuit.json',
   ), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
-  expectReject(source.replace('EXPECTED_PROTECTED_MAIN_SHA', 'UNBOUND_SOURCE_SHA'), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
+  expectReject(source.split('EXPECTED_PROTECTED_MAIN_SHA').join('UNBOUND_SOURCE_SHA'), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
   expectReject(source + "\nnode scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/x.json\n", 'P0B_LIVE_PROVIDER_INVOCATION_PRESENT');
-  expectReject(source.replace('/tmp/p0b-source-fabric-restore-receipt-v1.json', '/tmp/missing-receipt.json'), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
+  expectReject(source.split('/tmp/p0b-source-fabric-restore-receipt-v1.json').join('/tmp/missing-receipt.json'), 'P0B_SHARED_PROVIDER_INVARIANT_MISSING');
   process.stdout.write(JSON.stringify({
     ...receipt,
     negative_mutation_families_rejected: 5,
