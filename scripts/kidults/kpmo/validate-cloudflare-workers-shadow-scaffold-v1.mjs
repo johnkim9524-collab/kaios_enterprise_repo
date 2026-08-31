@@ -22,7 +22,7 @@ ok(config.name === 'kidults-public-portal-shadow','WORKER_NAME');
 ok(config.workers_dev === true,'SHADOW_ENDPOINT_REQUIRED');
 ok(config.preview_urls === false,'PREVIEW_URLS_MUST_BE_FALSE');
 ok(Array.isArray(config.routes) && config.routes.length === 0,'PRODUCTION_ROUTE_ATTACHED');
-ok(config.assets?.directory?.endsWith('apps/kidults-enterprise-staging/public/portal'),'ASSET_SOURCE_DRIFT');
+ok(config.assets?.directory === portalPath,'ASSET_SOURCE_DRIFT');
 ok(config.assets?.not_found_handling === 'none','SOFT_404_RISK');
 
 const raw = fs.readFileSync(configPath,'utf8');
