@@ -1,7 +1,9 @@
 {
   "contract_id": "KIDULTS_PARTNER_PRE_SEND_INTERNALIZATION_GATE_V1",
+  "version": "1.1.0",
+  "amended_at": "2026-09-01T00:00:00Z",
   "parent_issues": [1171,1166,1152,952,1153],
-  "objective": "Make GitHub-first whole-product and internalization analysis a mandatory precondition for provider outbound communication.",
+  "objective": "Make GitHub-first whole-product and internalization analysis, plus the Program Owner's written-email-only accessibility requirement, mandatory preconditions for provider outbound communication.",
   "required_checks": [
     "latest_human_inbound_read",
     "inbound_outbound_timestamp_compared",
@@ -22,6 +24,11 @@
     "replacement_path_complete",
     "negotiation_objective_defined",
     "korean_internal_report_completed",
+    "written_email_only_channel_confirmed",
+    "outbound_call_offer_absent",
+    "provider_call_request_declined_in_writing_if_present",
+    "all_material_terms_requested_in_writing",
+    "program_owner_not_assigned_to_phone_voice_or_video_call",
     "outbound_necessary"
   ],
   "decision_states": ["SEND_ELIGIBLE","DO_NOT_SEND","ANALYSIS_REQUIRED","WAIT"],
@@ -31,12 +38,48 @@
     "newer_human_inbound_unread": "DO_NOT_SEND",
     "duplicate_followup": "DO_NOT_SEND",
     "provider_core_capture_requested": "DO_NOT_SEND",
-    "no_strategic_need_to_reply": "WAIT"
+    "no_strategic_need_to_reply": "WAIT",
+    "outbound_offers_or_accepts_phone_voice_or_video_call": "DO_NOT_SEND",
+    "agent_requests_program_owner_to_schedule_or_attend_call": "CONTROL_DEFECT_DO_NOT_SEND",
+    "provider_refuses_to_put_material_terms_in_writing": "HOLD_OR_REPLACE",
+    "material_term_exists_only_in_verbal_channel": "NOT_ADMISSIBLE_AS_EVIDENCE"
   },
   "written_negotiation": {
     "preferred": true,
-    "reason": "ACCURATE_RIGHTS_AND_COMMERCIAL_TERMS_AND_AUDITABLE_RECORD",
-    "english_not_native_language_disclosure_permitted": true
+    "required": true,
+    "channel": "WRITTEN_EMAIL_ONLY",
+    "phone_calls": "NOT_AVAILABLE",
+    "voice_calls": "NOT_AVAILABLE",
+    "video_calls": "NOT_AVAILABLE",
+    "call_before_email": "PROHIBITED",
+    "call_after_email": "PROHIBITED",
+    "short_call_if_helpful": "PROHIBITED",
+    "reason": "ENGLISH_IS_NOT_THE_PROGRAM_OWNERS_NATIVE_LANGUAGE_AND_ACCURATE_RIGHTS_TECHNICAL_COMMERCIAL_AND_CONTRACT_TERMS_REQUIRE_AN_AUDITABLE_WRITTEN_RECORD",
+    "english_not_native_language_disclosure_required_when_provider_requests_a_call": true,
+    "standard_disclosure_meaning": "English is not the Program Owner's native language. To ensure accuracy and preserve an auditable record, all technical, rights, commercial and contractual negotiations must be conducted by written email.",
+    "material_terms_required_in_writing": [
+      "rights_and_permitted_uses",
+      "schema_fields_and_semantics",
+      "pricing_and_volume_bands",
+      "minimum_commitments_and_prepayment",
+      "term_and_cancellation",
+      "retention_deletion_and_post_termination_duties",
+      "derived_output_and_pre_existing_ip_rights",
+      "attribution_and_public_display_limits",
+      "quota_sla_support_and_schema_change_notice",
+      "security_privacy_and_audit",
+      "assignment_novation_and_change_of_control"
+    ],
+    "provider_requested_call_response": "DECLINE_POLITELY_AND_REQUEST_THE_RELEVANT_INFORMATION_TERM_SHEET_SAMPLE_SCHEMA_AND_REDLINE_BY_EMAIL",
+    "provider_written_refusal_outcome": "HOLD_OR_DROP_AND_ACTIVATE_REPLACEMENT_PATH",
+    "agent_must_not": [
+      "OFFER_A_CALL",
+      "ACCEPT_A_CALL",
+      "SUGGEST_A_CALL_AFTER_EMAIL_ALIGNMENT",
+      "ASK_THE_PROGRAM_OWNER_FOR_CALL_AVAILABILITY",
+      "REPORT_A_CALL_AS_THE_NEXT_REQUIRED_ACTION",
+      "TREAT_VERBAL_STATEMENTS_AS_BINDING_RIGHTS_OR_COMMERCIAL_EVIDENCE"
+    ]
   },
   "non_bypass": {
     "spend": "EXPLICIT_APPROVAL_REQUIRED",
