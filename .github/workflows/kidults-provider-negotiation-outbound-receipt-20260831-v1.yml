@@ -52,10 +52,11 @@ jobs:
           base.authorization_provenance.state = 'INDEPENDENTLY_PROVEN';
           base.authorization_provenance.promotable = true;
           base.authorization_provenance.post_send_receipt_can_retroactively_create_authority = true;
+          base.authorization_provenance.execution_fact_machine_proven_by_this_repository_artifact = true;
           fs.writeFileSync('/tmp/base.json', JSON.stringify(base, null, 2));
           NODE
           if node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs /tmp/base.json /tmp/supplement.json; then
-            echo 'Validator accepted self-attested or retroactive authorization promotion' >&2
+            echo 'Validator accepted self-attested authority, retroactive promotion, or committed execution self-proof' >&2
             exit 1
           fi
 
