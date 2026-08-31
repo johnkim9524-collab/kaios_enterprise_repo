@@ -21,9 +21,9 @@ Products must solve repeatable high-value decisions rather than sell undifferent
 4. Monitoring, workflow and alerts
 5. Institutional data/API and enterprise intelligence
 
-Every product must define: target job-to-be-done, evidence standard, confidence/limitations, buyer, packaging, price logic, recurring-vs-transactional revenue, vertical differentiation, scale/kill criteria and cross-vertical reuse.
+Every product must define target job-to-be-done, evidence standard, confidence/limitations, buyer, packaging, price logic, recurring-vs-transactional revenue, vertical differentiation, scale/kill criteria and cross-vertical reuse.
 
-The product test is simple: if a competitor can reproduce the core value by buying the same provider feed, it is not sufficiently differentiated.
+The product test: if a competitor can reproduce the core value by buying the same provider feed, it is not sufficiently differentiated.
 
 ## 3. Customer strategy
 
@@ -31,7 +31,7 @@ Prioritize customers by decision value, urgency, willingness to pay and evidence
 
 Priority segments include serious collectors/HNW users; dealers, marketplaces and auctions; insurers, lenders, advisers and asset managers; brands/manufacturers/IP owners; research/media/data teams; institutional and enterprise buyers.
 
-For each segment maintain a living contract for: value proposition, critical decision, evidence/trust threshold, acquisition channel, activation event, willingness to pay, retention driver, expansion/cross-sell path, global language/currency/regional needs, enterprise security/governance needs and churn/non-usage root causes.
+For each segment maintain a living contract for value proposition, critical decision, evidence/trust threshold, acquisition channel, activation event, willingness to pay, retention driver, expansion/cross-sell path, global language/currency/regional needs, enterprise security/governance needs and churn/non-usage root causes.
 
 North star: trusted recurring decision utility and retention.
 
@@ -63,10 +63,11 @@ Rules:
 - Maintain one central provider registry with vertical usage mapping.
 - Read back current communication history before outreach; duplicate contact is forbidden without authority.
 - Every material provider requires an exit, retention/deletion and substitution plan.
-- Provider health, quota and circuit state must be shared where multiple producers touch the same external dependency.
-- Provider activation authority is separate from code landing, test success or provider readiness.
+- Shared provider dependencies must share health/quota/circuit state across producers.
+- Code landing, CI success or readiness never equals provider activation authority.
+- Optimize provider reuse and negotiated rights at Intelligence Holdings group level before vertical-specific duplicate purchasing.
 
-The provider portfolio must be optimized at group level first, then vertical level. A vertical-specific provider purchase must justify why the same need cannot be satisfied by the shared provider fabric or owned core.
+Every material provider receives one of: `ACTIVATE_CANDIDATE`, `HOLD`, `REPLACE`, `DUAL_SOURCE`, `PARTNER`, `INTERNALIZE_DEPENDENCY`, or `SUNSET_PROVIDER`.
 
 ## 6. Internalization strategy
 
@@ -87,7 +88,7 @@ Internalization test:
 
 If three or more are materially true, KPMO must evaluate an owned-core path before long-term outsourcing is approved.
 
-Internalization is not synonymous with rebuilding everything. The target is selective ownership of the intelligence differentiators and trust boundaries, while commodity infrastructure stays replaceable and externally sourced where economically rational.
+Internalization is selective ownership, not rebuilding everything. Commodity infrastructure should remain replaceable and external where economically rational.
 
 Every internalization candidate receives one of: `INTERNALIZE_NOW`, `INTERNALIZE_WHEN_SCALE_TRIGGER_MET`, `HYBRID_OWNED_CORE_EXTERNAL_SOURCE`, `PARTNER_WITH_EXIT_PATH`, `KEEP_EXTERNAL_COMMODITY`, or `SUNSET_DEPENDENCY`.
 
