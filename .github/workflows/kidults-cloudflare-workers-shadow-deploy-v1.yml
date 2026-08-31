@@ -3,9 +3,9 @@ name: KIDULTS Cloudflare Workers Shadow Deploy v1
 on:
   push:
     branches:
-      - codex/cloudflare-pages-to-workers-migration-v1
+      - main
     paths:
-      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
 
 permissions:
   contents: read
@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = 'refs/heads/codex/cloudflare-pages-to-workers-migration-v1'
+          test "$GITHUB_REF" = 'refs/heads/main'
           AUTH='coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
           CFG='infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc'
           node scripts/kidults/kpmo/validate-cloudflare-pages-to-workers-migration-v1.mjs
