@@ -13,6 +13,10 @@ readonly SUDOERS=/etc/sudoers.d/kidults-production-evidence-root-helper
 
 fail() { printf 'ROOT_HELPER_INSTALL_FAIL:%s\n' "$1" >&2; exit 1; }
 digest() { sha256sum -- "$WORKSPACE/$1" | awk '{print $1}'; }
+is_canonical_origin() {
+  [[ "$1" == https://github.com/johnkim9524-collab/kaios_enterprise_repo \
+    || "$1" == https://github.com/johnkim9524-collab/kaios_enterprise_repo.git ]]
+}
 
 [[ "$#" -eq 0 ]] || fail ARGUMENTS_FORBIDDEN
 [[ "$(id -u)" -eq 0 ]] || fail ROOT_REQUIRED
@@ -24,7 +28,7 @@ command -v visudo >/dev/null || fail VISUDO_REQUIRED
 source_sha="$(git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" rev-parse HEAD)"
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || fail SOURCE_SHA_INVALID
 origin="$(git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" config --local --get remote.origin.url)"
-[[ "$origin" == https://github.com/johnkim9524-collab/kaios_enterprise_repo.git ]] || fail ORIGIN_NOT_CANONICAL
+is_canonical_origin "$origin" || fail ORIGIN_NOT_CANONICAL
 
 install -d -o root -g root -m 0755 /usr/local/libexec
 install -d -o root -g root -m 0750 /etc/kaios/kidults-production-release
