@@ -1,11 +1,7 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v1
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -45,7 +41,7 @@ jobs:
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
 
-      - name: Validate one-shot authority and zero-production topology
+      - name: Validate explicit one-shot authority and zero-production topology
         shell: bash
         run: |
           set -euo pipefail
@@ -53,7 +49,7 @@ jobs:
           CFG='infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc'
           node scripts/kidults/kpmo/validate-cloudflare-pages-to-workers-migration-v1.mjs
           node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-scaffold-v1.mjs
-          jq -e '.id=="CF-WORKERS-SHADOW-20260831-01" and .status=="AUTHORIZED_ONE_SHOT_NON_PRODUCTION" and .authorized_scope.deployment_count_max==1 and .authorized_scope.production_routes_allowed==false and .authorized_scope.custom_domains_allowed==false' "$AUTH" >/dev/null
+          jq -e '.id=="CF-WORKERS-SHADOW-20260831-01" and .status=="AUTHORIZED_ONE_SHOT_NON_PRODUCTION" and .authorized_by=="PROGRAM_OWNER" and (.authorization_receipt|type)=="string" and (.authorization_receipt|length)>0 and .authorized_scope.deployment_count_max==1 and .authorized_scope.production_routes_allowed==false and .authorized_scope.custom_domains_allowed==false' "$AUTH" >/dev/null
           jq -e '.name=="kidults-public-portal-shadow" and .workers_dev==true and .preview_urls==false and (.routes|length)==0' "$CFG" >/dev/null
           if grep -Eq 'custom_domain|route[[:space:]]*=|routes[[:space:]]*=[[:space:]]*\[[^]]' "$CFG"; then
             echo 'PRODUCTION_ROUTE_OR_CUSTOM_DOMAIN_FORBIDDEN'
@@ -76,7 +72,7 @@ jobs:
           echo '::add-mask::'"$CLOUDFLARE_ACCOUNT_ID"
           mkdir -p artifacts/cloudflare-workers-shadow
           set +e
-          npx --yes wrangler@4 deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc 2>&1 | tee artifacts/cloudflare-workers-shadow/deploy.log
+          npx --yes wrangler@4.127.1 deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc 2>&1 | tee artifacts/cloudflare-workers-shadow/deploy.log
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
