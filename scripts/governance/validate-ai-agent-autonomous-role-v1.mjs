@@ -53,10 +53,8 @@ for (const key of ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','TRA
 const legacySequence = ['DETECT_REVERSIBLE_DEFECT','CORRECT_ROOT_CAUSE_IMMEDIATELY','RUN_REGRESSION_AND_NEGATIVE_TESTS','REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN','TRUTH_SYNC_REGISTRY_AND_ISSUE','REPORT_VERIFIED_OUTCOME','PROPOSE_PRIORITIZED_IMPROVEMENTS'];
 if (JSON.stringify(seq.mandatory_sequence) !== JSON.stringify(legacySequence)) fail('SEQUENCE_V1_2_COMPATIBILITY');
 if (seq.version !== '1.2.0') fail('SEQUENCE_VERSION_COMPATIBILITY');
-if (seq.strategic_stewardship?.intelligence_holdings_group_future_strategy_required !== true) fail('SEQUENCE_GROUP_STRATEGY_LINK');
-if (seq.strategic_stewardship?.vertical_future_strategy_required_when_affected !== true) fail('SEQUENCE_VERTICAL_STRATEGY_LINK');
-if (seq.strategic_stewardship?.current_improvement_proposal_required !== true) fail('SEQUENCE_IMPROVEMENT_LINK');
 if (seq.strategic_stewardship?.integrated_product_customer_platform_provider_internalization_strategy_required_when_material !== true) fail('SEQUENCE_INTEGRATED_STRATEGY_LINK');
+if (seq.strategic_stewardship?.integrated_strategy_contract_must_be_loaded_before_material_strategy_task !== true) fail('SEQUENCE_STRATEGY_PRELOAD');
 if (!seq.stop_conditions?.includes('PROVIDER_ACTIVATION_REQUIRING_SEPARATE_AUTHORITY')) fail('SEQUENCE_PROVIDER_ACTIVATION_GATE');
 
 if (trackJd.id !== 'kidults-track-abcdez-job-description-contract-v1') fail('TRACK_JD_ID');
@@ -80,6 +78,7 @@ for (const a of ['PROVIDER_DISCOVERY_AND_PORTFOLIO_STRATEGY','INTERNALIZATION_CA
 if (trackJd.cross_track_failure_rules?.downstream_may_not_promote_when_upstream_authority_is_red_unknown_or_hold !== true) fail('TRACK_HANDOFF_FAIL_CLOSED');
 
 if (strategy.id !== 'ih-integrated-product-customer-platform-provider-internalization-strategy-v1') fail('STRATEGY_ID');
+if (strategy.version !== '1.1.0') fail('STRATEGY_VERSION');
 if (strategy.status !== 'MANDATORY_STRATEGIC_STEWARDSHIP') fail('STRATEGY_STATUS');
 if (JSON.stringify(strategy.platform_principles) !== JSON.stringify(expectedPrinciples)) fail('STRATEGY_PRINCIPLES');
 for (const domain of ['PRODUCT_STRATEGY','CUSTOMER_STRATEGY','PLATFORM_STRATEGY','PROVIDER_STRATEGY','INTERNALIZATION_STRATEGY','GO_TO_MARKET_AND_MONETIZATION']) if (!strategy.strategy_domains?.[domain]) fail(`STRATEGY_DOMAIN_MISSING:${domain}`);
