@@ -1,9 +1,15 @@
 {
   "contract_id": "KIDULTS_PARTNER_PRE_SEND_INTERNALIZATION_GATE_V1",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "amended_at": "2026-09-01T00:00:00Z",
-  "parent_issues": [1171,1166,1152,952,1153],
-  "objective": "Make GitHub-first whole-product and internalization analysis, plus the Program Owner's written-email-only accessibility requirement, mandatory preconditions for provider outbound communication.",
+  "parent_issues": [
+    1171,
+    1166,
+    1152,
+    952,
+    1153
+  ],
+  "objective": "Make GitHub-first whole-product and internalization analysis, the Program Owner's written-email-only accessibility requirement, and an honest and respectful request for provider understanding mandatory preconditions for provider outbound communication.",
   "required_checks": [
     "latest_human_inbound_read",
     "inbound_outbound_timestamp_compared",
@@ -25,13 +31,19 @@
     "negotiation_objective_defined",
     "korean_internal_report_completed",
     "written_email_only_channel_confirmed",
+    "honest_respectful_understanding_request_present_when_channel_reason_is_explained",
     "outbound_call_offer_absent",
     "provider_call_request_declined_in_writing_if_present",
     "all_material_terms_requested_in_writing",
     "program_owner_not_assigned_to_phone_voice_or_video_call",
     "outbound_necessary"
   ],
-  "decision_states": ["SEND_ELIGIBLE","DO_NOT_SEND","ANALYSIS_REQUIRED","WAIT"],
+  "decision_states": [
+    "SEND_ELIGIBLE",
+    "DO_NOT_SEND",
+    "ANALYSIS_REQUIRED",
+    "WAIT"
+  ],
   "fail_closed": {
     "any_required_check_false": "DO_NOT_SEND",
     "material_analysis_missing": "ANALYSIS_REQUIRED",
@@ -55,8 +67,11 @@
     "call_after_email": "PROHIBITED",
     "short_call_if_helpful": "PROHIBITED",
     "reason": "ENGLISH_IS_NOT_THE_PROGRAM_OWNERS_NATIVE_LANGUAGE_AND_ACCURATE_RIGHTS_TECHNICAL_COMMERCIAL_AND_CONTRACT_TERMS_REQUIRE_AN_AUDITABLE_WRITTEN_RECORD",
+    "canonical_korean_communication_rule": "솔직하고 정중하게 양해를 구한다",
+    "required_communication_manner": "HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING",
+    "provider_understanding_request_required_when_channel_reason_is_explained": true,
     "english_not_native_language_disclosure_required_when_provider_requests_a_call": true,
-    "standard_disclosure_meaning": "English is not the Program Owner's native language. To ensure accuracy and preserve an auditable record, all technical, rights, commercial and contractual negotiations must be conducted by written email.",
+    "standard_disclosure_meaning": "English is not my native language, and I would sincerely appreciate your understanding. To ensure accuracy and preserve an auditable record, all technical, rights, commercial and contractual negotiations must be conducted by written email.",
     "material_terms_required_in_writing": [
       "rights_and_permitted_uses",
       "schema_fields_and_semantics",
