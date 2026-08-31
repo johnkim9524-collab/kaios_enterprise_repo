@@ -32,6 +32,15 @@ function validate(input) {
   if (p.program_owner_accessibility?.required_negotiation_channel !== 'WRITTEN_EMAIL_ONLY') {
     errors.push('NEGOTIATION_CHANNEL_NOT_WRITTEN_EMAIL_ONLY');
   }
+  if (p.program_owner_accessibility?.canonical_korean_communication_rule !== '솔직하고 정중하게 양해를 구한다') {
+    errors.push('CANONICAL_HONEST_RESPECTFUL_UNDERSTANDING_RULE_MISSING');
+  }
+  if (p.program_owner_accessibility?.required_communication_manner !== 'HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING') {
+    errors.push('REQUIRED_COMMUNICATION_MANNER_MISSING');
+  }
+  if (!String(p.program_owner_accessibility?.standard_written_explanation || '').includes('I would sincerely appreciate your understanding')) {
+    errors.push('STANDARD_UNDERSTANDING_REQUEST_MISSING');
+  }
   for (const key of [
     'external_phone_call_available',
     'external_voice_call_available',
@@ -44,6 +53,7 @@ function validate(input) {
 
   const requiredAssertions = [
     'written_email_only_channel_confirmed',
+    'honest_respectful_understanding_request_present_when_channel_reason_is_explained',
     'outbound_call_offer_absent',
     'provider_call_request_declined_in_writing_if_present',
     'all_material_terms_requested_in_writing',
@@ -56,6 +66,10 @@ function validate(input) {
     if (!g.required_checks?.includes(assertion)) {
       errors.push(`PRE_SEND_CHECK_MISSING:${assertion}`);
     }
+  }
+
+  if (!p.provider_call_request_handling?.includes('HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING')) {
+    errors.push('PROVIDER_UNDERSTANDING_REQUEST_HANDLING_MISSING');
   }
 
   const forbidden = [
@@ -114,6 +128,15 @@ function validate(input) {
 
   if (g.written_negotiation?.required !== true) errors.push('PRE_SEND_WRITTEN_ONLY_NOT_REQUIRED');
   if (g.written_negotiation?.channel !== 'WRITTEN_EMAIL_ONLY') errors.push('PRE_SEND_CHANNEL_DRIFT');
+  if (g.written_negotiation?.canonical_korean_communication_rule !== '솔직하고 정중하게 양해를 구한다') {
+    errors.push('PRE_SEND_CANONICAL_COMMUNICATION_RULE_MISSING');
+  }
+  if (g.written_negotiation?.required_communication_manner !== 'HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING') {
+    errors.push('PRE_SEND_REQUIRED_COMMUNICATION_MANNER_MISSING');
+  }
+  if (g.written_negotiation?.provider_understanding_request_required_when_channel_reason_is_explained !== true) {
+    errors.push('PRE_SEND_UNDERSTANDING_REQUEST_NOT_REQUIRED');
+  }
   for (const key of ['phone_calls', 'voice_calls', 'video_calls']) {
     if (g.written_negotiation?.[key] !== 'NOT_AVAILABLE') {
       errors.push(`PRE_SEND_CALL_CHANNEL_DRIFT:${key}`);
@@ -144,8 +167,11 @@ function validate(input) {
     'must be conducted through written email only',
     'Phone, voice, and video calls are not available negotiation channels',
     "English is not the Program Owner's native language",
+    '솔직하고 정중하게 양해를 구한다',
+    'I would sincerely appreciate your understanding',
     'HOLD_OR_REPLACE',
     'CLASSIC.COM application',
+    'honest_respectful_understanding_request_present_when_channel_reason_is_explained = true',
     'outbound_call_offer_absent = true',
     'program_owner_not_assigned_to_phone_voice_or_video_call = true',
   ];
@@ -208,6 +234,11 @@ proveNegative(
   'OUTBOUND_ASSERTION_MISSING:program_owner_not_assigned_to_phone_voice_or_video_call',
 );
 proveNegative(
+  'honest_respectful_understanding_request_removed',
+  input => { input.policy.required_outbound_assertions.honest_respectful_understanding_request_present_when_channel_reason_is_explained = false; },
+  'OUTBOUND_ASSERTION_MISSING:honest_respectful_understanding_request_present_when_channel_reason_is_explained',
+);
+proveNegative(
   'classic_call_prerequisite_accepted',
   input => { input.minimum.provider_request_strategy.CLASSIC_COM = 'TAXONOMY_AND_SALES_HISTORY_AFTER_CALL'; },
   'CLASSIC_COM_CALL_PREREQUISITE_NOT_REJECTED',
@@ -217,6 +248,8 @@ console.log(JSON.stringify({
   receipt_id: 'KIDULTS_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_VALIDATION_V1',
   state: 'VERIFIED_PASS',
   negotiation_channel: 'WRITTEN_EMAIL_ONLY',
+  communication_manner: 'HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING',
+  canonical_korean_rule: '솔직하고 정중하게 양해를 구한다',
   phone_voice_video_calls_available: false,
   material_verbal_terms_admissible: false,
   provider_written_refusal: 'HOLD_OR_REPLACE',
