@@ -1967,13 +1967,13 @@ test('Production workflow verifies exact-SHA signed evidence before resolving th
   assert.match(workflow, /--expected-source-sha "\$GITHUB_SHA"/);
 });
 
-test('missing governed evidence producer and superseded legacy gates keep Production authority hard-disabled', () => {
+test('governed evidence producer remains hard-disabled without protected runner evidence', () => {
   const producer = promotionContract.evidence_producer;
   assert.equal(producer.exact_workflow_path, '.github/workflows/kidults-production-release-evidence-v1.yml');
-  assert.equal(producer.availability, 'NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER');
+  assert.equal(producer.availability, 'IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE');
   assert.equal(producer.certification_state, 'HOLD');
   assert.equal(producer.production_authority, 'HARD_DISABLED');
-  assert.equal(fs.existsSync(path.join(root, producer.exact_workflow_path)), false);
+  assert.equal(fs.existsSync(path.join(root, producer.exact_workflow_path)), true);
 
   const canonicalSuccessor = 'contracts/certification/kidults-controlled-production-promotion.v1.json';
   for (const legacyContract of [legacyReadinessContract, legacyRuntimeAuditContract]) {
@@ -1987,6 +1987,56 @@ test('missing governed evidence producer and superseded legacy gates keep Produc
   assert.match(legacyRuntimeAuditRunbook, /superseded fail-closed/);
   assert.match(legacyRuntimeAuditRunbook, /score is exactly 100\/100/);
   assert.doesNotMatch(legacyRuntimeAuditRunbook, /score at least 90|score 70–89/);
+});
+
+test('governed evidence producer is exact-main, fixed-path, self-hosted, and non-promoting', () => {
+  const workflow = fs.readFileSync(path.join(root, promotionContract.evidence_producer.exact_workflow_path), 'utf8');
+  for (const required of [
+    'workflow_dispatch:',
+    'runs-on: [self-hosted, linux, x64, kidults-production-evidence]',
+    'environment: kidults-production-evidence',
+    'cancel-in-progress: false',
+    'test "$GITHUB_REF" = refs/heads/main',
+    'test "$GITHUB_RUN_ATTEMPT" = 1',
+    'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"',
+    'persist-credentials: false',
+    'KIDULTS_EVIDENCE_INTAKE: /var/lib/kaios/kidults-production-release/evidence-intake',
+    'KIDULTS_ARCHIVE_ROOT: /mnt/ih_prod_01/backups/production-certification',
+    'metadata.st_uid != 0 or metadata.st_gid != 0',
+    'EVIDENCE_DIR="$KIDULTS_EVIDENCE_INTAKE" bash scripts/production/seal-kidults-production-evidence.sh',
+    'SEALED_OUTPUT_EXACT_TRIPLET_REQUIRED',
+    'manifest.get("source_sha") != str(source_sha)',
+    'name: kidults-production-release-evidence-${{ github.sha }}',
+    'overwrite: false',
+    'Production/Public/G5 remain HOLD',
+  ]) assert.ok(workflow.includes(required), `producer missing boundary: ${required}`);
+  for (const forbidden of [
+    'pull_request:',
+    'pull_request_target:',
+    'schedule:',
+    'push:',
+    'ubuntu-latest',
+    'ubuntu-24.04',
+    'docker compose up',
+    'promote-kidults-controlled.sh',
+    'KAIOS_PRODUCTION_ADMIN_TOKEN',
+  ]) assert.ok(!workflow.includes(forbidden), `producer contains forbidden capability: ${forbidden}`);
+
+  const mutations = [
+    workflow.replace('test "$GITHUB_REF" = refs/heads/main', 'true'),
+    workflow.replace('test "$GITHUB_RUN_ATTEMPT" = 1', 'true'),
+    workflow.replace('persist-credentials: false', 'persist-credentials: true'),
+    workflow.replace('runs-on: [self-hosted, linux, x64, kidults-production-evidence]', 'runs-on: ubuntu-24.04'),
+    workflow.replace('overwrite: false', 'overwrite: true'),
+  ];
+  const guards = [
+    'test "$GITHUB_REF" = refs/heads/main',
+    'test "$GITHUB_RUN_ATTEMPT" = 1',
+    'persist-credentials: false',
+    'runs-on: [self-hosted, linux, x64, kidults-production-evidence]',
+    'overwrite: false',
+  ];
+  mutations.forEach((value, index) => assert.ok(!value.includes(guards[index]), `producer mutation remained undetected: ${guards[index]}`));
 });
 
 test('standalone promotion binds Owner-approved compose bytes and image IDs through the final mutation marker', () => {

@@ -46,12 +46,14 @@ GitHub certification additionally accepts evidence only from a successful
 `.github/workflows/kidults-production-release-evidence-v1.yml` at the current
 protected-main SHA. It downloads the exact artifact ID through the Actions API,
 compares the downloaded ZIP bytes to the API `sha256` digest, and safely extracts
-only regular members. That producer workflow is not provided by this repository
-revision, so GitHub certification intentionally remains fail-closed `HOLD` until
-the separately governed producer is landed.
+only regular members. That producer workflow runs only on the protected
+`kidults-production-evidence` self-hosted runner, consumes the fixed root-owned
+intake and trust paths, and emits an exact-main artifact without touching
+Production. GitHub certification remains fail-closed `HOLD` until a successful
+exact-SHA producer run and every downstream protected-executor gate are present.
 
 Release dashboard state for this revision is therefore explicit:
-`evidence producer = NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER`,
+`evidence producer = IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE`,
 `certification = HOLD`, and `Production authority = HARD_DISABLED`. Internal
 validators cannot convert that missing producer execution into release evidence.
 

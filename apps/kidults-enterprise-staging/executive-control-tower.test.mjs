@@ -107,7 +107,7 @@ test('dashboard exposes decision queue and source truth boundaries', () => {
   assert.doesNotMatch(html, /active 조사|queued \$\{/);
   assert.equal(snapshot.production_evidence_producer.contract_id, 'KIDULTS_CONTROLLED_PRODUCTION_PROMOTION_V1');
   assert.equal(snapshot.production_evidence_producer.canonical_policy_version, '1.1.0');
-  assert.equal(snapshot.production_evidence_producer.availability, 'NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER');
+  assert.equal(snapshot.production_evidence_producer.availability, 'IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE');
   assert.equal(snapshot.production_evidence_producer.certification_state, 'HOLD');
   assert.equal(snapshot.production_evidence_producer.production_authority, 'HARD_DISABLED');
   assert.match(html, /Production evidence producer/);

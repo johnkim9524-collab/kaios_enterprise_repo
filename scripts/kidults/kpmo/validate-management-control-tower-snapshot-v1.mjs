@@ -55,7 +55,7 @@ const expectedProductionEvidenceProducer = {
 };
 assert(isDeepStrictEqual(snapshot.production_evidence_producer, expectedProductionEvidenceProducer),
   'SNAPSHOT_PRODUCTION_EVIDENCE_PRODUCER_MISMATCH');
-assert(snapshot.production_evidence_producer.availability === 'NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER'
+assert(snapshot.production_evidence_producer.availability === 'IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE'
   && snapshot.production_evidence_producer.certification_state === 'HOLD'
   && snapshot.production_evidence_producer.production_authority === 'HARD_DISABLED',
 'SNAPSHOT_PRODUCTION_EVIDENCE_PRODUCER_AUTHORITY');
