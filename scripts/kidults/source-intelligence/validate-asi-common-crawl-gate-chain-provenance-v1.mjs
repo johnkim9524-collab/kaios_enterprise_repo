@@ -15,6 +15,8 @@ function violations(text) {
     "run.head_sha===expectedSha",
     'artifact.workflow_run?.id===run.id',
     'artifact.workflow_run?.head_sha===expectedSha',
+    'for ATTEMPT in $(seq 1 72); do',
+    'if [ "$ATTEMPT" -eq 72 ]; then',
     'GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY',
     "/^sha256:[a-f0-9]{64}$/.test(artifact.digest||'')",
     'producer_run_id:run.id',
@@ -73,6 +75,7 @@ const mutations = [
   ['DROP_DIGEST', t => t.replace("if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);", '')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
   ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
+  ['SHRINK_WAIT_WINDOW', t => t.replace('for ATTEMPT in $(seq 1 72); do', 'for ATTEMPT in $(seq 1 24); do')],
   ['DROP_TERMINAL_ALWAYS', t => t.replace('      - name: Emit exact-run terminal receipt\n        if: always()\n', '      - name: Emit exact-run terminal receipt\n')]
 ];
 
