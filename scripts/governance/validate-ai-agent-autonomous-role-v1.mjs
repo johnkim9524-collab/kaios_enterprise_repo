@@ -3,18 +3,22 @@ import fs from 'node:fs';
 const rolePath = 'coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json';
 const seqPath = 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json';
 const trackJdPath = 'coordination/kidults/governance/track-abcdez-job-description-contract-v1.json';
+const strategyPath = 'coordination/kidults/governance/ih-integrated-product-customer-platform-provider-internalization-strategy-v1.json';
+const strategyDocPath = 'docs/strategy/IH_INTEGRATED_PRODUCT_CUSTOMER_PLATFORM_PROVIDER_INTERNALIZATION_STRATEGY_V1.md';
 const docPath = '.github/AI_AGENT_AUTONOMOUS_ROLE.md';
 const trackDocPath = '.github/TRACK_ABCDEZ_JOB_DESCRIPTIONS.md';
 
 const fail = (m) => { console.error(`AUTONOMOUS_ROLE_FAIL:${m}`); process.exitCode = 1; };
-for (const p of [rolePath, seqPath, trackJdPath, docPath, trackDocPath]) if (!fs.existsSync(p)) fail(`MISSING:${p}`);
+for (const p of [rolePath, seqPath, trackJdPath, strategyPath, strategyDocPath, docPath, trackDocPath]) if (!fs.existsSync(p)) fail(`MISSING:${p}`);
 if (process.exitCode) process.exit();
 
 const role = JSON.parse(fs.readFileSync(rolePath, 'utf8'));
 const seq = JSON.parse(fs.readFileSync(seqPath, 'utf8'));
 const trackJd = JSON.parse(fs.readFileSync(trackJdPath, 'utf8'));
+const strategy = JSON.parse(fs.readFileSync(strategyPath, 'utf8'));
 const doc = fs.readFileSync(docPath, 'utf8');
 const trackDoc = fs.readFileSync(trackDocPath, 'utf8');
+const strategyDoc = fs.readFileSync(strategyDocPath, 'utf8');
 
 const expectedPrinciples = ['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 if (JSON.stringify(role.platform_principles) !== JSON.stringify(expectedPrinciples)) fail('PRINCIPLE_ORDER');
@@ -24,6 +28,8 @@ if (role.autonomous_role?.report_only_while_fix_executable !== 'FORBIDDEN') fail
 if (role.autonomous_role?.repeated_human_prompting_required !== false) fail('REPEATED_PROMPT_ALLOWED');
 if (role.autonomous_role?.self_exemption_allowed !== false) fail('SELF_EXEMPTION');
 if (role.track_job_description_contract_path !== trackJdPath) fail('TRACK_JD_PATH');
+if (role.integrated_strategy_contract_path !== strategyPath) fail('STRATEGY_PATH');
+if (role.integrated_strategy_document_path !== strategyDocPath) fail('STRATEGY_DOC_PATH');
 
 const requiredSteps = [
   'IDENTIFY_ROOT_CAUSE',
@@ -32,20 +38,28 @@ const requiredSteps = [
   'REVALIDATE_EXACT_HEAD',
   'SYNC_CANONICAL_REGISTRY_ISSUES_AND_MANAGEMENT_TRUTH',
   'REPORT_ONLY_AFTER_VERIFIED_REMEDIATION',
-  'PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS'
+  'PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS',
+  'ASSESS_INTEGRATED_STRATEGY_EFFECT_WHEN_MATERIAL'
 ];
 for (const step of requiredSteps) if (!role.autonomous_role?.mandatory_immediate_behavior?.includes(step)) fail(`MISSING_ROLE_STEP:${step}`);
 
 const strategic = [
   'INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY',
   'VERTICAL_BRAND_FUTURE_STRATEGY',
-  'CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS'
+  'CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS',
+  'PRODUCT_STRATEGY',
+  'CUSTOMER_STRATEGY',
+  'PLATFORM_STRATEGY',
+  'PROVIDER_STRATEGY',
+  'INTERNALIZATION_STRATEGY',
+  'GO_TO_MARKET_AND_MONETIZATION'
 ];
 for (const d of strategic) if (!role.strategic_stewardship_role?.required_domains?.includes(d)) fail(`MISSING_STRATEGIC_DOMAIN:${d}`);
 if (role.strategic_stewardship_role?.kpmo_accountable_owner !== true) fail('KPMO_NOT_ACCOUNTABLE');
 if (role.bootstrap_requirement?.must_load_before_task_execution !== true) fail('ROLE_NOT_BOOTSTRAP_REQUIRED');
 if (role.bootstrap_requirement?.must_inherit_to_every_child_agent !== true) fail('CHILD_INHERITANCE_MISSING');
 if (role.bootstrap_requirement?.track_jd_contract_required_for_track_agents !== true) fail('TRACK_JD_NOT_BOOTSTRAP_REQUIRED');
+if (role.bootstrap_requirement?.integrated_strategy_contract_required_for_material_strategy_tasks !== true) fail('STRATEGY_NOT_BOOTSTRAP_REQUIRED');
 if (role.bootstrap_requirement?.missing_or_invalid_contract_behavior !== 'REJECT_TASK_DISPATCH') fail('MISSING_FAIL_CLOSED_DISPATCH');
 
 if (seq.autonomous_role_contract_path !== rolePath) fail('SEQUENCE_ROLE_PATH');
@@ -92,11 +106,27 @@ if (!trackJd.tracks?.TRACK_E?.accountabilities?.includes('VERTICAL_AND_BRAND_FUT
 if (!trackJd.tracks?.TRACK_Z?.accountabilities?.includes('PROVIDER_DISCOVERY_AND_PORTFOLIO_STRATEGY')) fail('TRACK_Z_PROVIDER_STRATEGY');
 if (trackJd.cross_track_failure_rules?.downstream_may_not_promote_when_upstream_authority_is_red_unknown_or_hold !== true) fail('TRACK_HANDOFF_FAIL_CLOSED');
 
+if (strategy.id !== 'ih-integrated-product-customer-platform-provider-internalization-strategy-v1') fail('STRATEGY_ID');
+if (strategy.status !== 'MANDATORY_STRATEGIC_STEWARDSHIP') fail('STRATEGY_STATUS');
+if (JSON.stringify(strategy.platform_principles) !== JSON.stringify(expectedPrinciples)) fail('STRATEGY_PRINCIPLES');
+for (const domain of ['PRODUCT_STRATEGY','CUSTOMER_STRATEGY','PLATFORM_STRATEGY','PROVIDER_STRATEGY','INTERNALIZATION_STRATEGY','GO_TO_MARKET_AND_MONETIZATION']) {
+  if (!strategy.strategy_domains?.[domain]) fail(`STRATEGY_DOMAIN_MISSING:${domain}`);
+}
+if (!strategy.strategy_domains?.PROVIDER_STRATEGY?.portfolio_rules?.includes('NO_SINGLE_PROVIDER_AS_CANONICAL_TRUTH')) fail('PROVIDER_CANONICAL_TRUTH_GUARD');
+if (!strategy.strategy_domains?.PROVIDER_STRATEGY?.portfolio_rules?.includes('PROOF_BEFORE_PROCUREMENT')) fail('PROVIDER_PROOF_BEFORE_PROCUREMENT');
+if (!strategy.strategy_domains?.INTERNALIZATION_STRATEGY?.must_internalize?.includes('CANONICAL_IDENTITY_AND_ENTITY_RESOLUTION')) fail('INTERNALIZATION_IDENTITY_CORE');
+if (!strategy.strategy_domains?.INTERNALIZATION_STRATEGY?.must_internalize?.includes('AI_AGENT_GOVERNANCE_AND_AUTONOMOUS_OPERATIONS')) fail('INTERNALIZATION_AI_GOVERNANCE');
+if (!strategy.track_ownership?.TRACK_E?.includes('PRODUCT_CUSTOMER_PLATFORM_PORTFOLIO_STRATEGY')) fail('TRACK_E_INTEGRATED_STRATEGY_OWNER');
+if (!strategy.track_ownership?.TRACK_Z?.includes('PROVIDER_PORTFOLIO')) fail('TRACK_Z_PROVIDER_OWNER');
+
 for (const phrase of ['AUTONOMOUS','GLOBAL','IRREPLACEABLE VALUE','TRANSPARENT','REPORT_ONLY_AFTER_VERIFIED_REMEDIATION']) {
   if (!doc.toUpperCase().includes(phrase)) fail(`DOC_CONTRACT:${phrase}`);
 }
 for (const phrase of ['Track A','Track B','Track C','Track D','Track E','Track Z','Intelligence Holdings','AUTONOMOUS']) {
   if (!trackDoc.includes(phrase)) fail(`TRACK_DOC_CONTRACT:${phrase}`);
+}
+for (const phrase of ['## 2. Product strategy','## 3. Customer strategy','## 4. Platform strategy','## 5. Provider strategy','## 6. Internalization strategy']) {
+  if (!strategyDoc.includes(phrase)) fail(`STRATEGY_DOC_CONTRACT:${phrase}`);
 }
 
 if (!process.exitCode) console.log('AUTONOMOUS_ROLE_VERIFIED_PASS');
