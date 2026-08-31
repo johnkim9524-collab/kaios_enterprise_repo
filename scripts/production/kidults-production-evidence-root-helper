@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$' \t\n'
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH LC_ALL=C TZ=UTC
+unset BASH_ENV ENV CDPATH GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CONFIG_COUNT GIT_CONFIG_GLOBAL \
+  GIT_CONFIG_SYSTEM GIT_CONFIG_NOSYSTEM GIT_SSL_NO_VERIFY GIT_SSL_CAINFO \
+  LD_PRELOAD LD_LIBRARY_PATH NODE_OPTIONS NODE_PATH PYTHONHOME PYTHONPATH \
+  TAR_OPTIONS GZIP
+umask 077
+
+readonly CONFIG=/etc/kaios/kidults-production-release/root-helper-pins.conf
+readonly WORKSPACE=/opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterprise_repo
+readonly EVIDENCE_INTAKE=/var/lib/kaios/kidults-production-release/evidence-intake
+readonly ARCHIVE_ROOT=/mnt/ih_prod_01/backups/production-certification
+readonly EXPORT_ROOT=/opt/actions-runner/_work/_temp/kidults-production-release-evidence
+readonly SEALER_REL=scripts/production/seal-kidults-production-evidence.sh
+readonly GATE_REL=scripts/production/validate-kidults-production-release-v1.mjs
+readonly POLICY_REL=coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json
+readonly CONTRACT_REL=contracts/certification/kidults-controlled-production-promotion.v1.json
+readonly CANONICAL_ORIGIN=https://github.com/johnkim9524-collab/kaios_enterprise_repo.git
+
+fail() { printf 'ROOT_HELPER_FAIL:%s\n' "$1" >&2; exit 1; }
+
+[[ "$#" -eq 0 ]] || fail ARGUMENTS_FORBIDDEN
+[[ "$(id -u)" -eq 0 ]] || fail ROOT_REQUIRED
+[[ "${SUDO_USER:-}" == kidults-runner ]] || fail CALLER_NOT_AUTHORIZED
+[[ -f "$CONFIG" && ! -L "$CONFIG" ]] || fail PIN_CONFIG_INVALID
+[[ "$(stat -c '%u:%g:%a' "$CONFIG")" == 0:0:600 ]] || fail PIN_CONFIG_IDENTITY
+
+# The file is root-owned and created by the installer. Values are validated again
+# before use so it cannot turn this helper into a general command runner.
+# shellcheck disable=SC1090
+source "$CONFIG"
+[[ "${SOURCE_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || fail SOURCE_SHA_PIN_INVALID
+for name in SEALER_SHA256 GATE_SHA256 POLICY_SHA256 CONTRACT_SHA256; do
+  [[ "${!name:-}" =~ ^[0-9a-f]{64}$ ]] || fail "${name}_PIN_INVALID"
+done
+
+[[ -d "$WORKSPACE" && ! -L "$WORKSPACE" ]] || fail WORKSPACE_INVALID
+[[ "$(readlink -f -- "$WORKSPACE")" == "$WORKSPACE" ]] || fail WORKSPACE_REDIRECTED
+[[ "$(stat -c '%U' "$WORKSPACE")" == kidults-runner ]] || fail WORKSPACE_OWNER_INVALID
+[[ -d "$EVIDENCE_INTAKE" && ! -L "$EVIDENCE_INTAKE" ]] || fail EVIDENCE_INTAKE_INVALID
+[[ "$(readlink -f -- "$EVIDENCE_INTAKE")" == "$EVIDENCE_INTAKE" ]] || fail EVIDENCE_INTAKE_REDIRECTED
+[[ "$(stat -c '%u:%g' "$EVIDENCE_INTAKE")" == 0:0 ]] || fail EVIDENCE_INTAKE_OWNER_INVALID
+
+readonly ACTUAL_SHA="$(/usr/bin/git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" rev-parse HEAD)"
+[[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED
+readonly ACTUAL_ORIGIN="$(/usr/bin/git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" config --local --get remote.origin.url)"
+[[ "$ACTUAL_ORIGIN" == "$CANONICAL_ORIGIN" ]] || fail ORIGIN_NOT_CANONICAL
+
+verify_file() {
+  local relative=$1 expected=$2 absolute="$WORKSPACE/$1"
+  [[ -f "$absolute" && ! -L "$absolute" ]] || fail "PINNED_FILE_INVALID:$relative"
+  [[ "$(sha256sum -- "$absolute" | awk '{print $1}')" == "$expected" ]] \
+    || fail "PINNED_FILE_DIGEST_MISMATCH:$relative"
+}
+verify_file "$SEALER_REL" "$SEALER_SHA256"
+verify_file "$GATE_REL" "$GATE_SHA256"
+verify_file "$POLICY_REL" "$POLICY_SHA256"
+verify_file "$CONTRACT_REL" "$CONTRACT_SHA256"
+
+before="$(mktemp)"
+after="$(mktemp)"
+trap 'rm -f -- "${before:-}" "${after:-}"' EXIT
+find "$ARCHIVE_ROOT" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$before"
+
+/usr/bin/env -i \
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  LC_ALL=C TZ=UTC \
+  EVIDENCE_DIR="$EVIDENCE_INTAKE" \
+  /bin/bash "$WORKSPACE/$SEALER_REL"
+
+find "$ARCHIVE_ROOT" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$after"
+python3 -I - "$ARCHIVE_ROOT" "$before" "$after" "$EXPORT_ROOT" "$SOURCE_SHA" <<'PY'
+import hashlib
+import json
+import os
+import pwd
+import re
+import shutil
+import stat
+import sys
+import tempfile
+from pathlib import Path
+
+archive_root, before_path, after_path, export_root, source_sha = map(Path, sys.argv[1:])
+before = set(before_path.read_text(encoding="utf-8").splitlines())
+after = set(after_path.read_text(encoding="utf-8").splitlines())
+created = sorted(after - before)
+archives = [name for name in created if re.fullmatch(r"kidults-production-evidence-[A-Za-z0-9._-]{1,128}\.tar\.gz", name)]
+if len(archives) != 1:
+    raise SystemExit("ROOT_HELPER_EXPORT_ARCHIVE_COUNT")
+archive_name = archives[0]
+expected = sorted([archive_name, archive_name + ".sha256", archive_name + ".manifest.json"])
+if created != expected:
+    raise SystemExit("ROOT_HELPER_EXPORT_EXACT_TRIPLET")
+
+paths = [archive_root / name for name in expected]
+for path in paths:
+    metadata = path.stat(follow_symlinks=False)
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise SystemExit("ROOT_HELPER_EXPORT_FILE_IDENTITY")
+    if metadata.st_uid != 0 or metadata.st_gid != 0 or stat.S_IMODE(metadata.st_mode) != 0o600:
+        raise SystemExit("ROOT_HELPER_EXPORT_FILE_AUTHORITY")
+
+archive = archive_root / archive_name
+checksum = archive_root / (archive_name + ".sha256")
+manifest_path = archive_root / (archive_name + ".manifest.json")
+digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+if checksum.read_text(encoding="utf-8").split()[0] != digest:
+    raise SystemExit("ROOT_HELPER_EXPORT_CHECKSUM")
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+if manifest.get("archive_sha256") != "sha256:" + digest or manifest.get("source_sha") != str(source_sha):
+    raise SystemExit("ROOT_HELPER_EXPORT_BINDING")
+
+parent = export_root.parent
+parent_metadata = parent.stat(follow_symlinks=False)
+if not stat.S_ISDIR(parent_metadata.st_mode) or parent.is_symlink():
+    raise SystemExit("ROOT_HELPER_EXPORT_PARENT")
+if export_root.exists() or export_root.is_symlink():
+    if export_root.is_symlink() or not export_root.is_dir():
+        raise SystemExit("ROOT_HELPER_EXPORT_TARGET")
+    shutil.rmtree(export_root)
+stage = Path(tempfile.mkdtemp(prefix=".kidults-production-release-evidence.", dir=parent))
+try:
+    shutil.copyfile(archive, stage / "kidults-production-evidence.tar.gz")
+    shutil.copyfile(manifest_path, stage / "kidults-production-evidence.tar.gz.manifest.json")
+    runner = pwd.getpwnam("kidults-runner")
+    runner_uid = runner.pw_uid
+    runner_gid = runner.pw_gid
+    os.chown(stage, runner_uid, runner_gid)
+    os.chmod(stage, 0o700)
+    for path in stage.iterdir():
+        os.chown(path, runner_uid, runner_gid)
+        os.chmod(path, 0o600)
+    os.rename(stage, export_root)
+except BaseException:
+    if stage.exists():
+        shutil.rmtree(stage)
+    raise
+PY
+
+printf 'ROOT_HELPER_SEAL_EXPORT_PASS\nsource_sha=%s\n' "$SOURCE_SHA"

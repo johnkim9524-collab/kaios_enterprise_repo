@@ -1967,10 +1967,10 @@ test('Production workflow verifies exact-SHA signed evidence before resolving th
   assert.match(workflow, /--expected-source-sha "\$GITHUB_SHA"/);
 });
 
-test('governed evidence producer remains hard-disabled without protected runner evidence', () => {
+test('governed evidence producer remains hard-disabled until the root helper and evidence exist', () => {
   const producer = promotionContract.evidence_producer;
   assert.equal(producer.exact_workflow_path, '.github/workflows/kidults-production-release-evidence-v1.yml');
-  assert.equal(producer.availability, 'IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE');
+  assert.equal(producer.availability, 'IMPLEMENTED_FAIL_CLOSED_AWAITING_ROOT_HELPER_INSTALL_AND_EVIDENCE');
   assert.equal(producer.certification_state, 'HOLD');
   assert.equal(producer.production_authority, 'HARD_DISABLED');
   assert.equal(fs.existsSync(path.join(root, producer.exact_workflow_path)), true);
@@ -2003,8 +2003,8 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     'KIDULTS_EVIDENCE_INTAKE: /var/lib/kaios/kidults-production-release/evidence-intake',
     'KIDULTS_ARCHIVE_ROOT: /mnt/ih_prod_01/backups/production-certification',
     'metadata.st_uid != 0 or metadata.st_gid != 0',
-    'EVIDENCE_DIR="$KIDULTS_EVIDENCE_INTAKE" bash scripts/production/seal-kidults-production-evidence.sh',
-    'SEALED_OUTPUT_EXACT_TRIPLET_REQUIRED',
+    'sudo -n /usr/local/libexec/kidults-production-evidence-root-helper',
+    'SEALED_EXPORT_EXACT_PAIR_REQUIRED',
     'manifest.get("source_sha") != str(source_sha)',
     'name: kidults-production-release-evidence-${{ github.sha }}',
     'overwrite: false',
@@ -2021,6 +2021,7 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     'promote-kidults-controlled.sh',
     'KAIOS_PRODUCTION_ADMIN_TOKEN',
   ]) assert.ok(!workflow.includes(forbidden), `producer contains forbidden capability: ${forbidden}`);
+  assert.ok(!workflow.includes('EVIDENCE_DIR="$KIDULTS_EVIDENCE_INTAKE" bash scripts/production/seal-kidults-production-evidence.sh'));
 
   const mutations = [
     workflow.replace('test "$GITHUB_REF" = refs/heads/main', 'true'),
@@ -2037,6 +2038,30 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     'overwrite: false',
   ];
   mutations.forEach((value, index) => assert.ok(!value.includes(guards[index]), `producer mutation remained undetected: ${guards[index]}`));
+});
+
+test('Production evidence privilege bridge is fixed-command, digest-pinned, and fail-closed', () => {
+  const helper = fs.readFileSync(path.join(root, 'scripts/production/kidults-production-evidence-root-helper'), 'utf8');
+  const installer = fs.readFileSync(path.join(root, 'scripts/production/install-kidults-production-evidence-root-helper.sh'), 'utf8');
+  for (const required of [
+    '[[ "$#" -eq 0 ]] || fail ARGUMENTS_FORBIDDEN',
+    '[[ "${SUDO_USER:-}" == kidults-runner ]] || fail CALLER_NOT_AUTHORIZED',
+    'readonly WORKSPACE=/opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterprise_repo',
+    '[[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED',
+    '[[ "$ACTUAL_ORIGIN" == "$CANONICAL_ORIGIN" ]] || fail ORIGIN_NOT_CANONICAL',
+    'verify_file "$SEALER_REL" "$SEALER_SHA256"',
+    'verify_file "$GATE_REL" "$GATE_SHA256"',
+    'verify_file "$POLICY_REL" "$POLICY_SHA256"',
+    'verify_file "$CONTRACT_REL" "$CONTRACT_SHA256"',
+    '/usr/bin/env -i',
+  ]) assert.ok(helper.includes(required), `root helper missing boundary: ${required}`);
+  for (const forbidden of ['eval ', 'bash -c', 'sh -c', '"$@"', '${@}']) {
+    assert.ok(!helper.includes(forbidden), `root helper contains forbidden general execution: ${forbidden}`);
+  }
+  assert.ok(installer.includes('kidults-runner ALL=(root) NOPASSWD: /usr/local/libexec/kidults-production-evidence-root-helper'));
+  assert.ok(installer.includes('visudo -cf "$sudoers_tmp"'));
+  assert.ok(installer.includes('chmod 0440 "$sudoers_tmp"'));
+  assert.ok(installer.includes('chmod 0600 "$config_tmp"'));
 });
 
 test('standalone promotion binds Owner-approved compose bytes and image IDs through the final mutation marker', () => {
