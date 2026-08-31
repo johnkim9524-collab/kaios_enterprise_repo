@@ -1,0 +1,62 @@
+{
+  "id": "kidults-cloudflare-pages-to-workers-inventory-v1",
+  "version": "1.0.0",
+  "status": "CONTROL_ONLY_INVENTORY",
+  "owner": "KPMO",
+  "source_main_sha": "ffac1b93492704f57f6125ef67e9b83336083840",
+  "legacy_pages": {
+    "canonical_staging_project": "kidults-workspace-staging",
+    "automatic_production_git_deploy": false,
+    "automatic_preview_deploy": false,
+    "repository_evidence": ["PR_1552", "PR_1587"],
+    "role": "FROZEN_LEGACY_SERVING_SURFACE",
+    "delete_now": false
+  },
+  "legacy_enterprise_surface": {
+    "known_project": "kidults-enterprise",
+    "known_domain": "enterprise.kidults.com",
+    "classification": "MIGRATE_THEN_RETIRE",
+    "repository_evidence": ["PR_1238", "PR_1245"],
+    "external_current_route_readback": "REQUIRED_BEFORE_CUTOVER"
+  },
+  "canonical_portal_source": {
+    "path": "apps/kidults-enterprise-staging/public/portal",
+    "root_document": "index.html",
+    "workspace_document": "workspace.html",
+    "redirects_file": "_redirects",
+    "source_role": "SHARED_RESPONSIVE_PORTAL_STATIC_SOURCE",
+    "mobile_product_fork_allowed": false
+  },
+  "target_workers": {
+    "public_portal": {
+      "service_name": "kidults-public-portal-shadow",
+      "mode": "WORKERS_STATIC_ASSETS",
+      "production_routes": [],
+      "custom_domains": [],
+      "deployment_authorized": false,
+      "public_authorized": false
+    },
+    "workspace": {
+      "service_name": "kidults-workspace-edge",
+      "mode": "SEPARATE_AUTHENTICATED_BOUNDARY_WHEN_ENABLED",
+      "production_routes": [],
+      "deployment_authorized": false
+    },
+    "edge_api": {
+      "service_name": "kidults-edge-api",
+      "mode": "ADD_ONLY_WHEN_REQUIRED",
+      "production_routes": [],
+      "deployment_authorized": false
+    }
+  },
+  "inventory_gaps": [
+    "LIVE_CLOUDFLARE_PROJECT_ID_READBACK",
+    "LIVE_CUSTOM_DOMAIN_AND_ROUTE_MAP",
+    "LIVE_DNS_BINDING_READBACK",
+    "LIVE_PAGES_FUNCTIONS_BINDING_READBACK",
+    "LIVE_DEPLOYMENT_ROLLBACK_HISTORY_READBACK",
+    "EXTERNAL_CALLER_AND_ROUTE_DEPENDENCY_ZERO_PROOF"
+  ],
+  "migration_rule": "UNKNOWN_EXTERNAL_BINDINGS_BLOCK_CUTOVER_AND_RETIREMENT_BUT_DO_NOT_BLOCK_REVERSIBLE_INTERNAL_WORKERS_SCAFFOLDING",
+  "production_public_g5": "HOLD"
+}
