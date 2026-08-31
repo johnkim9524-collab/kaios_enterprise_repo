@@ -6,7 +6,8 @@ const source = fs.readFileSync(workflowPath, 'utf8');
 function violations(text) {
   const failures = [];
   const mustInclude = [
-    "EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}",
+    'EXPECTED_EXECUTION_SHA: ${{ github.sha }}',
+    'PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
     "run.repository?.full_name===repository",
     "run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'",
     "run.head_sha===expectedSha",
@@ -16,17 +17,25 @@ function violations(text) {
     "/^sha256:[a-f0-9]{64}$/.test(artifact.digest||'')",
     'producer_run_id:run.id',
     'producer_head_sha:run.head_sha',
+    'producer_execution_sha:run.head_sha',
+    'consumer_pr_head_sha:prHeadSha',
+    "correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA'",
     'artifact_id:artifact.id',
     'artifact_digest:artifact.digest',
     'exact_generation:true',
-    'upstream_global_discovery:provenance'
+    'upstream_global_discovery:provenance',
+    'Emit exact-run terminal receipt',
+    'if: always()',
+    'kidults-asi-common-crawl-gate-chain-terminal-v1',
+    "state:process.env.JOB_STATUS==='success'?'COMPLETE':'FAILED_NON_PROMOTABLE'",
+    'promotable:false'
   ];
   for (const needle of mustInclude) {
     if (!text.includes(needle)) failures.push(`MISSING:${needle}`);
   }
   if (text.includes("if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));") &&
       !text.includes('run.head_sha===expectedSha')) {
-    failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_SHA');
+    failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_EXECUTION_SHA');
   }
   return failures;
 }
@@ -38,13 +47,16 @@ if (pristine.length) {
 }
 
 const mutations = [
-  ['DROP_EXPECTED_SHA', t => t.replace("run.head_sha===expectedSha&&\n", '')],
+  ['DROP_EXECUTION_SHA', t => t.replace("run.head_sha===expectedSha&&\n", '')],
+  ['DROP_PR_HEAD_IDENTITY', t => t.replace('consumer_pr_head_sha:prHeadSha,', '')],
+  ['CHANGE_CORRELATION_CONTRACT', t => t.replace("correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA'", "correlation_contract:'BRANCH_HEAD_SHA'")],
   ['DROP_REPOSITORY_BINDING', t => t.replace("run.repository?.full_name===repository&&\n", '')],
   ['DROP_CANONICAL_PATH', t => t.replace("run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'&&\n", '')],
   ['DROP_CARDINALITY', t => t.replace("if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);", '')],
   ['DROP_DIGEST', t => t.replace("if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);", '')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
-  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')]
+  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
+  ['DROP_TERMINAL_ALWAYS', t => t.replace('        if: always()\n', '')]
 ];
 
 for (const [name, mutate] of mutations) {
@@ -63,6 +75,8 @@ console.log(JSON.stringify({
   status:'PASS',
   id:'asi-common-crawl-gate-chain-provenance-v1',
   mutations_rejected:mutations.length,
+  correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA',
   exact_generation_required:true,
+  terminal_receipt_required:true,
   production:'HOLD'
 },null,2));
