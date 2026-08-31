@@ -1,0 +1,33 @@
+name: KIDULTS Cloudflare Workers Migration Validation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/governance/cloudflare-pages-to-workers-*.json'
+      - 'docs/strategy/IH_CLOUDFLARE_PAGES_TO_WORKERS_MIGRATION_V1.md'
+      - 'infrastructure/cloudflare/workers/**'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-*.mjs'
+      - '.github/workflows/kidults-cloudflare-workers-migration-validation-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-migration-validation-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Validate migration architecture contract
+        run: node scripts/kidults/kpmo/validate-cloudflare-pages-to-workers-migration-v1.mjs
+      - name: Validate non-production Workers shadow scaffold
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-scaffold-v1.mjs
