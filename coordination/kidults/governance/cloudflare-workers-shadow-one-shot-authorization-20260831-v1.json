@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
-  "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "version": "1.1.0",
+  "status": "CONSUMED_FAILED_BEFORE_PROVIDER_ATTEMPT",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -41,6 +41,23 @@
     "credential_scope_expansion_allowed": false,
     "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
   },
+  "consumption": {
+    "state": "CONSUMED_FAILED_BEFORE_PROVIDER_ATTEMPT",
+    "run_id": 33410598558,
+    "run_attempt": 1,
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "event": "workflow_dispatch",
+    "head_branch": "main",
+    "authorization_consumed": true,
+    "provider_mutation_attempted": false,
+    "provider_deployment_attempt_count": 0,
+    "workers_dev_readback_attempted": false,
+    "terminal_artifact_retained": false,
+    "failure_stage": "BIND_EXACT_SOURCE_AND_ARTIFACT_DIGESTS",
+    "failure_class": "WORKSPACE_CHECKOUT_CLEAN_DELETED_RECEIPT",
+    "replay_authorized": false,
+    "historical_execution_artifact_reconstructable": false
+  },
   "clean_recut": {
     "source_base_main_sha": "ffac1b93492704f57f6125ef67e9b83336083840",
     "source_branch": "kpmo/cloudflare-workers-shadow-approved-clean-v1",
@@ -48,30 +65,16 @@
     "execution_sha_binding": "LIVE_PROTECTED_MAIN_SHA_AT_DISPATCH"
   },
   "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
-  "required_preflight": [
-    "UNIQUE_FIRST_MAIN_WORKFLOW_DISPATCH",
-    "GITHUB_RUN_ATTEMPT_ONE",
-    "EXACT_CURRENT_MAIN_SHA",
-    "EXACT_EXTERNAL_APPROVAL_COMMENT_METADATA_AND_BODY",
-    "WORKER_NAME_EXACT",
-    "WORKERS_DEV_TRUE",
-    "PREVIEW_URLS_FALSE",
-    "PRODUCTION_ROUTES_ZERO",
-    "CUSTOM_DOMAINS_ZERO",
-    "PORTAL_ASSET_SOURCE_EXACT",
-    "WRANGLER_EXACT_LOCK_4_127_1",
-    "STATIC_VALIDATOR_PASS"
-  ],
-  "required_postflight": [
-    "DEPLOYMENT_TERMINAL_SUCCESS",
-    "WORKERS_DEV_URL_CAPTURED",
-    "WORKERS_DEV_HTTP_200_READBACK",
-    "NONEMPTY_HTML_BODY_READBACK",
-    "NO_PRODUCTION_ROUTE_OR_CUSTOM_DOMAIN_CREATED_BY_CONFIG",
-    "SANITIZED_RUN_SHA_ATTEMPT_RECEIPT",
-    "PUBLIC_PRODUCTION_G5_HOLD"
-  ],
   "replay": "FORBIDDEN_AFTER_FIRST_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
+  "retirement": {
+    "provider_execution_authorized": false,
+    "credential_resolution_authorized": false,
+    "workflow_mode": "NO_SECRET_TOMBSTONE_ONLY",
+    "future_provider_attempt_requires_new_explicit_approval_id": true,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
   "authority_excludes": [
     "SECOND_DISPATCH_OR_RERUN",
     "PRODUCTION_ROUTE",
