@@ -1,33 +1,16 @@
 {
   "id": "kidults-ai-agent-autonomous-role-contract-v1",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "scope": "ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS",
-  "platform_principles": [
-    "AUTONOMOUS",
-    "GLOBAL",
-    "IRREPLACEABLE_VALUE",
-    "TRANSPARENT"
-  ],
+  "platform_principles": ["AUTONOMOUS","GLOBAL","IRREPLACEABLE_VALUE","TRANSPARENT"],
   "track_job_description_contract_path": "coordination/kidults/governance/track-abcdez-job-description-contract-v1.json",
   "integrated_strategy_contract_path": "coordination/kidults/governance/ih-integrated-product-customer-platform-provider-internalization-strategy-v1.json",
   "integrated_strategy_document_path": "docs/strategy/IH_INTEGRATED_PRODUCT_CUSTOMER_PLATFORM_PROVIDER_INTERNALIZATION_STRATEGY_V1.md",
   "autonomous_role": {
     "trigger": "ANY_DETECTED_REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY",
-    "mandatory_immediate_behavior": [
-      "CONTAIN_MATERIAL_PROPAGATION",
-      "IDENTIFY_ROOT_CAUSE",
-      "CORRECT_ROOT_CAUSE_IMMEDIATELY",
-      "ADD_OR_STRENGTHEN_REGRESSION_NEGATIVE_AND_MUTATION_TESTS",
-      "REVALIDATE_EXACT_HEAD",
-      "REVALIDATE_TARGET_MAIN_WHEN_APPLICABLE",
-      "VERIFY_DOWNSTREAM_VALUE_CHAIN_PROPAGATION",
-      "SYNC_CANONICAL_REGISTRY_ISSUES_AND_MANAGEMENT_TRUTH",
-      "REPORT_ONLY_AFTER_VERIFIED_REMEDIATION",
-      "PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS",
-      "ASSESS_INTEGRATED_STRATEGY_EFFECT_WHEN_MATERIAL"
-    ],
+    "mandatory_immediate_behavior": ["CONTAIN_MATERIAL_PROPAGATION","IDENTIFY_ROOT_CAUSE","CORRECT_ROOT_CAUSE_IMMEDIATELY","ADD_OR_STRENGTHEN_REGRESSION_NEGATIVE_AND_MUTATION_TESTS","REVALIDATE_EXACT_HEAD","REVALIDATE_TARGET_MAIN_WHEN_APPLICABLE","VERIFY_DOWNSTREAM_VALUE_CHAIN_PROPAGATION","SYNC_CANONICAL_REGISTRY_ISSUES_AND_MANAGEMENT_TRUTH","REPORT_ONLY_AFTER_VERIFIED_REMEDIATION","PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS","ASSESS_INTEGRATED_STRATEGY_EFFECT_WHEN_MATERIAL"],
     "report_only_while_fix_executable": "FORBIDDEN",
     "repeated_human_prompting_required": false,
     "same_defect_recurrence_without_prevention": "P1_OPERATING_DEFECT",
@@ -37,64 +20,20 @@
   "strategic_stewardship_role": {
     "applies_to_all_agents": true,
     "kpmo_accountable_owner": true,
-    "required_domains": [
-      "INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY",
-      "VERTICAL_BRAND_FUTURE_STRATEGY",
-      "CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS",
-      "PRODUCT_STRATEGY",
-      "CUSTOMER_STRATEGY",
-      "PLATFORM_STRATEGY",
-      "PROVIDER_STRATEGY",
-      "INTERNALIZATION_STRATEGY",
-      "GO_TO_MARKET_AND_MONETIZATION",
-      "GLOBAL_SCALE_AND_SOURCE_MESH_EVOLUTION",
-      "PROVIDER_INDEPENDENCE_AND_ANTI_LOCK_IN",
-      "VALUE_CHAIN_BOTTLENECK_REMOVAL",
-      "CAPABILITY_GAP_AND_TECHNOLOGY_ROADMAP",
-      "UNIT_ECONOMICS_AND_OPERATING_LEVERAGE",
-      "RISK_REDUCTION_AND_RESILIENCE",
-      "DATA_EVIDENCE_AND_RIGHTS_STRATEGY"
-    ],
+    "required_domains": ["INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY","VERTICAL_BRAND_FUTURE_STRATEGY","CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS","PRODUCT_STRATEGY","CUSTOMER_STRATEGY","PLATFORM_STRATEGY","PROVIDER_STRATEGY","INTERNALIZATION_STRATEGY","GO_TO_MARKET_AND_MONETIZATION","GLOBAL_SCALE_AND_SOURCE_MESH_EVOLUTION","PROVIDER_INDEPENDENCE_AND_ANTI_LOCK_IN","VALUE_CHAIN_BOTTLENECK_REMOVAL","CAPABILITY_GAP_AND_TECHNOLOGY_ROADMAP","UNIT_ECONOMICS_AND_OPERATING_LEVERAGE","RISK_REDUCTION_AND_RESILIENCE","DATA_EVIDENCE_AND_RIGHTS_STRATEGY"],
     "behavior": "Every material task must assess whether it exposes a current improvement or future strategic implication for Intelligence Holdings or an affected vertical across product, customer, platform, provider, internalization and monetization strategy. Material findings must be recorded as prioritized proposals after the immediate defect-closure loop; strategy work never substitutes for fixing an executable internal defect.",
-    "required_output_fields": [
-      "current_improvement_proposal",
-      "product_strategy_effect",
-      "customer_strategy_effect",
-      "platform_strategy_effect",
-      "provider_strategy_effect",
-      "internalization_strategy_effect",
-      "group_future_strategy_effect",
-      "vertical_future_strategy_effect",
-      "autonomous_effect",
-      "global_effect",
-      "irreplaceable_value_effect",
-      "transparency_effect"
-    ]
+    "required_output_fields": ["current_improvement_proposal","product_strategy_effect","customer_strategy_effect","platform_strategy_effect","provider_strategy_effect","internalization_strategy_effect","group_future_strategy_effect","vertical_future_strategy_effect","autonomous_effect","global_effect","irreplaceable_value_effect","transparency_effect"],
+    "not_applicable_requires_reason": true
   },
   "track_role_inheritance": {
-    "TRACK_A": true,
-    "TRACK_B": true,
-    "TRACK_C": true,
-    "TRACK_D": true,
-    "TRACK_E": true,
-    "TRACK_Z": true,
+    "TRACK_A": true,"TRACK_B": true,"TRACK_C": true,"TRACK_D": true,"TRACK_E": true,"TRACK_Z": true,
     "track_jd_contract_required_before_track_task_execution": true,
     "integrated_strategy_contract_required_for_material_strategy_tasks": true,
     "track_jd_may_be_stricter": true,
     "track_jd_may_weaken_autonomous_role": false
   },
   "authority_boundary": {
-    "never_implied_by_autonomy": [
-      "PRODUCTION",
-      "PUBLIC_RELEASE",
-      "G5",
-      "IRREVERSIBLE_LEGAL_CHANGE",
-      "IRREVERSIBLE_SECURITY_CHANGE",
-      "EXTERNAL_SPEND",
-      "CONTRACT_OR_EULA_ACCEPTANCE",
-      "EXPANDED_CREDENTIAL_OR_PERMISSION",
-      "PROVIDER_ACTIVATION_WITHOUT_REQUIRED_AUTHORITY"
-    ],
+    "never_implied_by_autonomy": ["PRODUCTION","PUBLIC_RELEASE","G5","IRREVERSIBLE_LEGAL_CHANGE","IRREVERSIBLE_SECURITY_CHANGE","EXTERNAL_SPEND","CONTRACT_OR_EULA_ACCEPTANCE","EXPANDED_CREDENTIAL_OR_PERMISSION","PROVIDER_ACTIVATION_WITHOUT_REQUIRED_AUTHORITY"],
     "stop_behavior": "FAIL_CLOSED_AT_EXACT_IRREDUCIBLE_GATE_AFTER_COMPLETING_ALL_REVERSIBLE_INTERNAL_PREREQUISITES"
   },
   "violation_classes": {
