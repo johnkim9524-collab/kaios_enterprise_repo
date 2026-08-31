@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
-  "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "version": "1.1.0",
+  "status": "CONSUMED_FAIL_CLOSED_PROVIDER_NOT_ATTEMPTED",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -39,7 +39,10 @@
     "contract_change_allowed": false,
     "new_credential_creation_allowed": false,
     "credential_scope_expansion_allowed": false,
-    "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+    "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY",
+    "executable_authority": false,
+    "provider_activation_allowed": false,
+    "credential_resolution_allowed": false
   },
   "clean_recut": {
     "source_base_main_sha": "ffac1b93492704f57f6125ef67e9b83336083840",
@@ -84,5 +87,35 @@
     "SPEND_OR_CONTRACT_EXPANSION",
     "NEW_CREDENTIAL_OR_SCOPE_EXPANSION",
     "UNRELATED_PROVIDER_MUTATION"
-  ]
+  ],
+  "consumption": {
+    "state": "VERIFIED_FAIL_PREFLIGHT_RECEIPT_DELETED_BY_CHECKOUT",
+    "run_id": 33410598558,
+    "run_attempt": 1,
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "event": "workflow_dispatch",
+    "dispatch_created_at": "2026-08-31T15:49:00Z",
+    "authorization_consumed": true,
+    "provider_mutation_attempted": false,
+    "provider_deployment_attempt_count": 0,
+    "provider_step": "SKIPPED",
+    "readback_step": "SKIPPED",
+    "terminal_artifact_count": 0,
+    "failure_reason": "WORKSPACE_RECEIPT_DELETED_BY_CHECKOUT",
+    "replay": "FORBIDDEN",
+    "historical_terminal_artifact_reconstructable": false,
+    "evidence_boundary": "GITHUB_RUN_AND_JOB_LOG_READBACK_POST_HOC_CONTROL_TRUTH_NOT_PROVIDER_EXECUTION_EVIDENCE"
+  },
+  "current_execution_boundary": {
+    "workflow_state": "CONSUMED_AUTHORIZATION_TOMBSTONE_ONLY",
+    "environment_binding": false,
+    "secret_resolution": false,
+    "provider_execution": false,
+    "network_execution": false,
+    "terminal_receipt_path": "RUNNER_TEMP",
+    "deterministic_result": "VERIFIED_FAIL_AUTHORIZATION_ALREADY_CONSUMED",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
 }
