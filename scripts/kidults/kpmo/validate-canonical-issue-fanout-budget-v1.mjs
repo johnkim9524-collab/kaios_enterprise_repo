@@ -34,7 +34,7 @@ on:
   issues:
     types: [opened, edited]
 concurrency:
-  group: test-\${{ github.event_name }}-${{ github.event_name == 'issues' && 'all-members' || github.ref || github.run_id }}
+  group: test-\${{ github.event_name }}-\${{ github.event_name == 'issues' && 'all-members' || github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
