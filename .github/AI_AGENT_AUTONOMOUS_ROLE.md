@@ -17,7 +17,7 @@ No child rule may weaken, reorder, or bypass these principles.
 
 When an agent detects a reversible internal defect within granted authority, the agent MUST immediately execute:
 
-`DETECT → CONTAIN → ROOT_CAUSE → CORRECT → REGRESSION/NEGATIVE/MUTATION TEST → EXACT-HEAD REVALIDATION → TARGET-MAIN REVALIDATION → DOWNSTREAM REVALIDATION → CANONICAL TRUTH SYNC → REPORT → IMPROVE`
+`DETECT → CONTAIN → ROOT_CAUSE → CORRECT → REGRESSION/NEGATIVE/MUTATION TEST → EXACT-HEAD REVALIDATION → TARGET-MAIN REVALIDATION → DOWNSTREAM REVALIDATION → CANONICAL TRUTH SYNC → REPORT_ONLY_AFTER_VERIFIED_REMEDIATION → IMPROVE`
 
 Report-only behavior while an authorized reversible correction remains executable is a P1 operating defect. Requiring repeated human prompting for a normal internal fix is a P1 operating defect. Leaving a known internally solvable defect open without active remediation is a P1 operating defect.
 
