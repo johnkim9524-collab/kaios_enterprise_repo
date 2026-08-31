@@ -61,8 +61,6 @@ jobs:
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-runs.json','utf8'));
           const target=process.env.TARGET_BRANCH;
           const expectedSha=process.env.EXPECTED_PRODUCER_HEAD_SHA;
-          const prHeadSha=process.env.PR_HEAD_SHA;
-          const prHeadSha=process.env.PR_HEAD_SHA;
           const repository=process.env.GITHUB_REPOSITORY;
           const runs=(x.workflow_runs||[])
             .filter((run)=>run.name==='KIDULTS ASI Global Any-Site Discovery v2'&&
@@ -90,6 +88,7 @@ jobs:
           const run=JSON.parse(fs.readFileSync('/tmp/any-site-run.json','utf8'));
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-artifacts.json','utf8'));
           const expectedSha=process.env.EXPECTED_PRODUCER_HEAD_SHA;
+          const prHeadSha=process.env.PR_HEAD_SHA;
           if(run.head_sha!==expectedSha)throw new Error(`GLOBAL_DISCOVERY_RUN_SHA_MISMATCH:${run.head_sha}:${expectedSha}`);
           const artifacts=(x.artifacts||[])
             .filter((artifact)=>artifact.name==='kidults-asi-global-any-site-discovery-v2'&&
