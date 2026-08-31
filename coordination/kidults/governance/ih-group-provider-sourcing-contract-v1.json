@@ -5,6 +5,12 @@
   "effective_date": "2026-08-29",
   "amended_at": "2026-09-01T00:00:00Z",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "mandatory_strategy_addenda": [
+    "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md"
+  ],
+  "machine_readable_strategy_addenda": [
+    "coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json"
+  ],
   "scope": [
     "Intelligence Holdings",
     "KIDULTS",
@@ -97,6 +103,7 @@
   "agent_requirements": {
     "bootstrap_required": true,
     "read_exact_head_strategy_and_contract": true,
+    "read_all_mandatory_strategy_addenda": true,
     "read_provider_registry_and_communication_evidence": true,
     "duplicate_outreach_forbidden": true,
     "resend_sent_email_without_explicit_authority_forbidden": true,
