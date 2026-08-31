@@ -2,6 +2,8 @@ import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml';
 const source = fs.readFileSync(workflowPath, 'utf8');
+const producerWorkflowPath = '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml';
+const producerSource = fs.readFileSync(producerWorkflowPath, 'utf8');
 
 function violations(text) {
   const failures = [];
@@ -40,6 +42,22 @@ function violations(text) {
   return failures;
 }
 
+function producerViolations(text) {
+  const failures = [];
+  for (const needle of [
+    "      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'",
+    "      - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'"
+  ]) {
+    if (!text.includes(needle)) failures.push(`PRODUCER_TRIGGER_MISSING:${needle}`);
+  }
+  return failures;
+}
+
+const producerPristine = producerViolations(producerSource);
+if (producerPristine.length) {
+  console.error(JSON.stringify({status:'FAIL',violations:producerPristine},null,2));
+  process.exit(1);
+}
 const pristine = violations(source);
 if (pristine.length) {
   console.error(JSON.stringify({status:'FAIL',violations:pristine},null,2));
@@ -71,10 +89,27 @@ for (const [name, mutate] of mutations) {
   }
 }
 
+const producerMutations = [
+  ['DROP_GATE_VALIDATOR_TRIGGER', t => t.replace("      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'\n", '')],
+  ['DROP_GATE_WORKFLOW_TRIGGER', t => t.replace("      - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'\n", '')]
+];
+
+for (const [name, mutate] of producerMutations) {
+  const changed = mutate(producerSource);
+  if (changed === producerSource) {
+    console.error(`MUTATION_NOT_APPLIED:${name}`);
+    process.exit(1);
+  }
+  if (producerViolations(changed).length === 0) {
+    console.error(`FALSE_GREEN:${name}`);
+    process.exit(1);
+  }
+}
 console.log(JSON.stringify({
   status:'PASS',
   id:'asi-common-crawl-gate-chain-provenance-v1',
-  mutations_rejected:mutations.length,
+  mutations_rejected:mutations.length+producerMutations.length,
+  producer_trigger_coupled:true,
   correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA',
   exact_generation_required:true,
   terminal_receipt_required:true,
