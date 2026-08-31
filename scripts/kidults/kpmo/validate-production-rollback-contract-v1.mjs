@@ -1746,7 +1746,7 @@ const chainStart = sources.rollback.indexOf(chainHeredocStart);
 const chainEndMarker = '\nPY\n}\n\nverify_protected_database_parent_fd()';
 const chainEnd = sources.rollback.indexOf(chainEndMarker, chainStart + chainHeredocStart.length);
 if (chainStart < 0 || chainEnd < 0) throw new Error('protected rollback directory-chain validator is not extractable for regression testing');
-const chainCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(chainStart + chainHeredocStart.length, chainEnd));
+const chainCode = sources.rollback.slice(chainStart + chainHeredocStart.length, chainEnd);
 function runDirectoryChain(candidate, heldPath) {
   const descriptor = fs.openSync(heldPath, fs.constants.O_RDONLY);
   try {
