@@ -1,9 +1,19 @@
 {
   "id": "kidults-cloudflare-pages-to-workers-inventory-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "CONTROL_ONLY_INVENTORY",
   "owner": "KPMO",
   "source_main_sha": "ffac1b93492704f57f6125ef67e9b83336083840",
+  "phase_progress": {
+    "P0_FREEZE": "REPOSITORY_EVIDENCE_CONFIRMED",
+    "P1_INVENTORY": "PARTIAL_REPOSITORY_INVENTORY_COMPLETE_LIVE_READBACK_PENDING",
+    "P2_BUILD": "NON_DEPLOYED_STATIC_ASSET_SCAFFOLD_IMPLEMENTED",
+    "P3_SHADOW_VALIDATE": "BLOCKED_ON_SEPARATELY_AUTHORIZED_NON_PRODUCTION_DEPLOYMENT",
+    "P4_RELEASE_GATE": "NOT_STARTED",
+    "P5_CUTOVER": "NOT_AUTHORIZED",
+    "P6_OBSERVE": "NOT_STARTED",
+    "P7_RETIRE_PAGES": "NOT_AUTHORIZED"
+  },
   "legacy_pages": {
     "canonical_staging_project": "kidults-workspace-staging",
     "automatic_production_git_deploy": false,
@@ -31,6 +41,7 @@
     "public_portal": {
       "service_name": "kidults-public-portal-shadow",
       "mode": "WORKERS_STATIC_ASSETS",
+      "config_path": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
       "production_routes": [],
       "custom_domains": [],
       "deployment_authorized": false,
