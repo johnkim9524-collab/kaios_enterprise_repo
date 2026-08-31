@@ -8,7 +8,7 @@ const producerSource = fs.readFileSync(producerWorkflowPath, 'utf8');
 function violations(text) {
   const failures = [];
   const mustInclude = [
-    'EXPECTED_EXECUTION_SHA: ${{ github.sha }}',
+    'EXPECTED_PRODUCER_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
     'PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
     "run.repository?.full_name===repository",
     "run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'",
@@ -19,9 +19,9 @@ function violations(text) {
     "/^sha256:[a-f0-9]{64}$/.test(artifact.digest||'')",
     'producer_run_id:run.id',
     'producer_head_sha:run.head_sha',
-    'producer_execution_sha:run.head_sha',
+    'consumer_execution_sha:process.env.GITHUB_SHA',
     'consumer_pr_head_sha:prHeadSha',
-    "correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA'",
+    "correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC'",
     'artifact_id:artifact.id',
     'artifact_digest:artifact.digest',
     'exact_generation:true',
@@ -36,7 +36,7 @@ function violations(text) {
   }
   if (text.includes("if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));") &&
       !text.includes('run.head_sha===expectedSha')) {
-    failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_EXECUTION_SHA');
+    failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_PRODUCER_HEAD_SHA');
   }
   return failures;
 }
@@ -66,7 +66,7 @@ if (pristine.length) {
 const mutations = [
   ['DROP_EXECUTION_SHA', t => t.replace("run.head_sha===expectedSha&&\n", '')],
   ['DROP_PR_HEAD_IDENTITY', t => t.replace('consumer_pr_head_sha:prHeadSha,', '')],
-  ['CHANGE_CORRELATION_CONTRACT', t => t.replace("correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA'", "correlation_contract:'BRANCH_HEAD_SHA'")],
+  ['CHANGE_CORRELATION_CONTRACT', t => t.replace("correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC'", "correlation_contract:'UNBOUND'")],
   ['DROP_REPOSITORY_BINDING', t => t.replace("run.repository?.full_name===repository&&\n", '')],
   ['DROP_CANONICAL_PATH', t => t.replace("run.path==='.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'&&\n", '')],
   ['DROP_CARDINALITY', t => t.replace("if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);", '')],
@@ -109,8 +109,9 @@ console.log(JSON.stringify({
   id:'asi-common-crawl-gate-chain-provenance-v1',
   mutations_rejected:mutations.length+producerMutations.length,
   producer_trigger_coupled:true,
-  correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA',
+  correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC',
   exact_generation_required:true,
   terminal_receipt_required:true,
+  bounded_wait_attempts:72,
   production:'HOLD'
 },null,2));
