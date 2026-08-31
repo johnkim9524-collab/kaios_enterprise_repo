@@ -26,8 +26,7 @@ function violations(text) {
     'artifact_digest:artifact.digest',
     'exact_generation:true',
     'upstream_global_discovery:provenance',
-    'Emit exact-run terminal receipt',
-    'if: always()',
+    '      - name: Emit exact-run terminal receipt\n        if: always()',
     'kidults-asi-common-crawl-gate-chain-terminal-v1',
     "state:process.env.JOB_STATUS==='success'?'COMPLETE':'FAILED_NON_PROMOTABLE'",
     'promotable:false'
@@ -74,7 +73,7 @@ const mutations = [
   ['DROP_DIGEST', t => t.replace("if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);", '')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
   ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
-  ['DROP_TERMINAL_ALWAYS', t => t.replace('        if: always()\n', '')]
+  ['DROP_TERMINAL_ALWAYS', t => t.replace('      - name: Emit exact-run terminal receipt\n        if: always()\n', '      - name: Emit exact-run terminal receipt\n')]
 ];
 
 for (const [name, mutate] of mutations) {
