@@ -1,0 +1,63 @@
+name: KPMO TEMP Register Workers Shadow Lane v1
+
+on:
+  push:
+    branches:
+      - codex/cloudflare-pages-to-workers-migration-v1
+    paths:
+      - '.github/workflows/kpmo-temp-register-workers-shadow-lane-v1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  register:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: codex/cloudflare-pages-to-workers-migration-v1
+          fetch-depth: 1
+
+      - name: Register secret-bearing shadow lane atomically
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+          WF='.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+          tmp="$(mktemp)"
+          jq --arg wf "$WF" '
+            .registered_workflows = ((.registered_workflows + [$wf]) | unique | sort)
+            | .registered_count = (.registered_workflows | length)
+            | .required_environment_bindings = (
+                if any(.required_environment_bindings[]; .workflow == $wf) then .required_environment_bindings
+                else .required_environment_bindings + [{
+                  workflow:$wf,
+                  job:"deploy-shadow",
+                  environment:"kidults-cloudflare-staging-deploy",
+                  required_secret_name_digest:"sha256:9d106dc2b7f97ab70b18b83662808f580c0e9068f2d207b4c40e741cacd14978",
+                  required_secret_step_names:["Deploy one non-production Workers shadow"],
+                  allowed_trigger_classes:["push"],
+                  remote_mutation_class:"REMOTE_STAGING_MUTATION",
+                  required_activation_guard:"KIDULTS_CLOUDFLARE_WORKERS_SHADOW_ACTIVATION_GUARD"
+                }] end
+              )
+            | .repository_binding_state.environment_bound_secret_bearing_jobs = .registered_count
+            | .repository_binding_state.exact_main_guarded_secret_bearing_jobs = .registered_count
+            | .repository_binding_state.live_main_sha_guarded_secret_bearing_jobs = .registered_count
+            | .repository_binding_state.step_scoped_secret_bearing_jobs = .registered_count
+            | .repository_binding_state.privileged_secret_steps = ([.required_environment_bindings[].required_secret_step_names | length] | add)
+          ' "$FILE" > "$tmp"
+          mv "$tmp" "$FILE"
+          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$FILE"
+          if git diff --cached --quiet; then
+            echo 'Registry already synchronized.'
+            exit 0
+          fi
+          git commit -m 'governance(cloudflare): register Workers shadow secret lane'
+          git push origin HEAD:codex/cloudflare-pages-to-workers-migration-v1
