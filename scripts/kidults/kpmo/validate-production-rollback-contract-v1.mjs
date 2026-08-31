@@ -1247,7 +1247,7 @@ try {
   const authorityCodeStart = authorityHeredoc + "<<'PY'\n".length;
   const authorityCodeEnd = sources.rollback.indexOf('\nPY\n}\n\ntransition_rollback_pointer_to_terminal_success()', authorityCodeStart);
   if (authorityFunctionStart < 0 || authorityHeredoc < 0 || authorityCodeEnd < 0) throw new Error('rollback terminal authority is not extractable');
-  const rollbackTerminalAuthorityCode = sources.rollback.slice(authorityCodeStart, authorityCodeEnd);
+  const rollbackTerminalAuthorityCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(authorityCodeStart, authorityCodeEnd));
   const runRollbackTerminalAuthority = ({ timeout = undefined, expectedTerminalDigest = terminalDigest } = {}) => {
     const rootFd = fs.openSync(authorityFixture.rootDir, fs.constants.O_RDONLY);
     const receiptFd = fs.openSync(authorityFixture.directory, fs.constants.O_RDONLY);
@@ -1306,7 +1306,7 @@ const pointerTransitionHeredoc = sources.rollback.indexOf("<<'PY'\n", pointerTra
 const pointerTransitionCodeStart = pointerTransitionHeredoc + "<<'PY'\n".length;
 const pointerTransitionCodeEnd = sources.rollback.indexOf('\nPY\n}\n\nwrite_rollback_error_receipt()', pointerTransitionCodeStart);
 if (pointerTransitionStart < 0 || pointerTransitionHeredoc < 0 || pointerTransitionCodeEnd < 0) throw new Error('rollback terminal pointer transition is not extractable');
-const pointerTransitionCode = sources.rollback.slice(pointerTransitionCodeStart, pointerTransitionCodeEnd);
+const pointerTransitionCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(pointerTransitionCodeStart, pointerTransitionCodeEnd));
 const pointerTransitionTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-terminal-pointer-exchange-'));
 try {
   const sourceSha = '1'.repeat(40);
@@ -1405,7 +1405,7 @@ const reentryHeredoc = sources.rollback.indexOf("<<'PY'", reentryCommandStart);
 const reentryCodeStart = sources.rollback.indexOf('\n', reentryHeredoc) + 1;
 const reentryCodeEnd = sources.rollback.indexOf('\nPY\nROLLBACK_RECEIPT_ROOT_STABLE=', reentryCodeStart);
 if (reentryCommandStart < 0 || reentryHeredoc < 0 || reentryCodeEnd < 0) throw new Error('rollback pointer reentry checker is not extractable');
-const reentryCode = sources.rollback.slice(reentryCodeStart, reentryCodeEnd);
+const reentryCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(reentryCodeStart, reentryCodeEnd));
 const reentryTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-terminal-pointer-reentry-'));
 try {
   const prepareReentry = (label, { divergentStage = false } = {}) => {
