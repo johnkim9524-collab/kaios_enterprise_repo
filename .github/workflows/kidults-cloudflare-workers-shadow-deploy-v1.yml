@@ -12,78 +12,63 @@ concurrency:
 
 jobs:
   deploy-shadow:
-    # Permanent non-executing tombstone.
-    #
-    # Approval CF-WORKERS-SHADOW-20260831-01 was consumed by the first
-    # workflow_dispatch (run 33410598558, attempt 1). That run failed closed
-    # before the provider step because actions/checkout cleaned a workspace-
-    # scoped receipt. Cloudflare/provider mutation count remained zero.
-    #
-    # The job shape and secret step are intentionally retained until a future
-    # separately approved versioned lane replaces this historical one-shot.
-    # The immutable false condition prevents job start, environment secret
-    # resolution, provider execution, rerun, and replay.
-    if: ${{ false }}
-    environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Verify live main before provider credential resolution
+      - name: Create consumed authorization tombstone
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v1-consumed"
+          RECEIPT="$ROOT/receipt.json"
+          mkdir -p "$ROOT"
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg source_ref "$GITHUB_REF" \
+            --arg source_sha "$GITHUB_SHA" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            '{
+              id:"kidults-cloudflare-workers-shadow-v1-consumed-tombstone-v1",
+              approval_id:"CF-WORKERS-SHADOW-20260831-01",
+              state:"CONSUMED_PRE_PROVIDER_NO_RUN_ARTIFACT",
+              historical_consuming_run_id:33410598558,
+              repository:$repository,
+              source_ref:$source_ref,
+              source_sha:$source_sha,
+              tombstone_run_id:$run_id,
+              tombstone_run_attempt:$run_attempt,
+              authorization_consumed:true,
+              executable_authority:false,
+              environment_bound:false,
+              credential_resolution_authorized:false,
+              provider_activation_authorized:false,
+              provider_process_invoked_in_historical_run:false,
+              historical_provider_deployment_attempt_count:0,
+              historical_execution_artifact_present:false,
+              historical_evidence_class:"POST_HOC_CONTROL_RECORD_NOT_EXECUTION_ARTIFACT",
+              replay_authorized:false,
+              promotable:false,
+              empirical_provider_success:false,
+              boundary:"PUBLIC_PRODUCTION_G5_HOLD",
+              public:"HOLD",
+              production:"HOLD",
+              g5:"HOLD"
+            }' > "$RECEIPT"
+          jq -e '.authorization_consumed==true and .executable_authority==false and .replay_authorized==false' "$RECEIPT" >/dev/null
 
-      - name: Checkout exact execution SHA
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - name: Upload consumed authorization tombstone
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
+          name: kidults-cloudflare-workers-shadow-v1-consumed-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-cloudflare-workers-shadow-v1-consumed/receipt.json
+          if-no-files-found: error
+          retention-days: 30
 
-      - name: Verify consumed approval tombstone
+      - name: Enforce consumed authorization no replay
+        if: ${{ always() }}
         shell: bash
         run: |
-          set -euo pipefail
-          AUTH='coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
-          TERMINAL='coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json'
-          jq -e '
-            .id=="CF-WORKERS-SHADOW-20260831-01"
-            and .status=="CONSUMED_FAIL_CLOSED_PRE_PROVIDER_NO_MUTATION"
-            and .consumption_result.workflow_run_id==33410598558
-            and .consumption_result.run_attempt==1
-            and .consumption_result.provider_mutation_attempted==false
-            and .consumption_result.provider_deployment_attempt_count==0
-            and .replay=="FORBIDDEN_AFTER_FIRST_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE"' \
-            "$AUTH" >/dev/null
-          jq -e '
-            .state=="CONSUMED_FAIL_CLOSED_PRE_PROVIDER_NO_MUTATION"
-            and .workflow_run_id==33410598558
-            and .provider_step=="SKIPPED"
-            and .provider_mutation_attempted==false
-            and .cloudflare_mutation_count==0
-            and .replay_authorized==false' \
-            "$TERMINAL" >/dev/null
-          echo 'CONSUMED_ONE_SHOT_TOMBSTONE_NO_PROVIDER_MUTATION'
-
-      - name: Deploy one non-production Workers shadow
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          echo 'CONSUMED_ONE_SHOT_TOMBSTONE_NO_PROVIDER_MUTATION'
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
           exit 78
