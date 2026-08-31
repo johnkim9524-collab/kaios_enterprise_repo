@@ -1,0 +1,56 @@
+{
+  "id": "kidults-cloudflare-workers-release-gate-v1",
+  "version": "1.0.0",
+  "status": "FAIL_CLOSED_RELEASE_GATE",
+  "owner": "KPMO",
+  "target": "kidults-public-portal-shadow",
+  "source_authority": "PROTECTED_MAIN_EXACT_SHA_ONLY",
+  "required_before_shadow_deploy": [
+    "EXACT_MAIN_SHA",
+    "STATIC_ASSET_MANIFEST_DIGEST",
+    "WORKERS_CONFIG_DIGEST",
+    "NO_PRODUCTION_ROUTES",
+    "NO_CUSTOM_DOMAINS",
+    "NON_PRODUCTION_TARGET_ONLY",
+    "EXPLICIT_SHADOW_DEPLOY_AUTHORIZATION"
+  ],
+  "required_before_public_cutover": [
+    "SHADOW_DESKTOP_PASS",
+    "SHADOW_MOBILE_PASS",
+    "NAVIGATION_PASS",
+    "ASSET_DIGEST_PARITY_PASS",
+    "MIME_CACHE_PASS",
+    "ACCESSIBILITY_PASS",
+    "SECURITY_PASS",
+    "ERROR_LATENCY_RECEIPT",
+    "ROLLBACK_TARGET",
+    "PUBLIC_AUTHORIZATION_RECEIPT"
+  ],
+  "release_receipt": [
+    "repository",
+    "source_sha",
+    "artifact_digest",
+    "workers_config_digest",
+    "deployment_id",
+    "endpoint_or_route",
+    "smoke_readback",
+    "rollback_target",
+    "authorization_reference",
+    "terminal_state"
+  ],
+  "prohibited": [
+    "AUTO_DEPLOY_FROM_GIT_PUSH_OR_MERGE",
+    "PUBLIC_ROUTE_ON_SHADOW_DEPLOY",
+    "CUSTOM_DOMAIN_ON_SHADOW_DEPLOY",
+    "DEPLOYMENT_SUCCESS_EQUALS_PUBLIC_APPROVAL",
+    "DEPLOYMENT_SUCCESS_EQUALS_PRODUCTION_APPROVAL",
+    "STALE_SHA_OR_ARTIFACT_REUSE"
+  ],
+  "authority_boundary": {
+    "internal_build_validation": "AUTONOMOUS_ALLOWED",
+    "shadow_cloudflare_deploy": "SEPARATELY_AUTHORIZED_EXTERNAL_MUTATION",
+    "domain_route_cutover": "SEPARATELY_AUTHORIZED_PUBLIC_MUTATION",
+    "production_g5": "SEPARATELY_AUTHORIZED"
+  },
+  "production_public_g5": "HOLD"
+}
