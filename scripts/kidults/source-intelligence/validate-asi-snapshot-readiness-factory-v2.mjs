@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   PRINCIPLES, deriveReadiness, digestObject, hashText, stableJson,
 } from './lib/asi-snapshot-readiness-factory-v2.mjs';
@@ -18,6 +19,10 @@ const outputJson = (name) => json(outputPath(name));
 const exists = (name) => fs.existsSync(outputPath(name));
 
 const contract = json(cp);
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const samplePolicyPath = path.resolve(root, contract.current_sold_sample_governance?.canonical_policy || '');
+ok(samplePolicyPath.startsWith(`${root}${path.sep}`), 'SAMPLE_POLICY_PATH_ESCAPES_REPOSITORY');
+const samplePolicy = json(samplePolicyPath);
 const inputs = {
   p0Registry: json(p0r),
   p0Bindings: json(p0b),
@@ -33,15 +38,20 @@ const inputs = {
   p2Manifest: json(p2m),
   upstreamBinding: json(ub),
 };
-const derived = deriveReadiness(inputs, contract);
+const derived = deriveReadiness(inputs, contract, samplePolicy);
 
-ok(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.1.0', 'CONTRACT_ID_VERSION');
+ok(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.2.0', 'CONTRACT_ID_VERSION');
 ok(JSON.stringify(contract.platform_principles) === JSON.stringify(PRINCIPLES), 'CONTRACT_PRINCIPLES');
 ok(contract.prerequisite_dimensions?.length === 10 && contract.output_assertion_dimensions?.length === 2 && contract.readiness_dimensions?.length === 12, 'CONTRACT_DIMENSION_COUNTS');
 ok(contract.snapshot_creation_gate?.snapshot_candidate_may_be_generated_when_gate_fails === false, 'CONTRACT_FAIL_CLOSED');
 ok(contract.snapshot_creation_gate?.output_existence_is_prerequisite === false, 'CONTRACT_LIVENESS_BOUNDARY');
 ok(contract.snapshot_creation_gate?.blocker_package_may_be_called_evidence_package === false, 'CONTRACT_BLOCKER_BOUNDARY');
 ok(contract.snapshot_creation_gate?.track_b_may_start_without_exact_immutable_pair === false, 'CONTRACT_TRACK_B_BOUNDARY');
+ok(contract.snapshot_creation_gate?.admitted_current_sold_minimum_from_canonical_sample_tier === true
+  && !Object.hasOwn(contract.snapshot_creation_gate, 'admitted_current_sold_minimum'), 'CONTRACT_DYNAMIC_SAMPLE_TIER_REQUIRED');
+ok(contract.current_sold_sample_governance?.tier_selection === 'DERIVE_EXACTLY_FROM_CANONICAL_TIER_PURPOSE_AND_CLAIM_TARGET'
+  && derived.sampleGovernance.sample_tier === 'CANARY' && derived.sampleGovernance.min_n === 5
+  && derived.sampleGovernance.max_n === 5, 'CONTRACT_CANARY_POLICY_BINDING');
 ok(JSON.stringify(contract.always_required_outputs) === JSON.stringify([
   'snapshot-readiness-ledger-v2.json', 'immutable-blocker-package-v2.json',
   'admission-demand-package-v2.json', 'track-b-handoff-readiness-v2.json',
@@ -58,7 +68,7 @@ const demand = outputJson('admission-demand-package-v2.json');
 const trackB = outputJson('track-b-handoff-readiness-v2.json');
 const manifest = outputJson('snapshot-readiness-manifest-v2.json');
 
-ok(readiness.id === 'kidults-asi-snapshot-readiness-ledger-v2' && readiness.version === '2.1.0', 'READINESS_ID_VERSION');
+ok(readiness.id === 'kidults-asi-snapshot-readiness-ledger-v2' && readiness.version === '2.2.0', 'READINESS_ID_VERSION');
 ok(JSON.stringify(readiness.platform_principles) === JSON.stringify(PRINCIPLES) && readiness.source_graph_digest === derived.sourceGraphDigest, 'READINESS_BINDING');
 ok(readiness.snapshot_creation_prerequisites_pass === derived.prerequisitesPass && readiness.snapshot_creation_gate_pass === derived.prerequisitesPass, 'READINESS_GATE');
 ok(stableJson(readiness.prerequisite_dimensions) === stableJson(derived.prerequisiteDimensions), 'READINESS_PREREQUISITE_DIMENSIONS');
@@ -71,20 +81,22 @@ ok(readiness.counts.regional_coverage_verified_missions === derived.regionalCove
 ok(readiness.counts.evidence_admitted === derived.evidenceRecords.length && readiness.counts.admitted_current_sold === derived.admittedSold && readiness.counts.admitted_liquidity === derived.admittedLiquidity, 'READINESS_EVIDENCE_COUNTS');
 ok(readiness.counts.market_events === derived.marketEvents.length, 'READINESS_MARKET_EVENT_COUNTS');
 ok(readiness.track_b_assessment_started === false && readiness.public_release === 'HOLD' && readiness.production === 'HOLD', 'READINESS_RELEASE_BOUNDARY');
+ok(stableJson(readiness.sample_policy_binding) === stableJson(derived.sampleGovernance)
+  && readiness.launch_cohort_digest === (derived.launchCohort?.cohort_digest || null), 'READINESS_SAMPLE_POLICY_BINDING');
 
-ok(blockers.id === 'kidults-asi-immutable-blocker-package-v2' && blockers.version === '2.1.0', 'BLOCKER_ID_VERSION');
+ok(blockers.id === 'kidults-asi-immutable-blocker-package-v2' && blockers.version === '2.2.0', 'BLOCKER_ID_VERSION');
 ok(blockers.source_graph_digest === derived.sourceGraphDigest && blockers.blocker_count === derived.blockers.length && blockers.blockers?.length === derived.blockers.length, 'BLOCKER_COUNT');
 ok(blockers.p0_blocker_count === derived.blockers.filter((value) => value.severity === 'P0').length && blockers.p1_blocker_count === derived.blockers.filter((value) => value.severity === 'P1').length, 'BLOCKER_SEVERITY_COUNT');
 ok(JSON.stringify(blockers.blockers.map((value) => value.blocker_class)) === JSON.stringify(derived.blockers.map((value) => value.blocker_class)), 'BLOCKER_CLASSES');
 ok(blockers.output_absence_is_not_a_prerequisite_blocker === true && blockers.package_is_evidence_package === false && blockers.package_is_snapshot_candidate === false, 'BLOCKER_PACKAGE_BOUNDARY');
 ok(!blockers.blockers.some((value) => ['IMMUTABLE_EVIDENCE_PACKAGE_MISSING', 'TRACK_B_INPUT_PAIR_MISSING'].includes(value.blocker_class)), 'OUTPUT_EXISTENCE_CYCLE_REINTRODUCED');
 
-ok(demand.id === 'kidults-asi-admission-demand-package-v2' && demand.version === '2.1.0', 'DEMAND_ID_VERSION');
+ok(demand.id === 'kidults-asi-admission-demand-package-v2' && demand.version === '2.2.0', 'DEMAND_ID_VERSION');
 ok(demand.source_graph_digest === derived.sourceGraphDigest && demand.action_count === inputs.p1Actions.action_count && demand.queued_action_count === derived.queuedActions && demand.completed_action_count === derived.completedActions, 'DEMAND_ACTION_COUNTS');
 ok(demand.action_demands?.length === inputs.p1Actions.action_count && Object.values(demand.action_type_counts).reduce((left, right) => left + right, 0) === inputs.p1Actions.action_count, 'DEMAND_ACTION_BINDING');
 ok(demand.evidence_admitted === derived.evidenceRecords.length && demand.package_is_evidence_package === false, 'DEMAND_BOUNDARY');
 
-ok(trackB.id === 'kidults-track-b-handoff-readiness-v2' && trackB.version === '2.1.0', 'TRACK_B_ID_VERSION');
+ok(trackB.id === 'kidults-track-b-handoff-readiness-v2' && trackB.version === '2.2.0', 'TRACK_B_ID_VERSION');
 ok(trackB.independent_assessment_started === false && trackB.track_b_submission_eligible === false, 'TRACK_B_NO_PREAUTHORIZATION');
 ok(trackB.blocker_package_is_not_track_b_input === true && trackB.required_inputs?.length === 2, 'TRACK_B_BOUNDARY');
 
@@ -101,7 +113,26 @@ if (derived.prerequisitesPass) {
   ok(evidence.bound_snapshot_id === snapshot.snapshot_id && snapshot.bound_evidence_package_id === evidence.package_id, 'PAIR_CROSS_BINDING');
   ok(evidence.package_payload_sha256 === computedEvidenceDigest && snapshot.snapshot_payload_sha256 === computedSnapshotDigest, 'PAIR_PAYLOAD_DIGESTS');
   ok(stableJson(evidence.evidence_records) === stableJson(derived.evidenceRecords), 'EVIDENCE_RECORD_BINDING');
+  ok(stableJson(evidence.sample_policy_binding) === stableJson(derived.sampleGovernance)
+    && stableJson(evidence.launch_cohort) === stableJson(derived.launchCohort), 'EVIDENCE_SAMPLE_POLICY_AND_COHORT_BINDING');
+  ok(evidence.launch_cohort.sample_tier === 'CANARY' && evidence.launch_cohort.sample_size === 5
+    && evidence.launch_cohort.sample_purpose === 'SCHEMA_AND_BOUNDARY_SMOKE'
+    && evidence.launch_cohort.claim_target === 'DATED_OBSERVED_SOLD_TRANSACTION'
+    && evidence.launch_cohort.maximum_claim === 'SCHEMA_BOUNDARY_SMOKE_ONLY'
+    && evidence.launch_cohort.release_allowed === false, 'EVIDENCE_CANARY_CLAIM_CEILING');
+  ok(evidence.claims.length === 5 && evidence.claims.every((claim) => claim.sample_tier === 'CANARY'
+    && claim.sample_purpose === 'SCHEMA_AND_BOUNDARY_SMOKE'
+    && claim.claim_target === 'DATED_OBSERVED_SOLD_TRANSACTION'
+    && claim.claim_type === 'SOLD_TRANSACTION'
+    && claim.maximum_claim === 'SCHEMA_BOUNDARY_SMOKE_ONLY'
+    && claim.evidence_refs?.length === 1), 'CLAIMS_CANARY_POLICY_BINDING');
+  const claimedCurrentSoldIds = evidence.claims.map((claim) => claim.evidence_refs[0]).sort();
+  ok(new Set(claimedCurrentSoldIds).size === claimedCurrentSoldIds.length
+    && stableJson(claimedCurrentSoldIds) === stableJson([...evidence.launch_cohort.event_ids].sort()), 'CLAIM_EVIDENCE_REF_SET_MUST_EQUAL_COHORT');
   ok(snapshot.snapshot_status === 'DRAFT_CANDIDATE_STORAGE_AND_ATTESTATION_PENDING' && snapshot.as_of === derived.asOf && snapshot.source_graph_digest === derived.sourceGraphDigest, 'SNAPSHOT_STATE_BINDING');
+  ok(stableJson(snapshot.sample_policy_binding) === stableJson(derived.sampleGovernance)
+    && snapshot.launch_cohort_digest === derived.launchCohort.cohort_digest
+    && snapshot.sample_tier === 'CANARY' && snapshot.maximum_claim === 'SCHEMA_BOUNDARY_SMOKE_ONLY', 'SNAPSHOT_SAMPLE_POLICY_BINDING');
   ok(snapshot.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && evidence.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'PAIR_UPSTREAM_RECEIPT_BINDING');
   ok(stableJson(snapshot.upstream_binding) === stableJson(derived.upstreamBinding) && stableJson(evidence.upstream_binding) === stableJson(derived.upstreamBinding), 'PAIR_UPSTREAM_RECEIPT_PAYLOAD');
   ok(snapshot.publication_eligible === false && snapshot.production_authorized === false && evidence.publication_authorized === false && evidence.production_authorized === false, 'PAIR_RELEASE_BOUNDARY');
@@ -109,6 +140,15 @@ if (derived.prerequisitesPass) {
   ok(trackB.exact_pair_digest === pairDigest && trackB.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'TRACK_B_PAIR_DIGEST');
   ok(trackB.immutable_storage_verified === false && trackB.artifact_attestation_verified === false && trackB.track_b_submission_eligible === false, 'TRACK_B_ATTESTATION_HOLD');
   ok(receipt.state === 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING' && receipt.exact_pair_digest === pairDigest && receipt.atomic_directory_commit === true, 'PAIR_GENERATION_RECEIPT');
+  ok(receipt.version === '2.2.0' && stableJson(receipt.sample_policy_binding) === stableJson(derived.sampleGovernance)
+    && receipt.launch_cohort_digest === derived.launchCohort.cohort_digest, 'PAIR_RECEIPT_SAMPLE_POLICY_BINDING');
+  ok(receipt.admitted_current_sold_count === 5
+    && receipt.sample_plan_sha256 === derived.launchCohort.sample_plan_sha256
+    && stableJson(receipt.canary_source_ids) === stableJson(derived.launchCohort.source_ids)
+    && receipt.canary_source_binding_digest === derived.launchCohort.source_binding_digest
+    && stableJson(receipt.canary_transactions) === stableJson(derived.launchCohort.canary_transactions)
+    && receipt.canary_transaction_binding_digest === derived.launchCohort.transaction_binding_digest,
+  'PAIR_RECEIPT_CANARY_SOURCE_AND_TRANSACTION_BINDING');
   ok(receipt.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest && receipt.immutable_storage_receipt === null && receipt.artifact_attestation === null && receipt.track_b_submission_eligible === false, 'PAIR_PROVENANCE_ATTESTATION_BOUNDARY');
   ok(receipt.canonical_handoff_preflight === 'BLOCKED_PENDING_IMMUTABLE_STORAGE_AND_ATTESTATION', 'PAIR_HANDOFF_ATTESTATION_BOUNDARY');
   ok(receipt.snapshot_file_sha256 === hashText(outputText('snapshot-candidate.json')) && receipt.evidence_file_sha256 === hashText(outputText('evidence-package.json')), 'PAIR_FILE_DIGESTS');
@@ -128,13 +168,17 @@ if (derived.prerequisitesPass) {
   ok(readiness.counts.snapshot_candidates === 0 && readiness.counts.immutable_evidence_packages === 0 && readiness.counts.track_b_input_pairs === 0, 'BLOCKED_OUTPUT_COUNTS');
 }
 
-ok(manifest.id === 'kidults-asi-snapshot-readiness-manifest-v2' && manifest.version === '2.1.0', 'MANIFEST_ID_VERSION');
+ok(manifest.id === 'kidults-asi-snapshot-readiness-manifest-v2' && manifest.version === '2.2.0', 'MANIFEST_ID_VERSION');
 ok(JSON.stringify(manifest.platform_principles) === JSON.stringify(PRINCIPLES), 'MANIFEST_PRINCIPLES');
 ok(manifest.input_bindings.p0b.candidate_count === derived.candidateCount && manifest.input_bindings.p0b.mission_count === derived.missionCount, 'MANIFEST_P0');
 ok(manifest.input_bindings.p1.gate1_hold === derived.actualGateHold && manifest.input_bindings.p1.actions_queued === derived.queuedActions, 'MANIFEST_P1');
 ok(manifest.input_bindings.p2.graph_digest === derived.sourceGraphDigest && manifest.input_bindings.p2.node_count === inputs.p2Graph.node_count && manifest.input_bindings.p2.edge_count === inputs.p2Graph.edge_count, 'MANIFEST_P2');
+ok(stableJson(manifest.input_bindings.sample_policy) === stableJson(derived.sampleGovernance), 'MANIFEST_SAMPLE_POLICY_BINDING');
 ok(manifest.results.readiness_dimensions === 12 && manifest.results.prerequisite_dimensions === 10 && manifest.results.output_assertion_dimensions === 2, 'MANIFEST_DIMENSIONS');
 ok(manifest.results.open_blockers === derived.blockers.length && manifest.results.preflight_actions_queued === derived.queuedActions && manifest.results.evidence_admitted === derived.evidenceRecords.length && manifest.results.market_events_created === derived.marketEvents.length, 'MANIFEST_PIPELINE_COUNTS');
+ok(manifest.results.admitted_current_sold === derived.admittedSold
+  && manifest.results.current_sold_sample_tier === derived.sampleGovernance.sample_tier
+  && manifest.results.current_sold_maximum_claim === derived.sampleGovernance.maximum_claim, 'MANIFEST_SAMPLE_POLICY_RESULTS');
 ok(manifest.results.snapshot_candidates_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.evidence_packages_created === (derived.prerequisitesPass ? 1 : 0) && manifest.results.track_b_input_pairs_created === 0, 'MANIFEST_OUTPUT_COUNTS');
 ok(manifest.upstream_binding_receipt_sha256 === derived.upstreamBindingDigest, 'MANIFEST_UPSTREAM_BINDING');
 ok(manifest.results.track_b_assessments_started === 0 && manifest.atomic_directory_commit === true, 'MANIFEST_ATOMIC_TRACK_B_BOUNDARY');

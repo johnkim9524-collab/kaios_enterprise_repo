@@ -1,6 +1,6 @@
 {
   "id": "kidults-management-control-tower-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "INTERNAL_READ_ONLY_APPROVED",
   "owner": "TRACK_E_IH_EOS",
   "purpose": "Give management one decision surface without allowing record counts or internal test results to masquerade as market, rights or production evidence.",
@@ -25,11 +25,46 @@
   ],
   "do_not_decide_from": ["candidate_count", "implemented_adapter_count", "static_research_priority", "single_successful_probe", "control_fixture_sample", "dashboard_color_or_score"],
   "non_goals": ["live provider scraping", "legal conclusion", "automatic external commitment", "public market claim", "production authorization", "vanity KPI leaderboard"],
-  "refresh_contract": {"trigger":"hourly governed run completion", "failure":"retain last verified snapshot and show stale/error banner", "freshness_slo_minutes":90, "writer":"KPMO_TRACK_D", "reader":"TRACK_E_READ_ONLY"},
+  "refresh_contract": {
+    "triggers":["hourly schedule", "protected-main source change"],
+    "failure":"retain last verified snapshot and show stale/error banner",
+    "freshness_slo_minutes":90,
+    "writer":"KPMO_TRACK_D",
+    "reader":"TRACK_E_READ_ONLY",
+    "artifact_names":{
+      "candidate_prefix":"kidults-management-control-tower-candidate-",
+      "canonical_main_prefix":"kidults-management-control-tower-canonical-",
+      "local_fallback":"kidults-management-control-tower-local-fallback"
+    },
+    "candidate_artifact_is_never_canonical":true,
+    "workflow_dispatch_main_only":true,
+    "public_or_production_mutation":false
+  },
+  "snapshot_integrity": {
+    "source_digest_algorithm":"SHA-256_EXACT_FILE_BYTES",
+    "generated_at_is_snapshot_build_time":true,
+    "source_as_of_is_separate":true,
+    "evidence_time_sources":["rights_fast_lane","preflight","alignment"],
+    "aggregate_evidence_as_of":"OLDEST_MATERIAL_EVIDENCE_INPUT",
+    "policy_inputs_without_observation_time_are_null_not_inferred":true,
+    "transport_freshness_is_separate_from_evidence_freshness":true,
+    "evidence_freshness_threshold":"NOT_DEFINED",
+    "evidence_freshness_state":"UNASSESSED_AND_VISIBLE",
+    "producer_provenance_required":["generation_class","repository","workflow_path","workflow_ref","event_name","trigger_ref","source_ref","source_sha","run_id","run_attempt","artifact_name","component_digests"],
+    "local_fallback_is_unattested_and_never_canonical":true,
+    "local_fallback_must_be_visibly_unattested":true,
+    "canonical_main_requires_exact_protected_main_workflow_context":true,
+    "candidate_pr_requires_exact_pr_head_workflow_context":true,
+    "build_and_validation_receipts_bind_output_digests":true,
+    "embedded_fallback_must_equal_governed_json":true,
+    "stale_or_fetch_failure_must_be_visible":true
+  },
   "source_contracts": [
     "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
     "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+    "coordination/kidults/governance/current-sold-sample-governance-alignment-v1.json",
     "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
-    "coordination/kidults/governance/release-assurance-contract-v1.json"
+    "coordination/kidults/governance/release-assurance-contract-v1.json",
+    "contracts/certification/kidults-controlled-production-promotion.v1.json"
   ]
 }

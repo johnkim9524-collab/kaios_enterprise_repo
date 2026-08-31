@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/provider/provider-contact-readiness-gate-v1.json'
+      - 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json'
       - 'coordination/kidults/registry/provider/index.json'
       - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
       - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
@@ -17,6 +18,7 @@ on:
       - 'apps/kidults-enterprise-staging/public/a13-b10/data/provider-outreach-pack.json'
       - 'apps/kidults-enterprise-staging/public/a13-b10/data/provider-dispatch-ledger.json'
       - 'scripts/kidults/provider/validate-provider-contact-readiness-gate-v1.mjs'
+      - 'scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs'
       - 'scripts/kidults/provider/validate-provider-operating-state-v1.mjs'
       - '.github/workflows/kidults-provider-contact-readiness-gate-v1.yml'
   workflow_dispatch:
@@ -29,5 +31,6 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Validate Program Owner contact gate
         run: |
+          node scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs
           node scripts/kidults/provider/validate-provider-operating-state-v1.mjs
           node scripts/kidults/provider/validate-provider-contact-readiness-gate-v1.mjs

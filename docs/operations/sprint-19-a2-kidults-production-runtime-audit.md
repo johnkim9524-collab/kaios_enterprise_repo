@@ -1,5 +1,9 @@
 # Sprint 19-A2 — Kidults Production Runtime Audit
 
+> **Current gate notice:** This audit framework is superseded fail-closed by
+> `contracts/certification/kidults-controlled-production-promotion.v1.json`.
+> A 100/100 audit is technical evidence only and can never authorize Production.
+
 ## Objective
 
 Audit the current Kidults Production runtime against the certified staging baseline and produce an evidence-based promotion readiness decision.
@@ -38,8 +42,8 @@ Maximum score: 100.
 
 ## Decision Rules
 
-- `go`: score at least 90, every mandatory gate passes, no unresolved critical delta.
-- `hold`: score 70–89, or any recoverable mandatory gap remains.
+- `go`: score is exactly 100/100, every mandatory gate passes, no unresolved critical delta.
+- `hold`: score 70–99, or any recoverable mandatory gap remains.
 - `rollback`: score below 70, destructive or unsafe delta, failed restore, failed authentication, or evidence of Production instability.
 
 ## Fail-Closed Controls

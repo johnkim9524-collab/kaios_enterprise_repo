@@ -221,8 +221,9 @@ export function assessHealth(dimensions) {
 // Activation gate enforcement
 // ---------------------------------------------------------------------------
 
-/** Activation classes permitted for bounded runtime execution */
-const EXECUTABLE_ACTIVATION_CLASSES = new Set(['CANARY_READY', 'BOUNDED_PRODUCTION_READY']);
+/** Production execution remains sealed until an archive-verified signed authority consumer exists. */
+export const PRODUCTION_AUTHORITY_HARD_DISABLED_PENDING_SIGNED_ARCHIVE_CONSUMER = true;
+const EXECUTABLE_ACTIVATION_CLASSES = new Set(['PRODUCTION_READY']);
 const HYBRID_CAPPED_CLASSES = new Set(['HYBRID']);
 
 /**
@@ -242,9 +243,16 @@ export function checkActivationEligibility(target) {
     return { permitted: false, reason: 'missing-activation-class-fail-closed' };
   }
 
+  if (cls === 'PRODUCTION_READY' && PRODUCTION_AUTHORITY_HARD_DISABLED_PENDING_SIGNED_ARCHIVE_CONSUMER) {
+    return { permitted: false, reason: 'production-authority-hard-disabled-pending-signed-archive-consumer' };
+  }
+
   if (EXECUTABLE_ACTIVATION_CLASSES.has(cls)) {
+    if (target.productionEligible !== true || target.policyExplicitlyPermits !== true) {
+      return { permitted: false, reason: 'production-ready-without-exact-policy-receipt' };
+    }
     if (target.dataStrategy === 'SELF-FIRST') {
-      return { permitted: true, reason: `self-first-${cls.toLowerCase()}-permitted` };
+      return { permitted: true, reason: 'self-first-production-ready-exact-receipt' };
     }
     if (HYBRID_CAPPED_CLASSES.has(target.dataStrategy)) {
       if (!target.providerEvidencePresent) {
@@ -252,13 +260,10 @@ export function checkActivationEligibility(target) {
       }
       return { permitted: true, reason: 'hybrid-capped-permitted' };
     }
-    return { permitted: true, reason: `${cls.toLowerCase()}-permitted` };
+    return { permitted: true, reason: 'production-ready-exact-receipt' };
   }
 
   if (cls === 'PROVIDER_BLOCKED' || cls === 'PROVIDER-REQUIRED') {
-    if (target.providerEvidencePresent && target.policyExplicitlyPermits) {
-      return { permitted: true, reason: 'provider-required-with-valid-evidence' };
-    }
     return { permitted: false, reason: 'provider-required-blocked-no-valid-evidence' };
   }
 

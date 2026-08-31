@@ -1,12 +1,14 @@
 {
   "contract_version": "0.1",
+  "status": "SUPERSEDED_FAIL_CLOSED",
+  "superseded_by": "contracts/certification/kidults-controlled-production-promotion.v1.json",
   "vertical": "kidults",
-  "decision": "go",
+  "decision": "hold",
   "minimum_score": 100,
   "required": {
     "mandatory_gates_passed": true,
     "hard_blockers": [],
-    "production_promotion_authorized": true,
+    "production_promotion_authorized": false,
     "artfund_production_promotion_authorized": false
   },
   "required_evidence": [

@@ -90,7 +90,11 @@
         "public_non_raw_derived_output_scope"
       ],
       "activation_state": "HOLD_CONTROLS_IMPLEMENTED_PERSISTENT_RUNTIME_NOT_PROVISIONED_AND_PROVENANCE_BOUND_MANIFEST_0_OF_120",
+      "latest_outbound_state": "SENT_2026_08_30_AWAITING_PROVENANCE_SOURCE_CLARIFICATION",
       "evidence_refs": [
+        "gmail:message:1a0535522bb7b510",
+        "gmail:message:1a05355487f616d8",
+        "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
         "gmail:message:1a0345ff34f722e9",
         "gmail:message:1a0396dc3b4b7528",
         "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
@@ -161,9 +165,11 @@
         "kidults_pre_existing_and_independent_ip_carve_out"
       ],
       "activation_state": "HOLD_RIGHTS_AND_ECONOMICS_PENDING",
-      "latest_outbound_state": "SENT_2026_08_26_AWAITING_PROVIDER_RESPONSE",
+      "latest_outbound_state": "FOLLOWUP_SENT_2026_08_30_AWAITING_PROVIDER_RESPONSE",
       "evidence_refs": [
+        "gmail:message:1a05355da1037496",
         "gmail:message:1a03ecb6a6b5f290",
+        "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
         "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json"
       ]
     },

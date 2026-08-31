@@ -75,6 +75,7 @@ const approvedStrataSha256 = digest(approvedStrata);
 const benchmarkContractSha256 = digest(benchmarkContract);
 const handoffContractSha256 = digest(handoffContract);
 const samplePolicySha256 = digest(samplePolicy);
+const currentSoldSampleGovernanceSha256 = digest(currentSoldSampleGovernance);
 const approvedStratumIds = sortedUnique(approvedStrata.approved_strata_ids || []);
 const requiredStratumIds = sortedUnique(approvedStrata.required_strata_ids || []);
 const requiredScopeArchetypes = sortedUnique(policy.required_poc_scope_archetypes || []);
@@ -317,6 +318,20 @@ const currentMarketRecordValid = (record) => {
     validUntilMs > observedAtMs && validUntilMs - observedAtMs <= maximumWindowMs &&
     snapshotAsOfMs - observedAtMs <= maximumWindowMs;
 };
+const currentSoldTransactionIdentityValid = (record) => {
+  const observedAtMs = strictUtcTimestamp(record?.observed_at) ? Date.parse(record.observed_at) : null;
+  const transactionAtMs = strictUtcTimestamp(record?.transaction_occurred_at)
+    ? Date.parse(record.transaction_occurred_at)
+    : null;
+  const maximumWindowMs = currentMarketMaximumWindowDays * 24 * 60 * 60 * 1000;
+  return ['source_id', 'source_owner_id', 'factual_origin_id', 'source_record_id', 'asset_identity_id',
+    'market_venue_id', 'grade_or_condition'].every((field) => nonempty(record?.[field])) &&
+    transactionAtMs !== null && observedAtMs !== null && snapshotAsOfMs !== null &&
+    transactionAtMs <= observedAtMs && snapshotAsOfMs - transactionAtMs >= 0 &&
+    snapshotAsOfMs - transactionAtMs <= maximumWindowMs &&
+    Number.isFinite(record?.sold_price?.amount) && record.sold_price.amount > 0 &&
+    /^[A-Z]{3}$/.test(record?.sold_price?.currency || '');
+};
 const rightsAssertionValid = (record) => {
   const assertion = record?.rights_assertion || {};
   const effectiveAtMs = strictUtcTimestamp(assertion.effective_at) ? Date.parse(assertion.effective_at) : null;
@@ -346,7 +361,9 @@ for (const record of evidenceRecords) {
 const launchSoldRecords = evidenceRecords.filter((record) => currentMarketRecordValid(record) && record.rights_state === 'ALLOW');
 const launchSoldIds = launchSoldRecords.map((record) => record.evidence_id);
 const cohort = evidence.launch_cohort || {};
-const sampleTier = (currentSoldSampleGovernance.tiers || []).find((tier) => tier.id === cohort.sample_tier);
+const sampleTier = (currentSoldSampleGovernance.tiers || []).find((tier) => tier.id === cohort.sample_tier
+  && tier.purpose === cohort.sample_purpose && tier.claim_target === cohort.claim_target);
+const samplePromotion = currentSoldSampleGovernance.promotion_matrix?.[cohort.sample_tier];
 const computedCohortDigest = digest({
   cohort_class: cohort.cohort_class,
   sample_tier: cohort.sample_tier,
@@ -363,9 +380,111 @@ if (cohort.cohort_class !== 'LAWFUL_CURRENT_SOLD_SAMPLE' || cohort.terminal_stat
     !sameCanonical(cohort.event_ids, [...launchSoldIds].sort()) || cohort.cohort_digest !== computedCohortDigest) {
   block('LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID');
 }
+if (launchSoldIds.length > 0) {
+  const sampleBinding = evidence.sample_policy_binding || {};
+  const snapshotBinding = snapshot.sample_policy_binding || {};
+  if (sampleBinding.canonical_policy !== CURRENT_SOLD_SAMPLE_GOVERNANCE_REPOSITORY_PATH ||
+      sampleBinding.policy_id !== currentSoldSampleGovernance.id ||
+      sampleBinding.policy_version !== currentSoldSampleGovernance.version ||
+      sampleBinding.policy_digest !== currentSoldSampleGovernanceSha256 ||
+      sampleBinding.pair_purpose !== cohort.sample_purpose ||
+      sampleBinding.claim_target !== cohort.claim_target ||
+      sampleBinding.sample_tier !== cohort.sample_tier ||
+      Number(sampleBinding.min_n) !== Number(sampleTier?.min_n) ||
+      Number(sampleBinding.max_n) !== Number(sampleTier?.max_n) ||
+      sampleBinding.maximum_claim !== samplePromotion?.maximum_claim ||
+      sampleBinding.release_allowed !== false ||
+      !sameCanonical(snapshotBinding, sampleBinding) ||
+      snapshot.launch_cohort_digest !== cohort.cohort_digest ||
+      snapshot.sample_tier !== cohort.sample_tier ||
+      snapshot.maximum_claim !== cohort.maximum_claim) {
+    block('CURRENT_SOLD_SAMPLE_POLICY_BINDING_INVALID');
+  }
+  if (cohort.sample_purpose !== sampleTier?.purpose || cohort.claim_target !== sampleTier?.claim_target ||
+      cohort.maximum_claim !== samplePromotion?.maximum_claim || samplePromotion?.release_allowed !== false ||
+      cohort.release_allowed !== false || cohort.cohort_mode !== 'EMPIRICAL_CANARY') {
+    block('LAUNCH_COHORT_PURPOSE_CLAIM_CEILING_INVALID');
+  }
+  const planPayload = canonical({
+    sample_plan_id: cohort.sample_plan_id,
+    registered_at: cohort.registered_at,
+    sample_policy_id: currentSoldSampleGovernance.id,
+    sample_policy_version: currentSoldSampleGovernance.version,
+    sample_policy_digest: currentSoldSampleGovernanceSha256,
+    sample_purpose: cohort.sample_purpose,
+    claim_target: cohort.claim_target,
+    sample_tier: cohort.sample_tier,
+    min_n: sampleTier?.min_n,
+    max_n: sampleTier?.max_n,
+    statistical_claim: sampleTier?.statistical_claim,
+    cohort_class: cohort.cohort_class,
+    cohort_mode: cohort.cohort_mode,
+    maximum_claim: samplePromotion?.maximum_claim,
+    release_allowed: false,
+    sampling_frame_id: cohort.sampling_frame_id,
+  });
+  const samplePlanSha256 = digest(planPayload);
+  const registrationReceiptPayload = canonical({
+    receipt_id: cohort.sample_plan_registration_receipt_id,
+    issuer: 'KPMO_PRE_REGISTERED_SAMPLE_PLAN_REGISTRY',
+    sample_plan_id: cohort.sample_plan_id,
+    sample_plan_sha256: samplePlanSha256,
+    registered_at: cohort.registered_at,
+    immutable_artifact_ref: `artifact:${samplePlanSha256}`,
+  });
+  if (!nonempty(cohort.sample_plan_id) || !strictUtcTimestamp(cohort.registered_at) ||
+      !nonempty(cohort.sampling_frame_id) || cohort.sample_plan_sha256 !== samplePlanSha256 ||
+      cohort.sample_plan_artifact_ref !== `artifact:${samplePlanSha256}` ||
+      !nonempty(cohort.sample_plan_registration_receipt_id) ||
+      cohort.sample_plan_registration_issuer !== 'KPMO_PRE_REGISTERED_SAMPLE_PLAN_REGISTRY' ||
+      cohort.sample_plan_registration_receipt_sha256 !== digest(registrationReceiptPayload) ||
+      launchSoldRecords.some((record) => Date.parse(cohort.registered_at) >= Date.parse(record.observed_at))) {
+    block('SAMPLE_PLAN_PRE_REGISTRATION_OR_DIGEST_BINDING_INVALID');
+  }
+  const canonicalSourceIds = sortedUnique(launchSoldRecords.map((record) => record.source_id).filter(nonempty));
+  const sourceBindingDigest = digest({
+    cohort_digest: cohort.cohort_digest,
+    sample_plan_sha256: cohort.sample_plan_sha256,
+    source_ids: canonicalSourceIds,
+  });
+  if (!sameCanonical(cohort.source_ids, canonicalSourceIds) || cohort.source_binding_digest !== sourceBindingDigest) {
+    block('CURRENT_SOLD_COHORT_SOURCE_BINDING_INVALID');
+  }
+  const canonicalSampleUnitIds = [];
+  for (const record of launchSoldRecords) {
+    if (!currentSoldTransactionIdentityValid(record)) {
+      block(`CURRENT_SOLD_TRANSACTION_IDENTITY_INVALID:${record.evidence_id}`);
+    }
+    const expectedSampleUnitId = digest({
+      source_id: record.source_id,
+      source_owner_id: record.source_owner_id,
+      factual_origin_id: record.factual_origin_id,
+      source_record_id: record.source_record_id,
+      asset_identity_id: record.asset_identity_id,
+      market_venue_id: record.market_venue_id,
+      transaction_occurred_at: record.transaction_occurred_at,
+      sold_price: record.sold_price,
+    });
+    canonicalSampleUnitIds.push(expectedSampleUnitId);
+    if (record.sample_unit_id !== expectedSampleUnitId || record.sample_plan_id !== cohort.sample_plan_id ||
+        record.sample_plan_sha256 !== cohort.sample_plan_sha256 ||
+        record.sample_plan_registration_receipt_id !== cohort.sample_plan_registration_receipt_id ||
+        record.sample_plan_registration_receipt_sha256 !== cohort.sample_plan_registration_receipt_sha256 ||
+        record.sample_plan_artifact_ref !== cohort.sample_plan_artifact_ref ||
+        record.sample_plan_registered_at !== cohort.registered_at ||
+        record.sampling_frame_id !== cohort.sampling_frame_id ||
+        record.sample_purpose !== cohort.sample_purpose || record.claim_target !== cohort.claim_target) {
+      block(`CURRENT_SOLD_SAMPLE_PLAN_OR_TRANSACTION_IDENTITY_INVALID:${record.evidence_id}`);
+    }
+  }
+  if (new Set(canonicalSampleUnitIds).size !== canonicalSampleUnitIds.length) {
+    block('CURRENT_SOLD_CANONICAL_TRANSACTION_IDENTITY_DUPLICATE');
+  }
+}
 const claims = Array.isArray(evidence.claims) ? evidence.claims : [];
 if (claims.length === 0) block('CLAIMS_REQUIRED');
 let computedCurrentMarketEvidencePresent = false;
+const cohortClaimEvidenceRefs = [];
 for (const claim of claims) {
   const id = nonempty(claim?.claim_id) ? claim.claim_id : 'UNKNOWN';
   const refs = nonemptyStrings(claim?.evidence_refs) ? claim.evidence_refs : [];
@@ -390,6 +509,19 @@ for (const claim of claims) {
     block(`CLAIM_REPORTED_CURRENT_EVIDENCE_MISMATCH:${id}`);
   }
   if (claim.listing_only === true && claim.claim_type === 'SOLD_TRANSACTION') block(`LISTING_AS_SOLD:${id}`);
+  if (launchSoldIds.length > 0 && claim.claim_type === 'SOLD_TRANSACTION') {
+    if (refs.length !== 1 || claim.sample_purpose !== cohort.sample_purpose ||
+        claim.claim_target !== cohort.claim_target || claim.sample_tier !== cohort.sample_tier ||
+        claim.maximum_claim !== cohort.maximum_claim || claim.temporality !== 'CURRENT_MARKET' ||
+        claim.listing_only !== false) {
+      block(`CURRENT_SOLD_CLAIM_POLICY_OR_CARDINALITY_INVALID:${id}`);
+    }
+    if (refs.length === 1) cohortClaimEvidenceRefs.push(refs[0]);
+  }
+}
+if (launchSoldIds.length > 0 && (!sameCanonical([...cohortClaimEvidenceRefs].sort(), [...launchSoldIds].sort()) ||
+    new Set(cohortClaimEvidenceRefs).size !== cohortClaimEvidenceRefs.length)) {
+  block('CURRENT_SOLD_CLAIM_EVIDENCE_REF_SET_MUST_EQUAL_COHORT');
 }
 if (er.current_market_evidence_present !== computedCurrentMarketEvidencePresent) {
   block('ER_REPORTED_CURRENT_MARKET_EVIDENCE_MISMATCH');

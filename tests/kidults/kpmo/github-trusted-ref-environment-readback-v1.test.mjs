@@ -208,6 +208,59 @@ test('current exact registry binds every registered secret-bearing lane but exte
   assert.equal(current.empirical_evidence_promoted, false);
 });
 
+test('actions read and GitHub token use stay exact to the registered Production artifact readback lane', () => {
+  const productionWorkflow = '.github/workflows/production-release.yml';
+  const productionLane = currentInventory.lanes.find((lane) => lane.workflow === productionWorkflow);
+  const productionJob = productionLane?.secret_bearing_jobs.find((job) => job.job === 'certify');
+  const productionBinding = registry.required_environment_bindings.find((binding) => (
+    binding.workflow === productionWorkflow && binding.job === 'certify'
+  ));
+  assert.ok(productionJob && productionBinding);
+  assert.deepEqual(productionJob.workflow_token_permissions, [...productionBinding.required_github_token_permissions].sort());
+  assert.deepEqual(
+    [...productionJob.live_main_guard.github_token_step_names].sort(),
+    [...productionBinding.required_github_token_step_names].sort()
+  );
+  assert.equal(
+    registry.required_environment_bindings.filter((binding) => (
+      binding.required_github_token_permissions?.includes('actions:read')
+    )).length,
+    1
+  );
+
+  const missingActionsInventory = structuredClone(currentInventory);
+  const missingActionsJob = missingActionsInventory.lanes
+    .find((lane) => lane.workflow === productionWorkflow)
+    .secret_bearing_jobs.find((job) => job.job === 'certify');
+  missingActionsJob.workflow_token_permissions = ['contents:read'];
+  assert.ok(validateRequiredEnvironmentBindings(missingActionsInventory, registry).some((failure) => (
+    failure.startsWith('GITHUB_TOKEN_PERMISSION_SET_MISMATCH:')
+  )));
+
+  const extraTokenStepInventory = structuredClone(currentInventory);
+  const extraTokenStepJob = extraTokenStepInventory.lanes
+    .find((lane) => lane.workflow === productionWorkflow)
+    .secret_bearing_jobs.find((job) => job.job === 'certify');
+  extraTokenStepJob.live_main_guard.github_token_step_names.push('Unregistered token consumer');
+  assert.ok(validateRequiredEnvironmentBindings(extraTokenStepInventory, registry).some((failure) => (
+    failure.startsWith('GITHUB_TOKEN_STEP_SET_MISMATCH:')
+  )));
+
+  const nonProductionInventory = structuredClone(currentInventory);
+  const nonProductionRegistry = structuredClone(registry);
+  const nonProductionBinding = nonProductionRegistry.required_environment_bindings.find((binding) => (
+    binding.workflow !== productionWorkflow
+  ));
+  const nonProductionJob = nonProductionInventory.lanes
+    .find((lane) => lane.workflow === nonProductionBinding.workflow)
+    .secret_bearing_jobs.find((job) => job.job === nonProductionBinding.job);
+  nonProductionBinding.required_github_token_permissions = ['actions:read', 'contents:read'];
+  nonProductionJob.workflow_token_permissions = ['actions:read', 'contents:read'];
+  assert.ok(validateRequiredEnvironmentBindings(nonProductionInventory, nonProductionRegistry).some((failure) => (
+    failure.startsWith('ACTIONS_READ_OUTSIDE_PRODUCTION_RELEASE:')
+  )));
+});
+
 test('registered lane counts are derived from registry rather than a frozen legacy cardinality', () => {
   assert.equal(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry, true);
   assert.equal(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry, true);

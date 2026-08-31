@@ -20,10 +20,16 @@ on:
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
       - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs'
       - 'coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json'
       - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs'
       - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
@@ -44,6 +50,9 @@ on:
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
       - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
       - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
@@ -75,6 +84,11 @@ on:
       - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
@@ -88,8 +102,11 @@ permissions:
   contents: read
   actions: read
 
+env:
+  KIDULTS_EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 concurrency:
-  group: kidults-asi-global-any-site-hourly-v2-${{ github.ref }}
+  group: kidults-asi-global-any-site-hourly-v2-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -99,12 +116,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Verify exact source SHA
-        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+        run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_SOURCE_SHA"
       - name: Syntax-check discovery and governance runtime
         run: |
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
@@ -119,6 +137,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs
           node --check scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs
@@ -196,7 +216,22 @@ jobs:
           node scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-product-value-backfill-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json /tmp/asi-rights-analysis-fast-lane-v1.json
           node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json
           node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json
-      - name: Cross-bind value rights snapshot and source-specific schema for product-content admission
+      - name: Cross-bind source evidence for canary evaluation without activation authority
+        env:
+          KIDULTS_REPOSITORY: ${{ github.repository }}
+          KIDULTS_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
+          KIDULTS_EXPECTED_REPOSITORY: ${{ github.repository }}
+          KIDULTS_EXPECTED_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_EXPECTED_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_EXPECTED_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_EXPECTED_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
         run: |
           node scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs \
             /tmp/asi-product-value-backfill-v1.json \
@@ -206,13 +241,24 @@ jobs:
             coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json \
             /tmp/asi-source-eligibility-receipts-v1.json
           node scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs /tmp/asi-source-eligibility-receipts-v1.json coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json
-      - name: Reject forged product-content eligibility receipt
+          node scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs
+      - name: Reject adapter or content authority without P3 exact-CANARY source binding
+        env:
+          KIDULTS_EXPECTED_REPOSITORY: ${{ github.repository }}
+          KIDULTS_EXPECTED_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_EXPECTED_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_EXPECTED_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_EXPECTED_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs'),crypto=require('crypto');const x=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));const r=x.records[0];r.state='ELIGIBLE';r.failures=[];r.product_content_admission_authorized=true;r.adapter_activation_authorized=true;r.binding.expires_at='2099-01-01T00:00:00Z';r.binding.product_value_digest='sha256:'+'a'.repeat(64);r.receipt_digest='sha256:'+crypto.createHash('sha256').update(JSON.stringify(r.binding)).digest('hex');x.summary.eligible=1;x.summary.hold=x.records.length-1;x.summary.product_content_admitted=1;x.summary.adapter_activation_authorized=1;fs.writeFileSync('/tmp/forged-source-eligibility.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));const r=x.records[0];r.p3_exact_canary_receipt_bound=true;r.product_content_admission_authorized=true;r.adapter_activation_authorized=true;x.summary.p3_exact_canary_bound=1;x.summary.product_content_admitted=1;x.summary.adapter_activation_authorized=1;fs.writeFileSync('/tmp/forged-source-eligibility.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs /tmp/forged-source-eligibility.json coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json; then exit 1; fi
+      - name: Run source eligibility receipt replay and lineage regression
+        run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
       - name: Gate1 classify discovery metadata only into Safe Review and Hard Block
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v2.json
