@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import {
+  PROVIDER_COMMUNICATION_EVIDENCE_PATH,
+  validateProviderCommunicationEvidence
+} from '../provider/validate-provider-communication-evidence-v1.mjs';
 
 const fastLanePath=process.argv[2]||'/tmp/asi-rights-analysis-fast-lane-v1.json';
 const decisionsPath=process.argv[3]||'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json';
@@ -10,6 +14,9 @@ const asOf=new Date(asOfArg>=0?process.argv[asOfArg+1]:Date.now());
 const f=JSON.parse(fs.readFileSync(fastLanePath,'utf8'));
 const d=JSON.parse(fs.readFileSync(decisionsPath,'utf8'));
 const s=JSON.parse(fs.readFileSync(snapshotsPath,'utf8'));
+const providerOperatingStatePath='coordination/kidults/registry/provider/records/provider-operating-state-v1.json';
+const o=JSON.parse(fs.readFileSync(providerOperatingStatePath,'utf8'));
+const c=JSON.parse(fs.readFileSync(PROVIDER_COMMUNICATION_EVIDENCE_PATH,'utf8'));
 const assert=(value,code)=>{if(!value)throw new Error(code);};
 const atoms=['collect','store','derive','commercial_use'];
 const productRights=['internal_use','display','saas','api','model_and_analytics'];
@@ -19,6 +26,34 @@ const allowedDecisions=new Set(['PASS','CONDITIONAL','HOLD','NO_GO']);
 const promotableDecisions=new Set(['PASS','CONDITIONAL']);
 const iso=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)&&Number.isFinite(Date.parse(value));
 const clone=value=>structuredClone(value);
+const sourceProvider=new Map([
+  ['classic-com-market-data','CLASSIC_COM'],
+  ['bonhams-cars-results','BONHAMS'],
+  ['bonhams-watches-results','BONHAMS'],
+  ['broad-arrow-results','BROAD_ARROW'],
+  ['christies-handbags-results','CHRISTIES'],
+  ['christies-watches-results','CHRISTIES'],
+  ['gooding-christies-results','GOODING_CHRISTIES'],
+  ['sothebys-watches-results','SOTHEBYS'],
+  ['barrett-jackson-results','BARRETT_JACKSON'],
+  ['collecting-cars-sold','COLLECTING_CARS'],
+  ['iconic-auctioneers-results','ICONIC_AUCTIONEERS'],
+  ['mecum-auction-results','MECUM']
+]);
+const communicationEventsBySource=new Map([
+  ['classic-com-market-data',['classic-com-staged-pilot-followup-20260830']],
+  ['bonhams-cars-results',['bonhams-cars-watches-license-inquiry-20260830','bonhams-request-ack-20260830']],
+  ['bonhams-watches-results',['bonhams-cars-watches-license-inquiry-20260830','bonhams-request-ack-20260830']],
+  ['broad-arrow-results',['broad-arrow-license-inquiry-20260830']],
+  ['christies-handbags-results',['christies-watches-handbags-license-inquiry-20260830']],
+  ['christies-watches-results',['christies-watches-handbags-license-inquiry-20260830']],
+  ['gooding-christies-results',[]],
+  ['sothebys-watches-results',[]],
+  ['barrett-jackson-results',[]],
+  ['collecting-cars-sold',[]],
+  ['iconic-auctioneers-results',['iconic-auctioneers-license-inquiry-20260830']],
+  ['mecum-auction-results',['mecum-auction-results-license-inquiry-20260830']]
+]);
 
 const evidenceDigest=(record,document)=>{
   const evidence=record.evidence_binding;
@@ -73,10 +108,29 @@ function validate(fastLane,document,snapshots,validationTime){
   const decisionIds=document.records.map(item=>item.source_id).sort();
   assert(document.id==='kidults-asi-rights-analysis-fast-lane-decisions-v1'&&document.version==='1.0.0','IDENTITY');
   assert(document.status==='OFFICIAL_TERMS_TRIAGE_COMPLETE_NO_RIGHTS_PROMOTION','STATUS');
+  assert(document.as_of===c.as_of,'COMMUNICATION_AS_OF_DRIFT');
+  assert(document.provider_operating_state_ref===providerOperatingStatePath,'PROVIDER_OPERATING_STATE_REFERENCE');
+  assert(document.communication_evidence_manifest===PROVIDER_COMMUNICATION_EVIDENCE_PATH,'COMMUNICATION_EVIDENCE_REFERENCE');
+  const communicationErrors=validateProviderCommunicationEvidence(c);
+  assert(communicationErrors.length===0,`COMMUNICATION_EVIDENCE_INVALID:${communicationErrors.join(',')}`);
+  const operatingById=new Map((o.providers||[]).map(provider=>[provider.provider_id,provider]));
+  const communicationEventById=new Map((c.events||[]).map(event=>[event.event_id,event]));
   assert(JSON.stringify(document.pass_scope_requirements?.required_rights_atoms)===JSON.stringify(atoms)&&JSON.stringify(document.pass_scope_requirements?.required_product_rights)===JSON.stringify(productRights)&&JSON.stringify(document.pass_scope_requirements?.required_operating_scope)===JSON.stringify(operatingScopes)&&JSON.stringify(document.pass_scope_requirements?.required_lifecycle_rights)===JSON.stringify(lifecycleRights)&&document.pass_scope_requirements?.pass_value==='ALLOW'&&document.pass_scope_requirements?.unknown_or_missing_is_hold===true,'PASS_SCOPE_CONTRACT');
   assert(document.records.length===fastLane.items.length&&document.records.length>0&&new Set(decisionIds).size===document.records.length,'DECISION_SET_DEDUPE');
   assert(JSON.stringify(fastIds)===JSON.stringify(decisionIds),'FAST_LANE_DECISION_SET_DRIFT');
   for(const record of document.records){
+    const expectedProviderId=sourceProvider.get(record.source_id);
+    assert(record.provider_id===expectedProviderId,`SOURCE_PROVIDER_BINDING:${record.source_id}`);
+    const canonicalProvider=operatingById.get(record.provider_id);
+    assert(canonicalProvider?.fast_lane_source_ids?.includes(record.source_id),`CANONICAL_FAST_LANE_BINDING:${record.source_id}`);
+    assert(record.communication_state===canonicalProvider?.communication?.state,`COMMUNICATION_STATE_DRIFT:${record.source_id}`);
+    assert(canonicalProvider?.communication?.resend_authorized===false&&canonicalProvider?.communication?.automatic_followup_authorized===false,`COMMUNICATION_AUTHORITY_DRIFT:${record.source_id}`);
+    const expectedEventIds=communicationEventsBySource.get(record.source_id)||[];
+    const expectedCommunicationRefs=expectedEventIds.map(eventId=>`${PROVIDER_COMMUNICATION_EVIDENCE_PATH}#${eventId}`).sort();
+    assert(Array.isArray(record.communication_evidence_refs)&&JSON.stringify([...record.communication_evidence_refs].sort())===JSON.stringify(expectedCommunicationRefs),`COMMUNICATION_EVIDENCE_REF_INVALID:${record.source_id}`);
+    for(const eventId of expectedEventIds)assert(communicationEventById.get(eventId)?.provider_id===record.provider_id,`COMMUNICATION_EVENT_PROVIDER_DRIFT:${record.source_id}`);
+    if(expectedEventIds.length>0)assert(record.next_action.startsWith('AWAIT_')&&record.next_action.includes('NO_FURTHER_SEND_AUTHORIZED'),`CONTACTED_PROVIDER_NEXT_ACTION_DRIFT:${record.source_id}`);
+    else assert(!record.next_action.startsWith('AWAIT_'),`UNCONTACTED_PROVIDER_FALSE_AWAIT:${record.source_id}`);
     assert(allowedDecisions.has(record.decision),`DECISION:${record.source_id}`);
     assert(['TRACK_Z_COMMERCIAL','COUNSEL_EXCEPTION','AUTOMATED_OFFICIAL_EVIDENCE'].includes(record.route),`ROUTE:${record.source_id}`);
     assert(['ACTIVE','QUEUED'].includes(record.work_state),`WORK_STATE:${record.source_id}`);
@@ -135,5 +189,7 @@ expectFailure('PROMOTION_WITHOUT_SOURCE_SNAPSHOT:',candidate=>{const record=cand
 expectFailure('SNAPSHOT_EVIDENCE_URL_DRIFT:',(_candidate,snapshots)=>{snapshots.records[0].official_evidence_urls[0]='https://example.invalid/forged'});
 expectFailure('SNAPSHOT_RETRIEVED_AT:',(_candidate,snapshots)=>{const record=snapshots.records.find(item=>item.capture_state==='CAPTURE_PERMISSION_EVIDENCE_PENDING');record.capture_state='SOURCE_CONTENT_SNAPSHOT_BOUND';record.capture_authorized=true;record.decision_promotion_eligible=true;snapshots.summary.capture_permission_evidence_pending--;snapshots.summary.source_content_snapshot_bound++;snapshots.summary.promotion_eligible++});
 expectFailure('PENDING_OR_REFERENCE_PROMOTION:',(_candidate,snapshots)=>{snapshots.records[0].decision_promotion_eligible=true;snapshots.summary.promotion_eligible++});
+expectFailure('COMMUNICATION_STATE_DRIFT:',candidate=>{candidate.records.find(record=>record.source_id==='mecum-auction-results').communication_state='NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY'});
+expectFailure('COMMUNICATION_EVIDENCE_REF_INVALID:',candidate=>{candidate.records.find(record=>record.source_id==='broad-arrow-results').communication_evidence_refs=['coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#fabricated']});
 expectFailure('FALSE_PASS_SCOPE:',(candidate,snapshots)=>{const record=candidate.records.find(item=>item.decision==='HOLD');record.decision='PASS';record.rights={collect:'ALLOW',store:'ALLOW',derive:'ALLOW',commercial_use:'ALLOW'};record.evidence_binding.snapshot_state='SOURCE_CONTENT_SNAPSHOT_BOUND';candidate.summary.hold--;candidate.summary.pass++;candidate.summary.rights_clear_for_current_sold++;record.evidence_binding.binding_digest=evidenceDigest(record,candidate);const snapshot=snapshots.records.find(item=>item.source_id===record.source_id);snapshot.capture_state='SOURCE_CONTENT_SNAPSHOT_BOUND';snapshot.capture_authorized=true;snapshot.decision_promotion_eligible=true;snapshot.retrieved_at='2026-08-30T00:00:00Z';snapshot.final_url=snapshot.official_evidence_urls[0];snapshot.http_status=200;snapshot.document_version='test-version-v1';snapshot.precise_locator='section:test';snapshot.source_content_sha256=`sha256:${'a'.repeat(64)}`;snapshot.governed_object_ref='governed-object:test';snapshot.retention_and_deletion_class='TEST_BOUND';snapshots.summary.capture_permission_evidence_pending--;snapshots.summary.source_content_snapshot_bound++;snapshots.summary.promotion_eligible++});
 console.log(JSON.stringify({suite:'KIDULTS_ASI_RIGHTS_ANALYSIS_FAST_LANE_DECISIONS_V1',result:'PASS',sources:d.records.length,decisions:counts,snapshots:validated.snapshotCounts,dynamic_decision_counts_verified:true,evidence_bindings:d.records.length,stale_evidence_fail_closed:true,digest_tamper_fail_closed:true,promotion_without_snapshot_fail_closed:true,snapshot_url_drift_fail_closed:true,false_snapshot_binding_fail_closed:true,reference_only_promotion_fail_closed:true,four_atom_only_pass_rejected:true,rights_clear_for_current_sold:d.summary.rights_clear_for_current_sold,production:d.truth_boundary.production}));

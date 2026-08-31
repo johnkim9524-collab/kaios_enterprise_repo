@@ -52,7 +52,12 @@
       "allowed_after_approval": [
         "AGREEMENT_SCOPED_PUBLIC_PRICE_OR_SALES_FIELDS"
       ],
-      "state": "WAITING_WRITTEN_AGREEMENT"
+      "state": "OUTBOUND_SENT_AWAITING_SUBSTANTIVE_PROVIDER_RESPONSE",
+      "last_outbound_at": "2026-08-28T00:50:52Z",
+      "last_outbound_evidence_ref": "gmail:message:1a045d91e1005d02",
+      "communication_evidence_ref": "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#cardmarket-licensed-data-inquiry-20260828",
+      "external_communication_authorized": false,
+      "resend_authorized": false
     },
     {
       "priority": 4,
