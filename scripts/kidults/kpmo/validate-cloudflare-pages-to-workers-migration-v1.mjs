@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 
-const path='coordination/kidults/governance/cloudflare-pages-to-workers-migration-contract-v1.json';
+const contract='coordination/kidults/governance/cloudflare-pages-to-workers-migration-contract-v1.json';
 const inventory='coordination/kidults/governance/cloudflare-pages-to-workers-inventory-v1.json';
+const releaseGate='coordination/kidults/governance/cloudflare-workers-release-gate-v1.json';
+const retirementGate='coordination/kidults/governance/cloudflare-pages-retirement-gate-v1.json';
 const shadow='infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc';
 const fail=(m)=>{throw new Error(m)};
-if(!fs.existsSync(path)) fail('MIGRATION_CONTRACT_MISSING');
-if(!fs.existsSync(inventory)) fail('MIGRATION_INVENTORY_MISSING');
-if(!fs.existsSync(shadow)) fail('SHADOW_CONFIG_MISSING');
-const c=JSON.parse(fs.readFileSync(path,'utf8'));
+for(const p of [contract,inventory,releaseGate,retirementGate,shadow]) if(!fs.existsSync(p)) fail(`MISSING:${p}`);
+const c=JSON.parse(fs.readFileSync(contract,'utf8'));
 const i=JSON.parse(fs.readFileSync(inventory,'utf8'));
+const r=JSON.parse(fs.readFileSync(releaseGate,'utf8'));
+const p=JSON.parse(fs.readFileSync(retirementGate,'utf8'));
 const w=JSON.parse(fs.readFileSync(shadow,'utf8'));
 if(c.version!=='1.1.0') fail('VERSION');
 if(c.status!=='MANDATORY_FAIL_CLOSED_MIGRATION') fail('STATUS');
@@ -17,13 +19,7 @@ if(c.inventory_contract!==inventory) fail('INVENTORY_BINDING');
 if(c.shadow_config!==shadow) fail('SHADOW_BINDING');
 if(c.current_truth?.automatic_production_git_deploy!==false) fail('AUTO_PRODUCTION_MUST_BE_OFF');
 if(c.current_truth?.automatic_preview_deploy!==false) fail('AUTO_PREVIEW_MUST_BE_OFF');
-for(const x of [
- 'MAIN_NE_DEPLOY','DEPLOY_NE_PUBLIC_APPROVAL','PUBLIC_APPROVAL_NE_PRODUCTION_APPROVAL',
- 'NO_GIT_PUSH_OR_MERGE_MAY_AUTOMATICALLY_DEPLOY_PUBLIC_OR_PRODUCTION',
- 'NO_PAGES_DELETION_BEFORE_PROVEN_WORKERS_CUTOVER_AND_ZERO_REQUIRED_CALLERS',
- 'ROLLBACK_TARGET_REQUIRED_BEFORE_CUTOVER','UNKNOWN_EXTERNAL_INVENTORY_GAPS_BLOCK_CUTOVER_AND_RETIREMENT',
- 'SHADOW_SCAFFOLD_MUST_HAVE_ZERO_PRODUCTION_ROUTES'
-]) if(!c.hard_invariants?.includes(x)) fail(`MISSING_INVARIANT:${x}`);
+for(const x of ['MAIN_NE_DEPLOY','DEPLOY_NE_PUBLIC_APPROVAL','PUBLIC_APPROVAL_NE_PRODUCTION_APPROVAL','NO_GIT_PUSH_OR_MERGE_MAY_AUTOMATICALLY_DEPLOY_PUBLIC_OR_PRODUCTION','NO_PAGES_DELETION_BEFORE_PROVEN_WORKERS_CUTOVER_AND_ZERO_REQUIRED_CALLERS','ROLLBACK_TARGET_REQUIRED_BEFORE_CUTOVER','UNKNOWN_EXTERNAL_INVENTORY_GAPS_BLOCK_CUTOVER_AND_RETIREMENT','SHADOW_SCAFFOLD_MUST_HAVE_ZERO_PRODUCTION_ROUTES']) if(!c.hard_invariants?.includes(x)) fail(`MISSING_INVARIANT:${x}`);
 const expected=['P0_FREEZE','P1_INVENTORY','P2_BUILD','P3_SHADOW_VALIDATE','P4_RELEASE_GATE','P5_CUTOVER','P6_OBSERVE','P7_RETIRE_PAGES'];
 if(JSON.stringify((c.phases||[]).map(x=>x.id))!==JSON.stringify(expected)) fail('PHASE_ORDER');
 if(!c.prohibited?.includes('AUTO_DEPLOY_FROM_MAIN')) fail('AUTO_DEPLOY_PROHIBITION');
@@ -34,4 +30,10 @@ for(const owner of ['KPMO','TRACK_C','TRACK_D','TRACK_E','TRACK_Z','RED_TEAM']) 
 if(i.legacy_pages?.delete_now!==false) fail('INVENTORY_EARLY_DELETE');
 if(!Array.isArray(i.inventory_gaps)||i.inventory_gaps.length<5) fail('INVENTORY_GAPS');
 if(!Array.isArray(w.routes)||w.routes.length!==0) fail('SHADOW_PRODUCTION_ROUTE');
-console.log(JSON.stringify({id:'cloudflare-pages-to-workers-migration-validation-v1',state:'VERIFIED_PASS',phase_count:expected.length,inventory_gaps:i.inventory_gaps.length,shadow_production_routes:w.routes.length,auto_deploy:false,early_pages_delete:false,production_public_g5:'HOLD'},null,2));
+if(r.status!=='FAIL_CLOSED_RELEASE_GATE') fail('RELEASE_GATE_STATUS');
+if(!r.prohibited?.includes('AUTO_DEPLOY_FROM_GIT_PUSH_OR_MERGE')) fail('RELEASE_GATE_AUTO_DEPLOY');
+if(r.authority_boundary?.shadow_cloudflare_deploy!=='SEPARATELY_AUTHORIZED_EXTERNAL_MUTATION') fail('SHADOW_AUTHORITY_BOUNDARY');
+if(p.status!=='FAIL_CLOSED_RETIREMENT_GATE') fail('RETIREMENT_GATE_STATUS');
+if(p.rule!=='DELETE_IS_LAST_OPERATION_AFTER_ZERO_DEPENDENCY_PROOF') fail('RETIREMENT_LAST_OPERATION');
+for(const x of ['ZERO_REQUIRED_CALLERS','ZERO_REQUIRED_ROUTES','CUSTOM_DOMAIN_DETACHED_FROM_PAGES','INDEPENDENT_CLOUDFLARE_READBACK']) if(!p.required_before_delete?.includes(x)) fail(`RETIREMENT_REQUIREMENT:${x}`);
+console.log(JSON.stringify({id:'cloudflare-pages-to-workers-migration-validation-v1',state:'VERIFIED_PASS',phase_count:expected.length,inventory_gaps:i.inventory_gaps.length,shadow_production_routes:w.routes.length,release_gate:'BOUND',retirement_gate:'BOUND',auto_deploy:false,early_pages_delete:false,production_public_g5:'HOLD'},null,2));
