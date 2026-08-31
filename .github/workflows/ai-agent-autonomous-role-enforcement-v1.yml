@@ -3,6 +3,12 @@ name: KIDULTS AI Agent Autonomous Role Enforcement V1
 on:
   pull_request:
     branches: [main]
+    paths:
+      - '.github/AI_AGENT_AUTONOMOUS_ROLE.md'
+      - '.github/workflows/ai-agent-autonomous-role-enforcement-v1.yml'
+      - 'coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json'
+      - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
+      - 'scripts/governance/validate-ai-agent-autonomous-role-v1.mjs'
   push:
     branches: [main]
   schedule:
@@ -18,7 +24,7 @@ concurrency:
 
 jobs:
   validate-autonomous-role-bootstrap:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout exact source revision
