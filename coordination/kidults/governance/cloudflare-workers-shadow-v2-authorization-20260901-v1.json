@@ -1,0 +1,66 @@
+{
+  "id": "CF-WORKERS-SHADOW-20260901-02",
+  "version": "1.0.0",
+  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "authorized_by": {
+    "github_login": "johnkim9524-collab",
+    "author_association": "OWNER"
+  },
+  "authorization_receipt": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "issue_number": 1711,
+    "comment_id": 5481462895,
+    "comment_node_id": "IC_kwDOTF-G-M8AAAABRrh8bw",
+    "api_url": "https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/comments/5481462895",
+    "html_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895",
+    "created_at": "2026-08-31T16:43:16Z",
+    "updated_at": "2026-08-31T16:43:16Z",
+    "performed_via_github_app": "chatgpt-codex-connector",
+    "body_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md",
+    "verification": "FETCH_EXACT_COMMENT_ID_AND_MATCH_METADATA_AND_BODY_BEFORE_PROVIDER_SECRET_RESOLUTION"
+  },
+  "authorized_scope": {
+    "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
+    "trigger": "workflow_dispatch",
+    "source_ref": "refs/heads/main",
+    "service": "kidults-public-portal-shadow",
+    "target": "workers_dev_non_production_only",
+    "workflow_dispatch_count_max": 1,
+    "provider_deployment_attempt_count_max": 1,
+    "authorization_consumed_on": "FIRST_V2_WORKFLOW_DISPATCH_PASS_OR_FAIL",
+    "production_routes_allowed": false,
+    "custom_domains_allowed": false,
+    "pages_delete_allowed": false,
+    "pages_domain_detach_allowed": false,
+    "public_promotion_allowed": false,
+    "production_promotion_allowed": false,
+    "g5_promotion_allowed": false,
+    "external_spend_allowed": false,
+    "contract_change_allowed": false,
+    "new_credential_creation_allowed": false,
+    "credential_scope_expansion_allowed": false,
+    "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+  },
+  "clean_recut": {
+    "source_base_main_sha": "8d4a89b81d523f533ded56eae7c9a0617d158866",
+    "source_branch": "kpmo/cloudflare-workers-shadow-v2-approval-ready",
+    "prior_consumed_workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml",
+    "prior_consumed_approval": "CF-WORKERS-SHADOW-20260831-01",
+    "execution_sha_binding": "LIVE_PROTECTED_MAIN_SHA_AT_DISPATCH"
+  },
+  "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
+  "receipt_lifetime_contract": "coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json",
+  "replay": "FORBIDDEN_AFTER_FIRST_V2_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
+  "authority_excludes": [
+    "RERUN_OR_SECOND_DISPATCH",
+    "PRODUCTION_ROUTE",
+    "CUSTOM_DOMAIN",
+    "PAGES_DELETE_OR_DOMAIN_DETACH",
+    "PUBLIC_RELEASE",
+    "PRODUCTION_APPROVAL",
+    "G5",
+    "SPEND_OR_CONTRACT_EXPANSION",
+    "NEW_CREDENTIAL_OR_SCOPE_EXPANSION",
+    "UNRELATED_PROVIDER_MUTATION"
+  ]
+}
