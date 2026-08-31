@@ -1834,7 +1834,7 @@ try {
   const collisionSuffix = 'c'.repeat(64);
   const collisionName = `kidults-rollback-${timestamp}-${collisionSuffix}`;
   fs.symlinkSync(sentinelDir, path.join(rootDir, collisionName));
-  const forcedCollisionCode = receiptCreateCode.replace('secrets.token_hex(32)', '"c" * 64');
+  const forcedCollisionCode = receiptCreateCode.replace('secrets.token_hex(32)', "'c' * 64");
   const collision = runReceiptCreate(forcedCollisionCode);
   rollbackReceiptNegativeCases += 1;
   if (collision.status === 0 || !collision.stderr.includes('ROLLBACK_RECEIPT_RANDOM_DIRECTORY_EXHAUSTED')) {
