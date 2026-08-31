@@ -13,7 +13,7 @@ const contract = readJson(CONTRACT);
 const bootstrap = readJson(BOOTSTRAP);
 
 ok(contract.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'CONTRACT_ID');
-ok(contract.version === '1.1.0', 'CONTRACT_VERSION');
+ok(contract.version === '1.2.0', 'CONTRACT_VERSION');
 ok(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 ok(contract.scope === 'REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPTS', 'CONTRACT_SCOPE');
 ok(contract.behavioral_scope === 'ALL_AI_AGENTS_STATUS_AND_PROGRESS_REPORTING', 'BEHAVIORAL_SCOPE');
@@ -26,6 +26,11 @@ ok(contract.machine_receipt_rule?.receipt_must_pass_report_after_remediation_val
 ok(contract.machine_receipt_rule?.synthetic_self_test_alone_counts_as_end_to_end_report_enforcement === false, 'SYNTHETIC_SELF_TEST_OVERCLAIM');
 ok(contract.machine_receipt_rule?.registered_workflow_must_emit_and_validate_real_run_receipt === true, 'REAL_RUN_RECEIPT_REQUIRED');
 ok(contract.production === 'HOLD' && contract.public_release === 'HOLD' && contract.g5 === 'HOLD', 'RELEASE_BOUNDARY');
+ok(contract.strategic_stewardship_after_remediation?.required_when_material === true, 'STRATEGY_STEWARDSHIP_REQUIRED');
+ok(contract.strategic_stewardship_after_remediation?.strategy_must_not_delay_executable_internal_fix === true, 'STRATEGY_MAY_NOT_DELAY_FIX');
+for (const domain of ['PRODUCT_STRATEGY','CUSTOMER_STRATEGY','PLATFORM_STRATEGY','PROVIDER_STRATEGY','INTERNALIZATION_STRATEGY','GROUP_FUTURE_STRATEGY','VERTICAL_FUTURE_STRATEGY']) {
+  ok(contract.strategic_stewardship_after_remediation?.required_domains?.includes(domain), `MISSING_STRATEGY_DOMAIN:${domain}`);
+}
 
 const expected = [
   'ROOT_CAUSE_CORRECTED',
@@ -79,13 +84,12 @@ if (idx >= 0) {
 }
 if (requireReceipt) ok(explicitReceiptPath, 'REAL_RUN_RECEIPT_REQUIRED');
 
-// Built-in adversarial regression set validates the contract itself; it is not end-to-end report proof.
 const good = {
   defect_disposition: 'REMEDIATED_AND_VERIFIED',
   remediation_sequence: expected,
   verification_evidence_refs: ['validator:exact-head'],
   truth_sync_refs: ['registry:current', 'issue:current'],
-  improvement_proposal: 'Prioritize the next highest-risk reversible control gap.'
+  improvement_proposal: 'Prioritize the next highest-risk reversible control gap and assess material product/customer/platform/provider/internalization implications.'
 };
 validateReceipt(good);
 
@@ -113,6 +117,7 @@ console.log(JSON.stringify({
   external_chat_output_interception_claimed: false,
   real_run_receipt_validated: Boolean(explicitReceiptPath),
   report_only_allowed: false,
+  strategic_stewardship_required_when_material: true,
   required_sequence: expected,
   negative_mutations_rejected: mutations.length,
   production: 'HOLD',
