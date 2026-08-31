@@ -2048,7 +2048,7 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
     '[[ "${SUDO_USER:-}" == kidults-runner ]] || fail CALLER_NOT_AUTHORIZED',
     'readonly WORKSPACE=/opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterprise_repo',
     '[[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED',
-    '[[ "$ACTUAL_ORIGIN" == "$CANONICAL_ORIGIN" ]] || fail ORIGIN_NOT_CANONICAL',
+    'is_canonical_origin "$ACTUAL_ORIGIN" || fail ORIGIN_NOT_CANONICAL',
     'verify_file "$SEALER_REL" "$SEALER_SHA256"',
     'verify_file "$GATE_REL" "$GATE_SHA256"',
     'verify_file "$POLICY_REL" "$POLICY_SHA256"',
@@ -2058,6 +2058,13 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
     '(( (8#${BASH_REMATCH[1]} & 8#022) == 0 )) || fail "${label}_WRITABLE"',
     '/usr/bin/env -i',
   ]) assert.ok(helper.includes(required), `root helper missing boundary: ${required}`);
+  for (const canonical of [
+    'https://github.com/johnkim9524-collab/kaios_enterprise_repo',
+    'https://github.com/johnkim9524-collab/kaios_enterprise_repo.git',
+  ]) {
+    assert.ok(helper.includes(canonical), `root helper missing canonical origin: ${canonical}`);
+    assert.ok(installer.includes(canonical), `installer missing canonical origin: ${canonical}`);
+  }
   for (const forbidden of ['eval ', 'bash -c', 'sh -c', '"$@"', '${@}']) {
     assert.ok(!helper.includes(forbidden), `root helper contains forbidden general execution: ${forbidden}`);
   }

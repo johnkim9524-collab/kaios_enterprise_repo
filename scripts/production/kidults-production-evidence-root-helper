@@ -19,9 +19,12 @@ readonly SEALER_REL=scripts/production/seal-kidults-production-evidence.sh
 readonly GATE_REL=scripts/production/validate-kidults-production-release-v1.mjs
 readonly POLICY_REL=coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json
 readonly CONTRACT_REL=contracts/certification/kidults-controlled-production-promotion.v1.json
-readonly CANONICAL_ORIGIN=https://github.com/johnkim9524-collab/kaios_enterprise_repo.git
 
 fail() { printf 'ROOT_HELPER_FAIL:%s\n' "$1" >&2; exit 1; }
+is_canonical_origin() {
+  [[ "$1" == https://github.com/johnkim9524-collab/kaios_enterprise_repo \
+    || "$1" == https://github.com/johnkim9524-collab/kaios_enterprise_repo.git ]]
+}
 
 [[ "$#" -eq 0 ]] || fail ARGUMENTS_FORBIDDEN
 [[ "$(id -u)" -eq 0 ]] || fail ROOT_REQUIRED
@@ -57,7 +60,7 @@ verify_protected_directory ARCHIVE_ROOT "$ARCHIVE_ROOT"
 readonly ACTUAL_SHA="$(/usr/bin/git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" rev-parse HEAD)"
 [[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED
 readonly ACTUAL_ORIGIN="$(/usr/bin/git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" config --local --get remote.origin.url)"
-[[ "$ACTUAL_ORIGIN" == "$CANONICAL_ORIGIN" ]] || fail ORIGIN_NOT_CANONICAL
+is_canonical_origin "$ACTUAL_ORIGIN" || fail ORIGIN_NOT_CANONICAL
 
 verify_file() {
   local relative=$1 expected=$2 absolute="$WORKSPACE/$1"
