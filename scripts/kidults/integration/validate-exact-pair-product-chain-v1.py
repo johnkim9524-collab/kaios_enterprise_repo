@@ -339,7 +339,7 @@ check("SINGLE_OBJECT_CONTROL_ONLY_NOT_LAUNCH_COHORT" in control_envelope["assess
 expect_rejection(
     "single-object-control-replay-forbidden",
     lambda: replay_builder.build_replay_receipt(control_snapshot, control_evidence, control_envelope),
-    "ASSESSMENT_NOT_RANKABLE",
+    "ASSESSMENT_NON_PROMOTABLE",
 )
 
 conditional_snapshot, conditional_evidence = fixture_pair("ethereum-erc721-0x387c-token-5198")
