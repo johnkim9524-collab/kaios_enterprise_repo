@@ -45,22 +45,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
-          EXPECTED_EXECUTION_SHA: ${{ github.sha }}
+          EXPECTED_PRODUCER_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p discovery-out /tmp/any-site-input
           rm -f /tmp/any-site-run.json /tmp/any-site-artifact.json /tmp/any-site-provenance.json
-          for ATTEMPT in $(seq 1 24); do
+          for ATTEMPT in $(seq 1 72); do
             gh api -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-open-market-discovery-v1.yml/runs?branch=${TARGET_BRANCH}&status=success&per_page=100" \
               > /tmp/any-site-runs.json
-            TARGET_BRANCH="$TARGET_BRANCH" EXPECTED_EXECUTION_SHA="$EXPECTED_EXECUTION_SHA" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" node - <<'NODE'
+            TARGET_BRANCH="$TARGET_BRANCH" EXPECTED_PRODUCER_HEAD_SHA="$EXPECTED_PRODUCER_HEAD_SHA" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-runs.json','utf8'));
           const target=process.env.TARGET_BRANCH;
-          const expectedSha=process.env.EXPECTED_EXECUTION_SHA;
+          const expectedSha=process.env.EXPECTED_PRODUCER_HEAD_SHA;
           const prHeadSha=process.env.PR_HEAD_SHA;
           const repository=process.env.GITHUB_REPOSITORY;
           const runs=(x.workflow_runs||[])
@@ -74,8 +74,8 @@ jobs:
           if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));
           NODE
             if [ -s /tmp/any-site-run.json ]; then break; fi
-            if [ "$ATTEMPT" -eq 24 ]; then
-              echo "NO_SUCCESSFUL_EXACT_GENERATION_GLOBAL_DISCOVERY_RUN:${TARGET_BRANCH}:${EXPECTED_EXECUTION_SHA}" >&2
+            if [ "$ATTEMPT" -eq 72 ]; then
+              echo "NO_SUCCESSFUL_EXACT_GENERATION_GLOBAL_DISCOVERY_RUN:${TARGET_BRANCH}:${EXPECTED_PRODUCER_HEAD_SHA}" >&2
               exit 1
             fi
             sleep 10
@@ -84,11 +84,11 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
             > /tmp/any-site-artifacts.json
-          EXPECTED_EXECUTION_SHA="$EXPECTED_EXECUTION_SHA" PR_HEAD_SHA="$PR_HEAD_SHA" node - <<'NODE'
+          EXPECTED_PRODUCER_HEAD_SHA="$EXPECTED_PRODUCER_HEAD_SHA" PR_HEAD_SHA="$PR_HEAD_SHA" node - <<'NODE'
           const fs=require('fs');
           const run=JSON.parse(fs.readFileSync('/tmp/any-site-run.json','utf8'));
           const x=JSON.parse(fs.readFileSync('/tmp/any-site-artifacts.json','utf8'));
-          const expectedSha=process.env.EXPECTED_EXECUTION_SHA;
+          const expectedSha=process.env.EXPECTED_PRODUCER_HEAD_SHA;
           if(run.head_sha!==expectedSha)throw new Error(`GLOBAL_DISCOVERY_RUN_SHA_MISMATCH:${run.head_sha}:${expectedSha}`);
           const artifacts=(x.artifacts||[])
             .filter((artifact)=>artifact.name==='kidults-asi-global-any-site-discovery-v2'&&
@@ -102,9 +102,9 @@ jobs:
             producer_workflow:run.path,
             producer_run_id:run.id,
             producer_head_sha:run.head_sha,
-            producer_execution_sha:run.head_sha,
+            consumer_execution_sha:process.env.GITHUB_SHA,
             consumer_pr_head_sha:prHeadSha,
-            correlation_contract:'PULL_REQUEST_MERGE_EXECUTION_SHA',
+            correlation_contract:'PRODUCER_HEAD_SHA_WITH_CONSUMER_EXECUTION_SHA_DIAGNOSTIC',
             artifact_id:artifact.id,
             artifact_digest:artifact.digest,
             exact_generation:true
@@ -119,7 +119,7 @@ jobs:
           test "${#FILES[@]}" -eq 1
           cp "${FILES[0]}" discovery-out/global-low-risk-discovery.json
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
-          echo "global_discovery_run_id=$RUN_ID artifact_id=$ART_ID branch=$TARGET_BRANCH expected_execution_sha=$EXPECTED_EXECUTION_SHA pr_head_sha=$PR_HEAD_SHA exact_generation=true"
+          echo "global_discovery_run_id=$RUN_ID artifact_id=$ART_ID branch=$TARGET_BRANCH expected_producer_head_sha=$EXPECTED_PRODUCER_HEAD_SHA pr_head_sha=$PR_HEAD_SHA exact_generation=true"
       - name: Expand bounded hosts through Common Crawl public index
         run: |
           node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
