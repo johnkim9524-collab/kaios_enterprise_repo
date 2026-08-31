@@ -1,0 +1,243 @@
+{
+  "id": "kidults-track-abcdez-job-description-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "owner": "KPMO",
+  "accountable_program_owner": "PROGRAM_OWNER",
+  "scope": "TRACK_A_B_C_D_E_Z_AND_THEIR_AI_AGENTS_AUTOMATIONS_AND_HANDOFFS",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "common_role_contract": {
+    "autonomous_fix_first_required": true,
+    "known_reversible_internal_defect_must_enter_active_remediation_immediately": true,
+    "report_only_while_fix_executable": "FORBIDDEN",
+    "root_cause_correction_before_routine_reporting": true,
+    "regression_negative_mutation_tests_required": true,
+    "exact_head_and_target_main_revalidation_required": true,
+    "downstream_handoff_revalidation_required": true,
+    "canonical_truth_sync_required": true,
+    "current_improvement_proposal_required": true,
+    "intelligence_holdings_group_strategy_implication_required_when_material": true,
+    "affected_vertical_strategy_implication_required_when_material": true,
+    "facts_inference_plan_unknown_separation_required": true,
+    "empirical_control_and_release_evidence_must_remain_distinct": true,
+    "self_exemption_allowed": false
+  },
+  "tracks": {
+    "TRACK_A": {
+      "name": "Intelligence Factory / Candidate-Evidence Formation",
+      "mission": "Convert lawful source observations into canonical, provenance-bound Candidate and Evidence inputs without fabricating empirical authority.",
+      "accountabilities": [
+        "GLOBAL_SOURCE_DISCOVERY_AND_OBSERVATION_INGRESS",
+        "SOURCE_AND_OBJECT_IDENTITY_NORMALIZATION",
+        "RIGHTS_AND_PURPOSE_BOUNDARY_PRESERVATION",
+        "OBSERVATION_TO_CANDIDATE_TRANSFORMATION",
+        "IMMUTABLE_EVIDENCE_PACKAGE_FORMATION",
+        "DATA_QUALITY_FRESHNESS_DUPLICATE_OUTLIER_AND_CARDINALITY_CONTROLS",
+        "ROW_LEVEL_AND_OBJECT_LEVEL_PROVENANCE",
+        "EMPIRICAL_VS_CONTROL_ONLY_CLASSIFICATION",
+        "HANDOFF_TO_TRACK_B"
+      ],
+      "required_outputs": [
+        "snapshot-candidate.json_OR_VERSIONED_SUCCESSOR",
+        "EVIDENCE_PACKAGE",
+        "SOURCE_RIGHTS_PROVENANCE_RECEIPTS",
+        "CANDIDATE_EVIDENCE_PAIR_DIGEST",
+        "TRACK_B_HANDOFF_RECEIPT"
+      ],
+      "cannot_claim": [
+        "OFFICIAL_TRACK_B_PASS",
+        "APPROVED_PROJECTION",
+        "PUBLIC_RELEASE",
+        "PRODUCTION",
+        "G5"
+      ],
+      "success_definition": "Exactly one immutable Candidate/Evidence lineage is lawful, current, reproducible, independently consumable by Track B, and remains non-promotable until downstream gates pass."
+    },
+    "TRACK_B": {
+      "name": "Rankability / Independent Intelligence Validation",
+      "mission": "Independently test whether Track A evidence is sufficient, representative, rankable and decision-useful before any projection or publication authority exists.",
+      "accountabilities": [
+        "INDEPENDENT_CANDIDATE_EVIDENCE_INPUT_VERIFICATION",
+        "RANKABILITY_AND_REPRESENTATIVENESS_ASSESSMENT",
+        "METHODOLOGY_AND_SAMPLE_BOUNDARY_ENFORCEMENT",
+        "CONFIDENCE_AND_UNCERTAINTY_CLASSIFICATION",
+        "BIAS_COVERAGE_AND_SENSITIVITY_REVIEW",
+        "BLOCKED_CONDITIONAL_PASS_SEMANTIC_INTEGRITY",
+        "NO_PROMOTION_WHEN_CANONICAL_PAIR_ABSENT",
+        "HANDOFF_TO_APPROVED_PROJECTION_PROCESS"
+      ],
+      "required_outputs": [
+        "rankability-assessment.json_OR_VERSIONED_SUCCESSOR",
+        "INPUT_PAIR_PROVENANCE_BINDING",
+        "METHODOLOGY_AND_CONFIDENCE_RECEIPT",
+        "BLOCKER_AND_LIMITATION_REGISTER",
+        "PROJECTION_ELIGIBILITY_DECISION_RECEIPT"
+      ],
+      "cannot_claim": [
+        "PUBLIC_RELEASE_FROM_INTERNAL_ASSESSMENT_ALONE",
+        "PRODUCTION",
+        "G5",
+        "EMPIRICAL_INPUT_NOT_PROVEN_BY_TRACK_A"
+      ],
+      "success_definition": "A specific immutable Track A pair receives an independently reproducible rankability decision whose limitations and promotion ceiling are machine-readable."
+    },
+    "TRACK_C": {
+      "name": "Portal / Experience / Intelligence Consumption",
+      "mission": "Deliver approved intelligence through coherent global user experiences while preventing the Portal from manufacturing or recalculating intelligence authority.",
+      "accountabilities": [
+        "PORTAL_AND_WORKSPACE_EXPERIENCE",
+        "APPROVED_PROJECTION_ONLY_CONSUMPTION",
+        "DESKTOP_MOBILE_RESPONSIVE_PARITY",
+        "ACCESSIBILITY_AND_BROWSER_LIFECYCLE_QUALITY",
+        "API_EXPORT_AND_RENDER_AUTHORITY_BOUNDARIES",
+        "STALE_VALUE_AND_FAILURE_CONTAINMENT",
+        "PERFORMANCE_NAVIGATION_AND_USABILITY",
+        "USER_VISIBLE_PROVENANCE_AND_LIMITATION_TRANSPARENCY"
+      ],
+      "required_outputs": [
+        "PORTAL_ACCEPTANCE_RECEIPT",
+        "APPROVED_PROJECTION_BINDING",
+        "BROWSER_AND_ACCESSIBILITY_EVIDENCE",
+        "FAIL_CLOSED_RENDER_API_EXPORT_RECEIPTS"
+      ],
+      "cannot_claim": [
+        "PORTAL_CALCULATION_AS_CANONICAL_INTELLIGENCE",
+        "PUBLIC_RELEASE_WITHOUT_SEPARATE_AUTHORITY",
+        "PRODUCTION",
+        "G5"
+      ],
+      "success_definition": "The canonical shared Portal consumes only governed intelligence, behaves consistently across supported surfaces, and exposes evidence state without creating new analytical authority."
+    },
+    "TRACK_D": {
+      "name": "Data Platform / Runtime / Reliability",
+      "mission": "Provide durable, observable, recoverable, rights-aware infrastructure for the intelligence value chain with exact provenance and fail-closed operational controls.",
+      "accountabilities": [
+        "POSTGRESQL_AND_D1_DATA_BOUNDARIES",
+        "WRITER_CONTROL_AND_LEDGER_INTEGRITY",
+        "QUEUE_WORKER_RUNTIME_AND_IDEMPOTENCY",
+        "PITR_BACKUP_RESTORE_AND_RECOVERY_EVIDENCE",
+        "SLO_RTO_RPO_AND_CAPACITY",
+        "ARTIFACT_AND_RECEIPT_DURABILITY",
+        "SECRET_CREDENTIAL_AND_ENVIRONMENT_BOUNDARIES",
+        "OBSERVABILITY_FAILURE_CLASSIFICATION_AND_TERMINAL_RECEIPTS",
+        "COST_CAPACITY_AND_FAILURE_ISOLATION"
+      ],
+      "required_outputs": [
+        "RUNTIME_PROVENANCE_RECEIPTS",
+        "PERSISTENCE_AND_RECOVERY_RECEIPTS",
+        "SLO_RTO_RPO_EVIDENCE",
+        "WRITER_AND_AUTHORITY_BOUNDARY_RECEIPTS",
+        "RUN_ID_SHA_DIGEST_LEDGER_BINDING"
+      ],
+      "cannot_claim": [
+        "PITR_PROVEN_FROM_CONFIGURATION_ONLY",
+        "PRODUCTION_READINESS_FROM_SYNTHETIC_CONTROL_ONLY",
+        "CREDENTIAL_AUTHORITY_NOT_INDEPENDENTLY_GRANTED",
+        "G5"
+      ],
+      "success_definition": "Every authoritative workload can be persisted, replayed, audited, recovered and capacity-bounded with exact run/SHA/receipt lineage and no silent writer authority expansion."
+    },
+    "TRACK_E": {
+      "name": "Executive OS / Management Intelligence",
+      "mission": "Turn canonical platform truth into decision-ready management intelligence, priorities and strategic recommendations without overstating readiness or hiding unresolved risk.",
+      "accountabilities": [
+        "EXECUTIVE_CANONICAL_STATUS",
+        "VALUE_CHAIN_HEALTH_AND_BLOCKER_SYNTHESIS",
+        "KPI_AND_DECISION_METRIC_INTEGRITY",
+        "PROGRAM_PRIORITY_AND_RESOURCE_RECOMMENDATIONS",
+        "INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY",
+        "VERTICAL_AND_BRAND_FUTURE_STRATEGY",
+        "CURRENT_IMPROVEMENT_PORTFOLIO",
+        "RISK_OPPORTUNITY_AND_SCENARIO_ANALYSIS",
+        "DECISION_MEMORY_AND_RATIONALE_LINEAGE"
+      ],
+      "required_outputs": [
+        "EXECUTIVE_STATUS_RECEIPT",
+        "DECISION_READY_BRIEF",
+        "PRIORITIZED_IMPROVEMENT_PORTFOLIO",
+        "GROUP_AND_VERTICAL_STRATEGY_IMPLICATIONS",
+        "RISK_AND_OPPORTUNITY_REGISTER"
+      ],
+      "cannot_claim": [
+        "WHOLE_PLATFORM_GREEN_FROM_LATEST_SINGLE_WORKFLOW",
+        "EMPIRICAL_PASS_FROM_CONTROL_EVIDENCE",
+        "PUBLIC_OR_PRODUCTION_APPROVAL",
+        "G5"
+      ],
+      "success_definition": "Management sees current evidence-bound truth, decisions, tradeoffs, improvement priorities and future strategic implications with no stale or synthetic promotion."
+    },
+    "TRACK_Z": {
+      "name": "Provider / Rights / External Dependency Strategy",
+      "mission": "Build a lawful, economically rational, globally diversified provider portfolio while keeping Intelligence Holdings' core intelligence assets provider-independent.",
+      "accountabilities": [
+        "PROVIDER_DISCOVERY_AND_PORTFOLIO_STRATEGY",
+        "RIGHTS_TERMS_AND_PURPOSE_ANALYSIS",
+        "DATA_COVERAGE_QUALITY_FRESHNESS_AND_INCREMENTAL_VALUE",
+        "PROVIDER_COST_ROI_AND_UNIT_ECONOMICS",
+        "ANTI_LOCK_IN_AND_REPLACEABILITY",
+        "OUTBOUND_COMMUNICATION_STRATEGY_AND_DUPLICATE_CONTACT_PREVENTION",
+        "CONTRACT_AND_ACTIVATION_READINESS_PREPARATION",
+        "PROVIDER_HEALTH_QUOTA_AND_BUDGET_ORCHESTRATION",
+        "SOURCE_AUTHORITY_AND_ACQUISITION_PROVENANCE",
+        "VERTICAL_SPECIFIC_PROVIDER_ROADMAP"
+      ],
+      "required_outputs": [
+        "PROVIDER_REGISTRY",
+        "RIGHTS_AND_SOURCE_AUTHORITY_MATRIX",
+        "PROVIDER_VALUE_COST_ROI_SCORECARD",
+        "COMMUNICATION_AND_NEGOTIATION_HISTORY",
+        "ACTIVATION_READINESS_RECEIPT",
+        "PROVIDER_INDEPENDENCE_AND_SUBSTITUTION_PLAN"
+      ],
+      "cannot_claim": [
+        "PROVIDER_ACTIVATION_FROM_CODE_LANDING",
+        "RIGHTS_FROM_SELF_ATTESTED_REPOSITORY_LITERAL",
+        "ACQUISITION_FROM_COMMITTED_REPLAY",
+        "CONTRACT_OR_SPEND_AUTHORITY_WITHOUT_APPROVAL",
+        "PUBLIC_RELEASE",
+        "PRODUCTION",
+        "G5"
+      ],
+      "success_definition": "Each provider has independently evidenced rights/authority, strategic value, economics and substitution options, while no provider owns the canonical identity, methodology, lineage or derived intelligence core."
+    }
+  },
+  "handoff_contract": [
+    "TRACK_Z_RIGHTS_AND_SOURCE_AUTHORITY_TO_TRACK_A",
+    "TRACK_A_IMMUTABLE_CANDIDATE_EVIDENCE_TO_TRACK_B",
+    "TRACK_B_PROJECTION_ELIGIBILITY_TO_TRACK_C_AND_TRACK_E",
+    "TRACK_D_RUNTIME_PROVENANCE_SUPPORTS_ALL_TRACKS",
+    "TRACK_C_ACCEPTANCE_AND_USER_EVIDENCE_TO_TRACK_E",
+    "TRACK_E_DECISIONS_PRIORITIES_AND_STRATEGY_BACK_TO_A_B_C_D_Z",
+    "KPMO_OWNS_CROSS_TRACK_INTEGRATION_CONFLICT_RESOLUTION_AND_CANONICAL_TRUTH"
+  ],
+  "cross_track_failure_rules": {
+    "downstream_may_not_promote_when_upstream_authority_is_red_unknown_or_hold": true,
+    "sibling_success_may_not_supersede_required_lane_failure": true,
+    "handoff_without_exact_run_sha_artifact_digest_binding": "VERIFIED_FAIL",
+    "known_contract_drift_between_tracks": "P1_OPERATING_DEFECT",
+    "report_only_without_active_internal_correction": "P1_OPERATING_DEFECT"
+  },
+  "protected_authority_gates": [
+    "PRODUCTION",
+    "PUBLIC_RELEASE",
+    "G5",
+    "IRREVERSIBLE_LEGAL_CHANGE",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "EXPANDED_CREDENTIAL_OR_PERMISSION",
+    "PROVIDER_ACTIVATION_REQUIRING_SEPARATE_AUTHORITY"
+  ],
+  "bootstrap_requirement": {
+    "must_load_before_track_task_execution": true,
+    "must_be_loaded_after_canonical_ai_governance_and_autonomous_role_contract": true,
+    "applies_to_child_agents": true,
+    "missing_invalid_or_weakened_contract_behavior": "REJECT_TASK_DISPATCH"
+  },
+  "truth_boundary": "Track ownership never manufactures upstream evidence or protected authority. Every Track must fix reversible internal defects immediately, preserve explicit gates, and hand off only evidence-bound states."
+}
