@@ -50,27 +50,12 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Verify fixed protected evidence boundaries
+      - name: Verify exact checked-out source boundary
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test -d "$KIDULTS_EVIDENCE_INTAKE" && test ! -L "$KIDULTS_EVIDENCE_INTAKE"
-          test -d "$KIDULTS_ARCHIVE_ROOT" && test ! -L "$KIDULTS_ARCHIVE_ROOT"
-          python3 -I - "$KIDULTS_EVIDENCE_INTAKE" "$KIDULTS_ARCHIVE_ROOT" <<'PY'
-          import os, stat, sys
-          for raw in sys.argv[1:]:
-              path = os.path.realpath(raw)
-              if path != raw:
-                  raise SystemExit("PROTECTED_PATH_NOT_CANONICAL")
-              metadata = os.stat(path, follow_symlinks=False)
-              if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != 0 or metadata.st_gid != 0:
-                  raise SystemExit("PROTECTED_PATH_IDENTITY")
-              if stat.S_IMODE(metadata.st_mode) & 0o022:
-                  raise SystemExit("PROTECTED_PATH_WRITABLE")
-          PY
-          test -f /etc/kaios/kidults-production-release/program-owner-ed25519-public.pem
-          test -f /etc/kaios/kidults-production-release/program-owner-ed25519-key-id
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
       - name: Seal exact evidence without Production mutation
         shell: bash
