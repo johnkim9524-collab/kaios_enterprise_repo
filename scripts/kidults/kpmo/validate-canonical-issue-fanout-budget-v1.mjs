@@ -34,7 +34,7 @@ on:
   issues:
     types: [opened, edited]
 concurrency:
-  group: test-${{ github.event_name }}-${{ github.event_name == 'issues' && 'all-members' || github.ref || github.run_id }}
+  group: test-\${{ github.event_name }}-${{ github.event_name == 'issues' && 'all-members' || github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -55,7 +55,7 @@ on:
   issues:
     types: [edited]
 concurrency:
-  group: local-${{ github.event.issue.number || inputs.issue_number }}
+  group: local-\${{ github.event.issue.number || inputs.issue_number }}
   cancel-in-progress: true
 
 jobs:
