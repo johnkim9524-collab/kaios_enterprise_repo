@@ -1,0 +1,132 @@
+name: KIDULTS Production Release Evidence V1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-production-release-evidence-v1
+  cancel-in-progress: false
+
+jobs:
+  produce:
+    name: Produce exact-main sealed Production evidence
+    environment: kidults-production-evidence
+    runs-on: [self-hosted, linux, x64, kidults-production-evidence]
+    timeout-minutes: 30
+    env:
+      KIDULTS_CANONICAL_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+      KIDULTS_EVIDENCE_INTAKE: /var/lib/kaios/kidults-production-release/evidence-intake
+      KIDULTS_ARCHIVE_ROOT: /mnt/ih_prod_01/backups/production-certification
+
+    steps:
+      - name: Verify exact protected-main dispatch before checkout
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$KIDULTS_CANONICAL_REPOSITORY"
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          LIVE_MAIN_SHA="$(
+            curl --disable --fail-with-body --silent --show-error \
+              --proto '=https' --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -I -c 'import json,re,sys; s=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(s) if re.fullmatch(r"[0-9a-f]{40}",s) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Checkout exact protected-main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify fixed protected evidence boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -d "$KIDULTS_EVIDENCE_INTAKE" && test ! -L "$KIDULTS_EVIDENCE_INTAKE"
+          test -d "$KIDULTS_ARCHIVE_ROOT" && test ! -L "$KIDULTS_ARCHIVE_ROOT"
+          python3 -I - "$KIDULTS_EVIDENCE_INTAKE" "$KIDULTS_ARCHIVE_ROOT" <<'PY'
+          import os, stat, sys
+          for raw in sys.argv[1:]:
+              path = os.path.realpath(raw)
+              if path != raw:
+                  raise SystemExit("PROTECTED_PATH_NOT_CANONICAL")
+              metadata = os.stat(path, follow_symlinks=False)
+              if not stat.S_ISDIR(metadata.st_mode) or metadata.st_uid != 0 or metadata.st_gid != 0:
+                  raise SystemExit("PROTECTED_PATH_IDENTITY")
+              if stat.S_IMODE(metadata.st_mode) & 0o022:
+                  raise SystemExit("PROTECTED_PATH_WRITABLE")
+          PY
+          test -f /etc/kaios/kidults-production-release/program-owner-ed25519-public.pem
+          test -f /etc/kaios/kidults-production-release/program-owner-ed25519-key-id
+
+      - name: Seal exact evidence without Production mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE="$RUNNER_TEMP/kidults-production-evidence-before.txt"
+          AFTER="$RUNNER_TEMP/kidults-production-evidence-after.txt"
+          find "$KIDULTS_ARCHIVE_ROOT" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$BEFORE"
+          EVIDENCE_DIR="$KIDULTS_EVIDENCE_INTAKE" bash scripts/production/seal-kidults-production-evidence.sh
+          find "$KIDULTS_ARCHIVE_ROOT" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$AFTER"
+          comm -13 "$BEFORE" "$AFTER" > "$RUNNER_TEMP/kidults-production-evidence-created.txt"
+          python3 -I - "$KIDULTS_ARCHIVE_ROOT" "$RUNNER_TEMP/kidults-production-evidence-created.txt" "$RUNNER_TEMP/kidults-production-release-evidence" "$GITHUB_SHA" <<'PY'
+          import hashlib, json, os, re, shutil, stat, sys
+          from pathlib import Path
+          root, listing, output, source_sha = map(Path, sys.argv[1:])
+          names = listing.read_text(encoding="utf-8").splitlines()
+          archives = [name for name in names if re.fullmatch(r"kidults-production-evidence-[A-Za-z0-9._-]{1,128}\.tar\.gz", name)]
+          if len(archives) != 1 or sorted(names) != sorted([archives[0], archives[0] + ".sha256", archives[0] + ".manifest.json"]):
+              raise SystemExit("SEALED_OUTPUT_EXACT_TRIPLET_REQUIRED")
+          output.mkdir(mode=0o700)
+          archive = root / archives[0]
+          checksum = root / (archives[0] + ".sha256")
+          manifest_path = root / (archives[0] + ".manifest.json")
+          for path in (archive, checksum, manifest_path):
+              metadata = path.stat(follow_symlinks=False)
+              if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1 or metadata.st_uid != 0 or metadata.st_gid != 0:
+                  raise SystemExit("SEALED_OUTPUT_IDENTITY")
+              if stat.S_IMODE(metadata.st_mode) != 0o600:
+                  raise SystemExit("SEALED_OUTPUT_MODE")
+          digest = "sha256:" + hashlib.sha256(archive.read_bytes()).hexdigest()
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          if manifest.get("archive_sha256") != digest or manifest.get("source_sha") != str(source_sha):
+              raise SystemExit("SEALED_OUTPUT_BINDING")
+          declared = checksum.read_text(encoding="utf-8").split()[0]
+          if declared != digest.removeprefix("sha256:"):
+              raise SystemExit("SEALED_OUTPUT_CHECKSUM")
+          shutil.copyfile(archive, output / "kidults-production-evidence.tar.gz")
+          shutil.copyfile(manifest_path, output / "kidults-production-evidence.tar.gz.manifest.json")
+          for path in output.iterdir():
+              path.chmod(0o600)
+          PY
+          git diff HEAD --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload exact-SHA sealed evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-production-release-evidence-${{ github.sha }}
+          path: ${{ runner.temp }}/kidults-production-release-evidence
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+          overwrite: false
+
+      - name: Preserve HOLD boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'Evidence artifact produced; Production/Public/G5 remain HOLD pending separate exact artifact certification, protected executor consumption, and explicit release.'

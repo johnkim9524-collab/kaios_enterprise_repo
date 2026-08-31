@@ -16,12 +16,12 @@
     "artifact_name": "kidults-management-control-tower-local-fallback",
     "component_digests": {
       "builder": "sha256:0a73cb6b2dce947e2204aeabfb25fa8641483968ba504704aa546b920aa7aa9b",
-      "model": "sha256:9d6134da3a2206e781bfafcff0532dfb8676dc476e3bce0eb2c9ee03fac713c6",
-      "validator": "sha256:81c67d8843f0b6cd8430f7cc02c9f8a65becc29382ee588d83f4c49a4da1df32"
+      "model": "sha256:7ae1e703dbafc1f307924c2af0195959788e7c15323c86ae4f537f313d1ebb00",
+      "validator": "sha256:f28777434ac67e5723a8833fe124d75241cd7d5399d0814c1b607635df11ebe1"
     }
   },
-  "as_of": "2026-08-31T06:55:42.925Z",
-  "generated_at": "2026-08-31T06:55:42.925Z",
+  "as_of": "2026-08-31T07:55:39.550Z",
+  "generated_at": "2026-08-31T07:55:39.550Z",
   "source_as_of": "2026-08-24T05:20:00.000Z",
   "source_as_of_by_input": {
     "tower_contract": null,
@@ -32,20 +32,20 @@
     "release_assurance": null,
     "production_promotion": null
   },
-  "stale_after": "2026-08-31T08:25:42.925Z",
+  "stale_after": "2026-08-31T09:25:39.550Z",
   "freshness": {
     "state_at_build": "TRANSPORT_FRESH",
     "freshness_slo_minutes": 90,
-    "stale_after": "2026-08-31T08:25:42.925Z",
+    "stale_after": "2026-08-31T09:25:39.550Z",
     "failure_mode": "retain last verified snapshot and show stale/error banner",
     "transport": {
-      "generated_at": "2026-08-31T06:55:42.925Z",
-      "stale_after": "2026-08-31T08:25:42.925Z"
+      "generated_at": "2026-08-31T07:55:39.550Z",
+      "stale_after": "2026-08-31T09:25:39.550Z"
     },
     "evidence": {
       "state_at_build": "UNASSESSED",
       "threshold": "NOT_DEFINED",
-      "oldest_material_age_minutes_at_build": 10175.715416666666,
+      "oldest_material_age_minutes_at_build": 10235.659166666666,
       "aggregate_as_of": "2026-08-24T05:20:00.000Z",
       "time_sources": [
         "rights_fast_lane",
@@ -68,12 +68,12 @@
     "contract_version": "1.1.0",
     "canonical_policy_version": "1.1.0",
     "exact_workflow_path": ".github/workflows/kidults-production-release-evidence-v1.yml",
-    "availability": "NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER",
+    "availability": "IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE",
     "certification_state": "HOLD",
     "production_authority": "HARD_DISABLED"
   },
   "snapshot_state": "INTERNAL_POLICY_READY_EXTERNAL_EMPIRICAL_HOLD",
-  "headline": "내부 정책 상태는 INTERNAL_POLICY_READY_EXTERNAL_EMPIRICAL_HOLD. Production evidence producer는 HARD_DISABLED(미구현), 권리-clear current-SOLD 0, 활성 어댑터 0이므로 외부 실증·Production·Public·G5는 HOLD.",
+  "headline": "내부 정책 상태는 INTERNAL_POLICY_READY_EXTERNAL_EMPIRICAL_HOLD. Production evidence producer는 구현됐지만 보호 runner·실증 evidence 부재로 HARD_DISABLED, 권리-clear current-SOLD 0, 활성 어댑터 0이므로 외부 실증·Production·Public·G5는 HOLD.",
   "source_digests": {
     "tower_contract": "sha256:6c3577ecd1bfe60eeae605c302074d21044816796198c9deaf473b1a2afd398f",
     "rights_fast_lane": "sha256:66004efc53d1a1cfa1b187447ebe7c7bfc2bc9c62ac132a22bd3544f1947aa9d",
@@ -81,7 +81,7 @@
     "alignment": "sha256:c436e90d257d2565d975a28d66b326d66b48e676bc51ee2ee8c5d263dfab2035",
     "sample_policy": "sha256:71a4e2ba6f7691c0cab2030c2a62b0ed597a0b9576eefbb21ac9e9c4349ae837",
     "release_assurance": "sha256:cdc20d801f01037ff2f7bbf82023e6a8c239a7e72682c64e7feeff621ac9c430",
-    "production_promotion": "sha256:6f7a3e2460257ba1c2875b150a7918bea452f29eae13cfd9038b7d99e2415139"
+    "production_promotion": "sha256:322c7f940e5ca1472ca4139c38aef5c9f93754d47cfaf5207f16f0bf85bcae07"
   },
   "sources": {
     "tower_contract": "coordination/kidults/governance/management-control-tower-contract-v1.json",
@@ -116,7 +116,7 @@
     [
       "Production evidence producer",
       "HARD_DISABLED",
-      "별도 governed producer 미구현"
+      "구현 완료·보호 runner 및 실증 evidence 대기"
     ],
     [
       "외부 출시",
@@ -181,8 +181,8 @@
   ],
   "decisions": [
     [
-      "1. 별도 governed Production evidence producer를 protected main에 등재",
-      "producer 실행 전에는 내부 통제가 증거 생산을 대체하지 않음"
+      "1. 보호 self-hosted Production evidence runner와 root-owned evidence intake를 구성",
+      "producer 구현만으로는 실행 증거나 Production 권한이 생기지 않음"
     ],
     [
       "2. HOLD 소스의 capture·reuse 권리 증거 확보",

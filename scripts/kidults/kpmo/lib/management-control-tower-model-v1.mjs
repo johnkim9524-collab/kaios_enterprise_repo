@@ -159,7 +159,7 @@ export function buildControlTowerModel(sources, generatedAt, producer) {
     production_authority: productionPromotion.evidence_producer?.production_authority
   };
   if (productionEvidenceProducer.exact_workflow_path !== '.github/workflows/kidults-production-release-evidence-v1.yml'
-      || productionEvidenceProducer.availability !== 'NOT_IMPLEMENTED_PENDING_SEPARATE_GOVERNED_PRODUCER'
+      || productionEvidenceProducer.availability !== 'IMPLEMENTED_FAIL_CLOSED_AWAITING_PROTECTED_RUNNER_AND_EVIDENCE'
       || productionEvidenceProducer.certification_state !== 'HOLD'
       || productionEvidenceProducer.production_authority !== 'HARD_DISABLED') {
     throw new Error('CONTROL_TOWER_PRODUCTION_EVIDENCE_PRODUCER_STATE');
@@ -220,7 +220,7 @@ export function buildControlTowerModel(sources, generatedAt, producer) {
     },
     production_evidence_producer: productionEvidenceProducer,
     snapshot_state: alignment.release_state,
-    headline: `내부 정책 상태는 ${alignment.release_state}. Production evidence producer는 HARD_DISABLED(미구현), 권리-clear current-SOLD ${portfolio.rights_clear_current_sold_sources}, 활성 어댑터 ${portfolio.empirically_activated}이므로 외부 실증·Production·Public·G5는 HOLD.`,
+    headline: `내부 정책 상태는 ${alignment.release_state}. Production evidence producer는 구현됐지만 보호 runner·실증 evidence 부재로 HARD_DISABLED, 권리-clear current-SOLD ${portfolio.rights_clear_current_sold_sources}, 활성 어댑터 ${portfolio.empirically_activated}이므로 외부 실증·Production·Public·G5는 HOLD.`,
     source_digests: Object.fromEntries(Object.entries(sources).map(([name, source]) => [name, source.digest])),
     sources: Object.fromEntries(Object.entries(sources).map(([name, source]) => [name, source.path])),
     kpis: [
@@ -228,7 +228,7 @@ export function buildControlTowerModel(sources, generatedAt, producer) {
       ['활성 어댑터', `${portfolio.empirically_activated} / ${portfolio.software_adapters_implemented_fixture_verified}`, `구현·fixture 검증 ${portfolio.software_adapters_implemented_fixture_verified}`],
       ['검증 SOLD 이벤트', String(portfolio.verified_current_sold_events), `Evidence admitted ${portfolio.evidence_admitted}`],
       ['자연 실행', '0 / 30', 'Production 최소 조건'],
-      ['Production evidence producer', 'HARD_DISABLED', '별도 governed producer 미구현'],
+      ['Production evidence producer', 'HARD_DISABLED', '구현 완료·보호 runner 및 실증 evidence 대기'],
       ['외부 출시', 'HOLD', 'Public · Production · G5'],
       ['표본·무결성 정책', 'ACTIVE', 'protected main 기준']
     ],
@@ -243,7 +243,7 @@ export function buildControlTowerModel(sources, generatedAt, producer) {
       ['Production / Public', 'HOLD', 0, 'hold']
     ],
     decisions: [
-      ['1. 별도 governed Production evidence producer를 protected main에 등재', 'producer 실행 전에는 내부 통제가 증거 생산을 대체하지 않음'],
+      ['1. 보호 self-hosted Production evidence runner와 root-owned evidence intake를 구성', 'producer 구현만으로는 실행 증거나 Production 권한이 생기지 않음'],
       ['2. HOLD 소스의 capture·reuse 권리 증거 확보', 'TRACK Z · 서면 목적별 허가 없이는 수집하지 않음'],
       ['3. Fast Lane 12건을 PASS / CONDITIONAL / HOLD / NO-GO로 종결', 'KPMO Rights Ops · 공식 evidence snapshot 결속'],
       ['4. 첫 권리·가치·schema 통과 소스만 adapter 활성화', 'Track A/B/D · 동적 cohort와 영구 receipt'],
