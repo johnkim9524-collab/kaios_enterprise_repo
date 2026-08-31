@@ -1,7 +1,7 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v2
 
-on:
-  workflow_dispatch:
+# Consumed one-shot lane: no event may start this historical workflow.
+on: []
 
 permissions:
   contents: read
