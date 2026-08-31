@@ -460,8 +460,8 @@
     },
     "candidate_handoff_preflight_validator_r2": {
       "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
-      "sha256": "sha256:7ff905b342e5d6200c2227e7f569bec26b474cbf6d67930ebedba5553d180fa3",
-      "byte_count": 29788
+      "sha256": "sha256:a0b9f0827a899d5b4ad6a2222b691b4fe370e107fdd543227ddfad558c72dfe5",
+      "byte_count": 37374
     },
     "candidate_handoff_preflight_workflow_r2": {
       "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
@@ -535,8 +535,8 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:547fe264b3c686862911daf222243c97d9b42261effd2682d3fc5f80e2edfbb3",
-      "byte_count": 947
+      "sha256": "sha256:8869b1ae4782a74bc9ef80e6b29c7a51da4add666631db3abbbf213dc46a73e4",
+      "byte_count": 1183
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
@@ -545,8 +545,8 @@
     },
     "autonomous_intelligence_package_manifest": {
       "path": "services/kidults-autonomous-intelligence/package.json",
-      "sha256": "sha256:13d0231663becc337dc032ba1974437fcdb14106fadf2053eec4bd22f61f3082",
-      "byte_count": 10942
+      "sha256": "sha256:deead5d94958233e097dc4f36e00988163d502721f17d3c95ebd34fe330ca5fe",
+      "byte_count": 11034
     },
     "autonomous_intelligence_dependency_lock": {
       "path": "services/kidults-autonomous-intelligence/package-lock.json",
@@ -728,8 +728,8 @@
       },
       "validator_ref": {
         "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
-        "sha256": "sha256:7ff905b342e5d6200c2227e7f569bec26b474cbf6d67930ebedba5553d180fa3",
-        "byte_count": 29788
+        "sha256": "sha256:a0b9f0827a899d5b4ad6a2222b691b4fe370e107fdd543227ddfad558c72dfe5",
+        "byte_count": 37374
       },
       "workflow_ref": {
         "path": ".github/workflows/kidults-candidate-evidence-handoff-preflight-r2.yml",
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:7225cbe552dc0b4761cb48a63f91e02402c35f99f95707ddfbba0468169852fe"
+  "evidence_fingerprint": "sha256:35814d8dc70c45512138f7aeb4a6b8304c95a34e19d071628efb182360ecaabf"
 }
