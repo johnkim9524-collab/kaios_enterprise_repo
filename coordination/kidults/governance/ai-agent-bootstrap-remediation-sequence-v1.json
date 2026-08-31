@@ -7,6 +7,7 @@
   "prerequisite_contract_path": "coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json",
   "autonomous_role_contract_path": "coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json",
   "track_job_description_contract_path": "coordination/kidults/governance/track-abcdez-job-description-contract-v1.json",
+  "integrated_strategy_contract_path": "coordination/kidults/governance/ih-integrated-product-customer-platform-provider-internalization-strategy-v1.json",
   "github_bootstrap_receipt_required": true,
   "required_precondition_state": "BOOTSTRAP_VERIFIED",
   "bootstrap_receipt_state_before_independent_verification": "BOOTSTRAP_PREREQUISITES_SATISFIED",
@@ -54,6 +55,7 @@
     "intelligence_holdings_group_future_strategy_required": true,
     "vertical_future_strategy_required_when_affected": true,
     "current_improvement_proposal_required": true,
+    "integrated_product_customer_platform_provider_internalization_strategy_required_when_material": true,
     "strategy_assessment_follows_immediate_defect_closure": true,
     "strategy_may_not_substitute_for_executable_internal_fix": true
   },
@@ -84,9 +86,11 @@
     "known_internally_solvable_defect_left_open_without_active_remediation": "P1_OPERATING_DEFECT",
     "repeated_human_prompt_required_for_normal_internal_fix": "P1_OPERATING_DEFECT",
     "material_strategy_implication_ignored": "P1_OPERATING_DEFECT",
-    "track_job_description_missing_weakened_or_bypassed": "P0_GOVERNANCE_DEFECT",
-    "autonomous_role_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT"
+    "integrated_strategy_domain_omitted_when_material": "P1_OPERATING_DEFECT",
+    "autonomous_role_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT",
+    "track_job_description_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT",
+    "integrated_strategy_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT"
   },
   "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING",
-  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate. Autonomous Role and Track ABCDEZ JD contracts must load before applicable task execution."
+  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate. Autonomous Role, Track JD and integrated strategy contracts must be loaded before applicable task execution."
 }
