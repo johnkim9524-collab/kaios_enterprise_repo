@@ -269,11 +269,17 @@ jobs:
             else
               PRIOR_SUCCESS_COUNT=$(jq -r '.prior_success_count' "$GUARD_DIR/coverage-prior-success-exact-query-receipt-v1.json")
             fi
+            node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs --self-test
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_DIR/artifacts.json")
             for ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ROW")
               CANDIDATE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
-              if [ "$(jq -r '.expired // true' <<<"$ROW")" = true ]; then
+              if ! EXPIRED=$(node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs expired <<<"$ROW"); then
+                READBACK_STATE=CANONICAL_ARTIFACT_EXPIRY_INVALID
+                jq -n --argjson artifact "$ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE"
+                continue
+              fi
+              if [ "$EXPIRED" = true ]; then
                 jq -n --argjson artifact "$ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE"
                 continue
               fi
