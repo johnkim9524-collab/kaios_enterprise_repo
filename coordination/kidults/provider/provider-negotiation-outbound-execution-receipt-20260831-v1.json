@@ -1,0 +1,197 @@
+{
+  "id": "KIDULTS_PROVIDER_NEGOTIATION_OUTBOUND_EXECUTION_RECEIPT_20260831_V1",
+  "version": "1.0.0",
+  "recorded_at": "2026-08-30T15:44:13Z",
+  "recorded_at_kst": "2026-08-31T00:44:13+09:00",
+  "policy_head_before_dispatch": "3a59132346ea394ed1125a9ec85d8f352e5b4e64",
+  "policy": "coordination/kidults/governance/provider-evidence-zero-defect-sample-policy-v1.json",
+  "negotiation_contract": "coordination/kidults/provider/provider-sample-governance-negotiation-v1.json",
+  "authority": {
+    "type": "PROGRAM_OWNER_EXPLICIT_SELECTED_OUTREACH_INSTRUCTION",
+    "scope": "RETUNE_RECIPIENTS_AND_SEND_NEGOTIATION_EMAILS",
+    "one_time_authority_consumed": true,
+    "future_external_communication_authorized": false,
+    "automatic_followup_authorized": false
+  },
+  "selection_logic": {
+    "send": [
+      "PSA_PROVENANCE_SOURCE_AND_POPULATION_METHOD_FOLLOW_UP",
+      "HOBBYKOREA_STAGED_LAWFUL_KNOWN_CERT_SOURCE_INQUIRY",
+      "CLASSIC_COM_STAGED_LICENSE_TERM_SHEET_FOLLOW_UP",
+      "BONHAMS_CONSOLIDATED_CARS_AND_WATCHES_DATA_LICENSE_INQUIRY",
+      "CHRISTIES_CONSOLIDATED_WATCHES_AND_HANDBAGS_DATA_LICENSE_INQUIRY",
+      "ICONIC_AUCTIONEERS_PURPOSE_SPECIFIC_RESULTS_LICENSE_INQUIRY",
+      "MECUM_PURPOSE_SPECIFIC_RESULTS_LICENSE_INQUIRY"
+    ],
+    "hold": [
+      {
+        "provider": "BROAD_ARROW",
+        "reason": "NO_VERIFIED_OFFICIAL_WRITTEN_DATA_LICENSING_EMAIL_ROUTE_FOUND; NO_GUESSED_ADDRESS_ALLOWED",
+        "next_action": "OBTAIN_VERIFIED_WRITTEN_CONTACT_ROUTE_OR_USE_APPROVED_OFFICIAL_CONTACT_FORM"
+      },
+      {
+        "provider": "CARDMARKET",
+        "reason": "RECENT_OUTBOUND_ALREADY_SENT; DUPLICATE_FOLLOW_UP_NOT_YET_JUSTIFIED"
+      },
+      {
+        "provider": "GEMRATE",
+        "reason": "MATERIAL_WRITTEN_PROVIDER_RESPONSE_ALREADY_RECEIVED; ACTIVATION_AND_VALUE_GATES_NOT OUTREACH ARE THE NEXT STEP"
+      },
+      {
+        "provider": "CGC_CCG",
+        "reason": "WARM ROUTE EXISTS BUT NOT INCLUDED IN THIS CURRENT_SOLD_AND_PSA_BOTTLENECK_WAVE"
+      },
+      {
+        "provider": "HAGERTY",
+        "reason": "ONLY_AUTORESPONSE_ROUTE_OBSERVED; LOWER_PRIORITY_THAN_SELECTED_LICENSE_PATHS"
+      }
+    ]
+  },
+  "messages": [
+    {
+      "provider": "PSA_PREMIUM",
+      "capability": "GRADING_AUTHENTICATION_AND_POPULATION_REFERENCE",
+      "to": [
+        "collectors-apis@collectors.com"
+      ],
+      "subject": "Re: Request for PSA Public API Customer Approval — Bounded Cert Verification Evaluation",
+      "gmail_message_id": "1a0535522bb7b510",
+      "gmail_thread_id": "1a0196deda4c61f3",
+      "stage": "RIGHTS_AND_LAWFUL_SOURCE_CLARIFICATION",
+      "volume_semantics": "UP_TO_120_BOUNDED_FUNCTIONAL_PILOT_NOT_RELIABILITY_OR_PURCHASE_COMMITMENT",
+      "state": "SENT"
+    },
+    {
+      "provider": "HOBBYKOREA",
+      "capability": "LAWFULLY_CONTROLLED_PSA_QUERY_KEY_SOURCE",
+      "to": [
+        "info@hobbykorea.com"
+      ],
+      "subject": "Re: PSA 인증번호 120건의 제한적 내부 API 평가 협력 문의 — KIDULTS",
+      "gmail_message_id": "1a05355487f616d8",
+      "gmail_thread_id": "1a0460d8c2ce3e1e",
+      "stage": "CANARY_5_THEN_BOUNDED_30_TO_120_SOURCE_AVAILABILITY",
+      "volume_semantics": "NO_FIXED_MINIMUM_NO_CUSTOMER_SUBMISSIONS_NO_PURCHASE_COMMITMENT",
+      "state": "SENT"
+    },
+    {
+      "provider": "CLASSIC_COM",
+      "capability": "COLLECTOR_CAR_AUCTION_SOLD_EVENTS",
+      "to": [
+        "datasupport@classic.com"
+      ],
+      "subject": "Re: API/Data Licensing Inquiry for Limited Internal Market Intelligence Use",
+      "gmail_message_id": "1a05355da1037496",
+      "gmail_thread_id": "1a01d87e01b06ad4",
+      "stage": "WRITTEN_STAGED_TERM_SHEET_FOLLOW_UP",
+      "volume_semantics": "CANARY_5_THEN_30_TO_120_OPTIONAL_121_TO_459",
+      "prior_not_before_state": "SUPERSEDED_BY_CURRENT_EXPLICIT_PROGRAM_OWNER_SELECTED_OUTREACH_INSTRUCTION",
+      "state": "SENT"
+    },
+    {
+      "provider": "BONHAMS",
+      "capability": "CARS_AND_WATCHES_AUCTION_SOLD_EVENTS",
+      "to": [
+        "info@bonhams.com"
+      ],
+      "cc": [
+        "ukcars@bonhams.com",
+        "watches@bonhams.com"
+      ],
+      "subject": "Written data-licensing inquiry — staged Cars and Watches auction-results evaluation",
+      "gmail_message_id": "1a0535626f0c9617",
+      "gmail_thread_id": "1a0535626f0c9617",
+      "stage": "DISCOVERY_RIGHTS_AND_STAGED_LICENSE_INQUIRY",
+      "volume_semantics": "ONE_CATEGORY_FIRST_CANARY_5_THEN_30_TO_120_OPTIONAL_459",
+      "state": "SENT"
+    },
+    {
+      "provider": "CHRISTIES",
+      "capability": "WATCHES_AND_HANDBAGS_AUCTION_SOLD_EVENTS",
+      "to": [
+        "info@christies.com"
+      ],
+      "cc": [
+        "nyhandbags@christies.com"
+      ],
+      "subject": "Please route to Data Licensing / Business Development — staged Watches and Handbags auction-results evaluation",
+      "gmail_message_id": "1a053566c244d55d",
+      "gmail_thread_id": "1a053566c244d55d",
+      "stage": "DISCOVERY_RIGHTS_AND_STAGED_LICENSE_INQUIRY",
+      "volume_semantics": "ONE_CATEGORY_FIRST_CANARY_5_THEN_30_TO_120_OPTIONAL_459",
+      "state": "SENT"
+    },
+    {
+      "provider": "ICONIC_AUCTIONEERS",
+      "capability": "COLLECTOR_CAR_AND_MOTORCYCLE_AUCTION_SOLD_EVENTS",
+      "to": [
+        "enquiries@iconicauctioneers.com"
+      ],
+      "subject": "Data-licensing inquiry — staged private evaluation of Iconic Auctioneers results",
+      "gmail_message_id": "1a053572a23e9e5e",
+      "gmail_thread_id": "1a053572a23e9e5e",
+      "stage": "DISCOVERY_RIGHTS_AND_STAGED_LICENSE_INQUIRY",
+      "volume_semantics": "CANARY_5_THEN_30_TO_120_OPTIONAL_459",
+      "state": "SENT"
+    },
+    {
+      "provider": "MECUM",
+      "capability": "COLLECTOR_CAR_AND_MOTORCYCLE_AUCTION_SOLD_EVENTS",
+      "to": [
+        "info@mecum.com"
+      ],
+      "subject": "Data-licensing inquiry — staged private evaluation of Mecum auction results",
+      "gmail_message_id": "1a053575c7371ec7",
+      "gmail_thread_id": "1a053575c7371ec7",
+      "stage": "DISCOVERY_RIGHTS_AND_STAGED_LICENSE_INQUIRY",
+      "volume_semantics": "CANARY_5_THEN_30_TO_120_OPTIONAL_459",
+      "state": "SENT"
+    }
+  ],
+  "content_guards_verified": [
+    "PRIVATE_NON_PRODUCTION_PURPOSE_STATED",
+    "CANARY_5_AND_BOUNDED_30_TO_120_SEPARATED_FROM_RELIABILITY",
+    "OPTIONAL_459_NOT_PURCHASE_COMMITMENT",
+    "RIGHTS_RETENTION_DELETION_SCHEMA_CORRECTION_AND_EXIT_ASKS_INCLUDED",
+    "NO_RAW_PUBLIC_REDISTRIBUTION_WITHOUT_EXPRESS_RIGHTS",
+    "NO_SINGLE_PROVIDER_MARKET_REPRESENTATIVENESS_CLAIM",
+    "NO_SPEND_CONTRACT_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_AUTHORIZATION"
+  ],
+  "execution_summary": {
+    "selected_messages": 7,
+    "sent": 7,
+    "failed": 0,
+    "duplicate_resends": 0,
+    "guessed_recipient_addresses": 0,
+    "provider_status_promotions": 0,
+    "spend_authorized": false,
+    "contract_authorized": false,
+    "credential_authorized": false,
+    "acquisition_authorized": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "truth_precedence": {
+    "supersedes_for_listed_messages_only": [
+      "DRAFT_ONLY_NO_SEND",
+      "PSA_FOLLOW_UP_HOLD_NO_SEND",
+      "HOBBYKOREA_FOLLOW_UP_HOLD_NO_SEND"
+    ],
+    "future_outbound_after_this_receipt": "HOLD_UNTIL_NEW_EXPLICIT_PROGRAM_OWNER_AUTHORITY",
+    "provider_rights_and_activation": "UNCHANGED_PENDING_PROVIDER_RESPONSE_AND_SEPARATE_GATES"
+  },
+  "authorization_provenance": {
+    "state": "NOT_MACHINE_PROVEN",
+    "evidence_class": "POST_SEND_EXECUTION_RECEIPT_ONLY",
+    "independently_issued_pre_send_authorization_receipt": null,
+    "issuer_identity_verified": false,
+    "nonce_verified": false,
+    "expiry_verified": false,
+    "provider_recipient_content_scope_verified": false,
+    "one_shot_atomic_consumption_verified": false,
+    "candidate_branch_self_attestation_is_authorization_proof": false,
+    "post_send_receipt_can_retroactively_create_authority": false,
+    "promotable": false
+  }
+}
