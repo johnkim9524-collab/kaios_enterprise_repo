@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 
 const AUTH_PATH = 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json';
 const APPROVAL_BODY_PATH = 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01.md';
@@ -10,25 +11,37 @@ const CONFIG_PATH = 'infrastructure/cloudflare/workers/kidults-public-portal-sha
 const PACKAGE_PATH = 'tooling/kidults-cloudflare-workers-shadow/package.json';
 const LOCK_PATH = 'tooling/kidults-cloudflare-workers-shadow/package-lock.json';
 const TEST_PATH = 'tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs';
+const ASSET_TEST_PATH = 'tests/kidults/kpmo/cloudflare-workers-shadow-assets-resolution-v1.test.mjs';
+const PORTAL_PATH = 'apps/kidults-enterprise-staging/public/portal';
 const APPROVAL_ID = 'CF-WORKERS-SHADOW-20260831-01';
 
 const fail = message => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_CONSUMED_FAIL:${message}`); };
 const ok = (condition, message) => { if (!condition) fail(message); };
+const read = file => fs.readFileSync(file, 'utf8');
+const parse = file => JSON.parse(read(file));
 
 for (const file of [
-  AUTH_PATH, APPROVAL_BODY_PATH, TERMINAL_PATH, LIFETIME_PATH, WORKFLOW_PATH,
-  CONFIG_PATH, PACKAGE_PATH, LOCK_PATH, TEST_PATH,
+  AUTH_PATH,
+  APPROVAL_BODY_PATH,
+  TERMINAL_PATH,
+  LIFETIME_PATH,
+  WORKFLOW_PATH,
+  CONFIG_PATH,
+  PACKAGE_PATH,
+  LOCK_PATH,
+  TEST_PATH,
+  ASSET_TEST_PATH,
 ]) ok(fs.existsSync(file), `MISSING_FILE:${file}`);
 
-const auth = JSON.parse(fs.readFileSync(AUTH_PATH, 'utf8'));
-const approvalBody = fs.readFileSync(APPROVAL_BODY_PATH, 'utf8');
-const terminal = JSON.parse(fs.readFileSync(TERMINAL_PATH, 'utf8'));
-const lifetime = JSON.parse(fs.readFileSync(LIFETIME_PATH, 'utf8'));
-const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
-const configRaw = fs.readFileSync(CONFIG_PATH, 'utf8');
+const auth = parse(AUTH_PATH);
+const approvalBody = read(APPROVAL_BODY_PATH);
+const terminal = parse(TERMINAL_PATH);
+const lifetime = parse(LIFETIME_PATH);
+const workflow = read(WORKFLOW_PATH);
+const configRaw = read(CONFIG_PATH);
 const config = JSON.parse(configRaw);
-const packageJson = JSON.parse(fs.readFileSync(PACKAGE_PATH, 'utf8'));
-const packageLock = JSON.parse(fs.readFileSync(LOCK_PATH, 'utf8'));
+const packageJson = parse(PACKAGE_PATH);
+const packageLock = parse(LOCK_PATH);
 
 ok(auth.id === APPROVAL_ID, 'APPROVAL_ID');
 ok(auth.status === 'CONSUMED_FAIL_CLOSED_PRE_PROVIDER_NO_MUTATION', 'APPROVAL_NOT_CONSUMED');
@@ -97,7 +110,9 @@ ok(!workflow.includes('api.cloudflare.com'), 'CLOUDFLARE_API_REMAINS_IN_TOMBSTON
 ok(!workflow.includes('workers.dev shadow read-back'), 'READBACK_COMMAND_REMAINS_IN_TOMBSTONE');
 ok(workflow.includes('actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8'), 'CHECKOUT_PIN');
 
-const secretNames = [...workflow.matchAll(/\$\{\{\s*secrets\.([A-Z][A-Z0-9_]*)\s*\}\}/g)].map(match => match[1]).sort();
+const secretNames = [...workflow.matchAll(/\$\{\{\s*secrets\.([A-Z][A-Z0-9_]*)\s*\}\}/g)]
+  .map(match => match[1])
+  .sort();
 ok(JSON.stringify(secretNames) === JSON.stringify(['CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN']), 'SECRET_NAME_SET');
 const providerStepStart = workflow.indexOf('      - name: Deploy one non-production Workers shadow');
 ok(providerStepStart >= 0, 'PROVIDER_STEP_BOUNDARY');
@@ -107,10 +122,19 @@ ok(config.name === 'kidults-public-portal-shadow', 'WORKER_NAME');
 ok(config.workers_dev === true, 'WORKERS_DEV_REQUIRED');
 ok(config.preview_urls === false, 'PREVIEW_URLS_FORBIDDEN');
 ok(Array.isArray(config.routes) && config.routes.length === 0, 'PRODUCTION_ROUTE_ATTACHED');
-ok(config.assets?.directory === 'apps/kidults-enterprise-staging/public/portal', 'PORTAL_ASSET_SOURCE');
+ok(config.assets?.directory === '../../../../apps/kidults-enterprise-staging/public/portal', 'PORTAL_ASSET_SOURCE_CONFIG_RELATIVE');
 for (const forbidden of ['account_id', 'api_token', 'zone_id', 'custom_domain']) {
   ok(!configRaw.includes(forbidden), `FORBIDDEN_CONFIG_AUTHORITY:${forbidden}`);
 }
+const configDirectory = path.dirname(path.resolve(CONFIG_PATH));
+const resolvedAssets = path.resolve(configDirectory, config.assets.directory);
+const expectedAssets = path.resolve(PORTAL_PATH);
+const legacyBadResolvedAssets = path.resolve(configDirectory, 'apps/kidults-enterprise-staging/public/portal');
+ok(resolvedAssets === expectedAssets, 'PORTAL_ASSET_RESOLUTION');
+ok(fs.statSync(resolvedAssets).isDirectory(), 'PORTAL_ASSET_DIRECTORY_EXISTS');
+ok(fs.existsSync(path.join(resolvedAssets, 'index.html')), 'PORTAL_INDEX_EXISTS');
+ok(fs.existsSync(path.join(resolvedAssets, 'workspace.html')), 'PORTAL_WORKSPACE_EXISTS');
+ok(!fs.existsSync(legacyBadResolvedAssets), 'LEGACY_BAD_PATH_REJECTED');
 
 ok(packageJson.name === 'kidults-cloudflare-workers-shadow-tooling', 'TOOLING_PACKAGE');
 ok(packageJson.private === true, 'TOOLING_PRIVATE');
@@ -132,6 +156,8 @@ console.log(JSON.stringify({
   cloudflare_mutation_count: 0,
   executable_lane: 'PERMANENT_TOMBSTONE_IF_FALSE',
   future_receipt_location: lifetime.canonical_receipt_location,
+  config_relative_asset_path_verified: true,
+  resolved_assets_directory: path.relative(process.cwd(), resolvedAssets),
   new_explicit_approval_required: true,
   public: 'HOLD',
   production: 'HOLD',
