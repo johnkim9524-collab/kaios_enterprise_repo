@@ -1,0 +1,89 @@
+name: KIDULTS Cloudflare Workers Shadow Deploy v1
+
+on:
+  push:
+    branches:
+      - codex/cloudflare-pages-to-workers-migration-v1
+    paths:
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-shadow-deploy-v1
+  cancel-in-progress: false
+
+jobs:
+  deploy-shadow:
+    environment: kidults-cloudflare-staging-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact execution SHA
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate one-shot authority and zero-production topology
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/codex/cloudflare-pages-to-workers-migration-v1'
+          AUTH='coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
+          CFG='infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc'
+          node scripts/kidults/kpmo/validate-cloudflare-pages-to-workers-migration-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-scaffold-v1.mjs
+          jq -e '.id=="CF-WORKERS-SHADOW-20260831-01" and .status=="AUTHORIZED_ONE_SHOT_NON_PRODUCTION" and .authorized_scope.deployment_count_max==1 and .authorized_scope.production_routes_allowed==false and .authorized_scope.custom_domains_allowed==false' "$AUTH" >/dev/null
+          jq -e '.name=="kidults-public-portal-shadow" and .workers_dev==true and .preview_urls==false and (.routes|length)==0' "$CFG" >/dev/null
+          if grep -Eq 'custom_domain|route[[:space:]]*=|routes[[:space:]]*=[[:space:]]*\[[^]]' "$CFG"; then
+            echo 'PRODUCTION_ROUTE_OR_CUSTOM_DOMAIN_FORBIDDEN'
+            exit 78
+          fi
+
+      - name: Deploy one non-production Workers shadow
+        id: deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          echo '::add-mask::'"$CLOUDFLARE_API_TOKEN"
+          echo '::add-mask::'"$CLOUDFLARE_ACCOUNT_ID"
+          mkdir -p artifacts/cloudflare-workers-shadow
+          set +e
+          npx --yes wrangler@4 deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc 2>&1 | tee artifacts/cloudflare-workers-shadow/deploy.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          if [ "$rc" -ne 0 ]; then
+            jq -n \
+              --arg state 'VERIFIED_FAIL' \
+              --arg repository "$GITHUB_REPOSITORY" \
+              --arg sha "$GITHUB_SHA" \
+              --arg run_id "$GITHUB_RUN_ID" \
+              --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+              '{id:"kidults-cloudflare-workers-shadow-deploy-receipt-v1",state:$state,repository:$repository,source_sha:$sha,run_id:$run_id,run_attempt:$run_attempt,service:"kidults-public-portal-shadow",production_routes:0,custom_domains:0,public:"HOLD",production:"HOLD",g5:"HOLD"}' > artifacts/cloudflare-workers-shadow/receipt.json
+            exit "$rc"
+          fi
+          url="$(grep -Eo 'https://[A-Za-z0-9._-]+\.workers\.dev' artifacts/cloudflare-workers-shadow/deploy.log | tail -n 1 || true)"
+          jq -n \
+            --arg state 'VERIFIED_PASS' \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg sha "$GITHUB_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg url "$url" \
+            '{id:"kidults-cloudflare-workers-shadow-deploy-receipt-v1",state:$state,repository:$repository,source_sha:$sha,run_id:$run_id,run_attempt:$run_attempt,service:"kidults-public-portal-shadow",workers_dev_url:$url,production_routes:0,custom_domains:0,public:"HOLD",production:"HOLD",g5:"HOLD"}' > artifacts/cloudflare-workers-shadow/receipt.json
+
+      - name: Upload sanitized terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-cloudflare-workers-shadow-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/cloudflare-workers-shadow/receipt.json
+          if-no-files-found: error
+          retention-days: 30
