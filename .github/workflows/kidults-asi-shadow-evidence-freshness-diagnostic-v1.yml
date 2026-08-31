@@ -1,0 +1,113 @@
+name: KIDULTS ASI SHADOW Evidence Freshness Diagnostic V1
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "npm-shrinkwrap.json"
+      - "services/kidults-autonomous-intelligence/**"
+      - "scripts/kidults/source-intelligence/**"
+      - "scripts/kidults/entity-resolution/**"
+      - "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs"
+      - "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs"
+      - "coordination/kidults/source-intelligence/**"
+      - "coordination/kidults/entity-resolution/**"
+      - "coordination/kidults/poc/**"
+      - "coordination/kidults/scope-data/**"
+      - "artifacts/agci-os/asi-shadow-operating-evidence-v1.json"
+      - ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
+      - ".github/workflows/kidults-asi-shadow-evidence-freshness-diagnostic-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  diagnose-shadow-evidence-freshness:
+    name: Diagnose SHADOW Evidence Freshness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: "24.19.0"
+
+      - name: Install root validation dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Install autonomous intelligence dependencies
+        working-directory: services/kidults-autonomous-intelligence
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Build exact-run SHADOW evidence
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs \
+            --output /tmp/asi-shadow-operating-evidence-generated.json --write
+
+      - name: Compare committed and generated evidence
+        id: freshness
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          cmp artifacts/agci-os/asi-shadow-operating-evidence-v1.json \
+              /tmp/asi-shadow-operating-evidence-generated.json
+
+      - name: Emit bounded freshness receipt
+        if: always()
+        run: |
+          set -euo pipefail
+          COMMITTED_SHA="MISSING"
+          GENERATED_SHA="MISSING"
+          if [[ -f artifacts/agci-os/asi-shadow-operating-evidence-v1.json ]]; then
+            COMMITTED_SHA="$(sha256sum artifacts/agci-os/asi-shadow-operating-evidence-v1.json | awk '{print $1}')"
+          fi
+          if [[ -f /tmp/asi-shadow-operating-evidence-generated.json ]]; then
+            GENERATED_SHA="$(sha256sum /tmp/asi-shadow-operating-evidence-generated.json | awk '{print $1}')"
+          fi
+          mkdir -p /tmp/shadow-freshness-receipt
+          cat > /tmp/shadow-freshness-receipt/receipt.json <<JSON
+          {
+            "schema": "KIDULTS_ASI_SHADOW_EVIDENCE_FRESHNESS_DIAGNOSTIC_V1",
+            "repository": "${GITHUB_REPOSITORY}",
+            "source_sha": "${GITHUB_SHA}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "event": "${GITHUB_EVENT_NAME}",
+            "committed_sha256": "${COMMITTED_SHA}",
+            "generated_sha256": "${GENERATED_SHA}",
+            "comparison_outcome": "${{ steps.freshness.outcome }}",
+            "control_state": "HOLD",
+            "promotion_eligible": false,
+            "production_public_g5": "HOLD"
+          }
+          JSON
+
+      - name: Retain exact-run generated evidence and receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-shadow-evidence-freshness-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/asi-shadow-operating-evidence-generated.json
+            /tmp/shadow-freshness-receipt/receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Preserve fail-closed stale-evidence verdict
+        if: always()
+        run: |
+          if [[ "${{ steps.freshness.outcome }}" != "success" ]]; then
+            echo "SHADOW committed evidence is stale or missing; exact-run diagnostic artifact retained." >&2
+            exit 1
+          fi
