@@ -1,0 +1,94 @@
+name: KPMO PR Lifecycle Integrity V1
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled]
+  push:
+    branches:
+      - 'codex/pr-lifecycle-integrity-v1-*'
+    paths:
+      - '.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml'
+      - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
+      - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-pr-lifecycle-integrity-v1-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  self-test:
+    name: Validate lifecycle classifier negative cases
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+
+      - name: Run lifecycle classification self-test
+        run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs --self-test
+
+  classify-live-pr:
+    name: Classify exact PR readiness against native governance evidence
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.base.ref == 'main'
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout trusted base implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Verify trusted base checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.base.sha }}"
+
+      - name: Classify lifecycle state and preserve original verdict
+        id: lifecycle
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RECEIPT_PATH: /tmp/kpmo-pr-lifecycle/receipt.json
+        run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs
+
+      - name: Upload run-attempt-base-head-bound lifecycle receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kpmo-pr-lifecycle-integrity-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kpmo-pr-lifecycle/receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Reapply fail-closed lifecycle verdict
+        if: always()
+        env:
+          LIFECYCLE_OUTCOME: ${{ steps.lifecycle.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$LIFECYCLE_OUTCOME" = success
