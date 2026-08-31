@@ -41,6 +41,19 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+
+      - name: Install locked Wrangler tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow
+          test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "4.127.1"
+
       - name: Validate explicit one-shot authority and zero-production topology
         shell: bash
         run: |
@@ -70,7 +83,7 @@ jobs:
           echo '::add-mask::'"$CLOUDFLARE_ACCOUNT_ID"
           mkdir -p artifacts/cloudflare-workers-shadow
           set +e
-          npx --yes wrangler@4.127.1 deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc 2>&1 | tee artifacts/cloudflare-workers-shadow/deploy.log
+          ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc 2>&1 | tee artifacts/cloudflare-workers-shadow/deploy.log
           rc=${PIPESTATUS[0]}
           set -e
           if [ "$rc" -ne 0 ]; then
