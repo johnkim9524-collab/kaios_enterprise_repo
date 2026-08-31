@@ -56,9 +56,8 @@ const legacySequence = [
   'REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN',
   'TRUTH_SYNC_REGISTRY_AND_ISSUE',
   'REPORT_VERIFIED_OUTCOME',
-  'PROPOSE_PRIITIZED_IMPROVEMENTS'
+  'PROPOSE_PRIORITIZED_IMPROVEMENTS'
 ];
-legacySequence[6] = 'PROPOSE_PRIORITIZED_IMPROVEMENTS';
 if (JSON.stringify(seq.mandatory_sequence) !== JSON.stringify(legacySequence)) fail('SEQUENCE_V1_2_COMPATIBILITY');
 if (seq.version !== '1.2.0') fail('SEQUENCE_VERSION_COMPATIBILITY');
 if (seq.strategic_stewardship?.intelligence_holdings_group_future_strategy_required !== true) fail('SEQUENCE_GROUP_STRATEGY_LINK');
