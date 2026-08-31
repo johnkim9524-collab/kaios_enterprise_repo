@@ -24,7 +24,12 @@ if(candidates.id!=='kidults-asi-p0b-source-candidate-registry-v1'||candidates.ca
 if(bindings.id!=='kidults-asi-p0b-mission-candidate-binding-ledger-v1'||bindings.mission_count!==192||bindings.bindings?.length!==192) throw new Error('P0B_BINDING_LEDGER_INVALID');
 if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||gate1.decision_count!==576||gate1.decisions?.length!==576) throw new Error('P1_GATE1_INVALID');
 if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||admissions.candidate_count!==576||admissions.candidates?.length!==576||admissions.admitted_count!==0) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
-if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||actions.action_count!==672||actions.actions?.length!==672) throw new Error('P1_ACTION_QUEUE_INVALID');
+const actionTypes=actions.action_types;
+const actionItems=actions.actions;
+const actionCandidateIds=new Set(Array.isArray(actionItems)?actionItems.map(action=>action.candidate_id):[]);
+const actionPairs=new Set(Array.isArray(actionItems)?actionItems.map(action=>`${action.candidate_id}::${action.action_type}`):[]);
+const expectedActionCount=actions.unique_candidate_count*actionTypes?.length;
+if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||!Number.isInteger(actions.unique_candidate_count)||actions.unique_candidate_count<=0||!Array.isArray(actionTypes)||actionTypes.length===0||new Set(actionTypes).size!==actionTypes.length||!Array.isArray(actionItems)||actions.action_count!==expectedActionCount||actionItems.length!==expectedActionCount||actionCandidateIds.size!==actions.unique_candidate_count||actionPairs.size!==expectedActionCount||actionItems.some(action=>!actionTypes.includes(action.action_type))) throw new Error('P1_ACTION_QUEUE_INVALID');
 if(contract.id!=='kidults-asi-owned-source-intelligence-graph-contract-v2'||contract.version!=='2.0.0') throw new Error('P2_CONTRACT_INVALID');
 if(JSON.stringify(contract.platform_principles)!==JSON.stringify(principles)) throw new Error('P2_PRINCIPLE_ORDER_INVALID');
 if(contract.truth_boundary?.creates_market_event!==false||contract.truth_boundary?.admits_evidence!==false||contract.truth_boundary?.creates_snapshot_candidate!==false) throw new Error('P2_TRUTH_BOUNDARY_INVALID');

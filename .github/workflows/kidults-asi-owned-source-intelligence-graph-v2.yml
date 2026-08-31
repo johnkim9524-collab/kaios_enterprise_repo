@@ -220,6 +220,24 @@ jobs:
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-2
           diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+      - name: Reject P1 action-queue cardinality mutation
+        run: |
+          set -euo pipefail
+          cp /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1-action-cardinality-mutation.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p1-action-cardinality-mutation.json';const x=JSON.parse(fs.readFileSync(p));x.action_count+=1;fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n');
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1-action-cardinality-mutation.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/bad-p1-action-cardinality; then
+            echo "P1_ACTION_QUEUE_CARDINALITY_MUTATION_FALSE_GREEN"
+            exit 1
+          fi
       - name: Validate P2 owned source-intelligence graph
         run: |
           set -euo pipefail
