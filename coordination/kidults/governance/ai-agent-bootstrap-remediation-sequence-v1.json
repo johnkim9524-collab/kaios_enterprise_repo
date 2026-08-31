@@ -10,22 +10,16 @@
   "required_precondition_state": "BOOTSTRAP_VERIFIED",
   "bootstrap_receipt_state_before_independent_verification": "BOOTSTRAP_PREREQUISITES_SATISFIED",
   "independent_verification_and_one_time_consumption_required": true,
-  "sequence_id": "DETECT_FIX_VERIFY_SYNC_REPORT_IMPROVE_STRATEGIZE",
-  "trigger": "REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY_OR_MATERIAL_TASK_WITH_STRATEGIC_IMPLICATION",
+  "sequence_id": "DETECT_FIX_VERIFY_SYNC_REPORT_IMPROVE",
+  "trigger": "REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY",
   "mandatory_sequence": [
-    "LOAD_AND_VALIDATE_AUTONOMOUS_ROLE_CONTRACT",
     "DETECT_REVERSIBLE_DEFECT",
-    "CONTAIN_MATERIAL_PROPAGATION",
     "CORRECT_ROOT_CAUSE_IMMEDIATELY",
-    "RUN_REGRESSION_NEGATIVE_AND_MUTATION_TESTS",
+    "RUN_REGRESSION_AND_NEGATIVE_TESTS",
     "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN",
-    "VERIFY_DOWNSTREAM_VALUE_CHAIN_PROPAGATION",
-    "TRUTH_SYNC_REGISTRY_ISSUE_AND_MANAGEMENT_STATE",
-    "ASSESS_CURRENT_IMPROVEMENT_PROPOSAL",
-    "ASSESS_INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY_EFFECT",
-    "ASSESS_AFFECTED_VERTICAL_FUTURE_STRATEGY_EFFECT",
+    "TRUTH_SYNC_REGISTRY_AND_ISSUE",
     "REPORT_VERIFIED_OUTCOME",
-    "PROPOSE_PRIORITIZED_IMPROVEMENTS_AND_STRATEGIC_ACTIONS"
+    "PROPOSE_PRIORITIZED_IMPROVEMENTS"
   ],
   "report_only_before_remediation_allowed": false,
   "repeated_human_prompting_required": false,
@@ -37,7 +31,6 @@
     "TRACK_C": true,
     "TRACK_D": true,
     "TRACK_E": true,
-    "TRACK_Z": true,
     "RED_TEAM": true,
     "ASI": true,
     "CODING_AGENTS": true,
@@ -50,7 +43,6 @@
     "GRAPH_AGENTS": true,
     "PROVIDER_AGENTS": true,
     "RUNTIME_AGENTS": true,
-    "STRATEGY_AGENTS": true,
     "SCHEDULED_AGENT_AUTOMATIONS": true,
     "EXTERNAL_MODEL_AGENTS": true,
     "child_rule_can_weaken": false,
@@ -70,24 +62,17 @@
     "EXTERNAL_SPEND",
     "CONTRACTUAL_COMMITMENT",
     "EXPANDED_CREDENTIAL_OR_PERMISSION",
-    "PROVIDER_ACTIVATION_REQUIRING_SEPARATE_AUTHORITY",
     "MISSING_REQUIRED_TOOL_OR_PERMISSION"
   ],
-  "stop_condition_behavior": "COMPLETE_ALL_REVERSIBLE_INTERNAL_PREREQUISITES_THEN_FAIL_CLOSED_AND_REPORT_EXACT_IRREDUCIBLE_BLOCKER_WITH_UNBLOCK_CONDITION",
+  "stop_condition_behavior": "FAIL_CLOSED_AND_REPORT_EXACT_BLOCKER_WITH_UNBLOCK_CONDITION",
   "minimum_closure_evidence": [
-    "AUTONOMOUS_ROLE_CONTRACT_LOADED",
     "ROOT_CAUSE_IDENTIFIED",
     "IMPLEMENTATION_OR_CONFIGURATION_EVIDENCE",
     "REGRESSION_TEST_EVIDENCE",
     "NEGATIVE_TEST_EVIDENCE",
-    "MUTATION_TEST_EVIDENCE_WHERE_APPLICABLE",
     "EXACT_HEAD_REVALIDATION",
     "TARGET_MAIN_REVALIDATION_OR_EXPLICIT_PREMERGE_NOT_YET_APPLICABLE",
-    "DOWNSTREAM_VALUE_CHAIN_REVALIDATION_WHERE_APPLICABLE",
     "REGISTRY_ISSUE_TRUTH_SYNC_RECEIPT",
-    "CURRENT_IMPROVEMENT_PROPOSAL",
-    "GROUP_FUTURE_STRATEGY_EFFECT",
-    "VERTICAL_FUTURE_STRATEGY_EFFECT_OR_NOT_APPLICABLE_RATIONALE",
     "VERIFIED_OUTCOME_REPORT",
     "PRIORITIZED_IMPROVEMENT_PROPOSAL"
   ],
@@ -98,6 +83,6 @@
     "material_strategy_implication_ignored": "P1_OPERATING_DEFECT",
     "autonomous_role_contract_missing_or_bypassed": "P0_GOVERNANCE_DEFECT"
   },
-  "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING; EVERY MATERIAL TASK MUST ALSO PRODUCE CURRENT_IMPROVEMENT_AND_RELEVANT_GROUP_VERTICAL_FUTURE_STRATEGY_EFFECTS.",
-  "truth_boundary": "Protected authority gates remain fail-closed. Autonomous remediation and strategic stewardship do not create provider rights, external approval, empirical evidence, spend, contract, credential, Production, Public, or G5 authority."
+  "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING",
+  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate. The separately required Autonomous Role contract carries strategic stewardship and provider-activation boundaries without changing this versioned execution sequence."
 }
