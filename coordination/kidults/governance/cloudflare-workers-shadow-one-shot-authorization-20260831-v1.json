@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
   "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "status": "CONSUMED_FAIL_CLOSED_PRE_PROVIDER_NO_MUTATION",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -71,6 +71,35 @@
     "SANITIZED_RUN_SHA_ATTEMPT_RECEIPT",
     "PUBLIC_PRODUCTION_G5_HOLD"
   ],
+  "consumption_result": {
+    "workflow_run_id": 33410598558,
+    "workflow_run_number": 2,
+    "workflow_run_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33410598558",
+    "job_id": 99548916282,
+    "run_attempt": 1,
+    "source_ref": "refs/heads/main",
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "started_at": "2026-08-31T15:49:00Z",
+    "completed_at": "2026-08-31T15:49:17Z",
+    "conclusion": "FAIL_CLOSED_PRE_PROVIDER",
+    "authorization_consumed": true,
+    "provider_step": "SKIPPED",
+    "provider_mutation_attempted": false,
+    "provider_deployment_attempt_count": 0,
+    "workers_dev_url": null,
+    "failure_step": "Bind exact source and artifact digests",
+    "failure_code": "RECEIPT_REMOVED_BY_CHECKOUT_CLEAN",
+    "root_cause": "WORKSPACE_SCOPED_RECEIPT_CREATED_BEFORE_ACTIONS_CHECKOUT_CLEAN",
+    "terminal_receipt_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json",
+    "issue_truth_sync_comment_id": 5480837077
+  },
+  "tombstone": {
+    "workflow_job_permanently_disabled": true,
+    "job_condition": "${{ false }}",
+    "provider_secret_resolution_possible": false,
+    "provider_mutation_possible": false,
+    "replacement_rule": "NEW_VERSIONED_WORKFLOW_PLUS_NEW_EXPLICIT_APPROVAL_REQUIRED"
+  },
   "replay": "FORBIDDEN_AFTER_FIRST_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
   "authority_excludes": [
     "SECOND_DISPATCH_OR_RERUN",
