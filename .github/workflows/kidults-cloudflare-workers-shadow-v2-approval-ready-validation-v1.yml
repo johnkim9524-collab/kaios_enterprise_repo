@@ -1,0 +1,41 @@
+name: KIDULTS Cloudflare Workers Shadow V2 Approval-Ready Validation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-workers-shadow-v2-approval-ready-validation-v1.yml'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-workflow-spec-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
+      - 'tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs'
+      - 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/**'
+      - 'tooling/kidults-cloudflare-workers-shadow/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-shadow-v2-approval-ready-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact validation SHA
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate v2 approval-ready non-executable contract
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
+      - name: Regress checkout-clean receipt lifetime
+        run: node tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs

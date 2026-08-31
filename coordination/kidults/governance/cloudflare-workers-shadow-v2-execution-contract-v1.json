@@ -1,0 +1,89 @@
+{
+  "id": "kidults-cloudflare-workers-shadow-v2-execution-contract-v1",
+  "version": "1.0.0",
+  "status": "PENDING_EXPLICIT_PROGRAM_OWNER_EXTERNAL_MUTATION_APPROVAL",
+  "owner": "KPMO",
+  "approval_id": "CF-WORKERS-SHADOW-20260901-02",
+  "approval_issue": 1711,
+  "prepared_from_protected_main_sha": "8d4a89b81d523f533ded56eae7c9a0617d158866",
+  "authorization": {
+    "authorized": false,
+    "authorized_by": null,
+    "authorization_receipt": null,
+    "self_attestation_allowed": false,
+    "issue_creation_is_authority": false,
+    "merge_is_authority": false,
+    "workflow_dispatch_is_authority": false
+  },
+  "proposed_scope": {
+    "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
+    "trigger": "workflow_dispatch_only",
+    "source_ref": "refs/heads/main",
+    "service": "kidults-public-portal-shadow",
+    "target": "workers_dev_non_production_only",
+    "workflow_dispatch_count_max": 1,
+    "provider_deployment_attempt_count_max": 1,
+    "authorization_consumed_on": "FIRST_V2_WORKFLOW_DISPATCH_PASS_OR_FAIL",
+    "production_routes_allowed": false,
+    "custom_domains_allowed": false,
+    "pages_delete_allowed": false,
+    "pages_domain_detach_allowed": false,
+    "public_promotion_allowed": false,
+    "production_promotion_allowed": false,
+    "g5_promotion_allowed": false,
+    "external_spend_allowed": false,
+    "contract_change_allowed": false,
+    "new_credential_creation_allowed": false,
+    "credential_scope_expansion_allowed": false,
+    "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+  },
+  "implementation_state": {
+    "approval_ready_internal_contract": true,
+    "materialized_secret_bearing_workflow_present": false,
+    "secret_registry_mutated_for_v2": false,
+    "provider_mutation_authorized": false,
+    "provider_mutation_executed": false,
+    "cloudflare_mutation_count": 0
+  },
+  "required_before_materializing_v2_lane": [
+    "EXPLICIT_PROGRAM_OWNER_APPROVAL_COMMENT_BOUND_TO_ISSUE_1711_AND_APPROVAL_ID",
+    "IMMUTABLE_COMMENT_ID_NODE_ID_OWNER_ASSOCIATION_TIMESTAMPS_URL_AND_BODY",
+    "AUTHORIZED_SCOPE_MATCHES_THIS_CONTRACT_EXACTLY",
+    "NEW_VERSIONED_WORKFLOW_PATH",
+    "ATOMIC_SECRET_REGISTRY_UPDATE",
+    "EXACT_HEAD_REQUIRED_CHECKS_GREEN",
+    "GOVERNED_LANDING_TO_PROTECTED_MAIN"
+  ],
+  "receipt_lifetime": {
+    "contract": "coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json",
+    "canonical_location": "RUNNER_TEMP_OUTSIDE_GITHUB_WORKSPACE",
+    "provider_attempt_marker_required": true,
+    "always_finalizer_required": true,
+    "fallback_must_not_claim_zero_provider_attempt_when_marker_exists": true
+  },
+  "tooling": {
+    "package": "tooling/kidults-cloudflare-workers-shadow/package.json",
+    "lock": "tooling/kidults-cloudflare-workers-shadow/package-lock.json",
+    "wrangler_exact_version": "4.127.1",
+    "runtime_resolution": "LOCAL_LOCKED_BINARY_ONLY",
+    "npm_install": "npm ci --ignore-scripts --no-audit --no-fund"
+  },
+  "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
+  "prior_incident": {
+    "consumed_approval_id": "CF-WORKERS-SHADOW-20260831-01",
+    "workflow_run_id": 33410598558,
+    "job_id": 99548916282,
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "provider_step": "SKIPPED",
+    "provider_secret_step_executed": false,
+    "cloudflare_mutation_count": 0,
+    "replay_authorized": false,
+    "tombstone_workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml"
+  },
+  "release_boundary": {
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD",
+    "pages_delete": "FORBIDDEN"
+  }
+}
