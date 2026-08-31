@@ -2002,7 +2002,6 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     'persist-credentials: false',
     'KIDULTS_EVIDENCE_INTAKE: /var/lib/kaios/kidults-production-release/evidence-intake',
     'KIDULTS_ARCHIVE_ROOT: /mnt/ih_prod_01/backups/production-certification',
-    'metadata.st_uid != 0 or metadata.st_gid != 0',
     'sudo -n /usr/local/libexec/kidults-production-evidence-root-helper',
     'SEALED_EXPORT_EXACT_PAIR_REQUIRED',
     'manifest.get("source_sha") != str(source_sha)',
@@ -2022,6 +2021,7 @@ test('governed evidence producer is exact-main, fixed-path, self-hosted, and non
     'KAIOS_PRODUCTION_ADMIN_TOKEN',
   ]) assert.ok(!workflow.includes(forbidden), `producer contains forbidden capability: ${forbidden}`);
   assert.ok(!workflow.includes('EVIDENCE_DIR="$KIDULTS_EVIDENCE_INTAKE" bash scripts/production/seal-kidults-production-evidence.sh'));
+  assert.ok(!workflow.includes('os.stat(path, follow_symlinks=False)'), 'unprivileged workflow must not inspect root-only evidence paths');
 
   const mutations = [
     workflow.replace('test "$GITHUB_REF" = refs/heads/main', 'true'),
@@ -2053,6 +2053,9 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
     'verify_file "$GATE_REL" "$GATE_SHA256"',
     'verify_file "$POLICY_REL" "$POLICY_SHA256"',
     'verify_file "$CONTRACT_REL" "$CONTRACT_SHA256"',
+    'verify_protected_directory EVIDENCE_INTAKE "$EVIDENCE_INTAKE"',
+    'verify_protected_directory ARCHIVE_ROOT "$ARCHIVE_ROOT"',
+    '(( (8#${BASH_REMATCH[1]} & 8#022) == 0 )) || fail "${label}_WRITABLE"',
     '/usr/bin/env -i',
   ]) assert.ok(helper.includes(required), `root helper missing boundary: ${required}`);
   for (const forbidden of ['eval ', 'bash -c', 'sh -c', '"$@"', '${@}']) {
