@@ -1,20 +1,23 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION",
-  "authorized_by": "PROGRAM_OWNER",
+  "status": "NOT_AUTHORIZED_PENDING_EXPLICIT_EXTERNAL_MUTATION_APPROVAL",
+  "authorized_by": "NONE",
+  "authorization_receipt": null,
   "authorized_scope": {
     "service": "kidults-public-portal-shadow",
-    "deployment_count_max": 1,
+    "deployment_count_max": 0,
     "target": "workers_dev_non_production_only",
     "production_routes_allowed": false,
     "custom_domains_allowed": false,
     "production_public_g5_promotion_allowed": false,
-    "credential_scope": "MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+    "credential_scope": "NONE_UNTIL_EXPLICIT_APPROVAL"
   },
   "source_branch": "codex/cloudflare-pages-to-workers-migration-v1",
-  "source_head_before_execution": "00f49d89db25d0fa17d60b17408a3bf6ff877072",
+  "source_head_before_execution": null,
   "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
   "required_preflight": [
+    "EXPLICIT_EXTERNAL_MUTATION_APPROVAL_RECEIPT",
+    "EXACT_CURRENT_MAIN_SHA",
     "WORKER_NAME_EXACT",
     "WORKERS_DEV_TRUE",
     "PREVIEW_URLS_FALSE",
@@ -32,6 +35,7 @@
   ],
   "replay": "FORBIDDEN_AFTER_FIRST_SUCCESSFUL_PROVIDER_DEPLOYMENT_ATTEMPT",
   "authority_excludes": [
+    "PROVIDER_ACTIVATION_WITHOUT_EXPLICIT_APPROVAL",
     "PRODUCTION_ROUTE",
     "CUSTOM_DOMAIN",
     "PUBLIC_RELEASE",
