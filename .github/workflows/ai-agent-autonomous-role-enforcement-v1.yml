@@ -1,0 +1,47 @@
+name: KIDULTS AI Agent Autonomous Role Enforcement V1
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-agent-autonomous-role-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  validate-autonomous-role-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Validate Autonomous Role bootstrap contract
+        run: node scripts/governance/validate-ai-agent-autonomous-role-v1.mjs
+
+      - name: Reject report-only or strategic-duty weakening mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -nE 'report_only_while_fix_executable["'"' ]*:["'"' ]*(ALLOWED|true)' coordination/kidults/governance .github/AI_AGENT_AUTONOMOUS_ROLE.md
+          ! grep -R -nE 'repeated_human_prompting_required["'"' ]*:["'"' ]*true' coordination/kidults/governance
+          grep -q 'INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -q 'VERTICAL_BRAND_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -q 'CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
