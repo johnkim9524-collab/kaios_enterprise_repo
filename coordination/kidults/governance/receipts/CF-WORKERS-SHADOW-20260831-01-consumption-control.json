@@ -1,0 +1,38 @@
+{
+  "id": "CF-WORKERS-SHADOW-20260831-01-consumption-control",
+  "version": "1.0.0",
+  "evidence_class": "POST_HOC_CONTROL_RECORD_NOT_EXECUTION_ARTIFACT",
+  "promotable": false,
+  "empirical_evidence": false,
+  "reconstructed_terminal_artifact": false,
+  "source": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "workflow_run_id": 33410598558,
+    "workflow_run_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33410598558",
+    "job_id": 99548916282,
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "event": "workflow_dispatch",
+    "run_attempt": 1
+  },
+  "observed": {
+    "authorization_consumed": true,
+    "checkout_step": "SUCCESS",
+    "digest_binding_step": "FAILURE",
+    "provider_deploy_step": "SKIPPED",
+    "readback_step": "SKIPPED",
+    "upload_terminal_receipt_step": "FAILURE",
+    "terminal_artifact_count": 0,
+    "provider_mutation_attempted": false,
+    "provider_deployment_attempt_count": 0,
+    "root_cause": "PRE_CHECKOUT_WORKSPACE_RECEIPT_DELETED_BY_CHECKOUT_CLEAN"
+  },
+  "containment": {
+    "authorization_replay": "FORBIDDEN",
+    "workflow": "NO_SECRET_NO_ENVIRONMENT_NO_NETWORK_TOMBSTONE_ONLY",
+    "historical_artifact_reconstruction": "FORBIDDEN",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "truth_boundary": "This record is a post-hoc control-plane summary of GitHub run/job read-back. It is not a recovered terminal artifact, provider receipt, deployment proof, empirical evidence, or promotion authority."
+}
