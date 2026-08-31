@@ -62,6 +62,7 @@ jobs:
           const target=process.env.TARGET_BRANCH;
           const expectedSha=process.env.EXPECTED_PRODUCER_HEAD_SHA;
           const prHeadSha=process.env.PR_HEAD_SHA;
+          const prHeadSha=process.env.PR_HEAD_SHA;
           const repository=process.env.GITHUB_REPOSITORY;
           const runs=(x.workflow_runs||[])
             .filter((run)=>run.name==='KIDULTS ASI Global Any-Site Discovery v2'&&
