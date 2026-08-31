@@ -15,6 +15,12 @@ The governing reason is explicit:
 
 > English is not the Program Owner's native language. Accurate understanding of technical, rights, commercial, and contractual terms requires written email and an auditable record.
 
+The required communication manner is equally explicit:
+
+> **“솔직하고 정중하게 양해를 구한다.”** Explain the circumstance honestly and respectfully, ask for the provider's understanding, and state that written email is required for accurate and auditable negotiation.
+
+This is a professional accuracy and record-control measure, not an apology, a concession, or an invitation to move the discussion to a call.
+
 ## 2. Prohibited negotiation patterns
 
 Agents and operators must not:
@@ -39,15 +45,17 @@ The following formulations are specifically disallowed in KPMO recommendations a
 
 When a provider requests a call, the response must:
 
-1. politely decline the call;
-2. disclose that English is not the Program Owner's native language when needed for context;
+1. honestly and respectfully explain that English is not the Program Owner's native language and ask for the provider's understanding — **“솔직하고 정중하게 양해를 구한다”**;
+2. politely decline the call;
 3. explain that accuracy and an auditable record require written email;
 4. identify the exact written materials required, such as a sample, schema, price table, Schedule, term sheet, contract redline, security response, or item-by-item rights determination;
 5. preserve all legal, spend, credential, acquisition, Production, Public, and G5 gates.
 
 Standard meaning:
 
-> English is not my native language. To ensure that I understand the technical, rights, pricing, and contractual terms accurately and to preserve a reviewable record, I conduct these negotiations by written email only. Please provide the relevant information and proposed terms in writing.
+> English is not my native language, and I would sincerely appreciate your understanding. To ensure that I understand the technical, rights, pricing, and contractual terms accurately and to preserve a reviewable record, I conduct these negotiations by written email only. Please provide the relevant information and proposed terms in writing. Thank you for your understanding.
+
+The explanation must be candid, respectful, and direct. It must not conceal the language context, over-apologize, weaken the written-email-only requirement, or imply that a call may become available later.
 
 ## 4. Material terms that must exist in writing
 
@@ -95,6 +103,7 @@ Before any provider outbound message is eligible, the pre-send gate must verify:
 
 ```text
 written_email_only_channel_confirmed = true
+honest_respectful_understanding_request_present_when_channel_reason_is_explained = true
 outbound_call_offer_absent = true
 provider_call_request_declined_in_writing_if_present = true
 all_material_terms_requested_in_writing = true
@@ -129,6 +138,6 @@ Existing approval gates remain unchanged.
 
 ## 9. Supersession
 
-This addendum supersedes any repository text, agent recommendation, email template, report, or draft that describes written email as merely preferred, suggests a call before or after written alignment, or assigns call attendance to the Program Owner.
+This addendum supersedes any repository text, agent recommendation, email template, report, or draft that describes written email as merely preferred, suggests a call before or after written alignment, assigns call attendance to the Program Owner, or omits the required honest and respectful request for the provider's understanding when the channel reason is explained.
 
 Where this addendum conflicts with earlier provider communication language, this addendum controls.
