@@ -10,6 +10,7 @@ on:
     paths:
       - '.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml'
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs'
       - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
 
 permissions:
