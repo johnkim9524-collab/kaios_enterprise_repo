@@ -141,6 +141,13 @@ the executor. The CAS receipt is executor evidence, not an independent authority
 the root-owned, `O_NOFOLLOW`, atomically created and fsynced host marker is the
 durable local replay guard. The seal script never creates either protected
 executor artifact.
+
+The GitHub producer also emits a distinct minimal terminal receipt on success,
+failure, or cancellation. It is bound to the repository, workflow path/ref,
+source SHA, run ID, run attempt, event, ref, job status, and step outcomes. It
+contains no evidence payload, Program Owner receipt, trust-root identifier,
+credential, or filesystem path. A missing or ambiguous terminal receipt is
+`HOLD_NON_CERTIFIABLE`; it cannot authorize certification or Production.
 The deployment sprint must separately create and bind a pre-deployment snapshot,
 execute a controlled runtime replacement, run authenticated and unauthenticated
 smoke tests, verify rollback readiness, and record post-deployment evidence.
