@@ -51,6 +51,8 @@ Providers form a diversified evidence supply network. They must never become can
 
 Evaluate every provider on rights/purpose fit, source authority, global coverage, freshness/reliability, incremental information value, field quality, cost/unit economics, quota constraints, lock-in, substitutability, derived-intelligence rights, provenance and auditability.
 
+Classify providers by role: primary authoritative source, market transaction source, reference/catalog source, discovery source, certification/validation source, or derived/aggregated source. A provider can occupy more than one layer only when each use has independently verified rights and value.
+
 Rules:
 
 - No single provider is canonical truth.
@@ -61,6 +63,10 @@ Rules:
 - Maintain one central provider registry with vertical usage mapping.
 - Read back current communication history before outreach; duplicate contact is forbidden without authority.
 - Every material provider requires an exit, retention/deletion and substitution plan.
+- Provider health, quota and circuit state must be shared where multiple producers touch the same external dependency.
+- Provider activation authority is separate from code landing, test success or provider readiness.
+
+The provider portfolio must be optimized at group level first, then vertical level. A vertical-specific provider purchase must justify why the same need cannot be satisfied by the shared provider fabric or owned core.
 
 ## 6. Internalization strategy
 
@@ -80,6 +86,10 @@ Internalization test:
 6. Can it be reused across multiple verticals?
 
 If three or more are materially true, KPMO must evaluate an owned-core path before long-term outsourcing is approved.
+
+Internalization is not synonymous with rebuilding everything. The target is selective ownership of the intelligence differentiators and trust boundaries, while commodity infrastructure stays replaceable and externally sourced where economically rational.
+
+Every internalization candidate receives one of: `INTERNALIZE_NOW`, `INTERNALIZE_WHEN_SCALE_TRIGGER_MET`, `HYBRID_OWNED_CORE_EXTERNAL_SOURCE`, `PARTNER_WITH_EXIT_PATH`, `KEEP_EXTERNAL_COMMODITY`, or `SUNSET_DEPENDENCY`.
 
 ## 7. Go-to-market and monetization
 
