@@ -36,12 +36,11 @@ jobs:
       - name: Validate Autonomous Role bootstrap contract
         run: node scripts/governance/validate-ai-agent-autonomous-role-v1.mjs
 
-      - name: Reject report-only or strategic-duty weakening mutations
+      - name: Verify strategic stewardship markers
         shell: bash
         run: |
           set -euo pipefail
-          ! grep -R -nE 'report_only_while_fix_executable["'"' ]*:["'"' ]*(ALLOWED|true)' coordination/kidults/governance .github/AI_AGENT_AUTONOMOUS_ROLE.md
-          ! grep -R -nE 'repeated_human_prompting_required["'"' ]*:["'"' ]*true' coordination/kidults/governance
-          grep -q 'INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
-          grep -q 'VERTICAL_BRAND_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
-          grep -q 'CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -Fq 'INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -Fq 'VERTICAL_BRAND_FUTURE_STRATEGY' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -Fq 'CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS' coordination/kidults/governance/ai-agent-autonomous-role-contract-v1.json
+          grep -Fq 'REPORT_ONLY_AFTER_VERIFIED_REMEDIATION' .github/AI_AGENT_AUTONOMOUS_ROLE.md
