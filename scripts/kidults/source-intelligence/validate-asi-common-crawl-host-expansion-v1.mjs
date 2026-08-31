@@ -10,9 +10,10 @@ const allowedStatuses = new Set(['SHADOW_COMMON_CRAWL_HOST_EXPANSION_COMPLETE', 
 const allowedSeedModes = new Set(['ROLLING_FAIR_FRONTIER', 'LEGACY_FIRST_SEEN_FAIL_SAFE']);
 const allowedSeedResults = new Set(['SUCCESS_WITH_RESULTS', 'SUCCESS_ZERO_RESULTS', 'FAILED_FAIL_SOFT', 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT']);
 const allowedBootstrapStates = new Set(['EXPLICIT_FRONTIER', 'RUNTIME_FRONTIER_FRESH', 'RUNTIME_FRONTIER_RESTORED_FROM_PREVIOUS_EXPANSION', 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE']);
+const allowedIndexStates = new Set(['DISCOVERED', 'UNAVAILABLE_FAIL_SOFT']);
 const allowedPreviousSources = new Set(['NONE', 'ENV_PREVIOUS_EXPANSION', 'SELF_DRIVING_PREVIOUS_EXPANSION', 'HOURLY_PREVIOUS_EXPANSION']);
 
-if (expansion.id !== 'kidults-asi-common-crawl-host-expansion-v1' || expansion.version !== '1.2.0' || !allowedStatuses.has(expansion.status)) fail('IDENTITY');
+if (expansion.id !== 'kidults-asi-common-crawl-host-expansion-v1' || expansion.version !== '1.3.0' || !allowedStatuses.has(expansion.status)) fail('IDENTITY');
 if (expansion.universe_target !== 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE' || expansion.metadata_index_only !== true) fail('UNIVERSE_INDEX_BOUNDARY');
 if (expansion.target_site_body_crawled !== false || expansion.content_acquired !== false || expansion.rights_promoted !== false || expansion.admission_promoted !== false || expansion.acquisition_authorized !== false) fail('PERMISSION_BOUNDARY');
 if (expansion.public_release !== 'HOLD' || expansion.production !== 'HOLD') fail('RELEASE_BOUNDARY');
@@ -24,6 +25,15 @@ if (new Set(expansion.seed_hosts).size !== expansion.seed_hosts.length) fail('DU
 if (!Array.isArray(expansion.seed_host_results) || expansion.seed_host_results.length !== expansion.seed_hosts.length) fail('SEED_RESULTS_COUNT');
 if (!Array.isArray(expansion.candidates) || expansion.candidates.length !== Number(expansion.expanded_candidate_count)) fail('CANDIDATE_COUNT');
 if (!Array.isArray(expansion.errors)) fail('ERRORS_ARRAY');
+if (!allowedIndexStates.has(expansion.common_crawl_index_state)) fail('INDEX_STATE');
+if (expansion.common_crawl_index_state === 'DISCOVERED') {
+  if (!expansion.common_crawl_index_id || !expansion.common_crawl_index_api) fail('DISCOVERED_INDEX_METADATA');
+} else {
+  if (expansion.common_crawl_index_id !== null || expansion.common_crawl_index_api !== null) fail('UNAVAILABLE_INDEX_METADATA');
+  if (Number(expansion.expanded_candidate_count) !== 0 || expansion.status !== 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS') fail('UNAVAILABLE_INDEX_NONEMPTY');
+  if (!expansion.seed_host_results.every(result => result.status === 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT')) fail('UNAVAILABLE_INDEX_HOST_STATE');
+  if (!expansion.errors.some(error => String(error).startsWith('INDEX_DISCOVERY:'))) fail('UNAVAILABLE_INDEX_ERROR');
+}
 
 if (expansion.seed_frontier_bootstrap_state === 'EXPLICIT_FRONTIER') {
   if (expansion.frontier_runtime_managed !== false || expansion.seed_frontier_previous_snapshot_found !== false || expansion.seed_frontier_previous_snapshot_source !== 'NONE') fail('EXPLICIT_FRONTIER_RUNTIME_BOUNDARY');
@@ -97,6 +107,7 @@ if (expansion.status === 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS' && ex
 
 console.log(JSON.stringify({
   status: 'PASS',
+  index_state: expansion.common_crawl_index_state,
   index_id: expansion.common_crawl_index_id,
   frontier_runtime_managed: expansion.frontier_runtime_managed,
   frontier_bootstrap_state: expansion.seed_frontier_bootstrap_state,
