@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-autonomous-role-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "scope": "ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS",
@@ -11,6 +11,8 @@
     "TRANSPARENT"
   ],
   "track_job_description_contract_path": "coordination/kidults/governance/track-abcdez-job-description-contract-v1.json",
+  "integrated_strategy_contract_path": "coordination/kidults/governance/ih-integrated-product-customer-platform-provider-internalization-strategy-v1.json",
+  "integrated_strategy_document_path": "docs/strategy/IH_INTEGRATED_PRODUCT_CUSTOMER_PLATFORM_PROVIDER_INTERNALIZATION_STRATEGY_V1.md",
   "autonomous_role": {
     "trigger": "ANY_DETECTED_REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY",
     "mandatory_immediate_behavior": [
@@ -23,7 +25,8 @@
       "VERIFY_DOWNSTREAM_VALUE_CHAIN_PROPAGATION",
       "SYNC_CANONICAL_REGISTRY_ISSUES_AND_MANAGEMENT_TRUTH",
       "REPORT_ONLY_AFTER_VERIFIED_REMEDIATION",
-      "PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS"
+      "PROPOSE_PRIORITIZED_CURRENT_IMPROVEMENTS",
+      "ASSESS_INTEGRATED_STRATEGY_EFFECT_WHEN_MATERIAL"
     ],
     "report_only_while_fix_executable": "FORBIDDEN",
     "repeated_human_prompting_required": false,
@@ -38,6 +41,12 @@
       "INTELLIGENCE_HOLDINGS_GROUP_FUTURE_STRATEGY",
       "VERTICAL_BRAND_FUTURE_STRATEGY",
       "CURRENT_PLATFORM_IMPROVEMENT_PROPOSALS",
+      "PRODUCT_STRATEGY",
+      "CUSTOMER_STRATEGY",
+      "PLATFORM_STRATEGY",
+      "PROVIDER_STRATEGY",
+      "INTERNALIZATION_STRATEGY",
+      "GO_TO_MARKET_AND_MONETIZATION",
       "GLOBAL_SCALE_AND_SOURCE_MESH_EVOLUTION",
       "PROVIDER_INDEPENDENCE_AND_ANTI_LOCK_IN",
       "VALUE_CHAIN_BOTTLENECK_REMOVAL",
@@ -46,9 +55,14 @@
       "RISK_REDUCTION_AND_RESILIENCE",
       "DATA_EVIDENCE_AND_RIGHTS_STRATEGY"
     ],
-    "behavior": "Every material task must assess whether it exposes a current improvement or future strategic implication for Intelligence Holdings or an affected vertical. Material findings must be recorded as prioritized proposals after the immediate defect-closure loop; strategy work never substitutes for fixing an executable internal defect.",
+    "behavior": "Every material task must assess whether it exposes a current improvement or future strategic implication for Intelligence Holdings or an affected vertical across product, customer, platform, provider, internalization and monetization strategy. Material findings must be recorded as prioritized proposals after the immediate defect-closure loop; strategy work never substitutes for fixing an executable internal defect.",
     "required_output_fields": [
       "current_improvement_proposal",
+      "product_strategy_effect",
+      "customer_strategy_effect",
+      "platform_strategy_effect",
+      "provider_strategy_effect",
+      "internalization_strategy_effect",
       "group_future_strategy_effect",
       "vertical_future_strategy_effect",
       "autonomous_effect",
@@ -65,6 +79,7 @@
     "TRACK_E": true,
     "TRACK_Z": true,
     "track_jd_contract_required_before_track_task_execution": true,
+    "integrated_strategy_contract_required_for_material_strategy_tasks": true,
     "track_jd_may_be_stricter": true,
     "track_jd_may_weaken_autonomous_role": false
   },
@@ -87,7 +102,9 @@
     "KNOWN_SOLVABLE_DEFECT_LEFT_OPEN": "P1_OPERATING_DEFECT",
     "REPEATED_PROMPT_REQUIRED_FOR_NORMAL_INTERNAL_FIX": "P1_OPERATING_DEFECT",
     "STRATEGIC_IMPLICATION_IGNORED_ON_MATERIAL_TASK": "P1_OPERATING_DEFECT",
+    "PRODUCT_CUSTOMER_PLATFORM_PROVIDER_OR_INTERNALIZATION_STRATEGY_OMITTED_WHEN_MATERIAL": "P1_OPERATING_DEFECT",
     "TRACK_JOB_DESCRIPTION_MISSING_WEAKENED_OR_BYPASSED": "P0_GOVERNANCE_DEFECT",
+    "INTEGRATED_STRATEGY_CONTRACT_MISSING_WEAKENED_OR_BYPASSED": "P0_GOVERNANCE_DEFECT",
     "PLATFORM_PRINCIPLE_WEAKENED_OR_REORDERED": "P0_GOVERNANCE_DEFECT",
     "UNSUPPORTED_STRATEGY_OR_STATUS_CLAIM": "P0_GOVERNANCE_DEFECT"
   },
@@ -97,7 +114,8 @@
     "parent_receipt_cannot_replace_child_bootstrap": true,
     "required_by_fix_first_sequence": true,
     "track_jd_contract_required_for_track_agents": true,
+    "integrated_strategy_contract_required_for_material_strategy_tasks": true,
     "missing_or_invalid_contract_behavior": "REJECT_TASK_DISPATCH"
   },
-  "truth_boundary": "Autonomous role requires immediate root-cause remediation only for reversible internal work inside granted authority. It never manufactures external authority, empirical evidence, provider rights, Production/Public/G5 approval, spend, contracts, credentials, or irreversible legal/security permission."
+  "truth_boundary": "Autonomous role requires immediate root-cause remediation only for reversible internal work inside granted authority. Strategy work is mandatory stewardship where material but never manufactures external authority, empirical evidence, provider rights, Production/Public/G5 approval, spend, contracts, credentials, or irreversible legal/security permission."
 }
