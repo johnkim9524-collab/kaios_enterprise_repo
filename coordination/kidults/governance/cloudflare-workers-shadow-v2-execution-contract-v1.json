@@ -1,37 +1,29 @@
 {
   "id": "kidults-cloudflare-workers-shadow-v2-execution-contract-v1",
-  "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "version": "1.1.0",
+  "status": "CONSUMED_FAIL_CLOSED_LOCAL_CONFIG_VALIDATION",
   "owner": "KPMO",
   "approval_id": "CF-WORKERS-SHADOW-20260901-02",
   "approval_issue": 1711,
   "prepared_from_protected_main_sha": "8d4a89b81d523f533ded56eae7c9a0617d158866",
   "authorization": {
-    "authorized": true,
+    "authorized": false,
+    "prior_authorization_valid": true,
+    "consumed": true,
     "authorization_record": "coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json",
-    "authorized_by": {
-      "github_login": "johnkim9524-collab",
-      "author_association": "OWNER"
-    },
     "authorization_receipt": {
-      "repository": "johnkim9524-collab/kaios_enterprise_repo",
-      "issue_number": 1711,
       "comment_id": 5481462895,
       "comment_node_id": "IC_kwDOTF-G-M8AAAABRrh8bw",
-      "api_url": "https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/comments/5481462895",
-      "html_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895",
-      "created_at": "2026-08-31T16:43:16Z",
-      "updated_at": "2026-08-31T16:43:16Z",
-      "performed_via_github_app": "chatgpt-codex-connector",
-      "body_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md",
-      "verification": "FETCH_EXACT_COMMENT_ID_AND_MATCH_METADATA_AND_BODY_BEFORE_PROVIDER_SECRET_RESOLUTION"
+      "html_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895"
     },
     "self_attestation_allowed": false,
     "issue_creation_is_authority": false,
     "merge_is_authority": false,
-    "workflow_dispatch_is_authority": false
+    "workflow_dispatch_is_authority": false,
+    "rerun_authorized": false,
+    "second_dispatch_authorized": false
   },
-  "authorized_scope": {
+  "authorized_scope_snapshot": {
     "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
     "trigger": "workflow_dispatch",
     "source_ref": "refs/heads/main",
@@ -54,55 +46,75 @@
     "credential_scope": "EXISTING_MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
   },
   "implementation_state": {
-    "approval_ready_internal_contract": true,
     "materialized_secret_bearing_workflow_present": true,
-    "secret_registry_mutated_for_v2": true,
-    "provider_mutation_authorized": true,
-    "provider_mutation_executed": false,
-    "cloudflare_mutation_count": 0
+    "workflow_permanently_tombstoned": true,
+    "secret_registry_entry_retained_for_inventory_continuity": true,
+    "provider_mutation_authorized": false,
+    "provider_process_invoked": true,
+    "provider_deployment_attempt_count": 1,
+    "remote_api_request_evidenced": false,
+    "remote_mutation_evidence_state": "NO_REMOTE_MUTATION_EVIDENCED_LOCAL_VALIDATION_ABORT",
+    "cloudflare_mutation_count_verified": null,
+    "workers_dev_url": null,
+    "readback_executed": false
   },
-  "required_before_execution": [
-    "EXACT_PROGRAM_OWNER_APPROVAL_COMMENT_METADATA_AND_BODY",
-    "NEW_VERSIONED_WORKFLOW_PATH",
-    "CANONICAL_RECEIPT_UNDER_RUNNER_TEMP",
-    "PROVIDER_ATTEMPT_MARKER_IMMEDIATELY_BEFORE_WRANGLER",
-    "TRUTHFUL_ALWAYS_FINALIZER",
-    "ATOMIC_SECRET_REGISTRY_UPDATE",
-    "EXACT_HEAD_REQUIRED_CHECKS_GREEN",
-    "GOVERNED_LANDING_TO_PROTECTED_MAIN",
-    "UNIQUE_FIRST_MAIN_V2_WORKFLOW_DISPATCH",
-    "LIVE_PROTECTED_MAIN_SHA_MATCH_BEFORE_PROVIDER_SECRET_STEP"
-  ],
+  "incident": {
+    "workflow_run_id": 33417453349,
+    "job_id": 99571430841,
+    "source_sha": "5bed9c28aa0b5071de53a86535af8cd72c583ea1",
+    "run_attempt": 1,
+    "wrangler_version": "4.127.1",
+    "wrangler_exit_code": 1,
+    "failure_stage": "LOCAL_ASSETS_DIRECTORY_VALIDATION",
+    "terminal_receipt": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02-terminal.json",
+    "artifact_id": 9767560816,
+    "artifact_digest": "sha256:71d36043dfc6ea863a9a5977059b5f45559c2d9fae8f5068fa85de3b0d21ed2c"
+  },
+  "root_cause": {
+    "id": "WRANGLER_CONFIG_RELATIVE_ASSET_PATH_NOT_MODELED",
+    "description": "assets.directory was validated as a repository-relative string, but Wrangler resolves it relative to the directory containing wrangler.jsonc.",
+    "bad_config_value": "apps/kidults-enterprise-staging/public/portal",
+    "bad_resolved_path": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/apps/kidults-enterprise-staging/public/portal",
+    "corrected_config_value": "../../../../apps/kidults-enterprise-staging/public/portal",
+    "correct_resolved_path": "apps/kidults-enterprise-staging/public/portal"
+  },
+  "remediation": {
+    "config_path_corrected": true,
+    "config_relative_resolution_validator_added": true,
+    "legacy_bad_path_negative_test_added": true,
+    "locked_wrangler_dry_run_gate_added": true,
+    "v2_workflow_tombstoned": true,
+    "terminal_truth_synced": true
+  },
   "receipt_lifetime": {
     "contract": "coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json",
     "canonical_location": "RUNNER_TEMP_OUTSIDE_GITHUB_WORKSPACE",
     "provider_attempt_marker_required": true,
     "always_finalizer_required": true,
-    "fallback_must_not_claim_zero_provider_attempt_when_marker_exists": true
+    "observed_artifact_upload_success": true
   },
   "tooling": {
     "package": "tooling/kidults-cloudflare-workers-shadow/package.json",
     "lock": "tooling/kidults-cloudflare-workers-shadow/package-lock.json",
     "wrangler_exact_version": "4.127.1",
     "runtime_resolution": "LOCAL_LOCKED_BINARY_ONLY",
-    "npm_install": "npm ci --ignore-scripts --no-audit --no-fund"
+    "dry_run_command": "./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy --dry-run --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc"
   },
-  "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
-  "prior_incident": {
-    "consumed_approval_id": "CF-WORKERS-SHADOW-20260831-01",
-    "workflow_run_id": 33410598558,
-    "job_id": 99548916282,
-    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
-    "provider_step": "SKIPPED",
-    "provider_secret_step_executed": false,
-    "cloudflare_mutation_count": 0,
-    "replay_authorized": false,
-    "tombstone_workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml"
+  "future_execution": {
+    "current_approval_reusable": false,
+    "new_versioned_workflow_required": true,
+    "new_explicit_program_owner_approval_required": true,
+    "exact_head_green_required": true,
+    "governed_landing_required": true,
+    "locked_wrangler_dry_run_green_required": true
   },
   "release_boundary": {
+    "production_routes": 0,
+    "custom_domains": 0,
+    "pages_delete": "FORBIDDEN",
+    "pages_domain_detach": "FORBIDDEN",
     "public": "HOLD",
     "production": "HOLD",
-    "g5": "HOLD",
-    "pages_delete": "FORBIDDEN"
+    "g5": "HOLD"
   }
 }

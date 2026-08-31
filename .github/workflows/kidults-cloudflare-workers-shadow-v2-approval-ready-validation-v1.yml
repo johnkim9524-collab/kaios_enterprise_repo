@@ -1,4 +1,4 @@
-name: KIDULTS Cloudflare Workers Shadow V2 Authorized Validation V1
+name: KIDULTS Cloudflare Workers Shadow V2 Consumed Incident Closure V1
 
 on:
   pull_request:
@@ -11,9 +11,11 @@ on:
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-workflow-spec-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json'
       - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02-terminal.json'
       - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
       - 'tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs'
+      - 'tests/kidults/kpmo/cloudflare-workers-shadow-assets-resolution-v1.test.mjs'
       - 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/**'
       - 'tooling/kidults-cloudflare-workers-shadow/**'
   workflow_dispatch:
@@ -22,7 +24,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: kidults-cloudflare-workers-shadow-v2-authorized-${{ github.event.pull_request.head.sha || github.sha }}
+  group: kidults-cloudflare-workers-shadow-v2-consumed-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -34,12 +36,32 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           persist-credentials: false
+
       - name: Set up governed Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate exact Program Owner approval and v2 one-shot contract
+
+      - name: Validate consumed v2 incident truth and permanent tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
+
       - name: Regress checkout-clean receipt lifetime
         run: node tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs
+
+      - name: Regress Wrangler config-relative asset resolution
+        run: node tests/kidults/kpmo/cloudflare-workers-shadow-assets-resolution-v1.test.mjs
+
+      - name: Install locked Wrangler tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow
+
+      - name: Prove locked Wrangler dry-run resolves assets without provider mutation
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2-dry-run"
+          ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy \
+            --dry-run \
+            --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc \
+            --outdir "$OUT"

@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260901-02",
-  "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "version": "1.1.0",
+  "status": "CONSUMED_FAIL_CLOSED_LOCAL_CONFIG_VALIDATION_NO_REMOTE_MUTATION_EVIDENCED",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -50,6 +50,40 @@
   },
   "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
   "receipt_lifetime_contract": "coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json",
+  "consumption_result": {
+    "workflow_run_id": 33417453349,
+    "job_id": 99571430841,
+    "source_sha": "5bed9c28aa0b5071de53a86535af8cd72c583ea1",
+    "run_attempt": 1,
+    "dispatch_ledger_state": "UNIQUE_FIRST_V2_MAIN_DISPATCH_VERIFIED",
+    "authorization_consumed": true,
+    "provider_attempt_marker_written": true,
+    "provider_process_invoked": true,
+    "provider_deployment_attempt_count": 1,
+    "wrangler_version": "4.127.1",
+    "wrangler_exit_code": 1,
+    "failure_stage": "LOCAL_ASSETS_DIRECTORY_VALIDATION",
+    "failure_code": "WRANGLER_ASSETS_DIRECTORY_NOT_FOUND_RELATIVE_TO_CONFIG",
+    "configured_assets_directory": "apps/kidults-enterprise-staging/public/portal",
+    "wrangler_resolved_assets_directory": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/apps/kidults-enterprise-staging/public/portal",
+    "corrected_assets_directory": "../../../../apps/kidults-enterprise-staging/public/portal",
+    "remote_api_request_evidenced": false,
+    "remote_mutation_evidence_state": "NO_REMOTE_MUTATION_EVIDENCED_LOCAL_VALIDATION_ABORT",
+    "workers_dev_url": null,
+    "readback_executed": false,
+    "artifact_id": 9767560816,
+    "artifact_digest": "sha256:71d36043dfc6ea863a9a5977059b5f45559c2d9fae8f5068fa85de3b0d21ed2c",
+    "terminal_receipt_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02-terminal.json"
+  },
+  "future_execution": {
+    "current_approval_reusable": false,
+    "rerun_authorized": false,
+    "second_dispatch_authorized": false,
+    "new_versioned_workflow_required": true,
+    "new_explicit_program_owner_approval_required": true,
+    "config_relative_asset_resolution_test_required": true,
+    "locked_wrangler_dry_run_required": true
+  },
   "replay": "FORBIDDEN_AFTER_FIRST_V2_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
   "authority_excludes": [
     "RERUN_OR_SECOND_DISPATCH",
