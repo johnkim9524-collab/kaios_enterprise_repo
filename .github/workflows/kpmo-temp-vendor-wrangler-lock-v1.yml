@@ -48,6 +48,7 @@ jobs:
           node -e 'const p=require("./tooling/kidults-cloudflare-workers-shadow/package-lock.json"); if(p.lockfileVersion!==3)process.exit(1); const e=p.packages?.["node_modules/wrangler"]; if(e?.version!=="4.127.1"||!e.integrity)process.exit(1)'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$DIR/package.json" "$DIR/package-lock.json"
+          git add "$DIR/package.json"
+          git add -f "$DIR/package-lock.json"
           git commit -m 'build(cloudflare): lock Wrangler shadow deployment tooling'
           git push origin HEAD:codex/cloudflare-pages-to-workers-migration-v1
