@@ -4,6 +4,21 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
+// Production helpers correctly require root-owned evidence. Hosted CI creates
+// synthetic fixtures as its unprivileged runner account, so adapt only
+// extracted test copies to that fixture owner. Static source checks below
+// continue to bind the production helpers to literal root ownership guards.
+const adaptExtractedCodeToFixtureOwner = code => {
+  const uid = typeof process.getuid === 'function' ? process.getuid() : 0;
+  const gid = typeof process.getgid === 'function' ? process.getgid() : 0;
+  if (uid === 0 && gid === 0) return code;
+  return code
+    .replaceAll('.st_uid != 0', `.st_uid != ${uid}`)
+    .replaceAll('.st_gid != 0', `.st_gid != ${gid}`)
+    .replaceAll('.st_uid == 0', `.st_uid == ${uid}`)
+    .replaceAll('.st_gid == 0', `.st_gid == ${gid}`);
+};
+
 const contractPath = 'contracts/certification/kidults-controlled-production-promotion.v1.json';
 const snapshotPath = 'scripts/production/capture-kidults-predeployment-snapshot.sh';
 const sqliteSnapshotHelperPath = 'scripts/production/capture-kidults-sqlite-snapshot-v1.py';
@@ -528,14 +543,14 @@ const terminalWriterStart = terminalWriterHeredoc + "<<'PY'\n".length;
 const terminalWriterEndMarker = '\nPY\n}\n\nterminal_promotion_success_is_authoritative()';
 const terminalWriterEnd = sources.promotion.indexOf(terminalWriterEndMarker, terminalWriterStart);
 if (terminalWriterInvocation < 0 || terminalWriterHeredoc < 0 || terminalWriterEnd < 0) throw new Error('promotion terminal writer is not extractable');
-const terminalWriterCode = sources.promotion.slice(terminalWriterStart, terminalWriterEnd);
+const terminalWriterCode = adaptExtractedCodeToFixtureOwner(sources.promotion.slice(terminalWriterStart, terminalWriterEnd));
 const terminalAuthorityInvocation = sources.promotion.indexOf('  python3 -I - "${CONSUMPTION_MARKER_DIR}" "${CONSUMPTION_ID}" "${SOURCE_SHA}"', terminalWriterEnd);
 const terminalAuthorityHeredoc = sources.promotion.indexOf("<<'PY'\n", terminalAuthorityInvocation);
 const terminalAuthorityStart = terminalAuthorityHeredoc + "<<'PY'\n".length;
 const terminalAuthorityEndMarker = '\nPY\n}\n\nrollback_and_exit()';
 const terminalAuthorityEnd = sources.promotion.indexOf(terminalAuthorityEndMarker, terminalAuthorityStart);
 if (terminalAuthorityInvocation < 0 || terminalAuthorityHeredoc < 0 || terminalAuthorityEnd < 0) throw new Error('promotion terminal authority checker is not extractable');
-const terminalAuthorityCode = sources.promotion.slice(terminalAuthorityStart, terminalAuthorityEnd);
+const terminalAuthorityCode = adaptExtractedCodeToFixtureOwner(sources.promotion.slice(terminalAuthorityStart, terminalAuthorityEnd));
 
 const failFunctionStart = sources.promotion.indexOf('fail() {');
 const failFunctionEnd = sources.promotion.indexOf('\n}\n\ncleanup_smoke_files()', failFunctionStart);
@@ -941,7 +956,7 @@ const errorWriterStart = errorWriterHeredoc + "<<'PY'\n".length;
 const errorWriterEndMarker = '\nPY\n}\n\nrollback_failure_trap()';
 const errorWriterEnd = sources.rollback.indexOf(errorWriterEndMarker, errorWriterStart);
 if (errorWriterFunctionStart < 0 || errorWriterHeredoc < 0 || errorWriterEnd < 0) throw new Error('rollback error receipt writer is not extractable');
-const errorWriterCode = sources.rollback.slice(errorWriterStart, errorWriterEnd);
+const errorWriterCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(errorWriterStart, errorWriterEnd));
 const terminalManifestCommandStart = sources.rollback.indexOf('ROLLBACK_TERMINAL_SUCCESS_MANIFEST_SHA256="$(');
 const terminalManifestHeredoc = sources.rollback.indexOf("<<'PY'\n", terminalManifestCommandStart);
 const terminalManifestCodeStart = terminalManifestHeredoc + "<<'PY'\n".length;
@@ -949,21 +964,6 @@ const terminalManifestEndMarker = '\nPY\n)" || fail "Rollback terminal success m
 const terminalManifestCodeEnd = sources.rollback.indexOf(terminalManifestEndMarker, terminalManifestCodeStart);
 if (terminalManifestCommandStart < 0 || terminalManifestHeredoc < 0 || terminalManifestCodeEnd < 0) throw new Error('rollback terminal manifest publisher is not extractable');
 const terminalManifestCode = sources.rollback.slice(terminalManifestCodeStart, terminalManifestCodeEnd);
-// The production publisher correctly requires root-owned receipt members.  CI
-// runs this validator as an unprivileged hosted-runner user, so its synthetic
-// fixtures cannot be root-owned.  Adapt only the extracted test copy to the
-// fixture creator's identity; the static contract checks above continue to
-// bind the production source to the literal root ownership requirements.
-const adaptExtractedCodeToFixtureOwner = code => {
-  const uid = typeof process.getuid === 'function' ? process.getuid() : 0;
-  const gid = typeof process.getgid === 'function' ? process.getgid() : 0;
-  if (uid === 0 && gid === 0) return code;
-  return code
-    .replaceAll('.st_uid != 0', `.st_uid != ${uid}`)
-    .replaceAll('.st_gid != 0', `.st_gid != ${gid}`)
-    .replaceAll('.st_uid == 0', `.st_uid == ${uid}`)
-    .replaceAll('.st_gid == 0', `.st_gid == ${gid}`);
-};
 const terminalManifestFixtureCode = adaptExtractedCodeToFixtureOwner(terminalManifestCode);
 const errorWriterFixtureCode = adaptExtractedCodeToFixtureOwner(errorWriterCode);
 const errorWriterTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-rollback-error-receipt-'));
@@ -1503,7 +1503,7 @@ const containmentHeredoc = sources.rollback.indexOf("<<'PY'\n", containmentFunct
 const containmentCodeStart = containmentHeredoc + "<<'PY'\n".length;
 const containmentCodeEnd = sources.rollback.indexOf('\nPY\n}\n\nROLLBACK_PIN_ROOT_ID=', containmentCodeStart);
 if (containmentFunctionStart < 0 || containmentHeredoc < 0 || containmentCodeEnd < 0) throw new Error('exact-name rollback containment is not extractable');
-const containmentCode = sources.rollback.slice(containmentCodeStart, containmentCodeEnd);
+const containmentCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(containmentCodeStart, containmentCodeEnd));
 const containmentTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-exact-name-containment-'));
 try {
   const mockBin = path.join(containmentTemp, 'bin');
@@ -1572,10 +1572,10 @@ const configurationRestoreEnd = sources.rollback.indexOf(
   configurationRestoreStart + configurationRestoreStartMarker.length,
 );
 if (configurationRestoreStart < 0 || configurationRestoreEnd < 0) throw new Error('configuration restore transaction is not extractable');
-const configurationRestoreCode = sources.rollback.slice(
+const configurationRestoreCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(
   configurationRestoreStart + configurationRestoreStartMarker.length,
   configurationRestoreEnd,
-);
+));
 const configurationRestoreTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-configuration-restore-'));
 try {
   const sourceBytes = {
@@ -1684,7 +1684,7 @@ const restoreProofStart = sources.rollback.indexOf(restoreProofHeredocStart);
 const restoreProofEndMarker = '\nPY\n}\n\ncreate_exclusive_receipt_directory_fd()';
 const restoreProofEnd = sources.rollback.indexOf(restoreProofEndMarker, restoreProofStart + restoreProofHeredocStart.length);
 if (restoreProofStart < 0 || restoreProofEnd < 0) throw new Error('SQLite restore helper preflight is not extractable for regression testing');
-const restoreProofCode = sources.rollback.slice(restoreProofStart + restoreProofHeredocStart.length, restoreProofEnd);
+const restoreProofCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(restoreProofStart + restoreProofHeredocStart.length, restoreProofEnd));
 const gitBlobSha1 = raw => crypto.createHash('sha1').update(Buffer.concat([
   Buffer.from(`blob ${raw.length}\0`, 'ascii'), raw,
 ])).digest('hex');
@@ -1746,7 +1746,7 @@ const chainStart = sources.rollback.indexOf(chainHeredocStart);
 const chainEndMarker = '\nPY\n}\n\nverify_protected_database_parent_fd()';
 const chainEnd = sources.rollback.indexOf(chainEndMarker, chainStart + chainHeredocStart.length);
 if (chainStart < 0 || chainEnd < 0) throw new Error('protected rollback directory-chain validator is not extractable for regression testing');
-const chainCode = sources.rollback.slice(chainStart + chainHeredocStart.length, chainEnd);
+const chainCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(chainStart + chainHeredocStart.length, chainEnd));
 function runDirectoryChain(candidate, heldPath) {
   const descriptor = fs.openSync(heldPath, fs.constants.O_RDONLY);
   try {
@@ -1780,13 +1780,13 @@ const receiptCreateStart = sources.rollback.indexOf(receiptCreateStartMarker);
 const receiptCreateEndMarker = '\nPY\n}\n\ncopy_regular_path_to_receipt_fd()';
 const receiptCreateEnd = sources.rollback.indexOf(receiptCreateEndMarker, receiptCreateStart + receiptCreateStartMarker.length);
 if (receiptCreateStart < 0 || receiptCreateEnd < 0) throw new Error('exclusive rollback receipt directory creator is not extractable');
-const receiptCreateCode = sources.rollback.slice(receiptCreateStart + receiptCreateStartMarker.length, receiptCreateEnd);
+const receiptCreateCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(receiptCreateStart + receiptCreateStartMarker.length, receiptCreateEnd));
 const receiptCopyStartMarker = '  python3 -I - 4 "${source_path}" "${receipt_name}" <<\'PY\'\n';
 const receiptCopyStart = sources.rollback.indexOf(receiptCopyStartMarker);
 const receiptCopyEndMarker = '\nPY\n}\n\nrun_with_exclusive_receipt_stdout_fd()';
 const receiptCopyEnd = sources.rollback.indexOf(receiptCopyEndMarker, receiptCopyStart + receiptCopyStartMarker.length);
 if (receiptCopyStart < 0 || receiptCopyEnd < 0) throw new Error('exclusive rollback receipt member copier is not extractable');
-const receiptCopyCode = sources.rollback.slice(receiptCopyStart + receiptCopyStartMarker.length, receiptCopyEnd);
+const receiptCopyCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(receiptCopyStart + receiptCopyStartMarker.length, receiptCopyEnd));
 const receiptPrimitiveTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-receipt-primitives-'));
 try {
   const rootDir = path.join(receiptPrimitiveTemp, 'root');
@@ -1906,7 +1906,7 @@ const quiescenceStart = sources.rollback.indexOf(quiescenceStartMarker);
 const quiescenceEndMarker = '\nPY\n}\n\nverify_sqlite_sidecar_namespace_absent_fd() {';
 const quiescenceEnd = sources.rollback.indexOf(quiescenceEndMarker, quiescenceStart + quiescenceStartMarker.length);
 if (quiescenceStart < 0 || quiescenceEnd < 0) throw new Error('rollback container quiescence proof is not extractable');
-const quiescenceCode = sources.rollback.slice(quiescenceStart + quiescenceStartMarker.length, quiescenceEnd);
+const quiescenceCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(quiescenceStart + quiescenceStartMarker.length, quiescenceEnd));
 const quiescenceTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-container-quiescence-'));
 try {
   const mockBin = path.join(quiescenceTemp, 'bin');
@@ -1974,7 +1974,7 @@ const sidecarScanStart = sources.rollback.indexOf(sidecarScanStartMarker, sideca
 const sidecarScanEndMarker = '\nPY\n}\n\ncontain_exact_named_rollback_containers() {';
 const sidecarScanEnd = sources.rollback.indexOf(sidecarScanEndMarker, sidecarScanStart + sidecarScanStartMarker.length);
 if (sidecarFunctionStart < 0 || sidecarScanStart < 0 || sidecarScanEnd < 0) throw new Error('rollback prestart SQLite sidecar held-fd proof is not extractable');
-const sidecarScanCode = sources.rollback.slice(sidecarScanStart + sidecarScanStartMarker.length, sidecarScanEnd);
+const sidecarScanCode = adaptExtractedCodeToFixtureOwner(sources.rollback.slice(sidecarScanStart + sidecarScanStartMarker.length, sidecarScanEnd));
 const sidecarScanTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-prestart-sidecar-held-fd-'));
 try {
   const runScan = (directory, cwd) => {
