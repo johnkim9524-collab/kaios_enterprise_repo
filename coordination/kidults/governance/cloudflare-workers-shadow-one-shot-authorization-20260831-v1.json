@@ -1,0 +1,44 @@
+{
+  "id": "CF-WORKERS-SHADOW-20260831-01",
+  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION",
+  "authorized_by": "PROGRAM_OWNER",
+  "authorized_scope": {
+    "service": "kidults-public-portal-shadow",
+    "deployment_count_max": 1,
+    "target": "workers_dev_non_production_only",
+    "production_routes_allowed": false,
+    "custom_domains_allowed": false,
+    "production_public_g5_promotion_allowed": false,
+    "credential_scope": "MINIMUM_REQUIRED_CLOUDFLARE_WORKERS_DEPLOYMENT_CREDENTIAL_ONLY"
+  },
+  "source_branch": "codex/cloudflare-pages-to-workers-migration-v1",
+  "source_head_before_execution": "00f49d89db25d0fa17d60b17408a3bf6ff877072",
+  "worker_config": "infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
+  "required_preflight": [
+    "WORKER_NAME_EXACT",
+    "WORKERS_DEV_TRUE",
+    "PREVIEW_URLS_FALSE",
+    "PRODUCTION_ROUTES_ZERO",
+    "CUSTOM_DOMAINS_ZERO",
+    "PORTAL_ASSET_SOURCE_EXACT",
+    "MIGRATION_VALIDATOR_PASS"
+  ],
+  "required_postflight": [
+    "DEPLOYMENT_TERMINAL_SUCCESS",
+    "WORKERS_DEV_URL_CAPTURED",
+    "NO_PRODUCTION_ROUTE_OR_CUSTOM_DOMAIN_CREATED",
+    "SANITIZED_RUN_SHA_ATTEMPT_RECEIPT",
+    "PUBLIC_PRODUCTION_G5_HOLD"
+  ],
+  "replay": "FORBIDDEN_AFTER_FIRST_SUCCESSFUL_PROVIDER_DEPLOYMENT_ATTEMPT",
+  "authority_excludes": [
+    "PRODUCTION_ROUTE",
+    "CUSTOM_DOMAIN",
+    "PUBLIC_RELEASE",
+    "PRODUCTION_APPROVAL",
+    "G5",
+    "PAGES_DELETE",
+    "PAGES_DOMAIN_DETACH",
+    "SPEND_OR_CONTRACT_EXPANSION"
+  ]
+}
