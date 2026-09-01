@@ -92,6 +92,7 @@ const authority = await resolveAtomicLandingLifecycleAuthority({
   prNumber,
   headSha: expectedHeadSha,
   baseSha: pr.base.sha,
+  prCreatedAt: pr.created_at,
   nativeStatuses,
   lastReadyAt: latestReadiness.created_at,
 });
