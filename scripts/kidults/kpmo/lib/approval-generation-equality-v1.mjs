@@ -196,9 +196,35 @@ export async function assertFullApprovalGenerationEquality({
   };
 }
 
-// Kept only for compatibility with older callers. New authoritative lifecycle paths
-// must use assertFullApprovalGenerationEquality so unchanged ACTIVE authority cannot
-// escape exact-current-main generation checks merely by staying outside a PR diff.
+async function fetchTreeAtRef(ref) {
+  const repository = process.env.GH_REPOSITORY;
+  const token = process.env.GH_TOKEN;
+  const apiRoot = process.env.GITHUB_API_URL || 'https://api.github.com';
+  if (!repository || !token) fail('APPROVAL_GENERATION_TREE_RUNTIME_BINDING_MISSING');
+  if (!SHA40.test(String(ref || ''))) fail('APPROVAL_GENERATION_TREE_REF_INVALID', String(ref || ''));
+  const response = await fetch(`${apiRoot}/repos/${repository}/git/trees/${ref}?recursive=1`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'kidults-approval-generation-equality-v1',
+    },
+    redirect: 'error',
+  });
+  if (!response.ok) fail('APPROVAL_GENERATION_TREE_READ_FAILED', `${ref}:${response.status}`);
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    fail('APPROVAL_GENERATION_TREE_JSON_INVALID', ref);
+  }
+  return payload;
+}
+
+// Compatibility name retained because Scope-Aware and Atomic Landing already import it.
+// Semantics are deliberately upgraded to the full bounded registry so no authoritative
+// lifecycle path can omit unchanged ACTIVE approval records merely because they are
+// outside the current PR diff.
 export async function assertChangedApprovalGenerationEquality({
   files,
   readJson,
@@ -206,46 +232,21 @@ export async function assertChangedApprovalGenerationEquality({
   liveMainSha,
 } = {}) {
   if (!Array.isArray(files)) fail('APPROVAL_GENERATION_FILES_REQUIRED');
-  if (typeof readJson !== 'function') fail('APPROVAL_GENERATION_JSON_READER_REQUIRED');
-  if (!SHA40.test(String(prBaseSha || ''))) fail('APPROVAL_GENERATION_PR_BASE_SHA_INVALID');
-  if (!SHA40.test(String(liveMainSha || ''))) fail('APPROVAL_GENERATION_LIVE_MAIN_SHA_INVALID');
-
-  const candidates = files
-    .filter((entry) => String(entry?.status || '').toLowerCase() !== 'removed')
-    .map((entry) => typeof entry === 'string' ? {filename: entry, status: 'modified'} : entry)
-    .filter((entry) => isApprovalGenerationCandidateFile(entry?.filename));
-
-  const records = [];
-  for (const candidate of candidates) {
-    let record;
-    try {
-      record = await readJson(candidate.filename);
-    } catch (error) {
-      fail('APPROVAL_GENERATION_RECORD_UNREADABLE', `${candidate.filename}:${error?.message || error}`);
-    }
-    if (!record || typeof record !== 'object' || Array.isArray(record)) {
-      fail('APPROVAL_GENERATION_RECORD_NOT_OBJECT', candidate.filename);
-    }
-    records.push(assertApprovalRecordGeneration(record, {
-      filename: candidate.filename,
-      prBaseSha,
-      liveMainSha,
-    }));
+  const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+  if (!SHA40.test(String(expectedHeadSha || ''))) {
+    fail('APPROVAL_GENERATION_EXPECTED_HEAD_SHA_INVALID');
   }
-
-  return {
-    state: 'VERIFIED_PASS',
-    scan_scope: 'CHANGED_FILES_ONLY_COMPATIBILITY_NON_AUTHORITATIVE',
-    pr_base_sha: prBaseSha,
-    live_main_sha: liveMainSha,
-    candidate_record_count: candidates.length,
-    active_record_count: records.filter((record) => record.active).length,
-    records,
-    exact_main_equality_enforced: true,
-    ancestor_reuse_allowed: false,
-    same_candidate_blob_different_main_allowed: false,
-    stale_canonical_comment_allowed: false,
-  };
+  const [baseTree, headTree] = await Promise.all([
+    fetchTreeAtRef(prBaseSha),
+    fetchTreeAtRef(expectedHeadSha),
+  ]);
+  return assertFullApprovalGenerationEquality({
+    baseTree,
+    headTree,
+    readJson,
+    prBaseSha,
+    liveMainSha,
+  });
 }
 
 export function assertRuntimeApprovalExactMain({
