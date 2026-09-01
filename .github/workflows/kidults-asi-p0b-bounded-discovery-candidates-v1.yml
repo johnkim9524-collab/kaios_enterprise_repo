@@ -2,8 +2,6 @@ name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '37 * * * *'
   push:
     branches: [main]
     paths:
@@ -36,12 +34,6 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI P0 Mission Consumption v1'
-    branches: [main]
-    types: [completed]
-
 permissions:
   contents: read
   actions: read
@@ -52,11 +44,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  containment-invariant:
+    name: Verify P0B direct-provider hard-disable boundary
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Assert no autonomous provider triggers and fail-before-provider ordering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml';
+          const s = fs.readFileSync(p, 'utf8');
+          const fail = m => { throw new Error(m); };
+          if (/^  schedule:/m.test(s)) fail('P0B_SCHEDULE_TRIGGER_PRESENT');
+          if (/^  workflow_run:/m.test(s)) fail('P0B_WORKFLOW_RUN_TRIGGER_PRESENT');
+          const hard = s.indexOf('P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED');
+          const live = s.indexOf('Execute four governed public-metadata rotations');
+          if (hard < 0 || live < 0 || hard > live) fail('P0B_HARD_DISABLE_ORDER_INVALID');
+          if (!s.includes('if: always()') || !s.includes('Emit fail-closed KPMO P0B discovery receipt')) fail('P0B_TERMINAL_RECEIPT_MISSING');
+          if (!/^          KPMO_EXPECTED_SOURCE_SHA: /m.test(s)) fail('P0B_EXACT_SOURCE_BINDING_ENV_MISSING');
+          if (!s.includes('source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA')) fail('P0B_EXACT_SOURCE_BINDING_MISSING');
+          if (s.includes('source_sha:process.env.' + 'GITHUB_SHA')) fail('P0B_PR_MERGE_REF_SOURCE_BINDING_PRESENT');
+          if (!s.includes('event_sha:process.env.GITHUB_SHA')) fail('P0B_EVENT_SHA_DIAGNOSTIC_MISSING');
+          console.log('P0B direct-provider hard-disable invariant: PASS');
+          NODE
+
   bounded-discovery-candidates:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
+      - name: Hard-disable direct provider execution pending shared budget authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED' >&2
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
@@ -219,6 +247,7 @@ jobs:
         if: always()
         env:
           KPMO_JOB_STATUS: ${{ job.status }}
+          KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
@@ -230,7 +259,8 @@ jobs:
           const receipt={
             id:'kidults-asi-p0b-bounded-discovery-receipt-v1',
             state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',
-            source_sha:process.env.GITHUB_SHA,
+            source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA,
+            event_sha:process.env.GITHUB_SHA,
             trigger_event:process.env.GITHUB_EVENT_NAME,
             run_id:process.env.GITHUB_RUN_ID,
             run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),
