@@ -1,0 +1,48 @@
+{
+  "id": "kidults-current-sold-engine-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_INTERNAL_CONTROL",
+  "as_of": "2026-09-01",
+  "product_owner": "KIDULTS",
+  "governance_owner": "KPMO",
+  "runtime_owner": "ASI",
+  "product_class": "OWNED_INTELLIGENCE_PRODUCT",
+  "canonical_event_schema": "coordination/kidults/market/current-sold-event-schema-v1.json",
+  "engine": "scripts/kidults/market/current-sold-engine-v1.mjs",
+  "provider_role": "REPLACEABLE_EVIDENCE_SOURCE_LAYER",
+  "first_execution_target": {
+    "stage": "SMOKE",
+    "minimum_lawful_genuine_sold_events": 1,
+    "claim_ceiling": "PIPELINE_FUNCTIONAL_ONLY"
+  },
+  "admission_requirements": [
+    "TERMINAL_SOLD_STATE",
+    "STABLE_CANONICAL_OBJECT_IDENTITY",
+    "STABLE_SOURCE_TRANSACTION_IDENTITY",
+    "HTTPS_SOURCE_REFERENCE",
+    "REALIZED_CONSIDERATION_AND_CURRENCY",
+    "ACQUISITION_RECEIPT",
+    "SHA256_PROVENANCE_DIGEST",
+    "ALLOW_PRIVATE_CURRENT_SOLD_RIGHTS_RECEIPT",
+    "CURRENT_WINDOW_MAX_30_DAYS"
+  ],
+  "non_sold_states": ["PASSED", "WITHDRAWN", "UNSOLD", "ASKING", "UNKNOWN"],
+  "canonical_chain": [
+    "SOURCE",
+    "ACQUISITION_RECEIPT",
+    "RIGHTS_RECEIPT",
+    "OBSERVATION",
+    "CURRENT_SOLD_EVENT",
+    "EVIDENCE",
+    "TRACK_B",
+    "PROJECTION"
+  ],
+  "release_boundary": {
+    "main_scope_validated": false,
+    "production_authorized": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "truth_boundary": "The engine and schema establish owned Current-SOLD plumbing only. Empirical Current-SOLD remains zero until at least one independently lawful genuine SOLD fact passes acquisition, rights and provenance admission."
+}
