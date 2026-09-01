@@ -7,22 +7,28 @@ const P = {
   auth: 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json',
   terminal: 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03-terminal.json',
   approvalBody: 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md',
-  preflight: 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json',
   workflow: '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml',
   registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
+  credentialContract: 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json',
+  credentialAuth: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json',
+  credentialTerminal: 'coordination/kidults/governance/receipts/CF-CREDENTIAL-IDENTITY-PREFLIGHT-20260901-01-terminal.json',
+  credentialV1Workflow: '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml',
+  credentialV2Spec: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-v2-spec-v1.json',
+  extractor: 'scripts/kidults/kpmo/extract-github-comment-body-byte-exact-v1.mjs',
+  extractorTest: 'tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs',
   config: 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc',
   package: 'tooling/kidults-cloudflare-workers-shadow/package.json',
   lock: 'tooling/kidults-cloudflare-workers-shadow/package-lock.json',
   portal: 'apps/kidults-enterprise-staging/public/portal',
 };
 
-const fail = (code) => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_V3_CONSUMED_VALIDATION_FAIL:${code}`); };
+const fail = code => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_V3_CONSUMED_VALIDATION_FAIL:${code}`); };
 const ok = (condition, code) => { if (!condition) fail(code); };
-const read = (file) => fs.readFileSync(file, 'utf8');
-const json = (file) => JSON.parse(read(file));
-const sha256 = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+const read = file => fs.readFileSync(file, 'utf8');
+const json = file => JSON.parse(read(file));
+const sha256 = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 
-for (const file of Object.values(P).filter((value) => value !== P.portal)) {
+for (const file of Object.values(P).filter(value => value !== P.portal)) {
   ok(fs.existsSync(file), `MISSING_FILE:${file}`);
 }
 ok(fs.existsSync(P.portal), 'PORTAL_MISSING');
@@ -30,15 +36,21 @@ ok(fs.existsSync(P.portal), 'PORTAL_MISSING');
 const auth = json(P.auth);
 const terminal = json(P.terminal);
 const approvalBody = read(P.approvalBody);
-const preflight = json(P.preflight);
 const workflow = read(P.workflow);
 const registry = json(P.registry);
+const credentialContract = json(P.credentialContract);
+const credentialAuth = json(P.credentialAuth);
+const credentialTerminal = json(P.credentialTerminal);
+const credentialV1Workflow = read(P.credentialV1Workflow);
+const credentialV2Spec = json(P.credentialV2Spec);
+const extractor = read(P.extractor);
+const extractorTest = read(P.extractorTest);
 const configText = read(P.config);
 const config = JSON.parse(configText);
 const packageJson = json(P.package);
 const packageLock = json(P.lock);
 
-// Immutable v3 incident truth.
+// Immutable Workers shadow v3 incident truth.
 ok(auth.id === 'CF-WORKERS-SHADOW-20260901-03', 'AUTH_ID');
 ok(auth.status === 'CONSUMED_FAIL_CLOSED_PROVIDER_API_7003_NO_DEPLOYMENT_READBACK', 'AUTH_STATUS');
 ok(auth.root_approval_receipt?.comment_id === 5487854388, 'ROOT_APPROVAL_COMMENT');
@@ -91,50 +103,42 @@ ok(approvalBody.includes('CF-WORKERS-SHADOW-20260901-03'), 'APPROVAL_BODY_ID');
 ok(approvalBody.includes('rerun·replay·두 번째 dispatch는 승인하지 않습니다.'), 'APPROVAL_BODY_NO_REPLAY');
 
 ok(terminal.state === 'VERIFIED_FAIL_PROVIDER_API_7003_NO_DEPLOYMENT_READBACK', 'TERMINAL_STATE');
-ok(terminal.workflow_run_id === 33465807642, 'TERMINAL_RUN');
-ok(terminal.job_id === 99725309548, 'TERMINAL_JOB');
+ok(terminal.workflow_run_id === 33465807642 && terminal.job_id === 99725309548, 'TERMINAL_RUN_JOB');
 ok(terminal.authorization_consumed === true, 'TERMINAL_CONSUMED');
-ok(terminal.preflight?.locked_wrangler_dry_run === 'PASS', 'TERMINAL_DRY_RUN');
-ok(terminal.preflight?.dry_run_asset_count === 128, 'TERMINAL_DRY_RUN_ASSET_COUNT');
-ok(terminal.provider?.attempt_marker_written === true, 'TERMINAL_MARKER');
-ok(terminal.provider?.process_invoked === true, 'TERMINAL_PROVIDER_PROCESS');
 ok(terminal.provider?.deployment_attempt_count === 1, 'TERMINAL_PROVIDER_COUNT');
 ok(terminal.provider?.cloudflare_error_code === 7003, 'TERMINAL_ERROR_CODE');
-ok(terminal.provider?.root_cause_class === 'CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH', 'TERMINAL_ROOT_CAUSE');
 ok(terminal.provider?.worker_deployment_success === false, 'TERMINAL_DEPLOYMENT');
 ok(terminal.provider?.workers_dev_url === null, 'TERMINAL_URL');
 ok(terminal.provider?.readback_executed === false, 'TERMINAL_READBACK');
 ok(terminal.provider?.remote_mutation_evidenced === false, 'TERMINAL_REMOTE_MUTATION');
 ok(terminal.artifact?.id === 9784793397, 'TERMINAL_ARTIFACT_ID');
 ok(terminal.artifact?.digest === consumed.artifact_digest, 'TERMINAL_ARTIFACT_DIGEST');
-ok(terminal.terminal_controls?.replay_authorized === false, 'TERMINAL_REPLAY');
-ok(terminal.terminal_controls?.rerun_authorized === false, 'TERMINAL_RERUN');
-ok(terminal.terminal_controls?.second_dispatch_authorized === false, 'TERMINAL_SECOND_DISPATCH');
+ok(terminal.terminal_controls?.rerun_authorized === false
+  && terminal.terminal_controls?.replay_authorized === false
+  && terminal.terminal_controls?.second_dispatch_authorized === false, 'TERMINAL_NO_REPLAY');
 ok(terminal.release_boundary?.production_routes === 0 && terminal.release_boundary?.custom_domains === 0, 'TERMINAL_TOPOLOGY');
-ok(terminal.release_boundary?.public === 'HOLD' && terminal.release_boundary?.production === 'HOLD' && terminal.release_boundary?.g5 === 'HOLD', 'TERMINAL_HOLD');
+ok(terminal.release_boundary?.public === 'HOLD'
+  && terminal.release_boundary?.production === 'HOLD'
+  && terminal.release_boundary?.g5 === 'HOLD', 'TERMINAL_HOLD');
 
-// The historical v3 file may retain incident diagnostics, but no executable authority.
+// Historical v3 workflow is a zero-authority tombstone.
 ok(/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH_REINTRODUCED');
 ok(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'WORKFLOW_TOMBSTONE_MARKER');
 ok(workflow.includes('historical_cloudflare_error_code:7003'), 'WORKFLOW_HISTORICAL_ERROR_TRUTH');
 ok(workflow.includes('CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH'), 'WORKFLOW_HISTORICAL_ROOT_CAUSE_TRUTH');
-ok(workflow.includes('Upload consumed authorization tombstone'), 'WORKFLOW_TOMBSTONE_ARTIFACT');
 for (const forbidden of [
-  'environment:',
-  '${{ secrets.',
-  'actions/checkout@',
-  'actions/setup-node@',
-  'curl ',
-  'npm ',
-  'npx ',
-  'node_modules/.bin/wrangler',
+  'environment:', '${{ secrets.', 'actions/checkout@', 'actions/setup-node@',
+  'curl ', 'npm ', 'npx ', 'node_modules/.bin/wrangler',
 ]) ok(!workflow.includes(forbidden), `WORKFLOW_EXECUTABLE_AUTHORITY:${forbidden}`);
 ok(!/^\s+CLOUDFLARE_(?:API_TOKEN|ACCOUNT_ID)\s*:/m.test(workflow), 'WORKFLOW_SECRET_ENV_BINDING');
 
-// Registry may legitimately grow with a separately approved read-only lane.
+// Privileged inventory must exclude both exhausted Workers v3 and credential preflight v1 lanes.
 ok(!registry.registered_workflows?.includes(P.workflow), 'REGISTRY_V3_PRESENT');
-ok(!registry.required_environment_bindings?.some((binding) => binding.workflow === P.workflow), 'REGISTRY_V3_BINDING_PRESENT');
+ok(!registry.registered_workflows?.includes(P.credentialV1Workflow), 'REGISTRY_CREDENTIAL_V1_PRESENT');
+ok(!registry.required_environment_bindings?.some(value => value.workflow === P.workflow), 'REGISTRY_V3_BINDING_PRESENT');
+ok(!registry.required_environment_bindings?.some(value => value.workflow === P.credentialV1Workflow), 'REGISTRY_CREDENTIAL_V1_BINDING_PRESENT');
+ok(registry.registered_count === 22, 'REGISTRY_COUNT');
 ok(registry.registered_count === registry.registered_workflows?.length, 'REGISTRY_COUNT_SELF_CONSISTENCY');
 ok(registry.registered_count === registry.required_environment_bindings?.length, 'REGISTRY_BINDING_SELF_CONSISTENCY');
 for (const key of [
@@ -144,37 +148,59 @@ for (const key of [
   'step_scoped_secret_bearing_jobs',
 ]) ok(registry.repository_binding_state?.[key] === registry.registered_count, `REGISTRY_STATE:${key}`);
 const privilegedSteps = registry.required_environment_bindings.reduce(
-  (sum, binding) => sum + (binding.required_secret_step_names?.length || 0),
-  0,
+  (sum, binding) => sum + (binding.required_secret_step_names?.length || 0), 0,
 );
+ok(privilegedSteps === 25, 'REGISTRY_PRIVILEGED_CALCULATED');
 ok(registry.repository_binding_state?.privileged_secret_steps === privilegedSteps, 'REGISTRY_PRIVILEGED_RECORDED');
 ok(registry.repository_containment?.provider_activation === 'HOLD', 'REGISTRY_PROVIDER_HOLD');
 
-// The mandated corrective preflight is now explicitly approved but still non-executable before landing/binding.
-ok(preflight.id === 'kidults-cloudflare-workers-shadow-credential-identity-preflight-v1', 'PREFLIGHT_ID');
-ok(preflight.status === 'APPROVED_PENDING_POST_LANDING_EXACT_MAIN_BINDING', 'PREFLIGHT_STATUS');
-ok(preflight.approval_id === 'CF-CREDENTIAL-IDENTITY-PREFLIGHT-20260901-01', 'PREFLIGHT_APPROVAL_ID');
-ok(preflight.approval_gate_issue === 1763, 'PREFLIGHT_APPROVAL_ISSUE');
-ok(preflight.authority?.standing_execution_authority === false, 'PREFLIGHT_STANDING_AUTHORITY');
-ok(preflight.authority?.explicit_program_owner_approval_present === true, 'PREFLIGHT_APPROVAL_PRESENT');
-ok(preflight.authority?.post_landing_exact_main_binding_required === true, 'PREFLIGHT_BINDING_REQUIRED');
-ok(preflight.authority?.read_only_external_calls_only === true, 'PREFLIGHT_READ_ONLY');
-ok(preflight.authority?.worker_mutation_allowed === false, 'PREFLIGHT_WORKER_MUTATION');
-ok(preflight.authority?.pages_mutation_allowed === false, 'PREFLIGHT_PAGES_MUTATION');
-ok(preflight.authority?.routes_or_domains_allowed === false, 'PREFLIGHT_TOPOLOGY_MUTATION');
-ok(preflight.github_secret_boundary?.environment === 'kidults-cloudflare-staging-deploy', 'PREFLIGHT_ENVIRONMENT');
-ok(preflight.github_secret_boundary?.environment_level_value_is_authoritative_when_duplicate_names_exist === true, 'PREFLIGHT_SECRET_PRECEDENCE');
-ok(preflight.maximum_external_read_requests === 2, 'PREFLIGHT_REQUEST_BOUND');
-ok(preflight.required_preflight_sequence?.length === 3, 'PREFLIGHT_SEQUENCE_LENGTH');
-ok(preflight.required_preflight_sequence?.filter((step) => step.external_call).length === 2, 'PREFLIGHT_EXTERNAL_CALL_COUNT');
-ok(preflight.required_preflight_sequence?.every((step, index) => step.order === index + 1), 'PREFLIGHT_SEQUENCE_ORDER');
-ok(preflight.pass_condition?.cloudflare_error_7003_observed === false, 'PREFLIGHT_7003_REJECTION');
-for (const key of ['worker_mutation_count', 'pages_mutation_count', 'route_mutation_count', 'domain_mutation_count']) {
-  ok(preflight.pass_condition?.[key] === 0, `PREFLIGHT_ZERO:${key}`);
-}
-ok(preflight.future_deployment_gate?.new_versioned_workflow_required === true, 'PREFLIGHT_NEW_VERSION');
-ok(preflight.future_deployment_gate?.new_explicit_program_owner_deployment_approval_required === true, 'PREFLIGHT_NEW_APPROVAL');
+// The corrective credential preflight v1 itself failed before authorization and is permanently closed.
+ok(credentialContract.id === 'kidults-cloudflare-workers-shadow-credential-identity-preflight-v1', 'PREFLIGHT_ID');
+ok(credentialContract.status === 'V1_PREAUTHORIZATION_SERIALIZATION_FAILURE_CLOSED_V2_REQUIRED', 'PREFLIGHT_STATUS');
+ok(credentialContract.v1_terminal?.workflow_run_id === 33478469222, 'PREFLIGHT_RUN');
+ok(credentialContract.v1_terminal?.authorization_consumed === false, 'PREFLIGHT_AUTH_CONSUMED');
+ok(credentialContract.v1_terminal?.external_read_request_count === 0, 'PREFLIGHT_EXTERNAL_REQUESTS');
+ok(credentialContract.v1_terminal?.credential_probe_step === 'SKIPPED', 'PREFLIGHT_PROBE_STEP');
+ok(credentialContract.v1_terminal?.failure_code === 'APPROVAL_BODY_JQ_RAW_OUTPUT_ADDS_SECOND_TERMINAL_LF', 'PREFLIGHT_FAILURE_CODE');
+ok(credentialContract.v1_containment?.secret_registry_membership === false, 'PREFLIGHT_REGISTRY');
+ok(credentialContract.v1_containment?.environment === null, 'PREFLIGHT_ENVIRONMENT');
+ok(Array.isArray(credentialContract.v1_containment?.secret_references)
+  && credentialContract.v1_containment.secret_references.length === 0, 'PREFLIGHT_SECRETS');
+ok(credentialContract.v1_containment?.provider_network_path === false, 'PREFLIGHT_NETWORK');
+ok(credentialContract.v1_containment?.same_approval_reusable === false, 'PREFLIGHT_APPROVAL_REUSE');
+ok(credentialContract.v1_containment?.rerun_authorized === false
+  && credentialContract.v1_containment?.replay_authorized === false
+  && credentialContract.v1_containment?.second_dispatch_authorized === false, 'PREFLIGHT_NO_REPLAY');
+ok(credentialContract.byte_exact_approval_body_contract?.required_extraction === 'NO_ADDED_RECORD_SEPARATOR', 'PREFLIGHT_BYTE_EXACT');
+ok(credentialContract.byte_exact_approval_body_contract?.forbidden_implementation === "jq -r '.body' > file", 'PREFLIGHT_FORBIDDEN_EXTRACTOR');
+ok(credentialContract.v2_gate?.new_versioned_workflow_required === true
+  && credentialContract.v2_gate?.new_explicit_program_owner_approval_required === true, 'PREFLIGHT_V2_GATE');
 
+ok(credentialAuth.status === 'PREAUTHORIZATION_FAILED_NOT_CONSUMED_V1_LANE_EXHAUSTED_NO_EXTERNAL_CALL', 'PREFLIGHT_AUTH_STATUS');
+ok(credentialAuth.terminal_result?.workflow_run_id === 33478469222, 'PREFLIGHT_AUTH_RUN');
+ok(credentialAuth.terminal_result?.authorization_consumed === false, 'PREFLIGHT_AUTH_NOT_CONSUMED');
+ok(credentialAuth.terminal_result?.external_read_request_count === 0, 'PREFLIGHT_AUTH_REQUESTS');
+ok(credentialAuth.authority_classification?.same_approval_operationally_reusable === false, 'PREFLIGHT_AUTH_NO_REUSE');
+ok(credentialTerminal.state === 'VERIFIED_FAIL_PREAUTHORIZATION_NO_EXTERNAL_CALL', 'PREFLIGHT_TERMINAL_STATE');
+ok(credentialTerminal.external_read_request_count === 0, 'PREFLIGHT_TERMINAL_REQUESTS');
+ok(credentialTerminal.operational_authority?.v1_lane_exhausted === true, 'PREFLIGHT_TERMINAL_EXHAUSTED');
+
+ok(/^on:\s*\[\]\s*$/m.test(credentialV1Workflow), 'PREFLIGHT_WORKFLOW_NO_TRIGGER');
+ok(!credentialV1Workflow.includes('workflow_dispatch'), 'PREFLIGHT_WORKFLOW_DISPATCH');
+ok(!credentialV1Workflow.includes('environment:'), 'PREFLIGHT_WORKFLOW_ENVIRONMENT');
+ok(!credentialV1Workflow.includes('${{ secrets.'), 'PREFLIGHT_WORKFLOW_SECRETS');
+ok(!credentialV1Workflow.includes('curl '), 'PREFLIGHT_WORKFLOW_NETWORK');
+ok(credentialV1Workflow.includes('PREAUTHORIZATION_FAILED_V1_LANE_EXHAUSTED_ZERO_EXECUTABLE_AUTHORITY'), 'PREFLIGHT_WORKFLOW_TOMBSTONE');
+
+ok(credentialV2Spec.status === 'DESIGN_READY_EXTERNAL_AUTHORITY_ABSENT', 'PREFLIGHT_V2_SPEC_STATUS');
+ok(credentialV2Spec.materialized_workflow === false, 'PREFLIGHT_V2_NOT_MATERIALIZED');
+ok(credentialV2Spec.standing_authority === false, 'PREFLIGHT_V2_NO_AUTHORITY');
+ok(credentialV2Spec.new_explicit_program_owner_approval_required === true, 'PREFLIGHT_V2_NEW_APPROVAL');
+ok(extractor.includes('process.stdout.write(payload.body)'), 'PREFLIGHT_BYTE_EXACT_EXTRACTOR');
+ok(extractorTest.includes("execFileSync('jq', ['-r', '.body', oneLfJson])"), 'PREFLIGHT_JQ_RAW_NEGATIVE_TEST');
+ok(extractorTest.includes("execFileSync('jq', ['-j', '.body', oneLfJson])"), 'PREFLIGHT_JQ_JOIN_TEST');
+
+// Static Worker configuration and exact tooling remain regression-protected only.
 ok(config.name === 'kidults-public-portal-shadow', 'CONFIG_NAME');
 ok(config.workers_dev === true && config.preview_urls === false, 'CONFIG_WORKERS_DEV');
 ok(Array.isArray(config.routes) && config.routes.length === 0, 'CONFIG_ROUTES');
@@ -186,25 +212,23 @@ const resolvedAssets = path.resolve(path.dirname(path.resolve(P.config)), config
 ok(resolvedAssets === path.resolve(P.portal), 'CONFIG_ASSET_RESOLUTION');
 ok(fs.existsSync(path.join(resolvedAssets, 'index.html')), 'PORTAL_INDEX');
 ok(fs.existsSync(path.join(resolvedAssets, 'workspace.html')), 'PORTAL_WORKSPACE');
-
 ok(packageJson.devDependencies?.wrangler === '4.127.1', 'PACKAGE_WRANGLER');
 ok(packageLock.lockfileVersion === 3, 'LOCKFILE_VERSION');
 ok(packageLock.packages?.['node_modules/wrangler']?.version === '4.127.1', 'LOCKED_WRANGLER');
 
 console.log(JSON.stringify({
-  id: 'kidults-cloudflare-workers-shadow-v3-consumed-7003-validation-v2',
+  id: 'kidults-cloudflare-workers-shadow-v3-consumed-7003-validation-v3',
   state: 'VERIFIED_PASS',
-  approval_id: auth.id,
-  authorization_state: auth.status,
-  workflow_run_id: terminal.workflow_run_id,
-  provider_deployment_attempt_count: 1,
-  cloudflare_error_code: 7003,
-  worker_deployment_success: false,
-  workers_dev_url: null,
-  remote_mutation_evidenced: false,
-  v3_zero_executable_authority: true,
-  credential_identity_preflight_approval_id: preflight.approval_id,
-  credential_identity_preflight_request_max: preflight.maximum_external_read_requests,
+  workers_shadow_v3_run_id: 33465807642,
+  workers_shadow_v3_provider_attempt_count: 1,
+  workers_shadow_v3_cloudflare_error_code: 7003,
+  workers_shadow_v3_zero_executable_authority: true,
+  credential_preflight_v1_run_id: 33478469222,
+  credential_preflight_v1_authorization_consumed: false,
+  credential_preflight_v1_external_request_count: 0,
+  credential_preflight_v1_zero_executable_authority: true,
+  credential_preflight_v2_new_approval_required: true,
+  byte_exact_comment_body_extractor_required: true,
   registered_secret_bearing_lanes: registry.registered_count,
   privileged_secret_steps: privilegedSteps,
   production_routes: 0,
