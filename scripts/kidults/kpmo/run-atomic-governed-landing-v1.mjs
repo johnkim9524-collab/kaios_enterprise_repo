@@ -87,11 +87,9 @@ try {
   statusTouched = true;
   const repositoryState = await request('');
   assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
-  const [initial, initialMain, files] = await Promise.all([
-    request(`/pulls/${prNumber}`),
-    request('/branches/main'),
-    pages(`/pulls/${prNumber}/files`),
-  ]);
+  const initial = await request(`/pulls/${prNumber}`);
+  const initialMain = await request('/branches/main');
+  const files = await pages(`/pulls/${prNumber}/files`);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
@@ -134,10 +132,8 @@ try {
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
 
-  const [final, finalMain] = await Promise.all([
-    request(`/pulls/${prNumber}`),
-    request('/branches/main'),
-  ]);
+  const final = await request(`/pulls/${prNumber}`);
+  const finalMain = await request('/branches/main');
   assertStableFinalReread(initial, final, {
     repository,
     expectedHeadSha,
@@ -149,10 +145,8 @@ try {
   assertAtomicLandingMergeable(final, 'FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   await publish('success', 'Exact-head atomic landing authorized');
-  const [immediatePreMerge, immediateMain] = await Promise.all([
-    request(`/pulls/${prNumber}`),
-    request('/branches/main'),
-  ]);
+  const immediatePreMerge = await request(`/pulls/${prNumber}`);
+  const immediateMain = await request('/branches/main');
   assertStableFinalReread(initial, immediatePreMerge, {
     repository,
     expectedHeadSha,
