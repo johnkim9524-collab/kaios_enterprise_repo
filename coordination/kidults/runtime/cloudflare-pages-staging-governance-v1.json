@@ -55,7 +55,7 @@
     "workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml",
     "environment": "kidults-cloudflare-readonly",
     "triggers": [
-      "pull_request"
+      "workflow_dispatch"
     ],
     "schedule": "DISABLED",
     "settings_readback_required": false,
@@ -71,7 +71,9 @@
     "provider_call_reachable": false,
     "historical_provider_receipt_is_runtime_authorization": false,
     "fresh_exact_main_program_owner_approval_required": true,
-    "issue": 1831
+    "issue": 1831,
+    "trigger_semantics": "INERT_REQUEST_SURFACE_ONLY_JOB_FALSE",
+    "replacement_rule": "NEW_VERSIONED_WORKFLOW_AND_NEW_EXACT_MAIN_PROGRAM_OWNER_APPROVAL"
   },
   "emergency_control": {
     "state": "FAIL_CLOSED_PENDING_ISSUE_1576",
