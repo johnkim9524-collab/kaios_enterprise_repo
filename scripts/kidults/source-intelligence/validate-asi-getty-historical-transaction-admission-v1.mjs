@@ -20,6 +20,15 @@ const same = (left, right) => JSON.stringify(stable(left)) === JSON.stringify(st
 const digestText = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const digestValue = (value) => digestText(JSON.stringify(stable(value)));
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
+const workflowPath = '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml';
+const workflowText = fs.readFileSync(workflowPath, 'utf8');
+for (const marker of [
+  'KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
+  'source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA',
+  'event_sha:process.env.GITHUB_SHA',
+  'commit/${process.env.KPMO_EXPECTED_SOURCE_SHA}',
+]) assert(workflowText.includes(marker), `GETTY_SOURCE_LINEAGE_MARKER_MISSING_${marker}`);
+assert(!/^\s*sha:process\.env\.GITHUB_SHA,/m.test(workflowText), 'GETTY_AMBIGUOUS_EVENT_SHA_REINTRODUCED');
 const output = (name) => json(path.join(outputDir, name));
 
 const observation = json(observationPath);
