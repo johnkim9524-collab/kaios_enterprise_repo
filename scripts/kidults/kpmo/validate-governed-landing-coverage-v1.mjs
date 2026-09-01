@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.3.0', 'POLICY_VERSION');
+  require(policy.version === '1.4.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -41,6 +41,17 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   }
   require(!prefixes.has('coordination/kidults/providers/'), 'STALE_PROVIDER_PREFIX_POLICY');
   require(!workflow.includes("'coordination/kidults/providers/'"), 'STALE_PROVIDER_PREFIX_WORKFLOW');
+
+  const generation = policy.approval_generation_policy || {};
+  require(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'APPROVAL_GENERATION_MODE');
+  require(generation.active_record_exact_main_equality_required === true, 'APPROVAL_GENERATION_ACTIVE_RECORD');
+  require(generation.issuance_main_must_equal_pr_base_sha === true, 'APPROVAL_GENERATION_PR_BASE');
+  require(generation.issuance_main_must_equal_live_main_sha === true, 'APPROVAL_GENERATION_LIVE_MAIN');
+  require(generation.survives_main_drift === false, 'APPROVAL_GENERATION_DRIFT');
+  require(generation.ancestor_reuse_allowed === false, 'APPROVAL_GENERATION_ANCESTRY');
+  require(generation.same_candidate_blob_different_main_allowed === false, 'APPROVAL_GENERATION_SAME_BLOB');
+  require(generation.stale_canonical_comment_allowed === false, 'APPROVAL_GENERATION_STALE_COMMENT');
+  require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
   const review = policy.review_policy || {};
   require(review.minimum_non_author_approvals === 0, 'APPROVAL_COUNT_NOT_ZERO');
@@ -74,6 +85,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready; operation-specific atomic landing is required",
+    'validate-approval-generation-equality-live-pr-v1.mjs',
+    'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
 
   for (const marker of [
@@ -91,8 +104,11 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'assertNativeRequiredContexts',
     'SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS',
     'assertLandingActorAndAuthorization',
+    'assertChangedApprovalGenerationEquality',
+    'ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN',
     'immediatePreMerge',
     'IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT',
+    'IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT',
     "body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})",
     "await publish('failure'",
   ]) require(atomicRunner.includes(marker), `ATOMIC_RUNNER_MARKER_MISSING:${marker}`);
@@ -106,9 +122,14 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   for (const marker of ['pull_request_target:', 'statuses: write', 'run-scope-aware-authoritative-status-v1.mjs', 'closed]']) {
     require(aggregateWorkflow.includes(marker), `AGGREGATE_WORKFLOW_MARKER_MISSING:${marker}`);
   }
-  for (const marker of ['resolveScopeRequirements', 'evaluateRequiredCheckRuns', "await postStatus('failure'", 'assertStableFinalReread(initial, final']) {
-    require(aggregateRunner.includes(marker), `AGGREGATE_RUNNER_MARKER_MISSING:${marker}`);
-  }
+  for (const marker of [
+    'resolveScopeRequirements',
+    'evaluateRequiredCheckRuns',
+    'assertChangedApprovalGenerationEquality',
+    'SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN',
+    "await postStatus('failure'",
+    'assertStableFinalReread(initial, final',
+  ]) require(aggregateRunner.includes(marker), `AGGREGATE_RUNNER_MARKER_MISSING:${marker}`);
 
   require(workflow.includes("state:'ZERO_DIFF_NO_GOVERNED_CHANGE_PASS'"), 'ZERO_DIFF_RECEIPT_MISSING');
   require(workflow.includes('commitCount !== 0 || changedFileCount !== 0'), 'ZERO_DIFF_METADATA_FAIL_CLOSED_MISSING');
@@ -256,6 +277,34 @@ const mutations = [
     atomicRunner,
     aggregateRunner,
   },
+  {
+    id: 'APPROVAL_ANCESTOR_REUSE_REINTRODUCED',
+    policy: {
+      ...policy,
+      approval_generation_policy: {
+        ...policy.approval_generation_policy,
+        ancestor_reuse_allowed: true,
+      },
+    },
+    workflow,
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'APPROVAL_READY_GATE_REMOVED',
+    policy,
+    workflow: workflow.replace('Enforce active approval-generation equality before readiness', 'Approval generation check removed'),
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
 ];
 
 const mutationResults = mutations.map(mutation => ({
@@ -275,7 +324,7 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.3.0',
+  version: '1.4.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
@@ -309,6 +358,10 @@ const receipt = {
     native_required_status_contexts: policy.bypass_policy.required_status_contexts,
     zero_coverage_scope_fails_closed: true,
     technical_preflight_is_merge_authorization: false,
+    active_approval_exact_main_equality: true,
+    approval_ancestor_reuse_allowed: false,
+    same_candidate_blob_different_main_allowed: false,
+    stale_canonical_comment_allowed: false,
   },
   mutations: mutationResults,
   findings,
