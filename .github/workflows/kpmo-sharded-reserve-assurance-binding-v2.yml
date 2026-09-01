@@ -1,0 +1,116 @@
+name: KPMO Sharded Reserve Assurance Binding V2
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kpmo-sharded-reserve-assurance-binding-v2.yml'
+      - 'scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.py'
+      - 'scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.test.py'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Sharded Source Reserve v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  contract-self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - name: Validate class-specific Reserve archive contract and negatives
+        run: |
+          set -euo pipefail
+          python3 -m py_compile scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.py
+          python3 scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.test.py
+
+  bind-exact-reserve:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PACKET_DIR: /tmp/kpmo-sharded-reserve-assurance-binding-v2
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+      SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      SOURCE_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Initialize fail-closed binding receipt
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKET_DIR"
+          jq -n \
+            --arg sha "$SOURCE_SHA" --argjson run "$SOURCE_RUN_ID" --argjson attempt "$SOURCE_RUN_ATTEMPT" \
+            '{schema_version:"1.0.0",receipt_type:"KPMO_SHARDED_RESERVE_ASSURANCE_BINDING_V2",state:"VERIFIED_FAIL",source_sha:$sha,source_run_id:$run,source_run_attempt:$attempt,failure_class:"BINDING_NOT_COMPLETED",promotion_eligible:false,public:"HOLD",production:"HOLD",g5:"EXPLICIT_APPROVAL_REQUIRED"}' \
+            > "$PACKET_DIR/terminal-binding.json"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - name: Bind and validate exact Reserve artifact class
+        id: bind
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          [[ "$SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SOURCE_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          test "$SOURCE_CONCLUSION" = success
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > /tmp/reserve-v2-source-run.json
+          jq -e \
+            --argjson run "$SOURCE_RUN_ID" --argjson attempt "$SOURCE_RUN_ATTEMPT" --arg sha "$SOURCE_SHA" --arg repo "$GITHUB_REPOSITORY" \
+            '.id==$run and .run_attempt==$attempt and .name=="KIDULTS ASI Sharded Source Reserve v1" and .path==".github/workflows/kidults-asi-sharded-source-reserve-v1.yml" and .repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success" and (.event|IN("schedule","workflow_dispatch","workflow_run"))' \
+            /tmp/reserve-v2-source-run.json >/dev/null
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/artifacts?per_page=100" > /tmp/reserve-v2-artifacts.json
+          jq -e '.total_count == (.artifacts|length)' /tmp/reserve-v2-artifacts.json >/dev/null
+          COUNT=$(jq --argjson run "$SOURCE_RUN_ID" --arg sha "$SOURCE_SHA" '[.artifacts[]|select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)]|length' /tmp/reserve-v2-artifacts.json)
+          test "$COUNT" -eq 1
+          ARTIFACT_ID=$(jq -r --argjson run "$SOURCE_RUN_ID" --arg sha "$SOURCE_SHA" '[.artifacts[]|select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' /tmp/reserve-v2-artifacts.json)
+          ARTIFACT_DIGEST=$(jq -r --argjson run "$SOURCE_RUN_ID" --arg sha "$SOURCE_SHA" '[.artifacts[]|select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' /tmp/reserve-v2-artifacts.json)
+          ARTIFACT_EXPIRES=$(jq -r --argjson run "$SOURCE_RUN_ID" --arg sha "$SOURCE_SHA" '[.artifacts[]|select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].expires_at // empty' /tmp/reserve-v2-artifacts.json)
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          ARTIFACT_EXPIRES="$ARTIFACT_EXPIRES" node -e "const t=Date.parse(process.env.ARTIFACT_EXPIRES);if(!Number.isFinite(t)||t<=Date.now())throw new Error('RESERVE_ARTIFACT_EXPIRED')"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/reserve-v2.zip
+          python3 scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.py \
+            --archive /tmp/reserve-v2.zip --expected-digest "$ARTIFACT_DIGEST" --expected-source-sha "$SOURCE_SHA" \
+            --receipt "$PACKET_DIR/archive-contract.json"
+          jq -e '.state=="VERIFIED_PASS" and .entry_count==258 and .shard_count==256 and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD"' "$PACKET_DIR/archive-contract.json" >/dev/null
+          MANIFEST_DIGEST=$(jq -r '.manifest_digest' "$PACKET_DIR/archive-contract.json")
+          SHARD_SET_DIGEST=$(jq -r '.shard_set_digest' "$PACKET_DIR/archive-contract.json")
+          ACTIVATION_DIGEST=$(jq -r '.activation_receipt_digest' "$PACKET_DIR/archive-contract.json")
+          jq -n \
+            --arg sha "$SOURCE_SHA" --argjson run "$SOURCE_RUN_ID" --argjson attempt "$SOURCE_RUN_ATTEMPT" \
+            --argjson artifact "$ARTIFACT_ID" --arg artifactDigest "$ARTIFACT_DIGEST" --arg manifestDigest "$MANIFEST_DIGEST" \
+            --arg shardSetDigest "$SHARD_SET_DIGEST" --arg activationDigest "$ACTIVATION_DIGEST" \
+            '{schema_version:"1.0.0",receipt_type:"KPMO_SHARDED_RESERVE_ASSURANCE_BINDING_V2",state:"VERIFIED_PASS",source_sha:$sha,source_run_id:$run,source_run_attempt:$attempt,artifact_id:$artifact,artifact_digest:$artifactDigest,manifest_digest:$manifestDigest,shard_set_digest:$shardSetDigest,activation_receipt_digest:$activationDigest,exact_artifact_class_contract:true,entry_count:258,shard_count:256,promotion_eligible:false,whole_platform_authority:false,public:"HOLD",production:"HOLD",g5:"EXPLICIT_APPROVAL_REQUIRED"}' \
+            > "$PACKET_DIR/terminal-binding.json"
+      - name: Upload immutable Reserve binding packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-sharded-reserve-assurance-binding-v2-${{ env.SOURCE_SHA }}-${{ env.SOURCE_RUN_ID }}-${{ env.SOURCE_RUN_ATTEMPT }}
+          path: ${{ env.PACKET_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Preserve fail-closed binding result
+        if: always()
+        run: |
+          set -euo pipefail
+          test '${{ steps.bind.outcome }}' = success
+          jq -e '.state=="VERIFIED_PASS" and .promotion_eligible==false and .whole_platform_authority==false and .production=="HOLD" and .public=="HOLD"' "$PACKET_DIR/terminal-binding.json" >/dev/null
