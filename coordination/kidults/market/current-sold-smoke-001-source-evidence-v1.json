@@ -1,0 +1,25 @@
+{
+  "id": "kidults-current-sold-smoke-001-source-evidence-v1",
+  "source_id": "us-state-department-online-auction",
+  "auction_post": "The Hague, NL",
+  "auction_id": "646ef583-4bb8-43a6-b3d5-a5909e1452a5",
+  "source_event_id": "646ef583-4bb8-43a6-b3d5-a5909e1452a5::AW7607L",
+  "evidence_urls": [
+    "https://online-auction.state.gov/en-US",
+    "https://online-auction.state.gov/en-US/Auction/Index/646ef583-4bb8-43a6-b3d5-a5909e1452a5/Page/24",
+    "https://travel.state.gov/content/travel/en/copyright-disclaimer.html"
+  ],
+  "fact_projection": {
+    "scheduled_closure": "2026-08-19T10:00:00Z",
+    "item_title": "TELEVISION - SONY (AW7607L)",
+    "model": "KDL-26BX320",
+    "transaction_status": "SOLD",
+    "realized_consideration": 9,
+    "currency": "EUR"
+  },
+  "provenance_digest": "sha256:54c500ce16b847dc46f3052a300d407cb4379a119ccfb119bf94f49a6e6f1124",
+  "retention": "FACTUAL_FIELDS_ONLY",
+  "raw_html": false,
+  "images": false,
+  "personal_data": false
+}
