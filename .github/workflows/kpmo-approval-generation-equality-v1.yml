@@ -10,6 +10,7 @@ on:
       - 'scripts/kidults/kpmo/lib/approval-generation-equality-v1.mjs'
       - 'scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs'
       - 'scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
       - 'scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs'
       - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
@@ -25,7 +26,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Validate exact-main approval generation equality
+    name: Validate complete approval authority registry
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -49,11 +50,14 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Run exact-main approval generation negative tests
+      - name: Run complete-registry approval generation negative tests
         run: node --test tests/kidults/kpmo/approval-generation-equality-v1.test.mjs
 
-      - name: Validate enforcement integration
+      - name: Validate full-registry enforcement integration
         run: node scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs
+
+      - name: Validate governed landing coverage integration
+        run: node scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs
 
       - name: Validate lifecycle classifier self-test
         run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs --self-test
