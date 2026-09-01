@@ -39,6 +39,7 @@ sudoers_tmp="$(mktemp /etc/sudoers.d/.kidults-production-evidence.XXXXXX)"
 trap 'rm -f -- "${config_tmp:-}" "${sudoers_tmp:-}"' EXIT
 {
   printf 'SOURCE_SHA=%q\n' "$source_sha"
+  printf 'COMPOSER_SHA256=%q\n' "$(digest scripts/production/compose-kidults-production-readiness-evidence-v1.mjs)"
   printf 'SEALER_SHA256=%q\n' "$(digest scripts/production/seal-kidults-production-evidence.sh)"
   printf 'GATE_SHA256=%q\n' "$(digest scripts/production/validate-kidults-production-release-v1.mjs)"
   printf 'POLICY_SHA256=%q\n' "$(digest coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json)"

@@ -22,6 +22,16 @@ This sprint does not modify the Kidults production runtime, containers, database
 
 ## Required evidence
 
+Before sealing, the pinned root helper runs
+`compose-kidults-production-readiness-evidence-v1.mjs`. The composer consumes
+the six independently produced auxiliary receipts and every `support/...`
+receipt. It derives the three negative staging-delta fields from the audited
+database/unauthenticated boundary and the governed rights/schema census, and
+derives all five positive fields from their independent auxiliary receipts. It
+constructs both missing evidence members and runs the canonical
+technical validator before publishing either output. Missing, redirected,
+multi-linked, stale-SHA, malformed, or non-passing inputs fail closed.
+
 1. `production-audit.json`
 2. `production-rollback-rehearsal.json`
 3. `production-mobile-320.json`

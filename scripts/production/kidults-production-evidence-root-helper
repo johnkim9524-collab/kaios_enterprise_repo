@@ -15,6 +15,7 @@ readonly WORKSPACE=/opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterpr
 readonly EVIDENCE_INTAKE=/var/lib/kaios/kidults-production-release/evidence-intake
 readonly ARCHIVE_ROOT=/mnt/ih_prod_01/backups/production-certification
 readonly EXPORT_ROOT=/opt/actions-runner/_work/_temp/kidults-production-release-evidence
+readonly COMPOSER_REL=scripts/production/compose-kidults-production-readiness-evidence-v1.mjs
 readonly SEALER_REL=scripts/production/seal-kidults-production-evidence.sh
 readonly GATE_REL=scripts/production/validate-kidults-production-release-v1.mjs
 readonly POLICY_REL=coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json
@@ -37,7 +38,7 @@ is_canonical_origin() {
 # shellcheck disable=SC1090
 source "$CONFIG"
 [[ "${SOURCE_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || fail SOURCE_SHA_PIN_INVALID
-for name in SEALER_SHA256 GATE_SHA256 POLICY_SHA256 CONTRACT_SHA256; do
+for name in COMPOSER_SHA256 SEALER_SHA256 GATE_SHA256 POLICY_SHA256 CONTRACT_SHA256; do
   [[ "${!name:-}" =~ ^[0-9a-f]{64}$ ]] || fail "${name}_PIN_INVALID"
 done
 
@@ -69,6 +70,7 @@ verify_file() {
     || fail "PINNED_FILE_DIGEST_MISMATCH:$relative"
 }
 verify_file "$SEALER_REL" "$SEALER_SHA256"
+verify_file "$COMPOSER_REL" "$COMPOSER_SHA256"
 verify_file "$GATE_REL" "$GATE_SHA256"
 verify_file "$POLICY_REL" "$POLICY_SHA256"
 verify_file "$CONTRACT_REL" "$CONTRACT_SHA256"
@@ -77,6 +79,13 @@ before="$(mktemp)"
 after="$(mktemp)"
 trap 'rm -f -- "${before:-}" "${after:-}"' EXIT
 find "$ARCHIVE_ROOT" -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$before"
+
+/usr/bin/env -i \
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  LC_ALL=C TZ=UTC \
+  /usr/bin/node "$WORKSPACE/$COMPOSER_REL" \
+    --evidence-dir "$EVIDENCE_INTAKE" \
+    --expected-source-sha "$SOURCE_SHA"
 
 /usr/bin/env -i \
   PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
