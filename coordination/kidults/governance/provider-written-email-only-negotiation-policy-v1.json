@@ -1,0 +1,108 @@
+{
+  "id": "KIDULTS_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1",
+  "version": "1.0.1",
+  "status": "MANDATORY_NON_BYPASS",
+  "effective_at": "2026-09-01T00:00:00Z",
+  "canonical_strategy_baseline": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "mandatory_strategy_addendum": "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md",
+  "scope": [
+    "INTELLIGENCE_HOLDINGS",
+    "KIDULTS",
+    "ARTFUND",
+    "CAPITALTIMES",
+    "MUCHMONEY",
+    "HUMANPOOL",
+    "AUTOBIT",
+    "KOMPARE"
+  ],
+  "program_owner_accessibility": {
+    "native_language_is_english": false,
+    "external_phone_call_available": false,
+    "external_voice_call_available": false,
+    "external_video_call_available": false,
+    "required_negotiation_channel": "WRITTEN_EMAIL_ONLY",
+    "required_reason": "ACCURATE_TECHNICAL_RIGHTS_PRICING_COMMERCIAL_AND_CONTRACT_REVIEW_WITH_AUDITABLE_RECORD",
+    "canonical_korean_communication_rule": "솔직하고 정중하게 양해를 구한다",
+    "required_communication_manner": "HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING",
+    "standard_written_explanation": "English is not my native language, and I would sincerely appreciate your understanding. To ensure accurate and reviewable discussion of technical, rights, pricing, commercial, and contractual terms, I conduct these negotiations by written email only."
+  },
+  "required_outbound_assertions": {
+    "written_email_only_channel_confirmed": true,
+    "honest_respectful_understanding_request_present_when_channel_reason_is_explained": true,
+    "outbound_call_offer_absent": true,
+    "provider_call_request_declined_in_writing_if_present": true,
+    "all_material_terms_requested_in_writing": true,
+    "program_owner_not_assigned_to_phone_voice_or_video_call": true
+  },
+  "forbidden_agent_actions": [
+    "OFFER_PHONE_VOICE_OR_VIDEO_CALL",
+    "ACCEPT_PHONE_VOICE_OR_VIDEO_CALL",
+    "ASK_PROGRAM_OWNER_FOR_CALL_AVAILABILITY",
+    "SUGGEST_CALL_BEFORE_WRITTEN_TERMS",
+    "SUGGEST_CALL_AFTER_WRITTEN_ALIGNMENT",
+    "DESCRIBE_SHORT_CALL_AS_USEFUL_OPTIONAL_OR_NEXT_STEP",
+    "TREAT_VERBAL_STATEMENT_AS_RIGHTS_COMMERCIAL_OR_CONTRACT_EVIDENCE",
+    "REPORT_PROVIDER_CALL_REQUEST_AS_PROGRAM_OWNER_WORK"
+  ],
+  "provider_call_request_handling": [
+    "HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING",
+    "POLITELY_DECLINE_CALL",
+    "DISCLOSE_NON_NATIVE_ENGLISH_CONTEXT_WHEN_RELEVANT",
+    "STATE_ACCURACY_AND_AUDITABLE_RECORD_REQUIRE_WRITTEN_EMAIL",
+    "REQUEST_EXACT_SAMPLE_SCHEMA_PRICING_TERM_SHEET_SCHEDULE_REDLINE_OR_RIGHTS_RESPONSE_IN_WRITING"
+  ],
+  "material_terms_required_in_writing": [
+    "PRODUCT_BUNDLE_ENDPOINT_AND_DELIVERY",
+    "SCHEMA_IDENTIFIERS_FIELD_SEMANTICS_AND_CORRECTIONS",
+    "PURPOSE_SPECIFIC_RIGHTS_AND_ENVIRONMENTS",
+    "PRIVATE_STORAGE_NORMALIZATION_ENTITY_RESOLUTION_HUMAN_QA_AND_ANALYTICS",
+    "RETENTION_DELETION_AND_POST_TERMINATION",
+    "DERIVED_OUTPUT_AND_PRE_EXISTING_IP",
+    "PUBLIC_DISPLAY_ATTRIBUTION_REDISTRIBUTION_TERRITORY_AFFILIATE_AND_CONTRACTOR_SCOPE",
+    "PRICING_VOLUME_MINIMUMS_PREPAYMENT_CREDITS_AND_OVERAGES",
+    "TERM_RENEWAL_CANCELLATION_NOTICE_CURE_EXPORT_TRANSITION_ASSIGNMENT_NOVATION_AND_CHANGE_OF_CONTROL",
+    "QUOTA_SLA_SUPPORT_INCIDENT_AND_SCHEMA_CHANGE",
+    "SECURITY_PRIVACY_AUDIT_AND_DATA_PROCESSING"
+  ],
+  "fail_closed": {
+    "outbound_offers_or_accepts_call": "DO_NOT_SEND",
+    "agent_assigns_call_to_program_owner": "CONTROL_DEFECT_DO_NOT_SEND",
+    "provider_requires_call_as_prerequisite": "HOLD_OR_REPLACE",
+    "provider_refuses_written_material_terms": "HOLD_OR_REPLACE",
+    "material_terms_only_verbal": "NON_ADMISSIBLE",
+    "provider_claim_without_written_evidence": "UNVERIFIED_PROVIDER_CLAIM"
+  },
+  "classic_com_application": {
+    "requested_bundles": [
+      "TAXONOMY",
+      "SALES_HISTORY"
+    ],
+    "programmatic_widget_generation": "NOT_REQUIRED_FOR_CURRENT_PRIVATE_INTELLIGENCE_SCOPE",
+    "schema_matched_sample": "CONTROL_ONLY_SCHEMA_PREVIEW",
+    "sample_is_live_canary": false,
+    "sample_is_reliability_evidence": false,
+    "sample_creates_rights": false,
+    "call_as_prerequisite": "REJECT",
+    "written_request_items": [
+      "SCHEMA_MATCHED_SAMPLE",
+      "MONTHLY_FEE",
+      "MINIMUM_TERM",
+      "CANCELLATION_NOTICE",
+      "API_QUOTA",
+      "HISTORICAL_DEPTH",
+      "CORRECTION_PROCESS",
+      "MASTER_AGREEMENT_AND_SCHEDULE_APPLICATION"
+    ],
+    "written_refusal_outcome": "HOLD_OR_REPLACE"
+  },
+  "authority_boundary": {
+    "external_communication": "SEPARATE_EXPLICIT_AUTHORITY_REQUIRED",
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential": "EXPLICIT_APPROVAL_REQUIRED",
+    "acquisition": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
