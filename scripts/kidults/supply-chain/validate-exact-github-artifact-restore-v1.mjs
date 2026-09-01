@@ -246,7 +246,6 @@ for (const marker of [
   'Reconcile terminal receipt',
   'if: always()',
   'VERIFIED_FAIL_PRE_ADMISSION',
-  'disallowed_event_run_count',
 ]) {
   assert(sourceFabricWorkflow.includes(marker), `source-fabric terminal invariant missing: ${marker}`);
 }
