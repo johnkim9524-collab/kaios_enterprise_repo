@@ -1,0 +1,25 @@
+{
+  "id": "kidults-current-sold-smoke-001-receipt-v1",
+  "version": "1.0.0",
+  "state": "PENDING_EXACT_HEAD_CI",
+  "owned_engine": "KIDULTS_CURRENT_SOLD_ENGINE_V1",
+  "source_event": "646ef583-4bb8-43a6-b3d5-a5909e1452a5::AW7607L",
+  "source_snapshot_sha256": "54c500ce16b847dc46f3052a300d407cb4379a119ccfb119bf94f49a6e6f1124",
+  "acquisition_receipt_id": "ACQ-US-DOS-THEHAGUE-646EF583-AW7607L-20260901",
+  "rights_receipt_id": "RIGHTS-US-DOS-PUBLIC-DOMAIN-CURRENT-SOLD-AW7607L-V1",
+  "expected_admission": {
+    "smoke_empirical_reference_count": 1,
+    "collector_current_sold_market_evidence_count": 0,
+    "official_track_b_input": false,
+    "approved_projection": false
+  },
+  "authority_boundary": {
+    "provider_mutation": false,
+    "credential_use": false,
+    "spend": false,
+    "contract": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
