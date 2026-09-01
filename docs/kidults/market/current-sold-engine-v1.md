@@ -1,102 +1,173 @@
-# KIDULTS Current-SOLD Engine V1.1
+# KIDULTS Current-SOLD Engine V1.2
 
 ## Decision and truth boundary
 
-`KIDULTS Current-SOLD` is an owned intelligence product. External providers remain replaceable evidence/source layers; they do not own the canonical event, evidence, correction, or ledger identities.
+`KIDULTS Current-SOLD` is an owned intelligence product. External providers remain replaceable evidence/source layers; they do not own canonical event, evidence, correction, or ledger identities.
 
-This change completes the internal code path:
+The protected execution chain is:
 
-`SOURCE -> ACQUISITION_RECEIPT -> RIGHTS_RECEIPT -> OBSERVATION -> CURRENT_SOLD_EVENT -> CANONICAL_EVIDENCE -> POSTGRES APPEND-ONLY LEDGER -> TRACK B -> PROJECTION`
+`SOURCE -> ACQUISITION_RECEIPT -> RIGHTS_RECEIPT -> OBSERVATION -> ATOMIC_CURRENT_SOLD_ADMISSION -> CURRENT_SOLD_EVENT -> CANONICAL_EVIDENCE -> PRIVATE_DRY_RUN_RECEIPT -> POSTGRES APPEND-ONLY LEDGER -> TRACK B -> PROJECTION`
 
-It does **not** claim that empirical Current-SOLD data has been acquired. The empirical count remains `0`. The PostgreSQL migration is authored but not applied. No provider call, private database write, Public release, Production release, or G5 activation is performed by this change.
+V1.2 is still internal control code. It does **not** claim empirical Current-SOLD acquisition, apply the PostgreSQL migration, write a private database row, call a provider, deploy, or grant Public, Production, or G5 authority.
 
-## P0 hardening
+## Collaboration audit findings fixed in V1.2
 
-The admission engine now rejects an observation unless both acquisition and rights receipt IDs resolve inside the supplied governed registry and all of the following fields bind exactly:
+### 1. Partial batches could expose valid-looking Evidence
 
-- source ID, source transaction ID, and exact HTTPS source URL;
-- provenance digest and canonical content digest;
-- exact source commit SHA;
-- exact canonical run ID;
-- private Current-SOLD rights purpose and allow decision;
-- optional rights validity interval.
+The V1.1 classifier could return `PARTIAL_FAIL_CLOSED` while retaining otherwise valid rows in `admitted`; the V1.1 bundle then transformed those rows into canonical Evidence even though PostgreSQL writing was blocked.
 
-The engine also fail-closes the following cases:
+V1.2 inserts an atomic admission boundary:
 
-- one source transaction is mapped to different canonical objects: every related row is quarantined;
-- one source transaction has multiple uncorrected contents: every related row is quarantined;
-- price, currency, fee semantics, normalized price pair, or correction lineage is malformed;
-- source SHA or canonical run binding is missing or malformed;
-- state is not terminal `SOLD`, the sale is stale beyond 30 days, or rights are not allowed.
+- every observation must pass;
+- any rejection or quarantine withholds **all** admitted events;
+- non-PASS bundles contain zero event versions and zero canonical Evidence;
+- validated rows may appear only as digest-only diagnostic identities;
+- a non-PASS result is never ledger eligible.
 
-## Canonical identities
+This closes downstream consumption of a partial batch rather than merely blocking the final database writer.
 
-| Identity | Meaning | Stability |
-| --- | --- | --- |
-| `event_id` | Source transaction identity: `source_id + source_event_id` | Stable when transaction content changes |
-| `content_digest` | SHA-256 of canonical transaction content | Changes for price/content/correction changes |
-| `fact_id` | Canonical event-and-content fact identity | Stable across repeated governed acquisitions of the same fact |
-| `evidence_id` | Fact plus exact source SHA, run ID, acquisition receipt, and rights receipt | Unique to an exact governed evidence lineage |
+### 2. Thirty-day observations were indistinguishable from strict Current-SOLD
 
-This separation prevents content edits from silently creating a new transaction identity while preserving exact evidence provenance across repeated runs.
+The admission policy defines:
 
-## Canonical Evidence
+- strict Current-SOLD: sale age no greater than 7 days;
+- bounded recent history: greater than 7 and no greater than 30 days;
+- older facts: historical only.
 
-`scripts/kidults/market/current-sold-evidence-v1.mjs` revalidates event identity and content digest before producing `SOLD_TRANSACTION_PRICE` Evidence. Raw provider payloads do not enter Track B. Track B receives only canonical Evidence with:
+V1.2 makes the canonical Current-SOLD admission path strict at seven days. A sale aged 8–30 days is rejected from this product path with `CURRENT_SOLD_NOT_STRICT_CURRENT`. A future bounded-recent product must use a separate explicit classification and cannot inherit the Current-SOLD name.
 
-- realized sale assertion and fee semantics;
-- canonical object identity;
-- source, provenance, acquisition, rights, source SHA, and run lineage;
-- correction lineage;
-- private-only claim ceiling and explicit Public/Production/G5 HOLD.
+### 3. A supplied receipt registry needed an independent digest boundary
 
-## Batch envelope, CLI, and admission receipt
+The atomic bundle requires a separately supplied `expectedReceiptRegistryDigest`. The complete validated registry snapshot is hashed and must match that exact SHA-256 value before admission can proceed.
 
-The batch envelope binds every observation to one exact `source_sha` and `canonical_run_id`. Ambiguous duplicate receipt IDs are rejected before admission.
+For an empirical run, the digest authority class must be `GOVERNED_LEDGER_DIGEST`. Supplying the registry JSON and calculating an untrusted digest in the same empirical process is not sufficient governance; the caller must obtain the expected digest from the governed registry/ledger boundary.
 
-Example control-only invocation:
+### 4. The previous CLI could persist a raw full bundle
 
-```bash
-node scripts/kidults/market/current-sold-batch-v1.mjs \
-  --input /private/input/current-sold-batch.json \
-  --receipt-registry /private/input/current-sold-receipts.json \
-  --output /private/output/current-sold-bundle.json \
-  --now 2026-09-01T05:00:00.000Z
+The V1.1 full-bundle CLI remains available only as a lower-level control diagnostic. It is no longer the canonical first-empirical execution path.
+
+The V1.2 private dry-run runner:
+
+- accepts private input and receipt-registry files;
+- requires empirical files to be regular, non-symlink files inside an absolute private mount;
+- rejects empirical files with group/world permissions;
+- requires an exact external registry digest;
+- retains the raw bundle only in memory;
+- emits a redacted digest/count receipt with mode `0600`;
+- writes no PostgreSQL row and applies no migration;
+- prints no source URL, object identity, price, raw event, registry, or Evidence payload.
+
+## Canonical components
+
+| Role | Canonical component |
+| --- | --- |
+| Atomic admission and bundle | `scripts/kidults/market/current-sold-atomic-batch-v1.mjs` |
+| Lower-level observation classifier | `scripts/kidults/market/current-sold-engine-v1.mjs` |
+| Canonical Evidence transformer | `scripts/kidults/market/current-sold-evidence-v1.mjs` |
+| Private empirical/control dry-run | `scripts/kidults/market/current-sold-private-dry-run-v1.mjs` |
+| Synthetic control smoke | `scripts/kidults/market/current-sold-control-smoke-v1.mjs` |
+| Legacy full-bundle diagnostic | `scripts/kidults/market/current-sold-batch-v1.mjs` |
+| PostgreSQL writer | `scripts/kidults/market/current-sold-postgres-ledger-v1.mjs` |
+
+## Atomic batch semantics
+
+`admitAtomicCurrentSoldBatch` retains separate concepts:
+
+- `validated_candidate_count`: rows that passed the lower-level classifier;
+- `diagnostic_candidates`: event/content digest identities available only when the batch is blocked;
+- `admitted_count`: canonical admissions, always zero unless the entire batch is `PASS`;
+- `batch_admitted_current_sold_count`: never includes withheld candidates.
+
+A mixed batch containing one valid row and one invalid unrelated row is therefore:
+
+```text
+status=PARTIAL_FAIL_CLOSED
+validated_candidate_count=1
+admitted_count=0
+event_versions=0
+evidence=0
+ledger.write_eligible=false
 ```
 
-The CLI never overwrites an existing output file. The private bundle contains the validated receipt-registry snapshot and emits a deterministic admission receipt containing evaluation time, envelope, registry, event-version, Evidence, and admission digests. A `PASS` batch is marked `ELIGIBLE_NOT_ATTEMPTED`; a partial or failed batch is `BLOCKED_BY_ADMISSION` and must not reach the ledger writer.
+## Synthetic control smoke
 
-## PostgreSQL append-only ledger
+The control smoke fixture is generated at runtime and is explicitly classified as `CONTROL_SYNTHETIC`.
 
-The migration creates private event, Evidence, and PASS-receipt ledgers. Database constraints bind JSON payload identity fields to typed columns, deferred foreign keys bind event/Evidence rows to the batch receipt, an insert trigger independently enforces the exact correction head, and mutation triggers reject `UPDATE`, `DELETE`, and `TRUNCATE`; no update-upsert path exists.
+Its receipt must show:
 
-The writer uses one transaction and advisory locks sorted by event identity. It performs these checks before commit:
+```text
+control_synthetic_admitted=1
+empirical_admitted=0
+postgres_migration_applied=false
+postgres_rows_written=0
+provider_calls=0
+Public/Production/G5=HOLD
+```
 
-1. Recompute and verify the bound receipt-registry snapshot, evaluation time, envelope, event, Evidence, admission, and receipt digests; admission is re-executed before any SQL.
-2. Refuse any batch that is not full `PASS`.
-3. Load and validate the persisted event correction chain.
-4. Treat an exact replay as idempotent.
-5. Reject a different content body from another run unless it is a `CORRECTED` event that supersedes the exact persisted head digest and advances observed time.
-6. Insert event versions, canonical Evidence, and batch receipt atomically.
-7. Roll back the entire transaction on any conflict or collision.
+A successful synthetic smoke run proves only that the protected software path executes. It is prohibited as empirical, product, vertical, global, launch, Public, Production, or G5 evidence.
 
-The writer accepts an injected PostgreSQL-compatible client and therefore contains no embedded credential, DSN, secret, network endpoint, or automatic migration step.
+## Private empirical dry-run
 
-## Verification
+The canonical dry-run invocation is:
 
-Local control verification on 2026-09-01:
+```bash
+node scripts/kidults/market/current-sold-private-dry-run-v1.mjs \
+  --input /private/current-sold/input/batch.json \
+  --receipt-registry /private/current-sold/input/receipt-registry.json \
+  --expected-registry-digest sha256:<64-hex-governed-ledger-digest> \
+  --registry-authority-class GOVERNED_LEDGER_DIGEST \
+  --execution-class LAWFUL_EMPIRICAL_PRIVATE \
+  --private-mount-root /private/current-sold \
+  --receipt-output /private/current-sold/receipts/dry-run-receipt.json \
+  --now 2026-09-01T10:00:00.000Z
+```
 
-- Current-SOLD engine tests: 15 passed;
-- canonical Evidence tests: 5 passed;
-- batch/CLI tests: 6 passed;
-- PostgreSQL writer/migration tests: 8 passed;
-- total: **34 passed, 0 failed**;
-- all six JSON schemas parsed successfully;
-- all JavaScript modules passed syntax checks;
-- append-only SQL negative scan passed.
+The runner will fail closed when:
 
-These are control and pipeline tests. Synthetic test fixtures are not empirical Current-SOLD observations.
+- either input is outside the private mount;
+- an input is missing, empty, oversized, non-regular, a symlink, or accessible to group/others;
+- the registry digest is missing or differs;
+- the registry authority class does not match the execution class;
+- any observation is not terminal SOLD, is older than seven days, has invalid price/currency/fee semantics, has invalid correction lineage, or lacks exact receipt/source/run binding;
+- any row is rejected or quarantined.
+
+The dry-run receipt may report a lawful empirical admission count only when the entire batch is `PASS`. That count remains `PIPELINE_FUNCTIONAL_ONLY`. It does not authorize PostgreSQL writing or release.
+
+## PostgreSQL boundary
+
+The existing append-only migration and writer remain unchanged in V1.2. They accept only a full PASS bundle and independently recompute the admission, event, Evidence, and receipt digests before SQL.
+
+Migration application and the first private append-only write remain separate approval gates. V1.2 dry-run execution always records:
+
+```text
+write_requested=false
+write_performed=false
+migration_applied=false
+rows_written=0
+```
+
+## Verification target
+
+The exact-head workflow must complete all of the following:
+
+- parse the seven existing Current-SOLD schemas plus the private dry-run receipt schema;
+- syntax-check every Current-SOLD script and test;
+- pass the full Current-SOLD suite, expected at **44 tests / 0 failures**;
+- execute one runtime-generated synthetic control smoke;
+- assert that the smoke receipt is redacted, mode `0600`, atomic, non-empirical, and no-write;
+- pass the append-only PostgreSQL static negative scan.
 
 ## Next governed execution
 
-The first empirical execution remains a private smoke run with one lawful genuine terminal SOLD transaction. It must use a provenance-bound acquisition receipt, an applicable rights receipt, an exact source SHA/run ID, and a separately authorized private PostgreSQL target. Success permits only a `PIPELINE_FUNCTIONAL_ONLY` claim. Public, Production, and G5 remain HOLD.
+After V1.2 is merged, the next empirical step is a **single lawful genuine SOLD transaction in private dry-run mode only**.
+
+Required before that run:
+
+1. provenance-bound acquisition receipt;
+2. rights receipt applicable to private Current-SOLD use;
+3. governed receipt-registry snapshot and external exact digest;
+4. private mount containing `0600` input files;
+5. exact source SHA and canonical run ID;
+6. no PostgreSQL migration or write.
+
+Public, Production, and G5 remain HOLD.

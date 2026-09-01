@@ -8,11 +8,15 @@ on:
       - 'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json'
       - 'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json'
       - 'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json'
       - 'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json'
       - 'coordination/kidults/market/current-sold-engine-v1.json'
       - 'scripts/kidults/market/current-sold-engine-v1.mjs'
       - 'scripts/kidults/market/current-sold-evidence-v1.mjs'
       - 'scripts/kidults/market/current-sold-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-private-dry-run-v1.mjs'
+      - 'scripts/kidults/market/current-sold-control-smoke-v1.mjs'
       - 'scripts/kidults/market/current-sold-postgres-ledger-v1.mjs'
       - 'tests/kidults/market/current-sold-*.mjs'
       - 'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
@@ -30,7 +34,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Bind exact checked-out source SHA
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
           node-version: 24.19.0
@@ -48,6 +61,7 @@ jobs:
             'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json',
             'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json',
             'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json',
             'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json',
             'coordination/kidults/market/current-sold-engine-v1.json'
           ];
@@ -63,6 +77,41 @@ jobs:
           done
       - name: Run Current-SOLD fail-closed test suite
         run: node --test tests/kidults/market/current-sold-*.test.mjs
+      - name: Run runtime-generated synthetic control smoke
+        shell: bash
+        env:
+          CURRENT_SOLD_SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/current-sold-engine
+          node scripts/kidults/market/current-sold-control-smoke-v1.mjs \
+            --output out/current-sold-engine/control-smoke-receipt.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const receipt = JSON.parse(fs.readFileSync('out/current-sold-engine/control-smoke-receipt.json', 'utf8'));
+          if (receipt.status !== 'PASS') throw new Error('CURRENT_SOLD_CONTROL_SMOKE_STATUS_NOT_PASS');
+          if (receipt.execution_class !== 'CONTROL_SYNTHETIC') throw new Error('CURRENT_SOLD_CONTROL_SMOKE_CLASS_MISMATCH');
+          if (receipt.counts.control_synthetic_admitted !== 1 || receipt.counts.empirical_admitted !== 0) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_EMPIRICAL_BOUNDARY_BROKEN');
+          }
+          if (!receipt.atomicity.whole_batch_atomic || !receipt.atomicity.non_pass_admission_withheld) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_ATOMICITY_MISSING');
+          }
+          if (receipt.ledger.write_performed || receipt.ledger.migration_applied || receipt.ledger.rows_written !== 0) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_LEDGER_BOUNDARY_BROKEN');
+          }
+          if (receipt.claim_boundary.public !== 'HOLD' ||
+              receipt.claim_boundary.production !== 'HOLD' ||
+              receipt.claim_boundary.g5 !== 'HOLD') {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_RELEASE_BOUNDARY_BROKEN');
+          }
+          NODE
+          test "$(stat -c '%a' out/current-sold-engine/control-smoke-receipt.json)" = 600
+          if grep -Eq 'example\.invalid|control:synthetic|realized_consideration|source_url' out/current-sold-engine/control-smoke-receipt.json; then
+            echo 'CURRENT_SOLD_CONTROL_SMOKE_RAW_DATA_LEAK' >&2
+            exit 1
+          fi
+          echo 'CURRENT_SOLD_CONTROL_SMOKE_PASS'
       - name: Verify append-only PostgreSQL migration boundary
         shell: bash
         run: |
@@ -76,21 +125,28 @@ jobs:
             exit 1
           fi
           echo 'CURRENT_SOLD_APPEND_ONLY_SQL_PASS'
-      - name: Emit control-only receipt
+      - name: Emit control-only exact-head receipt
         if: always()
         shell: bash
+        env:
+          CURRENT_SOLD_EXACT_SHA: ${{ steps.source.outputs.source_sha }}
         run: |
           set -euo pipefail
           mkdir -p out/current-sold-engine
           cat > out/current-sold-engine/receipt.json <<EOF_RECEIPT
           {
-            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_1",
-            "source_sha":"${GITHUB_SHA}",
+            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_2",
+            "source_sha":"${CURRENT_SOLD_EXACT_SHA}",
             "run_id":"${GITHUB_RUN_ID}",
             "run_attempt":"${GITHUB_RUN_ATTEMPT}",
+            "whole_batch_atomic":true,
+            "strict_current_max_age_days":7,
+            "expected_tests":44,
             "empirical_current_sold_count":0,
             "postgres_migration_applied":false,
             "postgres_rows_written":0,
+            "provider_calls":0,
+            "deployment":false,
             "public":"HOLD",
             "production":"HOLD",
             "g5":"HOLD"
@@ -99,7 +155,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
-          name: kidults-current-sold-engine-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/current-sold-engine/receipt.json
+          name: kidults-current-sold-engine-v1-2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-engine
           if-no-files-found: error
           retention-days: 30
