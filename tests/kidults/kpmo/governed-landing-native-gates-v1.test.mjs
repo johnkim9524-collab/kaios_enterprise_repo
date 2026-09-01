@@ -9,6 +9,7 @@ import {
   assertSingleAuthoritativeProducer,
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
+  selectExactHeadProgramOwnerApproval,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
 
 const sha = 'a'.repeat(40);
@@ -59,6 +60,52 @@ test('deterministic LAND input does not substitute for live repository-owner act
   const authorization = `LAND-PR-1580-${sha.slice(0, 12)}`;
   code(() => assertLandingActorAndAuthorization('automation-bot', 'johnkim9524-collab', authorization, '1580', sha), 'PROGRAM_OWNER_LANDING_ACTOR_REQUIRED');
   assert.equal(assertLandingActorAndAuthorization('johnkim9524-collab', 'johnkim9524-collab', authorization, '1580', sha).actor, 'johnkim9524-collab');
+});
+
+test('exact-head Program Owner approval cannot be inherited or self-rebound', () => {
+  const authorization = `LAND-PR-1580-${sha.slice(0, 12)}`;
+  const approvalBody = head => [
+    'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V1',
+    'pull_request=1580',
+    `exact_base_sha=${'b'.repeat(40)}`,
+    `exact_head_sha=${head}`,
+    `authorization_id=LAND-PR-1580-${head.slice(0, 12)}`,
+    'scope=ONE_ATOMIC_GOVERNED_LANDING_ONLY',
+    'approval_rebind=FORBIDDEN',
+  ].join('\n');
+  const comment = (id, head, overrides = {}) => ({
+    id,
+    body: approvalBody(head),
+    user: {login: 'johnkim9524-collab'},
+    author_association: 'OWNER',
+    created_at: '2026-09-01T01:10:00Z',
+    updated_at: '2026-09-01T01:10:00Z',
+    ...overrides,
+  });
+  const input = {
+    repositoryOwner: 'johnkim9524-collab',
+    prNumber: 1580,
+    headSha: sha,
+    baseSha: 'b'.repeat(40),
+    authorizationId: authorization,
+    prCreatedAt: '2026-09-01T00:00:00Z',
+    headCommittedAt: '2026-09-01T01:00:00Z',
+    latestReadyAt: '2026-09-01T01:20:00Z',
+  };
+  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha)], input).authorization_id, authorization);
+  code(() => selectExactHeadProgramOwnerApproval([], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha), comment(2, 'c'.repeat(40), {
+    created_at: '2026-09-01T01:11:00Z', updated_at: '2026-09-01T01:11:00Z',
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    updated_at: '2026-09-01T01:12:00Z',
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T00:59:00Z', updated_at: '2026-09-01T00:59:00Z',
+  })], input), 'PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T01:21:00Z', updated_at: '2026-09-01T01:21:00Z',
+  })], input), 'PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {
