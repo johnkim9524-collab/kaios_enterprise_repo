@@ -52,6 +52,16 @@ jobs:
             scripts/kidults/market/current-sold-postlanding-v1.mjs \
             "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"
 
+      - name: Initialize durable atomic landing terminal receipt
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --initialize
+
       - name: Re-read live authority and execute exact-head server merge
         id: landing
         env:
@@ -86,6 +96,7 @@ jobs:
           check-latest: false
 
       - name: Validate exact merged Current-SOLD target and publish commit status
+        id: current_sold_postlanding
         if: steps.landing.outputs.current_sold_changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -108,3 +119,27 @@ jobs:
           path: out/current-sold-postlanding
           if-no-files-found: error
           retention-days: 30
+
+      - name: Reconcile durable atomic landing terminal receipt
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+          LANDING_STEP_OUTCOME: ${{ steps.landing.outcome }}
+          CURRENT_SOLD_POSTLANDING_OUTCOME: ${{ steps.current_sold_postlanding.outcome }}
+          CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+          ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --finalize
+
+      - name: Upload durable atomic landing terminal receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-governed-landing-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+          if-no-files-found: error
+          retention-days: 90
