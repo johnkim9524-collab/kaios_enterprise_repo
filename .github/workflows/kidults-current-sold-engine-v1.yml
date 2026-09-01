@@ -1,6 +1,29 @@
 name: KIDULTS Current-SOLD Engine V1
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'coordination/kidults/market/current-sold-event-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-evidence-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-engine-v1.json'
+      - 'scripts/kidults/market/current-sold-engine-v1.mjs'
+      - 'scripts/kidults/market/current-sold-evidence-v1.mjs'
+      - 'scripts/kidults/market/current-sold-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-private-dry-run-v1.mjs'
+      - 'scripts/kidults/market/current-sold-control-smoke-v1.mjs'
+      - 'scripts/kidults/market/current-sold-postgres-ledger-v1.mjs'
+      - 'tests/kidults/market/current-sold-*.mjs'
+      - 'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
+      - 'docs/kidults/market/current-sold-engine-v1.md'
+      - '.github/workflows/kidults-current-sold-engine-v1.yml'
   pull_request:
     paths:
       - 'coordination/kidults/market/current-sold-event-schema-v1.json'
@@ -80,8 +103,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs | tee /tmp/current-sold-tests.tap
-          grep -Eq '^# tests 51$' /tmp/current-sold-tests.tap
-          grep -Eq '^# pass 51$' /tmp/current-sold-tests.tap
+          grep -Eq '^# tests 53$' /tmp/current-sold-tests.tap
+          grep -Eq '^# pass 53$' /tmp/current-sold-tests.tap
           grep -Eq '^# fail 0$' /tmp/current-sold-tests.tap
       - name: Verify legacy raw bundle persistence is disabled
         shell: bash
@@ -162,7 +185,7 @@ jobs:
             "whole_batch_atomic":true,
             "strict_current_max_age_days":7,
             "max_clock_skew_seconds":300,
-            "expected_tests":51,
+            "expected_tests":53,
             "lawful_empirical_current_sold_count":0,
             "private_candidate_current_sold_count":0,
             "postgres_migration_applied":false,
