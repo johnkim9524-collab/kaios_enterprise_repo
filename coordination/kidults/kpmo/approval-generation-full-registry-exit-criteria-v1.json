@@ -1,0 +1,26 @@
+{
+  "id": "kidults-approval-generation-full-registry-exit-criteria-v1",
+  "version": "1.0.0",
+  "status": "CANDIDATE_EXIT_CRITERIA",
+  "root_issues": [1787, 1793],
+  "required": {
+    "complete_candidate_registry_scanned": true,
+    "complete_base_registry_scanned": true,
+    "truncated_tree_fails_closed": true,
+    "record_delete_or_rename_fails_closed": true,
+    "malformed_record_fails_closed": true,
+    "duplicate_authority_id_fails_closed": true,
+    "unchanged_active_record_outside_diff_fails_closed": true,
+    "active_committed_authority_survives_merge": false,
+    "live_issue_comment_digest_verified": true,
+    "atomic_immediate_premerge_registry_rescan": true,
+    "specific_external_runtime_live_verifier_required": true,
+    "provider_requests_during_control_landing": 0,
+    "environment_secret_resolution_during_control_landing": 0
+  },
+  "promotion": {
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
