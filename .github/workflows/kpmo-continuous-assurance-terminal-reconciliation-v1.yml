@@ -1,0 +1,99 @@
+name: KPMO Continuous Assurance Terminal Reconciliation V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kpmo-continuous-assurance-terminal-reconciliation-v1.yml'
+      - 'scripts/kidults/kpmo/reconcile-continuous-assurance-terminal-v1.mjs'
+      - 'scripts/kidults/kpmo/reconcile-continuous-assurance-terminal-v1.test.mjs'
+  workflow_run:
+    workflows:
+      - 'KIDULTS Platform Continuous Assurance V1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reconciliation-self-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate terminal reconciliation negatives
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/reconcile-continuous-assurance-terminal-v1.mjs
+          node scripts/kidults/kpmo/reconcile-continuous-assurance-terminal-v1.test.mjs
+
+  reconcile-terminal:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PACKET_DIR: /tmp/kpmo-continuous-assurance-terminal-reconciliation-v1
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+      SOURCE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Initialize fail-closed reconciliation packet
+        run: |
+          set -euo pipefail
+          mkdir -p "$PACKET_DIR"
+          jq -n --arg sha "$SOURCE_SHA" --argjson run "$SOURCE_RUN_ID" --argjson attempt "$SOURCE_RUN_ATTEMPT" \
+            '{schema_version:"1.0.0",receipt_type:"KIDULTS_CONTINUOUS_ASSURANCE_TERMINAL_RECONCILIATION_V1",source:{run_id:$run,run_attempt:$attempt,head_sha:$sha},terminal:{internal_control_state:"VERIFIED_FAIL",overall_state:"RED",failed_check_ids:["RECONCILIATION_NOT_COMPLETED"],whole_platform_authority:false,promotion_eligible:false},boundary:{public:"HOLD",production:"HOLD",g5:"EXPLICIT_APPROVAL_REQUIRED"}}' \
+            > "$PACKET_DIR/terminal-reconciliation.json"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Reconcile source workflow conclusion with required-step results
+        id: reconcile
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}" > /tmp/assurance-source-run.json
+          jq -e --argjson run "$SOURCE_RUN_ID" --argjson attempt "$SOURCE_RUN_ATTEMPT" --arg sha "$SOURCE_SHA" --arg repo "$GITHUB_REPOSITORY" \
+            '.id==$run and .run_attempt==$attempt and .name=="KIDULTS Platform Continuous Assurance V1" and .path==".github/workflows/kidults-platform-continuous-assurance-v1.yml" and .repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .status=="completed"' \
+            /tmp/assurance-source-run.json >/dev/null
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SOURCE_RUN_ID}/jobs?filter=latest&per_page=100" > /tmp/assurance-source-jobs.json
+          jq -e '.total_count == (.jobs|length)' /tmp/assurance-source-jobs.json >/dev/null
+          node scripts/kidults/kpmo/reconcile-continuous-assurance-terminal-v1.mjs \
+            --run /tmp/assurance-source-run.json --jobs /tmp/assurance-source-jobs.json --expected-sha "$SOURCE_SHA" \
+            --output "$PACKET_DIR/terminal-reconciliation.json"
+      - name: Upload immutable terminal reconciliation packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-terminal-reconciliation-v1-${{ env.SOURCE_SHA }}-${{ env.SOURCE_RUN_ID }}-${{ env.SOURCE_RUN_ATTEMPT }}
+          path: ${{ env.PACKET_DIR }}/terminal-reconciliation.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Fail closed when source Assurance was RED
+        if: always()
+        run: |
+          set -euo pipefail
+          test '${{ steps.reconcile.outcome }}' = success
+          jq -e '.terminal.promotion_eligible==false and .terminal.whole_platform_authority==false and .boundary.public=="HOLD" and .boundary.production=="HOLD"' "$PACKET_DIR/terminal-reconciliation.json" >/dev/null
+          if jq -e '.terminal.internal_control_state=="VERIFIED_FAIL"' "$PACKET_DIR/terminal-reconciliation.json" >/dev/null; then
+            exit 1
+          fi
