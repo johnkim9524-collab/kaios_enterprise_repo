@@ -150,30 +150,24 @@ const privilegedSteps = registry.required_environment_bindings.reduce(
 ok(registry.repository_binding_state?.privileged_secret_steps === privilegedSteps, 'REGISTRY_PRIVILEGED_RECORDED');
 ok(registry.repository_containment?.provider_activation === 'HOLD', 'REGISTRY_PROVIDER_HOLD');
 
-// The mandated corrective preflight is now explicitly approved but still non-executable before landing/binding.
+// Credential preflight v1 used its dispatch slot and failed before authorization or provider access.
 ok(preflight.id === 'kidults-cloudflare-workers-shadow-credential-identity-preflight-v1', 'PREFLIGHT_ID');
-ok(preflight.status === 'APPROVED_PENDING_POST_LANDING_EXACT_MAIN_BINDING', 'PREFLIGHT_STATUS');
+ok(preflight.status === 'TERMINATED_PREAUTHORIZATION_SERIALIZATION_FAIL_TOMBSTONED', 'PREFLIGHT_STATUS');
 ok(preflight.approval_id === 'CF-CREDENTIAL-IDENTITY-PREFLIGHT-20260901-01', 'PREFLIGHT_APPROVAL_ID');
-ok(preflight.approval_gate_issue === 1763, 'PREFLIGHT_APPROVAL_ISSUE');
-ok(preflight.authority?.standing_execution_authority === false, 'PREFLIGHT_STANDING_AUTHORITY');
-ok(preflight.authority?.explicit_program_owner_approval_present === true, 'PREFLIGHT_APPROVAL_PRESENT');
-ok(preflight.authority?.post_landing_exact_main_binding_required === true, 'PREFLIGHT_BINDING_REQUIRED');
-ok(preflight.authority?.read_only_external_calls_only === true, 'PREFLIGHT_READ_ONLY');
-ok(preflight.authority?.worker_mutation_allowed === false, 'PREFLIGHT_WORKER_MUTATION');
-ok(preflight.authority?.pages_mutation_allowed === false, 'PREFLIGHT_PAGES_MUTATION');
-ok(preflight.authority?.routes_or_domains_allowed === false, 'PREFLIGHT_TOPOLOGY_MUTATION');
-ok(preflight.github_secret_boundary?.environment === 'kidults-cloudflare-staging-deploy', 'PREFLIGHT_ENVIRONMENT');
-ok(preflight.github_secret_boundary?.environment_level_value_is_authoritative_when_duplicate_names_exist === true, 'PREFLIGHT_SECRET_PRECEDENCE');
-ok(preflight.maximum_external_read_requests === 2, 'PREFLIGHT_REQUEST_BOUND');
-ok(preflight.required_preflight_sequence?.length === 3, 'PREFLIGHT_SEQUENCE_LENGTH');
-ok(preflight.required_preflight_sequence?.filter((step) => step.external_call).length === 2, 'PREFLIGHT_EXTERNAL_CALL_COUNT');
-ok(preflight.required_preflight_sequence?.every((step, index) => step.order === index + 1), 'PREFLIGHT_SEQUENCE_ORDER');
-ok(preflight.pass_condition?.cloudflare_error_7003_observed === false, 'PREFLIGHT_7003_REJECTION');
-for (const key of ['worker_mutation_count', 'pages_mutation_count', 'route_mutation_count', 'domain_mutation_count']) {
-  ok(preflight.pass_condition?.[key] === 0, `PREFLIGHT_ZERO:${key}`);
-}
-ok(preflight.future_deployment_gate?.new_versioned_workflow_required === true, 'PREFLIGHT_NEW_VERSION');
-ok(preflight.future_deployment_gate?.new_explicit_program_owner_deployment_approval_required === true, 'PREFLIGHT_NEW_APPROVAL');
+ok(preflight.terminal_state?.workflow_run_id === 33478469222, 'PREFLIGHT_RUN');
+ok(preflight.terminal_state?.root_cause === 'APPROVAL_BODY_JQ_RAW_OUTPUT_ADDS_SECOND_TERMINAL_LF', 'PREFLIGHT_ROOT_CAUSE');
+ok(preflight.terminal_state?.dispatch_slot_used === true, 'PREFLIGHT_SLOT');
+ok(preflight.terminal_state?.authorization_consumed === false, 'PREFLIGHT_CONSUMED_TRUTH');
+ok(preflight.terminal_state?.external_read_request_count === 0, 'PREFLIGHT_EXTERNAL_REQUESTS');
+ok(preflight.terminal_state?.provider_process_invoked === false, 'PREFLIGHT_PROVIDER_PROCESS');
+ok(preflight.terminal_state?.operational_reuse_allowed === false, 'PREFLIGHT_REUSE');
+ok(preflight.tombstone?.zero_executable_authority === true, 'PREFLIGHT_ZERO_AUTHORITY');
+ok(preflight.tombstone?.workflow_trigger_removed === true, 'PREFLIGHT_TRIGGER_REMOVED');
+ok(preflight.tombstone?.environment_bound === false, 'PREFLIGHT_ENVIRONMENT_REMOVED');
+ok(preflight.tombstone?.secret_references_present === false, 'PREFLIGHT_SECRETS_REMOVED');
+ok(preflight.tombstone?.provider_network_path_present === false, 'PREFLIGHT_NETWORK_REMOVED');
+ok(preflight.future_execution_gate?.new_versioned_workflow_required === true, 'PREFLIGHT_NEW_VERSION');
+ok(preflight.future_execution_gate?.new_explicit_program_owner_approval_required === true, 'PREFLIGHT_NEW_APPROVAL');
 
 ok(config.name === 'kidults-public-portal-shadow', 'CONFIG_NAME');
 ok(config.workers_dev === true && config.preview_urls === false, 'CONFIG_WORKERS_DEV');
@@ -204,7 +198,7 @@ console.log(JSON.stringify({
   remote_mutation_evidenced: false,
   v3_zero_executable_authority: true,
   credential_identity_preflight_approval_id: preflight.approval_id,
-  credential_identity_preflight_request_max: preflight.maximum_external_read_requests,
+  credential_identity_preflight_external_request_count: preflight.terminal_state.external_read_request_count,
   registered_secret_bearing_lanes: registry.registered_count,
   privileged_secret_steps: privilegedSteps,
   production_routes: 0,
