@@ -18,7 +18,8 @@
     "control_smoke_runner": "scripts/kidults/market/current-sold-control-smoke-v1.mjs",
     "postgres_ledger_writer": "scripts/kidults/market/current-sold-postgres-ledger-v1.mjs",
     "postgres_migration": "infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql",
-    "post_landing_validator": ".github/workflows/kidults-current-sold-postlanding-v1.yml"
+    "atomic_landing_workflow": ".github/workflows/kidults-atomic-governed-landing-v1.yml",
+    "same_job_post_landing_validator": "scripts/kidults/market/current-sold-postlanding-v1.mjs"
   },
   "schemas": {
     "event": "coordination/kidults/market/current-sold-event-schema-v1.json",
@@ -81,9 +82,14 @@
     "DATABASE_INSERT_TRIGGER_ENFORCES_EXACT_CORRECTION_HEAD",
     "EVENT_EVIDENCE_AND_RECEIPT_PAYLOAD_COLUMNS_DATABASE_BOUND",
     "GITHUB_TOKEN_MERGE_PUSH_SUPPRESSION_CANNOT_SATISFY_POSTMERGE_EVIDENCE",
-    "ATOMIC_LANDING_WORKFLOW_RUN_MUST_BE_SUCCESSFUL_MAIN_WORKFLOW_DISPATCH",
-    "POSTMERGE_MAIN_FIRST_PARENT_MUST_EQUAL_TRIGGERING_LANDING_HEAD",
-    "POSTMERGE_MERGE_COMMIT_MUST_TOUCH_CURRENT_SOLD_SURFACE"
+    "CURRENT_SOLD_POSTMERGE_VALIDATION_MUST_RUN_IN_SAME_TRUSTED_ATOMIC_LANDING_JOB",
+    "TRUSTED_POSTLANDING_VALIDATOR_STAGED_BEFORE_SERVER_MERGE",
+    "ATOMIC_LANDING_SERIALIZED_GLOBALLY_ON_PROTECTED_MAIN",
+    "POSTMERGE_MAIN_SHA_MUST_EQUAL_SERVER_MERGE_RESULT",
+    "POSTMERGE_FIRST_PARENT_MUST_EQUAL_PREMERGE_MAIN",
+    "POSTMERGE_SECOND_PARENT_MUST_EQUAL_APPROVED_PR_HEAD",
+    "POSTMERGE_COMMIT_MUST_TOUCH_CURRENT_SOLD_SURFACE",
+    "POSTMERGE_STATUS_PUBLISHED_ON_EXACT_MERGE_SHA"
   ],
   "execution_classes": {
     "CONTROL_SYNTHETIC": {
@@ -123,10 +129,12 @@
     "control_smoke": "PASS_REQUIRED",
     "legacy_raw_bundle_cli_disabled": "PASS_REQUIRED",
     "postgres_migration_static_append_only_check": "PASS_REQUIRED",
-    "protected_main_push_fallback": "PASS_REQUIRED_WHEN_EVENT_IS_NOT_GITHUB_TOKEN_SUPPRESSED",
-    "atomic_landing_workflow_run_postmerge": "PASS_REQUIRED",
-    "postmerge_parent_binding": "TRIGGER_HEAD_SHA_MUST_EQUAL_MERGE_FIRST_PARENT",
-    "github_token_recursion_suppression": "ACKNOWLEDGED_AND_COMPENSATED_WITH_WORKFLOW_RUN"
+    "protected_main_push_fallback": "NON_AUTHORITATIVE_WHEN_GITHUB_TOKEN_SUPPRESSED",
+    "atomic_landing_same_job_postmerge": "PASS_REQUIRED_FOR_CURRENT_SOLD_CHANGES",
+    "postmerge_first_parent_binding": "PREMERGE_MAIN_SHA_REQUIRED",
+    "postmerge_second_parent_binding": "APPROVED_PR_HEAD_SHA_REQUIRED",
+    "postmerge_exact_commit_status": "SUCCESS_REQUIRED",
+    "workflow_run_consumer_added": false
   },
   "empirical_state": {
     "lawful_genuine_current_sold_admitted": 0,
@@ -162,5 +170,5 @@
     "production": "HOLD",
     "g5": "HOLD"
   },
-  "truth_boundary": "The canonical path withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Atomic Governed Landing uses the repository GITHUB_TOKEN, so its merge-generated push cannot be treated as post-merge workflow evidence. V1.3 therefore binds post-landing validation to the successful Atomic Governed Landing workflow completion, requires the triggering run head SHA to equal the new merge commit first parent, and emits a receipt bound to the resulting exact protected-main SHA without adding credentials, writes, provider calls, deployment, or release authority."
+  "truth_boundary": "The canonical path withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Atomic Governed Landing uses the repository GITHUB_TOKEN, so its merge-generated push cannot be treated as authoritative post-merge workflow evidence. V1.3 stages a trusted validator before the merge, globally serializes landing on protected main, then checks out the exact server-returned merge SHA in the same trusted job, verifies both merge parents and the Current-SOLD change surface, reruns 53 tests and all no-write guards, and publishes an exact-merge status without adding a workflow_run consumer, credentials, writes, provider calls, deployment, or release authority."
 }
