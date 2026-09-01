@@ -1,4 +1,4 @@
-name: KIDULTS Cloudflare Workers Shadow V3 Approval-Ready Validation V1
+name: KIDULTS Cloudflare Workers Shadow V3 Consumed 7003 Closure V1
 
 on:
   pull_request:
@@ -13,15 +13,15 @@ on:
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-workflow-spec-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json'
-      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json'
       - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03-terminal.json'
       - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
       - 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs'
       - 'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
-      - 'scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs'
       - 'tooling/kidults-cloudflare-workers-shadow/package.json'
       - 'tooling/kidults-cloudflare-workers-shadow/package-lock.json'
       - 'apps/kidults-enterprise-staging/public/portal/**'
@@ -31,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: kidults-cloudflare-workers-shadow-v3-approval-ready-${{ github.event.pull_request.head.sha || github.sha }}
+  group: kidults-cloudflare-workers-shadow-v3-consumed-7003-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -66,7 +66,7 @@ jobs:
       - name: Validate consumed v2 zero-authority tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
 
-      - name: Validate v3 approval, one-shot, receipt and topology contract
+      - name: Validate consumed v3 7003 truth and zero-authority tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
 
       - name: Validate complete secret-bearing workflow registry
@@ -75,13 +75,13 @@ jobs:
       - name: Install exact locked Wrangler tooling
         run: npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow
 
-      - name: Prove config-relative portal assets with locked Wrangler dry-run
+      - name: Preserve config-relative asset regression without provider credentials
         env:
           WRANGLER_SEND_METRICS: 'false'
         run: |
           set -euo pipefail
           test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "4.127.1"
-          OUT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v3-pr-dry-run"
+          OUT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v3-consumed-dry-run"
           ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy \
             --dry-run \
             --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc \
