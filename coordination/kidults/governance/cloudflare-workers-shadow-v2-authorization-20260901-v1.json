@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260901-02",
   "version": "1.0.0",
-  "status": "AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY",
+  "status": "CONSUMED_FAIL_CLOSED_PROVIDER_PROCESS_INVOKED_NO_READBACK",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -62,5 +62,45 @@
     "SPEND_OR_CONTRACT_EXPANSION",
     "NEW_CREDENTIAL_OR_SCOPE_EXPANSION",
     "UNRELATED_PROVIDER_MUTATION"
-  ]
+  ],
+  "executable_authority": false,
+  "provider_activation_authority": false,
+  "credential_resolution_authority": false,
+  "consumption_result": {
+    "workflow_run_id": 33417453349,
+    "workflow_run_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33417453349",
+    "job_id": 99571430841,
+    "run_attempt": 1,
+    "source_ref": "refs/heads/main",
+    "source_sha": "5bed9c28aa0b5071de53a86535af8cd72c583ea1",
+    "conclusion": "FAIL_CLOSED_PROVIDER_LOCAL_VALIDATION",
+    "authorization_consumed": true,
+    "provider_process_invoked": true,
+    "provider_deployment_attempt_count": 1,
+    "failure_step": "Deploy one non-production Workers shadow v2",
+    "failure_code": "WRANGLER_ASSET_DIRECTORY_NOT_FOUND",
+    "root_cause": "ASSET_DIRECTORY_RESOLVED_RELATIVE_TO_WRANGLER_CONFIG_DIRECTORY",
+    "workers_dev_url": null,
+    "provider_readback": "SKIPPED",
+    "remote_mutation_empirically_verified": false,
+    "artifact_id": 9767560816,
+    "artifact_digest": "sha256:71d36043dfc6ea863a9a5977059b5f45559c2d9fae8f5068fa85de3b0d21ed2c",
+    "artifact_size_bytes": 1361,
+    "artifact_expired": false,
+    "artifact_evidence_class": "AUTHENTIC_FAIL_CLOSED_EXECUTION_ARTIFACT_NON_PROMOTABLE",
+    "promotable": false,
+    "empirical_provider_success": false
+  },
+  "tombstone": {
+    "zero_authority_dispatch_tombstone": true,
+    "secret_registry_membership": false,
+    "environment_bound": false,
+    "secret_references_present": false,
+    "checkout_present": false,
+    "provider_tooling_present": false,
+    "network_provider_step_present": false,
+    "terminal_artifact_only": true,
+    "deterministic_failure_after_upload": true,
+    "replacement_rule": "NEW_VERSIONED_WORKFLOW_PLUS_NEW_EXPLICIT_APPROVAL_REQUIRED"
+  }
 }

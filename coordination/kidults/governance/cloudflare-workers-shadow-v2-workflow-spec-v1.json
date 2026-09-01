@@ -1,87 +1,45 @@
 {
   "id": "kidults-cloudflare-workers-shadow-v2-workflow-spec-v1",
   "version": "1.0.0",
-  "status": "AUTHORIZED_EXECUTABLE_ONE_SHOT_PENDING_GOVERNED_LANDING",
+  "status": "CONSUMED_ZERO_AUTHORITY_TOMBSTONE",
   "approval_id": "CF-WORKERS-SHADOW-20260901-02",
   "approval_issue": 1711,
   "authorization_record": "coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json",
   "materialized_workflow_path": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
   "materialized_workflow_present": true,
-  "provider_mutation_authorized": true,
+  "provider_mutation_authorized": false,
   "trigger": [
     "workflow_dispatch"
   ],
   "permissions": [
     "contents:read"
   ],
-  "environment": "kidults-cloudflare-staging-deploy",
+  "environment": null,
   "runner": "ubuntu-24.04",
-  "timeout_minutes": 15,
+  "timeout_minutes": 5,
   "concurrency": {
-    "group": "kidults-cloudflare-workers-shadow-deploy-v2",
+    "group": "kidults-cloudflare-workers-shadow-deploy-v2-consumed",
     "cancel_in_progress": false
   },
   "canonical_runtime_paths": {
-    "receipt": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2/receipt.json",
-    "provider_attempt_marker": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2/provider-attempted",
-    "provider_log": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2/provider.log",
-    "asset_manifest": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2/assets.sha256",
-    "readback_body": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2/index.html"
+    "receipt": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2-consumed/receipt.json"
   },
   "ordered_steps": [
-    "Initialize canonical runner-temp receipt",
-    "Consume unique first v2 authorization",
-    "Verify live main before provider credential resolution",
-    "Checkout exact execution SHA",
-    "Verify exact Program Owner v2 approval receipt",
-    "Set up governed Node",
-    "Install locked Wrangler tooling",
-    "Validate authorized v2 shadow contract",
-    "Bind exact source and artifact digests",
-    "Deploy one non-production Workers shadow v2",
-    "Verify workers.dev shadow read-back",
-    "Finalize sanitized terminal receipt",
-    "Upload sanitized terminal receipt"
+    "Create consumed authorization tombstone",
+    "Upload consumed authorization tombstone",
+    "Enforce consumed authorization no replay"
   ],
-  "provider_step": {
-    "name": "Deploy one non-production Workers shadow v2",
-    "secret_names": [
-      "CLOUDFLARE_ACCOUNT_ID",
-      "CLOUDFLARE_API_TOKEN"
-    ],
-    "secret_scope": "STEP_ONLY_AFTER_ALL_PREFLIGHTS",
-    "attempt_marker_created": "IMMEDIATELY_BEFORE_WRANGLER_PROCESS",
-    "command": "./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc",
-    "max_attempts": 1
-  },
+  "provider_step": null,
   "always_finalizer": {
     "required": true,
-    "missing_or_invalid_receipt_without_provider_marker": {
-      "provider_mutation_attempted": false,
-      "state": "VERIFIED_FAIL_PRE_PROVIDER_RECEIPT_RECOVERED"
-    },
-    "missing_or_invalid_receipt_with_provider_marker": {
-      "provider_mutation_attempted": "UNKNOWN_REQUIRES_PROVIDER_READBACK",
-      "state": "VERIFIED_FAIL_POST_PROVIDER_ATTEMPT_RECEIPT_RECOVERED"
-    },
+    "artifact_upload_before_deterministic_failure": true,
     "release_boundary": {
       "public": "HOLD",
       "production": "HOLD",
       "g5": "HOLD"
     }
   },
-  "success_acceptance": [
-    "WRANGLER_EXIT_ZERO",
-    "WORKERS_DEV_URL_CAPTURED",
-    "HTTPS_WORKERS_DEV_ENDPOINT_ONLY",
-    "HTTP_200",
-    "NONEMPTY_HTML",
-    "HTML_DOCUMENT_MARKER",
-    "SOURCE_AND_ASSET_CONFIG_LOCK_APPROVAL_DIGESTS_BOUND",
-    "PRODUCTION_ROUTES_ZERO",
-    "CUSTOM_DOMAINS_ZERO",
-    "PUBLIC_PRODUCTION_G5_HOLD"
-  ],
+  "success_acceptance": [],
   "forbidden": [
     "PUSH_TRIGGER",
     "PULL_REQUEST_TRIGGER",
@@ -96,6 +54,13 @@
     "PUBLIC_PROMOTION",
     "PRODUCTION_PROMOTION",
     "G5_PROMOTION",
-    "APPROVAL_SELF_ATTESTATION"
+    "APPROVAL_SELF_ATTESTATION",
+    "ENVIRONMENT_BINDING",
+    "SECRET_REFERENCE",
+    "CHECKOUT",
+    "NETWORK_PROVIDER_CALL",
+    "PROVIDER_TOOLING",
+    "EMPIRICAL_PASS",
+    "REPLAY_AFTER_CONSUMPTION"
   ]
 }

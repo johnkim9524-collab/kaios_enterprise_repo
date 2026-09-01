@@ -45,5 +45,13 @@
   "public": "HOLD",
   "production": "HOLD",
   "g5": "HOLD",
-  "terminal_rule": "NEW_EXPLICIT_APPROVAL_REQUIRED_FOR_ANY_FUTURE_PROVIDER_ATTEMPT"
+  "terminal_rule": "NEW_EXPLICIT_APPROVAL_REQUIRED_FOR_ANY_FUTURE_PROVIDER_ATTEMPT",
+  "evidence_class": "POST_HOC_CONTROL_RECORD_NOT_EXECUTION_ARTIFACT",
+  "record_origin": "REPOSITORY_COMMIT_AFTER_WORKFLOW_COMPLETION",
+  "run_artifact_present": false,
+  "historical_run_artifact_count": 0,
+  "promotable": false,
+  "empirical_evidence": false,
+  "execution_receipt": false,
+  "control_truth_only": true
 }
