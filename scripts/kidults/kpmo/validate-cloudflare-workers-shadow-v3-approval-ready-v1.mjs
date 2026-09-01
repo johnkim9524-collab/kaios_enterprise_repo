@@ -12,7 +12,7 @@ const P = {
   credentialContract: 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json',
   credentialAuth: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json',
   credentialTerminal: 'coordination/kidults/governance/receipts/CF-CREDENTIAL-IDENTITY-PREFLIGHT-20260901-01-terminal.json',
-  credentialV1Workflow: '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml',
+  credentialV1Workflow: 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-credential-identity-preflight-v1.yml',
   credentialV2Spec: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-v2-spec-v1.json',
   extractor: 'scripts/kidults/kpmo/extract-github-comment-body-byte-exact-v1.mjs',
   extractorTest: 'tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs',
