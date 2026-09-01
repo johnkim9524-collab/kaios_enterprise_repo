@@ -1,589 +1,76 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v2
 
-on:
-  workflow_dispatch:
+# Consumed one-shot lane: no event may start this historical workflow.
+on: []
 
 permissions:
   contents: read
 
 concurrency:
-  group: kidults-cloudflare-workers-shadow-deploy-v2
+  group: kidults-cloudflare-workers-shadow-deploy-v2-consumed
   cancel-in-progress: false
 
 jobs:
   deploy-shadow-v2:
-    environment: kidults-cloudflare-staging-deploy
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
-      - name: Initialize canonical runner-temp receipt
+      - name: Create consumed authorization tombstone
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
+          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2-consumed"
           RECEIPT="$ROOT/receipt.json"
           mkdir -p "$ROOT"
           jq -n \
-            --arg state 'DISPATCH_RECEIVED_AUTHORIZATION_CONSUMPTION_PENDING' \
             --arg repository "$GITHUB_REPOSITORY" \
             --arg source_ref "$GITHUB_REF" \
             --arg source_sha "$GITHUB_SHA" \
-            --arg run_id "$GITHUB_RUN_ID" \
-            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
             '{
-              id:"kidults-cloudflare-workers-shadow-deploy-v2-receipt-v1",
+              id:"kidults-cloudflare-workers-shadow-v2-consumed-tombstone-v1",
               approval_id:"CF-WORKERS-SHADOW-20260901-02",
-              approval_issue:1711,
-              approval_comment_id:5481462895,
-              approval_receipt_url:"https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895",
-              state:$state,
+              state:"CONSUMED_PROVIDER_PROCESS_INVOKED_NO_READBACK",
+              historical_consuming_run_id:33417453349,
               repository:$repository,
               source_ref:$source_ref,
               source_sha:$source_sha,
-              run_id:($run_id|tonumber),
-              run_attempt:($run_attempt|tonumber),
-              workflow_dispatch_count_max:1,
-              provider_deployment_attempt_count_max:1,
-              authorization_consumed:false,
-              authorization_consumed_on:"FIRST_V2_WORKFLOW_DISPATCH_PASS_OR_FAIL",
-              provider_attempt_marker_written:false,
-              provider_mutation_attempted:false,
-              provider_deployment_attempt_count:0,
-              service:"kidults-public-portal-shadow",
-              target:"workers_dev_non_production_only",
-              production_routes:0,
-              custom_domains:0,
-              pages_delete:"FORBIDDEN",
-              pages_domain_detach:"FORBIDDEN",
+              tombstone_run_id:$run_id,
+              tombstone_run_attempt:$run_attempt,
+              authorization_consumed:true,
+              executable_authority:false,
+              environment_bound:false,
+              credential_resolution_authorized:false,
+              provider_activation_authorized:false,
+              provider_process_invoked_in_historical_run:true,
+              historical_provider_deployment_attempt_count:1,
+              historical_execution_artifact_id:9767560816,
+              historical_execution_artifact_digest:"sha256:71d36043dfc6ea863a9a5977059b5f45559c2d9fae8f5068fa85de3b0d21ed2c",
+              historical_provider_readback:"SKIPPED",
+              remote_mutation_empirically_verified:false,
+              replay_authorized:false,
+              promotable:false,
+              empirical_provider_success:false,
               boundary:"PUBLIC_PRODUCTION_G5_HOLD",
               public:"HOLD",
               production:"HOLD",
               g5:"HOLD"
             }' > "$RECEIPT"
-          jq -e '.id=="kidults-cloudflare-workers-shadow-deploy-v2-receipt-v1"' "$RECEIPT" >/dev/null
+          jq -e '.authorization_consumed==true and .executable_authority==false and .replay_authorized==false' "$RECEIPT" >/dev/null
 
-      - name: Consume unique first v2 authorization
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          RUNS_JSON="$ROOT/workflow-runs.json"
-          TMP_RECEIPT="$ROOT/receipt.tmp.json"
-          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-          test "$GITHUB_REF" = "refs/heads/main"
-          test "$GITHUB_RUN_ATTEMPT" = "1"
-
-          jq \
-            '.state="AUTHORIZATION_CONSUMED_PENDING_UNIQUE_DISPATCH_CONFIRMATION"
-             | .authorization_consumed=true' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-          ledger_confirmed=0
-          for observation in 1 2 3 4 5 6 7 8 9 10; do
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml/runs?event=workflow_dispatch&branch=main&per_page=100" \
-              --output "$RUNS_JSON"
-            total_count="$(jq -r '.total_count // -1' "$RUNS_JSON")"
-            case "$total_count" in
-              ''|*[!0-9]*) echo 'INVALID_V2_DISPATCH_LEDGER_COUNT'; exit 74 ;;
-            esac
-            if [ "$total_count" -gt 1 ]; then
-              echo 'V2_ONE_SHOT_REPLAY_OR_CONCURRENT_DISPATCH_FORBIDDEN'
-              exit 75
-            fi
-            if jq -e \
-              --argjson run_id "$GITHUB_RUN_ID" \
-              --arg source_sha "$GITHUB_SHA" \
-              '.total_count == 1
-               and (.workflow_runs | length) == 1
-               and .workflow_runs[0].id == $run_id
-               and .workflow_runs[0].run_attempt == 1
-               and .workflow_runs[0].event == "workflow_dispatch"
-               and .workflow_runs[0].head_branch == "main"
-               and .workflow_runs[0].head_sha == $source_sha' \
-              "$RUNS_JSON" >/dev/null; then
-              ledger_confirmed=1
-              break
-            fi
-            sleep 3
-          done
-          test "$ledger_confirmed" = "1"
-          jq \
-            --argjson run_id "$GITHUB_RUN_ID" \
-            --arg source_sha "$GITHUB_SHA" \
-            '.state="AUTHORIZATION_CONSUMED_PROVIDER_NOT_ATTEMPTED"
-             | .dispatch_ledger={
-                 state:"UNIQUE_FIRST_V2_MAIN_DISPATCH_VERIFIED",
-                 run_id:$run_id,
-                 run_attempt:1,
-                 event:"workflow_dispatch",
-                 head_branch:"main",
-                 head_sha:$source_sha,
-                 total_count:1
-               }' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-      - name: Verify live main before provider credential resolution
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-
-      - name: Checkout exact execution SHA
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Verify exact Program Owner v2 approval receipt
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          TMP_RECEIPT="$ROOT/receipt.tmp.json"
-          AUTH='coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json'
-          CONTRACT='coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
-          EXPECTED_BODY='coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md'
-          COMMENT_JSON="$ROOT/approval-comment.json"
-          ACTUAL_BODY="$ROOT/approval-comment.md"
-
-          jq -e '
-            .id=="CF-WORKERS-SHADOW-20260901-02"
-            and .status=="AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY"
-            and .authorized_by.github_login=="johnkim9524-collab"
-            and .authorized_by.author_association=="OWNER"
-            and .authorization_receipt.comment_id==5481462895
-            and .authorization_receipt.comment_node_id=="IC_kwDOTF-G-M8AAAABRrh8bw"
-            and .authorization_receipt.created_at=="2026-08-31T16:43:16Z"
-            and .authorization_receipt.updated_at=="2026-08-31T16:43:16Z"
-            and .authorized_scope.workflow==".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml"
-            and .authorized_scope.workflow_dispatch_count_max==1
-            and .authorized_scope.provider_deployment_attempt_count_max==1
-            and .authorized_scope.authorization_consumed_on=="FIRST_V2_WORKFLOW_DISPATCH_PASS_OR_FAIL"
-            and .authorized_scope.production_routes_allowed==false
-            and .authorized_scope.custom_domains_allowed==false
-            and .authorized_scope.pages_delete_allowed==false
-            and .authorized_scope.pages_domain_detach_allowed==false
-            and .authorized_scope.public_promotion_allowed==false
-            and .authorized_scope.production_promotion_allowed==false
-            and .authorized_scope.g5_promotion_allowed==false
-            and .replay=="FORBIDDEN_AFTER_FIRST_V2_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE"' \
-            "$AUTH" >/dev/null
-
-          jq -e '
-            .status=="AUTHORIZED_ONE_SHOT_NON_PRODUCTION_WORKERS_DEV_ONLY"
-            and .authorization.authorized==true
-            and .implementation_state.materialized_secret_bearing_workflow_present==true
-            and .implementation_state.secret_registry_mutated_for_v2==true
-            and .implementation_state.provider_mutation_authorized==true
-            and .implementation_state.provider_mutation_executed==false' \
-            "$CONTRACT" >/dev/null
-
-          curl --fail-with-body --silent --show-error \
-            --connect-timeout 10 \
-            --max-time 30 \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/issues/comments/5481462895" \
-            --output "$COMMENT_JSON"
-          jq -e '
-            .id==5481462895
-            and .node_id=="IC_kwDOTF-G-M8AAAABRrh8bw"
-            and .html_url=="https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1711#issuecomment-5481462895"
-            and .issue_url=="https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/1711"
-            and .user.login=="johnkim9524-collab"
-            and .author_association=="OWNER"
-            and .created_at=="2026-08-31T16:43:16Z"
-            and .updated_at=="2026-08-31T16:43:16Z"
-            and .performed_via_github_app.slug=="chatgpt-codex-connector"' \
-            "$COMMENT_JSON" >/dev/null
-          jq -r '.body' "$COMMENT_JSON" > "$ACTUAL_BODY"
-          cmp --silent "$EXPECTED_BODY" "$ACTUAL_BODY"
-
-          jq \
-            '.state="APPROVAL_RECEIPT_VERIFIED_PROVIDER_NOT_ATTEMPTED"
-             | .approval_receipt_verified=true' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-      - name: Set up governed Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: '24.19.0'
-          package-manager-cache: false
-
-      - name: Install locked Wrangler tooling
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow
-          test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "4.127.1"
-
-      - name: Validate authorized v2 shadow contract
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
-
-      - name: Bind exact source and artifact digests
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          MANIFEST="$ROOT/assets.sha256"
-          TMP_RECEIPT="$ROOT/receipt.tmp.json"
-          test -f "$RECEIPT"
-          LC_ALL=C find apps/kidults-enterprise-staging/public/portal -type f -print0 \
-            | LC_ALL=C sort -z \
-            | xargs -0 sha256sum > "$MANIFEST"
-          test -s "$MANIFEST"
-
-          asset_manifest_digest="sha256:$(sha256sum "$MANIFEST" | awk '{print $1}')"
-          workers_config_digest="sha256:$(sha256sum infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc | awk '{print $1}')"
-          tooling_lock_digest="sha256:$(sha256sum tooling/kidults-cloudflare-workers-shadow/package-lock.json | awk '{print $1}')"
-          authorization_record_digest="sha256:$(sha256sum coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json | awk '{print $1}')"
-          approval_body_digest="sha256:$(sha256sum coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-02.md | awk '{print $1}')"
-          execution_contract_digest="sha256:$(sha256sum coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json | awk '{print $1}')"
-          workflow_spec_digest="sha256:$(sha256sum coordination/kidults/governance/cloudflare-workers-shadow-v2-workflow-spec-v1.json | awk '{print $1}')"
-          workflow_digest="sha256:$(sha256sum .github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml | awk '{print $1}')"
-          source_tree_sha="$(git rev-parse HEAD^{tree})"
-
-          jq \
-            --arg asset_manifest_digest "$asset_manifest_digest" \
-            --arg workers_config_digest "$workers_config_digest" \
-            --arg tooling_lock_digest "$tooling_lock_digest" \
-            --arg authorization_record_digest "$authorization_record_digest" \
-            --arg approval_body_digest "$approval_body_digest" \
-            --arg execution_contract_digest "$execution_contract_digest" \
-            --arg workflow_spec_digest "$workflow_spec_digest" \
-            --arg workflow_digest "$workflow_digest" \
-            --arg source_tree_sha "$source_tree_sha" \
-            '.state="PREFLIGHT_VERIFIED_PROVIDER_NOT_ATTEMPTED"
-             | .static_asset_manifest_digest=$asset_manifest_digest
-             | .workers_config_digest=$workers_config_digest
-             | .tooling_lock_digest=$tooling_lock_digest
-             | .authorization_record_digest=$authorization_record_digest
-             | .approval_body_digest=$approval_body_digest
-             | .execution_contract_digest=$execution_contract_digest
-             | .workflow_spec_digest=$workflow_spec_digest
-             | .workflow_digest=$workflow_digest
-             | .source_tree_sha=$source_tree_sha' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-      - name: Deploy one non-production Workers shadow v2
-        id: deploy
-        shell: bash
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          MARKER="$ROOT/provider-attempted"
-          LOG="$ROOT/provider.log"
-          TMP_RECEIPT="$ROOT/receipt.tmp.json"
-          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-          test "$GITHUB_REF" = "refs/heads/main"
-          test "$GITHUB_RUN_ATTEMPT" = "1"
-          test -f "$RECEIPT"
-          test -n "${CLOUDFLARE_API_TOKEN:-}"
-          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
-          echo '::add-mask::'"$CLOUDFLARE_API_TOKEN"
-          echo '::add-mask::'"$CLOUDFLARE_ACCOUNT_ID"
-
-          printf '{"run_id":%s,"run_attempt":%s,"source_sha":"%s","state":"PROVIDER_PROCESS_STARTING"}\n' \
-            "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" > "$MARKER"
-          test -s "$MARKER"
-          jq \
-            '.state="PROVIDER_ATTEMPT_MARKED"
-             | .provider_attempt_marker_written=true
-             | .provider_mutation_attempted=true
-             | .provider_deployment_attempt_count=1' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-          set +e
-          ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy \
-            --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc \
-            2>&1 | tee "$LOG"
-          rc=${PIPESTATUS[0]}
-          set -e
-
-          if [ "$rc" -ne 0 ]; then
-            jq \
-              --argjson provider_exit_code "$rc" \
-              '.state="VERIFIED_FAIL_PROVIDER_DEPLOYMENT"
-               | .provider_exit_code=$provider_exit_code
-               | .terminal_state="FAIL_CLOSED_NO_REPLAY_AUTHORIZED"' \
-              "$RECEIPT" > "$TMP_RECEIPT"
-            mv "$TMP_RECEIPT" "$RECEIPT"
-            exit "$rc"
-          fi
-
-          url="$(grep -Eo 'https://[A-Za-z0-9._-]+\.workers\.dev' "$LOG" | tail -n 1 || true)"
-          if [ -z "$url" ]; then
-            jq \
-              '.state="VERIFIED_FAIL_WORKERS_DEV_URL_NOT_CAPTURED"
-               | .provider_exit_code=0
-               | .terminal_state="FAIL_CLOSED_NO_REPLAY_AUTHORIZED"' \
-              "$RECEIPT" > "$TMP_RECEIPT"
-            mv "$TMP_RECEIPT" "$RECEIPT"
-            exit 79
-          fi
-          case "$url" in
-            https://*.workers.dev) ;;
-            *) echo 'NON_WORKERS_DEV_ENDPOINT_FORBIDDEN'; exit 80 ;;
-          esac
-
-          printf 'workers_dev_url=%s\n' "$url" >> "$GITHUB_OUTPUT"
-          jq \
-            --arg url "$url" \
-            '.state="DEPLOYED_PENDING_READBACK"
-             | .provider_exit_code=0
-             | .workers_dev_url=$url' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-      - name: Verify workers.dev shadow read-back
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          TMP_RECEIPT="$ROOT/receipt.tmp.json"
-          BODY="$ROOT/index.html"
-          url='${{ steps.deploy.outputs.workers_dev_url }}'
-          case "$url" in
-            https://*.workers.dev) ;;
-            *) echo 'WORKERS_DEV_READBACK_ENDPOINT_REQUIRED'; exit 81 ;;
-          esac
-          http_code="$(curl --fail-with-body --silent --show-error \
-            --connect-timeout 10 \
-            --max-time 30 \
-            --output "$BODY" \
-            --write-out '%{http_code}' \
-            "$url/")"
-          test "$http_code" = "200"
-          test -s "$BODY"
-          grep -Eiq '<!doctype html|<html' "$BODY"
-          body_digest="sha256:$(sha256sum "$BODY" | awk '{print $1}')"
-          jq \
-            --arg url "$url" \
-            --arg http_code "$http_code" \
-            --arg body_digest "$body_digest" \
-            '.state="VERIFIED_PASS"
-             | .workers_dev_url=$url
-             | .smoke_readback={
-                 state:"VERIFIED_PASS",
-                 http_code:($http_code|tonumber),
-                 nonempty_html:true,
-                 body_digest:$body_digest
-               }
-             | .production_routes=0
-             | .custom_domains=0
-             | .pages_delete="FORBIDDEN"
-             | .pages_domain_detach="FORBIDDEN"
-             | .boundary="PUBLIC_PRODUCTION_G5_HOLD"
-             | .public="HOLD"
-             | .production="HOLD"
-             | .g5="HOLD"
-             | .terminal_state="SHADOW_ACCEPTANCE_PASS_NON_PRODUCTION_ONLY"' \
-            "$RECEIPT" > "$TMP_RECEIPT"
-          mv "$TMP_RECEIPT" "$RECEIPT"
-
-      - name: Finalize sanitized terminal receipt
-        if: ${{ always() }}
-        shell: bash
-        env:
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v2"
-          RECEIPT="$ROOT/receipt.json"
-          MARKER="$ROOT/provider-attempted"
-          TMP_RECEIPT="$ROOT/receipt.final.tmp.json"
-          mkdir -p "$ROOT"
-
-          marker_present=false
-          if [ -s "$MARKER" ]; then
-            marker_present=true
-          fi
-
-          if ! jq empty "$RECEIPT" >/dev/null 2>&1; then
-            if [ "$marker_present" = "true" ]; then
-              jq -n \
-                --arg repository "$GITHUB_REPOSITORY" \
-                --arg source_ref "$GITHUB_REF" \
-                --arg source_sha "$GITHUB_SHA" \
-                --argjson run_id "$GITHUB_RUN_ID" \
-                --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
-                --arg job_status "$JOB_STATUS" \
-                '{
-                  id:"kidults-cloudflare-workers-shadow-deploy-v2-receipt-v1",
-                  approval_id:"CF-WORKERS-SHADOW-20260901-02",
-                  state:"VERIFIED_FAIL_POST_PROVIDER_ATTEMPT_RECEIPT_RECOVERED",
-                  repository:$repository,
-                  source_ref:$source_ref,
-                  source_sha:$source_sha,
-                  run_id:$run_id,
-                  run_attempt:$run_attempt,
-                  job_status:$job_status,
-                  authorization_consumed:true,
-                  provider_attempt_marker_written:true,
-                  provider_mutation_attempted:"UNKNOWN_REQUIRES_PROVIDER_READBACK",
-                  provider_deployment_attempt_count:1,
-                  terminal_state:"FAIL_CLOSED_NO_REPLAY_AUTHORIZED",
-                  production_routes:0,
-                  custom_domains:0,
-                  pages_delete:"FORBIDDEN",
-                  pages_domain_detach:"FORBIDDEN",
-                  boundary:"PUBLIC_PRODUCTION_G5_HOLD",
-                  public:"HOLD",
-                  production:"HOLD",
-                  g5:"HOLD"
-                }' > "$RECEIPT"
-            else
-              jq -n \
-                --arg repository "$GITHUB_REPOSITORY" \
-                --arg source_ref "$GITHUB_REF" \
-                --arg source_sha "$GITHUB_SHA" \
-                --argjson run_id "$GITHUB_RUN_ID" \
-                --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
-                --arg job_status "$JOB_STATUS" \
-                '{
-                  id:"kidults-cloudflare-workers-shadow-deploy-v2-receipt-v1",
-                  approval_id:"CF-WORKERS-SHADOW-20260901-02",
-                  state:"VERIFIED_FAIL_PRE_PROVIDER_RECEIPT_RECOVERED",
-                  repository:$repository,
-                  source_ref:$source_ref,
-                  source_sha:$source_sha,
-                  run_id:$run_id,
-                  run_attempt:$run_attempt,
-                  job_status:$job_status,
-                  authorization_consumed:true,
-                  provider_attempt_marker_written:false,
-                  provider_mutation_attempted:false,
-                  provider_deployment_attempt_count:0,
-                  terminal_state:"FAIL_CLOSED_NO_REPLAY_AUTHORIZED",
-                  production_routes:0,
-                  custom_domains:0,
-                  pages_delete:"FORBIDDEN",
-                  pages_domain_detach:"FORBIDDEN",
-                  boundary:"PUBLIC_PRODUCTION_G5_HOLD",
-                  public:"HOLD",
-                  production:"HOLD",
-                  g5:"HOLD"
-                }' > "$RECEIPT"
-            fi
-          fi
-
-          if [ "$marker_present" = "true" ]; then
-            jq \
-              --arg job_status "$JOB_STATUS" \
-              '.job_status=$job_status
-               | .authorization_consumed=true
-               | .provider_attempt_marker_written=true
-               | .provider_mutation_attempted=(
-                   if .provider_mutation_attempted==false
-                   then true
-                   else .provider_mutation_attempted
-                   end
-                 )
-               | .provider_deployment_attempt_count=(
-                   if (.provider_deployment_attempt_count // 0) < 1
-                   then 1
-                   else .provider_deployment_attempt_count
-                   end
-                 )
-               | if .state=="VERIFIED_PASS"
-                 then .terminal_state="SHADOW_ACCEPTANCE_PASS_NON_PRODUCTION_ONLY"
-                 else .state=(
-                   if (.state|type)=="string" and (.state|startswith("VERIFIED_FAIL"))
-                   then .state
-                   else "VERIFIED_FAIL_POST_PROVIDER_ATTEMPT"
-                   end
-                 )
-                 | .terminal_state="FAIL_CLOSED_NO_REPLAY_AUTHORIZED"
-                 end
-               | .production_routes=0
-               | .custom_domains=0
-               | .pages_delete="FORBIDDEN"
-               | .pages_domain_detach="FORBIDDEN"
-               | .boundary="PUBLIC_PRODUCTION_G5_HOLD"
-               | .public="HOLD"
-               | .production="HOLD"
-               | .g5="HOLD"' \
-              "$RECEIPT" > "$TMP_RECEIPT"
-          else
-            jq \
-              --arg job_status "$JOB_STATUS" \
-              '.job_status=$job_status
-               | .authorization_consumed=true
-               | .provider_attempt_marker_written=false
-               | .provider_mutation_attempted=false
-               | .provider_deployment_attempt_count=0
-               | if .state=="VERIFIED_PASS"
-                 then .state="VERIFIED_FAIL_PROVIDER_MARKER_MISSING_AFTER_SUCCESS"
-                 | .terminal_state="FAIL_CLOSED_NO_REPLAY_AUTHORIZED"
-                 else .state=(
-                   if (.state|type)=="string" and (.state|startswith("VERIFIED_FAIL"))
-                   then .state
-                   else "VERIFIED_FAIL_PRE_PROVIDER"
-                   end
-                 )
-                 | .terminal_state="FAIL_CLOSED_NO_REPLAY_AUTHORIZED"
-                 end
-               | .production_routes=0
-               | .custom_domains=0
-               | .pages_delete="FORBIDDEN"
-               | .pages_domain_detach="FORBIDDEN"
-               | .boundary="PUBLIC_PRODUCTION_G5_HOLD"
-               | .public="HOLD"
-               | .production="HOLD"
-               | .g5="HOLD"' \
-              "$RECEIPT" > "$TMP_RECEIPT"
-          fi
-          mv "$TMP_RECEIPT" "$RECEIPT"
-          jq -e '
-            .authorization_consumed==true
-            and .production_routes==0
-            and .custom_domains==0
-            and .pages_delete=="FORBIDDEN"
-            and .pages_domain_detach=="FORBIDDEN"
-            and .public=="HOLD"
-            and .production=="HOLD"
-            and .g5=="HOLD"' \
-            "$RECEIPT" >/dev/null
-
-      - name: Upload sanitized terminal receipt
+      - name: Upload consumed authorization tombstone
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-cloudflare-workers-shadow-v2-CF-WORKERS-SHADOW-20260901-02-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/kidults-cloudflare-workers-shadow-v2/receipt.json
+          name: kidults-cloudflare-workers-shadow-v2-consumed-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-cloudflare-workers-shadow-v2-consumed/receipt.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Enforce consumed authorization no replay
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
+          exit 78
