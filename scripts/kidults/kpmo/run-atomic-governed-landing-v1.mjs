@@ -109,7 +109,7 @@ try {
   assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
-  const files = await pages(`/pulls/${prNumber}/files`);
+  const changedFileRecords = await pages(`/pulls/${prNumber}/files`);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
@@ -118,15 +118,15 @@ try {
   if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
   const approvalGeneration = await assertChangedApprovalGenerationEquality({
-    files,
+    files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: initial.base.sha,
     liveMainSha: initialMain.commit.sha,
   });
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
-  const changedFilenames = files.map(value => value?.filename).filter(value => typeof value === 'string');
-  if (changedFilenames.length !== files.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
+  const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
+  if (changedFilenames.length !== changedFileRecords.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
   const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);
 
   const rulesets = await request('/rulesets');
@@ -184,7 +184,7 @@ try {
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
   await assertChangedApprovalGenerationEquality({
-    files,
+    files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: immediatePreMerge.base.sha,
     liveMainSha: immediateMain.commit.sha,
