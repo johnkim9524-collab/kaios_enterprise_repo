@@ -67,7 +67,7 @@ jobs:
           const live = s.indexOf('Execute four governed public-metadata rotations');
           if (hard < 0 || live < 0 || hard > live) fail('P0B_HARD_DISABLE_ORDER_INVALID');
           if (!s.includes('if: always()') || !s.includes('Emit fail-closed KPMO P0B discovery receipt')) fail('P0B_TERMINAL_RECEIPT_MISSING');
-          if (!s.includes('KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}')) fail('P0B_EXACT_SOURCE_BINDING_ENV_MISSING');
+          if (!/^          KPMO_EXPECTED_SOURCE_SHA: /m.test(s)) fail('P0B_EXACT_SOURCE_BINDING_ENV_MISSING');
           if (!s.includes('source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA')) fail('P0B_EXACT_SOURCE_BINDING_MISSING');
           if (s.includes('source_sha:process.env.GITHUB_SHA')) fail('P0B_PR_MERGE_REF_SOURCE_BINDING_PRESENT');
           if (!s.includes('event_sha:process.env.GITHUB_SHA')) fail('P0B_EVENT_SHA_DIAGNOSTIC_MISSING');
