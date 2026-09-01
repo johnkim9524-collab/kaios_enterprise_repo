@@ -87,6 +87,8 @@ jobs:
   verify-getty-historical-transaction:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -115,6 +117,20 @@ jobs:
             coordination/kidults/source-intelligence/evidence/getty-provenance-object-09539ab1-v1.json; do
             node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$FILE"
           done
+      - name: Verify exact source-lineage contract
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const workflow=fs.readFileSync('.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml','utf8');
+          for(const marker of [
+            'KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
+            'source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA',
+            'event_sha:process.env.GITHUB_SHA',
+            'commit/${process.env.KPMO_EXPECTED_SOURCE_SHA}'
+          ]) if(!workflow.includes(marker)) throw new Error(`GETTY_SOURCE_LINEAGE_MARKER_MISSING:${marker}`);
+          if(workflow.includes('sha:process.env.GITHUB_SHA')) throw new Error('GETTY_AMBIGUOUS_EVENT_SHA_REINTRODUCED');
+          NODE
       - name: Install deterministic validation dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Install bounded adapter dependencies
@@ -210,7 +226,7 @@ jobs:
           const fs=require('fs'),crypto=require('crypto');
           const now=new Date().toISOString();
           const run=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.GITHUB_SHA}`;
+          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.KPMO_EXPECTED_SOURCE_SHA}`;
           const validationPath='/tmp/kidults-getty-historical-final-validation-v1.json';
           const manifestPath='/tmp/kidults-getty-historical-run-1/getty-historical-transaction-manifest-v1.json';
           const digest=(p)=>`sha256:${crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}`;
@@ -304,7 +320,8 @@ jobs:
             id:'kidults-getty-reference-replay-terminal-v1',
             version:'1.0.0',
             repository:process.env.GITHUB_REPOSITORY,
-            sha:process.env.GITHUB_SHA,
+            source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA,
+            event_sha:process.env.GITHUB_SHA,
             run_id:Number(process.env.GITHUB_RUN_ID),
             run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
             event_name:process.env.GITHUB_EVENT_NAME,
