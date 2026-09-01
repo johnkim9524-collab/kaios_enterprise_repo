@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {
-  assertChangedApprovalGenerationEquality,
+  assertCompleteApprovalGenerationRegistry,
 } from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
@@ -8,14 +8,14 @@ const repository = process.env.GH_REPOSITORY;
 const prNumber = process.env.PR_NUMBER;
 
 if (!token || !repository || !/^\d+$/.test(String(prNumber || ''))) {
-  throw new Error('APPROVAL_GENERATION_LIVE_PR_ENVIRONMENT_INVALID');
+  throw new Error('APPROVAL_REGISTRY_LIVE_PR_ENVIRONMENT_INVALID');
 }
 
 const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
-  'User-Agent': 'kidults-approval-generation-equality-live-pr-v1',
+  'User-Agent': 'kidults-approval-generation-registry-live-pr-v2',
 };
 
 async function api(path) {
@@ -39,55 +39,76 @@ async function pages(path) {
   throw new Error(`GITHUB_PAGINATION_BOUND_EXCEEDED:${path}`);
 }
 
-function encodePath(filename) {
-  return filename.split('/').map((part) => encodeURIComponent(part)).join('/');
+function assertSha(value, code) {
+  if (!/^[0-9a-f]{40}$/.test(String(value || ''))) throw new Error(code);
 }
 
-const [pullRequest, mainBranch, files] = await Promise.all([
+const [initial, initialMain, files] = await Promise.all([
   api(`/pulls/${prNumber}`),
   api('/branches/main'),
   pages(`/pulls/${prNumber}/files`),
 ]);
 
-if (pullRequest?.base?.ref !== 'main') throw new Error('APPROVAL_GENERATION_BASE_REF_NOT_MAIN');
-if (pullRequest?.state !== 'open' || pullRequest?.merged === true) {
-  throw new Error('APPROVAL_GENERATION_PR_NOT_OPEN_UNMERGED');
-}
-if (!/^[0-9a-f]{40}$/.test(String(pullRequest?.head?.sha || ''))) {
-  throw new Error('APPROVAL_GENERATION_PR_HEAD_SHA_INVALID');
-}
-if (!/^[0-9a-f]{40}$/.test(String(pullRequest?.base?.sha || ''))) {
-  throw new Error('APPROVAL_GENERATION_PR_BASE_SHA_INVALID');
-}
-if (!/^[0-9a-f]{40}$/.test(String(mainBranch?.commit?.sha || ''))) {
-  throw new Error('APPROVAL_GENERATION_LIVE_MAIN_SHA_INVALID');
+if (initial?.base?.ref !== 'main') throw new Error('APPROVAL_REGISTRY_BASE_REF_NOT_MAIN');
+if (initial?.state !== 'open' || initial?.merged === true) throw new Error('APPROVAL_REGISTRY_PR_NOT_OPEN_UNMERGED');
+assertSha(initial?.head?.sha, 'APPROVAL_REGISTRY_PR_HEAD_SHA_INVALID');
+assertSha(initial?.base?.sha, 'APPROVAL_REGISTRY_PR_BASE_SHA_INVALID');
+assertSha(initialMain?.commit?.sha, 'APPROVAL_REGISTRY_LIVE_MAIN_SHA_INVALID');
+if (initial.base.sha !== initialMain.commit.sha) throw new Error('APPROVAL_REGISTRY_PR_BASE_NOT_LIVE_MAIN');
+if (files.length !== Number(initial.changed_files || 0)) {
+  throw new Error(`APPROVAL_REGISTRY_CHANGED_FILE_PAGINATION_INCOMPLETE:${files.length}/${initial.changed_files}`);
 }
 
-const readJson = async (filename) => {
-  const payload = await api(`/contents/${encodePath(filename)}?ref=${pullRequest.head.sha}`);
-  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
-    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+const [candidateTree, baseTree] = await Promise.all([
+  api(`/git/trees/${initial.head.sha}?recursive=1`),
+  api(`/git/trees/${initial.base.sha}?recursive=1`),
+]);
+
+const readJson = async (entry) => {
+  const payload = await api(`/git/blobs/${entry.sha}`);
+  if (payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_REGISTRY_BLOB_SHAPE_INVALID:${entry.path}`);
   }
-  const text = Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8');
-  return JSON.parse(text);
+  const bytes = Buffer.from(payload.content.replace(/\s/g, ''), 'base64');
+  if (bytes.length !== entry.size) throw new Error(`APPROVAL_REGISTRY_BLOB_SIZE_MISMATCH:${entry.path}`);
+  return JSON.parse(bytes.toString('utf8'));
 };
 
-const result = await assertChangedApprovalGenerationEquality({
-  files,
+const result = await assertCompleteApprovalGenerationRegistry({
+  candidateTree,
+  baseTree,
+  changedFiles: files,
   readJson,
-  prBaseSha: pullRequest.base.sha,
-  liveMainSha: mainBranch.commit.sha,
+  readIssueComment: (commentId) => api(`/issues/comments/${commentId}`),
+  prBaseSha: initial.base.sha,
+  liveMainSha: initialMain.commit.sha,
+  repository,
+  phase: 'MERGE_CANDIDATE',
 });
 
+const [final, finalMain] = await Promise.all([
+  api(`/pulls/${prNumber}`),
+  api('/branches/main'),
+]);
+if (final.state !== initial.state || final.merged !== initial.merged || final.draft !== initial.draft) {
+  throw new Error('APPROVAL_REGISTRY_PR_STATE_DRIFT');
+}
+if (final.head?.sha !== initial.head.sha || final.base?.sha !== initial.base.sha) {
+  throw new Error('APPROVAL_REGISTRY_PR_REF_DRIFT');
+}
+if (finalMain?.commit?.sha !== initialMain.commit.sha) throw new Error('APPROVAL_REGISTRY_LIVE_MAIN_DRIFT');
+
 console.log(JSON.stringify({
-  id: 'kidults-approval-generation-equality-live-pr-receipt-v1',
-  version: '1.0.0',
+  id: 'kidults-approval-generation-full-registry-live-pr-receipt-v2',
+  version: '2.0.0',
   repository,
   pull_request: Number(prNumber),
-  exact_head_sha: pullRequest.head.sha,
+  exact_head_sha: initial.head.sha,
+  exact_base_sha: initial.base.sha,
   ...result,
+  final_live_reread: true,
   provider_credentials_resolved: false,
-  external_requests: 0,
+  external_provider_requests: 0,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
