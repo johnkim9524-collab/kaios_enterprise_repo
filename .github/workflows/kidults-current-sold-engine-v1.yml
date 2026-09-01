@@ -1,0 +1,42 @@
+name: KIDULTS Current-SOLD Engine V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/market/current-sold-event-schema-v1.json'
+      - 'scripts/kidults/market/current-sold-engine-v1.mjs'
+      - 'tests/kidults/market/current-sold-engine-v1.test.mjs'
+      - 'docs/kidults/market/current-sold-engine-v1.md'
+      - '.github/workflows/kidults-current-sold-engine-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-current-sold-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate schema JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/market/current-sold-event-schema-v1.json','utf8')); console.log('CURRENT_SOLD_SCHEMA_JSON_PASS')"
+      - name: Run owned Current-SOLD engine tests
+        run: node --test tests/kidults/market/current-sold-engine-v1.test.mjs
+      - name: Emit control-only receipt
+        if: always()
+        run: |
+          mkdir -p out/current-sold-engine
+          cat > out/current-sold-engine/receipt.json <<EOF
+          {"control":"KIDULTS_CURRENT_SOLD_ENGINE_V1","source_sha":"${GITHUB_SHA}","run_id":"${GITHUB_RUN_ID}","run_attempt":"${GITHUB_RUN_ATTEMPT}","public":"HOLD","production":"HOLD","g5":"HOLD"}
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kidults-current-sold-engine-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-engine/receipt.json
+          if-no-files-found: error
+          retention-days: 30
