@@ -1,0 +1,9 @@
+{
+  "id": "kidults-current-sold-smoke-001-gate-v1",
+  "required_admitted_count": 1,
+  "required_rejected_count": 0,
+  "collector_market_evidence_count": 0,
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
