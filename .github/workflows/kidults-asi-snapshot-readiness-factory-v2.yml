@@ -9,11 +9,14 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
@@ -23,11 +26,14 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
@@ -114,11 +120,13 @@ jobs:
           node --check scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs
+          node --check scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs
           node --check scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json','utf8'))"
       - name: Validate registered current-chain P3 assets and activation
         run: |
           set -euo pipefail
@@ -346,7 +354,7 @@ jobs:
         run: |
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
-          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const expectedUrl=`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`;const rawDigest=process.env.ARTIFACT_DIGEST||'';const normalizedDigest=rawDigest.startsWith('sha256:')?rawDigest:`sha256:${rawDigest}`;if(!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID||'')||!/^sha256:[0-9a-f]{64}$/.test(normalizedDigest)||process.env.ARTIFACT_URL!==expectedUrl)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-provider-artifact-receipt-v2',state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING',repository:process.env.GITHUB_REPOSITORY,source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:process.env.GITHUB_RUN_ID,artifact_id:process.env.ARTIFACT_ID,artifact_digest:normalizedDigest,artifact_url:process.env.ARTIFACT_URL,exact_pair_digest:m.exact_pair_digest,upstream_binding_receipt_sha256:m.upstream_binding_receipt_sha256,immutable_storage_verified:false,artifact_attestation_verified:false,track_b_submission_eligible:false,public_release:'HOLD',production:'HOLD'},null,2)+'\n');
+          const fs=require('fs'),crypto=require('crypto');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const pairReceipt='/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-pair-generation-receipt-v2.json';const expectedUrl=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`;const artifactName=`kidults-asi-snapshot-readiness-factory-v2-main-${process.env.GITHUB_SHA}-${process.env.GITHUB_RUN_ID}`;const rawDigest=process.env.ARTIFACT_DIGEST||'';const normalizedDigest=rawDigest.startsWith('sha256:')?rawDigest:`sha256:${rawDigest}`;const pairReceiptSha256='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(pairReceipt)).digest('hex');if(process.env.GITHUB_SERVER_URL!=='https://github.com'||process.env.GITHUB_REF!=='refs/heads/main'||!['workflow_run','schedule'].includes(process.env.GITHUB_EVENT_NAME)||!(/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||''))||!(/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ID||''))||!(/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ATTEMPT||''))||!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID||'')||!/^sha256:[0-9a-f]{64}$/.test(normalizedDigest)||process.env.ARTIFACT_URL!==expectedUrl)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-provider-artifact-receipt-v2',version:'3.0.0',state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING',repository:process.env.GITHUB_REPOSITORY,workflow_path:'.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',protected_ref:'refs/heads/main',source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:process.env.GITHUB_RUN_ID,workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),event_name:process.env.GITHUB_EVENT_NAME,artifact_name:artifactName,artifact_id:process.env.ARTIFACT_ID,artifact_digest:normalizedDigest,artifact_url:process.env.ARTIFACT_URL,exact_pair_digest:m.exact_pair_digest,pair_receipt_sha256:pairReceiptSha256,upstream_binding_receipt_sha256:m.upstream_binding_receipt_sha256,authority_scope:'BOUNDED_CANARY_ADAPTER_ADMISSION_ONLY',track_b_submission_eligible:false,public_release:'HOLD',production:'HOLD'},null,2)+'\n');
           NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

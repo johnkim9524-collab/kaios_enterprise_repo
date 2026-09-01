@@ -51,7 +51,12 @@ def expect_rejection(label: str, function, code: str) -> None:
             errors.append(f"{label}: expected {code}, received {error}")
 
 
-def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str, Any], dict[str, Any]]:
+def fixture_pair(
+    object_id: str = "object-redteam-camera-001",
+    *,
+    sample_tier: str = "PRIVATE_E2E",
+    sample_size: int | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     snapshot_id = "candidate-exact-pair-e2e-001"
     evidence_id = "evidence-exact-pair-e2e-001"
     observed_at = "2026-08-30T01:00:00.000Z"
@@ -65,7 +70,14 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
         "rights_state": "ALLOW",
         "evidence_strength": 0.93,
         "source_owner_id": "auction-owner-a",
+        "ultimate_owner_id": "auction-owner-a",
+        "source_id": "auction-source-a",
         "factual_origin_id": "auction-origin-a",
+        "vertical": "COLLECTIBLE_CAMERA",
+        "territory": "US",
+        "time_bucket": "2026-08",
+        "independence_cluster_id": "sold-cluster-001",
+        "defect_classes": [],
         "source_url": "https://auction.example.invalid/normalized-away-in-live-preflight",
         "source_payload_sha256": "sha256:" + "1" * 64,
         "license_evidence_refs": ["https://rights.example.invalid/test-only"],
@@ -124,25 +136,74 @@ def fixture_pair(object_id: str = "object-redteam-camera-001") -> tuple[dict[str
             "evidence_uri": "https://rights.example.invalid/test-only",
         },
     }
+    sample_policy = json.loads(assessor.SAMPLE_POLICY.read_text(encoding="utf-8"))
+    tier = next(item for item in sample_policy["tiers"] if item["id"] == sample_tier)
+    if sample_size is None:
+        sample_size = int(tier["min_n"])
     sold_records = []
-    for index in range(119):
+    for index in range(sample_size):
         record = copy.deepcopy(sold)
+        owner_suffix = "a" if index % 2 == 0 else "b"
         record["evidence_id"] = f"evidence-sold-camera-{index + 1:03d}"
+        record["source_owner_id"] = f"auction-owner-{owner_suffix}"
+        record["ultimate_owner_id"] = f"auction-owner-{owner_suffix}"
+        record["source_id"] = f"auction-source-{owner_suffix}"
+        record["factual_origin_id"] = f"auction-origin-{owner_suffix}"
+        record["territory"] = "US" if owner_suffix == "a" else "GB"
+        record["independence_cluster_id"] = f"sold-cluster-{index + 1:04d}"
         record["source_payload_sha256"] = "sha256:" + f"{index + 1:064x}"
         record["rights_assertion"]["assertion_id"] = f"rights-camera-{index + 1:03d}"
+        record["rights_assertion"]["source_owner_id"] = record["source_owner_id"]
         record["rights_assertion"]["source_content_snapshot_sha256"] = record["source_payload_sha256"]
         sold_records.append(record)
     event_ids = sorted(record["evidence_id"] for record in sold_records)
     launch_cohort = {
         "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
-        "sample_tier": "CONTROL_ONLY_FUNCTIONAL",
-        "cohort_mode": "CONTROL_ONLY_FIXTURE",
-        "sample_size": 119,
+        "sample_tier": sample_tier,
+        "cohort_mode": f"{sample_tier}_TEST_FIXTURE",
+        "sample_size": sample_size,
         "terminal_state": "SOLD",
         "event_ids": event_ids,
         "event_digests": sorted(assessor.digest_json(record) for record in sold_records),
     }
-    launch_cohort["cohort_digest"] = assessor.digest_json(launch_cohort)
+    maximum_claim = sample_policy["promotion_matrix"][sample_tier]["maximum_claim"]
+    governance = {
+        "policy_id": sample_policy["id"],
+        "policy_version": sample_policy["version"],
+        "policy_digest": assessor.digest_json(sample_policy),
+        "plan_sealed_at": "2026-07-31T00:00:00.000Z",
+        "interval": sample_policy["statistical_method"]["interval"],
+        "confidence": sample_policy["statistical_method"]["confidence"],
+        "requested_claim": maximum_claim,
+        "claim_ceiling": maximum_claim,
+        "effective_n": sample_size,
+        "defect_counts": {key: 0 for key in assessor.COUNTED_DEFECT_CLASSES},
+        "coverage_plan": {
+            "required_strata": sample_policy["coverage_gate"]["required_strata"],
+            "required_values": {
+                "ultimate_owner": ["auction-owner-a", "auction-owner-b"],
+                "source": ["auction-source-a", "auction-source-b"],
+                "vertical": ["COLLECTIBLE_CAMERA"],
+                "territory": ["GB", "US"],
+                "currency": ["USD"],
+                "time_bucket": ["2026-08"],
+            },
+            "minimum_count_per_value": {
+                stratum: 1 for stratum in sample_policy["coverage_gate"]["required_strata"]
+            },
+        },
+    }
+    governance["governance_digest"] = assessor.digest_json(governance)
+    launch_cohort["sample_governance"] = governance
+    launch_cohort["cohort_digest"] = assessor.digest_json({
+        "cohort_class": launch_cohort["cohort_class"],
+        "sample_tier": launch_cohort["sample_tier"],
+        "cohort_mode": launch_cohort["cohort_mode"],
+        "sample_size": launch_cohort["sample_size"],
+        "terminal_state": launch_cohort["terminal_state"],
+        "event_ids": launch_cohort["event_ids"],
+        "event_digests": launch_cohort["event_digests"],
+    })
     evidence = {
         "package_id": evidence_id,
         "evidence_package_id": evidence_id,
@@ -193,7 +254,10 @@ def remote_attestation(snapshot: dict[str, Any], evidence: dict[str, Any]) -> di
         "remote_execution": True,
         "exact_pair_digest": assessor.digest_json({"snapshot": snapshot, "evidence": evidence}),
         "launch_cohort_digest": evidence["launch_cohort"]["cohort_digest"],
-        "postgres_receipt_ids": [f"pg-receipt-{index + 1:03d}" for index in range(119)],
+        "postgres_receipt_ids": [
+            f"pg-receipt-{index + 1:04d}"
+            for index in range(evidence["launch_cohort"]["sample_size"])
+        ],
         "pitr_proven": True,
         "pitr_restore_receipt_id": "pitr-restore-test-only-001",
         "metrics": {key: 1 for key in replay_builder.REQUIRED_RUNTIME_METRICS},
@@ -225,6 +289,32 @@ def ready_handoff(snapshot: dict[str, Any], evidence: dict[str, Any]) -> dict[st
     }
 
 
+def refresh_launch_cohort_bindings(evidence: dict[str, Any]) -> None:
+    sold_records = [
+        record for record in evidence["evidence_records"]
+        if record.get("temporality") == "CURRENT_MARKET"
+        and record.get("market_observation_type") == "SOLD_TRANSACTION"
+        and record.get("rights_state") == "ALLOW"
+    ]
+    cohort = evidence["launch_cohort"]
+    cohort["sample_size"] = len(sold_records)
+    cohort["event_ids"] = sorted(record["evidence_id"] for record in sold_records)
+    cohort["event_digests"] = sorted(assessor.digest_json(record) for record in sold_records)
+    governance = cohort["sample_governance"]
+    governance["governance_digest"] = assessor.digest_json({
+        key: value for key, value in governance.items() if key != "governance_digest"
+    })
+    cohort["cohort_digest"] = assessor.digest_json({
+        "cohort_class": cohort["cohort_class"],
+        "sample_tier": cohort["sample_tier"],
+        "cohort_mode": cohort.get("cohort_mode"),
+        "sample_size": cohort["sample_size"],
+        "terminal_state": cohort["terminal_state"],
+        "event_ids": cohort["event_ids"],
+        "event_digests": cohort["event_digests"],
+    })
+
+
 snapshot, evidence = fixture_pair()
 handoff = ready_handoff(snapshot, evidence)
 attestation = remote_attestation(snapshot, evidence)
@@ -243,8 +333,161 @@ check(assessment["recommendation"] == "PUBLISHABLE_INTERNAL", "official Track B 
 check(assessment["overall_rankability"] is True, "official Track B did not establish internal rankability")
 check(assessment["publication_eligible"] is False and assessment["production_eligible"] is False, "Track B preauthorized release")
 check(replay["workload_result"] == "PASS" and replay["projection_ready"] is True, "staging replay did not pass")
-check(replay["current_sold_record_count"] == 119, "launch cohort did not preserve policy-derived sample size")
+check(replay["current_sold_record_count"] == 1840, "launch cohort did not preserve PRIVATE_E2E effective sample size")
 check(replay["public_touch"] is False and replay["production_touch"] is False and replay["g5"] == "HOLD", "staging replay boundary changed")
+
+expect_rejection(
+    "expired-current-sold-replay",
+    lambda: assessor.build_assessment_envelope(
+        snapshot,
+        evidence,
+        handoff,
+        generated_at="2026-10-01T00:00:00.000Z",
+        candidate_reference="x",
+        evidence_reference="y",
+        handoff_reference="z",
+    ),
+    "CURRENT_SOLD_EVIDENCE_STALE_AT_ASSESSMENT",
+)
+
+# A raw 119-record CONTROL_ONLY cohort is valid deterministic plumbing input,
+# but its canonical claim ceiling can never become rankable or projectable.
+control_119_snapshot, control_119_evidence = fixture_pair(
+    "object-control-119-not-rankable",
+    sample_tier="CONTROL_ONLY_FUNCTIONAL",
+    sample_size=119,
+)
+control_119_handoff = ready_handoff(control_119_snapshot, control_119_evidence)
+expect_rejection(
+    "119-control-only-not-rankable",
+    lambda: assessor.build_assessment_envelope(
+        control_119_snapshot,
+        control_119_evidence,
+        control_119_handoff,
+        generated_at=control_119_snapshot["as_of"],
+        candidate_reference="x",
+        evidence_reference="y",
+        handoff_reference="z",
+    ),
+    "SAMPLE_TIER_NOT_RANKABLE",
+)
+control_119_hold_handoff = {
+    **control_119_handoff,
+    "handoff_state": "BLOCKED",
+    "blocker_count": 1,
+    "blockers": ["TRACK_B_SAMPLE_GOVERNANCE_HOLD:SAMPLE_TIER_NOT_RANKABLE"],
+}
+control_119_hold = assessor.build_hold_assessment_envelope(
+    control_119_snapshot,
+    control_119_evidence,
+    control_119_hold_handoff,
+    generated_at=control_119_snapshot["as_of"],
+    candidate_reference="x",
+    evidence_reference="y",
+    handoff_reference="z",
+)
+check(control_119_hold["assessment"]["overall_rankability"] is False, "119 CONTROL_ONLY cohort became rankable")
+expect_rejection(
+    "119-control-only-not-projectable",
+    lambda: replay_builder.build_replay_receipt(control_119_snapshot, control_119_evidence, control_119_hold),
+    "ASSESSMENT_NOT_RANKABLE",
+)
+
+# An exact five-record CANARY proves only schema/boundary smoke. It may reach
+# the governed handoff, but Official Track B must never convert that tier into
+# a publishable-internal assessment or a projectable replay.
+canary_snapshot, canary_evidence = fixture_pair(
+    "object-canary-5-not-rankable",
+    sample_tier="CANARY",
+    sample_size=5,
+)
+canary_handoff = ready_handoff(canary_snapshot, canary_evidence)
+expect_rejection(
+    "exact-five-canary-not-rankable",
+    lambda: assessor.build_assessment_envelope(
+        canary_snapshot,
+        canary_evidence,
+        canary_handoff,
+        generated_at=canary_snapshot["as_of"],
+        candidate_reference="x",
+        evidence_reference="y",
+        handoff_reference="z",
+    ),
+    "SAMPLE_TIER_NOT_RANKABLE",
+)
+canary_hold_handoff = {
+    **canary_handoff,
+    "handoff_state": "BLOCKED",
+    "blocker_count": 1,
+    "blockers": ["TRACK_B_SAMPLE_GOVERNANCE_HOLD:SAMPLE_TIER_NOT_RANKABLE"],
+}
+canary_hold = assessor.build_hold_assessment_envelope(
+    canary_snapshot,
+    canary_evidence,
+    canary_hold_handoff,
+    generated_at=canary_snapshot["as_of"],
+    candidate_reference="x",
+    evidence_reference="y",
+    handoff_reference="z",
+)
+check(canary_hold["assessment"]["recommendation"] in {"BLOCKED", "CONDITIONAL"}, "exact-five CANARY recommendation escaped HOLD")
+check(canary_hold["assessment"]["overall_rankability"] is False, "exact-five CANARY became rankable")
+check(canary_hold["assessment"]["publication_eligible"] is False, "exact-five CANARY preauthorized publication")
+check(canary_hold["assessment"]["production_eligible"] is False, "exact-five CANARY preauthorized production")
+
+duplicate_cluster = copy.deepcopy(evidence)
+duplicate_cluster["evidence_records"][1]["independence_cluster_id"] = duplicate_cluster["evidence_records"][0]["independence_cluster_id"]
+refresh_launch_cohort_bindings(duplicate_cluster)
+duplicate_cluster_handoff = ready_handoff(snapshot, duplicate_cluster)
+expect_rejection(
+    "raw-count-cannot-substitute-effective-n",
+    lambda: assessor.build_assessment_envelope(snapshot, duplicate_cluster, duplicate_cluster_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "EFFECTIVE_N_MISMATCH",
+)
+
+cp_failure = copy.deepcopy(evidence)
+cp_failure["evidence_records"][0]["defect_classes"] = ["MAJOR_B"]
+cp_failure["launch_cohort"]["sample_governance"]["defect_counts"]["MAJOR_B"] = 1
+refresh_launch_cohort_bindings(cp_failure)
+cp_failure_handoff = ready_handoff(snapshot, cp_failure)
+expect_rejection(
+    "exact-cp-upper-bound-failure",
+    lambda: assessor.build_assessment_envelope(snapshot, cp_failure, cp_failure_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "EXACT_CP_UCB_EXCEEDS_TIER_TOLERANCE",
+)
+
+coverage_failure = copy.deepcopy(evidence)
+coverage_failure["launch_cohort"]["sample_governance"]["coverage_plan"]["required_values"]["territory"].append("JP")
+refresh_launch_cohort_bindings(coverage_failure)
+coverage_failure_handoff = ready_handoff(snapshot, coverage_failure)
+expect_rejection(
+    "coverage-stratum-not-observed",
+    lambda: assessor.build_assessment_envelope(snapshot, coverage_failure, coverage_failure_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "COVERAGE_GATE_FAILED:territory",
+)
+
+concentration_failure = copy.deepcopy(evidence)
+for record in concentration_failure["evidence_records"][:-1]:
+    record["ultimate_owner_id"] = "auction-owner-a"
+concentration_failure["launch_cohort"]["sample_governance"]["coverage_plan"]["required_values"]["ultimate_owner"] = ["auction-owner-a"]
+refresh_launch_cohort_bindings(concentration_failure)
+concentration_failure_handoff = ready_handoff(snapshot, concentration_failure)
+expect_rejection(
+    "ultimate-owner-concentration",
+    lambda: assessor.build_assessment_envelope(snapshot, concentration_failure, concentration_failure_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "ULTIMATE_OWNER_INDEPENDENCE_FAILED",
+)
+
+claim_downgrade = copy.deepcopy(evidence)
+claim_downgrade["launch_cohort"]["sample_governance"]["requested_claim"] = "DETERMINISTIC_PLUMBING_ONLY"
+claim_downgrade["launch_cohort"]["sample_governance"]["claim_ceiling"] = "DETERMINISTIC_PLUMBING_ONLY"
+refresh_launch_cohort_bindings(claim_downgrade)
+claim_downgrade_handoff = ready_handoff(snapshot, claim_downgrade)
+expect_rejection(
+    "requested-claim-tier-downgrade",
+    lambda: assessor.build_assessment_envelope(snapshot, claim_downgrade, claim_downgrade_handoff, generated_at=snapshot["as_of"], candidate_reference="x", evidence_reference="y", handoff_reference="z"),
+    "REQUESTED_CLAIM_TIER_MISMATCH",
+)
 
 expect_rejection(
     "synthetic-assessment",
@@ -314,7 +557,11 @@ expect_rejection(
 
 # A single object remains usable for deterministic plumbing diagnostics, but
 # it is explicitly non-launch and can produce only a Track B HOLD envelope.
-control_snapshot, control_evidence = fixture_pair("object-single-control-001")
+control_snapshot, control_evidence = fixture_pair(
+    "object-single-control-001",
+    sample_tier="CONTROL_ONLY_FUNCTIONAL",
+    sample_size=1,
+)
 control_evidence["execution_scope"] = "SINGLE_OBJECT_CONTROL_ONLY"
 control_evidence["evidence_records"] = [control_evidence["evidence_records"][0]]
 control_evidence.pop("launch_cohort", None)
@@ -342,7 +589,11 @@ expect_rejection(
     "ASSESSMENT_NOT_RANKABLE",
 )
 
-conditional_snapshot, conditional_evidence = fixture_pair("ethereum-erc721-0x387c-token-5198")
+conditional_snapshot, conditional_evidence = fixture_pair(
+    "ethereum-erc721-0x387c-token-5198",
+    sample_tier="CONTROL_ONLY_FUNCTIONAL",
+    sample_size=1,
+)
 conditional_evidence["evidence_records"] = [conditional_evidence["evidence_records"][0]]
 conditional_evidence["evidence_records"][0]["market_observation_type"] = "ORDER_FULFILLED"
 conditional_evidence["evidence_records"][0]["rights_state"] = "CONDITIONAL"

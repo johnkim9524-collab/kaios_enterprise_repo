@@ -1,0 +1,43 @@
+{
+  "id": "kidults-cloudflare-workers-shadow-receipt-lifetime-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FOR_ANY_FUTURE_WORKERS_SHADOW_ONE_SHOT",
+  "incident": {
+    "approval_id": "CF-WORKERS-SHADOW-20260831-01",
+    "workflow_run_id": 33410598558,
+    "source_sha": "e5efb9435e4a8847927791ae4fc9b580b75506c1",
+    "failure_code": "RECEIPT_REMOVED_BY_CHECKOUT_CLEAN",
+    "provider_mutation_attempted": false
+  },
+  "canonical_receipt_location": "RUNNER_TEMP_OUTSIDE_GITHUB_WORKSPACE",
+  "forbidden_receipt_locations_before_checkout": [
+    "GITHUB_WORKSPACE",
+    "artifacts/",
+    "repository-relative path"
+  ],
+  "required_controls": [
+    "CANONICAL_RECEIPT_CREATED_UNDER_RUNNER_TEMP",
+    "CHECKOUT_CLEAN_CANNOT_DELETE_CANONICAL_RECEIPT",
+    "EVERY_RECEIPT_UPDATE_USES_SAME_RUNNER_TEMP_PATH",
+    "ALWAYS_FINALIZER_CREATES_FALLBACK_TERMINAL_RECEIPT_WHEN_MISSING",
+    "UPLOAD_ARTIFACT_READS_FROM_RUNNER_TEMP",
+    "PROVIDER_STEP_REQUIRES_EXISTING_NONEMPTY_PREFLIGHT_RECEIPT",
+    "DISPATCH_CONSUMPTION_RECORDED_BEFORE_PROVIDER_ATTEMPT",
+    "CHECKOUT_CLEAN_LIFETIME_REGRESSION_TEST_PASSES"
+  ],
+  "fallback_receipt_truth": {
+    "provider_mutation_attempted_when_unprovable": "UNKNOWN_REQUIRES_LOG_READBACK",
+    "must_not_claim_false_without_evidence": true,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "future_execution": {
+    "current_approval_reusable": false,
+    "new_explicit_approval_required": true,
+    "new_versioned_workflow_required": true,
+    "production_routes_allowed": 0,
+    "custom_domains_allowed": 0,
+    "pages_delete_allowed": false
+  }
+}

@@ -92,6 +92,12 @@ jobs:
           node --test tests/kidults/kpmo/dependency-bootstrap-lock-v1.test.mjs
           node scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs
 
+      - name: Verify Production release gate synthetic controls
+        run: |
+          set -euo pipefail
+          node --test tests/production/production-release-evidence-gate-v1.test.mjs
+          node scripts/kidults/kpmo/validate-production-rollback-contract-v1.mjs
+
       - name: Install dependencies
         run: |
           python -m pip install \
@@ -126,6 +132,9 @@ jobs:
 
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test
+
+      - name: Validate source eligibility receipt expiry and producer lineage
+        run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
 
       - name: Run KAIOS pipeline
         run: python scripts/run_kaios.py

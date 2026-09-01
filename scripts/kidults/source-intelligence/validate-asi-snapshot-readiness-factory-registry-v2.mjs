@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const files = {
   contract: 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json',
+  sample_governance: 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json',
   registry: 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json',
   builder: 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs',
   validator: 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs',
@@ -21,6 +22,7 @@ const json = (file) => JSON.parse(read(file));
 for (const [key, file] of Object.entries(files)) assert(fs.existsSync(file), `MISSING_${key.toUpperCase()}:${file}`);
 
 const contract = json(files.contract);
+const sampleGovernance = json(files.sample_governance);
 const registry = json(files.registry);
 const workflow = read(files.workflow);
 const doc = read(files.documentation);
@@ -54,8 +56,8 @@ const alwaysOutputs = [
 const gateFailOutputs = ['snapshot-non-generation-receipt-v2.json'];
 const gatePassOutputs = ['snapshot-candidate.json', 'evidence-package.json', 'snapshot-pair-generation-receipt-v2.json'];
 
-assert(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.1.0', 'CONTRACT_ID_VERSION');
-assert(registry.id === 'kidults-asi-snapshot-readiness-factory-registry-v2' && registry.version === '2.1.0', 'REGISTRY_ID_VERSION');
+assert(contract.id === 'kidults-asi-snapshot-readiness-factory-contract-v2' && contract.version === '2.2.0', 'CONTRACT_ID_VERSION');
+assert(registry.id === 'kidults-asi-snapshot-readiness-factory-registry-v2' && registry.version === '2.2.0', 'REGISTRY_ID_VERSION');
 assert(registry.owner === 'KPMO' && registry.priority === 'P3', 'REGISTRY_OWNER_PRIORITY');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLES');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLES');
@@ -76,6 +78,10 @@ assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_EXACT_L
 assert(registry.release_semantics?.output_existence_is_prerequisite === false, 'REGISTRY_LIVENESS_BOUNDARY');
 assert(registry.release_semantics?.track_b_submission_preauthorized === false, 'REGISTRY_TRACK_B_PREAUTHORIZATION');
 assert(registry.release_semantics?.blocker_package_is_evidence_package === false, 'REGISTRY_BLOCKER_BOUNDARY');
+assert(registry.release_semantics?.current_sold_sample_tier === 'DERIVED_FROM_CANONICAL_POLICY_PURPOSE_AND_CLAIM_TARGET'
+  && registry.release_semantics?.first_empirical_pair_tier === 'CANARY_EXACTLY_5'
+  && registry.release_semantics?.canary_maximum_claim === 'SCHEMA_BOUNDARY_SMOKE_ONLY'
+  && registry.release_semantics?.canary_release_allowed === false, 'REGISTRY_CANARY_POLICY_BOUNDARY');
 assert(registry.artifact_restore_semantics?.p2_artifact === 'EXACT_WORKFLOW_RUN_ID_HEAD_SHA_PROVIDER_DIGEST_AND_DOWNLOADED_ARCHIVE_SHA256', 'REGISTRY_P2_RESTORE');
 assert(registry.artifact_restore_semantics?.p0b_p1_artifact_ids === 'ONLY_FROM_EXACT_P2_KPMO_RECEIPT', 'REGISTRY_P0B_P1_RESTORE');
 assert(registry.artifact_restore_semantics?.global_artifact_scan === 'FORBIDDEN' && registry.artifact_restore_semantics?.any_branch_fallback === 'FORBIDDEN', 'REGISTRY_RESTORE_FALLBACK_BOUNDARY');
@@ -85,6 +91,32 @@ assert(JSON.stringify(contract.output_assertion_dimensions) === JSON.stringify(o
 assert(JSON.stringify(contract.readiness_dimensions) === JSON.stringify([...prerequisites, ...outputAssertions]), 'CONTRACT_READINESS_DIMENSIONS');
 assert(contract.snapshot_creation_gate?.all_prerequisite_dimensions_must_pass_before_generation === true, 'CONTRACT_GATE_PREREQUISITES');
 assert(contract.snapshot_creation_gate?.output_existence_is_prerequisite === false, 'CONTRACT_OUTPUT_EXISTENCE_CYCLE');
+assert(contract.snapshot_creation_gate?.admitted_current_sold_minimum_from_canonical_sample_tier === true
+  && !Object.hasOwn(contract.snapshot_creation_gate, 'admitted_current_sold_minimum'), 'CONTRACT_DYNAMIC_CURRENT_SOLD_TIER');
+assert(contract.current_sold_sample_governance?.canonical_policy === files.sample_governance
+  && contract.current_sold_sample_governance?.policy_id === sampleGovernance.id
+  && contract.current_sold_sample_governance?.policy_version === sampleGovernance.version
+  && contract.current_sold_sample_governance?.pair_purpose === 'SCHEMA_AND_BOUNDARY_SMOKE'
+  && contract.current_sold_sample_governance?.claim_target === 'DATED_OBSERVED_SOLD_TRANSACTION'
+  && contract.current_sold_sample_governance?.cohort_class === 'LAWFUL_CURRENT_SOLD_SAMPLE'
+  && contract.current_sold_sample_governance?.cohort_mode === 'EMPIRICAL_CANARY', 'CONTRACT_SAMPLE_POLICY_BINDING');
+assert(JSON.stringify(contract.current_sold_sample_governance?.required_current_sold_evidence_fields) === JSON.stringify([
+  'sample_purpose', 'claim_target', 'source_id', 'source_record_id', 'sample_plan_id', 'sample_plan_sha256',
+  'sample_plan_registration_receipt_id', 'sample_plan_registration_receipt_sha256', 'sample_plan_artifact_ref',
+  'sample_plan_registered_at', 'sampling_frame_id', 'sample_unit_id', 'license_evidence_refs',
+]), 'CONTRACT_REQUIRED_CURRENT_SOLD_EVIDENCE_FIELDS');
+assert(JSON.stringify(contract.current_sold_sample_governance?.required_rights_assertion_fields) === JSON.stringify([
+  'source_content_snapshot_sha256',
+]), 'CONTRACT_REQUIRED_RIGHTS_ASSERTION_FIELDS');
+assert(contract.current_sold_sample_governance?.sample_plan_must_precede_observation === true
+  && contract.current_sold_sample_governance?.sample_units_must_be_unique === true
+  && contract.current_sold_sample_governance?.all_current_sold_records_must_share_one_pre_registered_plan_and_frame === true
+  && contract.current_sold_sample_governance?.fixed_platform_wide_sample_minimum_forbidden === true, 'CONTRACT_SAMPLE_POLICY_ENFORCEMENT_RULES');
+const canaryTier = sampleGovernance.tiers?.find((tier) => tier.purpose === contract.current_sold_sample_governance.pair_purpose
+  && tier.claim_target === contract.current_sold_sample_governance.claim_target);
+assert(canaryTier?.id === 'CANARY' && canaryTier.min_n === 5 && canaryTier.max_n === 5
+  && sampleGovernance.promotion_matrix?.CANARY?.maximum_claim === 'SCHEMA_BOUNDARY_SMOKE_ONLY'
+  && sampleGovernance.promotion_matrix?.CANARY?.release_allowed === false, 'CANONICAL_CANARY_TIER_INVALID');
 assert(contract.pair_generation?.atomic_directory_commit_required === true && contract.pair_generation?.canonical_handoff_preflight_required_after_generation === true, 'CONTRACT_ATOMIC_HANDOFF');
 assert(contract.pair_generation?.canonical_handoff_validator === files.canonical_handoff_validator, 'CONTRACT_CANONICAL_HANDOFF_VALIDATOR');
 assert(contract.pair_generation?.track_b_submission_preauthorization_forbidden === true, 'CONTRACT_TRACK_B_PREAUTHORIZATION');
@@ -110,6 +142,7 @@ function workflowFindings(source) {
     'schedule:',
     'workflow_dispatch:',
     "cron: '7 * * * *'",
+    "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
     'push:',
     'workflow_run:',
     'validate-p3-control-on-pr:',
@@ -218,6 +251,11 @@ for (const marker of [
   'EVIDENCE_ADMISSION_ZERO_OR_UNBOUND',
   'ADMISSION_PREFLIGHT_ACTION_BINDING_INCOMPLETE',
   'P3_UPSTREAM_PROVIDER_DOWNLOAD_DIGEST_MISMATCH',
+  'P3_SAMPLE_PURPOSE_TIER_NOT_UNIQUE',
+  'CURRENT_SOLD_SAMPLE_PURPOSE_MISMATCH',
+  'CURRENT_SOLD_CLAIM_TARGET_MISMATCH',
+  'CURRENT_SOLD_COHORT_SAMPLE_UNIT_DUPLICATE',
+  'CURRENT_SOLD_SAMPLE_POLICY_TIER_NOT_SATISFIED',
 ]) assert(library.includes(marker), `READINESS_LIBRARY_MARKER:${marker}`);
 for (const marker of [
   'READINESS_PREREQUISITE_DIMENSIONS',
@@ -226,6 +264,8 @@ for (const marker of [
   'PAIR_PAYLOAD_DIGESTS',
   'PAIR_FILE_DIGESTS',
   'MANIFEST_ATOMIC_TRACK_B_BOUNDARY',
+  'EVIDENCE_SAMPLE_POLICY_AND_COHORT_BINDING',
+  'EVIDENCE_CANARY_CLAIM_CEILING',
 ]) assert(validator.includes(marker), `VALIDATOR_MARKER:${marker}`);
 for (const marker of [
   'lawful_ready_pair_generation_verified',
@@ -234,7 +274,16 @@ for (const marker of [
   'atomic_directory_commit_verified',
   'canonical_handoff_pair_digest_verified',
   'canonical_handoff_remains_blocked',
-  'negative_mutation_cases: 15',
+  'under_tier_one_sold_record_blocked: true',
+  'exact_claim_cohort_set_equality_verified: true',
+  'canonical_transaction_identity_deduplication_verified: true',
+  'handoff_transaction_identity_completeness_verified: true',
+  'sample_plan_policy_sealing_verified: true',
+  'sample_plan_strict_pre_observation_verified: true',
+  'canonical_policy_tier_weakening_rejected: true',
+  "canonical_canary_tier: 'CANARY'",
+  'canonical_canary_sample_size: 5',
+  'negative_mutation_cases: 34',
   "generated_pair_state: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING'",
   'artifact_attestation_verified: false',
 ]) assert(livenessTest.includes(marker), `LIVENESS_TEST_MARKER:${marker}`);
@@ -260,7 +309,7 @@ for (const marker of [
   "invocation_mode: noArgumentSelfTest ? 'NO_ARGUMENT_SAFE_SELF_TEST' : 'EXPLICIT_SELF_TEST'",
 ]) assert(upstreamValidator.includes(marker), `UPSTREAM_VALIDATOR_MARKER:${marker}`);
 for (const marker of [
-  '# KIDULTS ASI Snapshot Readiness Factory v2.1',
+  '# KIDULTS ASI Snapshot Readiness Factory v2.2',
   'Current P0B → P1 → P2 v2 chain',
   '672',
   '576',
@@ -270,6 +319,8 @@ for (const marker of [
   'Ten prerequisites and two output assertions',
   'Blocker Package ≠ Evidence Package',
   'Pair Generated ≠ Track B Ready',
+  'CANARY',
+  'SCHEMA_BOUNDARY_SMOKE_ONLY',
 ]) assert(doc.includes(marker), `DOC_MARKER:${marker}`);
 
 console.log(JSON.stringify({

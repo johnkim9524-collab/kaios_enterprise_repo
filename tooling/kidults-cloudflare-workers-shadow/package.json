@@ -1,0 +1,9 @@
+{
+  "name": "kidults-cloudflare-workers-shadow-tooling",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "npm@11.17.0",
+  "devDependencies": {
+    "wrangler": "4.127.1"
+  }
+}

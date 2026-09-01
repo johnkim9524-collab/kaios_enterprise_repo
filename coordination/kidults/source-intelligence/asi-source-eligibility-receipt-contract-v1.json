@@ -1,10 +1,65 @@
 {
   "id": "kidults-asi-source-eligibility-receipt-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
-  "purpose": "Authorize product-content admission only when the same source and purpose are bound to current product-value, rights, immutable source-content snapshot and source-specific schema evidence.",
+  "purpose": "Establish source-specific canary-evaluation eligibility from current evidence. Product-content admission and adapter activation additionally require an exact source-bound P3 CANARY receipt and an allowed protected producer event.",
   "purpose_id": "KIDULTS_CURRENT_SOLD_INTERNAL_ANALYTICS",
-  "required_bindings": ["source_id", "product_value_digest", "rights_record_digest", "source_content_snapshot_digest", "source_schema_digest", "purpose_id", "evaluated_at", "expires_at"],
+  "required_bindings": ["source_id", "product_value_digest", "rights_record_digest", "source_content_snapshot_digest", "source_schema_digest", "producer_binding_digest", "contract_digest", "purpose_id", "evaluated_at", "expires_at"],
+  "p3_required_bindings": ["p3_exact_canary_receipt_digest", "p3_exact_pair_digest", "p3_launch_cohort_digest", "p3_canary_source_binding_digest", "p3_canary_transaction_binding_digest", "p3_canary_transaction_digests"],
+  "canonical_input_paths": {
+    "product_value": "/tmp/asi-product-value-backfill-v1.json",
+    "rights": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json",
+    "snapshots": "coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json",
+    "schemas": "coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json",
+    "contract": "coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json"
+  },
+  "producer_identity": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "workflow_path": ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
+    "artifact_name": "kidults-asi-global-any-site-source-pool-v2",
+    "allowed_events": ["schedule", "push", "pull_request", "workflow_dispatch"],
+    "adapter_activation_events": ["schedule", "push"]
+  },
+  "receipt_time_policy": {
+    "validation_clock": "VALIDATOR_SYSTEM_UTC_NOW_NOT_RECEIPT_SUPPLIED_TIME",
+    "maximum_future_skew_seconds": 300,
+    "expiry_compared_to": "CURRENT_VALIDATION_TIME",
+    "expired_or_future_dated": "HOLD_AND_REJECT_ACTIVATION"
+  },
+  "p3_exact_canary_gate": {
+    "canonical_sample_policy": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+    "receipt_id": "kidults-asi-snapshot-pair-generation-receipt-v2",
+    "receipt_version": "2.2.0",
+    "receipt_state": "CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING",
+    "sample_purpose": "SCHEMA_AND_BOUNDARY_SMOKE",
+    "claim_target": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "sample_tier": "CANARY",
+    "sample_size": 5,
+    "maximum_claim": "SCHEMA_BOUNDARY_SMOKE_ONLY",
+    "source_id_must_be_inside_canary_source_binding": true,
+    "receipt_alone_without_source_binding_authorizes_activation": false,
+    "required_pair_files": ["snapshot-candidate.json", "evidence-package.json", "snapshot-pair-generation-receipt-v2.json", "provider-artifact-provenance-receipt-v1.json"],
+    "provider_artifact_identity": {
+      "repository": "johnkim9524-collab/kaios_enterprise_repo",
+      "workflow_path": ".github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml",
+      "protected_ref": "refs/heads/main",
+      "artifact_url_base": "https://github.com",
+      "artifact_name_prefix": "kidults-asi-snapshot-readiness-factory-v2-main-",
+      "provider_receipt_id": "kidults-asi-snapshot-readiness-provider-artifact-receipt-v2",
+      "provider_receipt_version": "3.0.0",
+      "allowed_events": ["workflow_run", "schedule"]
+    },
+    "receipt_time_policy": {
+      "maximum_age_hours": 24,
+      "future_skew_seconds": 300,
+      "stale_or_future_dated": "HOLD_AND_REJECT_ACTIVATION"
+    },
+    "adapter_enablement_scope": "SOURCE_SCOPED_REQUIRES_EXACT_ACTIVATION_RECEIPT_AND_CURRENT_SOURCE_SCHEMA_CONTENT_LINEAGE_PER_RUN",
+    "original_cohort_product_content_scope": "EXACT_FIVE_CANONICAL_TRANSACTION_IDENTITIES_ONLY",
+    "track_b_authority": "HOLD",
+    "public_release": "HOLD",
+    "production": "HOLD"
+  },
   "eligibility_rules": {
     "minimum_value_score": 70,
     "value_status": "VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW",
@@ -21,6 +76,17 @@
     "metadata_discovery_admission_is_product_content_admission": false,
     "receipt_is_adapter_implementation": false,
     "adapter_activation_requires_eligible_unexpired_receipt": true,
+    "adapter_activation_requires_allowed_producer_event": true,
+    "receipt_input_paths_are_contract_allowlisted": true,
+    "receipt_source_sha_run_attempt_and_artifact_are_exactly_bound": true,
+    "p3_requires_exact_pair_files_and_provider_artifact_provenance": true,
+    "p3_requires_exact_five_transaction_and_source_content_snapshot_bindings": true,
+    "adapter_activation_hard_disabled_pending_archive_verified_artifact_consumer": true,
+    "adapter_enablement_is_not_record_admission": true,
+    "each_enabled_adapter_run_requires_activation_receipt_and_current_source_schema_content_lineage": true,
+    "evidence_eligibility_ceiling_without_p3_exact_canary": "CANARY_EVALUATION_ELIGIBLE_ONLY",
+    "product_content_admission_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event": true,
+    "adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event": true,
     "production": "HOLD",
     "public_release": "HOLD"
   }

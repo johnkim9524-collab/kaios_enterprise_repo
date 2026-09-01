@@ -82,7 +82,18 @@ for (const key of [
 ]) {
   assert(registry.repository_binding_state?.[key] === registry.registered_count, `PSA_Z1_REGISTRY_COUNT_INVALID:${key}`);
 }
-assert(registry.repository_binding_state?.privileged_secret_steps === 24, 'PSA_Z1_PRIVILEGED_SECRET_STEP_COUNT_INVALID');
+const derivedPrivilegedSecretStepCount = registry.required_environment_bindings.reduce(
+  (total, binding) => total + (
+    Array.isArray(binding.required_secret_step_names)
+      ? binding.required_secret_step_names.length
+      : 0
+  ),
+  0,
+);
+assert(
+  registry.repository_binding_state?.privileged_secret_steps === derivedPrivilegedSecretStepCount,
+  'PSA_Z1_PRIVILEGED_SECRET_STEP_COUNT_INVALID',
+);
 
 for (const marker of [
   'randomBytes(32)', 'buildPrivatePsaRecord', 'decryptPrivatePsaRecord', 'buildDeletionReceipt',
@@ -135,6 +146,7 @@ process.stdout.write(`${JSON.stringify({
   state: 'VERIFIED_PASS',
   truth_state: state.state,
   secret_registry_state: 'REGISTERED_AND_BOUND',
+  privileged_secret_step_count: derivedPrivilegedSecretStepCount,
   post_merge_orchestration_state: 'STATICALLY_VERIFIED_AUTO_DISPATCH_AND_RECEIPT_BINDING',
   acquisition_count: state.counts.live_acquired,
   product_pipeline_admission_count: state.counts.product_pipeline_admitted,
