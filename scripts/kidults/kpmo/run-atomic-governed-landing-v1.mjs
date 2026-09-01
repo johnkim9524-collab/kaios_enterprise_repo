@@ -7,7 +7,7 @@ import {
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  assertChangedApprovalGenerationEquality,
+  assertCompleteApprovalGenerationRegistry,
 } from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
@@ -62,13 +62,35 @@ const checkRuns = async sha => {
   }
   throw new Error('CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
-const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
-const readJsonAtRef = async (filename, ref) => {
-  const payload = await request(`/contents/${encodePath(filename)}?ref=${ref}`);
-  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
-    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+const readJsonBlob = async entry => {
+  const payload = await request(`/git/blobs/${entry.sha}`);
+  if (payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_REGISTRY_BLOB_SHAPE_INVALID:${entry.path}`);
   }
-  return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+  const bytes = Buffer.from(payload.content.replace(/\s/g, ''), 'base64');
+  if (bytes.length !== entry.size) throw new Error(`APPROVAL_REGISTRY_BLOB_SIZE_MISMATCH:${entry.path}`);
+  return JSON.parse(bytes.toString('utf8'));
+};
+const scanApprovalRegistry = async (pr, liveMainSha) => {
+  const [files, candidateTree, baseTree] = await Promise.all([
+    pages(`/pulls/${prNumber}/files`),
+    request(`/git/trees/${pr.head.sha}?recursive=1`),
+    request(`/git/trees/${pr.base.sha}?recursive=1`),
+  ]);
+  if (files.length !== Number(pr.changed_files || 0)) {
+    throw new Error('ATOMIC_LANDING_CHANGED_FILE_PAGINATION_INCOMPLETE');
+  }
+  return assertCompleteApprovalGenerationRegistry({
+    candidateTree,
+    baseTree,
+    changedFiles: files,
+    readJson: readJsonBlob,
+    readIssueComment: commentId => request(`/issues/comments/${commentId}`),
+    prBaseSha: pr.base.sha,
+    liveMainSha,
+    repository,
+    phase: 'MERGE_CANDIDATE',
+  });
 };
 const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, {
   method: 'POST',
@@ -89,7 +111,6 @@ try {
   assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
-  const files = await pages(`/pulls/${prNumber}/files`);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
@@ -97,12 +118,7 @@ try {
   });
   if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
-  const approvalGeneration = await assertChangedApprovalGenerationEquality({
-    files,
-    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
-    prBaseSha: initial.base.sha,
-    liveMainSha: initialMain.commit.sha,
-  });
+  const approvalRegistry = await scanApprovalRegistry(initial, initialMain.commit.sha);
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const rulesets = await request('/rulesets');
@@ -159,12 +175,7 @@ try {
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
-  await assertChangedApprovalGenerationEquality({
-    files,
-    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
-    prBaseSha: immediatePreMerge.base.sha,
-    liveMainSha: immediateMain.commit.sha,
-  });
+  const immediateApprovalRegistry = await scanApprovalRegistry(immediatePreMerge, immediateMain.commit.sha);
   const merged = await request(`/pulls/${prNumber}/merge`, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -173,7 +184,7 @@ try {
   if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     state: 'MERGED_VERIFIED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
@@ -182,10 +193,12 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     landing_actor: landingActor,
-    approval_generation_equality: approvalGeneration,
+    approval_generation_full_registry: approvalRegistry,
+    immediate_approval_generation_full_registry: immediateApprovalRegistry,
     initial_live_read: true,
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
+    full_registry_rescanned_immediately_before_merge: true,
     server_side_expected_head_compare: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: policy.bypass_policy.required_status_contexts,
