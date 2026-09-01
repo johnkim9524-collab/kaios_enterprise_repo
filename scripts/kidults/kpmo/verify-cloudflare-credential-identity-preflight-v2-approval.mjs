@@ -15,6 +15,7 @@ const ROOT_COMMENT_NODE_ID = 'IC_kwDOTF-G-M8AAAABR0Mw7A';
 const ROOT_BODY_SHA256 = 'sha256:3d6ea6b4c95d9abe7e3328c0402a6ae9a7b12013d2d4e34ce0cba3c18aaeccf6';
 const NONCE = '4e47ac299e26f983d9773efdf913c7619b587978d2ab2e3b';
 const EXPIRES_AT = '2026-09-02T07:36:40Z';
+const PUBLIC_GITHUB_READ_MODE = 'UNAUTHENTICATED_PUBLIC_FAIL_CLOSED';
 
 const fail = (code) => { throw new Error(`CLOUDFLARE_CREDENTIAL_PREFLIGHT_V2_APPROVAL_FAIL:${code}`); };
 const ok = (condition, code) => { if (!condition) fail(code); };
@@ -53,6 +54,8 @@ ok(auth.authorized_scope?.workflow_dispatch_count_max === 1, 'AUTH_DISPATCH_COUN
 ok(auth.authorized_scope?.external_request_count_max === 2, 'AUTH_REQUEST_COUNT');
 ok(auth.runtime_state?.authorization_consumed === false, 'AUTH_ALREADY_CONSUMED');
 ok(auth.replay === 'FORBIDDEN_AFTER_FIRST_VALID_V2_PREFLIGHT_DISPATCH_REGARDLESS_OF_TERMINAL_STATE', 'AUTH_REPLAY');
+ok(auth.execution_controls?.github_approval_and_dispatch_ledger_reads === PUBLIC_GITHUB_READ_MODE, 'AUTH_PUBLIC_GITHUB_READ_MODE');
+ok(auth.execution_controls?.private_or_rate_limited_repository_behavior === 'FAIL_CLOSED_BEFORE_PROVIDER_SECRET_RESOLUTION', 'AUTH_PUBLIC_GITHUB_FAIL_CLOSED');
 
 ok(receipt.approval_id === APPROVAL_ID, 'RECEIPT_APPROVAL_ID');
 ok(receipt.source_sha === process.env.GITHUB_SHA, 'RECEIPT_SOURCE_SHA');
