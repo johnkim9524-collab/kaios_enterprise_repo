@@ -1,0 +1,68 @@
+name: KIDULTS Cloudflare Estate Inventory Validation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-estate-inventory-v1.yml'
+      - '.github/workflows/kidults-cloudflare-estate-inventory-validation-v1.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml'
+      - '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
+      - 'scripts/kidults/kpmo/verify-cloudflare-estate-inventory-approval-v1.mjs'
+      - 'scripts/kidults/kpmo/run-cloudflare-estate-inventory-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-estate-inventory-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-credential-identity-preflight-v1.mjs'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'coordination/kidults/redteam/cloudflare-worker-estate-policy-v1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-estate-inventory-validation-v1-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate Cloudflare estate inventory and tombstone controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact validation source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact validation source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate estate inventory and tombstone controls
+        run: node scripts/kidults/kpmo/validate-cloudflare-estate-inventory-v1.mjs
+
+      - name: Revalidate historical closure contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
+          node scripts/kidults/kpmo/validate-cloudflare-credential-identity-preflight-v1.mjs

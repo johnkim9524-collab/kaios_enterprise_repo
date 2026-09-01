@@ -1,7 +1,12 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v3
 
-# Consumed one-shot lane: no event may start this historical workflow.
-on: []
+# Permanently consumed history-only lane. The impossible branch filter prevents
+# GitHub from creating a failure run on every protected-main push; the job-level
+# false guard is defense in depth if that branch name is ever created.
+on:
+  push:
+    branches:
+      - '__consumed-cloudflare-shadow-v3-never-execute__'
 
 permissions:
   contents: read
@@ -12,6 +17,7 @@ concurrency:
 
 jobs:
   deploy-shadow-v3:
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
