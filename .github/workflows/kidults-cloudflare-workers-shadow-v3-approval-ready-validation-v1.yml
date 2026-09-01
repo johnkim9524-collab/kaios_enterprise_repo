@@ -7,7 +7,9 @@ on:
       - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
       - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml'
       - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml'
+      - '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
       - '.github/workflows/kidults-cloudflare-workers-shadow-v3-approval-ready-validation-v1.yml'
+      - 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-credential-identity-preflight-v1.yml'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
@@ -21,6 +23,7 @@ on:
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-consumed-workflow-tombstone-namespace-v1.mjs'
       - 'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
       - 'tooling/kidults-cloudflare-workers-shadow/package.json'
       - 'tooling/kidults-cloudflare-workers-shadow/package-lock.json'
@@ -60,14 +63,29 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
+      - name: Validate consumed workflow namespace separation
+        run: node scripts/kidults/kpmo/validate-consumed-workflow-tombstone-namespace-v1.mjs
+
       - name: Validate consumed v1 zero-authority tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs
 
       - name: Validate consumed v2 zero-authority tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
 
-      - name: Validate consumed v3 7003 truth and zero-authority tombstone
-        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
+      - name: Validate consumed v3 against archived credential tombstone
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTIVE='.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
+          ARCHIVE='coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-credential-identity-preflight-v1.yml'
+          test ! -e "$ACTIVE"
+          test -f "$ARCHIVE"
+          trap 'rm -f "$ACTIVE"' EXIT
+          cp "$ARCHIVE" "$ACTIVE"
+          node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
+          rm -f "$ACTIVE"
+          trap - EXIT
+          test ! -e "$ACTIVE"
 
       - name: Validate complete secret-bearing workflow registry
         run: node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
