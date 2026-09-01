@@ -26,6 +26,7 @@ const legacyReadinessContractPath = path.join(root, 'contracts/certification/kid
 const legacyRuntimeAuditContractPath = path.join(root, 'contracts/certification/kidults-production-runtime-audit.v0.1.json');
 const legacyRuntimeAuditRunbookPath = path.join(root, 'docs/operations/sprint-19-a2-kidults-production-runtime-audit.md');
 const readinessFinalizerPath = path.join(root, 'scripts/production/finalize-kidults-production-readiness.py');
+const evidenceComposerPath = path.join(root, 'scripts/production/compose-kidults-production-readiness-evidence-v1.mjs');
 const sqliteSnapshotHelperPath = path.join(root, 'scripts/production/capture-kidults-sqlite-snapshot-v1.py');
 const snapshotCapturePath = path.join(root, 'scripts/production/capture-kidults-predeployment-snapshot.sh');
 const policyRaw = fs.readFileSync(policyPath);
@@ -329,6 +330,68 @@ const writeEvidenceDirectory = (evidenceDir, fixture) => {
   }
   fs.writeFileSync(path.join(evidenceDir, 'production-readiness-evidence-v1.json'), rawJson(fixture.evidence));
 };
+
+test('evidence composer derives delta and technical evidence from exact-SHA receipts', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-evidence-composer-'));
+  try {
+    const fixture = makeEvidenceFixture();
+    writeEvidenceDirectory(directory, fixture);
+    const delta = JSON.parse(fixture.rawByMember.get('staging-production-delta.json'));
+    fs.unlinkSync(path.join(directory, 'staging-production-delta.json'));
+    fs.unlinkSync(path.join(directory, 'production-readiness-evidence-v1.json'));
+    const result = spawnSync(process.execPath, [evidenceComposerPath, '--evidence-dir', directory, '--expected-source-sha', sourceSha], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /KIDULTS_EVIDENCE_COMPOSE_PASS/);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory, 'staging-production-delta.json'))), delta);
+    const produced = JSON.parse(fs.readFileSync(path.join(directory, 'production-readiness-evidence-v1.json')));
+    validateTechnicalEvidence(produced, { expectedSourceSha: sourceSha, policy, policySha256 });
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('evidence composer fails closed on mismatched source SHA without outputs', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-evidence-composer-negative-'));
+  try {
+    const fixture = makeEvidenceFixture();
+    writeEvidenceDirectory(directory, fixture);
+    const delta = JSON.parse(fixture.rawByMember.get('staging-production-delta.json'));
+    fs.unlinkSync(path.join(directory, 'staging-production-delta.json'));
+    fs.unlinkSync(path.join(directory, 'production-readiness-evidence-v1.json'));
+    const auditPath = path.join(directory, 'production-audit.json');
+    const audit = JSON.parse(fs.readFileSync(auditPath));
+    audit.source_sha = 'f'.repeat(40);
+    fs.writeFileSync(auditPath, rawJson(audit));
+    const result = spawnSync(process.execPath, [evidenceComposerPath, '--evidence-dir', directory, '--expected-source-sha', sourceSha], { encoding: 'utf8' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /AUXILIARY:production-audit.json:IDENTITY/);
+    assert.equal(fs.existsSync(path.join(directory, 'staging-production-delta.json')), false);
+    assert.equal(fs.existsSync(path.join(directory, 'production-readiness-evidence-v1.json')), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('evidence composer cannot convert an exposed unauthenticated boundary into passing delta evidence', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-evidence-composer-fabrication-'));
+  try {
+    const fixture = makeEvidenceFixture();
+    writeEvidenceDirectory(directory, fixture);
+    fs.unlinkSync(path.join(directory, 'staging-production-delta.json'));
+    fs.unlinkSync(path.join(directory, 'production-readiness-evidence-v1.json'));
+    const auditPath = path.join(directory, 'production-audit.json');
+    const audit = JSON.parse(fs.readFileSync(auditPath));
+    audit.evidence.unauthenticated_collector_http = 200;
+    fs.writeFileSync(auditPath, rawJson(audit));
+    const result = spawnSync(process.execPath, [evidenceComposerPath, '--evidence-dir', directory, '--expected-source-sha', sourceSha], { encoding: 'utf8' });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /STAGING_DELTA_NOT_PASS/);
+    assert.equal(fs.existsSync(path.join(directory, 'staging-production-delta.json')), false);
+    assert.equal(fs.existsSync(path.join(directory, 'production-readiness-evidence-v1.json')), false);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 const setAuxiliaryEvidencePayload = (fixture, member, evidence) => {
   const envelope = JSON.parse(fixture.rawByMember.get(member).toString('utf8'));
@@ -2049,6 +2112,7 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
     'readonly WORKSPACE=/opt/actions-runner/_work/kaios_enterprise_repo/kaios_enterprise_repo',
     '[[ "$ACTUAL_SHA" == "$SOURCE_SHA" ]] || fail CHECKOUT_SHA_NOT_PINNED',
     'is_canonical_origin "$ACTUAL_ORIGIN" || fail ORIGIN_NOT_CANONICAL',
+    'verify_file "$COMPOSER_REL" "$COMPOSER_SHA256"',
     'verify_file "$SEALER_REL" "$SEALER_SHA256"',
     'verify_file "$GATE_REL" "$GATE_SHA256"',
     'verify_file "$POLICY_REL" "$POLICY_SHA256"',
@@ -2057,6 +2121,7 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
     'verify_protected_directory ARCHIVE_ROOT "$ARCHIVE_ROOT"',
     '(( (8#${BASH_REMATCH[1]} & 8#022) == 0 )) || fail "${label}_WRITABLE"',
     '/usr/bin/env -i',
+    '/usr/bin/node "$WORKSPACE/$COMPOSER_REL"',
   ]) assert.ok(helper.includes(required), `root helper missing boundary: ${required}`);
   for (const canonical of [
     'https://github.com/johnkim9524-collab/kaios_enterprise_repo',
@@ -2072,6 +2137,7 @@ test('Production evidence privilege bridge is fixed-command, digest-pinned, and 
   assert.ok(installer.includes('visudo -cf "$sudoers_tmp"'));
   assert.ok(installer.includes('chmod 0440 "$sudoers_tmp"'));
   assert.ok(installer.includes('chmod 0600 "$config_tmp"'));
+  assert.ok(installer.includes("printf 'COMPOSER_SHA256=%q\\n'"));
 });
 
 test('standalone promotion binds Owner-approved compose bytes and image IDs through the final mutation marker', () => {
