@@ -20,6 +20,7 @@ const same = (left, right) => JSON.stringify(stable(left)) === JSON.stringify(st
 const digestText = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const digestValue = (value) => digestText(JSON.stringify(stable(value)));
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
+// #1819: terminal source_sha must bind the exact candidate; event_sha is diagnostic only.
 const workflowPath = '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml';
 const workflowText = fs.readFileSync(workflowPath, 'utf8');
 for (const marker of [
