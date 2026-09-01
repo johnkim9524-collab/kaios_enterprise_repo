@@ -41,8 +41,6 @@ export function isApprovalGenerationCandidateFile(filename) {
 }
 
 export function isActiveApprovalRecord(record) {
-  const issuance = record?.issuance_binding?.protected_main_sha_at_receipt_issuance;
-  if (!SHA40.test(String(issuance || ''))) return false;
   const status = normalizeStatus(record?.status);
   if (!status) return false;
   if (TERMINAL_STATUS_TOKENS.some((token) => status.includes(token))) return false;
@@ -65,7 +63,10 @@ export function assertApprovalRecordGeneration(record, {
   if (!SHA40.test(String(prBaseSha || ''))) fail('APPROVAL_GENERATION_PR_BASE_SHA_INVALID', filename);
   if (!SHA40.test(String(liveMainSha || ''))) fail('APPROVAL_GENERATION_LIVE_MAIN_SHA_INVALID', filename);
 
-  const issuanceMain = record.issuance_binding.protected_main_sha_at_receipt_issuance;
+  const issuanceMain = record?.issuance_binding?.protected_main_sha_at_receipt_issuance;
+  if (!SHA40.test(String(issuanceMain || ''))) {
+    fail('APPROVAL_GENERATION_ACTIVE_RECORD_ISSUANCE_SHA_INVALID', filename);
+  }
   const policy = record.approval_generation_policy || {};
 
   if (policy.mode !== 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY') {
@@ -106,6 +107,98 @@ export function assertApprovalRecordGeneration(record, {
   };
 }
 
+function assertTreeShape(tree, label) {
+  if (!tree || typeof tree !== 'object' || !Array.isArray(tree.tree)) {
+    fail('APPROVAL_GENERATION_TREE_SHAPE_INVALID', label);
+  }
+  if (tree.truncated !== false) {
+    fail('APPROVAL_GENERATION_TREE_TRUNCATED_OR_AMBIGUOUS', label);
+  }
+}
+
+function candidatePathsFromTree(tree, label) {
+  assertTreeShape(tree, label);
+  const paths = [];
+  const seen = new Set();
+  for (const entry of tree.tree) {
+    if (!entry || typeof entry.path !== 'string' || typeof entry.type !== 'string') {
+      fail('APPROVAL_GENERATION_TREE_ENTRY_INVALID', label);
+    }
+    if (!isApprovalGenerationCandidateFile(entry.path)) continue;
+    if (entry.type !== 'blob') {
+      fail('APPROVAL_GENERATION_CANDIDATE_NOT_BLOB', entry.path);
+    }
+    if (seen.has(entry.path)) {
+      fail('APPROVAL_GENERATION_TREE_DUPLICATE_PATH', entry.path);
+    }
+    seen.add(entry.path);
+    paths.push(entry.path);
+  }
+  return paths.sort();
+}
+
+export async function assertFullApprovalGenerationEquality({
+  baseTree,
+  headTree,
+  readJson,
+  prBaseSha,
+  liveMainSha,
+} = {}) {
+  if (typeof readJson !== 'function') fail('APPROVAL_GENERATION_JSON_READER_REQUIRED');
+  if (!SHA40.test(String(prBaseSha || ''))) fail('APPROVAL_GENERATION_PR_BASE_SHA_INVALID');
+  if (!SHA40.test(String(liveMainSha || ''))) fail('APPROVAL_GENERATION_LIVE_MAIN_SHA_INVALID');
+  if (prBaseSha !== liveMainSha) {
+    fail('APPROVAL_GENERATION_PR_BASE_NOT_LIVE_MAIN', `${prBaseSha}:${liveMainSha}`);
+  }
+
+  const baseCandidates = candidatePathsFromTree(baseTree, 'base');
+  const headCandidates = candidatePathsFromTree(headTree, 'head');
+  const headSet = new Set(headCandidates);
+  for (const filename of baseCandidates) {
+    if (!headSet.has(filename)) {
+      fail('APPROVAL_GENERATION_RECORD_REMOVED_OR_RENAMED', filename);
+    }
+  }
+
+  const records = [];
+  for (const filename of headCandidates) {
+    let record;
+    try {
+      record = await readJson(filename);
+    } catch (error) {
+      fail('APPROVAL_GENERATION_RECORD_UNREADABLE', `${filename}:${error?.message || error}`);
+    }
+    if (!record || typeof record !== 'object' || Array.isArray(record)) {
+      fail('APPROVAL_GENERATION_RECORD_NOT_OBJECT', filename);
+    }
+    records.push(assertApprovalRecordGeneration(record, {
+      filename,
+      prBaseSha,
+      liveMainSha,
+    }));
+  }
+
+  return {
+    state: 'VERIFIED_PASS',
+    scan_scope: 'FULL_BOUNDED_GOVERNANCE_AUTHORITY_REGISTRY',
+    pr_base_sha: prBaseSha,
+    live_main_sha: liveMainSha,
+    base_candidate_record_count: baseCandidates.length,
+    candidate_record_count: headCandidates.length,
+    active_record_count: records.filter((record) => record.active).length,
+    removed_or_renamed_record_count: 0,
+    tree_truncation_allowed: false,
+    records,
+    exact_main_equality_enforced: true,
+    ancestor_reuse_allowed: false,
+    same_candidate_blob_different_main_allowed: false,
+    stale_canonical_comment_allowed: false,
+  };
+}
+
+// Kept only for compatibility with older callers. New authoritative lifecycle paths
+// must use assertFullApprovalGenerationEquality so unchanged ACTIVE authority cannot
+// escape exact-current-main generation checks merely by staying outside a PR diff.
 export async function assertChangedApprovalGenerationEquality({
   files,
   readJson,
@@ -142,6 +235,7 @@ export async function assertChangedApprovalGenerationEquality({
 
   return {
     state: 'VERIFIED_PASS',
+    scan_scope: 'CHANGED_FILES_ONLY_COMPATIBILITY_NON_AUTHORITATIVE',
     pr_base_sha: prBaseSha,
     live_main_sha: liveMainSha,
     candidate_record_count: candidates.length,
