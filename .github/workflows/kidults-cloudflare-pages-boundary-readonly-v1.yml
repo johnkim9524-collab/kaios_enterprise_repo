@@ -1,12 +1,7 @@
 name: KIDULTS Cloudflare Pages Boundary Readonly v1
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml'
-      - 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json'
-      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
-      - 'scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs'
+  workflow_dispatch:
 
 permissions:
   contents: read
