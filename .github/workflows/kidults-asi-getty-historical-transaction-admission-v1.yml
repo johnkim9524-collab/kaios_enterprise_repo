@@ -87,8 +87,6 @@ jobs:
   verify-getty-historical-transaction:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      KPMO_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -210,9 +208,11 @@ jobs:
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-getty-historical-kpmo-receipt-v1.json
           const fs=require('fs'),crypto=require('crypto');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const sourceSha=event.pull_request?.head?.sha || process.env.GITHUB_SHA;
           const now=new Date().toISOString();
           const run=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.KPMO_EXPECTED_SOURCE_SHA}`;
+          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${sourceSha}`;
           const validationPath='/tmp/kidults-getty-historical-final-validation-v1.json';
           const manifestPath='/tmp/kidults-getty-historical-run-1/getty-historical-transaction-manifest-v1.json';
           const digest=(p)=>`sha256:${crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}`;
@@ -302,11 +302,13 @@ jobs:
         run: |
           node - <<'NODE'
           const fs=require('fs');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const sourceSha=event.pull_request?.head?.sha || process.env.GITHUB_SHA;
           fs.writeFileSync('/tmp/kidults-getty-reference-replay-terminal-v1.json', JSON.stringify({
             id:'kidults-getty-reference-replay-terminal-v1',
             version:'1.0.0',
             repository:process.env.GITHUB_REPOSITORY,
-            source_sha:process.env.KPMO_EXPECTED_SOURCE_SHA,
+            source_sha:sourceSha,
             event_sha:process.env.GITHUB_SHA,
             run_id:Number(process.env.GITHUB_RUN_ID),
             run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
