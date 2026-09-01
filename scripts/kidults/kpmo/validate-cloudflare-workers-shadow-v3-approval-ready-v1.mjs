@@ -7,7 +7,7 @@ const P = {
   auth: 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json',
   terminal: 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03-terminal.json',
   approvalBody: 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md',
-  workflow: '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml',
+  workflow: 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-workers-shadow-deploy-v3.yml',
   registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
   credentialContract: 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json',
   credentialAuth: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json',
@@ -22,6 +22,7 @@ const P = {
   portal: 'apps/kidults-enterprise-staging/public/portal',
 };
 
+const activeWorkflowPath = '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml';
 const fail = code => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_V3_CONSUMED_VALIDATION_FAIL:${code}`); };
 const ok = (condition, code) => { if (!condition) fail(code); };
 const read = file => fs.readFileSync(file, 'utf8');
@@ -32,6 +33,7 @@ for (const file of Object.values(P).filter(value => value !== P.portal)) {
   ok(fs.existsSync(file), `MISSING_FILE:${file}`);
 }
 ok(fs.existsSync(P.portal), 'PORTAL_MISSING');
+ok(!fs.existsSync(activeWorkflowPath), 'ACTIVE_WORKFLOW_TOMBSTONE_MUST_BE_ABSENT');
 
 const auth = json(P.auth);
 const terminal = json(P.terminal);

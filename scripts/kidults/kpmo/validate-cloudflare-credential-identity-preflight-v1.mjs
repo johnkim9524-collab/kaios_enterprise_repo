@@ -8,12 +8,13 @@ const P = {
   terminal: 'coordination/kidults/governance/receipts/CF-CREDENTIAL-IDENTITY-PREFLIGHT-20260901-01-terminal.json',
   contract: 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json',
   v2spec: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-v2-spec-v1.json',
-  workflow: '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml',
+  workflow: 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-credential-identity-preflight-v1.yml',
   registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
   extractor: 'scripts/kidults/kpmo/extract-github-comment-body-byte-exact-v1.mjs',
   test: 'tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs',
 };
 
+const activeWorkflowPath = '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml';
 const fail = code => { throw new Error(`CLOUDFLARE_CREDENTIAL_PREFLIGHT_V1_CLOSURE_FAIL:${code}`); };
 const ok = (value, code) => { if (!value) fail(code); };
 const read = file => fs.readFileSync(file, 'utf8');
@@ -21,6 +22,7 @@ const parse = file => JSON.parse(read(file));
 const sha256 = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 
 for (const file of Object.values(P)) ok(fs.existsSync(file), `MISSING:${file}`);
+ok(!fs.existsSync(activeWorkflowPath), 'ACTIVE_WORKFLOW_TOMBSTONE_MUST_BE_ABSENT');
 
 const auth = parse(P.auth);
 const approval = read(P.approval);
