@@ -3,7 +3,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 const engineWorkflowPath = '.github/workflows/kidults-current-sold-engine-v1.yml';
-const postLandingWorkflowPath = '.github/workflows/kidults-current-sold-postlanding-v1.yml';
+const atomicWorkflowPath = '.github/workflows/kidults-atomic-governed-landing-v1.yml';
+const atomicRunnerPath = 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs';
+const postLandingValidatorPath = 'scripts/kidults/market/current-sold-postlanding-v1.mjs';
+const removedFanoutWorkflowPath = '.github/workflows/kidults-current-sold-postlanding-v1.yml';
 
 function fileText(path) {
   return fs.readFileSync(path, 'utf8');
@@ -54,40 +57,60 @@ test('Current-SOLD keeps an exact-surface main-push fallback without treating it
   assert.ok(pushPaths.includes('scripts/kidults/market/current-sold-control-smoke-v1.mjs'));
 });
 
-test('completed Atomic Governed Landing runs drive exact-main post-landing proof with fail-closed parent binding', () => {
-  const text = fileText(postLandingWorkflowPath);
+test('Atomic Governed Landing performs exact Current-SOLD post-merge proof in the same trusted job', () => {
+  const workflow = fileText(atomicWorkflowPath);
+  const runner = fileText(atomicRunnerPath);
+  const validator = fileText(postLandingValidatorPath);
 
-  assert.match(
-    text,
-    /workflow_run:\n    workflows:\n      - KIDULTS Atomic Governed Landing V1\n    types:\n      - completed\n    branches:\n      - main/,
-  );
-  assert.match(text, /github\.event\.workflow_run\.event == 'workflow_dispatch'/);
-  assert.match(text, /github\.event\.workflow_run\.conclusion == 'success'/);
-  assert.match(text, /github\.event\.workflow_run\.head_branch == 'main'/);
-  assert.match(text, /fetch-depth: 2/);
-  assert.match(text, /git rev-list --parents -n 1/);
-  assert.match(text, /test "\$#" -eq 3/);
-  assert.match(text, /test "\$premerge_main_sha" = "\$\{\{ github\.event\.workflow_run\.head_sha \}\}"/);
-  assert.match(text, /git log -1 --format='%s'.*Merge pull request/s);
-  assert.match(text, /git diff --name-only "\$premerge_main_sha" "\$source_sha"/);
-  assert.match(text, /trigger_class='ATOMIC_GOVERNED_LANDING_WORKFLOW_RUN'/);
-  assert.match(text, /post_landing_authoritative=true/);
-  assert.match(text, /token_suppression_compensated=true/);
+  assert.equal(fs.existsSync(removedFanoutWorkflowPath), false, 'post-landing proof must not add a workflow_run consumer');
+  assert.match(workflow, /on:\n  workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /^  workflow_run:/m);
+  assert.doesNotMatch(workflow, /^  repository_dispatch:/m);
+  assert.match(workflow, /group: kidults-atomic-governed-landing-v1-main/);
+  assert.match(workflow, /Stage trusted Current-SOLD post-landing validator/);
+  assert.match(workflow, /install -m 0500/);
+  assert.match(workflow, /id: landing/);
+  assert.match(workflow, /ref: \$\{\{ steps\.landing\.outputs\.merge_commit_sha \}\}/);
+  assert.match(workflow, /fetch-depth: 2/);
+  assert.match(workflow, /run: node "\$RUNNER_TEMP\/current-sold-postlanding-v1\.mjs"/);
+  assert.match(workflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(workflow, /statuses: write/);
 
-  assert.match(text, /permissions:\n  contents: read/);
-  assert.doesNotMatch(text, /actions: write/);
-  assert.doesNotMatch(text, /secrets\./);
+  const stageIndex = workflow.indexOf('Stage trusted Current-SOLD post-landing validator');
+  const landingIndex = workflow.indexOf('Re-read live authority and execute exact-head server merge');
+  const mergedCheckoutIndex = workflow.indexOf('Checkout exact merged Current-SOLD target');
+  const validationIndex = workflow.indexOf('Validate exact merged Current-SOLD target and publish commit status');
+  assert.ok(stageIndex >= 0 && stageIndex < landingIndex, 'trusted validator must be staged before the merge');
+  assert.ok(landingIndex < mergedCheckoutIndex && mergedCheckoutIndex < validationIndex, 'post-merge validation order must be exact');
 
-  assert.match(text, /"expected_tests":53/);
-  assert.match(text, /"post_landing_authoritative":\$\{CURRENT_SOLD_POST_LANDING_AUTHORITY:-false\}/);
-  assert.match(text, /"github_token_push_suppression_compensated":\$\{CURRENT_SOLD_TOKEN_SUPPRESSION_COMPENSATED:-false\}/);
-  assert.match(text, /"lawful_empirical_current_sold_count":0/);
-  assert.match(text, /"private_candidate_current_sold_count":0/);
-  assert.match(text, /"postgres_migration_applied":false/);
-  assert.match(text, /"postgres_rows_written":0/);
-  assert.match(text, /"provider_calls":0/);
-  assert.match(text, /"deployment":false/);
-  assert.match(text, /"public":"HOLD"/);
-  assert.match(text, /"production":"HOLD"/);
-  assert.match(text, /"g5":"HOLD"/);
+  assert.match(runner, /const changedFileRecords = await pages\(`\/pulls\/\$\{prNumber\}\/files`\);/);
+  assert.match(runner, /const currentSoldChangedFiles = changedFilenames\.filter\(isCurrentSoldPath\);/);
+  assert.match(runner, /const postMergeMain = await request\('\/branches\/main'\);/);
+  assert.match(runner, /POST_MERGE_MAIN_SHA_MISMATCH/);
+  assert.match(runner, /fs\.appendFileSync\(githubOutput/);
+  assert.match(runner, /`merge_commit_sha=\$\{merged\.sha\}`/);
+  assert.match(runner, /`premerge_main_sha=\$\{initial\.base\.sha\}`/);
+  assert.match(runner, /`merged_pr_head_sha=\$\{expectedHeadSha\}`/);
+  assert.match(runner, /`current_sold_changed=\$\{currentSoldChanged\}`/);
+  assert.match(runner, /MERGED_VERIFIED_POSTLANDING_REQUIRED/);
+  assert.match(runner, /REQUIRED_SAME_TRUSTED_JOB/);
+
+  assert.match(validator, /const statusContext = 'KIDULTS Current-SOLD Post-Landing V1';/);
+  assert.match(validator, /await postStatus\('pending'/);
+  assert.match(validator, /await postStatus\('success'/);
+  assert.match(validator, /await postStatus\('failure'/);
+  assert.match(validator, /parentLine\.length === 3/);
+  assert.match(validator, /parentLine\[1\] === premergeMainSha/);
+  assert.match(validator, /parentLine\[2\] === mergedPrHeadSha/);
+  assert.match(validator, /POSTLANDING_CURRENT_SOLD_SURFACE_NOT_TOUCHED/);
+  assert.match(validator, /expected_tests: 53/);
+  assert.match(validator, /lawful_empirical_current_sold_count: 0/);
+  assert.match(validator, /private_candidate_current_sold_count: 0/);
+  assert.match(validator, /postgres_migration_applied: false/);
+  assert.match(validator, /postgres_rows_written: 0/);
+  assert.match(validator, /provider_calls: 0/);
+  assert.match(validator, /deployment: false/);
+  assert.match(validator, /public: 'HOLD'/);
+  assert.match(validator, /production: 'HOLD'/);
+  assert.match(validator, /g5: 'HOLD'/);
 });
