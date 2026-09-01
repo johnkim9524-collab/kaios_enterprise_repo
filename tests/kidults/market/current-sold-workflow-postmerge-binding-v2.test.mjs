@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const workflowPath = '.github/workflows/kidults-current-sold-engine-v1.yml';
+const engineWorkflowPath = '.github/workflows/kidults-current-sold-engine-v1.yml';
+const postLandingWorkflowPath = '.github/workflows/kidults-current-sold-postlanding-v1.yml';
 
-function workflowText() {
-  return fs.readFileSync(workflowPath, 'utf8');
+function fileText(path) {
+  return fs.readFileSync(path, 'utf8');
 }
 
 function eventPaths(text, eventName) {
@@ -33,17 +34,17 @@ function eventPaths(text, eventName) {
   return paths;
 }
 
-test('Current-SOLD workflow naturally validates the exact protected-main merge SHA', () => {
-  const text = workflowText();
+test('Current-SOLD keeps an exact-surface main-push fallback without treating it as token-safe authority', () => {
+  const engine = fileText(engineWorkflowPath);
   assert.match(
-    text,
+    engine,
     /on:\n  push:\n    branches:\n      - main\n    paths:\n/,
-    'Current-SOLD workflow must bind natural post-merge validation to main only',
+    'Current-SOLD engine must retain a protected-main push fallback',
   );
-  assert.doesNotMatch(text, /branches-ignore:/, 'post-merge validation must not use branch exclusions');
+  assert.doesNotMatch(engine, /branches-ignore:/, 'main-push fallback must not use branch exclusions');
 
-  const pushPaths = eventPaths(text, 'push');
-  const pullRequestPaths = eventPaths(text, 'pull_request');
+  const pushPaths = eventPaths(engine, 'push');
+  const pullRequestPaths = eventPaths(engine, 'pull_request');
   assert.deepEqual(pushPaths, pullRequestPaths, 'push and pull-request Current-SOLD change surfaces must stay identical');
   assert.ok(pushPaths.includes('.github/workflows/kidults-current-sold-engine-v1.yml'));
   assert.ok(pushPaths.includes('tests/kidults/market/current-sold-*.mjs'));
@@ -53,9 +54,33 @@ test('Current-SOLD workflow naturally validates the exact protected-main merge S
   assert.ok(pushPaths.includes('scripts/kidults/market/current-sold-control-smoke-v1.mjs'));
 });
 
-test('natural exact-main receipt preserves the non-empirical and no-write boundary', () => {
-  const text = workflowText();
+test('completed Atomic Governed Landing runs drive exact-main post-landing proof with fail-closed parent binding', () => {
+  const text = fileText(postLandingWorkflowPath);
+
+  assert.match(
+    text,
+    /workflow_run:\n    workflows:\n      - KIDULTS Atomic Governed Landing V1\n    types:\n      - completed\n    branches:\n      - main/,
+  );
+  assert.match(text, /github\.event\.workflow_run\.event == 'workflow_dispatch'/);
+  assert.match(text, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(text, /github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.match(text, /fetch-depth: 2/);
+  assert.match(text, /git rev-list --parents -n 1/);
+  assert.match(text, /test "\$#" -eq 3/);
+  assert.match(text, /test "\$premerge_main_sha" = "\$\{\{ github\.event\.workflow_run\.head_sha \}\}"/);
+  assert.match(text, /git log -1 --format='%s'.*Merge pull request/s);
+  assert.match(text, /git diff --name-only "\$premerge_main_sha" "\$source_sha"/);
+  assert.match(text, /trigger_class='ATOMIC_GOVERNED_LANDING_WORKFLOW_RUN'/);
+  assert.match(text, /post_landing_authoritative=true/);
+  assert.match(text, /token_suppression_compensated=true/);
+
+  assert.match(text, /permissions:\n  contents: read/);
+  assert.doesNotMatch(text, /actions: write/);
+  assert.doesNotMatch(text, /secrets\./);
+
   assert.match(text, /"expected_tests":53/);
+  assert.match(text, /"post_landing_authoritative":\$\{CURRENT_SOLD_POST_LANDING_AUTHORITY:-false\}/);
+  assert.match(text, /"github_token_push_suppression_compensated":\$\{CURRENT_SOLD_TOKEN_SUPPRESSION_COMPENSATED:-false\}/);
   assert.match(text, /"lawful_empirical_current_sold_count":0/);
   assert.match(text, /"private_candidate_current_sold_count":0/);
   assert.match(text, /"postgres_migration_applied":false/);
