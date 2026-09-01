@@ -1,4 +1,4 @@
-# KIDULTS Current-SOLD Engine V1.2
+# KIDULTS Current-SOLD Engine V1.3
 
 ## Decision and truth boundary
 
@@ -21,7 +21,7 @@ SOURCE
   -> PROJECTION
 ```
 
-V1.2 is internal control code. It does **not** claim lawful empirical Current-SOLD acquisition, verify a live governed receipt authority, apply the PostgreSQL migration, write a database row, call a provider, deploy, or grant Public, Production, or G5 authority.
+V1.3 is internal control code. It does **not** claim lawful empirical Current-SOLD acquisition, verify a live governed receipt authority, apply the PostgreSQL migration, write a database row, call a provider, deploy, or grant Public, Production, or G5 authority.
 
 Current truthful state:
 
@@ -37,95 +37,110 @@ Public/Production/G5=HOLD
 
 ## Collaboration-audit defects closed in V1.2
 
-### 1. Partial batches could expose canonical-looking Evidence
+### 1. Atomic batch admission
 
-The V1.1 lower-level classifier could return `PARTIAL_FAIL_CLOSED` while retaining otherwise valid rows in `admitted`. The V1.1 batch bundle then transformed those rows into canonical Evidence even though the batch itself had not passed.
+The V1.1 lower-level classifier could return `PARTIAL_FAIL_CLOSED` while retaining otherwise valid rows in `admitted`. The old batch bundle could then transform those rows into canonical-looking Evidence even though the batch had not passed.
 
-V1.2 makes the batch boundary atomic in both the legacy library and the canonical wrapper:
+V1.2 made both batch layers atomic:
 
 - every observation must pass;
-- any rejection or quarantine withholds **all** admitted rows;
+- any rejection or quarantine withholds all admissions;
 - a blocked batch contains zero event versions and zero canonical Evidence;
-- valid-looking rows may appear only as digest-only diagnostic identities;
+- valid-looking rows may appear only as digest-only diagnostics;
 - a non-PASS batch is never ledger-write eligible.
 
-A mixed batch therefore resolves to:
+### 2. Strict Current-SOLD time semantics
 
-```text
-status=PARTIAL_FAIL_CLOSED
-validated_candidate_count>=1
-admitted_count=0
-event_versions=0
-evidence=0
-ledger.write_eligible=false
-```
-
-### 2. Thirty-day recency was not strict Current-SOLD
-
-The product admission contract defines strict Current-SOLD as a sale no older than seven days. V1.2 enforces:
+The product admission contract now enforces:
 
 - maximum sale age: `7 days`;
 - maximum future clock skew for `sold_at` or `observed_at`: `300 seconds`;
 - sales aged 8–30 days: `CURRENT_SOLD_NOT_STRICT_CURRENT`;
-- older observations require a separately named historical or bounded-recent product and cannot inherit the Current-SOLD name.
+- older observations cannot inherit the Current-SOLD product name.
 
-### 3. An exact digest was not a governed authority
+### 3. Exact digest is not governed authority
 
-V1.2 requires a separately supplied exact SHA-256 digest for the complete validated receipt-registry snapshot. A mismatch fails before any candidate receipt is emitted.
+The private runner requires a separately supplied exact SHA-256 digest for the complete validated receipt-registry snapshot. A mismatch fails before a candidate receipt is emitted.
 
-However, the standalone private runner does **not** prove who issued that digest. Its empirical-candidate authority class is therefore explicitly:
+The standalone runner still cannot prove who issued that digest. Its authority class is therefore:
 
 ```text
 EXTERNAL_EXACT_DIGEST_UNVERIFIED
 ```
 
-The unavailable class is:
+`LAWFUL_EMPIRICAL_PRIVATE` remains unavailable until a future `GOVERNED_RECEIPT_REGISTRY_AUTHORITY_ADAPTER` independently verifies the immutable registry object, issuer, digest, purpose-rights decision, validity interval, source SHA, canonical run, acquisition receipts, and rights receipts.
 
-```text
-LAWFUL_EMPIRICAL_PRIVATE
-```
+### 4. Raw full-bundle persistence disabled
 
-A future `GOVERNED_RECEIPT_REGISTRY_AUTHORITY_ADAPTER` must independently verify the registry source, issuer, immutable object identity, exact digest, purpose-rights decision, validity interval, source SHA, and canonical run before any lawful empirical count may exceed zero.
-
-### 4. Raw full-bundle persistence was unsafe for a first empirical run
-
-The old full-bundle writer and executable CLI are disabled:
+The legacy full-bundle writer and executable CLI are disabled:
 
 ```text
 CURRENT_SOLD_BATCH_RAW_BUNDLE_PERSISTENCE_DISABLED
 CURRENT_SOLD_BATCH_LEGACY_CLI_DISABLED_USE_PRIVATE_DRY_RUN
 ```
 
-The in-memory batch library remains available for deterministic control and ledger recomputation, but it also applies whole-batch atomic withholding and strict seven-day semantics.
+The in-memory library remains available only for deterministic control and ledger recomputation and applies the same atomic withholding and strict seven-day semantics.
 
-### 5. Private-path and clock trust required hardening
+### 5. Private filesystem and clock trust
 
-For `EMPIRICAL_CANDIDATE_PRIVATE`, V1.2 requires:
+`EMPIRICAL_CANDIDATE_PRIVATE` requires:
 
-- an absolute private mount;
-- a real, non-symlink mount directory with exact mode `0700`;
-- regular, non-symlink input files with exact mode `0600`;
-- no hard links;
+- absolute, real, non-symlink private mount mode `0700`;
+- regular, non-symlink, single-link input mode `0600`;
 - no symlink component below the mount;
-- realpath containment after resolution;
-- open with `O_NOFOLLOW`;
-- device/inode/size revalidation after opening;
+- realpath containment;
+- `O_NOFOLLOW` open and device/inode/size revalidation;
 - no caller-provided evaluation-time override;
-- an existing realpath-contained receipt directory with exact mode `0700`;
-- directory-descriptor-bound output creation to prevent parent replacement between validation and write;
-- exclusive `O_EXCL | O_NOFOLLOW` receipt creation with exact mode `0600`.
+- existing realpath-contained receipt directory mode `0700`;
+- directory-descriptor-bound, exclusive `O_EXCL | O_NOFOLLOW` receipt creation mode `0600`.
 
-The receipt is digest/count-only. It contains no source URL, canonical object identity, price, raw event, receipt registry, event version, Evidence payload, private output path, raw batch ID, or raw canonical run ID. Batch and run identities are represented only by SHA-256 digests.
+The candidate receipt is digest/count-only. It contains no source URL, canonical object identity, price, raw event, registry, event version, Evidence payload, private path, raw batch ID, or raw canonical run ID.
+
+## V1.3 post-landing evidence correction
+
+### Root cause
+
+The protected-main `push` trigger added in V1.2 is a useful fallback, but it cannot produce authoritative post-merge evidence for the normal Atomic Governed Landing path.
+
+`KIDULTS Atomic Governed Landing V1` performs the server-side merge with the repository `GITHUB_TOKEN`. GitHub intentionally suppresses new workflow runs for most events created by that token, including the merge-generated `push`, to prevent recursive workflows. Therefore a successful Atomic Landing can create the exact protected-main merge commit while producing no Current-SOLD `push` run on that SHA.
+
+This is a trigger-model defect, not a Current-SOLD engine-test failure.
+
+### Correction
+
+V1.3 adds:
+
+```text
+.github/workflows/kidults-current-sold-postlanding-v1.yml
+```
+
+The validator is triggered by completion of `KIDULTS Atomic Governed Landing V1`, not by the suppressed merge `push`. It grants post-landing authority only when all of the following hold:
+
+- triggering workflow name is exactly `KIDULTS Atomic Governed Landing V1`;
+- triggering event is `workflow_dispatch`;
+- triggering workflow conclusion is `success`;
+- triggering workflow branch is `main`;
+- checked-out `GITHUB_SHA` is the current protected-main commit;
+- the current commit has exactly two parents;
+- its first parent equals `github.event.workflow_run.head_sha`, the main SHA on which the landing run started;
+- its subject is a GitHub PR merge commit;
+- the merge diff touches the Current-SOLD change surface.
+
+If another main commit lands before this binding is established, the first-parent comparison fails closed rather than misattributing evidence.
+
+The new workflow has only `contents: read`, references no secret, uses no new credential, and performs no repository, database, provider, deployment, or release mutation.
+
+The older main `push` trigger remains a fallback for changes produced outside the token-suppressed Action path. It is not sufficient by itself for Atomic Governed Landing post-merge authority.
 
 ## Execution classes
 
-|Execution class | Registry authority class | Truth ceiling | Lawful empirical count |
+| Execution class | Registry authority class | Truth ceiling | Lawful empirical count |
 |---|---|---|---:|
 | `CONTROL_SYNTHETIC` | `CONTROL_SYNTHETIC_GENERATOR` | `CONTROL_ONLY` | `0` |
 | `EMPIRICAL_CANDIDATE_PRIVATE` | `EXTERNAL_EXACT_DIGEST_UNVERIFIED` | `PRIVATE_PIPELINE_CANDIDATE_ONLY` | `0` |
 | `LAWFUL_EMPIRICAL_PRIVATE` | unavailable | blocked pending governed authority adapter | `0` |
 
-A private candidate PASS proves only that the supplied private inputs satisfy the software contract at the system clock. It does not establish legal provenance, governed receipt authority, product evidence, database persistence, launch readiness, or release permission.
+A private candidate PASS proves only that supplied private inputs satisfy the software contract at system time. It does not establish legal provenance, governed receipt authority, product evidence, database persistence, launch readiness, or release permission.
 
 ## Canonical components
 
@@ -139,6 +154,8 @@ A private candidate PASS proves only that the supplied private inputs satisfy th
 | Legacy in-memory batch library | `scripts/kidults/market/current-sold-batch-v1.mjs` |
 | PostgreSQL writer | `scripts/kidults/market/current-sold-postgres-ledger-v1.mjs` |
 | Append-only migration | `infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql` |
+| Exact-head engine validation | `.github/workflows/kidults-current-sold-engine-v1.yml` |
+| Atomic-Landing post-merge validation | `.github/workflows/kidults-current-sold-postlanding-v1.yml` |
 
 ## Synthetic control smoke
 
@@ -171,12 +188,9 @@ node scripts/kidults/market/current-sold-private-dry-run-v1.mjs \
   --receipt-output /private/current-sold/receipts/candidate-dry-run-receipt.json
 ```
 
-Do not pass `--now` for a private candidate. The runner uses system UTC and rejects an empirical-candidate time override.
-
-A candidate receipt may report:
+Do not pass `--now`. A candidate receipt may report private candidate admission, but must retain:
 
 ```text
-private_candidate_admitted=N
 lawful_empirical_admitted=0
 governed_registry_authority_verified=false
 lawful_admission_authorized=false
@@ -187,9 +201,9 @@ No raw bundle is persisted and no PostgreSQL operation is attempted.
 
 ## PostgreSQL boundary
 
-The existing append-only migration and writer remain separate from the candidate dry-run. They accept only a full PASS bundle and independently recompute admission, event, Evidence, and receipt digests before SQL.
+The append-only migration and writer remain separate from candidate evaluation. They accept only a full PASS bundle and independently recompute admission, event, Evidence, and receipt digests before SQL.
 
-Migration application and the first private append-only write remain separate approval gates. V1.2 always records:
+Migration application and the first private append-only write remain separate approval gates. V1.3 records:
 
 ```text
 write_requested=false
@@ -200,24 +214,25 @@ rows_written=0
 
 ## Verification target
 
-The exact-head workflow must:
+Exact-head and post-landing workflows must:
 
 - parse eight Current-SOLD JSON schemas/control files;
 - syntax-check every Current-SOLD script and test;
 - pass **53 tests / 0 failures**;
 - prove mixed-batch atomic withholding through both batch layers;
-- prove 8–30-day and future-timestamp rejection;
+- prove strict recency and future-timestamp rejection;
 - prove self-declared lawful execution is unavailable;
 - prove private mount/file/output mode, symlink, realpath, and exclusive-write controls;
 - run one runtime-generated synthetic control smoke;
-- verify that the smoke receipt is redacted, mode `0600`, non-empirical, atomic, and no-write;
+- verify the smoke receipt is redacted, mode `0600`, non-empirical, atomic, and no-write;
 - pass the PostgreSQL append-only static negative scan;
-- run naturally on every protected `main` push that touches the exact Current-SOLD change surface and bind the receipt to the resulting merge SHA.
+- for Atomic Governed Landing, run from the completed landing event and bind the receipt to the exact resulting protected-main SHA through first-parent lineage;
+- preserve empirical counts, PostgreSQL activity, provider calls, deployment, and Public/Production/G5 at `0 / false / HOLD`.
 
-`workflow_dispatch` remains diagnostic only. It cannot substitute for the natural protected-main push receipt required for post-merge authority.
+Manual `workflow_dispatch` remains diagnostic only. A plain protected-main `push` run is fallback evidence and cannot substitute for the Atomic-Landing completion binding when the merge was made with `GITHUB_TOKEN`.
 
 ## Next governed implementation
 
-The next code package is not PostgreSQL activation. It is the `GOVERNED_RECEIPT_REGISTRY_AUTHORITY_ADAPTER`, which must fail closed unless it can bind an external immutable registry object and independently trusted digest/issuer evidence to the exact source SHA, canonical run, acquisition receipts, rights receipts, and purpose.
+The next product code package remains `GOVERNED_RECEIPT_REGISTRY_AUTHORITY_ADAPTER`, not PostgreSQL activation. It must fail closed unless it binds an external immutable registry object and independently trusted issuer/digest evidence to the exact source SHA, canonical run, acquisition receipts, rights receipts, and purpose.
 
-Only after that adapter is implemented and reviewed may a single genuine transaction be evaluated as a lawful empirical dry-run candidate. Database migration and the first append-only write still require a later explicit approval. Public, Production, and G5 remain HOLD.
+Only after that adapter is implemented and reviewed may one genuine transaction be evaluated as a lawful empirical dry-run candidate. Database migration and the first append-only write still require later explicit approval. Public, Production, and G5 remain HOLD.
