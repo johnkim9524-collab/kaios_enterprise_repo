@@ -1,0 +1,8 @@
+{
+  "disposition": "ADMIT_ENGINE_SMOKE_ONLY",
+  "collector_market_promotion": "FORBIDDEN",
+  "track_b_promotion": "FORBIDDEN",
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
