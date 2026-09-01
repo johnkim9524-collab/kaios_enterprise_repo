@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   ApprovalGenerationFailure,
   assertApprovalRecordGeneration,
-  assertChangedApprovalGenerationEquality,
+  assertFullApprovalGenerationEquality,
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from '../../../scripts/kidults/kpmo/lib/approval-generation-equality-v1.mjs';
@@ -28,6 +28,13 @@ function activeRecord(main = A) {
       same_candidate_blob_different_main_allowed: false,
       stale_canonical_comment_allowed: false,
     },
+  };
+}
+
+function registryTree(paths = [filename], truncated = false) {
+  return {
+    truncated,
+    tree: paths.map(path => ({path, type: 'blob', sha: 'd'.repeat(40)})),
   };
 }
 
@@ -111,10 +118,11 @@ test('terminal invalidated record remains non-authority and does not block unrel
   assert.equal(result.active, false);
 });
 
-test('changed-file scanner rejects stale active approval record', async () => {
+test('full-registry scanner rejects stale active approval record outside PR-diff semantics', async () => {
   await assert.rejects(
-    assertChangedApprovalGenerationEquality({
-      files: [{filename, status: 'modified'}],
+    assertFullApprovalGenerationEquality({
+      baseTree: registryTree(),
+      headTree: registryTree(),
       readJson: async () => activeRecord(A),
       prBaseSha: B,
       liveMainSha: B,
@@ -124,14 +132,12 @@ test('changed-file scanner rejects stale active approval record', async () => {
   );
 });
 
-test('changed-file scanner accepts terminal records and non-approval files', async () => {
+test('full-registry scanner accepts terminal records while ignoring non-authority files', async () => {
   const terminal = activeRecord(A);
   terminal.status = 'CONSUMED_FAIL_CLOSED';
-  const result = await assertChangedApprovalGenerationEquality({
-    files: [
-      {filename, status: 'modified'},
-      {filename: 'docs/example.md', status: 'modified'},
-    ],
+  const result = await assertFullApprovalGenerationEquality({
+    baseTree: registryTree([filename, 'docs/example.md']),
+    headTree: registryTree([filename, 'docs/example.md']),
     readJson: async () => terminal,
     prBaseSha: B,
     liveMainSha: B,
