@@ -4,9 +4,18 @@ on:
   pull_request:
     paths:
       - 'coordination/kidults/market/current-sold-event-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-evidence-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json'
       - 'coordination/kidults/market/current-sold-engine-v1.json'
       - 'scripts/kidults/market/current-sold-engine-v1.mjs'
-      - 'tests/kidults/market/current-sold-engine-v1.test.mjs'
+      - 'scripts/kidults/market/current-sold-evidence-v1.mjs'
+      - 'scripts/kidults/market/current-sold-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-postgres-ledger-v1.mjs'
+      - 'tests/kidults/market/current-sold-*.mjs'
+      - 'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
       - 'docs/kidults/market/current-sold-engine-v1.md'
       - '.github/workflows/kidults-current-sold-engine-v1.yml'
   workflow_dispatch:
@@ -17,7 +26,7 @@ permissions:
 jobs:
   validate-current-sold-engine:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
@@ -27,17 +36,66 @@ jobs:
           node-version: 24.19.0
           package-manager-cache: false
           check-latest: false
-      - name: Validate schema JSON
-        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/market/current-sold-event-schema-v1.json','utf8')); console.log('CURRENT_SOLD_SCHEMA_JSON_PASS')"
-      - name: Run owned Current-SOLD engine tests
-        run: node --test tests/kidults/market/current-sold-engine-v1.test.mjs
+      - name: Parse all Current-SOLD control schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = [
+            'coordination/kidults/market/current-sold-event-schema-v1.json',
+            'coordination/kidults/market/current-sold-evidence-schema-v1.json',
+            'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json',
+            'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json',
+            'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-engine-v1.json'
+          ];
+          for (const file of files) JSON.parse(fs.readFileSync(file, 'utf8'));
+          console.log(`CURRENT_SOLD_SCHEMA_JSON_PASS=${files.length}`);
+          NODE
+      - name: Check Current-SOLD module syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in scripts/kidults/market/current-sold-*.mjs tests/kidults/market/current-sold-*.mjs; do
+            node --check "$file"
+          done
+      - name: Run Current-SOLD fail-closed test suite
+        run: node --test tests/kidults/market/current-sold-*.test.mjs
+      - name: Verify append-only PostgreSQL migration boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql='infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
+          grep -q 'BEFORE UPDATE OR DELETE ON kidults_private.current_sold_event_ledger' "$sql"
+          grep -q 'BEFORE TRUNCATE ON kidults_private.current_sold_event_ledger' "$sql"
+          grep -q 'REVOKE UPDATE, DELETE, TRUNCATE' "$sql"
+          if grep -Eqi 'ON CONFLICT.*DO UPDATE|UPDATE[[:space:]]+kidults_private\.current_sold_|DELETE[[:space:]]+FROM[[:space:]]+kidults_private\.current_sold_' "$sql"; then
+            echo 'CURRENT_SOLD_APPEND_ONLY_NEGATIVE_CHECK_FAIL' >&2
+            exit 1
+          fi
+          echo 'CURRENT_SOLD_APPEND_ONLY_SQL_PASS'
       - name: Emit control-only receipt
         if: always()
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p out/current-sold-engine
-          cat > out/current-sold-engine/receipt.json <<EOF
-          {"control":"KIDULTS_CURRENT_SOLD_ENGINE_V1","source_sha":"${GITHUB_SHA}","run_id":"${GITHUB_RUN_ID}","run_attempt":"${GITHUB_RUN_ATTEMPT}","public":"HOLD","production":"HOLD","g5":"HOLD"}
-          EOF
+          cat > out/current-sold-engine/receipt.json <<EOF_RECEIPT
+          {
+            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_1",
+            "source_sha":"${GITHUB_SHA}",
+            "run_id":"${GITHUB_RUN_ID}",
+            "run_attempt":"${GITHUB_RUN_ATTEMPT}",
+            "empirical_current_sold_count":0,
+            "postgres_migration_applied":false,
+            "postgres_rows_written":0,
+            "public":"HOLD",
+            "production":"HOLD",
+            "g5":"HOLD"
+          }
+          EOF_RECEIPT
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:

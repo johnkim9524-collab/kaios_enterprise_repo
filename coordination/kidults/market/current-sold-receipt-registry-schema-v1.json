@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-receipt-registry-v1",
+  "title": "KIDULTS Current-SOLD Receipt Registry V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "acquisitions",
+    "rights"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-receipt-registry-v1"
+    },
+    "acquisitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receipt_id",
+          "receipt_type",
+          "status",
+          "source_id",
+          "source_event_id",
+          "source_url",
+          "provenance_digest",
+          "content_digest",
+          "source_sha",
+          "canonical_run_id"
+        ],
+        "properties": {
+          "receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt_type": {
+            "const": "ACQUISITION"
+          },
+          "status": {
+            "const": "PASS"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "provenance_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "content_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "source_sha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "canonical_run_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+          }
+        }
+      }
+    },
+    "rights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "receipt_id",
+          "receipt_type",
+          "status",
+          "source_id",
+          "decision",
+          "purpose",
+          "source_sha",
+          "canonical_run_id"
+        ],
+        "properties": {
+          "receipt_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt_type": {
+            "const": "RIGHTS"
+          },
+          "status": {
+            "const": "PASS"
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "decision": {
+            "const": "ALLOW_PRIVATE_CURRENT_SOLD"
+          },
+          "purpose": {
+            "const": "PRIVATE_CURRENT_SOLD"
+          },
+          "source_sha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
+          },
+          "canonical_run_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

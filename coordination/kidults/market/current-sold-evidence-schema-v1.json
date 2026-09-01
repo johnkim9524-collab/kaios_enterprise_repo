@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-evidence-v1",
+  "title": "KIDULTS Current-SOLD Canonical Evidence V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "fact_id",
+    "evidence_type",
+    "canonical_object_id",
+    "assertion",
+    "lineage",
+    "correction",
+    "admission"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-evidence-v1"
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^ev_cs_[a-f0-9]{24}$"
+    },
+    "fact_id": {
+      "type": "string",
+      "pattern": "^evf_cs_[a-f0-9]{24}$"
+    },
+    "evidence_type": {
+      "const": "SOLD_TRANSACTION_PRICE"
+    },
+    "canonical_object_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "predicate",
+        "transaction_status",
+        "sold_at",
+        "observed_at",
+        "realized_consideration",
+        "currency",
+        "hammer_price",
+        "all_in_price",
+        "normalized_price",
+        "normalized_currency",
+        "fee_semantics",
+        "venue"
+      ],
+      "properties": {
+        "predicate": {
+          "const": "REALIZED_SALE"
+        },
+        "transaction_status": {
+          "const": "SOLD"
+        },
+        "sold_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "realized_consideration": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "hammer_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "all_in_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "normalized_price": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "normalized_currency": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z]{3}$"
+        },
+        "fee_semantics": {
+          "enum": [
+            "HAMMER",
+            "ALL_IN",
+            "SOURCE_REPORTED_UNKNOWN_FEE_BASIS"
+          ]
+        },
+        "venue": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_sold_event_id",
+        "current_sold_content_digest",
+        "source_id",
+        "source_event_id",
+        "source_url",
+        "source_owner",
+        "lot_or_listing_id",
+        "provenance_digest",
+        "acquisition_receipt_id",
+        "rights_receipt_id",
+        "source_sha",
+        "canonical_run_id"
+      ],
+      "properties": {
+        "current_sold_event_id": {
+          "type": "string",
+          "pattern": "^cs_[a-f0-9]{24}$"
+        },
+        "current_sold_content_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_url": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "source_owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lot_or_listing_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "acquisition_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rights_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "canonical_run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+        }
+      }
+    },
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "supersedes_event_id",
+        "supersedes_content_digest"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "ORIGINAL",
+            "CORRECTED"
+          ]
+        },
+        "supersedes_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^cs_[a-f0-9]{24}$"
+        },
+        "supersedes_content_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "confidence",
+        "claim_ceiling",
+        "public",
+        "production",
+        "g5"
+      ],
+      "properties": {
+        "state": {
+          "const": "ADMITTED"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "claim_ceiling": {
+          "const": "PRIVATE_INTERNAL_CURRENT_SOLD"
+        },
+        "public": {
+          "const": "HOLD"
+        },
+        "production": {
+          "const": "HOLD"
+        },
+        "g5": {
+          "const": "HOLD"
+        }
+      }
+    }
+  }
+}
