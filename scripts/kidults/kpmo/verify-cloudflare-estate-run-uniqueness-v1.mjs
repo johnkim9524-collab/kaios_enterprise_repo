@@ -29,12 +29,10 @@ function evaluateRuns({runs, commentId, runId, runAttempt, sourceSha}) {
   const siblings = matching.filter(run => Number(run?.id || 0) !== runId);
   requireValue(siblings.length === 0, `APPROVAL_COMMENT_ALREADY_HAS_OTHER_RUN_${siblings.length}`);
   const current = matching.filter(run => Number(run?.id || 0) === runId);
-  requireValue(current.length <= 1, `CURRENT_RUN_CARDINALITY_${current.length}`);
-  if (current.length === 1) {
-    requireValue(current[0]?.event === 'issue_comment', 'CURRENT_RUN_EVENT_MISMATCH');
-    requireValue(current[0]?.head_sha === sourceSha, 'CURRENT_RUN_SHA_MISMATCH');
-    requireValue(Number(current[0]?.run_attempt || 0) === 1, 'CURRENT_RUN_ATTEMPT_MISMATCH');
-  }
+  requireValue(current.length === 1, `CURRENT_RUN_CARDINALITY_${current.length}`);
+  requireValue(current[0]?.event === 'issue_comment', 'CURRENT_RUN_EVENT_MISMATCH');
+  requireValue(current[0]?.head_sha === sourceSha, 'CURRENT_RUN_SHA_MISMATCH');
+  requireValue(Number(current[0]?.run_attempt || 0) === 1, 'CURRENT_RUN_ATTEMPT_MISMATCH');
   return {
     expected_title: expectedTitle,
     indexed_current_run_count: current.length,
@@ -61,9 +59,9 @@ function runSelfTest() {
   const sha = 'a'.repeat(40);
   const base = {commentId: 12345, runId: 99, runAttempt: 1, sourceSha: sha};
   const title = `${RUN_TITLE_PREFIX}${base.commentId}`;
-  evaluateRuns({...base, runs: []});
   evaluateRuns({...base, runs: [{id: 99, display_title: title, event: 'issue_comment', head_sha: sha, run_attempt: 1}]});
   for (const mutation of [
+    {...base, runs: []},
     {...base, runs: [{id: 98, display_title: title, event: 'issue_comment', head_sha: sha, run_attempt: 1}]},
     {...base, runAttempt: 2, runs: []},
     {...base, runs: [{id: 99, display_title: title, event: 'push', head_sha: sha, run_attempt: 1}]},
@@ -89,6 +87,7 @@ function runSelfTest() {
     id: 'kidults-cloudflare-estate-run-uniqueness-self-test-v1',
     state: 'VERIFIED_PASS',
     duplicate_distinct_run_rejected: true,
+    zero_indexed_current_run_rejected: true,
     rerun_rejected: true,
     wrong_event_rejected: true,
     wrong_sha_rejected: true,
