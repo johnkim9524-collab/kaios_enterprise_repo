@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
@@ -25,6 +25,31 @@
     "wrangler.json",
     "wrangler.jsonc"
   ],
+  "approval_generation_policy": {
+    "mode": "EXACT_CURRENT_PROTECTED_MAIN_EQUALITY",
+    "active_record_exact_main_equality_required": true,
+    "issuance_main_must_equal_pr_base_sha": true,
+    "issuance_main_must_equal_live_main_sha": true,
+    "survives_main_drift": false,
+    "ancestor_reuse_allowed": false,
+    "same_candidate_blob_different_main_allowed": false,
+    "stale_canonical_comment_allowed": false,
+    "terminal_records_are_non_authority": true,
+    "enforcement_points": [
+      "PR_LIFECYCLE_CLASSIFICATION",
+      "GOVERNED_LANDING_READINESS",
+      "SCOPE_AWARE_STATUS",
+      "ATOMIC_GOVERNED_LANDING",
+      "EXTERNAL_CALL_RUNTIME_BEFORE_SECRET_RESOLUTION"
+    ],
+    "negative_cases_required": [
+      "DESCENDANT_MAIN_DRIFT",
+      "MERGE_MAIN_REBOUND",
+      "SAME_CANDIDATE_BLOB_DIFFERENT_MAIN",
+      "STALE_CANONICAL_COMMENT"
+    ],
+    "root_issue": 1787
+  },
   "review_policy": {
     "minimum_non_author_approvals": 0,
     "self_review_counts": false,

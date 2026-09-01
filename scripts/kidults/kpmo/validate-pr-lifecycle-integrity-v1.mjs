@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import {
+  assertFullApprovalGenerationEquality,
+} from './lib/approval-generation-equality-v1.mjs';
+
 const SHA40 = /^[0-9a-f]{40}$/;
 
 function assert(condition, message) {
@@ -137,6 +141,12 @@ async function main() {
     }
     throw new Error(`PAGINATION_BOUND_EXCEEDED:${endpoint}`);
   };
+  const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
+  const readJsonAtRef = async (filename, ref) => {
+    const payload = await api(`/contents/${encodePath(filename)}?ref=${ref}`);
+    assert(payload?.type === 'file' && payload?.encoding === 'base64' && typeof payload?.content === 'string', `CONTENTS_SHAPE_INVALID:${filename}`);
+    return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+  };
 
   fs.mkdirSync(path.dirname(outPath), {recursive: true});
   let receipt;
@@ -147,6 +157,17 @@ async function main() {
       api('/branches/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
     ]);
+    const [approvalBaseTree, approvalHeadTree] = await Promise.all([
+      api(`/git/trees/${prInitial.base.sha}?recursive=1`),
+      api(`/git/trees/${prInitial.head.sha}?recursive=1`),
+    ]);
+    const approvalGeneration = await assertFullApprovalGenerationEquality({
+      baseTree: approvalBaseTree,
+      headTree: approvalHeadTree,
+      readJson: filename => readJsonAtRef(filename, prInitial.head.sha),
+      prBaseSha: prInitial.base.sha,
+      liveMainSha: mainBranch?.commit?.sha,
+    });
     const classification = classifyLifecycle({
       pr: prInitial,
       liveMainSha: mainBranch?.commit?.sha,
@@ -167,6 +188,7 @@ async function main() {
       workflow_run_id: process.env.GITHUB_RUN_ID || null,
       workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
       event_name: process.env.GITHUB_EVENT_NAME || null,
+      approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,
     };
