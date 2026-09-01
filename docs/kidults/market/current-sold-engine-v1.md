@@ -37,9 +37,9 @@ Public/Production/G5=HOLD
 
 ## Collaboration-audit defects closed in V1.2
 
-### 1. Partial batches could expose canonical-looing Evidence
+### 1. Partial batches could expose canonical-looking Evidence
 
-The V1.1 lower-level classifier could return `PARTIAL_FAIL_CLOSED while retaining otherwise valid rows in `admitted`. The V1.1 batch bundle then transformed those rows into canonical Evidence even though the batch itself had not passed.
+The V1.1 lower-level classifier could return `PARTIAL_FAIL_CLOSED` while retaining otherwise valid rows in `admitted`. The V1.1 batch bundle then transformed those rows into canonical Evidence even though the batch itself had not passed.
 
 V1.2 makes the batch boundary atomic in both the legacy library and the canonical wrapper:
 
@@ -204,14 +204,17 @@ The exact-head workflow must:
 
 - parse eight Current-SOLD JSON schemas/control files;
 - syntax-check every Current-SOLD script and test;
-- pass **51 tests / 0 failures**;
+- pass **53 tests / 0 failures**;
 - prove mixed-batch atomic withholding through both batch layers;
 - prove 8–30-day and future-timestamp rejection;
 - prove self-declared lawful execution is unavailable;
 - prove private mount/file/output mode, symlink, realpath, and exclusive-write controls;
 - run one runtime-generated synthetic control smoke;
 - verify that the smoke receipt is redacted, mode `0600`, non-empirical, atomic, and no-write;
-- pass the PostgreSQL append-only static negative scan.
+- pass the PostgreSQL append-only static negative scan;
+- run naturally on every protected `main` push that touches the exact Current-SOLD change surface and bind the receipt to the resulting merge SHA.
+
+`workflow_dispatch` remains diagnostic only. It cannot substitute for the natural protected-main push receipt required for post-merge authority.
 
 ## Next governed implementation
 
