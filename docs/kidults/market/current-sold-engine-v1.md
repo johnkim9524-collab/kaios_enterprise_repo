@@ -77,7 +77,7 @@ trusted protected-main checkout
   -> verify first parent = pre-merge protected main
   -> verify second parent = approved PR exact head
   -> verify the merge touched the Current-SOLD control surface
-  -> rerun 53 Current-SOLD tests and all no-write guards
+  -> rerun 56 Current-SOLD tests and all no-write guards
   -> publish `KIDULTS Current-SOLD Post-Landing V1` status on the exact merge SHA
   -> upload the redacted post-landing receipt
 ```
@@ -99,7 +99,7 @@ The post-landing validator requires:
 - at least one changed file in the Current-SOLD or its governed landing surface;
 - eight parseable Current-SOLD JSON control files;
 - syntax validity for every Current-SOLD module;
-- **53 tests / 53 pass / 0 fail**;
+- **56 tests / 56 pass / 0 fail**;
 - synthetic control smoke PASS with lawful empirical and private candidate counts at zero;
 - legacy raw-persistence guard PASS;
 - append-only PostgreSQL static guard PASS;
@@ -187,6 +187,6 @@ That subsequent landing must produce:
 - a successful Atomic Governed Landing run;
 - a successful `KIDULTS Current-SOLD Post-Landing V1` status on the exact resulting merge SHA;
 - a post-landing artifact bound to both merge parents and the landing authorization;
-- `53 / 53 / 0` with empirical counts, PostgreSQL activity, provider calls, deployment, and release states unchanged.
+- `56 / 56 / 0` with empirical counts, PostgreSQL activity, provider calls, deployment, and release states unchanged.
 
 Only then can the post-merge evidence defects be closed. The next product-code package remains `GOVERNED_RECEIPT_REGISTRY_AUTHORITY_ADAPTER`, not PostgreSQL activation. Public, Production, and G5 remain HOLD.
