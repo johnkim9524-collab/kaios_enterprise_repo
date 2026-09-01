@@ -45,6 +45,15 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
+      - name: Require latest terminal exact-head lifecycle authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
+        run: node scripts/kidults/kpmo/run-atomic-landing-lifecycle-preflight-v1.mjs
+
       - name: Stage trusted Current-SOLD post-landing validator
         run: |
           set -euo pipefail
