@@ -1,42 +1,94 @@
 {
   "id": "kidults-current-sold-engine-v1",
-  "version": "1.0.0",
-  "status": "ACTIVE_INTERNAL_CONTROL",
+  "version": "1.1.0",
+  "status": "ACTIVE_INTERNAL_CONTROL_CODE",
   "as_of": "2026-09-01",
   "product_owner": "KIDULTS",
   "governance_owner": "KPMO",
   "runtime_owner": "ASI",
   "product_class": "OWNED_INTELLIGENCE_PRODUCT",
-  "canonical_event_schema": "coordination/kidults/market/current-sold-event-schema-v1.json",
-  "engine": "scripts/kidults/market/current-sold-engine-v1.mjs",
   "provider_role": "REPLACEABLE_EVIDENCE_SOURCE_LAYER",
-  "first_execution_target": {
-    "stage": "SMOKE",
-    "minimum_lawful_genuine_sold_events": 1,
-    "claim_ceiling": "PIPELINE_FUNCTIONAL_ONLY"
+  "components": {
+    "admission_engine": "scripts/kidults/market/current-sold-engine-v1.mjs",
+    "canonical_evidence_transformer": "scripts/kidults/market/current-sold-evidence-v1.mjs",
+    "batch_cli": "scripts/kidults/market/current-sold-batch-v1.mjs",
+    "postgres_ledger_writer": "scripts/kidults/market/current-sold-postgres-ledger-v1.mjs",
+    "postgres_migration": "infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql"
+  },
+  "schemas": {
+    "event": "coordination/kidults/market/current-sold-event-schema-v1.json",
+    "evidence": "coordination/kidults/market/current-sold-evidence-schema-v1.json",
+    "receipt_registry": "coordination/kidults/market/current-sold-receipt-registry-schema-v1.json",
+    "batch_envelope": "coordination/kidults/market/current-sold-batch-envelope-schema-v1.json",
+    "batch_receipt": "coordination/kidults/market/current-sold-batch-receipt-schema-v1.json",
+    "ledger_write_receipt": "coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json"
+  },
+  "identity_contract": {
+    "event_id": "STABLE_SOURCE_TRANSACTION_IDENTITY",
+    "content_digest": "SHA256_CANONICAL_TRANSACTION_CONTENT",
+    "fact_id": "STABLE_EVENT_AND_CONTENT_FACT_IDENTITY",
+    "evidence_id": "FACT_PLUS_EXACT_SOURCE_RUN_AND_RECEIPT_LINEAGE"
   },
   "admission_requirements": [
     "TERMINAL_SOLD_STATE",
     "STABLE_CANONICAL_OBJECT_IDENTITY",
     "STABLE_SOURCE_TRANSACTION_IDENTITY",
     "HTTPS_SOURCE_REFERENCE",
-    "REALIZED_CONSIDERATION_AND_CURRENCY",
-    "ACQUISITION_RECEIPT",
-    "SHA256_PROVENANCE_DIGEST",
-    "ALLOW_PRIVATE_CURRENT_SOLD_RIGHTS_RECEIPT",
+    "VALID_REALIZED_PRICE_CURRENCY_AND_FEE_SEMANTICS",
+    "REGISTERED_ACQUISITION_RECEIPT_WITH_EXACT_SOURCE_EVENT_URL_CONTENT_PROVENANCE_SHA_AND_RUN_BINDINGS",
+    "REGISTERED_RIGHTS_RECEIPT_ALLOWING_PRIVATE_CURRENT_SOLD",
+    "SHA256_PROVENANCE_AND_CONTENT_DIGESTS",
+    "EXACT_SOURCE_SHA_AND_CANONICAL_RUN_ID",
     "CURRENT_WINDOW_MAX_30_DAYS"
   ],
-  "non_sold_states": ["PASSED", "WITHDRAWN", "UNSOLD", "ASKING", "UNKNOWN"],
+  "fail_closed_controls": [
+    "ARBITRARY_RECEIPT_ID_REJECTED",
+    "OBJECT_IDENTITY_CONFLICT_QUARANTINES_ALL_RELATED_ROWS",
+    "UNCORRECTED_CONTENT_CONFLICT_QUARANTINES_ALL_RELATED_ROWS",
+    "INVALID_PRICE_CURRENCY_OR_CORRECTION_LINEAGE_REJECTED",
+    "FAILED_OR_PARTIAL_BATCH_NOT_LEDGER_WRITABLE",
+    "CROSS_RUN_CONTENT_DRIFT_ROLLS_BACK",
+    "CORRECTION_MUST_SUPERSEDE_EXACT_PERSISTED_HEAD",
+    "LEDGER_UPDATE_DELETE_TRUNCATE_BLOCKED",
+    "FULL_RECEIPT_REGISTRY_SNAPSHOT_VALIDATED_AND_DIGEST_BOUND",
+    "LEDGER_RECOMPUTES_ADMISSION_BEFORE_SQL",
+    "DATABASE_INSERT_TRIGGER_ENFORCES_EXACT_CORRECTION_HEAD",
+    "EVENT_EVIDENCE_AND_RECEIPT_PAYLOAD_COLUMNS_DATABASE_BOUND"
+  ],
   "canonical_chain": [
     "SOURCE",
     "ACQUISITION_RECEIPT",
     "RIGHTS_RECEIPT",
     "OBSERVATION",
     "CURRENT_SOLD_EVENT",
-    "EVIDENCE",
+    "CANONICAL_EVIDENCE",
+    "POSTGRES_APPEND_ONLY_LEDGER",
     "TRACK_B",
     "PROJECTION"
   ],
+  "verification": {
+    "local_test_command": "node --test tests/kidults/market/current-sold-*.test.mjs",
+    "local_tests_passed": 34,
+    "local_tests_failed": 0,
+    "schema_json_parse": "PASS",
+    "postgres_migration_static_append_only_check": "PASS"
+  },
+  "empirical_state": {
+    "lawful_genuine_current_sold_admitted": 0,
+    "status": "NOT_YET_EXECUTED_WITH_EMPIRICAL_INPUT",
+    "claim_ceiling": "CONTROL_AND_PIPELINE_FUNCTIONALITY_ONLY"
+  },
+  "runtime_state": {
+    "postgres_migration_applied": false,
+    "postgres_rows_written": 0,
+    "external_provider_calls_executed_by_this_change": 0
+  },
+  "first_execution_target": {
+    "stage": "SMOKE",
+    "minimum_lawful_genuine_sold_events": 1,
+    "required_batch_status": "PASS",
+    "claim_ceiling": "PIPELINE_FUNCTIONAL_ONLY"
+  },
   "release_boundary": {
     "main_scope_validated": false,
     "production_authorized": false,
@@ -44,5 +96,5 @@
     "production": "HOLD",
     "g5": "HOLD"
   },
-  "truth_boundary": "The engine and schema establish owned Current-SOLD plumbing only. Empirical Current-SOLD remains zero until at least one independently lawful genuine SOLD fact passes acquisition, rights and provenance admission."
+  "truth_boundary": "The code now fail-closes admission, transforms admitted CurrentSoldEvent records into canonical Evidence, emits deterministic batch receipts, and provides an append-only PostgreSQL writer with cross-run conflict blocking. Empirical Current-SOLD remains zero until a lawful genuine SOLD fact is admitted and a separately authorized private ledger write succeeds."
 }
