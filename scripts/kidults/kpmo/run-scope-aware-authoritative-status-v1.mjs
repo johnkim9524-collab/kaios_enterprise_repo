@@ -6,6 +6,9 @@ import {
   evaluateRequiredCheckRuns,
   resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
+import {
+  assertChangedApprovalGenerationEquality,
+} from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -65,21 +68,41 @@ const checkPages = async sha => {
   }
   throw new Error('GITHUB_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
+const readJsonAtRef = async (filename, ref) => {
+  const payload = await api(`/contents/${encodePath(filename)}?ref=${ref}`);
+  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+  }
+  return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+};
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const retryable = new Set(['REQUIRED_CONTEXT_MISSING', 'REQUIRED_CONTEXT_NOT_TERMINAL']);
 
 let pendingPublished = false;
 try {
-  const initial = await api(`/pulls/${prNumber}`);
+  const [initial, mainBranch] = await Promise.all([
+    api(`/pulls/${prNumber}`),
+    api('/branches/main'),
+  ]);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
     noMergePolicy: landingPolicy.no_merge_policy,
   });
+  if (initial.base?.sha !== mainBranch?.commit?.sha) {
+    throw new Error('SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN');
+  }
   await postStatus('pending', 'Waiting for exact-head scope requirements');
   pendingPublished = true;
 
   const files = await arrayPages(`/pulls/${prNumber}/files`);
+  const approvalGeneration = await assertChangedApprovalGenerationEquality({
+    files,
+    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
+    prBaseSha: initial.base.sha,
+    liveMainSha: mainBranch.commit.sha,
+  });
   const scope = resolveScopeRequirements(files, initial, policy);
   let results = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -92,23 +115,32 @@ try {
     }
   }
   if (!results) throw new Error('SCOPE_AGGREGATOR_NO_TERMINAL_RESULT');
-  const final = await api(`/pulls/${prNumber}`);
+  const [final, finalMain] = await Promise.all([
+    api(`/pulls/${prNumber}`),
+    api('/branches/main'),
+  ]);
   assertStableFinalReread(initial, final, {
     repository,
     expectedHeadSha,
     noMergePolicy: landingPolicy.no_merge_policy,
   });
+  if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== mainBranch.commit.sha) {
+    throw new Error('SCOPE_AGGREGATOR_LIVE_MAIN_DRIFT');
+  }
   await postStatus('success', `${scope.required_contexts.length} exact-head contexts verified`);
   console.log(JSON.stringify({
     id: 'kidults-scope-aware-authoritative-status-receipt-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     state: 'VERIFIED_PASS',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
+    exact_base_sha: initial.base.sha,
+    live_main_sha: mainBranch.commit.sha,
     scopes: scope.scopes,
     files_accounted_for: scope.files.length,
     required_contexts: scope.required_contexts,
     check_results: results,
+    approval_generation_equality: approvalGeneration,
     final_live_reread: true,
     zero_coverage_scopes: 0,
     technical_status_is_merge_authority: false,
