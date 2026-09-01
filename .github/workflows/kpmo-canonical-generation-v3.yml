@@ -1,0 +1,109 @@
+name: KPMO Canonical Generation V3
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-canonical-generation-v3.yml'
+      - 'scripts/kidults/kpmo/canonical-generation-v3.mjs'
+      - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
+      - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
+      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
+  push:
+    branches: [main]
+  issues:
+    types: [opened, edited, reopened, closed, labeled, unlabeled]
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      target_main_sha:
+        description: Exact live protected-main SHA; stale values fail closed
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-canonical-generation-v3-main
+  cancel-in-progress: false
+
+jobs:
+  validate-contract:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify exact pull-request source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate append-only V3 contract and negative mutations
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+
+  rebound-current-main:
+    if: ${{ github.event_name != 'pull_request' }}
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Initialize fail-closed receipt
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/canonical-generation-v3-receipt.json" <<EOF
+          {"receipt_id":"kpmo-canonical-generation-v3-receipt","version":"3.0.0","repository":"$GITHUB_REPOSITORY","run_id":$GITHUB_RUN_ID,"run_attempt":$GITHUB_RUN_ATTEMPT,"state":"VERIFIED_FAIL","mode":"WORKFLOW_INITIALIZED","failure_class":"WRITER_NOT_COMPLETED","promotion_eligible":false,"production":"HOLD","public":"HOLD","g5":"HOLD"}
+          EOF
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate writer contract before issue comments
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+      - name: Write or idempotently verify exact-current-main V3 generation
+        id: write
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_MAIN_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.target_main_sha || '' }}
+          CANONICAL_GENERATION_RECEIPT_PATH: ${{ runner.temp }}/canonical-generation-v3-receipt.json
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/canonical-generation-v3.mjs --write
+      - name: Validate committed current generation read-only
+        if: ${{ steps.write.outcome == 'success' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/canonical-generation-v3.mjs --validate
+      - name: Upload canonical generation terminal receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kpmo-canonical-generation-v3-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/canonical-generation-v3-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
