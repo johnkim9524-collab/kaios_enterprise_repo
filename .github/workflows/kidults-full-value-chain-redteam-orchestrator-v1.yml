@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   full-value-chain-redteam:
@@ -50,5 +51,23 @@ jobs:
           echo "image_version=${ImageVersion:-UNKNOWN}"
           echo "node=$(node --version)"
           cat /etc/os-release
+      - name: Validate full value-chain live-authority binding regression
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/kpmo/validate-full-value-chain-live-authority-binding-v1.mjs
+      - name: Validate live canonical current-main HOLD authority
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs
+      - name: Validate live material-defect severity parity
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
       - name: Run aggregate full value-chain Red-Team suite
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
