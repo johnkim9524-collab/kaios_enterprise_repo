@@ -17,6 +17,12 @@ function runMatchesHead(run, headSha) {
     && run?.status != null;
 }
 
+function runMatchesGeneration(run, headSha, prNumber) {
+  if (!runMatchesHead(run, headSha)) return false;
+  if (!Array.isArray(run.pull_requests)) return false;
+  return run.pull_requests.some(pr => Number(pr?.number) === Number(prNumber));
+}
+
 function exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha) {
   const artifacts = artifactsByRunId?.[String(run.id)];
   if (!Array.isArray(artifacts)) return { artifacts: null, matches: [] };
@@ -71,26 +77,30 @@ export function selectAtomicLandingLifecycleAuthority({
     };
   });
 
+  const ambiguousPostCreationRuns = runs.filter(run =>
+    runMatchesHead(run, headSha)
+    && ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') >= prCreationTime
+    && (!Array.isArray(run.pull_requests) || run.pull_requests.length === 0));
+  if (ambiguousPostCreationRuns.length) fail('LIFECYCLE_RUN_PR_ASSOCIATION_INVALID');
+
   const exactRuns = runs
-    .filter(run => {
-      if (!runMatchesHead(run, headSha)) return false;
-      if (ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') < prCreationTime) return false;
-      const { matches } = exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha);
-      return matches.length > 0;
-    })
+    .filter(run => runMatchesGeneration(run, headSha, prNumber))
+    .filter(run => ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') >= prCreationTime)
     .sort((a, b) => {
       const timeDelta = ms(b.created_at, 'LIFECYCLE_RUN_TIME_INVALID') - ms(a.created_at, 'LIFECYCLE_RUN_TIME_INVALID');
       return timeDelta || Number(b.id || 0) - Number(a.id || 0);
     });
   if (!exactRuns.length) {
     const preCreationAlias = runs.some(run =>
-      runMatchesHead(run, headSha)
-      && ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') < prCreationTime
-      && exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha).matches.length > 0);
+      runMatchesGeneration(run, headSha, prNumber)
+      && ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') < prCreationTime);
     if (preCreationAlias) fail('LIFECYCLE_PRECREATION_RUN_ALIAS_REJECTED');
     fail('LIFECYCLE_EXACT_GENERATION_MISSING');
   }
 
+  // The newest exact PR/head generation is authoritative even when its artifact
+  // has not been uploaded. Filtering by artifact before selecting the newest run
+  // would allow an older green to mask a newer pending, failed, or artifactless run.
   const latest = exactRuns[0];
   if (latest.status !== 'completed') fail(`LIFECYCLE_LATEST_NOT_TERMINAL:${latest.status || 'missing'}`);
   if (latest.conclusion !== 'success') fail(`LIFECYCLE_LATEST_UNSUPERSEDED_RED:${latest.conclusion || 'missing'}`);
@@ -151,16 +161,21 @@ export async function resolveAtomicLandingLifecycleAuthority({
   }
 
   const prCreationTime = ms(prCreatedAt, 'LIFECYCLE_PR_CREATED_AT_INVALID');
-  const allHeadRuns = runs.filter(run => runMatchesHead(run, headSha));
-  const headRuns = allHeadRuns.filter(run =>
+  const allGenerationRuns = runs.filter(run => runMatchesGeneration(run, headSha, prNumber));
+  const ambiguousPostCreationRuns = runs.filter(run =>
+    runMatchesHead(run, headSha)
+    && ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') >= prCreationTime
+    && (!Array.isArray(run.pull_requests) || run.pull_requests.length === 0));
+  if (ambiguousPostCreationRuns.length) fail('LIFECYCLE_RUN_PR_ASSOCIATION_INVALID');
+  const generationRuns = allGenerationRuns.filter(run =>
     ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') >= prCreationTime);
-  if (!headRuns.length) {
-    if (allHeadRuns.length) fail('LIFECYCLE_ONLY_PRECREATION_RUNS_FOUND');
+  if (!generationRuns.length) {
+    if (allGenerationRuns.length) fail('LIFECYCLE_ONLY_PRECREATION_RUNS_FOUND');
     fail('LIFECYCLE_HEAD_GENERATION_MISSING');
   }
   const artifactsByRunId = {};
   const receiptsByRunId = {};
-  for (const run of headRuns) {
+  for (const run of generationRuns) {
     const payload = await request(`/actions/runs/${run.id}/artifacts?per_page=100`);
     if (!Array.isArray(payload?.artifacts)) fail(`LIFECYCLE_ARTIFACTS_API_SHAPE_INVALID:${run.id}`);
     if (Number(payload.total_count || 0) > payload.artifacts.length) fail(`LIFECYCLE_ARTIFACTS_PAGINATION_REQUIRED:${run.id}`);
