@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import {resolveAtomicLandingLifecycleAuthority} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const token = process.env.GH_TOKEN;
@@ -35,6 +36,30 @@ const pages = async endpoint => {
   }
   throw new Error(`PAGINATION_BOUND_EXCEEDED:${endpoint}`);
 };
+const readArtifactReceipt = async artifact => {
+  if (!Number.isInteger(artifact?.id) || artifact.id <= 0) throw new Error('LIFECYCLE_ARTIFACT_ID_INVALID');
+  const response = await fetch(
+    `https://api.github.com/repos/${repository}/actions/artifacts/${artifact.id}/zip`,
+    {headers, redirect: 'follow'},
+  );
+  if (!response.ok) throw new Error(`LIFECYCLE_ARTIFACT_DOWNLOAD_FAILED:${artifact.id}:${response.status}`);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length <= 0 || bytes.length > 2 * 1024 * 1024) throw new Error(`LIFECYCLE_ARTIFACT_ZIP_SIZE_INVALID:${artifact.id}:${bytes.length}`);
+  const dir = `/tmp/kpmo-atomic-landing/lifecycle-artifacts/${artifact.id}`;
+  fs.mkdirSync(dir, {recursive: true, mode: 0o700});
+  const zipPath = path.join(dir, 'artifact.zip');
+  fs.writeFileSync(zipPath, bytes, {mode: 0o600});
+  const listing = execFileSync('unzip', ['-Z1', zipPath], {encoding: 'utf8', maxBuffer: 1024 * 1024})
+    .split('\n').map(value => value.trim()).filter(Boolean);
+  if (listing.length !== 1 || listing[0] !== 'receipt.json') throw new Error(`LIFECYCLE_ARTIFACT_ARCHIVE_SHAPE_INVALID:${artifact.id}`);
+  const raw = execFileSync('unzip', ['-p', zipPath, 'receipt.json'], {encoding: 'utf8', maxBuffer: 1024 * 1024});
+  if (!raw.trim() || Buffer.byteLength(raw) > 1024 * 1024) throw new Error(`LIFECYCLE_RECEIPT_PAYLOAD_SIZE_INVALID:${artifact.id}`);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error(`LIFECYCLE_RECEIPT_JSON_INVALID:${artifact.id}`);
+  }
+};
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
 const [pr, mainBranch, combinedStatus, timeline] = await Promise.all([
@@ -63,6 +88,7 @@ if (!latestReadiness || latestReadiness.event !== 'ready_for_review') throw new 
 
 const authority = await resolveAtomicLandingLifecycleAuthority({
   request,
+  readArtifactReceipt,
   prNumber,
   headSha: expectedHeadSha,
   baseSha: pr.base.sha,
