@@ -44,12 +44,14 @@ export function selectAtomicLandingLifecycleAuthority({
   prNumber,
   headSha,
   baseSha,
+  prCreatedAt,
   nativeStatuses,
   lastReadyAt,
 }) {
   if (!/^\d+$/.test(String(prNumber || ''))) fail('LIFECYCLE_PR_NUMBER_INVALID');
   if (!SHA40.test(headSha || '') || !SHA40.test(baseSha || '')) fail('LIFECYCLE_SHA_BINDING_INVALID');
   if (!Array.isArray(runs)) fail('LIFECYCLE_RUN_SET_INVALID');
+  const prCreationTime = ms(prCreatedAt, 'LIFECYCLE_PR_CREATED_AT_INVALID');
   if (!Array.isArray(nativeStatuses) || nativeStatuses.length === 0) fail('LIFECYCLE_NATIVE_STATUS_SET_EMPTY');
 
   const seenContexts = new Set();
@@ -72,6 +74,7 @@ export function selectAtomicLandingLifecycleAuthority({
   const exactRuns = runs
     .filter(run => {
       if (!runMatchesHead(run, headSha)) return false;
+      if (ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') < prCreationTime) return false;
       const { matches } = exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha);
       return matches.length > 0;
     })
@@ -79,7 +82,14 @@ export function selectAtomicLandingLifecycleAuthority({
       const timeDelta = ms(b.created_at, 'LIFECYCLE_RUN_TIME_INVALID') - ms(a.created_at, 'LIFECYCLE_RUN_TIME_INVALID');
       return timeDelta || Number(b.id || 0) - Number(a.id || 0);
     });
-  if (!exactRuns.length) fail('LIFECYCLE_EXACT_GENERATION_MISSING');
+  if (!exactRuns.length) {
+    const preCreationAlias = runs.some(run =>
+      runMatchesHead(run, headSha)
+      && ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') < prCreationTime
+      && exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha).matches.length > 0);
+    if (preCreationAlias) fail('LIFECYCLE_PRECREATION_RUN_ALIAS_REJECTED');
+    fail('LIFECYCLE_EXACT_GENERATION_MISSING');
+  }
 
   const latest = exactRuns[0];
   if (latest.status !== 'completed') fail(`LIFECYCLE_LATEST_NOT_TERMINAL:${latest.status || 'missing'}`);
@@ -106,6 +116,7 @@ export function selectAtomicLandingLifecycleAuthority({
     pull_request: Number(prNumber),
     exact_head_sha: headSha,
     exact_base_sha: baseSha,
+    pull_request_created_at: prCreatedAt,
     lifecycle_run_id: Number(latest.id),
     lifecycle_run_attempt: Number(latest.run_attempt),
     lifecycle_conclusion: latest.conclusion,
@@ -124,6 +135,7 @@ export async function resolveAtomicLandingLifecycleAuthority({
   prNumber,
   headSha,
   baseSha,
+  prCreatedAt,
   nativeStatuses,
   lastReadyAt,
 }) {
@@ -138,8 +150,14 @@ export async function resolveAtomicLandingLifecycleAuthority({
     if (page === 10) fail('LIFECYCLE_RUNS_PAGINATION_BOUND_EXCEEDED');
   }
 
-  const headRuns = runs.filter(run => runMatchesHead(run, headSha));
-  if (!headRuns.length) fail('LIFECYCLE_HEAD_GENERATION_MISSING');
+  const prCreationTime = ms(prCreatedAt, 'LIFECYCLE_PR_CREATED_AT_INVALID');
+  const allHeadRuns = runs.filter(run => runMatchesHead(run, headSha));
+  const headRuns = allHeadRuns.filter(run =>
+    ms(run.created_at, 'LIFECYCLE_RUN_TIME_INVALID') >= prCreationTime);
+  if (!headRuns.length) {
+    if (allHeadRuns.length) fail('LIFECYCLE_ONLY_PRECREATION_RUNS_FOUND');
+    fail('LIFECYCLE_HEAD_GENERATION_MISSING');
+  }
   const artifactsByRunId = {};
   const receiptsByRunId = {};
   for (const run of headRuns) {
@@ -158,6 +176,7 @@ export async function resolveAtomicLandingLifecycleAuthority({
     prNumber,
     headSha,
     baseSha,
+    prCreatedAt,
     nativeStatuses,
     lastReadyAt,
   });
