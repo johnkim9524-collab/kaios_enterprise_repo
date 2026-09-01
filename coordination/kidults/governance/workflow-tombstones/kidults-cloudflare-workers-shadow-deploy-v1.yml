@@ -1,0 +1,30 @@
+name: KIDULTS Cloudflare Workers Shadow Deploy v1
+
+# Consumed one-shot lane archived outside .github/workflows: no event can start this historical tombstone.
+on: []
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-shadow-deploy-v1-consumed
+  cancel-in-progress: false
+
+jobs:
+  deploy-shadow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Create consumed authorization tombstone
+        shell: bash
+        run: |
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
+      - name: Upload consumed authorization tombstone
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Enforce consumed authorization no replay
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
+          exit 78
