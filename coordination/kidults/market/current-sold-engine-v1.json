@@ -1,6 +1,6 @@
 {
   "id": "kidults-current-sold-engine-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "ACTIVE_INTERNAL_CONTROL_CODE",
   "as_of": "2026-09-01",
   "product_owner": "KIDULTS",
@@ -17,7 +17,8 @@
     "legacy_raw_bundle_persistence": "DISABLED",
     "control_smoke_runner": "scripts/kidults/market/current-sold-control-smoke-v1.mjs",
     "postgres_ledger_writer": "scripts/kidults/market/current-sold-postgres-ledger-v1.mjs",
-    "postgres_migration": "infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql"
+    "postgres_migration": "infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql",
+    "post_landing_validator": ".github/workflows/kidults-current-sold-postlanding-v1.yml"
   },
   "schemas": {
     "event": "coordination/kidults/market/current-sold-event-schema-v1.json",
@@ -78,7 +79,11 @@
     "LEDGER_UPDATE_DELETE_TRUNCATE_BLOCKED",
     "LEDGER_RECOMPUTES_ADMISSION_BEFORE_SQL",
     "DATABASE_INSERT_TRIGGER_ENFORCES_EXACT_CORRECTION_HEAD",
-    "EVENT_EVIDENCE_AND_RECEIPT_PAYLOAD_COLUMNS_DATABASE_BOUND"
+    "EVENT_EVIDENCE_AND_RECEIPT_PAYLOAD_COLUMNS_DATABASE_BOUND",
+    "GITHUB_TOKEN_MERGE_PUSH_SUPPRESSION_CANNOT_SATISFY_POSTMERGE_EVIDENCE",
+    "ATOMIC_LANDING_WORKFLOW_RUN_MUST_BE_SUCCESSFUL_MAIN_WORKFLOW_DISPATCH",
+    "POSTMERGE_MAIN_FIRST_PARENT_MUST_EQUAL_TRIGGERING_LANDING_HEAD",
+    "POSTMERGE_MERGE_COMMIT_MUST_TOUCH_CURRENT_SOLD_SURFACE"
   ],
   "execution_classes": {
     "CONTROL_SYNTHETIC": {
@@ -118,7 +123,10 @@
     "control_smoke": "PASS_REQUIRED",
     "legacy_raw_bundle_cli_disabled": "PASS_REQUIRED",
     "postgres_migration_static_append_only_check": "PASS_REQUIRED",
-    "natural_protected_main_push": "PASS_REQUIRED"
+    "protected_main_push_fallback": "PASS_REQUIRED_WHEN_EVENT_IS_NOT_GITHUB_TOKEN_SUPPRESSED",
+    "atomic_landing_workflow_run_postmerge": "PASS_REQUIRED",
+    "postmerge_parent_binding": "TRIGGER_HEAD_SHA_MUST_EQUAL_MERGE_FIRST_PARENT",
+    "github_token_recursion_suppression": "ACKNOWLEDGED_AND_COMPENSATED_WITH_WORKFLOW_RUN"
   },
   "empirical_state": {
     "lawful_genuine_current_sold_admitted": 0,
@@ -154,5 +162,5 @@
     "production": "HOLD",
     "g5": "HOLD"
   },
-  "truth_boundary": "The canonical path now withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Lawful empirical Current-SOLD therefore remains zero until a separately implemented governed registry-authority adapter verifies the receipts and a later separately approved ledger write succeeds."
+  "truth_boundary": "The canonical path withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Atomic Governed Landing uses the repository GITHUB_TOKEN, so its merge-generated push cannot be treated as post-merge workflow evidence. V1.3 therefore binds post-landing validation to the successful Atomic Governed Landing workflow completion, requires the triggering run head SHA to equal the new merge commit first parent, and emits a receipt bound to the resulting exact protected-main SHA without adding credentials, writes, provider calls, deployment, or release authority."
 }
