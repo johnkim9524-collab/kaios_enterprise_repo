@@ -1,8 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
@@ -39,6 +36,7 @@ test('builds deterministic PASS bundle, canonical Evidence, and admission receip
   assert.equal(first.receipt.counts.admitted, 1);
   assert.equal(first.receipt.counts.evidence, 1);
   assert.equal(first.receipt.ledger.write_eligible, true);
+  assert.equal(first.admission.atomic_batch, true);
   assert.equal(first.receipt.claim_boundary.empirical_global_current_sold_claim, 'UNSET');
 });
 
@@ -66,7 +64,6 @@ test('rejects ambiguous duplicate receipt ids in the registry', () => {
     /CURRENT_SOLD_BATCH_DUPLICATE_RECEIPT_ID/
   );
 });
-
 
 test('rejects malformed unused registry entries instead of ignoring them', () => {
   const { envelope, registry } = validBatch();
@@ -100,26 +97,35 @@ test('emits FAIL_CLOSED receipt and blocks ledger eligibility for unregistered r
   assert.equal(bundle.receipt.ledger.state, 'BLOCKED_BY_ADMISSION');
 });
 
-test('CLI writes a bounded bundle without granting release authority', () => {
-  const { envelope, registry } = validBatch();
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-cli-'));
-  const inputPath = path.join(temp, 'input.json');
-  const registryPath = path.join(temp, 'registry.json');
-  const outputPath = path.join(temp, 'out', 'bundle.json');
-  fs.writeFileSync(inputPath, JSON.stringify(envelope));
-  fs.writeFileSync(registryPath, JSON.stringify(registry));
+test('mixed partial batch withholds all event versions and Evidence', () => {
+  const good = sealObservation(rawObservation({
+    source_event_id: 'batch-good',
+    lot_or_listing_id: 'batch-good',
+    source_url: 'https://example.com/results/batch-good',
+    acquisition_receipt_id: 'batch-good-acq',
+    rights_receipt_id: 'batch-good-rights'
+  }));
+  const bad = sealObservation(rawObservation({
+    source_event_id: 'batch-bad',
+    lot_or_listing_id: 'batch-bad',
+    source_url: 'https://example.com/results/batch-bad',
+    acquisition_receipt_id: 'batch-missing-acq',
+    rights_receipt_id: 'batch-good-rights'
+  }));
+  const registry = receiptRegistryFor(good);
+  const bundle = buildCurrentSoldBatchBundle(batchEnvelope([good, bad]), registry, { now: NOW });
+  assert.equal(bundle.receipt.status, 'PARTIAL_FAIL_CLOSED');
+  assert.equal(bundle.admission.validated_candidate_count, 1);
+  assert.equal(bundle.receipt.counts.admitted, 0);
+  assert.equal(bundle.receipt.counts.evidence, 0);
+  assert.deepEqual(bundle.event_versions, []);
+  assert.deepEqual(bundle.evidence, []);
+  assert.equal(bundle.receipt.ledger.write_eligible, false);
+});
+
+test('legacy raw full-bundle CLI is disabled', () => {
   const scriptPath = fileURLToPath(new URL('../../../scripts/kidults/market/current-sold-batch-v1.mjs', import.meta.url));
-  const result = spawnSync(process.execPath, [
-    scriptPath,
-    '--input', inputPath,
-    '--receipt-registry', registryPath,
-    '--output', outputPath,
-    '--now', NOW.toISOString()
-  ], { encoding: 'utf8' });
-  assert.equal(result.status, 0, result.stderr);
-  const bundle = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
-  assert.equal(bundle.receipt.status, 'PASS');
-  assert.equal(bundle.receipt.claim_boundary.public, 'HOLD');
-  assert.equal(bundle.receipt.claim_boundary.production, 'HOLD');
-  assert.equal(bundle.receipt.claim_boundary.g5, 'HOLD');
+  const result = spawnSync(process.execPath, [scriptPath], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /CURRENT_SOLD_BATCH_LEGACY_CLI_DISABLED_USE_PRIVATE_DRY_RUN/);
 });

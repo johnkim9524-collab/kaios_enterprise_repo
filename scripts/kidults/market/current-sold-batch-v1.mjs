@@ -1,5 +1,4 @@
 import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
@@ -12,6 +11,8 @@ import {
 const SOURCE_SHA_RE = /^[a-f0-9]{40}$/;
 const SHA256_RE = /^sha256:[a-f0-9]{64}$/;
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$/;
+const STRICT_CURRENT_MAX_AGE_DAYS = 7;
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 function fail(code) {
   throw new Error(code);
@@ -169,6 +170,66 @@ export function validateCurrentSoldBatchEnvelope(input) {
   };
 }
 
+function diagnosticIdentity(event) {
+  return { event_id: event.event_id, content_digest: event.content_digest };
+}
+
+function strictCurrentError(event, now) {
+  const soldAt = new Date(event.sold_at);
+  const observedAt = new Date(event.observed_at);
+  if (Number.isNaN(soldAt.getTime()) || Number.isNaN(observedAt.getTime())) {
+    return 'CURRENT_SOLD_BATCH_INVALID_CANONICAL_TIMESTAMP';
+  }
+  if (soldAt.getTime() > now.getTime() + MAX_CLOCK_SKEW_MS) return 'CURRENT_SOLD_SALE_IN_FUTURE';
+  if (observedAt.getTime() > now.getTime() + MAX_CLOCK_SKEW_MS) return 'CURRENT_SOLD_OBSERVED_IN_FUTURE';
+  if ((now.getTime() - soldAt.getTime()) / 86400000 > STRICT_CURRENT_MAX_AGE_DAYS) {
+    return 'CURRENT_SOLD_NOT_STRICT_CURRENT';
+  }
+  return null;
+}
+
+function atomicAdmission(classified, now) {
+  const freshnessRejected = [];
+  for (const event of classified.admitted) {
+    const reason = strictCurrentError(event, now);
+    if (reason) {
+      freshnessRejected.push({
+        source_id: event.source_id,
+        source_event_id: event.source_event_id,
+        canonical_object_id: event.canonical_object_id,
+        disposition: 'REJECTED',
+        reason
+      });
+    }
+  }
+  const rejected = [...classified.rejected, ...freshnessRejected];
+  const issueCount = rejected.length + classified.quarantined.length;
+  const pass = classified.status === 'PASS' && issueCount === 0;
+  return {
+    ...classified,
+    engine: 'KIDULTS_CURRENT_SOLD_BATCH_ATOMIC_V1',
+    status: pass ? 'PASS' : classified.admitted.length > 0 ? 'PARTIAL_FAIL_CLOSED' : 'FAIL_CLOSED',
+    atomic_batch: true,
+    strict_current_max_age_days: STRICT_CURRENT_MAX_AGE_DAYS,
+    max_clock_skew_seconds: MAX_CLOCK_SKEW_MS / 1000,
+    validated_candidate_count: classified.admitted.length,
+    diagnostic_candidates: pass ? [] : classified.admitted.map(diagnosticIdentity),
+    diagnostic_superseded: pass ? [] : classified.superseded.map(diagnosticIdentity),
+    admitted_count: pass ? classified.admitted.length : 0,
+    rejected_count: rejected.length,
+    superseded_count: pass ? classified.superseded.length : 0,
+    admitted: pass ? classified.admitted : [],
+    rejected,
+    superseded: pass ? classified.superseded : [],
+    claim_boundary: {
+      ...classified.claim_boundary,
+      atomic_batch_admission: true,
+      strict_current_max_age_days: STRICT_CURRENT_MAX_AGE_DAYS,
+      batch_admitted_current_sold_count: pass ? classified.admitted.length : 0
+    }
+  };
+}
+
 function sortedEventVersions(admission) {
   const byKey = new Map();
   for (const event of [...admission.superseded, ...admission.admitted]) {
@@ -191,13 +252,12 @@ export function currentSoldAdmissionSummary(admission) {
     rejected_count: admission.rejected_count,
     quarantined_count: admission.quarantined_count,
     superseded_count: admission.superseded_count,
-    admitted: admission.admitted.map(event => ({ event_id: event.event_id, content_digest: event.content_digest })),
+    admitted: admission.admitted.map(diagnosticIdentity),
     rejected: admission.rejected,
     quarantined: admission.quarantined,
-    superseded: admission.superseded.map(event => ({ event_id: event.event_id, content_digest: event.content_digest }))
+    superseded: admission.superseded.map(diagnosticIdentity)
   };
 }
-
 
 export function canonicalCurrentSoldAdmissionDigest(admission) {
   return canonicalJsonDigest(currentSoldAdmissionSummary(admission));
@@ -215,10 +275,11 @@ export function buildCurrentSoldBatchBundle(envelopeInput, receiptRegistryInput,
     fail('CURRENT_SOLD_BATCH_INVALID_NOW');
   }
 
-  const admission = admitCurrentSoldBatch(envelope.observations, {
+  const classified = admitCurrentSoldBatch(envelope.observations, {
     now: effectiveNow,
     receiptRegistry
   });
+  const admission = atomicAdmission(classified, effectiveNow);
   const eventVersions = sortedEventVersions(admission);
   const evidence = transformCurrentSoldEventsToEvidence(admission.admitted);
   const envelopeDigest = canonicalJsonDigest(envelope);
@@ -286,65 +347,17 @@ export function buildCurrentSoldBatchBundle(envelopeInput, receiptRegistryInput,
   };
 }
 
-export async function writeCurrentSoldBatchBundle(outputPath, bundle) {
-  if (typeof outputPath !== 'string' || outputPath.length === 0) fail('CURRENT_SOLD_BATCH_OUTPUT_PATH_REQUIRED');
-  await fs.mkdir(path.dirname(outputPath), { recursive: true });
-  await fs.writeFile(outputPath, `${JSON.stringify(bundle, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
-  return outputPath;
+export async function writeCurrentSoldBatchBundle() {
+  fail('CURRENT_SOLD_BATCH_RAW_BUNDLE_PERSISTENCE_DISABLED');
 }
 
-function parseArgs(argv) {
-  const values = new Map();
-  for (let index = 0; index < argv.length; index += 2) {
-    const key = argv[index];
-    const value = argv[index + 1];
-    if (!key?.startsWith('--') || value === undefined || value.startsWith('--')) fail('CURRENT_SOLD_BATCH_INVALID_CLI_ARGUMENTS');
-    if (values.has(key)) fail('CURRENT_SOLD_BATCH_DUPLICATE_CLI_ARGUMENT');
-    values.set(key, value);
-  }
-  for (const required of ['--input', '--receipt-registry', '--output']) {
-    if (!values.has(required)) fail(`CURRENT_SOLD_BATCH_CLI_MISSING_${required.slice(2).replaceAll('-', '_').toUpperCase()}`);
-  }
-  for (const key of values.keys()) {
-    if (!['--input', '--receipt-registry', '--output', '--now'].includes(key)) fail('CURRENT_SOLD_BATCH_UNKNOWN_CLI_ARGUMENT');
-  }
-  return values;
-}
-
-async function readJson(filePath, code) {
-  try {
-    return JSON.parse(await fs.readFile(filePath, 'utf8'));
-  } catch (error) {
-    fail(`${code}:${error.code ?? error.name}`);
-  }
-}
-
-export async function runCurrentSoldBatchCli(argv = process.argv.slice(2)) {
-  const args = parseArgs(argv);
-  const envelope = await readJson(args.get('--input'), 'CURRENT_SOLD_BATCH_INPUT_READ_FAILED');
-  const registry = await readJson(args.get('--receipt-registry'), 'CURRENT_SOLD_BATCH_REGISTRY_READ_FAILED');
-  const now = args.has('--now') ? new Date(args.get('--now')) : undefined;
-  const bundle = buildCurrentSoldBatchBundle(envelope, registry, { now });
-  await writeCurrentSoldBatchBundle(args.get('--output'), bundle);
-  process.stdout.write(`${JSON.stringify({
-    receipt_id: bundle.receipt.receipt_id,
-    status: bundle.receipt.status,
-    admitted: bundle.receipt.counts.admitted,
-    evidence: bundle.receipt.counts.evidence,
-    output: args.get('--output'),
-    public: 'HOLD',
-    production: 'HOLD',
-    g5: 'HOLD'
-  })}\n`);
-  return bundle.receipt.status === 'PASS' ? 0 : 2;
+export async function runCurrentSoldBatchCli() {
+  fail('CURRENT_SOLD_BATCH_LEGACY_CLI_DISABLED_USE_PRIVATE_DRY_RUN');
 }
 
 const entry = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : null;
 if (entry === import.meta.url) {
   runCurrentSoldBatchCli()
-    .then(code => {
-      process.exitCode = code;
-    })
     .catch(error => {
       process.stderr.write(`${error.message}\n`);
       process.exitCode = 1;
