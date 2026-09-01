@@ -3,226 +3,219 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const P = {
-  auth: 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json',
-  body: 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md',
-  workflow: '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml',
-  v1: '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml',
-  v2: '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml',
-  registry: 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json',
-  config: 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc',
-  package: 'tooling/kidults-cloudflare-workers-shadow/package.json',
-  lock: 'tooling/kidults-cloudflare-workers-shadow/package-lock.json',
-  portal: 'apps/kidults-enterprise-staging/public/portal',
-};
-const fail = code => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_V3_APPROVAL_READY_FAIL:${code}`); };
-const ok = (value, code) => { if (!value) fail(code); };
-const read = file => fs.readFileSync(file, 'utf8');
-const json = file => JSON.parse(read(file));
-const sha256 = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+const AUTH_PATH = 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json';
+const TERMINAL_PATH = 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03-terminal.json';
+const APPROVAL_BODY_PATH = 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md';
+const PREFLIGHT_PATH = 'coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json';
+const WORKFLOW_PATH = '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml';
+const REGISTRY_PATH = 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json';
+const CONFIG_PATH = 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc';
+const PACKAGE_PATH = 'tooling/kidults-cloudflare-workers-shadow/package.json';
+const LOCK_PATH = 'tooling/kidults-cloudflare-workers-shadow/package-lock.json';
+const PORTAL_PATH = 'apps/kidults-enterprise-staging/public/portal';
 
-for (const file of Object.values(P).filter(value => value !== P.portal)) ok(fs.existsSync(file), `MISSING:${file}`);
-ok(fs.existsSync(P.portal), 'PORTAL_MISSING');
+const fail = (code) => { throw new Error(`CLOUDFLARE_WORKERS_SHADOW_V3_CONSUMED_VALIDATION_FAIL:${code}`); };
+const assert = (condition, code) => { if (!condition) fail(code); };
+const read = (file) => fs.readFileSync(file, 'utf8');
+const parse = (file) => JSON.parse(read(file));
+const sha256 = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 
-const auth = json(P.auth);
-const body = read(P.body);
-const workflow = read(P.workflow);
-const registry = json(P.registry);
-const configText = read(P.config);
+for (const file of [
+  AUTH_PATH,
+  TERMINAL_PATH,
+  APPROVAL_BODY_PATH,
+  PREFLIGHT_PATH,
+  WORKFLOW_PATH,
+  REGISTRY_PATH,
+  CONFIG_PATH,
+  PACKAGE_PATH,
+  LOCK_PATH,
+]) assert(fs.existsSync(file), `MISSING_FILE:${file}`);
+
+const auth = parse(AUTH_PATH);
+const terminal = parse(TERMINAL_PATH);
+const approvalBody = read(APPROVAL_BODY_PATH);
+const preflight = parse(PREFLIGHT_PATH);
+const workflow = read(WORKFLOW_PATH);
+const registry = parse(REGISTRY_PATH);
+const configText = read(CONFIG_PATH);
 const config = JSON.parse(configText);
-const pkg = json(P.package);
-const lock = json(P.lock);
+const packageJson = parse(PACKAGE_PATH);
+const packageLock = parse(LOCK_PATH);
 
-ok(auth.id === 'CF-WORKERS-SHADOW-20260901-03', 'AUTH_ID');
-ok(auth.status === 'APPROVED_PENDING_POST_LANDING_EXACT_MAIN_BINDING', 'AUTH_STATUS');
-ok(auth.authorized_by?.github_login === 'johnkim9524-collab' && auth.authorized_by?.author_association === 'OWNER', 'AUTH_OWNER');
-ok(auth.root_approval_receipt?.issue_number === 1743, 'AUTH_ISSUE');
-ok(auth.root_approval_receipt?.comment_id === 5487854388, 'AUTH_COMMENT');
-ok(auth.root_approval_receipt?.comment_node_id === 'IC_kwDOTF-G-M8AAAABRxoDNA', 'AUTH_COMMENT_NODE');
-ok(auth.root_approval_receipt?.created_at === '2026-09-01T02:24:14Z', 'AUTH_COMMENT_TIME');
-ok(auth.root_approval_receipt?.created_at === auth.root_approval_receipt?.updated_at, 'AUTH_COMMENT_EDITED');
-ok(auth.root_approval_receipt?.performed_via_github_app === 'chatgpt-codex-connector', 'AUTH_APP');
-ok(auth.root_approval_receipt?.body_sha256 === 'sha256:6b7f1e25850a0a05d193ef04b444d00cfaaf56b2f4fc37c6e884b907da2a3cce', 'AUTH_BODY_HASH');
-ok(sha256(body) === auth.root_approval_receipt.body_sha256, 'BODY_HASH');
-ok(body.endsWith('\n'), 'BODY_NEWLINE');
-for (const value of [
-  'CF-WORKERS-SHADOW-20260901-03',
-  'kidults-public-portal-shadow v3',
-  'non-Production workers.dev only',
-  'Production route 0, custom domain 0',
-  'Public·Production·G5 HOLD',
-  'rerun·replay·두 번째 dispatch는 승인하지 않습니다.',
-]) ok(body.includes(value), `BODY_SCOPE:${value}`);
+assert(auth.id === 'CF-WORKERS-SHADOW-20260901-03', 'AUTH_ID');
+assert(auth.status === 'CONSUMED_FAIL_CLOSED_PROVIDER_API_7003_NO_DEPLOYMENT_READBACK', 'AUTH_STATUS');
+assert(auth.root_approval_receipt?.comment_id === 5487854388, 'ROOT_APPROVAL_COMMENT');
+assert(auth.post_landing_execution_binding_receipt?.comment_id === 5488380368, 'POST_LANDING_BINDING_COMMENT');
+assert(auth.post_landing_execution_binding_receipt?.landing_pr_number === 1749, 'LANDING_PR');
+assert(auth.post_landing_execution_binding_receipt?.landing_exact_head_sha === '7cd46ac41dd6765fb628a954be6eb8677bb11faa', 'LANDING_HEAD');
+assert(auth.post_landing_execution_binding_receipt?.landing_merge_sha === 'b467787d358b85968ebfe7d993a538faa8b70e13', 'LANDING_MERGE');
 
-ok(auth.issuance_binding?.protected_main_sha_at_receipt_issuance === '0f71b08aae471b03e39528c1bfbb3e243134d09d', 'AUTH_ISSUANCE_MAIN');
-ok(auth.issuance_binding?.nonce === '8a780e2bed4c518380cf0729778a50601637dd48d2e582b5', 'AUTH_NONCE');
-ok(auth.issuance_binding?.issued_at === '2026-09-01T02:23:41Z', 'AUTH_ISSUED');
-ok(auth.issuance_binding?.expires_at === '2026-09-02T02:23:41Z', 'AUTH_EXPIRES');
-ok(Date.parse(auth.issuance_binding.expires_at) > Date.parse(auth.issuance_binding.issued_at), 'AUTH_TIME_ORDER');
+const consumption = auth.consumption_result || {};
+assert(consumption.workflow_run_id === 33465807642, 'CONSUMING_RUN');
+assert(consumption.job_id === 99725309548, 'CONSUMING_JOB');
+assert(consumption.source_sha === 'b467787d358b85968ebfe7d993a538faa8b70e13', 'CONSUMING_SHA');
+assert(consumption.authorization_consumed === true, 'AUTH_NOT_CONSUMED');
+assert(consumption.unique_first_dispatch_verified === true, 'UNIQUE_FIRST_DISPATCH');
+assert(consumption.locked_wrangler_version === '4.127.1', 'WRANGLER_VERSION');
+assert(consumption.locked_wrangler_dry_run_verified === true, 'DRY_RUN');
+assert(consumption.dry_run_asset_count === 128, 'DRY_RUN_ASSET_COUNT');
+assert(consumption.provider_attempt_marker_written === true, 'PROVIDER_MARKER');
+assert(consumption.provider_process_invoked === true, 'PROVIDER_PROCESS');
+assert(consumption.provider_deployment_attempt_count === 1, 'PROVIDER_ATTEMPT_COUNT');
+assert(consumption.provider_exit_code === 1, 'PROVIDER_EXIT');
+assert(consumption.remote_api_request_evidenced === true, 'REMOTE_API_REQUEST');
+assert(consumption.cloudflare_error_code === 7003, 'CLOUDFLARE_ERROR_CODE');
+assert(consumption.root_cause_class === 'CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH', 'ROOT_CAUSE_CLASS');
+assert(consumption.worker_upload_completed === false, 'UPLOAD_TRUTH');
+assert(consumption.worker_deployment_success === false, 'DEPLOYMENT_TRUTH');
+assert(consumption.deployment_id === null, 'DEPLOYMENT_ID_TRUTH');
+assert(consumption.workers_dev_url === null, 'WORKERS_DEV_URL_TRUTH');
+assert(consumption.readback_executed === false, 'READBACK_TRUTH');
+assert(consumption.remote_mutation_evidenced === false, 'REMOTE_MUTATION_TRUTH');
+assert(consumption.artifact_id === 9784793397, 'ARTIFACT_ID');
+assert(consumption.artifact_digest === 'sha256:0ab4517f47cfbb2cdf3de1a81e03af981df2dd5285df403dc8b4f611c5267c05', 'ARTIFACT_DIGEST');
 
-const binding = auth.post_landing_execution_binding || {};
-ok(binding.required === true && binding.valid_binding_count_required === 1, 'BINDING_CARDINALITY');
-ok(binding.issue_number === 1743, 'BINDING_ISSUE');
-ok(binding.marker_start === '<!-- CF_WORKERS_SHADOW_V3_EXECUTION_BINDING_V1_START -->', 'BINDING_START');
-ok(binding.marker_end === '<!-- CF_WORKERS_SHADOW_V3_EXECUTION_BINDING_V1_END -->', 'BINDING_END');
-ok(binding.schema === 'CF_WORKERS_SHADOW_V3_EXECUTION_BINDING_V1', 'BINDING_SCHEMA');
-ok(binding.state === 'BOUND_TO_EXACT_POST_LANDING_MAIN', 'BINDING_STATE');
-ok(binding.required_root_approval_comment_id === 5487854388, 'BINDING_ROOT');
-ok(binding.required_root_approval_body_sha256 === auth.root_approval_receipt.body_sha256, 'BINDING_ROOT_HASH');
-ok(binding.required_workflow === P.workflow, 'BINDING_WORKFLOW');
-ok(binding.required_service === 'kidults-public-portal-shadow', 'BINDING_SERVICE');
-ok(binding.required_nonce === auth.issuance_binding.nonce && binding.required_expiry === auth.issuance_binding.expires_at, 'BINDING_NONCE_EXPIRY');
-ok(binding.executable_before_binding === false, 'BINDING_PREEXECUTION');
+assert(auth.tombstone?.zero_executable_authority === true, 'TOMBSTONE_AUTHORITY');
+assert(auth.tombstone?.workflow_trigger_removed === true, 'TOMBSTONE_TRIGGER');
+assert(auth.tombstone?.secret_registry_membership === false, 'TOMBSTONE_REGISTRY');
+assert(auth.tombstone?.environment_bound === false, 'TOMBSTONE_ENVIRONMENT');
+assert(auth.tombstone?.secret_references_present === false, 'TOMBSTONE_SECRETS');
+assert(auth.tombstone?.checkout_present === false, 'TOMBSTONE_CHECKOUT');
+assert(auth.tombstone?.provider_tooling_present === false, 'TOMBSTONE_TOOLING');
+assert(auth.tombstone?.network_provider_step_present === false, 'TOMBSTONE_NETWORK');
+assert(auth.future_execution?.current_approval_reusable === false, 'AUTH_REUSE');
+assert(auth.future_execution?.rerun_authorized === false, 'RERUN');
+assert(auth.future_execution?.second_dispatch_authorized === false, 'SECOND_DISPATCH');
+assert(auth.future_execution?.environment_secret_correction_required === true, 'SECRET_CORRECTION');
+assert(auth.future_execution?.separately_approved_read_only_credential_identity_preflight_required === true, 'IDENTITY_PREFLIGHT_REQUIRED');
+assert(auth.replay === 'FORBIDDEN_AFTER_FIRST_VALID_V3_DISPATCH_REGARDLESS_OF_TERMINAL_STATE', 'REPLAY_RULE');
 
-const scope = auth.authorized_scope || {};
-ok(scope.workflow === P.workflow && scope.trigger === 'workflow_dispatch' && scope.source_ref === 'refs/heads/main', 'SCOPE_SOURCE');
-ok(scope.service === 'kidults-public-portal-shadow' && scope.target === 'workers_dev_non_production_only', 'SCOPE_TARGET');
-ok(scope.workflow_dispatch_count_max === 1 && scope.provider_deployment_attempt_count_max === 1, 'SCOPE_COUNTS');
-ok(scope.authorization_consumed_on === 'FIRST_VALID_V3_DISPATCH_PASS_OR_FAIL', 'SCOPE_CONSUMPTION');
+assert(sha256(approvalBody) === auth.root_approval_receipt.body_sha256, 'APPROVAL_BODY_DIGEST');
+assert(approvalBody.includes('CF-WORKERS-SHADOW-20260901-03'), 'APPROVAL_BODY_ID');
+assert(approvalBody.includes('rerun·replay·두 번째 dispatch는 승인하지 않습니다.'), 'APPROVAL_BODY_NO_REPLAY');
+
+assert(terminal.state === 'VERIFIED_FAIL_PROVIDER_API_7003_NO_DEPLOYMENT_READBACK', 'TERMINAL_STATE');
+assert(terminal.workflow_run_id === 33465807642, 'TERMINAL_RUN');
+assert(terminal.job_id === 99725309548, 'TERMINAL_JOB');
+assert(terminal.authorization_consumed === true, 'TERMINAL_CONSUMED');
+assert(terminal.preflight?.locked_wrangler_dry_run === 'PASS', 'TERMINAL_DRY_RUN');
+assert(terminal.preflight?.dry_run_asset_count === 128, 'TERMINAL_DRY_RUN_ASSET_COUNT');
+assert(terminal.provider?.attempt_marker_written === true, 'TERMINAL_MARKER');
+assert(terminal.provider?.process_invoked === true, 'TERMINAL_PROVIDER_PROCESS');
+assert(terminal.provider?.deployment_attempt_count === 1, 'TERMINAL_PROVIDER_COUNT');
+assert(terminal.provider?.cloudflare_error_code === 7003, 'TERMINAL_ERROR_CODE');
+assert(terminal.provider?.root_cause_class === 'CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH', 'TERMINAL_ROOT_CAUSE');
+assert(terminal.provider?.worker_upload_completed === false, 'TERMINAL_UPLOAD');
+assert(terminal.provider?.worker_deployment_success === false, 'TERMINAL_DEPLOYMENT');
+assert(terminal.provider?.deployment_id === null, 'TERMINAL_DEPLOYMENT_ID');
+assert(terminal.provider?.workers_dev_url === null, 'TERMINAL_URL');
+assert(terminal.provider?.readback_executed === false, 'TERMINAL_READBACK');
+assert(terminal.provider?.remote_mutation_evidenced === false, 'TERMINAL_REMOTE_MUTATION');
+assert(terminal.artifact?.id === 9784793397, 'TERMINAL_ARTIFACT_ID');
+assert(terminal.artifact?.digest === 'sha256:0ab4517f47cfbb2cdf3de1a81e03af981df2dd5285df403dc8b4f611c5267c05', 'TERMINAL_ARTIFACT_DIGEST');
+assert(terminal.terminal_controls?.replay_authorized === false, 'TERMINAL_REPLAY');
+assert(terminal.terminal_controls?.rerun_authorized === false, 'TERMINAL_RERUN');
+assert(terminal.terminal_controls?.second_dispatch_authorized === false, 'TERMINAL_SECOND_DISPATCH');
+assert(terminal.release_boundary?.production_routes === 0 && terminal.release_boundary?.custom_domains === 0, 'TERMINAL_TOPOLOGY');
+assert(terminal.release_boundary?.public === 'HOLD' && terminal.release_boundary?.production === 'HOLD' && terminal.release_boundary?.g5 === 'HOLD', 'TERMINAL_HOLD');
+
+// Tombstone validation distinguishes executable authority from historical diagnostic text.
+// A literal root-cause class may contain secret *names*; that is not a secret binding.
+assert(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+assert(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH_REINTRODUCED');
+assert(workflow.includes('runs-on: ubuntu-24.04'), 'WORKFLOW_RUNNER');
+assert(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'WORKFLOW_TOMBSTONE_MARKER');
+assert(workflow.includes('historical_cloudflare_error_code:7003'), 'WORKFLOW_HISTORICAL_ERROR_TRUTH');
+assert(workflow.includes('CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH'), 'WORKFLOW_HISTORICAL_ROOT_CAUSE_TRUTH');
+assert(workflow.includes('Upload consumed authorization tombstone'), 'WORKFLOW_TOMBSTONE_ARTIFACT');
+const uploadIndex = workflow.indexOf('Upload consumed authorization tombstone');
+const redIndex = workflow.indexOf('Enforce consumed authorization no replay');
+assert(uploadIndex >= 0 && redIndex > uploadIndex, 'WORKFLOW_UPLOAD_BEFORE_RED');
+for (const forbidden of [
+  'environment:',
+  '${{ secrets.',
+  'actions/checkout@',
+  'actions/setup-node@',
+  'curl ',
+  'npm ',
+  'npx ',
+  'node_modules/.bin/wrangler',
+]) assert(!workflow.includes(forbidden), `WORKFLOW_EXECUTABLE_AUTHORITY:${forbidden}`);
+assert(!/^\s+CLOUDFLARE_(?:API_TOKEN|ACCOUNT_ID)\s*:/m.test(workflow), 'WORKFLOW_SECRET_ENV_BINDING');
+
+assert(!registry.registered_workflows?.includes(WORKFLOW_PATH), 'REGISTRY_V3_PRESENT');
+assert(!registry.required_environment_bindings?.some((binding) => binding.workflow === WORKFLOW_PATH), 'REGISTRY_V3_BINDING_PRESENT');
+assert(registry.registered_count === 22, 'REGISTRY_COUNT');
+assert(registry.registered_workflows?.length === 22, 'REGISTRY_WORKFLOW_LENGTH');
+assert(registry.required_environment_bindings?.length === 22, 'REGISTRY_BINDING_LENGTH');
 for (const key of [
-  'production_routes_allowed','custom_domains_allowed','pages_delete_allowed','pages_domain_detach_allowed',
-  'public_promotion_allowed','production_promotion_allowed','g5_promotion_allowed','external_spend_allowed',
-  'contract_change_allowed','new_credential_creation_allowed','credential_scope_expansion_allowed',
-]) ok(scope[key] === false, `SCOPE_FALSE:${key}`);
-ok(auth.runtime_state?.authorization_consumed === false && auth.runtime_state?.provider_deployment_attempt_count === 0, 'RUNTIME_PRELANDING');
-ok(auth.replay === 'FORBIDDEN_AFTER_FIRST_VALID_V3_DISPATCH_REGARDLESS_OF_TERMINAL_STATE', 'REPLAY');
+  'environment_bound_secret_bearing_jobs',
+  'exact_main_guarded_secret_bearing_jobs',
+  'live_main_sha_guarded_secret_bearing_jobs',
+  'step_scoped_secret_bearing_jobs',
+]) assert(registry.repository_binding_state?.[key] === 22, `REGISTRY_STATE:${key}`);
+const privilegedSteps = registry.required_environment_bindings.reduce(
+  (sum, binding) => sum + (binding.required_secret_step_names?.length || 0),
+  0,
+);
+assert(privilegedSteps === 25, 'REGISTRY_PRIVILEGED_CALCULATED');
+assert(registry.repository_binding_state?.privileged_secret_steps === 25, 'REGISTRY_PRIVILEGED_RECORDED');
+assert(registry.repository_containment?.provider_activation === 'HOLD', 'REGISTRY_PROVIDER_HOLD');
 
-ok(/^on:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n/m.test(workflow), 'WORKFLOW_TRIGGER_PERMISSIONS');
-for (const value of ['\n  push:','\n  pull_request:','\n  pull_request_target:','\n  workflow_run:','\n  repository_dispatch:','\n  schedule:']) {
-  ok(!workflow.includes(value), `FORBIDDEN_TRIGGER:${value.trim()}`);
+assert(preflight.id === 'kidults-cloudflare-workers-shadow-credential-identity-preflight-v1', 'PREFLIGHT_ID');
+assert(preflight.status === 'MANDATORY_BEFORE_ANY_FUTURE_WORKERS_SHADOW_DEPLOYMENT_APPROVAL', 'PREFLIGHT_STATUS');
+assert(preflight.authority?.standing_execution_authority === false, 'PREFLIGHT_STANDING_AUTHORITY');
+assert(preflight.authority?.separate_explicit_program_owner_approval_required === true, 'PREFLIGHT_APPROVAL_REQUIRED');
+assert(preflight.authority?.read_only_external_calls_only === true, 'PREFLIGHT_READ_ONLY');
+assert(preflight.authority?.worker_mutation_allowed === false, 'PREFLIGHT_MUTATION');
+assert(preflight.github_secret_boundary?.environment === 'kidults-cloudflare-staging-deploy', 'PREFLIGHT_ENVIRONMENT');
+assert(preflight.github_secret_boundary?.environment_level_value_is_authoritative_when_duplicate_names_exist === true, 'PREFLIGHT_SECRET_PRECEDENCE');
+assert(preflight.maximum_external_read_requests === 3, 'PREFLIGHT_REQUEST_BOUND');
+assert(preflight.required_preflight_sequence?.length === 4, 'PREFLIGHT_SEQUENCE_LENGTH');
+assert(preflight.required_preflight_sequence?.every((step, index) => step.order === index + 1), 'PREFLIGHT_SEQUENCE_ORDER');
+assert(preflight.pass_condition?.cloudflare_error_7003_observed === false, 'PREFLIGHT_7003_REJECTION');
+assert(preflight.pass_condition?.worker_mutation_count === 0, 'PREFLIGHT_ZERO_MUTATION');
+assert(preflight.future_deployment_gate?.new_versioned_workflow_required === true, 'PREFLIGHT_NEW_VERSION');
+assert(preflight.future_deployment_gate?.new_explicit_program_owner_deployment_approval_required === true, 'PREFLIGHT_NEW_APPROVAL');
+
+assert(config.name === 'kidults-public-portal-shadow', 'CONFIG_NAME');
+assert(config.workers_dev === true && config.preview_urls === false, 'CONFIG_WORKERS_DEV');
+assert(Array.isArray(config.routes) && config.routes.length === 0, 'CONFIG_ROUTES');
+assert(config.assets?.directory === '../../../../apps/kidults-enterprise-staging/public/portal', 'CONFIG_ASSET_VALUE');
+for (const forbidden of ['account_id', 'api_token', 'zone_id', 'custom_domain']) {
+  assert(!configText.includes(forbidden), `CONFIG_FORBIDDEN:${forbidden}`);
 }
-for (const value of [
-  'group: kidults-cloudflare-workers-shadow-deploy-v3-one-shot',
-  'cancel-in-progress: false',
-  '  deploy-shadow-v3:',
-  '    environment: kidults-cloudflare-staging-deploy',
-  '    runs-on: ubuntu-24.04',
-  'Verify live main before provider credential resolution',
-  'GITHUB_TOKEN: ${{ github.token }}',
-  '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main',
-  'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"',
-  'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
-  'ref: ${{ github.sha }}',
-  'persist-credentials: false',
-  'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
-  "node-version: '24.19.0'",
-  'issues/comments/5487854388',
-  'EXECUTION_BINDING_MARKER_COUNT_',
-  'landing_pr_number',
-  'landing_exact_head_sha',
-  'EXECUTION_BINDING_PR_NOT_MERGED_TO_RUNTIME_MAIN',
-  'EXECUTION_BINDING_EXPIRED',
-  'actions/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml/runs?event=workflow_dispatch&branch=main&per_page=100',
-  'V3_ONE_SHOT_REPLAY_OR_CONCURRENT_DISPATCH_FORBIDDEN',
-  '.authorization_consumed=true',
-  'UNIQUE_FIRST_V3_MAIN_DISPATCH_VERIFIED',
-  'npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow',
-  'Prove locked Wrangler dry-run before provider attempt',
-  '--dry-run',
-  'WRANGLER_SEND_METRICS',
-  'Finalize truthful terminal receipt',
-  'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
-  'if-no-files-found: error',
-  '${{ runner.temp }}/kidults-cloudflare-workers-shadow-v3/receipt.json',
-  'Preserve exact v3 terminal verdict',
-]) ok(workflow.includes(value), `WORKFLOW_REQUIRED:${value}`);
-ok((workflow.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 1, 'GITHUB_TOKEN_COUNT');
-ok(!workflow.includes('npx '), 'NPX_FORBIDDEN');
-ok(!workflow.includes('wrangler pages'), 'PAGES_COMMAND_FORBIDDEN');
-ok(!workflow.includes('/client/v4/zones'), 'ZONE_API_FORBIDDEN');
-ok(!workflow.includes('/pages/projects'), 'PAGES_API_FORBIDDEN');
+const resolvedAssets = path.resolve(path.dirname(path.resolve(CONFIG_PATH)), config.assets.directory);
+assert(resolvedAssets === path.resolve(PORTAL_PATH), 'CONFIG_ASSET_RESOLUTION');
+assert(fs.existsSync(path.join(resolvedAssets, 'index.html')), 'PORTAL_INDEX');
+assert(fs.existsSync(path.join(resolvedAssets, 'workspace.html')), 'PORTAL_WORKSPACE');
 
-const providerName = '      - name: Deploy one non-production Workers shadow v3';
-const provider = workflow.indexOf(providerName);
-const dry = workflow.indexOf('      - name: Prove locked Wrangler dry-run before provider attempt');
-const attempt = workflow.indexOf('          : > "$MARKER"', provider);
-const command = workflow.indexOf('./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy', provider);
-const readback = workflow.indexOf('      - name: Verify workers.dev HTTPS read-back');
-const finalizer = workflow.indexOf('      - name: Finalize truthful terminal receipt');
-const upload = workflow.indexOf('      - name: Upload exact v3 terminal receipt');
-const verdict = workflow.indexOf('      - name: Preserve exact v3 terminal verdict');
-ok(provider > 0 && dry > 0 && dry < provider, 'DRYRUN_ORDER');
-ok(attempt > provider && command > attempt, 'PROVIDER_ATTEMPT_ORDER');
-ok(readback > command && finalizer > readback && upload > finalizer && verdict > upload, 'TERMINAL_ORDER');
-
-const secrets = [...workflow.matchAll(/\$\{\{\s*secrets\.([A-Z][A-Z0-9_]*)\s*\}\}/g)].map(match => match[1]).sort();
-ok(JSON.stringify(secrets) === JSON.stringify(['CLOUDFLARE_ACCOUNT_ID','CLOUDFLARE_API_TOKEN']), 'SECRET_SET');
-ok(!workflow.slice(0, provider).includes('${{ secrets.'), 'SECRET_BEFORE_PROVIDER');
-const next = workflow.indexOf('\n      - name:', provider + providerName.length);
-const providerText = workflow.slice(provider, next);
-ok(providerText.includes('CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}'), 'TOKEN_STEP_SCOPE');
-ok(providerText.includes('CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}'), 'ACCOUNT_STEP_SCOPE');
-ok(providerText.includes('.provider_deployment_attempt_count=1'), 'PROVIDER_COUNT_ONE');
-ok(providerText.includes('PIPESTATUS[0]'), 'PROVIDER_EXIT_CAPTURE');
-for (const value of ['https://*.workers.dev', "'%{http_code}'", 'test -s "$BODY"', 'VERIFIED_PASS_NON_PRODUCTION_WORKERS_DEV']) {
-  ok(workflow.includes(value), `READBACK:${value}`);
-}
-
-for (const [label,file] of [['V1',P.v1],['V2',P.v2]]) {
-  const prior = read(file);
-  ok(/^on: \[\]\n\npermissions:\n  contents: read\n/m.test(prior), `${label}_TRIGGER`);
-  ok(!prior.includes('workflow_dispatch'), `${label}_DISPATCH`);
-  for (const value of ['environment:','${{ secrets.','actions/checkout@','actions/setup-node@','curl ','npm ','npx ','wrangler ','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID']) {
-    ok(!prior.includes(value), `${label}_AUTHORITY:${value}`);
-  }
-  ok(prior.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), `${label}_TOMBSTONE`);
-}
-
-ok(config.name === 'kidults-public-portal-shadow' && config.workers_dev === true && config.preview_urls === false, 'CONFIG_IDENTITY');
-ok(Array.isArray(config.routes) && config.routes.length === 0, 'CONFIG_ROUTES');
-ok(config.assets?.directory === '../../../../apps/kidults-enterprise-staging/public/portal', 'CONFIG_ASSET_VALUE');
-for (const value of ['account_id','api_token','zone_id','custom_domain']) ok(!configText.includes(value), `CONFIG_AUTHORITY:${value}`);
-const resolved = path.resolve(path.dirname(path.resolve(P.config)), config.assets.directory);
-ok(resolved === path.resolve(P.portal), 'CONFIG_ASSET_RESOLUTION');
-ok(fs.existsSync(path.join(resolved,'index.html')) && fs.existsSync(path.join(resolved,'workspace.html')), 'PORTAL_ENTRYPOINTS');
-ok(!fs.existsSync(path.resolve(path.dirname(path.resolve(P.config)), 'apps/kidults-enterprise-staging/public/portal')), 'LEGACY_BAD_PATH');
-
-ok(pkg.name === 'kidults-cloudflare-workers-shadow-tooling' && pkg.private === true, 'PACKAGE');
-ok(pkg.devDependencies?.wrangler === '4.127.1', 'PACKAGE_WRANGLER');
-ok(lock.lockfileVersion === 3, 'LOCK_VERSION');
-ok(lock.packages?.['']?.devDependencies?.wrangler === '4.127.1', 'LOCK_ROOT');
-ok(lock.packages?.['node_modules/wrangler']?.version === '4.127.1', 'LOCK_WRANGLER');
-
-const v3 = registry.required_environment_bindings?.find(value => value.workflow === P.workflow);
-ok(registry.status === 'EXTERNAL_APPROVAL_REQUIRED' && registry.issue === 974, 'REGISTRY_IDENTITY');
-ok(registry.registered_count === 23 && registry.registered_workflows?.length === 23 && registry.required_environment_bindings?.length === 23, 'REGISTRY_COUNTS');
-ok(registry.registered_workflows.includes(P.workflow), 'REGISTRY_V3');
-ok(!registry.registered_workflows.includes(P.v1) && !registry.registered_workflows.includes(P.v2), 'REGISTRY_CONSUMED');
-ok(v3?.job === 'deploy-shadow-v3' && v3?.environment === 'kidults-cloudflare-staging-deploy', 'REGISTRY_V3_BINDING');
-ok(v3?.required_secret_name_digest === 'sha256:9d106dc2b7f97ab70b18b83662808f580c0e9068f2d207b4c40e741cacd14978', 'REGISTRY_SECRET_DIGEST');
-ok(JSON.stringify(v3?.required_secret_step_names) === JSON.stringify(['Deploy one non-production Workers shadow v3']), 'REGISTRY_SECRET_STEP');
-ok(JSON.stringify(v3?.allowed_trigger_classes) === JSON.stringify(['workflow_dispatch']), 'REGISTRY_TRIGGER');
-ok(v3?.remote_mutation_class === 'REMOTE_STAGING_MUTATION', 'REGISTRY_MUTATION');
-ok(registry.required_environment_count === 9, 'REGISTRY_ENV_COUNT');
-for (const key of ['environment_bound_secret_bearing_jobs','exact_main_guarded_secret_bearing_jobs','live_main_sha_guarded_secret_bearing_jobs','step_scoped_secret_bearing_jobs']) {
-  ok(registry.repository_binding_state?.[key] === 23, `REGISTRY_STATE:${key}`);
-}
-const privileged = registry.required_environment_bindings.reduce((sum,value) => sum + (value.required_secret_step_names?.length || 0), 0);
-ok(privileged === 26 && registry.repository_binding_state?.privileged_secret_steps === 26, 'REGISTRY_PRIVILEGED_STEPS');
-ok(registry.inventory_evidence?.evidence_semantics === 'HISTORICAL_REGISTRATION_BASELINE_NOT_LIVE_EXTERNAL_POLICY_READBACK', 'REGISTRY_EVIDENCE_SEMANTICS');
-ok(registry.repository_containment?.consumed_cloudflare_workers_shadow_lanes?.secret_registry_membership === false, 'REGISTRY_CONSUMED_BOUNDARY');
-ok(registry.repository_containment?.approved_cloudflare_workers_shadow_v3_lane?.approval_id === auth.id, 'REGISTRY_APPROVAL');
-ok(registry.repository_containment?.approved_cloudflare_workers_shadow_v3_lane?.execution_binding_required === true, 'REGISTRY_BINDING_REQUIRED');
+assert(packageJson.devDependencies?.wrangler === '4.127.1', 'PACKAGE_WRANGLER');
+assert(packageLock.lockfileVersion === 3, 'LOCKFILE_VERSION');
+assert(packageLock.packages?.['node_modules/wrangler']?.version === '4.127.1', 'LOCKED_WRANGLER');
 
 console.log(JSON.stringify({
-  id:'kidults-cloudflare-workers-shadow-v3-approval-ready-validation-v1',
-  state:'VERIFIED_PASS',
-  approval_id:auth.id,
-  root_approval_comment_id:5487854388,
-  post_landing_execution_binding_required:true,
-  authorization_consumed:false,
-  workflow_dispatch_count_max:1,
-  provider_deployment_attempt_count_max:1,
-  v1_v2_zero_executable_authority:true,
-  registered_secret_bearing_lanes:23,
-  privileged_secret_steps:26,
-  locked_wrangler_version:'4.127.1',
-  workers_dev_readback_required:true,
-  production_routes:0,
-  custom_domains:0,
-  pages_delete:'FORBIDDEN',
-  pages_domain_detach:'FORBIDDEN',
-  public:'HOLD',
-  production:'HOLD',
-  g5:'HOLD',
-},null,2));
+  id: 'kidults-cloudflare-workers-shadow-v3-consumed-7003-validation-v1',
+  state: 'VERIFIED_PASS',
+  approval_id: auth.id,
+  authorization_state: auth.status,
+  workflow_run_id: terminal.workflow_run_id,
+  provider_process_invoked: true,
+  provider_deployment_attempt_count: 1,
+  cloudflare_error_code: 7003,
+  worker_deployment_success: false,
+  workers_dev_url: null,
+  remote_mutation_evidenced: false,
+  v3_zero_executable_authority: true,
+  credential_identity_preflight_required: true,
+  registered_secret_bearing_lanes: registry.registered_count,
+  privileged_secret_steps: privilegedSteps,
+  production_routes: 0,
+  custom_domains: 0,
+  pages_delete: 'FORBIDDEN',
+  pages_domain_detach: 'FORBIDDEN',
+  public: 'HOLD',
+  production: 'HOLD',
+  g5: 'HOLD',
+}, null, 2));
