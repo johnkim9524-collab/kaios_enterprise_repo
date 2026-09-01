@@ -12,7 +12,7 @@ const expectReject = (code, fn) => {
 const head = '1'.repeat(40);
 const base = '2'.repeat(40);
 const prNumber = 1811;
-const run = (id, conclusion, at, status = 'completed', sha = head) => ({
+const run = (id, conclusion, at, status = 'completed', sha = head, associatedPr = prNumber) => ({
   id,
   run_attempt: 1,
   event: 'pull_request_target',
@@ -21,7 +21,7 @@ const run = (id, conclusion, at, status = 'completed', sha = head) => ({
   conclusion,
   created_at: at,
   updated_at: at,
-  pull_requests: [],
+  pull_requests: associatedPr == null ? [] : [{number: associatedPr}],
 });
 const artifact = id => ({
   id: id + 1000,
@@ -88,9 +88,40 @@ expectReject('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_SUCCESS', () => invoke({
 expectReject('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200)}, lastReadyAt: '2026-09-01T13:30:00Z',
 }));
-expectReject('LIFECYCLE_EXACT_GENERATION_MISSING', () => invoke({
+expectReject('LIFECYCLE_RECEIPT_ARTIFACT_CARDINALITY:0', () => invoke({
   runs: [green], artifactsByRunId: {'200': []}, receiptsByRunId: {},
 }));
+
+// A newer exact generation is authoritative before artifact filtering. An older
+// green must never mask a newer pending, failed, or artifactless lifecycle run.
+expectReject('LIFECYCLE_LATEST_NOT_TERMINAL', () => invoke({
+  runs: [green, run(205, null, '2026-09-01T13:32:00Z', 'queued')],
+  artifactsByRunId: {'200': [artifact(200)], '205': []},
+  receiptsByRunId: {'200': receipt(200)},
+}));
+expectReject('LIFECYCLE_LATEST_UNSUPERSEDED_RED', () => invoke({
+  runs: [green, run(206, 'failure', '2026-09-01T13:33:00Z')],
+  artifactsByRunId: {'200': [artifact(200)], '206': []},
+  receiptsByRunId: {'200': receipt(200)},
+}));
+expectReject('LIFECYCLE_RECEIPT_ARTIFACT_CARDINALITY:0', () => invoke({
+  runs: [green, run(207, 'success', '2026-09-01T13:34:00Z')],
+  artifactsByRunId: {'200': [artifact(200)], '207': []},
+  receiptsByRunId: {'200': receipt(200)},
+}));
+expectReject('LIFECYCLE_RUN_PR_ASSOCIATION_INVALID', () => invoke({
+  runs: [green, run(208, 'success', '2026-09-01T13:35:00Z', 'completed', head, null)],
+  artifactsByRunId: {'200': [artifact(200)], '208': []},
+  receiptsByRunId: {'200': receipt(200)},
+}));
+
+const crossPrNewerRed = invoke({
+  runs: [green, run(209, 'failure', '2026-09-01T13:36:00Z', 'completed', head, 9999)],
+  artifactsByRunId: {'200': [artifact(200)], '209': []},
+  receiptsByRunId: {'200': receipt(200)},
+});
+assert(crossPrNewerRed.lifecycle_run_id === 200, 'CROSS_PR_GENERATION_MUST_NOT_SUPERSEDE');
+
 expectReject('LIFECYCLE_PRECREATION_RUN_ALIAS_REJECTED', () => invoke({
   runs: [run(204, 'success', '2026-09-01T12:59:59Z')],
   artifactsByRunId: {'204': [artifact(204)]},
