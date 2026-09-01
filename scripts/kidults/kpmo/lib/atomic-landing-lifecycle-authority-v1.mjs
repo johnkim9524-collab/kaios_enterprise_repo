@@ -8,17 +8,39 @@ const ms = (value, code) => {
   if (!Number.isFinite(parsed)) fail(code);
   return parsed;
 };
+const artifactName = (prNumber, headSha, run) =>
+  `kpmo-pr-lifecycle-integrity-${prNumber}-${headSha}-${run.id}-${run.run_attempt}`;
 
-function exactRunBinding(run, prNumber, headSha, baseSha) {
-  if (!Array.isArray(run?.pull_requests)) return false;
-  return run.pull_requests.some(pr => Number(pr?.number) === Number(prNumber)
-    && pr?.head?.sha === headSha
-    && pr?.base?.sha === baseSha);
+function runMatchesHead(run, headSha) {
+  return run?.event === 'pull_request_target'
+    && run?.head_sha === headSha
+    && run?.status != null;
+}
+
+function exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha) {
+  const artifacts = artifactsByRunId?.[String(run.id)];
+  if (!Array.isArray(artifacts)) return { artifacts: null, matches: [] };
+  const expected = artifactName(prNumber, headSha, run);
+  return { artifacts, matches: artifacts.filter(artifact => artifact?.name === expected), expected };
+}
+
+function validateReceiptContent(receipt, run, prNumber, headSha, baseSha) {
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('LIFECYCLE_RECEIPT_CONTENT_INVALID');
+  if (receipt.id !== 'kpmo-pr-lifecycle-integrity-receipt-v1') fail('LIFECYCLE_RECEIPT_ID_INVALID');
+  if (Number(receipt.pull_request) !== Number(prNumber)) fail('LIFECYCLE_RECEIPT_PR_MISMATCH');
+  if (receipt.exact_head_sha !== headSha) fail('LIFECYCLE_RECEIPT_HEAD_MISMATCH');
+  if (receipt.exact_base_sha !== baseSha) fail('LIFECYCLE_RECEIPT_BASE_MISMATCH');
+  if (String(receipt.workflow_run_id) !== String(run.id)) fail('LIFECYCLE_RECEIPT_RUN_ID_MISMATCH');
+  if (String(receipt.workflow_run_attempt) !== String(run.run_attempt)) fail('LIFECYCLE_RECEIPT_RUN_ATTEMPT_MISMATCH');
+  if (receipt.event_name !== 'pull_request_target') fail('LIFECYCLE_RECEIPT_EVENT_MISMATCH');
+  if (receipt.final_live_reread !== true) fail('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED');
+  if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
 }
 
 export function selectAtomicLandingLifecycleAuthority({
   runs,
   artifactsByRunId,
+  receiptsByRunId,
   prNumber,
   headSha,
   baseSha,
@@ -48,7 +70,11 @@ export function selectAtomicLandingLifecycleAuthority({
   });
 
   const exactRuns = runs
-    .filter(run => exactRunBinding(run, prNumber, headSha, baseSha))
+    .filter(run => {
+      if (!runMatchesHead(run, headSha)) return false;
+      const { matches } = exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha);
+      return matches.length > 0;
+    })
     .sort((a, b) => {
       const timeDelta = ms(b.created_at, 'LIFECYCLE_RUN_TIME_INVALID') - ms(a.created_at, 'LIFECYCLE_RUN_TIME_INVALID');
       return timeDelta || Number(b.id || 0) - Number(a.id || 0);
@@ -65,15 +91,15 @@ export function selectAtomicLandingLifecycleAuthority({
     fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
   }
 
-  const artifacts = artifactsByRunId?.[String(latest.id)];
-  if (!Array.isArray(artifacts)) fail('LIFECYCLE_ARTIFACT_SET_MISSING');
-  const expectedName = `kpmo-pr-lifecycle-integrity-${prNumber}-${headSha}-${latest.id}-${latest.run_attempt}`;
-  const exactArtifacts = artifacts.filter(artifact => artifact?.name === expectedName);
+  const { matches: exactArtifacts } = exactReceiptArtifact(latest, artifactsByRunId, prNumber, headSha);
   if (exactArtifacts.length !== 1) fail(`LIFECYCLE_RECEIPT_ARTIFACT_CARDINALITY:${exactArtifacts.length}`);
   const artifact = exactArtifacts[0];
   if (artifact.expired !== false) fail('LIFECYCLE_RECEIPT_ARTIFACT_EXPIRED_OR_AMBIGUOUS');
   if (!Number.isInteger(artifact.size_in_bytes) || artifact.size_in_bytes <= 0) fail('LIFECYCLE_RECEIPT_ARTIFACT_EMPTY');
   if (!DIGEST.test(String(artifact.digest || ''))) fail('LIFECYCLE_RECEIPT_DIGEST_INVALID');
+
+  const receipt = receiptsByRunId?.[String(latest.id)];
+  validateReceiptContent(receipt, latest, prNumber, headSha, baseSha);
 
   return {
     state: 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND',
@@ -87,12 +113,14 @@ export function selectAtomicLandingLifecycleAuthority({
     lifecycle_artifact_id: Number(artifact.id),
     lifecycle_artifact_name: artifact.name,
     lifecycle_artifact_digest: artifact.digest,
+    lifecycle_receipt_state: receipt.state,
     native_status_evidence: boundNative,
   };
 }
 
 export async function resolveAtomicLandingLifecycleAuthority({
   request,
+  readArtifactReceipt,
   prNumber,
   headSha,
   baseSha,
@@ -100,28 +128,33 @@ export async function resolveAtomicLandingLifecycleAuthority({
   lastReadyAt,
 }) {
   if (typeof request !== 'function') fail('LIFECYCLE_REQUEST_FUNCTION_REQUIRED');
+  if (typeof readArtifactReceipt !== 'function') fail('LIFECYCLE_ARTIFACT_READER_REQUIRED');
   const runs = [];
   for (let page = 1; page <= 10; page += 1) {
-    const payload = await request(`/actions/workflows/${WORKFLOW_FILE}/runs?event=pull_request_target&head_sha=${encodeURIComponent(baseSha)}&per_page=100&page=${page}`);
+    const payload = await request(`/actions/workflows/${WORKFLOW_FILE}/runs?event=pull_request_target&head_sha=${encodeURIComponent(headSha)}&per_page=100&page=${page}`);
     if (!Array.isArray(payload?.workflow_runs)) fail('LIFECYCLE_RUNS_API_SHAPE_INVALID');
     runs.push(...payload.workflow_runs);
     if (payload.workflow_runs.length < 100) break;
     if (page === 10) fail('LIFECYCLE_RUNS_PAGINATION_BOUND_EXCEEDED');
   }
 
-  const exactRuns = runs.filter(run => exactRunBinding(run, prNumber, headSha, baseSha));
-  if (!exactRuns.length) fail('LIFECYCLE_EXACT_GENERATION_MISSING');
+  const headRuns = runs.filter(run => runMatchesHead(run, headSha));
+  if (!headRuns.length) fail('LIFECYCLE_HEAD_GENERATION_MISSING');
   const artifactsByRunId = {};
-  for (const run of exactRuns) {
+  const receiptsByRunId = {};
+  for (const run of headRuns) {
     const payload = await request(`/actions/runs/${run.id}/artifacts?per_page=100`);
     if (!Array.isArray(payload?.artifacts)) fail(`LIFECYCLE_ARTIFACTS_API_SHAPE_INVALID:${run.id}`);
     if (Number(payload.total_count || 0) > payload.artifacts.length) fail(`LIFECYCLE_ARTIFACTS_PAGINATION_REQUIRED:${run.id}`);
     artifactsByRunId[String(run.id)] = payload.artifacts;
+    const { matches } = exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha);
+    if (matches.length === 1) receiptsByRunId[String(run.id)] = await readArtifactReceipt(matches[0]);
   }
 
   return selectAtomicLandingLifecycleAuthority({
     runs,
     artifactsByRunId,
+    receiptsByRunId,
     prNumber,
     headSha,
     baseSha,
