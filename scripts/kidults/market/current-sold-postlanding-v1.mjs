@@ -112,7 +112,7 @@ function baseReceipt(state) {
     landing_authorization_id: authorizationId,
     trigger_class: 'ATOMIC_GOVERNED_LANDING_SAME_TRUSTED_JOB',
     github_token_push_suppression_compensated: true,
-    expected_tests: 53,
+    expected_tests: 56,
     lawful_empirical_current_sold_count: 0,
     private_candidate_current_sold_count: 0,
     postgres_migration_applied: false,
@@ -190,8 +190,8 @@ try {
     .sort();
   const testOutput = run(process.execPath, ['--test', '--test-reporter=tap', ...testFiles]);
   process.stdout.write(testOutput);
-  assert(/^# tests 53$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
-  assert(/^# pass 53$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
+  assert(/^# tests 56$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
+  assert(/^# pass 56$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
   assert(/^# fail 0$/m.test(testOutput), 'POSTLANDING_TEST_FAILURE_COUNT_MISMATCH');
 
   const legacyBatchPath = 'scripts/kidults/market/current-sold-batch-v1.mjs';
@@ -235,7 +235,7 @@ try {
     ...baseReceipt('VERIFIED_PASS'),
     schema_json_files_parsed: schemaFiles.length,
     syntax_checked_modules: moduleFiles.length,
-    tests_passed: 53,
+    tests_passed: 56,
     tests_failed: 0,
     current_sold_changed_file_count: currentSoldChangedFiles.length,
     merge_parent_binding_verified: true,
@@ -244,7 +244,7 @@ try {
     postgres_append_only_static_guard: 'PASS',
   };
   writeReceipt(receipt);
-  await postStatus('success', '53/53 exact-main Current-SOLD post-landing validation passed');
+  await postStatus('success', '56/56 exact-main Current-SOLD post-landing validation passed');
   console.log(JSON.stringify(receipt, null, 2));
 } catch (error) {
   const errorCode = String(error?.code || error?.message || 'POSTLANDING_VALIDATION_FAILED').slice(0, 120);
