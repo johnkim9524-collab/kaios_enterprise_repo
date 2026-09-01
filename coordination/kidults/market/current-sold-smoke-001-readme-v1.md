@@ -1,0 +1,1 @@
+Current-SOLD Smoke 001 is the first bounded external factual SOLD event pack for the owned KIDULTS Current-SOLD Engine. It is smoke-only, collector-market representativeness is not established, and Public/Production/G5 remain HOLD.
