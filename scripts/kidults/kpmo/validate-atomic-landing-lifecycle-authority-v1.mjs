@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
 import {selectAtomicLandingLifecycleAuthority} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
@@ -111,5 +112,21 @@ expectReject('LIFECYCLE_RECEIPT_NOT_READY_GOVERNED', () => invoke({
 expectReject('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {final_live_reread: false})},
 }));
+
+const workflow = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
+const order = [
+  'Require latest terminal exact-head lifecycle authority',
+  'Stage trusted Current-SOLD post-landing validator',
+  'Initialize durable atomic landing terminal receipt',
+  'Upload pre-mutation atomic landing intent',
+  'Re-read live authority and execute exact-head server merge',
+  'Reconcile durable atomic landing terminal receipt',
+  'Upload durable atomic landing terminal receipt',
+].map(value => workflow.indexOf(value));
+assert(order.every(index => index >= 0), 'ATOMIC_LANDING_COMPOSED_SAFETY_SURFACE_MISSING');
+assert(order.every((index, position) => position === 0 || index > order[position - 1]), 'ATOMIC_LANDING_COMPOSED_SAFETY_ORDER_INVALID');
+assert(workflow.includes('if: always()'), 'ATOMIC_LANDING_TERMINAL_ALWAYS_GUARD_MISSING');
+assert(workflow.includes('kidults-current-sold-postlanding-v1-'), 'ATOMIC_LANDING_CURRENT_SOLD_RECEIPT_MISSING');
+assert(workflow.includes('kidults-atomic-governed-landing-terminal-'), 'ATOMIC_LANDING_TERMINAL_RECEIPT_ARTIFACT_MISSING');
 
 console.log('Atomic landing lifecycle authority regression: PASS');
