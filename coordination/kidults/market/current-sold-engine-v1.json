@@ -112,12 +112,13 @@
   ],
   "verification": {
     "test_command": "node --test tests/kidults/market/current-sold-*.test.mjs",
-    "expected_tests_passed": 51,
+    "expected_tests_passed": 53,
     "expected_tests_failed": 0,
     "schema_json_parse": "PASS_REQUIRED",
     "control_smoke": "PASS_REQUIRED",
     "legacy_raw_bundle_cli_disabled": "PASS_REQUIRED",
-    "postgres_migration_static_append_only_check": "PASS_REQUIRED"
+    "postgres_migration_static_append_only_check": "PASS_REQUIRED",
+    "natural_protected_main_push": "PASS_REQUIRED"
   },
   "empirical_state": {
     "lawful_genuine_current_sold_admitted": 0,
