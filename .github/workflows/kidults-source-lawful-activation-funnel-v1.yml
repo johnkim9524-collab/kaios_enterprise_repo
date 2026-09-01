@@ -1,0 +1,122 @@
+name: KIDULTS Source Lawful Activation Funnel V1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
+      - '.github/workflows/kidults-source-lawful-activation-funnel-v1.yml'
+  pull_request:
+    paths:
+      - 'coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
+      - '.github/workflows/kidults-source-lawful-activation-funnel-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-source-lawful-activation-funnel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Bind exact checked-out source SHA
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+      - name: Parse activation control inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json','utf8'))"
+      - name: Check activation modules and prohibit network/provider primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs
+          files='scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
+          if grep -Eq 'fetch[[:space:]]*\(|https\.request|http\.request|axios|child_process|execSync|spawnSync' $files; then
+            echo 'SOURCE_ACTIVATION_NETWORK_OR_PROCESS_PRIMITIVE_FORBIDDEN' >&2
+            exit 1
+          fi
+          echo 'SOURCE_ACTIVATION_CONTROL_ONLY_STATIC_PASS'
+      - name: Build deterministic Source x Purpose activation queue
+        shell: bash
+        env:
+          KIDULTS_ACTIVATION_AS_OF: '2026-09-01T13:30:00Z'
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs
+      - name: Validate fail-closed activation funnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs
+      - name: Emit control-only terminal receipt
+        if: always()
+        shell: bash
+        env:
+          SOURCE_ACTIVATION_EXACT_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/source-lawful-activation
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'out/source-lawful-activation/source-lawful-activation-queue-v1.json';
+          const queue = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+          const receipt = {
+            control: 'KIDULTS_SOURCE_LAWFUL_ACTIVATION_FUNNEL_V1',
+            source_sha: process.env.SOURCE_ACTIVATION_EXACT_SHA || null,
+            run_id: process.env.GITHUB_RUN_ID,
+            run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+            execution_class: 'CONTROL_ONLY_NO_NETWORK_NO_PROVIDER_AUTHORITY',
+            queue_built: Boolean(queue),
+            activation_queue_count: queue?.activation_queue?.length ?? null,
+            no_contract_fast_lane: queue?.lane_counts?.no_contract_fast_lane ?? null,
+            written_clarification_lane: queue?.lane_counts?.written_clarification_lane ?? null,
+            contract_credential_lane: queue?.lane_counts?.contract_credential_lane ?? null,
+            drop_or_wrong_purpose: queue?.lane_counts?.drop_or_wrong_purpose ?? null,
+            lawful_empirical_current_sold_acquired: 0,
+            lawful_empirical_current_sold_evidence_admitted: 0,
+            independent_current_market_redundancy: 0,
+            provider_calls: 0,
+            credential_use: false,
+            spend: false,
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync('out/source-lawful-activation/receipt.json', JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600 });
+          NODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kidults-source-lawful-activation-funnel-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/source-lawful-activation
+          if-no-files-found: error
+          retention-days: 30
