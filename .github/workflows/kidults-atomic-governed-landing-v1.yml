@@ -17,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: kidults-atomic-governed-landing-v1-main
+  group: kidults-atomic-governed-landing-v1-global
   cancel-in-progress: false
 
 jobs:
@@ -70,6 +70,15 @@ jobs:
           path: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
           if-no-files-found: error
           retention-days: 90
+
+      - name: Require latest terminal exact-head lifecycle authority
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LIFECYCLE_AUTHORITY_PATH: /tmp/kpmo-atomic-landing/lifecycle-authority.json
+        run: node scripts/kidults/kpmo/run-atomic-landing-lifecycle-preflight-v1.mjs
 
       - name: Re-read live authority and execute exact-head server merge
         id: landing
