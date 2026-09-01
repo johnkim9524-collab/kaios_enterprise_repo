@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  assertChangedApprovalGenerationEquality,
+  assertCompleteApprovalGenerationRegistry,
 } from './lib/approval-generation-equality-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
@@ -53,7 +53,6 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   if (pr.draft === true) {
     return {...common, state: 'DRAFT', reason: pr.base.sha === liveMainSha ? 'DRAFT_NON_PROMOTABLE' : 'DRAFT_STALE_BASE_NON_PROMOTABLE'};
   }
-
   if (pr.base.sha !== liveMainSha) {
     return {...common, state: 'READY_NON_PROMOTABLE', reason: 'BASE_NOT_CURRENT_PROTECTED_MAIN'};
   }
@@ -141,11 +140,12 @@ async function main() {
     }
     throw new Error(`PAGINATION_BOUND_EXCEEDED:${endpoint}`);
   };
-  const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
-  const readJsonAtRef = async (filename, ref) => {
-    const payload = await api(`/contents/${encodePath(filename)}?ref=${ref}`);
-    assert(payload?.type === 'file' && payload?.encoding === 'base64' && typeof payload?.content === 'string', `CONTENTS_SHAPE_INVALID:${filename}`);
-    return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+  const readJsonBlob = async entry => {
+    const payload = await api(`/git/blobs/${entry.sha}`);
+    assert(payload?.encoding === 'base64' && typeof payload?.content === 'string', `APPROVAL_REGISTRY_BLOB_SHAPE_INVALID:${entry.path}`);
+    const bytes = Buffer.from(payload.content.replace(/\s/g, ''), 'base64');
+    assert(bytes.length === entry.size, `APPROVAL_REGISTRY_BLOB_SIZE_MISMATCH:${entry.path}`);
+    return JSON.parse(bytes.toString('utf8'));
   };
 
   fs.mkdirSync(path.dirname(outPath), {recursive: true});
@@ -158,11 +158,21 @@ async function main() {
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/pulls/${prNumber}/files`),
     ]);
-    const approvalGeneration = await assertChangedApprovalGenerationEquality({
-      files,
-      readJson: filename => readJsonAtRef(filename, prInitial.head.sha),
+    assert(files.length === Number(prInitial.changed_files || 0), 'APPROVAL_REGISTRY_CHANGED_FILE_PAGINATION_INCOMPLETE');
+    const [candidateTree, baseTree] = await Promise.all([
+      api(`/git/trees/${prInitial.head.sha}?recursive=1`),
+      api(`/git/trees/${prInitial.base.sha}?recursive=1`),
+    ]);
+    const approvalRegistry = await assertCompleteApprovalGenerationRegistry({
+      candidateTree,
+      baseTree,
+      changedFiles: files,
+      readJson: readJsonBlob,
+      readIssueComment: commentId => api(`/issues/comments/${commentId}`),
       prBaseSha: prInitial.base.sha,
       liveMainSha: mainBranch?.commit?.sha,
+      repository,
+      phase: 'MERGE_CANDIDATE',
     });
     const classification = classifyLifecycle({
       pr: prInitial,
@@ -172,25 +182,31 @@ async function main() {
       expectedHeadSha,
       expectedBaseSha,
     });
-    const prFinal = await api(`/pulls/${prNumber}`);
+    const [prFinal, finalMain] = await Promise.all([
+      api(`/pulls/${prNumber}`),
+      api('/branches/main'),
+    ]);
     assert(prFinal.head?.sha === prInitial.head?.sha, 'HEAD_CHANGED_DURING_EVALUATION');
     assert(prFinal.base?.sha === prInitial.base?.sha, 'BASE_CHANGED_DURING_EVALUATION');
     assert(prFinal.draft === prInitial.draft, 'DRAFT_STATE_CHANGED_DURING_EVALUATION');
     assert(prFinal.state === prInitial.state && prFinal.merged === prInitial.merged, 'PR_STATE_CHANGED_DURING_EVALUATION');
+    assert(finalMain?.commit?.sha === mainBranch?.commit?.sha, 'LIVE_MAIN_CHANGED_DURING_EVALUATION');
 
     receipt = {
       id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
+      version: '1.1.0',
       repository,
       workflow_run_id: process.env.GITHUB_RUN_ID || null,
       workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
       event_name: process.env.GITHUB_EVENT_NAME || null,
-      approval_generation_equality: approvalGeneration,
+      approval_generation_full_registry: approvalRegistry,
       ...classification,
       final_live_reread: true,
     };
   } catch (error) {
     receipt = {
       id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
+      version: '1.1.0',
       repository,
       pull_request: Number(prNumber),
       exact_head_sha: expectedHeadSha || null,
