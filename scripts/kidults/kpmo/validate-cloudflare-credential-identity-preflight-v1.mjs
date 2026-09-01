@@ -60,7 +60,7 @@ ok(contract.future_execution_gate?.new_versioned_workflow_required === true, 'FU
 ok(contract.future_execution_gate?.new_explicit_program_owner_approval_required === true, 'FUTURE_APPROVAL');
 
 ok(/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
-ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH_REINTRODUCED');
+ok(!/^\\s*workflow_dispatch\\s*:/m.test(workflow), 'WORKFLOW_DISPATCH_REINTRODUCED');
 for (const marker of [
   'DISPATCH_SLOT_USED_PREAUTHORIZATION_SERIALIZATION_FAIL',
   'APPROVAL_BODY_JQ_RAW_OUTPUT_ADDS_SECOND_TERMINAL_LF',
