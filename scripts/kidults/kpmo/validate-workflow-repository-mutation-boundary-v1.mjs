@@ -104,7 +104,7 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
     ['second-parent', 'parentLine[2] === mergedPrHeadSha'],
     ['merge-subject', 'Merge pull request #${prNumber} from'],
     ['current-sold-surface', 'POSTLANDING_CURRENT_SOLD_SURFACE_NOT_TOUCHED'],
-    ['test-count', 'expected_tests: 53'],
+    ['test-count', 'expected_tests: 56'],
     ['empirical-zero', 'lawful_empirical_current_sold_count: 0'],
     ['candidate-zero', 'private_candidate_current_sold_count: 0'],
     ['postgres-migration-hold', 'postgres_migration_applied: false'],
