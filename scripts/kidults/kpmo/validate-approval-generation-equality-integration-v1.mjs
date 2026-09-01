@@ -14,6 +14,7 @@ const requireValue = (condition, code) => {
 const read = file => fs.readFileSync(file, 'utf8');
 
 const policy = JSON.parse(read('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'));
+const library = read('scripts/kidults/kpmo/lib/approval-generation-equality-v1.mjs');
 const lifecycle = read('scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs');
 const scope = read('scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs');
 const atomic = read('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
@@ -40,13 +41,25 @@ for (const point of [
   'EXTERNAL_CALL_RUNTIME_BEFORE_SECRET_RESOLUTION',
 ]) requireValue(generation.enforcement_points.includes(point), `POLICY_POINT:${point}`);
 
+requireValue(library.includes('export async function assertFullApprovalGenerationEquality'), 'LIB_FULL_REGISTRY_EXPORT');
+requireValue(library.includes('APPROVAL_GENERATION_TREE_TRUNCATED_OR_AMBIGUOUS'), 'LIB_TREE_TRUNCATION_FAIL_CLOSED');
+requireValue(library.includes('APPROVAL_GENERATION_RECORD_REMOVED_OR_RENAMED'), 'LIB_REMOVAL_FAIL_CLOSED');
+requireValue(library.includes('return assertFullApprovalGenerationEquality({'), 'LIB_COMPATIBILITY_DELEGATES_FULL_REGISTRY');
+requireValue(library.includes('fetchTreeAtRef(prBaseSha)'), 'LIB_COMPATIBILITY_BASE_TREE');
+requireValue(library.includes('fetchTreeAtRef(expectedHeadSha)'), 'LIB_COMPATIBILITY_HEAD_TREE');
+
+requireValue(lifecycle.includes('assertFullApprovalGenerationEquality'), 'LIFECYCLE_FULL_REGISTRY_IMPORT_OR_CALL');
+requireValue(lifecycle.includes('approvalBaseTree'), 'LIFECYCLE_BASE_TREE_BINDING');
+requireValue(lifecycle.includes('approvalHeadTree'), 'LIFECYCLE_HEAD_TREE_BINDING');
+requireValue(lifecycle.includes('liveMainSha'), 'LIFECYCLE_LIVE_MAIN_BINDING');
+requireValue(lifecycle.includes('prBaseSha'), 'LIFECYCLE_PR_BASE_BINDING');
+
 for (const [name, text] of [
-  ['LIFECYCLE', lifecycle],
   ['SCOPE', scope],
   ['ATOMIC', atomic],
   ['LIVE_VALIDATOR', liveValidator],
 ]) {
-  requireValue(text.includes('assertChangedApprovalGenerationEquality'), `${name}_IMPORT_OR_CALL`);
+  requireValue(text.includes('assertChangedApprovalGenerationEquality'), `${name}_COMPATIBILITY_GATE_IMPORT_OR_CALL`);
   requireValue(text.includes('liveMainSha'), `${name}_LIVE_MAIN_BINDING`);
   requireValue(text.includes('prBaseSha'), `${name}_PR_BASE_BINDING`);
 }
@@ -101,6 +114,8 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   policy_mode: generation.mode,
   enforcement_points: generation.enforcement_points,
+  lifecycle_full_registry_direct: true,
+  scope_atomic_live_validator_full_registry_via_compatibility_gate: true,
   descendant_main_drift_rejected: true,
   merge_main_rebound_rejected: true,
   same_candidate_blob_different_main_rejected: true,
