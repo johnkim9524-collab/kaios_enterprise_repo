@@ -6,6 +6,9 @@ import {
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
+import {
+  assertChangedApprovalGenerationEquality,
+} from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -59,6 +62,14 @@ const checkRuns = async sha => {
   }
   throw new Error('CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
+const readJsonAtRef = async (filename, ref) => {
+  const payload = await request(`/contents/${encodePath(filename)}?ref=${ref}`);
+  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+  }
+  return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+};
 const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
@@ -66,9 +77,6 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
 });
 
 const assertAtomicLandingMergeable = (pr, errorCode) => {
-  // The operation-specific authorization context is required natively and is pending
-  // while this job runs, so GitHub reports "blocked" until this job publishes success.
-  // All independent checks are re-read below and the server-side merge remains final enforcement.
   const allowedStates = ['clean', 'unstable', 'has_hooks', 'blocked'];
   if (pr?.mergeable !== true || !allowedStates.includes(pr?.mergeable_state)) throw new Error(errorCode);
 };
@@ -79,13 +87,24 @@ try {
   statusTouched = true;
   const repositoryState = await request('');
   assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
-  const initial = await request(`/pulls/${prNumber}`);
+  const [initial, initialMain, files] = await Promise.all([
+    request(`/pulls/${prNumber}`),
+    request('/branches/main'),
+    pages(`/pulls/${prNumber}/files`),
+  ]);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
     noMergePolicy: policy.no_merge_policy,
   });
   if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
+  if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
+  const approvalGeneration = await assertChangedApprovalGenerationEquality({
+    files,
+    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
+    prBaseSha: initial.base.sha,
+    liveMainSha: initialMain.commit.sha,
+  });
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const rulesets = await request('/rulesets');
@@ -115,25 +134,43 @@ try {
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
 
-  const final = await request(`/pulls/${prNumber}`);
+  const [final, finalMain] = await Promise.all([
+    request(`/pulls/${prNumber}`),
+    request('/branches/main'),
+  ]);
   assertStableFinalReread(initial, final, {
     repository,
     expectedHeadSha,
     noMergePolicy: policy.no_merge_policy,
   });
+  if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== initialMain.commit.sha) {
+    throw new Error('ATOMIC_LANDING_LIVE_MAIN_DRIFT');
+  }
   assertAtomicLandingMergeable(final, 'FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   await publish('success', 'Exact-head atomic landing authorized');
-  const immediatePreMerge = await request(`/pulls/${prNumber}`);
+  const [immediatePreMerge, immediateMain] = await Promise.all([
+    request(`/pulls/${prNumber}`),
+    request('/branches/main'),
+  ]);
   assertStableFinalReread(initial, immediatePreMerge, {
     repository,
     expectedHeadSha,
     noMergePolicy: policy.no_merge_policy,
   });
+  if (immediatePreMerge.base?.sha !== immediateMain?.commit?.sha || immediateMain.commit.sha !== initialMain.commit.sha) {
+    throw new Error('IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT');
+  }
   const immediateStatuses = await request(`/commits/${expectedHeadSha}/status`);
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
+  await assertChangedApprovalGenerationEquality({
+    files,
+    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
+    prBaseSha: immediatePreMerge.base.sha,
+    liveMainSha: immediateMain.commit.sha,
+  });
   const merged = await request(`/pulls/${prNumber}/merge`, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -142,14 +179,16 @@ try {
   if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     state: 'MERGED_VERIFIED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
+    exact_base_sha: initial.base.sha,
     merge_commit_sha: merged.sha,
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     landing_actor: landingActor,
+    approval_generation_equality: approvalGeneration,
     initial_live_read: true,
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
