@@ -47,13 +47,14 @@ const nativeStatuses = [
   {id: 10, context: 'KIDULTS Scope-Aware Authoritative Status V1', state: 'success', created_at: '2026-09-01T13:24:25Z', updated_at: '2026-09-01T13:24:25Z'},
   {id: 11, context: 'KIDULTS Governed Landing Authorization V1', state: 'success', created_at: '2026-09-01T13:28:37Z', updated_at: '2026-09-01T13:28:37Z'},
 ];
-const invoke = ({runs, artifactsByRunId, receiptsByRunId = {}, statuses = nativeStatuses, lastReadyAt = '2026-09-01T13:20:00Z'}) => selectAtomicLandingLifecycleAuthority({
+const invoke = ({runs, artifactsByRunId, receiptsByRunId = {}, statuses = nativeStatuses, lastReadyAt = '2026-09-01T13:20:00Z', prCreatedAt = '2026-09-01T13:00:00Z'}) => selectAtomicLandingLifecycleAuthority({
   runs,
   artifactsByRunId,
   receiptsByRunId,
   prNumber,
   headSha: head,
   baseSha: base,
+  prCreatedAt,
   nativeStatuses: statuses,
   lastReadyAt,
 });
@@ -89,6 +90,11 @@ expectReject('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT', () => invoke({
 }));
 expectReject('LIFECYCLE_EXACT_GENERATION_MISSING', () => invoke({
   runs: [green], artifactsByRunId: {'200': []}, receiptsByRunId: {},
+}));
+expectReject('LIFECYCLE_PRECREATION_RUN_ALIAS_REJECTED', () => invoke({
+  runs: [run(204, 'success', '2026-09-01T12:59:59Z')],
+  artifactsByRunId: {'204': [artifact(204)]},
+  receiptsByRunId: {'204': receipt(204)},
 }));
 expectReject('LIFECYCLE_RECEIPT_ARTIFACT_CARDINALITY:2', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200), artifact(200)]}, receiptsByRunId: {'200': receipt(200)},
