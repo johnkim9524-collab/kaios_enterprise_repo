@@ -61,16 +61,16 @@ ok(receipt.run_attempt === 1, 'RECEIPT_RUN_ATTEMPT');
 ok(receipt.authorization_consumed === false, 'RECEIPT_ALREADY_CONSUMED');
 ok(receipt.external_read_request_count === 0, 'RECEIPT_REQUEST_COUNT');
 
-const headers = {
+const publicHeaders = Object.freeze({
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
-  'User-Agent': 'kidults-cloudflare-credential-identity-preflight-v2-approval-verifier',
-};
-if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  'User-Agent': 'kidults-cloudflare-credential-identity-preflight-v2-public-fail-closed',
+});
+ok(!Object.keys(publicHeaders).some((key) => key.toLowerCase() === 'authorization'), 'PUBLIC_GITHUB_AUTHORIZATION_FORBIDDEN');
 
-async function getJson(url) {
-  const response = await fetch(url, { method: 'GET', headers, redirect: 'error' });
-  if (!response.ok) fail(`GITHUB_HTTP_${response.status}`);
+async function getPublicJson(url) {
+  const response = await fetch(url, { method: 'GET', headers: publicHeaders, redirect: 'error' });
+  if (!response.ok) fail(`PUBLIC_GITHUB_HTTP_${response.status}`);
   return response.json();
 }
 
@@ -78,7 +78,7 @@ const api = process.env.GITHUB_API_URL || 'https://api.github.com';
 const repo = process.env.GITHUB_REPOSITORY;
 const runtimeSha = process.env.GITHUB_SHA;
 
-const rootComment = await getJson(`${api}/repos/${repo}/issues/comments/${ROOT_COMMENT_ID}`);
+const rootComment = await getPublicJson(`${api}/repos/${repo}/issues/comments/${ROOT_COMMENT_ID}`);
 ok(rootComment?.id === ROOT_COMMENT_ID, 'ROOT_COMMENT_ID');
 ok(rootComment?.node_id === ROOT_COMMENT_NODE_ID, 'ROOT_COMMENT_NODE');
 ok(rootComment?.html_url === `https://github.com/${repo}/issues/${ISSUE_NUMBER}#issuecomment-${ROOT_COMMENT_ID}`, 'ROOT_COMMENT_URL');
@@ -105,7 +105,7 @@ const start = auth.post_landing_execution_binding.marker_start;
 const end = auth.post_landing_execution_binding.marker_end;
 const issueComments = [];
 for (let page = 1; page <= 10; page += 1) {
-  const batch = await getJson(`${api}/repos/${repo}/issues/${ISSUE_NUMBER}/comments?per_page=100&page=${page}`);
+  const batch = await getPublicJson(`${api}/repos/${repo}/issues/${ISSUE_NUMBER}/comments?per_page=100&page=${page}`);
   ok(Array.isArray(batch), 'COMMENTS_SHAPE');
   issueComments.push(...batch);
   if (batch.length < 100) break;
@@ -169,20 +169,20 @@ const bindingCreated = Date.parse(String(bindingComment.created_at || ''));
 ok(Number.isFinite(expiry) && Number.isFinite(bindingCreated), 'EXECUTION_BINDING_TIME');
 ok(now <= expiry && bindingCreated <= expiry, 'EXECUTION_BINDING_EXPIRED');
 
-const pr = await getJson(`${api}/repos/${repo}/pulls/${binding.landing_pr_number}`);
+const pr = await getPublicJson(`${api}/repos/${repo}/pulls/${binding.landing_pr_number}`);
 ok(pr?.base?.ref === 'main', 'EXECUTION_BINDING_PR_BASE');
 ok(pr?.head?.sha === binding.landing_exact_head_sha, 'EXECUTION_BINDING_PR_HEAD');
 ok(pr?.merged_at, 'EXECUTION_BINDING_PR_NOT_MERGED');
 ok(pr?.merge_commit_sha === runtimeSha, 'EXECUTION_BINDING_PR_NOT_MERGED_TO_RUNTIME_MAIN');
 
 const issuanceMain = auth.issuance_binding.protected_main_sha_at_receipt_issuance;
-const comparison = await getJson(`${api}/repos/${repo}/compare/${issuanceMain}...${binding.landing_exact_head_sha}`);
+const comparison = await getPublicJson(`${api}/repos/${repo}/compare/${issuanceMain}...${binding.landing_exact_head_sha}`);
 ok(comparison?.merge_base_commit?.sha === issuanceMain, 'EXECUTION_BINDING_HEAD_MERGE_BASE_DRIFT');
 ok(['ahead', 'identical'].includes(comparison?.status), 'EXECUTION_BINDING_HEAD_NOT_DESCENDED_FROM_ISSUANCE_MAIN');
 
 let ledger = null;
 for (let observation = 1; observation <= 10; observation += 1) {
-  const candidate = await getJson(`${api}/repos/${repo}/actions/workflows/kidults-cloudflare-credential-identity-preflight-v2.yml/runs?event=workflow_dispatch&branch=main&per_page=100`);
+  const candidate = await getPublicJson(`${api}/repos/${repo}/actions/workflows/kidults-cloudflare-credential-identity-preflight-v2.yml/runs?event=workflow_dispatch&branch=main&per_page=100`);
   const only = Array.isArray(candidate?.workflow_runs) ? candidate.workflow_runs : [];
   if (candidate?.total_count > 1) fail('V2_PREFLIGHT_ONE_SHOT_REPLAY_OR_CONCURRENT_DISPATCH_FORBIDDEN');
   if (

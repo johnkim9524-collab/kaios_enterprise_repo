@@ -105,7 +105,7 @@ for (const key of [
   'external_spend_allowed', 'contract_change_allowed',
   'new_credential_creation_allowed', 'credential_scope_expansion_allowed',
 ]) ok(scope[key] === false, `SCOPE_FALSE:${key}`);
-ok(auth.execution_controls?.github_token_permissions?.join(',') === 'actions:read,contents:read', 'AUTH_GITHUB_TOKEN_PERMISSIONS');
+ok(auth.execution_controls?.github_token_permissions?.join(',') === 'contents:read', 'AUTH_GITHUB_TOKEN_PERMISSIONS');
 ok(auth.execution_controls?.provider_response_handling === 'IN_MEMORY_SANITIZED_FIELDS_ONLY', 'AUTH_RESPONSE_HANDLING');
 ok(auth.execution_controls?.raw_provider_responses_persisted === false, 'AUTH_RAW_RESPONSE_PERSISTENCE');
 ok(auth.runtime_state?.authorization_consumed === false, 'AUTH_PREEXECUTION_CONSUMED');
@@ -138,7 +138,8 @@ ok(/^on:\s*\n\s{2}workflow_dispatch:\s*$/m.test(active), 'WORKFLOW_DISPATCH_ONLY
 for (const forbiddenTrigger of ['push:', 'pull_request:', 'pull_request_target:', 'workflow_run:', 'repository_dispatch:', 'schedule:']) {
   ok(!new RegExp(`^\\s{2}${forbiddenTrigger.replace(':', '\\:')}`, 'm').test(active), `WORKFLOW_FORBIDDEN_TRIGGER:${forbiddenTrigger}`);
 }
-ok(/^permissions:\s*\n\s{2}actions:\s*read\s*\n\s{2}contents:\s*read\s*$/m.test(active), 'WORKFLOW_PERMISSIONS');
+ok(/^permissions:\s*\n\s{2}contents:\s*read\s*$/m.test(active), 'WORKFLOW_PERMISSIONS');
+ok(!/^\s{2}actions:\s*read\s*$/m.test(active), 'WORKFLOW_ACTIONS_READ_FORBIDDEN');
 ok(active.includes('group: kidults-cloudflare-credential-identity-preflight-v2-one-shot'), 'WORKFLOW_CONCURRENCY');
 ok(active.includes('cancel-in-progress: false'), 'WORKFLOW_NO_CANCEL');
 ok(active.includes('  verify-credential-identity-v2:'), 'WORKFLOW_JOB');
@@ -152,7 +153,7 @@ for (const marker of [
   '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main',
   'test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"',
 ]) ok(active.includes(marker), `WORKFLOW_LIVE_MAIN:${marker}`);
-ok((active.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 2, 'WORKFLOW_GITHUB_TOKEN_COUNT');
+ok((active.match(/\$\{\{\s*github\.token\s*\}\}/g) || []).length === 1, 'WORKFLOW_GITHUB_TOKEN_COUNT');
 ok(active.includes('actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'), 'WORKFLOW_CHECKOUT_PIN');
 ok(active.includes('actions/setup-node@820762786026740c76f36085b0efc47a31fe5020'), 'WORKFLOW_NODE_PIN');
 ok(active.includes("node-version: '24.19.0'"), 'WORKFLOW_NODE_VERSION');
@@ -163,6 +164,9 @@ const approvalStepIndex = active.indexOf(approvalStepName);
 const secretStepName = '      - name: Execute approved read-only Cloudflare credential identity preflight v2';
 const secretStepIndex = active.indexOf(secretStepName);
 ok(approvalStepIndex > 0 && secretStepIndex > approvalStepIndex, 'WORKFLOW_PREAUTHORIZATION_ORDER');
+const approvalStep = active.slice(approvalStepIndex, secretStepIndex);
+ok(!approvalStep.includes('GITHUB_TOKEN'), 'WORKFLOW_APPROVAL_GITHUB_TOKEN_FORBIDDEN');
+ok(!approvalStep.includes('Authorization:'), 'WORKFLOW_APPROVAL_AUTHORIZATION_FORBIDDEN');
 ok(active.includes('verify-cloudflare-credential-identity-preflight-v2-approval.mjs'), 'WORKFLOW_APPROVAL_VERIFIER');
 ok(active.includes('run-cloudflare-credential-identity-preflight-v2.mjs'), 'WORKFLOW_PROBE_RUNNER');
 ok(!active.slice(0, secretStepIndex).includes('${{ secrets.'), 'WORKFLOW_SECRET_BEFORE_PROBE');
@@ -190,6 +194,9 @@ for (const marker of [
   'landing_exact_head_sha',
   'EXECUTION_BINDING_PR_NOT_MERGED_TO_RUNTIME_MAIN',
   'EXECUTION_BINDING_EXPIRED',
+  'UNAUTHENTICATED_PUBLIC_FAIL_CLOSED',
+  'getPublicJson',
+  'PUBLIC_GITHUB_AUTHORIZATION_FORBIDDEN',
   'actions/workflows/kidults-cloudflare-credential-identity-preflight-v2.yml/runs?event=workflow_dispatch&branch=main&per_page=100',
   'V2_PREFLIGHT_ONE_SHOT_REPLAY_OR_CONCURRENT_DISPATCH_FORBIDDEN',
   'UNIQUE_FIRST_V2_PREFLIGHT_MAIN_DISPATCH_VERIFIED',
@@ -197,6 +204,10 @@ for (const marker of [
 ]) ok(approvalVerifier.includes(marker), `APPROVAL_VERIFIER:${marker}`);
 ok(!approvalVerifier.includes("jq -r '.body'"), 'APPROVAL_VERIFIER_JQ_RAW');
 ok(!approvalVerifier.includes('console.log(rootComment.body)'), 'APPROVAL_VERIFIER_BODY_LOG');
+ok(!approvalVerifier.includes('process.env.GITHUB_TOKEN'), 'APPROVAL_VERIFIER_GITHUB_TOKEN_FORBIDDEN');
+ok(!approvalVerifier.includes('headers.Authorization'), 'APPROVAL_VERIFIER_AUTHORIZATION_FORBIDDEN');
+ok(auth.execution_controls?.github_approval_and_dispatch_ledger_reads === 'UNAUTHENTICATED_PUBLIC_FAIL_CLOSED', 'AUTH_PUBLIC_GITHUB_READ_MODE');
+ok(auth.execution_controls?.private_or_rate_limited_repository_behavior === 'FAIL_CLOSED_BEFORE_PROVIDER_SECRET_RESOLUTION', 'AUTH_PUBLIC_GITHUB_FAIL_CLOSED');
 
 ok((probeRunner.match(/https:\/\/api\.cloudflare\.com\/client\/v4\//g) || []).length === 2, 'PROBE_ENDPOINT_COUNT');
 ok(probeRunner.includes('https://api.cloudflare.com/client/v4/user/tokens/verify'), 'PROBE_TOKEN_ENDPOINT');
@@ -236,9 +247,9 @@ ok(v2Binding?.required_secret_name_digest === 'sha256:9d106dc2b7f97ab70b18b83662
 ok(JSON.stringify(v2Binding?.required_secret_step_names) === JSON.stringify(['Execute approved read-only Cloudflare credential identity preflight v2']), 'REGISTRY_V2_SECRET_STEP');
 ok(JSON.stringify(v2Binding?.allowed_trigger_classes) === JSON.stringify(['workflow_dispatch']), 'REGISTRY_V2_TRIGGER');
 ok(v2Binding?.remote_mutation_class === 'READ_ONLY_CONTROL_PLANE', 'REGISTRY_V2_CLASS');
-ok(JSON.stringify(v2Binding?.required_github_token_permissions) === JSON.stringify(['actions:read', 'contents:read']), 'REGISTRY_V2_TOKEN_PERMISSIONS');
+ok(JSON.stringify(v2Binding?.required_github_token_permissions) === JSON.stringify(['contents:read']), 'REGISTRY_V2_TOKEN_PERMISSIONS');
+ok(v2Binding?.github_approval_and_dispatch_ledger_reads === 'UNAUTHENTICATED_PUBLIC_FAIL_CLOSED', 'REGISTRY_V2_PUBLIC_GITHUB_READ_MODE');
 ok(JSON.stringify(v2Binding?.required_github_token_step_names) === JSON.stringify([
-  'Verify exact Program Owner approval, binding and unique first dispatch',
   'Verify live main before provider credential resolution',
 ]), 'REGISTRY_V2_TOKEN_STEPS');
 for (const key of [
