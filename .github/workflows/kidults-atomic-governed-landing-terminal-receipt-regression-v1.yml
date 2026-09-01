@@ -1,0 +1,36 @@
+name: KIDULTS Atomic Landing Terminal Receipt Regression V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-atomic-governed-landing-v1.yml'
+      - '.github/workflows/kidults-atomic-governed-landing-terminal-receipt-regression-v1.yml'
+      - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-governed-landing-terminal-receipt-v1.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-atomic-landing-terminal-receipt-regression-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Prove exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+
+      - name: Validate terminal receipt contract and negative mutations
+        run: node scripts/kidults/kpmo/validate-atomic-governed-landing-terminal-receipt-v1.mjs
