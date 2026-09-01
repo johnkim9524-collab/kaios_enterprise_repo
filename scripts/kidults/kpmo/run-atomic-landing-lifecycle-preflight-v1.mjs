@@ -6,6 +6,9 @@ import {
   resolveAtomicLandingLifecycleAuthority,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  selectExactHeadProgramOwnerApproval,
+} from './lib/governed-landing-native-gates-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -65,11 +68,14 @@ const readArtifactReceipt = async artifact => {
 };
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-const [pr, mainBranch, combinedStatus, timeline] = await Promise.all([
+const [pr, mainBranch, combinedStatus, timeline, approvalComments, headCommit, repositoryState] = await Promise.all([
   request(`/pulls/${prNumber}`),
   request('/branches/main'),
   request(`/commits/${expectedHeadSha}/status`),
   pages(`/issues/${prNumber}/timeline`),
+  pages(`/issues/${prNumber}/comments`),
+  request(`/commits/${expectedHeadSha}`),
+  request(''),
 ]);
 if (pr.state !== 'open' || pr.merged === true || pr.draft === true) throw new Error('ATOMIC_LIFECYCLE_PR_NOT_READY_OPEN_UNMERGED');
 if (pr.head?.sha !== expectedHeadSha) throw new Error('ATOMIC_LIFECYCLE_HEAD_DRIFT');
@@ -90,6 +96,18 @@ const nativeStatuses = required.map(context => {
 const readinessEvents = timeline.filter(event => event?.event === 'ready_for_review' || event?.event === 'convert_to_draft');
 const latestReadiness = readinessEvents.at(-1);
 if (!latestReadiness || latestReadiness.event !== 'ready_for_review') throw new Error('ATOMIC_LIFECYCLE_LATEST_READY_EVENT_REQUIRED');
+
+const authorizationId = `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`;
+const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
+  repositoryOwner: repositoryState.owner?.login,
+  prNumber,
+  headSha: expectedHeadSha,
+  baseSha: pr.base.sha,
+  authorizationId,
+  prCreatedAt: pr.created_at,
+  headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
+  latestReadyAt: latestReadiness.created_at,
+});
 
 const authority = await resolveAtomicLandingLifecycleAuthority({
   request,
@@ -115,6 +133,7 @@ const receipt = {
   repository,
   checked_at: new Date().toISOString(),
   ...authority,
+  program_owner_exact_head_approval: programOwnerApproval,
   latest_ready_event_at: latestReadiness.created_at,
   final_live_reread: true,
   manual_merge_authority: false,
