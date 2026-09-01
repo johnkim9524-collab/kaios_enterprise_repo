@@ -8,7 +8,9 @@ on:
       - 'coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/source-lawful-activation-discovery-delta-20260901-v1.json'
       - 'scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/augment-source-lawful-activation-queue-delta-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
       - '.github/workflows/kidults-source-lawful-activation-funnel-v1.yml'
   pull_request:
@@ -16,7 +18,9 @@ on:
       - 'coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/source-lawful-activation-discovery-delta-20260901-v1.json'
       - 'scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs'
+      - 'scripts/kidults/source-intelligence/augment-source-lawful-activation-queue-delta-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
       - '.github/workflows/kidults-source-lawful-activation-funnel-v1.yml'
   workflow_dispatch:
@@ -53,23 +57,30 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/source-lawful-activation-discovery-delta-20260901-v1.json','utf8'))"
       - name: Check activation modules and prohibit network/provider primitives
         shell: bash
         run: |
           set -euo pipefail
           node --check scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs
+          node --check scripts/kidults/source-intelligence/augment-source-lawful-activation-queue-delta-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs
-          files='scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
+          files='scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs scripts/kidults/source-intelligence/augment-source-lawful-activation-queue-delta-v1.mjs scripts/kidults/source-intelligence/validate-source-lawful-activation-queue-v1.mjs'
           if grep -Eq 'fetch[[:space:]]*\(|https\.request|http\.request|axios|child_process|execSync|spawnSync' $files; then
             echo 'SOURCE_ACTIVATION_NETWORK_OR_PROCESS_PRIMITIVE_FORBIDDEN' >&2
             exit 1
           fi
           echo 'SOURCE_ACTIVATION_CONTROL_ONLY_STATIC_PASS'
-      - name: Build Source x Purpose activation queue
+      - name: Build governed Source x Purpose activation queue
         shell: bash
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/build-source-lawful-activation-queue-v1.mjs
+      - name: Fold read-only discovery delta into activation queue
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/augment-source-lawful-activation-queue-delta-v1.mjs
       - name: Validate fail-closed activation funnel
         shell: bash
         run: |
@@ -94,12 +105,14 @@ jobs:
             run_attempt: process.env.GITHUB_RUN_ATTEMPT,
             execution_class: 'CONTROL_ONLY_NO_NETWORK_NO_PROVIDER_AUTHORITY',
             queue_built: Boolean(queue),
+            reviewed_or_preflighted: queue?.funnel?.discovered_or_preflighted ?? null,
             activation_queue_count: queue?.activation_queue?.length ?? null,
             deferred_actionable_count: queue?.deferred_actionable?.length ?? null,
             no_contract_fast_lane: queue?.lane_counts?.no_contract_fast_lane ?? null,
             written_clarification_lane: queue?.lane_counts?.written_clarification_lane ?? null,
             contract_credential_lane: queue?.lane_counts?.contract_credential_lane ?? null,
             drop_or_wrong_purpose: queue?.lane_counts?.drop_or_wrong_purpose ?? null,
+            rights_clear_historical_or_aggregate_market_factor: queue?.adjacent_rights_clear_market_factors?.historical_or_aggregate_sources ?? null,
             lawful_empirical_current_sold_acquired: 0,
             lawful_empirical_current_sold_evidence_admitted: 0,
             independent_current_market_redundancy: 0,
