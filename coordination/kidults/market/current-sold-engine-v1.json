@@ -123,7 +123,7 @@
   ],
   "verification": {
     "test_command": "node --test tests/kidults/market/current-sold-*.test.mjs",
-    "expected_tests_passed": 53,
+    "expected_tests_passed": 56,
     "expected_tests_failed": 0,
     "schema_json_parse": "PASS_REQUIRED",
     "control_smoke": "PASS_REQUIRED",
@@ -170,5 +170,5 @@
     "production": "HOLD",
     "g5": "HOLD"
   },
-  "truth_boundary": "The canonical path withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Atomic Governed Landing uses the repository GITHUB_TOKEN, so its merge-generated push cannot be treated as authoritative post-merge workflow evidence. V1.3 stages a trusted validator before the merge, globally serializes landing on protected main, then checks out the exact server-returned merge SHA in the same trusted job, verifies both merge parents and the Current-SOLD change surface, reruns 53 tests and all no-write guards, and publishes an exact-merge status without adding a workflow_run consumer, credentials, writes, provider calls, deployment, or release authority."
+  "truth_boundary": "The canonical path withholds every event version and Evidence unless the entire strict seven-day batch passes, rejects future timestamps beyond 300 seconds, requires a separately supplied exact registry digest, disables raw full-bundle persistence, and emits only a redacted private candidate receipt from realpath-contained 0700/0600 storage. The standalone runner cannot self-assert governed receipt authority or lawful empirical admission. Atomic Governed Landing uses the repository GITHUB_TOKEN, so its merge-generated push cannot be treated as authoritative post-merge workflow evidence. V1.3 stages a trusted validator before the merge, globally serializes landing on protected main, then checks out the exact server-returned merge SHA in the same trusted job, verifies both merge parents and the Current-SOLD change surface, reruns 56 tests and all no-write guards, and publishes an exact-merge status without adding a workflow_run consumer, credentials, writes, provider calls, deployment, or release authority."
 }
