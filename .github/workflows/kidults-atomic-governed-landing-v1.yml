@@ -54,3 +54,12 @@ jobs:
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
+
+      - name: Upload exact-run governed landing terminal receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kidults-atomic-governed-landing-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-atomic-governed-landing-terminal-receipt.json
+          if-no-files-found: error
+          retention-days: 90

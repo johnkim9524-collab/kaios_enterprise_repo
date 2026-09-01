@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {
   assertNativeRequiredContexts,
@@ -14,10 +15,36 @@ const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const executionRef = process.env.GITHUB_REF;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
-if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
-  throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
-}
-if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
+const executionMainSha = process.env.GITHUB_SHA || null;
+const workflowRunId = process.env.GITHUB_RUN_ID || null;
+const workflowRunAttempt = process.env.GITHUB_RUN_ATTEMPT || null;
+const terminalReceiptPath = '/tmp/kidults-atomic-governed-landing-terminal-receipt.json';
+const authorizationIdSha256 = authorizationId
+  ? crypto.createHash('sha256').update(String(authorizationId)).digest('hex')
+  : null;
+
+const writeTerminalReceipt = (state, terminalClass, extra = {}) => {
+  const receipt = {
+    id: 'kidults-atomic-governed-landing-terminal-receipt-v1',
+    version: '1.0.0',
+    state,
+    terminal_class: terminalClass,
+    repository: repository || null,
+    pull_request: /^\d+$/.test(prNumber || '') ? Number(prNumber) : null,
+    exact_head_sha: /^[0-9a-f]{40}$/.test(expectedHeadSha || '') ? expectedHeadSha : null,
+    execution_main_sha: /^[0-9a-f]{40}$/.test(executionMainSha || '') ? executionMainSha : null,
+    workflow_run_id: /^\d+$/.test(workflowRunId || '') ? Number(workflowRunId) : null,
+    workflow_run_attempt: /^\d+$/.test(workflowRunAttempt || '') ? Number(workflowRunAttempt) : null,
+    landing_actor: landingActor || null,
+    authorization_id_sha256: authorizationIdSha256,
+    public_release: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+    ...extra,
+  };
+  fs.writeFileSync(terminalReceiptPath, `${JSON.stringify(receipt, null, 2)}\n`, {mode: 0o600});
+  return receipt;
+};
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 const scopePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
@@ -75,6 +102,12 @@ const assertAtomicLandingMergeable = (pr, errorCode) => {
 
 let statusTouched = false;
 try {
+  writeTerminalReceipt('RUNNING', 'INITIALIZED');
+  if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
+    throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
+  }
+  if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
+
   await publish('pending', 'Atomic landing final checks in progress');
   statusTouched = true;
   const repositoryState = await request('');
@@ -140,27 +173,23 @@ try {
     body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'}),
   });
   if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
-  console.log(JSON.stringify({
-    id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.0.0',
-    state: 'MERGED_VERIFIED',
-    pull_request: Number(prNumber),
-    exact_head_sha: expectedHeadSha,
+
+  const successReceipt = writeTerminalReceipt('MERGED_VERIFIED', 'MERGED_VERIFIED', {
     merge_commit_sha: merged.sha,
     target_branch: 'main',
-    operation_authorization_id: authorizationId,
-    landing_actor: landingActor,
     initial_live_read: true,
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
     server_side_expected_head_compare: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: policy.bypass_policy.required_status_contexts,
-    public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
-  }, null, 2));
+  });
+  console.log(JSON.stringify(successReceipt, null, 2));
 } catch (error) {
+  const failureClass = String(error?.code || error?.message || 'ATOMIC_LANDING_FAILED').split(':')[0].slice(0, 120);
+  try { writeTerminalReceipt('FAILURE', failureClass); } catch {}
   if (statusTouched) {
-    try { await publish('failure', error?.code || error?.message || 'atomic landing failed'); } catch {}
+    try { await publish('failure', failureClass); } catch {}
   }
   throw error;
 }
