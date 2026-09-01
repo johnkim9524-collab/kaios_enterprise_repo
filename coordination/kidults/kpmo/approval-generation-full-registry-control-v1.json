@@ -1,0 +1,52 @@
+{
+  "id": "kidults-approval-generation-full-registry-control-v1",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_CANDIDATE_NOT_YET_GOVERNED_LANDED",
+  "root_issues": [1787, 1793],
+  "registry": {
+    "prefix": "coordination/kidults/governance/",
+    "candidate_tree": "COMPLETE_RECURSIVE_GIT_TREE_TRUNCATION_FORBIDDEN",
+    "base_tree": "COMPLETE_RECURSIVE_GIT_TREE_TRUNCATION_FORBIDDEN",
+    "record_bound": 256,
+    "record_size_bytes_max": 1000000,
+    "normal_file_mode_required": "100644",
+    "delete_or_rename": "FAIL_CLOSED",
+    "malformed_or_unreadable_record": "FAIL_CLOSED",
+    "duplicate_authority_id": "FAIL_CLOSED"
+  },
+  "active_authority": {
+    "issuance_main_equals_pr_base": true,
+    "issuance_main_equals_live_main": true,
+    "live_issue_comment_metadata_and_body_digest_required": true,
+    "may_survive_merge_candidate": false,
+    "ancestor_reuse_allowed": false,
+    "same_blob_different_main_allowed": false,
+    "stale_comment_allowed": false
+  },
+  "enforcement": [
+    "PR_LIFECYCLE_CLASSIFICATION",
+    "GOVERNED_READY_AUTHORIZATION",
+    "SCOPE_AWARE_STATUS",
+    "ATOMIC_GOVERNED_LANDING_INITIAL_SCAN",
+    "ATOMIC_GOVERNED_LANDING_IMMEDIATE_PREMERGE_RESCAN",
+    "EXTERNAL_RUNTIME_WORKFLOW_SPECIFIC_LIVE_RECEIPT"
+  ],
+  "bootstrap_sequence": [
+    "LAND_FULL_REGISTRY_CONTROL_WITH_ZERO_ACTIVE_COMMITTED_AUTHORITY",
+    "LAND_DORMANT_EXTERNAL_WORKFLOW_WITH_ZERO_APPROVAL",
+    "READ_EXACT_POST_LANDING_PROTECTED_MAIN",
+    "ISSUE_NEW_ONE_SHOT_APPROVAL_BOUND_TO_THAT_EXACT_MAIN",
+    "DISPATCH_WITHOUT_INTERVENING_MAIN_CHANGE",
+    "CONSUME_OR_TERMINATE_APPROVAL_PASS_OR_FAIL"
+  ],
+  "truth_boundary": {
+    "generic_helper_is_live_runtime_proof": false,
+    "synthetic_negative_test_is_live_runtime_proof": false,
+    "cloudflare_requests": 0,
+    "environment_secrets_resolved": false,
+    "provider_mutations": 0,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
