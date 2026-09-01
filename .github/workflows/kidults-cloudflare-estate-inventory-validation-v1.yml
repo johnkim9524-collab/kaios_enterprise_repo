@@ -11,6 +11,7 @@ on:
       - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml'
       - '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
       - 'scripts/kidults/kpmo/verify-cloudflare-estate-inventory-approval-v1.mjs'
+      - 'scripts/kidults/kpmo/verify-cloudflare-estate-run-uniqueness-v1.mjs'
       - 'scripts/kidults/kpmo/run-cloudflare-estate-inventory-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-estate-inventory-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
@@ -57,6 +58,9 @@ jobs:
 
       - name: Validate estate inventory and tombstone controls
         run: node scripts/kidults/kpmo/validate-cloudflare-estate-inventory-v1.mjs
+
+      - name: Validate one-shot cross-run uniqueness regression cases
+        run: node scripts/kidults/kpmo/verify-cloudflare-estate-run-uniqueness-v1.mjs --self-test
 
       - name: Revalidate historical closure contracts
         shell: bash
