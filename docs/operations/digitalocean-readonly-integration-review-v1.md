@@ -2,8 +2,14 @@
 
 **Date:** 2026-08-22  
 **Owner:** Track D / KPMO  
-**State:** FOUNDATION IMPLEMENTATION / NOT VERIFIED  
+**State:** EXTERNAL API DISABLED / SECRETLESS PUBLIC OBSERVATION ONLY  
 **Production:** HOLD
+
+## Current approval boundary — #1837
+
+Protected-main scheduled run [33567184505](https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33567184505) resolved the DigitalOcean read token and queried provider metadata without an exact-current-main Program Owner authorization receipt. Its artifact `9823564125` is classified as a non-promotable, authorization-invalid read-only observation; it does not establish runtime binding or provider authority.
+
+The active workflow state is `DISABLED_PENDING_EXACT_MAIN_APPROVAL`. Autonomous schedule, Environment entry, credential resolution and DigitalOcean API calls are removed. The remaining manual surface is inert. A future provider read requires a new workflow version, exact-current-main Program Owner approval, one-shot execution binding and terminal consumption receipt. Public/Production/G5 remain `HOLD`.
 
 ## Executive finding
 
@@ -48,9 +54,9 @@ token and Droplet ID are not configured.
 Runtime-to-Droplet binding is NOT VERIFIED.
 ```
 
-## Approved Phase 2 observation
+## Historical Phase 2 observation contract (provider API currently disabled)
 
-Only a read-only observation is permitted:
+The historical contract allowed the following read-only observations. The DigitalOcean API item is currently disabled; only secretless public observation remains permitted:
 
 ```text
 DNS Resolve
@@ -82,17 +88,17 @@ The public runtime target is fail-closed to:
 
 - `https://kaios.kidults.com`
 
-Repository variable name:
+Historical provider variable name (inactive):
 
 - `DIGITALOCEAN_DROPLET_ID`
 
-Repository secret name:
+Historical provider secret name (inactive):
 
 - `DIGITALOCEAN_READ_TOKEN`
 
-The token must be read-only and scoped to the minimum account resources available. Secret values must never be committed, logged, copied into Registry records, or returned to the Portal.
+Neither value is resolved by the active workflow. No standing repository record or prior observation substitutes for exact-current-main Program Owner approval. Secret values must never be committed, logged, copied into Registry records, or returned to the Portal.
 
-The workflow must run only from `refs/heads/main` before the secret-bearing audit step. GitHub Environment/ref restriction remains a separate external control-plane item and is not claimed by this document.
+The workflow exposes only an inert `workflow_dispatch` request surface and hard-disables the sole job before Environment, credential or provider execution.
 
 ## Evidence states
 
@@ -106,8 +112,8 @@ No state in this audit authorizes Production release or asserts runtime-to-Dropl
 ## Next Track D work
 
 1. Keep the canonical public endpoint observation read-only and fail-closed.
-2. Register the exact Droplet ID only through the approved repository variable path.
-3. Add a minimum-scope read-only token only through the approved GitHub secret path.
+2. Keep DigitalOcean provider credential resolution and API access disabled.
+3. If a future read is needed, create a new workflow version and obtain exact-current-main Program Owner approval with one-shot binding before any Environment or secret resolution.
 4. Archive public observation and Droplet metadata as independent evidence.
 5. If runtime-to-Droplet binding must be asserted, define and execute a separate authoritative binding proof rather than inferring it from two independent observations.
 6. Materialize backup, restore and rollback evidence separately.
