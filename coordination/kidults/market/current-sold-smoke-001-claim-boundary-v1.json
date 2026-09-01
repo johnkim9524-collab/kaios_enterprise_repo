@@ -1,0 +1,16 @@
+{
+  "id": "kidults-current-sold-smoke-001-claim-boundary-v1",
+  "state": "FAIL_CLOSED_SMOKE_ONLY",
+  "smoke_empirical_reference_count": 1,
+  "collector_current_sold_market_evidence_count": 0,
+  "representative_price": "NOT_VERIFIED",
+  "liquidity": "NOT_VERIFIED",
+  "time_to_sale": "NOT_VERIFIED",
+  "failed_sale_exposure": "NOT_VERIFIED",
+  "candidate": "NONE",
+  "official_track_b": "NOT_STARTED",
+  "approved_projection": "NONE",
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
