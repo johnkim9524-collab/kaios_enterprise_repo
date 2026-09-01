@@ -1,0 +1,27 @@
+name: KIDULTS Cloudflare Workers Shadow Deploy v3
+
+# Consumed one-shot lane archived outside .github/workflows: no event can start this historical tombstone.
+on: []
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-shadow-v3:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Create consumed authorization tombstone
+        shell: bash
+        run: |
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
+          echo 'historical_cloudflare_error_code:7003'
+          echo 'CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH'
+      - name: Upload consumed authorization tombstone
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Enforce consumed authorization no replay
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'
+          exit 78
