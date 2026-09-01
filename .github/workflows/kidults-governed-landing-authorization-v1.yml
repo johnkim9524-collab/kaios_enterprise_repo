@@ -30,6 +30,13 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
+      - name: Enforce active approval-generation equality before readiness
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs
+
       - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
         id: evaluate
         continue-on-error: true

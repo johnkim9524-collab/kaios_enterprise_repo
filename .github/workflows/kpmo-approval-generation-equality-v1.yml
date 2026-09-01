@@ -1,0 +1,59 @@
+name: KPMO Approval Generation Equality V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-approval-generation-equality-v1.yml'
+      - '.github/workflows/kidults-governed-landing-authorization-v1.yml'
+      - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
+      - 'scripts/kidults/kpmo/lib/approval-generation-equality-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
+      - 'scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs'
+      - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
+      - 'tests/kidults/kpmo/approval-generation-equality-v1.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-approval-generation-equality-v1-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate exact-main approval generation equality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact validation SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact validation source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Run exact-main approval generation negative tests
+        run: node --test tests/kidults/kpmo/approval-generation-equality-v1.test.mjs
+
+      - name: Validate enforcement integration
+        run: node scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs
+
+      - name: Validate lifecycle classifier self-test
+        run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs --self-test
