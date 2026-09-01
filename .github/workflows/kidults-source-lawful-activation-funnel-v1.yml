@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - kpmo/source-lawful-activation-funnel-v2
     paths:
       - 'coordination/kidults/source-intelligence/source-lawful-activation-program-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
