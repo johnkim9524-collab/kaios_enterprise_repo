@@ -18,6 +18,8 @@ const postLandingReceiptPath = process.env.CURRENT_SOLD_RECEIPT_PATH || 'out/cur
 const landingOutcome = process.env.LANDING_STEP_OUTCOME || null;
 const postLandingOutcome = process.env.CURRENT_SOLD_POSTLANDING_OUTCOME || null;
 const shaPattern = /^[0-9a-f]{40}$/;
+const terminalStatusContext = 'KIDULTS Atomic Landing Terminal V2';
+const targetUrl = `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${repository || ''}/actions/runs/${landingRunId || ''}`;
 
 function assert(condition, code) {
   if (!condition) {
@@ -29,6 +31,7 @@ function assert(condition, code) {
 
 assert(mode === '--initialize' || mode === '--finalize', 'ATOMIC_TERMINAL_MODE_INVALID');
 assert(repository && /^[^/]+\/[^/]+$/.test(repository), 'ATOMIC_TERMINAL_REPOSITORY_INVALID');
+assert(token, 'ATOMIC_TERMINAL_GITHUB_TOKEN_REQUIRED');
 assert(/^\d+$/.test(prNumber || ''), 'ATOMIC_TERMINAL_PR_INVALID');
 assert(shaPattern.test(expectedHeadSha || ''), 'ATOMIC_TERMINAL_HEAD_INVALID');
 assert(/^\d+$/.test(landingRunId || ''), 'ATOMIC_TERMINAL_RUN_ID_INVALID');
@@ -38,7 +41,7 @@ assert(authorizationId === `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`
 const authorizationIdSha256 = crypto.createHash('sha256').update(authorizationId).digest('hex');
 const baseReceipt = (state, terminalClass, extra = {}) => ({
   id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-  version: '2.0.0',
+  version: '2.1.0',
   state,
   terminal_class: terminalClass,
   repository,
@@ -53,6 +56,7 @@ const baseReceipt = (state, terminalClass, extra = {}) => ({
   premerge_main_sha: null,
   current_sold_changed: null,
   post_landing_proof: 'NOT_ESTABLISHED',
+  terminal_status_context: terminalStatusContext,
   empirical_authority_created: false,
   provider_authority_created: false,
   public: 'HOLD',
@@ -71,15 +75,6 @@ function writeReceipt(receipt) {
   fs.chmodSync(receiptPath, 0o600);
 }
 
-if (mode === '--initialize') {
-  const receipt = baseReceipt('NOT_ATTEMPTED', 'PREMERGE_BINDING_STAGED', {
-    premerge_binding_staged_before_mutation: true,
-  });
-  writeReceipt(receipt);
-  console.log(JSON.stringify({ state: receipt.state, terminal_class: receipt.terminal_class, receipt_path: receiptPath }));
-  process.exit(0);
-}
-
 const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
@@ -87,16 +82,33 @@ const headers = {
   'User-Agent': 'kidults-atomic-landing-terminal-reconciler-v1',
 };
 
-async function request(apiPath) {
-  assert(token, 'ATOMIC_TERMINAL_GITHUB_TOKEN_REQUIRED');
-  const response = await fetch(`https://api.github.com/repos/${repository}${apiPath}`, { headers, redirect: 'error' });
-  const payload = await response.json().catch(() => null);
+async function request(apiPath, options = {}) {
+  const response = await fetch(`https://api.github.com/repos/${repository}${apiPath}`, {
+    ...options,
+    headers: { ...headers, ...(options.headers || {}) },
+    redirect: 'error',
+  });
+  const payload = response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
     const error = new Error(`ATOMIC_TERMINAL_GITHUB_API_${response.status}`);
     error.code = `ATOMIC_TERMINAL_GITHUB_API_${response.status}`;
     throw error;
   }
   return payload;
+}
+
+async function postHeadStatus(state, description) {
+  assert(['pending', 'success', 'failure'].includes(state), 'ATOMIC_TERMINAL_STATUS_STATE_INVALID');
+  return request(`/statuses/${expectedHeadSha}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      state,
+      context: terminalStatusContext,
+      description: String(description).slice(0, 140),
+      target_url: targetUrl,
+    }),
+  });
 }
 
 async function pages(apiPath) {
@@ -109,6 +121,33 @@ async function pages(apiPath) {
     if (values.length < 100) return output;
   }
   throw Object.assign(new Error('ATOMIC_TERMINAL_PAGINATION_BOUND_EXCEEDED'), { code: 'ATOMIC_TERMINAL_PAGINATION_BOUND_EXCEEDED' });
+}
+
+if (mode === '--initialize') {
+  try {
+    const [pr, mainBranch] = await Promise.all([
+      request(`/pulls/${prNumber}`),
+      request('/branches/main'),
+    ]);
+    assert(pr?.head?.sha === expectedHeadSha, 'ATOMIC_TERMINAL_PREMERGE_HEAD_DRIFT');
+    assert(pr?.base?.ref === 'main' && shaPattern.test(pr?.base?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_BASE_INVALID');
+    assert(shaPattern.test(mainBranch?.commit?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_MAIN_INVALID');
+    assert(pr.base.sha === mainBranch.commit.sha, 'ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT');
+    const receipt = baseReceipt('NOT_ATTEMPTED', 'PREMERGE_BINDING_STAGED', {
+      premerge_main_sha: mainBranch.commit.sha,
+      premerge_binding_staged_before_mutation: true,
+      remote_intent_status: 'PENDING',
+    });
+    writeReceipt(receipt);
+    await postHeadStatus('pending', 'Pre-merge intent staged; terminal landing proof pending');
+    console.log(JSON.stringify({ state: receipt.state, terminal_class: receipt.terminal_class, receipt_path: receiptPath }));
+  } catch (error) {
+    const errorCode = String(error?.code || error?.message || 'ATOMIC_TERMINAL_INITIALIZE_FAILED').split(':')[0].slice(0, 120);
+    try { await postHeadStatus('failure', errorCode); } catch {}
+    console.error(errorCode);
+    process.exit(1);
+  }
+  process.exit(0);
 }
 
 const currentSoldPathMatchers = [
@@ -142,8 +181,10 @@ try {
       current_sold_changed: currentSoldChanged,
       current_sold_changed_file_count: currentSoldChangedFiles.length,
       landing_step_outcome: landingOutcome,
+      remote_intent_status: 'FAILURE',
     });
     writeReceipt(receipt);
+    await postHeadStatus('failure', 'Merge rejected or not committed; no landing authority');
     console.log(JSON.stringify(receipt));
     process.exit(0);
   }
@@ -186,8 +227,16 @@ try {
     current_sold_postlanding_outcome: postLandingOutcome,
     post_landing_proof: proof,
     merge_committed: true,
+    remote_intent_status: state === 'VERIFIED_PASS' ? 'SUCCESS' : state === 'VERIFIED_FAIL' ? 'FAILURE' : 'PENDING',
   });
   writeReceipt(receipt);
+  if (state === 'VERIFIED_PASS') {
+    await postHeadStatus('success', 'Atomic landing terminal proof verified');
+  } else if (state === 'VERIFIED_FAIL') {
+    await postHeadStatus('failure', terminalClass);
+  } else {
+    await postHeadStatus('pending', terminalClass);
+  }
   console.log(JSON.stringify(receipt));
 } catch (error) {
   const errorCode = String(error?.code || error?.message || 'ATOMIC_TERMINAL_RECONCILE_FAILED').split(':')[0].slice(0, 120);
@@ -195,8 +244,10 @@ try {
     merge_commit_state: 'UNKNOWN_FAIL_CLOSED',
     landing_step_outcome: landingOutcome,
     current_sold_postlanding_outcome: postLandingOutcome,
+    remote_intent_status: 'FAILURE',
   });
   try { writeReceipt(receipt); } catch {}
+  try { await postHeadStatus('failure', errorCode); } catch {}
   console.error(errorCode);
   process.exit(1);
 }
