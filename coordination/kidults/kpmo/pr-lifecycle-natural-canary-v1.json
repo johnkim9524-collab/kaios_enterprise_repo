@@ -1,0 +1,10 @@
+{
+  "id": "kpmo-pr-lifecycle-natural-canary-v1",
+  "date": "2026-09-01",
+  "purpose": "Prove the protected-main pull_request_target lifecycle classifier executes on a natural PR event and fails closed before native governance evidence is terminal.",
+  "authority": "CONTROL_ONLY",
+  "merge_authorized": false,
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
