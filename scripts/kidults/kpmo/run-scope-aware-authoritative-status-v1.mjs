@@ -7,7 +7,7 @@ import {
   resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  assertChangedApprovalGenerationEquality,
+  assertCompleteApprovalGenerationRegistry,
 } from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
@@ -68,13 +68,14 @@ const checkPages = async sha => {
   }
   throw new Error('GITHUB_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
-const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
-const readJsonAtRef = async (filename, ref) => {
-  const payload = await api(`/contents/${encodePath(filename)}?ref=${ref}`);
-  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
-    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+const readJsonBlob = async entry => {
+  const payload = await api(`/git/blobs/${entry.sha}`);
+  if (payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_REGISTRY_BLOB_SHAPE_INVALID:${entry.path}`);
   }
-  return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+  const bytes = Buffer.from(payload.content.replace(/\s/g, ''), 'base64');
+  if (bytes.length !== entry.size) throw new Error(`APPROVAL_REGISTRY_BLOB_SIZE_MISMATCH:${entry.path}`);
+  return JSON.parse(bytes.toString('utf8'));
 };
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const retryable = new Set(['REQUIRED_CONTEXT_MISSING', 'REQUIRED_CONTEXT_NOT_TERMINAL']);
@@ -97,11 +98,23 @@ try {
   pendingPublished = true;
 
   const files = await arrayPages(`/pulls/${prNumber}/files`);
-  const approvalGeneration = await assertChangedApprovalGenerationEquality({
-    files,
-    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
+  if (files.length !== Number(initial.changed_files || 0)) {
+    throw new Error('SCOPE_AGGREGATOR_CHANGED_FILE_PAGINATION_INCOMPLETE');
+  }
+  const [candidateTree, baseTree] = await Promise.all([
+    api(`/git/trees/${initial.head.sha}?recursive=1`),
+    api(`/git/trees/${initial.base.sha}?recursive=1`),
+  ]);
+  const approvalRegistry = await assertCompleteApprovalGenerationRegistry({
+    candidateTree,
+    baseTree,
+    changedFiles: files,
+    readJson: readJsonBlob,
+    readIssueComment: commentId => api(`/issues/comments/${commentId}`),
     prBaseSha: initial.base.sha,
     liveMainSha: mainBranch.commit.sha,
+    repository,
+    phase: 'MERGE_CANDIDATE',
   });
   const scope = resolveScopeRequirements(files, initial, policy);
   let results = null;
@@ -130,7 +143,7 @@ try {
   await postStatus('success', `${scope.required_contexts.length} exact-head contexts verified`);
   console.log(JSON.stringify({
     id: 'kidults-scope-aware-authoritative-status-receipt-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     state: 'VERIFIED_PASS',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
@@ -140,7 +153,7 @@ try {
     files_accounted_for: scope.files.length,
     required_contexts: scope.required_contexts,
     check_results: results,
-    approval_generation_equality: approvalGeneration,
+    approval_generation_full_registry: approvalRegistry,
     final_live_reread: true,
     zero_coverage_scopes: 0,
     technical_status_is_merge_authority: false,
