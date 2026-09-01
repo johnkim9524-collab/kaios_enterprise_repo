@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve('.github/workflows');
-const POLICY_VERSION = '1.1';
+const POLICY_VERSION = '1.2';
 const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-landing-v1.yml');
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
+const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -47,31 +48,72 @@ function violationsFor(text) {
   return [...new Set(findings)];
 }
 
-function constrainedAtomicLandingViolations(workflow, runner) {
+function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
   const workflowRequirements = [
     ['workflow-name', 'name: KIDULTS Atomic Governed Landing V1'],
     ['dispatch-only', 'on:\n  workflow_dispatch:'],
     ['exact-pr-input', 'pull_request_number:'],
     ['exact-head-input', 'expected_head_sha:'],
     ['operation-authorization-input', 'landing_authorization_id:'],
+    ['global-main-serialization', 'group: kidults-atomic-governed-landing-v1-main'],
     ['serialized-pr-landing', 'cancel-in-progress: false'],
     ['main-checkout', 'ref: main'],
     ['credential-persistence-disabled', 'persist-credentials: false'],
     ['main-ref-assertion', 'test "$GITHUB_REF" = refs/heads/main'],
     ['live-actor-binding', 'LANDING_ACTOR: ${{ github.actor }}'],
+    ['trusted-postlanding-stage', 'Stage trusted Current-SOLD post-landing validator'],
+    ['trusted-postlanding-install', 'install -m 0500'],
+    ['landing-step-output', 'id: landing'],
     ['fixed-runner', 'run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'],
+    ['exact-merge-checkout', 'ref: ${{ steps.landing.outputs.merge_commit_sha }}'],
+    ['exact-merge-depth', 'fetch-depth: 2'],
+    ['postlanding-exact-sha-env', 'CURRENT_SOLD_MERGE_SHA: ${{ steps.landing.outputs.merge_commit_sha }}'],
+    ['postlanding-runner-temp', 'run: node "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"'],
+    ['postlanding-artifact', 'kidults-current-sold-postlanding-v1-${{ github.run_id }}-${{ github.run_attempt }}'],
   ];
   const runnerRequirements = [
     ['owner-actor-assertion', 'assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login'],
     ['initial-live-pr-read', 'const initial = await request(`/pulls/${prNumber}`);'],
+    ['changed-file-read', 'const changedFileRecords = await pages(`/pulls/${prNumber}/files`);'],
+    ['current-sold-surface', 'const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);'],
     ['final-live-pr-reread', 'const final = await request(`/pulls/${prNumber}`);'],
     ['post-status-live-pr-reread', 'const immediatePreMerge = await request(`/pulls/${prNumber}`);'],
     ['post-status-scope-reread', "throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT')"],
     ['post-status-check-reread', 'evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);'],
     ['server-merge-put', "method: 'PUT'"],
     ['server-merge-exact-head', 'body: JSON.stringify({sha: expectedHeadSha, merge_method: \'merge\'})'],
+    ['post-merge-main-read', "const postMergeMain = await request('/branches/main');"],
+    ['post-merge-main-assertion', "throw new Error('POST_MERGE_MAIN_SHA_MISMATCH')"],
+    ['workflow-output', 'fs.appendFileSync(githubOutput'],
+    ['merge-output', '`merge_commit_sha=${merged.sha}`'],
+    ['premerge-output', '`premerge_main_sha=${initial.base.sha}`'],
+    ['approved-head-output', '`merged_pr_head_sha=${expectedHeadSha}`'],
+    ['current-sold-output', '`current_sold_changed=${currentSoldChanged}`'],
+    ['postlanding-required-state', 'MERGED_VERIFIED_POSTLANDING_REQUIRED'],
+    ['same-job-boundary', 'REQUIRED_SAME_TRUSTED_JOB'],
     ['failure-status-revocation', "await publish('failure', error?.code || error?.message || 'atomic landing failed')"],
     ['label-atomicity-caveat', 'no_merge_label_server_transactionality_claimed: false'],
+  ];
+  const postValidatorRequirements = [
+    ['status-context', "const statusContext = 'KIDULTS Current-SOLD Post-Landing V1';"],
+    ['pending-status', "await postStatus('pending'"],
+    ['success-status', "await postStatus('success'"],
+    ['failure-status', "await postStatus('failure'"],
+    ['two-parent-merge', 'parentLine.length === 3'],
+    ['first-parent', 'parentLine[1] === premergeMainSha'],
+    ['second-parent', 'parentLine[2] === mergedPrHeadSha'],
+    ['merge-subject', 'Merge pull request #${prNumber} from'],
+    ['current-sold-surface', 'POSTLANDING_CURRENT_SOLD_SURFACE_NOT_TOUCHED'],
+    ['test-count', 'expected_tests: 53'],
+    ['empirical-zero', 'lawful_empirical_current_sold_count: 0'],
+    ['candidate-zero', 'private_candidate_current_sold_count: 0'],
+    ['postgres-migration-hold', 'postgres_migration_applied: false'],
+    ['postgres-write-hold', 'postgres_rows_written: 0'],
+    ['provider-hold', 'provider_calls: 0'],
+    ['deployment-hold', 'deployment: false'],
+    ['public-hold', "public: 'HOLD'"],
+    ['production-hold', "production: 'HOLD'"],
+    ['g5-hold', "g5: 'HOLD'"],
   ];
   const findings = [];
   for (const [id, fragment] of workflowRequirements) {
@@ -80,10 +122,13 @@ function constrainedAtomicLandingViolations(workflow, runner) {
   for (const [id, fragment] of runnerRequirements) {
     if (!runner.includes(fragment)) findings.push(`atomic-landing-runner-${id}`);
   }
+  for (const [id, fragment] of postValidatorRequirements) {
+    if (!postValidator.includes(fragment)) findings.push(`atomic-landing-post-validator-${id}`);
+  }
   if ((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length !== 1) {
     findings.push('atomic-landing-single-contents-write');
   }
-  if (/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_run):\s*$/mi.test(workflow)) {
+  if (/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_run|repository_dispatch):\s*$/mi.test(workflow)) {
     findings.push('atomic-landing-workflow-dispatch-only');
   }
   const nonContentsViolations = violationsFor(workflow).filter(value => value !== 'contents-write');
@@ -119,7 +164,8 @@ for (const file of files) {
   let violations = violationsFor(workflow);
   if (path.resolve(file) === ATOMIC_LANDING_WORKFLOW && violations.includes('contents-write')) {
     const runner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
-    const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner);
+    const postValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
+    const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator);
     if (exceptionViolations.length === 0 && violations.length === 1) {
       violations = [];
       constrainedAtomicLandingExceptions += 1;
@@ -139,16 +185,70 @@ if (constrainedAtomicLandingExceptions !== 1) {
 
 const atomicWorkflow = fs.readFileSync(ATOMIC_LANDING_WORKFLOW, 'utf8');
 const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
+const atomicPostValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
 const atomicMutationCases = [
-  ['owner-actor', atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingActor'), 'atomic-landing-runner-owner-actor-assertion'],
-  ['final-reread', atomicRunner.replace('const immediatePreMerge = await request(`/pulls/${prNumber}`);', 'const immediatePreMerge = final;'), 'atomic-landing-runner-post-status-live-pr-reread'],
-  ['expected-head', atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"), 'atomic-landing-runner-server-merge-exact-head'],
-  ['failure-revocation', atomicRunner.replace("await publish('failure', error?.code || error?.message || 'atomic landing failed')", 'void error'), 'atomic-landing-runner-failure-status-revocation'],
-  ['label-caveat', atomicRunner.replace('no_merge_label_server_transactionality_claimed: false', 'no_merge_label_server_transactionality_claimed: true'), 'atomic-landing-runner-label-atomicity-caveat'],
+  {
+    id: 'owner-actor',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingActor'),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-owner-actor-assertion',
+  },
+  {
+    id: 'final-reread',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace('const immediatePreMerge = await request(`/pulls/${prNumber}`);', 'const immediatePreMerge = final;'),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-post-status-live-pr-reread',
+  },
+  {
+    id: 'expected-head',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-server-merge-exact-head',
+  },
+  {
+    id: 'failure-revocation',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace("await publish('failure', error?.code || error?.message || 'atomic landing failed')", 'void error'),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-failure-status-revocation',
+  },
+  {
+    id: 'label-caveat',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace('no_merge_label_server_transactionality_claimed: false', 'no_merge_label_server_transactionality_claimed: true'),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-label-atomicity-caveat',
+  },
+  {
+    id: 'trusted-stage',
+    workflow: atomicWorkflow.replace('install -m 0500', 'install -m 0777'),
+    runner: atomicRunner,
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-workflow-trusted-postlanding-install',
+  },
+  {
+    id: 'second-parent',
+    workflow: atomicWorkflow,
+    runner: atomicRunner,
+    postValidator: atomicPostValidator.replace('parentLine[2] === mergedPrHeadSha', 'parentLine[2] === premergeMainSha'),
+    expected: 'atomic-landing-post-validator-second-parent',
+  },
+  {
+    id: 'postlanding-success-status',
+    workflow: atomicWorkflow,
+    runner: atomicRunner,
+    postValidator: atomicPostValidator.replace("await postStatus('success'", "await postStatus('pending'"),
+    expected: 'atomic-landing-post-validator-success-status',
+  },
 ];
-for (const [id, mutatedRunner, expected] of atomicMutationCases) {
-  const found = constrainedAtomicLandingViolations(atomicWorkflow, mutatedRunner);
-  if (!found.includes(expected)) throw new Error(`atomic landing exception self-test missed ${id}: ${expected}`);
+for (const mutation of atomicMutationCases) {
+  const found = constrainedAtomicLandingViolations(mutation.workflow, mutation.runner, mutation.postValidator);
+  if (!found.includes(mutation.expected)) {
+    throw new Error(`atomic landing exception self-test missed ${mutation.id}: ${mutation.expected}`);
+  }
 }
 
 const result = {
@@ -157,7 +257,7 @@ const result = {
   workflows_scanned: files.length,
   mutation_cases_detected: mutationCases.length,
   negative_cases_rejected: negativeCases.length,
-  policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS_EXCEPT_CONSTRAINED_ATOMIC_GOVERNED_SERVER_MERGE',
+  policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS_EXCEPT_CONSTRAINED_ATOMIC_GOVERNED_SERVER_MERGE_WITH_SAME_JOB_POSTLANDING_VALIDATION',
   constrained_atomic_landing_exceptions: constrainedAtomicLandingExceptions,
   atomic_landing_mutation_cases_detected: atomicMutationCases.length,
   findings,
