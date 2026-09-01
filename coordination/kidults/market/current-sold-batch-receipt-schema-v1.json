@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-batch-receipt-v1",
+  "title": "KIDULTS Current-SOLD Batch Admission Receipt V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "receipt_type",
+    "status",
+    "batch_id",
+    "created_at",
+    "evaluated_at",
+    "source_sha",
+    "canonical_run_id",
+    "envelope_digest",
+    "receipt_registry_digest",
+    "event_versions_digest",
+    "evidence_digest",
+    "admission_digest",
+    "counts",
+    "ledger",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-batch-receipt-v1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^csr_[a-f0-9]{24}$"
+    },
+    "receipt_type": {
+      "const": "CURRENT_SOLD_BATCH_ADMISSION"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "PARTIAL_FAIL_CLOSED",
+        "FAIL_CLOSED"
+      ]
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "canonical_run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+    },
+    "envelope_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "receipt_registry_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "event_versions_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "evidence_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "admission_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "admitted",
+        "rejected",
+        "quarantined",
+        "superseded",
+        "evidence"
+      ],
+      "properties": {
+        "input": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "admitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "write_eligible",
+        "state"
+      ],
+      "properties": {
+        "write_eligible": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "ELIGIBLE_NOT_ATTEMPTED",
+            "BLOCKED_BY_ADMISSION"
+          ]
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "empirical_global_current_sold_claim",
+        "public",
+        "production",
+        "g5"
+      ],
+      "properties": {
+        "empirical_global_current_sold_claim": {
+          "const": "UNSET"
+        },
+        "public": {
+          "const": "HOLD"
+        },
+        "production": {
+          "const": "HOLD"
+        },
+        "g5": {
+          "const": "HOLD"
+        }
+      }
+    }
+  }
+}
