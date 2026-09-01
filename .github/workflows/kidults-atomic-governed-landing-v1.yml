@@ -17,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: kidults-atomic-governed-landing-v1-global
+  group: kidults-atomic-governed-landing-v1-main
   cancel-in-progress: false
 
 jobs:
