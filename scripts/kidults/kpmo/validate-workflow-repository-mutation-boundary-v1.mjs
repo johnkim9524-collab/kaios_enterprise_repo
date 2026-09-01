@@ -70,7 +70,7 @@ function constrainedAtomicLandingViolations(workflow, runner) {
     ['post-status-check-reread', 'evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);'],
     ['server-merge-put', "method: 'PUT'"],
     ['server-merge-exact-head', 'body: JSON.stringify({sha: expectedHeadSha, merge_method: \'merge\'})'],
-    ['failure-status-revocation', "await publish('failure', error?.code || error?.message || 'atomic landing failed')"],
+    ['failure-status-revocation', "await publish('failure', failureClass)"],
     ['label-atomicity-caveat', 'no_merge_label_server_transactionality_claimed: false'],
   ];
   const findings = [];
@@ -143,7 +143,7 @@ const atomicMutationCases = [
   ['owner-actor', atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingActor'), 'atomic-landing-runner-owner-actor-assertion'],
   ['final-reread', atomicRunner.replace('const immediatePreMerge = await request(`/pulls/${prNumber}`);', 'const immediatePreMerge = final;'), 'atomic-landing-runner-post-status-live-pr-reread'],
   ['expected-head', atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"), 'atomic-landing-runner-server-merge-exact-head'],
-  ['failure-revocation', atomicRunner.replace("await publish('failure', error?.code || error?.message || 'atomic landing failed')", 'void error'), 'atomic-landing-runner-failure-status-revocation'],
+  ['failure-revocation', atomicRunner.replace("await publish('failure', failureClass)", 'void error'), 'atomic-landing-runner-failure-status-revocation'],
   ['label-caveat', atomicRunner.replace('no_merge_label_server_transactionality_claimed: false', 'no_merge_label_server_transactionality_claimed: true'), 'atomic-landing-runner-label-atomicity-caveat'],
 ];
 for (const [id, mutatedRunner, expected] of atomicMutationCases) {
