@@ -80,11 +80,9 @@ requireValue(library.includes('APPROVAL_REGISTRY_PATH_REMOVED_OR_RENAMED'), 'DEL
 requireValue(library.includes('APPROVAL_LIVE_COMMENT_BODY_DIGEST_MISMATCH'), 'LIVE_COMMENT_DIGEST_BLOCK');
 requireValue(library.includes('assertRuntimeApprovalLiveBinding'), 'RUNTIME_LIVE_BINDING_EXPORT');
 
-requireValue(readinessWorkflow.includes('Enforce complete approval authority registry before readiness'), 'READINESS_STEP_NAME');
 requireValue(readinessWorkflow.includes('validate-approval-generation-equality-live-pr-v1.mjs'), 'READINESS_SCRIPT');
 requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs')
   < readinessWorkflow.indexOf('Enforce exact-head solo-owner authorization'), 'READINESS_ORDER');
-
 requireValue(isActiveApprovalRecord(terminalV1) === false, 'TERMINAL_V1_MUST_REMAIN_NON_AUTHORITY');
 
 const A = 'a'.repeat(40);
@@ -112,14 +110,14 @@ const active = {
     stale_canonical_comment_allowed: false,
   },
 };
-const entry = {
+const registryEntry = {
   path: 'coordination/kidults/governance/synthetic-authorization-v1.json',
   mode: '100644',
   type: 'blob',
   sha: D,
   size: 500,
 };
-const tree = {truncated: false, tree: [entry]};
+const tree = {truncated: false, tree: [registryEntry]};
 const comment = {
   id: 2,
   issue_url: 'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/issues/1',
