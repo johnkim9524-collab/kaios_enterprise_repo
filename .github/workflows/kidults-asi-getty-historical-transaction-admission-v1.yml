@@ -129,7 +129,7 @@ jobs:
             'event_sha:process.env.GITHUB_SHA',
             'commit/${process.env.KPMO_EXPECTED_SOURCE_SHA}'
           ]) if(!workflow.includes(marker)) throw new Error(`GETTY_SOURCE_LINEAGE_MARKER_MISSING:${marker}`);
-          if(workflow.includes('sha:process.env.GITHUB_SHA')) throw new Error('GETTY_AMBIGUOUS_EVENT_SHA_REINTRODUCED');
+          if(/^\s*sha:process\.env\.GITHUB_SHA,/m.test(workflow)) throw new Error('GETTY_AMBIGUOUS_EVENT_SHA_REINTRODUCED');
           NODE
       - name: Install deterministic validation dependencies
         run: npm ci --ignore-scripts --no-audit --no-fund
