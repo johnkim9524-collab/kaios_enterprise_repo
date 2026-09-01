@@ -2,7 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import {resolveAtomicLandingLifecycleAuthority} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  resolveAtomicLandingLifecycleAuthority,
+  isAtomicLandingNativeStatusReady,
+} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -78,7 +81,9 @@ const statuses = Array.isArray(combinedStatus?.statuses) ? combinedStatus.status
 const nativeStatuses = required.map(context => {
   const matches = statuses.filter(status => status?.context === context);
   if (matches.length !== 1) throw new Error(`ATOMIC_LIFECYCLE_NATIVE_CONTEXT_CARDINALITY:${context}:${matches.length}`);
-  if (matches[0].state !== 'success') throw new Error(`ATOMIC_LIFECYCLE_NATIVE_CONTEXT_NOT_SUCCESS:${context}`);
+  if (!isAtomicLandingNativeStatusReady(matches[0])) {
+    throw new Error(`ATOMIC_LIFECYCLE_NATIVE_CONTEXT_NOT_LANDING_READY:${context}:${matches[0]?.state || 'missing'}`);
+  }
   return matches[0];
 });
 
@@ -106,12 +111,14 @@ if (finalMain?.commit?.sha !== mainBranch?.commit?.sha) throw new Error('ATOMIC_
 
 const receipt = {
   id: 'kidults-atomic-landing-lifecycle-authority-receipt-v1',
-  version: '1.0.0',
+  version: '1.1.0',
   repository,
   checked_at: new Date().toISOString(),
   ...authority,
   latest_ready_event_at: latestReadiness.created_at,
   final_live_reread: true,
+  manual_merge_authority: false,
+  atomic_landing_only: true,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

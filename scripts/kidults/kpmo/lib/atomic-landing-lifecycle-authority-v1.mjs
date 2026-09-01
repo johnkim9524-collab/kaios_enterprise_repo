@@ -2,6 +2,22 @@ const SHA40 = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const WORKFLOW_FILE = 'kpmo-pr-lifecycle-integrity-v1.yml';
 
+export const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
+export const GOVERNED_LANDING_CONTEXT = 'KIDULTS Governed Landing Authorization V1';
+export const GOVERNED_LANDING_PENDING_DESCRIPTION = 'Ready; operation-specific atomic landing is required';
+export const READY_GOVERNED_REASON = 'NATIVE_SCOPE_SUCCESS_AND_OPERATION_SPECIFIC_ATOMIC_LANDING_PENDING';
+
+export function isAtomicLandingNativeStatusReady(status) {
+  const context = String(status?.context || '');
+  const state = String(status?.state || 'missing');
+  if (context === GOVERNED_LANDING_CONTEXT) {
+    return state === 'pending'
+      && String(status?.description || '') === GOVERNED_LANDING_PENDING_DESCRIPTION;
+  }
+  if (context === SCOPE_AWARE_CONTEXT) return state === 'success';
+  return state === 'success';
+}
+
 const fail = code => { throw new Error(code); };
 const ms = (value, code) => {
   const parsed = Date.parse(String(value || ''));
@@ -30,7 +46,7 @@ function exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha) {
   return { artifacts, matches: artifacts.filter(artifact => artifact?.name === expected), expected };
 }
 
-function validateReceiptContent(receipt, run, prNumber, headSha, baseSha) {
+function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundNative) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('LIFECYCLE_RECEIPT_CONTENT_INVALID');
   if (receipt.id !== 'kpmo-pr-lifecycle-integrity-receipt-v1') fail('LIFECYCLE_RECEIPT_ID_INVALID');
   if (Number(receipt.pull_request) !== Number(prNumber)) fail('LIFECYCLE_RECEIPT_PR_MISMATCH');
@@ -41,6 +57,23 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha) {
   if (receipt.event_name !== 'pull_request_target') fail('LIFECYCLE_RECEIPT_EVENT_MISMATCH');
   if (receipt.final_live_reread !== true) fail('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED');
   if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
+  if (receipt.reason !== READY_GOVERNED_REASON) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
+  if (receipt.validator_authority !== 'CONTROL_ONLY') fail('LIFECYCLE_RECEIPT_AUTHORITY_INVALID');
+  if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
+  if (receipt.native_status_evidence.length !== boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
+
+  for (const expected of boundNative) {
+    const matches = receipt.native_status_evidence.filter(item => item?.context === expected.context);
+    if (matches.length !== 1) fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_CARDINALITY:${expected.context}:${matches.length}`);
+    const actual = matches[0];
+    if (String(actual.state || '') !== expected.state
+      || String(actual.description || '') !== String(expected.description || '')
+      || String(actual.status_id ?? '') !== String(expected.status_id ?? '')
+      || String(actual.updated_at || '') !== String(expected.updated_at || '')) {
+      fail(`LIFECYCLE_RECEIPT_NATIVE_STATUS_MISMATCH:${expected.context}`);
+    }
+  }
 }
 
 export function selectAtomicLandingLifecycleAuthority({
@@ -66,11 +99,15 @@ export function selectAtomicLandingLifecycleAuthority({
     const context = String(status?.context || '');
     if (!context || seenContexts.has(context)) fail('LIFECYCLE_NATIVE_STATUS_CONTEXT_INVALID');
     seenContexts.add(context);
-    if (status?.state !== 'success') fail(`LIFECYCLE_NATIVE_STATUS_NOT_SUCCESS:${context}`);
+    if (!isAtomicLandingNativeStatusReady(status)) {
+      fail(`LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY:${context}:${String(status?.state || 'missing')}`);
+    }
     const updatedAt = status.updated_at || status.created_at;
     nativeFloor = Math.max(nativeFloor, ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`));
     return {
       context,
+      state: String(status.state),
+      description: status.description || null,
       status_id: status.id ?? null,
       created_at: status.created_at || null,
       updated_at: updatedAt || null,
@@ -106,7 +143,7 @@ export function selectAtomicLandingLifecycleAuthority({
   if (latest.conclusion !== 'success') fail(`LIFECYCLE_LATEST_UNSUPERSEDED_RED:${latest.conclusion || 'missing'}`);
 
   const lifecycleTime = ms(latest.updated_at || latest.created_at, 'LIFECYCLE_LATEST_TIME_INVALID');
-  if (lifecycleTime < nativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_SUCCESS');
+  if (lifecycleTime < nativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
   if (lastReadyAt && lifecycleTime < ms(lastReadyAt, 'LIFECYCLE_READY_EVENT_TIME_INVALID')) {
     fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
   }
@@ -119,7 +156,7 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!DIGEST.test(String(artifact.digest || ''))) fail('LIFECYCLE_RECEIPT_DIGEST_INVALID');
 
   const receipt = receiptsByRunId?.[String(latest.id)];
-  validateReceiptContent(receipt, latest, prNumber, headSha, baseSha);
+  validateReceiptContent(receipt, latest, prNumber, headSha, baseSha, boundNative);
 
   return {
     state: 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND',
@@ -135,6 +172,7 @@ export function selectAtomicLandingLifecycleAuthority({
     lifecycle_artifact_name: artifact.name,
     lifecycle_artifact_digest: artifact.digest,
     lifecycle_receipt_state: receipt.state,
+    lifecycle_receipt_reason: receipt.reason,
     native_status_evidence: boundNative,
   };
 }

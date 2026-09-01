@@ -4,6 +4,13 @@ import path from 'node:path';
 import {
   assertFullApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
+import {
+  GOVERNED_LANDING_CONTEXT,
+  GOVERNED_LANDING_PENDING_DESCRIPTION,
+  READY_GOVERNED_REASON,
+  SCOPE_AWARE_CONTEXT,
+  isAtomicLandingNativeStatusReady,
+} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
 
@@ -19,6 +26,8 @@ function latestByContext(statuses) {
     latest.set(context, {
       context,
       state: String(status?.state || 'unknown'),
+      description: status?.description || null,
+      status_id: status?.id ?? null,
       created_at: status?.created_at || null,
       updated_at: status?.updated_at || null,
       target_url: status?.target_url || null,
@@ -61,13 +70,13 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   const required = Array.from(new Set(policy?.native_required_status_contexts || []));
   assert(required.length > 0, 'NATIVE_REQUIRED_CONTEXT_SET_EMPTY');
   const latest = latestByContext(statuses);
-  const evidence = required.map(context => latest.get(context) || {context, state: 'missing'});
-  const incomplete = evidence.filter(item => item.state !== 'success');
+  const evidence = required.map(context => latest.get(context) || {context, state: 'missing', description: null});
+  const incomplete = evidence.filter(item => !isAtomicLandingNativeStatusReady(item));
   if (incomplete.length) {
     return {
       ...common,
       state: 'READY_NON_PROMOTABLE',
-      reason: 'NATIVE_GOVERNED_CONTEXTS_NOT_TERMINAL_SUCCESS',
+      reason: 'NATIVE_GOVERNED_CONTEXTS_NOT_ATOMIC_LANDING_READY',
       native_status_evidence: evidence,
     };
   }
@@ -75,23 +84,72 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   return {
     ...common,
     state: 'READY_GOVERNED',
-    reason: 'NATIVE_GOVERNED_CONTEXTS_TERMINAL_SUCCESS_ON_EXACT_HEAD_AND_CURRENT_BASE',
+    reason: READY_GOVERNED_REASON,
     native_status_evidence: evidence,
+    manual_merge_authority: false,
+    atomic_landing_only: true,
   };
 }
 
 function runSelfTest() {
   const head = '1'.repeat(40);
   const base = '2'.repeat(40);
-  const policy = {native_required_status_contexts: ['scope', 'landing']};
+  const policy = {native_required_status_contexts: [GOVERNED_LANDING_CONTEXT, SCOPE_AWARE_CONTEXT]};
   const pr = {number: 7, state: 'open', merged: false, draft: false, head: {sha: head}, base: {ref: 'main', sha: base}};
-  const success = context => ({context, state: 'success', created_at: '2026-09-01T00:00:00Z'});
+  const success = context => ({
+    id: context === SCOPE_AWARE_CONTEXT ? 10 : 11,
+    context,
+    state: 'success',
+    description: null,
+    created_at: '2026-09-01T00:00:00Z',
+    updated_at: '2026-09-01T00:00:00Z',
+  });
+  const landingPending = description => ({
+    id: 11,
+    context: GOVERNED_LANDING_CONTEXT,
+    state: 'pending',
+    description,
+    created_at: '2026-09-01T00:00:01Z',
+    updated_at: '2026-09-01T00:00:01Z',
+  });
 
   assert(classifyLifecycle({pr: {...pr, draft: true}, liveMainSha: base, statuses: [], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'DRAFT', 'SELFTEST_DRAFT');
-  assert(classifyLifecycle({pr, liveMainSha: base, statuses: [success('scope')], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'READY_NON_PROMOTABLE', 'SELFTEST_MISSING_LANDING');
-  assert(classifyLifecycle({pr, liveMainSha: base, statuses: [success('scope'), {context: 'landing', state: 'pending'}], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'READY_NON_PROMOTABLE', 'SELFTEST_PENDING_LANDING');
-  assert(classifyLifecycle({pr, liveMainSha: '3'.repeat(40), statuses: [success('scope'), success('landing')], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'READY_NON_PROMOTABLE', 'SELFTEST_STALE_BASE');
-  assert(classifyLifecycle({pr, liveMainSha: base, statuses: [success('scope'), success('landing')], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'READY_GOVERNED', 'SELFTEST_READY_GOVERNED');
+  assert(classifyLifecycle({pr, liveMainSha: base, statuses: [success(SCOPE_AWARE_CONTEXT)], policy, expectedHeadSha: head, expectedBaseSha: base}).state === 'READY_NON_PROMOTABLE', 'SELFTEST_MISSING_LANDING');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [landingPending('generic pending'), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_GENERIC_PENDING_REJECTED');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [success(GOVERNED_LANDING_CONTEXT), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_GENERIC_SUCCESS_NOT_OPERATION_SIGNAL');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: '3'.repeat(40),
+    statuses: [landingPending(GOVERNED_LANDING_PENDING_DESCRIPTION), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_STALE_BASE');
+  const ready = classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [landingPending(GOVERNED_LANDING_PENDING_DESCRIPTION), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  });
+  assert(ready.state === 'READY_GOVERNED', 'SELFTEST_READY_GOVERNED');
+  assert(ready.reason === READY_GOVERNED_REASON, 'SELFTEST_READY_REASON');
+  assert(ready.promotion_eligible === false && ready.atomic_landing_only === true, 'SELFTEST_NO_DIRECT_PROMOTION');
 
   let changedHeadRejected = false;
   try {

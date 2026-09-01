@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import {selectAtomicLandingLifecycleAuthority} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  GOVERNED_LANDING_CONTEXT,
+  GOVERNED_LANDING_PENDING_DESCRIPTION,
+  READY_GOVERNED_REASON,
+  SCOPE_AWARE_CONTEXT,
+  selectAtomicLandingLifecycleAuthority,
+} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const expectReject = (code, fn) => {
@@ -30,7 +36,33 @@ const artifact = id => ({
   size_in_bytes: 777,
   digest: `sha256:${'a'.repeat(64)}`,
 });
-const receipt = (id, overrides = {}) => ({
+const nativeStatuses = [
+  {
+    id: 10,
+    context: SCOPE_AWARE_CONTEXT,
+    state: 'success',
+    description: '3 exact-head contexts verified',
+    created_at: '2026-09-01T13:24:25Z',
+    updated_at: '2026-09-01T13:24:25Z',
+  },
+  {
+    id: 11,
+    context: GOVERNED_LANDING_CONTEXT,
+    state: 'pending',
+    description: GOVERNED_LANDING_PENDING_DESCRIPTION,
+    created_at: '2026-09-01T13:28:37Z',
+    updated_at: '2026-09-01T13:28:37Z',
+  },
+];
+const receiptEvidence = statuses => statuses.map(status => ({
+  context: status.context,
+  state: status.state,
+  description: status.description || null,
+  status_id: status.id ?? null,
+  created_at: status.created_at || null,
+  updated_at: status.updated_at || status.created_at || null,
+}));
+const receipt = (id, overrides = {}, statuses = nativeStatuses) => ({
   id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
   repository: 'johnkim9524-collab/kaios_enterprise_repo',
   pull_request: prNumber,
@@ -40,14 +72,21 @@ const receipt = (id, overrides = {}) => ({
   workflow_run_attempt: '1',
   event_name: 'pull_request_target',
   state: 'READY_GOVERNED',
+  reason: READY_GOVERNED_REASON,
+  validator_authority: 'CONTROL_ONLY',
+  promotion_eligible: false,
+  native_status_evidence: receiptEvidence(statuses),
   final_live_reread: true,
   ...overrides,
 });
-const nativeStatuses = [
-  {id: 10, context: 'KIDULTS Scope-Aware Authoritative Status V1', state: 'success', created_at: '2026-09-01T13:24:25Z', updated_at: '2026-09-01T13:24:25Z'},
-  {id: 11, context: 'KIDULTS Governed Landing Authorization V1', state: 'success', created_at: '2026-09-01T13:28:37Z', updated_at: '2026-09-01T13:28:37Z'},
-];
-const invoke = ({runs, artifactsByRunId, receiptsByRunId = {}, statuses = nativeStatuses, lastReadyAt = '2026-09-01T13:20:00Z', prCreatedAt = '2026-09-01T13:00:00Z'}) => selectAtomicLandingLifecycleAuthority({
+const invoke = ({
+  runs,
+  artifactsByRunId,
+  receiptsByRunId = {},
+  statuses = nativeStatuses,
+  lastReadyAt = '2026-09-01T13:20:00Z',
+  prCreatedAt = '2026-09-01T13:00:00Z',
+}) => selectAtomicLandingLifecycleAuthority({
   runs,
   artifactsByRunId,
   receiptsByRunId,
@@ -69,7 +108,24 @@ assert(authority.state === 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND', 'POSITIVE
 assert(authority.lifecycle_run_id === 200, 'POSITIVE_RUN_BINDING');
 assert(authority.lifecycle_artifact_digest === `sha256:${'a'.repeat(64)}`, 'POSITIVE_DIGEST_BINDING');
 assert(authority.exact_base_sha === base, 'POSITIVE_BASE_BINDING');
+assert(authority.lifecycle_receipt_reason === READY_GOVERNED_REASON, 'POSITIVE_PENDING_SEMANTICS');
 
+expectReject('LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200)},
+  statuses: nativeStatuses.map(status => status.context === GOVERNED_LANDING_CONTEXT
+    ? {...status, description: 'generic pending'}
+    : status),
+}));
+expectReject('LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200)},
+  statuses: nativeStatuses.map(status => status.context === GOVERNED_LANDING_CONTEXT
+    ? {...status, state: 'success'}
+    : status),
+}));
 expectReject('LIFECYCLE_LATEST_UNSUPERSEDED_RED', () => invoke({
   runs: [green, run(201, 'failure', '2026-09-01T13:30:00Z')],
   artifactsByRunId: {'200': [artifact(200)], '201': [artifact(201)]},
@@ -80,7 +136,7 @@ expectReject('LIFECYCLE_LATEST_NOT_TERMINAL', () => invoke({
   artifactsByRunId: {'200': [artifact(200)], '202': [artifact(202)]},
   receiptsByRunId: {'200': receipt(200), '202': receipt(202)},
 }));
-expectReject('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_SUCCESS', () => invoke({
+expectReject('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL', () => invoke({
   runs: [run(203, 'success', '2026-09-01T13:27:00Z')],
   artifactsByRunId: {'203': [artifact(203)]},
   receiptsByRunId: {'203': receipt(203)},
@@ -145,6 +201,17 @@ expectReject('LIFECYCLE_RECEIPT_BASE_MISMATCH', () => invoke({
 }));
 expectReject('LIFECYCLE_RECEIPT_NOT_READY_GOVERNED', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {state: 'READY_NON_PROMOTABLE'})},
+}));
+expectReject('LIFECYCLE_RECEIPT_REASON_INVALID', () => invoke({
+  runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {reason: 'generic'})},
+}));
+expectReject('LIFECYCLE_RECEIPT_NATIVE_STATUS_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {
+    native_status_evidence: receiptEvidence(nativeStatuses).map(status =>
+      status.context === GOVERNED_LANDING_CONTEXT ? {...status, description: 'tampered'} : status),
+  })},
 }));
 expectReject('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {final_live_reread: false})},
