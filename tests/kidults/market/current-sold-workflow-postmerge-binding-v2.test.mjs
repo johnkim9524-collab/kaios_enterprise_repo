@@ -129,7 +129,7 @@ test('Atomic Governed Landing performs exact Current-SOLD post-merge proof in th
   assert.match(validator, /parentLine\[1\] === premergeMainSha/);
   assert.match(validator, /parentLine\[2\] === mergedPrHeadSha/);
   assert.match(validator, /POSTLANDING_CURRENT_SOLD_SURFACE_NOT_TOUCHED/);
-  assert.match(validator, /expected_tests: 53/);
+  assert.match(validator, /expected_tests: 56/);
   assert.match(validator, /lawful_empirical_current_sold_count: 0/);
   assert.match(validator, /private_candidate_current_sold_count: 0/);
   assert.match(validator, /postgres_migration_applied: false/);
