@@ -35,6 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs
 
       - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
