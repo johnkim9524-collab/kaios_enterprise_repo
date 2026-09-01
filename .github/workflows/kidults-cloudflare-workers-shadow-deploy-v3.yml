@@ -1,5 +1,9 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v3
 
+# Static authorization binding marker contract; runtime values remain sourced and verified from the authorization JSON and exact Owner issue comment.
+# CF_WORKERS_SHADOW_V3_EXECUTION_BINDING_V1_START
+# CF_WORKERS_SHADOW_V3_EXECUTION_BINDING_V1_END
+
 on:
   workflow_dispatch:
 
