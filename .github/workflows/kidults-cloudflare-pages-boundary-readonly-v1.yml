@@ -1,11 +1,12 @@
 name: KIDULTS Cloudflare Pages Boundary Readonly v1
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml'
+      - 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'scripts/kidults/kpmo/validate-cloudflare-pages-staging-governance-v1.mjs'
 
 permissions:
   contents: read
@@ -16,7 +17,7 @@ concurrency:
 
 jobs:
   audit-pages-boundary:
-    if: github.ref == 'refs/heads/main'
+    if: ${{ false }} # P0 #1831: fresh exact-main Program Owner approval required before any provider-secret resolution
     environment: kidults-cloudflare-readonly
     runs-on: ubuntu-24.04
     timeout-minutes: 10
