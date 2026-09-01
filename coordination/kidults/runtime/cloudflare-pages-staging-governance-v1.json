@@ -2,8 +2,8 @@
   "id": "kidults-cloudflare-pages-staging-governance-v1",
   "version": "1.2.0",
   "status": "STAGING_GOVERNANCE_ACTIVE_PRIVILEGED_MUTATION_LANES_FAIL_CLOSED",
-  "implementation_state": "AUTO_DEPLOYMENTS_DISABLED_PREVIEW_ZERO_PRODUCTION_HISTORY_PRESERVED_GOVERNED_STAGING_DEPLOYMENT_EXISTS_FUTURE_MUTATIONS_HOLD_PENDING_ISSUE_1576",
-  "validated_base_main_sha": "afc2383b314aa07705203750edb7271a749b432b",
+  "implementation_state": "AUTO_DEPLOYMENTS_DISABLED_PREVIEW_ZERO_PRODUCTION_HISTORY_PRESERVED_GOVERNED_STAGING_DEPLOYMENT_EXISTS_ALL_CLOUDFLARE_PROVIDER_LANES_HOLD_PENDING_ISSUES_1576_1831",
+  "validated_base_main_sha": "dc9a144cc15a8df4352e0c8851e86e403031a85a",
   "owner": "KPMO",
   "issue": 1234,
   "authorization_issue": 1576,
@@ -54,15 +54,24 @@
   "read_only_monitor": {
     "workflow": ".github/workflows/kidults-cloudflare-pages-boundary-readonly-v1.yml",
     "environment": "kidults-cloudflare-readonly",
-    "triggers": ["push", "schedule", "workflow_dispatch"],
-    "schedule": "*/30 * * * *",
-    "settings_readback_required": true,
+    "triggers": [
+      "pull_request"
+    ],
+    "schedule": "DISABLED",
+    "settings_readback_required": false,
     "latest_materialized_deployment_must_be_governed": true,
     "visible_preview_count_must_be_zero": true,
     "current_main_match_is_informational": true,
     "current_main_auto_attempt_should_be_skipped": true,
     "skipped_attempts_are_not_visible_deployments": true,
-    "remote_mutation": false
+    "remote_mutation": false,
+    "state": "FAIL_CLOSED_PENDING_ISSUE_1831",
+    "job_condition": "${{ false }}",
+    "provider_secret_resolution_reachable": false,
+    "provider_call_reachable": false,
+    "historical_provider_receipt_is_runtime_authorization": false,
+    "fresh_exact_main_program_owner_approval_required": true,
+    "issue": 1831
   },
   "emergency_control": {
     "state": "FAIL_CLOSED_PENDING_ISSUE_1576",
@@ -81,7 +90,10 @@
   "credential_policy": {
     "read_only_environment": "kidults-cloudflare-readonly",
     "mutation_environment": "kidults-cloudflare-staging-deploy",
-    "required_secret_names": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"],
+    "required_secret_names": [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_API_TOKEN"
+    ],
     "provider_secret_resolution_currently_reachable": false,
     "write_token_persistent_repository_secret": false,
     "environment_secret_presence_or_removal": "EXTERNAL_CONTROL_PLANE_NOT_ASSERTED_BY_REPOSITORY",
