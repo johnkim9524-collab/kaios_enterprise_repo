@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
@@ -27,28 +27,50 @@
   ],
   "approval_generation_policy": {
     "mode": "EXACT_CURRENT_PROTECTED_MAIN_EQUALITY",
+    "registry_scope": "COMPLETE_BOUNDED_CANDIDATE_AND_BASE_GIT_TREES",
+    "registry_prefix": "coordination/kidults/governance/",
+    "registry_filename_pattern": "approval|authorization JSON",
     "active_record_exact_main_equality_required": true,
     "issuance_main_must_equal_pr_base_sha": true,
     "issuance_main_must_equal_live_main_sha": true,
+    "full_candidate_registry_scan_required": true,
+    "full_base_registry_scan_required": true,
+    "git_tree_truncated_or_unknown": "FAIL_CLOSED",
+    "changed_file_pagination_incomplete": "FAIL_CLOSED",
+    "approval_record_delete_or_rename": "FAIL_CLOSED",
+    "malformed_or_unreadable_registry_record": "FAIL_CLOSED",
+    "duplicate_authority_id": "FAIL_CLOSED",
+    "active_committed_authority_may_survive_merge": false,
+    "active_external_authority_issue_comment_only_after_dormant_workflow_landed": true,
+    "live_issue_comment_readback_required_for_active_authority": true,
+    "runtime_workflow_specific_live_comment_verifier_required": true,
+    "generic_helper_or_synthetic_test_is_live_runtime_proof": false,
     "survives_main_drift": false,
     "ancestor_reuse_allowed": false,
     "same_candidate_blob_different_main_allowed": false,
     "stale_canonical_comment_allowed": false,
     "terminal_records_are_non_authority": true,
     "enforcement_points": [
-      "PR_LIFECYCLE_CLASSIFICATION",
-      "GOVERNED_LANDING_READINESS",
-      "SCOPE_AWARE_STATUS",
-      "ATOMIC_GOVERNED_LANDING",
-      "EXTERNAL_CALL_RUNTIME_BEFORE_SECRET_RESOLUTION"
+      "PR_LIFECYCLE_CLASSIFICATION_FULL_REGISTRY",
+      "GOVERNED_LANDING_READINESS_FULL_REGISTRY",
+      "SCOPE_AWARE_STATUS_FULL_REGISTRY",
+      "ATOMIC_GOVERNED_LANDING_FULL_REGISTRY",
+      "IMMEDIATE_PREMERGE_FULL_REGISTRY_RESCAN",
+      "EXTERNAL_CALL_RUNTIME_LIVE_RECEIPT_BEFORE_SECRET_RESOLUTION"
     ],
     "negative_cases_required": [
-      "DESCENDANT_MAIN_DRIFT",
-      "MERGE_MAIN_REBOUND",
-      "SAME_CANDIDATE_BLOB_DIFFERENT_MAIN",
-      "STALE_CANONICAL_COMMENT"
+      "UNCHANGED_ACTIVE_RECORD_DESCENDANT_MAIN",
+      "UNCHANGED_ACTIVE_RECORD_SAME_BLOB_NEW_MAIN",
+      "ACTIVE_RECORD_OUTSIDE_PR_DIFF",
+      "TRUNCATED_CANDIDATE_TREE",
+      "TRUNCATED_BASE_TREE",
+      "REMOVED_OR_RENAMED_AUTHORITY_RECORD",
+      "STALE_ISSUE_COMMENT_NO_RUNTIME_INTEGRATION",
+      "FULL_REGISTRY_SCAN_REMOVED_FROM_LIFECYCLE",
+      "FULL_REGISTRY_SCAN_REMOVED_FROM_SCOPE_AWARE",
+      "FULL_REGISTRY_SCAN_REMOVED_FROM_ATOMIC_LANDING"
     ],
-    "root_issue": 1787
+    "root_issues": [1787, 1793]
   },
   "review_policy": {
     "minimum_non_author_approvals": 0,
@@ -103,6 +125,7 @@
     "failure_revokes_exact_head_status": true,
     "success_status_and_merge_are_same_trusted_job": true,
     "immediate_post_status_premerge_reread_required": true,
+    "immediate_full_authority_registry_rescan_required": true,
     "expected_head_compare_is_atomic_for_sha_only": true,
     "no_merge_label_atomicity_claimed": false
   },
