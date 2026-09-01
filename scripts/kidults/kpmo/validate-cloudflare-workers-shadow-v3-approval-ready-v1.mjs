@@ -212,10 +212,27 @@ ok(workflow.includes('${{ runner.temp }}/kidults-cloudflare-workers-shadow-v3/re
 
 for (const forbidden of [
   'api.cloudflare.com/client/v4/zones',
-  'custom_domain',
+  '/workers/domains',
+  'custom-domains',
+  '--custom-domain',
   'pages/projects',
   'wrangler pages',
 ]) ok(!workflow.includes(forbidden), `WORKFLOW_FORBIDDEN_PROVIDER_SURFACE:${forbidden}`);
+
+const allowedCustomDomainLines = new Set([
+  'custom_domains:0,',
+  'and .authorized_scope.custom_domains_allowed==false',
+  '"custom_domains": 0,',
+  '| .custom_domains=0',
+]);
+const customDomainLines = workflow
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.includes('custom_domain'));
+ok(customDomainLines.length === 4, 'WORKFLOW_CUSTOM_DOMAIN_ZERO_ASSERTION_COUNT');
+for (const line of customDomainLines) {
+  ok(allowedCustomDomainLines.has(line), `WORKFLOW_CUSTOM_DOMAIN_UNEXPECTED_CONTEXT:${line}`);
+}
 
 for (const [label, prior] of [['V1', v1Workflow], ['V2', v2Workflow]]) {
   ok(/^on: \[\]\n\npermissions:\n  contents: read\n/m.test(prior), `${label}_TRIGGER_NOT_REMOVED`);
