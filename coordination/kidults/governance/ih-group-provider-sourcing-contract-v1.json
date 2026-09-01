@@ -1,9 +1,16 @@
 {
   "id": "ih-group-provider-sourcing-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY",
   "effective_date": "2026-08-29",
+  "amended_at": "2026-09-01T00:00:00Z",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+  "mandatory_strategy_addenda": [
+    "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md"
+  ],
+  "machine_readable_strategy_addenda": [
+    "coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json"
+  ],
   "scope": [
     "Intelligence Holdings",
     "KIDULTS",
@@ -46,6 +53,35 @@
     "derived-artifact-survival-and-pre-existing-ip",
     "privacy-consent-transfer-and-security-roles-where-applicable"
   ],
+  "negotiation_communication_policy": {
+    "status": "MANDATORY_NON_BYPASS",
+    "channel": "WRITTEN_EMAIL_ONLY",
+    "program_owner_native_language": "NOT_ENGLISH",
+    "phone_voice_video_calls": "NOT_AVAILABLE",
+    "reason": "Accuracy of technical, rights, pricing, commercial and contractual terms and an auditable record are mandatory because English is not the Program Owner's native language.",
+    "provider_call_request": "POLITELY_DECLINE_AND_REQUEST_WRITTEN_EMAIL_RESPONSE",
+    "provider_call_requirement": "HOLD_OR_REPLACE",
+    "verbal_only_material_terms": "NON_ADMISSIBLE",
+    "agent_must_not": [
+      "offer-or-accept-a-call",
+      "ask-the-program-owner-for-call-availability",
+      "describe-a-call-as-the-next-step",
+      "suggest-a-call-after-email-alignment",
+      "treat-verbal-statements-as-rights-commercial-or-contract-evidence"
+    ],
+    "material_terms_must_be_written": [
+      "rights-and-permitted-uses",
+      "schema-and-field-semantics",
+      "pricing-volume-and-minimums",
+      "term-renewal-cancellation-and-notice",
+      "retention-deletion-and-post-termination",
+      "derived-output-and-pre-existing-ip",
+      "attribution-display-and-redistribution",
+      "quota-sla-support-and-schema-change",
+      "security-privacy-and-audit",
+      "assignment-novation-and-change-of-control"
+    ]
+  },
   "vertical_posture": {
     "Intelligence Holdings": "open-authority-first; buy shared utility only after measured multi-product reuse",
     "KIDULTS": "collectible identity, authentication, provenance and lawful SOLD evidence",
@@ -67,10 +103,15 @@
   "agent_requirements": {
     "bootstrap_required": true,
     "read_exact_head_strategy_and_contract": true,
+    "read_all_mandatory_strategy_addenda": true,
     "read_provider_registry_and_communication_evidence": true,
     "duplicate_outreach_forbidden": true,
     "resend_sent_email_without_explicit_authority_forbidden": true,
     "separate_fact_provider_claim_inference_and_recommendation": true,
+    "written_email_only_negotiation_required": true,
+    "never_offer_accept_or_recommend_phone_voice_or_video_call": true,
+    "never_ask_program_owner_for_call_availability": true,
+    "provider_refusal_to_write_material_terms_routes_to_hold_or_replace": true,
     "truth_sync_before_reporting": true,
     "report_dimensions": [
       "source-layer",
