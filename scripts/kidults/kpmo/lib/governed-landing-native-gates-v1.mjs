@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 export class GateFailure extends Error {
@@ -11,6 +13,100 @@ export class GateFailure extends Error {
 
 const fail = (code, detail = '') => { throw new GateFailure(code, detail); };
 const normalized = value => String(value ?? '').trim().toLowerCase();
+
+const EXACT_HEAD_APPROVAL_MARKER = 'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V1';
+const EXACT_HEAD_APPROVAL_SCOPE = 'ONE_ATOMIC_GOVERNED_LANDING_ONLY';
+const exactTime = (value, code) => {
+  const parsed = Date.parse(String(value || ''));
+  if (!Number.isFinite(parsed)) fail(code);
+  return parsed;
+};
+
+function parseExactHeadApprovalBody(body) {
+  const lines = String(body || '').trim().split(/\r?\n/);
+  if (lines[0] !== EXACT_HEAD_APPROVAL_MARKER) return null;
+  const expectedKeys = [
+    'pull_request',
+    'exact_base_sha',
+    'exact_head_sha',
+    'authorization_id',
+    'scope',
+    'approval_rebind',
+  ];
+  if (lines.length !== expectedKeys.length + 1) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_SHAPE_INVALID');
+  const values = {};
+  for (const line of lines.slice(1)) {
+    const match = /^([a-z_]+)=(.+)$/.exec(line);
+    if (!match || !expectedKeys.includes(match[1]) || Object.hasOwn(values, match[1])) {
+      fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_FIELD_INVALID');
+    }
+    values[match[1]] = match[2];
+  }
+  if (Object.keys(values).length !== expectedKeys.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_FIELD_SET_INVALID');
+  return values;
+}
+
+export function selectExactHeadProgramOwnerApproval(comments, {
+  repositoryOwner,
+  prNumber,
+  headSha,
+  baseSha,
+  authorizationId,
+  prCreatedAt,
+  headCommittedAt,
+  latestReadyAt,
+} = {}) {
+  if (!Array.isArray(comments)) fail('PROGRAM_OWNER_APPROVAL_COMMENT_SET_INVALID');
+  if (!repositoryOwner || !/^\d+$/.test(String(prNumber || ''))
+    || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
+    fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
+  }
+  const marked = comments
+    .map(comment => ({comment, fields: parseExactHeadApprovalBody(comment?.body)}))
+    .filter(item => item.fields)
+    .sort((a, b) => exactTime(b.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      - exactTime(a.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+  if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
+
+  // The newest structured approval is authoritative. An older exact approval may
+  // never mask a later stale-head, edited, or self-rebinding approval comment.
+  const {comment, fields} = marked[0];
+  if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
+    fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
+  }
+  if (comment.updated_at !== comment.created_at) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
+  if (fields.pull_request !== String(prNumber)) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_PR_MISMATCH');
+  if (fields.exact_head_sha !== headSha) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
+  if (fields.exact_base_sha !== baseSha) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_BASE_MISMATCH');
+  if (fields.authorization_id !== authorizationId) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ID_MISMATCH');
+  if (fields.scope !== EXACT_HEAD_APPROVAL_SCOPE) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_SCOPE_INVALID');
+  if (fields.approval_rebind !== 'FORBIDDEN') fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_REBIND_INVALID');
+
+  const approvedAt = exactTime(comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID');
+  if (approvedAt < exactTime(prCreatedAt, 'PROGRAM_OWNER_APPROVAL_PR_TIME_INVALID')) {
+    fail('PROGRAM_OWNER_APPROVAL_PRECEDES_PR');
+  }
+  if (approvedAt < exactTime(headCommittedAt, 'PROGRAM_OWNER_APPROVAL_HEAD_TIME_INVALID')) {
+    fail('PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
+  }
+  if (approvedAt > exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID')) {
+    fail('PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
+  }
+
+  return {
+    comment_id: Number(comment.id),
+    comment_created_at: comment.created_at,
+    comment_body_digest: `sha256:${createHash('sha256').update(String(comment.body)).digest('hex')}`,
+    actor: comment.user.login,
+    pull_request: Number(prNumber),
+    exact_base_sha: baseSha,
+    exact_head_sha: headSha,
+    authorization_id: authorizationId,
+    scope: fields.scope,
+    approval_rebind: fields.approval_rebind,
+  };
+}
 
 export function noMergeBlockers(pr, policy) {
   const blockers = [];
