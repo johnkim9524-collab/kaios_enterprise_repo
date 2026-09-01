@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  assertChangedApprovalGenerationEquality,
+  assertFullApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
@@ -152,14 +152,18 @@ async function main() {
   let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-    const [prInitial, mainBranch, statuses, files] = await Promise.all([
+    const [prInitial, mainBranch, statuses] = await Promise.all([
       api(`/pulls/${prNumber}`),
       api('/branches/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
-      pages(`/pulls/${prNumber}/files`),
     ]);
-    const approvalGeneration = await assertChangedApprovalGenerationEquality({
-      files,
+    const [approvalBaseTree, approvalHeadTree] = await Promise.all([
+      api(`/git/trees/${prInitial.base.sha}?recursive=1`),
+      api(`/git/trees/${prInitial.head.sha}?recursive=1`),
+    ]);
+    const approvalGeneration = await assertFullApprovalGenerationEquality({
+      baseTree: approvalBaseTree,
+      headTree: approvalHeadTree,
       readJson: filename => readJsonAtRef(filename, prInitial.head.sha),
       prBaseSha: prInitial.base.sha,
       liveMainSha: mainBranch?.commit?.sha,
