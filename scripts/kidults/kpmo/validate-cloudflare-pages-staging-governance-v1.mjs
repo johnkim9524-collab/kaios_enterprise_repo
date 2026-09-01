@@ -59,11 +59,11 @@ req(policy.deployment_policy?.provider_call_reachable === false, 'DEPLOY_CALL_UN
 
 const readonlyWorkflowIsFailClosed = (text) => {
   const falseGateCount = (text.match(/if: \$\{\{ false \}\}/g) || []).length;
-  const forbiddenTriggerPresent = /^  (push|schedule|workflow_dispatch):/m.test(text);
-  return falseGateCount === 1 && /^  pull_request:/m.test(text) && !forbiddenTriggerPresent;
+  const forbiddenTriggerPresent = /^  (push|schedule|pull_request):/m.test(text);
+  return falseGateCount === 1 && /^  workflow_dispatch:/m.test(text) && !forbiddenTriggerPresent;
 };
 req(policy.read_only_monitor?.state === 'FAIL_CLOSED_PENDING_ISSUE_1831', 'READONLY_STATE');
-req(JSON.stringify(policy.read_only_monitor?.triggers) === JSON.stringify(['pull_request']), 'READONLY_TRIGGERS');
+req(JSON.stringify(policy.read_only_monitor?.triggers) === JSON.stringify(['workflow_dispatch']), 'READONLY_TRIGGERS');
 req(policy.read_only_monitor?.schedule === 'DISABLED', 'READONLY_SCHEDULE_DISABLED');
 req(policy.read_only_monitor?.job_condition === '${{ false }}', 'READONLY_JOB_FALSE');
 req(policy.read_only_monitor?.settings_readback_required === false, 'READONLY_READBACK_NOT_REQUIRED');
@@ -73,7 +73,9 @@ req(policy.read_only_monitor?.historical_provider_receipt_is_runtime_authorizati
 req(policy.read_only_monitor?.fresh_exact_main_program_owner_approval_required === true, 'READONLY_FRESH_APPROVAL_REQUIRED');
 req(readonlyWorkflowIsFailClosed(readonlyWorkflow), 'READONLY_RUNTIME_NOT_DISABLED');
 req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('if: ${{ false }}', 'if: always()')) === false, 'MUTATION_FALSE_GREEN:READONLY_GATE_REMOVED');
-req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  pull_request:', '  schedule:\n    - cron: \'*/30 * * * *\'')) === false, 'MUTATION_FALSE_GREEN:READONLY_SCHEDULE_RESTORED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  schedule:\n    - cron: \'*/30 * * * *\'')) === false, 'MUTATION_FALSE_GREEN:READONLY_SCHEDULE_RESTORED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  push:\n    branches: [main]')) === false, 'MUTATION_FALSE_GREEN:READONLY_PUSH_RESTORED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  pull_request:')) === false, 'MUTATION_FALSE_GREEN:READONLY_PR_SECRET_SURFACE_RESTORED');
 req(policy.read_only_monitor?.visible_preview_count_must_be_zero === true, 'PREVIEW_ZERO');
 req(policy.read_only_monitor?.remote_mutation === false, 'READONLY_NO_MUTATION');
 req(policy.emergency_control?.state === 'FAIL_CLOSED_PENDING_ISSUE_1576', 'EMERGENCY_STATE');
