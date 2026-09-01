@@ -126,15 +126,16 @@ export async function runCurrentSoldControlSmoke(argv = process.argv.slice(2)) {
     expectedReceiptRegistryDigest: canonicalJsonDigest(receiptRegistry)
   });
   if (receipt.status !== 'PASS') fail('CURRENT_SOLD_CONTROL_SMOKE_NOT_PASS');
-  if (receipt.counts.empirical_admitted !== 0 || receipt.counts.control_synthetic_admitted !== 1) {
+  if (receipt.counts.lawful_empirical_admitted !== 0 || receipt.counts.private_candidate_admitted !== 0 || receipt.counts.control_synthetic_admitted !== 1) {
     fail('CURRENT_SOLD_CONTROL_SMOKE_CLAIM_BOUNDARY_BROKEN');
   }
-  await writeCurrentSoldDryRunReceipt(output, receipt);
+  await writeCurrentSoldDryRunReceipt(output, receipt, { executionClass: 'CONTROL_SYNTHETIC' });
   process.stdout.write(`${JSON.stringify({
     result: 'PASS',
     receipt_id: receipt.receipt_id,
     control_synthetic_admitted: 1,
-    empirical_admitted: 0,
+    lawful_empirical_admitted: 0,
+    private_candidate_admitted: 0,
     postgres_migration_applied: false,
     postgres_rows_written: 0,
     provider_calls: 0,

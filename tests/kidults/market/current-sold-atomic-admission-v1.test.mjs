@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   admitAtomicCurrentSoldBatch,
   buildAtomicCurrentSoldBatchBundle,
-  STRICT_CURRENT_MAX_AGE_DAYS
+  STRICT_CURRENT_MAX_AGE_DAYS,
+  CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS
 } from '../../../scripts/kidults/market/current-sold-atomic-batch-v1.mjs';
 import { canonicalJsonDigest } from '../../../scripts/kidults/market/current-sold-batch-v1.mjs';
 import {
@@ -28,6 +29,7 @@ test('atomic admission preserves a full PASS batch', () => {
   assert.equal(result.diagnostic_candidates.length, 0);
   assert.equal(result.claim_boundary.atomic_batch_admission, true);
   assert.equal(result.claim_boundary.strict_current_max_age_days, STRICT_CURRENT_MAX_AGE_DAYS);
+  assert.equal(result.claim_boundary.max_clock_skew_seconds, CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS);
 });
 
 test('one invalid unrelated row withholds every otherwise valid admission', () => {
@@ -69,6 +71,31 @@ test('strict Current-SOLD rejects an otherwise valid sale older than seven days'
   assert.equal(result.admitted_count, 0);
   assert.equal(result.rejected_count, 1);
   assert.equal(result.rejected[0].reason, 'CURRENT_SOLD_NOT_STRICT_CURRENT');
+});
+
+
+test('strict Current-SOLD rejects sale timestamps beyond bounded clock skew', () => {
+  const input = valid({
+    sold_at: '2026-09-01T05:10:00.000Z',
+    observed_at: '2026-09-01T05:20:00.000Z'
+  });
+  const registry = receiptRegistryFor(input);
+  const result = admitAtomicCurrentSoldBatch([input], { now: NOW, receiptRegistry: registry });
+  assert.equal(result.status, 'PARTIAL_FAIL_CLOSED');
+  assert.equal(result.admitted_count, 0);
+  assert.equal(result.rejected[0].reason, 'CURRENT_SOLD_SALE_IN_FUTURE');
+});
+
+test('strict Current-SOLD rejects observation timestamps beyond bounded clock skew', () => {
+  const input = valid({
+    sold_at: '2026-09-01T04:00:00.000Z',
+    observed_at: '2026-09-01T05:10:00.000Z'
+  });
+  const registry = receiptRegistryFor(input);
+  const result = admitAtomicCurrentSoldBatch([input], { now: NOW, receiptRegistry: registry });
+  assert.equal(result.status, 'PARTIAL_FAIL_CLOSED');
+  assert.equal(result.admitted_count, 0);
+  assert.equal(result.rejected[0].reason, 'CURRENT_SOLD_OBSERVED_IN_FUTURE');
 });
 
 test('atomic bundle emits no event versions or Evidence for a non-PASS batch', () => {

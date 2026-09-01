@@ -1,1 +1,451 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"kidults-current-sold-private-dry-run-receipt-v1","title":"KIDULTS Current-SOLD Private Dry-Run Receipt V1","type":"object","additionalProperties":false,"required":["schema_version","receipt_id","receipt_type","status","execution_class","registry_authority_class","batch_id","batch_receipt_id","evaluated_at","source_sha","canonical_run_id","envelope_digest","receipt_registry_digest","admission_digest","event_versions_digest","evidence_digest","counts","atomicity","privacy","ledger","claim_boundary"],"properties":{"schema_version":{"const":"current-sold-private-dry-run-receipt-v1"},"receipt_id":{"type":"string","pattern":"^csdr_[a-f0-9]{24}$"},"receipt_type":{"const":"CURRENT_SOLD_PRIVATE_DRY_RUN"},"status":{"enum":["PASS","PARTIAL_FAIL_CLOSED","FAIL_CLOSED"]},"execution_class":{"enum":["CONTROL_SYNTHETIC","LAWFUL_EMPIRICAL_PRIVATE"]},"registry_authority_class":{"enum":["CONTROL_SYNTHETIC_GENERATOR","GOVERNED_LEDGER_DIGEST"]},"batch_id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"},"batch_receipt_id":{"type":"string","pattern":"^csr_[a-f0-9]{24}$"},"evaluated_at":{"type":"string","format":"date-time"},"source_sha":{"type":"string","pattern":"^[a-f0-9]{40}$"},"canonical_run_id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"},"envelope_digest":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"receipt_registry_digest":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"admission_digest":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"event_versions_digest":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"evidence_digest":{"type":"string","pattern":"^sha256:[a-f0-9]{64}$"},"counts":{"type":"object","additionalProperties":false,"required":["input","validated_candidates","admitted","rejected","quarantined","superseded","evidence","empirical_admitted","control_synthetic_admitted"],"properties":{"input":{"type":"integer","minimum":0},"validated_candidates":{"type":"integer","minimum":0},"admitted":{"type":"integer","minimum":0},"rejected":{"type":"integer","minimum":0},"quarantined":{"type":"integer","minimum":0},"superseded":{"type":"integer","minimum":0},"evidence":{"type":"integer","minimum":0},"empirical_admitted":{"type":"integer","minimum":0},"control_synthetic_admitted":{"type":"integer","minimum":0}}},"atomicity":{"type":"object","additionalProperties":false,"required":["whole_batch_atomic","non_pass_admission_withheld"],"properties":{"whole_batch_atomic":{"const":true},"non_pass_admission_withheld":{"const":true}}},"privacy":{"type":"object","additionalProperties":false,"required":["raw_input_emitted","raw_registry_emitted","raw_event_versions_emitted","raw_evidence_emitted","raw_bundle_persisted","stdout_redacted","receipt_file_mode"],"properties":{"raw_input_emitted":{"const":false},"raw_registry_emitted":{"const":false},"raw_event_versions_emitted":{"const":false},"raw_evidence_emitted":{"const":false},"raw_bundle_persisted":{"const":false},"stdout_redacted":{"const":true},"receipt_file_mode":{"const":"0600"}}},"ledger":{"type":"object","additionalProperties":false,"required":["write_requested","write_performed","migration_applied","rows_written","pass_bundle_eligible"],"properties":{"write_requested":{"const":false},"write_performed":{"const":false},"migration_applied":{"const":false},"rows_written":{"const":0},"pass_bundle_eligible":{"type":"boolean"}}},"claim_boundary":{"type":"object","additionalProperties":false,"required":["claim_ceiling","synthetic_is_empirical","empirical_global_current_sold_claim","public","production","g5"],"properties":{"claim_ceiling":{"enum":["CONTROL_ONLY","PIPELINE_FUNCTIONAL_ONLY"]},"synthetic_is_empirical":{"const":false},"empirical_global_current_sold_claim":{"const":"UNSET"},"public":{"const":"HOLD"},"production":{"const":"HOLD"},"g5":{"const":"HOLD"}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-private-dry-run-receipt-v1",
+  "title": "KIDULTS Current-SOLD Private Dry-Run Receipt V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "receipt_type",
+    "status",
+    "execution_class",
+    "registry_authority_class",
+    "batch_id_digest",
+    "batch_receipt_id",
+    "evaluated_at",
+    "clock",
+    "authority",
+    "source_sha",
+    "canonical_run_id_digest",
+    "envelope_digest",
+    "receipt_registry_digest",
+    "admission_digest",
+    "event_versions_digest",
+    "evidence_digest",
+    "counts",
+    "atomicity",
+    "privacy",
+    "ledger",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-private-dry-run-receipt-v1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^csdr_[a-f0-9]{24}$"
+    },
+    "receipt_type": {
+      "const": "CURRENT_SOLD_PRIVATE_DRY_RUN"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "PARTIAL_FAIL_CLOSED",
+        "FAIL_CLOSED"
+      ]
+    },
+    "execution_class": {
+      "enum": [
+        "CONTROL_SYNTHETIC",
+        "EMPIRICAL_CANDIDATE_PRIVATE"
+      ]
+    },
+    "registry_authority_class": {
+      "enum": [
+        "CONTROL_SYNTHETIC_GENERATOR",
+        "EXTERNAL_EXACT_DIGEST_UNVERIFIED"
+      ]
+    },
+    "batch_receipt_id": {
+      "type": "string",
+      "pattern": "^csr_[a-f0-9]{24}$"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority",
+        "override_used"
+      ],
+      "properties": {
+        "authority": {
+          "enum": [
+            "CONTROL_FIXED_OR_SYSTEM_UTC",
+            "SYSTEM_UTC"
+          ]
+        },
+        "override_used": {
+          "type": "boolean"
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry_digest_exact_match",
+        "governed_registry_authority_verified",
+        "lawful_admission_authorized"
+      ],
+      "properties": {
+        "registry_digest_exact_match": {
+          "const": true
+        },
+        "governed_registry_authority_verified": {
+          "const": false
+        },
+        "lawful_admission_authorized": {
+          "const": false
+        }
+      }
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "envelope_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "receipt_registry_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "admission_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "event_versions_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "evidence_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "validated_candidates",
+        "admitted",
+        "rejected",
+        "quarantined",
+        "superseded",
+        "evidence",
+        "lawful_empirical_admitted",
+        "private_candidate_admitted",
+        "control_synthetic_admitted"
+      ],
+      "properties": {
+        "input": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "validated_candidates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "admitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "superseded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lawful_empirical_admitted": {
+          "const": 0
+        },
+        "private_candidate_admitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "control_synthetic_admitted": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "atomicity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "whole_batch_atomic",
+        "non_pass_admission_withheld"
+      ],
+      "properties": {
+        "whole_batch_atomic": {
+          "const": true
+        },
+        "non_pass_admission_withheld": {
+          "const": true
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_input_emitted",
+        "raw_registry_emitted",
+        "raw_event_versions_emitted",
+        "raw_evidence_emitted",
+        "raw_bundle_persisted",
+        "stdout_redacted",
+        "receipt_file_mode"
+      ],
+      "properties": {
+        "raw_input_emitted": {
+          "const": false
+        },
+        "raw_registry_emitted": {
+          "const": false
+        },
+        "raw_event_versions_emitted": {
+          "const": false
+        },
+        "raw_evidence_emitted": {
+          "const": false
+        },
+        "raw_bundle_persisted": {
+          "const": false
+        },
+        "stdout_redacted": {
+          "const": true
+        },
+        "receipt_file_mode": {
+          "const": "0600"
+        }
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "write_requested",
+        "write_performed",
+        "migration_applied",
+        "rows_written",
+        "pass_bundle_eligible"
+      ],
+      "properties": {
+        "write_requested": {
+          "const": false
+        },
+        "write_performed": {
+          "const": false
+        },
+        "migration_applied": {
+          "const": false
+        },
+        "rows_written": {
+          "const": 0
+        },
+        "pass_bundle_eligible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ceiling",
+        "synthetic_is_empirical",
+        "candidate_is_lawful_empirical",
+        "empirical_global_current_sold_claim",
+        "public",
+        "production",
+        "g5"
+      ],
+      "properties": {
+        "claim_ceiling": {
+          "enum": [
+            "CONTROL_ONLY",
+            "PRIVATE_PIPELINE_CANDIDATE_ONLY"
+          ]
+        },
+        "synthetic_is_empirical": {
+          "const": false
+        },
+        "candidate_is_lawful_empirical": {
+          "const": false
+        },
+        "empirical_global_current_sold_claim": {
+          "const": "UNSET"
+        },
+        "public": {
+          "const": "HOLD"
+        },
+        "production": {
+          "const": "HOLD"
+        },
+        "g5": {
+          "const": "HOLD"
+        }
+      }
+    },
+    "batch_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "canonical_run_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution_class": {
+            "const": "CONTROL_SYNTHETIC"
+          }
+        },
+        "required": [
+          "execution_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_authority_class": {
+            "const": "CONTROL_SYNTHETIC_GENERATOR"
+          },
+          "clock": {
+            "properties": {
+              "authority": {
+                "const": "CONTROL_FIXED_OR_SYSTEM_UTC"
+              }
+            }
+          },
+          "counts": {
+            "properties": {
+              "lawful_empirical_admitted": {
+                "const": 0
+              },
+              "private_candidate_admitted": {
+                "const": 0
+              }
+            }
+          },
+          "claim_boundary": {
+            "properties": {
+              "claim_ceiling": {
+                "const": "CONTROL_ONLY"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_class": {
+            "const": "EMPIRICAL_CANDIDATE_PRIVATE"
+          }
+        },
+        "required": [
+          "execution_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "registry_authority_class": {
+            "const": "EXTERNAL_EXACT_DIGEST_UNVERIFIED"
+          },
+          "clock": {
+            "properties": {
+              "authority": {
+                "const": "SYSTEM_UTC"
+              },
+              "override_used": {
+                "const": false
+              }
+            }
+          },
+          "counts": {
+            "properties": {
+              "lawful_empirical_admitted": {
+                "const": 0
+              },
+              "control_synthetic_admitted": {
+                "const": 0
+              }
+            }
+          },
+          "claim_boundary": {
+            "properties": {
+              "claim_ceiling": {
+                "const": "PRIVATE_PIPELINE_CANDIDATE_ONLY"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "PARTIAL_FAIL_CLOSED",
+              "FAIL_CLOSED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "counts": {
+            "properties": {
+              "admitted": {
+                "const": 0
+              },
+              "evidence": {
+                "const": 0
+              },
+              "private_candidate_admitted": {
+                "const": 0
+              },
+              "control_synthetic_admitted": {
+                "const": 0
+              }
+            }
+          },
+          "ledger": {
+            "properties": {
+              "pass_bundle_eligible": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

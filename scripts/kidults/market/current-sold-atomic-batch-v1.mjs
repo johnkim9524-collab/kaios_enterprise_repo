@@ -11,6 +11,8 @@ import {
 } from './current-sold-evidence-v1.mjs';
 
 export const STRICT_CURRENT_MAX_AGE_DAYS = 7;
+export const CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS = 300;
+const MAX_CLOCK_SKEW_MS = CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS * 1000;
 const SHA256_RE = /^sha256:[a-f0-9]{64}$/;
 
 function fail(code) {
@@ -22,13 +24,13 @@ function validNow(value) {
   return value;
 }
 
-function strictCurrentRejection(event) {
+function strictCurrentRejection(event, reason) {
   return {
     source_id: event.source_id,
     source_event_id: event.source_event_id,
     canonical_object_id: event.canonical_object_id,
     disposition: 'REJECTED',
-    reason: 'CURRENT_SOLD_NOT_STRICT_CURRENT'
+    reason
   };
 }
 
@@ -36,10 +38,20 @@ function strictCurrentViolations(events, now) {
   const violations = [];
   for (const event of events) {
     const soldAt = new Date(event.sold_at);
+    const observedAt = new Date(event.observed_at);
     if (Number.isNaN(soldAt.getTime())) fail('CURRENT_SOLD_ATOMIC_INVALID_SOLD_AT');
+    if (Number.isNaN(observedAt.getTime())) fail('CURRENT_SOLD_ATOMIC_INVALID_OBSERVED_AT');
+    if (soldAt.getTime() > now.getTime() + MAX_CLOCK_SKEW_MS) {
+      violations.push(strictCurrentRejection(event, 'CURRENT_SOLD_SALE_IN_FUTURE'));
+      continue;
+    }
+    if (observedAt.getTime() > now.getTime() + MAX_CLOCK_SKEW_MS) {
+      violations.push(strictCurrentRejection(event, 'CURRENT_SOLD_OBSERVED_IN_FUTURE'));
+      continue;
+    }
     const ageDays = (now.getTime() - soldAt.getTime()) / 86400000;
-    if (ageDays < -1 / 24 || ageDays > STRICT_CURRENT_MAX_AGE_DAYS) {
-      violations.push(strictCurrentRejection(event));
+    if (ageDays > STRICT_CURRENT_MAX_AGE_DAYS) {
+      violations.push(strictCurrentRejection(event, 'CURRENT_SOLD_NOT_STRICT_CURRENT'));
     }
   }
   return violations;
@@ -78,6 +90,7 @@ export function admitAtomicCurrentSoldBatch(observations, options = {}) {
     status,
     atomic_batch: true,
     strict_current_max_age_days: STRICT_CURRENT_MAX_AGE_DAYS,
+    max_clock_skew_seconds: CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS,
     validated_candidate_count: validatedCandidates.length,
     diagnostic_candidates: pass ? [] : validatedCandidates.map(diagnosticIdentity),
     diagnostic_superseded: pass ? [] : validatedSuperseded.map(diagnosticIdentity),
@@ -94,6 +107,7 @@ export function admitAtomicCurrentSoldBatch(observations, options = {}) {
       external_sources_are_replaceable_evidence_layers: true,
       atomic_batch_admission: true,
       strict_current_max_age_days: STRICT_CURRENT_MAX_AGE_DAYS,
+      max_clock_skew_seconds: CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS,
       validated_candidate_count: validatedCandidates.length,
       batch_admitted_current_sold_count: admitted.length,
       public: 'HOLD',
@@ -199,6 +213,7 @@ export function buildAtomicCurrentSoldBatchBundle(
     atomic_control: {
       schema_version: 'current-sold-atomic-control-v1',
       strict_current_max_age_days: STRICT_CURRENT_MAX_AGE_DAYS,
+      max_clock_skew_seconds: CURRENT_SOLD_MAX_CLOCK_SKEW_SECONDS,
       whole_batch_atomic: true,
       expected_receipt_registry_digest_bound: true
     },
