@@ -1,0 +1,89 @@
+name: KIDULTS Cloudflare Workers Shadow V3 Approval-Ready Validation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-v3-approval-ready-validation-v1.yml'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-workflow-spec-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260901-03.md'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
+      - 'scripts/kidults/kpmo/github-trusted-ref-environment-readback-v1.mjs'
+      - 'tooling/kidults-cloudflare-workers-shadow/package.json'
+      - 'tooling/kidults-cloudflare-workers-shadow/package-lock.json'
+      - 'apps/kidults-enterprise-staging/public/portal/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-shadow-v3-approval-ready-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact validation SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact validation source
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate consumed v1 zero-authority tombstone
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs
+
+      - name: Validate consumed v2 zero-authority tombstone
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs
+
+      - name: Validate v3 approval, one-shot, receipt and topology contract
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
+
+      - name: Validate complete secret-bearing workflow registry
+        run: node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
+
+      - name: Install exact locked Wrangler tooling
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix tooling/kidults-cloudflare-workers-shadow
+
+      - name: Prove config-relative portal assets with locked Wrangler dry-run
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "4.127.1"
+          OUT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v3-pr-dry-run"
+          ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy \
+            --dry-run \
+            --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc \
+            --outdir "$OUT"
+          test -d "$OUT"

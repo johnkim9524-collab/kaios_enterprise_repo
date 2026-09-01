@@ -1,7 +1,7 @@
 {
   "id": "CF-WORKERS-SHADOW-20260831-01",
   "version": "1.0.0",
-  "status": "CONSUMED_FAIL_CLOSED_PRE_PROVIDER_NO_MUTATION",
+  "status": "CONSUMED_ZERO_EXECUTABLE_AUTHORITY",
   "authorized_by": {
     "github_login": "johnkim9524-collab",
     "author_association": "OWNER"
@@ -91,13 +91,23 @@
     "failure_code": "RECEIPT_REMOVED_BY_CHECKOUT_CLEAN",
     "root_cause": "WORKSPACE_SCOPED_RECEIPT_CREATED_BEFORE_ACTIONS_CHECKOUT_CLEAN",
     "terminal_receipt_path": "coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json",
-    "issue_truth_sync_comment_id": 5480837077
+    "issue_truth_sync_comment_id": 5480837077,
+    "execution_evidence_class": "NO_RUN_ARTIFACT_POST_HOC_CONTROL_ONLY",
+    "artifact_count": 0,
+    "promotable": false,
+    "empirical_provider_success": false
   },
   "tombstone": {
-    "workflow_job_permanently_disabled": true,
-    "job_condition": "${{ false }}",
-    "provider_secret_resolution_possible": false,
-    "provider_mutation_possible": false,
+    "workflow_job_permanently_disabled": false,
+    "zero_authority_dispatch_tombstone": true,
+    "secret_registry_membership": false,
+    "environment_bound": false,
+    "secret_references_present": false,
+    "checkout_present": false,
+    "provider_tooling_present": false,
+    "network_provider_step_present": false,
+    "terminal_artifact_only": true,
+    "deterministic_failure_after_upload": true,
     "replacement_rule": "NEW_VERSIONED_WORKFLOW_PLUS_NEW_EXPLICIT_APPROVAL_REQUIRED"
   },
   "replay": "FORBIDDEN_AFTER_FIRST_WORKFLOW_DISPATCH_REGARDLESS_OF_TERMINAL_STATE",
@@ -113,5 +123,8 @@
     "SPEND_OR_CONTRACT_EXPANSION",
     "NEW_CREDENTIAL_OR_SCOPE_EXPANSION",
     "UNRELATED_PROVIDER_MUTATION"
-  ]
+  ],
+  "executable_authority": false,
+  "provider_activation_authority": false,
+  "credential_resolution_authority": false
 }
