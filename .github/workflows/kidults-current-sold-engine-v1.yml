@@ -5,7 +5,9 @@ on:
     paths:
       - 'coordination/kidults/market/current-sold-event-schema-v1.json'
       - 'coordination/kidults/market/current-sold-engine-v1.json'
+      - 'coordination/kidults/market/current-sold-smoke-001-v1.json'
       - 'scripts/kidults/market/current-sold-engine-v1.mjs'
+      - 'scripts/kidults/market/validate-current-sold-smoke-001-v1.mjs'
       - 'tests/kidults/market/current-sold-engine-v1.test.mjs'
       - 'docs/kidults/market/current-sold-engine-v1.md'
       - '.github/workflows/kidults-current-sold-engine-v1.yml'
@@ -31,17 +33,22 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/market/current-sold-event-schema-v1.json','utf8')); console.log('CURRENT_SOLD_SCHEMA_JSON_PASS')"
       - name: Run owned Current-SOLD engine tests
         run: node --test tests/kidults/market/current-sold-engine-v1.test.mjs
+      - name: Validate first lawful Current-SOLD smoke admission
+        run: node scripts/kidults/market/validate-current-sold-smoke-001-v1.mjs | tee /tmp/current-sold-smoke-001.json
       - name: Emit control-only receipt
         if: always()
         run: |
           mkdir -p out/current-sold-engine
+          if [ -f /tmp/current-sold-smoke-001.json ]; then
+            cp /tmp/current-sold-smoke-001.json out/current-sold-engine/smoke-001.json
+          fi
           cat > out/current-sold-engine/receipt.json <<EOF
-          {"control":"KIDULTS_CURRENT_SOLD_ENGINE_V1","source_sha":"${GITHUB_SHA}","run_id":"${GITHUB_RUN_ID}","run_attempt":"${GITHUB_RUN_ATTEMPT}","public":"HOLD","production":"HOLD","g5":"HOLD"}
+          {"control":"KIDULTS_CURRENT_SOLD_ENGINE_V1","source_sha":"${GITHUB_SHA}","run_id":"${GITHUB_RUN_ID}","run_attempt":"${GITHUB_RUN_ATTEMPT}","smoke_empirical_reference_target":1,"collector_market_evidence_target":0,"public":"HOLD","production":"HOLD","g5":"HOLD"}
           EOF
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: kidults-current-sold-engine-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/current-sold-engine/receipt.json
+          path: out/current-sold-engine/
           if-no-files-found: error
           retention-days: 30
