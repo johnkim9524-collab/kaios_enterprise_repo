@@ -1,0 +1,11 @@
+{
+  "id": "kidults-current-sold-smoke-001-status-v1",
+  "state": "PENDING_EXACT_HEAD_GOVERNED_VALIDATION",
+  "smoke_empirical_reference_count": 1,
+  "collector_current_sold_market_evidence_count": 0,
+  "official_track_b": "NOT_STARTED",
+  "approved_projection": "NONE",
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
