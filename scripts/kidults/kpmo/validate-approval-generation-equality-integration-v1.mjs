@@ -57,12 +57,24 @@ requireValue(lifecycle.includes('prBaseSha'), 'LIFECYCLE_PR_BASE_BINDING');
 for (const [name, text] of [
   ['SCOPE', scope],
   ['ATOMIC', atomic],
-  ['LIVE_VALIDATOR', liveValidator],
 ]) {
   requireValue(text.includes('assertChangedApprovalGenerationEquality'), `${name}_COMPATIBILITY_GATE_IMPORT_OR_CALL`);
   requireValue(text.includes('liveMainSha'), `${name}_LIVE_MAIN_BINDING`);
   requireValue(text.includes('prBaseSha'), `${name}_PR_BASE_BINDING`);
 }
+
+requireValue(liveValidator.includes('assertFullApprovalGenerationEquality'), 'LIVE_VALIDATOR_FULL_REGISTRY_DIRECT');
+requireValue(liveValidator.includes('GITHUB_EVENT_PATH'), 'LIVE_VALIDATOR_EVENT_PATH_BINDING');
+requireValue(liveValidator.includes('eventPayload?.pull_request?.head?.sha'), 'LIVE_VALIDATOR_EVENT_HEAD_BINDING');
+requireValue(liveValidator.includes('eventPayload?.pull_request?.base?.sha'), 'LIVE_VALIDATOR_EVENT_BASE_BINDING');
+requireValue(liveValidator.includes('APPROVAL_GENERATION_HEAD_CHANGED_FROM_EVENT'), 'LIVE_VALIDATOR_HEAD_DRIFT_FAIL_CLOSED');
+requireValue(liveValidator.includes('APPROVAL_GENERATION_BASE_CHANGED_FROM_EVENT'), 'LIVE_VALIDATOR_BASE_DRIFT_FAIL_CLOSED');
+requireValue(liveValidator.includes('APPROVAL_GENERATION_FINAL_HEAD_CHANGED'), 'LIVE_VALIDATOR_FINAL_HEAD_REREAD');
+requireValue(liveValidator.includes('APPROVAL_GENERATION_FINAL_BASE_CHANGED'), 'LIVE_VALIDATOR_FINAL_BASE_REREAD');
+requireValue(liveValidator.includes('APPROVAL_GENERATION_LIVE_MAIN_CHANGED_DURING_VALIDATION'), 'LIVE_VALIDATOR_FINAL_MAIN_REREAD');
+requireValue(liveValidator.includes('event_payload_bound: true'), 'LIVE_VALIDATOR_RECEIPT_EVENT_BINDING');
+requireValue(liveValidator.includes('final_live_reread: true'), 'LIVE_VALIDATOR_RECEIPT_FINAL_REREAD');
+
 requireValue(readinessWorkflow.includes('Enforce active approval-generation equality before readiness'), 'READINESS_STEP_NAME');
 requireValue(readinessWorkflow.includes('validate-approval-generation-equality-live-pr-v1.mjs'), 'READINESS_SCRIPT');
 requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs') < readinessWorkflow.indexOf('Enforce exact-head solo-owner authorization'), 'READINESS_ORDER');
@@ -115,7 +127,10 @@ console.log(JSON.stringify({
   policy_mode: generation.mode,
   enforcement_points: generation.enforcement_points,
   lifecycle_full_registry_direct: true,
-  scope_atomic_live_validator_full_registry_via_compatibility_gate: true,
+  live_validator_full_registry_direct: true,
+  live_validator_event_payload_bound: true,
+  live_validator_final_live_reread: true,
+  scope_atomic_full_registry_via_compatibility_gate: true,
   descendant_main_drift_rejected: true,
   merge_main_rebound_rejected: true,
   same_candidate_blob_different_main_rejected: true,

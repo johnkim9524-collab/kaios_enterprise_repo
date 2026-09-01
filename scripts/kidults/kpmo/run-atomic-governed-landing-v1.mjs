@@ -17,8 +17,14 @@ const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const executionRef = process.env.GITHUB_REF;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
+const landingRunId = process.env.GITHUB_RUN_ID;
+const landingRunAttempt = process.env.GITHUB_RUN_ATTEMPT;
+const githubOutput = process.env.GITHUB_OUTPUT;
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
+}
+if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') || !githubOutput) {
+  throw new Error('ATOMIC_LANDING_WORKFLOW_OUTPUT_BINDING_INVALID');
 }
 if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
 
@@ -76,6 +82,20 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
 
+const currentSoldPathMatchers = [
+  /^coordination\/kidults\/market\/current-sold-[^/]+\.json$/,
+  /^scripts\/kidults\/market\/current-sold-[^/]+\.mjs$/,
+  /^tests\/kidults\/market\/current-sold-[^/]+\.mjs$/,
+  /^infrastructure\/postgres\/current-sold\//,
+  /^docs\/kidults\/market\/current-sold-engine-v1\.md$/,
+  /^\.github\/workflows\/kidults-current-sold-engine-v1\.yml$/,
+  /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
+];
+const isCurrentSoldPath = value => currentSoldPathMatchers.some(pattern => pattern.test(value));
+
 const assertAtomicLandingMergeable = (pr, errorCode) => {
   const allowedStates = ['clean', 'unstable', 'has_hooks', 'blocked'];
   if (pr?.mergeable !== true || !allowedStates.includes(pr?.mergeable_state)) throw new Error(errorCode);
@@ -89,7 +109,7 @@ try {
   assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
-  const files = await pages(`/pulls/${prNumber}/files`);
+  const changedFileRecords = await pages(`/pulls/${prNumber}/files`);
   assertStableFinalReread(initial, initial, {
     repository,
     expectedHeadSha,
@@ -98,12 +118,16 @@ try {
   if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
   const approvalGeneration = await assertChangedApprovalGenerationEquality({
-    files,
+    files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: initial.base.sha,
     liveMainSha: initialMain.commit.sha,
   });
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
+
+  const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
+  if (changedFilenames.length !== changedFileRecords.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
+  const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -160,35 +184,60 @@ try {
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
   await assertChangedApprovalGenerationEquality({
-    files,
+    files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: immediatePreMerge.base.sha,
     liveMainSha: immediateMain.commit.sha,
   });
+
   const merged = await request(`/pulls/${prNumber}/merge`, {
     method: 'PUT',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'}),
   });
   if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
+
+  const postMergeMain = await request('/branches/main');
+  if (postMergeMain?.commit?.sha !== merged.sha) throw new Error('POST_MERGE_MAIN_SHA_MISMATCH');
+
+  const currentSoldChanged = currentSoldChangedFiles.length > 0;
+  fs.appendFileSync(githubOutput, [
+    `merge_commit_sha=${merged.sha}`,
+    `premerge_main_sha=${initial.base.sha}`,
+    `merged_pr_head_sha=${expectedHeadSha}`,
+    `pull_request_number=${prNumber}`,
+    `landing_authorization_id=${authorizationId}`,
+    `landing_run_id=${landingRunId}`,
+    `landing_run_attempt=${landingRunAttempt}`,
+    `current_sold_changed=${currentSoldChanged}`,
+    `current_sold_changed_file_count=${currentSoldChangedFiles.length}`,
+    '',
+  ].join('\n'));
+
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.1.0',
-    state: 'MERGED_VERIFIED',
+    version: '1.2.0',
+    state: currentSoldChanged ? 'MERGED_VERIFIED_POSTLANDING_REQUIRED' : 'MERGED_VERIFIED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
     exact_base_sha: initial.base.sha,
+    premerge_main_sha: initial.base.sha,
     merge_commit_sha: merged.sha,
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     landing_actor: landingActor,
+    landing_workflow_run_id: landingRunId,
+    landing_workflow_run_attempt: landingRunAttempt,
     approval_generation_equality: approvalGeneration,
     initial_live_read: true,
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
+    post_merge_main_reread: true,
     server_side_expected_head_compare: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: policy.bypass_policy.required_status_contexts,
+    current_sold_changed_file_count: currentSoldChangedFiles.length,
+    post_landing_validation: currentSoldChanged ? 'REQUIRED_SAME_TRUSTED_JOB' : 'NOT_REQUIRED',
     public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {

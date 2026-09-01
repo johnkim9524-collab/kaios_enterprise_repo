@@ -17,7 +17,7 @@ on:
         type: string
 
 concurrency:
-  group: kidults-atomic-governed-landing-v1-${{ inputs.pull_request_number }}
+  group: kidults-atomic-governed-landing-v1-main
   cancel-in-progress: false
 
 jobs:
@@ -31,10 +31,10 @@ jobs:
       pull-requests: write
       statuses: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 18
     steps:
       - name: Checkout protected main implementation
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           ref: main
           persist-credentials: false
@@ -45,7 +45,34 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
+      - name: Stage trusted Current-SOLD post-landing validator
+        run: |
+          set -euo pipefail
+          install -m 0500 \
+            scripts/kidults/market/current-sold-postlanding-v1.mjs \
+            "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"
+
+      - name: Initialize durable atomic landing terminal receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --initialize
+
+      - name: Upload pre-mutation atomic landing intent
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-governed-landing-intent-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Re-read live authority and execute exact-head server merge
+        id: landing
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -54,3 +81,74 @@ jobs:
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
+
+      - name: Checkout exact merged Current-SOLD target
+        if: steps.landing.outputs.current_sold_changed == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ steps.landing.outputs.merge_commit_sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Verify exact merged Current-SOLD checkout
+        if: steps.landing.outputs.current_sold_changed == 'true'
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ steps.landing.outputs.merge_commit_sha }}"
+
+      - name: Set up Node for Current-SOLD post-landing validation
+        if: steps.landing.outputs.current_sold_changed == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Validate exact merged Current-SOLD target and publish commit status
+        id: current_sold_postlanding
+        if: steps.landing.outputs.current_sold_changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          CURRENT_SOLD_MERGE_SHA: ${{ steps.landing.outputs.merge_commit_sha }}
+          CURRENT_SOLD_PREMERGE_MAIN_SHA: ${{ steps.landing.outputs.premerge_main_sha }}
+          CURRENT_SOLD_MERGED_PR_HEAD_SHA: ${{ steps.landing.outputs.merged_pr_head_sha }}
+          CURRENT_SOLD_PR_NUMBER: ${{ steps.landing.outputs.pull_request_number }}
+          CURRENT_SOLD_LANDING_RUN_ID: ${{ steps.landing.outputs.landing_run_id }}
+          CURRENT_SOLD_LANDING_RUN_ATTEMPT: ${{ steps.landing.outputs.landing_run_attempt }}
+          CURRENT_SOLD_LANDING_AUTHORIZATION_ID: ${{ steps.landing.outputs.landing_authorization_id }}
+          CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+        run: node "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"
+
+      - name: Upload exact merged Current-SOLD post-landing receipt
+        if: ${{ always() && steps.landing.outputs.current_sold_changed == 'true' }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-current-sold-postlanding-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-postlanding
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Reconcile durable atomic landing terminal receipt
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+          LANDING_STEP_OUTCOME: ${{ steps.landing.outcome }}
+          CURRENT_SOLD_POSTLANDING_OUTCOME: ${{ steps.current_sold_postlanding.outcome }}
+          CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+          ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --finalize
+
+      - name: Upload durable atomic landing terminal receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-governed-landing-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+          if-no-files-found: error
+          retention-days: 90
