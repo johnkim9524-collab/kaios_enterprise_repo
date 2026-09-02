@@ -10,9 +10,12 @@ import {
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
   selectExactHeadProgramOwnerApproval,
+  selectLatestProgramOwnerReadyEvent,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
 
 const sha = 'a'.repeat(40);
+const baseSha = 'b'.repeat(40);
+const repository = 'johnkim9524-collab/kaios_enterprise_repo';
 const basePr = () => ({
   number: 1580,
   state: 'open',
@@ -22,7 +25,7 @@ const basePr = () => ({
   labels: [],
   updated_at: '2026-08-29T08:50:00Z',
   base: {ref: 'main'},
-  head: {sha, repo: {full_name: 'johnkim9524-collab/kaios_enterprise_repo'}},
+  head: {sha, repo: {full_name: repository}},
 });
 const noMergePolicy = {
   closed_pull_request_blocks: true,
@@ -30,7 +33,7 @@ const noMergePolicy = {
   exact_labels: ['no-merge', 'do-not-merge', 'merge-hold'],
   title_markers: ['[NO-MERGE]', '[DO-NOT-MERGE]'],
 };
-const options = {repository: 'johnkim9524-collab/kaios_enterprise_repo', expectedHeadSha: sha, noMergePolicy};
+const options = {repository, expectedHeadSha: sha, noMergePolicy};
 const code = (fn, expected) => assert.throws(fn, error => error instanceof GateFailure && error.code === expected);
 
 test('open exact-head PR is promotable', () => {
@@ -62,37 +65,65 @@ test('deterministic LAND input does not substitute for live repository-owner act
   assert.equal(assertLandingActorAndAuthorization('johnkim9524-collab', 'johnkim9524-collab', authorization, '1580', sha).actor, 'johnkim9524-collab');
 });
 
-test('exact-head Program Owner approval cannot be inherited or self-rebound', () => {
+test('explicit Program Owner Ready event is mandatory and last-event authoritative', () => {
+  const ready = {
+    id: 10,
+    event: 'ready_for_review',
+    actor: {login: 'johnkim9524-collab'},
+    created_at: '2026-09-01T01:20:00Z',
+  };
+  assert.equal(selectLatestProgramOwnerReadyEvent([ready], 'johnkim9524-collab').created_at, ready.created_at);
+  code(() => selectLatestProgramOwnerReadyEvent([], 'johnkim9524-collab'), 'PROGRAM_OWNER_READY_EVENT_REQUIRED');
+  code(() => selectLatestProgramOwnerReadyEvent([ready, {
+    ...ready, id: 11, event: 'convert_to_draft', created_at: '2026-09-01T01:21:00Z',
+  }], 'johnkim9524-collab'), 'PROGRAM_OWNER_READY_STATE_REQUIRED');
+  code(() => selectLatestProgramOwnerReadyEvent([{
+    ...ready, actor: {login: 'automation-bot'},
+  }], 'johnkim9524-collab'), 'PROGRAM_OWNER_READY_ACTOR_REQUIRED');
+});
+
+test('exact-head Program Owner approval cannot be inherited, app-mediated, expired, or self-rebound', () => {
   const authorization = `LAND-PR-1580-${sha.slice(0, 12)}`;
-  const approvalBody = head => [
-    'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V1',
+  const approvalBody = (head, fields = {}) => [
+    'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V2',
+    `repository=${fields.repository || repository}`,
     'pull_request=1580',
-    `exact_base_sha=${'b'.repeat(40)}`,
+    `exact_base_sha=${fields.baseSha || baseSha}`,
     `exact_head_sha=${head}`,
-    `authorization_id=LAND-PR-1580-${head.slice(0, 12)}`,
-    'scope=ONE_ATOMIC_GOVERNED_LANDING_ONLY',
-    'approval_rebind=FORBIDDEN',
+    `operation=${fields.operation || 'MERGE_PROTECTED_MAIN'}`,
+    `authorization_id=${fields.authorizationId || `LAND-PR-1580-${head.slice(0, 12)}`}`,
+    `nonce=${fields.nonce || '1'.repeat(32)}`,
+    `expires_at=${fields.expiresAt || '2026-09-01T02:00:00Z'}`,
+    `scope=${fields.scope || 'ONE_ATOMIC_GOVERNED_LANDING_ONLY'}`,
+    `approval_rebind=${fields.rebind || 'FORBIDDEN'}`,
   ].join('\n');
   const comment = (id, head, overrides = {}) => ({
     id,
     body: approvalBody(head),
     user: {login: 'johnkim9524-collab'},
     author_association: 'OWNER',
+    performed_via_github_app: null,
     created_at: '2026-09-01T01:10:00Z',
     updated_at: '2026-09-01T01:10:00Z',
     ...overrides,
   });
   const input = {
+    repository,
     repositoryOwner: 'johnkim9524-collab',
     prNumber: 1580,
     headSha: sha,
-    baseSha: 'b'.repeat(40),
+    baseSha,
     authorizationId: authorization,
     prCreatedAt: '2026-09-01T00:00:00Z',
     headCommittedAt: '2026-09-01T01:00:00Z',
     latestReadyAt: '2026-09-01T01:20:00Z',
+    evaluationTime: '2026-09-01T01:30:00Z',
   };
-  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha)], input).authorization_id, authorization);
+  const selected = selectExactHeadProgramOwnerApproval([comment(1, sha)], input);
+  assert.equal(selected.exact_head_sha, sha);
+  assert.equal(selected.app_mediated, false);
+  assert.equal(selected.raw_authorization_persisted, false);
+  assert.equal(selected.raw_nonce_persisted, false);
   code(() => selectExactHeadProgramOwnerApproval([], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha), comment(2, 'c'.repeat(40), {
     created_at: '2026-09-01T01:11:00Z', updated_at: '2026-09-01T01:11:00Z',
@@ -101,11 +132,23 @@ test('exact-head Program Owner approval cannot be inherited or self-rebound', ()
     updated_at: '2026-09-01T01:12:00Z',
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    performed_via_github_app: {id: 1144995, slug: 'chatgpt-codex-connector'},
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     created_at: '2026-09-01T00:59:00Z', updated_at: '2026-09-01T00:59:00Z',
   })], input), 'PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     created_at: '2026-09-01T01:21:00Z', updated_at: '2026-09-01T01:21:00Z',
   })], input), 'PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    body: approvalBody(sha, {expiresAt: '2026-09-01T03:00:01Z'}),
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha)], {
+    ...input, evaluationTime: '2026-09-01T02:00:01Z',
+  }), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRED');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    body: approvalBody(sha, {nonce: 'not-a-valid-nonce'}),
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_NONCE_INVALID');
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {

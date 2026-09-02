@@ -1,6 +1,8 @@
 import {createHash} from 'node:crypto';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
+const NONCE_PATTERN = /^[0-9a-f]{32}$/;
+const MAX_APPROVAL_LIFETIME_MS = 60 * 60 * 1000;
 
 export class GateFailure extends Error {
   constructor(code, detail = '') {
@@ -14,8 +16,9 @@ export class GateFailure extends Error {
 const fail = (code, detail = '') => { throw new GateFailure(code, detail); };
 const normalized = value => String(value ?? '').trim().toLowerCase();
 
-const EXACT_HEAD_APPROVAL_MARKER = 'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V1';
+const EXACT_HEAD_APPROVAL_MARKER = 'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V2';
 const EXACT_HEAD_APPROVAL_SCOPE = 'ONE_ATOMIC_GOVERNED_LANDING_ONLY';
+const EXACT_HEAD_APPROVAL_OPERATION = 'MERGE_PROTECTED_MAIN';
 const exactTime = (value, code) => {
   const parsed = Date.parse(String(value || ''));
   if (!Number.isFinite(parsed)) fail(code);
@@ -26,10 +29,14 @@ function parseExactHeadApprovalBody(body) {
   const lines = String(body || '').trim().split(/\r?\n/);
   if (lines[0] !== EXACT_HEAD_APPROVAL_MARKER) return null;
   const expectedKeys = [
+    'repository',
     'pull_request',
     'exact_base_sha',
     'exact_head_sha',
+    'operation',
     'authorization_id',
+    'nonce',
+    'expires_at',
     'scope',
     'approval_rebind',
   ];
@@ -46,7 +53,28 @@ function parseExactHeadApprovalBody(body) {
   return values;
 }
 
+export function selectLatestProgramOwnerReadyEvent(timeline, repositoryOwner) {
+  if (!Array.isArray(timeline)) fail('PROGRAM_OWNER_READY_TIMELINE_INVALID');
+  if (!repositoryOwner) fail('PROGRAM_OWNER_READY_OWNER_INVALID');
+  const readinessEvents = timeline
+    .filter(value => value?.event === 'ready_for_review' || value?.event === 'convert_to_draft')
+    .sort((a, b) => exactTime(a.created_at, 'PROGRAM_OWNER_READY_EVENT_TIME_INVALID')
+      - exactTime(b.created_at, 'PROGRAM_OWNER_READY_EVENT_TIME_INVALID')
+      || Number(a.id || 0) - Number(b.id || 0));
+  if (!readinessEvents.length) fail('PROGRAM_OWNER_READY_EVENT_REQUIRED');
+  const lastReadiness = readinessEvents.at(-1);
+  if (lastReadiness.event !== 'ready_for_review') fail('PROGRAM_OWNER_READY_STATE_REQUIRED');
+  if (lastReadiness?.actor?.login !== repositoryOwner) fail('PROGRAM_OWNER_READY_ACTOR_REQUIRED');
+  return {
+    event: lastReadiness.event,
+    actor: lastReadiness.actor.login,
+    created_at: lastReadiness.created_at,
+    event_id: Number(lastReadiness.id || 0) || null,
+  };
+}
+
 export function selectExactHeadProgramOwnerApproval(comments, {
+  repository,
   repositoryOwner,
   prNumber,
   headSha,
@@ -55,9 +83,11 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   prCreatedAt,
   headCommittedAt,
   latestReadyAt,
+  evaluationTime,
 } = {}) {
   if (!Array.isArray(comments)) fail('PROGRAM_OWNER_APPROVAL_COMMENT_SET_INVALID');
-  if (!repositoryOwner || !/^\d+$/.test(String(prNumber || ''))
+  if (!repository || !/^[^/]+\/[^/]+$/.test(repository)
+    || !repositoryOwner || !/^\d+$/.test(String(prNumber || ''))
     || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
     fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
   }
@@ -70,20 +100,26 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
 
   // The newest structured approval is authoritative. An older exact approval may
-  // never mask a later stale-head, edited, or self-rebinding approval comment.
+  // never mask a later stale-head, edited, app-mediated, or self-rebinding comment.
   const {comment, fields} = marked[0];
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
+  if (comment?.performed_via_github_app != null) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED');
   if (comment.updated_at !== comment.created_at) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
+  if (fields.repository !== repository) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_REPOSITORY_MISMATCH');
   if (fields.pull_request !== String(prNumber)) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_PR_MISMATCH');
   if (fields.exact_head_sha !== headSha) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
   if (fields.exact_base_sha !== baseSha) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_BASE_MISMATCH');
+  if (fields.operation !== EXACT_HEAD_APPROVAL_OPERATION) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_OPERATION_INVALID');
   if (fields.authorization_id !== authorizationId) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ID_MISMATCH');
+  if (!NONCE_PATTERN.test(fields.nonce || '')) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_NONCE_INVALID');
   if (fields.scope !== EXACT_HEAD_APPROVAL_SCOPE) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_SCOPE_INVALID');
   if (fields.approval_rebind !== 'FORBIDDEN') fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_REBIND_INVALID');
 
   const approvedAt = exactTime(comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID');
+  const expiresAt = exactTime(fields.expires_at, 'PROGRAM_OWNER_APPROVAL_EXPIRY_INVALID');
+  const evaluatedAt = exactTime(evaluationTime, 'PROGRAM_OWNER_APPROVAL_EVALUATION_TIME_INVALID');
   if (approvedAt < exactTime(prCreatedAt, 'PROGRAM_OWNER_APPROVAL_PR_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_PR');
   }
@@ -93,18 +129,30 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   if (approvedAt > exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
   }
+  if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) {
+    fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');
+  }
+  if (evaluatedAt < approvedAt) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_NOT_YET_VALID');
+  if (evaluatedAt > expiresAt) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRED');
 
   return {
     comment_id: Number(comment.id),
     comment_created_at: comment.created_at,
     comment_body_digest: `sha256:${createHash('sha256').update(String(comment.body)).digest('hex')}`,
     actor: comment.user.login,
+    repository,
     pull_request: Number(prNumber),
     exact_base_sha: baseSha,
     exact_head_sha: headSha,
-    authorization_id: authorizationId,
+    operation: fields.operation,
+    authorization_id_sha256: `sha256:${createHash('sha256').update(authorizationId).digest('hex')}`,
+    approval_nonce_sha256: `sha256:${createHash('sha256').update(fields.nonce).digest('hex')}`,
+    expires_at: fields.expires_at,
     scope: fields.scope,
     approval_rebind: fields.approval_rebind,
+    raw_authorization_persisted: false,
+    raw_nonce_persisted: false,
+    app_mediated: false,
   };
 }
 
