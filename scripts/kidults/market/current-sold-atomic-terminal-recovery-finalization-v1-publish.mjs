@@ -20,6 +20,7 @@ import {
   validatePriorRemediationPublicationReceipt,
   assertPriorRecoveryFailureImmutable,
   assertFinalizedRecoveryReadback,
+  validateFinalizationV2Predecessor,
 } from './atomic-terminal-recovery-finalization-v1-policy.mjs';
 
 function parseJson(bytes, code) {
@@ -73,6 +74,21 @@ function validatePreflightReceipt(receipt, authority, {
     && receipt?.prior_failed_remediation?.publication_receipt_sha256 === sourcePublicationSha
     && receipt?.prior_failed_remediation?.failure_status_id === prior.recovery_failure_status.id,
   'ATOMIC_RECOVERY_FINALIZATION_PREFLIGHT_SOURCE_BINDING_INVALID');
+  const v2Predecessor = validateFinalizationV2Predecessor(manifest);
+  if (v2Predecessor) {
+    assert(receipt?.failed_finalization_v1?.run_id === v2Predecessor.id
+      && receipt?.failed_finalization_v1?.run_attempt === v2Predecessor.attempt
+      && receipt?.failed_finalization_v1?.workflow_id === v2Predecessor.workflow_id
+      && receipt?.failed_finalization_v1?.failure_code === v2Predecessor.failure_code
+      && receipt?.failed_finalization_v1?.evidence_artifact_id
+        === v2Predecessor.evidence_artifact.id
+      && receipt?.failed_finalization_v1?.evidence_artifact_digest
+        === v2Predecessor.evidence_artifact.digest
+      && receipt?.failed_finalization_v1?.status_write_authority === false
+      && receipt?.failed_finalization_v1?.status_write_performed === false
+      && receipt?.failed_finalization_v1?.immutable === true,
+    'ATOMIC_RECOVERY_FINALIZATION_V2_PREFLIGHT_PREDECESSOR_INVALID');
+  }
   assert(receipt?.status_write_authority === false
     && receipt?.status_write_performed === false
     && receipt?.prior_authorization_reused === false
