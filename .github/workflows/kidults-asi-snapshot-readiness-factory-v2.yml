@@ -15,6 +15,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
@@ -32,6 +33,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
@@ -71,6 +73,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs --self-test
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
 
   validate-p3-control-on-main-or-schedule:
@@ -91,6 +94,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs --self-test
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
 
@@ -119,10 +123,12 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs
           node --check scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json','utf8'))"
@@ -136,8 +142,16 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-receipt-v2.mjs --self-test
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
+      - name: Initialize fail-closed P3 terminal receipt
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/kidults-asi-snapshot-readiness-terminal-v2.json
+          const receipt={id:'kidults-asi-snapshot-readiness-terminal-v2',version:'1.0.0',state:'VERIFIED_FAIL',failure_cause:'UNRECONCILED',repository:process.env.GITHUB_REPOSITORY,workflow_path:'.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),event_name:process.env.GITHUB_EVENT_NAME,restore_p2_outcome:'PENDING',exact_main_p2_candidate_count:null,p3_authority:false,promotion_eligible:false,provider_requests:0,credential_resolution:0,remote_mutation:0,public_release:'HOLD',production:'HOLD',g5:'HOLD'};process.stdout.write(JSON.stringify(receipt,null,2)+'\n');
+          NODE
       - name: Restore exact P2 run and its receipt-bound P0B and P1 artifacts
+        id: restore_p2
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_P2_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -151,13 +165,14 @@ jobs:
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=100" \
               > /tmp/p2-candidate-runs.json
             P2_RUN_ID="$(node - <<'NODE'
-          const fs=require('fs');const body=JSON.parse(fs.readFileSync('/tmp/p2-candidate-runs.json'));const matches=(body.workflow_runs||[]).filter(run=>run.path==='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'&&run.head_branch==='main'&&run.head_sha===process.env.GITHUB_SHA&&run.conclusion==='success');if(matches.length<1)process.exit(2);process.stdout.write(String(matches[0].id));
+          const fs=require('fs');const body=JSON.parse(fs.readFileSync('/tmp/p2-candidate-runs.json'));const matches=(body.workflow_runs||[]).filter(run=>run.path==='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'&&run.head_branch==='main'&&run.head_sha===process.env.GITHUB_SHA&&run.conclusion==='success');fs.writeFileSync('/tmp/p2-exact-main-candidate-count.txt',String(matches.length)+'\n');if(matches.length!==1)process.exit(2);process.stdout.write(String(matches[0].id));
           NODE
             )"
             EVENT_P2_RUN_ID="$P2_RUN_ID"
             EVENT_P2_HEAD_SHA="$GITHUB_SHA"
           else
             test -n "$EVENT_P2_RUN_ID" && test -n "$EVENT_P2_HEAD_SHA"
+            printf '%s\n' '1' > /tmp/p2-exact-main-candidate-count.txt
             P2_RUN_ID="$EVENT_P2_RUN_ID"
           fi
           [[ "$P2_RUN_ID" =~ ^[1-9][0-9]*$ ]]
@@ -360,5 +375,29 @@ jobs:
         with:
           name: kidults-asi-snapshot-readiness-factory-v2-provider-receipt-main-${{ github.sha }}-${{ github.run_id }}
           path: /tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Reconcile P3 terminal receipt
+        if: ${{ always() }}
+        env:
+          RESTORE_OUTCOME: ${{ steps.restore_p2.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/kidults-asi-snapshot-readiness-terminal-v2.json
+          const fs=require('fs');
+          let event={};try{event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));}catch{}
+          let candidateCount=null;try{candidateCount=Number(fs.readFileSync('/tmp/p2-exact-main-candidate-count.txt','utf8').trim());if(!Number.isInteger(candidateCount)||candidateCount<0)candidateCount=null;}catch{}
+          const restore=process.env.RESTORE_OUTCOME||'unknown';const job=process.env.JOB_STATUS||'unknown';const pass=job==='success'&&restore==='success';
+          let cause='NONE';if(!pass){if(restore==='failure'&&['schedule','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME)&&candidateCount===0)cause='EXACT_MAIN_P2_MISSING';else if(restore==='failure'&&['schedule','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME)&&candidateCount!==null&&candidateCount>1)cause='EXACT_MAIN_P2_DUPLICATE';else if(restore==='failure')cause='P2_RESTORE_FAILED';else if(restore==='skipped')cause='P3_PRE_RESTORE_FAILURE';else cause='P3_WORKFLOW_FAILURE';}
+          const receipt={id:'kidults-asi-snapshot-readiness-terminal-v2',version:'1.0.0',state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',failure_cause:cause,repository:process.env.GITHUB_REPOSITORY,workflow_path:'.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),event_name:process.env.GITHUB_EVENT_NAME,selector_inputs:{event_p2_run_id:event?.workflow_run?.id??null,event_p2_head_sha:event?.workflow_run?.head_sha??null},restore_p2_outcome:restore,job_status_before_reconciliation:job,exact_main_p2_candidate_count:candidateCount,p3_authority:pass,promotion_eligible:false,provider_requests:0,credential_resolution:0,remote_mutation:0,public_release:'HOLD',production:'HOLD',g5:'HOLD'};process.stdout.write(JSON.stringify(receipt,null,2)+'\n');
+          NODE
+          cat /tmp/kidults-asi-snapshot-readiness-terminal-v2.json
+      - name: Upload P3 terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-snapshot-readiness-terminal-v2-main-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-snapshot-readiness-terminal-v2.json
           retention-days: 90
           if-no-files-found: error
