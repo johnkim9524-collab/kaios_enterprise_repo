@@ -89,6 +89,8 @@ const invoke = ({
   receiptsByRunId = {},
   statuses = nativeStatuses,
   lastReadyAt = '2026-09-01T13:20:00Z',
+  lastReadyEventId = 9001,
+  lastReadyEventActor = 'repository-owner',
   prCreatedAt = '2026-09-01T13:00:00Z',
 }) => selectAtomicLandingLifecycleAuthority({
   runs,
@@ -100,6 +102,8 @@ const invoke = ({
   prCreatedAt,
   nativeStatuses: statuses,
   lastReadyAt,
+  lastReadyEventId,
+  lastReadyEventActor,
 });
 
 const green = run(200, 'success', '2026-09-01T13:29:00Z');
@@ -136,6 +140,16 @@ expectReject('LIFECYCLE_RECEIPT_READY_EVENT_ID_INVALID', () => invoke({
   runs: [green],
   artifactsByRunId: {'200': [artifact(200)]},
   receiptsByRunId: {'200': receipt(200, {latest_ready_event_id: null})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_id: 9002})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_actor: 'github-actions[bot]'})},
 }));
 
 expectReject('LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY', () => invoke({
