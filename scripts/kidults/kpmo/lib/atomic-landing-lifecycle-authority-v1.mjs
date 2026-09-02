@@ -46,7 +46,7 @@ function exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha) {
   return { artifacts, matches: artifacts.filter(artifact => artifact?.name === expected), expected };
 }
 
-function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundNative, lastReadyAt) {
+function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundNative, lastReadyAt, lastReadyEventId, lastReadyEventActor) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('LIFECYCLE_RECEIPT_CONTENT_INVALID');
   if (receipt.id !== 'kpmo-pr-lifecycle-integrity-receipt-v1') fail('LIFECYCLE_RECEIPT_ID_INVALID');
   if (Number(receipt.pull_request) !== Number(prNumber)) fail('LIFECYCLE_RECEIPT_PR_MISMATCH');
@@ -58,8 +58,11 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
   if (receipt.final_live_reread !== true) fail('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED');
   ms(receipt.lifecycle_evaluated_at, 'LIFECYCLE_RECEIPT_EVALUATED_AT_INVALID');
   if (!Number.isInteger(receipt.latest_ready_event_id) || receipt.latest_ready_event_id <= 0) fail('LIFECYCLE_RECEIPT_READY_EVENT_ID_INVALID');
-  if (receipt.latest_ready_event_at !== lastReadyAt) fail('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH');
-  if (typeof receipt.latest_ready_event_actor !== 'string' || receipt.latest_ready_event_actor.length === 0) fail('LIFECYCLE_RECEIPT_READY_EVENT_ACTOR_INVALID');
+  if (Number(receipt.latest_ready_event_id) !== Number(lastReadyEventId)
+    || receipt.latest_ready_event_at !== lastReadyAt
+    || receipt.latest_ready_event_actor !== lastReadyEventActor) {
+    fail('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH');
+  }
   if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
   if (receipt.reason !== READY_GOVERNED_REASON) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
   if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
@@ -90,12 +93,16 @@ export function selectAtomicLandingLifecycleAuthority({
   prCreatedAt,
   nativeStatuses,
   lastReadyAt,
+  lastReadyEventId,
+  lastReadyEventActor,
 }) {
   if (!/^\d+$/.test(String(prNumber || ''))) fail('LIFECYCLE_PR_NUMBER_INVALID');
   if (!SHA40.test(headSha || '') || !SHA40.test(baseSha || '')) fail('LIFECYCLE_SHA_BINDING_INVALID');
   if (!Array.isArray(runs)) fail('LIFECYCLE_RUN_SET_INVALID');
   const prCreationTime = ms(prCreatedAt, 'LIFECYCLE_PR_CREATED_AT_INVALID');
   const readyEventTime = ms(lastReadyAt, 'LIFECYCLE_READY_EVENT_TIME_INVALID');
+  if (!Number.isInteger(lastReadyEventId) || lastReadyEventId <= 0) fail('LIFECYCLE_READY_EVENT_ID_INVALID');
+  if (typeof lastReadyEventActor !== 'string' || lastReadyEventActor.length === 0) fail('LIFECYCLE_READY_EVENT_ACTOR_INVALID');
   if (!Array.isArray(nativeStatuses) || nativeStatuses.length === 0) fail('LIFECYCLE_NATIVE_STATUS_SET_EMPTY');
 
   const seenContexts = new Set();
@@ -155,7 +162,17 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!DIGEST.test(String(artifact.digest || ''))) fail('LIFECYCLE_RECEIPT_DIGEST_INVALID');
 
   const receipt = receiptsByRunId?.[String(latest.id)];
-  validateReceiptContent(receipt, latest, prNumber, headSha, baseSha, boundNative, lastReadyAt);
+  validateReceiptContent(
+    receipt,
+    latest,
+    prNumber,
+    headSha,
+    baseSha,
+    boundNative,
+    lastReadyAt,
+    lastReadyEventId,
+    lastReadyEventActor,
+  );
   const lifecycleEvaluatedTime = ms(receipt.lifecycle_evaluated_at, 'LIFECYCLE_RECEIPT_EVALUATED_AT_INVALID');
   if (lifecycleEvaluatedTime < nativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
   if (lifecycleEvaluatedTime < readyEventTime) fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
@@ -192,6 +209,8 @@ export async function resolveAtomicLandingLifecycleAuthority({
   prCreatedAt,
   nativeStatuses,
   lastReadyAt,
+  lastReadyEventId,
+  lastReadyEventActor,
 }) {
   if (typeof request !== 'function') fail('LIFECYCLE_REQUEST_FUNCTION_REQUIRED');
   if (typeof readArtifactReceipt !== 'function') fail('LIFECYCLE_ARTIFACT_READER_REQUIRED');
@@ -238,5 +257,7 @@ export async function resolveAtomicLandingLifecycleAuthority({
     prCreatedAt,
     nativeStatuses,
     lastReadyAt,
+    lastReadyEventId,
+    lastReadyEventActor,
   });
 }
