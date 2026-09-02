@@ -32,24 +32,26 @@ permissions:
   contents: read
 
 jobs:
-  validate-v2-contract:
+  validate_v2_contract:
     name: Validate finalization V2 contract
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout exact candidate head
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
           persist-credentials: false
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
-          node-version: '24'
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
       - name: Validate V1 lineage and independent V2 generation
         shell: bash
         run: |
@@ -65,10 +67,10 @@ jobs:
             coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v2.json \
             .github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v2.yml
 
-  finalize-v2-evidence:
+  finalize_v2_evidence:
     name: Finalize immutable predecessor lineage without status-write authority
     if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       actions: read
@@ -77,12 +79,12 @@ jobs:
       pull-requests: read
       statuses: read
     outputs:
-      evidence_artifact_id: ${{ steps.upload-evidence.outputs.artifact-id }}
-      evidence_artifact_digest: ${{ steps.upload-evidence.outputs.artifact-digest }}
+      evidence_artifact_id: ${{ steps.upload_evidence.outputs.artifact-id }}
+      evidence_artifact_digest: ${{ steps.upload_evidence.outputs.artifact-digest }}
       evidence_artifact_name: kidults-atomic-terminal-recovery-finalization-evidence-v2-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout exact authorized main
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           ref: ${{ inputs.expected_current_main_sha }}
           fetch-depth: 1
@@ -95,11 +97,13 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_CURRENT_MAIN_SHA"
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
-          node-version: '24'
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
       - name: Run immutable contract regressions
-        id: contract-regressions
+        id: contract_regressions
         continue-on-error: true
         shell: bash
         run: |
@@ -115,8 +119,8 @@ jobs:
             coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v2.json \
             .github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v2.yml
       - name: Verify fresh V2 authority and immutable predecessor lineage read-only
-        id: finalization-preflight
-        if: steps.contract-regressions.outcome == 'success'
+        id: finalization_preflight
+        if: steps.contract_regressions.outcome == 'success'
         continue-on-error: true
         shell: bash
         env:
@@ -133,8 +137,8 @@ jobs:
         if: always()
         shell: bash
         env:
-          CONTRACT_OUTCOME: ${{ steps.contract-regressions.outcome }}
-          PREFLIGHT_OUTCOME: ${{ steps.finalization-preflight.outcome }}
+          CONTRACT_OUTCOME: ${{ steps.contract_regressions.outcome }}
+          PREFLIGHT_OUTCOME: ${{ steps.finalization_preflight.outcome }}
           REPOSITORY: ${{ github.repository }}
           EXACT_MAIN: ${{ inputs.expected_current_main_sha }}
           RUN_ID: ${{ github.run_id }}
@@ -183,9 +187,9 @@ jobs:
             `${JSON.stringify(receipt, null, 2)}\n`, {mode: 0o600, flag: 'wx'});
           NODE
       - name: Upload sealed V2 finalization evidence
-        id: upload-evidence
+        id: upload_evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-atomic-terminal-recovery-finalization-evidence-v2-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/atomic-terminal-recovery-finalization-v2/*
@@ -209,12 +213,12 @@ jobs:
           }
           NODE
 
-  publish-v2-success:
+  publish_v2_success:
     name: Publish append-only Recovery V1 success from sealed V2 evidence
     needs:
-      - finalize-v2-evidence
-    if: github.event_name == 'workflow_dispatch' && needs.finalize-v2-evidence.result == 'success'
-    runs-on: ubuntu-latest
+      - finalize_v2_evidence
+    if: github.event_name == 'workflow_dispatch' && needs.finalize_v2_evidence.result == 'success'
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       actions: read
@@ -223,20 +227,22 @@ jobs:
       statuses: write
     steps:
       - name: Checkout exact authorized main
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           ref: ${{ inputs.expected_current_main_sha }}
           fetch-depth: 1
           persist-credentials: false
       - name: Download sealed V2 finalization evidence
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ${{ needs.finalize-v2-evidence.outputs.evidence_artifact_name }}
+          name: ${{ needs.finalize_v2_evidence.outputs.evidence_artifact_name }}
           path: out/atomic-terminal-recovery-finalization-v2
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
-          node-version: '24'
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
       - name: Verify sealed evidence before write authority
         shell: bash
         run: |
@@ -254,16 +260,16 @@ jobs:
           }
           NODE
       - name: Publish exactly one append-only Recovery success
-        id: publish-success
+        id: publish_success
         continue-on-error: true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
           FINALIZATION_AUTHORIZATION_ID: ${{ inputs.finalization_authorization_id }}
-          FINALIZATION_V2_EVIDENCE_ARTIFACT_ID: ${{ needs.finalize-v2-evidence.outputs.evidence_artifact_id }}
-          FINALIZATION_V2_EVIDENCE_ARTIFACT_DIGEST: ${{ needs.finalize-v2-evidence.outputs.evidence_artifact_digest }}
-          FINALIZATION_V2_EVIDENCE_ARTIFACT_NAME: ${{ needs.finalize-v2-evidence.outputs.evidence_artifact_name }}
+          FINALIZATION_V2_EVIDENCE_ARTIFACT_ID: ${{ needs.finalize_v2_evidence.outputs.evidence_artifact_id }}
+          FINALIZATION_V2_EVIDENCE_ARTIFACT_DIGEST: ${{ needs.finalize_v2_evidence.outputs.evidence_artifact_digest }}
+          FINALIZATION_V2_EVIDENCE_ARTIFACT_NAME: ${{ needs.finalize_v2_evidence.outputs.evidence_artifact_name }}
           ATOMIC_FINALIZATION_V2_PUBLICATION_RECEIPT_PATH: out/atomic-terminal-recovery-finalization-v2-publication/publication-receipt.json
         run: |
           set -euo pipefail
@@ -277,7 +283,7 @@ jobs:
             out/atomic-terminal-recovery-finalization-v2/source-finalization-v1-terminal-receipt.json
       - name: Upload append-only V2 publication receipt
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-atomic-terminal-recovery-finalization-publication-v2-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/atomic-terminal-recovery-finalization-v2-publication/*
@@ -289,7 +295,7 @@ jobs:
         if: always()
         shell: bash
         env:
-          PUBLISH_OUTCOME: ${{ steps.publish-success.outcome }}
+          PUBLISH_OUTCOME: ${{ steps.publish_success.outcome }}
         run: |
           set -euo pipefail
           test "$PUBLISH_OUTCOME" = success
