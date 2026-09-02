@@ -23,8 +23,31 @@ const principles=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 
 if(candidates.id!=='kidults-asi-p0b-source-candidate-registry-v1'||candidates.canonical_candidate_count===0||!Array.isArray(candidates.candidates)) throw new Error('P0B_CANDIDATE_REGISTRY_INVALID');
 if(bindings.id!=='kidults-asi-p0b-mission-candidate-binding-ledger-v1'||bindings.mission_count!==192||bindings.bindings?.length!==192) throw new Error('P0B_BINDING_LEDGER_INVALID');
-if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||gate1.decision_count!==576||gate1.decisions?.length!==576) throw new Error('P1_GATE1_INVALID');
-if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||admissions.candidate_count!==576||admissions.candidates?.length!==576||admissions.admitted_count!==0) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+const candidateIds=new Set(candidates.candidates.map(candidate=>candidate.candidate_id));
+const missionIds=new Set(bindings.bindings.map(binding=>binding.mission_id));
+const gate1Decisions=Array.isArray(gate1.decisions)?gate1.decisions:[];
+if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||!Number.isInteger(gate1.decision_count)||gate1.decision_count<=0||gate1.decision_count!==gate1Decisions.length) throw new Error('P1_GATE1_INVALID');
+const gate1ByGrain=new Map();
+const gate1DecisionIds=new Set();
+const gate1ObservedCounts={PASS:0,HOLD:0,REJECT:0};
+for(const decision of gate1Decisions){
+  if(!decision?.gate1_decision_id||gate1DecisionIds.has(decision.gate1_decision_id)||!decision?.grain_id||gate1ByGrain.has(decision.grain_id)||!candidateIds.has(decision.candidate_id)||!missionIds.has(decision.mission_id)||!Object.hasOwn(gate1ObservedCounts,decision.decision)) throw new Error('P1_GATE1_INVALID');
+  gate1DecisionIds.add(decision.gate1_decision_id);
+  gate1ByGrain.set(decision.grain_id,decision);
+  gate1ObservedCounts[decision.decision]+=1;
+}
+if(gate1ObservedCounts.PASS!==gate1.pass_count||gate1ObservedCounts.HOLD!==gate1.hold_count||gate1ObservedCounts.REJECT!==gate1.reject_count) throw new Error('P1_GATE1_INVALID');
+const admissionCandidates=Array.isArray(admissions.candidates)?admissions.candidates:[];
+if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||!Number.isInteger(admissions.candidate_count)||admissions.candidate_count<=0||admissions.candidate_count!==admissionCandidates.length||admissions.admitted_count!==0||admissions.candidate_count!==gate1.decision_count) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+const admissionByGrain=new Map();
+const admissionIds=new Set();
+for(const admission of admissionCandidates){
+  const decision=gate1ByGrain.get(admission?.grain_id);
+  if(!admission?.admission_candidate_id||admissionIds.has(admission.admission_candidate_id)||admissionByGrain.has(admission.grain_id)||!decision||admission.candidate_id!==decision.candidate_id||admission.mission_id!==decision.mission_id||admission.gate1_decision!==decision.decision||admission.rights_state!==decision.rights_state||admission.evidence_admitted!==false||admission.admitted_evidence_id!==null||admission.collection_authorized!==false||admission.market_claim_authorized!==false) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+  admissionIds.add(admission.admission_candidate_id);
+  admissionByGrain.set(admission.grain_id,admission);
+}
+if(admissionByGrain.size!==gate1ByGrain.size) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
 if(p1Contract.id!=='kidults-asi-p1-source-classification-admission-preflight-contract-v1'||p1Contract.version!=='1.0.0'||!Array.isArray(p1Contract.preflight_actions)||p1Contract.preflight_actions.length===0) throw new Error('P1_CONTRACT_INVALID');
 if(contract.id!=='kidults-asi-owned-source-intelligence-graph-contract-v2'||contract.version!=='2.0.0') throw new Error('P2_CONTRACT_INVALID');
 if(JSON.stringify(contract.platform_principles)!==JSON.stringify(principles)) throw new Error('P2_PRINCIPLE_ORDER_INVALID');
