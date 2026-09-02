@@ -40,6 +40,43 @@ function latestByContext(statuses) {
   return latest;
 }
 
+function nativeStatusesReady(statuses, requiredContexts) {
+  const latest = latestByContext(statuses);
+  return requiredContexts.every(context => {
+    const status = latest.get(context);
+    return status != null && isAtomicLandingNativeStatusReady(status);
+  });
+}
+
+export async function settleLifecycleNativeStatuses({
+  initialStatuses,
+  readStatuses,
+  requiredContexts,
+  attempts = 12,
+  delayMs = 5000,
+  sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+}) {
+  assert(Array.isArray(initialStatuses), 'NATIVE_STATUS_INITIAL_SNAPSHOT_INVALID');
+  assert(typeof readStatuses === 'function', 'NATIVE_STATUS_READER_REQUIRED');
+  assert(Array.isArray(requiredContexts) && requiredContexts.length > 0, 'NATIVE_REQUIRED_CONTEXT_SET_EMPTY');
+  assert(Number.isInteger(attempts) && attempts > 0 && attempts <= 60, 'NATIVE_STATUS_POLL_ATTEMPTS_INVALID');
+  assert(Number.isInteger(delayMs) && delayMs >= 0 && delayMs <= 30000, 'NATIVE_STATUS_POLL_DELAY_INVALID');
+  assert(typeof sleep === 'function', 'NATIVE_STATUS_SLEEP_REQUIRED');
+
+  let statuses = initialStatuses;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    if (nativeStatusesReady(statuses, requiredContexts)) {
+      return {statuses, attempts: attempt, settled: true};
+    }
+    if (attempt < attempts) {
+      await sleep(delayMs);
+      statuses = await readStatuses();
+      assert(Array.isArray(statuses), 'NATIVE_STATUS_POLL_SNAPSHOT_INVALID');
+    }
+  }
+  return {statuses, attempts, settled: false};
+}
+
 export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHeadSha, expectedBaseSha}) {
   assert(pr && typeof pr === 'object', 'PR_SNAPSHOT_MISSING');
   assert(SHA40.test(expectedHeadSha || ''), 'EXPECTED_HEAD_SHA_INVALID');
@@ -94,7 +131,7 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   };
 }
 
-function runSelfTest() {
+async function runSelfTest() {
   const head = '1'.repeat(40);
   const base = '2'.repeat(40);
   const policy = {native_required_status_contexts: [GOVERNED_LANDING_CONTEXT, SCOPE_AWARE_CONTEXT]};
@@ -154,6 +191,62 @@ function runSelfTest() {
   assert(ready.reason === READY_GOVERNED_REASON, 'SELFTEST_READY_REASON');
   assert(ready.promotion_eligible === false && ready.atomic_landing_only === true, 'SELFTEST_NO_DIRECT_PROMOTION');
 
+  const oldLandingFailure = {
+    id: 7,
+    context: GOVERNED_LANDING_CONTEXT,
+    state: 'failure',
+    description: 'PULL_REQUEST_DRAFT',
+    created_at: '2026-09-01T00:00:00Z',
+    updated_at: '2026-09-01T00:00:00Z',
+  };
+  const scopePending = {
+    id: 8,
+    context: SCOPE_AWARE_CONTEXT,
+    state: 'pending',
+    description: 'Evaluation in progress',
+    created_at: '2026-09-01T00:00:01Z',
+    updated_at: '2026-09-01T00:00:01Z',
+  };
+  const settledSnapshots = [[
+    landingPending(GOVERNED_LANDING_PENDING_DESCRIPTION),
+    success(SCOPE_AWARE_CONTEXT),
+  ]];
+  const settled = await settleLifecycleNativeStatuses({
+    initialStatuses: [scopePending, oldLandingFailure],
+    readStatuses: async () => settledSnapshots.shift(),
+    requiredContexts: policy.native_required_status_contexts,
+    attempts: 3,
+    delayMs: 0,
+    sleep: async () => {},
+  });
+  assert(settled.settled === true && settled.attempts === 2, 'SELFTEST_READY_RACE_SETTLES');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: settled.statuses,
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_GOVERNED', 'SELFTEST_SETTLED_SNAPSHOT_CLASSIFIES_READY');
+
+  const timedOut = await settleLifecycleNativeStatuses({
+    initialStatuses: [scopePending, oldLandingFailure],
+    readStatuses: async () => [scopePending, oldLandingFailure],
+    requiredContexts: policy.native_required_status_contexts,
+    attempts: 2,
+    delayMs: 0,
+    sleep: async () => {},
+  });
+  assert(timedOut.settled === false && timedOut.attempts === 2, 'SELFTEST_READY_RACE_TIMEOUT_FAILS_CLOSED');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: timedOut.statuses,
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_TIMEOUT_REMAINS_NON_PROMOTABLE');
+
   let changedHeadRejected = false;
   try {
     classifyLifecycle({pr: {...pr, head: {sha: '4'.repeat(40)}}, liveMainSha: base, statuses: [], policy, expectedHeadSha: head, expectedBaseSha: base});
@@ -166,7 +259,7 @@ function runSelfTest() {
 
 async function main() {
   if (process.argv.includes('--self-test')) {
-    runSelfTest();
+    await runSelfTest();
     return;
   }
 
@@ -216,7 +309,7 @@ async function main() {
   let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-    const [prInitial, mainBranch, statuses, timeline] = await Promise.all([
+    const [prInitial, mainBranch, initialStatuses, timeline] = await Promise.all([
       api(`/pulls/${prNumber}`),
       api('/branches/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
@@ -237,10 +330,24 @@ async function main() {
       prBaseSha: prInitial.base.sha,
       liveMainSha: mainBranch?.commit?.sha,
     });
+    const requiredContexts = Array.from(new Set(policy?.native_required_status_contexts || []));
+    const shouldSettleNativeStatuses = prInitial.draft !== true
+      && prInitial.base?.sha === mainBranch?.commit?.sha;
+    const nativeSettlement = shouldSettleNativeStatuses
+      ? await settleLifecycleNativeStatuses({
+        initialStatuses,
+        readStatuses: () => pages(`/commits/${expectedHeadSha}/statuses`),
+        requiredContexts,
+      })
+      : {
+        statuses: initialStatuses,
+        attempts: 1,
+        settled: nativeStatusesReady(initialStatuses, requiredContexts),
+      };
     const classification = classifyLifecycle({
       pr: prInitial,
       liveMainSha: mainBranch?.commit?.sha,
-      statuses,
+      statuses: nativeSettlement.statuses,
       policy,
       expectedHeadSha,
       expectedBaseSha,
@@ -265,6 +372,8 @@ async function main() {
       latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
       latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
       approval_generation_equality: approvalGeneration,
+      native_status_poll_attempts: nativeSettlement.attempts,
+      native_status_settled: nativeSettlement.settled,
       ...classification,
       final_live_reread: true,
     };
