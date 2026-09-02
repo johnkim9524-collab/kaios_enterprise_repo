@@ -100,6 +100,8 @@ const authority = await resolveAtomicLandingLifecycleAuthority({
   prCreatedAt: pr.created_at,
   nativeStatuses,
   lastReadyAt: latestReadiness.created_at,
+  lastReadyEventId: latestReadiness.id,
+  lastReadyEventActor: latestReadiness.actor?.login,
 });
 
 const finalPr = await request(`/pulls/${prNumber}`);
