@@ -8,6 +8,7 @@ import {
   RECOVERY_CONTEXT,
   EXPECTED_BRANCH,
   EXPECTED_EVENT,
+  MAX_PAGES,
   assert,
   fail,
   sha256,
