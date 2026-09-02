@@ -309,6 +309,46 @@ requireText(workflow, 'workflow_dispatch:',
   'ATOMIC_FINALIZATION_V2_WORKFLOW_DISPATCH_MISSING');
 requireText(workflow, 'group: kidults-atomic-governed-landing-v1-main',
   'ATOMIC_FINALIZATION_V2_SERIALIZATION_MISSING');
+const exactActionRefs = [
+  'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
+  'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f',
+  'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093',
+];
+const workflowActionRefs = [...workflow.matchAll(/uses:\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[^\s#]+)/g)]
+  .map(match => match[1]);
+if (!workflowActionRefs.every(ref => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[0-9a-f]{40}$/.test(ref))) {
+  throw new Error('ATOMIC_FINALIZATION_V2_MUTABLE_ACTION_REF');
+}
+for (const ref of exactActionRefs) {
+  requireText(workflow, ref, 'ATOMIC_FINALIZATION_V2_REQUIRED_ACTION_PIN_MISSING');
+}
+if ((workflow.match(/runs-on:\s*ubuntu-24\.04/g) || []).length !== 3
+  || workflow.includes('runs-on: ubuntu-latest')) {
+  throw new Error('ATOMIC_FINALIZATION_V2_RUNNER_PIN_INVALID');
+}
+if ((workflow.match(/node-version:\s*24\.19\.0/g) || []).length !== 3
+  || /node-version:\s*['"]?24['"]?(?:\s|$)/.test(workflow)) {
+  throw new Error('ATOMIC_FINALIZATION_V2_NODE_VERSION_PIN_INVALID');
+}
+if ((workflow.match(/package-manager-cache:\s*false/g) || []).length !== 3
+  || (workflow.match(/check-latest:\s*false/g) || []).length !== 3) {
+  throw new Error('ATOMIC_FINALIZATION_V2_SETUP_NODE_CACHE_BOUNDARY_INVALID');
+}
+for (const marker of [
+  'validate_v2_contract:',
+  'finalize_v2_evidence:',
+  'publish_v2_success:',
+  'id: contract_regressions',
+  'id: finalization_preflight',
+  'id: upload_evidence',
+  'id: publish_success',
+]) {
+  requireText(workflow, marker, 'ATOMIC_FINALIZATION_V2_CANONICAL_ID_MISSING');
+}
+if (/^\s*[?:]\s+/m.test(workflow)) {
+  throw new Error('ATOMIC_FINALIZATION_V2_COMPLEX_MAPPING_KEY_FORBIDDEN');
+}
 requireText(workflow, 'Validate finalization V2 contract',
   'ATOMIC_FINALIZATION_V2_VALIDATION_JOB_MISSING');
 requireText(workflow,
@@ -341,8 +381,8 @@ requireText(publisher, 'assertFinalizedReadback',
 requireText(publisher, 'status_write_attempted: mutationState.statusWriteAttempted',
   'ATOMIC_FINALIZATION_V2_PUBLISH_MUTATION_RECEIPT_MISSING');
 const readOnlySection = workflow.slice(
-  workflow.indexOf('finalize-v2-evidence:'),
-  workflow.indexOf('publish-v2-success:'),
+  workflow.indexOf('finalize_v2_evidence:'),
+  workflow.indexOf('publish_v2_success:'),
 );
 if (/statuses:\s*write/.test(readOnlySection)) {
   throw new Error('ATOMIC_FINALIZATION_V2_READ_JOB_HAS_WRITE_PERMISSION');
