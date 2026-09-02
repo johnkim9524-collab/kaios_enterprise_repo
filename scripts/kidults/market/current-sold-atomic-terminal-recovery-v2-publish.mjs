@@ -14,8 +14,11 @@ import {
   writeJsonSecure,
   baseReceipt,
 } from './atomic-terminal-recovery-v2-runtime.mjs';
+import {
+  expectedRemediationEvidenceArtifactName,
+} from './atomic-terminal-recovery-remediation-v1-policy.mjs';
 
-function assertEvidenceReceipt(receipt, authority, {
+export function assertEvidenceReceipt(receipt, authority, {
   artifactId,
   artifactDigest,
   artifactName,
@@ -67,7 +70,7 @@ function assertEvidenceReceipt(receipt, authority, {
     'ATOMIC_RECOVERY_EVIDENCE_ARTIFACT_ID_INVALID');
   assert(SHA256.test(normalizeSha256(artifactDigest)),
     'ATOMIC_RECOVERY_EVIDENCE_ARTIFACT_DIGEST_INVALID');
-  assert(artifactName === `kidults-atomic-terminal-recovery-evidence-v2-${authority.runId}-1`,
+  assert(artifactName === expectedRemediationEvidenceArtifactName(manifest, authority.runId),
     'ATOMIC_RECOVERY_EVIDENCE_ARTIFACT_NAME_INVALID');
   assert(SHA256.test(receiptSha), 'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_DIGEST_INVALID');
   return receipt;
