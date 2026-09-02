@@ -1,8 +1,9 @@
 {
   "id": "kidults-atomic-landing-lifecycle-canary-1810-v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "issue": 1810,
-  "phase": "NEGATIVE_UNSUPERSEDED_RED_ARMED",
+  "generation": 2,
+  "phase": "NEGATIVE_UNSUPERSEDED_RED_REARMED",
   "base_sha": "31fea5ccdf06ae0812d6001bfc87d6a7992e5fdd",
   "execution_class": "CONTROL_ONLY",
   "purpose": "Prove that Atomic Governed Landing rejects an exact PR/head/base generation whose newest lifecycle receipt is RED even after sibling native contexts later become ready.",
@@ -11,6 +12,11 @@
     "merge_committed": false,
     "protected_main_unchanged": true,
     "terminal_receipt_required": true
+  },
+  "negative_generation_rules": {
+    "do_not_edit_pr_body_after_rearm": true,
+    "do_not_relabel_or_toggle_draft_after_rearm": true,
+    "newest_lifecycle_red_must_remain_unsuperseded": true
   },
   "positive_follow_up": {
     "requires_new_exact_head": true,
