@@ -4,12 +4,12 @@ import fs from 'node:fs';
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 
-export function classifyWorkflowRunGeneration({event,currentMainSha,repository,expectedWorkflowPath}) {
+export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath}) {
   const run=event?.workflow_run;
   const base={
     id:'kidults-workflow-run-generation-classification-v1',version:'1.0.0',
     state:'VERIFIED_FAIL',classification:'INVALID_TRIGGER',reason:'UNCLASSIFIED',
-    repository,current_main_sha:currentMainSha,expected_producer_workflow_path:expectedWorkflowPath,
+    repository,current_main_sha:currentMainSha,execution_sha:executionSha,expected_producer_workflow_path:expectedWorkflowPath,
     producer_workflow_path:run?.path??null,producer_run_id:Number.isInteger(run?.id)?run.id:null,
     producer_run_attempt:Number.isInteger(run?.run_attempt)?run.run_attempt:null,
     producer_head_repository:run?.head_repository?.full_name??null,producer_head_branch:run?.head_branch??null,
@@ -19,6 +19,8 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,repository,e
   };
   if(!run||!Number.isInteger(run.id))return {...base,reason:'WORKFLOW_RUN_EVENT_MISSING'};
   if(!SHA_RE.test(currentMainSha??''))return {...base,reason:'CURRENT_MAIN_SHA_INVALID'};
+  if(!SHA_RE.test(executionSha??''))return {...base,reason:'EXECUTION_SHA_INVALID'};
+  if(executionSha!==currentMainSha)return {...base,reason:'CURRENT_MAIN_ADVANCED_DURING_CLASSIFICATION'};
   if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
   if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
   if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
@@ -29,10 +31,10 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,repository,e
 }
 
 function main(){
-  const [eventPath,currentMainSha,repository,expectedWorkflowPath,outputPath]=process.argv.slice(2);
-  if(!eventPath||!currentMainSha||!repository||!expectedWorkflowPath||!outputPath)throw new Error('WORKFLOW_RUN_CLASSIFIER_ARGUMENTS_REQUIRED');
+  const [eventPath,currentMainSha,executionSha,repository,expectedWorkflowPath,outputPath]=process.argv.slice(2);
+  if(!eventPath||!currentMainSha||!executionSha||!repository||!expectedWorkflowPath||!outputPath)throw new Error('WORKFLOW_RUN_CLASSIFIER_ARGUMENTS_REQUIRED');
   const event=JSON.parse(fs.readFileSync(eventPath,'utf8'));
-  const result=classifyWorkflowRunGeneration({event,currentMainSha,repository,expectedWorkflowPath});
+  const result=classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath});
   fs.writeFileSync(outputPath,`${JSON.stringify(result,null,2)}\n`);
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
