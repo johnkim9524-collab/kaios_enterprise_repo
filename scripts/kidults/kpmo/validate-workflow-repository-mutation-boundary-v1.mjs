@@ -2,10 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve('.github/workflows');
-const POLICY_VERSION = '1.2';
+const POLICY_VERSION = '1.3';
 const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-landing-v1.yml');
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
+const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -48,7 +49,44 @@ function violationsFor(text) {
   return [...new Set(findings)];
 }
 
-function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
+function extractCurrentSoldPathMatchers(text, label) {
+  const match = text.match(/const currentSoldPathMatchers = \[\r?\n([\s\S]*?)\r?\n\];/);
+  if (!match) throw new Error(`current-sold matcher block missing: ${label}`);
+  const entries = match[1]
+    .split(/\r?\n/)
+    .map(line => line.trim().replace(/,$/, ''))
+    .filter(Boolean);
+  if (!entries.length || entries.some(entry => !entry.startsWith('/') || !entry.endsWith('/'))) {
+    throw new Error(`current-sold matcher block malformed: ${label}`);
+  }
+  if (new Set(entries).size !== entries.length) {
+    throw new Error(`current-sold matcher block contains duplicates: ${label}`);
+  }
+  return entries;
+}
+
+function currentSoldMatcherAlignmentFindings(runner, postValidator, terminalReconciler) {
+  const runnerMatchers = extractCurrentSoldPathMatchers(runner, 'atomic landing runner');
+  const postValidatorMatchers = extractCurrentSoldPathMatchers(postValidator, 'post-landing validator');
+  const terminalMatchers = extractCurrentSoldPathMatchers(terminalReconciler, 'terminal reconciler');
+  const canonical = JSON.stringify(runnerMatchers);
+  const findings = [];
+  if (JSON.stringify(postValidatorMatchers) !== canonical) {
+    findings.push({
+      file: path.relative('.', ATOMIC_LANDING_POST_VALIDATOR),
+      violations: ['current-sold-path-matchers-drift-from-atomic-runner'],
+    });
+  }
+  if (JSON.stringify(terminalMatchers) !== canonical) {
+    findings.push({
+      file: path.relative('.', ATOMIC_LANDING_TERMINAL_RECONCILER),
+      violations: ['current-sold-path-matchers-drift-from-atomic-runner'],
+    });
+  }
+  return findings;
+}
+
+function constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler) {
   const workflowRequirements = [
     ['workflow-name', 'name: KIDULTS Atomic Governed Landing V1'],
     ['dispatch-only', 'on:\n  workflow_dispatch:'],
@@ -70,6 +108,7 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
     ['postlanding-exact-sha-env', 'CURRENT_SOLD_MERGE_SHA: ${{ steps.landing.outputs.merge_commit_sha }}'],
     ['postlanding-runner-temp', 'run: node "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"'],
     ['postlanding-artifact', 'kidults-current-sold-postlanding-v1-${{ github.run_id }}-${{ github.run_attempt }}'],
+    ['terminal-current-sold-output-binding', 'CURRENT_SOLD_CHANGED: ${{ steps.landing.outputs.current_sold_changed }}'],
   ];
   const runnerRequirements = [
     ['owner-actor-source', 'const repositoryOwner = repositoryState.owner?.login;'],
@@ -116,6 +155,12 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
     ['production-hold', "production: 'HOLD'"],
     ['g5-hold', "g5: 'HOLD'"],
   ];
+  const terminalRequirements = [
+    ['current-sold-output-source', 'const landingCurrentSoldChanged = process.env.CURRENT_SOLD_CHANGED || null;'],
+    ['current-sold-output-validity', 'ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID'],
+    ['current-sold-classification-drift', 'ATOMIC_TERMINAL_CURRENT_SOLD_CLASSIFICATION_DRIFT'],
+    ['current-sold-consistency-receipt', 'current_sold_classifier_consistent: true'],
+  ];
   const findings = [];
   for (const [id, fragment] of workflowRequirements) {
     if (!workflow.includes(fragment)) findings.push(`atomic-landing-workflow-${id}`);
@@ -125,6 +170,9 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
   }
   for (const [id, fragment] of postValidatorRequirements) {
     if (!postValidator.includes(fragment)) findings.push(`atomic-landing-post-validator-${id}`);
+  }
+  for (const [id, fragment] of terminalRequirements) {
+    if (!terminalReconciler.includes(fragment)) findings.push(`atomic-landing-terminal-${id}`);
   }
   if ((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length !== 1) {
     findings.push('atomic-landing-single-contents-write');
@@ -166,7 +214,8 @@ for (const file of files) {
   if (path.resolve(file) === ATOMIC_LANDING_WORKFLOW && violations.includes('contents-write')) {
     const runner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
     const postValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
-    const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator);
+    const terminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+    const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler);
     if (exceptionViolations.length === 0 && violations.length === 1) {
       violations = [];
       constrainedAtomicLandingExceptions += 1;
@@ -187,6 +236,9 @@ if (constrainedAtomicLandingExceptions !== 1) {
 const atomicWorkflow = fs.readFileSync(ATOMIC_LANDING_WORKFLOW, 'utf8');
 const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
 const atomicPostValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
+const atomicTerminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+findings.push(...currentSoldMatcherAlignmentFindings(atomicRunner, atomicPostValidator, atomicTerminalReconciler));
+
 const atomicMutationCases = [
   {
     id: 'owner-actor-source',
@@ -196,6 +248,7 @@ const atomicMutationCases = [
       'const repositoryOwner = landingActor;',
     ),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-owner-actor-source',
   },
   {
@@ -206,6 +259,7 @@ const atomicMutationCases = [
       'assertLandingActorAndAuthorization(landingActor, landingActor, authorizationId, prNumber, expectedHeadSha);',
     ),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-owner-actor-assertion',
   },
   {
@@ -213,6 +267,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner.replace('const immediatePreMerge = await request(`/pulls/${prNumber}`);', 'const immediatePreMerge = final;'),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-post-status-live-pr-reread',
   },
   {
@@ -220,6 +275,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-server-merge-exact-head',
   },
   {
@@ -227,6 +283,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner.replace("await publish('failure', error?.code || error?.message || 'atomic landing failed')", 'void error'),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-failure-status-revocation',
   },
   {
@@ -234,6 +291,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner.replace('no_merge_label_server_transactionality_claimed: false', 'no_merge_label_server_transactionality_claimed: true'),
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-runner-label-atomicity-caveat',
   },
   {
@@ -241,6 +299,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow.replace('install -m 0500', 'install -m 0777'),
     runner: atomicRunner,
     postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-workflow-trusted-postlanding-install',
   },
   {
@@ -248,6 +307,7 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner,
     postValidator: atomicPostValidator.replace('parentLine[2] === mergedPrHeadSha', 'parentLine[2] === premergeMainSha'),
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-post-validator-second-parent',
   },
   {
@@ -255,19 +315,77 @@ const atomicMutationCases = [
     workflow: atomicWorkflow,
     runner: atomicRunner,
     postValidator: atomicPostValidator.replace("await postStatus('success'", "await postStatus('pending'"),
+    terminalReconciler: atomicTerminalReconciler,
     expected: 'atomic-landing-post-validator-success-status',
+  },
+  {
+    id: 'terminal-current-sold-output-binding',
+    workflow: atomicWorkflow.replace('          CURRENT_SOLD_CHANGED: ${{ steps.landing.outputs.current_sold_changed }}\n', ''),
+    runner: atomicRunner,
+    postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler,
+    expected: 'atomic-landing-workflow-terminal-current-sold-output-binding',
+  },
+  {
+    id: 'terminal-current-sold-classification-drift',
+    workflow: atomicWorkflow,
+    runner: atomicRunner,
+    postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler.replace(
+      "assert(currentSoldChanged === (landingCurrentSoldChanged === 'true'), 'ATOMIC_TERMINAL_CURRENT_SOLD_CLASSIFICATION_DRIFT');",
+      'void currentSoldChanged;',
+    ),
+    expected: 'atomic-landing-terminal-current-sold-classification-drift',
   },
 ];
 for (const mutation of atomicMutationCases) {
   const mutationApplied = mutation.workflow !== atomicWorkflow
     || mutation.runner !== atomicRunner
-    || mutation.postValidator !== atomicPostValidator;
+    || mutation.postValidator !== atomicPostValidator
+    || mutation.terminalReconciler !== atomicTerminalReconciler;
   if (!mutationApplied) {
     throw new Error(`atomic landing exception self-test mutation did not apply: ${mutation.id}`);
   }
-  const found = constrainedAtomicLandingViolations(mutation.workflow, mutation.runner, mutation.postValidator);
+  const found = constrainedAtomicLandingViolations(
+    mutation.workflow,
+    mutation.runner,
+    mutation.postValidator,
+    mutation.terminalReconciler,
+  );
   if (!found.includes(mutation.expected)) {
     throw new Error(`atomic landing exception self-test missed ${mutation.id}: ${mutation.expected}`);
+  }
+}
+
+const matcherLine = '  /^scripts\\/kidults\\/kpmo\\/validate-workflow-repository-mutation-boundary-v1\\.mjs$/,\n';
+const matcherMutationCases = [
+  {
+    id: 'post-validator-matcher-drift',
+    runner: atomicRunner,
+    postValidator: atomicPostValidator.replace(matcherLine, ''),
+    terminalReconciler: atomicTerminalReconciler,
+    expectedFile: path.relative('.', ATOMIC_LANDING_POST_VALIDATOR),
+  },
+  {
+    id: 'terminal-reconciler-matcher-drift',
+    runner: atomicRunner,
+    postValidator: atomicPostValidator,
+    terminalReconciler: atomicTerminalReconciler.replace(matcherLine, ''),
+    expectedFile: path.relative('.', ATOMIC_LANDING_TERMINAL_RECONCILER),
+  },
+];
+for (const mutation of matcherMutationCases) {
+  if (mutation.postValidator === atomicPostValidator && mutation.terminalReconciler === atomicTerminalReconciler) {
+    throw new Error(`current-sold matcher self-test mutation did not apply: ${mutation.id}`);
+  }
+  const drift = currentSoldMatcherAlignmentFindings(
+    mutation.runner,
+    mutation.postValidator,
+    mutation.terminalReconciler,
+  );
+  if (!drift.some(item => item.file === mutation.expectedFile
+    && item.violations.includes('current-sold-path-matchers-drift-from-atomic-runner'))) {
+    throw new Error(`current-sold matcher self-test missed drift: ${mutation.id}`);
   }
 }
 
@@ -280,6 +398,8 @@ const result = {
   policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS_EXCEPT_CONSTRAINED_ATOMIC_GOVERNED_SERVER_MERGE_WITH_SAME_JOB_POSTLANDING_VALIDATION',
   constrained_atomic_landing_exceptions: constrainedAtomicLandingExceptions,
   atomic_landing_mutation_cases_detected: atomicMutationCases.length,
+  current_sold_matcher_surfaces_verified: 3,
+  current_sold_matcher_mutation_cases_detected: matcherMutationCases.length,
   findings,
   result: findings.length === 0 ? 'PASS' : 'FAIL',
   empirical_gate_effect: 'NONE',
