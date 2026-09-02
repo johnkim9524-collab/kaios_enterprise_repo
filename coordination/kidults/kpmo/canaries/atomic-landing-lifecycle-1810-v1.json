@@ -1,0 +1,35 @@
+{
+  "id": "kidults-atomic-landing-lifecycle-canary-1810-v1",
+  "version": "1.0.0",
+  "issue": 1810,
+  "phase": "NEGATIVE_UNSUPERSEDED_RED_ARMED",
+  "base_sha": "31fea5ccdf06ae0812d6001bfc87d6a7992e5fdd",
+  "execution_class": "CONTROL_ONLY",
+  "purpose": "Prove that Atomic Governed Landing rejects an exact PR/head/base generation whose newest lifecycle receipt is RED even after sibling native contexts later become ready.",
+  "negative_expected_outcome": {
+    "atomic_landing": "VERIFIED_FAIL_BEFORE_MERGE",
+    "merge_committed": false,
+    "protected_main_unchanged": true,
+    "terminal_receipt_required": true
+  },
+  "positive_follow_up": {
+    "requires_new_exact_head": true,
+    "requires_fresh_terminal_lifecycle_success": true,
+    "requires_new_program_owner_authorization": true,
+    "expected_outcome": "MERGE_COMMITTED_POSTLANDING_VERIFIED"
+  },
+  "runtime_effects": {
+    "postgres_migration": false,
+    "postgres_write": false,
+    "empirical_current_sold_admission": false,
+    "private_candidate_execution": false,
+    "provider_calls": 0,
+    "deployment": false,
+    "ruleset_mutation": false
+  },
+  "release_boundary": {
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
