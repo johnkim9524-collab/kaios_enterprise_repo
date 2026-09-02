@@ -195,7 +195,7 @@ rejected.push(reject('prior status state drift',
   ]}, manifest)));
 rejected.push(reject('combined latest-only status surface',
   'ATOMIC_RECOVERY_FINALIZATION_RAW_HISTORY_SHAPE_INVALID',
-  () => assertFinalizedRecoveryReadback([success]},
+  () => assertFinalizedRecoveryReadback({statuses: [success]},
     success.id, 7002, manifest)));
 rejected.push(reject('success missing',
   'ATOMIC_RECOVERY_FINALIZATION_STATUS_CARDINALITY_INVALID',
