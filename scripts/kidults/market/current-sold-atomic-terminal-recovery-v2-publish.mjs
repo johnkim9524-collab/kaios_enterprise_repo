@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {pathToFileURL} from 'node:url';
 import {
   SHA256,
   RECOVERY_CONTEXT,
@@ -253,4 +254,6 @@ async function main() {
   }
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}
