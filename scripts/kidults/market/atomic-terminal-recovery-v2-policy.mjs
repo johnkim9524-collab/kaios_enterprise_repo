@@ -8,6 +8,8 @@ export const NONCE32 = /^[0-9a-f]{32}$/;
 export const MAX_APPROVAL_LIFETIME_MS = 60 * 60 * 1000;
 export const MAX_PAGES = 10;
 export const APPROVAL_MARKER = 'KIDULTS_ATOMIC_TERMINAL_RECOVERY_EXACT_APPROVAL_V1';
+export const FINALIZATION_V2_APPROVAL_MARKER =
+  'KIDULTS_ATOMIC_TERMINAL_RECOVERY_FINALIZATION_EXACT_APPROVAL_V2';
 export const APPROVAL_OPERATION = 'PUBLISH_DISTINCT_ATOMIC_TERMINAL_RECOVERY_STATUS';
 export const APPROVAL_SCOPE = 'ONE_BOUNDED_ATOMIC_TERMINAL_RECOVERY_ONLY';
 export const HISTORICAL_CONTEXT = 'KIDULTS Atomic Landing Terminal V2';
@@ -79,9 +81,9 @@ export function latestStatus(payload, context) {
   return statusesFor(payload, context)[0] || null;
 }
 
-export function parseRecoveryApprovalBody(body) {
+export function parseRecoveryApprovalBody(body, expectedMarker = APPROVAL_MARKER) {
   const lines = String(body || '').trim().split(/\r?\n/);
-  if (lines[0] !== APPROVAL_MARKER) return null;
+  if (lines[0] !== expectedMarker) return null;
   const expectedKeys = [
     'repository',
     'source_issue',
@@ -169,7 +171,7 @@ export function validateManifest(manifest) {
     && RECOVERY_CONTEXT !== HISTORICAL_CONTEXT,
   'ATOMIC_RECOVERY_CONTEXT_SUBSTITUTION');
   const policy = manifest.authorization_policy;
-  assert(policy?.marker === APPROVAL_MARKER
+  assert([APPROVAL_MARKER, FINALIZATION_V2_APPROVAL_MARKER].includes(policy?.marker)
     && policy?.operation === APPROVAL_OPERATION
     && policy?.scope === APPROVAL_SCOPE
     && policy?.max_lifetime_seconds === 3600
@@ -196,7 +198,10 @@ export function selectRecoveryApproval(comments, {
   assert(repositoryOwner && SHA40.test(currentMainSha || '') && SHA256.test(manifestDigest || ''),
     'ATOMIC_RECOVERY_APPROVAL_BINDING_INVALID');
   const marked = comments
-    .map(comment => ({comment, fields: parseRecoveryApprovalBody(comment?.body)}))
+    .map(comment => ({
+      comment,
+      fields: parseRecoveryApprovalBody(comment?.body, manifest.authorization_policy.marker),
+    }))
     .filter(item => item.fields)
     .sort((a, b) => exactTime(b.comment?.created_at, 'ATOMIC_RECOVERY_APPROVAL_TIME_INVALID')
       - exactTime(a.comment?.created_at, 'ATOMIC_RECOVERY_APPROVAL_TIME_INVALID')
