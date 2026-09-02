@@ -126,7 +126,11 @@ if (!errors.length) {
     'reconcile-continuous-assurance-inline-v1.test.mjs',
     'id: reserve_binding',
     'steps.reserve_binding.outcome',
-    'id: terminal_reconcile'
+    'id: terminal_reconcile',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI SHADOW Operating Evidence v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI Requirement-to-Adapter Coverage v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI Sharded Source Reserve v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KPMO Live Canonical Issue Truth V1\' }}'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
   if (!/- name: Run audit and always retain receipt\n\s+id: audit_receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
@@ -145,14 +149,15 @@ if (!errors.length) {
   const packetUploadIndex = activeWorkflow.indexOf('Upload exact-run assurance packet');
   if (auditReceiptIndex < 0 || reconciliationIndex <= auditReceiptIndex || plannerIndex <= reconciliationIndex || packetUploadIndex <= plannerIndex) errors.push('terminal reconciliation must run after audit and before plan/upload');
   const requiredOutcomeIds = ['exact_source', 'ephemeral_guard', 'shadow_binding', 'requirement_binding', 'reserve_binding', 'truth_binding', 'met_binding', 'vam_binding', 'assurance_contract', 'adapter_watch', 'watch_coverage', 'audit_receipt'];
+  if ((activeWorkflow.match(/"applicable":/g) || []).length !== requiredOutcomeIds.length) errors.push('required workflow applicability cardinality invalid');
   for (const id of requiredOutcomeIds) {
     if ((activeWorkflow.match(new RegExp(`id: ${id}\\b`, 'g')) || []).length !== 1) errors.push(`required workflow step id cardinality invalid: ${id}`);
     if (!activeWorkflow.includes(`steps.${id}.outcome`)) errors.push(`required workflow outcome binding missing: ${id}`);
   }
-  for (const marker of ['WORKFLOW_JOB_FAILURE_UNATTRIBUTED', 'WORKFLOW_TERMINAL_RECONCILIATION_FATAL', 'source_failure_dominates_generic_audit_pass', 'required_step_outcomes', 'receipt_digest', 'promotion_eligible: false']) {
+  for (const marker of ['WORKFLOW_JOB_FAILURE_UNATTRIBUTED', 'WORKFLOW_TERMINAL_RECONCILIATION_FATAL', 'source_failure_dominates_generic_audit_pass', 'required_step_outcomes', 'REQUIRED_STEP_APPLICABILITY_INVALID', 'row.applicable', 'receipt_digest', 'promotion_eligible: false']) {
     if (!terminalReconciler.includes(marker)) errors.push(`terminal reconciler marker missing: ${marker}`);
   }
-  for (const marker of ['WORKFLOW_REQUIRED_STEP_RESERVE_BINDING', 'WORKFLOW_REQUIRED_STEP_TRUTH_BINDING', 'UNATTRIBUTED_FAILURE', 'INCONSISTENT_SUCCESS_ACCEPTED', 'DIGEST_BINDING']) {
+  for (const marker of ['WORKFLOW_REQUIRED_STEP_RESERVE_BINDING', 'WORKFLOW_REQUIRED_STEP_TRUTH_BINDING', 'UNATTRIBUTED_FAILURE', 'INCONSISTENT_SUCCESS_ACCEPTED', 'EXPECTED_NON_APPLICABLE_SKIP', 'DIGEST_BINDING']) {
     if (!terminalReconcilerTest.includes(marker)) errors.push(`terminal reconciliation test marker missing: ${marker}`);
   }
   const verifierIndex = activeWorkflow.indexOf('Preserve control result without promoting overall HOLD');
