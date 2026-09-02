@@ -10,6 +10,8 @@ on:
     paths:
       - '.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml'
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs'
       - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
 
@@ -41,6 +43,9 @@ jobs:
 
       - name: Run lifecycle classification self-test
         run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs --self-test
+
+      - name: Run atomic lifecycle authority regression
+        run: node scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs
 
   classify-live-pr:
     name: Classify exact PR readiness against native governance evidence
