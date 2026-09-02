@@ -46,7 +46,7 @@ assert(edgeCounts.CANDIDATE_HAS_ADMISSION_CANDIDATE===576&&edgeCounts.MISSION_HA
 assert(quality.state==='VERIFIED_GRAPH_INTEGRITY_READY'&&quality.duplicate_node_ids===0&&quality.duplicate_edge_ids===0&&quality.invalid_edge_node_references===0&&quality.forbidden_node_type_count===0&&quality.forbidden_edge_type_count===0,'QUALITY_INVALID');
 for(const type of contract.graph_model.node_types)assert(quality.node_type_counts?.[type]===counts[type],`QUALITY_NODE_COUNTS:${type}`);
 for(const type of contract.graph_model.edge_types)assert(quality.edge_type_counts?.[type]===edgeCounts[type],`QUALITY_EDGE_COUNTS:${type}`);
-assert(lineage.graph.digest===hash(read('owned-source-intelligence-graph-v2.json'))&&lineage.inputs.length===6,'LINEAGE_INVALID');
+assert(lineage.graph.digest===hash(read('owned-source-intelligence-graph-v2.json'))&&lineage.inputs.length===7,'LINEAGE_INVALID');
 assert(value.graph_digest===lineage.graph.digest,'VALUE_GRAPH_DIGEST');
 assert(value.mission_nodes===counts.MISSION&&value.source_candidate_nodes===counts.SOURCE_CANDIDATE&&value.gate1_decision_nodes===counts.GATE1_DECISION&&value.admission_candidate_nodes===counts.ADMISSION_CANDIDATE&&value.preflight_action_nodes===counts.PREFLIGHT_ACTION,'VALUE_COUNTS');
 assert(value.provider_switching_primitives_created===counts.CANONICAL_HOST+counts.DISCOVERY_PROVIDER+counts.FACTUAL_ORIGIN_CANDIDATE,'VALUE_SWITCHING_PRIMITIVES');
