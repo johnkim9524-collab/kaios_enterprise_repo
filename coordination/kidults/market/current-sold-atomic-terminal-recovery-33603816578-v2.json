@@ -53,6 +53,7 @@
       "workflow_id": 348248201,
       "workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-v2.yml",
       "head_sha": "921b8a697dfbeb8f1415e3ad17a90bb88ab7b5b3",
+      "display_title": "KIDULTS Atomic Terminal Recovery Run #33603816578 @ 921b8a697dfbeb8f1415e3ad17a90bb88ab7b5b3 / RECOVER-RUN-33603816578-921b8a697dfb",
       "conclusion": "failure",
       "authorization_id_sha256": "sha256:b153afd4ea173d5ecde1ab39e9075339cc13e680e55dba9ef43b07056be86983",
       "evidence_artifact": {
