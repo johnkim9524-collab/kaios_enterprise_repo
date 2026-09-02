@@ -5,6 +5,7 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - 'coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json'
       - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json'
       - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json'
       - 'scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs'
@@ -209,6 +210,7 @@ jobs:
             /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
             /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
             /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-1
           TZ=Pacific/Honolulu LANG=C LC_ALL=C node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
@@ -217,6 +219,7 @@ jobs:
             /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
             /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
             /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-2
           diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
@@ -233,6 +236,7 @@ jobs:
             /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
             /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
             /tmp/p1-action-cardinality-mutation.json \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/bad-p1-action-cardinality; then
             echo "P1_ACTION_QUEUE_CARDINALITY_MUTATION_FALSE_GREEN"
@@ -243,6 +247,7 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             | tee /tmp/kidults-asi-owned-source-intelligence-graph-validation-v2.json
       - name: Reject source-candidate-as-evidence mutation
@@ -300,6 +305,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs > /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v2.json
           node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-1 \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             > /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v2.json
       - name: Emit KPMO P2 owned-value receipt
