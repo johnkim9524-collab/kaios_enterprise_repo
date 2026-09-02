@@ -1,0 +1,303 @@
+name: KIDULTS Current-SOLD Atomic Terminal Recovery Publication Remediation V2
+run-name: "KIDULTS Atomic Terminal Recovery Run #33603816578 @ ${{ inputs.expected_current_main_sha }} / ${{ inputs.recovery_authorization_id }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-publication-remediation-v2.yml'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-runtime.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-remediation-v1-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-publication-remediation-v2-policy.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-publish.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-publication-remediation-v2-receipts.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-publication-remediation-v2-preflight.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-publication-remediation-v2-publish.mjs'
+      - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs'
+      - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-publication-remediation-v2.mjs'
+      - 'scripts/kidults/kpmo/lib/atomic-landing-handoff-compatibility-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs'
+      - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-publication-remediation-v2.json'
+  workflow_dispatch:
+    inputs:
+      expected_current_main_sha:
+        description: Exact protected-main SHA after this publication-remediation control lands
+        required: true
+        type: string
+      recovery_authorization_id:
+        description: RECOVER-RUN-33603816578-<first-12-current-main-sha>
+        required: true
+        type: string
+
+concurrency:
+  group: kidults-atomic-governed-landing-v1-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-publication-remediation-contract:
+    name: Validate sealed-evidence publication remediation contract
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          persist-credentials: false
+
+      - name: Checkout exact protected-main base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - name: Verify exact candidate and base SHAs
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          test "$(git -C base rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Validate prior recovery generation and generic publisher regression
+        working-directory: candidate
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
+
+      - name: Validate publication-remediation generation and negative cases
+        working-directory: candidate
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-publication-remediation-v2.mjs
+
+      - name: Validate forward frozen-workflow handoff guard
+        working-directory: candidate
+        run: node scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs
+
+  preflight-sealed-prior-evidence:
+    name: Verify prior sealed evidence without status-write authority
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+      pull-requests: read
+      statuses: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    outputs:
+      preflight_artifact_id: ${{ steps.upload_preflight.outputs.artifact-id }}
+      preflight_artifact_digest: ${{ steps.upload_preflight.outputs.artifact-digest }}
+      preflight_receipt_sha256: ${{ steps.preflight_digest.outputs.sha256 }}
+    steps:
+      - name: Checkout exact current protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify exact current protected-main execution
+        env:
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_CURRENT_MAIN_SHA"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Download exact prior sealed evidence artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: kidults-atomic-terminal-recovery-remediation-evidence-v1-33621062695-1
+          path: out/atomic-terminal-recovery-publication-remediation-v2/prior-evidence
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33621062695
+
+      - name: Download exact prior failed publication artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: kidults-atomic-terminal-recovery-remediation-publication-v1-33621062695-1
+          path: out/atomic-terminal-recovery-publication-remediation-v2/prior-publication
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: 33621062695
+
+      - name: Verify exact prior run, artifacts, receipts and immutable status boundary
+        id: preflight
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+          RECOVERY_AUTHORIZATION_ID: ${{ inputs.recovery_authorization_id }}
+          ATOMIC_TERMINAL_RECOVERY_RECEIPT_PATH: out/atomic-terminal-recovery-publication-remediation-v2/current/preflight-receipt.json
+        run: >-
+          node scripts/kidults/market/current-sold-atomic-terminal-recovery-publication-remediation-v2-preflight.mjs
+          --preflight
+          coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-publication-remediation-v2.json
+          out/atomic-terminal-recovery-publication-remediation-v2/prior-evidence
+          out/atomic-terminal-recovery-publication-remediation-v2/prior-publication
+
+      - name: Digest current preflight receipt bytes
+        id: preflight_digest
+        if: steps.preflight.outcome == 'success'
+        run: |
+          set -euo pipefail
+          test -f out/atomic-terminal-recovery-publication-remediation-v2/current/preflight-receipt.json
+          printf 'sha256=sha256:%s\n' "$(sha256sum out/atomic-terminal-recovery-publication-remediation-v2/current/preflight-receipt.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile durable publication-remediation preflight terminal receipt
+        if: always()
+        env:
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/atomic-terminal-recovery-publication-remediation-v2/current
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const outcome = process.env.PREFLIGHT_OUTCOME || 'not_run';
+          const receipt = {
+            id: 'kidults-atomic-terminal-recovery-publication-remediation-terminal-receipt-v2',
+            version: '2.0.0',
+            state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_code: outcome === 'success' ? null : 'PREFLIGHT_NOT_SUCCESS',
+            repository: process.env.GITHUB_REPOSITORY,
+            exact_current_main_sha: process.env.EXPECTED_CURRENT_MAIN_SHA,
+            workflow_run_id: Number(process.env.GITHUB_RUN_ID),
+            workflow_run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            preflight_outcome: outcome,
+            status_write_authority: false,
+            status_write_performed: false,
+            failure_status_write_attempted: false,
+            prior_authorization_reused: false,
+            prior_run_rerun_performed: false,
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD',
+          };
+          fs.writeFileSync(
+            'out/atomic-terminal-recovery-publication-remediation-v2/current/terminal-receipt.json',
+            `${JSON.stringify(receipt, null, 2)}\n`,
+            {encoding: 'utf8', mode: 0o600},
+          );
+          NODE
+
+      - name: Upload sealed current publication-remediation preflight
+        id: upload_preflight
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-terminal-recovery-publication-remediation-evidence-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-publication-remediation-v2/current
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Reapply fail-closed publication-remediation preflight verdict
+        if: always()
+        env:
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+        run: |
+          set -euo pipefail
+          test "$PREFLIGHT_OUTCOME" = success
+          test -f out/atomic-terminal-recovery-publication-remediation-v2/current/preflight-receipt.json
+          test -f out/atomic-terminal-recovery-publication-remediation-v2/current/terminal-receipt.json
+
+  publish-one-recovery-success-status:
+    name: Publish one success after immutable prior recovery failure
+    if: github.event_name == 'workflow_dispatch' && needs.preflight-sealed-prior-evidence.result == 'success'
+    needs: [preflight-sealed-prior-evidence]
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+      statuses: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact current protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify exact current protected-main execution
+        env:
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_CURRENT_MAIN_SHA"
+
+      - name: Download exact current sealed preflight
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: kidults-atomic-terminal-recovery-publication-remediation-evidence-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-publication-remediation-v2/sealed-preflight
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Revalidate fresh Owner authority and publish exactly one success status
+        id: publish
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+          RECOVERY_AUTHORIZATION_ID: ${{ inputs.recovery_authorization_id }}
+          PREFLIGHT_ARTIFACT_ID: ${{ needs.preflight-sealed-prior-evidence.outputs.preflight_artifact_id }}
+          PREFLIGHT_ARTIFACT_DIGEST: ${{ needs.preflight-sealed-prior-evidence.outputs.preflight_artifact_digest }}
+          PREFLIGHT_ARTIFACT_NAME: kidults-atomic-terminal-recovery-publication-remediation-evidence-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          PREFLIGHT_RECEIPT_SHA256: ${{ needs.preflight-sealed-prior-evidence.outputs.preflight_receipt_sha256 }}
+          ATOMIC_TERMINAL_RECOVERY_RECEIPT_PATH: out/atomic-terminal-recovery-publication-remediation-v2/publication/publication-receipt.json
+        run: >-
+          node scripts/kidults/market/current-sold-atomic-terminal-recovery-publication-remediation-v2-publish.mjs
+          --publish
+          coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-publication-remediation-v2.json
+          out/atomic-terminal-recovery-publication-remediation-v2/sealed-preflight/preflight-receipt.json
+
+      - name: Upload durable publication-remediation receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-terminal-recovery-publication-remediation-v2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-publication-remediation-v2/publication/publication-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Reapply fail-closed publication-remediation verdict
+        if: always()
+        env:
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+        run: |
+          set -euo pipefail
+          test "$PUBLISH_OUTCOME" = success
+          test -f out/atomic-terminal-recovery-publication-remediation-v2/publication/publication-receipt.json
