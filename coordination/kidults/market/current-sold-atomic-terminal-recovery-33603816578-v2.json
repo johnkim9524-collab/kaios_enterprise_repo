@@ -43,6 +43,43 @@
     "created_at": "2026-09-02T07:29:57Z"
   },
   "recovery_status_context": "KIDULTS Atomic Landing Recovery V1",
+  "authorized_recovery_workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-v1.yml",
+  "remediation_generation": {
+    "id": "kidults-atomic-terminal-recovery-remediation-v1",
+    "cause": "RUNTIME_MAX_PAGES_IMPORT_MISSING",
+    "prior_failed_recovery_run": {
+      "id": 33614615356,
+      "attempt": 1,
+      "workflow_id": 348248201,
+      "workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-v2.yml",
+      "head_sha": "921b8a697dfbeb8f1415e3ad17a90bb88ab7b5b3",
+      "conclusion": "failure",
+      "authorization_id_sha256": "sha256:b153afd4ea173d5ecde1ab39e9075339cc13e680e55dba9ef43b07056be86983",
+      "evidence_artifact": {
+        "id": 9840385828,
+        "name": "kidults-atomic-terminal-recovery-evidence-v2-33614615356-1",
+        "digest": "sha256:70143cf0b491e502f004fb38b153028e829722b56f407b8d912f295980e6c4db"
+      },
+      "receipt_state": "VERIFIED_FAIL",
+      "failure_code": "MAX_PAGES is not defined",
+      "historical_terminal_context_mutated": false,
+      "status_write_authority": false,
+      "status_write_performed": false,
+      "merge_reexecuted": false,
+      "landing_authorization_reused": false,
+      "provider_calls": 0,
+      "postgres_rows_written": 0,
+      "deployment": false,
+      "empirical_authority_created": false,
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    },
+    "fresh_owner_authority_required": true,
+    "prior_authorization_reuse_forbidden": true,
+    "prior_run_rerun_forbidden": true,
+    "single_new_workflow_generation_only": true
+  },
   "authorization_policy": {
     "marker": "KIDULTS_ATOMIC_TERMINAL_RECOVERY_EXACT_APPROVAL_V1",
     "operation": "PUBLISH_DISTINCT_ATOMIC_TERMINAL_RECOVERY_STATUS",
