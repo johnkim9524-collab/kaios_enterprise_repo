@@ -71,6 +71,10 @@ const receipt = (id, overrides = {}, statuses = nativeStatuses) => ({
   workflow_run_id: String(id),
   workflow_run_attempt: '1',
   event_name: 'pull_request_target',
+  lifecycle_evaluated_at: '2026-09-01T13:29:00Z',
+  latest_ready_event_id: 9001,
+  latest_ready_event_at: '2026-09-01T13:20:00Z',
+  latest_ready_event_actor: 'repository-owner',
   state: 'READY_GOVERNED',
   reason: READY_GOVERNED_REASON,
   validator_authority: 'CONTROL_ONLY',
@@ -85,6 +89,8 @@ const invoke = ({
   receiptsByRunId = {},
   statuses = nativeStatuses,
   lastReadyAt = '2026-09-01T13:20:00Z',
+  lastReadyEventId = 9001,
+  lastReadyEventActor = 'repository-owner',
   prCreatedAt = '2026-09-01T13:00:00Z',
 }) => selectAtomicLandingLifecycleAuthority({
   runs,
@@ -96,6 +102,8 @@ const invoke = ({
   prCreatedAt,
   nativeStatuses: statuses,
   lastReadyAt,
+  lastReadyEventId,
+  lastReadyEventActor,
 });
 
 const green = run(200, 'success', '2026-09-01T13:29:00Z');
@@ -109,6 +117,40 @@ assert(authority.lifecycle_run_id === 200, 'POSITIVE_RUN_BINDING');
 assert(authority.lifecycle_artifact_digest === `sha256:${'a'.repeat(64)}`, 'POSITIVE_DIGEST_BINDING');
 assert(authority.exact_base_sha === base, 'POSITIVE_BASE_BINDING');
 assert(authority.lifecycle_receipt_reason === READY_GOVERNED_REASON, 'POSITIVE_PENDING_SEMANTICS');
+
+const rerunWithStaleMutableRunTimestamp = invoke({
+  runs: [run(210, 'success', '2026-09-01T13:23:00Z')],
+  artifactsByRunId: {'210': [artifact(210)]},
+  receiptsByRunId: {'210': receipt(210)},
+});
+assert(rerunWithStaleMutableRunTimestamp.lifecycle_run_id === 210, 'RERUN_RECEIPT_TIME_MUST_BE_AUTHORITATIVE');
+assert(rerunWithStaleMutableRunTimestamp.lifecycle_evaluated_at === '2026-09-01T13:29:00Z', 'RERUN_EVALUATED_AT_BINDING');
+
+expectReject('LIFECYCLE_RECEIPT_EVALUATED_AT_INVALID', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {lifecycle_evaluated_at: null})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_at: '2026-09-01T13:19:59Z'})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_ID_INVALID', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_id: null})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_id: 9002})},
+}));
+expectReject('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {latest_ready_event_actor: 'github-actions[bot]'})},
+}));
 
 expectReject('LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY', () => invoke({
   runs: [green],
@@ -139,10 +181,16 @@ expectReject('LIFECYCLE_LATEST_NOT_TERMINAL', () => invoke({
 expectReject('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL', () => invoke({
   runs: [run(203, 'success', '2026-09-01T13:27:00Z')],
   artifactsByRunId: {'203': [artifact(203)]},
-  receiptsByRunId: {'203': receipt(203)},
+  receiptsByRunId: {'203': receipt(203, {lifecycle_evaluated_at: '2026-09-01T13:27:00Z'})},
 }));
 expectReject('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT', () => invoke({
-  runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200)}, lastReadyAt: '2026-09-01T13:30:00Z',
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {
+    lifecycle_evaluated_at: '2026-09-01T13:29:00Z',
+    latest_ready_event_at: '2026-09-01T13:30:00Z',
+  })},
+  lastReadyAt: '2026-09-01T13:30:00Z',
 }));
 expectReject('LIFECYCLE_RECEIPT_ARTIFACT_CARDINALITY:0', () => invoke({
   runs: [green], artifactsByRunId: {'200': []}, receiptsByRunId: {},

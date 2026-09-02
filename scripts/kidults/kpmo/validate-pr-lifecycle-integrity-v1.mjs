@@ -11,6 +11,9 @@ import {
   SCOPE_AWARE_CONTEXT,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  selectLatestDirectOwnerReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
 
@@ -176,6 +179,9 @@ async function main() {
   assert(token, 'GH_TOKEN_MISSING');
   assert(repository, 'GH_REPOSITORY_MISSING');
   assert(/^\d+$/.test(prNumber || ''), 'PR_NUMBER_INVALID');
+  const repositoryParts = repository.split('/');
+  assert(repositoryParts.length === 2 && repositoryParts.every(Boolean), 'GH_REPOSITORY_INVALID');
+  const [repositoryOwner] = repositoryParts;
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -210,11 +216,16 @@ async function main() {
   let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-    const [prInitial, mainBranch, statuses] = await Promise.all([
+    const [prInitial, mainBranch, statuses, timeline] = await Promise.all([
       api(`/pulls/${prNumber}`),
       api('/branches/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
+      pages(`/issues/${prNumber}/timeline`),
     ]);
+    const latestReadiness = selectLatestDirectOwnerReadyEvent({
+      timeline,
+      repositoryOwner,
+    });
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
       api(`/git/trees/${prInitial.head.sha}?recursive=1`),
@@ -239,6 +250,7 @@ async function main() {
     assert(prFinal.base?.sha === prInitial.base?.sha, 'BASE_CHANGED_DURING_EVALUATION');
     assert(prFinal.draft === prInitial.draft, 'DRAFT_STATE_CHANGED_DURING_EVALUATION');
     assert(prFinal.state === prInitial.state && prFinal.merged === prInitial.merged, 'PR_STATE_CHANGED_DURING_EVALUATION');
+    const lifecycleEvaluatedAt = new Date().toISOString();
 
     receipt = {
       id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
@@ -246,6 +258,12 @@ async function main() {
       workflow_run_id: process.env.GITHUB_RUN_ID || null,
       workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
       event_name: process.env.GITHUB_EVENT_NAME || null,
+      lifecycle_evaluated_at: lifecycleEvaluatedAt,
+      latest_ready_event_id: latestReadiness.id,
+      latest_ready_event_at: latestReadiness.created_at,
+      latest_ready_event_actor: latestReadiness.actor,
+      latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
+      latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
       approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,

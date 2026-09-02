@@ -6,6 +6,9 @@ import {
   resolveAtomicLandingLifecycleAuthority,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  selectLatestDirectOwnerReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -15,6 +18,11 @@ const outPath = process.env.LIFECYCLE_AUTHORITY_PATH || '/tmp/kpmo-atomic-landin
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LIFECYCLE_PREFLIGHT_ENVIRONMENT_BINDING_INVALID');
 }
+const repositoryParts = repository.split('/');
+if (repositoryParts.length !== 2 || repositoryParts.some(value => !value)) {
+  throw new Error('ATOMIC_LIFECYCLE_REPOSITORY_INVALID');
+}
+const [repositoryOwner] = repositoryParts;
 
 const headers = {
   Authorization: `Bearer ${token}`,
@@ -87,9 +95,10 @@ const nativeStatuses = required.map(context => {
   return matches[0];
 });
 
-const readinessEvents = timeline.filter(event => event?.event === 'ready_for_review' || event?.event === 'convert_to_draft');
-const latestReadiness = readinessEvents.at(-1);
-if (!latestReadiness || latestReadiness.event !== 'ready_for_review') throw new Error('ATOMIC_LIFECYCLE_LATEST_READY_EVENT_REQUIRED');
+const latestReadiness = selectLatestDirectOwnerReadyEvent({
+  timeline,
+  repositoryOwner,
+});
 
 const authority = await resolveAtomicLandingLifecycleAuthority({
   request,
@@ -100,6 +109,8 @@ const authority = await resolveAtomicLandingLifecycleAuthority({
   prCreatedAt: pr.created_at,
   nativeStatuses,
   lastReadyAt: latestReadiness.created_at,
+  lastReadyEventId: latestReadiness.id,
+  lastReadyEventActor: latestReadiness.actor,
 });
 
 const finalPr = await request(`/pulls/${prNumber}`);
@@ -115,7 +126,11 @@ const receipt = {
   repository,
   checked_at: new Date().toISOString(),
   ...authority,
+  latest_ready_event_id: latestReadiness.id,
   latest_ready_event_at: latestReadiness.created_at,
+  latest_ready_event_actor: latestReadiness.actor,
+  latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
+  latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
   final_live_reread: true,
   manual_merge_authority: false,
   atomic_landing_only: true,

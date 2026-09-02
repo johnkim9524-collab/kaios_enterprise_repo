@@ -1,13 +1,19 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
   selectExactHeadProgramOwnerApproval,
-  selectLatestProgramOwnerReadyEvent,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
+import {
+  selectLatestDirectOwnerReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
+import {
+  assertAtomicLandingStagedLifecycleAuthority,
+} from './lib/atomic-landing-staged-lifecycle-authority-v1.mjs';
 import {
   assertAtomicLandingConsumptionReceipt,
   buildAtomicLandingRunName,
@@ -28,6 +34,8 @@ const landingRunId = process.env.GITHUB_RUN_ID;
 const landingRunAttempt = process.env.GITHUB_RUN_ATTEMPT;
 const githubOutput = process.env.GITHUB_OUTPUT;
 const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
+const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
+const runnerTemp = process.env.RUNNER_TEMP;
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
 }
@@ -36,6 +44,7 @@ if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') 
 }
 if (Number(landingRunAttempt) !== 1) throw new Error('ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
 if (!consumptionPath) throw new Error('ATOMIC_LANDING_CONSUMPTION_PATH_REQUIRED');
+if (!lifecycleAuthorityPath || !runnerTemp) throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_PATH_REQUIRED');
 if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
@@ -47,26 +56,26 @@ const headers = {
   'X-GitHub-Api-Version': '2022-11-28',
   'User-Agent': 'kidults-atomic-governed-landing-v1',
 };
-const request = async (path, options = {}) => {
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+const request = async (pathValue, options = {}) => {
+  const response = await fetch(`https://api.github.com/repos/${repository}${pathValue}`, {
     ...options,
     headers: {...headers, ...(options.headers || {})},
     redirect: 'error',
   });
   const payload = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${path}:${payload?.message || 'request_failed'}`);
+  if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${pathValue}:${payload?.message || 'request_failed'}`);
   return payload;
 };
-const pages = async path => {
+const pages = async pathValue => {
   const output = [];
   for (let page = 1; page <= 10; page += 1) {
-    const separator = path.includes('?') ? '&' : '?';
-    const values = await request(`${path}${separator}per_page=100&page=${page}`);
-    if (!Array.isArray(values)) throw new Error(`PAGINATION_SHAPE_INVALID:${path}`);
+    const separator = pathValue.includes('?') ? '&' : '?';
+    const values = await request(`${pathValue}${separator}per_page=100&page=${page}`);
+    if (!Array.isArray(values)) throw new Error(`PAGINATION_SHAPE_INVALID:${pathValue}`);
     output.push(...values);
     if (values.length < 100) return output;
   }
-  throw new Error(`PAGINATION_BOUND_EXCEEDED:${path}`);
+  throw new Error(`PAGINATION_BOUND_EXCEEDED:${pathValue}`);
 };
 const workflowRuns = async workflowId => {
   const output = [];
@@ -135,7 +144,98 @@ const readConsumptionReceipt = () => {
   return JSON.parse(fs.readFileSync(consumptionPath, 'utf8'));
 };
 
-const assertLiveOneUseConsumption = async baseSha => {
+const readStagedLifecycleAuthorityReceipt = () => {
+  const trustedRoot = fs.realpathSync(runnerTemp);
+  const candidatePath = path.resolve(lifecycleAuthorityPath);
+  const candidateParent = fs.realpathSync(path.dirname(candidatePath));
+  if (candidateParent !== trustedRoot && !candidateParent.startsWith(`${trustedRoot}${path.sep}`)) {
+    throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_PATH_OUTSIDE_RUNNER_TEMP');
+  }
+  if (!Number.isInteger(fs.constants.O_NOFOLLOW)) {
+    throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_NOFOLLOW_UNAVAILABLE');
+  }
+
+  let descriptor;
+  try {
+    descriptor = fs.openSync(candidatePath, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  } catch {
+    throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_OPEN_FAILED');
+  }
+
+  try {
+    const before = fs.fstatSync(descriptor);
+    if (!before.isFile()) throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_NOT_REGULAR_FILE');
+    if (before.nlink !== 1) throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_LINK_COUNT_INVALID');
+    if (before.size <= 0 || before.size > 1024 * 1024) {
+      throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_SIZE_INVALID');
+    }
+    if ((before.mode & 0o777) !== 0o600) {
+      throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_MODE_INVALID');
+    }
+    if (typeof process.getuid === 'function' && before.uid !== process.getuid()) {
+      throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_OWNER_INVALID');
+    }
+
+    const raw = fs.readFileSync(descriptor, 'utf8');
+    const after = fs.fstatSync(descriptor);
+    if (before.dev !== after.dev
+      || before.ino !== after.ino
+      || before.size !== after.size
+      || before.mtimeMs !== after.mtimeMs
+      || Buffer.byteLength(raw) !== before.size) {
+      throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_FILE_DRIFT');
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_JSON_INVALID');
+    }
+  } finally {
+    fs.closeSync(descriptor);
+  }
+};
+
+const assertLifecycleAuthorityAgainstReady = (readyEvent, baseSha) =>
+  assertAtomicLandingStagedLifecycleAuthority(readStagedLifecycleAuthorityReceipt(), {
+    repository,
+    prNumber,
+    headSha: expectedHeadSha,
+    baseSha,
+    readyEvent,
+  });
+
+const sameReadyEvent = (left, right) =>
+  left?.id === right?.id
+  && left?.created_at === right?.created_at
+  && left?.actor === right?.actor
+  && left?.direct_repository_owner === true
+  && right?.direct_repository_owner === true
+  && left?.performed_via_github_app === null
+  && right?.performed_via_github_app === null;
+
+const sameLifecycleAuthority = (left, right) =>
+  left?.state === right?.state
+  && left?.repository === right?.repository
+  && left?.pull_request === right?.pull_request
+  && left?.exact_head_sha === right?.exact_head_sha
+  && left?.exact_base_sha === right?.exact_base_sha
+  && left?.lifecycle_run_id === right?.lifecycle_run_id
+  && left?.lifecycle_run_attempt === right?.lifecycle_run_attempt
+  && left?.lifecycle_evaluated_at === right?.lifecycle_evaluated_at
+  && left?.lifecycle_artifact_id === right?.lifecycle_artifact_id
+  && left?.lifecycle_artifact_digest === right?.lifecycle_artifact_digest
+  && left?.latest_ready_event_id === right?.latest_ready_event_id
+  && left?.latest_ready_event_at === right?.latest_ready_event_at
+  && left?.latest_ready_event_actor === right?.latest_ready_event_actor;
+
+const sameApproval = (left, right) =>
+  left?.comment_id === right?.comment_id
+  && left?.comment_body_digest === right?.comment_body_digest
+  && left?.approval_nonce_sha256 === right?.approval_nonce_sha256
+  && left?.authorization_id_sha256 === right?.authorization_id_sha256
+  && left?.expires_at === right?.expires_at;
+
+const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
   if (currentRun?.head_sha !== baseSha) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_BASE_MISMATCH');
@@ -148,6 +248,7 @@ const assertLiveOneUseConsumption = async baseSha => {
   });
   const receipt = assertAtomicLandingConsumptionReceipt(readConsumptionReceipt(), {
     repository,
+    repositoryOwner,
     prNumber,
     headSha: expectedHeadSha,
     baseSha,
@@ -164,7 +265,8 @@ try {
   await publish('pending', 'Atomic landing final checks in progress');
   statusTouched = true;
   const repositoryState = await request('');
-  assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login, authorizationId, prNumber, expectedHeadSha);
+  const repositoryOwner = repositoryState.owner?.login;
+  assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
   const changedFileRecords = await pages(`/pulls/${prNumber}/files`);
@@ -173,10 +275,10 @@ try {
     expectedHeadSha,
     noMergePolicy: policy.no_merge_policy,
   });
-  if (initial.user?.login !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
+  if (initial.user?.login !== repositoryOwner) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
 
-  const authorizationConsumption = await assertLiveOneUseConsumption(initial.base.sha);
+  const authorizationConsumption = await assertLiveOneUseConsumption(initial.base.sha, repositoryOwner);
 
   const approvalGeneration = await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
@@ -213,10 +315,11 @@ try {
     pages(`/issues/${prNumber}/comments`),
     request(`/commits/${expectedHeadSha}`),
   ]);
-  const latestReady = selectLatestProgramOwnerReadyEvent(timeline, repositoryState.owner?.login);
+  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const lifecycleAuthority = assertLifecycleAuthorityAgainstReady(latestReady, initial.base.sha);
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
-    repositoryOwner: repositoryState.owner?.login,
+    repositoryOwner,
     prNumber,
     headSha: expectedHeadSha,
     baseSha: initial.base.sha,
@@ -266,10 +369,17 @@ try {
     liveMainSha: immediateMain.commit.sha,
   });
 
-  const immediateReady = selectLatestProgramOwnerReadyEvent(immediateTimeline, repositoryState.owner?.login);
+  const immediateReady = selectLatestDirectOwnerReadyEvent({
+    timeline: immediateTimeline,
+    repositoryOwner,
+  });
+  const immediateLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
+    immediateReady,
+    immediatePreMerge.base.sha,
+  );
   const immediateProgramOwnerApproval = selectExactHeadProgramOwnerApproval(immediateApprovalComments, {
     repository,
-    repositoryOwner: repositoryState.owner?.login,
+    repositoryOwner,
     prNumber,
     headSha: expectedHeadSha,
     baseSha: immediatePreMerge.base.sha,
@@ -279,14 +389,64 @@ try {
     latestReadyAt: immediateReady.created_at,
     evaluationTime: new Date().toISOString(),
   });
-  if (immediateProgramOwnerApproval.comment_id !== programOwnerApproval.comment_id
-    || immediateProgramOwnerApproval.comment_body_digest !== programOwnerApproval.comment_body_digest
-    || immediateProgramOwnerApproval.approval_nonce_sha256 !== programOwnerApproval.approval_nonce_sha256
-    || immediateReady.created_at !== latestReady.created_at) {
+  if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
     throw new Error('IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
   }
+  if (!sameReadyEvent(immediateReady, latestReady)) {
+    throw new Error('IMMEDIATE_PREMERGE_READY_EVENT_DRIFT');
+  }
+  if (!sameLifecycleAuthority(immediateLifecycleAuthority, lifecycleAuthority)) {
+    throw new Error('IMMEDIATE_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
+  }
 
-  await assertLiveOneUseConsumption(immediatePreMerge.base.sha);
+  await assertLiveOneUseConsumption(immediatePreMerge.base.sha, repositoryOwner);
+
+  const [finalPreMerge, finalPreMergeMain, finalPreMergeTimeline, finalPreMergeApprovalComments] = await Promise.all([
+    request(`/pulls/${prNumber}`),
+    request('/branches/main'),
+    pages(`/issues/${prNumber}/timeline`),
+    pages(`/issues/${prNumber}/comments`),
+  ]);
+  assertStableFinalReread(initial, finalPreMerge, {
+    repository,
+    expectedHeadSha,
+    noMergePolicy: policy.no_merge_policy,
+  });
+  if (finalPreMerge.base?.sha !== finalPreMergeMain?.commit?.sha
+    || finalPreMergeMain.commit.sha !== initialMain.commit.sha) {
+    throw new Error('FINAL_PREMERGE_LIVE_MAIN_DRIFT');
+  }
+  assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
+
+  const finalPreMergeReady = selectLatestDirectOwnerReadyEvent({
+    timeline: finalPreMergeTimeline,
+    repositoryOwner,
+  });
+  const finalPreMergeLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
+    finalPreMergeReady,
+    finalPreMerge.base.sha,
+  );
+  const finalPreMergeProgramOwnerApproval = selectExactHeadProgramOwnerApproval(finalPreMergeApprovalComments, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha: expectedHeadSha,
+    baseSha: finalPreMerge.base.sha,
+    authorizationId,
+    prCreatedAt: finalPreMerge.created_at,
+    headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
+    latestReadyAt: finalPreMergeReady.created_at,
+    evaluationTime: new Date().toISOString(),
+  });
+  if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
+    throw new Error('FINAL_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
+  }
+  if (!sameReadyEvent(finalPreMergeReady, immediateReady)) {
+    throw new Error('FINAL_PREMERGE_READY_EVENT_DRIFT');
+  }
+  if (!sameLifecycleAuthority(finalPreMergeLifecycleAuthority, immediateLifecycleAuthority)) {
+    throw new Error('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
+  }
 
   const merged = await request(`/pulls/${prNumber}/merge`, {
     method: 'PUT',
@@ -314,7 +474,7 @@ try {
 
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.3.0',
+    version: '1.4.0',
     state: currentSoldChanged ? 'MERGED_VERIFIED_POSTLANDING_REQUIRED' : 'MERGED_VERIFIED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
@@ -324,6 +484,7 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
+    staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,
     landing_workflow_run_id: landingRunId,
@@ -333,7 +494,11 @@ try {
     final_live_reread: true,
     immediate_post_status_premerge_reread: true,
     immediate_program_owner_approval_reread: true,
+    immediate_lifecycle_authority_reread: true,
     immediate_one_use_consumption_reread: true,
+    final_premerge_program_owner_approval_reread: true,
+    final_premerge_lifecycle_authority_reread: true,
+    direct_owner_ready_event_bound: true,
     post_merge_main_reread: true,
     server_side_expected_head_compare: true,
     no_merge_label_server_transactionality_claimed: false,

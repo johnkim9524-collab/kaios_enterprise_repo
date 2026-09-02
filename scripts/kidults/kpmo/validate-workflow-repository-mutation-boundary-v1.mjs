@@ -72,7 +72,8 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator) {
     ['postlanding-artifact', 'kidults-current-sold-postlanding-v1-${{ github.run_id }}-${{ github.run_attempt }}'],
   ];
   const runnerRequirements = [
-    ['owner-actor-assertion', 'assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login'],
+    ['owner-actor-source', 'const repositoryOwner = repositoryState.owner?.login;'],
+    ['owner-actor-assertion', 'assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);'],
     ['initial-live-pr-read', 'const initial = await request(`/pulls/${prNumber}`);'],
     ['changed-file-read', 'const changedFileRecords = await pages(`/pulls/${prNumber}/files`);'],
     ['current-sold-surface', 'const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);'],
@@ -188,9 +189,22 @@ const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
 const atomicPostValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
 const atomicMutationCases = [
   {
-    id: 'owner-actor',
+    id: 'owner-actor-source',
     workflow: atomicWorkflow,
-    runner: atomicRunner.replace('assertLandingActorAndAuthorization(landingActor, repositoryState.owner?.login', 'assertLandingActorAndAuthorization(landingActor, landingActor'),
+    runner: atomicRunner.replace(
+      'const repositoryOwner = repositoryState.owner?.login;',
+      'const repositoryOwner = landingActor;',
+    ),
+    postValidator: atomicPostValidator,
+    expected: 'atomic-landing-runner-owner-actor-source',
+  },
+  {
+    id: 'owner-actor-assertion',
+    workflow: atomicWorkflow,
+    runner: atomicRunner.replace(
+      'assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);',
+      'assertLandingActorAndAuthorization(landingActor, landingActor, authorizationId, prNumber, expectedHeadSha);',
+    ),
     postValidator: atomicPostValidator,
     expected: 'atomic-landing-runner-owner-actor-assertion',
   },
@@ -245,6 +259,12 @@ const atomicMutationCases = [
   },
 ];
 for (const mutation of atomicMutationCases) {
+  const mutationApplied = mutation.workflow !== atomicWorkflow
+    || mutation.runner !== atomicRunner
+    || mutation.postValidator !== atomicPostValidator;
+  if (!mutationApplied) {
+    throw new Error(`atomic landing exception self-test mutation did not apply: ${mutation.id}`);
+  }
   const found = constrainedAtomicLandingViolations(mutation.workflow, mutation.runner, mutation.postValidator);
   if (!found.includes(mutation.expected)) {
     throw new Error(`atomic landing exception self-test missed ${mutation.id}: ${mutation.expected}`);
