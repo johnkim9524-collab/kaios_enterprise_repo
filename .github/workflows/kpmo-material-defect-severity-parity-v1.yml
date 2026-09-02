@@ -32,6 +32,38 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Initialize terminal RED receipt
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || 0 }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kpmo-material-defect-severity-parity
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const path = '/tmp/kpmo-material-defect-severity-parity/terminal-receipt.json';
+          const receipt = {
+            receipt_type: 'KPMO_MATERIAL_DEFECT_SEVERITY_PARITY_TERMINAL',
+            version: '1.0.0',
+            state: 'VERIFIED_FAIL',
+            failure_class: 'VALIDATION_NOT_COMPLETED',
+            source_sha: process.env.EXPECTED_SHA,
+            run_id: Number(process.env.GITHUB_RUN_ID),
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            trigger_event: process.env.GITHUB_EVENT_NAME,
+            issue_number: Number(process.env.ISSUE_NUMBER || 0),
+            validation_outcome: 'not_run',
+            validation_exit_code: null,
+            validation_output_digest: null,
+            promotion_authority: false,
+            public_release: 'HOLD',
+            production: 'HOLD'
+          };
+          const unsigned = structuredClone(receipt);
+          receipt.terminal_receipt_digest = 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(unsigned)).digest('hex');
+          fs.writeFileSync(path, JSON.stringify(receipt, null, 2) + '\n');
+          NODE
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -47,9 +79,104 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
       - name: Validate open material-defect severity parity with complete pagination
+        id: severity_parity
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          set +e
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test             > /tmp/kpmo-material-defect-severity-parity/validation.log 2>&1
+          rc=$?
+          if [ "$rc" -eq 0 ]; then
+            node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs               >> /tmp/kpmo-material-defect-severity-parity/validation.log 2>&1
+            rc=$?
+          fi
+          set -e
+          cat /tmp/kpmo-material-defect-severity-parity/validation.log
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+      - name: Reconcile terminal receipt
+        if: always()
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || 0 }}
+          VALIDATION_OUTCOME: ${{ steps.severity_parity.outcome }}
+          VALIDATION_EXIT_CODE: ${{ steps.severity_parity.outputs.exit_code || '-1' }}
+        run: |
           set -euo pipefail
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const dir = '/tmp/kpmo-material-defect-severity-parity';
+          const path = dir + '/terminal-receipt.json';
+          fs.mkdirSync(dir, {recursive: true});
+          const logPath = dir + '/validation.log';
+          const log = fs.existsSync(logPath) ? fs.readFileSync(logPath) : Buffer.from('');
+          const success = process.env.VALIDATION_OUTCOME === 'success' && Number(process.env.VALIDATION_EXIT_CODE) === 0;
+          const receipt = {
+            receipt_type: 'KPMO_MATERIAL_DEFECT_SEVERITY_PARITY_TERMINAL',
+            version: '1.0.0',
+            state: success ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_class: success ? null : 'MATERIAL_DEFECT_SEVERITY_PARITY_NON_SUCCESS',
+            source_sha: process.env.EXPECTED_SHA,
+            run_id: Number(process.env.GITHUB_RUN_ID),
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            trigger_event: process.env.GITHUB_EVENT_NAME,
+            issue_number: Number(process.env.ISSUE_NUMBER || 0),
+            validation_outcome: process.env.VALIDATION_OUTCOME || 'not_run',
+            validation_exit_code: Number(process.env.VALIDATION_EXIT_CODE),
+            validation_output_digest: 'sha256:' + crypto.createHash('sha256').update(log).digest('hex'),
+            promotion_authority: false,
+            public_release: 'HOLD',
+            production: 'HOLD'
+          };
+          const unsigned = structuredClone(receipt);
+          receipt.terminal_receipt_digest = 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(unsigned)).digest('hex');
+          fs.writeFileSync(path, JSON.stringify(receipt, null, 2) + '\n');
+          NODE
+      - name: Validate terminal receipt and negative invariants
+        if: always()
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          VALIDATION_OUTCOME: ${{ steps.severity_parity.outcome }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const path = '/tmp/kpmo-material-defect-severity-parity/terminal-receipt.json';
+          const receipt = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const digest = value => 'sha256:' + crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+          const valid = value => {
+            const unsigned = structuredClone(value);
+            delete unsigned.terminal_receipt_digest;
+            return value.receipt_type === 'KPMO_MATERIAL_DEFECT_SEVERITY_PARITY_TERMINAL' &&
+              value.source_sha === process.env.EXPECTED_SHA &&
+              value.run_id === Number(process.env.GITHUB_RUN_ID) &&
+              value.run_attempt === Number(process.env.GITHUB_RUN_ATTEMPT) &&
+              value.validation_outcome === process.env.VALIDATION_OUTCOME &&
+              value.state === (value.validation_outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL') &&
+              value.promotion_authority === false &&
+              value.public_release === 'HOLD' &&
+              value.production === 'HOLD' &&
+              /^sha256:[a-f0-9]{64}$/.test(value.validation_output_digest) &&
+              value.terminal_receipt_digest === digest(unsigned);
+          };
+          if (!valid(receipt)) throw new Error('TERMINAL_RECEIPT_INVALID');
+          const wrongSha = structuredClone(receipt);
+          wrongSha.source_sha = '0'.repeat(40);
+          if (valid(wrongSha)) throw new Error('NEGATIVE_SOURCE_SHA_MUTATION_ACCEPTED');
+          const wrongOutcome = structuredClone(receipt);
+          wrongOutcome.validation_outcome = wrongOutcome.validation_outcome === 'success' ? 'failure' : 'success';
+          if (valid(wrongOutcome)) throw new Error('NEGATIVE_OUTCOME_MUTATION_ACCEPTED');
+          const missingDigest = structuredClone(receipt);
+          delete missingDigest.terminal_receipt_digest;
+          if (valid(missingDigest)) throw new Error('NEGATIVE_DIGEST_REMOVAL_ACCEPTED');
+          NODE
+      - name: Upload terminal receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kpmo-material-defect-severity-parity-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kpmo-material-defect-severity-parity
+          if-no-files-found: error
+          retention-days: 30
