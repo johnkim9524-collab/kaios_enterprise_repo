@@ -1,0 +1,58 @@
+{
+  "id": "kidults-atomic-terminal-recovery-manifest-v2",
+  "version": "2.0.0",
+  "state": "PENDING_DISTINCT_CONTEXT_RECOVERY",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "source_issues": [
+    1864,
+    1868
+  ],
+  "approval_issue": 1868,
+  "cause": "BASE_WORKFLOW_CANDIDATE_TERMINAL_HANDOFF_BOOTSTRAP_MISMATCH",
+  "predecessor_pull_request": {
+    "number": 1865,
+    "exact_base_sha": "212cd64e581b202c38a2e32534737c4a1af2299c",
+    "exact_head_sha": "cda8375478fbce301ad538e90354fb4288ac7d14",
+    "merge_commit_sha": "b09e0e8d679fa0e41bf64c3f674f8c806af2b1f6",
+    "merge_tree_sha": "1143b71fb4e834b0c1c992df7b9b3555b9d72c62"
+  },
+  "atomic_run": {
+    "id": 33603816578,
+    "attempt": 1,
+    "workflow_id": 345463226,
+    "display_title": "KIDULTS Atomic Landing PR #1865 @ cda8375478fbce301ad538e90354fb4288ac7d14 / LAND-PR-1865-cda8375478fb",
+    "expected_conclusion": "failure",
+    "authorization_id_sha256": "sha256:8c206e16bdf34c67ba57127b55e1a5513b44a7b32f7ff17d0a3f92d96057b5f2"
+  },
+  "postlanding_artifact": {
+    "id": 9836207097,
+    "name": "kidults-current-sold-postlanding-v1-33603816578-1",
+    "digest": "sha256:518ca1760bdfdce7c506f734db3c76bf610134500d7b042b436b9cebbb8ba9dd"
+  },
+  "failed_terminal_artifact": {
+    "id": 9836208158,
+    "name": "kidults-atomic-governed-landing-terminal-33603816578-1",
+    "digest": "sha256:87b79c54dc2aadd4e5d6f88f98ab561d146d65740381e63d3d2696f58256d0aa"
+  },
+  "historical_terminal_status": {
+    "id": 53361838386,
+    "context": "KIDULTS Atomic Landing Terminal V2",
+    "state": "failure",
+    "description": "ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID",
+    "target_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33603816578",
+    "created_at": "2026-09-02T07:29:57Z"
+  },
+  "recovery_status_context": "KIDULTS Atomic Landing Recovery V1",
+  "authorization_policy": {
+    "marker": "KIDULTS_ATOMIC_TERMINAL_RECOVERY_EXACT_APPROVAL_V1",
+    "operation": "PUBLISH_DISTINCT_ATOMIC_TERMINAL_RECOVERY_STATUS",
+    "scope": "ONE_BOUNDED_ATOMIC_TERMINAL_RECOVERY_ONLY",
+    "max_lifetime_seconds": 3600,
+    "first_dispatch_only": true,
+    "rerun_forbidden": true,
+    "historical_terminal_context_immutable": true
+  },
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}
