@@ -29,9 +29,15 @@ export function assertEvidenceReceipt(receipt, authority, {
   assert(receipt?.id === 'kidults-atomic-terminal-recovery-evidence-receipt-v2'
     && receipt?.version === '2.0.0' && receipt?.state === 'VERIFIED_PASS',
   'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_STATE_INVALID');
+  const predecessorAtomicRun = receipt?.predecessor_atomic_run;
   assert(receipt?.repository === manifest.repository
     && Number(receipt?.predecessor_pull_request) === manifest.predecessor_pull_request.number
-    && Number(receipt?.predecessor_atomic_run) === manifest.atomic_run.id
+    && predecessorAtomicRun && typeof predecessorAtomicRun === 'object'
+    && !Array.isArray(predecessorAtomicRun)
+    && Number(predecessorAtomicRun?.id) === manifest.atomic_run.id
+    && Number(predecessorAtomicRun?.attempt) === manifest.atomic_run.attempt
+    && predecessorAtomicRun?.conclusion === manifest.atomic_run.expected_conclusion
+    && predecessorAtomicRun?.actor === authority.repositoryOwner
     && receipt?.predecessor_merge_sha === manifest.predecessor_pull_request.merge_commit_sha,
   'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH');
   assert(receipt?.exact_current_main_sha === authority.currentMainInput
