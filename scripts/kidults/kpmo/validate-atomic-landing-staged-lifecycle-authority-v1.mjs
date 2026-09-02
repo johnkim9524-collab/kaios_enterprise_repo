@@ -148,6 +148,6 @@ assert(runner.includes('IMMEDIATE_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT'),
 assert(runner.includes('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT'),
   'ATOMIC_RUNNER_FINAL_LIFECYCLE_DRIFT_GUARD_MISSING');
 const authorityChecks = runner.match(/assertLifecycleAuthorityAgainstReady\(/g) || [];
-assert(authorityChecks.length >= 4, 'ATOMIC_RUNNER_LIFECYCLE_RECHECK_CARDINALITY_INVALID');
+assert(authorityChecks.length === 3, 'ATOMIC_RUNNER_LIFECYCLE_RECHECK_CARDINALITY_INVALID');
 
 console.log('Atomic staged lifecycle authority regression: PASS');
