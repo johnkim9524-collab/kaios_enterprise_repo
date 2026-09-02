@@ -163,6 +163,7 @@ jobs:
           LANDING_ACTOR: ${{ github.actor }}
           LANDING_STEP_OUTCOME: ${{ steps.landing.outcome }}
           CURRENT_SOLD_POSTLANDING_OUTCOME: ${{ steps.current_sold_postlanding.outcome }}
+          CURRENT_SOLD_CHANGED: ${{ steps.landing.outputs.current_sold_changed }}
           CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
