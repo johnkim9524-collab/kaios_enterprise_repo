@@ -157,7 +157,7 @@ const success = {
   created_at: '2026-09-02T12:00:00Z',
 };
 assertPriorRecoveryFailureImmutable({statuses: [historical, priorFailure]}, manifest);
-assertFinalizedRecoveryReadback({statuses: [historical, priorFailure, success]},
+assertFinalizedRecoveryReadback([historical, priorFailure, success],
   success.id, 7002, manifest);
 
 const rejected = [];
@@ -193,25 +193,29 @@ rejected.push(reject('prior status state drift',
   () => assertPriorRecoveryFailureImmutable({statuses: [
     historical, {...priorFailure, state: 'success'},
   ]}, manifest)));
+rejected.push(reject('combined latest-only status surface',
+  'ATOMIC_RECOVERY_FINALIZATION_RAW_HISTORY_SHAPE_INVALID',
+  () => assertFinalizedRecoveryReadback([success]},
+    success.id, 7002, manifest)));
 rejected.push(reject('success missing',
   'ATOMIC_RECOVERY_FINALIZATION_STATUS_CARDINALITY_INVALID',
-  () => assertFinalizedRecoveryReadback({statuses: [historical, priorFailure]},
+  () => assertFinalizedRecoveryReadback([historical, priorFailure],
     success.id, 7002, manifest)));
 rejected.push(reject('success state drift',
   'ATOMIC_RECOVERY_FINALIZATION_SUCCESS_STATUS_INVALID',
-  () => assertFinalizedRecoveryReadback({statuses: [
+  () => assertFinalizedRecoveryReadback([
     historical, priorFailure, {...success, state: 'failure'},
-  ]}, success.id, 7002, manifest)));
+  ], success.id, 7002, manifest)));
 rejected.push(reject('success target drift',
   'ATOMIC_RECOVERY_FINALIZATION_SUCCESS_TARGET_INVALID',
-  () => assertFinalizedRecoveryReadback({statuses: [
+  () => assertFinalizedRecoveryReadback([
     historical, priorFailure, {...success, target_url: 'https://github.com/other/run'},
-  ]}, success.id, 7002, manifest)));
+  ], success.id, 7002, manifest)));
 rejected.push(reject('third recovery status',
   'ATOMIC_RECOVERY_FINALIZATION_STATUS_CARDINALITY_INVALID',
-  () => assertFinalizedRecoveryReadback({statuses: [
+  () => assertFinalizedRecoveryReadback([
     historical, priorFailure, success, {...success, id: success.id + 1},
-  ]}, success.id, 7002, manifest)));
+  ], success.id, 7002, manifest)));
 rejected.push(reject('prior run rerun',
   'ATOMIC_RECOVERY_FINALIZATION_PRIOR_RUN_STATE_INVALID',
   () => validatePriorFailedRemediationRun({...priorRun, run_attempt: 2},
@@ -261,6 +265,8 @@ requireText(preflight, 'assertPriorRecoveryFailureImmutable',
   'ATOMIC_RECOVERY_FINALIZATION_PREFLIGHT_FAILURE_LINEAGE_MISSING');
 requireText(publisher, 'assertFinalizedRecoveryReadback',
   'ATOMIC_RECOVERY_FINALIZATION_READBACK_MISSING');
+requireText(publisher, 'authority.client.pages(`/commits/${statusSha}/statuses`)',
+  'ATOMIC_RECOVERY_FINALIZATION_RAW_HISTORY_READ_MISSING');
 requireText(publisher, 'failure_status_published: false',
   'ATOMIC_RECOVERY_FINALIZATION_FAILURE_STATUS_SUPPRESSION_MISSING');
 requireText(sourcePublisher, "typeof predecessor === 'object'",
