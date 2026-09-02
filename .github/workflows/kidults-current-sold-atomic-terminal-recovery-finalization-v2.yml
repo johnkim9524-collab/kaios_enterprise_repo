@@ -158,14 +158,18 @@ jobs:
             && preflight?.state === 'VERIFIED_PASS'
             && preflight?.status_write_authority === false
             && preflight?.status_write_performed === false;
+          let failureCode = null;
+          if (!pass) {
+            failureCode = 'FINALIZATION_V2_PREFLIGHT_NOT_SUCCESS';
+            if (process.env.CONTRACT_OUTCOME !== 'success') {
+              failureCode = 'FINALIZATION_V2_CONTRACT_REGRESSION_FAILED';
+            }
+          }
           const receipt = {
             id: 'kidults-atomic-terminal-recovery-finalization-terminal-receipt-v2',
             version: '2.0.0',
             state: pass ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
-            failure_code: pass ? null : (
-              process.env.CONTRACT_OUTCOME !== 'success'
-                ? 'FINALIZATION_V2_CONTRACT_REGRESSION_FAILED'
-                : 'FINALIZATION_V2_PREFLIGHT_NOT_SUCCESS'),
+            failure_code: failureCode,
             repository: process.env.REPOSITORY,
             exact_current_main_sha: process.env.EXACT_MAIN,
             workflow_run_id: Number(process.env.RUN_ID),
