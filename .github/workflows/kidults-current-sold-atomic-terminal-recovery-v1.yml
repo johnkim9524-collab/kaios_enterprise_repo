@@ -11,11 +11,6 @@ on:
       - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v1.mjs'
       - 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs'
       - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-v1.json'
-  workflow_run:
-    workflows:
-      - KIDULTS Atomic Governed Landing V1
-    types:
-      - completed
   workflow_dispatch:
 
 concurrency:
@@ -77,11 +72,7 @@ jobs:
 
   recover-predecessor-terminal:
     name: Recover exact predecessor terminal proof without remerge
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_sha == 'b09e0e8d679fa0e41bf64c3f674f8c806af2b1f6')
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       actions: read
       contents: read
