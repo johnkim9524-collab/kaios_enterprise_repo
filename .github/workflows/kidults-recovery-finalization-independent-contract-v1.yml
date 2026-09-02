@@ -7,7 +7,7 @@ on:
       - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v1.yml'
       - '.github/workflows/kidults-recovery-finalization-independent-contract-v1.yml'
       - 'scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'
-      - 'scripts/kidults/market/**.mjs'
+      - 'scripts/kidults/market/**'
       - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json'
 
 concurrency:
