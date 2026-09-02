@@ -22,6 +22,9 @@ import {
   downloadJsonArtifact,
 } from './current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs';
 
+const LIVE_AUDIT_WORKFLOW_PATH =
+  '.github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-live-audit-v1.yml';
+
 async function main() {
   const manifestFile = process.argv[2]
     || 'coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-v2.json';
@@ -63,8 +66,9 @@ async function main() {
     'ATOMIC_RECOVERY_REMEDIATION_LIVE_AUDIT_MAIN_DRIFT');
   assert(Number(currentRun?.id) === Number(currentRunId)
     && currentRun?.event === 'pull_request'
+    && currentRun?.head_branch === process.env.GITHUB_HEAD_REF
     && currentRun?.head_sha === expectedCandidateSha
-    && currentRun?.path === manifest.authorized_recovery_workflow_path
+    && currentRun?.path === LIVE_AUDIT_WORKFLOW_PATH
     && Number(currentRun?.workflow_id) !== prior.workflow_id,
   'ATOMIC_RECOVERY_REMEDIATION_LIVE_AUDIT_CURRENT_RUN_INVALID');
 
@@ -113,6 +117,9 @@ async function main() {
     audit_workflow_id: Number(currentRun.workflow_id),
     audit_workflow_path: currentRun.path,
     audit_workflow_generation_distinct: true,
+    authorized_dispatch_workflow_path: manifest.authorized_recovery_workflow_path,
+    audit_and_dispatch_workflows_separated:
+      currentRun.path !== manifest.authorized_recovery_workflow_path,
     prior_failed_recovery: {
       run_id: prior.id,
       run_attempt: prior.attempt,
