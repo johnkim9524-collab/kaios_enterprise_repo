@@ -18,6 +18,7 @@ const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH || path.join
 const postLandingReceiptPath = process.env.CURRENT_SOLD_RECEIPT_PATH || 'out/current-sold-postlanding/receipt.json';
 const landingOutcome = process.env.LANDING_STEP_OUTCOME || null;
 const postLandingOutcome = process.env.CURRENT_SOLD_POSTLANDING_OUTCOME || null;
+const landingCurrentSoldChanged = process.env.CURRENT_SOLD_CHANGED || null;
 const shaPattern = /^[0-9a-f]{40}$/;
 const digestPattern = /^[0-9a-f]{64}$/;
 const terminalStatusContext = 'KIDULTS Atomic Landing Terminal V2';
@@ -210,6 +211,7 @@ const currentSoldPathMatchers = [
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
 ];
 
 try {
@@ -238,6 +240,9 @@ try {
     console.log(JSON.stringify(receipt));
     process.exit(0);
   }
+
+  assert(landingCurrentSoldChanged === 'true' || landingCurrentSoldChanged === 'false', 'ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID');
+  assert(currentSoldChanged === (landingCurrentSoldChanged === 'true'), 'ATOMIC_TERMINAL_CURRENT_SOLD_CLASSIFICATION_DRIFT');
 
   const mergeSha = pr?.merge_commit_sha;
   assert(shaPattern.test(mergeSha || ''), 'ATOMIC_TERMINAL_MERGE_SHA_INVALID');
@@ -272,6 +277,8 @@ try {
     premerge_main_sha: pr.base.sha,
     current_protected_main_sha_at_finalize: mainBranch?.commit?.sha || null,
     current_sold_changed: currentSoldChanged,
+    landing_current_sold_changed: landingCurrentSoldChanged === 'true',
+    current_sold_classifier_consistent: true,
     current_sold_changed_file_count: currentSoldChangedFiles.length,
     landing_step_outcome: landingOutcome,
     current_sold_postlanding_outcome: postLandingOutcome,
