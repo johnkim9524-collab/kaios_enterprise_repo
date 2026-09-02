@@ -25,6 +25,7 @@ const commands = [
   ['governed-landing-coverage', ['node', 'scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs']],
   ['pr-lifecycle-operation-pending-semantics', ['node', 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs', '--self-test']],
   ['atomic-landing-lifecycle-authority', ['node', 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs']],
+  ['atomic-landing-preconsumption-order', ['node', 'scripts/kidults/kpmo/validate-atomic-landing-preconsumption-order-v1.mjs']],
 ];
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
