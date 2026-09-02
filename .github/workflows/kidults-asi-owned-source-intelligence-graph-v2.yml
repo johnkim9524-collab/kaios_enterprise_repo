@@ -226,12 +226,15 @@ jobs:
       - name: Prove dynamic Gate1 and admission cardinality without promotion
         run: |
           set -euo pipefail
+          cp /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json /tmp/p0b-bindings-dynamic.json
           cp /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1-gate1-dynamic.json
           cp /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1-admission-dynamic.json
           node - <<'NODE'
           const fs=require('fs');
+          const bindingPath='/tmp/p0b-bindings-dynamic.json';
           const gatePath='/tmp/p1-gate1-dynamic.json';
           const admissionPath='/tmp/p1-admission-dynamic.json';
+          const bindings=JSON.parse(fs.readFileSync(bindingPath));
           const gate=JSON.parse(fs.readFileSync(gatePath));
           const admissions=JSON.parse(fs.readFileSync(admissionPath));
           const removed=gate.decisions.pop();
@@ -244,12 +247,19 @@ jobs:
           admissions.candidates=admissions.candidates.filter(candidate=>candidate.grain_id!==removed.grain_id);
           if(admissions.candidates.length!==before-1) throw new Error('DYNAMIC_CARDINALITY_ADMISSION_GRAIN');
           admissions.candidate_count=admissions.candidates.length;
+          const binding=bindings.bindings.find(value=>value.mission_id===removed.mission_id);
+          if(!binding||!Array.isArray(binding.slot_bindings)) throw new Error('DYNAMIC_CARDINALITY_BINDING_MISSION');
+          const slotIndex=binding.slot_bindings.findIndex(slot=>slot.candidate_id===removed.candidate_id);
+          if(slotIndex<0) throw new Error('DYNAMIC_CARDINALITY_BINDING_SLOT');
+          binding.slot_bindings.splice(slotIndex,1);
+          if(Number.isInteger(binding.candidates_assigned)) binding.candidates_assigned=binding.slot_bindings.length;
+          fs.writeFileSync(bindingPath,JSON.stringify(bindings,null,2)+'\n');
           fs.writeFileSync(gatePath,JSON.stringify(gate,null,2)+'\n');
           fs.writeFileSync(admissionPath,JSON.stringify(admissions,null,2)+'\n');
           NODE
           node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
             /tmp/p0b/p0b-source-candidate-registry-v1.json \
-            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p0b-bindings-dynamic.json \
             /tmp/p1-gate1-dynamic.json \
             /tmp/p1-admission-dynamic.json \
             /tmp/p1/p1-preflight-action-queue-v1.json \
