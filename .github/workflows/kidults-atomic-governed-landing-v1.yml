@@ -46,6 +46,13 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
+      - name: Require base-workflow to candidate terminal handoff compatibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+        run: node scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs
+
       - name: Consume one-use exact-head landing authorization
         env:
           GH_TOKEN: ${{ github.token }}
