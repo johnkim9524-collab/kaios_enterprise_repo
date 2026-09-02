@@ -119,7 +119,6 @@ for (const marker of [
   'canonical_artifact_published:false',
   'classify-p1-generation:',
   'classify-workflow-run-generation-v1.mjs',
-  'CURRENT_MAIN_ADVANCED_DURING_CLASSIFICATION',
   'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
   "if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
   'Claim single authoritative producer for exact P1 generation',
