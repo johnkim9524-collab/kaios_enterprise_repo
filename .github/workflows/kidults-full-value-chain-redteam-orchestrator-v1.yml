@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   full-value-chain-redteam:
@@ -50,5 +51,50 @@ jobs:
           echo "image_version=${ImageVersion:-UNKNOWN}"
           echo "node=$(node --version)"
           cat /etc/os-release
+      - name: Initialize durable full-chain terminal receipt
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          FULL_CHAIN_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-full-chain-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs --initialize
+      - name: Validate full value-chain live-authority binding regression
+        id: live_authority_binding
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/kpmo/validate-full-value-chain-live-authority-binding-v1.mjs
+      - name: Validate live canonical current-main HOLD authority
+        id: canonical_authority
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs
+      - name: Validate live material-defect severity parity
+        id: severity_parity
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
       - name: Run aggregate full value-chain Red-Team suite
+        id: aggregate_suite
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
+      - name: Reconcile durable full-chain terminal receipt
+        if: always()
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          LIVE_AUTHORITY_BINDING_OUTCOME: ${{ steps.live_authority_binding.outcome }}
+          CANONICAL_AUTHORITY_OUTCOME: ${{ steps.canonical_authority.outcome }}
+          SEVERITY_PARITY_OUTCOME: ${{ steps.severity_parity.outcome }}
+          AGGREGATE_SUITE_OUTCOME: ${{ steps.aggregate_suite.outcome }}
+          FULL_CHAIN_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-full-chain-terminal/receipt.json
+        run: node scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs --finalize
+      - name: Upload durable full-chain terminal receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-full-chain-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-full-chain-terminal/receipt.json
+          if-no-files-found: error
+          retention-days: 90
