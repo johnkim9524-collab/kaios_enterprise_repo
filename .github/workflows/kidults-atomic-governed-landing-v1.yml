@@ -102,6 +102,7 @@ jobs:
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
+          LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
 
       - name: Checkout exact merged Current-SOLD target

@@ -12,8 +12,10 @@ on:
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/atomic-landing-staged-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs'
       - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
 
@@ -51,6 +53,9 @@ jobs:
 
       - name: Run direct repository-owner Ready regression
         run: node scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs
+
+      - name: Run staged lifecycle authority regression
+        run: node scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs
 
   classify-live-pr:
     name: Classify exact PR readiness against native governance evidence
