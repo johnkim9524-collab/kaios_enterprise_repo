@@ -1,0 +1,5 @@
+name: KIDULTS Current-SOLD Atomic Terminal Recovery Finalization V1
+
+on:
+  pull_request:
+    branches: [main]
