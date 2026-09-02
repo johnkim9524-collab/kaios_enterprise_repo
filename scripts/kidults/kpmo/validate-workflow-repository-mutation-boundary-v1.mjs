@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve('.github/workflows');
-const POLICY_VERSION = '1.3';
+const POLICY_VERSION = '1.4';
 const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-landing-v1.yml');
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
@@ -93,6 +93,8 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
     ['exact-pr-input', 'pull_request_number:'],
     ['exact-head-input', 'expected_head_sha:'],
     ['operation-authorization-input', 'landing_authorization_id:'],
+    ['pre-consumption-handoff-compatibility', 'Require base-workflow to candidate terminal handoff compatibility'],
+    ['pre-consumption-handoff-runner', 'run: node scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs'],
     ['global-main-serialization', 'group: kidults-atomic-governed-landing-v1-main'],
     ['serialized-pr-landing', 'cancel-in-progress: false'],
     ['main-checkout', 'ref: main'],
