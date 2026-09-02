@@ -19,6 +19,8 @@ import {
   validatePriorRemediationEvidenceReceipt,
   validatePriorRemediationPublicationReceipt,
   assertPriorRecoveryFailureImmutable,
+  validateFinalizationV2Predecessor,
+  validateFailedFinalizationV1,
 } from './atomic-terminal-recovery-finalization-v1-policy.mjs';
 import {
   downloadJsonArtifact,
@@ -36,6 +38,17 @@ async function preflight(manifestFile, outputDirectory) {
   const {prior, evidence, publication} = validateFinalizationManifest(manifest);
   const authority = await establishRecoveryAuthority(manifestFile);
   const {client, repository, token, repositoryOwner} = authority;
+  const v2Predecessor = validateFinalizationV2Predecessor(manifest);
+  let failedFinalizationV1 = null;
+  if (v2Predecessor) {
+    const [failedRun, failedArtifacts, failedJobs] = await Promise.all([
+      client.api(`/actions/runs/${v2Predecessor.id}`),
+      client.api(`/actions/runs/${v2Predecessor.id}/artifacts?per_page=100`),
+      client.api(`/actions/runs/${v2Predecessor.id}/jobs?per_page=100`),
+    ]);
+    failedFinalizationV1 = validateFailedFinalizationV1(
+      failedRun, failedArtifacts, failedJobs, manifest, repositoryOwner);
+  }
 
   const [priorRun, priorArtifacts, priorJobs, headStatus] = await Promise.all([
     client.api(`/actions/runs/${prior.id}`),
@@ -92,6 +105,7 @@ async function preflight(manifestFile, outputDirectory) {
     one_use_dispatch: authority.oneUse,
     historical_terminal_status: historical,
     prior_recovery_failure_status: priorRecovery,
+    failed_finalization_v1: failedFinalizationV1,
     prior_failed_remediation: {
       run_id: prior.id,
       run_attempt: prior.attempt,
