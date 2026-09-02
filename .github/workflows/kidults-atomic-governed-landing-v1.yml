@@ -1,4 +1,5 @@
 name: KIDULTS Atomic Governed Landing V1
+run-name: "KIDULTS Atomic Landing PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.landing_authorization_id }}"
 
 on:
   workflow_dispatch:
@@ -45,6 +46,16 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
+      - name: Consume one-use exact-head landing authorization
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
+        run: node scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs
+
       - name: Require latest terminal exact-head lifecycle authority
         env:
           GH_TOKEN: ${{ github.token }}
@@ -69,6 +80,7 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
         run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --initialize
 
@@ -89,6 +101,7 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
 
       - name: Checkout exact merged Current-SOLD target
@@ -150,6 +163,7 @@ jobs:
           LANDING_STEP_OUTCOME: ${{ steps.landing.outcome }}
           CURRENT_SOLD_POSTLANDING_OUTCOME: ${{ steps.current_sold_postlanding.outcome }}
           CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+          ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
         run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --finalize
 

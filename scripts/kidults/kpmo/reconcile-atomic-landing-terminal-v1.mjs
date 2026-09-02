@@ -14,10 +14,12 @@ const landingRunId = process.env.GITHUB_RUN_ID;
 const landingRunAttempt = process.env.GITHUB_RUN_ATTEMPT;
 const runnerTemp = process.env.RUNNER_TEMP || '/tmp';
 const receiptPath = process.env.ATOMIC_LANDING_TERMINAL_RECEIPT_PATH || path.join(runnerTemp, 'kidults-atomic-landing-terminal', 'receipt.json');
+const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH || path.join(runnerTemp, 'kidults-atomic-landing-consumption', 'receipt.json');
 const postLandingReceiptPath = process.env.CURRENT_SOLD_RECEIPT_PATH || 'out/current-sold-postlanding/receipt.json';
 const landingOutcome = process.env.LANDING_STEP_OUTCOME || null;
 const postLandingOutcome = process.env.CURRENT_SOLD_POSTLANDING_OUTCOME || null;
 const shaPattern = /^[0-9a-f]{40}$/;
+const digestPattern = /^[0-9a-f]{64}$/;
 const terminalStatusContext = 'KIDULTS Atomic Landing Terminal V2';
 const targetUrl = `${process.env.GITHUB_SERVER_URL || 'https://github.com'}/${repository || ''}/actions/runs/${landingRunId || ''}`;
 
@@ -39,9 +41,52 @@ assert(/^\d+$/.test(landingRunAttempt || ''), 'ATOMIC_TERMINAL_RUN_ATTEMPT_INVAL
 assert(authorizationId === `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`, 'ATOMIC_TERMINAL_AUTHORIZATION_BINDING_INVALID');
 
 const authorizationIdSha256 = crypto.createHash('sha256').update(authorizationId).digest('hex');
+
+function readConsumptionReceipt() {
+  if (!fs.existsSync(consumptionPath)) {
+    return {
+      state: 'NOT_ESTABLISHED_FAIL_CLOSED',
+      landing_workflow_run_id: Number(landingRunId),
+      landing_workflow_run_attempt: Number(landingRunAttempt),
+      authorization_id_sha256: authorizationIdSha256,
+      raw_authorization_persisted: false,
+    };
+  }
+  const text = fs.readFileSync(consumptionPath, 'utf8');
+  assert(!text.includes(authorizationId), 'ATOMIC_TERMINAL_CONSUMPTION_RAW_AUTHORIZATION_LEAK');
+  const receipt = JSON.parse(text);
+  assert(receipt?.id === 'kidults-atomic-landing-one-use-consumption-v1', 'ATOMIC_TERMINAL_CONSUMPTION_ID_INVALID');
+  assert(receipt?.state === 'CONSUMED_BY_FIRST_MATCHING_DISPATCH', 'ATOMIC_TERMINAL_CONSUMPTION_STATE_INVALID');
+  assert(receipt?.repository === repository, 'ATOMIC_TERMINAL_CONSUMPTION_REPOSITORY_MISMATCH');
+  assert(Number(receipt?.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_CONSUMPTION_PR_MISMATCH');
+  assert(receipt?.exact_head_sha === expectedHeadSha, 'ATOMIC_TERMINAL_CONSUMPTION_HEAD_MISMATCH');
+  assert(Number(receipt?.landing_workflow_run_id) === Number(landingRunId), 'ATOMIC_TERMINAL_CONSUMPTION_RUN_ID_MISMATCH');
+  assert(Number(receipt?.landing_workflow_run_attempt) === Number(landingRunAttempt), 'ATOMIC_TERMINAL_CONSUMPTION_RUN_ATTEMPT_MISMATCH');
+  assert(receipt?.authorization_id_sha256 === authorizationIdSha256, 'ATOMIC_TERMINAL_CONSUMPTION_AUTHORIZATION_DIGEST_MISMATCH');
+  assert(digestPattern.test(receipt?.run_name_sha256 || ''), 'ATOMIC_TERMINAL_CONSUMPTION_RUN_NAME_DIGEST_INVALID');
+  assert(digestPattern.test(receipt?.tuple_sha256 || ''), 'ATOMIC_TERMINAL_CONSUMPTION_TUPLE_DIGEST_INVALID');
+  assert(receipt?.raw_authorization_persisted === false, 'ATOMIC_TERMINAL_CONSUMPTION_RAW_AUTHORIZATION_FORBIDDEN');
+  return {
+    state: receipt.state,
+    exact_base_sha: receipt.exact_base_sha,
+    protected_main_sha_at_dispatch: receipt.protected_main_sha_at_dispatch,
+    landing_workflow_id: receipt.landing_workflow_id,
+    landing_workflow_run_id: receipt.landing_workflow_run_id,
+    landing_workflow_run_attempt: receipt.landing_workflow_run_attempt,
+    matching_run_count: receipt.matching_run_count,
+    authorization_id_sha256: receipt.authorization_id_sha256,
+    run_name_sha256: receipt.run_name_sha256,
+    tuple_sha256: receipt.tuple_sha256,
+    consumed_at: receipt.consumed_at,
+    raw_authorization_persisted: false,
+  };
+}
+
+const authorizationConsumption = readConsumptionReceipt();
+
 const baseReceipt = (state, terminalClass, extra = {}) => ({
   id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-  version: '2.1.0',
+  version: '2.2.0',
   state,
   terminal_class: terminalClass,
   repository,
@@ -51,6 +96,7 @@ const baseReceipt = (state, terminalClass, extra = {}) => ({
   landing_workflow_run_id: Number(landingRunId),
   landing_workflow_run_attempt: Number(landingRunAttempt),
   authorization_id_sha256: authorizationIdSha256,
+  authorization_consumption: authorizationConsumption,
   raw_authorization_persisted: false,
   merge_commit_sha: null,
   premerge_main_sha: null,
@@ -133,6 +179,9 @@ if (mode === '--initialize') {
     assert(pr?.base?.ref === 'main' && shaPattern.test(pr?.base?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_BASE_INVALID');
     assert(shaPattern.test(mainBranch?.commit?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_MAIN_INVALID');
     assert(pr.base.sha === mainBranch.commit.sha, 'ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT');
+    if (authorizationConsumption.state === 'CONSUMED_BY_FIRST_MATCHING_DISPATCH') {
+      assert(authorizationConsumption.exact_base_sha === mainBranch.commit.sha, 'ATOMIC_TERMINAL_CONSUMPTION_BASE_DRIFT');
+    }
     const receipt = baseReceipt('NOT_ATTEMPTED', 'PREMERGE_BINDING_STAGED', {
       premerge_main_sha: mainBranch.commit.sha,
       premerge_binding_staged_before_mutation: true,
@@ -159,6 +208,7 @@ const currentSoldPathMatchers = [
   /^\.github\/workflows\/kidults-current-sold-engine-v1\.yml$/,
   /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
 ];
 
