@@ -161,11 +161,15 @@ async function publish(manifestFile, preflightFile, sourceEvidenceFile,
     },
   );
   mutationState.publishedStatusId = Number(published?.id) || null;
-  const finalStatus = await authority.client.api(
-    `/commits/${authority.manifest.predecessor_pull_request.exact_head_sha}/status`);
-  const historicalAfter = assertHistoricalRedImmutable(finalStatus, authority.manifest);
+  const statusSha = authority.manifest.predecessor_pull_request.exact_head_sha;
+  const [finalCombinedStatus, finalRawStatusHistory] = await Promise.all([
+    authority.client.api(`/commits/${statusSha}/status`),
+    authority.client.pages(`/commits/${statusSha}/statuses`),
+  ]);
+  const historicalAfter = assertHistoricalRedImmutable(
+    finalCombinedStatus, authority.manifest);
   const lineage = assertFinalizedRecoveryReadback(
-    finalStatus, published?.id, authority.runId, authority.manifest);
+    finalRawStatusHistory, published?.id, authority.runId, authority.manifest);
   const mainAfter = await authority.client.api('/branches/main');
   assert(mainAfter?.commit?.sha === authority.currentMainInput,
     'ATOMIC_RECOVERY_FINALIZATION_CURRENT_MAIN_DRIFT_AFTER_STATUS_WRITE');
