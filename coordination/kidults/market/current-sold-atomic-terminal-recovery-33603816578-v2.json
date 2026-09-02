@@ -47,6 +47,7 @@
   "remediation_generation": {
     "id": "kidults-atomic-terminal-recovery-remediation-v1",
     "cause": "RUNTIME_MAX_PAGES_IMPORT_MISSING",
+    "evidence_artifact_name_prefix": "kidults-atomic-terminal-recovery-remediation-evidence-v1",
     "prior_failed_recovery_run": {
       "id": 33614615356,
       "attempt": 1,
