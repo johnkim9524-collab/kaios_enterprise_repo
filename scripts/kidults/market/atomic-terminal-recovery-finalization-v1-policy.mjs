@@ -12,6 +12,8 @@ export const FINALIZATION_ID = 'kidults-atomic-terminal-recovery-finalization-v1
 export const FINALIZATION_CAUSE = 'PRODUCER_PUBLISHER_PREDECESSOR_SHAPE_MISMATCH';
 export const FINALIZATION_WORKFLOW_PATH =
   '.github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v1.yml';
+export const FINALIZATION_V2_WORKFLOW_PATH =
+  '.github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v2.yml';
 export const FINALIZATION_EVIDENCE_ARTIFACT_PREFIX =
   'kidults-atomic-terminal-recovery-finalization-evidence-v1';
 export const SOURCE_MANIFEST_PATH =
@@ -51,10 +53,92 @@ export function expectedFinalizationEvidenceArtifactName(manifest, runId) {
   return `${FINALIZATION_EVIDENCE_ARTIFACT_PREFIX}-${Number(runId)}-1`;
 }
 
+
+export function validateFinalizationV2Predecessor(manifest) {
+  if (manifest?.authorized_recovery_workflow_path !== FINALIZATION_V2_WORKFLOW_PATH) {
+    return null;
+  }
+  const prior = manifest?.finalization_generation_v2_predecessor;
+  assert(prior?.id === 33652944964
+    && prior?.attempt === 1
+    && prior?.workflow_id === 348374437
+    && prior?.workflow_path === FINALIZATION_WORKFLOW_PATH
+    && prior?.head_sha === 'e8e957f97cc46f711e90040ad68827362d880990'
+    && prior?.conclusion === 'failure'
+    && prior?.failure_code === 'ATOMIC_RECOVERY_CURRENT_RUN_TUPLE_MISMATCH'
+    && prior?.display_title ===
+      'KIDULTS Atomic Terminal Recovery Finalization Run #33603816578 @ e8e957f97cc46f711e90040ad68827362d880990 / RECOVER-RUN-33603816578-e8e957f97cc4'
+    && prior?.approval_comment_id === 5512563253
+    && prior?.authorization_id === 'RECOVER-RUN-33603816578-e8e957f97cc4'
+    && prior?.status_write_authority === false
+    && prior?.status_write_performed === false,
+  'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_BINDING_INVALID');
+  const artifact = prior?.evidence_artifact;
+  assert(artifact?.id === 9855507420
+    && artifact?.name ===
+      'kidults-atomic-terminal-recovery-finalization-evidence-v1-33652944964-1'
+    && normalizeSha256(artifact?.digest) ===
+      'sha256:e95548653694daba789569a42766dc2403cba72a9bffdf4526240a85df6db0f2'
+    && artifact?.preflight_receipt_sha256 ===
+      'sha256:1f6df8776b8cc0c3c2ccd18dfb62799231fb14e65071c8ce344dccc361f1ff31'
+    && artifact?.terminal_receipt_sha256 ===
+      'sha256:c6aa33189ce198da4d9816963edfcab03aac05f46f2ccab1132dc36b7bf4b65b',
+  'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_ARTIFACT_INVALID');
+  return prior;
+}
+
+export function validateFailedFinalizationV1(run, artifactsPayload, jobsPayload, manifest,
+  repositoryOwner) {
+  const prior = validateFinalizationV2Predecessor(manifest);
+  assert(prior, 'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_REQUIRED');
+  assert(Number(run?.id) === prior.id
+    && Number(run?.run_attempt) === prior.attempt
+    && Number(run?.workflow_id) === prior.workflow_id
+    && run?.path === prior.workflow_path
+    && run?.head_branch === 'main'
+    && run?.head_sha === prior.head_sha
+    && run?.event === 'workflow_dispatch'
+    && run?.status === 'completed'
+    && run?.conclusion === prior.conclusion
+    && run?.display_title === prior.display_title
+    && run?.actor?.login === repositoryOwner
+    && run?.triggering_actor?.login === repositoryOwner,
+  'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_RUN_DRIFT');
+  const artifacts = Array.isArray(artifactsPayload?.artifacts)
+    ? artifactsPayload.artifacts : [];
+  const exact = artifacts.filter(item => Number(item?.id) === prior.evidence_artifact.id);
+  assert(exact.length === 1
+    && exact[0]?.name === prior.evidence_artifact.name
+    && normalizeSha256(exact[0]?.digest) === prior.evidence_artifact.digest
+    && exact[0]?.expired === false,
+  'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_ARTIFACT_DRIFT');
+  const jobs = Array.isArray(jobsPayload?.jobs) ? jobsPayload.jobs : [];
+  const evidenceJob = jobs.filter(job =>
+    job?.name === 'Finalize failed recovery evidence without status-write authority');
+  const publisherJob = jobs.filter(job =>
+    job?.name === 'Publish final recovery success from sealed lineage');
+  assert(evidenceJob.length === 1 && evidenceJob[0]?.conclusion === 'failure'
+    && publisherJob.length === 1 && publisherJob[0]?.conclusion === 'skipped',
+  'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_JOB_LINEAGE_INVALID');
+  return {
+    run_id: prior.id,
+    run_attempt: prior.attempt,
+    workflow_id: prior.workflow_id,
+    failure_code: prior.failure_code,
+    evidence_artifact_id: prior.evidence_artifact.id,
+    evidence_artifact_digest: prior.evidence_artifact.digest,
+    status_write_authority: false,
+    status_write_performed: false,
+    immutable: true,
+  };
+}
+
 export function validateFinalizationManifest(manifest) {
   validateManifest(manifest);
-  assert(manifest?.authorized_recovery_workflow_path === FINALIZATION_WORKFLOW_PATH,
-    'ATOMIC_RECOVERY_FINALIZATION_WORKFLOW_PATH_INVALID');
+  assert([FINALIZATION_WORKFLOW_PATH, FINALIZATION_V2_WORKFLOW_PATH]
+    .includes(manifest?.authorized_recovery_workflow_path),
+  'ATOMIC_RECOVERY_FINALIZATION_WORKFLOW_PATH_INVALID');
+  validateFinalizationV2Predecessor(manifest);
   const generation = manifest?.finalization_generation;
   assert(generation?.id === FINALIZATION_ID
     && generation?.cause === FINALIZATION_CAUSE
