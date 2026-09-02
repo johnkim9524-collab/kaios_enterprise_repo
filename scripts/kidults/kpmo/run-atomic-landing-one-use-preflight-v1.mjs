@@ -33,6 +33,20 @@ export function buildAtomicLandingRunName({prNumber, headSha, authorizationId} =
   return `KIDULTS Atomic Landing PR #${prNumber} @ ${headSha} / ${authorizationId}`;
 }
 
+export function assertAtomicLandingDispatchAuthority(currentRun, repositoryOwner) {
+  assert(typeof repositoryOwner === 'string' && repositoryOwner.length > 0, 'ATOMIC_ONE_USE_REPOSITORY_OWNER_INVALID');
+  assert(currentRun && typeof currentRun === 'object' && !Array.isArray(currentRun), 'ATOMIC_ONE_USE_CURRENT_RUN_INVALID');
+  const dispatchActor = currentRun?.actor?.login;
+  const triggeringActor = currentRun?.triggering_actor?.login;
+  assert(dispatchActor === repositoryOwner, 'ATOMIC_ONE_USE_DISPATCH_ACTOR_NOT_OWNER');
+  assert(triggeringActor === repositoryOwner, 'ATOMIC_ONE_USE_TRIGGERING_ACTOR_NOT_OWNER');
+  return {
+    dispatch_actor: dispatchActor,
+    triggering_actor: triggeringActor,
+    repository_owner: repositoryOwner,
+  };
+}
+
 export function evaluateAtomicLandingOneUseRunSet(runs, {
   currentRunId,
   currentRunAttempt,
@@ -47,23 +61,28 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
   assert(typeof expectedRunName === 'string' && expectedRunName.length > 0, 'ATOMIC_ONE_USE_RUN_NAME_INVALID');
   assert(SHA_PATTERN.test(protectedMainShaAtDispatch || ''), 'ATOMIC_ONE_USE_DISPATCH_MAIN_SHA_INVALID');
 
+  // The authorization tuple is PR + exact candidate head + authorization ID,
+  // encoded by the immutable run-name. It remains consumed even after protected
+  // main advances. Filtering prior runs by run.head_sha would allow the same
+  // authorization to be dispatched again on the next main generation.
   const matches = runs.filter(run =>
     Number(run?.workflow_id) === Number(workflowId)
     && run?.event === EXPECTED_EVENT
     && run?.head_branch === EXPECTED_BRANCH
-    && run?.head_sha === protectedMainShaAtDispatch
     && run?.display_title === expectedRunName);
+
+  const currentMatches = matches.filter(run => Number(run?.id) === Number(currentRunId));
+  if (currentMatches.length !== 1) {
+    fail('ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID', String(currentMatches.length));
+  }
+  const current = currentMatches[0];
+  assert(current?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
+  assert(Number(current?.run_attempt) === 1, 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
 
   if (matches.length > 1) {
     fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(matches.length));
   }
-  if (matches.length !== 1) {
-    fail('ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID', String(matches.length));
-  }
 
-  const current = matches[0];
-  assert(Number(current.id) === Number(currentRunId), 'ATOMIC_LANDING_CURRENT_RUN_NOT_UNIQUE_MATCH');
-  assert(Number(current.run_attempt) === 1, 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
   return {
     matching_run_count: 1,
     matching_run_id: Number(current.id),
@@ -75,6 +94,7 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
 
 export function assertAtomicLandingConsumptionReceipt(receipt, {
   repository,
+  repositoryOwner,
   prNumber,
   headSha,
   baseSha,
@@ -85,7 +105,7 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
 } = {}) {
   assert(receipt && typeof receipt === 'object' && !Array.isArray(receipt), 'ATOMIC_CONSUMPTION_RECEIPT_INVALID');
   assert(receipt.id === 'kidults-atomic-landing-one-use-consumption-v1', 'ATOMIC_CONSUMPTION_RECEIPT_ID_INVALID');
-  assert(receipt.version === '1.0.0', 'ATOMIC_CONSUMPTION_RECEIPT_VERSION_INVALID');
+  assert(receipt.version === '1.1.0', 'ATOMIC_CONSUMPTION_RECEIPT_VERSION_INVALID');
   assert(receipt.state === 'CONSUMED_BY_FIRST_MATCHING_DISPATCH', 'ATOMIC_CONSUMPTION_STATE_INVALID');
   assert(receipt.repository === repository, 'ATOMIC_CONSUMPTION_REPOSITORY_MISMATCH');
   assert(Number(receipt.pull_request) === Number(prNumber), 'ATOMIC_CONSUMPTION_PR_MISMATCH');
@@ -97,6 +117,25 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
   assert(receipt.authorization_id_sha256 === sha256(authorizationId), 'ATOMIC_CONSUMPTION_AUTHORIZATION_DIGEST_MISMATCH');
   assert(AUTHORIZATION_DIGEST_PATTERN.test(receipt.authorization_id_sha256 || ''), 'ATOMIC_CONSUMPTION_AUTHORIZATION_DIGEST_INVALID');
   assert(receipt.run_name_sha256 === sha256(expectedRunName), 'ATOMIC_CONSUMPTION_RUN_NAME_DIGEST_MISMATCH');
+  assert(typeof receipt.dispatch_actor === 'string' && receipt.dispatch_actor.length > 0, 'ATOMIC_CONSUMPTION_DISPATCH_ACTOR_INVALID');
+  assert(typeof receipt.triggering_actor === 'string' && receipt.triggering_actor.length > 0, 'ATOMIC_CONSUMPTION_TRIGGERING_ACTOR_INVALID');
+  assert(receipt.dispatch_actor === receipt.triggering_actor, 'ATOMIC_CONSUMPTION_ACTOR_BINDING_MISMATCH');
+  if (repositoryOwner != null) {
+    assert(receipt.dispatch_actor === repositoryOwner, 'ATOMIC_CONSUMPTION_DISPATCH_ACTOR_NOT_OWNER');
+    assert(receipt.triggering_actor === repositoryOwner, 'ATOMIC_CONSUMPTION_TRIGGERING_ACTOR_NOT_OWNER');
+  }
+  const expectedTupleDigest = sha256([
+    repository,
+    prNumber,
+    baseSha,
+    headSha,
+    authorizationId,
+    runId,
+    runAttempt,
+    receipt.dispatch_actor,
+    receipt.triggering_actor,
+  ].join('\n'));
+  assert(receipt.tuple_sha256 === expectedTupleDigest, 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
   assert(receipt.raw_authorization_persisted === false, 'ATOMIC_CONSUMPTION_RAW_AUTHORIZATION_FORBIDDEN');
   assert(receipt.matching_run_count === 1, 'ATOMIC_CONSUMPTION_MATCHING_RUN_COUNT_INVALID');
   assert(receipt.pr_head_matches_input === true, 'ATOMIC_CONSUMPTION_PR_HEAD_BINDING_INVALID');
@@ -158,7 +197,12 @@ async function main() {
     return payload;
   };
 
-  const currentRun = await request(`/actions/runs/${runId}`);
+  const [repositoryState, currentRun] = await Promise.all([
+    request(''),
+    request(`/actions/runs/${runId}`),
+  ]);
+  const repositoryOwner = repositoryState?.owner?.login;
+  const dispatchAuthority = assertAtomicLandingDispatchAuthority(currentRun, repositoryOwner);
   const expectedRunName = buildAtomicLandingRunName({prNumber, headSha, authorizationId});
   assert(Number(currentRun?.id) === Number(runId), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_MISMATCH');
   assert(Number(currentRun?.run_attempt) === 1, 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
@@ -207,7 +251,7 @@ async function main() {
 
   const receipt = {
     id: 'kidults-atomic-landing-one-use-consumption-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     state: 'CONSUMED_BY_FIRST_MATCHING_DISPATCH',
     repository,
     pull_request: Number(prNumber),
@@ -219,6 +263,8 @@ async function main() {
     landing_workflow_run_id: Number(runId),
     landing_workflow_run_attempt: Number(runAttempt),
     matching_run_count: oneUse.matching_run_count,
+    dispatch_actor: dispatchAuthority.dispatch_actor,
+    triggering_actor: dispatchAuthority.triggering_actor,
     authorization_id_sha256: sha256(authorizationId),
     run_name_sha256: sha256(expectedRunName),
     tuple_sha256: sha256([
@@ -229,6 +275,8 @@ async function main() {
       authorizationId,
       runId,
       runAttempt,
+      dispatchAuthority.dispatch_actor,
+      dispatchAuthority.triggering_actor,
     ].join('\n')),
     raw_authorization_persisted: false,
     pr_head_matches_input: pr?.head?.sha === headSha,
@@ -250,6 +298,7 @@ async function main() {
 
   assertAtomicLandingConsumptionReceipt(receipt, {
     repository,
+    repositoryOwner,
     prNumber,
     headSha,
     baseSha: exactBaseSha,
