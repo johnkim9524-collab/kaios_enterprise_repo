@@ -9,9 +9,12 @@ on:
       - '.github/workflows/kidults-atomic-governed-landing-v1.yml'
       - '.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml'
       - 'scripts/kidults/market/atomic-terminal-recovery-v2-common.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-runtime.mjs'
       - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-reconcile.mjs'
       - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-publish.mjs'
       - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-v2.mjs'
+      - 'scripts/kidults/market/validate-atomic-terminal-recovery-v2-runtime-pagination.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-handoff-compatibility-v1.mjs'
       - 'scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs'
@@ -77,6 +80,10 @@ jobs:
       - name: Run recovery authorization, replay, and status-boundary regressions
         working-directory: candidate
         run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-v2.mjs
+
+      - name: Execute bounded recovery runtime pagination regression
+        working-directory: candidate
+        run: node scripts/kidults/market/validate-atomic-terminal-recovery-v2-runtime-pagination.mjs
 
       - name: Validate forward frozen-workflow handoff guard
         working-directory: candidate
