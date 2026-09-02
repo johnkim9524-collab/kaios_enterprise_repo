@@ -9,6 +9,8 @@ export const REMEDIATION_ID = 'kidults-atomic-terminal-recovery-remediation-v1';
 export const REMEDIATION_CAUSE = 'RUNTIME_MAX_PAGES_IMPORT_MISSING';
 export const REMEDIATION_WORKFLOW_PATH =
   '.github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-v1.yml';
+export const REMEDIATION_EVIDENCE_ARTIFACT_PREFIX =
+  'kidults-atomic-terminal-recovery-remediation-evidence-v1';
 export const FAILED_WORKFLOW_PATH =
   '.github/workflows/kidults-current-sold-atomic-terminal-recovery-v2.yml';
 export const FAILED_RUN_ID = 33614615356;
@@ -16,12 +18,22 @@ export const FAILED_WORKFLOW_ID = 348248201;
 export const FAILED_ARTIFACT_ID = 9840385828;
 export const FAILED_CODE = 'MAX_PAGES is not defined';
 
+export function expectedRemediationEvidenceArtifactName(manifest, runId) {
+  const generation = manifest?.remediation_generation;
+  assert(generation?.evidence_artifact_name_prefix === REMEDIATION_EVIDENCE_ARTIFACT_PREFIX,
+    'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_ARTIFACT_PREFIX_INVALID');
+  assert(Number.isInteger(Number(runId)) && Number(runId) > 0,
+    'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_RUN_ID_INVALID');
+  return `${REMEDIATION_EVIDENCE_ARTIFACT_PREFIX}-${Number(runId)}-1`;
+}
+
 export function validateRemediationManifest(manifest) {
   assert(manifest?.authorized_recovery_workflow_path === REMEDIATION_WORKFLOW_PATH,
     'ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_PATH_INVALID');
   const generation = manifest?.remediation_generation;
   assert(generation?.id === REMEDIATION_ID
-    && generation?.cause === REMEDIATION_CAUSE,
+    && generation?.cause === REMEDIATION_CAUSE
+    && generation?.evidence_artifact_name_prefix === REMEDIATION_EVIDENCE_ARTIFACT_PREFIX,
   'ATOMIC_RECOVERY_REMEDIATION_IDENTITY_INVALID');
 
   const prior = generation?.prior_failed_recovery_run;
