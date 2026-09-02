@@ -9,6 +9,7 @@ on:
       - 'codex/pr-lifecycle-integrity-v1-*'
     paths:
       - '.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml'
+      - 'scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs'
@@ -51,6 +52,9 @@ jobs:
       - name: Run lifecycle classification self-test
         run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs --self-test
 
+      - name: Run lifecycle native-convergence self-test
+        run: node scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs --self-test
+
       - name: Run atomic lifecycle authority regression
         run: node scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs
 
@@ -85,7 +89,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.base.sha }}"
 
-      - name: Classify lifecycle state and preserve original verdict
+      - name: Converge native statuses, classify lifecycle, and preserve original verdict
         id: lifecycle
         continue-on-error: true
         env:
@@ -95,7 +99,9 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           RECEIPT_PATH: /tmp/kpmo-pr-lifecycle/receipt.json
-        run: node scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs
+          LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS: '30'
+          LIFECYCLE_CONVERGENCE_DELAY_MS: '1000'
+        run: node scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs
 
       - name: Upload run-attempt-base-head-bound lifecycle receipt
         if: always()
