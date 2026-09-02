@@ -30,6 +30,13 @@ const ready = ({
   actor: {login: actor},
   performed_via_github_app: app,
 });
+const transition = ({id, at, event}) => ({
+  id,
+  event,
+  created_at: at,
+  actor: {login: owner},
+  performed_via_github_app: null,
+});
 
 const selected = selectLatestDirectOwnerReadyEvent({
   repositoryOwner: owner,
@@ -43,6 +50,7 @@ assert(selected.id === 103, 'LATEST_READY_EVENT_SELECTION');
 assert(selected.actor === owner, 'DIRECT_OWNER_ACTOR_BINDING');
 assert(selected.performed_via_github_app === null, 'DIRECT_OWNER_APP_NULL_BINDING');
 assert(selected.direct_repository_owner === true, 'DIRECT_OWNER_BOOLEAN_BINDING');
+assert(selected.latest_invalidating_event?.id === 102, 'LATEST_INVALIDATING_EVENT_BINDING');
 
 const tieBrokenByEventId = selectLatestDirectOwnerReadyEvent({
   repositoryOwner: owner,
@@ -91,6 +99,29 @@ expectReject('LIFECYCLE_READY_EVENT_TIME_INVALID', () =>
     repositoryOwner: owner,
     timeline: [ready({id: 600, at: 'not-a-time'})],
   }));
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      ready({id: 700, at: '2026-09-02T00:10:00Z'}),
+      transition({id: 701, at: '2026-09-02T00:11:00Z', event: 'closed'}),
+      transition({id: 702, at: '2026-09-02T00:12:00Z', event: 'reopened'}),
+    ],
+  }));
+
+const reopenedThenFreshReady = selectLatestDirectOwnerReadyEvent({
+  repositoryOwner: owner,
+  timeline: [
+    ready({id: 800, at: '2026-09-02T00:13:00Z'}),
+    transition({id: 801, at: '2026-09-02T00:14:00Z', event: 'closed'}),
+    transition({id: 802, at: '2026-09-02T00:15:00Z', event: 'reopened'}),
+    ready({id: 803, at: '2026-09-02T00:16:00Z'}),
+  ],
+});
+assert(reopenedThenFreshReady.id === 803, 'REOPEN_REQUIRES_FRESH_READY');
+assert(reopenedThenFreshReady.latest_invalidating_event?.id === 802, 'REOPEN_EVENT_BOUND');
+assert(reopenedThenFreshReady.latest_invalidating_event?.event === 'reopened', 'REOPEN_EVENT_TYPE_BOUND');
+
 expectReject('LIFECYCLE_READY_TIMELINE_INVALID', () =>
   selectLatestDirectOwnerReadyEvent({repositoryOwner: owner, timeline: null}));
 expectReject('LIFECYCLE_REPOSITORY_OWNER_INVALID', () =>
