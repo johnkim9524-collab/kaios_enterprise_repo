@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 import {
   SHA40,
   assert,
@@ -24,7 +25,7 @@ import {
   validatePriorFailedRecoveryReceipt,
 } from './atomic-terminal-recovery-remediation-v1-policy.mjs';
 
-async function downloadJsonArtifact({repository, token, expected, entry}) {
+export async function downloadJsonArtifact({repository, token, expected, entry}) {
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
@@ -222,4 +223,6 @@ async function main() {
   }
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}
