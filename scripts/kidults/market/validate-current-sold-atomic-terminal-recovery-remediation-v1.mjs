@@ -268,6 +268,28 @@ requireText(workflow, 'preflight-receipt.json',
   'ATOMIC_RECOVERY_REMEDIATION_PREFLIGHT_RECEIPT_MISSING');
 requireText(workflow, 'evidence-receipt.json',
   'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_RECEIPT_MISSING');
+requireText(workflow, 'id: runtime_regressions',
+  'ATOMIC_RECOVERY_REMEDIATION_RUNTIME_REGRESSION_OUTCOME_MISSING');
+requireText(workflow, "if: steps.remediation_preflight.outcome == 'success' && steps.runtime_regressions.outcome == 'success'",
+  'ATOMIC_RECOVERY_REMEDIATION_RECONCILE_GATE_INCOMPLETE');
+requireText(workflow, 'Reconcile durable remediation terminal receipt',
+  'ATOMIC_RECOVERY_REMEDIATION_TERMINAL_RECONCILIATION_MISSING');
+requireText(workflow, 'terminal-receipt.json',
+  'ATOMIC_RECOVERY_REMEDIATION_TERMINAL_RECEIPT_MISSING');
+const remediationPreflightIndex = workflow.indexOf(
+  'Verify sealed failed attempt and fresh workflow generation read-only');
+const runtimeRegressionIndex = workflow.indexOf(
+  'Re-run runtime and remediation contract regressions');
+const terminalReconcileIndex = workflow.indexOf(
+  'Reconcile durable remediation terminal receipt');
+const durableUploadIndex = workflow.indexOf(
+  'Upload durable read-only remediation evidence');
+if (!(remediationPreflightIndex >= 0
+  && remediationPreflightIndex < runtimeRegressionIndex
+  && runtimeRegressionIndex < terminalReconcileIndex
+  && terminalReconcileIndex < durableUploadIndex)) {
+  throw new Error('ATOMIC_RECOVERY_REMEDIATION_TERMINAL_ORDER_INVALID');
+}
 requireText(workflow, '${{ github.run_id }}-${{ github.run_attempt }}',
   'ATOMIC_RECOVERY_REMEDIATION_ARTIFACT_RUN_BINDING_MISSING');
 requireText(publisher, 'expectedRemediationEvidenceArtifactName(manifest, authority.runId)',
