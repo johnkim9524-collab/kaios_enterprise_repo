@@ -273,9 +273,11 @@ export function assertPriorRecoveryFailureImmutable(statusPayload, manifest) {
   };
 }
 
-export function assertFinalizedRecoveryReadback(statusPayload, publishedId, runId, manifest) {
+export function assertFinalizedRecoveryReadback(statusHistory, publishedId, runId, manifest) {
   const {failedStatus} = validateFinalizationManifest(manifest);
-  const entries = statusesFor(statusPayload, RECOVERY_CONTEXT);
+  assert(Array.isArray(statusHistory),
+    'ATOMIC_RECOVERY_FINALIZATION_RAW_HISTORY_SHAPE_INVALID');
+  const entries = statusesFor({statuses: statusHistory}, RECOVERY_CONTEXT);
   assert(entries.length === 2,
     'ATOMIC_RECOVERY_FINALIZATION_STATUS_CARDINALITY_INVALID', String(entries.length));
   const prior = entries.find(item => Number(item?.id) === failedStatus.id);
