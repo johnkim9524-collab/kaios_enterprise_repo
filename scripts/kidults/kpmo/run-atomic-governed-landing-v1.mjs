@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
+  selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
@@ -147,11 +148,25 @@ try {
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
 
-  const timeline = await pages(`/issues/${prNumber}/timeline`);
+  const [timeline, approvalComments, headCommit] = await Promise.all([
+    pages(`/issues/${prNumber}/timeline`),
+    pages(`/issues/${prNumber}/comments`),
+    request(`/commits/${expectedHeadSha}`),
+  ]);
   const readinessEvents = timeline.filter(value => value.event === 'ready_for_review' || value.event === 'convert_to_draft');
   const lastReadiness = readinessEvents.at(-1);
   const readinessActor = lastReadiness?.actor?.login || initial.user?.login;
   if (lastReadiness?.event === 'convert_to_draft' || readinessActor !== repositoryState.owner?.login) throw new Error('PROGRAM_OWNER_READY_STATE_REQUIRED');
+  const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
+    repositoryOwner: repositoryState.owner?.login,
+    prNumber,
+    headSha: expectedHeadSha,
+    baseSha: initial.base.sha,
+    authorizationId,
+    prCreatedAt: initial.created_at,
+    headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
+    latestReadyAt: lastReadiness.created_at,
+  });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
@@ -225,6 +240,7 @@ try {
     merge_commit_sha: merged.sha,
     target_branch: 'main',
     operation_authorization_id: authorizationId,
+    program_owner_exact_head_approval: programOwnerApproval,
     landing_actor: landingActor,
     landing_workflow_run_id: landingRunId,
     landing_workflow_run_attempt: landingRunAttempt,
