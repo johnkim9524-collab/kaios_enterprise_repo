@@ -13,6 +13,9 @@ on:
       - 'scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-staged-lifecycle-authority-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/atomic-landing-handoff-compatibility-v1.mjs'
+      - 'scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs'
@@ -56,6 +59,9 @@ jobs:
 
       - name: Run staged lifecycle authority regression
         run: node scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs
+
+      - name: Run atomic landing frozen-workflow handoff regression
+        run: node scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs
 
   classify-live-pr:
     name: Classify exact PR readiness against native governance evidence
