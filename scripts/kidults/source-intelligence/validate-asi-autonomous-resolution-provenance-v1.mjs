@@ -21,7 +21,7 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"',
     "steps.classify.outputs.classification == 'INVALID_TRIGGER'",
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
-    'if-no-files-found: error',
+    'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error',
     'request-p1-recovery:',
     "if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
     "artifact_role:'RECOVERY_NON_CONSUMABLE'",
@@ -119,7 +119,7 @@ const workflowMutations = [
   ['--required-basename p1-preflight-action-queue-v1.json', '--required-basename unbound.json', 'pre-extraction required-file cardinality'],
   ["needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'", "needs.classify-p1-generation.outputs.classification != 'INVALID_TRIGGER'", 'current-main classifier authority gate'],
   ['classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"', 'node scripts/kidults/source-intelligence/classify-workflow-run-generation-bypassed-v1.mjs \\\n            "$GITHUB_EVENT_PATH"', 'generation classifier invocation'],
-  ['if-no-files-found: error', 'if-no-files-found: ignore', 'classification receipt retention'],
+  ['kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error', 'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\\n          path: /tmp/arl-p1-generation-classification-v1.json\\n          retention-days: 90\\n          if-no-files-found: ignore', 'classification receipt retention'],
 ];
 for (const [from, to, label] of workflowMutations) {
   if (!workflowSource.includes(from)) {
