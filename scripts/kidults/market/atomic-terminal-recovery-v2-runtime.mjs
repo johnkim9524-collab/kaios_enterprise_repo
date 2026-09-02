@@ -4,6 +4,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {
   SHA40,
+  MAX_PAGES,
   HISTORICAL_CONTEXT,
   RECOVERY_CONTEXT,
   EXPECTED_BRANCH,
@@ -196,6 +197,10 @@ export async function establishRecoveryAuthority(manifestFile) {
   ]);
   assert(main?.commit?.sha === currentMainInput, 'ATOMIC_RECOVERY_CURRENT_MAIN_DRIFT');
   assert(mainCommit?.sha === currentMainInput, 'ATOMIC_RECOVERY_CURRENT_MAIN_COMMIT_INVALID');
+  assert(typeof manifest?.authorized_recovery_workflow_path === 'string'
+    && manifest.authorized_recovery_workflow_path.startsWith('.github/workflows/')
+    && currentRun?.path === manifest.authorized_recovery_workflow_path,
+  'ATOMIC_RECOVERY_WORKFLOW_PATH_MISMATCH');
   assert(approvalIssue?.state === 'open' && Number(approvalIssue?.number) === manifest.approval_issue,
     'ATOMIC_RECOVERY_APPROVAL_ISSUE_NOT_OPEN');
   const repositoryOwner = repo?.owner?.login;
