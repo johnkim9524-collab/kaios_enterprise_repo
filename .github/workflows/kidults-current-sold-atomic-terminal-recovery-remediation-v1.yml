@@ -124,9 +124,6 @@ jobs:
           package-manager-cache: false
           check-latest: false
 
-      - name: Re-run runtime and remediation contract regressions
-        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
-
       - name: Verify sealed failed attempt and fresh workflow generation read-only
         id: remediation_preflight
         continue-on-error: true
@@ -141,9 +138,15 @@ jobs:
           --preflight
           coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-v2.json
 
+      - name: Re-run runtime and remediation contract regressions
+        id: runtime_regressions
+        if: steps.remediation_preflight.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
+
       - name: Consume fresh recovery authority and reconcile durable evidence read-only
         id: reconcile
-        if: steps.remediation_preflight.outcome == 'success'
+        if: steps.remediation_preflight.outcome == 'success' && steps.runtime_regressions.outcome == 'success'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -164,6 +167,51 @@ jobs:
           test -f out/atomic-terminal-recovery-remediation-v1/evidence-receipt.json
           printf 'sha256=sha256:%s\n' "$(sha256sum out/atomic-terminal-recovery-remediation-v1/evidence-receipt.json | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
+      - name: Reconcile durable remediation terminal receipt
+        if: always()
+        env:
+          PREFLIGHT_OUTCOME: ${{ steps.remediation_preflight.outcome }}
+          RUNTIME_REGRESSION_OUTCOME: ${{ steps.runtime_regressions.outcome }}
+          RECONCILE_OUTCOME: ${{ steps.reconcile.outcome }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/atomic-terminal-recovery-remediation-v1
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const outcomes = {
+            preflight: process.env.PREFLIGHT_OUTCOME || 'not_run',
+            runtime_regressions: process.env.RUNTIME_REGRESSION_OUTCOME || 'not_run',
+            reconcile: process.env.RECONCILE_OUTCOME || 'not_run',
+          };
+          const verified = Object.values(outcomes).every(value => value === 'success');
+          const receipt = {
+            id: 'kidults-atomic-terminal-recovery-remediation-terminal-receipt-v1',
+            version: '1.0.0',
+            state: verified ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_code: verified ? null : Object.entries(outcomes)
+              .find(([, value]) => value !== 'success')?.[0]?.toUpperCase() + '_NOT_SUCCESS',
+            repository: process.env.GITHUB_REPOSITORY,
+            exact_current_main_sha: process.env.EXPECTED_CURRENT_MAIN_SHA,
+            workflow_run_id: Number(process.env.GITHUB_RUN_ID),
+            workflow_run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            outcomes,
+            status_write_authority: false,
+            status_write_performed: false,
+            prior_authorization_reused: false,
+            prior_run_rerun_performed: false,
+            promotion_eligible: false,
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD',
+          };
+          fs.writeFileSync(
+            'out/atomic-terminal-recovery-remediation-v1/terminal-receipt.json',
+            `${JSON.stringify(receipt, null, 2)}\n`,
+            {encoding: 'utf8', mode: 0o600},
+          );
+          NODE
+
       - name: Upload durable read-only remediation evidence
         id: upload_evidence
         if: always()
@@ -178,10 +226,13 @@ jobs:
         if: always()
         env:
           PREFLIGHT_OUTCOME: ${{ steps.remediation_preflight.outcome }}
+          RUNTIME_REGRESSION_OUTCOME: ${{ steps.runtime_regressions.outcome }}
           RECONCILE_OUTCOME: ${{ steps.reconcile.outcome }}
         run: |
           set -euo pipefail
+          test -f out/atomic-terminal-recovery-remediation-v1/terminal-receipt.json
           test "$PREFLIGHT_OUTCOME" = success
+          test "$RUNTIME_REGRESSION_OUTCOME" = success
           test "$RECONCILE_OUTCOME" = success
 
   publish-distinct-recovery-status:
