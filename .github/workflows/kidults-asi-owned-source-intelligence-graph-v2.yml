@@ -223,6 +223,62 @@ jobs:
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-2
           diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+      - name: Prove dynamic Gate1 and admission cardinality without promotion
+        run: |
+          set -euo pipefail
+          cp /tmp/p1/p1-gate1-source-safety-decisions-v1.json /tmp/p1-gate1-dynamic.json
+          cp /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1-admission-dynamic.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const gatePath='/tmp/p1-gate1-dynamic.json';
+          const admissionPath='/tmp/p1-admission-dynamic.json';
+          const gate=JSON.parse(fs.readFileSync(gatePath));
+          const admissions=JSON.parse(fs.readFileSync(admissionPath));
+          const removed=gate.decisions.pop();
+          if(!removed||gate.decisions.length===0) throw new Error('DYNAMIC_CARDINALITY_FIXTURE_EMPTY');
+          gate.decision_count=gate.decisions.length;
+          const countKey={PASS:'pass_count',HOLD:'hold_count',REJECT:'reject_count'}[removed.decision];
+          if(!countKey||!Number.isInteger(gate[countKey])||gate[countKey]<=0) throw new Error('DYNAMIC_CARDINALITY_GATE_COUNT');
+          gate[countKey]-=1;
+          const before=admissions.candidates.length;
+          admissions.candidates=admissions.candidates.filter(candidate=>candidate.grain_id!==removed.grain_id);
+          if(admissions.candidates.length!==before-1) throw new Error('DYNAMIC_CARDINALITY_ADMISSION_GRAIN');
+          admissions.candidate_count=admissions.candidates.length;
+          fs.writeFileSync(gatePath,JSON.stringify(gate,null,2)+'\n');
+          fs.writeFileSync(admissionPath,JSON.stringify(admissions,null,2)+'\n');
+          NODE
+          node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1-gate1-dynamic.json \
+            /tmp/p1-admission-dynamic.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/p2-dynamic-cardinality
+          node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p2-dynamic-cardinality \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json
+      - name: Reject Gate1 and admission grain skew
+        run: |
+          set -euo pipefail
+          cp /tmp/p1/p1-evidence-admission-candidate-register-v1.json /tmp/p1-admission-grain-skew.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p1-admission-grain-skew.json';const x=JSON.parse(fs.readFileSync(p));x.candidates[0].grain_id='grain_forbidden_missing';fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n');
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1-admission-grain-skew.json \
+            /tmp/p1/p1-preflight-action-queue-v1.json \
+            coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/bad-p1-admission-grain-skew; then
+            echo "P1_GATE1_ADMISSION_GRAIN_SKEW_FALSE_GREEN"
+            exit 1
+          fi
       - name: Reject P1 action-queue cardinality mutation
         run: |
           set -euo pipefail
@@ -257,7 +313,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-p2-candidate-evidence/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));const n=x.nodes.find(v=>v.node_type==='SOURCE_CANDIDATE');n.market_evidence_node=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-candidate-evidence coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-candidate-evidence coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
       - name: Reject market-event node mutation
         run: |
           set -euo pipefail
@@ -265,7 +321,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-p2-market-event/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.nodes.push({node_id:'node:market-event:forbidden',node_type:'MARKET_EVENT',canonical_key:'forbidden',properties:{},kidults_owned_graph_primitive:true,market_evidence_node:true,source_refs:[],public_release:'HOLD',production:'HOLD'});x.node_count=x.nodes.length;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-market-event coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-market-event coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
       - name: Reject evidence-admission mutation
         run: |
           set -euo pipefail
@@ -273,7 +329,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-p2-admission/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.evidence_admitted=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-admission coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-admission coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
       - name: Reject orphan-edge mutation
         run: |
           set -euo pipefail
@@ -281,7 +337,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-p2-orphan/owned-source-intelligence-graph-v2.json';const x=JSON.parse(fs.readFileSync(p));x.edges[0].to_node_id='node:missing:forbidden';fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-orphan coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-orphan coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
       - name: Reject graph-digest mutation
         run: |
           set -euo pipefail
@@ -289,7 +345,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/bad-p2-digest/owned-source-intelligence-lineage-v2.json';const x=JSON.parse(fs.readFileSync(p));x.graph.digest='sha256:'+'0'.repeat(64);fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-digest coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
+          if node scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs /tmp/bad-p2-digest coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json; then exit 1; fi
       - name: Reject manual-only P2 activation mutation
         run: |
           set -euo pipefail
