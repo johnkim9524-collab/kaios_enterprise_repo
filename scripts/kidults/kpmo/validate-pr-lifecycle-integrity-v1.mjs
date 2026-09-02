@@ -210,11 +210,19 @@ async function main() {
   let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-    const [prInitial, mainBranch, statuses] = await Promise.all([
+    const [prInitial, mainBranch, statuses, timeline] = await Promise.all([
       api(`/pulls/${prNumber}`),
       api('/branches/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
+      pages(`/issues/${prNumber}/timeline`),
     ]);
+    const readinessEvents = timeline.filter(event =>
+      event?.event === 'ready_for_review' || event?.event === 'convert_to_draft');
+    const latestReadiness = readinessEvents.at(-1);
+    assert(latestReadiness?.event === 'ready_for_review', 'LATEST_READY_EVENT_REQUIRED');
+    assert(Number.isInteger(latestReadiness.id) && latestReadiness.id > 0, 'LATEST_READY_EVENT_ID_INVALID');
+    assert(Number.isFinite(Date.parse(String(latestReadiness.created_at || ''))), 'LATEST_READY_EVENT_TIME_INVALID');
+    assert(typeof latestReadiness.actor?.login === 'string' && latestReadiness.actor.login.length > 0, 'LATEST_READY_EVENT_ACTOR_INVALID');
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
       api(`/git/trees/${prInitial.head.sha}?recursive=1`),
@@ -239,6 +247,7 @@ async function main() {
     assert(prFinal.base?.sha === prInitial.base?.sha, 'BASE_CHANGED_DURING_EVALUATION');
     assert(prFinal.draft === prInitial.draft, 'DRAFT_STATE_CHANGED_DURING_EVALUATION');
     assert(prFinal.state === prInitial.state && prFinal.merged === prInitial.merged, 'PR_STATE_CHANGED_DURING_EVALUATION');
+    const lifecycleEvaluatedAt = new Date().toISOString();
 
     receipt = {
       id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
@@ -246,6 +255,10 @@ async function main() {
       workflow_run_id: process.env.GITHUB_RUN_ID || null,
       workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
       event_name: process.env.GITHUB_EVENT_NAME || null,
+      lifecycle_evaluated_at: lifecycleEvaluatedAt,
+      latest_ready_event_id: latestReadiness.id,
+      latest_ready_event_at: latestReadiness.created_at,
+      latest_ready_event_actor: latestReadiness.actor.login,
       approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,
