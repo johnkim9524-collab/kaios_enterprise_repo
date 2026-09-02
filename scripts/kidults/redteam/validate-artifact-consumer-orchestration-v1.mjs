@@ -176,7 +176,7 @@ assert(requirementProducerCardinalityMutation !== requirement && !requirementPro
 const snapshotConcurrencyMutation = snapshot.replace('github.event.workflow_run.id', 'github.ref');
 assert(snapshotConcurrencyMutation !== snapshot && !snapshotConcurrencyMutation.includes(snapshotConcurrencyContract), 'SNAPSHOT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
-  "if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'",
+  "if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
   "if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'",
 );
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
