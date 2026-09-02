@@ -24,10 +24,23 @@ if(candidates.id!=='kidults-asi-p0b-source-candidate-registry-v1'||candidates.ca
 if(bindings.id!=='kidults-asi-p0b-mission-candidate-binding-ledger-v1'||bindings.mission_count!==192||bindings.bindings?.length!==192) throw new Error('P0B_BINDING_LEDGER_INVALID');
 if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||gate1.decision_count!==576||gate1.decisions?.length!==576) throw new Error('P1_GATE1_INVALID');
 if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||admissions.candidate_count!==576||admissions.candidates?.length!==576||admissions.admitted_count!==0) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
-if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||actions.action_count!==672||actions.actions?.length!==672) throw new Error('P1_ACTION_QUEUE_INVALID');
 if(contract.id!=='kidults-asi-owned-source-intelligence-graph-contract-v2'||contract.version!=='2.0.0') throw new Error('P2_CONTRACT_INVALID');
 if(JSON.stringify(contract.platform_principles)!==JSON.stringify(principles)) throw new Error('P2_PRINCIPLE_ORDER_INVALID');
 if(contract.truth_boundary?.creates_market_event!==false||contract.truth_boundary?.admits_evidence!==false||contract.truth_boundary?.creates_snapshot_candidate!==false) throw new Error('P2_TRUTH_BOUNDARY_INVALID');
+const actionTypes=Array.isArray(actions.action_types)?actions.action_types:[];
+if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||actions.state!=='QUEUED_NOT_EXECUTED'||!Number.isInteger(actions.unique_candidate_count)||actions.unique_candidate_count<=0||!Array.isArray(actions.actions)||actions.action_count!==actions.actions.length||actionTypes.length===0||JSON.stringify(actionTypes)!==JSON.stringify(contract.preflight_actions)||actions.action_count!==actions.unique_candidate_count*actionTypes.length) throw new Error('P1_ACTION_QUEUE_INVALID');
+const actionIds=new Set();
+const actionsByCandidate=new Map();
+for(const action of actions.actions){
+  if(!action?.action_id||actionIds.has(action.action_id)||!action?.candidate_id||!actionTypes.includes(action.action_type)||action.state!=='QUEUED_NOT_EXECUTED'||action.network_probe_authorized!==false||action.collection_authorized!==false||action.evidence_admitted!==false) throw new Error('P1_ACTION_QUEUE_INVALID');
+  actionIds.add(action.action_id);
+  if(!actionsByCandidate.has(action.candidate_id)) actionsByCandidate.set(action.candidate_id,[]);
+  actionsByCandidate.get(action.candidate_id).push(action);
+}
+if(actionsByCandidate.size!==actions.unique_candidate_count) throw new Error('P1_ACTION_QUEUE_INVALID');
+for(const candidateActions of actionsByCandidate.values()){
+  if(candidateActions.length!==actionTypes.length||new Set(candidateActions.map(action=>action.action_type)).size!==actionTypes.length) throw new Error('P1_ACTION_QUEUE_INVALID');
+}
 await fs.mkdir(outputDir,{recursive:true});
 
 const nodeMap=new Map(),edgeMap=new Map();
