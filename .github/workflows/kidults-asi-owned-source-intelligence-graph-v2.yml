@@ -14,6 +14,8 @@ on:
       - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
       - 'scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P1 Source Preflight v1'
@@ -50,6 +52,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-owned-source-intelligence-graph-registry-v2.mjs
           node --check scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/redteam/validate-p2-same-generation-lineage-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-registry-v2.json','utf8'))"
@@ -157,6 +161,27 @@ jobs:
           [[ "$P0B_ID" =~ ^[1-9][0-9]*$ ]] && [[ "$P1_ID" =~ ^[1-9][0-9]*$ ]]
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          P0B_ARCHIVE_SHA256="sha256:$(sha256sum /tmp/p0b.zip | awk '{print $1}')"
+          P1_ARCHIVE_SHA256="sha256:$(sha256sum /tmp/p1.zip | awk '{print $1}')"
+          jq -e --argjson id "$P0B_ID" --arg digest "$P0B_ARCHIVE_SHA256" '[.artifacts[] | select(.id==$id and .digest==$digest)] | length==1' /tmp/p1-artifacts.json >/dev/null
+          jq -e --argjson id "$P1_ID" --arg digest "$P1_ARCHIVE_SHA256" '[.artifacts[] | select(.id==$id and .digest==$digest)] | length==1' /tmp/p1-artifacts.json >/dev/null
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b.zip --expected-digest "$P0B_ARCHIVE_SHA256" \
+            --receipt /tmp/p2-p0b-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 33554432 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p1.zip --expected-digest "$P1_ARCHIVE_SHA256" \
+            --receipt /tmp/p2-p1-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 33554432 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p1-gate1-source-safety-decisions-v1.json \
+            --required-basename p1-evidence-admission-candidate-register-v1.json \
+            --required-basename p1-preflight-action-queue-v1.json
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json; do
@@ -195,6 +220,24 @@ jobs:
             coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
             /tmp/kidults-asi-owned-source-intelligence-graph-run-2
           diff -qr /tmp/kidults-asi-owned-source-intelligence-graph-run-1 /tmp/kidults-asi-owned-source-intelligence-graph-run-2
+      - name: Reject P1 action-queue cardinality mutation
+        run: |
+          set -euo pipefail
+          cp /tmp/p1/p1-preflight-action-queue-v1.json /tmp/p1-action-cardinality-mutation.json
+          node - <<'NODE'
+          const fs=require('fs');const p='/tmp/p1-action-cardinality-mutation.json';const x=JSON.parse(fs.readFileSync(p));x.action_count+=1;fs.writeFileSync(p,JSON.stringify(x,null,2)+'\n');
+          NODE
+          if node scripts/kidults/source-intelligence/build-asi-owned-source-intelligence-graph-v2.mjs \
+            /tmp/p0b/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p1/p1-gate1-source-safety-decisions-v1.json \
+            /tmp/p1/p1-evidence-admission-candidate-register-v1.json \
+            /tmp/p1-action-cardinality-mutation.json \
+            coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-contract-v2.json \
+            /tmp/bad-p1-action-cardinality; then
+            echo "P1_ACTION_QUEUE_CARDINALITY_MUTATION_FALSE_GREEN"
+            exit 1
+          fi
       - name: Validate P2 owned source-intelligence graph
         run: |
           set -euo pipefail
@@ -275,5 +318,42 @@ jobs:
             /tmp/kidults-asi-owned-source-intelligence-graph-registry-final-validation-v2.json
             /tmp/kidults-asi-owned-source-intelligence-graph-final-validation-v2.json
             /tmp/kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Emit terminal p2 archive-consumer diagnostic
+        if: always()
+        env:
+          TERMINAL_JOB_STATUS: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          names = sorted(name for name in os.listdir("/tmp") if name.startswith("p2-") and name.endswith("-archive-validation-receipt-v1.json"))
+          receipts = []
+          for name in names:
+              path = os.path.join("/tmp", name)
+              with open(path, "rb") as handle:
+                  raw = handle.read()
+              receipts.append({"name": name, "sha256": "sha256:" + hashlib.sha256(raw).hexdigest()})
+          value = {
+              "id": "kidults-asi-p2-archive-consumer-terminal-v1",
+              "state": "VERIFIED_PASS" if os.environ["TERMINAL_JOB_STATUS"] == "success" else "FAILURE_CONTAINED",
+              "job_status": os.environ["TERMINAL_JOB_STATUS"],
+              "source_sha": os.environ["GITHUB_SHA"],
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "safe_pre_extraction_receipts": receipts,
+              "unsafe_extraction_authorized": False,
+              "public_release": "HOLD",
+              "production": "HOLD",
+          }
+          with open("/tmp/kidults-asi-p2-archive-consumer-terminal-v1.json", "w", encoding="utf-8") as handle:
+              json.dump(value, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-asi-p2-archive-consumer-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-p2-archive-consumer-terminal-v1.json
           retention-days: 90
           if-no-files-found: error
