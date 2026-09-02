@@ -18,7 +18,7 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'cancel-in-progress: false',
     'classify-p1-generation:',
     "CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'",
-    'classify-workflow-run-generation-v1.mjs',
+    'node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs \\\n            "$GITHUB_EVENT_PATH"',
     "steps.classify.outputs.classification == 'INVALID_TRIGGER'",
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
     'if-no-files-found: error',
@@ -118,7 +118,7 @@ const workflowMutations = [
   ['--expected-digest "$P1_DIGEST"', '--expected-digest "sha256:unbound"', 'pre-extraction archive digest binding'],
   ['--required-basename p1-preflight-action-queue-v1.json', '--required-basename unbound.json', 'pre-extraction required-file cardinality'],
   ["needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'", "needs.classify-p1-generation.outputs.classification != 'INVALID_TRIGGER'", 'current-main classifier authority gate'],
-  ['classify-workflow-run-generation-v1.mjs', 'classify-workflow-run-generation-bypassed-v1.mjs', 'generation classifier invocation'],
+  ['node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs \\\n            "$GITHUB_EVENT_PATH"', 'node scripts/kidults/source-intelligence/classify-workflow-run-generation-bypassed-v1.mjs \\\n            "$GITHUB_EVENT_PATH"', 'generation classifier invocation'],
   ['if-no-files-found: error', 'if-no-files-found: ignore', 'classification receipt retention'],
 ];
 for (const [from, to, label] of workflowMutations) {
