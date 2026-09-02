@@ -11,6 +11,9 @@ import {
   SCOPE_AWARE_CONTEXT,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {
+  selectLatestDirectOwnerReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
 
@@ -176,6 +179,9 @@ async function main() {
   assert(token, 'GH_TOKEN_MISSING');
   assert(repository, 'GH_REPOSITORY_MISSING');
   assert(/^\d+$/.test(prNumber || ''), 'PR_NUMBER_INVALID');
+  const repositoryParts = repository.split('/');
+  assert(repositoryParts.length === 2 && repositoryParts.every(Boolean), 'GH_REPOSITORY_INVALID');
+  const [repositoryOwner] = repositoryParts;
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -216,13 +222,10 @@ async function main() {
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/issues/${prNumber}/timeline`),
     ]);
-    const readinessEvents = timeline.filter(event =>
-      event?.event === 'ready_for_review' || event?.event === 'convert_to_draft');
-    const latestReadiness = readinessEvents.at(-1);
-    assert(latestReadiness?.event === 'ready_for_review', 'LATEST_READY_EVENT_REQUIRED');
-    assert(Number.isInteger(latestReadiness.id) && latestReadiness.id > 0, 'LATEST_READY_EVENT_ID_INVALID');
-    assert(Number.isFinite(Date.parse(String(latestReadiness.created_at || ''))), 'LATEST_READY_EVENT_TIME_INVALID');
-    assert(typeof latestReadiness.actor?.login === 'string' && latestReadiness.actor.login.length > 0, 'LATEST_READY_EVENT_ACTOR_INVALID');
+    const latestReadiness = selectLatestDirectOwnerReadyEvent({
+      timeline,
+      repositoryOwner,
+    });
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
       api(`/git/trees/${prInitial.head.sha}?recursive=1`),
@@ -258,7 +261,9 @@ async function main() {
       lifecycle_evaluated_at: lifecycleEvaluatedAt,
       latest_ready_event_id: latestReadiness.id,
       latest_ready_event_at: latestReadiness.created_at,
-      latest_ready_event_actor: latestReadiness.actor.login,
+      latest_ready_event_actor: latestReadiness.actor,
+      latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
+      latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
       approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,
