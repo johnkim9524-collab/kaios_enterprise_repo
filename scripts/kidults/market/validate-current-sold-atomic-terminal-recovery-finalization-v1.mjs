@@ -8,6 +8,8 @@ import {
 } from './atomic-terminal-recovery-v2-runtime.mjs';
 import {
   FINALIZATION_WORKFLOW_PATH,
+  FINALIZATION_V2_WORKFLOW_PATH,
+  validateFinalizationV2Predecessor,
   FINALIZATION_EVIDENCE_ARTIFACT_PREFIX,
   expectedFinalizationEvidenceArtifactName,
   validateFinalizationManifest,
@@ -287,8 +289,26 @@ if (preflight.includes("method: 'POST'") || preflight.includes('statuses: write'
 if (publisher.includes("state: 'failure',") || publisher.includes('failure status')) {
   throw new Error('ATOMIC_RECOVERY_FINALIZATION_FAILURE_STATUS_PUBLICATION_FORBIDDEN');
 }
-assert(manifest.authorized_recovery_workflow_path === FINALIZATION_WORKFLOW_PATH,
-  'ATOMIC_RECOVERY_FINALIZATION_MANIFEST_WORKFLOW_BINDING_INVALID');
+assert([FINALIZATION_WORKFLOW_PATH, FINALIZATION_V2_WORKFLOW_PATH]
+  .includes(manifest.authorized_recovery_workflow_path),
+'ATOMIC_RECOVERY_FINALIZATION_MANIFEST_WORKFLOW_BINDING_INVALID');
+requireText(workflow,
+  'run-name: "KIDULTS Atomic Terminal Recovery Run #33603816578 @ ${{ inputs.expected_current_main_sha }} / ${{ inputs.recovery_authorization_id }}"',
+  'ATOMIC_RECOVERY_FINALIZATION_RUN_NAME_CONTRACT_MISMATCH');
+const v2Predecessor = validateFinalizationV2Predecessor(manifest);
+if (manifest.authorized_recovery_workflow_path === FINALIZATION_V2_WORKFLOW_PATH) {
+  assert(v2Predecessor?.id === 33652944964,
+    'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_REQUIRED');
+  reject('V2 predecessor run substitution',
+    'ATOMIC_RECOVERY_FINALIZATION_V2_PREDECESSOR_BINDING_INVALID', () =>
+      validateFinalizationV2Predecessor({
+        ...manifest,
+        finalization_generation_v2_predecessor: {
+          ...manifest.finalization_generation_v2_predecessor,
+          id: 33652944965,
+        },
+      }));
+}
 const probeName = expectedFinalizationEvidenceArtifactName(manifest, 7002);
 assert(probeName === `${FINALIZATION_EVIDENCE_ARTIFACT_PREFIX}-7002-1`,
   'ATOMIC_RECOVERY_FINALIZATION_ARTIFACT_NAME_PROBE_FAILED');
@@ -307,7 +327,7 @@ console.log(JSON.stringify({
   correction_issue: 1897,
   negative_cases_rejected: rejected.length,
   finalization_evidence_artifact_name_probe: probeName,
-  authorized_workflow_path: FINALIZATION_WORKFLOW_PATH,
+  authorized_workflow_path: manifest.authorized_recovery_workflow_path,
   historical_terminal_context_immutable: true,
   prior_recovery_failure_status_immutable: true,
   fresh_owner_authority_required: true,
