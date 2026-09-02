@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const [dir,contractPath]=process.argv.slice(2);
-if(!dir||!contractPath) throw new Error('P2_VALIDATE_ARGS');
+const [dir,p1ContractPath,contractPath]=process.argv.slice(2);
+if(!dir||!p1ContractPath||!contractPath) throw new Error('P2_VALIDATE_ARGS');
 const read=n=>fs.readFileSync(path.join(dir,n),'utf8');
 const json=n=>JSON.parse(read(n));
 const hash=v=>`sha256:${crypto.createHash('sha256').update(v).digest('hex')}`;
+const p1Contract=JSON.parse(fs.readFileSync(p1ContractPath,'utf8'));
 const contract=JSON.parse(fs.readFileSync(contractPath,'utf8'));
 const graph=json('owned-source-intelligence-graph-v2.json');
 const lineage=json('owned-source-intelligence-lineage-v2.json');
@@ -17,6 +18,7 @@ const manifest=json('owned-source-intelligence-manifest-v2.json');
 const assert=(condition,message)=>{if(!condition)throw new Error(message)};
 const principles=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 
+assert(p1Contract.id==='kidults-asi-p1-source-classification-admission-preflight-contract-v1'&&p1Contract.version==='1.0.0'&&Array.isArray(p1Contract.preflight_actions)&&p1Contract.preflight_actions.length>0,'P1_CONTRACT_INVALID');
 assert(contract.id==='kidults-asi-owned-source-intelligence-graph-contract-v2'&&contract.version==='2.0.0','CONTRACT_INVALID');
 assert(JSON.stringify(contract.platform_principles)===JSON.stringify(principles),'PRINCIPLE_ORDER_INVALID');
 assert(graph.id==='kidults-owned-source-intelligence-graph-v2'&&graph.node_count===graph.nodes.length&&graph.edge_count===graph.edges.length,'GRAPH_COUNTS_INVALID');
@@ -46,7 +48,7 @@ assert(edgeCounts.CANDIDATE_HAS_ADMISSION_CANDIDATE===576&&edgeCounts.MISSION_HA
 assert(quality.state==='VERIFIED_GRAPH_INTEGRITY_READY'&&quality.duplicate_node_ids===0&&quality.duplicate_edge_ids===0&&quality.invalid_edge_node_references===0&&quality.forbidden_node_type_count===0&&quality.forbidden_edge_type_count===0,'QUALITY_INVALID');
 for(const type of contract.graph_model.node_types)assert(quality.node_type_counts?.[type]===counts[type],`QUALITY_NODE_COUNTS:${type}`);
 for(const type of contract.graph_model.edge_types)assert(quality.edge_type_counts?.[type]===edgeCounts[type],`QUALITY_EDGE_COUNTS:${type}`);
-assert(lineage.graph.digest===hash(read('owned-source-intelligence-graph-v2.json'))&&lineage.inputs.length===7,'LINEAGE_INVALID');
+assert(lineage.graph.digest===hash(read('owned-source-intelligence-graph-v2.json'))&&lineage.inputs.length===7&&lineage.inputs.some(input=>input.id===p1Contract.id&&input.version===p1Contract.version),'LINEAGE_INVALID');
 assert(value.graph_digest===lineage.graph.digest,'VALUE_GRAPH_DIGEST');
 assert(value.mission_nodes===counts.MISSION&&value.source_candidate_nodes===counts.SOURCE_CANDIDATE&&value.gate1_decision_nodes===counts.GATE1_DECISION&&value.admission_candidate_nodes===counts.ADMISSION_CANDIDATE&&value.preflight_action_nodes===counts.PREFLIGHT_ACTION,'VALUE_COUNTS');
 assert(value.provider_switching_primitives_created===counts.CANONICAL_HOST+counts.DISCOVERY_PROVIDER+counts.FACTUAL_ORIGIN_CANDIDATE,'VALUE_SWITCHING_PRIMITIVES');
