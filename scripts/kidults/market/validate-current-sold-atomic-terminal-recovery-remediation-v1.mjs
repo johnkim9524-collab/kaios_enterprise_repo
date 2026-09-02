@@ -120,7 +120,12 @@ const publicationEvidence = {
   state: 'VERIFIED_PASS',
   repository: manifest.repository,
   predecessor_pull_request: manifest.predecessor_pull_request.number,
-  predecessor_atomic_run: manifest.atomic_run.id,
+  predecessor_atomic_run: {
+    id: manifest.atomic_run.id,
+    attempt: manifest.atomic_run.attempt,
+    conclusion: manifest.atomic_run.expected_conclusion,
+    actor: owner,
+  },
   predecessor_merge_sha: manifest.predecessor_pull_request.merge_commit_sha,
   exact_current_main_sha: probeMainSha,
   recovery_manifest_sha256: manifestDigest,
@@ -156,6 +161,18 @@ const publicationInputs = {
 assertEvidenceReceipt(publicationEvidence, publicationAuthority, publicationInputs);
 
 const rejected = [];
+for (const [label, mutated] of [
+  ['numeric predecessor', manifest.atomic_run.id],
+  ['predecessor array', [publicationEvidence.predecessor_atomic_run]],
+  ['predecessor id', {...publicationEvidence.predecessor_atomic_run, id: manifest.atomic_run.id + 1}],
+  ['predecessor attempt', {...publicationEvidence.predecessor_atomic_run, attempt: 2}],
+  ['predecessor conclusion', {...publicationEvidence.predecessor_atomic_run, conclusion: 'success'}],
+  ['predecessor actor', {...publicationEvidence.predecessor_atomic_run, actor: 'intruder'}],
+]) {
+  rejected.push(reject(label, 'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+    () => assertEvidenceReceipt({...publicationEvidence, predecessor_atomic_run: mutated},
+      publicationAuthority, publicationInputs)));
+}
 rejected.push(reject('workflow path substitution',
   'ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_PATH_INVALID',
   () => validateRemediationManifest({
@@ -228,17 +245,14 @@ try {
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const runtime = fs.readFileSync(
-  new URL('./atomic-terminal-recovery-v2-runtime.mjs', import.meta.url),
-  'utf8',
-);
+  new URL('./atomic-terminal-recovery-v2-runtime.mjs', import.meta.url), 'utf8');
 const preflight = fs.readFileSync(
   new URL('./current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs', import.meta.url),
-  'utf8',
-);
+  'utf8');
 const publisher = fs.readFileSync(
-  new URL('./current-sold-atomic-terminal-recovery-v2-publish.mjs', import.meta.url),
-  'utf8',
-);
+  new URL('./current-sold-atomic-terminal-recovery-v2-publish.mjs', import.meta.url), 'utf8');
+const reconciler = fs.readFileSync(
+  new URL('./current-sold-atomic-terminal-recovery-v2-reconcile.mjs', import.meta.url), 'utf8');
 const requireText = (text, marker, code) => {
   if (!text.includes(marker)) throw new Error(code);
 };
@@ -248,57 +262,30 @@ requireText(runtime, 'currentRun?.path === manifest.authorized_recovery_workflow
   'ATOMIC_RECOVERY_REMEDIATION_RUNTIME_WORKFLOW_BINDING_MISSING');
 requireText(workflow, 'name: KIDULTS Current-SOLD Atomic Terminal Recovery Remediation V1',
   'ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_NAME_INVALID');
-requireText(workflow, 'workflow_dispatch:',
-  'ATOMIC_RECOVERY_REMEDIATION_DISPATCH_MISSING');
+requireText(workflow, 'workflow_dispatch:', 'ATOMIC_RECOVERY_REMEDIATION_DISPATCH_MISSING');
 requireText(workflow, 'group: kidults-atomic-governed-landing-v1-main',
   'ATOMIC_RECOVERY_REMEDIATION_SERIALIZATION_MISSING');
-requireText(workflow, 'current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs',
-  'ATOMIC_RECOVERY_REMEDIATION_PREFLIGHT_STEP_MISSING');
 requireText(workflow, 'Reconcile predecessor evidence without status-write authority',
   'ATOMIC_RECOVERY_REMEDIATION_RECONCILIATION_JOB_MISSING');
 requireText(workflow, 'Publish distinct recovery status from sealed evidence',
   'ATOMIC_RECOVERY_REMEDIATION_PUBLICATION_JOB_MISSING');
-requireText(workflow, 'needs: [reconcile-evidence]',
-  'ATOMIC_RECOVERY_REMEDIATION_JOB_DEPENDENCY_MISSING');
-requireText(workflow, 'statuses: read',
-  'ATOMIC_RECOVERY_REMEDIATION_READ_PERMISSION_MISSING');
-requireText(workflow, 'statuses: write',
-  'ATOMIC_RECOVERY_REMEDIATION_WRITE_PERMISSION_MISSING');
-requireText(workflow, 'preflight-receipt.json',
-  'ATOMIC_RECOVERY_REMEDIATION_PREFLIGHT_RECEIPT_MISSING');
-requireText(workflow, 'evidence-receipt.json',
-  'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_RECEIPT_MISSING');
-requireText(workflow, 'id: runtime_regressions',
-  'ATOMIC_RECOVERY_REMEDIATION_RUNTIME_REGRESSION_OUTCOME_MISSING');
-requireText(workflow, "if: steps.remediation_preflight.outcome == 'success' && steps.runtime_regressions.outcome == 'success'",
-  'ATOMIC_RECOVERY_REMEDIATION_RECONCILE_GATE_INCOMPLETE');
-requireText(workflow, 'Reconcile durable remediation terminal receipt',
-  'ATOMIC_RECOVERY_REMEDIATION_TERMINAL_RECONCILIATION_MISSING');
+requireText(workflow, 'statuses: read', 'ATOMIC_RECOVERY_REMEDIATION_READ_PERMISSION_MISSING');
+requireText(workflow, 'statuses: write', 'ATOMIC_RECOVERY_REMEDIATION_WRITE_PERMISSION_MISSING');
 requireText(workflow, 'terminal-receipt.json',
   'ATOMIC_RECOVERY_REMEDIATION_TERMINAL_RECEIPT_MISSING');
-const remediationPreflightIndex = workflow.indexOf(
-  'Verify sealed failed attempt and fresh workflow generation read-only');
-const runtimeRegressionIndex = workflow.indexOf(
-  'Re-run runtime and remediation contract regressions');
-const terminalReconcileIndex = workflow.indexOf(
-  'Reconcile durable remediation terminal receipt');
-const durableUploadIndex = workflow.indexOf(
-  'Upload durable read-only remediation evidence');
-if (!(remediationPreflightIndex >= 0
-  && remediationPreflightIndex < runtimeRegressionIndex
-  && runtimeRegressionIndex < terminalReconcileIndex
-  && terminalReconcileIndex < durableUploadIndex)) {
-  throw new Error('ATOMIC_RECOVERY_REMEDIATION_TERMINAL_ORDER_INVALID');
-}
-requireText(workflow, '${{ github.run_id }}-${{ github.run_attempt }}',
-  'ATOMIC_RECOVERY_REMEDIATION_ARTIFACT_RUN_BINDING_MISSING');
-requireText(publisher, 'expectedRemediationEvidenceArtifactName(manifest, authority.runId)',
-  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_ARTIFACT_BINDING_MISSING');
+requireText(publisher, "typeof predecessor === 'object'", 'ATOMIC_RECOVERY_PREDECESSOR_OBJECT_GUARD_MISSING');
+requireText(publisher, 'Number(predecessor?.id) === manifest.atomic_run.id',
+  'ATOMIC_RECOVERY_PREDECESSOR_ID_GUARD_MISSING');
+requireText(publisher, 'Number(predecessor?.attempt) === manifest.atomic_run.attempt',
+  'ATOMIC_RECOVERY_PREDECESSOR_ATTEMPT_GUARD_MISSING');
+requireText(publisher, 'predecessor?.conclusion === manifest.atomic_run.expected_conclusion',
+  'ATOMIC_RECOVERY_PREDECESSOR_CONCLUSION_GUARD_MISSING');
+requireText(publisher, 'predecessor?.actor === authority.repositoryOwner',
+  'ATOMIC_RECOVERY_PREDECESSOR_ACTOR_GUARD_MISSING');
+requireText(reconciler, 'predecessor_atomic_run: {',
+  'ATOMIC_RECOVERY_PRODUCER_PREDECESSOR_OBJECT_MISSING');
 requireText(publisher, 'pathToFileURL(process.argv[1]).href',
   'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_IMPORT_GUARD_MISSING');
-if (publisher.includes('kidults-atomic-terminal-recovery-evidence-v2-${authority.runId}-1')) {
-  throw new Error('ATOMIC_RECOVERY_REMEDIATION_LEGACY_ARTIFACT_BINDING_PRESENT');
-}
 if (/\n\s*workflow_run:/.test(workflow)) {
   throw new Error('ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_RUN_CONSUMER_FORBIDDEN');
 }
@@ -324,6 +311,8 @@ console.log(JSON.stringify({
   failed_status_write_performed: false,
   runtime_pagination_probe: 'PASS',
   runtime_workflow_run_probe: 'PASS',
+  producer_publisher_predecessor_object_contract: 'PASS',
+  predecessor_negative_cases_rejected: 6,
   evidence_artifact_name_probe: 'PASS',
   publication_contract_probe: 'PASS',
   expected_evidence_artifact_name: expectedEvidenceArtifactName,

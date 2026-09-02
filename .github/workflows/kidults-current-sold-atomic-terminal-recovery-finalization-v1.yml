@@ -1,0 +1,307 @@
+name: KIDULTS Current-SOLD Atomic Terminal Recovery Finalization V1
+run-name: "KIDULTS Atomic Terminal Recovery Finalization Run #33603816578 @ ${{ inputs.expected_current_main_sha }} / ${{ inputs.recovery_authorization_id }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v1.yml'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-runtime.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-remediation-v1-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-finalization-v1-policy.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-publish.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-finalization-v1-preflight.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-finalization-v1-publish.mjs'
+      - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs'
+      - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs'
+      - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json'
+  workflow_dispatch:
+    inputs:
+      expected_current_main_sha:
+        description: Exact current protected-main SHA after the finalization control PR lands
+        required: true
+        type: string
+      recovery_authorization_id:
+        description: RECOVER-RUN-33603816578-<first-12-current-main-sha>
+        required: true
+        type: string
+
+concurrency:
+  group: kidults-atomic-governed-landing-v1-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-finalization-contract:
+    name: Validate failed recovery finalization contract
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Validate production-shaped predecessor contract
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
+
+      - name: Validate immutable failure-lineage finalization
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs
+
+      - name: Validate forward frozen-workflow handoff guard
+        run: node scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs
+
+  finalize-evidence:
+    name: Finalize failed recovery evidence without status-write authority
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+      pull-requests: read
+      statuses: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    outputs:
+      evidence_artifact_id: ${{ steps.upload_evidence.outputs.artifact-id }}
+      evidence_artifact_digest: ${{ steps.upload_evidence.outputs.artifact-digest }}
+    steps:
+      - name: Checkout current protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify exact current protected-main execution
+        env:
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_CURRENT_MAIN_SHA"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Run producer-publisher and finalization regressions
+        id: contract_regressions
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
+          node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs
+
+      - name: Verify fresh finalization authority and immutable failure lineage read-only
+        id: finalization_preflight
+        if: steps.contract_regressions.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+          RECOVERY_AUTHORIZATION_ID: ${{ inputs.recovery_authorization_id }}
+          ATOMIC_TERMINAL_RECOVERY_FINALIZATION_DIR: out/atomic-terminal-recovery-finalization-v1
+        run: >-
+          node scripts/kidults/market/current-sold-atomic-terminal-recovery-finalization-v1-preflight.mjs
+          --preflight
+          coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json
+
+      - name: Reconcile durable finalization terminal receipt
+        if: always()
+        env:
+          CONTRACT_REGRESSION_OUTCOME: ${{ steps.contract_regressions.outcome }}
+          FINALIZATION_PREFLIGHT_OUTCOME: ${{ steps.finalization_preflight.outcome }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/atomic-terminal-recovery-finalization-v1
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const outcomes = {
+            contract_regressions: process.env.CONTRACT_REGRESSION_OUTCOME || 'not_run',
+            finalization_preflight: process.env.FINALIZATION_PREFLIGHT_OUTCOME || 'not_run',
+          };
+          const verified = Object.values(outcomes).every(value => value === 'success');
+          const receipt = {
+            id: 'kidults-atomic-terminal-recovery-finalization-terminal-receipt-v1',
+            version: '1.0.0',
+            state: verified ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            failure_code: verified ? null : Object.entries(outcomes)
+              .find(([, value]) => value !== 'success')?.[0]?.toUpperCase() + '_NOT_SUCCESS',
+            repository: process.env.GITHUB_REPOSITORY,
+            exact_current_main_sha: process.env.EXPECTED_CURRENT_MAIN_SHA,
+            workflow_run_id: Number(process.env.GITHUB_RUN_ID),
+            workflow_run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            outcomes,
+            status_write_authority: false,
+            status_write_performed: false,
+            prior_authorization_reused: false,
+            prior_run_rerun_performed: false,
+            promotion_eligible: false,
+            public: 'HOLD',
+            production: 'HOLD',
+            g5: 'HOLD',
+          };
+          fs.writeFileSync(
+            'out/atomic-terminal-recovery-finalization-v1/terminal-receipt.json',
+            `${JSON.stringify(receipt, null, 2)}\n`,
+            {encoding: 'utf8', mode: 0o600},
+          );
+          NODE
+
+      - name: Upload durable read-only finalization evidence
+        id: upload_evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-terminal-recovery-finalization-evidence-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-finalization-v1
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Reapply fail-closed finalization evidence verdict
+        if: always()
+        env:
+          CONTRACT_REGRESSION_OUTCOME: ${{ steps.contract_regressions.outcome }}
+          FINALIZATION_PREFLIGHT_OUTCOME: ${{ steps.finalization_preflight.outcome }}
+        run: |
+          set -euo pipefail
+          test -f out/atomic-terminal-recovery-finalization-v1/terminal-receipt.json
+          test "$CONTRACT_REGRESSION_OUTCOME" = success
+          test "$FINALIZATION_PREFLIGHT_OUTCOME" = success
+
+  publish-final-recovery-success:
+    name: Publish final recovery success from sealed lineage
+    if: github.event_name == 'workflow_dispatch' && needs.finalize-evidence.result == 'success'
+    needs: [finalize-evidence]
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+      statuses: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout current protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify exact current protected-main execution
+        env:
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+          test "$(git rev-parse HEAD)" = "$EXPECTED_CURRENT_MAIN_SHA"
+
+      - name: Download exact sealed finalization evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: kidults-atomic-terminal-recovery-finalization-evidence-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-finalization-v1/sealed-evidence
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Require verified finalization preflight before status authority use
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const base = 'out/atomic-terminal-recovery-finalization-v1/sealed-evidence';
+          const preflight = JSON.parse(fs.readFileSync(`${base}/preflight-receipt.json`, 'utf8'));
+          const terminal = JSON.parse(fs.readFileSync(`${base}/terminal-receipt.json`, 'utf8'));
+          if (preflight.state !== 'VERIFIED_PASS'
+            || preflight.status_write_authority !== false
+            || preflight.status_write_performed !== false
+            || preflight.prior_authorization_reused !== false
+            || preflight.prior_run_rerun_performed !== false
+            || terminal.state !== 'VERIFIED_PASS'
+            || terminal.status_write_authority !== false
+            || terminal.status_write_performed !== false) {
+            throw new Error('ATOMIC_RECOVERY_FINALIZATION_PREFLIGHT_RECEIPT_INVALID');
+          }
+          NODE
+
+      - name: Revalidate authority and append final recovery success
+        id: publish
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_CURRENT_MAIN_SHA: ${{ inputs.expected_current_main_sha }}
+          RECOVERY_AUTHORIZATION_ID: ${{ inputs.recovery_authorization_id }}
+          FINALIZATION_EVIDENCE_ARTIFACT_ID: ${{ needs.finalize-evidence.outputs.evidence_artifact_id }}
+          FINALIZATION_EVIDENCE_ARTIFACT_DIGEST: ${{ needs.finalize-evidence.outputs.evidence_artifact_digest }}
+          FINALIZATION_EVIDENCE_ARTIFACT_NAME: kidults-atomic-terminal-recovery-finalization-evidence-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          ATOMIC_TERMINAL_RECOVERY_FINALIZATION_RECEIPT_PATH: out/atomic-terminal-recovery-finalization-v1/publication-receipt.json
+        run: >-
+          node scripts/kidults/market/current-sold-atomic-terminal-recovery-finalization-v1-publish.mjs
+          --publish
+          coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json
+          out/atomic-terminal-recovery-finalization-v1/sealed-evidence/preflight-receipt.json
+          out/atomic-terminal-recovery-finalization-v1/sealed-evidence/source-evidence-receipt.json
+          out/atomic-terminal-recovery-finalization-v1/sealed-evidence/source-publication-receipt.json
+
+      - name: Upload durable finalization publication receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-terminal-recovery-finalization-publication-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-finalization-v1/publication-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Reapply fail-closed finalization publication verdict
+        if: always()
+        env:
+          ATOMIC_RECOVERY_FINALIZATION_OUTCOME: ${{ steps.publish.outcome }}
+        run: |
+          set -euo pipefail
+          test "$ATOMIC_RECOVERY_FINALIZATION_OUTCOME" = success
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const receipt = JSON.parse(fs.readFileSync(
+            'out/atomic-terminal-recovery-finalization-v1/publication-receipt.json', 'utf8'));
+          if (receipt.state !== 'VERIFIED_PASS'
+            || receipt.status_write_authority !== true
+            || receipt.status_write_performed !== true
+            || receipt.latest_recovery_status !== 'success'
+            || receipt.status_lineage_count !== 2) {
+            throw new Error('ATOMIC_RECOVERY_FINALIZATION_PUBLICATION_RECEIPT_INVALID');
+          }
+          NODE
