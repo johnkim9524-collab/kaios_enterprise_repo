@@ -4,11 +4,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildAtomicLandingRunName,
+  assertAtomicLandingDispatchAuthority,
   evaluateAtomicLandingOneUseRunSet,
   assertAtomicLandingConsumptionReceipt,
 } from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
 const repository = 'johnkim9524-collab/kaios_enterprise_repo';
+const repositoryOwner = 'johnkim9524-collab';
 const prNumber = 1843;
 const headSha = 'a'.repeat(40);
 const baseSha = 'b'.repeat(40);
@@ -26,6 +28,8 @@ const run = (overrides = {}) => ({
   display_title: expectedRunName,
   status: 'in_progress',
   conclusion: null,
+  actor: {login: repositoryOwner},
+  triggering_actor: {login: repositoryOwner},
   ...overrides,
 });
 const code = (fn, expected) => assert.throws(fn, error => error?.code === expected || error?.message === expected);
@@ -37,6 +41,18 @@ test('run-name binds PR, head, and deterministic authorization identifier', () =
     headSha,
     authorizationId: 'LAND-PR-1843-wrong',
   }), 'ATOMIC_ONE_USE_AUTHORIZATION_ID_INVALID');
+});
+
+test('dispatch and triggering actors must both be the repository owner', () => {
+  assert.deepEqual(assertAtomicLandingDispatchAuthority(run(), repositoryOwner), {
+    dispatch_actor: repositoryOwner,
+    triggering_actor: repositoryOwner,
+    repository_owner: repositoryOwner,
+  });
+  code(() => assertAtomicLandingDispatchAuthority(run({actor: {login: 'automation-bot'}}), repositoryOwner),
+    'ATOMIC_ONE_USE_DISPATCH_ACTOR_NOT_OWNER');
+  code(() => assertAtomicLandingDispatchAuthority(run({triggering_actor: {login: 'automation-bot'}}), repositoryOwner),
+    'ATOMIC_ONE_USE_TRIGGERING_ACTOR_NOT_OWNER');
 });
 
 test('first exact matching dispatch is uniquely admitted', () => {
@@ -89,7 +105,7 @@ test('second distinct run is rejected even when the first never reached merge', 
   }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
 });
 
-test('cross-PR same-head and prior-base generations do not substitute for the exact tuple', () => {
+test('same tuple is consumed across protected-main generations while cross-PR runs do not substitute', () => {
   const crossPrRunName = buildAtomicLandingRunName({
     prNumber: 1844,
     headSha,
@@ -97,7 +113,6 @@ test('cross-PR same-head and prior-base generations do not substitute for the ex
   });
   const result = evaluateAtomicLandingOneUseRunSet([
     run({id: 90, display_title: crossPrRunName}),
-    run({id: 91, head_sha: 'c'.repeat(40)}),
     run(),
   ], {
     currentRunId: runId,
@@ -107,12 +122,44 @@ test('cross-PR same-head and prior-base generations do not substitute for the ex
     protectedMainShaAtDispatch: baseSha,
   });
   assert.equal(result.matching_run_id, runId);
+
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 91, head_sha: 'c'.repeat(40), status: 'completed', conclusion: 'success'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
 });
 
-test('sanitized consumption receipt is exact tuple bound', () => {
+test('current run must be bound to the protected-main SHA at dispatch', () => {
+  code(() => evaluateAtomicLandingOneUseRunSet([run({head_sha: 'c'.repeat(40)})], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
+});
+
+test('sanitized consumption receipt is exact tuple and owner-actor bound', () => {
+  const tupleDigest = crypto.createHash('sha256').update([
+    repository,
+    prNumber,
+    baseSha,
+    headSha,
+    authorizationId,
+    runId,
+    1,
+    repositoryOwner,
+    repositoryOwner,
+  ].join('\n')).digest('hex');
   const receipt = {
     id: 'kidults-atomic-landing-one-use-consumption-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     state: 'CONSUMED_BY_FIRST_MATCHING_DISPATCH',
     repository,
     pull_request: prNumber,
@@ -122,8 +169,11 @@ test('sanitized consumption receipt is exact tuple bound', () => {
     landing_workflow_run_id: runId,
     landing_workflow_run_attempt: 1,
     matching_run_count: 1,
+    dispatch_actor: repositoryOwner,
+    triggering_actor: repositoryOwner,
     authorization_id_sha256: crypto.createHash('sha256').update(authorizationId).digest('hex'),
     run_name_sha256: crypto.createHash('sha256').update(expectedRunName).digest('hex'),
+    tuple_sha256: tupleDigest,
     raw_authorization_persisted: false,
     pr_head_matches_input: true,
     pr_base_matches_dispatch_main: true,
@@ -131,6 +181,7 @@ test('sanitized consumption receipt is exact tuple bound', () => {
   };
   assert.equal(assertAtomicLandingConsumptionReceipt(receipt, {
     repository,
+    repositoryOwner,
     prNumber,
     headSha,
     baseSha,
@@ -141,6 +192,7 @@ test('sanitized consumption receipt is exact tuple bound', () => {
   }).state, 'CONSUMED_BY_FIRST_MATCHING_DISPATCH');
   code(() => assertAtomicLandingConsumptionReceipt({...receipt, pull_request: 1844}, {
     repository,
+    repositoryOwner,
     prNumber,
     headSha,
     baseSha,
@@ -149,6 +201,28 @@ test('sanitized consumption receipt is exact tuple bound', () => {
     runAttempt: 1,
     expectedRunName,
   }), 'ATOMIC_CONSUMPTION_PR_MISMATCH');
+  code(() => assertAtomicLandingConsumptionReceipt({...receipt, tuple_sha256: '0'.repeat(64)}, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha,
+    baseSha,
+    authorizationId,
+    runId,
+    runAttempt: 1,
+    expectedRunName,
+  }), 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
+  code(() => assertAtomicLandingConsumptionReceipt({...receipt, triggering_actor: 'automation-bot'}, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha,
+    baseSha,
+    authorizationId,
+    runId,
+    runAttempt: 1,
+    expectedRunName,
+  }), 'ATOMIC_CONSUMPTION_ACTOR_BINDING_MISMATCH');
 });
 
 test('workflow places one-use consumption before lifecycle and always reconciles terminal receipt', () => {
@@ -166,11 +240,14 @@ test('workflow places one-use consumption before lifecycle and always reconciles
 test('runner rechecks one-use consumption and explicit Ready authority immediately before merge', () => {
   const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
   const gates = fs.readFileSync('scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs', 'utf8');
+  const oneUse = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs', 'utf8');
   assert.match(runner, /selectLatestProgramOwnerReadyEvent/);
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
   assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha\)/);
   assert.match(gates, /PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED/);
+  assert.match(oneUse, /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  assert.doesNotMatch(oneUse, /&& run\?\.head_sha === protectedMainShaAtDispatch\n    && run\?\.display_title === expectedRunName/);
 });
 
 test('terminal receipt persists sanitized one-use consumption evidence', () => {
