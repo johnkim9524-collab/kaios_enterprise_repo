@@ -8,6 +8,8 @@ import {
 } from './atomic-terminal-recovery-v2-runtime.mjs';
 import {
   REMEDIATION_WORKFLOW_PATH,
+  REMEDIATION_EVIDENCE_ARTIFACT_PREFIX,
+  expectedRemediationEvidenceArtifactName,
   validateRemediationManifest,
   validatePriorFailedRecoveryRun,
   validatePriorFailedRecoveryArtifact,
@@ -86,6 +88,11 @@ const failedReceipt = {
 validatePriorFailedRecoveryRun(priorRun, jobs, owner, manifest);
 validatePriorFailedRecoveryArtifact(artifacts, manifest);
 validatePriorFailedRecoveryReceipt(failedReceipt, manifest);
+const probeRunId = 7001;
+const expectedEvidenceArtifactName = expectedRemediationEvidenceArtifactName(manifest, probeRunId);
+assert(expectedEvidenceArtifactName
+  === `${REMEDIATION_EVIDENCE_ARTIFACT_PREFIX}-${probeRunId}-1`,
+'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_ARTIFACT_RUNTIME_PROBE_FAILED');
 
 const rejected = [];
 rejected.push(reject('workflow path substitution',
@@ -93,6 +100,15 @@ rejected.push(reject('workflow path substitution',
   () => validateRemediationManifest({
     ...manifest,
     authorized_recovery_workflow_path: '.github/workflows/other.yml',
+  })));
+rejected.push(reject('evidence artifact prefix substitution',
+  'ATOMIC_RECOVERY_REMEDIATION_IDENTITY_INVALID',
+  () => validateRemediationManifest({
+    ...manifest,
+    remediation_generation: {
+      ...manifest.remediation_generation,
+      evidence_artifact_name_prefix: 'kidults-atomic-terminal-recovery-evidence-v2',
+    },
   })));
 rejected.push(reject('failed run path drift',
   'ATOMIC_RECOVERY_REMEDIATION_FAILED_RUN_STATE_INVALID',
@@ -152,6 +168,10 @@ const preflight = fs.readFileSync(
   new URL('./current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs', import.meta.url),
   'utf8',
 );
+const publisher = fs.readFileSync(
+  new URL('./current-sold-atomic-terminal-recovery-v2-publish.mjs', import.meta.url),
+  'utf8',
+);
 const requireText = (text, marker, code) => {
   if (!text.includes(marker)) throw new Error(code);
 };
@@ -181,6 +201,13 @@ requireText(workflow, 'preflight-receipt.json',
   'ATOMIC_RECOVERY_REMEDIATION_PREFLIGHT_RECEIPT_MISSING');
 requireText(workflow, 'evidence-receipt.json',
   'ATOMIC_RECOVERY_REMEDIATION_EVIDENCE_RECEIPT_MISSING');
+requireText(workflow, '${{ github.run_id }}-${{ github.run_attempt }}',
+  'ATOMIC_RECOVERY_REMEDIATION_ARTIFACT_RUN_BINDING_MISSING');
+requireText(publisher, 'expectedRemediationEvidenceArtifactName(manifest, authority.runId)',
+  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_ARTIFACT_BINDING_MISSING');
+if (publisher.includes('kidults-atomic-terminal-recovery-evidence-v2-${authority.runId}-1')) {
+  throw new Error('ATOMIC_RECOVERY_REMEDIATION_LEGACY_ARTIFACT_BINDING_PRESENT');
+}
 if (/\n\s*workflow_run:/.test(workflow)) {
   throw new Error('ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_RUN_CONSUMER_FORBIDDEN');
 }
@@ -206,6 +233,8 @@ console.log(JSON.stringify({
   failed_status_write_performed: false,
   runtime_pagination_probe: 'PASS',
   runtime_workflow_run_probe: 'PASS',
+  evidence_artifact_name_probe: 'PASS',
+  expected_evidence_artifact_name: expectedEvidenceArtifactName,
   negative_cases_rejected: rejected.length,
   authorized_workflow_path: REMEDIATION_WORKFLOW_PATH,
   historical_terminal_context_immutable: true,
