@@ -35,12 +35,14 @@ function normalizeSteps(stepOutcomes) {
     const id = String(row?.id || '');
     const name = String(row?.name || '');
     const outcome = String(row?.outcome || '');
+    const applicable = row?.applicable;
     if (!/^[A-Z][A-Z0-9_]*$/.test(id)) throw new Error(`REQUIRED_STEP_ID_INVALID:${id}`);
     if (!name || name.length > 160) throw new Error(`REQUIRED_STEP_NAME_INVALID:${id}`);
     if (!OUTCOMES.has(outcome)) throw new Error(`REQUIRED_STEP_OUTCOME_INVALID:${id}:${outcome}`);
+    if (typeof applicable !== 'boolean') throw new Error(`REQUIRED_STEP_APPLICABILITY_INVALID:${id}`);
     if (seen.has(id)) throw new Error(`REQUIRED_STEP_ID_DUPLICATE:${id}`);
     seen.add(id);
-    return { id, name, outcome };
+    return { id, name, outcome, applicable };
   });
 }
 
@@ -48,7 +50,7 @@ export function reconcileReceipt(receipt, jobStatus, stepOutcomes) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) throw new Error('AUDIT_RECEIPT_INVALID');
   if (!['success', 'failure', 'cancelled'].includes(jobStatus)) throw new Error(`JOB_STATUS_INVALID:${jobStatus}`);
   const normalized = normalizeSteps(stepOutcomes);
-  const nonSuccess = normalized.filter((row) => row.outcome !== 'success');
+  const nonSuccess = normalized.filter((row) => row.applicable && row.outcome !== 'success');
   if (jobStatus === 'success' && nonSuccess.length) throw new Error('SUCCESS_JOB_WITH_NON_SUCCESS_REQUIRED_STEP');
 
   const checks = Array.isArray(receipt.checks) ? structuredClone(receipt.checks) : [];
