@@ -120,7 +120,12 @@ const publicationEvidence = {
   state: 'VERIFIED_PASS',
   repository: manifest.repository,
   predecessor_pull_request: manifest.predecessor_pull_request.number,
-  predecessor_atomic_run: manifest.atomic_run.id,
+  predecessor_atomic_run: {
+    id: manifest.atomic_run.id,
+    attempt: manifest.atomic_run.attempt,
+    conclusion: manifest.atomic_run.expected_conclusion,
+    actor: owner,
+  },
   predecessor_merge_sha: manifest.predecessor_pull_request.merge_commit_sha,
   exact_current_main_sha: probeMainSha,
   recovery_manifest_sha256: manifestDigest,
@@ -156,6 +161,48 @@ const publicationInputs = {
 assertEvidenceReceipt(publicationEvidence, publicationAuthority, publicationInputs);
 
 const rejected = [];
+rejected.push(reject('publication scalar predecessor run schema drift',
+  'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+  () => assertEvidenceReceipt({
+    ...publicationEvidence,
+    predecessor_atomic_run: manifest.atomic_run.id,
+  }, publicationAuthority, publicationInputs)));
+rejected.push(reject('publication predecessor run id drift',
+  'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+  () => assertEvidenceReceipt({
+    ...publicationEvidence,
+    predecessor_atomic_run: {
+      ...publicationEvidence.predecessor_atomic_run,
+      id: manifest.atomic_run.id + 1,
+    },
+  }, publicationAuthority, publicationInputs)));
+rejected.push(reject('publication predecessor run attempt drift',
+  'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+  () => assertEvidenceReceipt({
+    ...publicationEvidence,
+    predecessor_atomic_run: {
+      ...publicationEvidence.predecessor_atomic_run,
+      attempt: manifest.atomic_run.attempt + 1,
+    },
+  }, publicationAuthority, publicationInputs)));
+rejected.push(reject('publication predecessor run conclusion drift',
+  'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+  () => assertEvidenceReceipt({
+    ...publicationEvidence,
+    predecessor_atomic_run: {
+      ...publicationEvidence.predecessor_atomic_run,
+      conclusion: 'success',
+    },
+  }, publicationAuthority, publicationInputs)));
+rejected.push(reject('publication predecessor run actor drift',
+  'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH',
+  () => assertEvidenceReceipt({
+    ...publicationEvidence,
+    predecessor_atomic_run: {
+      ...publicationEvidence.predecessor_atomic_run,
+      actor: 'intruder',
+    },
+  }, publicationAuthority, publicationInputs)));
 rejected.push(reject('workflow path substitution',
   'ATOMIC_RECOVERY_REMEDIATION_WORKFLOW_PATH_INVALID',
   () => validateRemediationManifest({
@@ -235,6 +282,10 @@ const preflight = fs.readFileSync(
   new URL('./current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs', import.meta.url),
   'utf8',
 );
+const reconciler = fs.readFileSync(
+  new URL('./current-sold-atomic-terminal-recovery-v2-reconcile.mjs', import.meta.url),
+  'utf8',
+);
 const publisher = fs.readFileSync(
   new URL('./current-sold-atomic-terminal-recovery-v2-publish.mjs', import.meta.url),
   'utf8',
@@ -292,6 +343,20 @@ if (!(remediationPreflightIndex >= 0
 }
 requireText(workflow, '${{ github.run_id }}-${{ github.run_attempt }}',
   'ATOMIC_RECOVERY_REMEDIATION_ARTIFACT_RUN_BINDING_MISSING');
+requireText(reconciler, 'predecessor_atomic_run: {',
+  'ATOMIC_RECOVERY_REMEDIATION_RECONCILER_PREDECESSOR_SCHEMA_INVALID');
+requireText(reconciler, 'attempt: expectedRun.attempt',
+  'ATOMIC_RECOVERY_REMEDIATION_RECONCILER_PREDECESSOR_ATTEMPT_BINDING_MISSING');
+requireText(reconciler, "conclusion: 'failure'",
+  'ATOMIC_RECOVERY_REMEDIATION_RECONCILER_PREDECESSOR_CONCLUSION_BINDING_MISSING');
+requireText(publisher, 'Number(predecessorAtomicRun?.id) === manifest.atomic_run.id',
+  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_PREDECESSOR_ID_BINDING_MISSING');
+requireText(publisher, 'Number(predecessorAtomicRun?.attempt) === manifest.atomic_run.attempt',
+  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_PREDECESSOR_ATTEMPT_BINDING_MISSING');
+requireText(publisher, 'predecessorAtomicRun?.conclusion === manifest.atomic_run.expected_conclusion',
+  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_PREDECESSOR_CONCLUSION_BINDING_MISSING');
+requireText(publisher, 'predecessorAtomicRun?.actor === authority.repositoryOwner',
+  'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_PREDECESSOR_ACTOR_BINDING_MISSING');
 requireText(publisher, 'expectedRemediationEvidenceArtifactName(manifest, authority.runId)',
   'ATOMIC_RECOVERY_REMEDIATION_PUBLISHER_ARTIFACT_BINDING_MISSING');
 requireText(publisher, 'pathToFileURL(process.argv[1]).href',
@@ -326,6 +391,7 @@ console.log(JSON.stringify({
   runtime_workflow_run_probe: 'PASS',
   evidence_artifact_name_probe: 'PASS',
   publication_contract_probe: 'PASS',
+  predecessor_receipt_schema_probe: 'PASS',
   expected_evidence_artifact_name: expectedEvidenceArtifactName,
   negative_cases_rejected: rejected.length,
   authorized_workflow_path: REMEDIATION_WORKFLOW_PATH,
