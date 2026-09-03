@@ -8,6 +8,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 const root = process.cwd();
 const builder = path.join(root, 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs');
 const validator = path.join(root, 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs');
+const expansionValidator = path.join(root, 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs');
 const sha = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 const fail = code => { throw new Error(code); };
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-dynamic-frontier-'));
@@ -103,12 +104,39 @@ try {
     fail('UNFAIR_SKIP_NOT_REJECTED');
   }
 
+  const legacyExpansion = {
+    id: 'kidults-asi-common-crawl-host-expansion-v1',
+    version: '1.2.0',
+    status: 'SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS',
+    universe_target: 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE',
+    metadata_index_only: true,
+    target_site_body_crawled: false,
+    content_acquired: false,
+    rights_promoted: false,
+    admission_promoted: false,
+    acquisition_authorized: false,
+    public_release: 'HOLD',
+    production: 'HOLD',
+    frontier_runtime_managed: true,
+    seed_frontier_bootstrap_state: 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE',
+    seed_frontier_previous_snapshot_found: false,
+    seed_frontier_previous_snapshot_source: 'NONE',
+    seed_selection_mode: 'LEGACY_FIRST_SEEN_FAIL_SAFE'
+  };
+  const legacyPath = path.join(temp, 'legacy-expansion.json');
+  fs.writeFileSync(legacyPath, JSON.stringify(legacyExpansion));
+  const legacyRejected = spawnSync(process.execPath, [expansionValidator, legacyPath], { encoding: 'utf8' });
+  if (legacyRejected.status === 0 || !legacyRejected.stderr.includes('LEGACY_FRONTIER_FALLBACK_FORBIDDEN')) {
+    fail('LEGACY_FRONTIER_FALLBACK_NOT_REJECTED');
+  }
+
   console.log(JSON.stringify({
     suite: 'KIDULTS_ASI_COMMON_CRAWL_DYNAMIC_FRONTIER_FAIRNESS_V1',
     state: 'VERIFIED_PASS',
     dynamic_arrival_positive: true,
     global_count_spread: result.selection_count_delta_after,
     unfair_lower_count_skip_rejected: true,
+    legacy_frontier_fallback_rejected: true,
     acquisition_authorized: false,
     production: 'HOLD',
     public: 'HOLD'
