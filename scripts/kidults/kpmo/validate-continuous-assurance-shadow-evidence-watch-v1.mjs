@@ -57,6 +57,9 @@ function validate(source) {
     fail('HARDCODED_CONSUMER_EVENT_FORBIDDEN');
   }
 
+  const eventArgBindingCount = countMatches(block, /--arg event "\$SHADOW_UPSTREAM_EVENT"/g);
+  if (eventArgBindingCount !== 2) fail(`SHADOW_EVENT_ARG_BINDING_CARDINALITY:${eventArgBindingCount}`);
+
   const runHeadIndex = block.indexOf('and .head_sha==$sha');
   const eventBindingIndex = block.indexOf('and .event==$event', runHeadIndex + 1);
   const runStatusIndex = block.indexOf('and .status=="completed"', eventBindingIndex + 1);
@@ -122,6 +125,7 @@ console.log(JSON.stringify({
   watch_required: true,
   exact_upstream_run_binding: true,
   exact_upstream_event_binding: true,
+  upstream_event_binding_occurrences: 2,
   allowed_producer_events: ['schedule', 'push', 'workflow_dispatch'],
   exact_artifact_cardinality: 1,
   artifact_run_sha_binding_occurrences: pairedBindingCountForReceipt(),
