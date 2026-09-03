@@ -70,6 +70,10 @@ assert(oneUsePreflight.includes('complete_owner_approval_contract_validated_befo
   && oneUsePreflight.includes('ATOMIC_ONE_USE_PR_DRIFT_DURING_CONSUMPTION')
   && oneUsePreflight.includes('ATOMIC_ONE_USE_MAIN_DRIFT_DURING_CONSUMPTION'),
   'ATOMIC_LANDING_ONE_USE_FINAL_REREAD_INVARIANT_MISSING');
+assert(oneUsePreflight.includes(`pages(\`/issues/\${prNumber}/timeline\`)`)
+  && oneUsePreflight.includes(`pages(\`/issues/\${prNumber}/comments\`)`)
+  && oneUsePreflight.includes('ATOMIC_ONE_USE_PAGINATION_BOUND_EXCEEDED'),
+  'ATOMIC_LANDING_ONE_USE_APPROVAL_PAGINATION_INVARIANT_MISSING');
 
 console.log(JSON.stringify({
   id: 'kidults-atomic-landing-preconsumption-order-receipt-v1',
@@ -80,6 +84,7 @@ console.log(JSON.stringify({
   complete_owner_approval_contract_precedes_one_use_consumption: true,
   invalid_approval_not_recorded_as_consumed: true,
   consumption_receipt_written_after_final_pr_main_reread: true,
+  complete_approval_authority_inputs_paginated: true,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
