@@ -140,13 +140,14 @@ function readyInputs() {
     candidate_id: `candidate-${index}`,
     canonical_host: `source-${index}.market.kidults.com`,
   }));
+  const uniqueActionCandidateCount = 95;
   const p0Registry = { id: 'kidults-asi-p0b-source-candidate-registry-v1', version: '1.0.0', canonical_candidate_count: 96, unique_host_count: 96, candidates: sourceCandidates };
   const bindings = Array.from({ length: 192 }, (_, index) => ({
     binding_id: `binding-${index}`,
     mission_id: `mission-${index}`,
     market_cell_id: `market-${index}`,
     evidence_class: index % 2 ? 'LIQUIDITY_TIME_TO_SALE_EXPOSURE' : 'CURRENT_SOLD_TRANSACTION',
-    slot_bindings: Array.from({ length: 3 }, (_, slot) => ({ candidate_id: `candidate-${(index * 3 + slot) % 96}` })),
+    slot_bindings: Array.from({ length: 3 }, (_, slot) => ({ candidate_id: `candidate-${(index * 3 + slot) % uniqueActionCandidateCount}` })),
     factual_origin_independence_proven: true,
     regional_coverage_proven: true,
   }));
@@ -159,7 +160,7 @@ function readyInputs() {
   const decisions = Array.from({ length: 576 }, (_, index) => ({
     gate1_decision_id: `gate-${index}`, decision: 'PASS', rights_state: 'ALLOW',
     collection_authorized: true,
-    grain_id: `grain-${index}`, candidate_id: `candidate-${index % 96}`, mission_id: `mission-${Math.floor(index / 3)}`,
+    grain_id: `grain-${index}`, candidate_id: `candidate-${index % uniqueActionCandidateCount}`, mission_id: `mission-${Math.floor(index / 3)}`,
     market_cell_id: `market-${Math.floor(index / 3)}`,
     market_semantics_verified: true, reason_codes: [],
   }));
@@ -180,7 +181,7 @@ function readyInputs() {
     const missionIndex = Math.floor(index / 3);
     return {
       admission_candidate_id: `admission-${index}`,
-      candidate_id: `candidate-${index % 96}`,
+      candidate_id: `candidate-${index % uniqueActionCandidateCount}`,
       grain_id: `grain-${index}`,
       mission_id: `mission-${missionIndex}`,
       market_cell_id: `market-${missionIndex}`,
@@ -212,7 +213,6 @@ function readyInputs() {
     admitted_count: admittedRecords.size, candidates, sample_plans: [samplePlanRegistration()],
   };
   const actionTypes = ['OWNER', 'RIGHTS', 'ACCESS', 'SEMANTICS', 'REGION', 'SCHEMA', 'ORIGIN'];
-  const uniqueActionCandidateCount = 95;
   const actions = Array.from({ length: uniqueActionCandidateCount * actionTypes.length }, (_, index) => {
     const candidateIndex = Math.floor(index / 7);
     const impactedAdmissions = candidates.filter((candidate) => candidate.candidate_id === `candidate-${candidateIndex}`);
