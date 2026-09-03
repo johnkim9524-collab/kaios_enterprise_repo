@@ -6,6 +6,12 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const OUTCOMES = new Set(['success', 'failure', 'cancelled', 'skipped']);
+const SCHEDULE_SENTINEL_REQUIRED_BINDINGS = new Set([
+  'SHADOW_BINDING',
+  'REQUIREMENT_BINDING',
+  'RESERVE_BINDING',
+  'TRUTH_BINDING'
+]);
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
@@ -46,12 +52,19 @@ function normalizeSteps(stepOutcomes) {
   });
 }
 
+function applyScheduledSentinelPolicy(receipt, stepOutcomes) {
+  const trigger = String(receipt?.execution?.trigger || '');
+  if (trigger !== 'schedule') return stepOutcomes;
+  return stepOutcomes.map((row) => SCHEDULE_SENTINEL_REQUIRED_BINDINGS.has(row.id)
+    ? { ...row, applicable: true }
+    : row);
+}
+
 export function reconcileReceipt(receipt, jobStatus, stepOutcomes) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) throw new Error('AUDIT_RECEIPT_INVALID');
   if (!['success', 'failure', 'cancelled'].includes(jobStatus)) throw new Error(`JOB_STATUS_INVALID:${jobStatus}`);
-  const normalized = normalizeSteps(stepOutcomes);
+  const normalized = applyScheduledSentinelPolicy(receipt, normalizeSteps(stepOutcomes));
   const nonSuccess = normalized.filter((row) => row.applicable && row.outcome !== 'success');
-  if (jobStatus === 'success' && nonSuccess.length) throw new Error('SUCCESS_JOB_WITH_NON_SUCCESS_REQUIRED_STEP');
 
   const checks = Array.isArray(receipt.checks) ? structuredClone(receipt.checks) : [];
   const failedIds = [];
@@ -100,6 +113,7 @@ export function reconcileReceipt(receipt, jobStatus, stepOutcomes) {
       job_status: jobStatus,
       required_step_outcomes: normalized,
       failed_check_ids: [...new Set(failedIds)].sort(),
+      scheduled_sentinel_runtime_bindings_required: String(receipt?.execution?.trigger || '') === 'schedule',
       source_failure_dominates_generic_audit_pass: failClosed,
       whole_platform_authority: false,
       promotion_eligible: false
@@ -156,6 +170,7 @@ function main() {
     const result = reconcileReceipt(receipt, arg('--job-status'), JSON.parse(arg('--step-outcomes-json')));
     atomicWrite(receiptPath, result);
     console.log(JSON.stringify({ state: result.terminal_reconciliation.state, failed_check_ids: result.terminal_reconciliation.failed_check_ids }));
+    if (result.terminal_reconciliation.state !== 'VERIFIED_PASS') process.exitCode = 1;
   } catch (error) {
     if (receipt) atomicWrite(receiptPath, redFallback(receipt, String(error?.message || error)));
     console.error(String(error?.message || error));
