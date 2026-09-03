@@ -8,6 +8,8 @@ import {
   validateCurrentSoldCanonicalEntrypoint,
 } from '../../../scripts/kidults/market/validate-current-sold-canonical-entrypoint-v1.mjs';
 
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
 function write(root, relative, content) {
   const target = path.join(root, relative);
   fs.mkdirSync(path.dirname(target), { recursive: true });
