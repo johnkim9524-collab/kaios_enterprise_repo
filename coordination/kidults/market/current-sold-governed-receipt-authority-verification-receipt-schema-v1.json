@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-governed-receipt-authority-verification-receipt-v1",
+  "title": "KIDULTS Current-SOLD Governed Receipt Authority Verification Receipt V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "status",
+    "authority_class",
+    "evaluated_at",
+    "expires_at",
+    "repository",
+    "source_sha",
+    "canonical_run_id_digest",
+    "purpose",
+    "receipt_registry_digest",
+    "acquisition_receipt_set_digest",
+    "rights_receipt_set_digest",
+    "authorized_record_count",
+    "authority_binding_digest",
+    "authorization_id_digest",
+    "issuer_id_digest",
+    "key_id_digest",
+    "nonce_digest",
+    "authority",
+    "privacy",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-governed-receipt-authority-verification-receipt-v1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^csra_[a-f0-9]{24}$"
+    },
+    "status": {
+      "const": "PASS"
+    },
+    "authority_class": {
+      "const": "GOVERNED_EXTERNAL_ED25519_KEYRING"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "repository": {
+      "type": "string"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "canonical_run_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "purpose": {
+      "const": "PRIVATE_CURRENT_SOLD"
+    },
+    "receipt_registry_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "acquisition_receipt_set_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "rights_receipt_set_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "authorized_record_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "rights_source_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "authority_binding_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "authorization_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "issuer_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "key_id_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "nonce_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "authority": {
+      "type": "object"
+    },
+    "privacy": {
+      "type": "object"
+    },
+    "claim_boundary": {
+      "type": "object"
+    }
+  }
+}

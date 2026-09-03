@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-governed-receipt-authority-envelope-v1",
+  "title": "KIDULTS Current-SOLD Governed Receipt Authority Envelope V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "algorithm",
+    "payload",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-governed-receipt-authority-envelope-v1"
+    },
+    "algorithm": {
+      "const": "Ed25519"
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "authority_class",
+        "authorization_id",
+        "issuer_id",
+        "key_id",
+        "repository",
+        "source_sha",
+        "canonical_run_id",
+        "purpose",
+        "receipt_registry_digest",
+        "acquisition_receipt_set_digest",
+        "rights_receipt_set_digest",
+        "authorized_record_count",
+        "issued_at",
+        "not_before",
+        "expires_at",
+        "nonce"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "current-sold-governed-receipt-authority-payload-v1"
+        },
+        "authority_class": {
+          "const": "GOVERNED_EXTERNAL_ED25519_KEYRING"
+        },
+        "authorization_id": {
+          "type": "string",
+          "pattern": "^CSRA-[A-Za-z0-9._:-]{8,120}$"
+        },
+        "issuer_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+        },
+        "key_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+        },
+        "repository": {
+          "type": "string",
+          "pattern": "^[^/\\s]+/[^/\\s]+$"
+        },
+        "source_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "canonical_run_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+        },
+        "purpose": {
+          "const": "PRIVATE_CURRENT_SOLD"
+        },
+        "receipt_registry_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "acquisition_receipt_set_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "rights_receipt_set_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "authorized_record_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "not_before": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32,128}$"
+        }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 80,
+      "maxLength": 256
+    }
+  }
+}
