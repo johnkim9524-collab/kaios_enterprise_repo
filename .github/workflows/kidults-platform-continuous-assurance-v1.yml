@@ -315,11 +315,16 @@ jobs:
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then
               READBACK_STATE=API_RESPONSE_TRUNCATED
             fi
+            node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs --self-test
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_WORK_DIR/canonical-artifact-index.json")
             for ARTIFACT_ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ARTIFACT_ROW")
-              EXPIRED=$(jq -r '.expired // true' <<<"$ARTIFACT_ROW")
               CANDIDATE_FILE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
+              if ! EXPIRED=$(node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs expired <<<"$ARTIFACT_ROW"); then
+                READBACK_STATE=CANONICAL_ARTIFACT_EXPIRY_INVALID
+                jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
               if [ "$EXPIRED" = true ]; then
                 jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
                 continue
