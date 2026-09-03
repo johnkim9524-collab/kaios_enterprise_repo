@@ -33,6 +33,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -64,6 +67,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -229,7 +235,9 @@ jobs:
         run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
       - name: EXPAND — Common Crawl public-index same-domain candidates
         run: |
+          node scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs
           node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/asi-common-crawl-seed-frontier-v1.json
           node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
       - name: EXPAND — reject rights promotion before canonical merge
         shell: bash
