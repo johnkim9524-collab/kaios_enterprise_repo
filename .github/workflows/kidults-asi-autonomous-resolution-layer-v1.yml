@@ -35,6 +35,8 @@ on:
       - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   pull_request:
     branches: [main]
@@ -66,6 +68,8 @@ on:
       - 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md'
       - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   workflow_run:
     workflows:
@@ -107,6 +111,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
+          node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+          node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
@@ -170,8 +177,51 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+
+  classify-p1-generation:
+    if: github.event_name == 'workflow_run'
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      classification: ${{ steps.classify.outputs.classification }}
+      reason: ${{ steps.classify.outputs.reason }}
+      current_main_sha: ${{ steps.classify.outputs.current_main_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Classify immutable P1 producer generation
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')
+          node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+          echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
+          echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
+          echo "current_main_sha=$CURRENT_MAIN_SHA" >> "$GITHUB_OUTPUT"
+          cat /tmp/arl-p1-generation-classification-v1.json
+      - name: Retain immutable P1 generation classification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/arl-p1-generation-classification-v1.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Preserve invalid-trigger RED after receipt retention
+        if: steps.classify.outputs.classification == 'INVALID_TRIGGER'
+        run: exit 1
+
   resolve-current-p1-actions:
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    needs: classify-p1-generation
+    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'
     permissions:
       contents: read
       actions: read
@@ -199,6 +249,9 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
+          node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+          node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
