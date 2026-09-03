@@ -18,6 +18,7 @@ function validate(text) {
   rejectText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"', 'retired v1 producer path binding');
   rejectText('.name=="kidults-asi-global-any-site-source-pool-v1"', 'retired v1 source-pool artifact');
   rejectText('.name=="kidults-asi-global-any-site-hourly-cycle-v1"', 'retired v1 hourly-cycle artifact');
+  rejectText("find discovery-out/raw -type f -name 'global-low-risk-discovery.json'", 'raw discovery payload selector');
 
   requireText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs', 'canonical producer workflow-run lookup');
   requireText('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100', 'run-scoped artifact lookup');
@@ -34,6 +35,10 @@ function validate(text) {
   requireText('UPSTREAM_EXACT_GENERATION_TERMINAL_NON_SUCCESS', 'precise terminal non-success diagnosis');
   requireText('UPSTREAM_EXACT_GENERATION_NOT_TERMINAL', 'precise bounded-wait timeout diagnosis');
   requireText('sleep "$AUTOBALANCE_PRODUCER_WAIT_SECONDS"', 'bounded producer wait sleep');
+  requireText("find discovery-out/raw -type f -name 'global-low-risk-discovery-governed-v2.json'", 'governed discovery payload selector');
+  requireText('AUTOBALANCE_DISCOVERY_PAYLOAD=global-low-risk-discovery-governed-v2.json', 'governed discovery receipt binding');
+  requireText("discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD", 'governed discovery receipt field');
+  requireText('build-asi-throughput-coverage-autobalance-v1.mjs --self-test', 'source-family population self-test');
 
   const prBoundaryMatches = text.match(/if: github\.event_name != 'pull_request'/g) || [];
   if (prBoundaryMatches.length < 5) failures.push('missing PR structural/live execution separation');
@@ -74,7 +79,8 @@ const mutations = [
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
-  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND']
+  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND'],
+  ["global-low-risk-discovery-governed-v2.json","global-low-risk-discovery.json"]
 ];
 
 for (const [from, to] of mutations) {

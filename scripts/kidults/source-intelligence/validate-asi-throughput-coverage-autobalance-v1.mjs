@@ -9,5 +9,9 @@ for(const a of [...s,...r,...f]){if(!(a.priority_weight>=1&&a.priority_weight<=3
 for(const k of ['discovered','live_external','gate1_safe','gate2_verified','gate3_admitted','active_admitted'])if(!Number.isFinite(Number(x.throughput?.[k]))||Number(x.throughput[k])<0)fail(`invalid throughput ${k}`);
 for(const k of ['safe_rate','gate2_pass_rate','gate3_admit_rate']){const v=Number(x.throughput?.[k]);if(!Number.isFinite(v)||v<0||v>1)fail(`invalid rate ${k}`);}
 if(Number(x.coverage?.provider_concentration)<0||Number(x.coverage?.provider_concentration)>1)fail('invalid provider concentration');
-const famCount=Object.values(x.coverage?.source_family_counts||{}).reduce((a,b)=>a+Number(b||0),0);const gate1Total=Number(x.throughput?.discovered||0);if(famCount!==gate1Total)fail(`source family partition mismatch:${famCount}:${gate1Total}`);
+const famCount=Object.values(x.coverage?.source_family_counts||{}).reduce((a,b)=>a+Number(b||0),0);const discoveryTotal=Number(x.throughput?.discovered||0);
+if(x.coverage?.source_family_population!=='DISCOVERY_UNIVERSE')fail('source family population must be authoritative discovery universe');
+if(Number(x.coverage?.source_family_input_count)!==discoveryTotal||famCount!==discoveryTotal)fail(`source family discovery partition mismatch:${famCount}:${x.coverage?.source_family_input_count}:${discoveryTotal}`);
+const gate1Input=Number(x.coverage?.gate1_input_candidate_count);const gate1Partition=Number(x.coverage?.gate1_partition_count);
+if(!Number.isInteger(gate1Input)||gate1Input<0||gate1Input>discoveryTotal||gate1Partition!==gate1Input)fail(`invalid Gate1 discovery subset:${gate1Input}:${gate1Partition}:${discoveryTotal}`);
 console.log(JSON.stringify({status:'PASS',scopes:s.length,regions:r.length,source_families:f.length,throughput:x.throughput,provider_concentration:x.coverage.provider_concentration,production:'HOLD'},null,2));

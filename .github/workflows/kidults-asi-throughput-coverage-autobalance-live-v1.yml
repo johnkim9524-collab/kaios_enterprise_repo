@@ -32,6 +32,7 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
+          node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs --self-test
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
@@ -150,9 +151,9 @@ jobs:
             test -n "$SRC"
             cp "$SRC" "/tmp/live-gates/canonical/$f"
           done
-          DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery.json' -print -quit)
+          DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery-governed-v2.json' -print -quit)
           test -n "$DISC_SRC"
-          cp "$DISC_SRC" discovery-out/global-low-risk-discovery.json
+          cp "$DISC_SRC" discovery-out/global-low-risk-discovery-governed-v2.json
 
           {
             echo "AUTOBALANCE_BINDING_MODE=$BINDING_MODE"
@@ -163,13 +164,14 @@ jobs:
             echo "AUTOBALANCE_META_DIGEST=$META_DIGEST"
             echo "AUTOBALANCE_DISC_ID=$DISC_ID"
             echo "AUTOBALANCE_DISC_DIGEST=$DISC_DIGEST"
+            echo "AUTOBALANCE_DISCOVERY_PAYLOAD=global-low-risk-discovery-governed-v2.json"
           } >> "$GITHUB_ENV"
 
       - name: Build and validate live autobalance plan
         if: github.event_name != 'pull_request'
         run: |
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
-            discovery-out/global-low-risk-discovery.json \
+            discovery-out/global-low-risk-discovery-governed-v2.json \
             /tmp/live-gates/canonical/asi-gate1-safe-candidate-pool-v2.json \
             /tmp/live-gates/canonical/asi-gate2-independent-reverification-v2.json \
             /tmp/live-gates/canonical/asi-gate3-admission-runtime-v2.json \
@@ -192,7 +194,8 @@ jobs:
             'AUTOBALANCE_META_ID',
             'AUTOBALANCE_META_DIGEST',
             'AUTOBALANCE_DISC_ID',
-            'AUTOBALANCE_DISC_DIGEST'
+            'AUTOBALANCE_DISC_DIGEST',
+            'AUTOBALANCE_DISCOVERY_PAYLOAD'
           ];
           for (const key of required) {
             if (!process.env[key]) throw new Error(`MISSING_${key}`);
@@ -209,6 +212,7 @@ jobs:
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
+            discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,
               workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
