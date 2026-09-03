@@ -31,22 +31,24 @@ write_preflight_failure_receipt() {
 }
 
 write_inventory_failure_receipt() {
+  local state="$1" reason_code="$2" exit_code="$3" capacity_state="$4"
   local partial_count=0 inventory_capacity=$((MAX_PAGES * PAGE_SIZE))
   [[ -f "$tmp_dir/deployments.ndjson" ]] && partial_count="$(wc -l < "$tmp_dir/deployments.ndjson" | tr -d ' ')"
-  jq -n --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" \
-    --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" --argjson partial_inventory_count "$partial_count" \
-    --argjson inventory_capacity "$inventory_capacity" '{
-      id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:"BLOCKED_INVENTORY_CAPACITY",
-      reason_code:"DEPLOYMENT_INVENTORY_PAGE_LIMIT",exit_code:68,project:$project,
+  jq -n --arg state "$state" --arg reason_code "$reason_code" --arg project "$PROJECT_NAME" \
+    --arg expected_repository "$EXPECTED_REPOSITORY" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
+    --arg capacity_state "$capacity_state" --argjson exit_code "$exit_code" \
+    --argjson partial_inventory_count "$partial_count" --argjson inventory_capacity "$inventory_capacity" '{
+      id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:$state,
+      reason_code:$reason_code,exit_code:$exit_code,project:$project,
       expected_repository:$expected_repository,current_main_sha:$current_main_sha,
       partial_inventory_count:$partial_inventory_count,inventory_capacity:$inventory_capacity,
-      capacity_state:"EXHAUSTED",promotion_eligible:false,
+      capacity_state:$capacity_state,promotion_eligible:false,
       cloudflare_api_called:true,settings_readback_complete:false,deployment_inventory_complete:false,
       read_only:true,settings_mutated:false,deployment_created:false,deployment_deleted:false,
       platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
     }' > "$RECEIPT_DIR/final.json"
   cat "$RECEIPT_DIR/final.json"
-  exit 68
+  exit "$exit_code"
 }
 
 [[ "$PROJECT_NAME" == "kidults-workspace-staging" ]] || write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "UNEXPECTED_PAGES_PROJECT" 64
@@ -71,19 +73,27 @@ list_all_deployments() {
   while (( page <= total_pages )); do
     (( page <= MAX_PAGES )) || return 68
     page_file="$tmp_dir/deployments-page-${page}.json"
-    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
-    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
-    jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson"
-    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
+    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 69
+    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null || return 69
+    jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson" || return 69
+    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")" || return 69
     (( total_pages <= MAX_PAGES )) || return 68
     page=$((page + 1))
   done
-  [[ -s "$tmp_dir/deployments.ndjson" ]] && jq -s '.' "$tmp_dir/deployments.ndjson" > "$output" || printf '[]\n' > "$output"
+  if [[ -s "$tmp_dir/deployments.ndjson" ]]; then
+    jq -s '.' "$tmp_dir/deployments.ndjson" > "$output" || return 69
+  else
+    printf '[]\n' > "$output" || return 69
+  fi
 }
 
 api_get "$API_ROOT" "$tmp_dir/project.json"
-if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
-  write_inventory_failure_receipt
+inventory_rc=0
+list_all_deployments "$tmp_dir/deployments-all.json" || inventory_rc=$?
+if (( inventory_rc == 68 )); then
+  write_inventory_failure_receipt "BLOCKED_INVENTORY_CAPACITY" "DEPLOYMENT_INVENTORY_PAGE_LIMIT" 68 "EXHAUSTED"
+elif (( inventory_rc != 0 )); then
+  write_inventory_failure_receipt "VERIFIED_FAIL" "DEPLOYMENT_INVENTORY_READBACK_FAILED" 69 "READBACK_ERROR"
 fi
 
 jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
@@ -122,12 +132,13 @@ settings_pass="$(jq -r '
 ' "$RECEIPT_DIR/project-readback.json")"
 preview_count="$(jq '[.[] | select(.environment == "preview" and .materialized == true)] | length' "$RECEIPT_DIR/deployments.json")"
 skipped_preview_attempt_count="$(jq '[.[] | select(.environment == "preview" and .is_skipped == true)] | length' "$RECEIPT_DIR/deployments.json")"
+skipped_attempt_count="$(jq '[.[] | select(.is_skipped == true)] | length' "$RECEIPT_DIR/deployments.json")"
 deployment_inventory_count="$(jq 'length' "$RECEIPT_DIR/deployments.json")"
 inventory_capacity=$((MAX_PAGES * PAGE_SIZE))
 inventory_capacity_remaining=$((inventory_capacity - deployment_inventory_count))
 capacity_utilization_bps=$((deployment_inventory_count * 10000 / inventory_capacity))
 capacity_state="CLEAR"
-[[ "$skipped_preview_attempt_count" -gt 0 ]] && capacity_state="RESIDUAL_RED"
+[[ "$skipped_attempt_count" -gt 0 ]] && capacity_state="RESIDUAL_RED"
 latest_governed="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" '
   . as $deployment
   | ($deployment.commit_hash // "") as $commit_hash
@@ -160,13 +171,14 @@ latest_lineage_format="$(jq -r --arg expected_repository "$EXPECTED_REPOSITORY" 
 ' "$RECEIPT_DIR/latest-deployment.json")"
 
 state="VERIFIED_FAIL"
-[[ "$settings_pass" == "true" && "$latest_governed" == "true" && "$preview_count" -eq 0 && "$skipped_preview_attempt_count" -eq 0 ]] && state="COMPLETE_VERIFIED"
+[[ "$settings_pass" == "true" && "$latest_governed" == "true" && "$preview_count" -eq 0 && "$skipped_attempt_count" -eq 0 ]] && state="COMPLETE_VERIFIED"
 
 jq -n --arg state "$state" --arg project "$PROJECT_NAME" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
   --arg latest_deployment_lineage_format "$latest_lineage_format" \
   --arg capacity_state "$capacity_state" \
   --argjson settings_pass "$settings_pass" --argjson latest_deployment_governed "$latest_governed" \
   --argjson visible_preview_count "$preview_count" --argjson skipped_preview_attempt_count "$skipped_preview_attempt_count" \
+  --argjson skipped_attempt_count "$skipped_attempt_count" \
   --argjson deployment_inventory_count "$deployment_inventory_count" --argjson inventory_capacity "$inventory_capacity" \
   --argjson inventory_capacity_remaining "$inventory_capacity_remaining" --argjson capacity_utilization_bps "$capacity_utilization_bps" \
   --slurpfile project_readback "$RECEIPT_DIR/project-readback.json" --slurpfile latest "$RECEIPT_DIR/latest-deployment.json" \
@@ -175,10 +187,11 @@ jq -n --arg state "$state" --arg project "$PROJECT_NAME" --arg current_main_sha 
     settings_pass:$settings_pass,latest_deployment_governed:$latest_deployment_governed,
     latest_deployment_lineage_format:$latest_deployment_lineage_format,
     visible_preview_count:$visible_preview_count,skipped_preview_attempt_count:$skipped_preview_attempt_count,
+    skipped_attempt_count:$skipped_attempt_count,
     deployment_inventory_count:$deployment_inventory_count,inventory_capacity:$inventory_capacity,
     inventory_capacity_remaining:$inventory_capacity_remaining,capacity_utilization_bps:$capacity_utilization_bps,
     capacity_state:$capacity_state,
-    reason_code:(if $skipped_preview_attempt_count > 0 then "SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT" else null end),
+    reason_code:(if $skipped_attempt_count > 0 then "SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT" else null end),
     promotion_eligible:false,
     project_readback:$project_readback[0],latest_attempt:$latest_attempt[0],latest_deployment:$latest[0],
     latest_deployment_matches_current_main:(($latest[0].commit_hash // null) == $current_main_sha),current_main_match_is_informational:true,
