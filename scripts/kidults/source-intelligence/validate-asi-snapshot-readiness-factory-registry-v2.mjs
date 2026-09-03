@@ -257,6 +257,16 @@ for (const marker of [
   'CURRENT_SOLD_COHORT_SAMPLE_UNIT_DUPLICATE',
   'CURRENT_SOLD_SAMPLE_POLICY_TIER_NOT_SATISFIED',
 ]) assert(library.includes(marker), `READINESS_LIBRARY_MARKER:${marker}`);
+assert(!library.includes('p1Gate.decision_count === 576'), 'READINESS_LIBRARY_HISTORICAL_GATE_CARDINALITY_REINTRODUCED');
+assert(!library.includes('p1Admission.candidate_count === 576'), 'READINESS_LIBRARY_HISTORICAL_ADMISSION_CARDINALITY_REINTRODUCED');
+assert(!library.includes('p1Actions.action_count === 672'), 'READINESS_LIBRARY_HISTORICAL_ACTION_CARDINALITY_REINTRODUCED');
+for (const marker of [
+  'p1Gate.decisions.length === p1Gate.decision_count',
+  'p1Admission.candidates.length === p1Admission.candidate_count',
+  'p1Actions.actions.length === p1Actions.action_count',
+  'P1_GATE_ADMISSION_PARTITION_DRIFT',
+  'P1_ACTION_COUNT_DRIFT',
+]) assert(library.includes(marker), `READINESS_LIBRARY_DYNAMIC_P1_CARDINALITY_MARKER:${marker}`);
 for (const marker of [
   'READINESS_PREREQUISITE_DIMENSIONS',
   'OUTPUT_EXISTENCE_CYCLE_REINTRODUCED',
