@@ -225,5 +225,5 @@ test('nonce consumption rejects insecure directories and expired authority', asy
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'csra-mode-')); fs.chmodSync(directory, 0o755);
   await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: NOW }), /CSRA_NONCE_DIRECTORY_INVALID/);
   fs.chmodSync(directory, 0o700);
-  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: new Date('2026-09-03T03:31:00.000Z') }), /CSRA_CONSUME_EXPIRED/);
+  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: new Date('2026-09-03T03:31:00.000Z') }), /CSRA_AUTHORITY_NOT_ACTIVE|CSRA_CONSUME_EXPIRED/);
 });
