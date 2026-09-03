@@ -198,8 +198,31 @@ export function verifyGovernedReceiptRegistryAuthority({
   };
 }
 
-export async function consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory, now = new Date() } = {}) {
-  assert(receipt?.status === 'PASS' && receipt.authority?.signature_verified === true, 'CSRA_VERIFICATION_RECEIPT_INVALID');
+export async function consumeGovernedReceiptRegistryAuthority(receipt, {
+  nonceDirectory,
+  verificationInputs,
+  now = new Date(),
+} = {}) {
+  assert(receipt && typeof receipt === 'object' && !Array.isArray(receipt),
+    'CSRA_VERIFICATION_RECEIPT_INVALID');
+  assert(verificationInputs && typeof verificationInputs === 'object' && !Array.isArray(verificationInputs),
+    'CSRA_CONSUMPTION_VERIFICATION_INPUTS_REQUIRED');
+
+  // A detached JavaScript object is not evidence. Re-run the signed authority,
+  // keyring, registry, source/run, purpose and time checks at the one-use write
+  // boundary, then require the supplied receipt to be byte-semantically
+  // identical except for its earlier evaluation timestamp.
+  const freshlyVerified = verifyGovernedReceiptRegistryAuthority({
+    ...verificationInputs,
+    now,
+  });
+  const suppliedAtConsumption = { ...receipt, evaluated_at: freshlyVerified.evaluated_at };
+  assert(canonicalAuthorityDigest(suppliedAtConsumption) === canonicalAuthorityDigest(freshlyVerified),
+    'CSRA_VERIFICATION_RECEIPT_STALE_OR_TAMPERED');
+  receipt = freshlyVerified;
+
+  assert(receipt.status === 'PASS' && receipt.authority.signature_verified === true,
+    'CSRA_VERIFICATION_RECEIPT_INVALID');
   const expires = time(receipt.expires_at, 'CSRA_CONSUME_EXPIRES_AT');
   assert(now instanceof Date && !Number.isNaN(now.getTime()) && now <= expires, 'CSRA_CONSUME_EXPIRED');
   exact(receipt.nonce_digest, SHA256, 'CSRA_NONCE_DIGEST'); exact(receipt.authority_binding_digest, SHA256, 'CSRA_BINDING_DIGEST');
