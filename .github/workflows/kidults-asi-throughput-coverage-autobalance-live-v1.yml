@@ -68,14 +68,14 @@ jobs:
           for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS"); do
             gh api --method GET -H 'Accept: application/vnd.github+json' \
               -f branch=main -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs" \
+              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs" \
               > /tmp/hourly-runs.json
 
             LATEST_EXACT_RUN=$(jq -c --arg sha "$EXPECTED_PRODUCER_SHA" \
               '[.workflow_runs[]
                 | select(
-                    .name=="KIDULTS ASI Global Any-Site Hourly Pooling v1"
-                    and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"
+                    .name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"
+                    and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
                     and .head_branch=="main"
                     and .head_sha==$sha
                   )
@@ -113,7 +113,7 @@ jobs:
           META_RECORD=$(jq -c --argjson run "$HOURLY_RUN_ID" --arg sha "$HOURLY_SOURCE_SHA" \
             '[.artifacts[]
               | select(
-                  .name=="kidults-asi-global-any-site-source-pool-v1"
+                  .name=="kidults-asi-global-any-site-source-pool-v2"
                   and .expired==false
                   and .workflow_run.id==$run
                   and .workflow_run.head_sha==$sha
@@ -122,7 +122,7 @@ jobs:
           DISC_RECORD=$(jq -c --argjson run "$HOURLY_RUN_ID" --arg sha "$HOURLY_SOURCE_SHA" \
             '[.artifacts[]
               | select(
-                  .name=="kidults-asi-global-any-site-hourly-cycle-v1"
+                  .name=="kidults-asi-global-any-site-hourly-cycle-v2"
                   and .expired==false
                   and .workflow_run.id==$run
                   and .workflow_run.head_sha==$sha
@@ -145,7 +145,7 @@ jobs:
           unzip -q -o /tmp/meta.zip -d /tmp/live-gates/raw
           unzip -q -o /tmp/disc.zip -d discovery-out/raw
 
-          for f in asi-gate1-safe-candidate-pool-v1.json asi-gate2-independent-reverification-v1.json asi-gate3-admission-runtime-v1.json asi-admitted-metadata-pool-v1.json; do
+          for f in asi-gate1-safe-candidate-pool-v2.json asi-gate2-independent-reverification-v2.json asi-gate3-admission-runtime-v2.json asi-admitted-metadata-pool-v2.json; do
             SRC=$(find /tmp/live-gates/raw -type f -name "$f" -print -quit)
             test -n "$SRC"
             cp "$SRC" "/tmp/live-gates/canonical/$f"
@@ -170,10 +170,10 @@ jobs:
         run: |
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
             discovery-out/global-low-risk-discovery.json \
-            /tmp/live-gates/canonical/asi-gate1-safe-candidate-pool-v1.json \
-            /tmp/live-gates/canonical/asi-gate2-independent-reverification-v1.json \
-            /tmp/live-gates/canonical/asi-gate3-admission-runtime-v1.json \
-            /tmp/live-gates/canonical/asi-admitted-metadata-pool-v1.json \
+            /tmp/live-gates/canonical/asi-gate1-safe-candidate-pool-v2.json \
+            /tmp/live-gates/canonical/asi-gate2-independent-reverification-v2.json \
+            /tmp/live-gates/canonical/asi-gate3-admission-runtime-v2.json \
+            /tmp/live-gates/canonical/asi-admitted-metadata-pool-v2.json \
             /tmp/asi-throughput-coverage-autobalance-live-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
 
@@ -211,19 +211,19 @@ jobs:
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,
-              workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml',
-              workflow_name: 'KIDULTS ASI Global Any-Site Hourly Pooling v1',
+              workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
+              workflow_name: 'KIDULTS ASI Global Any-Site Hourly Pooling v2',
               run_id: Number(process.env.AUTOBALANCE_HOURLY_RUN_ID),
               head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA
             },
             artifacts: [
               {
-                name: 'kidults-asi-global-any-site-source-pool-v1',
+                name: 'kidults-asi-global-any-site-source-pool-v2',
                 id: Number(process.env.AUTOBALANCE_META_ID),
                 digest: process.env.AUTOBALANCE_META_DIGEST
               },
               {
-                name: 'kidults-asi-global-any-site-hourly-cycle-v1',
+                name: 'kidults-asi-global-any-site-hourly-cycle-v2',
                 id: Number(process.env.AUTOBALANCE_DISC_ID),
                 digest: process.env.AUTOBALANCE_DISC_DIGEST
               }
