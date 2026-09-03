@@ -212,7 +212,8 @@ function readyInputs() {
     admitted_count: admittedRecords.size, candidates, sample_plans: [samplePlanRegistration()],
   };
   const actionTypes = ['OWNER', 'RIGHTS', 'ACCESS', 'SEMANTICS', 'REGION', 'SCHEMA', 'ORIGIN'];
-  const actions = Array.from({ length: 672 }, (_, index) => {
+  const uniqueActionCandidateCount = 95;
+  const actions = Array.from({ length: uniqueActionCandidateCount * actionTypes.length }, (_, index) => {
     const candidateIndex = Math.floor(index / 7);
     const impactedAdmissions = candidates.filter((candidate) => candidate.candidate_id === `candidate-${candidateIndex}`);
     return {
@@ -225,7 +226,11 @@ function readyInputs() {
       evidence_admitted: impactedAdmissions.some((candidate) => candidate.evidence_admitted),
     };
   });
-  const p1Actions = { id: 'kidults-asi-p1-preflight-action-queue-v1', version: '1.0.0', action_count: 672, actions };
+  const p1Actions = {
+    id: 'kidults-asi-p1-preflight-action-queue-v1', version: '1.0.0',
+    unique_candidate_count: uniqueActionCandidateCount, action_types: actionTypes,
+    action_count: actions.length, actions,
+  };
   const p1Manifest = { id: 'kidults-asi-p1-source-preflight-manifest-v1', version: '1.0.0' };
   const marketEvents = [...admittedRecords.values()].map((record, index) => ({
     event_id: `event-${index}`, evidence_id: record.evidence_id, rights_state: 'ALLOW',
@@ -574,6 +579,8 @@ try {
   execute(builder, [...invalid.args, contract, path.join(temp, 'invalid-event-output')], false);
 
   const rejectedInputMutations = [
+    ['hardcoded-p1-action-count', (values) => { values.p1Actions.action_count = 672; }, 'P1_ACTIONS_INVALID'],
+    ['duplicate-p1-candidate-action-pair', (values) => { values.p1Actions.actions[0].action_type = values.p1Actions.actions[1].action_type; }, 'P1_ACTIONS_INVALID'],
     ['orphan-candidate', (values) => { values.p1Admission.candidates[0].candidate_id = 'candidate-orphan'; }],
     ['mission-swap', (values) => { values.p1Admission.candidates[0].mission_id = 'mission-1'; }],
     ['duplicate-candidate-id', (values) => { values.p0Registry.candidates[1].candidate_id = values.p0Registry.candidates[0].candidate_id; }],
@@ -705,7 +712,7 @@ try {
     canonical_policy_tier_weakening_rejected: true,
     canonical_canary_tier: 'CANARY',
     canonical_canary_sample_size: 5,
-    negative_mutation_cases: 34,
+    negative_mutation_cases: 36,
     track_b_assessment_started: false,
     public_release: 'HOLD',
     production: 'HOLD',

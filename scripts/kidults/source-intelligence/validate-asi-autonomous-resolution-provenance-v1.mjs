@@ -35,6 +35,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '/actions/runs/${P1_RUN_ID}',
     '/actions/runs/${P1_RUN_ID}/artifacts?per_page=100',
     'test \"$P1_ARTIFACT_COUNT\" = 1',
+    'test \"$P0B_ARTIFACT_COUNT\" = 1',
+    "artifact.name==='kidults-asi-p0b-bounded-discovery-candidates-v1'",
+    'p0b_artifact_digest:process.env.P0B_DIGEST',
+    'transactionally_paired_artifacts:true',
     'artifact.workflow_run?.id===Number(process.env.P1_RUN_ID)',
     'artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA',
     'artifact_digest:process.env.P1_DIGEST',
@@ -48,6 +52,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '-f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE"',
     '--mode arl-generation-pages',
     'validate-safe-zip-archive-v1.py',
+    '--expected-digest "$P0B_DIGEST"',
+    '--receipt /tmp/p0b-archive-validation-receipt-v1.json',
+    '--required-basename p0b-source-candidate-registry-v1.json',
+    '--required-basename p0b-mission-candidate-binding-ledger-v1.json',
     '--expected-digest "$P1_DIGEST"',
     '--receipt /tmp/p1-archive-validation-receipt-v1.json',
     '--required-basename p1-preflight-action-queue-v1.json',
@@ -76,9 +84,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'MAX_ARL_HISTORY_PAGES = 20',
     'pagination_reconciled_complete: true',
   ]) if (!runHistorySource.includes(marker)) failures.push(`missing run-history marker: ${marker}`);
-  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) {
-    failures.push('P1 safe ZIP validation must precede extraction');
-  }
+  if (workflowSource.indexOf('--expected-digest "$P0B_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p0b.zip')) failures.push('P0B safe ZIP validation must precede extraction');
+  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) failures.push('P1 safe ZIP validation must precede extraction');
+  const p1ValidationBlock = workflowSource.slice(workflowSource.indexOf('--archive /tmp/p1.zip'), workflowSource.indexOf('unzip -q -o /tmp/p1.zip'));
+  if (p1ValidationBlock.includes('--required-basename p0b-')) failures.push('P0B files must not be required from the P1 archive');
 
   const forbidden = [
     'git merge-base --is-ancestor',
