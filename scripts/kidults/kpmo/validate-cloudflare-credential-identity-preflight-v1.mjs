@@ -95,8 +95,12 @@ ok(terminal.operational_authority?.rerun_authorized === false
   && terminal.operational_authority?.second_dispatch_authorized === false, 'TERMINAL_NO_REPLAY');
 ok(terminal.operational_authority?.same_approval_reusable === false, 'TERMINAL_NO_REUSE');
 
-ok(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+const runtimeValidNoMatchPush = /^on:\n  push:\n    branches-ignore:\n      - '\*\*'\n    tags-ignore:\n      - '\*\*'\n\npermissions:\n  contents: read\n/m;
+ok(runtimeValidNoMatchPush.test(workflow), 'WORKFLOW_RUNTIME_VALID_NO_MATCH_TRIGGER');
+ok(!/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_EMPTY_EVENT_LIST_REINTRODUCED');
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH');
+ok(!workflow.includes('pull_request:'), 'WORKFLOW_PR_TRIGGER');
+ok(!workflow.includes('schedule:'), 'WORKFLOW_SCHEDULE');
 ok(!workflow.includes('environment:'), 'WORKFLOW_ENVIRONMENT');
 ok(!workflow.includes('${{ secrets.'), 'WORKFLOW_SECRET_EXPRESSION');
 ok(!workflow.includes('actions/checkout@'), 'WORKFLOW_CHECKOUT');
@@ -165,6 +169,7 @@ console.log(JSON.stringify({
   secret_probe_step: 'SKIPPED',
   failure_code: 'APPROVAL_BODY_JQ_RAW_OUTPUT_ADDS_SECOND_TERMINAL_LF',
   byte_exact_extractor_regression: true,
+  workflow_runtime_valid_no_match_trigger: true,
   v1_zero_executable_authority: true,
   v2_new_approval_required: true,
   registered_secret_bearing_lanes: registry.registered_count,
