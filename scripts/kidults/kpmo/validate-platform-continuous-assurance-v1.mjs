@@ -10,6 +10,8 @@ const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1
 const policyPath = 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json';
 const auditPath = 'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs';
 const plannerPath = 'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs';
+const terminalReconcilerPath = 'scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.mjs';
+const terminalReconcilerTestPath = 'scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.test.mjs';
 const canonicalContractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const classifierPath = 'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs';
 const resolverPath = 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
@@ -52,7 +54,7 @@ function signReceipt(receipt) {
   };
 }
 
-for (const file of [workflowPath, policyPath, auditPath, plannerPath, canonicalContractPath, classifierPath, resolverPath]) {
+for (const file of [workflowPath, policyPath, auditPath, plannerPath, terminalReconcilerPath, terminalReconcilerTestPath, canonicalContractPath, classifierPath, resolverPath]) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`required file missing: ${file}`);
 }
 
@@ -61,6 +63,8 @@ if (!errors.length) {
   const activeWorkflow = activeWorkflowText(workflow);
   const audit = fs.readFileSync(path.join(root, auditPath), 'utf8');
   const planner = fs.readFileSync(path.join(root, plannerPath), 'utf8');
+  const terminalReconciler = fs.readFileSync(path.join(root, terminalReconcilerPath), 'utf8');
+  const terminalReconcilerTest = fs.readFileSync(path.join(root, terminalReconcilerTestPath), 'utf8');
   const policy = JSON.parse(fs.readFileSync(path.join(root, policyPath), 'utf8'));
 
   const requiredWorkflowMarkers = [
@@ -114,10 +118,22 @@ if (!errors.length) {
     'KPMO_COVERAGE_ALIAS_OBSERVATION',
     'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_COVERAGE_ALIAS_OBSERVER',
     'zipinfo -1',
-    'cancel-in-progress: false'
+    'cancel-in-progress: false',
+    'Reconcile required workflow outcomes into terminal receipt',
+    'KPMO_ASSURANCE_JOB_STATUS: ${{ job.status }}',
+    'KPMO_REQUIRED_STEP_OUTCOMES',
+    'reconcile-continuous-assurance-inline-v1.mjs',
+    'reconcile-continuous-assurance-inline-v1.test.mjs',
+    'id: reserve_binding',
+    'steps.reserve_binding.outcome',
+    'id: terminal_reconcile',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI SHADOW Operating Evidence v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI Requirement-to-Adapter Coverage v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KIDULTS ASI Sharded Source Reserve v1\' }}',
+    '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KPMO Live Canonical Issue Truth V1\' }}'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
-  if (!/- name: Run audit and always retain receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
+  if (!/- name: Run audit and always retain receipt\n\s+id: audit_receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
   if (!/audit:\n[\s\S]*?concurrency:\n\s+group: \$\{\{ needs\.classify-canonical-identity\.outputs\.concurrency_group \}\}\n\s+cancel-in-progress: false/.test(activeWorkflow)) errors.push('canonical audit job concurrency binding missing');
   for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'cancel-in-progress: true', '-f head_sha=', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
     if (activeWorkflow.includes(forbidden)) errors.push(`workflow forbidden marker: ${forbidden}`);
@@ -126,6 +142,23 @@ if (!errors.length) {
   if (activeWorkflow.includes('set +e') || activeWorkflow.includes('exit 0')) errors.push('audit or planner failure must not be swallowed');
   for (const marker of ['plan.source_receipt_digest === receipt.receipt_digest', 'plan.integrity_findings?.length', 'plan.activation?.eligible === false']) {
     if (!activeWorkflow.includes(marker)) errors.push(`final fail-closed binding missing: ${marker}`);
+  }
+  const auditReceiptIndex = activeWorkflow.indexOf('Run audit and always retain receipt');
+  const reconciliationIndex = activeWorkflow.indexOf('Reconcile required workflow outcomes into terminal receipt');
+  const plannerIndex = activeWorkflow.indexOf('Emit safe remediation packet');
+  const packetUploadIndex = activeWorkflow.indexOf('Upload exact-run assurance packet');
+  if (auditReceiptIndex < 0 || reconciliationIndex <= auditReceiptIndex || plannerIndex <= reconciliationIndex || packetUploadIndex <= plannerIndex) errors.push('terminal reconciliation must run after audit and before plan/upload');
+  const requiredOutcomeIds = ['exact_source', 'ephemeral_guard', 'shadow_binding', 'requirement_binding', 'reserve_binding', 'truth_binding', 'met_binding', 'vam_binding', 'assurance_contract', 'adapter_watch', 'watch_coverage', 'audit_receipt'];
+  if ((activeWorkflow.match(/"applicable":/g) || []).length !== requiredOutcomeIds.length) errors.push('required workflow applicability cardinality invalid');
+  for (const id of requiredOutcomeIds) {
+    if ((activeWorkflow.match(new RegExp(`id: ${id}\\b`, 'g')) || []).length !== 1) errors.push(`required workflow step id cardinality invalid: ${id}`);
+    if (!activeWorkflow.includes(`steps.${id}.outcome`)) errors.push(`required workflow outcome binding missing: ${id}`);
+  }
+  for (const marker of ['WORKFLOW_JOB_FAILURE_UNATTRIBUTED', 'WORKFLOW_TERMINAL_RECONCILIATION_FATAL', 'source_failure_dominates_generic_audit_pass', 'required_step_outcomes', 'REQUIRED_STEP_APPLICABILITY_INVALID', 'row.applicable', 'receipt_digest', 'promotion_eligible: false']) {
+    if (!terminalReconciler.includes(marker)) errors.push(`terminal reconciler marker missing: ${marker}`);
+  }
+  for (const marker of ['WORKFLOW_REQUIRED_STEP_RESERVE_BINDING', 'WORKFLOW_REQUIRED_STEP_TRUTH_BINDING', 'UNATTRIBUTED_FAILURE', 'INCONSISTENT_SUCCESS_ACCEPTED', 'EXPECTED_NON_APPLICABLE_SKIP', 'DIGEST_BINDING']) {
+    if (!terminalReconcilerTest.includes(marker)) errors.push(`terminal reconciliation test marker missing: ${marker}`);
   }
   const verifierIndex = activeWorkflow.indexOf('Preserve control result without promoting overall HOLD');
   const leaderUploadIndex = activeWorkflow.indexOf('Publish successful bounded canonical leader artifact');
