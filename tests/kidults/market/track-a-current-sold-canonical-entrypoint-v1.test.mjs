@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   validateCurrentSoldCanonicalEntrypoint,
 } from '../../../scripts/kidults/market/validate-current-sold-canonical-entrypoint-v1.mjs';
@@ -56,4 +57,14 @@ test('private dry-run must retain the atomic batch entrypoint', () => {
     'export function run(){};');
   assert.throws(() => validateCurrentSoldCanonicalEntrypoint(root),
     /CURRENT_SOLD_CANONICAL_ENTRYPOINT_BYPASS/);
+});
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
+test('PR-specific development snapshot exporter cannot become permanent workflow surface', () => {
+  assert.equal(
+    fs.existsSync(path.join(repositoryRoot, '.github/workflows/kpmo-pr1921-dev-snapshot-export-v1.yml')),
+    false,
+    'PR1921 development snapshot export workflow must remain absent',
+  );
 });
