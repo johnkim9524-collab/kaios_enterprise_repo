@@ -83,8 +83,11 @@ function runCase(scenario) {
 }
 
 const approvalBound = runCase('approval-bound');
-assert.equal(approvalBound.result.status, 0, approvalBound.result.stderr || approvalBound.result.stdout);
-assert.equal(approvalBound.receipt.state, 'COMPLETE_VERIFIED');
+assert.notEqual(approvalBound.result.status, 0, 'skipped production attempt must preserve residual RED');
+assert.equal(approvalBound.receipt.state, 'VERIFIED_FAIL');
+assert.equal(approvalBound.receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
+assert.equal(approvalBound.receipt.capacity_state, 'RESIDUAL_RED');
+assert.equal(approvalBound.receipt.promotion_eligible, false);
 assert.equal(approvalBound.receipt.settings_pass, true);
 assert.equal(approvalBound.receipt.visible_preview_count, 0);
 assert.equal(approvalBound.receipt.latest_deployment_governed, true);
@@ -95,8 +98,9 @@ assert.equal(approvalBound.receipt.latest_deployment_matches_current_main, false
 assert.equal(approvalBound.receipt.current_main_match_is_informational, true);
 
 const legacy = runCase('legacy');
-assert.equal(legacy.result.status, 0, legacy.result.stderr || legacy.result.stdout);
-assert.equal(legacy.receipt.state, 'COMPLETE_VERIFIED');
+assert.notEqual(legacy.result.status, 0, 'skipped production attempt must dominate legacy governed lineage');
+assert.equal(legacy.receipt.state, 'VERIFIED_FAIL');
+assert.equal(legacy.receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
 assert.equal(legacy.receipt.latest_deployment_governed, true);
 assert.equal(legacy.receipt.latest_deployment_lineage_format, 'LEGACY_GOVERNED_V1');
 
@@ -114,7 +118,8 @@ console.log(JSON.stringify({
   approval_bound_lineage_accepted:true,
   legacy_lineage_retained:true,
   wrong_repository_rejected:true,
-  skipped_current_main_informational:true,
+  skipped_current_main_residual_red:true,
+  governed_materialized_lineage_preserved_under_residual_red:true,
   remote_mutation:false,
   public_release:'HOLD',
   production:'HOLD',
