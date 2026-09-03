@@ -7,7 +7,7 @@ const canonicalFamilies=['PRIMARY_OR_OFFICIAL_AUTHORITY','OPEN_MARKETPLACE_OR_DE
 const classifyDiscoveryPopulation=candidates=>{
   const counts=Object.fromEntries(canonicalFamilies.map(f=>[f,0]));
   for(const candidate of candidates){
-    const family=classifyAnySiteCandidate(candidate);
+    const family=classifyAnySiteCandidate(candidate).source_family_hint;
     if(!(family in counts))throw new Error(`NONCANONICAL_SOURCE_FAMILY:${family}`);
     counts[family]++;
   }
@@ -15,12 +15,12 @@ const classifyDiscoveryPopulation=candidates=>{
 };
 if(process.argv.includes('--self-test')){
   const fixtures=[
-    {canonical_url:'https://brand.example/item',source_name:'official manufacturer'},
-    {canonical_url:'https://auction.example/lot'},
-    {canonical_url:'https://grading.example/cert'},
-    {canonical_url:'https://community.example/post'},
-    {canonical_url:'https://museum.example/archive'},
-    {canonical_url:'https://example.invalid/resource'}
+    {endpoint_url:'https://brand.example/item',source_name:'official manufacturer'},
+    {endpoint_url:'https://auction.example/lot'},
+    {endpoint_url:'https://grading.example/cert'},
+    {endpoint_url:'https://community.example/post'},
+    {endpoint_url:'https://museum.example/archive'},
+    {endpoint_url:'https://example.invalid/resource'}
   ];
   const counts=classifyDiscoveryPopulation(fixtures);
   for(const family of canonicalFamilies)if(counts[family]!==1)throw new Error(`SOURCE_FAMILY_SELF_TEST_FAILED:${family}:${counts[family]}`);
