@@ -3,6 +3,14 @@ import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-atomic-governed-landing-v1.yml';
 const workflow = fs.readFileSync(workflowPath, 'utf8');
+const lifecyclePreflight = fs.readFileSync(
+  'scripts/kidults/kpmo/run-atomic-landing-lifecycle-preflight-v1.mjs',
+  'utf8',
+);
+const oneUsePreflight = fs.readFileSync(
+  'scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs',
+  'utf8',
+);
 const assert = (condition, code) => {
   if (!condition) throw new Error(code);
 };
@@ -32,8 +40,36 @@ assert(workflow.split(consumptionMarker).length === 2,
   'ATOMIC_LANDING_AUTHORIZATION_CONSUMPTION_CARDINALITY_INVALID');
 assert(workflow.indexOf(lifecycleMarker) < workflow.indexOf(consumptionMarker),
   'ATOMIC_LANDING_AUTHORIZATION_CONSUMED_BEFORE_LIFECYCLE_AUTHORITY');
-assert(workflow.includes('A missing, stale, pending, or RED lifecycle generation must'),
-  'ATOMIC_LANDING_PRECONSUMPTION_FAIL_CLOSED_RATIONALE_MISSING');
+const lifecycleSection = workflow.slice(
+  workflow.indexOf(lifecycleMarker),
+  workflow.indexOf(consumptionMarker),
+);
+assert(lifecycleSection.includes('LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}')
+  && lifecycleSection.includes('LANDING_ACTOR: ${{ github.actor }}'),
+'ATOMIC_LANDING_OWNER_APPROVAL_PREFLIGHT_ENV_MISSING');
+assert(workflow.includes('complete exact-head Program Owner approval')
+  && workflow.includes('malformed/expired/overlong approval'),
+'ATOMIC_LANDING_PRECONSUMPTION_FAIL_CLOSED_RATIONALE_MISSING');
+
+const lifecycleApprovalTokens = [
+  'assertLandingActorAndAuthorization',
+  'selectExactHeadProgramOwnerApproval',
+  `pages(\`/issues/\${prNumber}/comments\`)`,
+  `request(\`/commits/\${expectedHeadSha}\`)`,
+  'complete_owner_approval_contract_validated_before_consumption: true',
+];
+assert(lifecycleApprovalTokens.every(token => lifecyclePreflight.includes(token)),
+  'ATOMIC_LANDING_COMPLETE_OWNER_APPROVAL_PREFLIGHT_MISSING');
+
+const approvalSelection = oneUsePreflight.indexOf('const programOwnerApproval = selectExactHeadProgramOwnerApproval');
+const receiptValidation = oneUsePreflight.indexOf('assertAtomicLandingConsumptionReceipt(receipt, {');
+const receiptWrite = oneUsePreflight.indexOf('writeReceipt(receipt, receiptPath);');
+assert(approvalSelection >= 0 && receiptValidation > approvalSelection && receiptWrite > receiptValidation,
+  'ATOMIC_LANDING_CONSUMPTION_WRITTEN_BEFORE_COMPLETE_VALIDATION');
+assert(oneUsePreflight.includes('complete_owner_approval_contract_validated_before_consumption: true')
+  && oneUsePreflight.includes('ATOMIC_ONE_USE_PR_DRIFT_DURING_CONSUMPTION')
+  && oneUsePreflight.includes('ATOMIC_ONE_USE_MAIN_DRIFT_DURING_CONSUMPTION'),
+  'ATOMIC_LANDING_ONE_USE_FINAL_REREAD_INVARIANT_MISSING');
 
 console.log(JSON.stringify({
   id: 'kidults-atomic-landing-preconsumption-order-receipt-v1',
@@ -41,6 +77,9 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   lifecycle_authority_precedes_one_use_consumption: true,
   authorization_not_burned_by_missing_lifecycle: true,
+  complete_owner_approval_contract_precedes_one_use_consumption: true,
+  invalid_approval_not_recorded_as_consumed: true,
+  consumption_receipt_written_after_final_pr_main_reread: true,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

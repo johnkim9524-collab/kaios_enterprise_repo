@@ -3,6 +3,13 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {
+  assertLandingActorAndAuthorization,
+  selectExactHeadProgramOwnerApproval,
+} from './lib/governed-landing-native-gates-v1.mjs';
+import {
+  selectLatestDirectOwnerReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const AUTHORIZATION_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
@@ -105,7 +112,7 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
 } = {}) {
   assert(receipt && typeof receipt === 'object' && !Array.isArray(receipt), 'ATOMIC_CONSUMPTION_RECEIPT_INVALID');
   assert(receipt.id === 'kidults-atomic-landing-one-use-consumption-v1', 'ATOMIC_CONSUMPTION_RECEIPT_ID_INVALID');
-  assert(receipt.version === '1.1.0', 'ATOMIC_CONSUMPTION_RECEIPT_VERSION_INVALID');
+  assert(receipt.version === '1.2.0', 'ATOMIC_CONSUMPTION_RECEIPT_VERSION_INVALID');
   assert(receipt.state === 'CONSUMED_BY_FIRST_MATCHING_DISPATCH', 'ATOMIC_CONSUMPTION_STATE_INVALID');
   assert(receipt.repository === repository, 'ATOMIC_CONSUMPTION_REPOSITORY_MISMATCH');
   assert(Number(receipt.pull_request) === Number(prNumber), 'ATOMIC_CONSUMPTION_PR_MISMATCH');
@@ -141,6 +148,10 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
   assert(receipt.pr_head_matches_input === true, 'ATOMIC_CONSUMPTION_PR_HEAD_BINDING_INVALID');
   assert(receipt.pr_base_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_PR_BASE_BINDING_INVALID');
   assert(receipt.live_main_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_LIVE_MAIN_BINDING_INVALID');
+  assert(receipt.complete_owner_approval_contract_validated_before_consumption === true,
+    'ATOMIC_CONSUMPTION_OWNER_APPROVAL_PREFLIGHT_MISSING');
+  assert(receipt.program_owner_approval && typeof receipt.program_owner_approval === 'object',
+    'ATOMIC_CONSUMPTION_OWNER_APPROVAL_RECEIPT_INVALID');
   return receipt;
 }
 
@@ -168,6 +179,7 @@ async function main() {
   const prNumber = process.env.PR_NUMBER;
   const headSha = process.env.EXPECTED_HEAD_SHA;
   const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
+  const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
   const runId = process.env.GITHUB_RUN_ID;
   const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
   const receiptPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
@@ -176,6 +188,7 @@ async function main() {
   assert(repository && /^[^/]+\/[^/]+$/.test(repository), 'ATOMIC_ONE_USE_REPOSITORY_INVALID');
   assert(/^\d+$/.test(prNumber || ''), 'ATOMIC_ONE_USE_PR_INVALID');
   assert(SHA_PATTERN.test(headSha || ''), 'ATOMIC_ONE_USE_HEAD_INVALID');
+  assert(landingActor, 'ATOMIC_ONE_USE_LANDING_ACTOR_REQUIRED');
   assert(/^\d+$/.test(runId || ''), 'ATOMIC_ONE_USE_RUN_ID_INVALID');
   assert(Number(runAttempt) === 1, 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
   assert(receiptPath, 'ATOMIC_ONE_USE_RECEIPT_PATH_REQUIRED');
@@ -202,6 +215,7 @@ async function main() {
     request(`/actions/runs/${runId}`),
   ]);
   const repositoryOwner = repositoryState?.owner?.login;
+  assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, headSha);
   const dispatchAuthority = assertAtomicLandingDispatchAuthority(currentRun, repositoryOwner);
   const expectedRunName = buildAtomicLandingRunName({prNumber, headSha, authorizationId});
   assert(Number(currentRun?.id) === Number(runId), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_MISMATCH');
@@ -239,19 +253,49 @@ async function main() {
     protectedMainShaAtDispatch: currentRun.head_sha,
   });
 
-  const [pr, mainBranch] = await Promise.all([
+  const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
+    request(`/issues/${prNumber}/timeline?per_page=100`),
+    request(`/issues/${prNumber}/comments?per_page=100`),
+    request(`/commits/${headSha}`),
   ]);
 
   const exactBaseSha = pr?.base?.sha;
   const liveMainSha = mainBranch?.commit?.sha;
   assert(SHA_PATTERN.test(exactBaseSha || ''), 'ATOMIC_ONE_USE_PR_BASE_SHA_INVALID');
   assert(SHA_PATTERN.test(liveMainSha || ''), 'ATOMIC_ONE_USE_LIVE_MAIN_SHA_INVALID');
+  assert(pr?.state === 'open' && pr?.merged !== true && pr?.draft === false, 'ATOMIC_ONE_USE_PR_NOT_READY_OPEN_UNMERGED');
+  assert(pr?.head?.sha === headSha, 'ATOMIC_ONE_USE_PR_HEAD_MISMATCH');
+  assert(pr?.base?.ref === EXPECTED_BRANCH, 'ATOMIC_ONE_USE_PR_BASE_REF_INVALID');
+  assert(exactBaseSha === currentRun.head_sha, 'ATOMIC_ONE_USE_PR_BASE_DISPATCH_MAIN_DRIFT');
+  assert(liveMainSha === currentRun.head_sha, 'ATOMIC_ONE_USE_LIVE_MAIN_DRIFT');
+
+  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha,
+    baseSha: exactBaseSha,
+    authorizationId,
+    prCreatedAt: pr.created_at,
+    headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
+    latestReadyAt: latestReady.created_at,
+    evaluationTime: new Date().toISOString(),
+  });
+
+  const finalPr = await request(`/pulls/${prNumber}`);
+  const finalMain = await request('/branches/main');
+  assert(finalPr?.state === 'open' && finalPr?.merged !== true && finalPr?.draft === false,
+    'ATOMIC_ONE_USE_PR_DRIFT_DURING_CONSUMPTION');
+  assert(finalPr?.head?.sha === headSha && finalPr?.base?.sha === exactBaseSha,
+    'ATOMIC_ONE_USE_PR_DRIFT_DURING_CONSUMPTION');
+  assert(finalMain?.commit?.sha === liveMainSha, 'ATOMIC_ONE_USE_MAIN_DRIFT_DURING_CONSUMPTION');
 
   const receipt = {
     id: 'kidults-atomic-landing-one-use-consumption-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     state: 'CONSUMED_BY_FIRST_MATCHING_DISPATCH',
     repository,
     pull_request: Number(prNumber),
@@ -283,13 +327,13 @@ async function main() {
     pr_base_ref_is_main: pr?.base?.ref === EXPECTED_BRANCH,
     pr_base_matches_dispatch_main: exactBaseSha === currentRun.head_sha,
     live_main_matches_dispatch_main: liveMainSha === currentRun.head_sha,
+    program_owner_approval: programOwnerApproval,
+    complete_owner_approval_contract_validated_before_consumption: true,
     consumed_at: new Date().toISOString(),
     public: 'HOLD',
     production: 'HOLD',
     g5: 'HOLD',
   };
-
-  writeReceipt(receipt, receiptPath);
 
   assert(receipt.pr_head_matches_input, 'ATOMIC_ONE_USE_PR_HEAD_MISMATCH');
   assert(receipt.pr_base_ref_is_main, 'ATOMIC_ONE_USE_PR_BASE_REF_INVALID');
@@ -308,6 +352,7 @@ async function main() {
     expectedRunName,
   });
 
+  writeReceipt(receipt, receiptPath);
   console.log(JSON.stringify(receipt));
 }
 

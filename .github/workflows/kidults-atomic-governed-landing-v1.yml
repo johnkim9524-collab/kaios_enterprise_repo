@@ -53,15 +53,18 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
         run: node scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs
 
-      # Lifecycle authority is validated before the one-use authorization is
-      # consumed. A missing, stale, pending, or RED lifecycle generation must
-      # fail without burning an otherwise valid Owner landing authorization.
+      # Lifecycle authority and the complete exact-head Program Owner approval
+      # contract are validated before the one-use authorization is consumed.
+      # Missing/stale/RED lifecycle or malformed/expired/overlong approval must
+      # fail without burning an otherwise valid landing generation.
       - name: Require latest terminal exact-head lifecycle authority
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
           LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
         run: node scripts/kidults/kpmo/run-atomic-landing-lifecycle-preflight-v1.mjs
 
@@ -72,6 +75,7 @@ jobs:
           PR_NUMBER: ${{ inputs.pull_request_number }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
         run: node scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs
 
