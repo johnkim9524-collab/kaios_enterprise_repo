@@ -34,6 +34,22 @@ mkdir -p "$RECEIPT_DIR"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+write_capacity_failure_receipt() {
+  local inventory_stage="$1" deleted_count="${deleted:-0}"
+  jq -n --arg project "$PROJECT_NAME" --arg mode "$MODE" --arg inventory_stage "$inventory_stage" \
+    --argjson deleted_preview_count "$deleted_count" '{
+      id:"kidults-cloudflare-preview-cleanup-receipt-v1",project:$project,mode:$mode,
+      state:"BLOCKED_INVENTORY_CAPACITY",reason_code:"DEPLOYMENT_INVENTORY_PAGE_LIMIT",exit_code:68,
+      inventory_stage:$inventory_stage,deleted_preview_count:$deleted_preview_count,
+      deletion_performed:($deleted_preview_count > 0),post_mutation_verification_complete:false,
+      production_preservation_verified:false,production_delete_forbidden:true,
+      capacity_state:"EXHAUSTED",promotion_eligible:false,
+      platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
+    }' > "$RECEIPT_DIR/final.json"
+  cat "$RECEIPT_DIR/final.json"
+  exit 68
+}
+
 api_request() {
   local method="$1" url="$2" output="$3"
   shift 3
@@ -88,7 +104,9 @@ normalize() {
   }]'
 }
 
-list_all_deployments "$tmp_dir/initial-raw.json" initial
+if ! list_all_deployments "$tmp_dir/initial-raw.json" initial; then
+  write_capacity_failure_receipt "PRE_MUTATION"
+fi
 initial="$(normalize < "$tmp_dir/initial-raw.json")"
 initial_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$initial")"
 initial_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$initial")"
@@ -146,7 +164,9 @@ while IFS= read -r deployment_id; do
   fi
 done < <(jq -r '.[]' <<<"$initial_preview_ids")
 
-list_all_deployments "$tmp_dir/final-raw.json" final
+if ! list_all_deployments "$tmp_dir/final-raw.json" final; then
+  write_capacity_failure_receipt "POST_MUTATION"
+fi
 final="$(normalize < "$tmp_dir/final-raw.json")"
 final_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$final")"
 remaining_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$final")"
