@@ -15,6 +15,7 @@ const terminalReconcilerTestPath = 'scripts/kidults/kpmo/reconcile-continuous-as
 const canonicalContractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const classifierPath = 'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs';
 const resolverPath = 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+const strictExpiryParserPath = 'scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs';
 const errors = [];
 
 function activeWorkflowText(text) {
@@ -54,7 +55,7 @@ function signReceipt(receipt) {
   };
 }
 
-for (const file of [workflowPath, policyPath, auditPath, plannerPath, terminalReconcilerPath, terminalReconcilerTestPath, canonicalContractPath, classifierPath, resolverPath]) {
+for (const file of [workflowPath, policyPath, auditPath, plannerPath, terminalReconcilerPath, terminalReconcilerTestPath, canonicalContractPath, classifierPath, resolverPath, strictExpiryParserPath]) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`required file missing: ${file}`);
 }
 
@@ -66,6 +67,7 @@ if (!errors.length) {
   const terminalReconciler = fs.readFileSync(path.join(root, terminalReconcilerPath), 'utf8');
   const terminalReconcilerTest = fs.readFileSync(path.join(root, terminalReconcilerTestPath), 'utf8');
   const policy = JSON.parse(fs.readFileSync(path.join(root, policyPath), 'utf8'));
+  const strictExpiryParser = fs.readFileSync(path.join(root, strictExpiryParserPath), 'utf8');
 
   const requiredWorkflowMarkers = [
     "cron: '17,47 * * * *'",
@@ -94,6 +96,8 @@ if (!errors.length) {
     'ref: ${{ env.KPMO_SOURCE_SHA }}',
     'classify-canonical-identity:',
     'Resolve bounded ephemeral canonical leader or alias',
+    'read-strict-json-boolean-v1.mjs --self-test',
+    'read-strict-json-boolean-v1.mjs expired',
     'kidults-continuous-assurance-canonical-${KPMO_CANONICAL_KEY#sha256:}',
     'KPMO_EXECUTE_FULL_AUDIT',
     'KPMO_EPHEMERAL_ACTIONS_LEADER',
@@ -135,6 +139,8 @@ if (!errors.length) {
     '"applicable":${{ github.event_name == \'workflow_run\' && github.event.workflow_run.name == \'KPMO Live Canonical Issue Truth V1\' }}'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
+  if (activeWorkflow.includes(".expired // true")) errors.push('unsafe jq boolean coalescing reintroduced for artifact expiry');
+  if (!strictExpiryParser.includes("typeof value[field] !== 'boolean'") || !strictExpiryParser.includes('Object.prototype.hasOwnProperty.call(value, field)')) errors.push('strict artifact expiry parser lost required type/presence checks');
   if (!/- name: Run audit and always retain receipt\n\s+id: audit_receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
   if (!/audit:\n[\s\S]*?concurrency:\n\s+group: \$\{\{ needs\.classify-canonical-identity\.outputs\.concurrency_group \}\}\n\s+cancel-in-progress: false/.test(activeWorkflow)) errors.push('canonical audit job concurrency binding missing');
   for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'cancel-in-progress: true', '-f head_sha=', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
