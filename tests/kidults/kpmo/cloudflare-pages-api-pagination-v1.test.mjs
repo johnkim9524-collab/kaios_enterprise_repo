@@ -26,6 +26,9 @@ for (const marker of ['is_skipped', 'skip_reason', 'materialized', 'latest-attem
   assert.equal(source.readonly.includes(marker), true, `readonly marker missing: ${marker}`);
 }
 assert.equal(source.cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), true);
+for (const marker of ['BLOCKED_INVENTORY_CAPACITY', 'PRE_MUTATION', 'POST_MUTATION', 'production_preservation_verified:false']) {
+  assert.equal(source.cleanup.includes(marker), true, `cleanup capacity marker missing: ${marker}`);
+}
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cf-pagination-'));
 process.on('exit', () => fs.rmSync(temp, {recursive: true, force: true}));
@@ -135,6 +138,29 @@ assert.equal(readbackReceipt.reason_code, 'DEPLOYMENT_INVENTORY_READBACK_FAILED'
 assert.equal(readbackReceipt.deployment_inventory_complete, false);
 assert.equal(readbackReceipt.capacity_state, 'READBACK_ERROR');
 assert.equal(readbackReceipt.promotion_eligible, false);
+
+const cleanupCapacityReceiptDir = path.join(temp, 'cleanup-capacity-receipt');
+const cleanupCapacityRun = spawnSync('bash', [files.cleanup, '--inventory'], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    RECEIPT_DIR: cleanupCapacityReceiptDir,
+    MAX_PAGES: '1',
+  },
+});
+assert.equal(cleanupCapacityRun.status, 68, cleanupCapacityRun.stderr || cleanupCapacityRun.stdout);
+const cleanupCapacityReceipt = JSON.parse(fs.readFileSync(path.join(cleanupCapacityReceiptDir, 'final.json')));
+assert.equal(cleanupCapacityReceipt.state, 'BLOCKED_INVENTORY_CAPACITY');
+assert.equal(cleanupCapacityReceipt.reason_code, 'DEPLOYMENT_INVENTORY_PAGE_LIMIT');
+assert.equal(cleanupCapacityReceipt.inventory_stage, 'PRE_MUTATION');
+assert.equal(cleanupCapacityReceipt.deletion_performed, false);
+assert.equal(cleanupCapacityReceipt.production_preservation_verified, false);
+assert.equal(cleanupCapacityReceipt.promotion_eligible, false);
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
