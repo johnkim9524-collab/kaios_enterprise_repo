@@ -444,6 +444,12 @@ jobs:
             test -f "/tmp/kidults-asi-p1-source-preflight-v1/$NAME"
             cp -- "/tmp/kidults-asi-p1-source-preflight-v1/$NAME" "/tmp/kidults-asi-p1-authoritative-v1/$NAME"
           done
+          for NAME in \
+            p0b-source-candidate-registry-v1.json \
+            p0b-mission-candidate-binding-ledger-v1.json; do
+            test -f "/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/$NAME"
+            cp -- "/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/$NAME" "/tmp/kidults-asi-p1-authoritative-v1/$NAME"
+          done
           cp -- /tmp/kidults-asi-p1-source-preflight-receipt-v1.json /tmp/kidults-asi-p1-authoritative-v1/
           python3 - <<'PY'
           import json, os, stat
@@ -453,6 +459,15 @@ jobs:
           receipt_path = os.path.join(root, receipt_name)
           maximum_entry = 8 * 1024 * 1024
           maximum_total = 32 * 1024 * 1024
+          expected_payload_names = {
+              "p0b-source-candidate-registry-v1.json",
+              "p0b-mission-candidate-binding-ledger-v1.json",
+              "p1-gate1-source-safety-decisions-v1.json",
+              "p1-evidence-admission-candidate-register-v1.json",
+              "p1-preflight-action-queue-v1.json",
+              "p1-source-preflight-manifest-v1.json",
+              "kidults-asi-p1-source-preflight-receipt-v1.json",
+          }
 
           def serialize_final_receipt(payload_files, payload_total):
               receipt_file = {"name": receipt_name, "bytes": 0}
@@ -502,6 +517,12 @@ jobs:
                   raise SystemExit(f"P1_AUTHORITATIVE_ENTRY_SIZE_LIMIT:{name}:{info.st_size}")
               payload_total += info.st_size
               payload_files.append({"name": name, "bytes": info.st_size})
+
+          actual_payload_names = {item["name"] for item in payload_files}
+          if actual_payload_names != expected_payload_names:
+              missing = sorted(expected_payload_names - actual_payload_names)
+              extra = sorted(actual_payload_names - expected_payload_names)
+              raise SystemExit(f"P1_AUTHORITATIVE_REQUIRED_PAYLOAD_SET_MISMATCH:missing={missing}:extra={extra}")
 
           try:
               serialize_final_receipt(
