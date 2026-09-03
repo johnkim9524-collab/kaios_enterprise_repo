@@ -33,6 +33,11 @@ function fixture() {
 
 test('approved engine, atomic wrapper, ledger and tests pass the entrypoint guard', () => {
   assert.equal(validateCurrentSoldCanonicalEntrypoint(fixture()).state, 'PASS');
+  assert.equal(
+    fs.existsSync(path.join(repositoryRoot, '.github/workflows/kpmo-pr1921-dev-snapshot-export-v1.yml')),
+    false,
+    'PR1921 development snapshot export workflow must remain absent',
+  );
 });
 
 test('a production consumer cannot call the low-level observation normalizer directly', () => {
@@ -57,14 +62,4 @@ test('private dry-run must retain the atomic batch entrypoint', () => {
     'export function run(){};');
   assert.throws(() => validateCurrentSoldCanonicalEntrypoint(root),
     /CURRENT_SOLD_CANONICAL_ENTRYPOINT_BYPASS/);
-});
-
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-
-test('PR-specific development snapshot exporter cannot become permanent workflow surface', () => {
-  assert.equal(
-    fs.existsSync(path.join(repositoryRoot, '.github/workflows/kpmo-pr1921-dev-snapshot-export-v1.yml')),
-    false,
-    'PR1921 development snapshot export workflow must remain absent',
-  );
 });
