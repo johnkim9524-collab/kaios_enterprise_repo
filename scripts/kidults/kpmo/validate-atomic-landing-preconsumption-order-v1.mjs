@@ -62,8 +62,8 @@ assert(lifecycleApprovalTokens.every(token => lifecyclePreflight.includes(token)
   'ATOMIC_LANDING_COMPLETE_OWNER_APPROVAL_PREFLIGHT_MISSING');
 
 const approvalSelection = oneUsePreflight.indexOf('const programOwnerApproval = selectExactHeadProgramOwnerApproval');
-const receiptValidation = oneUsePreflight.indexOf('assertAtomicLandingConsumptionReceipt(receipt, {');
-const receiptWrite = oneUsePreflight.indexOf('writeReceipt(receipt, receiptPath);');
+const receiptValidation = oneUsePreflight.lastIndexOf('assertAtomicLandingConsumptionReceipt(receipt, {');
+const receiptWrite = oneUsePreflight.lastIndexOf('writeReceipt(receipt, receiptPath);');
 assert(approvalSelection >= 0 && receiptValidation > approvalSelection && receiptWrite > receiptValidation,
   'ATOMIC_LANDING_CONSUMPTION_WRITTEN_BEFORE_COMPLETE_VALIDATION');
 assert(oneUsePreflight.includes('complete_owner_approval_contract_validated_before_consumption: true')
