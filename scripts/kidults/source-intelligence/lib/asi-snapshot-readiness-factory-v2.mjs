@@ -286,9 +286,15 @@ export function deriveReadiness(inputs, contract, samplePolicy) {
   requireCondition(p0Registry.id === 'kidults-asi-p0b-source-candidate-registry-v1' && p0Registry.canonical_candidate_count > 0, 'P0B_REGISTRY_INVALID');
   requireCondition(p0Bindings.id === 'kidults-asi-p0b-mission-candidate-binding-ledger-v1' && p0Bindings.mission_count === 192 && p0Bindings.bindings?.length === 192, 'P0B_BINDINGS_INVALID');
   requireCondition(p0Manifest.id === 'kidults-asi-p0b-bounded-discovery-manifest-v1', 'P0B_MANIFEST_INVALID');
-  requireCondition(p1Gate.id === 'kidults-asi-p1-gate1-source-safety-decisions-v1' && p1Gate.decision_count === 576 && p1Gate.decisions?.length === 576, 'P1_GATE_INVALID');
-  requireCondition(p1Admission.id === 'kidults-asi-p1-evidence-admission-candidate-register-v1' && p1Admission.candidate_count === 576 && p1Admission.candidates?.length === 576, 'P1_ADMISSION_INVALID');
-  requireCondition(p1Actions.id === 'kidults-asi-p1-preflight-action-queue-v1' && p1Actions.action_count === 672 && p1Actions.actions?.length === 672, 'P1_ACTIONS_INVALID');
+  requireCondition(p1Gate.id === 'kidults-asi-p1-gate1-source-safety-decisions-v1'
+    && Number.isInteger(p1Gate.decision_count) && p1Gate.decision_count > 0
+    && Array.isArray(p1Gate.decisions) && p1Gate.decisions.length === p1Gate.decision_count, 'P1_GATE_INVALID');
+  requireCondition(p1Admission.id === 'kidults-asi-p1-evidence-admission-candidate-register-v1'
+    && Number.isInteger(p1Admission.candidate_count) && p1Admission.candidate_count > 0
+    && Array.isArray(p1Admission.candidates) && p1Admission.candidates.length === p1Admission.candidate_count, 'P1_ADMISSION_INVALID');
+  requireCondition(p1Actions.id === 'kidults-asi-p1-preflight-action-queue-v1'
+    && Number.isInteger(p1Actions.action_count) && p1Actions.action_count > 0
+    && Array.isArray(p1Actions.actions) && p1Actions.actions.length === p1Actions.action_count, 'P1_ACTIONS_INVALID');
   requireCondition(p1Manifest.id === 'kidults-asi-p1-source-preflight-manifest-v1', 'P1_MANIFEST_INVALID');
   requireCondition(p2Graph.id === 'kidults-owned-source-intelligence-graph-v2' && p2Graph.version === '2.0.0', 'P2_GRAPH_INVALID');
   requireCondition(p2Lineage.id === 'kidults-owned-source-intelligence-lineage-v2' && p2Lineage.graph?.digest === hashText(stableJson(p2Graph)), 'P2_LINEAGE_INVALID');
