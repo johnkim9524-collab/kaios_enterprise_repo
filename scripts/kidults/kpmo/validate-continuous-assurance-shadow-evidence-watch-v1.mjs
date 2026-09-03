@@ -29,7 +29,9 @@ function validate(source) {
     'GH_TOKEN: ${{ github.token }}',
     'SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
     'SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}',
+    'SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}',
     'SHADOW_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}',
+    '[[ "$SHADOW_UPSTREAM_EVENT" =~ ^(schedule|push|workflow_dispatch)$ ]]',
     'test "$SHADOW_UPSTREAM_CONCLUSION" = "success"',
     '/actions/runs/${SHADOW_UPSTREAM_RUN_ID}',
     '.name=="KIDULTS ASI SHADOW Operating Evidence v1"',
@@ -37,7 +39,8 @@ function validate(source) {
     '.repository.full_name==$repo',
     '.head_branch=="main"',
     'and .head_sha==$sha',
-    'and .event=="workflow_run"',
+    '--arg event "$SHADOW_UPSTREAM_EVENT"',
+    'and .event==$event',
     '.status=="completed"',
     '.conclusion=="success"',
     '/actions/runs/${SHADOW_UPSTREAM_RUN_ID}/artifacts?per_page=100',
@@ -50,10 +53,15 @@ function validate(source) {
     if (!block.includes(marker)) fail(`MISSING_IN_SHADOW_BINDING:${marker}`);
   }
 
+  if (block.includes('and .event=="workflow_run"')) {
+    fail('HARDCODED_CONSUMER_EVENT_FORBIDDEN');
+  }
+
   const runHeadIndex = block.indexOf('and .head_sha==$sha');
-  const runStatusIndex = block.indexOf('and .status=="completed"', runHeadIndex + 1);
-  if (runHeadIndex < 0 || runStatusIndex <= runHeadIndex) {
-    fail('RUN_LEVEL_EXACT_SHA_BINDING_MISSING');
+  const eventBindingIndex = block.indexOf('and .event==$event', runHeadIndex + 1);
+  const runStatusIndex = block.indexOf('and .status=="completed"', eventBindingIndex + 1);
+  if (runHeadIndex < 0 || eventBindingIndex <= runHeadIndex || runStatusIndex <= eventBindingIndex) {
+    fail('RUN_LEVEL_SHA_EVENT_STATUS_BINDING_MISSING');
   }
 
   const runBindingCount = countMatches(block, /\.workflow_run\.id==\$run/g);
@@ -75,10 +83,13 @@ validate(text);
 const mutations = [
   ["      - 'KIDULTS ASI SHADOW Operating Evidence v1'\n", ''],
   ['GH_TOKEN: ${{ github.token }}\n', ''],
+  ['SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}\n', ''],
+  ['[[ "$SHADOW_UPSTREAM_EVENT" =~ ^(schedule|push|workflow_dispatch)$ ]]', '[[ "$SHADOW_UPSTREAM_EVENT" =~ ^(schedule|push|workflow_dispatch|pull_request|workflow_run)$ ]]'],
   ['test "$SHADOW_UPSTREAM_CONCLUSION" = "success"', 'test -n "$SHADOW_UPSTREAM_CONCLUSION"'],
   ['.path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"', '.path!=".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
-  ['and .event=="workflow_run"', 'and .event!="workflow_run"'],
+  ['--arg event "$SHADOW_UPSTREAM_EVENT"', '--arg event "workflow_run"'],
+  ['and .event==$event', 'and .event=="workflow_run"'],
   ['test "$SHADOW_ARTIFACT_COUNT" -eq 1', 'test "$SHADOW_ARTIFACT_COUNT" -ge 1'],
   ['.workflow_run.id==$run', '.workflow_run.id!=$run'],
   ['.workflow_run.head_sha==$sha', '.workflow_run.head_sha!=$sha'],
@@ -110,6 +121,8 @@ console.log(JSON.stringify({
   result: 'VERIFIED_PASS',
   watch_required: true,
   exact_upstream_run_binding: true,
+  exact_upstream_event_binding: true,
+  allowed_producer_events: ['schedule', 'push', 'workflow_dispatch'],
   exact_artifact_cardinality: 1,
   artifact_run_sha_binding_occurrences: pairedBindingCountForReceipt(),
   provider_digest_required: true,
