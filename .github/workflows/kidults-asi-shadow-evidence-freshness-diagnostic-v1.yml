@@ -128,9 +128,8 @@ jobs:
           const dispatchStart = workflow.indexOf("\n  workflow_dispatch:");
           if (pullStart < 0 || dispatchStart <= pullStart) throw new Error("PULL_REQUEST_TRIGGER_NOT_FOUND");
           const patterns = [...workflow.slice(pullStart, dispatchStart).matchAll(/-\s+"([^"]+)"/g)].map(match => match[1]);
-          const covered = (pattern, input) => pattern.endsWith("/**")
-            ? input.startsWith(pattern.slice(0, -3))
-            : pattern === input;
+          const covered = (pattern, input) =>
+            (pattern.endsWith("/**") && input.startsWith(pattern.slice(0, -3))) || pattern === input;
           const missing = required.filter(input => !patterns.some(pattern => covered(pattern, input)));
           for (const negative of [
             "package.json",
