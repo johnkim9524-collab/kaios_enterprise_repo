@@ -51,7 +51,20 @@ if (expansion.seed_selection_mode === 'ROLLING_FAIR_FRONTIER') {
   const expectedDigest = `sha256:${sha(JSON.stringify({ cycle_count: frontier.cycle_count, selected_hosts: frontier.selected_hosts, host_frontier: frontier.host_frontier }))}`;
   if (frontier.frontier_digest !== expectedDigest) fail('FRONTIER_DIGEST');
   const counts = frontier.host_frontier.map(row => Number(row.selected_count));
-  if (counts.some(count => !Number.isInteger(count) || count < 0) || Math.max(...counts) - Math.min(...counts) > 1) fail('FRONTIER_FAIRNESS');
+  if (counts.some(count => !Number.isInteger(count) || count < 0)) fail('FRONTIER_SELECTION_COUNT');
+  const selected = new Set(frontier.selected_hosts);
+  const priorCounts = new Map(frontier.host_frontier.map((row) => [
+    row.host,
+    Number(row.selected_count) - (row.selected_this_cycle === true ? 1 : 0)
+  ]));
+  if ([...priorCounts.values()].some(count => !Number.isInteger(count) || count < 0)) fail('FRONTIER_PRIOR_SELECTION_COUNT');
+  const selectedPrior = [...selected].map(host => priorCounts.get(host));
+  const unselectedPrior = [...priorCounts.entries()].filter(([host]) => !selected.has(host)).map(([, count]) => count);
+  if (selectedPrior.some(count => !Number.isInteger(count))) fail('FRONTIER_SELECTED_HOST_ORPHAN');
+  if (unselectedPrior.length && Math.max(...selectedPrior) > Math.min(...unselectedPrior)) fail('FRONTIER_UNFAIR_LOWER_COUNT_SKIP');
+  const fairnessDelta = Math.max(...counts) - Math.min(...counts);
+  if (Number(frontier.selection_count_delta_after) !== fairnessDelta) fail('FRONTIER_FAIRNESS_DELTA_BINDING');
+  if (fairnessDelta > 1 && frontier.previous_frontier_valid !== true) fail('FRONTIER_UNEXPLAINED_DYNAMIC_POPULATION_SPREAD');
   for (const row of frontier.host_frontier) {
     if (row.rights_state !== 'UNASSESSED' || row.admission_state !== 'NOT_ADMITTED' || row.acquisition_authorized !== false || row.target_site_body_crawled !== false || row.production !== 'HOLD') fail(`FRONTIER_HOST_PROMOTION:${row.host}`);
   }
