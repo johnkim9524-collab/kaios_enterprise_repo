@@ -19,6 +19,7 @@ if (expansion.public_release !== 'HOLD' || expansion.production !== 'HOLD') fail
 if (typeof expansion.frontier_runtime_managed !== 'boolean' || !allowedBootstrapStates.has(expansion.seed_frontier_bootstrap_state)) fail('FRONTIER_RUNTIME_STATE');
 if (typeof expansion.seed_frontier_previous_snapshot_found !== 'boolean' || !allowedPreviousSources.has(expansion.seed_frontier_previous_snapshot_source)) fail('PREVIOUS_SNAPSHOT_STATE');
 if (!allowedSeedModes.has(expansion.seed_selection_mode)) fail('SEED_SELECTION_MODE');
+if (expansion.seed_selection_mode === 'LEGACY_FIRST_SEEN_FAIL_SAFE' || expansion.seed_frontier_bootstrap_state === 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE') fail('LEGACY_FRONTIER_FALLBACK_FORBIDDEN');
 if (!Array.isArray(expansion.seed_hosts) || expansion.seed_hosts.length !== Number(expansion.seed_host_count) || expansion.seed_hosts.length < 1 || expansion.seed_hosts.length > 8) fail('SEED_BUDGET');
 if (new Set(expansion.seed_hosts).size !== expansion.seed_hosts.length) fail('DUPLICATE_SEED_HOST');
 if (!Array.isArray(expansion.seed_host_results) || expansion.seed_host_results.length !== expansion.seed_hosts.length) fail('SEED_RESULTS_COUNT');
