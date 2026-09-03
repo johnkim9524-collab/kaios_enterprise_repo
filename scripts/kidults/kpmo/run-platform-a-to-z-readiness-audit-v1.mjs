@@ -219,6 +219,8 @@ const evidencePaths = [...new Set([
   'scripts/kidults/kpmo/validate-continuous-assurance-ephemeral-guard-v1.mjs',
   'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs',
   'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs',
+  'scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.mjs',
+  'scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.test.mjs',
   'scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs',
   ...[...sentinelChecks, ...deepChecks, ...deepEphemeralChecks].map((entry) => entry[2][0]),
   'coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json',
