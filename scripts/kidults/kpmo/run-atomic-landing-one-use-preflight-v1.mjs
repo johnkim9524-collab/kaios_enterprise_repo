@@ -209,6 +209,17 @@ async function main() {
     if (!response.ok) fail(`ATOMIC_ONE_USE_GITHUB_API_${response.status}`, apiPath);
     return payload;
   };
+  const pages = async apiPath => {
+    const all = [];
+    for (let page = 1; page <= 10; page += 1) {
+      const separator = apiPath.includes('?') ? '&' : '?';
+      const values = await request(`${apiPath}${separator}per_page=100&page=${page}`);
+      assert(Array.isArray(values), 'ATOMIC_ONE_USE_PAGINATION_SHAPE_INVALID', apiPath);
+      all.push(...values);
+      if (values.length < 100) return all;
+    }
+    fail('ATOMIC_ONE_USE_PAGINATION_BOUND_EXCEEDED', apiPath);
+  };
 
   const [repositoryState, currentRun] = await Promise.all([
     request(''),
@@ -256,8 +267,8 @@ async function main() {
   const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
-    request(`/issues/${prNumber}/timeline?per_page=100`),
-    request(`/issues/${prNumber}/comments?per_page=100`),
+    pages(`/issues/${prNumber}/timeline`),
+    pages(`/issues/${prNumber}/comments`),
     request(`/commits/${headSha}`),
   ]);
 
