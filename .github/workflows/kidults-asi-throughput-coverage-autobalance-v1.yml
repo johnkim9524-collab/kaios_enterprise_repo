@@ -27,6 +27,10 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs --self-test
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
+          if grep -q 'active_admitted_count' scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs; then
+            echo '::error title=Autobalance schema drift::HISTORICAL_ACTIVE_ADMITTED_ALIAS_REINTRODUCED' >&2
+            exit 1
+          fi
       - name: Build deterministic synthetic full-chain fixture
         run: |
           mkdir -p /tmp/autobalance-fixture discovery-out
@@ -36,15 +40,25 @@ jobs:
           const fam=i=>i<10?'PRIMARY_OR_OFFICIAL_AUTHORITY':i<15?'OPEN_MARKETPLACE_OR_DEALER':i<17?'GRADING_AUTHENTICATION_OR_CONDITION':i<20?'MEDIA_COMMUNITY_OR_EVENT_CONTEXT':'UNCLASSIFIED_ANY_SITE_CANDIDATE';
           for(let i=0;i<40;i++) candidates.push({candidate_id:`c${i}`,scope_hint:i<30?'designer_toys':'mechanical_watches',target_regions:i<35?['NORTH_AMERICA']:['EUROPE'],discovery_provider:i<32?'P1':'P2',source_family_hint:fam(i)});
           fs.writeFileSync('discovery-out/global-low-risk-discovery-governed-v2.json',JSON.stringify({candidate_count:40,live_external_candidate_count:36,candidates}));
-          fs.writeFileSync('/tmp/autobalance-fixture/g1.json',JSON.stringify({safe_candidate_count:10,safe_candidate_pool:candidates.slice(0,10),review_required_queue:candidates.slice(10),hard_block_queue:[]}));
-          fs.writeFileSync('/tmp/autobalance-fixture/g2.json',JSON.stringify({verified_for_gate3_count:6}));
-          fs.writeFileSync('/tmp/autobalance-fixture/g3.json',JSON.stringify({admitted_count:4}));
-          fs.writeFileSync('/tmp/autobalance-fixture/ap.json',JSON.stringify({active_admitted_count:3}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g1.json',JSON.stringify({input_candidate_count:20,safe_candidate_count:10,review_required_count:10,hard_block_count:0,safe_candidate_pool:candidates.slice(0,10),review_required_queue:candidates.slice(10,20),hard_block_queue:[]}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g2.json',JSON.stringify({input_safe_candidate_count:10,verified_for_gate3_count:6,conditional_approval_required_count:1,needs_clarification_count:1,blocked_count:1,stale_gate1_count:1,verified_eligible_pool:candidates.slice(0,6),conditional_approval_queue:[candidates[6]],needs_clarification_queue:[candidates[7]],blocked_queue:[candidates[8]],stale_gate1_revalidation_queue:[candidates[9]]}));
+          fs.writeFileSync('/tmp/autobalance-fixture/g3.json',JSON.stringify({input_verified_for_gate3_count:6,admitted_count:4,external_approval_required_count:1,conditional_hold_count:0,rejected_count:1,bounded_metadata_index_admission_pool:candidates.slice(0,4),external_approval_queue:[candidates[4]],conditional_hold_queue:[],rejected_queue:[candidates[5]]}));
+          fs.writeFileSync('/tmp/autobalance-fixture/ap.json',JSON.stringify({active_count:3,stale_revalidation_count:1,revoked_block_count:0,active_admitted_metadata_pool:candidates.slice(0,3),stale_revalidation_queue:[candidates[3]],revoked_block_queue:[]}));
           NODE
       - name: Build and validate autobalance plan
         run: |
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/autobalance-fixture/g1.json /tmp/autobalance-fixture/g2.json /tmp/autobalance-fixture/g3.json /tmp/autobalance-fixture/ap.json /tmp/asi-throughput-coverage-autobalance-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-v1.json
+          node - <<'NODE'
+          const x=JSON.parse(require('fs').readFileSync('/tmp/asi-throughput-coverage-autobalance-v1.json','utf8'));
+          if(x.throughput.gate1_input!==20||x.throughput.gate1_safe!==10||x.throughput.gate2_verified!==6||x.throughput.gate3_admitted!==4||x.throughput.active_admitted!==3)throw new Error(`AUTOBALANCE_GATE_CARDINALITY_OUTPUT_DRIFT:${JSON.stringify(x.throughput)}`);
+          NODE
+      - name: Reject gate-cardinality tamper
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-throughput-coverage-autobalance-v1.json'));x.throughput.active_admitted=x.throughput.gate3_admitted+1;fs.writeFileSync('/tmp/bad-gate-cardinality-autobalance.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/bad-gate-cardinality-autobalance.json; then exit 1; fi
       - name: Reject rights-gate weakening mutation
         run: |
           node - <<'NODE'
