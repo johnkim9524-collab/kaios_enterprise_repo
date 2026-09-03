@@ -283,7 +283,7 @@ for (const marker of [
   'canonical_policy_tier_weakening_rejected: true',
   "canonical_canary_tier: 'CANARY'",
   'canonical_canary_sample_size: 5',
-  'negative_mutation_cases: 34',
+  'negative_mutation_cases: 36',
   "generated_pair_state: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING'",
   'artifact_attestation_verified: false',
 ]) assert(livenessTest.includes(marker), `LIVENESS_TEST_MARKER:${marker}`);

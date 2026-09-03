@@ -135,7 +135,7 @@ for (const [from, to, label] of workflowMutations) {
     console.error(`Autonomous Resolution provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  if (failuresFor(workflowSource.replace(from, to), builderSource, runHistorySource).length === 0) {
+  if (failuresFor(workflowSource.replaceAll(from, to), builderSource, runHistorySource).length === 0) {
     console.error(`Autonomous Resolution provenance self-test failed to reject: ${label}`);
     process.exit(3);
   }
