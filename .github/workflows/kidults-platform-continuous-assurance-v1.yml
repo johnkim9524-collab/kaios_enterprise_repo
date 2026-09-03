@@ -438,12 +438,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
           SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
           SHADOW_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$SHADOW_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$SHADOW_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$SHADOW_UPSTREAM_EVENT" =~ ^(schedule|push|workflow_dispatch)$ ]]
           test "$SHADOW_UPSTREAM_CONCLUSION" = "success"
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${SHADOW_UPSTREAM_RUN_ID}" \
@@ -452,13 +454,14 @@ jobs:
             --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
             --arg sha "$SHADOW_UPSTREAM_SHA" \
             --arg repo "$GITHUB_REPOSITORY" \
+            --arg event "$SHADOW_UPSTREAM_EVENT" \
             '.id==$run
              and .name=="KIDULTS ASI SHADOW Operating Evidence v1"
              and .path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and .event==$event
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
@@ -486,9 +489,10 @@ jobs:
           jq -n \
             --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
             --arg sha "$SHADOW_UPSTREAM_SHA" \
+            --arg event "$SHADOW_UPSTREAM_EVENT" \
             --argjson artifact "$SHADOW_ARTIFACT_ID" \
             --arg digest "$SHADOW_ARTIFACT_DIGEST" \
-            '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,artifact_id:$artifact,artifact_digest:$digest,production:"HOLD"}' \
+            '{status:"VERIFIED_PASS",upstream_run_id:$run,upstream_sha:$sha,upstream_event:$event,artifact_id:$artifact,artifact_digest:$digest,promotion_eligible:false,production:"HOLD",public:"HOLD"}' \
             > "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json"
           echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
 
