@@ -105,6 +105,8 @@ req(readonly.includes('api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page
 req(readonly.includes('capacity_state:$capacity_state') && readonly.includes('promotion_eligible:false'), 'READONLY_CAPACITY_TRUTH_BOUND');
 req(readonly.includes('APPROVAL_BOUND_V1') && readonly.includes('LEGACY_GOVERNED_V1'), 'READONLY_GOVERNED_LINEAGE_FORMATS');
 req(cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_PREVIEW_ONLY');
+req(cleanup.includes('BLOCKED_INVENTORY_CAPACITY') && cleanup.includes('PRE_MUTATION') && cleanup.includes('POST_MUTATION'), 'CLEANUP_CAPACITY_TERMINAL_RECEIPTS');
+req(cleanup.includes('production_preservation_verified:false') && cleanup.includes('promotion_eligible:false'), 'CLEANUP_CAPACITY_TRUTH_BOUND');
 req(cleanup.includes('test "$initial_production_ids" = "$final_production_ids"'), 'PRODUCTION_HISTORY_GUARD');
 req(!cleanup.includes('select(.environment == "production") | .id | @sh'), 'NO_PROD_DELETE');
 req(contain.includes('.config.production_deployments_enabled = false'), 'CONTAIN_PRODUCTION_OFF');
