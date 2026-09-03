@@ -14,10 +14,15 @@ function validate(text) {
 
   rejectText('/actions/artifacts?per_page=100', 'repository-global artifact lookup');
   rejectText('-f status=success', 'single-shot success-only producer lookup');
+  rejectText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs', 'retired v1 producer workflow lookup');
+  rejectText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"', 'retired v1 producer path binding');
+  rejectText('.name=="kidults-asi-global-any-site-source-pool-v1"', 'retired v1 source-pool artifact');
+  rejectText('.name=="kidults-asi-global-any-site-hourly-cycle-v1"', 'retired v1 hourly-cycle artifact');
 
-  requireText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml/runs', 'canonical producer workflow-run lookup');
+  requireText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs', 'canonical producer workflow-run lookup');
   requireText('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100', 'run-scoped artifact lookup');
-  requireText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"', 'canonical producer path binding');
+  requireText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"', 'canonical producer path binding');
+  requireText('.name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"', 'canonical producer name binding');
   requireText('.head_sha==$sha', 'exact producer SHA binding');
   requireText('EXPECTED_PRODUCER_SHA="$CURRENT_SHA"', 'current-main exact-generation binding');
   requireText('test "$GITHUB_REF" = "refs/heads/main"', 'non-PR protected-main gate');
@@ -33,7 +38,7 @@ function validate(text) {
   const prBoundaryMatches = text.match(/if: github\.event_name != 'pull_request'/g) || [];
   if (prBoundaryMatches.length < 5) failures.push('missing PR structural/live execution separation');
 
-  for (const artifactName of ['kidults-asi-global-any-site-source-pool-v1','kidults-asi-global-any-site-hourly-cycle-v1']) {
+  for (const artifactName of ['kidults-asi-global-any-site-source-pool-v2','kidults-asi-global-any-site-hourly-cycle-v2']) {
     requireText(`.name=="${artifactName}"`, `${artifactName} selection`);
   }
   const cardinalityMatches = text.match(/\]\s*\|\s*if length==1 then \.\[0\] else empty end/g) || [];
@@ -64,7 +69,7 @@ const mutations = [
   ['.workflow_run.id==$run','.workflow_run.id>0'],
   ['.workflow_run.head_sha==$sha','.workflow_run.head_branch=="main"'],
   ['if length==1 then .[0] else empty end','.[0] // empty'],
-  ['.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"','.head_branch=="main"'],
+  ['.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"','.head_branch=="main"'],
   ['EXPECTED_PRODUCER_SHA="$CURRENT_SHA"','EXPECTED_PRODUCER_SHA=""'],
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],

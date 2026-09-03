@@ -1,0 +1,47 @@
+name: KPMO PR1917 Branch Snapshot Export V1
+run-name: KPMO PR1917 snapshot / ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - 'kpmo/p1-asi-orchestration-integrated-609298-v1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-pr1917-branch-snapshot-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  export-source-snapshot:
+    if: github.repository == 'johnkim9524-collab/kaios_enterprise_repo' && github.actor == 'johnkim9524-collab'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Package exact branch source snapshot
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          tar -czf /tmp/kpmo-pr1917-source-snapshot.tgz \
+            .github/workflows \
+            scripts/kidults \
+            coordination/kidults \
+            services/kidults-autonomous-intelligence/package.json \
+            package.json \
+            npm-shrinkwrap.json \
+            artifacts/agci-os/asi-shadow-operating-evidence-v1.json
+          sha256sum /tmp/kpmo-pr1917-source-snapshot.tgz | tee /tmp/kpmo-pr1917-source-snapshot.sha256
+      - name: Retain exact branch source snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-pr1917-source-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kpmo-pr1917-source-snapshot.tgz
+            /tmp/kpmo-pr1917-source-snapshot.sha256
+          retention-days: 1
+          if-no-files-found: error
