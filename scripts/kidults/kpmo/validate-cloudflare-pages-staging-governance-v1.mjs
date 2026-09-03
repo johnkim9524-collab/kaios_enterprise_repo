@@ -97,6 +97,9 @@ for (const script of [readonly, deployScript]) {
 req(readonly.includes('legacy_deployments_enabled_authoritative:false'), 'READONLY_LEGACY_INFORMATIONAL');
 req(readonly.includes('preview_branch_rules_authoritative_only_when_custom:true'), 'READONLY_PREVIEW_RULE_SCOPE');
 req(readonly.includes('select(.environment == "preview" and .materialized == true)'), 'READONLY_MATERIALIZED_PREVIEW');
+req(readonly.includes('"$skipped_preview_attempt_count" -eq 0'), 'READONLY_SKIPPED_ATTEMPTS_FAIL_CLOSED');
+req(readonly.includes('BLOCKED_INVENTORY_CAPACITY') && readonly.includes('DEPLOYMENT_INVENTORY_PAGE_LIMIT'), 'READONLY_CAPACITY_TERMINAL_RECEIPT');
+req(readonly.includes('capacity_state:$capacity_state') && readonly.includes('promotion_eligible:false'), 'READONLY_CAPACITY_TRUTH_BOUND');
 req(readonly.includes('APPROVAL_BOUND_V1') && readonly.includes('LEGACY_GOVERNED_V1'), 'READONLY_GOVERNED_LINEAGE_FORMATS');
 req(cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_PREVIEW_ONLY');
 req(cleanup.includes('test "$initial_production_ids" = "$final_production_ids"'), 'PRODUCTION_HISTORY_GUARD');
