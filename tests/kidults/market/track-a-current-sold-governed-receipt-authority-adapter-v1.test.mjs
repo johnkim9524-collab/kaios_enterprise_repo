@@ -162,17 +162,68 @@ test('inactive, wrong-issuer and non-Ed25519 trust material fail closed', () => 
 test('nonce consumption is 0600, sanitized and replay-safe', async () => {
   const fx = fixture(); const receipt = verify(fx);
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'csra-nonce-')); fs.chmodSync(directory, 0o700);
-  const consumed = await consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, now: NOW });
+  const consumed = await consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: NOW });
   assert.equal(consumed.status, 'CONSUMED');
   assert.equal(fs.statSync(consumed.receipt_path).mode & 0o777, 0o600);
   assert.equal(fs.readFileSync(consumed.receipt_path, 'utf8').includes(fx.payload.nonce), false);
-  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, now: NOW }), /CSRA_NONCE_REPLAY/);
+  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: NOW }), /CSRA_NONCE_REPLAY/);
 });
 
+test('nonce consumption re-verifies signed inputs and rejects detached forgery or mutation', async () => {
+  const fx = fixture();
+  const receipt = verify(fx);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'csra-boundary-'));
+  fs.chmodSync(directory, 0o700);
+
+  const forged = {
+    status: 'PASS',
+    authority: { signature_verified: true },
+    expires_at: '2026-09-03T03:30:00.000Z',
+    nonce_digest: 'sha256:' + '1'.repeat(64),
+    authority_binding_digest: 'sha256:' + '2'.repeat(64),
+  };
+  await assert.rejects(
+    () => consumeGovernedReceiptRegistryAuthority(forged, {
+      nonceDirectory: directory,
+      now: NOW,
+    }),
+    /CSRA_CONSUMPTION_VERIFICATION_INPUTS_REQUIRED/
+  );
+  await assert.rejects(
+    () => consumeGovernedReceiptRegistryAuthority(forged, {
+      nonceDirectory: directory,
+      verificationInputs: fx.inputs(),
+      now: NOW,
+    }),
+    /CSRA_VERIFICATION_RECEIPT_STALE_OR_TAMPERED/
+  );
+
+  const tampered = structuredClone(receipt);
+  tampered.authorized_record_count = 2;
+  await assert.rejects(
+    () => consumeGovernedReceiptRegistryAuthority(tampered, {
+      nonceDirectory: directory,
+      verificationInputs: fx.inputs(),
+      now: NOW,
+    }),
+    /CSRA_VERIFICATION_RECEIPT_STALE_OR_TAMPERED/
+  );
+
+  fx.registry.acquisitions[0].content_digest = 'sha256:' + '9'.repeat(64);
+  await assert.rejects(
+    () => consumeGovernedReceiptRegistryAuthority(receipt, {
+      nonceDirectory: directory,
+      verificationInputs: fx.inputs(),
+      now: NOW,
+    }),
+    /CSRA_REGISTRY_DIGEST_MISMATCH/
+  );
+  assert.deepEqual(fs.readdirSync(directory), []);
+});
 test('nonce consumption rejects insecure directories and expired authority', async () => {
   const fx = fixture(); const receipt = verify(fx);
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'csra-mode-')); fs.chmodSync(directory, 0o755);
-  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, now: NOW }), /CSRA_NONCE_DIRECTORY_INVALID/);
+  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: NOW }), /CSRA_NONCE_DIRECTORY_INVALID/);
   fs.chmodSync(directory, 0o700);
-  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, now: new Date('2026-09-03T03:31:00.000Z') }), /CSRA_CONSUME_EXPIRED/);
+  await assert.rejects(() => consumeGovernedReceiptRegistryAuthority(receipt, { nonceDirectory: directory, verificationInputs: fx.inputs(), now: new Date('2026-09-03T03:31:00.000Z') }), /CSRA_CONSUME_EXPIRED/);
 });
