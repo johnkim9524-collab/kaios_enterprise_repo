@@ -25,6 +25,8 @@ assert(contract.required_outputs.length===5&&JSON.stringify(registry.registered_
 for(const [key,expected] of Object.entries({contract:files.contract,builder:files.builder,validator:files.validator,registry_validator:files.registryValidator,workflow:files.workflow,human_readme:files.doc}))assert(registry.registered_assets?.[key]===expected,`REGISTRY_PATH:${key}`);
 assert(registry.registered_inputs?.p0b_artifact===contract.authoritative_inputs.p0b_artifact,'P0B_ARTIFACT_BINDING');
 assert(registry.registered_inputs?.p1_artifact===contract.authoritative_inputs.p1_artifact,'P1_ARTIFACT_BINDING');
+assert(registry.registered_inputs?.p1_contract==='coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json','P1_CONTRACT_BINDING');
+assert(registry.current_cardinality_policy?.preflight_actions==='DYNAMIC_RELATIONAL'&&registry.current_cardinality_policy?.rule==='UNIQUE_CANDIDATES_X_P1_CONTRACT_ACTION_TYPES'&&registry.current_cardinality_policy?.historical_empirical_baseline_is_not_current_requirement===true,'P1_ACTION_CARDINALITY_POLICY');
 assert(registry.automatic_activation?.main_push===false&&registry.automatic_activation?.schedule===null,'INDEPENDENT_ACTIVATION_FORBIDDEN');
 assert(JSON.stringify(registry.automatic_activation?.upstream_workflows)===JSON.stringify(contract.automatic_activation.upstream_workflows),'UPSTREAM_WORKFLOWS');
 assert(registry.automatic_activation?.transactional_input_binding==='P0B_AND_P1_ARTIFACTS_FROM_ONE_SUCCESSFUL_P1_RUN'&&registry.automatic_activation.transactional_input_binding===contract.automatic_activation.transactional_input_binding,'TRANSACTIONAL_INPUT_BINDING');
