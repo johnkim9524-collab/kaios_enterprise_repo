@@ -65,15 +65,46 @@ const run = spawnSync('bash', [files.readonly], {
     GITHUB_SHA: '1111111111111111111111111111111111111111',
   },
 });
-assert.equal(run.status, 0, run.stderr || run.stdout);
+assert.notEqual(run.status, 0, 'skipped deployment attempts must fail closed');
 const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-assert.equal(receipt.state, 'COMPLETE_VERIFIED');
+assert.equal(receipt.state, 'VERIFIED_FAIL');
+assert.equal(receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
+assert.equal(receipt.capacity_state, 'RESIDUAL_RED');
+assert.equal(receipt.promotion_eligible, false);
 assert.equal(receipt.visible_preview_count, 0);
 assert.equal(receipt.skipped_preview_attempt_count, 1);
+assert.equal(receipt.deployment_inventory_count, 2);
+assert.equal(receipt.inventory_capacity, 2500);
+assert.equal(receipt.inventory_capacity_remaining, 2498);
 assert.equal(receipt.latest_deployment_governed, true);
 assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
 assert.equal(receipt.settings_mutated, false);
+
+const capacityReceiptDir = path.join(temp, 'capacity-receipt');
+const capacityRun = spawnSync('bash', [files.readonly], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+    RECEIPT_DIR: capacityReceiptDir,
+    GITHUB_SHA: '1111111111111111111111111111111111111111',
+    MAX_PAGES: '1',
+  },
+});
+assert.equal(capacityRun.status, 68, capacityRun.stderr || capacityRun.stdout);
+const capacityReceipt = JSON.parse(fs.readFileSync(path.join(capacityReceiptDir, 'final.json')));
+assert.equal(capacityReceipt.state, 'BLOCKED_INVENTORY_CAPACITY');
+assert.equal(capacityReceipt.reason_code, 'DEPLOYMENT_INVENTORY_PAGE_LIMIT');
+assert.equal(capacityReceipt.deployment_inventory_complete, false);
+assert.equal(capacityReceipt.cloudflare_api_called, true);
+assert.equal(capacityReceipt.capacity_state, 'EXHAUSTED');
+assert.equal(capacityReceipt.promotion_eligible, false);
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
@@ -81,6 +112,8 @@ console.log(JSON.stringify({
   invalid_per_page_100_rejected: true,
   bounded_page_size_25: true,
   skipped_preview_not_materialized: true,
+  skipped_attempt_residual_fail_closed: true,
+  inventory_capacity_exhaustion_durable_red: true,
   latest_materialized_governed_selection: true,
   public_release: 'HOLD',
   production: 'HOLD',
