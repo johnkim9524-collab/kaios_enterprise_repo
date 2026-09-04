@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
-const canonicalIssues = [235,236,237,238,240,256,344,457,479,480,489,521,550,558,559,560,609,742,769,881,921,951,1066,1166,1296];
+export const canonicalIssues = [235,236,237,238,240,256,344,457,479,480,489,521,550,558,559,560,609,742,769,881,921,951,1066,1166,1296];
 const canonicalBlockPattern = /<!-- KPMO_CANONICAL_TRUTH_V2_START -->([\s\S]*?)<!-- KPMO_CANONICAL_TRUTH_V2_END -->/g;
 const exactDigest = value => /^sha256:[0-9a-f]{64}$/.test(String(value || ''));
 
@@ -69,11 +70,7 @@ function parseMembers(raw) {
 }
 export function materialSummary(registry) {
   const sorted = [...registry].sort((a,b) => a.issue_number - b.issue_number);
-  return {
-    count: sorted.length,
-    digest: sha256(sorted),
-    members: sorted.map(item => item.issue_number)
-  };
+  return { count: sorted.length, digest: sha256(sorted), members: sorted.map(item => item.issue_number) };
 }
 export function validateCanonicalBlock(body, expectedMainSha, summary) {
   const block = latestBlock(body);
@@ -97,6 +94,42 @@ export function validateCanonicalBlock(body, expectedMainSha, summary) {
     } catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
   }
   return errors;
+}
+
+function headersFor(token) {
+  return {Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'};
+}
+export async function githubJson(url, headers) {
+  const response = await fetch(url,{headers,signal:AbortSignal.timeout(20000)});
+  const text = await response.text();
+  if (!response.ok) throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0,300)}`);
+  return JSON.parse(text);
+}
+export async function fetchAllOpenIssues(repository, headers) {
+  const out=[]; let total=null;
+  for(let page=1;page<=10;page+=1){
+    const q=encodeURIComponent(`repo:${repository} is:issue is:open`);
+    const data=await githubJson(`https://api.github.com/search/issues?q=${q}&sort=updated&order=desc&per_page=100&page=${page}`,headers);
+    if(data.incomplete_results!==false) throw new Error(`INCOMPLETE_RESULTS:page=${page}`);
+    if(!Number.isInteger(data.total_count)||data.total_count<0||data.total_count>1000) throw new Error(`INVALID_TOTAL:${data.total_count}`);
+    if(total===null) total=data.total_count;
+    if(total!==data.total_count) throw new Error(`CARDINALITY_MOVED:${total}->${data.total_count}`);
+    if(!Array.isArray(data.items)) throw new Error(`INVALID_ITEMS:page=${page}`);
+    out.push(...data.items);
+    if(out.length>=total) break;
+    if(data.items.length===0||page===10) throw new Error(`PAGINATION_TRUNCATED:${out.length}/${total}`);
+  }
+  if(out.length!==total) throw new Error(`CARDINALITY_MISMATCH:${out.length}/${total}`);
+  return out;
+}
+export async function buildLiveMaterialRegistry({repository, token}) {
+  if (!repository || !token) throw new Error('REPOSITORY_OR_TOKEN_MISSING');
+  const headers=headersFor(token);
+  const openIssues=await fetchAllOpenIssues(repository,headers);
+  const parity=openIssues.flatMap(parityFailures);
+  if(parity.length) throw new Error(`SEVERITY_METADATA_MISMATCH:${parity.join(',')}`);
+  const registry=openIssues.map(materialRecord).filter(Boolean).sort((a,b)=>a.issue_number-b.issue_number);
+  return {headers,openIssues,registry,summary:materialSummary(registry)};
 }
 
 function selfTest() {
@@ -123,66 +156,29 @@ function selfTest() {
   if (!parityFailures({number:13,state:'open',title:'P1: mismatch',labels:[{name:'P0'}]}).length) throw new Error('SELF_PARITY_MISMATCH_NOT_REJECTED');
   process.stdout.write(`${JSON.stringify({test:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,new_defect_invalidates:true,severity_parity_required:true})}\n`);
 }
-if (process.argv.includes('--self-test')) { selfTest(); process.exit(0); }
 
-const repository = process.env.GITHUB_REPOSITORY;
-const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-if (!repository || !token) throw new Error('REPOSITORY_OR_TOKEN_MISSING');
-const headers = {Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'};
-async function get(url) {
-  const response = await fetch(url,{headers,signal:AbortSignal.timeout(20000)});
-  const text = await response.text();
-  if (!response.ok) throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0,300)}`);
-  return JSON.parse(text);
-}
-async function fetchAllOpenIssues() {
-  const out=[]; let total=null;
-  for(let page=1;page<=10;page+=1){
-    const q=encodeURIComponent(`repo:${repository} is:issue is:open`);
-    const data=await get(`https://api.github.com/search/issues?q=${q}&sort=updated&order=desc&per_page=100&page=${page}`);
-    if(data.incomplete_results!==false) throw new Error(`INCOMPLETE_RESULTS:page=${page}`);
-    if(!Number.isInteger(data.total_count)||data.total_count<0||data.total_count>1000) throw new Error(`INVALID_TOTAL:${data.total_count}`);
-    if(total===null) total=data.total_count;
-    if(total!==data.total_count) throw new Error(`CARDINALITY_MOVED:${total}->${data.total_count}`);
-    if(!Array.isArray(data.items)) throw new Error(`INVALID_ITEMS:page=${page}`);
-    out.push(...data.items);
-    if(out.length>=total) break;
-    if(data.items.length===0||page===10) throw new Error(`PAGINATION_TRUNCATED:${out.length}/${total}`);
+export async function runLive() {
+  const repository = process.env.GITHUB_REPOSITORY;
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  try {
+    const {headers,summary}=await buildLiveMaterialRegistry({repository,token});
+    const main=await githubJson(`https://api.github.com/repos/${repository}/branches/main`,headers);
+    const mainSha=String(main?.commit?.sha||'');
+    if(!/^[0-9a-f]{40}$/.test(mainSha)) throw new Error('LIVE_MAIN_SHA_INVALID');
+    const canonical=await Promise.all(canonicalIssues.map(number=>githubJson(`https://api.github.com/repos/${repository}/issues/${number}`,headers)));
+    const failures=[];
+    for(const issue of canonical) for(const error of validateCanonicalBlock(issue.body||'',mainSha,summary)) failures.push(`#${issue.number}:${error}`);
+    const result={validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',protected_main_sha:mainSha,canonical_issue_count:canonicalIssues.length,material_defect_count:summary.count,material_defect_registry_sha256:summary.digest,material_defect_registry_members:summary.members,complete_open_issue_pagination:true,severity_parity_verified:true,failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    (failures.length?console.error:console.log)(JSON.stringify(result,null,2));
+    if(failures.length) process.exitCode=1;
+  } catch(error) {
+    console.error(JSON.stringify({validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_FAIL',message:error instanceof Error?error.message:String(error),promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+    process.exitCode=1;
   }
-  if(out.length!==total) throw new Error(`CARDINALITY_MISMATCH:${out.length}/${total}`);
-  return out;
 }
-try {
-  const main=await get(`https://api.github.com/repos/${repository}/branches/main`);
-  const mainSha=String(main?.commit?.sha||'');
-  if(!/^[0-9a-f]{40}$/.test(mainSha)) throw new Error('LIVE_MAIN_SHA_INVALID');
-  const openIssues=await fetchAllOpenIssues();
-  const parity=openIssues.flatMap(parityFailures);
-  if(parity.length) throw new Error(`SEVERITY_METADATA_MISMATCH:${parity.join(',')}`);
-  const registry=openIssues.map(materialRecord).filter(Boolean).sort((a,b)=>a.issue_number-b.issue_number);
-  const summary=materialSummary(registry);
-  const canonical=await Promise.all(canonicalIssues.map(number=>get(`https://api.github.com/repos/${repository}/issues/${number}`)));
-  const failures=[];
-  for(const issue of canonical){
-    for(const error of validateCanonicalBlock(issue.body||'',mainSha,summary)) failures.push(`#${issue.number}:${error}`);
-  }
-  const result={
-    validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',
-    state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',
-    protected_main_sha:mainSha,
-    canonical_issue_count:canonicalIssues.length,
-    material_defect_count:summary.count,
-    material_defect_registry_sha256:summary.digest,
-    material_defect_registry_members:summary.members,
-    complete_open_issue_pagination:true,
-    severity_parity_verified:true,
-    failures,
-    promotion_eligible:false,
-    production:'HOLD',public:'HOLD',g5:'HOLD'
-  };
-  (failures.length?console.error:console.log)(JSON.stringify(result,null,2));
-  if(failures.length) process.exit(1);
-} catch(error) {
-  console.error(JSON.stringify({validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_FAIL',message:error instanceof Error?error.message:String(error),promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
-  process.exit(1);
+
+const isDirect = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isDirect) {
+  if (process.argv.includes('--self-test')) selfTest();
+  else await runLive();
 }
