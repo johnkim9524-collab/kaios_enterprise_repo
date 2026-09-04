@@ -22,6 +22,17 @@ const fail = message => {
   throw new Error(message);
 };
 
+function hasUpstreamSuccessGuard(text) {
+  const ifLines = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('if:'));
+  return ifLines.some(line =>
+    line.includes("github.event_name != 'workflow_run'") &&
+    line.includes("github.event.workflow_run.conclusion == 'success'")
+  );
+}
+
 function validateText(text, label, prefix) {
   const requiredGroup =
     `group: ${prefix}\${{ github.event_name }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}`;
@@ -29,9 +40,7 @@ function validateText(text, label, prefix) {
   if (!text.includes('types: [completed]')) fail(`${label}: workflow_run must remain completed-event based`);
   if (!text.includes(requiredGroup)) fail(`${label}: exact event/run-id concurrency group missing`);
   if (!text.includes('cancel-in-progress: true')) fail(`${label}: cancellation policy missing`);
-  const successGuard =
-    "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'";
-  if (!text.includes(successGuard)) fail(`${label}: upstream success guard missing or weakened`);
+  if (!hasUpstreamSuccessGuard(text)) fail(`${label}: upstream success guard missing or weakened`);
   if (text.includes(`group: ${prefix}\${{ github.ref }}`)) fail(`${label}: historical ref-only concurrency returned`);
   return true;
 }
@@ -49,6 +58,13 @@ function runSelfTests() {
     "    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'"
   ].join('\n');
   validateText(pristine, 'self/pristine', prefix);
+
+  const strongerConjunction = pristine.replace(
+    "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'",
+    "if: needs.classify.outputs.classification != 'EXPECTED_NONAUTHORITATIVE_SKIP' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')"
+  );
+  validateText(strongerConjunction, 'self/stronger-conjunction', prefix);
+
   const mutations = [
     ['ref-only', pristine.replace(
       `group: ${prefix}\${{ github.event_name }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}`,
@@ -59,6 +75,10 @@ function runSelfTests() {
     ['weaken-success-guard', pristine.replace(
       "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'",
       'if: always()'
+    )],
+    ['remove-success-conclusion', pristine.replace(
+      "github.event.workflow_run.conclusion == 'success'",
+      "github.event.workflow_run.conclusion != 'cancelled'"
     )]
   ];
   for (const [name, mutated] of mutations) {
@@ -85,6 +105,7 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   control: 'mixed-trigger-workflow-run-concurrency-isolation',
   targets: results,
+  stronger_conjunctive_success_guard_accepted: true,
   mutation_rejections: mutationCount,
   public_release: 'HOLD',
   production: 'HOLD'
