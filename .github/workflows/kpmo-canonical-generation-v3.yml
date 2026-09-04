@@ -1,0 +1,57 @@
+name: KPMO Canonical Generation V3 Bootstrap Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-canonical-generation-v3.yml'
+      - 'scripts/kidults/kpmo/canonical-generation-v3.mjs'
+      - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
+      - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-canonical-generation-v3-bootstrap-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: CANONICAL_V3_BOOTSTRAP_VALIDATION_ONLY
+        run: echo 'Canonical V3 bootstrap is read-only; issue writes are not reachable from this workflow.'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact validation source
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate append-only V3 payload contract and negative mutations
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+      - name: Prove workflow cannot reach issue-write authority
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='.github/workflows/kpmo-canonical-generation-v3.yml';
+          const s=fs.readFileSync(p,'utf8');
+          for(const forbidden of [/issues:\s*write/, /^  push:/m, /^  issues:/m, /^  schedule:/m, /--write/]) {
+            if(forbidden.test(s)) throw new Error(`CANONICAL_V3_BOOTSTRAP_WRITE_SURFACE_PRESENT:${forbidden}`);
+          }
+          if(!/^  pull_request:/m.test(s)||!/^  workflow_dispatch:/m.test(s)) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_BOUNDARY_INVALID');
+          console.log('Canonical V3 bootstrap write authority unreachable: PASS');
+          NODE
