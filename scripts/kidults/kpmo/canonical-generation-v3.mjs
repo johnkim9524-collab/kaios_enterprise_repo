@@ -12,6 +12,7 @@ const OWNER='johnkim9524-collab';
 const APPROVAL_ISSUE=1713;
 const WRITER_WORKFLOW='.github/workflows/kpmo-canonical-generation-v3-apply.yml';
 const WRITE_ACTION='APPLY_APPEND_ONLY_25_PLUS_COMMIT';
+const AUTHORIZATION_MAX_AGE_MS=30*60*1000;
 const die=(message)=>{throw new Error(message);};
 
 function receipt(extra){
@@ -91,7 +92,12 @@ async function validateCurrent(snapshotValue,expectedRun=null){
 }
 
 const post=(issue,body)=>api(`/issues/${issue}/comments`,{method:'POST',body:JSON.stringify({body})});
-const authorizationId=(main,run,attempt)=>`CANONICAL-V3-${main.slice(0,12)}-${run}-${attempt}`;
+function authorizationId(main,requested){
+  const value=String(requested||'');
+  if(!/^CANONICAL-V3-[0-9a-f]{12}-[A-Z0-9][A-Z0-9_-]{15,63}$/.test(value))die('AUTHORIZATION_ID_FORMAT_INVALID');
+  if(!value.startsWith(`CANONICAL-V3-${main.slice(0,12)}-`))die('AUTHORIZATION_ID_MAIN_BINDING_INVALID');
+  return value;
+}
 const authorizationBody=(id,main)=>`CANONICAL_V3_AUTHORIZATION_ID: ${id}\nTARGET_MAIN_SHA: ${main}\nACTION: ${WRITE_ACTION}`;
 
 function validateAuthorizationComment(comment,expectedBody,runCreatedAt){
@@ -100,7 +106,9 @@ function validateAuthorizationComment(comment,expectedBody,runCreatedAt){
   if(comment?.performed_via_github_app)die('AUTHORIZATION_APP_MEDIATED_FORBIDDEN');
   if(String(comment?.body||'').trim()!==expectedBody)die('AUTHORIZATION_BODY_MISMATCH');
   if(!comment?.created_at||!comment?.updated_at||comment.created_at!==comment.updated_at)die('AUTHORIZATION_COMMENT_MUTATED');
-  if(!Number.isFinite(Date.parse(comment.created_at))||!Number.isFinite(Date.parse(runCreatedAt))||Date.parse(comment.created_at)>=Date.parse(runCreatedAt))die('AUTHORIZATION_NOT_PREEXISTING');
+  const approvalTime=Date.parse(comment.created_at),runTime=Date.parse(runCreatedAt);
+  if(!Number.isFinite(approvalTime)||!Number.isFinite(runTime)||approvalTime>=runTime)die('AUTHORIZATION_NOT_PREEXISTING');
+  if(runTime-approvalTime>AUTHORIZATION_MAX_AGE_MS)die('AUTHORIZATION_STALE');
 }
 
 async function verifyWriteAuthority(snapshotValue,run,attempt){
@@ -109,8 +117,7 @@ async function verifyWriteAuthority(snapshotValue,run,attempt){
   if(process.env.GITHUB_EVENT_NAME!=='workflow_dispatch')die('WRITE_REQUIRES_WORKFLOW_DISPATCH');
   if(process.env.GITHUB_REF!=='refs/heads/main')die('WRITE_REQUIRES_MAIN_REF');
   if(process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
-  const expectedId=authorizationId(snapshotValue.protected_main_sha,run,attempt);
-  if(process.env.CANONICAL_GENERATION_AUTHORIZATION_ID!==expectedId)die('AUTHORIZATION_ID_MISMATCH');
+  const expectedId=authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID);
 
   const runEnvelope=await api(`/actions/runs/${run}`);
   if(runEnvelope?.id!==run||runEnvelope?.run_attempt!==attempt)die('WRITER_RUN_IDENTITY_MISMATCH');
@@ -175,28 +182,32 @@ function selfTest(){
     "GITHUB_EVENT_NAME!=='workflow_dispatch'",
     "GITHUB_REF!=='refs/heads/main'",
     'GITHUB_ACTOR!==OWNER',
-    'CANONICAL_GENERATION_AUTHORIZATION_ID!==expectedId',
+    'authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID)',
     'runEnvelope?.path!==WRITER_WORKFLOW',
     'comment?.performed_via_github_app',
     'comment.created_at!==comment.updated_at',
     'AUTHORIZATION_COMMENT_CARDINALITY'
   ]) if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
   const main='a'.repeat(40),run=123,attempt=2;
-  const id=authorizationId(main,run,attempt);
-  if(id!=='CANONICAL-V3-aaaaaaaaaaaa-123-2')die('SELF_TEST_AUTHORIZATION_ID');
+  const id=authorizationId(main,'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001');
+  if(id!=='CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001')die('SELF_TEST_AUTHORIZATION_ID');
+  for(const badId of ['CANONICAL-V3-aaaaaaaaaaaa-short','CANONICAL-V3-bbbbbbbbbbbb-OWNER_NONCE_0001','CANONICAL-V3-aaaaaaaaaaaa-owner-lowercase-nonce']){
+    let escaped=true;try{authorizationId(main,badId);}catch{escaped=false;}if(escaped)die('SELF_TEST_AUTHORIZATION_ID_MUTATION_ESCAPED');
+  }
   const body=authorizationBody(id,main);
   if(body!==`CANONICAL_V3_AUTHORIZATION_ID: ${id}\nTARGET_MAIN_SHA: ${main}\nACTION: ${WRITE_ACTION}`)die('SELF_TEST_AUTHORIZATION_BODY');
   let rejected=0;
   for(const bad of [
     {...{user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:01Z'}},
     {user:{login:'other'},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},
-    {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:{id:1},body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'}
+    {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:{id:1},body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},
+    {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2025-12-31T23:29:59Z',updated_at:'2025-12-31T23:29:59Z'}
   ]){
     try{validateAuthorizationComment(bad,body,'2026-01-01T00:01:00Z');}catch{rejected+=1;}
   }
-  if(rejected!==3)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
+  if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:true,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_run_attempt:true,app_mediated_approval_forbidden:true,authorization_negative_cases:3},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:true,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,authorization_negative_cases:4},null,2));
 }
 
 try{
