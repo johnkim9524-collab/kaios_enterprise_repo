@@ -11,6 +11,7 @@ const allowedSeedModes = new Set(['ROLLING_FAIR_FRONTIER', 'LEGACY_FIRST_SEEN_FA
 const allowedSeedResults = new Set(['SUCCESS_WITH_RESULTS', 'SUCCESS_ZERO_RESULTS', 'FAILED_FAIL_SOFT', 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT']);
 const allowedBootstrapStates = new Set(['EXPLICIT_FRONTIER', 'RUNTIME_FRONTIER_FRESH', 'RUNTIME_FRONTIER_RESTORED_FROM_PREVIOUS_EXPANSION', 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE']);
 const allowedPreviousSources = new Set(['NONE', 'ENV_PREVIOUS_EXPANSION', 'SELF_DRIVING_PREVIOUS_EXPANSION', 'HOURLY_PREVIOUS_EXPANSION']);
+const validIndexId = value => /^CC-MAIN-\d{4}-\d{2,}$/.test(String(value || ''));
 
 if (expansion.id !== 'kidults-asi-common-crawl-host-expansion-v1' || expansion.version !== '1.2.0' || !allowedStatuses.has(expansion.status)) fail('IDENTITY');
 if (expansion.universe_target !== 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE' || expansion.metadata_index_only !== true) fail('UNIVERSE_INDEX_BOUNDARY');
@@ -25,6 +26,18 @@ if (new Set(expansion.seed_hosts).size !== expansion.seed_hosts.length) fail('DU
 if (!Array.isArray(expansion.seed_host_results) || expansion.seed_host_results.length !== expansion.seed_hosts.length) fail('SEED_RESULTS_COUNT');
 if (!Array.isArray(expansion.candidates) || expansion.candidates.length !== Number(expansion.expanded_candidate_count)) fail('CANDIDATE_COUNT');
 if (!Array.isArray(expansion.errors)) fail('ERRORS_ARRAY');
+const indexIdPresent = expansion.common_crawl_index_id !== null && expansion.common_crawl_index_id !== undefined && expansion.common_crawl_index_id !== '';
+const indexApiPresent = typeof expansion.common_crawl_index_api === 'string' && expansion.common_crawl_index_api.length > 0;
+if (indexIdPresent && !validIndexId(expansion.common_crawl_index_id)) fail('COMMON_CRAWL_INDEX_ID_FORMAT');
+if (!indexIdPresent && indexApiPresent) fail('COMMON_CRAWL_INDEX_API_WITHOUT_ID');
+if (indexApiPresent) {
+  let indexUrl;
+  try { indexUrl = new URL(expansion.common_crawl_index_api); } catch { fail('COMMON_CRAWL_INDEX_API_URL'); }
+  if (indexUrl.protocol !== 'https:' || indexUrl.hostname !== 'index.commoncrawl.org' || !indexUrl.pathname.includes(`/${expansion.common_crawl_index_id}-index`)) fail('COMMON_CRAWL_INDEX_API_BINDING');
+}
+const skippedForIndexUnavailable = expansion.seed_host_results.filter(result => result.status === 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT');
+if (indexApiPresent && skippedForIndexUnavailable.length) fail('INDEX_AVAILABLE_WITH_SKIPPED_SEEDS');
+if (!indexApiPresent && skippedForIndexUnavailable.length !== expansion.seed_host_results.length) fail('INDEX_UNAVAILABLE_WITH_NON_SKIPPED_SEEDS');
 
 if (expansion.seed_frontier_bootstrap_state === 'EXPLICIT_FRONTIER') {
   if (expansion.frontier_runtime_managed !== false || expansion.seed_frontier_previous_snapshot_found !== false || expansion.seed_frontier_previous_snapshot_source !== 'NONE') fail('EXPLICIT_FRONTIER_RUNTIME_BOUNDARY');
@@ -100,6 +113,7 @@ for (const candidate of expansion.candidates) {
   if (expansion.seed_selection_mode === 'ROLLING_FAIR_FRONTIER') {
     if (candidate.seed_frontier_id !== expansion.seed_frontier_id || Number(candidate.seed_frontier_cycle) !== Number(expansion.seed_frontier_cycle)) fail(`CANDIDATE_FRONTIER:${candidate.candidate_id}`);
   }
+  if (candidate.common_crawl_index_id !== expansion.common_crawl_index_id) fail(`CANDIDATE_INDEX_BINDING:${candidate.candidate_id}`);
   if (candidate.source_family_hint !== 'UNCLASSIFIED_ANY_SITE_CANDIDATE' || candidate.rights_state !== 'UNASSESSED' || candidate.admission_state !== 'NOT_ADMITTED' || candidate.gate_1_state !== 'PENDING' || candidate.evidence_state !== 'DISCOVERY_METADATA_ONLY') fail(`CANDIDATE_PROMOTED:${candidate.candidate_id}`);
   if (candidate.acquisition_authorized !== false || candidate.target_site_body_crawled !== false || candidate.content_acquired !== false || candidate.provider_contacted !== false || candidate.account_created !== false || candidate.eula_accepted !== false || candidate.spend_authorized !== false || candidate.production !== 'HOLD') fail(`CANDIDATE_BOUNDARY:${candidate.candidate_id}`);
   let host;

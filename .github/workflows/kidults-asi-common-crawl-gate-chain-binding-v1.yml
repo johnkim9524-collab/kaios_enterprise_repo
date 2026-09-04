@@ -127,7 +127,10 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json
           node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs discovery-out/global-low-risk-discovery-common-crawl-v1.json
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const e=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-v1.json'));
+          if(x.common_crawl_observed_index_id!==(e.common_crawl_index_id??null))throw new Error('EXPANSION_MERGED_OBSERVED_INDEX_MISMATCH');
+          const expectedResolution=e.common_crawl_index_api?'INDEX_API_RESOLVED':e.common_crawl_index_id?'INDEX_ID_RESOLVED_API_UNAVAILABLE':'INDEX_DISCOVERY_UNAVAILABLE';
+          if(x.common_crawl_index_resolution_state!==expectedResolution||x.common_crawl_index_api_available!==Boolean(e.common_crawl_index_api))throw new Error('EXPANSION_MERGED_INDEX_RESOLUTION_MISMATCH');
           const zero=x.common_crawl_expansion_status==='SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS';
           if(zero){
             if(x.common_crawl_zero_result_noop!==true||x.common_crawl_index_id!==null||x.common_crawl_observed_candidate_count!==0||x.common_crawl_new_candidate_count!==0)throw new Error('ZERO_RESULT_NOOP_BINDING');
@@ -145,7 +148,7 @@ jobs:
       - name: Reject merged host or zero-result provenance mutation
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION');if(c)c.endpoint_url='https://example.org/escape';else x.common_crawl_index_id='FABRICATED_ZERO_RESULT_INDEX';fs.writeFileSync('/tmp/bad-common-crawl-host.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION');if(c)c.endpoint_url='https://example.org/escape';else x.common_crawl_observed_index_id=x.common_crawl_observed_index_id?'CC-MAIN-2099-99':'CC-MAIN-2099-99';fs.writeFileSync('/tmp/bad-common-crawl-host.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-host.json; then exit 1; fi
       - name: Gate1 classify merged Any-Site ingress
@@ -179,7 +182,7 @@ jobs:
         run: |
           node - <<'NODE' >/tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
           const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-common-crawl-v1.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v1.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v1.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v1.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-common-crawl-v1.json'));const provenance=JSON.parse(fs.readFileSync('/tmp/any-site-provenance.json'));const zero=d.common_crawl_expansion_status==='SHADOW_COMMON_CRAWL_HOST_EXPANSION_ZERO_RESULTS';
-          process.stdout.write(JSON.stringify({id:'kidults-asi-common-crawl-gate-chain-binding-receipt-v1',status:zero?'SHADOW_COMMON_CRAWL_ZERO_RESULTS_GATE_CHAIN_BOUND':'SHADOW_COMMON_CRAWL_ANY_SITE_GATE_CHAIN_BOUND',upstream_global_discovery:provenance,common_crawl_expansion_status:d.common_crawl_expansion_status,common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,merged_discovery_candidates:d.candidate_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_metadata_admitted:g3.admitted_count,rolling_candidate_pool:p.candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-common-crawl-gate-chain-binding-receipt-v1',status:zero?'SHADOW_COMMON_CRAWL_ZERO_RESULTS_GATE_CHAIN_BOUND':'SHADOW_COMMON_CRAWL_ANY_SITE_GATE_CHAIN_BOUND',upstream_global_discovery:provenance,common_crawl_expansion_status:d.common_crawl_expansion_status,common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,common_crawl_index_id:d.common_crawl_index_id,common_crawl_observed_index_id:d.common_crawl_observed_index_id,common_crawl_index_resolution_state:d.common_crawl_index_resolution_state,common_crawl_index_api_available:d.common_crawl_index_api_available,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,merged_discovery_candidates:d.candidate_count,gate1_safe:g1.safe_candidate_count,gate1_review:g1.review_required_count,gate2_verified:g2.verified_for_gate3_count,gate3_metadata_admitted:g3.admitted_count,rolling_candidate_pool:p.candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-common-crawl-gate-chain-binding-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
