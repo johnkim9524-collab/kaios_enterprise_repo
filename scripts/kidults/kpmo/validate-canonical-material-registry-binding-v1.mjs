@@ -70,7 +70,15 @@ function parseMembers(raw) {
 }
 export function materialSummary(registry) {
   const sorted = [...registry].sort((a,b) => a.issue_number - b.issue_number);
-  return { count: sorted.length, digest: sha256(sorted), members: sorted.map(item => item.issue_number) };
+  const bindingRecords = sorted.map(({issue_number,declared_severity,labels,effective_priority,title}) => ({
+    issue_number, declared_severity, labels, effective_priority, title
+  }));
+  return {
+    count: sorted.length,
+    digest: sha256(bindingRecords),
+    members: sorted.map(item => item.issue_number),
+    digest_scope: 'STABLE_MATERIAL_FIELDS_EXCLUDING_UPDATED_AT'
+  };
 }
 export function validateCanonicalBlock(body, expectedMainSha, summary) {
   const block = latestBlock(body);
@@ -80,12 +88,12 @@ export function validateCanonicalBlock(body, expectedMainSha, summary) {
   if (main !== expectedMainSha) errors.push(`STALE_MAIN:${main || 'NONE'}:${expectedMainSha}`);
   if (!/Production\/Public\/G5:\s*\*{0,2}HOLD\*{0,2}/i.test(block)) errors.push('HOLD_MISSING');
   const countRaw = block.match(/material defect registry count:\s*`([0-9]+)`/i)?.[1];
-  const digestRaw = block.match(/material defect registry sha256:\s*`(sha256:[0-9a-f]{64})`/i)?.[1];
+  const digestRaw = block.match(/material defect registry binding sha256:\s*`(sha256:[0-9a-f]{64})`/i)?.[1];
   const membersRaw = block.match(/material defect registry members:\s*`([^`]*)`/i)?.[1];
   if (countRaw === undefined) errors.push('MATERIAL_COUNT_MISSING');
   else if (Number(countRaw) !== summary.count) errors.push(`MATERIAL_COUNT_MISMATCH:${countRaw}:${summary.count}`);
-  if (!digestRaw) errors.push('MATERIAL_DIGEST_MISSING');
-  else if (!exactDigest(digestRaw) || digestRaw !== summary.digest) errors.push(`MATERIAL_DIGEST_MISMATCH:${digestRaw}:${summary.digest}`);
+  if (!digestRaw) errors.push('MATERIAL_BINDING_DIGEST_MISSING');
+  else if (!exactDigest(digestRaw) || digestRaw !== summary.digest) errors.push(`MATERIAL_BINDING_DIGEST_MISMATCH:${digestRaw}:${summary.digest}`);
   if (membersRaw === undefined) errors.push('MATERIAL_MEMBERS_MISSING');
   else {
     try {
@@ -139,7 +147,7 @@ function selfTest() {
     materialRecord({number:11,state:'open',title:'P1: B',labels:[{name:'P1'}],updated_at:'2026-01-02T00:00:00Z'})
   ];
   const summary = materialSummary(registry);
-  const block = `<!-- KPMO_CANONICAL_TRUTH_V2_START -->\nprotected main: \`${main}\`\nmaterial defect registry count: \`${summary.count}\`\nmaterial defect registry sha256: \`${summary.digest}\`\nmaterial defect registry members: \`#10,#11\`\nProduction/Public/G5: **HOLD**\n<!-- KPMO_CANONICAL_TRUTH_V2_END -->`;
+  const block = `<!-- KPMO_CANONICAL_TRUTH_V2_START -->\nprotected main: \`${main}\`\nmaterial defect registry count: \`${summary.count}\`\nmaterial defect registry binding sha256: \`${summary.digest}\`\nmaterial defect registry members: \`#10,#11\`\nProduction/Public/G5: **HOLD**\n<!-- KPMO_CANONICAL_TRUTH_V2_END -->`;
   if (validateCanonicalBlock(block, main, summary).length) throw new Error('SELF_VALID_BLOCK_REJECTED');
   const mutations = [
     ['STALE_MAIN', block.replace(main, 'b'.repeat(40))],
@@ -150,11 +158,13 @@ function selfTest() {
     ['MISSING_HOLD', block.replace('Production/Public/G5: **HOLD**', 'Production/Public/G5: PASS')]
   ];
   for (const [name, mutated] of mutations) if (!validateCanonicalBlock(mutated, main, summary).length) throw new Error(`SELF_FALSE_GREEN:${name}`);
+  const changedTimestamp = registry.map(item => ({...item, updated_at:'2099-01-01T00:00:00Z'}));
+  if (materialSummary(changedTimestamp).digest !== summary.digest) throw new Error('SELF_UPDATED_AT_CHANGED_BINDING_DIGEST');
   const added = materialRecord({number:12,state:'open',title:'[P1] C',labels:[{name:'P1'}],updated_at:'2026-01-03T00:00:00Z'});
   const changedSummary = materialSummary([...registry, added]);
   if (!validateCanonicalBlock(block, main, changedSummary).some(x => x.startsWith('MATERIAL_'))) throw new Error('SELF_NEW_DEFECT_NOT_INVALIDATING_BLOCK');
   if (!parityFailures({number:13,state:'open',title:'P1: mismatch',labels:[{name:'P0'}]}).length) throw new Error('SELF_PARITY_MISMATCH_NOT_REJECTED');
-  process.stdout.write(`${JSON.stringify({test:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,new_defect_invalidates:true,severity_parity_required:true})}\n`);
+  process.stdout.write(`${JSON.stringify({test:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,new_defect_invalidates:true,severity_parity_required:true,updated_at_excluded_from_binding_digest:true})}\n`);
 }
 
 export async function runLive() {
@@ -168,7 +178,7 @@ export async function runLive() {
     const canonical=await Promise.all(canonicalIssues.map(number=>githubJson(`https://api.github.com/repos/${repository}/issues/${number}`,headers)));
     const failures=[];
     for(const issue of canonical) for(const error of validateCanonicalBlock(issue.body||'',mainSha,summary)) failures.push(`#${issue.number}:${error}`);
-    const result={validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',protected_main_sha:mainSha,canonical_issue_count:canonicalIssues.length,material_defect_count:summary.count,material_defect_registry_sha256:summary.digest,material_defect_registry_members:summary.members,complete_open_issue_pagination:true,severity_parity_verified:true,failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    const result={validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',protected_main_sha:mainSha,canonical_issue_count:canonicalIssues.length,material_defect_count:summary.count,material_defect_registry_binding_sha256:summary.digest,material_defect_registry_digest_scope:summary.digest_scope,material_defect_registry_members:summary.members,complete_open_issue_pagination:true,severity_parity_verified:true,failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
     (failures.length?console.error:console.log)(JSON.stringify(result,null,2));
     if(failures.length) process.exitCode=1;
   } catch(error) {
