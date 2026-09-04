@@ -32,9 +32,20 @@ jobs:
         run: |
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
+          node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs --self-test
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const src=fs.readFileSync('.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml','utf8');
+          for(const archive of ['meta','disc']){
+            const validation=src.indexOf(`--archive /tmp/${archive}.zip`);
+            const extraction=src.indexOf(`unzip -q -o /tmp/${archive}.zip`);
+            if(validation<0||extraction<0||validation>extraction)throw new Error(`SAFE_ZIP_PRE_EXTRACTION_GUARD_MISSING:${archive}`);
+          }
+          NODE
 
       # PRs prove the producer-selection contract and negative mutations above.
       # Live producer consumption is schedule/manual only because a fresh PR base SHA
@@ -142,6 +153,36 @@ jobs:
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISC_ID}/zip" > /tmp/disc.zip
+
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/meta.zip \
+            --expected-digest "$META_DIGEST" \
+            --receipt /tmp/meta-safe-zip-receipt.json \
+            --max-compressed-bytes 67108864 \
+            --max-entries 2048 \
+            --max-entry-uncompressed-bytes 67108864 \
+            --max-total-uncompressed-bytes 268435456 \
+            --max-compression-ratio 100 \
+            --required-basename asi-gate1-safe-candidate-pool-v2.json \
+            --required-basename asi-gate2-independent-reverification-v2.json \
+            --required-basename asi-gate3-admission-runtime-v2.json \
+            --required-basename asi-admitted-metadata-pool-v2.json
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/disc.zip \
+            --expected-digest "$DISC_DIGEST" \
+            --receipt /tmp/disc-safe-zip-receipt.json \
+            --max-compressed-bytes 67108864 \
+            --max-entries 2048 \
+            --max-entry-uncompressed-bytes 67108864 \
+            --max-total-uncompressed-bytes 268435456 \
+            --max-compression-ratio 100 \
+            --required-basename global-low-risk-discovery-governed-v2.json
+
+          META_SAFE_ZIP_RECEIPT_DIGEST="sha256:$(sha256sum /tmp/meta-safe-zip-receipt.json | awk '{print $1}')"
+          DISC_SAFE_ZIP_RECEIPT_DIGEST="sha256:$(sha256sum /tmp/disc-safe-zip-receipt.json | awk '{print $1}')"
+          [[ "$META_SAFE_ZIP_RECEIPT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$DISC_SAFE_ZIP_RECEIPT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
           unzip -q -o /tmp/meta.zip -d /tmp/live-gates/raw
           unzip -q -o /tmp/disc.zip -d discovery-out/raw
 
@@ -150,9 +191,9 @@ jobs:
             test -n "$SRC"
             cp "$SRC" "/tmp/live-gates/canonical/$f"
           done
-          DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery.json' -print -quit)
+          DISC_SRC=$(find discovery-out/raw -type f -name 'global-low-risk-discovery-governed-v2.json' -print -quit)
           test -n "$DISC_SRC"
-          cp "$DISC_SRC" discovery-out/global-low-risk-discovery.json
+          cp "$DISC_SRC" discovery-out/global-low-risk-discovery-governed-v2.json
 
           {
             echo "AUTOBALANCE_BINDING_MODE=$BINDING_MODE"
@@ -161,15 +202,18 @@ jobs:
             echo "AUTOBALANCE_HOURLY_SOURCE_SHA=$HOURLY_SOURCE_SHA"
             echo "AUTOBALANCE_META_ID=$META_ID"
             echo "AUTOBALANCE_META_DIGEST=$META_DIGEST"
+            echo "AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST=$META_SAFE_ZIP_RECEIPT_DIGEST"
             echo "AUTOBALANCE_DISC_ID=$DISC_ID"
             echo "AUTOBALANCE_DISC_DIGEST=$DISC_DIGEST"
+            echo "AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST=$DISC_SAFE_ZIP_RECEIPT_DIGEST"
+            echo "AUTOBALANCE_DISCOVERY_PAYLOAD=global-low-risk-discovery-governed-v2.json"
           } >> "$GITHUB_ENV"
 
       - name: Build and validate live autobalance plan
         if: github.event_name != 'pull_request'
         run: |
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs \
-            discovery-out/global-low-risk-discovery.json \
+            discovery-out/global-low-risk-discovery-governed-v2.json \
             /tmp/live-gates/canonical/asi-gate1-safe-candidate-pool-v2.json \
             /tmp/live-gates/canonical/asi-gate2-independent-reverification-v2.json \
             /tmp/live-gates/canonical/asi-gate3-admission-runtime-v2.json \
@@ -191,8 +235,11 @@ jobs:
             'AUTOBALANCE_HOURLY_SOURCE_SHA',
             'AUTOBALANCE_META_ID',
             'AUTOBALANCE_META_DIGEST',
+            'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST',
             'AUTOBALANCE_DISC_ID',
-            'AUTOBALANCE_DISC_DIGEST'
+            'AUTOBALANCE_DISC_DIGEST',
+            'AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST',
+            'AUTOBALANCE_DISCOVERY_PAYLOAD'
           ];
           for (const key of required) {
             if (!process.env[key]) throw new Error(`MISSING_${key}`);
@@ -200,7 +247,7 @@ jobs:
           if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
             throw new Error('PRODUCER_SHA_MISMATCH');
           }
-          for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_DISC_DIGEST']) {
+          for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'AUTOBALANCE_DISC_DIGEST', 'AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
           const receipt = {
@@ -209,6 +256,8 @@ jobs:
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
+            discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD,
+            safe_zip_validated_before_extraction: true,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,
               workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
@@ -220,12 +269,14 @@ jobs:
               {
                 name: 'kidults-asi-global-any-site-source-pool-v2',
                 id: Number(process.env.AUTOBALANCE_META_ID),
-                digest: process.env.AUTOBALANCE_META_DIGEST
+                digest: process.env.AUTOBALANCE_META_DIGEST,
+                safe_zip_receipt_digest: process.env.AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST
               },
               {
                 name: 'kidults-asi-global-any-site-hourly-cycle-v2',
                 id: Number(process.env.AUTOBALANCE_DISC_ID),
-                digest: process.env.AUTOBALANCE_DISC_DIGEST
+                digest: process.env.AUTOBALANCE_DISC_DIGEST,
+                safe_zip_receipt_digest: process.env.AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST
               }
             ],
             mixed_generation_allowed: false,

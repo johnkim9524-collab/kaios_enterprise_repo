@@ -175,9 +175,18 @@ jobs:
           BAL_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/autobalance-exact-restore-receipt-v1.json")).artifact_id || ""')
           if [ -n "$BAL_ID" ]; then
             BAL_SRC=$(find /tmp/autobalance-raw -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
-            if [ -n "$BAL_SRC" ]; then
+            if [ -n "$BAL_SRC" ] && node - "$BAL_SRC" <<'NODE'
+          const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const compatible=x.version==='1.2.0'&&x.coverage?.source_family_population==='DISCOVERY_UNIVERSE'&&Number(x.coverage?.source_family_input_count)===Number(x.throughput?.discovered);
+          process.exit(compatible?0:1);
+          NODE
+            then
               cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
               node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+            else
+              echo "::notice title=Autobalance budget quarantined::SCHEMA_INCOMPATIBLE_BUDGET_IGNORED_BASE_STEERING_USED"
+              BAL_ID=""
+              rm -f /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
             fi
           fi
 
