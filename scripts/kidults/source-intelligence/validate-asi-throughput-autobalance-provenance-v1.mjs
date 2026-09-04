@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 
 const target = process.argv[2] || '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml';
+const freshnessCallMarker = '--created-at "$HOURLY_RUN_CREATED_AT"';
+const artifactReadMarker = ['"/repos/${GITHUB_REPOSITORY}', '/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100"'].join('');
 
 function validate(text) {
   const failures = [];
@@ -63,8 +65,6 @@ function validate(text) {
   requireText("status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING'", 'fresh exact-producer provenance receipt status');
   requireText('/tmp/autobalance-hourly-producer-freshness-v1.json', 'freshness receipt retained in artifact');
 
-  const freshnessCallMarker = '--created-at "$HOURLY_RUN_CREATED_AT"';
-  const artifactReadMarker = ['"/repos/${GITHUB_REPOSITORY}', '/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100"'].join('');
   const freshnessCall = text.indexOf(freshnessCallMarker);
   const artifactRead = text.indexOf(artifactReadMarker);
   if (freshnessCall < 0) failures.push('freshness execution marker missing');
