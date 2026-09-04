@@ -13,7 +13,14 @@ function fixture() {
 }
 
 test('holistic Current-SOLD readiness record preserves exact stage truth', () => {
-  assert.equal(validateCurrentSoldValueChainReadiness(fixture()).state, 'PASS');
+  const value = fixture();
+  const result = validateCurrentSoldValueChainReadiness(value);
+  assert.equal(result.state, 'PASS');
+  assert.equal(value.core_regression.protected_main_baseline.tests_passed, 56);
+  assert.equal(value.core_regression.protected_main_baseline.status, 'VERIFIED_PASS');
+  assert.equal(value.core_regression.candidate_control_generation.expected_tests, 57);
+  assert.equal(value.core_regression.candidate_control_generation.tests_passed_claimed_in_repository, 0);
+  assert.equal(value.core_regression.candidate_control_generation.status, 'PENDING_EXACT_HEAD_WORKFLOW_PROOF');
 });
 
 test('Track A engine ownership cannot drift to another track', () => {
@@ -35,4 +42,10 @@ test('database, provider and release mutations remain zero or HOLD', () => {
   value.truth_boundary.postgres_rows_written_by_this_change = 1;
   assert.throws(() => validateCurrentSoldValueChainReadiness(value),
     /CURRENT_SOLD_READINESS_MUTATION_BOUNDARY_INVALID/);
+
+  const overclaim = fixture();
+  overclaim.core_regression.candidate_control_generation.tests_passed_claimed_in_repository = 57;
+  overclaim.core_regression.candidate_control_generation.status = 'VERIFIED_PASS';
+  assert.throws(() => validateCurrentSoldValueChainReadiness(overclaim),
+    /CURRENT_SOLD_READINESS_CANDIDATE_PROOF_OVERCLAIM/);
 });
