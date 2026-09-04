@@ -20,7 +20,7 @@ export function classifyAuditPayload(raw, exitCode = 0, timedOut = false) {
   try { payload = JSON.parse(String(raw || '')); }
   catch { return { valid: false, retryable: true, reason: 'INVALID_JSON', exit_code: exitCode }; }
   if (payload?.error || !payload?.metadata || !payload.metadata.vulnerabilities) {
-    const code = payload?.error?.code || payload?.error?.summary || 'AUDIT_RESPONSE_UNAVAILABLE';
+    const code = payload?.error?.code || payload?.error?.summary || payload?.message || 'AUDIT_RESPONSE_UNAVAILABLE';
     return { valid: false, retryable: true, reason: String(code), exit_code: exitCode, payload };
   }
   const v = payload.metadata.vulnerabilities;
@@ -85,6 +85,8 @@ function selfTest() {
   req(vulnerable.valid && vulnerable.high === 2 && vulnerable.critical === 1 && !vulnerable.retryable, 'SELF_VULNERABLE');
   const unavailable = classifyAuditPayload(JSON.stringify({ error: { code: 'E503', summary: 'Service Unavailable' } }), 1, false);
   req(!unavailable.valid && unavailable.retryable && unavailable.reason === 'E503', 'SELF_503');
+  const networkTimeout = classifyAuditPayload(JSON.stringify({ message: 'network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk', error: { summary: '', detail: '' } }), 1, false);
+  req(!networkTimeout.valid && networkTimeout.retryable && networkTimeout.reason.startsWith('network timeout at:'), 'SELF_NETWORK_TIMEOUT_MESSAGE');
   const malformed = classifyAuditPayload('{bad', 1, false);
   req(!malformed.valid && malformed.retryable && malformed.reason === 'INVALID_JSON', 'SELF_MALFORMED');
   const timeout = classifyAuditPayload('', 124, true);
@@ -95,7 +97,7 @@ function selfTest() {
   req(targets.length === 3, 'SELF_TARGET_COUNT');
   req(targets.find(x => x.cwd === '.')?.lock_type === 'NPM_SHRINKWRAP', 'SELF_SHRINKWRAP_PRECEDENCE');
   req(targets.some(x => x.lockfile === 'services/a/package-lock.json') && targets.some(x => x.lockfile === 'services/b/npm-shrinkwrap.json'), 'SELF_NESTED_TARGETS');
-  console.log(JSON.stringify({ test: 'BOUNDED_NPM_AUDIT_V1', state: 'VERIFIED_PASS', max_attempts: MAX_ATTEMPTS, attempt_timeout_ms: ATTEMPT_TIMEOUT_MS, transient_only_retry: true, vulnerability_response_not_retried: true, final_unavailable_fail_closed: true, npm_shrinkwrap_included: true, one_audit_per_directory: true, shrinkwrap_precedence: true, negative_cases: 9 }));
+  console.log(JSON.stringify({ test: 'BOUNDED_NPM_AUDIT_V1', state: 'VERIFIED_PASS', max_attempts: MAX_ATTEMPTS, attempt_timeout_ms: ATTEMPT_TIMEOUT_MS, transient_only_retry: true, vulnerability_response_not_retried: true, final_unavailable_fail_closed: true, npm_shrinkwrap_included: true, one_audit_per_directory: true, shrinkwrap_precedence: true, timeout_reason_preserved: true, negative_cases: 10 }));
 }
 
 function main() {
