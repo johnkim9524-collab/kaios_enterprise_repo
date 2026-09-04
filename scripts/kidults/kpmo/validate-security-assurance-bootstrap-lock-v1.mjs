@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const LOCK_PATH = 'requirements-security-assurance-pip-audit.lock.txt';
 const WORKFLOW_PATH = '.github/workflows/kidults-security-assurance-empirical-r1.yml';
+const NPM_RUNNER_PATH = 'scripts/kidults/kpmo/run-bounded-npm-audit-v1.mjs';
 const EXPECTED_AUDITOR_VERSION = '2.10.1';
 const EXPECTED_REQUIREMENT_COUNT = 29;
 
@@ -31,14 +32,33 @@ function validateLock(text) {
     packages.set(name, { version, digest });
   }
 
-  if (packages.size !== EXPECTED_REQUIREMENT_COUNT) {
-    fail(`LOCK_REQUIREMENT_COUNT:${packages.size}`);
-  }
-  if (packages.get('pip-audit')?.version !== EXPECTED_AUDITOR_VERSION) {
-    fail('LOCK_PIP_AUDIT_VERSION_DRIFT');
-  }
+  if (packages.size !== EXPECTED_REQUIREMENT_COUNT) fail(`LOCK_REQUIREMENT_COUNT:${packages.size}`);
+  if (packages.get('pip-audit')?.version !== EXPECTED_AUDITOR_VERSION) fail('LOCK_PIP_AUDIT_VERSION_DRIFT');
   if (!packages.has('pip')) fail('LOCK_PIP_BOOTSTRAP_MISSING');
   return packages;
+}
+
+function validateNpmRunner(text) {
+  const required = [
+    'const MAX_ATTEMPTS = 3;',
+    'const ATTEMPT_TIMEOUT_MS = 45_000;',
+    "npm_config_fetch_retries: '0'",
+    "npm_config_fetch_timeout: '30000'",
+    "spawnSync('npm', ['audit', '--audit-level=high', '--json']",
+    "['package-lock.json', 'npm-shrinkwrap.json']",
+    "base === 'npm-shrinkwrap.json'",
+    "lock_precedence: 'NPM_SHRINKWRAP_OVER_PACKAGE_LOCK_PER_DIRECTORY'",
+    "retry_policy: 'TRANSIENT_INVALID_ERROR_OR_TIMEOUT_ONLY'",
+    'AUDIT_OUTPUT_NAME_COLLISION',
+    'selectAuditTargets',
+    'classifyAuditPayload',
+    'SELF_SHRINKWRAP_PRECEDENCE',
+    'final_unavailable_fail_closed: true',
+  ];
+  for (const marker of required) if (!text.includes(marker)) fail(`NPM_RUNNER_BINDING_MISSING:${marker}`);
+  if (/const MAX_ATTEMPTS\s*=\s*(?:0|1|[4-9]|[1-9][0-9]+)/.test(text)) fail('NPM_RUNNER_ATTEMPT_BOUND_DRIFT');
+  if (/const ATTEMPT_TIMEOUT_MS\s*=\s*(?:[1-9][0-9]{5,}|0)\s*;/.test(text)) fail('NPM_RUNNER_TIMEOUT_UNBOUNDED');
+  if (!text.includes('if (invalid || unavailable || high || critical || anomalousNonzero) process.exit(1);')) fail('NPM_RUNNER_FAIL_CLOSE_MISSING');
 }
 
 function validateWorkflow(text) {
@@ -48,6 +68,13 @@ function validateWorkflow(text) {
     `PIP_AUDIT_LOCK: ${LOCK_PATH}`,
     `EXPECTED_PIP_AUDIT_VERSION: '${EXPECTED_AUDITOR_VERSION}'`,
     'node scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs',
+    `node --check ${NPM_RUNNER_PATH}`,
+    `node ${NPM_RUNNER_PATH} --self-test`,
+    `node ${NPM_RUNNER_PATH}`,
+    '"**/package*.json"',
+    '"npm-shrinkwrap.json"',
+    '"**/npm-shrinkwrap.json"',
+    'npm-shrinkwrap\\.json',
     'python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$PIP_AUDIT_LOCK"',
     'python -m pip_audit --version',
     'python -m pip --version',
@@ -55,30 +82,23 @@ function validateWorkflow(text) {
     'pip-audit-bootstrap.json',
     "pip_audit_bootstrap:read('pip-audit-bootstrap.json')",
   ];
-  for (const marker of required) {
-    if (!text.includes(marker)) fail(`WORKFLOW_BINDING_MISSING:${marker}`);
-  }
-  if (/pip\s+install[^\n]*\bpip-audit(?:\s|$)/i.test(text)) {
-    fail('WORKFLOW_MUTABLE_DIRECT_PIP_AUDIT_INSTALL');
-  }
-  if (/^\s+pip-audit\s+-r\s/m.test(text)) {
-    fail('WORKFLOW_UNBOUND_PIP_AUDIT_ENTRYPOINT');
-  }
+  for (const marker of required) if (!text.includes(marker)) fail(`WORKFLOW_BINDING_MISSING:${marker}`);
+  if (/pip\s+install[^\n]*\bpip-audit(?:\s|$)/i.test(text)) fail('WORKFLOW_MUTABLE_DIRECT_PIP_AUDIT_INSTALL');
+  if (/^\s+pip-audit\s+-r\s/m.test(text)) fail('WORKFLOW_UNBOUND_PIP_AUDIT_ENTRYPOINT');
+  if (/\bnpm\s+audit\b/.test(text)) fail('WORKFLOW_DIRECT_UNBOUNDED_NPM_AUDIT_FORBIDDEN');
 }
 
 function expectRejected(label, operation) {
-  try {
-    operation();
-  } catch {
-    return;
-  }
+  try { operation(); } catch { return; }
   fail(`MUTATION_NOT_REJECTED:${label}`);
 }
 
 const lock = fs.readFileSync(LOCK_PATH, 'utf8');
 const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
+const npmRunner = fs.readFileSync(NPM_RUNNER_PATH, 'utf8');
 const packages = validateLock(lock);
 validateWorkflow(workflow);
+validateNpmRunner(npmRunner);
 
 const firstHash = lock.match(/\s--hash=sha256:[a-f0-9]{64}/)?.[0];
 const pipAuditRecord = lock.split(/\r?\n/).find((line) => line.startsWith('pip-audit=='));
@@ -94,7 +114,16 @@ const mutations = [
   ['mutable-direct-install', () => validateWorkflow(workflow.replace('-r "$PIP_AUDIT_LOCK"', 'pip-audit'))],
   ['missing-validator', () => validateWorkflow(workflow.replace('node scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs', 'echo validator-removed'))],
   ['unbound-entrypoint', () => validateWorkflow(workflow.replace('python -m pip_audit -r "$req"', 'pip-audit -r "$req"'))],
-  ['missing-receipt-binding', () => validateWorkflow(workflow.replace("pip_audit_bootstrap:read('pip-audit-bootstrap.json')", "pip_audit_bootstrap:null"))],
+  ['missing-receipt-binding', () => validateWorkflow(workflow.replace("pip_audit_bootstrap:read('pip-audit-bootstrap.json')", 'pip_audit_bootstrap:null'))],
+  ['missing-npm-self-test', () => validateWorkflow(workflow.replace(`node ${NPM_RUNNER_PATH} --self-test`, 'echo npm-self-test-removed'))],
+  ['missing-nested-package-trigger', () => validateWorkflow(workflow.replace('      - "**/package*.json"\n', ''))],
+  ['missing-shrinkwrap-trigger', () => validateWorkflow(workflow.replace('      - "npm-shrinkwrap.json"\n', ''))],
+  ['direct-npm-audit', () => validateWorkflow(workflow.replace(`node ${NPM_RUNNER_PATH}`, 'npm audit --audit-level=high --json'))],
+  ['npm-attempt-bound-drift', () => validateNpmRunner(npmRunner.replace('const MAX_ATTEMPTS = 3;', 'const MAX_ATTEMPTS = 30;'))],
+  ['npm-timeout-bound-drift', () => validateNpmRunner(npmRunner.replace('const ATTEMPT_TIMEOUT_MS = 45_000;', 'const ATTEMPT_TIMEOUT_MS = 600_000;'))],
+  ['npm-fetch-retry-drift', () => validateNpmRunner(npmRunner.replace("npm_config_fetch_retries: '0'", "npm_config_fetch_retries: '10'"))],
+  ['npm-shrinkwrap-coverage-removed', () => validateNpmRunner(npmRunner.replace("['package-lock.json', 'npm-shrinkwrap.json']", "['package-lock.json']"))],
+  ['npm-fail-close-removed', () => validateNpmRunner(npmRunner.replace('if (invalid || unavailable || high || critical || anomalousNonzero) process.exit(1);', 'if (false) process.exit(1);'))],
 ];
 for (const [label, operation] of mutations) expectRejected(label, operation);
 
@@ -107,13 +136,18 @@ const result = {
   locked_requirement_count: packages.size,
   pip_audit_version: packages.get('pip-audit').version,
   install_mode: 'HASH_VERIFIED_WHEELS_ONLY',
+  npm_audit_mode: 'BOUNDED_TRANSIENT_RETRY_FAIL_CLOSED',
+  npm_max_attempts: 3,
+  npm_attempt_timeout_ms: 45000,
+  npm_shrinkwrap_coverage: true,
+  nested_npm_lock_trigger_coverage: true,
   mutation_cases_rejected: mutations.length,
   live_requests: 0,
   secret_material_read: false,
-  autonomous_effect: 'The non-Production security auditor resolves from a deterministic bootstrap lock without an operator choosing tool versions.',
-  global_effect: 'The lock target is explicit: ubuntu-24.04 x86_64 with CPython 3.11.',
+  autonomous_effect: 'The non-Production security auditor resolves from deterministic Python tooling and bounded fail-closed npm audit controls without operator-selected versions or unbounded provider retries.',
+  global_effect: 'Python bootstrap and npm lock/shrinkwrap coverage are explicit and reproducible across root and nested dependency trees.',
   irreplaceable_value_effect: 'Repeatable dependency findings preserve the integrity of the governed assurance history.',
-  transparency_effect: 'The lock digest, tool version, package count, and install mode are bound into the assurance receipt.',
+  transparency_effect: 'Lock digest, tool version, npm retry bounds, shrinkwrap coverage and install mode are machine-bound into the assurance control.',
   evidence_effect: 'NONE',
   empirical_gate_effect: 'NONE',
   production: 'HOLD',
