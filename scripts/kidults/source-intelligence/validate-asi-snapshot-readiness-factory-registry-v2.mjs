@@ -283,7 +283,7 @@ for (const marker of [
   'canonical_policy_tier_weakening_rejected: true',
   "canonical_canary_tier: 'CANARY'",
   'canonical_canary_sample_size: 5',
-  'negative_mutation_cases: 34',
+  'negative_mutation_cases: 36',
   "generated_pair_state: 'CONTENT_ADDRESSED_STORAGE_AND_ATTESTATION_PENDING'",
   'artifact_attestation_verified: false',
 ]) assert(livenessTest.includes(marker), `LIVENESS_TEST_MARKER:${marker}`);
@@ -308,6 +308,17 @@ for (const marker of [
   "const explicitSelfTest = args.length === 1 && args[0] === '--self-test'",
   "invocation_mode: noArgumentSelfTest ? 'NO_ARGUMENT_SAFE_SELF_TEST' : 'EXPLICIT_SELF_TEST'",
 ]) assert(upstreamValidator.includes(marker), `UPSTREAM_VALIDATOR_MARKER:${marker}`);
+assert(!library.includes('p1Gate.decision_count === 576'), 'READINESS_LIBRARY_HISTORICAL_GATE_CARDINALITY_REINTRODUCED');
+assert(!library.includes('p1Admission.candidate_count === 576'), 'READINESS_LIBRARY_HISTORICAL_ADMISSION_CARDINALITY_REINTRODUCED');
+assert(!library.includes('p1Actions.action_count === 672'), 'READINESS_LIBRARY_HISTORICAL_ACTION_CARDINALITY_REINTRODUCED');
+for (const marker of [
+  'Number.isInteger(p1Gate.decision_count) && p1Gate.decision_count > 0',
+  'p1Gate.decisions.length === p1Gate.decision_count',
+  'Number.isInteger(p1Admission.candidate_count) && p1Admission.candidate_count > 0',
+  'p1Admission.candidates.length === p1Admission.candidate_count',
+  'P1_GATE_ADMISSION_PARTITION_DRIFT',
+  'P1_ACTION_COUNT_DRIFT',
+]) assert(library.includes(marker), `READINESS_LIBRARY_DYNAMIC_P1_CARDINALITY_MARKER:${marker}`);
 for (const marker of [
   '# KIDULTS ASI Snapshot Readiness Factory v2.2',
   'Current P0B → P1 → P2 v2 chain',
