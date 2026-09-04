@@ -21,6 +21,8 @@ export function validateWorkflow(text) {
     'Preserve exact-main upstream failure as RED after receipt retention',
     'CURRENT_MAIN_EXACT',
     'EXPECTED_NONAUTHORITATIVE_SKIP',
+    'CURRENT_MAIN_SNAPSHOT_TERMINAL_ARTIFACT_REQUIRED',
+    'kidults-asi-p3-archive-consumer-terminal-v1-${runId}-${runAttempt}',
     'promotion_eligible:false',
     "public_release:'HOLD'",
     "production:'HOLD'",
@@ -57,9 +59,16 @@ export function validateReceipt(x) {
   req(Number.isInteger(x.upstream_artifact_count) && x.upstream_artifact_count >= 0, 'BACKSTOP_ARTIFACT_COUNT');
   req(Number.isInteger(x.upstream_terminal_artifact_count) && x.upstream_terminal_artifact_count >= 0, 'BACKSTOP_TERMINAL_COUNT');
   req(x.same_run_terminal_present === (x.upstream_terminal_artifact_count > 0), 'BACKSTOP_TERMINAL_BOOLEAN_BINDING');
+  if (x.expected_same_run_terminal_name !== null && x.expected_same_run_terminal_name !== undefined) {
+    req(x.expected_same_run_terminal_name === `kidults-asi-p3-archive-consumer-terminal-v1-${x.upstream_run_id}-${x.upstream_run_attempt}`, 'BACKSTOP_TERMINAL_NAME_BINDING');
+  }
   if (x.generation_class === 'EXPECTED_NONAUTHORITATIVE_SKIP') req(x.state === 'EXPECTED_NONAUTHORITATIVE_SKIP', 'BACKSTOP_STALE_GENERATION_STATE');
-  if (x.generation_class === 'CURRENT_MAIN_EXACT' && x.upstream_conclusion === 'success') req(x.state === 'VERIFIED_PASS', 'BACKSTOP_SUCCESS_MAPPING');
-  if (x.generation_class === 'CURRENT_MAIN_EXACT' && x.upstream_conclusion !== 'success') req(x.state === 'VERIFIED_FAIL', 'BACKSTOP_FAILURE_MAPPING');
+  if (x.generation_class === 'CURRENT_MAIN_EXACT') {
+    req(x.same_run_terminal_present === true && x.upstream_terminal_artifact_count === 1, 'BACKSTOP_CURRENT_MAIN_TERMINAL_REQUIRED');
+    req(x.expected_same_run_terminal_name === `kidults-asi-p3-archive-consumer-terminal-v1-${x.upstream_run_id}-${x.upstream_run_attempt}`, 'BACKSTOP_CURRENT_MAIN_TERMINAL_NAME');
+    if (x.upstream_conclusion === 'success') req(x.state === 'VERIFIED_PASS', 'BACKSTOP_SUCCESS_MAPPING');
+    else req(x.state === 'VERIFIED_FAIL', 'BACKSTOP_FAILURE_MAPPING');
+  }
   return { state: 'VERIFIED_PASS', receipt: x.id };
 }
 
@@ -68,16 +77,19 @@ function selfTest(text) {
   const base = {
     id:'kidults-asi-snapshot-terminal-backstop-v1', state:'VERIFIED_FAIL', generation_class:'CURRENT_MAIN_EXACT',
     upstream_run_id:1, upstream_run_attempt:1, upstream_head_sha:'a'.repeat(40), upstream_conclusion:'failure',
-    upstream_artifact_count:0, upstream_terminal_artifact_count:0, same_run_terminal_present:false,
+    upstream_artifact_count:1, upstream_terminal_artifact_count:1, same_run_terminal_present:true,
+    expected_same_run_terminal_name:'kidults-asi-p3-archive-consumer-terminal-v1-1-1',
     promotion_eligible:false, public_release:'HOLD', production:'HOLD', g5:'HOLD'
   };
   validateReceipt(structuredClone(base));
   const success = structuredClone(base); success.state='VERIFIED_PASS'; success.upstream_conclusion='success'; validateReceipt(success);
-  const stale = structuredClone(base); stale.state='EXPECTED_NONAUTHORITATIVE_SKIP'; stale.generation_class='EXPECTED_NONAUTHORITATIVE_SKIP'; validateReceipt(stale);
+  const stale = structuredClone(base); stale.state='EXPECTED_NONAUTHORITATIVE_SKIP'; stale.generation_class='EXPECTED_NONAUTHORITATIVE_SKIP'; stale.upstream_terminal_artifact_count=0; stale.same_run_terminal_present=false; stale.expected_same_run_terminal_name='kidults-asi-p3-archive-consumer-terminal-v1-1-1'; validateReceipt(stale);
   const cases = [
     ['upload-not-always', text.replace(/(- name: Upload Snapshot terminal backstop receipt\n)\s+if:\s*\$\{\{\s*always\(\)\s*\}\}/, '$1        if: success()')],
     ['write-permission', text.replace('contents: read', 'contents: write')],
     ['upstream-name-drift', text.replace("- 'KIDULTS ASI Snapshot Readiness Factory v2'", "- 'WRONG'")],
+    ['terminal-name-drift', text.replace('kidults-asi-p3-archive-consumer-terminal-v1-${runId}-${runAttempt}', 'wrong-terminal-${runId}-${runAttempt}')],
+    ['current-main-terminal-not-required', text.replace("if(generationClass==='CURRENT_MAIN_EXACT')req(terminal.length===1,'CURRENT_MAIN_SNAPSHOT_TERMINAL_ARTIFACT_REQUIRED');", '')],
   ];
   for (const [name, mutated] of cases) {
     let rejected=false; try { validateWorkflow(mutated); } catch { rejected=true; }
@@ -87,12 +99,13 @@ function selfTest(text) {
     ['promotion', x=>{x.promotion_eligible=true;}],
     ['bad-sha', x=>{x.upstream_head_sha='bad';}],
     ['failure-as-pass', x=>{x.state='VERIFIED_PASS';}],
-    ['terminal-drift', x=>{x.upstream_terminal_artifact_count=1;}],
+    ['terminal-missing', x=>{x.upstream_terminal_artifact_count=0;x.same_run_terminal_present=false;}],
+    ['terminal-name-drift', x=>{x.expected_same_run_terminal_name='wrong';}],
   ]) {
     const x=structuredClone(base); mutate(x); let rejected=false; try { validateReceipt(x); } catch { rejected=true; }
     req(rejected, `BACKSTOP_RECEIPT_FALSE_ACCEPT:${name}`);
   }
-  return {state:'VERIFIED_PASS', workflow_negative_cases:cases.length, receipt_negative_cases:4};
+  return {state:'VERIFIED_PASS', workflow_negative_cases:cases.length, receipt_negative_cases:5, current_main_same_run_terminal_required:true};
 }
 
 const text = fs.readFileSync(WORKFLOW, 'utf8');
