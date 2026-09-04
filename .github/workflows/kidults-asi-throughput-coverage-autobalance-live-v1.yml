@@ -9,6 +9,8 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs'
+      - 'coordination/kidults/governance/management-control-tower-contract-v1.json'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
 
 permissions:
@@ -36,6 +38,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs
+          node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs --self-test
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
           node - <<'NODE'
           const fs=require('node:fs');
@@ -44,6 +48,12 @@ jobs:
             const validation=src.indexOf(`--archive /tmp/${archive}.zip`);
             const extraction=src.indexOf(`unzip -q -o /tmp/${archive}.zip`);
             if(validation<0||extraction<0||validation>extraction)throw new Error(`SAFE_ZIP_PRE_EXTRACTION_GUARD_MISSING:${archive}`);
+          }
+          const freshness=src.indexOf('validate-autobalance-hourly-producer-freshness-v1.mjs \\\n                --created-at');
+          const artifactRead=src.indexOf('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100');
+          if(freshness<0||artifactRead<0||freshness>artifactRead)throw new Error('AUTOBALANCE_FRESHNESS_BEFORE_ARTIFACT_READ_GUARD_MISSING');
+          for(const marker of ['AUTOBALANCE_HOURLY_RUN_CREATED_AT','AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT','AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS','AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES','AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST']){
+            if(!src.includes(marker))throw new Error(`AUTOBALANCE_FRESHNESS_PROVENANCE_MARKER_MISSING:${marker}`);
           }
           NODE
 
@@ -75,7 +85,12 @@ jobs:
           AUTOBALANCE_PRODUCER_WAIT_SECONDS=3
           HOURLY_RUN_ID=""
           HOURLY_SOURCE_SHA=""
+          HOURLY_RUN_CREATED_AT=""
           HOURLY_RUN_STATE="NONE"
+          HOURLY_FRESHNESS_OBSERVED_AT=""
+          HOURLY_PRODUCER_AGE_SECONDS=""
+          HOURLY_FRESHNESS_SLO_MINUTES=""
+          HOURLY_FRESHNESS_RECEIPT_DIGEST=""
           for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS"); do
             gh api --method GET -H 'Accept: application/vnd.github+json' \
               -f branch=main -f per_page=100 \
@@ -95,11 +110,25 @@ jobs:
             if [ -n "$LATEST_EXACT_RUN" ]; then
               HOURLY_RUN_ID=$(jq -r '.id // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_SOURCE_SHA=$(jq -r '.head_sha // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_RUN_CREATED_AT=$(jq -r '.created_at // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_STATUS=$(jq -r '.status // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_CONCLUSION=$(jq -r '.conclusion // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_STATE="${HOURLY_RUN_STATUS}:${HOURLY_RUN_CONCLUSION:-NONE}"
               test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
               if [ "$HOURLY_RUN_STATUS" = "completed" ] && [ "$HOURLY_RUN_CONCLUSION" = "success" ]; then
+                HOURLY_FRESHNESS_OBSERVED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs \
+                  --created-at "$HOURLY_RUN_CREATED_AT" \
+                  --observed-at "$HOURLY_FRESHNESS_OBSERVED_AT" \
+                  --source-sha "$HOURLY_SOURCE_SHA" \
+                  --run-id "$HOURLY_RUN_ID" \
+                  --output /tmp/autobalance-hourly-producer-freshness-v1.json
+                HOURLY_PRODUCER_AGE_SECONDS=$(jq -r '.producer_age_seconds' /tmp/autobalance-hourly-producer-freshness-v1.json)
+                HOURLY_FRESHNESS_SLO_MINUTES=$(jq -r '.freshness_slo_minutes' /tmp/autobalance-hourly-producer-freshness-v1.json)
+                HOURLY_FRESHNESS_RECEIPT_DIGEST="sha256:$(sha256sum /tmp/autobalance-hourly-producer-freshness-v1.json | awk '{print $1}')"
+                [[ "$HOURLY_PRODUCER_AGE_SECONDS" =~ ^[0-9]+$ ]]
+                test "$HOURLY_FRESHNESS_SLO_MINUTES" = "90"
+                [[ "$HOURLY_FRESHNESS_RECEIPT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
                 break
               fi
               if [ "$HOURLY_RUN_STATUS" = "completed" ]; then
@@ -116,6 +145,8 @@ jobs:
           done
           test -n "$HOURLY_RUN_ID"
           test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
+          test -n "$HOURLY_RUN_CREATED_AT"
+          test -s /tmp/autobalance-hourly-producer-freshness-v1.json
 
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100" \
@@ -200,6 +231,11 @@ jobs:
             echo "AUTOBALANCE_EXPECTED_PRODUCER_SHA=$EXPECTED_PRODUCER_SHA"
             echo "AUTOBALANCE_HOURLY_RUN_ID=$HOURLY_RUN_ID"
             echo "AUTOBALANCE_HOURLY_SOURCE_SHA=$HOURLY_SOURCE_SHA"
+            echo "AUTOBALANCE_HOURLY_RUN_CREATED_AT=$HOURLY_RUN_CREATED_AT"
+            echo "AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT=$HOURLY_FRESHNESS_OBSERVED_AT"
+            echo "AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS=$HOURLY_PRODUCER_AGE_SECONDS"
+            echo "AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES=$HOURLY_FRESHNESS_SLO_MINUTES"
+            echo "AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST=$HOURLY_FRESHNESS_RECEIPT_DIGEST"
             echo "AUTOBALANCE_META_ID=$META_ID"
             echo "AUTOBALANCE_META_DIGEST=$META_DIGEST"
             echo "AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST=$META_SAFE_ZIP_RECEIPT_DIGEST"
@@ -233,6 +269,11 @@ jobs:
             'AUTOBALANCE_EXPECTED_PRODUCER_SHA',
             'AUTOBALANCE_HOURLY_RUN_ID',
             'AUTOBALANCE_HOURLY_SOURCE_SHA',
+            'AUTOBALANCE_HOURLY_RUN_CREATED_AT',
+            'AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT',
+            'AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS',
+            'AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES',
+            'AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST',
             'AUTOBALANCE_META_ID',
             'AUTOBALANCE_META_DIGEST',
             'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST',
@@ -247,23 +288,31 @@ jobs:
           if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
             throw new Error('PRODUCER_SHA_MISMATCH');
           }
-          for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'AUTOBALANCE_DISC_DIGEST', 'AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST']) {
+          if (!/^\d+$/.test(process.env.AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS) || Number(process.env.AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS) > 5400) throw new Error('PRODUCER_FRESHNESS_INVALID');
+          if (process.env.AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES !== '90') throw new Error('PRODUCER_FRESHNESS_SLO_INVALID');
+          for (const key of ['AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST','AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'AUTOBALANCE_DISC_DIGEST', 'AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
           const receipt = {
             id: 'kidults-asi-throughput-autobalance-provenance-v1',
-            status: 'VERIFIED_EXACT_PRODUCER_BINDING',
+            status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING',
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
             discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD,
             safe_zip_validated_before_extraction: true,
+            freshness_validated_before_artifact_download: true,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,
               workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
               workflow_name: 'KIDULTS ASI Global Any-Site Hourly Pooling v2',
               run_id: Number(process.env.AUTOBALANCE_HOURLY_RUN_ID),
-              head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA
+              head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA,
+              created_at: process.env.AUTOBALANCE_HOURLY_RUN_CREATED_AT,
+              freshness_observed_at: process.env.AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT,
+              age_seconds: Number(process.env.AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS),
+              freshness_slo_minutes: Number(process.env.AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES),
+              freshness_receipt_digest: process.env.AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST
             },
             artifacts: [
               {
@@ -303,5 +352,6 @@ jobs:
           path: |
             /tmp/asi-throughput-coverage-autobalance-live-v1.json
             /tmp/asi-throughput-autobalance-provenance-v1.json
+            /tmp/autobalance-hourly-producer-freshness-v1.json
           retention-days: 30
           if-no-files-found: error
