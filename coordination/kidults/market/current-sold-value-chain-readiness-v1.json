@@ -19,6 +19,7 @@
     {
       "stage": "TRACK_Z_SOURCE_RIGHTS_AND_ACQUISITION",
       "owner": "TRACK_Z",
+      "runtime_owner": "TRACK_Z",
       "state": "BLOCKED_EXTERNAL_AUTHORITY",
       "empirical_increment": 0,
       "exit": "lawful source, authoritative acquisition receipt and purpose-specific rights receipt"
@@ -26,6 +27,7 @@
     {
       "stage": "KPMO_GOVERNED_RECEIPT_REGISTRY_AUTHORITY",
       "owner": "KPMO",
+      "runtime_owner": "KPMO",
       "state": "CONTROL_IMPLEMENTATION_ADDED_PENDING_PROTECTED_MAIN_AND_EXTERNAL_TRUST_ROOT",
       "empirical_increment": 0,
       "exit": "external keyring digest, signed authority envelope, exact registry binding and natural private canary"
@@ -49,6 +51,7 @@
     {
       "stage": "TRACK_D_APPEND_ONLY_LEDGER",
       "owner": "TRACK_D",
+      "runtime_owner": "TRACK_D",
       "state": "CODE_COMPLETE_NOT_ACTIVATED",
       "postgres_migration_applied": false,
       "postgres_rows_written": 0,
@@ -57,6 +60,7 @@
     {
       "stage": "TRACK_A_CANDIDATE_EVIDENCE_PAIR",
       "owner": "TRACK_A",
+      "runtime_owner": "ASI",
       "state": "BLOCKED_NO_LAWFUL_LEDGER_ROWS",
       "candidate": "NONE",
       "evidence_package": "NONE",
@@ -65,12 +69,14 @@
     {
       "stage": "TRACK_B_INDEPENDENT_ASSESSMENT",
       "owner": "TRACK_B",
+      "runtime_owner": "TRACK_B",
       "state": "NOT_STARTED_EXACT_PAIR_ABSENT",
       "exit": "rankability assessment of exact Track A pair"
     },
     {
       "stage": "PROJECTION_AND_PORTAL",
       "owner": "TRACK_C",
+      "runtime_owner": "TRACK_C",
       "state": "HOLD_NO_APPROVED_PROJECTION",
       "exit": "approved Projection and separate release gates"
     }
