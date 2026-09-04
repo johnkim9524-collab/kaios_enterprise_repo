@@ -21,11 +21,16 @@ function violations(text) {
     'artifact_id:artifact.id',
     'artifact_digest:artifact.digest',
     'exact_generation:true',
-    'upstream_global_discovery:provenance'
+    'upstream_global_discovery:provenance',
+    "common_crawl_expansion_status:d.common_crawl_expansion_status",
+    "common_crawl_zero_result_noop:d.common_crawl_zero_result_noop",
+    'PASS_ZERO_RESULTS_NOOP',
+    'SUCCESS_ZERO_RESULTS'
   ];
   for (const needle of mustInclude) {
     if (!text.includes(needle)) failures.push(`MISSING:${needle}`);
   }
+  if (text.includes('NO_EMPIRICAL_COMMON_CRAWL_CANDIDATE')) failures.push('ZERO_RESULT_FAIL_SOFT_REJECTED');
   if (text.includes("if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));") &&
       !text.includes('run.head_sha===expectedSha')) {
     failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_SHA');
@@ -69,7 +74,9 @@ const mutations = [
   ['DROP_CARDINALITY', t => t.replace("if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);", '')],
   ['DROP_DIGEST', t => t.replace("if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);", '')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
-  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')]
+  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
+  ['DROP_ZERO_RESULT_STATUS_BINDING', t => t.replace('common_crawl_expansion_status:d.common_crawl_expansion_status,', '')],
+  ['DROP_ZERO_RESULT_NOOP_BINDING', t => t.replace('common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,', '')]
 ];
 
 for (const [name, mutate] of mutations) {
@@ -101,5 +108,6 @@ console.log(JSON.stringify({
   id:'asi-common-crawl-gate-chain-provenance-v1',
   mutations_rejected:mutations.length,
   exact_generation_required:true,
+  zero_result_noop_guarded:true,
   production:'HOLD'
 },null,2));
