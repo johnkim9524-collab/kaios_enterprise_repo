@@ -21,7 +21,7 @@
       "runtime_owner": "KPMO",
       "source_stage": "KPMO_GOVERNED_RECEIPT_REGISTRY_AUTHORITY",
       "state": "CONTROL_IMPLEMENTATION_ADDED_PENDING_PROTECTED_MAIN_AND_EXTERNAL_TRUST_ROOT",
-      "dependencies": ["SOURCE_RIGHTS"],
+      "dependencies": [],
       "empirical_count": 0,
       "forward_authority": false
     },
