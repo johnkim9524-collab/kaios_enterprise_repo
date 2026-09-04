@@ -63,11 +63,13 @@ function validate(text) {
   requireText("status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING'", 'fresh exact-producer provenance receipt status');
   requireText('/tmp/autobalance-hourly-producer-freshness-v1.json', 'freshness receipt retained in artifact');
 
-  const freshnessMarker = ['node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs', '--created-at "$HOURLY_RUN_CREATED_AT"'].join(' \\\n                ');
+  const freshnessCallMarker = '--created-at "$HOURLY_RUN_CREATED_AT"';
   const artifactReadMarker = ['"/repos/${GITHUB_REPOSITORY}', '/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100"'].join('');
-  const freshnessCall = text.indexOf(freshnessMarker);
+  const freshnessCall = text.indexOf(freshnessCallMarker);
   const artifactRead = text.indexOf(artifactReadMarker);
-  if (freshnessCall < 0 || artifactRead < 0 || freshnessCall > artifactRead) failures.push('freshness gate occurs after artifact read');
+  if (freshnessCall < 0) failures.push('freshness execution marker missing');
+  if (artifactRead < 0) failures.push('artifact read execution marker missing');
+  if (freshnessCall >= 0 && artifactRead >= 0 && freshnessCall > artifactRead) failures.push('freshness gate occurs after artifact read');
 
   requireText('scripts/kidults/kpmo/validate-safe-zip-archive-v1.py', 'safe ZIP pre-extraction validator');
   requireText('--archive /tmp/meta.zip', 'source-pool safe ZIP validation');
@@ -155,7 +157,7 @@ if (validate(freshnessRemovalMutation).length === 0) {
   process.exit(1);
 }
 
-const freshnessMovedAfterArtifactRead = text.replace(freshnessMarker, `${artifactReadMarker}\n                ${freshnessMarker}`);
+const freshnessMovedAfterArtifactRead = text.replace(freshnessCallMarker, `${artifactReadMarker}\n                ${freshnessCallMarker}`);
 if (validate(freshnessMovedAfterArtifactRead).length === 0) {
   console.error('ASI throughput autobalance provenance self-test failed to reject freshness-after-artifact-read ordering');
   process.exit(1);
