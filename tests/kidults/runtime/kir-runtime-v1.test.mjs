@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { loadKirRuntime, validateKirRuntime, evaluateKirRuntime } from '../../../scripts/kidults/runtime/kir-runtime-kernel-v1.mjs';
 
 const clone = value => structuredClone(value);
@@ -262,4 +263,30 @@ test('kernel rejects malformed execution identity', () => {
     {...identity,run_attempt:0},
     {...identity,trigger_event:''}
   ]) expectReject(()=>evaluateKirRuntime({...loaded,identity:bad}));
+});
+
+test('KIR workflow preserves fail-closed bootstrap, reconciliation and always-upload invariants', () => {
+  const workflow=fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml','utf8');
+  const required=[
+    'Initialize fail-closed KIR terminal receipt',
+    'receipt_class":"WORKFLOW_FAIL_CLOSED_BOOTSTRAP"',
+    '"state":"VERIFIED_FAIL"',
+    '"promotion_eligible":false',
+    '"runtime_activation_authorized":false',
+    'Reconcile exact-head KIR workflow terminal truth',
+    'if: ${{ always() }}',
+    "'receipt_class':'WORKFLOW_FAIL_CLOSED_TERMINAL'",
+    "'failed_check_ids':failed",
+    "'first_failed_stage':failed[0]",
+    'Upload exact-head KIR terminal packet',
+    'if-no-files-found: error',
+    '/tmp/kidults-kir-runtime-terminal-receipt-v1.json',
+    '/tmp/kidults-kir-runtime-evaluation-v1.json'
+  ];
+  for(const marker of required) assert.ok(workflow.includes(marker),`KIR_WORKFLOW_DURABILITY_MARKER_MISSING:${marker}`);
+  const init=workflow.indexOf('Initialize fail-closed KIR terminal receipt');
+  const checkout=workflow.indexOf('Checkout exact candidate head');
+  const reconcile=workflow.indexOf('Reconcile exact-head KIR workflow terminal truth');
+  const upload=workflow.indexOf('Upload exact-head KIR terminal packet');
+  assert.ok(init>=0&&checkout>init&&reconcile>checkout&&upload>reconcile,'KIR_WORKFLOW_DURABILITY_ORDER_INVALID');
 });
