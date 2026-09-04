@@ -30,6 +30,11 @@ jobs:
           const source = fs.readFileSync(path, 'utf8');
           const terminalMarker = '      - name: TERMINAL — preserve authoritative Self-Driving result';
           const uploadMarker = '      - name: Upload authoritative Self-Driving terminal receipt';
+          // Build GitHub-expression literals at runtime so the regression workflow's
+          // own expression engine cannot pre-expand the strings being asserted.
+          const jobStatusBinding = 'JOB_STATUS: $' + '{{ job.status }}';
+          const sourceShaBinding = 'SOURCE_SHA: $' + '{{ github.event.pull_request.head.sha || github.sha }}';
+          const fallbackShaBinding = 'SOURCE_SHA: $' + '{{ github.sha }}';
 
           function validate(text) {
             const terminalStart = text.indexOf(terminalMarker);
@@ -41,8 +46,8 @@ jobs:
             const upload = text.slice(uploadStart);
             const terminalMust = [
               'if: always()',
-              'JOB_STATUS: ${{ job.status }}',
-              'SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}',
+              jobStatusBinding,
+              sourceShaBinding,
               'executed_sha: $executed_sha',
               'execution_ref: $execution_ref',
               'asi-self-driving-terminal-receipt-v1.json',
@@ -84,7 +89,7 @@ jobs:
             text => text.replace('"VERIFIED_FAIL"', '"VERIFIED_PASS"'),
             text => text.replace('"SELF_DRIVING_JOB_NON_SUCCESS"', '""'),
             text => text.replace('promotion_eligible: false', 'promotion_eligible: true'),
-            text => text.replace('SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}', 'SOURCE_SHA: ${{ github.sha }}'),
+            text => text.replace(sourceShaBinding, fallbackShaBinding),
             text => {
               const uploadStart = text.indexOf(uploadMarker);
               return text.slice(0, uploadStart) + text.slice(uploadStart).replace('if: always()', 'if: success()');
