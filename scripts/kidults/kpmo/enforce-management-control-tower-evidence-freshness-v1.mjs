@@ -42,8 +42,9 @@ function evaluateEvidenceFreshnessContract(snapshot, policy, snapshotText = '', 
   return {
     id: 'kidults-management-control-tower-evidence-freshness-receipt-v1',
     version: '1.1.0',
-    state: 'VERIFIED_PASS',
-    failed_check_ids: [],
+    state: 'VERIFIED_HOLD',
+    operational_outcome: 'SUCCESS_WITH_GOVERNED_HOLD',
+    failed_check_ids: ['CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED'],
     transport_validation: 'VERIFIED_PASS',
     snapshot: snapshot.id,
     generated_at: snapshot.generated_at,
@@ -105,7 +106,10 @@ function selfTest() {
   };
 
   const receipt = evaluateEvidenceFreshnessContract(snapshot, policy);
-  requireCondition(receipt.state === 'VERIFIED_PASS'
+  requireCondition(receipt.state === 'VERIFIED_HOLD'
+    && receipt.operational_outcome === 'SUCCESS_WITH_GOVERNED_HOLD'
+    && receipt.failed_check_ids?.length === 1
+    && receipt.failed_check_ids[0] === 'CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED'
     && receipt.evidence_freshness.state_at_validation === 'UNASSESSED'
     && receipt.evidence_freshness.freshness_claim === 'NONE'
     && receipt.evidence_freshness.threshold === 'NOT_DEFINED'
@@ -177,4 +181,4 @@ try {
 mkdirSync(dirname(receiptPath), { recursive: true });
 writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
 console.log(JSON.stringify(receipt));
-if (receipt.state !== 'VERIFIED_PASS') process.exitCode = 1;
+if (!['VERIFIED_PASS', 'VERIFIED_HOLD'].includes(receipt.state)) process.exitCode = 1;
