@@ -42,13 +42,16 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
-      - name: Validate KIR contract syntax and static truth
+      - name: Validate KIR contract syntax, RACI structure and static truth
         run: |
           set -euo pipefail
           node --check scripts/kidults/runtime/kir-runtime-kernel-v1.mjs
+          node --check scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node --check tests/kidults/runtime/kir-runtime-v1.test.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/runtime/kir-runtime-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/runtime/kir-module-registry-v1.json','utf8'))"
+          node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs --self-test
+          node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
 
       - name: Run KIR negative regression suite
