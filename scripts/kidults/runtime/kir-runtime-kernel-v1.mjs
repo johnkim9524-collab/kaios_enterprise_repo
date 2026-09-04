@@ -269,6 +269,17 @@ export function validateKirRuntime({contract, registry, readiness}) {
   const stages = validateModuleReadinessBinding(modules, readiness);
   const state = validateStateMachine(contract, registry, readiness, modules, stages);
 
+  if (contract.mode === 'CONTROL_ONLY_DRAFT_NOT_LANDED') {
+    for (const [id, module] of modules) {
+      req(module.state === CURRENT_BLOCKED_STATE[id], `KIR_CONTROL_ONLY_FORWARD_STATE:${id}`);
+    }
+    req(state.empirical === 0, 'KIR_CONTROL_ONLY_EMPIRICAL_NONZERO');
+    req(state.postgresRows === 0, 'KIR_CONTROL_ONLY_POSTGRES_ROWS_NONZERO');
+    req(state.pairReady === false, 'KIR_CONTROL_ONLY_PAIR_READY');
+    req(state.trackBComplete === false, 'KIR_CONTROL_ONLY_TRACK_B_COMPLETE');
+    req(state.projectionReady === false, 'KIR_CONTROL_ONLY_PROJECTION_READY');
+  }
+
   return {
     state: 'VERIFIED_PASS',
     module_count: modules.size,
