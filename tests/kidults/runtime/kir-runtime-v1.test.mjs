@@ -125,26 +125,20 @@ test('current KIR runtime truth validates without empirical promotion', () => {
   assert.ok(receipt.blockers.includes('APPROVED_PROJECTION_ABSENT'));
 });
 
-test('fully evidenced synthetic future chain can reach activation review without granting authority', () => {
+test('CONTROL_ONLY contract excludes every forward state class', () => {
+  const loaded=loadKirRuntime();
+  assert.equal(loaded.contract.mode,'CONTROL_ONLY_DRAFT_NOT_LANDED');
+  assert.equal(loaded.contract.kernel.control_only_forward_state_allowed,false);
+  assert.equal(loaded.contract.promotion_contract.control_only_forward_states_allowed,false);
+  assert.equal(loaded.contract.promotion_contract.future_forward_states_require_new_governed_contract_mode,true);
+  for (const state of ['READY','EMPIRICAL_VALIDATED','PAIR_READY','COMPLETE_INDEPENDENT_ASSESSMENT','APPROVED_PROJECTION_READY']) {
+    assert.equal(loaded.contract.module_state_classes.includes(state),false,`CONTROL_ONLY_FORWARD_STATE_REINTRODUCED:${state}`);
+  }
+});
+
+test('CONTROL_ONLY contract rejects fully synthetic future chain even with digest-shaped evidence', () => {
   const loaded=makeSyntheticReady();
-  const result=validateKirRuntime(loaded);
-  assert.equal(result.state,'VERIFIED_PASS');
-  assert.equal(result.empirical_current_sold,1);
-  assert.equal(result.postgres_rows,1);
-  assert.equal(result.pair_ready,true);
-  assert.equal(result.track_b_complete,true);
-  assert.equal(result.projection_ready,true);
-  const receipt=evaluateKirRuntime({...loaded,identity});
-  assert.equal(receipt.state,'READY_FOR_SEPARATELY_GATED_ACTIVATION_REVIEW');
-  assert.deepEqual(receipt.blockers,[]);
-  assert.equal(receipt.runtime_activation_authorized,false);
-  assert.equal(receipt.promotion_eligible,false);
-  assert.equal(receipt.empirical_authority,false);
-  assert.equal(receipt.database_authority,false);
-  assert.equal(receipt.provider_authority,false);
-  assert.equal(receipt.public_release,'HOLD');
-  assert.equal(receipt.production,'HOLD');
-  assert.equal(receipt.g5,'HOLD');
+  expectReject(()=>validateKirRuntime(loaded));
 });
 
 test('kernel rejects runtime activation authority fabricated in contract', () => {
