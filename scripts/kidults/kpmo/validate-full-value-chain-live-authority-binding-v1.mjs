@@ -52,12 +52,11 @@ export function bindingErrors(source) {
   if (!canonical.includes(`node ${canonicalScript} --self-test`) || !canonical.includes(`node ${canonicalScript}`)) errors.push('FULL_CHAIN_CANONICAL_LIVE_VALIDATOR_MISSING');
   if (!severity.includes(`node ${severityScript} --self-test`) || !severity.includes(`node ${severityScript}`)) errors.push('FULL_CHAIN_SEVERITY_LIVE_VALIDATOR_MISSING');
   if (!canonical.includes('GITHUB_TOKEN: ${{ github.token }}') || !severity.includes('GITHUB_TOKEN: ${{ github.token }}')) errors.push('FULL_CHAIN_LIVE_AUTHORITY_TOKEN_BINDING_MISSING');
-  if (!canonical.includes('continue-on-error: true') || !severity.includes('continue-on-error: true') || !aggregate.includes('continue-on-error: true')) errors.push('FULL_CHAIN_COMPLETE_EVIDENCE_COLLECTION_MISSING');
+  if (!guard.includes('continue-on-error: true') || !canonical.includes('continue-on-error: true') || !severity.includes('continue-on-error: true') || !aggregate.includes('continue-on-error: true')) errors.push('FULL_CHAIN_COMPLETE_EVIDENCE_COLLECTION_MISSING');
   if (!aggregate.includes('run-full-value-chain-redteam-suite-v1.mjs')) errors.push('FULL_CHAIN_AGGREGATE_SUITE_MISSING');
-  if (!reconcile.includes('if: always()') || !reconcile.includes(`node ${reconcileScript}`) || !reconcile.includes('steps.canonical_live.outcome') || !reconcile.includes('steps.severity_live.outcome') || !reconcile.includes('steps.aggregate.outcome')) errors.push('FULL_CHAIN_TERMINAL_RECONCILIATION_MISSING');
+  if (!reconcile.includes('if: always()') || !reconcile.includes(`node ${reconcileScript}`) || !reconcile.includes('steps.binding_guard.outcome') || !reconcile.includes('steps.canonical_live.outcome') || !reconcile.includes('steps.severity_live.outcome') || !reconcile.includes('steps.aggregate.outcome')) errors.push('FULL_CHAIN_TERMINAL_RECONCILIATION_MISSING');
   if (!upload.includes('if: always()') || !upload.includes('actions/upload-artifact@') || !upload.includes(receiptName) || !upload.includes('if-no-files-found: error')) errors.push('FULL_CHAIN_TERMINAL_UPLOAD_MISSING');
   if (!enforce.includes('if: always()') || !enforce.includes('FULL_CHAIN_TERMINAL_NOT_PASS')) errors.push('FULL_CHAIN_FINAL_FAILCLOSED_ENFORCEMENT_MISSING');
-  if (!text.includes('promotion_eligible') && !reconcile.includes(reconcileScript)) errors.push('FULL_CHAIN_PROMOTION_BOUNDARY_UNBOUND');
   return errors;
 }
 
@@ -77,16 +76,17 @@ if (errors.length) {
 mutationMustFail(source, source.replace('  issues: read', '  issues: write'), 'FULL_CHAIN_READONLY_ISSUE_PERMISSION_MISSING');
 mutationMustFail(source, source.replace(`node ${canonicalScript} --self-test`, 'echo canonical-validator-removed'), 'FULL_CHAIN_CANONICAL_LIVE_VALIDATOR_MISSING');
 mutationMustFail(source, source.replace(`node ${severityScript} --self-test`, 'echo severity-validator-removed'), 'FULL_CHAIN_SEVERITY_LIVE_VALIDATOR_MISSING');
-mutationMustFail(source, source.replace('continue-on-error: true', 'continue-on-error: false'), 'FULL_CHAIN_COMPLETE_EVIDENCE_COLLECTION_MISSING');
-mutationMustFail(source, source.replace('      - name: Reconcile exact-run terminal receipt', '      - name: Reconcile exact-run terminal receipt REMOVED'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
-mutationMustFail(source, source.replace('      - name: Upload exact-run terminal receipt', '      - name: Upload exact-run terminal receipt REMOVED'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
-mutationMustFail(source, source.replace('      - name: Enforce terminal Red-Team verdict', '      - name: Enforce terminal Red-Team verdict REMOVED'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
+mutationMustFail(source, source.replace('        continue-on-error: true', '        continue-on-error: false'), 'FULL_CHAIN_COMPLETE_EVIDENCE_COLLECTION_MISSING');
+mutationMustFail(source, source.replace('      - name: Reconcile exact-run terminal receipt', '      - name: REMOVED reconcile exact-run terminal receipt'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
+mutationMustFail(source, source.replace('      - name: Upload exact-run terminal receipt', '      - name: REMOVED upload exact-run terminal receipt'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
+mutationMustFail(source, source.replace('      - name: Enforce terminal Red-Team verdict', '      - name: REMOVED enforce terminal Red-Team verdict'), 'FULL_CHAIN_AUTHORITY_TERMINAL_ORDER_INVALID');
 
 console.log(JSON.stringify({
   id: 'kidults-full-value-chain-live-authority-binding-v1',
   state: 'VERIFIED_PASS',
   live_canonical_required: true,
   live_severity_required: true,
+  complete_evidence_collection: true,
   terminal_receipt_always_required: true,
   issues_permission: 'READ_ONLY',
   mutation_cases_rejected: 7,
