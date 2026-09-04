@@ -324,3 +324,61 @@ jobs:
             /tmp/asi-self-driving-cycle-summary-v1.json
           retention-days: 14
           if-no-files-found: error
+      - name: TERMINAL — preserve authoritative Self-Driving result
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg id 'kidults-asi-self-driving-terminal-v1' \
+            --arg source_sha "$GITHUB_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg event_name "$GITHUB_EVENT_NAME" \
+            --arg job_status "$JOB_STATUS" \
+            '{
+              id: $id,
+              source_sha: $source_sha,
+              run_id: $run_id,
+              run_attempt: ($run_attempt | tonumber),
+              event_name: $event_name,
+              job_status: $job_status,
+              internal_control_state: (if $job_status == "success" then "VERIFIED_PASS" else "VERIFIED_FAIL" end),
+              failed_check_ids: (if $job_status == "success" then [] else ["SELF_DRIVING_JOB_NON_SUCCESS"] end),
+              promotion_eligible: false,
+              content_acquisition_authorized: false,
+              evidence_admission: "NONE",
+              track_b_complete: false,
+              projection_ready: false,
+              public_release: "HOLD",
+              production: "HOLD",
+              g5: "HOLD"
+            }' > /tmp/asi-self-driving-terminal-v1.json
+          jq -e '
+            (.id == "kidults-asi-self-driving-terminal-v1") and
+            (.source_sha | type == "string" and length == 40) and
+            (.run_id | type == "string" and length > 0) and
+            (.run_attempt | type == "number" and . >= 1) and
+            (.event_name | type == "string" and length > 0) and
+            ((.job_status == "success" and .internal_control_state == "VERIFIED_PASS" and .failed_check_ids == []) or
+             (.job_status != "success" and .internal_control_state == "VERIFIED_FAIL" and .failed_check_ids == ["SELF_DRIVING_JOB_NON_SUCCESS"])) and
+            (.promotion_eligible == false) and
+            (.content_acquisition_authorized == false) and
+            (.evidence_admission == "NONE") and
+            (.track_b_complete == false) and
+            (.projection_ready == false) and
+            (.public_release == "HOLD") and
+            (.production == "HOLD") and
+            (.g5 == "HOLD")
+          ' /tmp/asi-self-driving-terminal-v1.json
+          cat /tmp/asi-self-driving-terminal-v1.json
+      - name: Upload authoritative Self-Driving terminal receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-self-driving-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/asi-self-driving-terminal-v1.json
+          retention-days: 90
+          if-no-files-found: error
