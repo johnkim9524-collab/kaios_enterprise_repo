@@ -95,6 +95,12 @@ jobs:
             return text.slice(0, terminalStart) + terminal.replace(from, to) + text.slice(uploadStart);
           }
 
+          function replaceTerminalAll(text, from, to) {
+            const {terminalStart, uploadStart, terminal} = sections(text);
+            if (!terminal.includes(from)) throw new Error(`terminal mutation source absent: ${from}`);
+            return text.slice(0, terminalStart) + terminal.split(from).join(to) + text.slice(uploadStart);
+          }
+
           function replaceUpload(text, from, to) {
             const {uploadStart, upload} = sections(text);
             if (!upload.includes(from)) throw new Error(`upload mutation source absent: ${from}`);
@@ -105,11 +111,11 @@ jobs:
 
           const mutations = [
             text => replaceTerminal(text, 'if: always()', 'if: success()'),
-            text => replaceTerminal(text, '"VERIFIED_FAIL"', '"VERIFIED_PASS"'),
-            text => replaceTerminal(text, '"SELF_DRIVING_JOB_NON_SUCCESS"', '""'),
-            text => replaceTerminal(text, 'promotion_eligible: false', 'promotion_eligible: true'),
+            text => replaceTerminalAll(text, '"VERIFIED_FAIL"', '"VERIFIED_PASS"'),
+            text => replaceTerminalAll(text, '"SELF_DRIVING_JOB_NON_SUCCESS"', '""'),
+            text => replaceTerminalAll(text, 'promotion_eligible: false', 'promotion_eligible: true'),
             text => replaceTerminal(text, sourceShaBinding, fallbackShaBinding),
-            text => replaceTerminal(text, 'evidence_admission: "NONE"', 'evidence_admission: "ADMITTED"'),
+            text => replaceTerminalAll(text, 'evidence_admission: "NONE"', 'evidence_admission: "ADMITTED"'),
             text => replaceUpload(text, 'if: always()', 'if: success()')
           ];
 
