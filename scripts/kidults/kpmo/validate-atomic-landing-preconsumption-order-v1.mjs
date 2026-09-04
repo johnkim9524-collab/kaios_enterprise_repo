@@ -51,6 +51,17 @@ assert(workflow.includes('complete exact-head Program Owner approval')
   && workflow.includes('malformed/expired/overlong approval'),
 'ATOMIC_LANDING_PRECONSUMPTION_FAIL_CLOSED_RATIONALE_MISSING');
 
+const terminalBootstrap = lifecyclePreflight.indexOf('writeFailClosedTerminalBootstrap();');
+const lifecycleApprovalValidation = lifecyclePreflight.indexOf('assertLandingActorAndAuthorization');
+assert(terminalBootstrap >= 0 && lifecycleApprovalValidation > terminalBootstrap,
+  'ATOMIC_LANDING_TERMINAL_BOOTSTRAP_NOT_BEFORE_APPROVAL_VALIDATION');
+assert(lifecyclePreflight.includes("terminal_class: 'PREVALIDATION_FAIL_CLOSED_BOOTSTRAP'")
+  && lifecyclePreflight.includes('authorization_id_sha256: sha256(authorizationId)')
+  && lifecyclePreflight.includes('raw_authorization_persisted: false')
+  && lifecyclePreflight.includes("path.join(runnerTemp, 'kidults-atomic-landing-terminal', 'receipt.json')")
+  && lifecyclePreflight.includes('mode: 0o600'),
+'ATOMIC_LANDING_PREVALIDATION_TERMINAL_DURABILITY_INVARIANT_MISSING');
+
 const lifecycleApprovalTokens = [
   'assertLandingActorAndAuthorization',
   'selectExactHeadProgramOwnerApproval',
@@ -77,9 +88,11 @@ assert(oneUsePreflight.includes(`pages(\`/issues/\${prNumber}/timeline\`)`)
 
 console.log(JSON.stringify({
   id: 'kidults-atomic-landing-preconsumption-order-receipt-v1',
-  version: '1.0.0',
+  version: '1.1.0',
   state: 'VERIFIED_PASS',
   lifecycle_authority_precedes_one_use_consumption: true,
+  terminal_bootstrap_precedes_strict_approval_validation: true,
+  malformed_authorization_failure_keeps_sanitized_terminal_receipt: true,
   authorization_not_burned_by_missing_lifecycle: true,
   complete_owner_approval_contract_precedes_one_use_consumption: true,
   invalid_approval_not_recorded_as_consumed: true,
