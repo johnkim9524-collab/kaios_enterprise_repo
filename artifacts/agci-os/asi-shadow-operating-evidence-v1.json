@@ -566,7 +566,7 @@
     "dependency_lockfiles": {
       "root_npm_shrinkwrap": {
         "path": "npm-shrinkwrap.json",
-        "sha256": "sha256:7d5291ed3b9972543369d11ff91c8d836521c0b3648c3bb92dbaeeb7ec89b899",
+        "sha256": "sha256:721b53c3f7fee3a2ac04f7c5aca093bcaf0ebedc49deaff5e3d8f820ec5cbcb6",
         "byte_count": 2893
       },
       "autonomous_intelligence_package_lock": {
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:6dcf46a7b22ab4cd0dc77b412bc7eab9b8d5db2875e261ef62d6d5f0dd8019b3"
+  "evidence_fingerprint": "sha256:5a10c3a8ef3bf1e66ff1224c60276e854bcf1eed35e6c87a0291aeedd84ec7ba"
 }
