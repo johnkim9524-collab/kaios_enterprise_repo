@@ -69,7 +69,7 @@ jobs:
               'public_release: "HOLD"',
               'production: "HOLD"',
               'g5: "HOLD"',
-              '/tmp/asi-self-driving-terminal-v1.json'
+              '/tmp/asi-self-driving-terminal-receipt-v1.json'
             ];
             for (const invariant of terminalMust) {
               if (!terminal.includes(invariant)) {
@@ -78,8 +78,8 @@ jobs:
             }
             const uploadMust = [
               'if: always()',
-              'name: kidults-asi-self-driving-terminal-v1-',
-              'path: /tmp/asi-self-driving-terminal-v1.json',
+              'name: asi-self-driving-terminal-receipt-v1',
+              'path: /tmp/asi-self-driving-terminal-receipt-v1.json',
               'if-no-files-found: error'
             ];
             for (const invariant of uploadMust) {
