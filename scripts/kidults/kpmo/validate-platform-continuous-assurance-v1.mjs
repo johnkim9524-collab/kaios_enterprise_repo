@@ -82,6 +82,8 @@ if (!errors.length) {
     'github.event.workflow_run.repository.full_name == github.repository',
     "github.event.workflow_run.head_branch == 'main'",
     'KPMO_UPSTREAM_CONCLUSION',
+    'KPMO_UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION',
+    'non_consumable_success_observation',
     'KPMO_SOURCE_KIND',
     'KPMO_PACKET_SUFFIX',
     '${{ runner.temp }}',
@@ -180,7 +182,7 @@ if (!errors.length) {
   if (verifierIndex < 0 || leaderUploadIndex <= verifierIndex) errors.push('canonical leader artifact must publish only after final packet verification');
   if (/Publish successful bounded canonical leader artifact\n\s+if: always\(\)/.test(activeWorkflow)) errors.push('canonical leader artifact must never upload under always()');
 
-  for (const marker of ['auditDeadline', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv', 'SOURCE_SHA_BINDING', 'UPSTREAM_WORKFLOW_CONCLUSION', 'AUDIT_INPUT_TREE_IMMUTABILITY', 'AUDIT_EXECUTION_INPUT_IMMUTABILITY', 'finding_fingerprint', 'observation_id', 'runEphemeralPair', 'EPHEMERAL_REBUILD_EXHAUSTED', 'canonical_identity', 'canonical_key', 'canonical_input_digest', 'classifier_contract_digest', 'classification_receipt_digest', 'ephemeral_guard_receipt_digest', 'workflow_path', 'workflow_event', 'run_attempt', 'exact_binding_digest']) {
+  for (const marker of ['auditDeadline', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv', 'SOURCE_SHA_BINDING', 'UPSTREAM_WORKFLOW_CONCLUSION', 'UPSTREAM_CONSUMABLE_SEMANTIC_ROLE', 'AUDIT_INPUT_TREE_IMMUTABILITY', 'AUDIT_EXECUTION_INPUT_IMMUTABILITY', 'finding_fingerprint', 'observation_id', 'runEphemeralPair', 'EPHEMERAL_REBUILD_EXHAUSTED', 'canonical_identity', 'canonical_key', 'canonical_input_digest', 'classifier_contract_digest', 'classification_receipt_digest', 'ephemeral_guard_receipt_digest', 'workflow_path', 'workflow_event', 'run_attempt', 'exact_binding_digest']) {
     if (!audit.includes(marker)) errors.push(`audit hardening marker missing: ${marker}`);
   }
   if (audit.includes('env: { ...process.env')) errors.push('audit must not inherit complete process.env');
