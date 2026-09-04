@@ -250,6 +250,10 @@ assert(workflow.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'WORKF
 assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
 assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
+assert(!workflow.includes("run.name==='KIDULTS ASI Autonomous Resolution Layer v1'"), 'WORKFLOW_STATIC_DEFINITION_NAME_USED_AS_RUNTIME_IDENTITY');
+assert(workflow.includes("const ordinaryRunName=/^KIDULTS ARL \\/ p1-[1-9][0-9]*$/;") && workflow.includes('ordinaryRunName.test(run.name)'), 'WORKFLOW_DYNAMIC_ARL_TRIGGER_NAME_GUARD_MISSING');
+assert(workflow.includes(".filter((run)=>/^KIDULTS ARL \\/ p1-[1-9][0-9]*$/.test(run.name)&&"), 'WORKFLOW_DYNAMIC_ARL_LOOKUP_NAME_GUARD_MISSING');
+assert(workflow.includes("run.path!=='.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'"), 'WORKFLOW_ARL_PATH_IDENTITY_BINDING_MISSING');
 assert(workflow.includes('read-strict-json-boolean-v1.mjs --self-test') && workflow.includes('read-strict-json-boolean-v1.mjs expired'), 'WORKFLOW_STRICT_EXPIRY_PARSER_MISSING');
 assert(!workflow.includes('.expired // true'), 'WORKFLOW_UNSAFE_EXPIRY_BOOLEAN_COALESCING');
 assert(strictExpiryParser.includes("typeof value[field] !== 'boolean'") && strictExpiryParser.includes('Object.prototype.hasOwnProperty.call(value, field)'), 'STRICT_EXPIRY_PARSER_CONTRACT');
