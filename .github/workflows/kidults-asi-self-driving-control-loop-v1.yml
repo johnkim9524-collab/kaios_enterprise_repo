@@ -329,11 +329,14 @@ jobs:
         shell: bash
         env:
           JOB_STATUS: ${{ job.status }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           jq -n \
             --arg id 'kidults-asi-self-driving-terminal-v1' \
-            --arg source_sha "$GITHUB_SHA" \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg executed_sha "$GITHUB_SHA" \
+            --arg execution_ref "$GITHUB_REF" \
             --arg run_id "$GITHUB_RUN_ID" \
             --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
             --arg event_name "$GITHUB_EVENT_NAME" \
@@ -341,6 +344,8 @@ jobs:
             '{
               id: $id,
               source_sha: $source_sha,
+              executed_sha: $executed_sha,
+              execution_ref: $execution_ref,
               run_id: $run_id,
               run_attempt: ($run_attempt | tonumber),
               event_name: $event_name,
@@ -359,6 +364,8 @@ jobs:
           jq -e '
             (.id == "kidults-asi-self-driving-terminal-v1") and
             (.source_sha | type == "string" and length == 40) and
+            (.executed_sha | type == "string" and length == 40) and
+            (.execution_ref | type == "string" and length > 0) and
             (.run_id | type == "string" and length > 0) and
             (.run_attempt | type == "number" and . >= 1) and
             (.event_name | type == "string" and length > 0) and
