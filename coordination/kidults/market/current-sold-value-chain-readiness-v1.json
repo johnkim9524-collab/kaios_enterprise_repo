@@ -11,9 +11,18 @@
   ],
   "overall_state": "CORE_ENGINE_COMPLETE_EMPIRICAL_RUNTIME_AND_PRODUCT_CHAIN_NOT_COMPLETE",
   "core_regression": {
-    "tests_passed": 57,
-    "tests_failed": 0,
-    "post_landing_status": "VERIFIED_PASS"
+    "protected_main_baseline": {
+      "source_sha": "f46bdcd9003eb5c4b58208789956644f4ba19fe2",
+      "tests_passed": 56,
+      "tests_failed": 0,
+      "status": "VERIFIED_PASS"
+    },
+    "candidate_control_generation": {
+      "expected_tests": 57,
+      "tests_passed_claimed_in_repository": 0,
+      "status": "PENDING_EXACT_HEAD_WORKFLOW_PROOF",
+      "proof_rule": "ONLY_EXACT_HEAD_GITHUB_RUN_ARTIFACT_MAY_PROVE_57_OF_57"
+    }
   },
   "stages": [
     {
