@@ -56,7 +56,6 @@ export function materialRecord(issue) {
     labels,
     effective_priority: priorities.includes('P0') ? 'P0' : 'P1',
     title: String(issue.title || '').trim(),
-    updated_at: issue.updated_at || null,
   };
 }
 
@@ -92,5 +91,17 @@ export function runMaterialRegistrySelfTest() {
   const digestA = materialRegistryDigest(registry);
   const digestB = materialRegistryDigest(structuredClone(registry));
   if (digestA !== digestB || !/^sha256:[0-9a-f]{64}$/.test(digestA)) throw new Error('SELF_TEST_REGISTRY_DIGEST');
-  return {test:'MATERIAL_DEFECT_REGISTRY_V3_SELF_TEST',state:'VERIFIED_PASS',strict_prefix:true,exact_brackets:true,support_aliases_excluded:true,label_only_authority_preserved:true,updated_at_bound:true,stable_registry_digest:true};
+  const transportOnly = structuredClone([cases[2], cases[0], cases[9]]);
+  transportOnly.forEach((issue, index) => { issue.updated_at = `2026-09-04T00:00:0${index}Z`; issue.comments = 100 + index; });
+  if (materialRegistryDigest(buildMaterialRegistry(transportOnly)) !== digestA) throw new Error('SELF_TEST_TRANSPORT_ACTIVITY_SELF_INVALIDATION');
+  const titleMutation = structuredClone([cases[2], cases[0], cases[9]]);
+  titleMutation[0].title = 'P1: materially changed title';
+  if (materialRegistryDigest(buildMaterialRegistry(titleMutation)) === digestA) throw new Error('SELF_TEST_TITLE_MUTATION_NOT_BOUND');
+  const labelMutation = structuredClone([cases[2], cases[0], cases[9]]);
+  labelMutation[2].labels = [{name:'P0'}];
+  if (materialRegistryDigest(buildMaterialRegistry(labelMutation)) === digestA) throw new Error('SELF_TEST_LABEL_MUTATION_NOT_BOUND');
+  const stateMutation = structuredClone([cases[2], cases[0], cases[9]]);
+  stateMutation[0].state = 'closed';
+  if (materialRegistryDigest(buildMaterialRegistry(stateMutation)) === digestA) throw new Error('SELF_TEST_STATE_MUTATION_NOT_BOUND');
+  return {test:'MATERIAL_DEFECT_REGISTRY_V3_SELF_TEST',state:'VERIFIED_PASS',strict_prefix:true,exact_brackets:true,support_aliases_excluded:true,label_only_authority_preserved:true,transport_activity_excluded:true,material_fields_bound:true,stable_registry_digest:true};
 }
