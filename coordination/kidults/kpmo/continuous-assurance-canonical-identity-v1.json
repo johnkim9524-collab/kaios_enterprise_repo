@@ -119,6 +119,9 @@
       "runtime_name_patterns": [
         "^KIDULTS ARL / (?:p1-[1-9][0-9]*|recovery-[a-f0-9]{40})$"
       ],
+      "non_consumable_runtime_name_patterns": [
+        "^KIDULTS ARL / recovery-[a-f0-9]{40}$"
+      ],
       "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
     },
     {
@@ -174,6 +177,7 @@
       "success_only": true,
       "workflow_run_only": true,
       "terminal_non_success_bypass_required": true,
+      "non_consumable_success_bypass_required": true,
       "manual_recovery_bypass_required": true,
       "special_exact_artifact_class_bypass_required": true,
       "candidate_readback_must_complete_before_alias": true,
@@ -211,7 +215,7 @@
       "durable leader receipt digest and run binding",
       "durable alias receipt linking the exact canonical leader run and receipt digest",
       "negative replay and concurrent-claim tests",
-      "failure observations proven non-dedupable"
+      "failure and non-consumable success observations proven non-dedupable"
     ]
   },
   "alias_receipt_contract": {
@@ -257,8 +261,8 @@
     "production": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
   },
-  "autonomous_effect": "POSITIVE_WITH_HOLD: grouped successful workflow_run cascades can reuse one exact successful canonical audit within Actions retention; every non-success, manual recovery, special exact-artifact observation, incomplete readback, and post-retention replay still executes independently until the remote ledger is proven.",
+  "autonomous_effect": "POSITIVE_WITH_HOLD: grouped successful workflow_run cascades can reuse one exact successful canonical audit within Actions retention; every non-success, non-consumable recovery observation, manual recovery, special exact-artifact observation, incomplete readback, and post-retention replay still executes independently or fails closed until the remote ledger is proven.",
   "global_effect": "NEUTRAL: no source, geography, language, rights, or empirical-coverage claim changes.",
   "irreplaceable_value_effect": "POSITIVE: creates a durable canonical identity namespace that can bind future permanent receipts independently of any one Actions artifact.",
-  "transparency_effect": "POSITIVE: makes dedupe eligibility, generation semantics, exact upstream class, activation hold, and alias requirements explicit."
+  "transparency_effect": "POSITIVE: makes dedupe eligibility, generation semantics, non-consumable recovery semantics, exact upstream class, activation hold, and alias requirements explicit."
 }

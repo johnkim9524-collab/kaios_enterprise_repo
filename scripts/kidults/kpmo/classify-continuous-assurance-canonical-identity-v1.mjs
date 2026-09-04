@@ -90,12 +90,25 @@ export function validateCanonicalIdentityContract(contract) {
         try { new RegExp(pattern); } catch { fail('WORKFLOW_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
       }
     }
+    if (entry.non_consumable_runtime_name_patterns !== undefined) {
+      if (!Array.isArray(entry.non_consumable_runtime_name_patterns) || entry.non_consumable_runtime_name_patterns.length < 1 || !Array.isArray(entry.runtime_name_patterns)) {
+        fail('WORKFLOW_NON_CONSUMABLE_RUNTIME_NAME_PATTERNS', entry.workflow_name);
+      }
+      for (const pattern of entry.non_consumable_runtime_name_patterns) {
+        if (typeof pattern !== 'string' || !pattern.startsWith('^') || !pattern.endsWith('$')) fail('WORKFLOW_NON_CONSUMABLE_RUNTIME_NAME_PATTERN_UNANCHORED', entry.workflow_name);
+        try { new RegExp(pattern); } catch { fail('WORKFLOW_NON_CONSUMABLE_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
+      }
+    }
     const pair = `${entry.workflow_name}\u0000${entry.workflow_path}`;
     if (pairs.has(pair)) fail('WORKFLOW_CLASS_PAIR_DUPLICATE', entry.workflow_name);
     names.add(entry.workflow_name);
     paths.add(entry.workflow_path);
     pairs.add(pair);
   }
+  const arlEntry = allowlist.find((entry) => entry.workflow_path === '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml');
+  if (stableJson(arlEntry?.non_consumable_runtime_name_patterns || []) !== stableJson([
+    '^KIDULTS ARL / recovery-[a-f0-9]{40}$',
+  ])) fail('ARL_RECOVERY_NON_CONSUMABLE_PATTERN');
   const special = contract.special_exact_artifact_classes || [];
   if (stableJson([...special].sort()) !== stableJson([
     'ASI_REQUIREMENT_COVERAGE',
@@ -129,6 +142,7 @@ export function validateCanonicalIdentityContract(contract) {
       ephemeralGuard?.success_only !== true ||
       ephemeralGuard?.workflow_run_only !== true ||
       ephemeralGuard?.terminal_non_success_bypass_required !== true ||
+      ephemeralGuard?.non_consumable_success_bypass_required !== true ||
       ephemeralGuard?.manual_recovery_bypass_required !== true ||
       ephemeralGuard?.special_exact_artifact_class_bypass_required !== true ||
       ephemeralGuard?.candidate_readback_must_complete_before_alias !== true ||
@@ -178,6 +192,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   let generationDiscriminator;
   let dedupeEligible;
   let terminalObservation;
+  let nonConsumableSuccessObservation = false;
   let upstream = null;
   let logicalSlotValue = null;
   let specialExactArtifactClass = false;
@@ -196,10 +211,15 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     upstreamClass = entry.upstream_class;
     specialExactArtifactClass = contract.special_exact_artifact_classes.includes(upstreamClass);
     terminalObservation = conclusion !== 'success';
-    dedupeEligible = !terminalObservation;
+    nonConsumableSuccessObservation = conclusion === 'success' &&
+      (entry.non_consumable_runtime_name_patterns || []).some((pattern) => new RegExp(pattern).test(workflowName));
+    dedupeEligible = !terminalObservation && !nonConsumableSuccessObservation;
     if (terminalObservation) {
       generationKind = 'NON_SUCCESS_TERMINAL_OBSERVATION';
       generationDiscriminator = `upstream:${upstreamRunId}:attempt:${upstreamRunAttempt}:conclusion:${conclusion}`;
+    } else if (nonConsumableSuccessObservation) {
+      generationKind = 'UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION';
+      generationDiscriminator = `non-consumable-upstream-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
     } else if (upstreamRunAttempt > 1) {
       generationKind = 'UPSTREAM_MANUAL_RECOVERY_ATTEMPT';
       generationDiscriminator = `upstream-recovery-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
@@ -217,7 +237,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
       if (generationKind !== 'SOURCE_GENERATION') fail('UPSTREAM_GENERATION_RULE_INVALID', upstreamEvent);
       generationDiscriminator = 'source-generation';
     }
-    if (specialExactArtifactClass && !terminalObservation) {
+    if (specialExactArtifactClass && !terminalObservation && !nonConsumableSuccessObservation) {
       generationKind = 'SPECIAL_EXACT_ARTIFACT_OBSERVATION';
       generationDiscriminator = `exact-upstream-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
       dedupeEligible = false;
@@ -233,7 +253,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     };
     ephemeralActionsAliasEligible = dedupeEligible &&
       contract.ephemeral_actions_alias_eligible_classes.includes(upstreamClass) &&
-      !specialExactArtifactClass && upstreamEvent !== 'workflow_dispatch' && runAttempt === 1;
+      !specialExactArtifactClass && !nonConsumableSuccessObservation && upstreamEvent !== 'workflow_dispatch' && runAttempt === 1;
   } else if (eventName === 'schedule') {
     upstreamClass = 'ASSURANCE_WATCHDOG';
     generationKind = contract.direct_event_generation_rules.schedule;
@@ -274,10 +294,11 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     classifier_contract_digest: classifierContractDigest,
   };
   const canonicalKey = digest(stableJson(keyMaterial));
+  const exactObservationBound = specialExactArtifactClass || nonConsumableSuccessObservation;
   const canonicalInputMaterial = {
     domain: 'KIDULTS_CONTINUOUS_ASSURANCE_CANONICAL_INPUT_V1',
     ...keyMaterial,
-    ...(specialExactArtifactClass ? {
+    ...(exactObservationBound ? {
       exact_upstream_observation: {
         workflow_path: upstream.workflow_path,
         workflow_run_id: upstream.workflow_run_id,
@@ -290,10 +311,15 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   const canonicalInputDigest = digest(stableJson(canonicalInputMaterial));
   const observedAt = required(input.observed_at, 'OBSERVED_AT_REQUIRED');
   if (!Number.isFinite(Date.parse(observedAt))) fail('OBSERVED_AT_INVALID', observedAt);
+  const state = nonConsumableSuccessObservation
+    ? 'UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION'
+    : terminalObservation
+      ? 'TERMINAL_OBSERVATION_NON_DEDUPABLE'
+      : 'CLASSIFIED_EPHEMERAL_GUARD_REMOTE_LEDGER_HOLD';
   const base = {
     id: 'kidults-continuous-assurance-canonical-identity-receipt-v1',
     version: contract.version,
-    state: terminalObservation ? 'TERMINAL_OBSERVATION_NON_DEDUPABLE' : 'CLASSIFIED_EPHEMERAL_GUARD_REMOTE_LEDGER_HOLD',
+    state,
     observed_at: observedAt,
     repository,
     consumer_workflow_id: consumerWorkflowId,
@@ -307,13 +333,14 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     logical_schedule_slot: logicalSlotValue,
     classifier_contract_digest: classifierContractDigest,
     canonical_input_digest: canonicalInputDigest,
-    canonical_input_digest_state: specialExactArtifactClass
+    canonical_input_digest_state: exactObservationBound
       ? 'UPSTREAM_OBSERVATION_BOUND_EXACT_ARTIFACT_VERIFICATION_REQUIRED'
       : 'VERIFIED_GROUPED_SEMANTIC_INPUT',
     canonical_key: canonicalKey,
     concurrency_group: `kidults-continuous-assurance-${canonicalKey.slice('sha256:'.length)}`,
     dedupe_eligible: dedupeEligible,
     terminal_observation_non_dedupable: terminalObservation,
+    non_consumable_success_observation: nonConsumableSuccessObservation,
     special_exact_artifact_class: specialExactArtifactClass,
     ephemeral_actions_alias_eligible: ephemeralActionsAliasEligible,
     upstream,
@@ -326,9 +353,12 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     canonical_receipt_digest: null,
     alias: false,
     alias_receipt_emitted: false,
-    audit_execution_disposition: ephemeralActionsAliasEligible
-      ? 'RESOLVE_EPHEMERAL_ACTIONS_LEADER_OR_ALIAS'
-      : 'EXECUTE_FULL_AUDIT_NON_DEDUPABLE_OR_EXACT_BINDING',
+    audit_execution_disposition: nonConsumableSuccessObservation
+      ? 'FAIL_CLOSED_NON_CONSUMABLE_UPSTREAM'
+      : ephemeralActionsAliasEligible
+        ? 'RESOLVE_EPHEMERAL_ACTIONS_LEADER_OR_ALIAS'
+        : 'EXECUTE_FULL_AUDIT_NON_DEDUPABLE_OR_EXACT_BINDING',
+    fatal_error_code: nonConsumableSuccessObservation ? 'UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION' : null,
     detector_authority: 'READ_ONLY',
     repository_mutation_performed: false,
     external_mutation_performed: false,
@@ -370,6 +400,7 @@ function emitGithubOutputs(receipt) {
     canonical_input_digest: receipt.canonical_input_digest,
     dedupe_eligible: String(receipt.dedupe_eligible),
     terminal_observation_non_dedupable: String(receipt.terminal_observation_non_dedupable),
+    non_consumable_success_observation: String(receipt.non_consumable_success_observation),
     special_exact_artifact_class: String(receipt.special_exact_artifact_class),
     ephemeral_actions_alias_eligible: String(receipt.ephemeral_actions_alias_eligible),
     runtime_dedupe_state: receipt.runtime_dedupe_state,
@@ -404,6 +435,7 @@ async function main() {
     writeOutput(args.output, receipt);
     emitGithubOutputs(receipt);
     process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
+    if (receipt.non_consumable_success_observation) process.exitCode = 1;
   } catch (error) {
     const observedAt = process.env.KPMO_OBSERVED_AT || new Date().toISOString();
     const base = {
