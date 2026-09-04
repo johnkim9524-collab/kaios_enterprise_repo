@@ -115,7 +115,7 @@ const mutationCases = [
   },
   {
     id: 'remove-approval-boundary-doc',
-    mutate: x => ({ ...x, doc: x.doc.replace('DISABLED_PENDING_EXACT_MAIN_APPROVAL', 'READ_ONLY_AUDIT_AVAILABLE') }),
+    mutate: x => ({ ...x, doc: x.doc.replaceAll('DISABLED_PENDING_EXACT_MAIN_APPROVAL', 'READ_ONLY_AUDIT_AVAILABLE') }),
   },
 ];
 
