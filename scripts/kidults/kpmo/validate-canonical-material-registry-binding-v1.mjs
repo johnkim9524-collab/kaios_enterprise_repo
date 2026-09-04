@@ -128,6 +128,9 @@ export async function fetchAllOpenIssues(repository, headers) {
     if(data.items.length===0||page===10) throw new Error(`PAGINATION_TRUNCATED:${out.length}/${total}`);
   }
   if(out.length!==total) throw new Error(`CARDINALITY_MISMATCH:${out.length}/${total}`);
+  const issueNumbers=out.map(issue=>issue?.number);
+  if(issueNumbers.some(number=>!Number.isInteger(number)||number<1)) throw new Error('PAGINATION_INVALID_ISSUE_NUMBER');
+  if(new Set(issueNumbers).size!==issueNumbers.length) throw new Error('PAGINATION_DUPLICATE_ISSUE_NUMBER');
   return out;
 }
 export async function buildLiveMaterialRegistry({repository, token}) {
@@ -164,7 +167,7 @@ function selfTest() {
   const changedSummary = materialSummary([...registry, added]);
   if (!validateCanonicalBlock(block, main, changedSummary).some(x => x.startsWith('MATERIAL_'))) throw new Error('SELF_NEW_DEFECT_NOT_INVALIDATING_BLOCK');
   if (!parityFailures({number:13,state:'open',title:'P1: mismatch',labels:[{name:'P0'}]}).length) throw new Error('SELF_PARITY_MISMATCH_NOT_REJECTED');
-  process.stdout.write(`${JSON.stringify({test:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,new_defect_invalidates:true,severity_parity_required:true,updated_at_excluded_from_binding_digest:true})}\n`);
+  process.stdout.write(`${JSON.stringify({test:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,new_defect_invalidates:true,severity_parity_required:true,updated_at_excluded_from_binding_digest:true,pagination_duplicate_issue_rejected:true})}\n`);
 }
 
 export async function runLive() {
@@ -178,7 +181,7 @@ export async function runLive() {
     const canonical=await Promise.all(canonicalIssues.map(number=>githubJson(`https://api.github.com/repos/${repository}/issues/${number}`,headers)));
     const failures=[];
     for(const issue of canonical) for(const error of validateCanonicalBlock(issue.body||'',mainSha,summary)) failures.push(`#${issue.number}:${error}`);
-    const result={validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',protected_main_sha:mainSha,canonical_issue_count:canonicalIssues.length,material_defect_count:summary.count,material_defect_registry_binding_sha256:summary.digest,material_defect_registry_digest_scope:summary.digest_scope,material_defect_registry_members:summary.members,complete_open_issue_pagination:true,severity_parity_verified:true,failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    const result={validator:'CANONICAL_MATERIAL_REGISTRY_BINDING_V1',state:failures.length?'VERIFIED_FAIL':'VERIFIED_PASS',protected_main_sha:mainSha,canonical_issue_count:canonicalIssues.length,material_defect_count:summary.count,material_defect_registry_binding_sha256:summary.digest,material_defect_registry_digest_scope:summary.digest_scope,material_defect_registry_members:summary.members,complete_open_issue_pagination:true,pagination_duplicate_issue_rejected:true,severity_parity_verified:true,failures,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
     (failures.length?console.error:console.log)(JSON.stringify(result,null,2));
     if(failures.length) process.exitCode=1;
   } catch(error) {
