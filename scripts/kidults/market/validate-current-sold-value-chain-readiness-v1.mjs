@@ -17,12 +17,25 @@ export function validateCurrentSoldValueChainReadiness(record) {
   assert(record.overall_state ===
       'CORE_ENGINE_COMPLETE_EMPIRICAL_RUNTIME_AND_PRODUCT_CHAIN_NOT_COMPLETE',
     'CURRENT_SOLD_READINESS_OVERALL_STATE_INVALID');
-  assert(record.core_regression?.tests_passed === 57 &&
-      record.core_regression?.tests_failed === 0 &&
-      record.core_regression?.post_landing_status === 'VERIFIED_PASS',
-    'CURRENT_SOLD_READINESS_CORE_PROOF_INVALID');
+
+  const baseline = record.core_regression?.protected_main_baseline;
+  const candidate = record.core_regression?.candidate_control_generation;
+  assert(baseline?.source_sha === record.reviewed_protected_main_sha &&
+      baseline?.tests_passed === 56 &&
+      baseline?.tests_failed === 0 &&
+      baseline?.status === 'VERIFIED_PASS',
+    'CURRENT_SOLD_READINESS_BASELINE_PROOF_INVALID');
+  assert(candidate?.expected_tests === 57 &&
+      candidate?.tests_passed_claimed_in_repository === 0 &&
+      candidate?.status === 'PENDING_EXACT_HEAD_WORKFLOW_PROOF' &&
+      candidate?.proof_rule === 'ONLY_EXACT_HEAD_GITHUB_RUN_ARTIFACT_MAY_PROVE_57_OF_57',
+    'CURRENT_SOLD_READINESS_CANDIDATE_PROOF_OVERCLAIM');
+
   assert(Array.isArray(record.stages) && record.stages.length === 8,
     'CURRENT_SOLD_READINESS_STAGE_COUNT_INVALID');
+  const stageIds = record.stages.map(stage => stage.stage);
+  assert(new Set(stageIds).size === record.stages.length,
+    'CURRENT_SOLD_READINESS_DUPLICATE_STAGE');
 
   const stages = new Map(record.stages.map(stage => [stage.stage, stage]));
   const expected = {
@@ -36,6 +49,8 @@ export function validateCurrentSoldValueChainReadiness(record) {
     TRACK_B_INDEPENDENT_ASSESSMENT: 'NOT_STARTED_EXACT_PAIR_ABSENT',
     PROJECTION_AND_PORTAL: 'HOLD_NO_APPROVED_PROJECTION',
   };
+  assert(stages.size === Object.keys(expected).length,
+    'CURRENT_SOLD_READINESS_STAGE_SET_INVALID');
   for (const [stageId, state] of Object.entries(expected)) {
     assert(stages.get(stageId)?.state === state, 'CURRENT_SOLD_READINESS_STAGE_STATE_INVALID', stageId);
   }
@@ -73,7 +88,9 @@ export function validateCurrentSoldValueChainReadiness(record) {
     state: 'PASS',
     stages: record.stages.length,
     primary_track: 'TRACK_A',
-    core_tests_passed: 57,
+    protected_main_core_tests_passed: 56,
+    candidate_core_tests_expected: 57,
+    candidate_proof_state: 'PENDING_EXACT_HEAD_WORKFLOW_PROOF',
     empirical_count: 0,
     public: 'HOLD',
     production: 'HOLD',
