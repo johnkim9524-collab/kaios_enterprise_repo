@@ -17,7 +17,7 @@ export function validateCurrentSoldValueChainReadiness(record) {
   assert(record.overall_state ===
       'CORE_ENGINE_COMPLETE_EMPIRICAL_RUNTIME_AND_PRODUCT_CHAIN_NOT_COMPLETE',
     'CURRENT_SOLD_READINESS_OVERALL_STATE_INVALID');
-  assert(record.core_regression?.tests_passed === 56 &&
+  assert(record.core_regression?.tests_passed === 57 &&
       record.core_regression?.tests_failed === 0 &&
       record.core_regression?.post_landing_status === 'VERIFIED_PASS',
     'CURRENT_SOLD_READINESS_CORE_PROOF_INVALID');
@@ -73,6 +73,7 @@ export function validateCurrentSoldValueChainReadiness(record) {
     state: 'PASS',
     stages: record.stages.length,
     primary_track: 'TRACK_A',
+    core_tests_passed: 57,
     empirical_count: 0,
     public: 'HOLD',
     production: 'HOLD',
