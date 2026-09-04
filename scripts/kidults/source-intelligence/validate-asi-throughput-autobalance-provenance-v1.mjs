@@ -63,8 +63,10 @@ function validate(text) {
   requireText("status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING'", 'fresh exact-producer provenance receipt status');
   requireText('/tmp/autobalance-hourly-producer-freshness-v1.json', 'freshness receipt retained in artifact');
 
-  const freshnessCall = text.indexOf('node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs \\');
-  const artifactRead = text.indexOf('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100');
+  const freshnessMarker = ['node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-freshness-v1.mjs', '--created-at "$HOURLY_RUN_CREATED_AT"'].join(' \\\n                ');
+  const artifactReadMarker = ['"/repos/${GITHUB_REPOSITORY}', '/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100"'].join('');
+  const freshnessCall = text.indexOf(freshnessMarker);
+  const artifactRead = text.indexOf(artifactReadMarker);
   if (freshnessCall < 0 || artifactRead < 0 || freshnessCall > artifactRead) failures.push('freshness gate occurs after artifact read');
 
   requireText('scripts/kidults/kpmo/validate-safe-zip-archive-v1.py', 'safe ZIP pre-extraction validator');
@@ -153,6 +155,12 @@ if (validate(freshnessRemovalMutation).length === 0) {
   process.exit(1);
 }
 
+const freshnessMovedAfterArtifactRead = text.replace(freshnessMarker, `${artifactReadMarker}\n                ${freshnessMarker}`);
+if (validate(freshnessMovedAfterArtifactRead).length === 0) {
+  console.error('ASI throughput autobalance provenance self-test failed to reject freshness-after-artifact-read ordering');
+  process.exit(1);
+}
+
 const unsafeExtractionMutation = text
   .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename global-low-risk-discovery-governed-v2\.json\n/, '')
   .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename asi-admitted-metadata-pool-v2\.json\n/, '');
@@ -170,11 +178,11 @@ if (validate(boundaryMutation).length === 0) {
 console.log(JSON.stringify({
   status: 'VERIFIED_PASS',
   control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_FRESH_PRODUCER_PROVENANCE',
-  mutation_cases_rejected: mutations.length + 3,
+  mutation_cases_rejected: mutations.length + 4,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
   producer_wait: {max_attempts:10,interval_seconds:3,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
-  freshness: {source:'MANAGEMENT_CONTROL_TOWER_REFRESH_CONTRACT',slo_minutes:90,stale:'FAIL_CLOSED',future:'FAIL_CLOSED',malformed:'FAIL_CLOSED',before_artifact_download:true},
+  freshness: {source:'MANAGEMENT_CONTROL_TOWER_REFRESH_CONTRACT',slo_minutes:90,stale:'FAIL_CLOSED',future:'FAIL_CLOSED',malformed:'FAIL_CLOSED',before_artifact_download:true,self_reference_safe_order_guard:true},
   artifact_consumption: {download_digest_bound:true,safe_zip_pre_extraction_required:true,required_basename_cardinality_bound:true},
   production: 'HOLD',
   public_release: 'HOLD'
