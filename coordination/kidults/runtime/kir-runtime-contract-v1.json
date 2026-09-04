@@ -40,7 +40,8 @@
     "self_issued_rights_authority_allowed": false,
     "self_approved_track_b_allowed": false,
     "implicit_database_write_authority_allowed": false,
-    "implicit_publication_authority_allowed": false
+    "implicit_publication_authority_allowed": false,
+    "control_only_forward_state_allowed": false
   },
   "module_state_classes": [
     "BLOCKED_EXTERNAL_AUTHORITY",
@@ -49,12 +50,7 @@
     "CODE_COMPLETE_NOT_ACTIVATED",
     "BLOCKED_NO_LAWFUL_LEDGER_ROWS",
     "NOT_STARTED_EXACT_PAIR_ABSENT",
-    "HOLD_NO_APPROVED_PROJECTION",
-    "READY",
-    "EMPIRICAL_VALIDATED",
-    "PAIR_READY",
-    "COMPLETE_INDEPENDENT_ASSESSMENT",
-    "APPROVED_PROJECTION_READY"
+    "HOLD_NO_APPROVED_PROJECTION"
   ],
   "transition_evidence_requirements": {
     "SOURCE_RIGHTS_READY": [
@@ -106,6 +102,8 @@
     "database_authority_may_be_inferred": false,
     "track_b_authority_may_be_inferred": false,
     "public_production_g5_authority_may_be_inferred": false,
+    "control_only_forward_states_allowed": false,
+    "future_forward_states_require_new_governed_contract_mode": true,
     "lawful_empirical_current_sold_minimum_for_forward_chain": 1,
     "candidate_evidence_pair_required_for_track_b": true,
     "approved_projection_required_for_release": true
