@@ -67,6 +67,7 @@ jobs:
       canonical_input_digest: ${{ steps.classify.outputs.canonical_input_digest }}
       dedupe_eligible: ${{ steps.classify.outputs.dedupe_eligible }}
       terminal_observation_non_dedupable: ${{ steps.classify.outputs.terminal_observation_non_dedupable }}
+      non_consumable_success_observation: ${{ steps.classify.outputs.non_consumable_success_observation }}
       special_exact_artifact_class: ${{ steps.classify.outputs.special_exact_artifact_class }}
       ephemeral_actions_alias_eligible: ${{ steps.classify.outputs.ephemeral_actions_alias_eligible }}
       runtime_dedupe_state: ${{ steps.classify.outputs.runtime_dedupe_state }}
@@ -151,6 +152,7 @@ jobs:
       KPMO_CANONICAL_INPUT_DIGEST: ${{ needs.classify-canonical-identity.outputs.canonical_input_digest }}
       KPMO_DEDUPE_ELIGIBLE: ${{ needs.classify-canonical-identity.outputs.dedupe_eligible }}
       KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE: ${{ needs.classify-canonical-identity.outputs.terminal_observation_non_dedupable }}
+      KPMO_UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION: ${{ needs.classify-canonical-identity.outputs.non_consumable_success_observation }}
       KPMO_SPECIAL_EXACT_ARTIFACT_CLASS: ${{ needs.classify-canonical-identity.outputs.special_exact_artifact_class }}
       KPMO_EPHEMERAL_ACTIONS_ALIAS_ELIGIBLE: ${{ needs.classify-canonical-identity.outputs.ephemeral_actions_alias_eligible }}
       KPMO_RUNTIME_DEDUPE_STATE: ${{ needs.classify-canonical-identity.outputs.runtime_dedupe_state }}
