@@ -9,6 +9,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs'
+      - 'coordination/kidults/governance/management-control-tower-contract-v1.json'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
 
 permissions:
@@ -45,7 +46,30 @@ jobs:
             const extraction=src.indexOf(`unzip -q -o /tmp/${archive}.zip`);
             if(validation<0||extraction<0||validation>extraction)throw new Error(`SAFE_ZIP_PRE_EXTRACTION_GUARD_MISSING:${archive}`);
           }
+          for(const marker of [
+            'management-control-tower-contract-v1.json',
+            'AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES',
+            'UPSTREAM_EXACT_GENERATION_STALE',
+            'AUTOBALANCE_HOURLY_CREATED_AT',
+            'AUTOBALANCE_HOURLY_AGE_SECONDS'
+          ]) if(!src.includes(marker)) throw new Error(`AUTOBALANCE_FRESHNESS_GUARD_MISSING:${marker}`);
           NODE
+          python3 - <<'PY'
+          from datetime import datetime, timedelta, timezone
+          def age_seconds(created_at, now, max_minutes=90):
+              created=datetime.fromisoformat(created_at.replace('Z','+00:00'))
+              if created.tzinfo is None: raise ValueError('NAIVE_TIMESTAMP')
+              age=(now-created).total_seconds()
+              if age < 0: raise ValueError('FUTURE_TIMESTAMP')
+              if age > max_minutes*60: raise ValueError('STALE_TIMESTAMP')
+              return int(age)
+          now=datetime(2026,9,4,15,0,0,tzinfo=timezone.utc)
+          assert age_seconds((now-timedelta(minutes=90)).isoformat(),now)==5400
+          for value in [(now-timedelta(minutes=90,seconds=1)).isoformat(),(now+timedelta(seconds=1)).isoformat(),'not-a-time']:
+              try: age_seconds(value,now)
+              except Exception: pass
+              else: raise SystemExit(f'FRESHNESS_NEGATIVE_CANARY_ACCEPTED:{value}')
+          PY
 
       # PRs prove the producer-selection contract and negative mutations above.
       # Live producer consumption is schedule/manual only because a fresh PR base SHA
@@ -71,10 +95,13 @@ jobs:
             BINDING_MODE="EXACT_CURRENT_MAIN"
           fi
 
+          AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES=$(jq -er '.refresh_contract.freshness_slo_minutes | select(type=="number" and .==90)' coordination/kidults/governance/management-control-tower-contract-v1.json)
           AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10
           AUTOBALANCE_PRODUCER_WAIT_SECONDS=3
           HOURLY_RUN_ID=""
           HOURLY_SOURCE_SHA=""
+          HOURLY_RUN_CREATED_AT=""
+          HOURLY_RUN_AGE_SECONDS=""
           HOURLY_RUN_STATE="NONE"
           for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS"); do
             gh api --method GET -H 'Accept: application/vnd.github+json' \
@@ -97,9 +124,30 @@ jobs:
               HOURLY_SOURCE_SHA=$(jq -r '.head_sha // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_STATUS=$(jq -r '.status // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_CONCLUSION=$(jq -r '.conclusion // empty' <<<"$LATEST_EXACT_RUN")
+              HOURLY_RUN_CREATED_AT=$(jq -r '.created_at // empty' <<<"$LATEST_EXACT_RUN")
               HOURLY_RUN_STATE="${HOURLY_RUN_STATUS}:${HOURLY_RUN_CONCLUSION:-NONE}"
               test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
               if [ "$HOURLY_RUN_STATUS" = "completed" ] && [ "$HOURLY_RUN_CONCLUSION" = "success" ]; then
+                test -n "$HOURLY_RUN_CREATED_AT"
+                HOURLY_RUN_AGE_SECONDS=$(python3 - "$HOURLY_RUN_CREATED_AT" "$AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES" <<'PY'
+          from datetime import datetime, timezone
+          import sys
+          raw=sys.argv[1]
+          max_minutes=int(sys.argv[2])
+          try:
+              created=datetime.fromisoformat(raw.replace('Z','+00:00'))
+          except Exception as exc:
+              raise SystemExit(f'UPSTREAM_EXACT_GENERATION_TIMESTAMP_INVALID:{raw}') from exc
+          if created.tzinfo is None:
+              raise SystemExit(f'UPSTREAM_EXACT_GENERATION_TIMESTAMP_INVALID:{raw}')
+          age=(datetime.now(timezone.utc)-created).total_seconds()
+          if age < 0:
+              raise SystemExit(f'UPSTREAM_EXACT_GENERATION_FUTURE_TIMESTAMP:{raw}')
+          if age > max_minutes*60:
+              raise SystemExit(f'UPSTREAM_EXACT_GENERATION_STALE:{int(age)}:{max_minutes*60}')
+          print(int(age))
+          PY
+                )
                 break
               fi
               if [ "$HOURLY_RUN_STATUS" = "completed" ]; then
@@ -116,6 +164,8 @@ jobs:
           done
           test -n "$HOURLY_RUN_ID"
           test "$HOURLY_SOURCE_SHA" = "$EXPECTED_PRODUCER_SHA"
+          [[ "$HOURLY_RUN_AGE_SECONDS" =~ ^[0-9]+$ ]]
+          test "$HOURLY_RUN_AGE_SECONDS" -le "$((AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES * 60))"
 
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100" \
@@ -198,8 +248,11 @@ jobs:
           {
             echo "AUTOBALANCE_BINDING_MODE=$BINDING_MODE"
             echo "AUTOBALANCE_EXPECTED_PRODUCER_SHA=$EXPECTED_PRODUCER_SHA"
+            echo "AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES=$AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES"
             echo "AUTOBALANCE_HOURLY_RUN_ID=$HOURLY_RUN_ID"
             echo "AUTOBALANCE_HOURLY_SOURCE_SHA=$HOURLY_SOURCE_SHA"
+            echo "AUTOBALANCE_HOURLY_CREATED_AT=$HOURLY_RUN_CREATED_AT"
+            echo "AUTOBALANCE_HOURLY_AGE_SECONDS=$HOURLY_RUN_AGE_SECONDS"
             echo "AUTOBALANCE_META_ID=$META_ID"
             echo "AUTOBALANCE_META_DIGEST=$META_DIGEST"
             echo "AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST=$META_SAFE_ZIP_RECEIPT_DIGEST"
@@ -231,8 +284,11 @@ jobs:
           const required = [
             'AUTOBALANCE_BINDING_MODE',
             'AUTOBALANCE_EXPECTED_PRODUCER_SHA',
+            'AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES',
             'AUTOBALANCE_HOURLY_RUN_ID',
             'AUTOBALANCE_HOURLY_SOURCE_SHA',
+            'AUTOBALANCE_HOURLY_CREATED_AT',
+            'AUTOBALANCE_HOURLY_AGE_SECONDS',
             'AUTOBALANCE_META_ID',
             'AUTOBALANCE_META_DIGEST',
             'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST',
@@ -250,6 +306,11 @@ jobs:
           for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'AUTOBALANCE_DISC_DIGEST', 'AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
+          const maxAgeMinutes=Number(process.env.AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES);
+          const ageSeconds=Number(process.env.AUTOBALANCE_HOURLY_AGE_SECONDS);
+          if(!Number.isInteger(maxAgeMinutes)||maxAgeMinutes!==90) throw new Error(`INVALID_PRODUCER_MAX_AGE_MINUTES:${process.env.AUTOBALANCE_PRODUCER_MAX_AGE_MINUTES}`);
+          if(!Number.isInteger(ageSeconds)||ageSeconds<0||ageSeconds>maxAgeMinutes*60) throw new Error(`INVALID_PRODUCER_AGE_SECONDS:${process.env.AUTOBALANCE_HOURLY_AGE_SECONDS}`);
+          if(!Number.isFinite(Date.parse(process.env.AUTOBALANCE_HOURLY_CREATED_AT))) throw new Error(`INVALID_PRODUCER_CREATED_AT:${process.env.AUTOBALANCE_HOURLY_CREATED_AT}`);
           const receipt = {
             id: 'kidults-asi-throughput-autobalance-provenance-v1',
             status: 'VERIFIED_EXACT_PRODUCER_BINDING',
@@ -263,7 +324,11 @@ jobs:
               workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
               workflow_name: 'KIDULTS ASI Global Any-Site Hourly Pooling v2',
               run_id: Number(process.env.AUTOBALANCE_HOURLY_RUN_ID),
-              head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA
+              head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA,
+              created_at: process.env.AUTOBALANCE_HOURLY_CREATED_AT,
+              age_seconds: ageSeconds,
+              max_age_minutes: maxAgeMinutes,
+              freshness_slo_source: 'coordination/kidults/governance/management-control-tower-contract-v1.json'
             },
             artifacts: [
               {
@@ -292,7 +357,7 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const p='/tmp/asi-throughput-coverage-autobalance-live-v1.json';const x=JSON.parse(fs.readFileSync(p));x.rules.rights_gate_can_never_be_weakened=false;fs.writeFileSync('/tmp/bad-live-autobalance.json',JSON.stringify(x));
+          const fs=require('node:fs');const p='/tmp/asi-throughput-coverage-autobalance-live-v1.json';const x=JSON.parse(fs.readFileSync(p));x.rules.rights_gate_can_never_be_weakened=false;fs.writeFileSync('/tmp/bad-live-autobalance.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/bad-live-autobalance.json; then exit 1; fi
 
