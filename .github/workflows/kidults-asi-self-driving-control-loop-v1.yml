@@ -352,6 +352,14 @@ jobs:
               job_status: $job_status,
               internal_control_state: (if $job_status == "success" then "VERIFIED_PASS" else "VERIFIED_FAIL" end),
               failed_check_ids: (if $job_status == "success" then [] else ["SELF_DRIVING_JOB_NON_SUCCESS"] end),
+              overall_state: (if $job_status == "success" then "HOLD" else "RED" end),
+              candidate_evidence_status: "NONE",
+              track_b_status: "NOT_STARTED",
+              projection_status: "NONE",
+              provider_activation: "NOT_AUTHORIZED",
+              public_state: "HOLD",
+              production_state: "HOLD",
+              g5_state: "HOLD",
               promotion_eligible: false,
               content_acquisition_authorized: false,
               evidence_admission: "NONE",
@@ -360,7 +368,7 @@ jobs:
               public_release: "HOLD",
               production: "HOLD",
               g5: "HOLD"
-            }' > /tmp/asi-self-driving-terminal-v1.json
+            }' > /tmp/asi-self-driving-terminal-receipt-v1.json
           jq -e '
             (.id == "kidults-asi-self-driving-terminal-v1") and
             (.source_sha | type == "string" and length == 40) and
@@ -371,6 +379,15 @@ jobs:
             (.event_name | type == "string" and length > 0) and
             ((.job_status == "success" and .internal_control_state == "VERIFIED_PASS" and .failed_check_ids == []) or
              (.job_status != "success" and .internal_control_state == "VERIFIED_FAIL" and .failed_check_ids == ["SELF_DRIVING_JOB_NON_SUCCESS"])) and
+            ((.job_status == "success" and .overall_state == "HOLD") or
+             (.job_status != "success" and .overall_state == "RED")) and
+            (.candidate_evidence_status == "NONE") and
+            (.track_b_status == "NOT_STARTED") and
+            (.projection_status == "NONE") and
+            (.provider_activation == "NOT_AUTHORIZED") and
+            (.public_state == "HOLD") and
+            (.production_state == "HOLD") and
+            (.g5_state == "HOLD") and
             (.promotion_eligible == false) and
             (.content_acquisition_authorized == false) and
             (.evidence_admission == "NONE") and
@@ -379,13 +396,13 @@ jobs:
             (.public_release == "HOLD") and
             (.production == "HOLD") and
             (.g5 == "HOLD")
-          ' /tmp/asi-self-driving-terminal-v1.json
-          cat /tmp/asi-self-driving-terminal-v1.json
+          ' /tmp/asi-self-driving-terminal-receipt-v1.json
+          cat /tmp/asi-self-driving-terminal-receipt-v1.json
       - name: Upload authoritative Self-Driving terminal receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: kidults-asi-self-driving-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: /tmp/asi-self-driving-terminal-v1.json
+          name: asi-self-driving-terminal-receipt-v1
+          path: /tmp/asi-self-driving-terminal-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
