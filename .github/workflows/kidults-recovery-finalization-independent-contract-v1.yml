@@ -1,0 +1,56 @@
+name: KIDULTS Recovery Finalization Independent Contract V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v1.yml'
+      - '.github/workflows/kidults-recovery-finalization-independent-contract-v1.yml'
+      - 'scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'
+      - 'scripts/kidults/market/**'
+      - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json'
+
+concurrency:
+  group: kidults-recovery-finalization-independent-contract-v1-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-independent-finalization-contract:
+    name: Validate Recovery Finalization Independent Contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Syntax-check every Current-SOLD market governance module
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            node --check "$file"
+          done < <(find scripts/kidults/market -type f -name '*.mjs' -print0 | sort -z)
+
+      - name: Execute recovery remediation contract validator
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs
+
+      - name: Execute recovery finalization contract validator
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs
