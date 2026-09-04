@@ -537,13 +537,18 @@ test('evidence freshness terminal gate preserves governed UNASSESSED visibility 
   unassessed.freshness.evidence.oldest_material_age_minutes_at_build = 8 * 24 * 60;
   const unassessedResult = runGate(unassessed);
   assert.equal(unassessedResult.result.status, 0, unassessedResult.result.stderr || unassessedResult.result.stdout);
-  assert.equal(unassessedResult.receipt.state, 'VERIFIED_PASS');
+  assert.equal(unassessedResult.receipt.state, 'VERIFIED_HOLD');
+  assert.equal(unassessedResult.receipt.operational_outcome, 'SUCCESS_WITH_GOVERNED_HOLD');
+  assert.deepEqual(unassessedResult.receipt.failed_check_ids, ['CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED']);
   assert.equal(unassessedResult.receipt.evidence_freshness.state_at_validation, 'UNASSESSED');
   assert.equal(unassessedResult.receipt.evidence_freshness.freshness_claim, 'NONE');
   assert.equal(unassessedResult.receipt.evidence_freshness.threshold, 'NOT_DEFINED');
   assert.equal(unassessedResult.receipt.evidence_freshness.threshold_minutes, null);
   assert.equal(unassessedResult.receipt.promotion_eligible, false);
   assert.equal(unassessedResult.receipt.evidence_admission, 'NONE');
+  assert.notEqual(unassessedResult.receipt.state, 'VERIFIED_PASS');
+  assert.match(gateSource, /SUCCESS_WITH_GOVERNED_HOLD/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED/);
 
   const selfDeclaredFresh = structuredClone(unassessed);
   selfDeclaredFresh.freshness.evidence.state_at_build = 'FRESH';
