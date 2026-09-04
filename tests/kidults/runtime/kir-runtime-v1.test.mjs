@@ -6,6 +6,7 @@ import { loadKirRuntime, validateKirRuntime, evaluateKirRuntime } from '../../..
 const clone = value => structuredClone(value);
 const expectReject = fn => assert.throws(fn);
 const digest = ch => `sha256:${ch.repeat(64)}`;
+const HEX = '0123456789abcdef';
 
 const identity = {
   repository:'johnkim9524-collab/kaios_enterprise_repo',
@@ -24,7 +25,7 @@ function module(registry, id) {
 }
 
 function evidence(fields, start = 0) {
-  return Object.fromEntries(fields.map((field, i) => [field, digest(String.fromCharCode(97 + ((start + i) % 26)))]));
+  return Object.fromEntries(fields.map((field, i) => [field, digest(HEX[(start + i) % HEX.length])]));
 }
 
 function makeSyntheticReady() {
@@ -72,8 +73,8 @@ function makeSyntheticReady() {
   stage(loaded.readiness, 'TRACK_D_APPEND_ONLY_LEDGER').postgres_rows_written = 1;
 
   pair.state = 'PAIR_READY';
-  pair.candidate = digest('p');
-  pair.evidence_package = digest('q');
+  pair.candidate = digest('a');
+  pair.evidence_package = digest('b');
   pair.transition_evidence = evidence(reqs.CANDIDATE_EVIDENCE_PAIR_READY, 15);
   stage(loaded.readiness, 'TRACK_A_CANDIDATE_EVIDENCE_PAIR').state = 'PAIR_READY';
   stage(loaded.readiness, 'TRACK_A_CANDIDATE_EVIDENCE_PAIR').candidate = pair.candidate;
@@ -85,7 +86,7 @@ function makeSyntheticReady() {
   stage(loaded.readiness, 'TRACK_B_INDEPENDENT_ASSESSMENT').state = 'COMPLETE_INDEPENDENT_ASSESSMENT';
 
   projection.state = 'APPROVED_PROJECTION_READY';
-  projection.approved_projection = digest('r');
+  projection.approved_projection = digest('c');
   projection.transition_evidence = evidence(reqs.PROJECTION_RELEASE_READY, 21);
   stage(loaded.readiness, 'PROJECTION_AND_PORTAL').state = 'APPROVED_PROJECTION_READY';
 
@@ -168,7 +169,7 @@ test('kernel rejects apparent empirical chain when transition receipts are absen
 
 test('kernel rejects undeclared transition evidence fields', () => {
   const loaded=makeSyntheticReady();
-  module(loaded.registry,'RECEIPT_AUTHORITY').transition_evidence.uncontracted_sha256=digest('z');
+  module(loaded.registry,'RECEIPT_AUTHORITY').transition_evidence.uncontracted_sha256=digest('f');
   expectReject(()=>validateKirRuntime(loaded));
 });
 
@@ -214,7 +215,7 @@ test('kernel rejects partial or fabricated Candidate/Evidence pair', () => {
   const loaded=loadKirRuntime();
   loaded.registry=clone(loaded.registry);
   const pair=module(loaded.registry,'CANDIDATE_EVIDENCE_PAIR');
-  pair.candidate=digest('p');
+  pair.candidate=digest('a');
   expectReject(()=>validateKirRuntime(loaded));
 });
 
@@ -237,7 +238,7 @@ test('kernel rejects approved Projection without Track B completion', () => {
   loaded.readiness=clone(loaded.readiness);
   const projection=module(loaded.registry,'PROJECTION_RELEASE');
   projection.state='APPROVED_PROJECTION_READY';
-  projection.approved_projection=digest('r');
+  projection.approved_projection=digest('c');
   projection.transition_evidence=evidence(loaded.contract.transition_evidence_requirements.PROJECTION_RELEASE_READY,21);
   stage(loaded.readiness,'PROJECTION_AND_PORTAL').state='APPROVED_PROJECTION_READY';
   loaded.registry.truth_ceiling.approved_projection=projection.approved_projection;
