@@ -21,11 +21,14 @@ on:
 jobs:
   security-assurance:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
       PIP_AUDIT_LOCK: requirements-security-assurance-pip-audit.lock.txt
       EXPECTED_PIP_AUDIT_VERSION: '2.10.1'
+      PIP_DEFAULT_TIMEOUT: '30'
+      PIP_RETRIES: '2'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,6 +68,7 @@ jobs:
           printf '{"tracked_file_count":%s,"dependency_input_count":%s}\n' "$(wc -l < /tmp/kidults-security-r1/tracked-files.txt)" "$(wc -l < /tmp/kidults-security-r1/dependency-inputs.txt)" > /tmp/kidults-security-r1/inventory-summary.json
 
       - name: High-confidence committed-secret scan
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -91,7 +95,8 @@ jobs:
               for m in rx.finditer(text):
                 line=text.count('\n',0,m.start())+1
                 findings.append({'rule':name,'path':f,'line':line})
-          pathlib.Path('/tmp/kidults-security-r1/secret-scan.json').write_text(json.dumps({'finding_count':len(findings),'findings':findings},indent=2))
+          out={'finding_count':len(findings),'findings':findings,'state':'VERIFIED_PASS' if not findings else 'VERIFIED_FAIL'}
+          pathlib.Path('/tmp/kidults-security-r1/secret-scan.json').write_text(json.dumps(out,indent=2))
           if findings:
             print(json.dumps(findings,indent=2))
             raise SystemExit('HIGH_CONFIDENCE_SECRET_PATTERN_FOUND')
@@ -99,6 +104,7 @@ jobs:
           PY
 
       - name: Node dependency vulnerability audit
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -107,13 +113,14 @@ jobs:
           node scripts/kidults/kpmo/run-bounded-npm-audit-v1.mjs
 
       - name: Python dependency vulnerability audit
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/kidults-security-r1/pip-audit
           reqs=$(git ls-files 'requirements*.txt' '**/requirements*.txt' || true)
           if [ -z "$reqs" ]; then
-            echo '{"requirements_file_count":0,"state":"NOT_APPLICABLE_NO_REQUIREMENTS_FILES"}' > /tmp/kidults-security-r1/pip-audit-summary.json
+            echo '{"requirements_file_count":0,"vulnerability_count":0,"audit_failures":0,"state":"NOT_APPLICABLE_NO_REQUIREMENTS_FILES"}' > /tmp/kidults-security-r1/pip-audit-summary.json
             exit 0
           fi
           python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$PIP_AUDIT_LOCK"
@@ -125,24 +132,8 @@ jobs:
           import json,pathlib,platform,sys
           lock_path,lock_sha256,auditor_version,pip_version=sys.argv[1:]
           lock_text=pathlib.Path(lock_path).read_text()
-          locked_requirement_count=sum(
-            1 for line in lock_text.splitlines()
-            if line.strip() and not line.lstrip().startswith('#')
-          )
-          out={
-            'issue':976,
-            'lock_path':lock_path,
-            'lock_sha256':lock_sha256,
-            'locked_requirement_count':locked_requirement_count,
-            'pip_audit_version':auditor_version,
-            'pip_version':pip_version,
-            'python_version':platform.python_version(),
-            'platform_machine':platform.machine(),
-            'install_mode':'HASH_VERIFIED_WHEELS_ONLY',
-            'evidence_effect':'NONE',
-            'empirical_gate_effect':'NONE',
-            'production':'HOLD'
-          }
+          locked_requirement_count=sum(1 for line in lock_text.splitlines() if line.strip() and not line.lstrip().startswith('#'))
+          out={'issue':976,'lock_path':lock_path,'lock_sha256':lock_sha256,'locked_requirement_count':locked_requirement_count,'pip_audit_version':auditor_version,'pip_version':pip_version,'python_version':platform.python_version(),'platform_machine':platform.machine(),'install_mode':'HASH_VERIFIED_WHEELS_ONLY','evidence_effect':'NONE','empirical_gate_effect':'NONE','production':'HOLD'}
           pathlib.Path('/tmp/kidults-security-r1/pip-audit-bootstrap.json').write_text(json.dumps(out,indent=2))
           print(out)
           PY
@@ -164,21 +155,29 @@ jobs:
               deps=x.get('dependencies',x if isinstance(x,list) else [])
               for d in deps: vulns += len(d.get('vulns',[]))
             except Exception: failed+=1
-          out={'requirements_file_count':count,'vulnerability_count':vulns,'audit_failures':failed}
+          out={'requirements_file_count':count,'vulnerability_count':vulns,'audit_failures':failed,'state':'VERIFIED_PASS' if failed==0 and vulns==0 else 'VERIFIED_FAIL'}
           pathlib.Path('/tmp/kidults-security-r1/pip-audit-summary.json').write_text(json.dumps(out,indent=2))
           print(out)
           if failed or vulns: raise SystemExit(1)
           PY
 
       - name: Validate vulnerability response ownership
+        if: always()
         shell: bash
         run: |
+          mkdir -p /tmp/kidults-security-r1
           node - <<'NODE'
-          const x=require('./coordination/kidults/governance/vulnerability-response-plan-v1.json');
-          if(x.production!=='HOLD'||x.status!=='ACTIVE_PREPRODUCTION') process.exit(1);
-          for(const k of ['triage_and_evidence','runtime_containment_and_recovery','code_or_configuration_remediation','production_risk_acceptance']) if(!x.owners?.[k]) process.exit(1);
-          if(x.severity_policy?.critical!=='RELEASE_HOLD_IMMEDIATE_REMEDIATION') process.exit(1);
-          console.log('Vulnerability response ownership PASS');
+          const fs=require('node:fs');
+          let state='VERIFIED_PASS', reason='OWNERSHIP_REGISTERED';
+          try {
+            const x=require('./coordination/kidults/governance/vulnerability-response-plan-v1.json');
+            if(x.production!=='HOLD'||x.status!=='ACTIVE_PREPRODUCTION') throw new Error('PLAN_STATE');
+            for(const k of ['triage_and_evidence','runtime_containment_and_recovery','code_or_configuration_remediation','production_risk_acceptance']) if(!x.owners?.[k]) throw new Error(`OWNER_${k}`);
+            if(x.severity_policy?.critical!=='RELEASE_HOLD_IMMEDIATE_REMEDIATION') throw new Error('CRITICAL_POLICY');
+          } catch(error) { state='VERIFIED_FAIL'; reason=error instanceof Error?error.message:String(error); }
+          fs.writeFileSync('/tmp/kidults-security-r1/vulnerability-response-ownership.json',JSON.stringify({state,reason,production:'HOLD'},null,2));
+          console.log({state,reason});
+          if(state!=='VERIFIED_PASS') process.exit(1);
           NODE
 
       - name: Build assurance result
@@ -189,9 +188,21 @@ jobs:
           const fs=require('node:fs'),crypto=require('node:crypto');
           const root='/tmp/kidults-security-r1';
           const read=(f)=>{try{return JSON.parse(fs.readFileSync(`${root}/${f}`,'utf8'))}catch{return null}};
+          const dependencyInventory=read('inventory-summary.json');
+          const secretScan=read('secret-scan.json');
+          const npmAudit=read('npm-audit-summary.json');
+          const pipAudit=read('pip-audit-summary.json');
+          const pipBootstrap=read('pip-audit-bootstrap.json');
+          const ownership=read('vulnerability-response-ownership.json');
           const integ=fs.existsSync(`${root}/source-integrity.sha256`)?crypto.createHash('sha256').update(fs.readFileSync(`${root}/source-integrity.sha256`)).digest('hex'):null;
-          const report={id:'kidults-security-assurance-empirical-r1',production:'HOLD',dependency_inventory:read('inventory-summary.json'),secret_scan:read('secret-scan.json'),npm_audit:read('npm-audit-summary.json'),pip_audit:read('pip-audit-summary.json'),pip_audit_bootstrap:read('pip-audit-bootstrap.json'),source_integrity_manifest_sha256:integ,vulnerability_response_owner:'REGISTERED',truth_boundary:'This is pre-production repository and dependency assurance evidence. It is not a penetration test, external infrastructure security assessment, legal/privacy clearance, or Production authorization.'};
+          const secretPass=Boolean(secretScan&&secretScan.finding_count===0);
+          const npmPass=Boolean(npmAudit&&npmAudit.audit_file_count===npmAudit.audited_directory_count&&npmAudit.high===0&&npmAudit.critical===0&&npmAudit.invalid===0&&npmAudit.unavailable===0&&npmAudit.anomalous_nonzero_exit===0);
+          const pipPass=Boolean(pipAudit&&pipAudit.vulnerability_count===0&&pipAudit.audit_failures===0);
+          const ownerPass=ownership?.state==='VERIFIED_PASS';
+          const state=secretPass&&npmPass&&pipPass&&ownerPass&&Boolean(integ)?'VERIFIED_PASS':'VERIFIED_FAIL';
+          const report={id:'kidults-security-assurance-empirical-r1',state,promotion_eligible:false,public:'HOLD',production:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED',dependency_inventory:dependencyInventory,secret_scan:secretScan,npm_audit:npmAudit,pip_audit:pipAudit,pip_audit_bootstrap:pipBootstrap,vulnerability_response_ownership:ownership,source_integrity_manifest_sha256:integ,component_pass:{secret:secretPass,npm:npmPass,pip:pipPass,ownership:ownerPass,integrity:Boolean(integ)},truth_boundary:'This is pre-production repository and dependency assurance evidence. It is not a penetration test, external infrastructure security assessment, legal/privacy clearance, or Production authorization.'};
           fs.writeFileSync(`${root}/security-assurance-report.json`,JSON.stringify(report,null,2));
+          console.log(report);
           NODE
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -200,3 +211,22 @@ jobs:
           name: kidults-security-assurance-empirical-r1
           path: /tmp/kidults-security-r1
           retention-days: 30
+          if-no-files-found: error
+
+      - name: Enforce aggregate security assurance terminal
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const p='/tmp/kidults-security-r1/security-assurance-report.json';
+          if(!fs.existsSync(p)) throw new Error('SECURITY_ASSURANCE_REPORT_MISSING');
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          if(x.state!=='VERIFIED_PASS') {
+            console.error(JSON.stringify(x,null,2));
+            throw new Error('SECURITY_ASSURANCE_AGGREGATE_RED');
+          }
+          if(x.promotion_eligible!==false||x.production!=='HOLD'||x.public!=='HOLD') throw new Error('SECURITY_ASSURANCE_AUTHORITY_BOUNDARY');
+          console.log(JSON.stringify({state:x.state,component_pass:x.component_pass,promotion_eligible:false,production:'HOLD',public:'HOLD'}));
+          NODE
