@@ -50,7 +50,7 @@ function violationsFor({ workflow, audit, doc, record }) {
   if (!doc.includes('DISABLED_PENDING_EXACT_MAIN_APPROVAL')) violations.push('approval-boundary-doc-truth-missing');
   if (!doc.includes('runtime_droplet_binding_verified=false')) violations.push('doc-binding-false-missing');
   if (!doc.includes('binding_method=NONE')) violations.push('doc-binding-method-none-missing');
-  if (!doc.includes('terminal-RED tombstone') && !doc.includes('terminal RED')) violations.push('doc-terminal-red-semantics-missing');
+  if (!/\bterminal(?:-|\s+)red(?:\s+tombstone)?\b/i.test(doc)) violations.push('doc-terminal-red-semantics-missing');
   if (doc.includes('READ_ONLY_CONNECTION_VERIFIED')) violations.push('false-connection-verification-claim-in-doc');
 
   if (record.digitalocean_api_connection !== 'DISABLED_PENDING_EXACT_MAIN_APPROVAL') violations.push('runtime-record-provider-state-not-disabled');
@@ -108,6 +108,10 @@ const mutationCases = [
   {
     id: 'reintroduce-false-connection-claim',
     mutate: x => ({ ...x, audit: x.audit.replace('PUBLIC_RUNTIME_AND_DROPLET_METADATA_OBSERVED_INDEPENDENTLY', 'READ_ONLY_CONNECTION_VERIFIED') }),
+  },
+  {
+    id: 'remove-terminal-red-doc-semantics',
+    mutate: x => ({ ...x, doc: x.doc.replace(/\bterminal(?:-|\s+)red(?:\s+tombstone)?\b/gi, 'nonterminal tombstone') }),
   },
   {
     id: 'remove-approval-boundary-doc',
