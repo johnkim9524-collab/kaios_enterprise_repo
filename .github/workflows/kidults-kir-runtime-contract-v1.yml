@@ -1,0 +1,88 @@
+name: KIDULTS Intelligence Runtime Contract v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/runtime/**'
+      - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
+      - 'scripts/kidults/runtime/**'
+      - 'tests/kidults/runtime/**'
+      - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-kir-runtime-contract-v1-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify-kir-runtime-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate KIR contract syntax and static truth
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/runtime/kir-runtime-kernel-v1.mjs
+          node --check tests/kidults/runtime/kir-runtime-v1.test.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/runtime/kir-runtime-contract-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/runtime/kir-module-registry-v1.json','utf8'))"
+          node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
+
+      - name: Run KIR negative regression suite
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs
+
+      - name: Evaluate exact-head KIR runtime truth
+        env:
+          KIR_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          KIR_RECEIPT_PATH: /tmp/kidults-kir-runtime-terminal-receipt-v1.json
+        run: |
+          set -euo pipefail
+          node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --evaluate | tee /tmp/kidults-kir-runtime-evaluation-v1.json
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/kidults-kir-runtime-terminal-receipt-v1.json','utf8'));
+          const req=(v,c)=>{if(!v)throw new Error(c)};
+          req(x.state==='CONTROL_VALIDATED_EMPIRICAL_BLOCKED','KIR_EXPECTED_BLOCKED_STATE');
+          req(x.source_sha===process.env.KIR_SOURCE_SHA,'KIR_EXACT_HEAD_BINDING');
+          req(x.promotion_eligible===false,'KIR_PROMOTION_FALSE');
+          req(x.runtime_activation_authorized===false,'KIR_RUNTIME_AUTHORITY_FALSE');
+          req(x.empirical_authority===false&&x.database_authority===false&&x.provider_authority===false,'KIR_EXTERNAL_AUTHORITY_FALSE');
+          req(x.public_release==='HOLD'&&x.production==='HOLD'&&x.g5==='HOLD','KIR_RELEASE_HOLD');
+          req(Array.isArray(x.blockers)&&x.blockers.length>=5,'KIR_BLOCKERS_NONVACUOUS');
+          NODE
+
+      - name: Upload exact-head KIR control receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-kir-runtime-contract-v1-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kidults-kir-runtime-terminal-receipt-v1.json
+            /tmp/kidults-kir-runtime-evaluation-v1.json
+          retention-days: 90
+          if-no-files-found: error
