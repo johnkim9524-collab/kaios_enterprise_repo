@@ -75,9 +75,9 @@ function selfTest(text) {
   const success = structuredClone(base); success.state='VERIFIED_PASS'; success.upstream_conclusion='success'; validateReceipt(success);
   const stale = structuredClone(base); stale.state='EXPECTED_NONAUTHORITATIVE_SKIP'; stale.generation_class='EXPECTED_NONAUTHORITATIVE_SKIP'; validateReceipt(stale);
   const cases = [
-    ['upload-not-always', text.replace('if: ${{ always() }}', 'if: success()')],
+    ['upload-not-always', text.replace(/(- name: Upload Snapshot terminal backstop receipt\n)\s+if:\s*\$\{\{\s*always\(\)\s*\}\}/, '$1        if: success()')],
     ['write-permission', text.replace('contents: read', 'contents: write')],
-    ['upstream-name-drift', text.replace("- 'KIDULTS ASI Snapshot Readiness Factory v2'", "- 'WRONG'" )],
+    ['upstream-name-drift', text.replace("- 'KIDULTS ASI Snapshot Readiness Factory v2'", "- 'WRONG'")],
   ];
   for (const [name, mutated] of cases) {
     let rejected=false; try { validateWorkflow(mutated); } catch { rejected=true; }
