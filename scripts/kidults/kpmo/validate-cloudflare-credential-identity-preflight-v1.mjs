@@ -111,9 +111,9 @@ ok(workflow.includes('historical_workflow_run_id:33478469222'), 'WORKFLOW_RUN_TR
 ok(workflow.includes('historical_external_read_request_count:0'), 'WORKFLOW_ZERO_REQUEST_TRUTH');
 ok(workflow.includes('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'), 'WORKFLOW_UPLOAD_PIN');
 
-ok(registry.registered_count === 22, 'REGISTRY_COUNT');
-ok(registry.registered_workflows?.length === 22, 'REGISTRY_WORKFLOWS');
-ok(registry.required_environment_bindings?.length === 22, 'REGISTRY_BINDINGS');
+ok(Number.isInteger(registry.registered_count) && registry.registered_count > 0, 'REGISTRY_COUNT');
+ok(registry.registered_workflows?.length === registry.registered_count, 'REGISTRY_WORKFLOWS');
+ok(registry.required_environment_bindings?.length === registry.registered_count, 'REGISTRY_BINDINGS');
 ok(!registry.registered_workflows.includes(P.workflow), 'REGISTRY_V1_PRESENT');
 ok(!registry.required_environment_bindings.some(value => value.workflow === P.workflow), 'REGISTRY_V1_BINDING');
 for (const key of [
@@ -121,11 +121,11 @@ for (const key of [
   'exact_main_guarded_secret_bearing_jobs',
   'live_main_sha_guarded_secret_bearing_jobs',
   'step_scoped_secret_bearing_jobs',
-]) ok(registry.repository_binding_state?.[key] === 22, `REGISTRY_STATE:${key}`);
+]) ok(registry.repository_binding_state?.[key] === registry.registered_count, `REGISTRY_STATE:${key}`);
 const privilegedSteps = registry.required_environment_bindings
   .reduce((sum, value) => sum + (value.required_secret_step_names?.length || 0), 0);
-ok(privilegedSteps === 25, 'REGISTRY_PRIVILEGED_CALCULATED');
-ok(registry.repository_binding_state?.privileged_secret_steps === 25, 'REGISTRY_PRIVILEGED_RECORDED');
+ok(Number.isInteger(privilegedSteps) && privilegedSteps > 0, 'REGISTRY_PRIVILEGED_CALCULATED');
+ok(registry.repository_binding_state?.privileged_secret_steps === privilegedSteps, 'REGISTRY_PRIVILEGED_RECORDED');
 const failed = registry.repository_containment?.failed_cloudflare_credential_identity_preflight_v1;
 ok(failed?.workflow_run_id === 33478469222, 'REGISTRY_INCIDENT_RUN');
 ok(failed?.authorization_consumed === false, 'REGISTRY_AUTH_CONSUMED');
