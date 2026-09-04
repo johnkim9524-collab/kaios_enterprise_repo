@@ -16,6 +16,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
+      - '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'
 
 permissions:
   contents: read

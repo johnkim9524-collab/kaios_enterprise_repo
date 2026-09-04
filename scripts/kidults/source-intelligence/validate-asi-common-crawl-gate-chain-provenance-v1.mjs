@@ -2,6 +2,8 @@ import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml';
 const source = fs.readFileSync(workflowPath, 'utf8');
+const producerWorkflowPath = '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml';
+const producerSource = fs.readFileSync(producerWorkflowPath, 'utf8');
 
 function violations(text) {
   const failures = [];
@@ -31,7 +33,30 @@ function violations(text) {
   return failures;
 }
 
-const pristine = violations(source);
+function pullRequestPaths(text) {
+  const match = text.match(/pull_request:\n\s+paths:\n([\s\S]*?)\n\npermissions:/);
+  if (!match) return [];
+  return [...match[1].matchAll(/- '([^']+)'/g)].map((entry) => entry[1]);
+}
+
+function triggerCouplingViolations(consumerText, producerText) {
+  const failures = [];
+  const consumerPaths = pullRequestPaths(consumerText);
+  const producerPaths = new Set(pullRequestPaths(producerText));
+  if (!consumerPaths.includes(producerWorkflowPath)) {
+    failures.push('CONSUMER_TRIGGER_MISSING_PRODUCER_WORKFLOW');
+  }
+  if (!producerPaths.has(workflowPath)) {
+    failures.push('PRODUCER_TRIGGER_MISSING_CONSUMER_WORKFLOW');
+  }
+  for (const path of consumerPaths) {
+    if (path === producerWorkflowPath) continue;
+    if (!producerPaths.has(path)) failures.push(`PRODUCER_TRIGGER_MISSING_CONSUMER_PATH:${path}`);
+  }
+  return failures;
+}
+
+const pristine = [...violations(source), ...triggerCouplingViolations(source, producerSource)];
 if (pristine.length) {
   console.error(JSON.stringify({status:'FAIL',violations:pristine},null,2));
   process.exit(1);
@@ -54,6 +79,18 @@ for (const [name, mutate] of mutations) {
     process.exit(1);
   }
   if (violations(changed).length === 0) {
+    console.error(`FALSE_GREEN:${name}`);
+    process.exit(1);
+  }
+}
+
+const triggerMutations = [
+  ['DROP_PRODUCER_FROM_CONSUMER', source.replace(`      - '${producerWorkflowPath}'\n`, ''), producerSource],
+  ['DROP_CONSUMER_FROM_PRODUCER', source, producerSource.replace(`      - '${workflowPath}'\n`, '')],
+  ['DROP_SHARED_VALIDATOR_FROM_PRODUCER', source, producerSource.replace("      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'\n", '')]
+];
+for (const [name, consumerText, producerText] of triggerMutations) {
+  if (triggerCouplingViolations(consumerText, producerText).length === 0) {
     console.error(`FALSE_GREEN:${name}`);
     process.exit(1);
   }
