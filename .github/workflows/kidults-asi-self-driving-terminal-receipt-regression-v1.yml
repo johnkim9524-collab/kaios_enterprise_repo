@@ -30,39 +30,46 @@ jobs:
           const source = fs.readFileSync(path, 'utf8');
           const terminalMarker = '      - name: TERMINAL — preserve authoritative Self-Driving result';
           const uploadMarker = '      - name: Upload authoritative Self-Driving terminal receipt';
-          // Build GitHub-expression literals at runtime so the regression workflow's
-          // own expression engine cannot pre-expand the strings being asserted.
+          // Assemble expression literals at runtime so this guard's own Actions
+          // expression engine cannot pre-expand the target strings being asserted.
           const jobStatusBinding = 'JOB_STATUS: $' + '{{ job.status }}';
           const sourceShaBinding = 'SOURCE_SHA: $' + '{{ github.event.pull_request.head.sha || github.sha }}';
           const fallbackShaBinding = 'SOURCE_SHA: $' + '{{ github.sha }}';
 
-          function validate(text) {
+          function sections(text) {
             const terminalStart = text.indexOf(terminalMarker);
             const uploadStart = text.indexOf(uploadMarker);
             if (terminalStart < 0 || uploadStart < 0 || uploadStart <= terminalStart) {
               throw new Error('terminal/upload marker missing or ordered incorrectly');
             }
-            const terminal = text.slice(terminalStart, uploadStart);
-            const upload = text.slice(uploadStart);
+            return {
+              terminalStart,
+              uploadStart,
+              terminal: text.slice(terminalStart, uploadStart),
+              upload: text.slice(uploadStart)
+            };
+          }
+
+          function validate(text) {
+            const {terminal, upload} = sections(text);
             const terminalMust = [
               'if: always()',
               jobStatusBinding,
               sourceShaBinding,
-              'executed_sha: $executed_sha',
-              'execution_ref: $execution_ref',
-              'asi-self-driving-terminal-receipt-v1.json',
+              '--arg executed_sha "$GITHUB_SHA"',
+              '--arg execution_ref "$GITHUB_REF"',
+              "--arg id 'kidults-asi-self-driving-terminal-v1'",
               '"VERIFIED_FAIL"',
               '"SELF_DRIVING_JOB_NON_SUCCESS"',
-              '"RED"',
               'promotion_eligible: false',
               'content_acquisition_authorized: false',
-              'candidate_evidence_status: "NONE"',
-              'track_b_status: "NOT_STARTED"',
-              'projection_status: "NONE"',
-              'provider_activation: "NOT_AUTHORIZED"',
-              'public_state: "HOLD"',
-              'production_state: "HOLD"',
-              'g5_state: "HOLD"'
+              'evidence_admission: "NONE"',
+              'track_b_complete: false',
+              'projection_ready: false',
+              'public_release: "HOLD"',
+              'production: "HOLD"',
+              'g5: "HOLD"',
+              '/tmp/asi-self-driving-terminal-v1.json'
             ];
             for (const invariant of terminalMust) {
               if (!terminal.includes(invariant)) {
@@ -71,8 +78,8 @@ jobs:
             }
             const uploadMust = [
               'if: always()',
-              'name: asi-self-driving-terminal-receipt-v1',
-              'path: asi-self-driving-terminal-receipt-v1.json',
+              'name: kidults-asi-self-driving-terminal-v1-',
+              'path: /tmp/asi-self-driving-terminal-v1.json',
               'if-no-files-found: error'
             ];
             for (const invariant of uploadMust) {
@@ -82,18 +89,28 @@ jobs:
             }
           }
 
+          function replaceTerminal(text, from, to) {
+            const {terminalStart, uploadStart, terminal} = sections(text);
+            if (!terminal.includes(from)) throw new Error(`terminal mutation source absent: ${from}`);
+            return text.slice(0, terminalStart) + terminal.replace(from, to) + text.slice(uploadStart);
+          }
+
+          function replaceUpload(text, from, to) {
+            const {uploadStart, upload} = sections(text);
+            if (!upload.includes(from)) throw new Error(`upload mutation source absent: ${from}`);
+            return text.slice(0, uploadStart) + upload.replace(from, to);
+          }
+
           validate(source);
 
           const mutations = [
-            text => text.replace('if: always()', 'if: success()'),
-            text => text.replace('"VERIFIED_FAIL"', '"VERIFIED_PASS"'),
-            text => text.replace('"SELF_DRIVING_JOB_NON_SUCCESS"', '""'),
-            text => text.replace('promotion_eligible: false', 'promotion_eligible: true'),
-            text => text.replace(sourceShaBinding, fallbackShaBinding),
-            text => {
-              const uploadStart = text.indexOf(uploadMarker);
-              return text.slice(0, uploadStart) + text.slice(uploadStart).replace('if: always()', 'if: success()');
-            }
+            text => replaceTerminal(text, 'if: always()', 'if: success()'),
+            text => replaceTerminal(text, '"VERIFIED_FAIL"', '"VERIFIED_PASS"'),
+            text => replaceTerminal(text, '"SELF_DRIVING_JOB_NON_SUCCESS"', '""'),
+            text => replaceTerminal(text, 'promotion_eligible: false', 'promotion_eligible: true'),
+            text => replaceTerminal(text, sourceShaBinding, fallbackShaBinding),
+            text => replaceTerminal(text, 'evidence_admission: "NONE"', 'evidence_admission: "ADMITTED"'),
+            text => replaceUpload(text, 'if: always()', 'if: success()')
           ];
 
           mutations.forEach((mutate, index) => {
