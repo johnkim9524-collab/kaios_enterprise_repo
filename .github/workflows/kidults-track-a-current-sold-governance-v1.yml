@@ -14,6 +14,7 @@ on:
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'scripts/kidults/market/validate-current-sold-*.mjs'
       - 'tests/kidults/kpmo/track-a-current-sold-*.test.mjs'
+      - 'tests/kidults/market/current-sold-*.test.mjs'
       - 'tests/kidults/market/track-a-current-sold-*.test.mjs'
       - '.github/workflows/kidults-track-a-current-sold-governance-v1.yml'
   pull_request:
@@ -28,6 +29,7 @@ on:
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'scripts/kidults/market/validate-current-sold-*.mjs'
       - 'tests/kidults/kpmo/track-a-current-sold-*.test.mjs'
+      - 'tests/kidults/market/current-sold-*.test.mjs'
       - 'tests/kidults/market/track-a-current-sold-*.test.mjs'
       - '.github/workflows/kidults-track-a-current-sold-governance-v1.yml'
   workflow_dispatch:
@@ -101,8 +103,8 @@ jobs:
           set -euo pipefail
           node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs \
             | tee /tmp/current-sold-core.tap
-          grep -Eq '^# tests 56$' /tmp/current-sold-core.tap
-          grep -Eq '^# pass 56$' /tmp/current-sold-core.tap
+          grep -Eq '^# tests 57$' /tmp/current-sold-core.tap
+          grep -Eq '^# pass 57$' /tmp/current-sold-core.tap
           grep -Eq '^# fail 0$' /tmp/current-sold-core.tap
 
       - name: Run Track A JD, authority, entrypoint and readiness negative suite
@@ -147,7 +149,7 @@ jobs:
             "primary_track": "TRACK_A",
             "runtime_owner": "ASI",
             "governance_owner": "KPMO",
-            "core_tests_expected": 56,
+            "core_tests_expected": 57,
             "new_governance_tests_expected": 22,
             "lawful_empirical_current_sold_admitted": 0,
             "postgres_rows_written": 0,
