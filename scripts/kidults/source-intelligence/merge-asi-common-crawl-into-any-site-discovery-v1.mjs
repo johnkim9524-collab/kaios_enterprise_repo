@@ -21,9 +21,9 @@ if(e.production!=='HOLD'||e.public_release!=='HOLD'||e.acquisition_authorized!==
 if(!Array.isArray(e.seed_hosts)||e.seed_hosts.length!==Number(e.seed_host_count)||e.seed_hosts.length<1||e.seed_hosts.length>8)fail('SEED_BUDGET');
 if(!Array.isArray(e.candidates)||e.candidates.length!==Number(e.expanded_candidate_count))fail('EXPANSION_COUNT');
 const zeroResults=e.status===zeroStatus;
+const observedIndexId=e.common_crawl_index_id==null||e.common_crawl_index_id===''?null:String(e.common_crawl_index_id);
 if(zeroResults&&(e.candidates.length!==0||Number(e.expanded_candidate_count)!==0))fail('ZERO_RESULTS_COUNT');
-if(zeroResults&&e.common_crawl_index_id!==null&&e.common_crawl_index_id!==undefined&&e.common_crawl_index_id!=='')fail('ZERO_RESULTS_INDEX_ID');
-if(!zeroResults&&(e.candidates.length<1||Number(e.expanded_candidate_count)<1||!e.common_crawl_index_id))fail('MATERIAL_RESULTS_BINDING');
+if(!zeroResults&&(e.candidates.length<1||Number(e.expanded_candidate_count)<1||!observedIndexId))fail('MATERIAL_RESULTS_BINDING');
 
 const byUrl=new Map();
 for(const c of d.candidates||[]){const u=norm(c.endpoint_url);if(!u)continue;byUrl.set(u,{...c,endpoint_url:u});}
@@ -43,7 +43,7 @@ for(const raw of e.candidates){
     const prior=byUrl.get(u);
     prior.discovery_providers=[...new Set([...(prior.discovery_providers||[prior.discovery_provider]).filter(Boolean),raw.discovery_provider])];
     prior.common_crawl_index_observed=true;
-    prior.common_crawl_index_id=e.common_crawl_index_id||null;
+    prior.common_crawl_index_id=observedIndexId;
   }
 }
 const candidates=[...byUrl.values()].sort((a,b)=>a.endpoint_url.localeCompare(b.endpoint_url));
@@ -52,10 +52,11 @@ const live=candidates.filter(c=>c.live_external_observation===true);
 const providerCounts={};
 for(const c of candidates)for(const p of c.discovery_providers||[c.discovery_provider].filter(Boolean))providerCounts[p]=(providerCounts[p]||0)+1;
 const laneId='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION';
-const lane={lane_id:laneId,status:zeroResults?'SUCCESS_ZERO_RESULTS':'SUCCESS_WITH_RESULTS',observed_candidates:Number(e.expanded_candidate_count||0),new_candidates:accepted,error_count:Number(e.error_count??e.errors?.length??0),common_crawl_index_id:e.common_crawl_index_id||null,expansion_status:e.status};
+const materialIndexId=zeroResults?null:observedIndexId;
+const lane={lane_id:laneId,status:zeroResults?'SUCCESS_ZERO_RESULTS':'SUCCESS_WITH_RESULTS',observed_candidates:Number(e.expanded_candidate_count||0),new_candidates:accepted,error_count:Number(e.error_count??e.errors?.length??0),common_crawl_index_id:materialIndexId,common_crawl_observed_index_id:observedIndexId,expansion_status:e.status};
 const laneHealth=[...(d.lane_health||[]).filter(x=>x.lane_id!==laneId),lane];
 const healthyLiveLanes=laneHealth.filter(x=>x.status==='SUCCESS_WITH_RESULTS'&&!['CANONICAL_REGISTERED_FRONTIER_SEED'].includes(x.lane_id)).length;
-const output={...d,version:'3.5.1',lane_health:laneHealth,healthy_live_lanes:healthyLiveLanes,candidate_count:candidates.length,live_external_candidate_count:live.length,provider_counts:providerCounts,candidates,common_crawl_host_expansion_applied:true,common_crawl_expansion_status:e.status,common_crawl_zero_result_noop:zeroResults,common_crawl_premerge_candidate_count:premergeCount,common_crawl_seed_host_count:Number(e.seed_host_count||0),common_crawl_index_id:e.common_crawl_index_id||null,common_crawl_observed_candidate_count:Number(e.expanded_candidate_count||0),common_crawl_new_candidate_count:accepted,common_crawl_error_count:Number(e.error_count??e.errors?.length??0),common_crawl_rights_effect:'NONE',common_crawl_admission_effect:'NONE',common_crawl_acquisition_effect:'NONE',listing_is_not_sold:true,terminal_transaction_assertion_required:true,target_site_body_crawled:false,content_acquired:false,acquisition_authorized:false,public_release:'HOLD',production:'HOLD'};
+const output={...d,version:'3.5.2',lane_health:laneHealth,healthy_live_lanes:healthyLiveLanes,candidate_count:candidates.length,live_external_candidate_count:live.length,provider_counts:providerCounts,candidates,common_crawl_host_expansion_applied:true,common_crawl_expansion_status:e.status,common_crawl_zero_result_noop:zeroResults,common_crawl_premerge_candidate_count:premergeCount,common_crawl_seed_host_count:Number(e.seed_host_count||0),common_crawl_index_id:materialIndexId,common_crawl_observed_index_id:observedIndexId,common_crawl_observed_candidate_count:Number(e.expanded_candidate_count||0),common_crawl_new_candidate_count:accepted,common_crawl_error_count:Number(e.error_count??e.errors?.length??0),common_crawl_rights_effect:'NONE',common_crawl_admission_effect:'NONE',common_crawl_acquisition_effect:'NONE',listing_is_not_sold:true,terminal_transaction_assertion_required:true,target_site_body_crawled:false,content_acquired:false,acquisition_authorized:false,public_release:'HOLD',production:'HOLD'};
 fs.mkdirSync(path.dirname(outPath),{recursive:true});
 fs.writeFileSync(outPath,JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({status:zeroResults?'PASS_ZERO_RESULTS_NOOP':'PASS_WITH_RESULTS',expansion_status:output.common_crawl_expansion_status,zero_result_noop:output.common_crawl_zero_result_noop,premerge_candidates:premergeCount,observed_expansion_candidates:e.expanded_candidate_count,new_candidates:accepted,merged_candidates:output.candidate_count,live_external_candidates:output.live_external_candidate_count,index_id:output.common_crawl_index_id,production:'HOLD'},null,2));
+console.log(JSON.stringify({status:zeroResults?'PASS_ZERO_RESULTS_NOOP':'PASS_WITH_RESULTS',expansion_status:output.common_crawl_expansion_status,zero_result_noop:output.common_crawl_zero_result_noop,premerge_candidates:premergeCount,observed_expansion_candidates:e.expanded_candidate_count,new_candidates:accepted,merged_candidates:output.candidate_count,live_external_candidates:output.live_external_candidate_count,index_id:output.common_crawl_index_id,observed_index_id:output.common_crawl_observed_index_id,production:'HOLD'},null,2));
