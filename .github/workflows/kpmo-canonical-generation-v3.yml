@@ -49,9 +49,11 @@ jobs:
           const fs=require('fs');
           const p='.github/workflows/kpmo-canonical-generation-v3.yml';
           const s=fs.readFileSync(p,'utf8');
-          for(const forbidden of [/issues:\s*write/, /^  push:/m, /^  issues:/m, /^  schedule:/m, /--write/]) {
+          for(const forbidden of [/issues:\s*write/, /^  push:/m, /^  issues:/m, /^  schedule:/m]) {
             if(forbidden.test(s)) throw new Error(`CANONICAL_V3_BOOTSTRAP_WRITE_SURFACE_PRESENT:${forbidden}`);
           }
+          const writeFlag=['--','write'].join('');
+          if(s.includes(writeFlag)) throw new Error('CANONICAL_V3_BOOTSTRAP_WRITE_FLAG_PRESENT');
           if(!/^  pull_request:/m.test(s)||!/^  workflow_dispatch:/m.test(s)) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_BOUNDARY_INVALID');
           console.log('Canonical V3 bootstrap write authority unreachable: PASS');
           NODE
