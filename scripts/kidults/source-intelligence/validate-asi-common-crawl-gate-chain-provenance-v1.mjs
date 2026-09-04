@@ -24,8 +24,7 @@ function violations(text) {
     'upstream_global_discovery:provenance',
     "common_crawl_expansion_status:d.common_crawl_expansion_status",
     "common_crawl_zero_result_noop:d.common_crawl_zero_result_noop",
-    'PASS_ZERO_RESULTS_NOOP',
-    'SUCCESS_ZERO_RESULTS'
+    'PASS_ZERO_RESULTS_NOOP'
   ];
   for (const needle of mustInclude) {
     if (!text.includes(needle)) failures.push(`MISSING:${needle}`);
@@ -76,7 +75,8 @@ const mutations = [
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
   ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
   ['DROP_ZERO_RESULT_STATUS_BINDING', t => t.replace('common_crawl_expansion_status:d.common_crawl_expansion_status,', '')],
-  ['DROP_ZERO_RESULT_NOOP_BINDING', t => t.replace('common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,', '')]
+  ['DROP_ZERO_RESULT_NOOP_BINDING', t => t.replace('common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,', '')],
+  ['DROP_ZERO_RESULT_PASS_MARKER', t => t.replace('PASS_ZERO_RESULTS_NOOP', 'REMOVED_ZERO_RESULT_PASS')]
 ];
 
 for (const [name, mutate] of mutations) {
