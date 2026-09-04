@@ -24,6 +24,8 @@ function violations(text) {
     'upstream_global_discovery:provenance',
     "common_crawl_expansion_status:d.common_crawl_expansion_status",
     "common_crawl_zero_result_noop:d.common_crawl_zero_result_noop",
+    "throw new Error('ZERO_RESULT_NOOP_BINDING')",
+    "throw new Error('MATERIAL_COMMON_CRAWL_BINDING')",
     'PASS_ZERO_RESULTS_NOOP'
   ];
   for (const needle of mustInclude) {
@@ -76,7 +78,8 @@ const mutations = [
   ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
   ['DROP_ZERO_RESULT_STATUS_BINDING', t => t.replace('common_crawl_expansion_status:d.common_crawl_expansion_status,', '')],
   ['DROP_ZERO_RESULT_NOOP_BINDING', t => t.replace('common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,', '')],
-  ['DROP_ZERO_RESULT_PASS_MARKER', t => t.replace('PASS_ZERO_RESULTS_NOOP', 'REMOVED_ZERO_RESULT_PASS')]
+  ['DROP_ZERO_RESULT_ASSERTION', t => t.replace("throw new Error('ZERO_RESULT_NOOP_BINDING');", 'void 0;')],
+  ['DROP_MATERIAL_RESULT_ASSERTION', t => t.replace("throw new Error('MATERIAL_COMMON_CRAWL_BINDING');", 'void 0;')]
 ];
 
 for (const [name, mutate] of mutations) {
