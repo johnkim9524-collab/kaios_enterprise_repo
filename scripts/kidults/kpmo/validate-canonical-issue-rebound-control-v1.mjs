@@ -9,8 +9,9 @@ const req=(v,c)=>{if(!v)throw new Error(c);};
 
 export function validateControl(w,r){
   req(w.includes('name: KPMO Canonical Issue Rebound V1'),'REBOUND_WORKFLOW_NAME');
-  req(/on:\n\s+workflow_dispatch:\n/.test(w),'REBOUND_NOT_MANUAL_ONLY');
-  for(const forbidden of [/\n\s{2}push:/,/\n\s{2}pull_request:/,/\n\s{2}schedule:/,/\n\s{2}issues:/]) req(!forbidden.test(w),`REBOUND_AUTO_TRIGGER_FORBIDDEN:${forbidden}`);
+  const onBlock=w.match(/^on:\n([\s\S]*?)\npermissions:/m)?.[1]||'';
+  req(/^\s{2}workflow_dispatch:\s*$/m.test(onBlock),'REBOUND_NOT_MANUAL_ONLY');
+  for(const trigger of ['push','pull_request','schedule','issues']) req(!new RegExp(`^\\s{2}${trigger}:\\s*$`,'m').test(onBlock),`REBOUND_AUTO_TRIGGER_FORBIDDEN:${trigger}`);
   req(w.includes('contents: read')&&w.includes('issues: write')&&w.includes('actions: read'),'REBOUND_PERMISSION_SET');
   req(!/(contents:\s*write|deployments:\s*write|statuses:\s*write|pull-requests:\s*write)/.test(w),'REBOUND_EXTRA_WRITE_PERMISSION');
   req(w.includes('cancel-in-progress: false'),'REBOUND_MUST_NOT_CANCEL_MID_TRANSACTION');
@@ -39,7 +40,8 @@ export function validateControl(w,r){
     'preflightPreimages',
     'PRE_PATCH_BODY_MOVED',
     'PRE_PATCH_UPDATED_AT_MOVED',
-    'rollbackChanged',
+    'async function rollbackChanged(plan,headers)',
+    'receipt.rollback=await rollbackChanged(plan,headers)',
     'POSTREAD_BOARD_INCOMPLETE',
     'GITHUB_REST_HAS_NO_MULTI_ISSUE_ATOMIC_TRANSACTION',
     'READ_THEN_PATCH_RACE_WINDOW_NONZERO',
@@ -61,7 +63,7 @@ function selfTest(){
     ['REMOVE_PACKET',workflow.replace('Persist rollback packet before first mutation','removed rollback packet'),runner],
     ['REMOVE_OWNER_GATE',workflow.replace("if: github.ref == 'refs/heads/main' && github.actor == 'johnkim9524-collab'",'if: true'),runner],
     ['EXPAND_PATCH',workflow,runner.replace("method:'PATCH',body:{body}","method:'PATCH',body:{body,state:'closed'}")],
-    ['REMOVE_ROLLBACK',workflow,runner.replace('rollbackChanged(plan,headers)','missingRollback(plan,headers)')]
+    ['REMOVE_ROLLBACK_CALL',workflow,runner.replace('receipt.rollback=await rollbackChanged(plan,headers);','receipt.rollback=[];')]
   ];
   for(const [name,w,r] of mutations){let rejected=false;try{validateControl(w,r);}catch{rejected=true;}req(rejected,`REBOUND_CONTROL_FALSE_ACCEPT:${name}`);}
   process.stdout.write(`${JSON.stringify({test:'CANONICAL_ISSUE_REBOUND_CONTROL_V1',state:'VERIFIED_PASS',negative_cases:mutations.length,manual_only:true,rollback_packet_precedes_mutation:true})}\n`);
