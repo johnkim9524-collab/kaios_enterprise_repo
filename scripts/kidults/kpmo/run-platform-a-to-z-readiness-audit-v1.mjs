@@ -264,6 +264,11 @@ try {
         process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main',
       upstreamIdentity
     ));
+    checks.push(staticCheck(
+      'UPSTREAM_CONSUMABLE_SEMANTIC_ROLE',
+      process.env.KPMO_UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION !== 'true',
+      `${upstreamIdentity}:non_consumable_success_observation=${process.env.KPMO_UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION || 'false'}`
+    ));
   }
   checks.push(...[...sentinelChecks, ...(config.profile === 'deep' ? deepChecks : [])]
     .map(([id, command, args]) => run(id, command, args)));
