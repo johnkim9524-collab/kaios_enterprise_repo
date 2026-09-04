@@ -7,9 +7,15 @@ on:
       - "scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs"
       - "scripts/kidults/kpmo/run-bounded-npm-audit-v1.mjs"
       - "requirements*.txt"
+      - "**/requirements*.txt"
       - "package*.json"
+      - "**/package*.json"
+      - "npm-shrinkwrap.json"
+      - "**/npm-shrinkwrap.json"
       - "Dockerfile"
       - "Dockerfile.*"
+      - "**/Dockerfile"
+      - "**/Dockerfile.*"
   workflow_dispatch:
 
 jobs:
@@ -54,7 +60,7 @@ jobs:
           mkdir -p /tmp/kidults-security-r1
           git ls-files | sort > /tmp/kidults-security-r1/tracked-files.txt
           while IFS= read -r f; do sha256sum "$f"; done < /tmp/kidults-security-r1/tracked-files.txt > /tmp/kidults-security-r1/source-integrity.sha256
-          git ls-files | grep -E '(^|/)(package(-lock)?\.json|requirements[^/]*\.txt|pyproject\.toml|poetry\.lock|Pipfile(\.lock)?|Dockerfile)$' | sort > /tmp/kidults-security-r1/dependency-inputs.txt || true
+          git ls-files | grep -E '(^|/)(package(-lock)?\.json|npm-shrinkwrap\.json|requirements[^/]*\.txt|pyproject\.toml|poetry\.lock|Pipfile(\.lock)?|Dockerfile(\..*)?)$' | sort > /tmp/kidults-security-r1/dependency-inputs.txt || true
           while IFS= read -r f; do sha256sum "$f"; done < /tmp/kidults-security-r1/dependency-inputs.txt > /tmp/kidults-security-r1/dependency-inputs.sha256
           printf '{"tracked_file_count":%s,"dependency_input_count":%s}\n' "$(wc -l < /tmp/kidults-security-r1/tracked-files.txt)" "$(wc -l < /tmp/kidults-security-r1/dependency-inputs.txt)" > /tmp/kidults-security-r1/inventory-summary.json
 
