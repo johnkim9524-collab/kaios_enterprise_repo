@@ -3,52 +3,39 @@ import fs from 'node:fs';
 const workflowPath = '.github/workflows/digitalocean-readonly-audit.yml';
 const auditPath = 'scripts/operations/digitalocean_readonly_audit.py';
 const docPath = 'docs/operations/digitalocean-readonly-integration-review-v1.md';
-
-const expectedActions = new Map([
-  ['actions/checkout', '3d3c42e5aac5ba805825da76410c181273ba90b1'],
-  ['actions/setup-python', '5fda3b95a4ea91299a34e894583c3862153e4b97'],
-  ['actions/upload-artifact', 'b7c566a772e6b6bfb58ed0dc250532a479d7789f'],
-]);
-
-function externalActionRefs(text) {
-  const refs = [];
-  for (const line of text.split(/\r?\n/)) {
-    const match = line.match(/^\s*-?\s*uses:\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@([^\s#]+)(?:\s+#.*)?$/);
-    if (match) refs.push({ action: match[1], ref: match[2] });
-  }
-  return refs;
-}
+const recordPath = 'coordination/kidults/registry/runtime/records/runtime-digitalocean-readonly-audit-v1.json';
 
 function occurrences(text, needle) {
   return text.split(needle).length - 1;
 }
 
-function violationsFor({ workflow, audit, doc }) {
+function violationsFor({ workflow, audit, doc, record }) {
   const violations = [];
 
+  if (!/^\s*workflow_dispatch:\s*$/m.test(workflow)) violations.push('inert-manual-request-surface-missing');
+  for (const trigger of ['schedule:', 'push:', 'pull_request:', 'pull_request_target:', 'workflow_run:']) {
+    if (workflow.includes(trigger)) violations.push(`autonomous-or-untrusted-trigger-present:${trigger}`);
+  }
+  if (!/permissions:\s*\n\s+contents:\s*read/m.test(workflow)) violations.push('contents-read-permission-missing');
   if (!/runs-on:\s*ubuntu-24\.04/.test(workflow)) violations.push('runner-not-pinned-ubuntu-24.04');
-  if (!/ref:\s*\$\{\{\s*github\.sha\s*\}\}/.test(workflow)) violations.push('checkout-not-exact-trigger-sha');
-  if (!/persist-credentials:\s*false/.test(workflow)) violations.push('checkout-credentials-persisted');
+  if (!workflow.includes('DISABLED_PENDING_EXACT_MAIN_APPROVAL')) violations.push('terminal-disabled-state-missing');
+  if (!/^\s*exit\s+1\s*$/m.test(workflow)) violations.push('terminal-red-exit-missing');
 
-  const actionRefs = externalActionRefs(workflow);
-  for (const { action, ref } of actionRefs) {
-    if (!/^[0-9a-f]{40}$/.test(ref)) violations.push(`mutable-action-ref:${action}@${ref}`);
-    const expected = expectedActions.get(action);
-    if (expected && ref !== expected) violations.push(`unexpected-action-sha:${action}@${ref}`);
+  for (const forbidden of [
+    'environment:',
+    'secrets.',
+    'DIGITALOCEAN_READ_TOKEN',
+    'DIGITALOCEAN_DROPLET_ID',
+    'digitalocean_readonly_audit.py',
+    'api.digitalocean.com',
+    'actions/checkout@',
+    'actions/setup-python@',
+    'actions/upload-artifact@',
+    'if: ${{ false }}',
+  ]) {
+    if (workflow.includes(forbidden)) violations.push(`provider-or-nonterminal-edge-present:${forbidden}`);
   }
-  for (const [action, expected] of expectedActions) {
-    if (!actionRefs.some(item => item.action === action && item.ref === expected)) {
-      violations.push(`required-action-missing:${action}@${expected}`);
-    }
-  }
-
-  const mainGuard = workflow.indexOf('test "$GITHUB_REF" = "refs/heads/main"');
-  const secretUse = workflow.indexOf('DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}');
-  if (mainGuard < 0) violations.push('main-ref-guard-missing');
-  if (secretUse < 0) violations.push('digitalocean-secret-use-missing');
-  if (mainGuard >= 0 && secretUse >= 0 && mainGuard > secretUse) violations.push('main-ref-guard-after-secret-consumption');
-  if (/workflow_dispatch:\s*\n\s+inputs:/m.test(workflow)) violations.push('manual-target-input-reintroduced');
-  if (!/KIDULTS_MONITORED_BASE_URL:\s*https:\/\/kaios\.kidults\.com/.test(workflow)) violations.push('canonical-runtime-target-not-hard-locked');
+  if (/workflow_dispatch:\s*\n\s+inputs:/m.test(workflow)) violations.push('manual-provider-input-reintroduced');
 
   if (!audit.includes('CANONICAL_BASE_URL = "https://kaios.kidults.com"')) violations.push('canonical-base-constant-missing');
   if (!audit.includes('CANONICAL_HOSTNAME = "kaios.kidults.com"')) violations.push('canonical-host-constant-missing');
@@ -60,10 +47,18 @@ function violationsFor({ workflow, audit, doc }) {
   if (!audit.includes('"binding_method": "NONE"')) violations.push('binding-method-not-none');
   if (audit.includes('READ_ONLY_CONNECTION_VERIFIED')) violations.push('false-connection-verification-claim-in-audit');
 
-  if (!doc.includes('PUBLIC_RUNTIME_AND_DROPLET_METADATA_OBSERVED_INDEPENDENTLY')) violations.push('truth-safe-doc-state-missing');
+  if (!doc.includes('DISABLED_PENDING_EXACT_MAIN_APPROVAL')) violations.push('approval-boundary-doc-truth-missing');
   if (!doc.includes('runtime_droplet_binding_verified=false')) violations.push('doc-binding-false-missing');
   if (!doc.includes('binding_method=NONE')) violations.push('doc-binding-method-none-missing');
+  if (!doc.includes('terminal-RED tombstone') && !doc.includes('terminal RED')) violations.push('doc-terminal-red-semantics-missing');
   if (doc.includes('READ_ONLY_CONNECTION_VERIFIED')) violations.push('false-connection-verification-claim-in-doc');
+
+  if (record.digitalocean_api_connection !== 'DISABLED_PENDING_EXACT_MAIN_APPROVAL') violations.push('runtime-record-provider-state-not-disabled');
+  if (record.provider_credential_resolution_authorized !== false) violations.push('runtime-record-credential-authority-not-false');
+  if (record.autonomous_provider_execution_authorized !== false) violations.push('runtime-record-autonomous-authority-not-false');
+  if (!Array.isArray(record.required_secret_names) || record.required_secret_names.length !== 0) violations.push('runtime-record-active-secret-requirements-present');
+  if (record.production_connection_authorized !== false) violations.push('runtime-record-production-authority-not-false');
+  if (record.production_state !== 'HOLD') violations.push('runtime-record-production-not-hold');
 
   return violations;
 }
@@ -72,46 +67,51 @@ const base = {
   workflow: fs.readFileSync(workflowPath, 'utf8'),
   audit: fs.readFileSync(auditPath, 'utf8'),
   doc: fs.readFileSync(docPath, 'utf8'),
+  record: JSON.parse(fs.readFileSync(recordPath, 'utf8')),
 };
 
 const baselineViolations = violationsFor(base);
 if (baselineViolations.length) {
-  console.error(JSON.stringify({ suite: 'DIGITALOCEAN_READONLY_AUDIT_TRUTH_V1', result: 'FAIL', violations: baselineViolations }, null, 2));
+  console.error(JSON.stringify({ suite: 'DIGITALOCEAN_READONLY_APPROVAL_BOUNDARY_V3', result: 'FAIL', violations: baselineViolations }, null, 2));
   process.exit(1);
 }
 
 const mutationCases = [
   {
-    id: 'mutable-checkout',
-    mutate: x => ({ ...x, workflow: x.workflow.replace('actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'actions/checkout@v7') }),
+    id: 'restore-schedule',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('  workflow_dispatch:', '  workflow_dispatch:\n  schedule:\n    - cron: "17 20 * * *"') }),
   },
   {
-    id: 'moving-runner',
-    mutate: x => ({ ...x, workflow: x.workflow.replace('runs-on: ubuntu-24.04', 'runs-on: ubuntu-latest') }),
+    id: 'remove-terminal-red',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('          exit 1', '          exit 0') }),
   },
   {
-    id: 'remove-main-ref-guard',
-    mutate: x => ({ ...x, workflow: x.workflow.replace('test "$GITHUB_REF" = "refs/heads/main"', 'echo main-ref-check-disabled') }),
+    id: 'replace-terminal-red-with-skipped-job',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('    runs-on: ubuntu-24.04', '    if: ${{ false }}\n    runs-on: ubuntu-24.04') }),
   },
   {
-    id: 'reintroduce-manual-target-input',
-    mutate: x => ({ ...x, workflow: x.workflow.replace('workflow_dispatch:', 'workflow_dispatch:\n    inputs:\n      base_url:\n        required: false') }),
+    id: 'restore-environment',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('runs-on: ubuntu-24.04', 'environment: kidults-do-readonly\n    runs-on: ubuntu-24.04') }),
+  },
+  {
+    id: 'restore-provider-secret',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('shell: bash', 'env:\n          DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}\n        shell: bash') }),
+  },
+  {
+    id: 'restore-provider-call',
+    mutate: x => ({ ...x, workflow: x.workflow.replace('echo "DISABLED_PENDING_EXACT_MAIN_APPROVAL"', 'python scripts/operations/digitalocean_readonly_audit.py') }),
+  },
+  {
+    id: 'claim-standing-credential-authority',
+    mutate: x => ({ ...x, record: { ...x.record, provider_credential_resolution_authorized: true } }),
   },
   {
     id: 'reintroduce-false-connection-claim',
     mutate: x => ({ ...x, audit: x.audit.replace('PUBLIC_RUNTIME_AND_DROPLET_METADATA_OBSERVED_INDEPENDENTLY', 'READ_ONLY_CONNECTION_VERIFIED') }),
   },
   {
-    id: 'claim-binding-verified',
-    mutate: x => ({ ...x, audit: x.audit.replace('"runtime_droplet_binding_verified": False', '"runtime_droplet_binding_verified": True') }),
-  },
-  {
-    id: 'remove-no-redirect-handler',
-    mutate: x => ({ ...x, audit: x.audit.replace('class NoRedirectHandler', 'class RedirectHandlerDisabled') }),
-  },
-  {
-    id: 'doc-false-binding-state',
-    mutate: x => ({ ...x, doc: x.doc.replace('PUBLIC_RUNTIME_AND_DROPLET_METADATA_OBSERVED_INDEPENDENTLY', 'READ_ONLY_CONNECTION_VERIFIED') }),
+    id: 'remove-approval-boundary-doc',
+    mutate: x => ({ ...x, doc: x.doc.replace('DISABLED_PENDING_EXACT_MAIN_APPROVAL', 'READ_ONLY_AUDIT_AVAILABLE') }),
   },
 ];
 
@@ -124,15 +124,16 @@ for (const { id, mutate } of mutationCases) {
 }
 
 console.log(JSON.stringify({
-  suite: 'DIGITALOCEAN_READONLY_AUDIT_TRUTH_V1',
+  suite: 'DIGITALOCEAN_READONLY_APPROVAL_BOUNDARY_V3',
   result: 'PASS',
   mutation_cases_detected: mutationCases.length,
-  canonical_runtime_target: 'https://kaios.kidults.com',
+  active_trigger: 'INERT_WORKFLOW_DISPATCH_REQUEST_SURFACE_ONLY',
+  tombstone_terminal: 'RED_REQUIRED',
+  environment_resolution: 'NONE',
+  credential_resolution: 'NONE',
+  provider_request: 'NONE',
   runtime_droplet_binding_verified: false,
   binding_method: 'NONE',
-  workflow_ref_boundary: 'MAIN_ONLY_BEFORE_SECRET_CONSUMPTION',
-  action_provenance: 'IMMUTABLE_SHA',
-  runner: 'ubuntu-24.04',
   remote_execution_performed_by_validator: false,
   production: 'HOLD',
   public: 'HOLD',
