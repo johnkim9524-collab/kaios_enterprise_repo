@@ -51,10 +51,27 @@ assert(workflow.includes('complete exact-head Program Owner approval')
   && workflow.includes('malformed/expired/overlong approval'),
 'ATOMIC_LANDING_PRECONSUMPTION_FAIL_CLOSED_RATIONALE_MISSING');
 
-const terminalBootstrap = lifecyclePreflight.indexOf('writeFailClosedTerminalBootstrap();');
-const lifecycleApprovalValidation = lifecyclePreflight.indexOf('assertLandingActorAndAuthorization');
+const terminalBootstrapCall = '\nwriteFailClosedTerminalBootstrap();';
+const strictApprovalCall = '\nassertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);';
+const terminalBootstrap = lifecyclePreflight.indexOf(terminalBootstrapCall);
+const lifecycleApprovalValidation = lifecyclePreflight.indexOf(strictApprovalCall);
+assert(lifecyclePreflight.split(terminalBootstrapCall).length === 2,
+  'ATOMIC_LANDING_TERMINAL_BOOTSTRAP_CALL_CARDINALITY_INVALID');
+assert(lifecyclePreflight.split(strictApprovalCall).length === 2,
+  'ATOMIC_LANDING_STRICT_APPROVAL_CALL_CARDINALITY_INVALID');
 assert(terminalBootstrap >= 0 && lifecycleApprovalValidation > terminalBootstrap,
   'ATOMIC_LANDING_TERMINAL_BOOTSTRAP_NOT_BEFORE_APPROVAL_VALIDATION');
+// Import declarations intentionally precede the bootstrap. Only the executable
+// strict-approval call is relevant to the prevalidation ordering invariant.
+const reorderedLifecycle = lifecyclePreflight
+  .replace(terminalBootstrapCall, '')
+  .replace(strictApprovalCall, `${strictApprovalCall}${terminalBootstrapCall}`);
+const reorderedBootstrap = reorderedLifecycle.indexOf(terminalBootstrapCall);
+const reorderedApproval = reorderedLifecycle.indexOf(strictApprovalCall);
+assert(reorderedApproval >= 0 && reorderedBootstrap > reorderedApproval,
+  'ATOMIC_LANDING_PREVALIDATION_MUTATION_SETUP_INVALID');
+assert(!(reorderedBootstrap >= 0 && reorderedApproval > reorderedBootstrap),
+  'ATOMIC_LANDING_PREVALIDATION_REORDER_FALSE_GREEN');
 assert(lifecyclePreflight.includes("terminal_class: 'PREVALIDATION_FAIL_CLOSED_BOOTSTRAP'")
   && lifecyclePreflight.includes('authorization_id_sha256: sha256(authorizationId)')
   && lifecyclePreflight.includes('raw_authorization_persisted: false')
