@@ -28,9 +28,10 @@
       "trigger_event"
     ],
     "source_sha_format": "^[0-9a-f]{40}$",
+    "receipt_digest_format": "^sha256:[0-9a-f]{64}$",
     "run_id_positive_integer": true,
     "run_attempt_positive_integer": true,
-    "dependency_policy": "ALL_DECLARED_DEPENDENCIES_MUST_BE_SATISFIED_BEFORE_FORWARD_STATE",
+    "dependency_policy": "EXACT_DECLARED_DAG_AND_ALL_DEPENDENCIES_SATISFIED_BEFORE_FORWARD_STATE",
     "unknown_module_policy": "REJECT",
     "unknown_state_policy": "REJECT",
     "missing_receipt_policy": "REJECT_WHEN_RUNTIME_TRANSITION_REQUIRES_RECEIPT",
@@ -48,11 +49,59 @@
     "CODE_COMPLETE_NOT_ACTIVATED",
     "BLOCKED_NO_LAWFUL_LEDGER_ROWS",
     "NOT_STARTED_EXACT_PAIR_ABSENT",
-    "HOLD_NO_APPROVED_PROJECTION"
+    "HOLD_NO_APPROVED_PROJECTION",
+    "READY",
+    "EMPIRICAL_VALIDATED",
+    "PAIR_READY",
+    "COMPLETE_INDEPENDENT_ASSESSMENT",
+    "APPROVED_PROJECTION_READY"
   ],
+  "transition_evidence_requirements": {
+    "SOURCE_RIGHTS_READY": [
+      "source_manifest_sha256",
+      "acquisition_receipt_sha256",
+      "rights_receipt_set_sha256"
+    ],
+    "RECEIPT_AUTHORITY_READY": [
+      "trusted_keyring_sha256",
+      "signed_authority_envelope_sha256",
+      "nonce_consumption_receipt_sha256"
+    ],
+    "CURRENT_SOLD_ADMISSION_EMPIRICAL_VALIDATED": [
+      "whole_batch_admission_receipt_sha256",
+      "event_manifest_sha256",
+      "rights_receipt_set_sha256"
+    ],
+    "CURRENT_SOLD_EVIDENCE_EMPIRICAL_VALIDATED": [
+      "canonical_event_manifest_sha256",
+      "evidence_manifest_sha256"
+    ],
+    "APPEND_ONLY_LEDGER_EMPIRICAL_VALIDATED": [
+      "migration_receipt_sha256",
+      "write_receipt_sha256",
+      "readback_receipt_sha256",
+      "pitr_receipt_sha256"
+    ],
+    "CANDIDATE_EVIDENCE_PAIR_READY": [
+      "candidate_sha256",
+      "evidence_package_sha256",
+      "ledger_generation_sha256"
+    ],
+    "TRACK_B_ASSESSMENT_COMPLETE": [
+      "candidate_evidence_pair_sha256",
+      "assessment_sha256",
+      "assessor_independence_receipt_sha256"
+    ],
+    "PROJECTION_RELEASE_READY": [
+      "track_b_assessment_sha256",
+      "projection_sha256",
+      "approval_receipt_sha256"
+    ]
+  },
   "promotion_contract": {
     "control_validation_is_empirical_proof": false,
     "branch_success_is_protected_main_natural_canary": false,
+    "fixture_state_machine_success_is_empirical_proof": false,
     "provider_or_rights_authority_may_be_inferred": false,
     "database_authority_may_be_inferred": false,
     "track_b_authority_may_be_inferred": false,
