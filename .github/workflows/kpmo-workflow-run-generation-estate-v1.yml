@@ -1,0 +1,66 @@
+name: KPMO Workflow-Run Generation Estate V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-global-source-mesh-v1.yml'
+      - '.github/workflows/kidults-asi-mission-consumption-v1.yml'
+      - '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml'
+      - '.github/workflows/kidults-asi-p1-market-event-adapter-runtime-v1.yml'
+      - '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml'
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-workflow-run-generation-estate-v1.mjs'
+      - '.github/workflows/kpmo-workflow-run-generation-estate-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-estate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and reusable classifier regression
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+      - name: Build fail-closed estate receipt
+        id: estate
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/validate-workflow-run-generation-estate-v1.mjs --report-only > "$RUNNER_TEMP/workflow-run-generation-estate-v1.json"
+          STATE="$(node -e "const x=require(process.argv[1]);process.stdout.write(x.state)" "$RUNNER_TEMP/workflow-run-generation-estate-v1.json")"
+          echo "state=$STATE" >> "$GITHUB_OUTPUT"
+          test "$STATE" = VERIFIED_PASS
+      - name: Upload exact-head estate receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-workflow-run-generation-estate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/workflow-run-generation-estate-v1.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Enforce estate verdict after receipt retention
+        if: always()
+        env:
+          ESTATE_STATE: ${{ steps.estate.outputs.state }}
+        run: |
+          set -euo pipefail
+          test "$ESTATE_STATE" = VERIFIED_PASS
