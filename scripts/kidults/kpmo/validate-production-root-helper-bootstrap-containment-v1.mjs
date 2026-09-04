@@ -12,8 +12,15 @@ function validate(value){
   const stop=value.indexOf(STOP);
   assert(stop>=0,'ROOT_HELPER_HARD_STOP_MISSING');
   assert(value.includes('P0 #1694 containment'),'ROOT_HELPER_P0_RATIONALE_MISSING');
+  // Bind ordering to executable reads/writes only. Variable assignments, function
+  // definitions and rationale comments are declarations and must not be mistaken
+  // for runner-workspace access.
   const dangerous=[
+    '[[ -d "$WORKSPACE" && ! -L "$WORKSPACE" ]]',
+    '[[ "$(readlink -f -- "$WORKSPACE")" == "$WORKSPACE" ]]',
+    '[[ -f "$HELPER_SOURCE" && ! -L "$HELPER_SOURCE" ]]',
     'git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" rev-parse HEAD',
+    'git -c safe.directory="$WORKSPACE" -C "$WORKSPACE" config --local --get remote.origin.url',
     'install -d -o root -g root -m 0755 /usr/local/libexec',
     'install -o root -g root -m 0755 "$HELPER_SOURCE" "$HELPER_TARGET"',
     'mktemp /etc/kaios/kidults-production-release/.root-helper-pins.',
@@ -25,8 +32,6 @@ function validate(value){
     const pos=value.indexOf(marker);
     assert(pos>stop,`ROOT_HELPER_PRIVILEGED_OR_MUTABLE_SOURCE_PRECEDES_HARD_STOP:${marker}`);
   }
-  assert(!value.slice(0,stop).includes('WORKSPACE/')&&!value.slice(0,stop).includes('safe.directory'),
-    'ROOT_HELPER_MUTABLE_WORKSPACE_READ_BEFORE_HARD_STOP');
   return true;
 }
 
@@ -42,6 +47,13 @@ const moved=text.replace(`${STOP}\n\n# Historical implementation retained below 
 );
 try{validate(moved);throw new Error('ROOT_HELPER_HARD_STOP_REORDER_FALSE_GREEN');}catch(error){
   if(error.message==='ROOT_HELPER_HARD_STOP_REORDER_FALSE_GREEN')throw error;
+}
+const preRead=text.replace(
+  STOP,
+  `[[ -d "$WORKSPACE" && ! -L "$WORKSPACE" ]] || fail WORKSPACE_INVALID\n${STOP}`,
+);
+try{validate(preRead);throw new Error('ROOT_HELPER_WORKSPACE_READ_REORDER_FALSE_GREEN');}catch(error){
+  if(error.message==='ROOT_HELPER_WORKSPACE_READ_REORDER_FALSE_GREEN')throw error;
 }
 console.log(JSON.stringify({
   id:'kidults-production-root-helper-bootstrap-containment-v1',
