@@ -4,12 +4,7 @@
   "status": "VERIFIED_PASS",
   "owner": "KPMO",
   "priority": "P0",
-  "platform_principles": [
-    "AUTONOMOUS",
-    "GLOBAL",
-    "IRREPLACEABLE_VALUE",
-    "TRANSPARENT"
-  ],
+  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
   "registered_assets": {
     "contract": "coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json",
     "observation": "coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json",
@@ -28,16 +23,22 @@
     "exact_projection_reference_validators_active": 1,
     "fallback_live_adapters_activated": 0,
     "bounded_primary_source_fact_projections_validated": 1,
+    "committed_official_source_reference_projections_verified": 1,
+    "reference_projection_records_retained": 1,
+    "machine_proven_acquisition_receipts": 0,
     "field_purpose_rights_preflight_pass_sources": 1,
-    "auction_result_reference_evidence_admitted": 1,
-    "market_event_references_created": 1,
+    "auction_result_reference_evidence_admitted": 0,
+    "market_event_references_created": 0,
+    "empirical_evidence_admitted": 0,
+    "empirical_market_events_created": 0,
     "generic_market_events_admitted": 0,
     "verified_sold_events_created": 0,
     "top_16_source_profiles": 16,
     "top_16_source_adapters_implemented": 16,
     "top_16_source_adapters_activated": 0,
     "top_16_evidence_admitted": 0,
-    "current_192_missions_closed": 0
+    "current_192_missions_closed": 0,
+    "promotable": false
   },
   "automatic_execution": {
     "workflow_dispatch": true,
@@ -56,17 +57,23 @@
     "irreplaceable_value_effect": "POSITIVE",
     "transparency_effect": "POSITIVE",
     "evidence": {
-      "autonomous": "Automatic exact-projection validation, expiry enforcement and deterministic rebuild are registered.",
-      "global": "One Qatar fallback reference is outside the current 192-region/evidence-class grain and is not global market evidence.",
+      "autonomous": "Automatic exact-projection reference validation, expiry enforcement and deterministic rebuild are registered.",
+      "global": "One Qatar committed reference is outside the current 192-region/evidence-class grain and is not global market evidence.",
       "irreplaceable_value": "KIDULTS owns the scope crosswalk, rights, provenance-role, reference-routing and claim-ceiling controls.",
-      "transparent": "Raw capture, freshness, generic event, signal, index and verified-sold states remain separately reported."
+      "transparent": "Committed reference, acquisition receipt, empirical admission, generic event, signal, index and verified-sold states remain separately reported."
     }
   },
-  "next_action": "Acquire an explicit hammer or all-in realized amount from a rights-cleared collector-market source, or complete purpose-specific rights and activation for one of the current top 16 sources.",
+  "next_action": "Acquire a machine-bound live source receipt with explicit hammer or all-in realized amount from a rights-cleared collector-market source, or complete purpose-specific rights and activation for one current top-16 source.",
   "truth_boundary": {
     "registered_top_16_source_profile": false,
     "raw_html_archived_or_republished": false,
     "raw_live_source_snapshot_verified": false,
+    "committed_official_source_reference_projections_verified": 1,
+    "reference_projection_records_retained": 1,
+    "machine_proven_acquisition_receipts": 0,
+    "empirical_evidence_admitted": 0,
+    "empirical_market_events_created": 0,
+    "promotable": false,
     "generic_market_event_admitted": false,
     "generic_market_router_rejection_verified": true,
     "generic_admitted_wrapper_bypass_rejection_verified": true,
