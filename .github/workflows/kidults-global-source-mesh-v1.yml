@@ -20,6 +20,8 @@ on:
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - 'docs/kidults/asi/asi-sourcing-direction-v2.md'
       - '.github/workflows/kidults-global-source-mesh-v1.yml'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-workflow-run-generation-estate-v1.mjs'
   push:
     branches: [main]
     paths:
@@ -31,6 +33,8 @@ on:
       - 'coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json'
       - 'docs/kidults/asi/asi-sourcing-direction-v2.md'
       - '.github/workflows/kidults-global-source-mesh-v1.yml'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-workflow-run-generation-estate-v1.mjs'
 
 permissions:
   contents: read
@@ -40,8 +44,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify-workflow-run-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      classification: ${{ steps.classify.outputs.classification }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: KPMO_WORKFLOW_RUN_GENERATION_GUARD_V1
+        id: classify
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != "workflow_run" ]; then
+            echo "classification=NOT_APPLICABLE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);const sha=String(x?.commit?.sha||'');if(!/^[0-9a-f]{40}$/.test(sha))process.exit(65);process.stdout.write(sha)})"
+          )"
+          node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs \
+            "$GITHUB_EVENT_PATH" "$LIVE_MAIN_SHA" "$GITHUB_SHA" "$GITHUB_REPOSITORY" \
+            '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml' \
+            "$RUNNER_TEMP/workflow-run-generation-classification-v1.json"
+          CLASSIFICATION="$(node -p "require(process.argv[1]).classification" "$RUNNER_TEMP/workflow-run-generation-classification-v1.json")"
+          STATE="$(node -p "require(process.argv[1]).state" "$RUNNER_TEMP/workflow-run-generation-classification-v1.json")"
+          echo "classification=$CLASSIFICATION" >> "$GITHUB_OUTPUT"
+          case "$CLASSIFICATION" in
+            CURRENT_MAIN_EXACT)
+              test "$STATE" = VERIFIED_PASS
+              ;;
+            EXPECTED_NONAUTHORITATIVE_SKIP)
+              test "$STATE" = VERIFIED_SKIP
+              ;;
+            INVALID_TRIGGER)
+              echo "WORKFLOW_RUN_GENERATION_INVALID_TRIGGER" >&2
+              exit 1
+              ;;
+            *)
+              echo "WORKFLOW_RUN_GENERATION_UNKNOWN_CLASSIFICATION:$CLASSIFICATION" >&2
+              exit 1
+              ;;
+          esac
+
   validate-source-mesh:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    needs: classify-workflow-run-generation
+    if: needs.classify-workflow-run-generation.outputs.classification != 'EXPECTED_NONAUTHORITATIVE_SKIP' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
