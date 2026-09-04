@@ -11,7 +11,7 @@
   ],
   "overall_state": "CORE_ENGINE_COMPLETE_EMPIRICAL_RUNTIME_AND_PRODUCT_CHAIN_NOT_COMPLETE",
   "core_regression": {
-    "tests_passed": 56,
+    "tests_passed": 57,
     "tests_failed": 0,
     "post_landing_status": "VERIFIED_PASS"
   },
