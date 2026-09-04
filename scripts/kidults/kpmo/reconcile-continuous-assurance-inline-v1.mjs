@@ -4,14 +4,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { resolveInlineSentinelHealth, failureReceipt } from './resolve-continuous-assurance-sentinel-inline-health-v1.mjs';
 
 const OUTCOMES = new Set(['success', 'failure', 'cancelled', 'skipped']);
-const SCHEDULE_SENTINEL_REQUIRED_BINDINGS = new Set([
-  'SHADOW_BINDING',
-  'REQUIREMENT_BINDING',
-  'RESERVE_BINDING',
-  'TRUTH_BINDING'
-]);
+const SENTINEL_TRIGGERS = new Set(['schedule', 'workflow_dispatch']);
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
@@ -52,18 +48,24 @@ function normalizeSteps(stepOutcomes) {
   });
 }
 
-function applyScheduledSentinelPolicy(receipt, stepOutcomes) {
+function applySentinelPolicy(receipt, stepOutcomes, sentinelHealth) {
   const trigger = String(receipt?.execution?.trigger || '');
-  if (trigger !== 'schedule') return stepOutcomes;
-  return stepOutcomes.map((row) => SCHEDULE_SENTINEL_REQUIRED_BINDINGS.has(row.id)
-    ? { ...row, applicable: true }
-    : row);
+  if (!SENTINEL_TRIGGERS.has(trigger)) return { steps: stepOutcomes, healthRequired: false, healthState: 'NOT_APPLICABLE' };
+  const state = String(sentinelHealth?.state || 'UNAVAILABLE');
+  const healthStep = {
+    id: 'SENTINEL_UPSTREAM_HEALTH',
+    name: 'Resolve complete exact-SHA authoritative sentinel producer health',
+    outcome: state === 'VERIFIED_PASS' ? 'success' : 'failure',
+    applicable: true
+  };
+  return { steps: [...stepOutcomes, healthStep], healthRequired: true, healthState: state };
 }
 
-export function reconcileReceipt(receipt, jobStatus, stepOutcomes) {
+export function reconcileReceipt(receipt, jobStatus, stepOutcomes, options = {}) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) throw new Error('AUDIT_RECEIPT_INVALID');
   if (!['success', 'failure', 'cancelled'].includes(jobStatus)) throw new Error(`JOB_STATUS_INVALID:${jobStatus}`);
-  const normalized = applyScheduledSentinelPolicy(receipt, normalizeSteps(stepOutcomes));
+  const policy = applySentinelPolicy(receipt, normalizeSteps(stepOutcomes), options.sentinelHealth || null);
+  const normalized = policy.steps;
   const nonSuccess = normalized.filter((row) => row.applicable && row.outcome !== 'success');
 
   const checks = Array.isArray(receipt.checks) ? structuredClone(receipt.checks) : [];
@@ -107,13 +109,16 @@ export function reconcileReceipt(receipt, jobStatus, stepOutcomes) {
     ...receipt,
     checks,
     states,
+    sentinel_upstream_health: policy.healthRequired ? options.sentinelHealth || null : null,
     terminal_reconciliation: {
       id: 'KIDULTS_CONTINUOUS_ASSURANCE_INLINE_TERMINAL_RECONCILIATION_V1',
       state: failClosed ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
       job_status: jobStatus,
       required_step_outcomes: normalized,
       failed_check_ids: [...new Set(failedIds)].sort(),
-      scheduled_sentinel_runtime_bindings_required: String(receipt?.execution?.trigger || '') === 'schedule',
+      sentinel_exact_sha_health_required: policy.healthRequired,
+      sentinel_exact_sha_health_state: policy.healthState,
+      sentinel_exact_sha_health_receipt_digest: options.sentinelHealth?.receipt_digest || null,
       source_failure_dominates_generic_audit_pass: failClosed,
       whole_platform_authority: false,
       promotion_eligible: false
@@ -153,6 +158,8 @@ function redFallback(receipt, code) {
       id: 'KIDULTS_CONTINUOUS_ASSURANCE_INLINE_TERMINAL_RECONCILIATION_V1',
       state: 'VERIFIED_FAIL',
       failed_check_ids: ['WORKFLOW_TERMINAL_RECONCILIATION_FATAL'],
+      sentinel_exact_sha_health_required: SENTINEL_TRIGGERS.has(String(receipt?.execution?.trigger || '')),
+      sentinel_exact_sha_health_state: 'VERIFIED_FAIL',
       source_failure_dominates_generic_audit_pass: true,
       whole_platform_authority: false,
       promotion_eligible: false
@@ -160,16 +167,32 @@ function redFallback(receipt, code) {
   });
 }
 
-function main() {
+async function main() {
   const receiptPath = arg('--receipt');
   let receipt = null;
+  let sentinelHealth = null;
   try {
     const stat = fs.lstatSync(receiptPath);
     if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('AUDIT_RECEIPT_NOT_REGULAR_FILE');
     receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
-    const result = reconcileReceipt(receipt, arg('--job-status'), JSON.parse(arg('--step-outcomes-json')));
+    const trigger = String(receipt?.execution?.trigger || '');
+    if (SENTINEL_TRIGGERS.has(trigger)) {
+      const repository = String(process.env.GITHUB_REPOSITORY || '');
+      const sha = String(receipt?.source?.expected_sha || receipt?.source?.sha || process.env.KPMO_SOURCE_SHA || '');
+      try {
+        sentinelHealth = await resolveInlineSentinelHealth({ repository, sha });
+      } catch (error) {
+        sentinelHealth = failureReceipt(repository, sha, String(error?.message || error));
+      }
+      atomicWrite(path.join(path.dirname(path.resolve(receiptPath)), 'sentinel-upstream-health.json'), sentinelHealth);
+    }
+    const result = reconcileReceipt(receipt, arg('--job-status'), JSON.parse(arg('--step-outcomes-json')), { sentinelHealth });
     atomicWrite(receiptPath, result);
-    console.log(JSON.stringify({ state: result.terminal_reconciliation.state, failed_check_ids: result.terminal_reconciliation.failed_check_ids }));
+    console.log(JSON.stringify({
+      state: result.terminal_reconciliation.state,
+      sentinel_exact_sha_health_state: result.terminal_reconciliation.sentinel_exact_sha_health_state,
+      failed_check_ids: result.terminal_reconciliation.failed_check_ids
+    }));
     if (result.terminal_reconciliation.state !== 'VERIFIED_PASS') process.exitCode = 1;
   } catch (error) {
     if (receipt) atomicWrite(receiptPath, redFallback(receipt, String(error?.message || error)));
@@ -178,4 +201,4 @@ function main() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
