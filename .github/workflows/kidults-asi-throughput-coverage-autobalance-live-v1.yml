@@ -49,9 +49,17 @@ jobs:
             const extraction=src.indexOf(`unzip -q -o /tmp/${archive}.zip`);
             if(validation<0||extraction<0||validation>extraction)throw new Error(`SAFE_ZIP_PRE_EXTRACTION_GUARD_MISSING:${archive}`);
           }
-          const freshness=src.indexOf('validate-autobalance-hourly-producer-freshness-v1.mjs \\\n                --created-at');
-          const artifactRead=src.indexOf('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100');
-          if(freshness<0||artifactRead<0||freshness>artifactRead)throw new Error('AUTOBALANCE_FRESHNESS_BEFORE_ARTIFACT_READ_GUARD_MISSING');
+          const lines=src.split(/\r?\n/);
+          const freshnessCommand=[
+            'node scripts/kidults/source-intelligence/validate-autobalance-hourly-producer-',
+            'freshness-v1.mjs \\'
+          ].join('');
+          const createdAtArgument=['--created-at "$HOURLY_','RUN_CREATED_AT" \\'].join('');
+          const artifactEndpoint=['/actions/runs/${HOURLY_','RUN_ID}/artifacts?per_page=100'].join('');
+          const freshness=lines.findIndex(line=>line.trim()===freshnessCommand);
+          const createdAt=lines.findIndex((line,index)=>index===freshness+1&&line.trim()===createdAtArgument);
+          const artifactRead=lines.findIndex(line=>line.includes(artifactEndpoint));
+          if(freshness<0||createdAt!==freshness+1||artifactRead<0||freshness>artifactRead)throw new Error('AUTOBALANCE_FRESHNESS_BEFORE_ARTIFACT_READ_GUARD_MISSING');
           for(const marker of ['AUTOBALANCE_HOURLY_RUN_CREATED_AT','AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT','AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS','AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES','AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST']){
             if(!src.includes(marker))throw new Error(`AUTOBALANCE_FRESHNESS_PROVENANCE_MARKER_MISSING:${marker}`);
           }
