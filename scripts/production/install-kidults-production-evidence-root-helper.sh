@@ -20,6 +20,16 @@ is_canonical_origin() {
 
 [[ "$#" -eq 0 ]] || fail ARGUMENTS_FORBIDDEN
 [[ "$(id -u)" -eq 0 ]] || fail ROOT_REQUIRED
+
+# P0 #1694 containment: the legacy bootstrap derives privileged helper bytes
+# and pin digests from a runner-writable workspace. It MUST remain unreachable
+# until a separately approved, independently authenticated root-owned bootstrap
+# is introduced under a new versioned trust-root contract. Do not weaken or
+# move this hard stop below any workspace read, copy, config, or sudoers write.
+fail HARD_DISABLED_PENDING_INDEPENDENT_ROOT_TRUST_ROOT
+
+# Historical implementation retained below for audit/diff lineage only.
+# It is intentionally unreachable while #1694 remains open.
 [[ -d "$WORKSPACE" && ! -L "$WORKSPACE" ]] || fail WORKSPACE_INVALID
 [[ "$(readlink -f -- "$WORKSPACE")" == "$WORKSPACE" ]] || fail WORKSPACE_REDIRECTED
 [[ -f "$HELPER_SOURCE" && ! -L "$HELPER_SOURCE" ]] || fail HELPER_SOURCE_INVALID
