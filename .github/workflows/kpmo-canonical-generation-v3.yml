@@ -9,6 +9,7 @@ on:
       - 'scripts/kidults/kpmo/canonical-generation-v3.mjs'
       - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
+      - 'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'
   workflow_dispatch:
 
 permissions:
@@ -39,10 +40,11 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate append-only V3 payload contract and negative mutations
+      - name: Validate append-only V3 payload and recovery contracts
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+          node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs --self-test
       - name: Prove bootstrap cannot reach issue-write authority
         run: |
           set -euo pipefail
@@ -61,20 +63,21 @@ jobs:
           if(!/^  pull_request:/m.test(trigger)||!/^  workflow_dispatch:/m.test(trigger)) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_BOUNDARY_INVALID');
           console.log('Canonical V3 bootstrap write authority unreachable: PASS');
           NODE
-      - name: Validate one-shot apply workflow authority surface
+      - name: Validate one-shot apply and eventual-readback recovery authority surface
         run: |
           set -euo pipefail
           node - <<'NODE'
           const fs=require('fs');
           const p='.github/workflows/kpmo-canonical-generation-v3-apply.yml';
+          const wrapperPath='scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs';
           const s=fs.readFileSync(p,'utf8');
+          const wrapper=fs.readFileSync(wrapperPath,'utf8');
           const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
           if(!trigger.startsWith('on:\n')) throw new Error('CANONICAL_V3_APPLY_TRIGGER_SECTION_INVALID');
           for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
             if(forbidden.test(trigger)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_TRIGGER:${forbidden}`);
           }
           if(/\$\{\{[^}]*secrets/i.test(s)) throw new Error('CANONICAL_V3_APPLY_SECRET_REFERENCE_FORBIDDEN');
-          const writeFlag=['--','write'].join('');
           const requiredPatterns=[
             /^  workflow_dispatch:/m,
             /contents:\s*read/,
@@ -85,10 +88,16 @@ jobs:
             /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:\s*AUTHORIZED/,
             /cancel-in-progress:\s*false/,
             /if:\s*always\(\)/,
+            /COMMITTED_EVENTUAL_READBACK_RECOVERED/,
             /retention-days:\s*90/
           ];
           for(const required of requiredPatterns) if(!required.test(s)) throw new Error(`CANONICAL_V3_APPLY_REQUIRED_CONTRACT_MISSING:${required}`);
-          const writerInvocation=`node scripts/kidults/kpmo/canonical-generation-v3.mjs ${writeFlag}`;
-          if(!s.includes(writerInvocation)) throw new Error('CANONICAL_V3_APPLY_WRITER_INVOCATION_MISSING');
-          console.log('Canonical V3 one-shot apply authority contract: PASS');
+          const wrapperInvocation='node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs';
+          if(!s.includes(wrapperInvocation)) throw new Error('CANONICAL_V3_APPLY_WRAPPER_INVOCATION_MISSING');
+          const writeFlag=['--','write'].join('');
+          const wrapperWriteCall=`runCanonical(['${writeFlag}'])`;
+          for(const required of [wrapperWriteCall,'POST_WRITE_READBACK_INVALID','COMMITTED_EVENTUAL_READBACK_RECOVERED','recovered_same_generation','RECOVERY_DELAYS_MS']) {
+            if(!wrapper.includes(required)) throw new Error(`CANONICAL_V3_RECOVERY_CONTRACT_MISSING:${required}`);
+          }
+          console.log('Canonical V3 one-shot apply + bounded eventual-readback recovery contract: PASS');
           NODE
