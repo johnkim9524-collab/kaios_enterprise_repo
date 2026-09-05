@@ -99,6 +99,59 @@ export function assessmentDigest(source) {
   return sha256(canonicalJson(source));
 }
 
+function sqlLiteral(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
+export function emitRegistrySnapshotSql(registry, options = {}) {
+  validateGlobalSoldSourceRegistry(registry);
+  const writerId = options.writerId ?? 'kpmo-supply-chain-admission-v1';
+  const statements = [
+    '\\set ON_ERROR_STOP on',
+    'BEGIN;',
+    "CREATE TEMP TABLE _kidults_role_state(was_member boolean NOT NULL) ON COMMIT DROP;",
+    "INSERT INTO _kidults_role_state VALUES (pg_has_role(session_user, 'kidults_control_supply', 'MEMBER'));",
+    "DO $grant$ BEGIN IF NOT (SELECT was_member FROM _kidults_role_state) THEN EXECUTE format('GRANT kidults_control_supply TO %I', session_user); END IF; END $grant$;",
+    'SET ROLE kidults_control_supply;',
+    `SELECT set_config('kidults.writer_id', ${sqlLiteral(writerId)}, true);`,
+    "SELECT pg_advisory_xact_lock(hashtextextended('global-sold-source-registry-v1', 0));",
+    `INSERT INTO kidults_control.global_source_registry_snapshot_ledger
+      (registry_id, registry_version, snapshot_digest, generated_at, source_count, registry_payload, writer_id)
+     VALUES (${sqlLiteral(registry.id)}, ${sqlLiteral(registry.version)}, ${sqlLiteral(registry.snapshot_digest)},
+       ${sqlLiteral(registry.generated_at)}::timestamptz, ${registry.sources.length}, ${sqlLiteral(canonicalJson(registry))}::jsonb, ${sqlLiteral(writerId)})
+     ON CONFLICT (snapshot_digest) DO NOTHING;`
+  ];
+  for (const source of registry.sources) {
+    statements.push(`INSERT INTO kidults_control.global_source_assessment_ledger
+      (snapshot_digest, source_id, source_name, owner_name, region, decision, rights_matrix,
+       claim_ceiling, source_roles, verticals, official_urls, freshness, evidence_state,
+       activation_authorized, production_authorized, assessment_digest, assessment_payload, writer_id)
+     VALUES (${sqlLiteral(registry.snapshot_digest)}, ${sqlLiteral(source.source_id)}, ${sqlLiteral(source.source_name)},
+       ${sqlLiteral(source.owner_name)}, ${sqlLiteral(source.region)}, ${sqlLiteral(source.decision)},
+       ${sqlLiteral(canonicalJson(source.rights))}::jsonb, ${sqlLiteral(source.claim_ceiling)},
+       ${sqlLiteral(canonicalJson(source.source_roles))}::jsonb, ${sqlLiteral(canonicalJson(source.verticals))}::jsonb,
+       ${sqlLiteral(canonicalJson(source.official_urls))}::jsonb, ${sqlLiteral(source.freshness)},
+       ${sqlLiteral(source.evidence_state)}, false, false, ${sqlLiteral(assessmentDigest(source))},
+       ${sqlLiteral(canonicalJson(source))}::jsonb, ${sqlLiteral(writerId)})
+     ON CONFLICT (snapshot_digest, source_id) DO NOTHING;`);
+  }
+  statements.push(
+    'RESET ROLE;',
+    `DO $verify$ DECLARE snapshot_rows integer; assessment_rows integer; BEGIN
+       SELECT count(*) INTO snapshot_rows FROM kidults_control.global_source_registry_snapshot_ledger
+        WHERE snapshot_digest=${sqlLiteral(registry.snapshot_digest)} AND registry_payload=${sqlLiteral(canonicalJson(registry))}::jsonb;
+       SELECT count(*) INTO assessment_rows FROM kidults_control.global_source_assessment_ledger
+        WHERE snapshot_digest=${sqlLiteral(registry.snapshot_digest)};
+       IF snapshot_rows <> 1 OR assessment_rows <> ${registry.sources.length} THEN
+         RAISE EXCEPTION 'GLOBAL_SOURCE_REGISTRY_SNAPSHOT_BINDING_FAILED';
+       END IF;
+     END $verify$;`,
+    "DO $revoke$ BEGIN IF NOT (SELECT was_member FROM _kidults_role_state) THEN EXECUTE format('REVOKE kidults_control_supply FROM %I', session_user); END IF; END $revoke$;",
+    'COMMIT;'
+  );
+  return `${statements.join('\n')}\n`;
+}
+
 export async function appendRegistrySnapshot(client, registry, options = {}) {
   const validation = validateGlobalSoldSourceRegistry(registry);
   const writerId = options.writerId ?? 'kpmo-supply-chain-admission-v1';
@@ -160,7 +213,8 @@ export async function appendRegistrySnapshot(client, registry, options = {}) {
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
 if (invokedPath === fileURLToPath(import.meta.url)) {
-  const registryPath = path.resolve(process.argv[2] ?? 'coordination/kidults/source-intelligence/global-sold-source-registry-v1.json');
+  const emitSql = process.argv[2] === '--emit-postgres-sql';
+  const registryPath = path.resolve(process.argv[emitSql ? 3 : 2] ?? 'coordination/kidults/source-intelligence/global-sold-source-registry-v1.json');
   const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
-  process.stdout.write(`${JSON.stringify(validateGlobalSoldSourceRegistry(registry), null, 2)}\n`);
+  process.stdout.write(emitSql ? emitRegistrySnapshotSql(registry) : `${JSON.stringify(validateGlobalSoldSourceRegistry(registry), null, 2)}\n`);
 }

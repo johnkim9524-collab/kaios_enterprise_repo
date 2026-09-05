@@ -29,6 +29,9 @@ wal_level="$(psql_scalar "SHOW wal_level")"
 archive_mode="$(psql_scalar "SHOW archive_mode")"
 data_checksums="$(psql_scalar "SHOW data_checksums")"
 
+migration_receipt="${RUNNER_TEMP:-/tmp}/kidults-global-source-registry-migration-${GITHUB_RUN_ID:-local}-$$.json"
+bash "$(dirname "$0")/migrate-and-load-global-sold-source-registry-v1.sh" > "$migration_receipt"
+
 case "$wal_level" in replica|logical) ;; *) echo "wal_level must support PITR, got $wal_level" >&2; exit 1;; esac
 [[ "$data_checksums" == "on" ]] || { echo "data_checksums must be enabled for PITR evidence" >&2; exit 1; }
 
@@ -146,7 +149,7 @@ boundary_order="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERR
   --command="SELECT (SELECT created_at <= :'target_time'::timestamptz - interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'before_marker') || '|' || (SELECT created_at >= :'target_time'::timestamptz + interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'after_marker')")"
 [[ "$boundary_order" == 't|t' ]] || { echo "marker timestamps do not satisfy the two-second target guard: $boundary_order" >&2; exit 1; }
 
-python3 - "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$pg_switch_wal_authorized" "$archive_observation_attempted" "$wal_archive_event_verified" "$archived_count_before" "$archived_count" "$failed_count_before" "$failed_count" "$stats_reset" "$switched_wal" "$last_archived_wal" "$before_marker" "$after_marker" "$before_digest" "$after_digest" "$target_time" <<'PY'
+python3 - "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$pg_switch_wal_authorized" "$archive_observation_attempted" "$wal_archive_event_verified" "$archived_count_before" "$archived_count" "$failed_count_before" "$failed_count" "$stats_reset" "$switched_wal" "$last_archived_wal" "$before_marker" "$after_marker" "$before_digest" "$after_digest" "$target_time" "$migration_receipt" <<'PY'
 import json, sys
 (
     server_version, wal_level, archive_mode, data_checksums, rls_forced,
@@ -154,14 +157,17 @@ import json, sys
     archive_observation_attempted, wal_archive_event_verified,
     archived_count_before, archived_count, failed_count_before, failed_count,
     stats_reset, switched_wal, last_archived_wal, before_marker, after_marker,
-    before_digest, after_digest, target_time
+    before_digest, after_digest, target_time, migration_receipt_path
 ) = sys.argv[1:]
+with open(migration_receipt_path, encoding='utf-8') as handle:
+    migration_receipt=json.load(handle)
 archive_verified = wal_archive_event_verified == "true"
 optional_int = lambda value: int(value) if value else None
 print(json.dumps({
     "status": "PASS",
     "environment": "STAGING",
     "production_touch": False,
+    "source_registry_migration": migration_receipt,
     "server_version": server_version,
     "wal_level": wal_level,
     "archive_mode": archive_mode,

@@ -38,7 +38,7 @@
   },
   "artifact": {
     "path": "coordination/kidults/source-intelligence/global-sold-source-registry-v1.json",
-    "digest": "sha256:344ddf8524788572923ef4c751ad5a00dbe688e9f3b18a40e7f784a82d0ca1c7",
+    "digest": "sha256:713c1d3cb6ca458b3d1d3e7936b3f58222ec91046a6fee84aa2b65abf7d3564c",
     "storage_mode": "GITHUB_VERSIONED_METADATA",
     "evidence_uri": null,
     "contains_external_raw_content": false
@@ -64,5 +64,5 @@
     "production": "HOLD",
     "g5": "HOLD"
   },
-  "manifest_digest": "sha256:b16ba765af6f5d82876fb882f2eac2c9c6f6a8ac4deedb78bb7598166758bf64"
+  "manifest_digest": "sha256:7771d7a22b6657e8181b68c300c5c6677fe444ad7a1fdb3471dd390442da9f58"
 }

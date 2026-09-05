@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
   appendRegistrySnapshot,
+  emitRegistrySnapshotSql,
   registryDigest,
   validateGlobalSoldSourceRegistry
 } from '../../../scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs';
@@ -94,4 +95,17 @@ test('migration is append-only and prevents release authority', () => {
   assert.match(sql, /activation_authorized BOOLEAN NOT NULL CHECK \(activation_authorized = false\)/);
   assert.match(sql, /production_authorized BOOLEAN NOT NULL CHECK \(production_authorized = false\)/);
   assert.doesNotMatch(sql, /ON CONFLICT[\s\S]*DO UPDATE/i);
+});
+
+test('emitted PostgreSQL packet is transactional, idempotent and preserves HOLD boundaries', () => {
+  const registry = loadRegistry();
+  const sql = emitRegistrySnapshotSql(registry);
+  assert.match(sql, /^\\set ON_ERROR_STOP on\nBEGIN;/);
+  assert.match(sql, /SET ROLE kidults_control_supply/);
+  assert.match(sql, /ON CONFLICT \(snapshot_digest\) DO NOTHING/);
+  assert.equal((sql.match(/INSERT INTO kidults_control\.global_source_assessment_ledger/g) || []).length, registry.sources.length);
+  assert.match(sql, /GLOBAL_SOURCE_REGISTRY_SNAPSHOT_BINDING_FAILED/);
+  assert.match(sql, /REVOKE kidults_control_supply/);
+  assert.match(sql, /COMMIT;\n$/);
+  assert.doesNotMatch(sql, /DO UPDATE/i);
 });

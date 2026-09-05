@@ -67,7 +67,7 @@ test('runtime root validation rejects a symlink into the forbidden repository tr
     const repository = join(base, 'repository');
     const link = join(base, 'private-link');
     await mkdir(repository);
-    await symlink(repository, link, 'dir');
+    await symlink(repository, link, 'junction');
     await assert.rejects(() => resolvePsaPrivateStoreRoot({ rootDir: link, forbiddenRoot: repository }), /ROOT_OVERLAP_FORBIDDEN/);
   } finally {
     await rm(base, { recursive: true, force: true });
