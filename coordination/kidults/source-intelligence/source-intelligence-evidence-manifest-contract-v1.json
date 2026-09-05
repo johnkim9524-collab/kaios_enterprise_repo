@@ -1,0 +1,61 @@
+{
+  "id": "kidults-source-intelligence-evidence-manifest-contract-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "evidence_root": "/mnt/ih_prod_01/evidence/current-sold",
+  "manifest_types": [
+    "REGISTRY_SNAPSHOT",
+    "RIGHTS_EVIDENCE",
+    "ACQUISITION_EVIDENCE",
+    "OBJECT_IDENTITY",
+    "ANALYSIS_LINEAGE",
+    "CORRECTION",
+    "DELETION_RECEIPT"
+  ],
+  "manifest_statuses": [
+    "CANONICAL_METADATA_ONLY_NOT_ACQUISITION_AUTHORITY",
+    "ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY",
+    "DELETION_RECEIPT_NOT_RELEASE_AUTHORITY"
+  ],
+  "storage_modes": [
+    "GITHUB_VERSIONED_METADATA",
+    "METADATA_ONLY",
+    "DIGEST_ONLY",
+    "RESTRICTED_EVIDENCE_BYTES",
+    "DELETION_RECEIPT_ONLY"
+  ],
+  "required_rights_facets": [
+    "collect",
+    "store",
+    "derive",
+    "commercial_use",
+    "display",
+    "raw_archive"
+  ],
+  "rules": {
+    "registry_digest_binding_required": true,
+    "artifact_sha256_required": true,
+    "source_ids_must_exist_in_bound_registry": true,
+    "restricted_bytes_require_registry_store_pass": true,
+    "restricted_bytes_require_registry_raw_archive_pass": true,
+    "restricted_bytes_require_rights_decision_and_supply_run_foreign_keys": true,
+    "acquisition_requires_sold_transaction_role": true,
+    "acquisition_requires_collect_store_pass": true,
+    "acquisition_requires_external_admission_receipts": true,
+    "hold_or_no_go_external_bytes_forbidden": true,
+    "evidence_path_must_be_below_root": true,
+    "path_traversal_forbidden": true,
+    "update_delete_truncate_forbidden": true,
+    "manifest_is_not_activation_or_release_authority": true
+  },
+  "release_boundary": {
+    "provider_contact": false,
+    "source_acquisition": false,
+    "adapter_activation": false,
+    "database_mutation": false,
+    "d1_projection": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
