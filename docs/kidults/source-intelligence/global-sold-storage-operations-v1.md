@@ -72,4 +72,4 @@ node --test \
   tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs
 ```
 
-Expected result: both validators PASS, eleven tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+Expected result: both validators PASS, twelve tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
