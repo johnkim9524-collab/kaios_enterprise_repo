@@ -1,0 +1,41 @@
+{
+  "id": "direct-owner-handoff-post-window-ttl-canary-2026-09-05-v1",
+  "version": "1.1.0",
+  "issue_refs": [1982, 2008],
+  "base_sha": "06457cddfd0d8fe188afdb2f4771a3d1e2c655f7",
+  "mode": "CONTROL_ONLY_NON_PRODUCTION",
+  "purpose": "Natural proof that the landed post-window TTL correction and exact merge-SHA push-suite consumer both execute from trusted current main, without requiring a second future handoff window, while preserving exact merge-time, predecessor-proof rejection and HOLD boundaries.",
+  "phase": "PREPARED_NOT_EXECUTED",
+  "expected": {
+    "fresh_owner_approval_precedes_fresh_ready": true,
+    "fresh_workflow_dispatch_attempt_1": true,
+    "merge_transport": "DIRECT_OWNER_GITHUB_UI",
+    "terminal_handoff_state": "CONSUMED_BY_DIRECT_OWNER_MERGE",
+    "post_merge_push_suite_state": "CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE",
+    "predecessor_head_proof_reused": false,
+    "post_window_second_future_window_required": false,
+    "merge_time_not_before_handoff_open": true,
+    "merge_time_not_after_handoff_close": true,
+    "merge_time_not_after_approval_expiry": true,
+    "approval_mutation_rejected": true,
+    "ready_drift_rejected": true,
+    "non_owner_merge_rejected": true,
+    "unrelated_main_movement_rejected": true
+  },
+  "truth_boundary": {
+    "provider_mutation": "NONE",
+    "credential_mutation": "NONE",
+    "database_mutation": "NONE",
+    "empirical_admission": "NONE",
+    "deployment": "NONE",
+    "external_spend": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "closure": {
+    "issue_1982": "Close only after this current-main canary naturally terminates with post_merge_push_suite.state=CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE, exact merge SHA plus required push run IDs, and predecessor_head_proof_reused=false.",
+    "issue_2008": "Close only after this current-main canary naturally terminates CONSUMED_BY_DIRECT_OWNER_MERGE with exact merge SHA/current-main binding under the landed post-window TTL semantics."
+  },
+  "rollback": "Close the canary PR or revert this single control-only receipt if any invariant fails."
+}
