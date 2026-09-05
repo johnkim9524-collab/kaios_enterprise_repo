@@ -67,6 +67,7 @@ on:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs'
@@ -197,6 +198,30 @@ jobs:
           node scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json discovery-out/global-low-risk-discovery-governed-v2.json
           node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json
           node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json
+      - name: Reject impossible unavailable-index nonempty mutations
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-host-expansion-v1.json'));
+          x.common_crawl_index_state='UNAVAILABLE_FAIL_SOFT';
+          x.common_crawl_index_id=null;
+          x.common_crawl_index_api=null;
+          x.expanded_candidate_count=1;
+          x.candidates=[{candidate_id:'invalid-nonempty-unavailable'}];
+          fs.writeFileSync('/tmp/bad-common-crawl-unavailable-nonempty-v1.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/bad-common-crawl-unavailable-nonempty-v1.json; then exit 1; fi
+          node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));
+          x.common_crawl_index_state='UNAVAILABLE_FAIL_SOFT';
+          x.common_crawl_index_id=null;
+          x.common_crawl_observed_candidate_count=1;
+          x.common_crawl_new_candidate_count=1;
+          fs.writeFileSync('/tmp/bad-common-crawl-gate-unavailable-nonempty-v1.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-gate-unavailable-nonempty-v1.json; then exit 1; fi
       - name: Reject Common Crawl rights self-promotion mutation
         shell: bash
         run: |
@@ -332,6 +357,46 @@ jobs:
           process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_purpose:'DISCOVERY_METADATA_INDEX_ONLY',gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,source_eligibility_purpose:e.purpose_id,product_content_eligible_sources:e.summary.eligible,adapter_activation_authorized_sources:e.summary.adapter_activation_authorized,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:e.summary.product_content_admitted>0,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
+      - name: Emit exact-run terminal receipt
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node - <<'NODE' >/tmp/asi-global-any-site-hourly-terminal-receipt-v2.json
+          const fs=require('fs');
+          const exists=path=>fs.existsSync(path);
+          const read=path=>exists(path)?JSON.parse(fs.readFileSync(path,'utf8')):null;
+          const expansion=read('/tmp/asi-common-crawl-host-expansion-v1.json');
+          const governed=read('discovery-out/global-low-risk-discovery-governed-v2.json');
+          process.stdout.write(JSON.stringify({
+            id:'kidults-asi-global-any-site-hourly-terminal-receipt-v2',
+            version:'1.0.0',
+            state:process.env.JOB_STATUS==='success'?'COMPLETE':'FAILED_NON_PROMOTABLE',
+            repository:process.env.GITHUB_REPOSITORY,
+            head_sha:process.env.GITHUB_SHA,
+            workflow_run_id:Number(process.env.GITHUB_RUN_ID),
+            workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+            trigger_event:process.env.GITHUB_EVENT_NAME,
+            job_status:process.env.JOB_STATUS,
+            expansion_present:Boolean(expansion),
+            governed_merge_present:Boolean(governed),
+            common_crawl_index_state:expansion?.common_crawl_index_state||null,
+            common_crawl_index_id:expansion?.common_crawl_index_id||null,
+            expanded_candidate_count:Number(expansion?.expanded_candidate_count||0),
+            promotable:false,
+            production:'HOLD',
+            public_release:'HOLD'
+          },null,2));
+          NODE
+          cat /tmp/asi-global-any-site-hourly-terminal-receipt-v2.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-asi-global-any-site-hourly-terminal-v2
+          path: /tmp/asi-global-any-site-hourly-terminal-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-global-any-site-source-pool-v2
