@@ -1,0 +1,43 @@
+{
+  "id": "direct-owner-handoff-post-window-ttl-canary-2026-09-05-v2",
+  "version": "2.0.0",
+  "issue_refs": [2008, 1982, 1998],
+  "base_sha": "06457cddfd0d8fe188afdb2f4771a3d1e2c655f7",
+  "mode": "CONTROL_ONLY_NON_PRODUCTION",
+  "purpose": "Natural current-main proof for the landed post-window TTL correction and exact merge-SHA post-merge push-suite consumption. A successful generation must prove Direct Owner UI merge consumption, no second future approval window requirement, exact merge-SHA workflow consumption without predecessor proof reuse, and continued HOLD boundaries.",
+  "phase": "PREPARED_NOT_EXECUTED",
+  "expected": {
+    "fresh_owner_approval_precedes_fresh_ready": true,
+    "fresh_workflow_dispatch_attempt_1": true,
+    "merge_transport": "DIRECT_OWNER_GITHUB_UI",
+    "terminal_handoff_state": "CONSUMED_BY_DIRECT_OWNER_MERGE",
+    "post_window_second_future_window_required": false,
+    "merge_time_not_before_handoff_open": true,
+    "merge_time_not_after_handoff_close": true,
+    "merge_time_not_after_approval_expiry": true,
+    "post_merge_push_suite_state": "CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE",
+    "predecessor_head_proof_reused": false,
+    "all_required_post_merge_workflows_terminal": true,
+    "approval_mutation_rejected": true,
+    "ready_drift_rejected": true,
+    "non_owner_merge_rejected": true,
+    "unrelated_main_movement_rejected": true
+  },
+  "truth_boundary": {
+    "provider_mutation": "NONE",
+    "credential_mutation": "NONE",
+    "database_mutation": "NONE",
+    "empirical_admission": "NONE",
+    "deployment": "NONE",
+    "external_spend": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "closure": {
+    "issue_2008": "Close only after a natural Handoff terminal artifact is CONSUMED_BY_DIRECT_OWNER_MERGE with exact merge SHA/current-main binding under landed post-window TTL semantics.",
+    "issue_1982": "Close only if the same terminal artifact consumes the exact merge-SHA protected-main push suite with predecessor_head_proof_reused=false.",
+    "issue_1998": "This canary proves the Direct Owner Handoff generation-bridge half only; Atomic Governed Landing bridge proof remains separately required."
+  },
+  "rollback": "Close the canary PR or revert this single control-only receipt if any invariant fails."
+}
