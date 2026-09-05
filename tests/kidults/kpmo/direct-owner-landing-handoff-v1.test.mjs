@@ -55,7 +55,7 @@ test('direct-owner handoff separates status authorization from the event-emittin
 
 test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', () => {
   assert.match(runner, /KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2/);
-  assert.match(runner, /DIRECT-PR-\$\{prNumber\}-\$\{expectedHeadSha\.slice\(0, 12\)\}/);
+  assert.match(runner, /parseDirectOwnerAuthorizationId\(\{authorizationId, prNumber, headSha: expectedHeadSha\}\)/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EDITED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY/);
@@ -154,6 +154,16 @@ test('post-window approval reconciliation does not require a second future hando
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
   const postPhaseIndex = runner.indexOf("{phase: 'post_window'}", sleepIndex);
   assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
+});
+
+test('approval selection rejects stale and same-timestamp authorization after final lifecycle invalidation', () => {
+  const helperIndex = runner.indexOf('function assertApprovalAfterFinalInvalidation(');
+  const selectionIndex = runner.indexOf('assertApprovalAfterFinalInvalidation(approvedAt, readyEvent)');
+  const readyBoundaryIndex = runner.indexOf("DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY");
+  assert.ok(helperIndex >= 0 && selectionIndex > helperIndex && readyBoundaryIndex > selectionIndex);
+  assert.match(runner, /\['convert_to_draft', 'closed', 'reopened'\]\.includes\(invalidation\.event\)/);
+  assert.match(runner, /if \(approvedAt <= invalidatedAt\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_INVALIDATION/);
 });
 
 test('consumed merge is explicitly bounded to opened window and approval expiry', () => {

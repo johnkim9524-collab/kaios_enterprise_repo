@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
@@ -105,6 +105,62 @@
     "immediate_post_status_premerge_reread_required": true,
     "expected_head_compare_is_atomic_for_sha_only": true,
     "no_merge_label_atomicity_claimed": false
+  },
+  "direct_owner_handoff_policy": {
+    "legacy_initial_authorization_id": "DIRECT-PR-{pr}-{head12}",
+    "versioned_retry_authorization_id": "DIRECT-PR-{pr}-{head12}-R{positive_integer}",
+    "retry_generation_zero_or_negative_allowed": false,
+    "retry_generation_leading_zero_allowed": false,
+    "arbitrary_suffix_allowed": false,
+    "authorization_binding": [
+      "PULL_REQUEST_NUMBER",
+      "EXACT_HEAD_SHA_FIRST_12",
+      "GENERATION_KEY"
+    ],
+    "one_shot_scope": "REPOSITORY_GLOBAL_PR_EXACT_HEAD_GENERATION",
+    "first_workflow_attempt_consumes_regardless_of_terminal_state": true,
+    "replay_evidence": [
+      "IMMUTABLE_COMMIT_STATUS_HISTORY",
+      "PRIOR_WORKFLOW_DISPATCH_RUN_HISTORY"
+    ],
+    "workflow_dispatch_concurrency": "ONE_GLOBAL_SERIALIZED_HANDOFF",
+    "prior_generation_consumption_blocks_new_explicit_generation": false,
+    "same_generation_replay_allowed": false,
+    "approval_lifecycle_binding": {
+      "invalidating_events": [
+        "convert_to_draft",
+        "closed",
+        "reopened"
+      ],
+      "final_invalidation_selection_order": "EVENT_TIMESTAMP_THEN_TIMELINE_EVENT_ID",
+      "approval_must_be_strictly_after_final_invalidation": true,
+      "approval_same_timestamp_as_final_invalidation_allowed": false,
+      "approval_must_not_follow_latest_ready": true,
+      "cross_resource_event_id_ordering_claimed": false,
+      "natural_owner_merge_close_excluded_by_ready_event_contract": true
+    },
+    "owner_ui_attestation": {
+      "marker": "KIDULTS_DIRECT_OWNER_UI_SESSION_ATTESTATION_V1",
+      "must_be_owner_authored_user_comment": true,
+      "app_mediated_allowed": false,
+      "edited_comment_allowed": false,
+      "must_bind_latest_ready_event_id": true,
+      "must_follow_latest_ready_event": true,
+      "maximum_lifetime_seconds": 1800,
+      "must_cover_handoff_window": true,
+      "proof_boundary": "OWNER_AUTHORED_NON_APP_GITHUB_COMMENT_SELF_ATTESTATION_NOT_CRYPTOGRAPHIC_BROWSER_SESSION_PROOF"
+    },
+    "window_lifecycle_receipt": {
+      "ready_and_draft_mutations_recorded_before_failure": true,
+      "required_fields": [
+        "event",
+        "event_id",
+        "actor",
+        "timestamp",
+        "performed_via_github_app"
+      ],
+      "mutation_behavior": "FAIL_CLOSED"
+    }
   },
   "bypass_policy": {
     "ruleset_bypass_actor_count_must_be_zero": true,
