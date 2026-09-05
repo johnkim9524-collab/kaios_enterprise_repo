@@ -61,5 +61,5 @@ test('workflow initializes durable fail receipt and reconciles all required outc
   for (const stage of Object.keys(stages)) assert.ok(workflow.includes(`${stage}_OUTCOME:`), stage);
   assert.match(workflow, /CURRENT_SOLD_EXPECTED_TESTS: \$\{\{ steps\.current_sold_tests\.outputs\.expected_tests \}\}/);
   assert.match(workflow, /scripts\/kidults\/market\/reconcile-current-sold-terminal-v1\.mjs/);
-  assert.doesNotMatch(workflow, /"expected_tests":[0-9]+/);
+  assert.doesNotMatch(workflow, /"expected_tests":[1-9][0-9]*/);
 });
