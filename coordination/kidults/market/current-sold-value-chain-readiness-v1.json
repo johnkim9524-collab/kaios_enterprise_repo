@@ -1,0 +1,160 @@
+{
+  "id": "kidults-current-sold-value-chain-readiness-v1",
+  "version": "1.0.0",
+  "as_of": "2026-09-03",
+  "reviewed_protected_main_sha": "f46bdcd9003eb5c4b58208789956644f4ba19fe2",
+  "reviewed_atomic_landing_run_id": "33712093506",
+  "primary_track": "TRACK_A",
+  "review_authority": [
+    "KPMO",
+    "RED_TEAM"
+  ],
+  "overall_state": "CORE_ENGINE_COMPLETE_EMPIRICAL_RUNTIME_AND_PRODUCT_CHAIN_NOT_COMPLETE",
+  "core_regression": {
+    "protected_main_baseline": {
+      "source_sha": "f46bdcd9003eb5c4b58208789956644f4ba19fe2",
+      "tests_passed": 56,
+      "tests_failed": 0,
+      "status": "VERIFIED_PASS"
+    },
+    "candidate_control_generation": {
+      "expected_tests": 57,
+      "tests_passed_claimed_in_repository": 0,
+      "status": "PENDING_EXACT_HEAD_WORKFLOW_PROOF",
+      "proof_rule": "ONLY_EXACT_HEAD_GITHUB_RUN_ARTIFACT_MAY_PROVE_57_OF_57"
+    }
+  },
+  "stages": [
+    {
+      "stage": "TRACK_Z_SOURCE_RIGHTS_AND_ACQUISITION",
+      "owner": "TRACK_Z",
+      "runtime_owner": "TRACK_Z",
+      "state": "BLOCKED_EXTERNAL_AUTHORITY",
+      "empirical_increment": 0,
+      "exit": "lawful source, authoritative acquisition receipt and purpose-specific rights receipt"
+    },
+    {
+      "stage": "KPMO_GOVERNED_RECEIPT_REGISTRY_AUTHORITY",
+      "owner": "KPMO",
+      "runtime_owner": "KPMO",
+      "state": "CONTROL_IMPLEMENTATION_ADDED_PENDING_PROTECTED_MAIN_AND_EXTERNAL_TRUST_ROOT",
+      "empirical_increment": 0,
+      "exit": "external keyring digest, signed authority envelope, exact registry binding and natural private canary"
+    },
+    {
+      "stage": "TRACK_A_ATOMIC_CURRENT_SOLD_ADMISSION",
+      "owner": "TRACK_A",
+      "runtime_owner": "ASI",
+      "state": "CORE_COMPLETE_CONTROL_VALIDATED",
+      "empirical_increment": 0,
+      "exit": "lawful governed input passes whole-batch atomic admission"
+    },
+    {
+      "stage": "TRACK_A_CURRENT_SOLD_EVENT_AND_EVIDENCE",
+      "owner": "TRACK_A",
+      "runtime_owner": "ASI",
+      "state": "CORE_COMPLETE_CONTROL_VALIDATED",
+      "empirical_increment": 0,
+      "exit": "canonical event and Evidence from lawful admitted rows"
+    },
+    {
+      "stage": "TRACK_D_APPEND_ONLY_LEDGER",
+      "owner": "TRACK_D",
+      "runtime_owner": "TRACK_D",
+      "state": "CODE_COMPLETE_NOT_ACTIVATED",
+      "postgres_migration_applied": false,
+      "postgres_rows_written": 0,
+      "exit": "separately approved migration, first append-only write, read-back and PITR proof"
+    },
+    {
+      "stage": "TRACK_A_CANDIDATE_EVIDENCE_PAIR",
+      "owner": "TRACK_A",
+      "runtime_owner": "ASI",
+      "state": "BLOCKED_NO_LAWFUL_LEDGER_ROWS",
+      "candidate": "NONE",
+      "evidence_package": "NONE",
+      "exit": "exact immutable candidate plus Evidence Package bound to one lawful ledger generation"
+    },
+    {
+      "stage": "TRACK_B_INDEPENDENT_ASSESSMENT",
+      "owner": "TRACK_B",
+      "runtime_owner": "TRACK_B",
+      "state": "NOT_STARTED_EXACT_PAIR_ABSENT",
+      "exit": "rankability assessment of exact Track A pair"
+    },
+    {
+      "stage": "PROJECTION_AND_PORTAL",
+      "owner": "TRACK_C",
+      "runtime_owner": "TRACK_C",
+      "state": "HOLD_NO_APPROVED_PROJECTION",
+      "exit": "approved Projection and separate release gates"
+    }
+  ],
+  "material_findings": [
+    {
+      "severity": "P1",
+      "id": "TRACK_A_JOB_DESCRIPTION_AMBIGUOUS",
+      "state": "CORRECTED_IN_THIS_CHANGE",
+      "correction": "machine and human JD assign Current-SOLD engine accountability to Track A with ASI runtime, KPMO governance and exact cross-track RACI"
+    },
+    {
+      "severity": "P1",
+      "id": "GOVERNED_RECEIPT_REGISTRY_AUTHORITY_NOT_IMPLEMENTED",
+      "state": "CONTROL_CORRECTION_IMPLEMENTED_IN_THIS_CHANGE",
+      "correction": "writer-independent Ed25519 keyring, signed envelope, exact registry and receipt-set digest verification, bounded validity and sanitized receipt"
+    },
+    {
+      "severity": "P1",
+      "id": "LOW_LEVEL_CLASSIFIER_COULD_BE_MISUSED_AS_CANONICAL_ADMISSION",
+      "state": "CORRECTED_BY_STATIC_ENTRYPOINT_GUARD",
+      "correction": "production consumers may reach canonical admission only through the atomic batch and approved ledger recomputation paths"
+    },
+    {
+      "severity": "P1",
+      "id": "COMMITTED_REFERENCE_OR_FIXTURE_FALSE_EMPIRICAL_RISK",
+      "state": "CONTAINED_NOT_CLOSED",
+      "correction": "JD, readiness and authority contracts prohibit replay or fixture promotion; source-specific natural producer corrections remain required"
+    },
+    {
+      "severity": "P1",
+      "id": "APPEND_ONLY_LEDGER_NOT_ACTIVATED",
+      "state": "SEPARATELY_GATED",
+      "correction": "no database write is performed by this change"
+    },
+    {
+      "severity": "P1",
+      "id": "TRACK_A_TO_TRACK_B_EXACT_PAIR_ABSENT",
+      "state": "BLOCKED_BY_ZERO_LAWFUL_ROWS",
+      "correction": "handoff ownership and exact-pair contract are now explicit; no false Track B start"
+    }
+  ],
+  "immediate_implementations": [
+    "TRACK_A_CURRENT_SOLD_JOB_DESCRIPTION",
+    "TRACK_A_OWNERSHIP_DRIFT_VALIDATOR",
+    "GOVERNED_RECEIPT_REGISTRY_AUTHORITY_VERIFICATION_ADAPTER",
+    "AUTHORITY_SIGNATURE_DIGEST_VALIDITY_AND_REPLAY_NEGATIVE_TESTS",
+    "CANONICAL_ADMISSION_ENTRYPOINT_STATIC_GUARD",
+    "CURRENT_SOLD_END_TO_END_READINESS_REGISTRY",
+    "DEDICATED_CONTROL_ONLY_GITHUB_WORKFLOW"
+  ],
+  "remaining_execution_order": [
+    "LAND_THIS_REPOSITORY_ONLY_CONTROL_CHANGE",
+    "PROVISION_INDEPENDENT_PRIVATE_TRUSTED_KEYRING_AND_EXACT_DIGEST",
+    "ADMIT_ONE_LAWFUL_SOURCE_AND_RIGHTS_RECEIPT_SET",
+    "VERIFY_AND_CONSUME_ONE_AUTHORITY_ENVELOPE",
+    "RUN_ONE_THEN_FIVE_CURRENT_SOLD_ATOMIC_CANARY",
+    "APPLY_SEPARATELY_APPROVED_POSTGRES_MIGRATION_AND_FIRST_APPEND_ONLY_WRITE",
+    "BUILD_ONE_EXACT_TRACK_A_CANDIDATE_EVIDENCE_PAIR",
+    "RUN_TRACK_B_INDEPENDENT_ASSESSMENT"
+  ],
+  "truth_boundary": {
+    "lawful_empirical_current_sold_admitted": 0,
+    "private_candidate_current_sold_admitted": 0,
+    "provider_calls_by_this_change": 0,
+    "postgres_rows_written_by_this_change": 0,
+    "deployment_by_this_change": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

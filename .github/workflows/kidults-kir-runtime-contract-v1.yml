@@ -1,0 +1,205 @@
+name: KIDULTS Intelligence Runtime Contract v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/runtime/**'
+      - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
+      - 'scripts/kidults/runtime/**'
+      - 'tests/kidults/runtime/**'
+      - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/runtime/**'
+      - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
+      - 'scripts/kidults/runtime/**'
+      - 'tests/kidults/runtime/**'
+      - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-kir-runtime-contract-v1-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify-kir-runtime-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      KIR_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      KIR_RECEIPT_PATH: /tmp/kidults-kir-runtime-terminal-receipt-v1.json
+    steps:
+      - name: Initialize fail-closed KIR terminal receipt
+        id: initialize
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          cat > /tmp/kidults-kir-runtime-terminal-receipt-v1.json <<EOF
+          {
+            "id":"kidults-kir-runtime-terminal-v1",
+            "version":"1.0.0",
+            "receipt_class":"WORKFLOW_FAIL_CLOSED_BOOTSTRAP",
+            "state":"VERIFIED_FAIL",
+            "overall_state":"RED",
+            "repository":"${GITHUB_REPOSITORY}",
+            "source_sha":"${EXPECTED_HEAD_SHA}",
+            "run_id":"${GITHUB_RUN_ID}",
+            "run_attempt":"${GITHUB_RUN_ATTEMPT}",
+            "trigger_event":"${GITHUB_EVENT_NAME}",
+            "failed_check_ids":["KIR_WORKFLOW_NOT_RECONCILED"],
+            "first_failed_stage":"KIR_WORKFLOW_NOT_RECONCILED",
+            "promotion_eligible":false,
+            "runtime_activation_authorized":false,
+            "empirical_authority":false,
+            "database_authority":false,
+            "provider_authority":false,
+            "public_release":"HOLD",
+            "production":"HOLD",
+            "g5":"HOLD"
+          }
+          EOF
+          cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-runtime-evaluation-v1.json
+
+      - name: Checkout exact candidate head
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        id: exact_head
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - name: Set up pinned Node
+        id: setup_node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate KIR contract syntax, RACI structure and static truth
+        id: validate_contract
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/runtime/kir-runtime-kernel-v1.mjs
+          node --check scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
+          node --check tests/kidults/runtime/kir-runtime-v1.test.mjs
+          node --check tests/kidults/runtime/kir-integration-boundary-v1.test.mjs
+          node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs --self-test
+          node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
+          node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
+
+      - name: Run KIR negative regression suite
+        id: regression
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs
+
+      - name: Evaluate exact-head KIR runtime truth
+        id: evaluate
+        run: |
+          set -euo pipefail
+          node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --evaluate | tee /tmp/kidults-kir-runtime-evaluation-v1.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const x=JSON.parse(fs.readFileSync(process.env.KIR_RECEIPT_PATH,'utf8'));
+          assert.equal(x.state,'CONTROL_VALIDATED_EMPIRICAL_BLOCKED');
+          assert.equal(x.source_sha,process.env.KIR_SOURCE_SHA);
+          assert.equal(x.repository,process.env.GITHUB_REPOSITORY);
+          assert.equal(x.run_id,Number(process.env.GITHUB_RUN_ID));
+          assert.equal(x.run_attempt,Number(process.env.GITHUB_RUN_ATTEMPT));
+          assert.equal(x.trigger_event,process.env.GITHUB_EVENT_NAME);
+          assert.equal(x.receipt_scope,'KIR_CONTROL_CONTRACT_ONLY_NOT_PLATFORM_HEALTH');
+          assert.equal(x.readiness_is_live_empirical_proof,false);
+          for(const key of ['promotion_eligible','runtime_activation_authorized','empirical_authority','database_authority','provider_authority']) assert.equal(x[key],false);
+          for(const key of ['public_release','production','g5']) assert.equal(x[key],'HOLD');
+          assert.ok(Array.isArray(x.blockers)&&x.blockers.length>=5);
+          NODE
+
+      - name: Reconcile exact-head KIR workflow terminal truth
+        id: reconcile
+        if: ${{ always() }}
+        shell: bash
+        env:
+          INIT_OUTCOME: ${{ steps.initialize.outcome }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          EXACT_HEAD_OUTCOME: ${{ steps.exact_head.outcome }}
+          SETUP_NODE_OUTCOME: ${{ steps.setup_node.outcome }}
+          VALIDATE_CONTRACT_OUTCOME: ${{ steps.validate_contract.outcome }}
+          REGRESSION_OUTCOME: ${{ steps.regression.outcome }}
+          EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          receipt_path=Path('/tmp/kidults-kir-runtime-terminal-receipt-v1.json')
+          evaluation_path=Path('/tmp/kidults-kir-runtime-evaluation-v1.json')
+          stages=[
+            ('INITIALIZE',os.environ.get('INIT_OUTCOME','')),
+            ('CHECKOUT',os.environ.get('CHECKOUT_OUTCOME','')),
+            ('EXACT_HEAD',os.environ.get('EXACT_HEAD_OUTCOME','')),
+            ('SETUP_NODE',os.environ.get('SETUP_NODE_OUTCOME','')),
+            ('VALIDATE_CONTRACT',os.environ.get('VALIDATE_CONTRACT_OUTCOME','')),
+            ('REGRESSION',os.environ.get('REGRESSION_OUTCOME','')),
+            ('EVALUATE',os.environ.get('EVALUATE_OUTCOME','')),
+          ]
+          failed=[name for name,outcome in stages if outcome!='success']
+          if not failed:
+            try:
+              data=json.loads(receipt_path.read_text())
+              assert data['state']=='CONTROL_VALIDATED_EMPIRICAL_BLOCKED'
+              assert data['source_sha']==os.environ['EXPECTED_HEAD_SHA']
+              assert data['repository']==os.environ['GITHUB_REPOSITORY']
+              assert data['run_id']==int(os.environ['GITHUB_RUN_ID'])
+              assert data['run_attempt']==int(os.environ['GITHUB_RUN_ATTEMPT'])
+              assert data['trigger_event']==os.environ['GITHUB_EVENT_NAME']
+              assert data['receipt_scope']=='KIR_CONTROL_CONTRACT_ONLY_NOT_PLATFORM_HEALTH'
+              assert data['readiness_is_live_empirical_proof'] is False
+              for key in ('promotion_eligible','runtime_activation_authorized','empirical_authority','database_authority','provider_authority'):
+                assert data[key] is False
+              for key in ('public_release','production','g5'):
+                assert data[key]=='HOLD'
+            except (OSError,ValueError,KeyError,TypeError,AssertionError):
+              failed=['KIR_SUCCESS_RECEIPT_INVALID']
+          if failed:
+            receipt={
+              'id':'kidults-kir-runtime-terminal-v1','version':'1.0.0',
+              'receipt_class':'WORKFLOW_FAIL_CLOSED_TERMINAL','state':'VERIFIED_FAIL','overall_state':'RED',
+              'repository':os.environ['GITHUB_REPOSITORY'],'source_sha':os.environ['EXPECTED_HEAD_SHA'],
+              'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'trigger_event':os.environ['GITHUB_EVENT_NAME'],'failed_check_ids':failed,
+              'first_failed_stage':failed[0],'stage_outcomes':dict(stages),
+              'promotion_eligible':False,'runtime_activation_authorized':False,
+              'empirical_authority':False,'database_authority':False,'provider_authority':False,
+              'public_release':'HOLD','production':'HOLD','g5':'HOLD'
+            }
+            receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+            evaluation_path.write_text(json.dumps(receipt,indent=2)+'\n')
+            raise SystemExit(1)
+          PY
+          test -s /tmp/kidults-kir-runtime-terminal-receipt-v1.json
+          test -s /tmp/kidults-kir-runtime-evaluation-v1.json
+
+      - name: Upload exact-head KIR terminal packet
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-kir-runtime-contract-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/kidults-kir-runtime-terminal-receipt-v1.json
+            /tmp/kidults-kir-runtime-evaluation-v1.json
+          retention-days: 90
+          if-no-files-found: error
