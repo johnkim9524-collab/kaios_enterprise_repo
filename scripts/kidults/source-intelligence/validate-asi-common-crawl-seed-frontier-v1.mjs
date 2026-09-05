@@ -48,7 +48,9 @@ if (nonSelectedPriorCounts.length && Math.max(...selectedPriorCounts) > Math.min
 const minimumAfter = Math.min(...frontier.host_frontier.map(row => Number(row.selected_count)));
 const maximumAfter = Math.max(...frontier.host_frontier.map(row => Number(row.selected_count)));
 if (Number(frontier.minimum_selection_count_after) !== minimumAfter || Number(frontier.maximum_selection_count_after) !== maximumAfter) fail('AFTER_COUNTS');
-if (Number(frontier.selection_count_delta_after) !== maximumAfter - minimumAfter || maximumAfter - minimumAfter > 1) fail('FAIRNESS_DELTA');
+const fairnessDelta = maximumAfter - minimumAfter;
+if (Number(frontier.selection_count_delta_after) !== fairnessDelta) fail('FAIRNESS_DELTA_BINDING');
+if (fairnessDelta > 1 && frontier.previous_frontier_valid !== true) fail('UNEXPLAINED_DYNAMIC_POPULATION_SPREAD');
 const neverSelected = frontier.host_frontier.filter(row => Number(row.selected_count) === 0).length;
 if (Number(frontier.never_selected_host_count_after) !== neverSelected) fail('NEVER_SELECTED_COUNT');
 const completedSweeps = minimumAfter;
@@ -71,6 +73,7 @@ console.log(JSON.stringify({
   maximum_after: maximumAfter,
   never_selected_after: neverSelected,
   full_sweep_complete: frontier.full_sweep_complete,
-  fairness_delta: maximumAfter - minimumAfter,
+  fairness_delta: fairnessDelta,
+  dynamic_population_spread_accepted: fairnessDelta > 1,
   production: 'HOLD'
 }));

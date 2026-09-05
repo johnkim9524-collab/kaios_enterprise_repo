@@ -9,6 +9,19 @@ on:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'
+      # Keep exact-generation production aligned with every consumer-relevant change.
+      - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'
+      - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
 
 permissions:
   contents: read
