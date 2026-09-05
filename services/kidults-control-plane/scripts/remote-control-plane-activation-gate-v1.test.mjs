@@ -103,11 +103,12 @@ test('receipt cannot self-authorize Production/Public/G5', async () => {
 
 test('symlink receipt outside the evidence root fails closed', async () => {
   const f=await fixture(); try {
-    const id=IDS[0], outside=path.join(f.root,'outside.json');
+    const id=IDS[0], outside=path.join(f.root,'outside-receipt');
     const raw=Buffer.from(`${JSON.stringify(receipt(id))}\n`);
-    await writeFile(outside,raw);
+    await mkdir(outside);
+    await writeFile(path.join(outside,'payload.json'),raw);
     await rm(path.join(f.evidenceDir,`${id}.json`));
-    await symlink(outside,path.join(f.evidenceDir,`${id}.json`));
+    await symlink(outside,path.join(f.evidenceDir,`${id}.json`),'junction');
     await writeManifest(f, f.entries.map(e=>e.id===id?{...e,sha256:sha256(raw)}:e));
     const r=evaluateRemoteActivation({evidenceDir:f.evidenceDir,manifestPath:f.manifestPath,expectedHeadSha:HEAD,trustedPublicKeyPem:f.publicKey});
     assert.equal(r.ok,false); assert.equal(r.invalid[0].reason,'RECEIPT_UNREADABLE');

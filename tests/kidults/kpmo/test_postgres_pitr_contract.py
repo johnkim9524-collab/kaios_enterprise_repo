@@ -47,6 +47,7 @@ if expected_dsn and expected_dsn in args:
     fail("fake psql received the DSN as a process argument")
 
 command = ""
+file_input = ""
 for index, argument in enumerate(args):
     if argument.startswith("--command="):
         command = argument.split("=", 1)[1]
@@ -54,6 +55,10 @@ for index, argument in enumerate(args):
     if argument == "--command" and index + 1 < len(args):
         command = args[index + 1]
         break
+    if argument.startswith("--file="):
+        file_input = argument.split("=", 1)[1]
+    if argument == "--file" and index + 1 < len(args):
+        file_input = args[index + 1]
 
 state_path = Path(os.environ["FAKE_PSQL_STATE"])
 state = json.loads(state_path.read_text()) if state_path.exists() else {}
@@ -67,6 +72,9 @@ def emit(value):
     print(value)
     raise SystemExit(0)
 
+
+if file_input:
+    raise SystemExit(0)
 
 if not command:
     sql = sys.stdin.read().lower()
@@ -108,8 +116,23 @@ if sql == "show archive_mode":
     emit("on")
 if sql == "show data_checksums":
     emit(os.environ.get("FAKE_DATA_CHECKSUMS", "on"))
+if "to_regnamespace('kidults_control') is not null" in sql:
+    emit(os.environ.get("FAKE_CONTROL_SCHEMA_PRESENT", "t"))
+if "to_regclass('kidults_control.writer_principals') is not null" in sql:
+    emit("t")
+if "to_regprocedure('kidults_control.enforce_registered_writer()') is not null" in sql:
+    emit("t")
 if "to_regnamespace('kaios_runtime') is not null" in sql:
     emit("t")
+if "version='0001_runtime_projection_boundary'" in sql:
+    emit("1")
+if "global_source_registry_snapshot_ledger') is not null" in sql:
+    emit("0|0")
+if "global_source_assessment_ledger where snapshot_digest=" in sql:
+    calls = int(state.get("registry_count_calls", 0))
+    state["registry_count_calls"] = calls + 1
+    save_state()
+    emit("0|0" if calls == 0 else "1|19")
 if "relforcerowsecurity" in sql:
     emit(os.environ.get("FAKE_RLS_FORCED", "4"))
 if "schema_migrations" in sql:

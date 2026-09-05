@@ -192,6 +192,24 @@ PY
 done
 [[ "$tunnel_ready" == 'true' ]] || { echo 'SSH PostgreSQL tunnel did not become ready' >&2; exit 1; }
 
+if [[ -n "${KAIOS_TUNNEL_DIAGNOSTIC_OUTPUT:-}" ]]; then
+  "${SSH[@]}" "$KAIOS_STAGING_SSH_USER@$KAIOS_STAGING_SSH_HOST" "python3 - '$database_host' '$database_port' <<'PY'
+import json, socket, sys
+host=sys.argv[1]
+port=int(sys.argv[2])
+r={"dns_resolved":False,"tcp_reachable":False,"classification":"REMOTE_DNS_FAILURE"}
+try:
+ socket.getaddrinfo(host,port); r["dns_resolved"]=True; r["classification"]="REMOTE_TCP_UNREACHABLE"
+except OSError: pass
+if r["dns_resolved"]:
+ try:
+  s=socket.create_connection((host,port),5); s.close(); r["tcp_reachable"]=True; r["classification"]="REMOTE_TCP_REACHABLE"
+ except OSError: pass
+print(json.dumps(r,separators=(",",":")))
+PY" > "$KAIOS_TUNNEL_DIAGNOSTIC_OUTPUT"
+  python3 -m json.tool "$KAIOS_TUNNEL_DIAGNOSTIC_OUTPUT" >/dev/null
+fi
+
 case "$mode" in
   source)
     export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")"

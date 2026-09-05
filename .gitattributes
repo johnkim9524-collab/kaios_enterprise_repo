@@ -1,0 +1,17 @@
+/AGENTS.md text eol=lf
+/package.json text eol=lf
+/.github/AI_AGENT_OPERATING_RULES.md text eol=lf
+/.github/copilot-instructions.md text eol=lf
+/coordination/kidults/bootstrap/README.md text eol=lf
+/coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json text eol=lf
+/coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json text eol=lf
+/coordination/kidults/governance/ai-agent-operating-rules-v1.json text eol=lf
+/coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json text eol=lf
+/coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json text eol=lf
+/coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json text eol=lf
+/coordination/kidults/registry/ai-agent-governance-registry-v1.json text eol=lf
+/coordination/kidults/source-intelligence/global-sold-source-registry-evidence-manifest-v1.json text eol=lf
+/coordination/kidults/source-intelligence/global-sold-source-registry-v1.json text eol=lf
+/scripts/governance/bootstrap-ai-agent-from-github-v1.mjs text eol=lf
+/scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs text eol=lf
+/scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs text eol=lf

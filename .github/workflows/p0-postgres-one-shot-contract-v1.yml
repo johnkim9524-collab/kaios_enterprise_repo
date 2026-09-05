@@ -1,0 +1,46 @@
+name: P0 PostgreSQL One-Shot and Terminal Receipt Contract
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+      - '.github/workflows/p0-postgres-one-shot-contract-v1.yml'
+      - 'scripts/staging/*postgres*'
+      - 'scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs'
+      - 'infrastructure/postgres/**'
+      - 'tests/staging/postgres-one-shot-terminal-receipt-v1.test.mjs'
+      - 'tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+      - '.github/workflows/p0-postgres-one-shot-contract-v1.yml'
+      - 'scripts/staging/*postgres*'
+      - 'scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs'
+      - 'infrastructure/postgres/**'
+      - 'tests/staging/postgres-one-shot-terminal-receipt-v1.test.mjs'
+      - 'tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Prove exact-head checkout
+        run: test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+      - name: Regression and negative tests
+        run: |
+          set -euo pipefail
+          node --test tests/staging/postgres-one-shot-terminal-receipt-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs
+          bash -n scripts/staging/migrate-and-load-global-sold-source-registry-v1.sh
+          bash -n scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh
+          bash -n scripts/staging/verify-remote-postgres-persistence-pitr.sh
+      - name: Parse workflow YAML
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/p0-remote-postgres-persistence-pitr.yml'); YAML.load_file('.github/workflows/p0-postgres-one-shot-contract-v1.yml')"

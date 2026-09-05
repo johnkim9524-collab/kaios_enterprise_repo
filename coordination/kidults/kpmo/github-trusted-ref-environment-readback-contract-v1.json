@@ -36,9 +36,10 @@
       "branch_controlled_workflow_replacement_negative_control_must_be_rejected": true,
       "allowed_trigger_classes_bound_per_workflow_job": true,
       "remote_mutation_class_bound_per_workflow_job": true,
-      "push_secret_lane_requires_explicit_activation_guard": true,
+      "push_secret_lane_requires_explicit_activation_guard_or_exact_run_one_shot": true,
+      "exact_run_one_shot_requires_standing_guard_false_and_program_owner_environment_review": true,
       "workflow_token_permissions_are_exact_per_registry_binding": true,
-      "actions_read_is_limited_to_registered_production_artifact_readback": true,
+      "actions_read_is_limited_to_registered_production_artifact_or_exact_run_environment_review_readback": true,
       "github_token_use_steps_are_exact_per_registry_binding": true
     },
     "trusted_default_branch_or_release_handoff": {
