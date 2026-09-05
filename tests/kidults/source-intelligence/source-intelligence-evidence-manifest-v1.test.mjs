@@ -7,6 +7,7 @@ import {
   manifestDigest,
   validateEvidenceManifest
 } from '../../../scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs';
+import { registryDigest } from '../../../scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs';
 
 const registryPath = 'coordination/kidults/source-intelligence/global-sold-source-registry-v1.json';
 const contractPath = 'coordination/kidults/source-intelligence/source-intelligence-evidence-manifest-contract-v1.json';
@@ -90,7 +91,7 @@ test('rejects unapproved transaction acquisition and unknown sources', () => {
     supply_chain_run_id: '22222222-2222-4222-8222-222222222222'
   };
   acquisition.manifest_digest = manifestDigest(acquisition);
-  assert.throws(() => validateEvidenceManifest(acquisition, registry, contract, {artifactPath: registryPath}), /EVIDENCE_RAW_ARCHIVE_RIGHTS_NOT_PASS/);
+  assert.throws(() => validateEvidenceManifest(acquisition, registry, contract, {artifactPath: registryPath}), /EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED_RECEIPT_RESOLUTION_NOT_IMPLEMENTED/);
   const unknown = clone(read(manifestPath));
   unknown.scope.source_ids = ['unknown-source'];
   unknown.scope.source_count = 1;
@@ -98,7 +99,7 @@ test('rejects unapproved transaction acquisition and unknown sources', () => {
   assert.throws(() => validateEvidenceManifest(unknown, registry, contract, {artifactPath: registryPath}), /EVIDENCE_SOURCE_ID_UNKNOWN/);
 });
 
-test('permits only receipt-bound restricted bytes for a registry PASS source', () => {
+test('rejects UUID-shaped restricted-byte receipts until authoritative content-bound resolution exists', () => {
   const registry = read(registryPath);
   const contract = read(contractPath);
   const admitted = clone(read(manifestPath));
@@ -114,18 +115,10 @@ test('permits only receipt-bound restricted bytes for a registry PASS source', (
     supply_chain_run_id: '22222222-2222-4222-8222-222222222222'
   };
   admitted.manifest_digest = manifestDigest(admitted);
-  const result = validateEvidenceManifest(admitted, registry, contract);
-  assert.equal(result.state, 'VERIFIED_PASS');
-  assert.equal(result.external_raw_content, true);
-  for (const unsafe of [
-    '/mnt/ih_prod_01/evidence/current-sold/../escape',
-    '/tmp/current-sold/escape'
-  ]) {
-    const candidate = clone(admitted);
-    candidate.artifact.evidence_uri = unsafe;
-    candidate.manifest_digest = manifestDigest(candidate);
-    assert.throws(() => validateEvidenceManifest(candidate, registry, contract), /EVIDENCE_VOLUME_URI_(UNSAFE|OUTSIDE_ROOT)/);
-  }
+  assert.throws(
+    () => validateEvidenceManifest(admitted, registry, contract),
+    /EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED_RECEIPT_RESOLUTION_NOT_IMPLEMENTED/
+  );
 });
 
 test('append is transactional and replay-idempotent', async () => {
@@ -140,6 +133,71 @@ test('append is transactional and replay-idempotent', async () => {
   assert.equal(client.commands.filter((command) => command === 'ROLLBACK').length, 0);
 });
 
+test('rejects semantic registry drift and non-boolean raw-content flags', () => {
+  const contract = read(contractPath);
+  const invalidRegistry = read(registryPath);
+  invalidRegistry.release_boundary.production = 'PASS';
+  invalidRegistry.snapshot_digest = registryDigest(invalidRegistry);
+  const reboundManifest = read(manifestPath);
+  reboundManifest.registry_snapshot_digest = invalidRegistry.snapshot_digest;
+  reboundManifest.manifest_digest = manifestDigest(reboundManifest);
+  assert.throws(
+    () => validateEvidenceManifest(reboundManifest, invalidRegistry, contract),
+    /REGISTRY_PRODUCTION_MUST_HOLD/
+  );
+
+  const nonBoolean = read(manifestPath);
+  nonBoolean.artifact.contains_external_raw_content = 'false';
+  nonBoolean.manifest_digest = manifestDigest(nonBoolean);
+  assert.throws(
+    () => validateEvidenceManifest(nonBoolean, read(registryPath), contract),
+    /EVIDENCE_RAW_CONTENT_FLAG_INVALID/
+  );
+});
+
+test('snapshots manifest, registry and contract before the first asynchronous SQL boundary', async () => {
+  const manifest = read(manifestPath);
+  const registry = read(registryPath);
+  const contract = read(contractPath);
+  const originalId = manifest.id;
+  class MutatingClient extends MemoryClient {
+    async query(sql, params = []) {
+      if (sql === 'BEGIN') {
+        manifest.id = 'mutated-after-validation';
+        registry.sources[0].source_name = 'MUTATED_AFTER_VALIDATION';
+        contract.status = 'MUTATED_AFTER_VALIDATION';
+      }
+      return super.query(sql, params);
+    }
+  }
+  const client = new MutatingClient();
+  await appendEvidenceManifest(client, manifest, registry, contract, {artifactPath: registryPath});
+  const stored = [...client.rows.values()][0].manifest_payload;
+  assert.equal(stored.id, originalId);
+  assert.notEqual(stored.id, manifest.id);
+});
+
+test('preserves the original evidence write failure when rollback also fails', async () => {
+  const original = new Error('ORIGINAL_WRITE_FAILURE');
+  const rollback = new Error('ROLLBACK_FAILURE');
+  const client = {
+    async query(sql) {
+      if (sql === 'BEGIN') return { rows: [], rowCount: 0 };
+      if (sql === 'ROLLBACK') throw rollback;
+      throw original;
+    }
+  };
+  await assert.rejects(
+    () => appendEvidenceManifest(client, read(manifestPath), read(registryPath), read(contractPath), {artifactPath: registryPath}),
+    (error) => {
+      assert.ok(error instanceof AggregateError);
+      assert.equal(error.cause, original);
+      assert.deepEqual(error.errors, [original, rollback]);
+      return true;
+    }
+  );
+});
+
 test('migration is append-only, registered-writer bound and release neutral', () => {
   const sql = fs.readFileSync('infrastructure/postgres/source-intelligence/0002_source_evidence_manifest_ledger_v1.sql', 'utf8');
   for (const required of [
@@ -152,7 +210,9 @@ test('migration is append-only, registered-writer bound and release neutral', ()
     'database_mutation',
     'rights_decision_id',
     'supply_chain_run_id',
-    "production}' = 'HOLD'"
+    "production}' = 'HOLD'",
+    "source_evidence_manifest_restricted_bytes_hard_stop_ck",
+    "storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'"
   ]) assert.match(sql, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(sql, /GRANT\s+(UPDATE|DELETE|TRUNCATE)/i);
   assert.equal(artifactDigest(registryPath), read(manifestPath).artifact.digest);

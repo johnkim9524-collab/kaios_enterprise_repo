@@ -54,8 +54,47 @@ jobs:
   validate-current-sold-engine:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
+    env:
+      CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CURRENT_SOLD_RECEIPT_PATH: /tmp/kidults-current-sold-terminal/receipt.json
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+      - name: Initialize fail-closed Current-SOLD terminal receipt
+        id: initialize
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CURRENT_SOLD_EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          mkdir -p "$(dirname "$CURRENT_SOLD_RECEIPT_PATH")"
+          cat > "$CURRENT_SOLD_RECEIPT_PATH" <<EOF_RECEIPT
+          {
+            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_3",
+            "receipt_class":"WORKFLOW_FAIL_CLOSED_BOOTSTRAP",
+            "state":"VERIFIED_FAIL",
+            "overall_state":"RED",
+            "repository":"${GITHUB_REPOSITORY}",
+            "source_sha":"${CURRENT_SOLD_EXPECTED_HEAD_SHA}",
+            "expected_head_sha":"${CURRENT_SOLD_EXPECTED_HEAD_SHA}",
+            "run_id":${GITHUB_RUN_ID},
+            "run_attempt":${GITHUB_RUN_ATTEMPT},
+            "trigger_event":"${GITHUB_EVENT_NAME}",
+            "failed_check_ids":["CURRENT_SOLD_WORKFLOW_NOT_RECONCILED"],
+            "first_failed_stage":"CURRENT_SOLD_WORKFLOW_NOT_RECONCILED",
+            "expected_tests":0,
+            "producer_health_authority":false,
+            "promotion_eligible":false,
+            "empirical_authority":false,
+            "database_authority":false,
+            "provider_authority":false,
+            "public":"HOLD",
+            "production":"HOLD",
+            "g5":"HOLD"
+          }
+          EOF_RECEIPT
+          chmod 600 "$CURRENT_SOLD_RECEIPT_PATH"
+
+      - name: Checkout exact candidate head
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
@@ -67,12 +106,15 @@ jobs:
           source_sha="$(git rev-parse HEAD)"
           test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+      - name: Set up pinned Node
+        id: setup_node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
           node-version: 24.19.0
           package-manager-cache: false
           check-latest: false
       - name: Parse all Current-SOLD control schemas
+        id: schemas
         shell: bash
         run: |
           set -euo pipefail
@@ -92,6 +134,7 @@ jobs:
           console.log(`CURRENT_SOLD_SCHEMA_JSON_PASS=${files.length}`);
           NODE
       - name: Check Current-SOLD module syntax
+        id: syntax
         shell: bash
         run: |
           set -euo pipefail
@@ -99,14 +142,20 @@ jobs:
             node --check "$file"
           done
       - name: Run Current-SOLD fail-closed test suite
+        id: current_sold_tests
         shell: bash
         run: |
           set -euo pipefail
           node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs | tee /tmp/current-sold-tests.tap
-          grep -Eq '^# tests 56$' /tmp/current-sold-tests.tap
-          grep -Eq '^# pass 56$' /tmp/current-sold-tests.tap
-          grep -Eq '^# fail 0$' /tmp/current-sold-tests.tap
+          tests="$(sed -n 's/^# tests \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          pass="$(sed -n 's/^# pass \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          fail="$(sed -n 's/^# fail \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          test -n "$tests" && test "$tests" -gt 0
+          test "$pass" = "$tests"
+          test "$fail" = "0"
+          echo "expected_tests=$tests" >> "$GITHUB_OUTPUT"
       - name: Verify legacy raw bundle persistence is disabled
+        id: legacy
         shell: bash
         run: |
           set -euo pipefail
@@ -119,6 +168,7 @@ jobs:
           fi
           echo 'CURRENT_SOLD_LEGACY_RAW_PERSISTENCE_DISABLED_PASS'
       - name: Run runtime-generated synthetic control smoke
+        id: smoke
         shell: bash
         env:
           CURRENT_SOLD_SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
@@ -156,6 +206,7 @@ jobs:
           fi
           echo 'CURRENT_SOLD_CONTROL_SMOKE_PASS'
       - name: Verify append-only PostgreSQL migration boundary
+        id: migration
         shell: bash
         run: |
           set -euo pipefail
@@ -168,37 +219,40 @@ jobs:
             exit 1
           fi
           echo 'CURRENT_SOLD_APPEND_ONLY_SQL_PASS'
-      - name: Emit control-only exact-head receipt
+      - name: Reconcile Current-SOLD semantic terminal receipt
+        id: reconcile
         if: always()
         shell: bash
         env:
           CURRENT_SOLD_EXACT_SHA: ${{ steps.source.outputs.source_sha }}
+          CURRENT_SOLD_EXPECTED_TESTS: ${{ steps.current_sold_tests.outputs.expected_tests }}
+          INITIALIZE_OUTCOME: ${{ steps.initialize.outcome }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          SETUP_NODE_OUTCOME: ${{ steps.setup_node.outcome }}
+          SCHEMAS_OUTCOME: ${{ steps.schemas.outcome }}
+          SYNTAX_OUTCOME: ${{ steps.syntax.outcome }}
+          TESTS_OUTCOME: ${{ steps.current_sold_tests.outcome }}
+          LEGACY_OUTCOME: ${{ steps.legacy.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          MIGRATION_OUTCOME: ${{ steps.migration.outcome }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/market/reconcile-current-sold-terminal-v1.mjs
+
+      - name: Stage Current-SOLD terminal artifact
+        id: stage_artifact
+        if: always()
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p out/current-sold-engine
-          cat > out/current-sold-engine/receipt.json <<EOF_RECEIPT
-          {
-            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_2",
-            "source_sha":"${CURRENT_SOLD_EXACT_SHA}",
-            "run_id":"${GITHUB_RUN_ID}",
-            "run_attempt":"${GITHUB_RUN_ATTEMPT}",
-            "whole_batch_atomic":true,
-            "strict_current_max_age_days":7,
-            "max_clock_skew_seconds":300,
-            "expected_tests":56,
-            "lawful_empirical_current_sold_count":0,
-            "private_candidate_current_sold_count":0,
-            "postgres_migration_applied":false,
-            "postgres_rows_written":0,
-            "provider_calls":0,
-            "deployment":false,
-            "public":"HOLD",
-            "production":"HOLD",
-            "g5":"HOLD"
-          }
-          EOF_RECEIPT
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+          cp "$CURRENT_SOLD_RECEIPT_PATH" out/current-sold-engine/receipt.json
+          test "$(stat -c '%a' out/current-sold-engine/receipt.json)" = 600
+
+      - name: Upload Current-SOLD terminal artifact
         if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-current-sold-engine-v1-2-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/current-sold-engine
