@@ -1,0 +1,68 @@
+{
+  "id": "kidults-global-sold-source-registry-evidence-manifest-v1",
+  "version": "1.0.0",
+  "manifest_type": "REGISTRY_SNAPSHOT",
+  "status": "CANONICAL_METADATA_ONLY_NOT_ACQUISITION_AUTHORITY",
+  "created_at": "2026-09-05T12:44:03Z",
+  "registry_id": "kidults-global-sold-source-registry-v1",
+  "registry_snapshot_digest": "sha256:19b7f0301f6334a0728686c5a7ad82ece7ff59fec0ba649f9552597a8602bebc",
+  "scope": {
+    "source_ids": [
+      "classic-com-sales-history",
+      "tandem-auctions-contract-route",
+      "leski-auctions-results",
+      "auctionet-palsgaard-results",
+      "bruun-rasmussen-results",
+      "leonard-joel-results",
+      "propstore-results",
+      "rr-auction-results",
+      "omega-auctions-results",
+      "house-of-huia-results",
+      "cordys-results",
+      "bring-a-trailer-results",
+      "cars-and-bids-results",
+      "fanatics-collect-sales-history",
+      "gooding-christies-results",
+      "leland-little-results",
+      "whittaker-biggs-easy-live-results",
+      "psa-cert-verification",
+      "wikidata-cc0-identity"
+    ],
+    "source_count": 19,
+    "decision_counts": {
+      "PASS": 1,
+      "CONDITIONAL": 2,
+      "HOLD": 10,
+      "NO_GO": 6
+    }
+  },
+  "artifact": {
+    "path": "coordination/kidults/source-intelligence/global-sold-source-registry-v1.json",
+    "digest": "sha256:344ddf8524788572923ef4c751ad5a00dbe688e9f3b18a40e7f784a82d0ca1c7",
+    "storage_mode": "GITHUB_VERSIONED_METADATA",
+    "evidence_uri": null,
+    "contains_external_raw_content": false
+  },
+  "lineage": {
+    "methodology_id": "kidults-global-sold-source-research-v1",
+    "methodology_version": "1.0.0",
+    "input_digests": [],
+    "parent_manifest_ids": [],
+    "claim": "KIDULTS_AUTHORED_SOURCE_ASSESSMENT_METADATA_ONLY"
+  },
+  "retention": {
+    "mode": "APPEND_ONLY_INSTITUTIONAL_HISTORY",
+    "expires_at": null,
+    "deletion_required": false
+  },
+  "release_boundary": {
+    "source_acquisition": false,
+    "adapter_activation": false,
+    "database_mutation": false,
+    "d1_projection": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "manifest_digest": "sha256:b16ba765af6f5d82876fb882f2eac2c9c6f6a8ac4deedb78bb7598166758bf64"
+}
