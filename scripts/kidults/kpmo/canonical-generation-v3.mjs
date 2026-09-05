@@ -66,7 +66,11 @@ async function snapshot(){
   if(failures.length)die(`SEVERITY_PARITY:${failures.join(',')}`);
   const registry=buildMaterialRegistry(issues);
   const active=baseline.filter((issue)=>issue.state==='open').map((issue)=>issue.number).sort((a,b)=>a-b);
-  const payload={repository:repo,protected_main_sha:main,canonical_issue_numbers:MEMBERS,canonical_issue_count:MEMBERS.length,active_baseline_defects:active,material_defect_count:registry.length,material_defect_issue_numbers:registry.map((record)=>record.issue_number),material_defect_registry_sha256:materialRegistryDigest(registry),production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false,empirical_gate_effect:'NONE'};
+  const cardinality={
+    P0:registry.filter((record)=>record.effective_priority==='P0').length,
+    P1:registry.filter((record)=>record.effective_priority==='P1').length
+  };
+  const payload={repository:repo,protected_main_sha:main,canonical_issue_numbers:MEMBERS,canonical_issue_count:MEMBERS.length,active_baseline_defects:active,material_defect_count:registry.length,material_defect_issue_numbers:registry.map((record)=>record.issue_number),material_defect_registry_sha256:materialRegistryDigest(registry),material_defect_query_cardinality:cardinality,material_defects:registry,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false,empirical_gate_effect:'NONE'};
   return {...payload,truth_digest:sha256(payload)};
 }
 
@@ -166,7 +170,7 @@ async function validate(){
   const snapshotValue=await snapshot();
   const current=await validateCurrent(snapshotValue);
   if(!current||current.stale)die(current?'LATEST_COMMITTED_GENERATION_STALE':'COMMITTED_GENERATION_MISSING');
-  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.2.0',state:'VERIFIED_PASS',...current,canonical_issue_count:25,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.2.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
 }
 
 function selfTest(){
