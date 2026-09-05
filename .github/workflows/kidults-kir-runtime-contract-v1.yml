@@ -7,6 +7,8 @@ on:
       - 'coordination/kidults/runtime/**'
       - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
       - 'scripts/kidults/runtime/**'
+      - 'scripts/kidults/market/current-sold-*.mjs'
+      - 'tests/kidults/market/current-sold-test-helpers-v1.mjs'
       - 'tests/kidults/runtime/**'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
   pull_request:
@@ -15,6 +17,8 @@ on:
       - 'coordination/kidults/runtime/**'
       - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
       - 'scripts/kidults/runtime/**'
+      - 'scripts/kidults/market/current-sold-*.mjs'
+      - 'tests/kidults/market/current-sold-test-helpers-v1.mjs'
       - 'tests/kidults/runtime/**'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
 
@@ -65,6 +69,7 @@ jobs:
           }
           EOF
           cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-runtime-evaluation-v1.json
+          cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-current-sold-control-receipt-v1.json
 
       - name: Checkout exact candidate head
         id: checkout
@@ -96,6 +101,9 @@ jobs:
           node --check scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node --check tests/kidults/runtime/kir-runtime-v1.test.mjs
           node --check tests/kidults/runtime/kir-integration-boundary-v1.test.mjs
+          node --check scripts/kidults/runtime/kir-current-sold-control-bridge-v1.mjs
+          node --check tests/kidults/runtime/kir-current-sold-control-fixtures-v1.mjs
+          node --check tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs --self-test
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
@@ -104,7 +112,7 @@ jobs:
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs
+          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs
 
       - name: Evaluate exact-head KIR runtime truth
         id: evaluate
@@ -128,6 +136,49 @@ jobs:
           assert.ok(Array.isArray(x.blockers)&&x.blockers.length>=5);
           NODE
 
+      - name: Exercise real Current-SOLD atomic engine under synthetic KIR control boundary
+        id: bridge
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import { evaluateKirCurrentSoldControl } from './scripts/kidults/runtime/kir-current-sold-control-bridge-v1.mjs';
+          import { canonicalJsonDigest } from './scripts/kidults/market/current-sold-batch-v1.mjs';
+          import { controlFixture, rebindRegistry } from './tests/kidults/runtime/kir-current-sold-control-fixtures-v1.mjs';
+          const identity = {repository:process.env.GITHUB_REPOSITORY,source_sha:process.env.KIR_SOURCE_SHA,run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),trigger_event:process.env.GITHUB_EVENT_NAME};
+          const valid = evaluateKirCurrentSoldControl(controlFixture(identity));
+          const mixed = controlFixture(identity,2);
+          mixed.receiptRegistry.acquisitions.pop();
+          const rejected = evaluateKirCurrentSoldControl(rebindRegistry(mixed));
+          assert.equal(valid.state,'CONTROL_CHAIN_VALIDATED_EMPIRICAL_BLOCKED');
+          assert.equal(valid.control_counts.admitted,1);
+          assert.equal(valid.control_counts.evidence,1);
+          assert.equal(rejected.state,'CONTROL_INPUT_REJECTED');
+          assert.equal(rejected.engine_control_status,'PARTIAL_FAIL_CLOSED');
+          assert.equal(rejected.control_counts.admitted,0);
+          assert.equal(rejected.control_counts.evidence,0);
+          const kir = JSON.parse(fs.readFileSync(process.env.KIR_RECEIPT_PATH,'utf8'));
+          for (const result of [valid,rejected]) {
+            assert.equal(result.kir_receipt_sha256,canonicalJsonDigest(kir));
+            assert.equal(result.empirical_current_sold_delta,0);
+            assert.equal(result.ledger_write_eligible,false);
+            assert.equal(result.database_authority,false);
+            assert.equal(result.promotion_eligible,false);
+          }
+          const packet = {
+            id:'kidults-kir-current-sold-control-integration-v1',version:'1.0.0',
+            state:'VERIFIED_PASS',scope:'SYNTHETIC_KIR_ATOMIC_EVIDENCE_INTEGRATION_ONLY',
+            ...identity,case_count:2,cases:{valid,rejected},
+            empirical_current_sold_delta:0,postgres_rows_written:0,
+            provider_authority:false,database_authority:false,empirical_authority:false,
+            runtime_activation_authorized:false,producer_health_authority:false,promotion_eligible:false,
+            public_release:'HOLD',production:'HOLD',g5:'HOLD'
+          };
+          fs.writeFileSync('/tmp/kidults-kir-current-sold-control-receipt-v1.json',JSON.stringify(packet,null,2)+'\n');
+          console.log(JSON.stringify(packet,null,2));
+          NODE
+
       - name: Reconcile exact-head KIR workflow terminal truth
         id: reconcile
         if: ${{ always() }}
@@ -140,13 +191,15 @@ jobs:
           VALIDATE_CONTRACT_OUTCOME: ${{ steps.validate_contract.outcome }}
           REGRESSION_OUTCOME: ${{ steps.regression.outcome }}
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
+          BRIDGE_OUTCOME: ${{ steps.bridge.outcome }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os
+          import json, os, hashlib
           from pathlib import Path
           receipt_path=Path('/tmp/kidults-kir-runtime-terminal-receipt-v1.json')
           evaluation_path=Path('/tmp/kidults-kir-runtime-evaluation-v1.json')
+          bridge_path=Path('/tmp/kidults-kir-current-sold-control-receipt-v1.json')
           stages=[
             ('INITIALIZE',os.environ.get('INIT_OUTCOME','')),
             ('CHECKOUT',os.environ.get('CHECKOUT_OUTCOME','')),
@@ -155,6 +208,7 @@ jobs:
             ('VALIDATE_CONTRACT',os.environ.get('VALIDATE_CONTRACT_OUTCOME','')),
             ('REGRESSION',os.environ.get('REGRESSION_OUTCOME','')),
             ('EVALUATE',os.environ.get('EVALUATE_OUTCOME','')),
+            ('BRIDGE',os.environ.get('BRIDGE_OUTCOME','')),
           ]
           failed=[name for name,outcome in stages if outcome!='success']
           if not failed:
@@ -172,6 +226,39 @@ jobs:
                 assert data[key] is False
               for key in ('public_release','production','g5'):
                 assert data[key]=='HOLD'
+              bridge_bytes=bridge_path.read_bytes()
+              bridge=json.loads(bridge_bytes)
+              assert bridge['id']=='kidults-kir-current-sold-control-integration-v1'
+              assert bridge['state']=='VERIFIED_PASS' and bridge['case_count']==2
+              assert set(bridge['cases'])=={'valid','rejected'}
+              kir_digest='sha256:'+hashlib.sha256(json.dumps(data,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+              for item in (bridge,bridge['cases']['valid'],bridge['cases']['rejected']):
+                for key in ('repository','source_sha','run_id','run_attempt','trigger_event'):
+                  assert item[key]==data[key]
+                assert item['scope']=='SYNTHETIC_KIR_ATOMIC_EVIDENCE_INTEGRATION_ONLY'
+                assert item['empirical_current_sold_delta']==0 and item['postgres_rows_written']==0
+                for key in ('provider_authority','database_authority','empirical_authority','runtime_activation_authorized','producer_health_authority','promotion_eligible'):
+                  assert item[key] is False
+                for key in ('public_release','production','g5'):
+                  assert item[key]=='HOLD'
+              for case in bridge['cases'].values():
+                assert case['kir_receipt_sha256']==kir_digest
+                for key in ('raw_rows_emitted','raw_evidence_emitted','bundle_emitted','ledger_write_eligible','track_b_started','projection_approved'):
+                  assert case[key] is False
+              assert bridge['cases']['valid']['state']=='CONTROL_CHAIN_VALIDATED_EMPIRICAL_BLOCKED'
+              assert bridge['cases']['valid']['control_counts']['admitted']==1
+              assert bridge['cases']['valid']['control_counts']['evidence']==1
+              assert bridge['cases']['rejected']['state']=='CONTROL_INPUT_REJECTED'
+              assert bridge['cases']['rejected']['engine_control_status']=='PARTIAL_FAIL_CLOSED'
+              assert bridge['cases']['rejected']['control_counts']['admitted']==0
+              assert bridge['cases']['rejected']['control_counts']['evidence']==0
+              data['current_sold_control_integration']={
+                'state':'VERIFIED_PASS','scope':bridge['scope'],'case_count':2,
+                'bridge_receipt_file_sha256':'sha256:'+hashlib.sha256(bridge_bytes).hexdigest(),
+                'empirical_current_sold_delta':0,'database_authority':False,'promotion_eligible':False
+              }
+              receipt_path.write_text(json.dumps(data,indent=2)+'\n')
+              evaluation_path.write_text(json.dumps(data,indent=2)+'\n')
             except (OSError,ValueError,KeyError,TypeError,AssertionError):
               failed=['KIR_SUCCESS_RECEIPT_INVALID']
           if failed:
@@ -201,5 +288,6 @@ jobs:
           path: |
             /tmp/kidults-kir-runtime-terminal-receipt-v1.json
             /tmp/kidults-kir-runtime-evaluation-v1.json
+            /tmp/kidults-kir-current-sold-control-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
