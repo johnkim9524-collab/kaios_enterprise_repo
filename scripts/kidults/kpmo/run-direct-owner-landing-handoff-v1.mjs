@@ -41,14 +41,6 @@ const parseTime = (value, code) => {
 };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-if (!token || !/^[^/]+\/[^/]+$/.test(repository) || !/^\d+$/.test(prNumber)) fail('DIRECT_OWNER_HANDOFF_ENVIRONMENT_INVALID');
-if (!SHA.test(expectedHeadSha) || !SHA.test(expectedBaseSha)) fail('DIRECT_OWNER_HANDOFF_SHA_INVALID');
-if (authorizationId !== `DIRECT-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`) fail('DIRECT_OWNER_HANDOFF_AUTHORIZATION_ID_INVALID');
-if (!PURPOSE.test(purpose)) fail('DIRECT_OWNER_HANDOFF_PURPOSE_INVALID');
-if (executionRef !== 'refs/heads/main') fail('DIRECT_OWNER_HANDOFF_MAIN_REF_REQUIRED');
-if (runAttempt !== 1) fail('DIRECT_OWNER_HANDOFF_RERUN_FORBIDDEN');
-if (!Number.isInteger(handoffWindowSeconds) || handoffWindowSeconds < 60 || handoffWindowSeconds > 900) fail('DIRECT_OWNER_HANDOFF_WINDOW_INVALID');
-
 const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
@@ -113,13 +105,14 @@ function parseApproval(body) {
 
 function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent) {
   const marked = comments
-    .map(comment => ({comment, fields: parseApproval(comment?.body)}))
-    .filter(value => value.fields)
-    .sort((a, b) => parseTime(b.comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
-      - parseTime(a.comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
-      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+    .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === MARKER)
+    .sort((a, b) => parseTime(b.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
+      - parseTime(a.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
+      || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  const {comment, fields} = marked[0];
+  const comment = marked[0];
+  const fields = parseApproval(comment?.body);
+  if (!fields) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
   if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
   if (comment.updated_at !== comment.created_at) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
@@ -161,8 +154,32 @@ function writeReceipt(receipt) {
 }
 
 let statusTouched = false;
-let receipt = null;
+let receipt = {
+  id: 'kidults-direct-owner-landing-handoff-receipt-v1',
+  version: '1.0.0',
+  state: 'VALIDATION_PENDING',
+  repository: /^[^/]+\/[^/]+$/.test(repository) ? repository : null,
+  pull_request: /^\d+$/.test(prNumber) ? Number(prNumber) : null,
+  exact_base_sha: SHA.test(expectedBaseSha) ? expectedBaseSha : null,
+  exact_head_sha: SHA.test(expectedHeadSha) ? expectedHeadSha : null,
+  transport: TRANSPORT,
+  purpose: PURPOSE.test(purpose) ? purpose : null,
+  merge_performed_by_workflow: false,
+  event_emitting_merge_required: true,
+  production: 'HOLD',
+  public: 'HOLD',
+  g5: 'HOLD',
+};
 try {
+  writeReceipt(receipt);
+  if (!token || !/^[^/]+\/[^/]+$/.test(repository) || !/^\d+$/.test(prNumber)) fail('DIRECT_OWNER_HANDOFF_ENVIRONMENT_INVALID');
+  if (!SHA.test(expectedHeadSha) || !SHA.test(expectedBaseSha)) fail('DIRECT_OWNER_HANDOFF_SHA_INVALID');
+  if (authorizationId !== `DIRECT-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`) fail('DIRECT_OWNER_HANDOFF_AUTHORIZATION_ID_INVALID');
+  if (!PURPOSE.test(purpose)) fail('DIRECT_OWNER_HANDOFF_PURPOSE_INVALID');
+  if (executionRef !== 'refs/heads/main') fail('DIRECT_OWNER_HANDOFF_MAIN_REF_REQUIRED');
+  if (runAttempt !== 1) fail('DIRECT_OWNER_HANDOFF_RERUN_FORBIDDEN');
+  if (!Number.isInteger(handoffWindowSeconds) || handoffWindowSeconds < 60 || handoffWindowSeconds > 900) fail('DIRECT_OWNER_HANDOFF_WINDOW_INVALID');
+
   const repositoryMetadata = await request('');
   const owner = repositoryMetadata?.owner?.login;
   if (!owner || actor !== owner) fail('DIRECT_OWNER_HANDOFF_DISPATCH_ACTOR_NOT_OWNER');
@@ -291,13 +308,12 @@ try {
   writeReceipt(receipt);
   console.log(JSON.stringify(receipt, null, 2));
 } catch (error) {
+  const failureCode = String(error?.code || error?.message || 'DIRECT_OWNER_HANDOFF_FAILED').slice(0, 140);
   if (statusTouched) {
-    try { await publish('failure', String(error?.code || error?.message || 'direct owner handoff failed').slice(0, 140)); } catch {}
+    try { await publish('failure', failureCode); } catch {}
   }
-  if (receipt) {
-    try {
-      writeReceipt({...receipt, state: 'VERIFIED_FAIL', failure_code: String(error?.code || error?.message || 'DIRECT_OWNER_HANDOFF_FAILED').slice(0, 140), handoff_closed_at: new Date().toISOString()});
-    } catch {}
-  }
+  try {
+    writeReceipt({...receipt, state: 'VERIFIED_FAIL', failure_code: failureCode, handoff_closed_at: new Date().toISOString()});
+  } catch {}
   throw error;
 }
