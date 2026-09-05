@@ -904,6 +904,8 @@ jobs:
         run: |
           node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
           node scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.test.mjs
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
+          python3 scripts/kidults/kpmo/validate-sharded-reserve-archive-contract-v1.test.py
           node --check scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
           node scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
 
