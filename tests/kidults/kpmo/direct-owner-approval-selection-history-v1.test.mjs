@@ -151,6 +151,35 @@ test('newest malformed marked approval still fails closed', () => {
   );
 });
 
+test('Draft invalidation prevents approval rebinding and permits only a fresh post-Draft approval', () => {
+  const now = Date.parse('2026-09-05T05:00:00Z');
+  const {selectApproval} = loadProductionSelector(now);
+  const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+  const pr = {created_at: iso(-40)};
+  const headCommit = {commit: {committer: {date: iso(-35)}}};
+  const readyEvent = {
+    created_at: iso(-1),
+    latest_invalidating_event: {id: 150, event: 'convert_to_draft', created_at: iso(-5)},
+  };
+  const staleApproval = ownerComment({
+    id: 400,
+    createdAt: iso(-10),
+    body: approvalBody({nonce: '55555555555555555555555555555555', expiresAt: iso(20)}),
+  });
+  const freshApproval = ownerComment({
+    id: 500,
+    createdAt: iso(-3),
+    body: approvalBody({nonce: '66666666666666666666666666666666', expiresAt: iso(20)}),
+  });
+
+  assert.throws(
+    () => selectApproval([staleApproval], 'johnkim9524-collab', pr, headCommit, readyEvent),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_LATEST_INVALIDATION/,
+  );
+  const selected = selectApproval([staleApproval, freshApproval], 'johnkim9524-collab', pr, headCommit, readyEvent);
+  assert.equal(selected.comment_id, 500);
+});
+
 test('selector chooses marker generation before parsing approval body', () => {
   const selector = extractFunction('selectApproval');
   const markerFilter = selector.indexOf('.filter(comment =>');
