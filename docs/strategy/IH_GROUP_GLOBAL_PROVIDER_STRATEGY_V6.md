@@ -151,6 +151,8 @@ Growth does not justify premature enterprise spend. It changes the optimum only 
 
 ## 7. Provider scorecard and hard gates
 
+The mandatory pre-payment control is defined in `docs/strategy/TRACK_Z_MONEY_TO_USABLE_DATA_GATE_V1.md` and `coordination/kidults/governance/track-z-money-to-usable-data-gate-v1.json`. Every provider must prove the complete `PAYMENT -> ACCESS -> INPUT -> DATA -> RIGHTS -> PRODUCT` chain before a payment, paid trial, auto-converting trial, contract or credential activation is submitted for approval. Any missing or unknown link is `NO_PAY_HOLD`; `READY_FOR_SPEND_REVIEW` does not grant spend authority.
+
 Rights compatibility is pass/fail. Only providers that pass proceed to weighted scoring.
 
 | Dimension | Weight | Required evidence |
