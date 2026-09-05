@@ -34,6 +34,8 @@ test('Atomic landing durable status cannot silently green a missing post-merge p
   assert.match(reconciler, /state = 'MERGE_COMMITTED_POSTLANDING_PROOF_PENDING'/);
   assert.match(reconciler, /terminalClass = 'EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED'/);
   assert.match(reconciler, /proof = 'REQUIRED_NOT_OBSERVED'/);
+  assert.match(reconciler, /exact_merge_sha_push_suite_required: !currentSoldChanged/);
+  assert.match(reconciler, /github_token_recursive_push_trigger_claimed: false/);
   assert.doesNotMatch(reconciler, /proof = 'NOT_REQUIRED_NON_CURRENT_SOLD'/);
   assert.match(reconciler, /if \(state === 'VERIFIED_PASS'\)[\s\S]*?postHeadStatus\('success'/);
   assert.match(reconciler, /else if \(state === 'VERIFIED_FAIL'\)[\s\S]*?postHeadStatus\('failure'/);
