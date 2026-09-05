@@ -1,0 +1,50 @@
+{
+  "id": "direct-owner-postmerge-push-suite-policy-v1",
+  "version": "1.0.0",
+  "branch": "main",
+  "event": "push",
+  "max_pages": 10,
+  "poll_interval_seconds": 5,
+  "max_wait_seconds": 90,
+  "accepted_terminal_conclusions": [
+    "success",
+    "failure"
+  ],
+  "required_workflows": [
+    {
+      "path": ".github/workflows/ci-validation.yml",
+      "name": "CI Validation"
+    },
+    {
+      "path": ".github/workflows/kidults-p0-control-plane-closure-v1.yml",
+      "name": "KIDULTS P0 Control Plane Closure v1"
+    },
+    {
+      "path": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
+      "name": "KIDULTS Full Value Chain Red-Team Orchestrator V1"
+    },
+    {
+      "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+      "name": "KIDULTS Platform Continuous Assurance V1"
+    },
+    {
+      "path": ".github/workflows/kpmo-exact-head-ci-supersession-v1.yml",
+      "name": "KPMO Exact-Head CI Supersession v1"
+    },
+    {
+      "path": ".github/workflows/solo-owner-preflight.yml",
+      "name": "KAIOS Solo Owner Preflight"
+    }
+  ],
+  "proof_contract": {
+    "exact_merge_sha_only": true,
+    "predecessor_head_proof_reuse_forbidden": true,
+    "all_required_workflows_must_be_present": true,
+    "all_required_workflows_must_be_terminal": true,
+    "terminal_failure_is_preserved_as_fail_closed_evidence": true,
+    "terminal_failure_does_not_become_promotion_authority": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
