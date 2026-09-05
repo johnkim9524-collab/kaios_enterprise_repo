@@ -37,11 +37,32 @@ class MemoryClient {
   }
 }
 
+function fabricatedRestrictedByteManifest() {
+  const admitted = clone(read(manifestPath));
+  admitted.manifest_type = 'OBJECT_IDENTITY';
+  admitted.status = 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY';
+  admitted.scope.source_ids = ['wikidata-cc0-identity'];
+  admitted.scope.source_count = 1;
+  admitted.artifact.storage_mode = 'RESTRICTED_EVIDENCE_BYTES';
+  admitted.artifact.contains_external_raw_content = true;
+  admitted.artifact.evidence_uri = '/mnt/ih_prod_01/evidence/current-sold/objects/wikidata-cc0-identity/manifest.json';
+  admitted.admission = {
+    rights_decision_id: '11111111-1111-4111-8111-111111111111',
+    supply_chain_run_id: '22222222-2222-4222-8222-222222222222'
+  };
+  admitted.manifest_digest = manifestDigest(admitted);
+  return admitted;
+}
+
 test('binds the 19-source registry artifact and remains non-authoritative', () => {
-  const result = validateEvidenceManifest(read(manifestPath), read(registryPath), read(contractPath), {artifactPath: registryPath});
+  const contract = read(contractPath);
+  assert.equal(contract.rules.restricted_bytes_hard_disabled_until_authoritative_receipt_resolution, true);
+  assert.equal(contract.rules.restricted_bytes_require_content_bound_authoritative_receipt_resolution, true);
+  const result = validateEvidenceManifest(read(manifestPath), read(registryPath), contract, {artifactPath: registryPath});
   assert.equal(result.state, 'VERIFIED_PASS');
   assert.equal(result.source_count, 19);
   assert.equal(result.external_raw_content, false);
+  assert.equal(result.restricted_evidence_bytes_authorized, false);
   assert.equal(result.database_mutation_authorized, false);
   assert.equal(result.production, 'HOLD');
 });
@@ -62,7 +83,7 @@ test('rejects external bytes, evidence-volume writes and release authority', () 
   const registry = read(registryPath);
   const contract = read(contractPath);
   for (const mutation of [
-    (manifest) => { manifest.artifact.contains_external_raw_content = true; },
+    (manifest) => { manifest.artifact.contains_external_raw_content = true; manifest.artifact.storage_mode = 'RESTRICTED_EVIDENCE_BYTES'; },
     (manifest) => { manifest.artifact.evidence_uri = '/mnt/ih_prod_01/evidence/current-sold/unapproved'; },
     (manifest) => { manifest.release_boundary.database_mutation = true; },
     (manifest) => { manifest.release_boundary.production = 'PASS'; }
@@ -90,7 +111,7 @@ test('rejects unapproved transaction acquisition and unknown sources', () => {
     supply_chain_run_id: '22222222-2222-4222-8222-222222222222'
   };
   acquisition.manifest_digest = manifestDigest(acquisition);
-  assert.throws(() => validateEvidenceManifest(acquisition, registry, contract, {artifactPath: registryPath}), /EVIDENCE_RAW_ARCHIVE_RIGHTS_NOT_PASS/);
+  assert.throws(() => validateEvidenceManifest(acquisition, registry, contract, {artifactPath: registryPath}), /EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED/);
   const unknown = clone(read(manifestPath));
   unknown.scope.source_ids = ['unknown-source'];
   unknown.scope.source_count = 1;
@@ -98,37 +119,15 @@ test('rejects unapproved transaction acquisition and unknown sources', () => {
   assert.throws(() => validateEvidenceManifest(unknown, registry, contract, {artifactPath: registryPath}), /EVIDENCE_SOURCE_ID_UNKNOWN/);
 });
 
-test('permits only receipt-bound restricted bytes for a registry PASS source', () => {
-  const registry = read(registryPath);
-  const contract = read(contractPath);
-  const admitted = clone(read(manifestPath));
-  admitted.manifest_type = 'OBJECT_IDENTITY';
-  admitted.status = 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY';
-  admitted.scope.source_ids = ['wikidata-cc0-identity'];
-  admitted.scope.source_count = 1;
-  admitted.artifact.storage_mode = 'RESTRICTED_EVIDENCE_BYTES';
-  admitted.artifact.contains_external_raw_content = true;
-  admitted.artifact.evidence_uri = '/mnt/ih_prod_01/evidence/current-sold/objects/wikidata-cc0-identity/manifest.json';
-  admitted.admission = {
-    rights_decision_id: '11111111-1111-4111-8111-111111111111',
-    supply_chain_run_id: '22222222-2222-4222-8222-222222222222'
-  };
-  admitted.manifest_digest = manifestDigest(admitted);
-  const result = validateEvidenceManifest(admitted, registry, contract);
-  assert.equal(result.state, 'VERIFIED_PASS');
-  assert.equal(result.external_raw_content, true);
-  for (const unsafe of [
-    '/mnt/ih_prod_01/evidence/current-sold/../escape',
-    '/tmp/current-sold/escape'
-  ]) {
-    const candidate = clone(admitted);
-    candidate.artifact.evidence_uri = unsafe;
-    candidate.manifest_digest = manifestDigest(candidate);
-    assert.throws(() => validateEvidenceManifest(candidate, registry, contract), /EVIDENCE_VOLUME_URI_(UNSAFE|OUTSIDE_ROOT)/);
-  }
+test('fabricated UUID receipts cannot authorize restricted bytes even for a registry PASS source', () => {
+  const admitted = fabricatedRestrictedByteManifest();
+  assert.throws(
+    () => validateEvidenceManifest(admitted, read(registryPath), read(contractPath)),
+    /EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED/
+  );
 });
 
-test('append is transactional and replay-idempotent', async () => {
+test('append is transactional and replay-idempotent for metadata-only manifests', async () => {
   const client = new MemoryClient();
   const args = [read(manifestPath), read(registryPath), read(contractPath), {artifactPath: registryPath}];
   const first = await appendEvidenceManifest(client, ...args);
@@ -140,7 +139,7 @@ test('append is transactional and replay-idempotent', async () => {
   assert.equal(client.commands.filter((command) => command === 'ROLLBACK').length, 0);
 });
 
-test('migration is append-only, registered-writer bound and release neutral', () => {
+test('migration is append-only and independently hard-stops restricted evidence bytes', () => {
   const sql = fs.readFileSync('infrastructure/postgres/source-intelligence/0002_source_evidence_manifest_ledger_v1.sql', 'utf8');
   for (const required of [
     'kidults_control.source_evidence_manifest_ledger',
@@ -150,10 +149,14 @@ test('migration is append-only, registered-writer bound and release neutral', ()
     'BEFORE TRUNCATE',
     'source_acquisition',
     'database_mutation',
-    'rights_decision_id',
-    'supply_chain_run_id',
+    'source_evidence_manifest_restricted_bytes_hard_stop_ck',
+    "storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'",
+    'contains_external_raw_content = false',
+    'rights_decision_id IS NULL',
+    'supply_chain_run_id IS NULL',
     "production}' = 'HOLD'"
   ]) assert.match(sql, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(sql, /contains_external_raw_content\s*=\s*true[\s\S]*storage_mode\s*=\s*'RESTRICTED_EVIDENCE_BYTES'/i);
   assert.doesNotMatch(sql, /GRANT\s+(UPDATE|DELETE|TRUNCATE)/i);
   assert.equal(artifactDigest(registryPath), read(manifestPath).artifact.digest);
 });
