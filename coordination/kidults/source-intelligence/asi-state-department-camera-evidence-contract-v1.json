@@ -4,13 +4,8 @@
   "status": "VERIFIED_PASS",
   "owner": "KPMO",
   "priority": "P0",
-  "platform_principles": [
-    "AUTONOMOUS",
-    "GLOBAL",
-    "IRREPLACEABLE_VALUE",
-    "TRANSPARENT"
-  ],
-  "mission": "Validate and admit one rights-preflight-bounded official public-facts projection for a cameras-and-lenses auction-result reference while preventing a terminal bid display from becoming a confirmed hammer price, settled transaction, current price, liquidity measure, representative collector-market value, generic Market Event, Signal, Index, Snapshot Candidate or Track B input.",
+  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
+  "mission": "Validate and retain one rights-preflight-bounded official public-facts auction-result reference for cameras and lenses without self-attesting external acquisition, empirical Evidence admission, market-event admission, verified sold price, current price, liquidity, Track B input, or release authority.",
   "authoritative_inputs": {
     "observation": "coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json",
     "observation_projection_sha256": "sha256:dcd433fa8d320a0e3e6a22c3425e72b70988815dfb5c69514517588e009f37b5",
@@ -39,11 +34,7 @@
     "live_generalized_fetch_activated": false,
     "source_owner_verified": true,
     "factual_origin_verified": true,
-    "required_rights": [
-      "COLLECT_RIGHT",
-      "BOUNDED_STORE_RIGHT",
-      "INTERNAL_DERIVE_RIGHT"
-    ],
+    "required_rights": ["COLLECT_RIGHT", "BOUNDED_STORE_RIGHT", "INTERNAL_DERIVE_RIGHT"],
     "allowed_path_prefix": "/en-US/Auction/Lot/",
     "required_query_parameter": "auctionId",
     "exact_source_url": "https://online-auction.state.gov/en-US/Auction/Lot/fdc79e90-95ac-452e-8f9b-ac91aede6e3d?auctionId=13251474-ac4c-49d5-b3dc-9c9b0cb181e3",
@@ -77,8 +68,10 @@
     "price_type": "BID",
     "scope_id": "cameras_lenses",
     "market_cell_scope": "DOMAIN_RELEVANT_OBJECT_REFERENCE_NOT_REPRESENTATIVE_COLLECTOR_MARKET",
-    "maximum_admitted_evidence_records": 1,
-    "maximum_market_event_references": 1,
+    "maximum_retained_reference_records": 1,
+    "maximum_admitted_evidence_records": 0,
+    "maximum_market_event_references": 0,
+    "machine_proven_acquisition_receipt_required_for_empirical_admission": true,
     "verified_sold_event_allowed": false,
     "current_price_allowed": false,
     "liquidity_or_time_to_sale_allowed": false
@@ -88,11 +81,7 @@
     "legacy_scope_id": "scope-cameras-lenses",
     "domain_id": "technology_cameras",
     "source_region": "QA",
-    "current_192_mission_regions": [
-      "North America",
-      "Europe",
-      "East Asia"
-    ],
+    "current_192_mission_regions": ["North America", "Europe", "East Asia"],
     "current_192_mission_id": null,
     "join_state": "OUTSIDE_CURRENT_192_REGION_AND_EVIDENCE_CLASS_GRAIN_FALLBACK_REFERENCE_ONLY"
   },
@@ -105,16 +94,9 @@
       "THE_LOT_REFERENCED_NIKON_D5600_AND_NIKON_D90_CAMERAS"
     ],
     "forbidden": [
-      "CONFIRMED_HAMMER_PRICE",
-      "SETTLED_TRANSACTION",
-      "ALL_IN_REALIZED_PRICE",
-      "BUYER_PREMIUM_INCLUDED_PRICE",
-      "CURRENT_PRICE",
-      "LIQUIDITY",
-      "TIME_TO_SALE",
-      "REPRESENTATIVE_COLLECTOR_MARKET_VALUE",
-      "GLOBAL_MARKET_REPRESENTATIVENESS",
-      "CUSTOMER_FACING_MARKET_CLAIM"
+      "CONFIRMED_HAMMER_PRICE", "SETTLED_TRANSACTION", "ALL_IN_REALIZED_PRICE", "BUYER_PREMIUM_INCLUDED_PRICE",
+      "CURRENT_PRICE", "LIQUIDITY", "TIME_TO_SALE", "REPRESENTATIVE_COLLECTOR_MARKET_VALUE",
+      "GLOBAL_MARKET_REPRESENTATIVENESS", "CUSTOMER_FACING_MARKET_CLAIM"
     ]
   },
   "required_outputs": [
@@ -129,59 +111,30 @@
     "irreplaceable_value_effect": "POSITIVE",
     "transparency_effect": "POSITIVE",
     "evidence": {
-      "autonomous": "Automatic exact-projection validation and rights-expiry enforcement are required.",
+      "autonomous": "Automatic exact-projection reference validation and rights-expiry enforcement are required.",
       "global": "The Qatar reference is explicitly outside the current 192-mission grain and cannot claim global market coverage.",
       "irreplaceable_value": "Owned reference routing, lineage-role and claim-ceiling controls are required.",
-      "transparent": "Raw-capture, freshness, generic-event, signal, index and verified-sold states must remain explicit."
+      "transparent": "Committed reference, acquisition receipt, empirical admission, generic event, signal, index and verified-sold states remain explicit."
     }
   },
   "required_mutation_families": [
-    "PROJECTION_HASH_MISMATCH",
-    "UNEXPECTED_OBSERVATION_FIELD_OR_CAPTURE_AGENT_SUBSTITUTION",
-    "SOURCE_HOST_OR_PATH_MISMATCH",
-    "OFFICIAL_LOT_PROVENANCE_SPLIT",
-    "EXACT_CLAIM_FACT_DRIFT",
-    "TERMINAL_SOLD_STATE_MISSING",
-    "TERMINAL_AMOUNT_OR_CURRENCY_INVALID",
-    "LOT_GRAIN_QUANTITY_INVALID",
-    "OWNER_OR_FACTUAL_ORIGIN_UNVERIFIED",
-    "RIGHTS_ALLOW_REMOVED",
-    "RIGHTS_EVIDENCE_REF_SUBSTITUTION",
-    "RIGHTS_REVIEW_EXPIRY",
-    "RIGHTS_REVIEW_INTERVAL_EXCEEDED",
-    "OBSERVATION_TIME_IN_FUTURE",
-    "OBSERVATION_EVIDENCE_REF_REMOVAL",
-    "AUCTION_RESULT_REFERENCE_PROMOTED_TO_VERIFIED_SOLD_EVENT",
-    "BID_PRICE_PROMOTED_TO_HAMMER_OR_REALIZED",
-    "CLAIM_ALLOWLIST_EXPANSION",
-    "TOP_16_EMPIRICAL_STATE_FALSE_PROMOTION",
-    "REFERENCE_ONLY_EVENT_GENERIC_ROUTER_ADMISSION",
-    "PUBLIC_PRODUCTION_OR_G5_FALSE_PROMOTION"
+    "PROJECTION_HASH_MISMATCH", "UNEXPECTED_OBSERVATION_FIELD_OR_CAPTURE_AGENT_SUBSTITUTION",
+    "SOURCE_HOST_OR_PATH_MISMATCH", "OFFICIAL_LOT_PROVENANCE_SPLIT", "EXACT_CLAIM_FACT_DRIFT",
+    "TERMINAL_SOLD_STATE_MISSING", "TERMINAL_AMOUNT_OR_CURRENCY_INVALID", "LOT_GRAIN_QUANTITY_INVALID",
+    "OWNER_OR_FACTUAL_ORIGIN_UNVERIFIED", "RIGHTS_ALLOW_REMOVED", "RIGHTS_EVIDENCE_REF_SUBSTITUTION",
+    "RIGHTS_REVIEW_EXPIRY", "RIGHTS_REVIEW_INTERVAL_EXCEEDED", "OBSERVATION_TIME_IN_FUTURE",
+    "OBSERVATION_EVIDENCE_REF_REMOVAL", "AUCTION_RESULT_REFERENCE_PROMOTED_TO_VERIFIED_SOLD_EVENT",
+    "BID_PRICE_PROMOTED_TO_HAMMER_OR_REALIZED", "CLAIM_ALLOWLIST_EXPANSION",
+    "COMMITTED_REFERENCE_FALSE_EMPIRICAL_PROMOTION", "TOP_16_EMPIRICAL_STATE_FALSE_PROMOTION",
+    "REFERENCE_ONLY_EVENT_GENERIC_ROUTER_ADMISSION", "PUBLIC_PRODUCTION_OR_G5_FALSE_PROMOTION"
   ],
   "required_adapter_mutation_cases": [
-    "projection-hash-mismatch",
-    "capture-agent-substituted",
-    "unexpected-semantic-claim-field",
-    "source-host-mismatch",
-    "source-query-mismatch",
-    "official-lot-provenance-split",
-    "terminal-sold-missing",
-    "terminal-amount-zero",
-    "currency-ambiguous",
-    "auction-close-drift",
-    "terminal-amount-drift",
-    "currency-drift",
-    "bid-count-drift",
-    "lot-quantity-inflated",
-    "owner-unverified",
-    "rights-allow-removed",
-    "rights-evidence-ref-substituted",
-    "rights-review-expired",
-    "rights-review-far-future",
-    "observation-time-future",
-    "observation-evidence-ref-removed",
-    "verified-sold-promotion",
-    "public-promotion"
+    "projection-hash-mismatch", "capture-agent-substituted", "unexpected-semantic-claim-field",
+    "source-host-mismatch", "source-query-mismatch", "official-lot-provenance-split", "terminal-sold-missing",
+    "terminal-amount-zero", "currency-ambiguous", "auction-close-drift", "terminal-amount-drift", "currency-drift",
+    "bid-count-drift", "lot-quantity-inflated", "owner-unverified", "rights-allow-removed",
+    "rights-evidence-ref-substituted", "rights-review-expired", "rights-review-far-future",
+    "observation-time-future", "observation-evidence-ref-removed", "verified-sold-promotion", "public-promotion"
   ],
   "required_workflow_mutation_steps": [
     "Reject verified-sold and hammer-price promotion",
@@ -194,10 +147,16 @@
   ],
   "truth_boundary": {
     "bounded_primary_source_fact_projections_validated": 1,
+    "committed_official_source_reference_projections_verified": 1,
+    "reference_projection_records_retained": 1,
+    "machine_proven_acquisition_receipts": 0,
     "exact_projection_reference_validators_active": 1,
     "source_specific_fallback_live_adapters_activated": 0,
-    "auction_result_reference_evidence_admitted": 1,
-    "market_event_references_created": 1,
+    "auction_result_reference_evidence_admitted": 0,
+    "market_event_references_created": 0,
+    "empirical_evidence_admitted": 0,
+    "empirical_market_events_created": 0,
+    "promotable": false,
     "generic_market_events_admitted": 0,
     "generic_market_router_rejection_verified": true,
     "generic_admitted_wrapper_bypass_rejection_verified": true,

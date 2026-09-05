@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -21,6 +22,66 @@ const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
 const outPath = process.env.LIFECYCLE_AUTHORITY_PATH || '/tmp/kpmo-atomic-landing/lifecycle-authority.json';
+const runnerTemp = process.env.RUNNER_TEMP || '/tmp';
+const terminalBootstrapPath = path.join(runnerTemp, 'kidults-atomic-landing-terminal', 'receipt.json');
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value ?? '')).digest('hex');
+}
+
+function writeFailClosedTerminalBootstrap() {
+  const repositoryValid = typeof repository === 'string' && /^[^/]+\/[^/]+$/.test(repository);
+  const prValid = /^\d+$/.test(String(prNumber || ''));
+  const headValid = /^[0-9a-f]{40}$/.test(String(expectedHeadSha || ''));
+  if (!repositoryValid || !prValid || !headValid) return;
+  const expectedAuthorization = `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`;
+  const receipt = {
+    id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
+    version: '2.2.0',
+    state: 'PREMERGE_REJECTED',
+    terminal_class: 'PREVALIDATION_FAIL_CLOSED_BOOTSTRAP',
+    repository,
+    pull_request: Number(prNumber),
+    exact_head_sha: expectedHeadSha,
+    landing_actor: landingActor || null,
+    landing_workflow_run_id: /^\d+$/.test(String(process.env.GITHUB_RUN_ID || '')) ? Number(process.env.GITHUB_RUN_ID) : null,
+    landing_workflow_run_attempt: /^\d+$/.test(String(process.env.GITHUB_RUN_ATTEMPT || '')) ? Number(process.env.GITHUB_RUN_ATTEMPT) : null,
+    authorization_id_sha256: sha256(authorizationId),
+    authorization_input_present: typeof authorizationId === 'string' && authorizationId.length > 0,
+    authorization_binding_shape_valid: authorizationId === expectedAuthorization,
+    raw_authorization_persisted: false,
+    authorization_consumption: {
+      state: 'NOT_ESTABLISHED_FAIL_CLOSED',
+      raw_authorization_persisted: false,
+    },
+    merge_commit_sha: null,
+    premerge_main_sha: null,
+    current_sold_changed: null,
+    post_landing_proof: 'NOT_ESTABLISHED',
+    failed_check_ids: ['ATOMIC_LANDING_PREVALIDATION_NOT_COMPLETE'],
+    empirical_authority_created: false,
+    provider_authority_created: false,
+    public: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  };
+  const directory = path.dirname(terminalBootstrapPath);
+  fs.mkdirSync(directory, {recursive: true, mode: 0o700});
+  const temporaryPath = `${terminalBootstrapPath}.tmp-${process.pid}`;
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(receipt, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+    flag: 'wx',
+  });
+  fs.renameSync(temporaryPath, terminalBootstrapPath);
+  fs.chmodSync(terminalBootstrapPath, 0o600);
+}
+
+// This bootstrap deliberately precedes every strict approval/lifecycle check.
+// A malformed or wrong authorization input may fail immediately afterwards,
+// but the workflow's final always-upload still retains a sanitized RED receipt.
+writeFailClosedTerminalBootstrap();
+
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '') || !authorizationId || !landingActor) {
   throw new Error('ATOMIC_LIFECYCLE_PREFLIGHT_ENVIRONMENT_BINDING_INVALID');
 }

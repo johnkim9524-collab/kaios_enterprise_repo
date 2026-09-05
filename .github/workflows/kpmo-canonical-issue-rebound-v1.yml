@@ -1,0 +1,113 @@
+name: KPMO Canonical Issue Rebound V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: PLAN is read-only; APPLY performs the bounded 25-board append transaction
+        required: true
+        type: choice
+        options:
+          - PLAN
+          - APPLY
+        default: PLAN
+      expected_main_sha:
+        description: Exact current protected-main SHA
+        required: true
+        type: string
+      authorization_id:
+        description: Must equal CANONICAL-REBOUND-<first12-of-expected-main-sha>
+        required: true
+        type: string
+      confirm_apply:
+        description: APPLY only; must equal APPLY_25_CANONICAL_ISSUE_BODY_APPEND_ONLY
+        required: false
+        type: string
+        default: DO_NOT_APPLY
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: kpmo-canonical-issue-rebound-v1
+  cancel-in-progress: false
+
+jobs:
+  canonical-rebound:
+    if: github.ref == 'refs/heads/main' && github.actor == 'johnkim9524-collab'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact authorized protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.expected_main_sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up exact Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify exact checkout and rebound control self-test
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          node scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs --self-test
+
+      - name: Build immutable preimage rollback plan before any issue mutation
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          AUTHORIZATION_ID: ${{ inputs.authorization_id }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs --plan /tmp/kpmo-canonical-rebound-plan-v1.json
+
+      - name: Persist rollback packet before first mutation
+        id: rollback_packet
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-canonical-rebound-rollback-plan-${{ inputs.expected_main_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kpmo-canonical-rebound-plan-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Emit PLAN-only terminal receipt
+        if: inputs.mode == 'PLAN'
+        env:
+          PLAN_ARTIFACT_ID: ${{ steps.rollback_packet.outputs.artifact-id }}
+          PLAN_ARTIFACT_DIGEST: ${{ steps.rollback_packet.outputs.artifact-digest }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > /tmp/kpmo-canonical-rebound-terminal-v1.json
+          const fs=require('fs');const p=JSON.parse(fs.readFileSync('/tmp/kpmo-canonical-rebound-plan-v1.json','utf8'));
+          process.stdout.write(JSON.stringify({id:'kidults-canonical-issue-rebound-terminal-v1',version:'1.0.0',state:'PLAN_VERIFIED_NO_MUTATION',repository:process.env.GITHUB_REPOSITORY,source_sha:process.env.GITHUB_SHA,run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),plan_digest:p.plan_digest,rollback_packet_artifact_id:process.env.PLAN_ARTIFACT_ID,rollback_packet_artifact_digest:process.env.PLAN_ARTIFACT_DIGEST,issue_write_performed:false,promotion_eligible:false,public:'HOLD',production:'HOLD',g5:'HOLD'},null,2)+'\n');
+          NODE
+
+      - name: APPLY bounded 25-board append-only rebound
+        if: inputs.mode == 'APPLY'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CONFIRM_APPLY: ${{ inputs.confirm_apply }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs \
+            --apply /tmp/kpmo-canonical-rebound-plan-v1.json \
+            --receipt /tmp/kpmo-canonical-rebound-terminal-v1.json
+
+      - name: Retain terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-canonical-rebound-terminal-${{ inputs.expected_main_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kpmo-canonical-rebound-terminal-v1.json
+          retention-days: 90
+          if-no-files-found: error

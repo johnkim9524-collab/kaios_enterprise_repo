@@ -495,3 +495,89 @@ test('stale fallback remains integrity-valid while fresh refresh gate fails clos
   assert.notEqual(freshnessGate.status, 0);
   assert.match(freshnessGate.stderr, /SNAPSHOT_FRESH_AT_VALIDATION_REQUIRED/);
 });
+
+test('evidence freshness terminal gate preserves governed UNASSESSED visibility without inventing an age threshold', t => {
+  const gatePath = path.join(root, 'scripts/kidults/kpmo/enforce-management-control-tower-evidence-freshness-v1.mjs');
+  const gateSource = fs.readFileSync(gatePath, 'utf8');
+  const policy = JSON.parse(fs.readFileSync(path.join(root, 'coordination/kidults/governance/management-control-tower-contract-v1.json'), 'utf8'));
+  assert.equal(policy.snapshot_integrity.evidence_freshness_threshold, 'NOT_DEFINED');
+  assert.equal(policy.snapshot_integrity.evidence_freshness_state, 'UNASSESSED_AND_VISIBLE');
+  assert.match(gateSource, /management-control-tower-contract-v1\.json/);
+  assert.match(gateSource, /snapshot_integrity\.evidence_freshness_threshold/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_FRESHNESS_POLICY_UNSUPPORTED/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_SELF_DECLARED_CLASSIFICATION/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_SOURCE_IN_FUTURE/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_AGE_BINDING_MISMATCH/);
+  assert.doesNotMatch(gateSource, /current-sold-admission-contract-v1\.json/);
+  assert.doesNotMatch(gateSource, /empirical_evidence_freshness_minutes/);
+  assert.doesNotMatch(gateSource, /CONTROL_TOWER_EVIDENCE_STALE/);
+
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-control-tower-evidence-gate-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const snapshotPath = path.join(directory, 'snapshot.json');
+  const receiptPath = path.join(directory, 'validation-receipt.json');
+
+  const runGate = value => {
+    fs.writeFileSync(snapshotPath, `${JSON.stringify(value, null, 2)}\n`);
+    const result = spawnSync(process.execPath, [gatePath, snapshotPath, receiptPath], {
+      cwd: root,
+      encoding: 'utf8',
+      env: localProducerEnv
+    });
+    return { result, receipt: JSON.parse(fs.readFileSync(receiptPath, 'utf8')) };
+  };
+
+  const generatedAt = '2026-09-04T00:00:00.000Z';
+  const unassessed = structuredClone(snapshot);
+  unassessed.generated_at = generatedAt;
+  unassessed.source_as_of = '2026-08-27T00:00:00.000Z';
+  unassessed.freshness.evidence.state_at_build = 'UNASSESSED';
+  unassessed.freshness.evidence.threshold = 'NOT_DEFINED';
+  unassessed.freshness.evidence.aggregate_as_of = unassessed.source_as_of;
+  unassessed.freshness.evidence.oldest_material_age_minutes_at_build = 8 * 24 * 60;
+  const unassessedResult = runGate(unassessed);
+  assert.equal(unassessedResult.result.status, 0, unassessedResult.result.stderr || unassessedResult.result.stdout);
+  assert.equal(unassessedResult.receipt.state, 'VERIFIED_HOLD');
+  assert.equal(unassessedResult.receipt.operational_outcome, 'SUCCESS_WITH_GOVERNED_HOLD');
+  assert.deepEqual(unassessedResult.receipt.failed_check_ids, ['CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED']);
+  assert.equal(unassessedResult.receipt.evidence_freshness.state_at_validation, 'UNASSESSED');
+  assert.equal(unassessedResult.receipt.evidence_freshness.freshness_claim, 'NONE');
+  assert.equal(unassessedResult.receipt.evidence_freshness.threshold, 'NOT_DEFINED');
+  assert.equal(unassessedResult.receipt.evidence_freshness.threshold_minutes, null);
+  assert.equal(unassessedResult.receipt.promotion_eligible, false);
+  assert.equal(unassessedResult.receipt.evidence_admission, 'NONE');
+  assert.notEqual(unassessedResult.receipt.state, 'VERIFIED_PASS');
+  assert.match(gateSource, /SUCCESS_WITH_GOVERNED_HOLD/);
+  assert.match(gateSource, /CONTROL_TOWER_EVIDENCE_FRESHNESS_UNASSESSED/);
+
+  const selfDeclaredFresh = structuredClone(unassessed);
+  selfDeclaredFresh.freshness.evidence.state_at_build = 'FRESH';
+  const selfDeclaredFreshResult = runGate(selfDeclaredFresh);
+  assert.notEqual(selfDeclaredFreshResult.result.status, 0);
+  assert.deepEqual(selfDeclaredFreshResult.receipt.failed_check_ids, ['CONTROL_TOWER_EVIDENCE_SELF_DECLARED_CLASSIFICATION']);
+
+  const future = structuredClone(unassessed);
+  future.source_as_of = '2026-09-05T00:00:00.000Z';
+  future.freshness.evidence.aggregate_as_of = future.source_as_of;
+  future.freshness.evidence.oldest_material_age_minutes_at_build = -24 * 60;
+  const futureResult = runGate(future);
+  assert.notEqual(futureResult.result.status, 0);
+  assert.deepEqual(futureResult.receipt.failed_check_ids, ['CONTROL_TOWER_EVIDENCE_SOURCE_IN_FUTURE']);
+
+  const mismatched = structuredClone(unassessed);
+  mismatched.freshness.evidence.oldest_material_age_minutes_at_build = 1;
+  const mismatchedResult = runGate(mismatched);
+  assert.notEqual(mismatchedResult.result.status, 0);
+  assert.deepEqual(mismatchedResult.receipt.failed_check_ids, ['CONTROL_TOWER_EVIDENCE_AGE_BINDING_MISMATCH']);
+});
+
+test('control tower workflow preserves the evidence terminal receipt on failure', () => {
+  assert.equal((refreshWorkflow.match(/enforce-management-control-tower-evidence-freshness-v1\.mjs/g) || []).length, 4);
+  assert.equal((refreshWorkflow.match(/coordination\/kidults\/governance\/management-control-tower-contract-v1\.json/g) || []).length, 2);
+  assert.equal((refreshWorkflow.match(/coordination\/kidults\/market\/current-sold-admission-contract-v1\.json/g) || []).length, 0);
+  assert.match(refreshWorkflow, /transport-validation-receipt\.json/);
+  assert.match(refreshWorkflow, /enforce-management-control-tower-evidence-freshness-v1\.mjs[\s\S]*validation-receipt\.json/);
+  assert.match(refreshWorkflow, /Upload exact-head governed terminal packet\n\s+if: always\(\)/);
+  assert.ok(refreshWorkflow.indexOf('transport-validation-receipt.json')
+    < refreshWorkflow.indexOf('enforce-management-control-tower-evidence-freshness-v1.mjs \\'));
+});

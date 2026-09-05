@@ -55,6 +55,9 @@ for (const entry of contract.workflow_run_class_allowlist) {
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE').length === 4, 'SOURCE_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_ADAPTER_EVIDENCE_CASCADE').length === 7, 'ADAPTER_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'KPMO_CONTROL_PLANE_VALIDATORS').length === 3, 'CONTROL_CLASS_CARDINALITY');
+const arlContract = contract.workflow_run_class_allowlist.find((entry) => entry.workflow_path === '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml');
+assert(JSON.stringify(arlContract?.non_consumable_runtime_name_patterns) === JSON.stringify(['^KIDULTS ARL / recovery-[a-f0-9]{40}$']), 'ARL_NON_CONSUMABLE_CONTRACT_DRIFT');
+assert(contract.runtime_dedupe.ephemeral_actions_guard.non_consumable_success_bypass_required === true, 'NON_CONSUMABLE_ALIAS_BYPASS_REQUIRED');
 
 const base = {
   event_name: 'workflow_run',
@@ -149,14 +152,35 @@ for (const [name, sourcePath, expectedClass] of exactClasses) {
 }
 assert(exactKeys.size === exactClasses.length, 'SPECIAL_EXACT_CLASSES_NOT_DISTINCT');
 
-const dynamicArl = classifyCanonicalIdentity({
+const recoveryArl = classifyCanonicalIdentity({
   ...base,
   run_id: '9850',
   upstream_run_id: '8850',
   upstream_workflow_name: `KIDULTS ARL / recovery-${shaA}`,
   upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+  upstream_event: 'schedule',
+  upstream_created_at: '2026-08-29T23:19:00.000Z',
 }, contract, contractText);
-assert(dynamicArl.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE', 'ARL_DYNAMIC_RUN_NAME_NOT_PATH_BOUND');
+assert(recoveryArl.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE', 'ARL_RECOVERY_CLASS');
+assert(recoveryArl.state === 'UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION', 'ARL_RECOVERY_STATE');
+assert(recoveryArl.non_consumable_success_observation === true, 'ARL_RECOVERY_NON_CONSUMABLE_FLAG');
+assert(recoveryArl.dedupe_eligible === false && recoveryArl.ephemeral_actions_alias_eligible === false, 'ARL_RECOVERY_ALIAS_OR_DEDUPE');
+assert(recoveryArl.generation_discriminator === 'non-consumable-upstream-run:8850:attempt:1', 'ARL_RECOVERY_EXACT_RUN_DISCRIMINATOR');
+assert(recoveryArl.fatal_error_code === 'UPSTREAM_NON_CONSUMABLE_SUCCESS_OBSERVATION', 'ARL_RECOVERY_FAILURE_CODE');
+assert(recoveryArl.audit_execution_disposition === 'FAIL_CLOSED_NON_CONSUMABLE_UPSTREAM', 'ARL_RECOVERY_EXECUTION_DISPOSITION');
+
+const ordinaryArl = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9852',
+  upstream_run_id: '8852',
+  upstream_workflow_name: 'KIDULTS ARL / p1-123',
+  upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+  upstream_event: 'push',
+}, contract, contractText);
+assert(ordinaryArl.state === 'CLASSIFIED_EPHEMERAL_GUARD_REMOTE_LEDGER_HOLD', 'ARL_P1_STATE_DRIFT');
+assert(ordinaryArl.non_consumable_success_observation === false, 'ARL_P1_FALSE_NON_CONSUMABLE');
+assert(ordinaryArl.dedupe_eligible === true && ordinaryArl.ephemeral_actions_alias_eligible === true, 'ARL_P1_GROUPED_ALIAS_LOST');
+
 const dynamicCoverage = classifyCanonicalIdentity({
   ...base,
   run_id: '9851',
@@ -245,6 +269,12 @@ let weakenedRejected = false;
 try { validateCanonicalIdentityContract(weakened); } catch { weakenedRejected = true; }
 assert(weakenedRejected, 'UNPROVEN_RUNTIME_ACTIVATION_NOT_REJECTED');
 
+const weakenedRecoverySemantic = structuredClone(contract);
+delete weakenedRecoverySemantic.workflow_run_class_allowlist.find((entry) => entry.workflow_path === '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml').non_consumable_runtime_name_patterns;
+let weakenedRecoveryRejected = false;
+try { validateCanonicalIdentityContract(weakenedRecoverySemantic); } catch { weakenedRecoveryRejected = true; }
+assert(weakenedRecoveryRejected, 'ARL_RECOVERY_NON_CONSUMABLE_CONTRACT_REMOVAL_NOT_REJECTED');
+
 process.stdout.write(`${JSON.stringify({
   id: 'kidults-continuous-assurance-canonical-identity-validation-v1',
   state: 'VERIFIED_PASS',
@@ -256,7 +286,9 @@ process.stdout.write(`${JSON.stringify({
   special_exact_three_way_bursts_isolated: exactBurstCases,
   special_exact_upstream_attempts_isolated: exactBurstCases,
   non_success_conclusions_non_dedupable: 7,
-  negative_cases_rejected: negativeCases.length + 1,
+  non_consumable_success_observations_non_dedupable: 1,
+  ordinary_arl_grouped_success_preserved: true,
+  negative_cases_rejected: negativeCases.length + 2,
   runtime_dedupe_state: contract.runtime_dedupe.state,
   canonical_execution_claimed: false,
   detector_authority: contract.truth_boundary.detector_authority,

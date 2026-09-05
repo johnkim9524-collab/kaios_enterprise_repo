@@ -1,0 +1,68 @@
+{
+  "id": "kidults-current-sold-governed-receipt-authority-contract-v1",
+  "version": "1.0.0",
+  "status": "CONTROL_IMPLEMENTATION_ACTIVE_WHEN_PRESENT_ON_PROTECTED_MAIN",
+  "primary_track": "TRACK_A",
+  "governance_owner": "KPMO",
+  "runtime_owner": "ASI",
+  "purpose": "Verify that a Current-SOLD receipt-registry snapshot is authorized by a writer-independent external Ed25519 trust root and exactly bound to repository, source SHA, canonical run, receipt-set digests, purpose, validity and record count.",
+  "authority_class": "GOVERNED_EXTERNAL_ED25519_KEYRING",
+  "maximum_authority_lifetime_seconds": 86400,
+  "maximum_future_clock_skew_seconds": 300,
+  "required_runtime_bindings": [
+    "EXPECTED_TRUSTED_KEYRING_DIGEST_FROM_INDEPENDENT_CONFIGURATION",
+    "EXPECTED_RECEIPT_REGISTRY_DIGEST",
+    "EXPECTED_REPOSITORY",
+    "EXPECTED_SOURCE_SHA",
+    "EXPECTED_CANONICAL_RUN_ID",
+    "EXPECTED_PURPOSE_PRIVATE_CURRENT_SOLD"
+  ],
+  "required_registry_invariants": [
+    "EXACT_SCHEMA_VERSION",
+    "NONEMPTY_ACQUISITIONS_AND_RIGHTS",
+    "GLOBALLY_UNIQUE_RECEIPT_IDS",
+    "ALL_RECEIPTS_PASS",
+    "ALL_RECEIPTS_BIND_EXPECTED_SOURCE_SHA_AND_RUN",
+    "EVERY_ACQUISITION_SOURCE_HAS_EXACT_RIGHTS_COVERAGE",
+    "NO_EXTRA_RIGHTS_SOURCE",
+    "EXACT_SORTED_RECEIPT_SET_DIGESTS"
+  ],
+  "required_authority_invariants": [
+    "ED25519_SIGNATURE_VALID",
+    "ACTIVE_KEY_AND_ISSUER_BINDING",
+    "KEY_VALID_AT_ISSUANCE_AND_EVALUATION",
+    "CANONICAL_TIMESTAMPS",
+    "NOT_BEFORE_AND_EXPIRY_VALID",
+    "LIFETIME_BOUNDED",
+    "AUTHORIZED_RECORD_COUNT_EXACT",
+    "NONCE_PRESENT",
+    "AUTHORIZATION_ID_PRESENT",
+    "CONSUMPTION_BOUNDARY_FULL_SIGNATURE_KEYRING_REGISTRY_AND_BINDING_REVERIFICATION",
+    "DETACHED_VERIFICATION_RECEIPT_EXACT_MATCH_EXCEPT_EVALUATED_AT"
+  ],
+  "sanitized_receipt": {
+    "raw_registry_emitted": false,
+    "raw_authority_payload_emitted": false,
+    "raw_signature_emitted": false,
+    "raw_nonce_emitted": false,
+    "raw_key_emitted": false,
+    "issuer_key_authorization_and_nonce": "DIGEST_ONLY"
+  },
+  "truth_boundary": {
+    "registry_authority_verified": true,
+    "lawful_empirical_admission_authorized_by_this_receipt_alone": false,
+    "requires_atomic_current_sold_admission": true,
+    "requires_separate_append_only_ledger_gate": true,
+    "requires_track_b_exact_pair": true,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "remaining_external_requirements": [
+    "INDEPENDENT_KEYRING_PROVISIONED_OUTSIDE_CANDIDATE_CHANGE",
+    "DURABLE_PRIVATE_NONCE_CONSUMPTION_DIRECTORY",
+    "LAWFUL_SOURCE_AND_RIGHTS_RECEIPTS",
+    "PROTECTED_MAIN_NATURAL_PRIVATE_CANARY",
+    "CONSUMPTION_CALLER_SUPPLIES_INDEPENDENT_VERIFICATION_INPUTS_AT_ONE_USE_BOUNDARY"
+  ]
+}

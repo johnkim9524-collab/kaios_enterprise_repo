@@ -1,0 +1,177 @@
+name: KIDULTS ASI Snapshot Terminal Receipt Backstop v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
+      - '.github/workflows/kidults-asi-snapshot-terminal-backstop-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-backstop-v1.mjs'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Snapshot Readiness Factory v2'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kidults-asi-snapshot-terminal-backstop-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  validate-backstop-contract:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate Snapshot terminal backstop and negative cases
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-backstop-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-snapshot-terminal-backstop-v1.mjs --self-test
+
+  retain-snapshot-terminal-truth:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Initialize fail-closed backstop receipt
+        env:
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const n=v=>Number(v);
+          const receipt={
+            id:'kidults-asi-snapshot-terminal-backstop-v1',version:'1.0.0',state:'VERIFIED_FAIL',
+            generation_class:'CURRENT_MAIN_EXACT',reason:'BACKSTOP_INITIALIZED_UNRECONCILED',
+            repository:process.env.GITHUB_REPOSITORY,
+            upstream_workflow:'KIDULTS ASI Snapshot Readiness Factory v2',
+            upstream_run_id:n(process.env.UPSTREAM_RUN_ID),upstream_run_attempt:n(process.env.UPSTREAM_RUN_ATTEMPT),
+            upstream_head_sha:process.env.UPSTREAM_HEAD_SHA,upstream_conclusion:process.env.UPSTREAM_CONCLUSION,
+            upstream_artifact_count:0,upstream_terminal_artifact_count:0,same_run_terminal_present:false,
+            expected_same_run_terminal_name:null,
+            observed_main_sha:null,observed_at:new Date().toISOString(),promotion_eligible:false,
+            empirical_authority:false,database_authority:false,provider_authority:false,
+            public_release:'HOLD',production:'HOLD',g5:'HOLD'
+          };
+          fs.writeFileSync('/tmp/kidults-asi-snapshot-terminal-backstop-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+
+      - name: Resolve immutable Snapshot run envelope and artifact truth
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$UPSTREAM_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$UPSTREAM_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > /tmp/snapshot-upstream-run.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" > /tmp/snapshot-main.json
+          rm -f /tmp/snapshot-artifacts-page-*.json
+          for PAGE in $(seq 1 25); do
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100&page=${PAGE}" > "/tmp/snapshot-artifacts-page-${PAGE}.json"
+            COUNT="$(node -p "(require('/tmp/snapshot-artifacts-page-${PAGE}.json').artifacts||[]).length")"
+            test "$COUNT" -le 100
+            if test "$COUNT" -lt 100; then break; fi
+            if test "$PAGE" -eq 25; then echo 'SNAPSHOT_ARTIFACT_PAGINATION_BOUND_EXHAUSTED' >&2; exit 69; fi
+          done
+          UPSTREAM_RUN_ID="$UPSTREAM_RUN_ID" UPSTREAM_RUN_ATTEMPT="$UPSTREAM_RUN_ATTEMPT" UPSTREAM_HEAD_SHA="$UPSTREAM_HEAD_SHA" UPSTREAM_CONCLUSION="$UPSTREAM_CONCLUSION" node - <<'NODE'
+          const fs=require('node:fs'),path=require('node:path');
+          const run=JSON.parse(fs.readFileSync('/tmp/snapshot-upstream-run.json','utf8'));
+          const main=JSON.parse(fs.readFileSync('/tmp/snapshot-main.json','utf8'));
+          const runId=Number(process.env.UPSTREAM_RUN_ID),runAttempt=Number(process.env.UPSTREAM_RUN_ATTEMPT),head=process.env.UPSTREAM_HEAD_SHA,conclusion=process.env.UPSTREAM_CONCLUSION;
+          const req=(v,c)=>{if(!v)throw new Error(c)};
+          req(run.id===runId,'RUN_ID_MISMATCH'); req(run.run_attempt===runAttempt,'RUN_ATTEMPT_MISMATCH');
+          req(run.name==='KIDULTS ASI Snapshot Readiness Factory v2','WORKFLOW_NAME_MISMATCH');
+          req(run.path==='.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml','WORKFLOW_PATH_MISMATCH');
+          req(run.repository?.full_name===process.env.GITHUB_REPOSITORY,'REPOSITORY_MISMATCH');
+          req(run.head_branch==='main','HEAD_BRANCH_MISMATCH'); req(run.head_sha===head,'HEAD_SHA_MISMATCH');
+          req(run.status==='completed','RUN_NOT_COMPLETED'); req(run.conclusion===conclusion,'CONCLUSION_MISMATCH');
+          req(/^[0-9a-f]{40}$/.test(main.commit?.sha||''),'MAIN_SHA_INVALID');
+          const pages=fs.readdirSync('/tmp').filter(v=>/^snapshot-artifacts-page-[0-9]+\.json$/.test(v)).sort((a,b)=>Number(a.match(/([0-9]+)\.json$/)[1])-Number(b.match(/([0-9]+)\.json$/)[1]));
+          const artifacts=pages.flatMap(file=>JSON.parse(fs.readFileSync(path.join('/tmp',file),'utf8')).artifacts||[]);
+          const unique=new Map(); for(const a of artifacts){req(Number.isInteger(a.id)&&a.id>0,'ARTIFACT_ID_INVALID');unique.set(a.id,a)}
+          req(unique.size===artifacts.length,'ARTIFACT_DUPLICATE_ACROSS_PAGES');
+          for(const a of artifacts){req(a.workflow_run?.id===runId,'ARTIFACT_RUN_MISMATCH');req(a.workflow_run?.head_sha===head,'ARTIFACT_SHA_MISMATCH')}
+          const terminalName=`kidults-asi-p3-archive-consumer-terminal-v1-${runId}-${runAttempt}`;
+          const terminal=artifacts.filter(a=>a.expired===false&&a.name===terminalName);
+          req(terminal.length<=1,'UPSTREAM_TERMINAL_ARTIFACT_CARDINALITY');
+          const generationClass=main.commit.sha===head?'CURRENT_MAIN_EXACT':'EXPECTED_NONAUTHORITATIVE_SKIP';
+          if(generationClass==='CURRENT_MAIN_EXACT')req(terminal.length===1,'CURRENT_MAIN_SNAPSHOT_TERMINAL_ARTIFACT_REQUIRED');
+          const state=generationClass==='EXPECTED_NONAUTHORITATIVE_SKIP'?'EXPECTED_NONAUTHORITATIVE_SKIP':conclusion==='success'?'VERIFIED_PASS':'VERIFIED_FAIL';
+          const reason=generationClass==='EXPECTED_NONAUTHORITATIVE_SKIP'?'PRIOR_MAIN_SNAPSHOT_COMPLETION':conclusion==='success'?'UPSTREAM_COMPLETED_SUCCESS':`UPSTREAM_${String(conclusion).toUpperCase()}`;
+          const receipt={
+            id:'kidults-asi-snapshot-terminal-backstop-v1',version:'1.0.0',state,generation_class:generationClass,reason,
+            repository:process.env.GITHUB_REPOSITORY,upstream_workflow:run.name,upstream_workflow_path:run.path,
+            upstream_run_id:runId,upstream_run_attempt:runAttempt,upstream_head_sha:head,upstream_conclusion:conclusion,
+            upstream_artifact_count:artifacts.length,upstream_terminal_artifact_count:terminal.length,same_run_terminal_present:terminal.length>0,
+            expected_same_run_terminal_name:terminalName,
+            observed_main_sha:main.commit.sha,observed_at:new Date().toISOString(),promotion_eligible:false,
+            empirical_authority:false,database_authority:false,provider_authority:false,
+            public_release:'HOLD',production:'HOLD',g5:'HOLD'
+          };
+          fs.writeFileSync('/tmp/kidults-asi-snapshot-terminal-backstop-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+
+      - name: Validate durable backstop receipt
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');const x=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-terminal-backstop-v1.json','utf8'));const req=(v,c)=>{if(!v)throw new Error(c)};
+          req(x.id==='kidults-asi-snapshot-terminal-backstop-v1','ID');
+          req(['VERIFIED_PASS','VERIFIED_FAIL','EXPECTED_NONAUTHORITATIVE_SKIP'].includes(x.state),'STATE');
+          req(['CURRENT_MAIN_EXACT','EXPECTED_NONAUTHORITATIVE_SKIP'].includes(x.generation_class),'GENERATION');
+          req(Number.isInteger(x.upstream_run_id)&&x.upstream_run_id>0,'RUN_ID');req(Number.isInteger(x.upstream_run_attempt)&&x.upstream_run_attempt>0,'RUN_ATTEMPT');
+          req(/^[0-9a-f]{40}$/.test(x.upstream_head_sha||''),'HEAD_SHA');req(x.promotion_eligible===false,'PROMOTION');
+          req(x.public_release==='HOLD'&&x.production==='HOLD'&&x.g5==='HOLD','HOLD');
+          req(x.same_run_terminal_present===(x.upstream_terminal_artifact_count>0),'TERMINAL_BINDING');
+          if(x.generation_class==='CURRENT_MAIN_EXACT')req(x.same_run_terminal_present===true&&x.upstream_terminal_artifact_count===1,'CURRENT_MAIN_TERMINAL_REQUIRED');
+          NODE
+
+      - name: Upload Snapshot terminal backstop receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-snapshot-terminal-backstop-v1-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-${{ github.event.workflow_run.head_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-snapshot-terminal-backstop-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Preserve exact-main upstream failure as RED after receipt retention
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('node:fs');const x=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-terminal-backstop-v1.json','utf8'));
+          if(x.state==='VERIFIED_FAIL') process.exit(1);
+          NODE

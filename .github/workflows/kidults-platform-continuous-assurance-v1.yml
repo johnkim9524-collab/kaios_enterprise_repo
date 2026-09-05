@@ -267,6 +267,7 @@ jobs:
           persist-credentials: false
 
       - name: Assert exact source binding
+        id: exact_source
         shell: bash
         run: |
           set -euo pipefail
@@ -279,6 +280,7 @@ jobs:
           package-manager-cache: false
 
       - name: Resolve bounded ephemeral canonical leader or alias
+        id: ephemeral_guard
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -313,11 +315,16 @@ jobs:
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then
               READBACK_STATE=API_RESPONSE_TRUNCATED
             fi
+            node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs --self-test
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_WORK_DIR/canonical-artifact-index.json")
             for ARTIFACT_ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ARTIFACT_ROW")
-              EXPIRED=$(jq -r '.expired // true' <<<"$ARTIFACT_ROW")
               CANDIDATE_FILE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
+              if ! EXPIRED=$(node scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs expired <<<"$ARTIFACT_ROW"); then
+                READBACK_STATE=CANONICAL_ARTIFACT_EXPIRY_INVALID
+                jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
+                continue
+              fi
               if [ "$EXPIRED" = true ]; then
                 jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
                 continue
@@ -433,6 +440,7 @@ jobs:
             --remediation-output "$PACKET_DIR/remediation-plan.json"
 
       - name: Validate exact ASI SHADOW upstream evidence binding
+        id: shadow_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -458,7 +466,7 @@ jobs:
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and (.event=="schedule" or .event=="push")
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
@@ -493,6 +501,7 @@ jobs:
           echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Validate exact Requirement Coverage upstream evidence binding
+        id: requirement_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -677,6 +686,7 @@ jobs:
           fi
 
       - name: Validate exact Sharded Reserve upstream terminal binding
+        id: reserve_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -819,6 +829,7 @@ jobs:
           fi
 
       - name: Validate exact Canonical Truth upstream terminal binding
+        id: truth_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Live Canonical Issue Truth V1'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -883,25 +894,31 @@ jobs:
           fi
 
       - name: Validate Met acquisition cancellation and Assurance binding
+        id: met_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/redteam/validate-met-acquisition-assurance-v1.mjs
 
       - name: Validate V&A acquisition cancellation and Assurance binding
+        id: vam_binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs
 
       - name: Validate continuous assurance contract
+        id: assurance_contract
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: |
           node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
+          node scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.test.mjs
           node --check scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
           node scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs
 
       - name: Validate adapter cancellation watch coverage
+        id: adapter_watch
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/kpmo/validate-continuous-assurance-adapter-cancellation-watch-v1.mjs
 
       - name: Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage
+        id: watch_coverage
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: |
           node scripts/kidults/kpmo/validate-continuous-assurance-shadow-evidence-watch-v1.mjs
@@ -910,11 +927,25 @@ jobs:
           node scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs
 
       - name: Run audit and always retain receipt
+        id: audit_receipt
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+
+      - name: Reconcile required workflow outcomes into terminal receipt
+        id: terminal_reconcile
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
+        env:
+          KPMO_ASSURANCE_JOB_STATUS: ${{ job.status }}
+          KPMO_REQUIRED_STEP_OUTCOMES: >-
+            [{"id":"EXACT_SOURCE","name":"Assert exact source binding","outcome":"${{ steps.exact_source.outcome }}","applicable":true},{"id":"EPHEMERAL_GUARD","name":"Resolve bounded ephemeral canonical leader or alias","outcome":"${{ steps.ephemeral_guard.outcome }}","applicable":true},{"id":"SHADOW_BINDING","name":"Validate exact ASI SHADOW upstream evidence binding","outcome":"${{ steps.shadow_binding.outcome }}","applicable":${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1' }}},{"id":"REQUIREMENT_BINDING","name":"Validate exact Requirement Coverage upstream evidence binding","outcome":"${{ steps.requirement_binding.outcome }}","applicable":${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1' }}},{"id":"RESERVE_BINDING","name":"Validate exact Sharded Reserve upstream terminal binding","outcome":"${{ steps.reserve_binding.outcome }}","applicable":${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1' }}},{"id":"TRUTH_BINDING","name":"Validate exact Canonical Truth upstream terminal binding","outcome":"${{ steps.truth_binding.outcome }}","applicable":${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Live Canonical Issue Truth V1' }}},{"id":"MET_BINDING","name":"Validate Met acquisition cancellation and Assurance binding","outcome":"${{ steps.met_binding.outcome }}","applicable":true},{"id":"VAM_BINDING","name":"Validate V&A acquisition cancellation and Assurance binding","outcome":"${{ steps.vam_binding.outcome }}","applicable":true},{"id":"ASSURANCE_CONTRACT","name":"Validate continuous assurance contract","outcome":"${{ steps.assurance_contract.outcome }}","applicable":true},{"id":"ADAPTER_WATCH","name":"Validate adapter cancellation watch coverage","outcome":"${{ steps.adapter_watch.outcome }}","applicable":true},{"id":"WATCH_COVERAGE","name":"Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage","outcome":"${{ steps.watch_coverage.outcome }}","applicable":true},{"id":"AUDIT_RECEIPT","name":"Run audit and always retain receipt","outcome":"${{ steps.audit_receipt.outcome }}","applicable":true}]
+        run: >-
+          node scripts/kidults/kpmo/reconcile-continuous-assurance-inline-v1.mjs
+          --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+          --job-status "$KPMO_ASSURANCE_JOB_STATUS"
+          --step-outcomes-json "$KPMO_REQUIRED_STEP_OUTCOMES"
 
       - name: Emit safe remediation packet
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'

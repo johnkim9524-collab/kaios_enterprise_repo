@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 
 const target = process.argv[2] || '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml';
+const freshnessCallMarker = '--created-at "$HOURLY_RUN_CREATED_AT"';
+const artifactReadMarker = ['"/repos/${GITHUB_REPOSITORY}', '/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100"'].join('');
 
 function validate(text) {
   const failures = [];
@@ -18,6 +20,8 @@ function validate(text) {
   rejectText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"', 'retired v1 producer path binding');
   rejectText('.name=="kidults-asi-global-any-site-source-pool-v1"', 'retired v1 source-pool artifact');
   rejectText('.name=="kidults-asi-global-any-site-hourly-cycle-v1"', 'retired v1 hourly-cycle artifact');
+  rejectText("find discovery-out/raw -type f -name 'global-low-risk-discovery.json'", 'raw discovery payload selector');
+  rejectText("status: 'VERIFIED_EXACT_PRODUCER_BINDING'", 'pre-freshness provenance status');
 
   requireText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs', 'canonical producer workflow-run lookup');
   requireText('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100', 'run-scoped artifact lookup');
@@ -34,6 +38,57 @@ function validate(text) {
   requireText('UPSTREAM_EXACT_GENERATION_TERMINAL_NON_SUCCESS', 'precise terminal non-success diagnosis');
   requireText('UPSTREAM_EXACT_GENERATION_NOT_TERMINAL', 'precise bounded-wait timeout diagnosis');
   requireText('sleep "$AUTOBALANCE_PRODUCER_WAIT_SECONDS"', 'bounded producer wait sleep');
+  requireText("find discovery-out/raw -type f -name 'global-low-risk-discovery-governed-v2.json'", 'governed discovery payload selector');
+  requireText('AUTOBALANCE_DISCOVERY_PAYLOAD=global-low-risk-discovery-governed-v2.json', 'governed discovery receipt binding');
+  requireText("discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD", 'governed discovery receipt field');
+  requireText('build-asi-throughput-coverage-autobalance-v1.mjs --self-test', 'source-family and gate-schema self-test');
+
+  requireText('validate-autobalance-hourly-producer-freshness-v1.mjs --self-test', 'freshness helper self-test');
+  requireText('validate-autobalance-hourly-producer-freshness-v1.mjs \\', 'freshness helper execution');
+  requireText('--created-at "$HOURLY_RUN_CREATED_AT"', 'producer created-at freshness binding');
+  requireText('--observed-at "$HOURLY_FRESHNESS_OBSERVED_AT"', 'freshness observation-time binding');
+  requireText('--source-sha "$HOURLY_SOURCE_SHA"', 'freshness source-SHA binding');
+  requireText('--run-id "$HOURLY_RUN_ID"', 'freshness run binding');
+  requireText('AUTOBALANCE_HOURLY_RUN_CREATED_AT', 'producer created-at provenance');
+  requireText('AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT', 'freshness observed-at provenance');
+  requireText('AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS', 'producer age provenance');
+  requireText('AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES', 'freshness SLO provenance');
+  requireText('AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST', 'freshness receipt digest provenance');
+  requireText('test "$HOURLY_FRESHNESS_SLO_MINUTES" = "90"', '90-minute freshness SLO enforcement');
+  requireText('Number(process.env.AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS) > 5400', '90-minute receipt-side age ceiling');
+  requireText('freshness_validated_before_artifact_download: true', 'freshness-before-artifact provenance assertion');
+  requireText('created_at: process.env.AUTOBALANCE_HOURLY_RUN_CREATED_AT', 'producer created-at receipt field');
+  requireText('freshness_observed_at: process.env.AUTOBALANCE_HOURLY_FRESHNESS_OBSERVED_AT', 'freshness observed-at receipt field');
+  requireText('age_seconds: Number(process.env.AUTOBALANCE_HOURLY_PRODUCER_AGE_SECONDS)', 'producer age receipt field');
+  requireText('freshness_slo_minutes: Number(process.env.AUTOBALANCE_HOURLY_FRESHNESS_SLO_MINUTES)', 'freshness SLO receipt field');
+  requireText('freshness_receipt_digest: process.env.AUTOBALANCE_HOURLY_FRESHNESS_RECEIPT_DIGEST', 'freshness digest receipt field');
+  requireText("status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING'", 'fresh exact-producer provenance receipt status');
+  requireText('/tmp/autobalance-hourly-producer-freshness-v1.json', 'freshness receipt retained in artifact');
+
+  const freshnessCall = text.indexOf(freshnessCallMarker);
+  const artifactRead = text.indexOf(artifactReadMarker);
+  if (freshnessCall < 0) failures.push('freshness execution marker missing');
+  if (artifactRead < 0) failures.push('artifact read execution marker missing');
+  if (freshnessCall >= 0 && artifactRead >= 0 && freshnessCall > artifactRead) failures.push('freshness gate occurs after artifact read');
+
+  requireText('scripts/kidults/kpmo/validate-safe-zip-archive-v1.py', 'safe ZIP pre-extraction validator');
+  requireText('--archive /tmp/meta.zip', 'source-pool safe ZIP validation');
+  requireText('--archive /tmp/disc.zip', 'hourly-cycle safe ZIP validation');
+  for (const basename of [
+    'asi-gate1-safe-candidate-pool-v2.json',
+    'asi-gate2-independent-reverification-v2.json',
+    'asi-gate3-admission-runtime-v2.json',
+    'asi-admitted-metadata-pool-v2.json',
+    'global-low-risk-discovery-governed-v2.json',
+  ]) requireText(`--required-basename ${basename}`, `safe ZIP required basename ${basename}`);
+  requireText('AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'source-pool safe ZIP receipt binding');
+  requireText('AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST', 'hourly-cycle safe ZIP receipt binding');
+  requireText('safe_zip_validated_before_extraction: true', 'safe ZIP receipt assertion');
+  for (const archive of ['meta', 'disc']) {
+    const validation = text.indexOf(`--archive /tmp/${archive}.zip`);
+    const extraction = text.indexOf(`unzip -q -o /tmp/${archive}.zip`);
+    if (validation < 0 || extraction < 0 || validation > extraction) failures.push(`unsafe extraction order ${archive}`);
+  }
 
   const prBoundaryMatches = text.match(/if: github\.event_name != 'pull_request'/g) || [];
   if (prBoundaryMatches.length < 5) failures.push('missing PR structural/live execution separation');
@@ -47,7 +102,6 @@ function validate(text) {
   requireText('.workflow_run.id==$run', 'artifact producer run binding');
   requireText('.workflow_run.head_sha==$sha', 'artifact producer SHA binding');
   requireText('^sha256:[0-9a-f]{64}$', 'provider artifact digest validation');
-  requireText("status: 'VERIFIED_EXACT_PRODUCER_BINDING'", 'exact producer provenance receipt status');
   requireText('mixed_generation_allowed: false', 'mixed-generation prohibition');
   requireText('/tmp/asi-throughput-autobalance-provenance-v1.json', 'provenance receipt artifact');
   requireText("public_release: 'HOLD'", 'public HOLD');
@@ -74,7 +128,15 @@ const mutations = [
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
-  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND']
+  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND'],
+  ["global-low-risk-discovery-governed-v2.json","global-low-risk-discovery.json"],
+  ['--archive /tmp/meta.zip','--archive /tmp/meta-unverified.zip'],
+  ['--archive /tmp/disc.zip','--archive /tmp/disc-unverified.zip'],
+  ['safe_zip_validated_before_extraction: true','safe_zip_validated_before_extraction: false'],
+  ["status: 'VERIFIED_EXACT_FRESH_PRODUCER_BINDING'","status: 'VERIFIED_EXACT_PRODUCER_BINDING'"],
+  ['test "$HOURLY_FRESHNESS_SLO_MINUTES" = "90"','test "$HOURLY_FRESHNESS_SLO_MINUTES" = "999"'],
+  ['freshness_validated_before_artifact_download: true','freshness_validated_before_artifact_download: false'],
+  ['--created-at "$HOURLY_RUN_CREATED_AT"','--created-at "2026-01-01T00:00:00Z"']
 ];
 
 for (const [from, to] of mutations) {
@@ -89,6 +151,26 @@ for (const [from, to] of mutations) {
   }
 }
 
+const freshnessRemovalMutation = text.replace(/\s*node scripts\/kidults\/source-intelligence\/validate-autobalance-hourly-producer-freshness-v1\.mjs \\\n\s*--created-at[\s\S]*?--output \/tmp\/autobalance-hourly-producer-freshness-v1\.json\n/, '\n');
+if (validate(freshnessRemovalMutation).length === 0) {
+  console.error('ASI throughput autobalance provenance self-test failed to reject freshness gate removal');
+  process.exit(1);
+}
+
+const freshnessMovedAfterArtifactRead = text.replace(freshnessCallMarker, `${artifactReadMarker}\n                ${freshnessCallMarker}`);
+if (validate(freshnessMovedAfterArtifactRead).length === 0) {
+  console.error('ASI throughput autobalance provenance self-test failed to reject freshness-after-artifact-read ordering');
+  process.exit(1);
+}
+
+const unsafeExtractionMutation = text
+  .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename global-low-risk-discovery-governed-v2\.json\n/, '')
+  .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename asi-admitted-metadata-pool-v2\.json\n/, '');
+if (validate(unsafeExtractionMutation).length === 0) {
+  console.error('ASI throughput autobalance provenance self-test failed to reject safe-ZIP pre-extraction removal');
+  process.exit(1);
+}
+
 const boundaryMutation = text.replaceAll("if: github.event_name != 'pull_request'", "if: always()");
 if (validate(boundaryMutation).length === 0) {
   console.error('ASI throughput autobalance provenance self-test failed to reject PR live-execution boundary removal');
@@ -97,11 +179,13 @@ if (validate(boundaryMutation).length === 0) {
 
 console.log(JSON.stringify({
   status: 'VERIFIED_PASS',
-  control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_PRODUCER_PROVENANCE',
-  mutation_cases_rejected: mutations.length + 1,
+  control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_FRESH_PRODUCER_PROVENANCE',
+  mutation_cases_rejected: mutations.length + 4,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
   producer_wait: {max_attempts:10,interval_seconds:3,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
+  freshness: {source:'MANAGEMENT_CONTROL_TOWER_REFRESH_CONTRACT',slo_minutes:90,stale:'FAIL_CLOSED',future:'FAIL_CLOSED',malformed:'FAIL_CLOSED',before_artifact_download:true,self_reference_safe_order_guard:true},
+  artifact_consumption: {download_digest_bound:true,safe_zip_pre_extraction_required:true,required_basename_cardinality_bound:true},
   production: 'HOLD',
   public_release: 'HOLD'
 }, null, 2));

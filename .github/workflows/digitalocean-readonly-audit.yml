@@ -2,99 +2,17 @@ name: KIDULTS DigitalOcean Read-Only Audit
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 20 * * *"
 
 permissions:
   contents: read
 
 jobs:
-  audit:
-    if: github.ref == 'refs/heads/main'
-    environment: kidults-do-readonly
+  disabled-pending-exact-main-approval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 1
     steps:
-      - name: Verify live main before provider credential resolution
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = "refs/heads/main"
-          LIVE_MAIN_SHA="$(
-            curl --fail-with-body --silent --show-error \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
-          )"
-          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
-      - name: Checkout exact triggering source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Verify exact source SHA
-        shell: bash
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          ACTUAL_SHA="$(git rev-parse HEAD)"
-          echo "expected=$EXPECTED_SHA"
-          echo "actual=$ACTUAL_SHA"
-          test "$ACTUAL_SHA" = "$EXPECTED_SHA"
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
-        with:
-          python-version: "3.12.14"
-
-      - name: Record runner identity
+      - name: Provider execution is hard-disabled
         shell: bash
         run: |
-          set -euo pipefail
-          echo "runner_os=${RUNNER_OS:-UNKNOWN}"
-          echo "runner_arch=${RUNNER_ARCH:-UNKNOWN}"
-          echo "image_os=${ImageOS:-UNKNOWN}"
-          echo "image_version=${ImageVersion:-UNKNOWN}"
-          python --version
-          cat /etc/os-release
-
-      - name: Run read-only runtime audit
-        env:
-          KIDULTS_MONITORED_BASE_URL: https://kaios.kidults.com
-          DIGITALOCEAN_READ_TOKEN: ${{ secrets.DIGITALOCEAN_READ_TOKEN }}
-          DIGITALOCEAN_DROPLET_ID: ${{ vars.DIGITALOCEAN_DROPLET_ID }}
-          KIDULTS_AUDIT_OUTPUT: artifacts/digitalocean-readonly-audit
-        run: python scripts/operations/digitalocean_readonly_audit.py
-
-      - name: Assert no mutation or false binding claim
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          report = json.loads(Path("artifacts/digitalocean-readonly-audit/digitalocean-readonly-audit.json").read_text())
-          assert report["mode"] == "READ_ONLY"
-          assert report["mutation_performed"] is False
-          assert report["production_connection_authorized"] is False
-          assert report["production_decision"] == "HOLD"
-          assert report["binding"]["runtime_droplet_binding_verified"] is False
-          assert report["binding"]["binding_method"] == "NONE"
-          assert report["overall_state"] != "READ_ONLY_CONNECTION_VERIFIED"
-          print(report["overall_state"])
-          PY
-
-      - name: Upload audit evidence
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: kidults-digitalocean-readonly-audit
-          path: artifacts/digitalocean-readonly-audit
-          if-no-files-found: error
-          retention-days: 30
+          echo "DISABLED_PENDING_EXACT_MAIN_APPROVAL"
+          exit 1

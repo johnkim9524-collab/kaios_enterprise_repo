@@ -19,28 +19,37 @@ on:
 
 permissions:
   contents: read
+  issues: read
 
 jobs:
   full-value-chain-redteam:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      KPMO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      KPMO_TERMINAL_RECEIPT: /tmp/kidults-full-value-chain-redteam-terminal-v1.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
       - name: Verify exact source SHA
+        id: exact_source
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SHA: ${{ env.KPMO_SOURCE_SHA }}
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
           echo "expected=$EXPECTED_SHA"
           echo "actual=$ACTUAL_SHA"
           test "$ACTUAL_SHA" = "$EXPECTED_SHA"
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+
       - name: Record authoritative runner identity
         run: |
           set -euo pipefail
@@ -50,5 +59,72 @@ jobs:
           echo "image_version=${ImageVersion:-UNKNOWN}"
           echo "node=$(node --version)"
           cat /etc/os-release
+
+      - name: Initialize fail-closed terminal receipt
+        run: >-
+          node scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs
+          --initialize
+          --output "$KPMO_TERMINAL_RECEIPT"
+
+      - name: Validate full value-chain live-authority binding regression
+        id: binding_guard
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-full-value-chain-live-authority-binding-v1.mjs
+
+      - name: Validate live canonical current-main authority
+        id: canonical_live
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs
+
+      - name: Validate live material-defect severity parity
+        id: severity_live
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
+
       - name: Run aggregate full value-chain Red-Team suite
+        id: aggregate
+        continue-on-error: true
         run: node scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs
+
+      - name: Reconcile exact-run terminal receipt
+        id: terminal_reconcile
+        if: always()
+        env:
+          KPMO_BINDING_GUARD_OUTCOME: ${{ steps.binding_guard.outcome }}
+          KPMO_CANONICAL_OUTCOME: ${{ steps.canonical_live.outcome }}
+          KPMO_SEVERITY_OUTCOME: ${{ steps.severity_live.outcome }}
+          KPMO_AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+        run: >-
+          node scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs
+          --output "$KPMO_TERMINAL_RECEIPT"
+
+      - name: Upload exact-run terminal receipt
+        id: terminal_upload
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-full-value-chain-redteam-terminal-v1-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.KPMO_TERMINAL_RECEIPT }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce terminal Red-Team verdict
+        if: always()
+        run: |
+          set -euo pipefail
+          test -f "$KPMO_TERMINAL_RECEIPT" || { echo 'FULL_CHAIN_TERMINAL_RECEIPT_MISSING' >&2; exit 1; }
+          STATE="$(node -e "const x=require(process.argv[1]); process.stdout.write(String(x.state||''))" "$KPMO_TERMINAL_RECEIPT")"
+          test "$STATE" = VERIFIED_PASS || { echo "FULL_CHAIN_TERMINAL_NOT_PASS:$STATE" >&2; cat "$KPMO_TERMINAL_RECEIPT" >&2; exit 1; }

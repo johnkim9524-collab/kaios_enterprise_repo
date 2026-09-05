@@ -17,6 +17,7 @@ const commands = [
   ['sharded-reserve-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs']],
   ['hourly-v2-promotion-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs']],
   ['mission-directed-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs']],
+  ['production-root-helper-bootstrap-containment', ['node', 'scripts/kidults/kpmo/validate-production-root-helper-bootstrap-containment-v1.mjs']],
   ['track-b-authority-boundary', ['node', 'scripts/kidults/scope/validate-track-b-boundary-no-shadow-assessment-v1.mjs']],
   ['canonical-anchor-consumers', ['node', 'scripts/kidults/supply-chain/validate-canonical-anchor-consumers-v1.mjs']],
   ['asi-workflow-fanout-budget', ['node', 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs']],
@@ -27,6 +28,8 @@ const commands = [
   ['pr-lifecycle-native-convergence', ['node', 'scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs', '--self-test']],
   ['atomic-landing-lifecycle-authority', ['node', 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs']],
   ['atomic-landing-preconsumption-order', ['node', 'scripts/kidults/kpmo/validate-atomic-landing-preconsumption-order-v1.mjs']],
+  ['atomic-recovery-remediation-contract', ['node', 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs']],
+  ['atomic-recovery-finalization-contract', ['node', 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs']],
 ];
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;

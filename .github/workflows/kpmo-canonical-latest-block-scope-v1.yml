@@ -5,7 +5,12 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/kpmo-canonical-latest-block-scope-v1.yml'
+      - '.github/workflows/kpmo-canonical-issue-rebound-v1.yml'
       - 'scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs'
+      - 'scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-canonical-issue-rebound-control-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   push:
     branches: [main]
@@ -43,3 +48,18 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs --self-test
           node scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs
+      - name: Bind latest blocks to complete live material registry
+        if: ${{ always() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs
+      - name: Prove rebound writer remains manual reversible and fail-closed
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-issue-rebound-control-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-issue-rebound-control-v1.mjs

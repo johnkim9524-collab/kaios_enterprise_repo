@@ -535,12 +535,12 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:8869b1ae4782a74bc9ef80e6b29c7a51da4add666631db3abbbf213dc46a73e4",
+      "sha256": "sha256:1f9b64f292a6a00571e4befde836ed66813a6abccbc303de71f835f809be8556",
       "byte_count": 1183
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
-      "sha256": "sha256:7d5291ed3b9972543369d11ff91c8d836521c0b3648c3bb92dbaeeb7ec89b899",
+      "sha256": "sha256:721b53c3f7fee3a2ac04f7c5aca093bcaf0ebedc49deaff5e3d8f820ec5cbcb6",
       "byte_count": 2893
     },
     "autonomous_intelligence_package_manifest": {
@@ -566,7 +566,7 @@
     "dependency_lockfiles": {
       "root_npm_shrinkwrap": {
         "path": "npm-shrinkwrap.json",
-        "sha256": "sha256:7d5291ed3b9972543369d11ff91c8d836521c0b3648c3bb92dbaeeb7ec89b899",
+        "sha256": "sha256:721b53c3f7fee3a2ac04f7c5aca093bcaf0ebedc49deaff5e3d8f820ec5cbcb6",
         "byte_count": 2893
       },
       "autonomous_intelligence_package_lock": {
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:35814d8dc70c45512138f7aeb4a6b8304c95a34e19d071628efb182360ecaabf"
+  "evidence_fingerprint": "sha256:5a10c3a8ef3bf1e66ff1224c60276e854bcf1eed35e6c87a0291aeedd84ec7ba"
 }

@@ -11,6 +11,7 @@ const allowedSeedModes = new Set(['ROLLING_FAIR_FRONTIER', 'LEGACY_FIRST_SEEN_FA
 const allowedSeedResults = new Set(['SUCCESS_WITH_RESULTS', 'SUCCESS_ZERO_RESULTS', 'FAILED_FAIL_SOFT', 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT']);
 const allowedBootstrapStates = new Set(['EXPLICIT_FRONTIER', 'RUNTIME_FRONTIER_FRESH', 'RUNTIME_FRONTIER_RESTORED_FROM_PREVIOUS_EXPANSION', 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE']);
 const allowedPreviousSources = new Set(['NONE', 'ENV_PREVIOUS_EXPANSION', 'SELF_DRIVING_PREVIOUS_EXPANSION', 'HOURLY_PREVIOUS_EXPANSION']);
+const validIndexId = value => /^CC-MAIN-\d{4}-\d{2,}$/.test(String(value || ''));
 
 if (expansion.id !== 'kidults-asi-common-crawl-host-expansion-v1' || expansion.version !== '1.2.0' || !allowedStatuses.has(expansion.status)) fail('IDENTITY');
 if (expansion.universe_target !== 'GLOBAL_ANY_SITE_SOURCE_UNIVERSE' || expansion.metadata_index_only !== true) fail('UNIVERSE_INDEX_BOUNDARY');
@@ -19,11 +20,24 @@ if (expansion.public_release !== 'HOLD' || expansion.production !== 'HOLD') fail
 if (typeof expansion.frontier_runtime_managed !== 'boolean' || !allowedBootstrapStates.has(expansion.seed_frontier_bootstrap_state)) fail('FRONTIER_RUNTIME_STATE');
 if (typeof expansion.seed_frontier_previous_snapshot_found !== 'boolean' || !allowedPreviousSources.has(expansion.seed_frontier_previous_snapshot_source)) fail('PREVIOUS_SNAPSHOT_STATE');
 if (!allowedSeedModes.has(expansion.seed_selection_mode)) fail('SEED_SELECTION_MODE');
+if (expansion.seed_selection_mode === 'LEGACY_FIRST_SEEN_FAIL_SAFE' || expansion.seed_frontier_bootstrap_state === 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE') fail('LEGACY_FRONTIER_FALLBACK_FORBIDDEN');
 if (!Array.isArray(expansion.seed_hosts) || expansion.seed_hosts.length !== Number(expansion.seed_host_count) || expansion.seed_hosts.length < 1 || expansion.seed_hosts.length > 8) fail('SEED_BUDGET');
 if (new Set(expansion.seed_hosts).size !== expansion.seed_hosts.length) fail('DUPLICATE_SEED_HOST');
 if (!Array.isArray(expansion.seed_host_results) || expansion.seed_host_results.length !== expansion.seed_hosts.length) fail('SEED_RESULTS_COUNT');
 if (!Array.isArray(expansion.candidates) || expansion.candidates.length !== Number(expansion.expanded_candidate_count)) fail('CANDIDATE_COUNT');
 if (!Array.isArray(expansion.errors)) fail('ERRORS_ARRAY');
+const indexIdPresent = expansion.common_crawl_index_id !== null && expansion.common_crawl_index_id !== undefined && expansion.common_crawl_index_id !== '';
+const indexApiPresent = typeof expansion.common_crawl_index_api === 'string' && expansion.common_crawl_index_api.length > 0;
+if (indexIdPresent && !validIndexId(expansion.common_crawl_index_id)) fail('COMMON_CRAWL_INDEX_ID_FORMAT');
+if (!indexIdPresent && indexApiPresent) fail('COMMON_CRAWL_INDEX_API_WITHOUT_ID');
+if (indexApiPresent) {
+  let indexUrl;
+  try { indexUrl = new URL(expansion.common_crawl_index_api); } catch { fail('COMMON_CRAWL_INDEX_API_URL'); }
+  if (indexUrl.protocol !== 'https:' || indexUrl.hostname !== 'index.commoncrawl.org' || !indexUrl.pathname.includes(`/${expansion.common_crawl_index_id}-index`)) fail('COMMON_CRAWL_INDEX_API_BINDING');
+}
+const skippedForIndexUnavailable = expansion.seed_host_results.filter(result => result.status === 'SKIPPED_INDEX_UNAVAILABLE_FAIL_SOFT');
+if (indexApiPresent && skippedForIndexUnavailable.length) fail('INDEX_AVAILABLE_WITH_SKIPPED_SEEDS');
+if (!indexApiPresent && skippedForIndexUnavailable.length !== expansion.seed_host_results.length) fail('INDEX_UNAVAILABLE_WITH_NON_SKIPPED_SEEDS');
 
 if (expansion.seed_frontier_bootstrap_state === 'EXPLICIT_FRONTIER') {
   if (expansion.frontier_runtime_managed !== false || expansion.seed_frontier_previous_snapshot_found !== false || expansion.seed_frontier_previous_snapshot_source !== 'NONE') fail('EXPLICIT_FRONTIER_RUNTIME_BOUNDARY');
@@ -51,7 +65,20 @@ if (expansion.seed_selection_mode === 'ROLLING_FAIR_FRONTIER') {
   const expectedDigest = `sha256:${sha(JSON.stringify({ cycle_count: frontier.cycle_count, selected_hosts: frontier.selected_hosts, host_frontier: frontier.host_frontier }))}`;
   if (frontier.frontier_digest !== expectedDigest) fail('FRONTIER_DIGEST');
   const counts = frontier.host_frontier.map(row => Number(row.selected_count));
-  if (counts.some(count => !Number.isInteger(count) || count < 0) || Math.max(...counts) - Math.min(...counts) > 1) fail('FRONTIER_FAIRNESS');
+  if (counts.some(count => !Number.isInteger(count) || count < 0)) fail('FRONTIER_SELECTION_COUNT');
+  const selected = new Set(frontier.selected_hosts);
+  const priorCounts = new Map(frontier.host_frontier.map((row) => [
+    row.host,
+    Number(row.selected_count) - (row.selected_this_cycle === true ? 1 : 0)
+  ]));
+  if ([...priorCounts.values()].some(count => !Number.isInteger(count) || count < 0)) fail('FRONTIER_PRIOR_SELECTION_COUNT');
+  const selectedPrior = [...selected].map(host => priorCounts.get(host));
+  const unselectedPrior = [...priorCounts.entries()].filter(([host]) => !selected.has(host)).map(([, count]) => count);
+  if (selectedPrior.some(count => !Number.isInteger(count))) fail('FRONTIER_SELECTED_HOST_ORPHAN');
+  if (unselectedPrior.length && Math.max(...selectedPrior) > Math.min(...unselectedPrior)) fail('FRONTIER_UNFAIR_LOWER_COUNT_SKIP');
+  const fairnessDelta = Math.max(...counts) - Math.min(...counts);
+  if (Number(frontier.selection_count_delta_after) !== fairnessDelta) fail('FRONTIER_FAIRNESS_DELTA_BINDING');
+  if (fairnessDelta > 1 && frontier.previous_frontier_valid !== true) fail('FRONTIER_UNEXPLAINED_DYNAMIC_POPULATION_SPREAD');
   for (const row of frontier.host_frontier) {
     if (row.rights_state !== 'UNASSESSED' || row.admission_state !== 'NOT_ADMITTED' || row.acquisition_authorized !== false || row.target_site_body_crawled !== false || row.production !== 'HOLD') fail(`FRONTIER_HOST_PROMOTION:${row.host}`);
   }
@@ -86,6 +113,7 @@ for (const candidate of expansion.candidates) {
   if (expansion.seed_selection_mode === 'ROLLING_FAIR_FRONTIER') {
     if (candidate.seed_frontier_id !== expansion.seed_frontier_id || Number(candidate.seed_frontier_cycle) !== Number(expansion.seed_frontier_cycle)) fail(`CANDIDATE_FRONTIER:${candidate.candidate_id}`);
   }
+  if (candidate.common_crawl_index_id !== expansion.common_crawl_index_id) fail(`CANDIDATE_INDEX_BINDING:${candidate.candidate_id}`);
   if (candidate.source_family_hint !== 'UNCLASSIFIED_ANY_SITE_CANDIDATE' || candidate.rights_state !== 'UNASSESSED' || candidate.admission_state !== 'NOT_ADMITTED' || candidate.gate_1_state !== 'PENDING' || candidate.evidence_state !== 'DISCOVERY_METADATA_ONLY') fail(`CANDIDATE_PROMOTED:${candidate.candidate_id}`);
   if (candidate.acquisition_authorized !== false || candidate.target_site_body_crawled !== false || candidate.content_acquired !== false || candidate.provider_contacted !== false || candidate.account_created !== false || candidate.eula_accepted !== false || candidate.spend_authorized !== false || candidate.production !== 'HOLD') fail(`CANDIDATE_BOUNDARY:${candidate.candidate_id}`);
   let host;

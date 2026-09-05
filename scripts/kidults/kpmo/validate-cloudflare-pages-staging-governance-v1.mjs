@@ -20,6 +20,7 @@ const read = (file) => fs.readFileSync(file, 'utf8');
 const policy = JSON.parse(read(P.policy));
 const containment = JSON.parse(read(P.containment));
 const registry = JSON.parse(read(P.registry));
+const readonlyWorkflow = read(P.readonlyWorkflow);
 const findings = [];
 const req = (condition, id) => { if (!condition) findings.push(id); };
 
@@ -56,6 +57,25 @@ req(policy.deployment_policy?.repository_json_is_authorization === false, 'REPO_
 req(policy.deployment_policy?.provider_secret_resolution_reachable === false, 'DEPLOY_SECRET_UNREACHABLE');
 req(policy.deployment_policy?.provider_call_reachable === false, 'DEPLOY_CALL_UNREACHABLE');
 
+const readonlyWorkflowIsFailClosed = (text) => {
+  const falseGateCount = (text.match(/if: \$\{\{ false \}\}/g) || []).length;
+  const forbiddenTriggerPresent = /^  (push|schedule|pull_request):/m.test(text);
+  return falseGateCount === 1 && /^  workflow_dispatch:/m.test(text) && !forbiddenTriggerPresent;
+};
+req(policy.read_only_monitor?.state === 'FAIL_CLOSED_PENDING_ISSUE_1831', 'READONLY_STATE');
+req(JSON.stringify(policy.read_only_monitor?.triggers) === JSON.stringify(['workflow_dispatch']), 'READONLY_TRIGGERS');
+req(policy.read_only_monitor?.schedule === 'DISABLED', 'READONLY_SCHEDULE_DISABLED');
+req(policy.read_only_monitor?.job_condition === '${{ false }}', 'READONLY_JOB_FALSE');
+req(policy.read_only_monitor?.settings_readback_required === false, 'READONLY_READBACK_NOT_REQUIRED');
+req(policy.read_only_monitor?.provider_secret_resolution_reachable === false, 'READONLY_SECRET_UNREACHABLE');
+req(policy.read_only_monitor?.provider_call_reachable === false, 'READONLY_CALL_UNREACHABLE');
+req(policy.read_only_monitor?.historical_provider_receipt_is_runtime_authorization === false, 'READONLY_HISTORY_NOT_AUTHORITY');
+req(policy.read_only_monitor?.fresh_exact_main_program_owner_approval_required === true, 'READONLY_FRESH_APPROVAL_REQUIRED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow), 'READONLY_RUNTIME_NOT_DISABLED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('if: ${{ false }}', 'if: always()')) === false, 'MUTATION_FALSE_GREEN:READONLY_GATE_REMOVED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  schedule:\n    - cron: \'*/30 * * * *\'')) === false, 'MUTATION_FALSE_GREEN:READONLY_SCHEDULE_RESTORED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  push:\n    branches: [main]')) === false, 'MUTATION_FALSE_GREEN:READONLY_PUSH_RESTORED');
+req(readonlyWorkflowIsFailClosed(readonlyWorkflow.replace('  workflow_dispatch:', '  pull_request:')) === false, 'MUTATION_FALSE_GREEN:READONLY_PR_SECRET_SURFACE_RESTORED');
 req(policy.read_only_monitor?.visible_preview_count_must_be_zero === true, 'PREVIEW_ZERO');
 req(policy.read_only_monitor?.remote_mutation === false, 'READONLY_NO_MUTATION');
 req(policy.emergency_control?.state === 'FAIL_CLOSED_PENDING_ISSUE_1576', 'EMERGENCY_STATE');
@@ -97,8 +117,16 @@ for (const script of [readonly, deployScript]) {
 req(readonly.includes('legacy_deployments_enabled_authoritative:false'), 'READONLY_LEGACY_INFORMATIONAL');
 req(readonly.includes('preview_branch_rules_authoritative_only_when_custom:true'), 'READONLY_PREVIEW_RULE_SCOPE');
 req(readonly.includes('select(.environment == "preview" and .materialized == true)'), 'READONLY_MATERIALIZED_PREVIEW');
+req(readonly.includes('"$skipped_attempt_count" -eq 0'), 'READONLY_ALL_SKIPPED_ATTEMPTS_FAIL_CLOSED');
+req(readonly.includes('skipped_attempt_count:$skipped_attempt_count'), 'READONLY_ALL_SKIPPED_ATTEMPTS_BOUND');
+req(readonly.includes('BLOCKED_INVENTORY_CAPACITY') && readonly.includes('DEPLOYMENT_INVENTORY_PAGE_LIMIT'), 'READONLY_CAPACITY_TERMINAL_RECEIPT');
+req(readonly.includes('DEPLOYMENT_INVENTORY_READBACK_FAILED') && readonly.includes('READBACK_ERROR'), 'READONLY_READBACK_FAILURE_TERMINAL_RECEIPT');
+req(readonly.includes('api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 69'), 'READONLY_API_FAILURE_PROPAGATION');
+req(readonly.includes('capacity_state:$capacity_state') && readonly.includes('promotion_eligible:false'), 'READONLY_CAPACITY_TRUTH_BOUND');
 req(readonly.includes('APPROVAL_BOUND_V1') && readonly.includes('LEGACY_GOVERNED_V1'), 'READONLY_GOVERNED_LINEAGE_FORMATS');
 req(cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_PREVIEW_ONLY');
+req(cleanup.includes('BLOCKED_INVENTORY_CAPACITY') && cleanup.includes('PRE_MUTATION') && cleanup.includes('POST_MUTATION'), 'CLEANUP_CAPACITY_TERMINAL_RECEIPTS');
+req(cleanup.includes('production_preservation_verified:false') && cleanup.includes('promotion_eligible:false'), 'CLEANUP_CAPACITY_TRUTH_BOUND');
 req(cleanup.includes('test "$initial_production_ids" = "$final_production_ids"'), 'PRODUCTION_HISTORY_GUARD');
 req(!cleanup.includes('select(.environment == "production") | .id | @sh'), 'NO_PROD_DELETE');
 req(contain.includes('.config.production_deployments_enabled = false'), 'CONTAIN_PRODUCTION_OFF');
@@ -145,7 +173,7 @@ const receipt = {
   future_privileged_mutations: 'FAIL_CLOSED_PENDING_ISSUE_1576',
   credentialed_mutation_lanes_reachable: false,
   repository_or_workflow_input_is_authorization: false,
-  readonly_drift_monitor: true,
+  readonly_drift_monitor: 'DISABLED_PENDING_FRESH_APPROVAL',
   findings,
   public_release: 'HOLD',
   production: 'HOLD',

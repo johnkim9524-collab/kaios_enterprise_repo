@@ -33,6 +33,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -64,6 +67,9 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -169,9 +175,18 @@ jobs:
           BAL_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/autobalance-exact-restore-receipt-v1.json")).artifact_id || ""')
           if [ -n "$BAL_ID" ]; then
             BAL_SRC=$(find /tmp/autobalance-raw -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
-            if [ -n "$BAL_SRC" ]; then
+            if [ -n "$BAL_SRC" ] && node - "$BAL_SRC" <<'NODE'
+          const fs=require('node:fs');const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          const compatible=x.version==='1.2.0'&&x.coverage?.source_family_population==='DISCOVERY_UNIVERSE'&&Number(x.coverage?.source_family_input_count)===Number(x.throughput?.discovered);
+          process.exit(compatible?0:1);
+          NODE
+            then
               cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
               node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+            else
+              echo "::notice title=Autobalance budget quarantined::SCHEMA_INCOMPATIBLE_BUDGET_IGNORED_BASE_STEERING_USED"
+              BAL_ID=""
+              rm -f /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
             fi
           fi
 
@@ -229,7 +244,9 @@ jobs:
         run: node scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs discovery-out/global-low-risk-discovery.json
       - name: EXPAND — Common Crawl public-index same-domain candidates
         run: |
+          node scripts/kidults/source-intelligence/test-asi-common-crawl-dynamic-frontier-fairness-v1.mjs
           node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-host-expansion-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs /tmp/asi-common-crawl-seed-frontier-v1.json
           node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-host-expansion-v1.json
       - name: EXPAND — reject rights promotion before canonical merge
         shell: bash
@@ -306,4 +323,86 @@ jobs:
             /tmp/empirical-regional-baseline-with-data-usability-r1.json
             /tmp/asi-self-driving-cycle-summary-v1.json
           retention-days: 14
+          if-no-files-found: error
+      - name: TERMINAL — preserve authoritative Self-Driving result
+        if: always()
+        shell: bash
+        env:
+          JOB_STATUS: ${{ job.status }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg id 'kidults-asi-self-driving-terminal-v1' \
+            --arg source_sha "$SOURCE_SHA" \
+            --arg executed_sha "$GITHUB_SHA" \
+            --arg execution_ref "$GITHUB_REF" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg event_name "$GITHUB_EVENT_NAME" \
+            --arg job_status "$JOB_STATUS" \
+            '{
+              id: $id,
+              source_sha: $source_sha,
+              executed_sha: $executed_sha,
+              execution_ref: $execution_ref,
+              run_id: $run_id,
+              run_attempt: ($run_attempt | tonumber),
+              event_name: $event_name,
+              job_status: $job_status,
+              internal_control_state: (if $job_status == "success" then "VERIFIED_PASS" else "VERIFIED_FAIL" end),
+              failed_check_ids: (if $job_status == "success" then [] else ["SELF_DRIVING_JOB_NON_SUCCESS"] end),
+              overall_state: (if $job_status == "success" then "HOLD" else "RED" end),
+              candidate_evidence_status: "NONE",
+              track_b_status: "NOT_STARTED",
+              projection_status: "NONE",
+              provider_activation: "NOT_AUTHORIZED",
+              public_state: "HOLD",
+              production_state: "HOLD",
+              g5_state: "HOLD",
+              promotion_eligible: false,
+              content_acquisition_authorized: false,
+              evidence_admission: "NONE",
+              track_b_complete: false,
+              projection_ready: false,
+              public_release: "HOLD",
+              production: "HOLD",
+              g5: "HOLD"
+            }' > /tmp/asi-self-driving-terminal-receipt-v1.json
+          jq -e '
+            (.id == "kidults-asi-self-driving-terminal-v1") and
+            (.source_sha | type == "string" and length == 40) and
+            (.executed_sha | type == "string" and length == 40) and
+            (.execution_ref | type == "string" and length > 0) and
+            (.run_id | type == "string" and length > 0) and
+            (.run_attempt | type == "number" and . >= 1) and
+            (.event_name | type == "string" and length > 0) and
+            ((.job_status == "success" and .internal_control_state == "VERIFIED_PASS" and .failed_check_ids == []) or
+             (.job_status != "success" and .internal_control_state == "VERIFIED_FAIL" and .failed_check_ids == ["SELF_DRIVING_JOB_NON_SUCCESS"])) and
+            ((.job_status == "success" and .overall_state == "HOLD") or
+             (.job_status != "success" and .overall_state == "RED")) and
+            (.candidate_evidence_status == "NONE") and
+            (.track_b_status == "NOT_STARTED") and
+            (.projection_status == "NONE") and
+            (.provider_activation == "NOT_AUTHORIZED") and
+            (.public_state == "HOLD") and
+            (.production_state == "HOLD") and
+            (.g5_state == "HOLD") and
+            (.promotion_eligible == false) and
+            (.content_acquisition_authorized == false) and
+            (.evidence_admission == "NONE") and
+            (.track_b_complete == false) and
+            (.projection_ready == false) and
+            (.public_release == "HOLD") and
+            (.production == "HOLD") and
+            (.g5 == "HOLD")
+          ' /tmp/asi-self-driving-terminal-receipt-v1.json
+          cat /tmp/asi-self-driving-terminal-receipt-v1.json
+      - name: Upload authoritative Self-Driving terminal receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: asi-self-driving-terminal-receipt-v1
+          path: /tmp/asi-self-driving-terminal-receipt-v1.json
+          retention-days: 90
           if-no-files-found: error

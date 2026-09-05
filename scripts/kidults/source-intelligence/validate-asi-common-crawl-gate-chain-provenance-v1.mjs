@@ -2,6 +2,8 @@ import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml';
 const source = fs.readFileSync(workflowPath, 'utf8');
+const producerWorkflowPath = '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml';
+const producerSource = fs.readFileSync(producerWorkflowPath, 'utf8');
 
 function violations(text) {
   const failures = [];
@@ -19,11 +21,17 @@ function violations(text) {
     'artifact_id:artifact.id',
     'artifact_digest:artifact.digest',
     'exact_generation:true',
-    'upstream_global_discovery:provenance'
+    'upstream_global_discovery:provenance',
+    "common_crawl_expansion_status:d.common_crawl_expansion_status",
+    "common_crawl_zero_result_noop:d.common_crawl_zero_result_noop",
+    "throw new Error('ZERO_RESULT_NOOP_BINDING')",
+    "throw new Error('MATERIAL_COMMON_CRAWL_BINDING')",
+    'PASS_ZERO_RESULTS_NOOP'
   ];
   for (const needle of mustInclude) {
     if (!text.includes(needle)) failures.push(`MISSING:${needle}`);
   }
+  if (text.includes('NO_EMPIRICAL_COMMON_CRAWL_CANDIDATE')) failures.push('ZERO_RESULT_FAIL_SOFT_REJECTED');
   if (text.includes("if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));") &&
       !text.includes('run.head_sha===expectedSha')) {
     failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_SHA');
@@ -31,7 +39,30 @@ function violations(text) {
   return failures;
 }
 
-const pristine = violations(source);
+function pullRequestPaths(text) {
+  const match = text.match(/pull_request:\n\s+paths:\n([\s\S]*?)\n\npermissions:/);
+  if (!match) return [];
+  return [...match[1].matchAll(/- '([^']+)'/g)].map((entry) => entry[1]);
+}
+
+function triggerCouplingViolations(consumerText, producerText) {
+  const failures = [];
+  const consumerPaths = pullRequestPaths(consumerText);
+  const producerPaths = new Set(pullRequestPaths(producerText));
+  if (!consumerPaths.includes(producerWorkflowPath)) {
+    failures.push('CONSUMER_TRIGGER_MISSING_PRODUCER_WORKFLOW');
+  }
+  if (!producerPaths.has(workflowPath)) {
+    failures.push('PRODUCER_TRIGGER_MISSING_CONSUMER_WORKFLOW');
+  }
+  for (const path of consumerPaths) {
+    if (path === producerWorkflowPath) continue;
+    if (!producerPaths.has(path)) failures.push(`PRODUCER_TRIGGER_MISSING_CONSUMER_PATH:${path}`);
+  }
+  return failures;
+}
+
+const pristine = [...violations(source), ...triggerCouplingViolations(source, producerSource)];
 if (pristine.length) {
   console.error(JSON.stringify({status:'FAIL',violations:pristine},null,2));
   process.exit(1);
@@ -44,7 +75,11 @@ const mutations = [
   ['DROP_CARDINALITY', t => t.replace("if(artifacts.length!==1)throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_CARDINALITY:${artifacts.length}`);", '')],
   ['DROP_DIGEST', t => t.replace("if(!/^sha256:[a-f0-9]{64}$/.test(artifact.digest||''))throw new Error(`GLOBAL_DISCOVERY_ARTIFACT_DIGEST_INVALID:${artifact.digest||'NONE'}`);", '')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
-  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')]
+  ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')],
+  ['DROP_ZERO_RESULT_STATUS_BINDING', t => t.replace('common_crawl_expansion_status:d.common_crawl_expansion_status,', '')],
+  ['DROP_ZERO_RESULT_NOOP_BINDING', t => t.replace('common_crawl_zero_result_noop:d.common_crawl_zero_result_noop,', '')],
+  ['DROP_ZERO_RESULT_ASSERTION', t => t.replace("throw new Error('ZERO_RESULT_NOOP_BINDING');", 'void 0;')],
+  ['DROP_MATERIAL_RESULT_ASSERTION', t => t.replace("throw new Error('MATERIAL_COMMON_CRAWL_BINDING');", 'void 0;')]
 ];
 
 for (const [name, mutate] of mutations) {
@@ -59,10 +94,23 @@ for (const [name, mutate] of mutations) {
   }
 }
 
+const triggerMutations = [
+  ['DROP_PRODUCER_FROM_CONSUMER', source.replace(`      - '${producerWorkflowPath}'\n`, ''), producerSource],
+  ['DROP_CONSUMER_FROM_PRODUCER', source, producerSource.replace(`      - '${workflowPath}'\n`, '')],
+  ['DROP_SHARED_VALIDATOR_FROM_PRODUCER', source, producerSource.replace("      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'\n", '')]
+];
+for (const [name, consumerText, producerText] of triggerMutations) {
+  if (triggerCouplingViolations(consumerText, producerText).length === 0) {
+    console.error(`FALSE_GREEN:${name}`);
+    process.exit(1);
+  }
+}
+
 console.log(JSON.stringify({
   status:'PASS',
   id:'asi-common-crawl-gate-chain-provenance-v1',
   mutations_rejected:mutations.length,
   exact_generation_required:true,
+  zero_result_noop_guarded:true,
   production:'HOLD'
 },null,2));

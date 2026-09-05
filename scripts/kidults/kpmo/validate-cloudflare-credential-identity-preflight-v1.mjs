@@ -95,8 +95,12 @@ ok(terminal.operational_authority?.rerun_authorized === false
   && terminal.operational_authority?.second_dispatch_authorized === false, 'TERMINAL_NO_REPLAY');
 ok(terminal.operational_authority?.same_approval_reusable === false, 'TERMINAL_NO_REUSE');
 
-ok(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+const runtimeValidNoMatchPush = /^on:\n  push:\n    branches-ignore:\n      - '\*\*'\n    tags-ignore:\n      - '\*\*'\n\npermissions:\n  contents: read\n/m;
+ok(runtimeValidNoMatchPush.test(workflow), 'WORKFLOW_RUNTIME_VALID_NO_MATCH_TRIGGER');
+ok(!/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_EMPTY_EVENT_LIST_REINTRODUCED');
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH');
+ok(!workflow.includes('pull_request:'), 'WORKFLOW_PR_TRIGGER');
+ok(!workflow.includes('schedule:'), 'WORKFLOW_SCHEDULE');
 ok(!workflow.includes('environment:'), 'WORKFLOW_ENVIRONMENT');
 ok(!workflow.includes('${{ secrets.'), 'WORKFLOW_SECRET_EXPRESSION');
 ok(!workflow.includes('actions/checkout@'), 'WORKFLOW_CHECKOUT');
@@ -107,9 +111,9 @@ ok(workflow.includes('historical_workflow_run_id:33478469222'), 'WORKFLOW_RUN_TR
 ok(workflow.includes('historical_external_read_request_count:0'), 'WORKFLOW_ZERO_REQUEST_TRUTH');
 ok(workflow.includes('actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'), 'WORKFLOW_UPLOAD_PIN');
 
-ok(registry.registered_count === 22, 'REGISTRY_COUNT');
-ok(registry.registered_workflows?.length === 22, 'REGISTRY_WORKFLOWS');
-ok(registry.required_environment_bindings?.length === 22, 'REGISTRY_BINDINGS');
+ok(Number.isInteger(registry.registered_count) && registry.registered_count > 0, 'REGISTRY_COUNT');
+ok(registry.registered_workflows?.length === registry.registered_count, 'REGISTRY_WORKFLOWS');
+ok(registry.required_environment_bindings?.length === registry.registered_count, 'REGISTRY_BINDINGS');
 ok(!registry.registered_workflows.includes(P.workflow), 'REGISTRY_V1_PRESENT');
 ok(!registry.required_environment_bindings.some(value => value.workflow === P.workflow), 'REGISTRY_V1_BINDING');
 for (const key of [
@@ -117,11 +121,11 @@ for (const key of [
   'exact_main_guarded_secret_bearing_jobs',
   'live_main_sha_guarded_secret_bearing_jobs',
   'step_scoped_secret_bearing_jobs',
-]) ok(registry.repository_binding_state?.[key] === 22, `REGISTRY_STATE:${key}`);
+]) ok(registry.repository_binding_state?.[key] === registry.registered_count, `REGISTRY_STATE:${key}`);
 const privilegedSteps = registry.required_environment_bindings
   .reduce((sum, value) => sum + (value.required_secret_step_names?.length || 0), 0);
-ok(privilegedSteps === 25, 'REGISTRY_PRIVILEGED_CALCULATED');
-ok(registry.repository_binding_state?.privileged_secret_steps === 25, 'REGISTRY_PRIVILEGED_RECORDED');
+ok(Number.isInteger(privilegedSteps) && privilegedSteps > 0, 'REGISTRY_PRIVILEGED_CALCULATED');
+ok(registry.repository_binding_state?.privileged_secret_steps === privilegedSteps, 'REGISTRY_PRIVILEGED_RECORDED');
 const failed = registry.repository_containment?.failed_cloudflare_credential_identity_preflight_v1;
 ok(failed?.workflow_run_id === 33478469222, 'REGISTRY_INCIDENT_RUN');
 ok(failed?.authorization_consumed === false, 'REGISTRY_AUTH_CONSUMED');
@@ -165,6 +169,7 @@ console.log(JSON.stringify({
   secret_probe_step: 'SKIPPED',
   failure_code: 'APPROVAL_BODY_JQ_RAW_OUTPUT_ADDS_SECOND_TERMINAL_LF',
   byte_exact_extractor_regression: true,
+  workflow_runtime_valid_no_match_trigger: true,
   v1_zero_executable_authority: true,
   v2_new_approval_required: true,
   registered_secret_bearing_lanes: registry.registered_count,

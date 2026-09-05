@@ -51,6 +51,34 @@ assert(workflow.includes('complete exact-head Program Owner approval')
   && workflow.includes('malformed/expired/overlong approval'),
 'ATOMIC_LANDING_PRECONSUMPTION_FAIL_CLOSED_RATIONALE_MISSING');
 
+const terminalBootstrapCall = '\nwriteFailClosedTerminalBootstrap();';
+const strictApprovalCall = '\nassertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);';
+const terminalBootstrap = lifecyclePreflight.indexOf(terminalBootstrapCall);
+const lifecycleApprovalValidation = lifecyclePreflight.indexOf(strictApprovalCall);
+assert(lifecyclePreflight.split(terminalBootstrapCall).length === 2,
+  'ATOMIC_LANDING_TERMINAL_BOOTSTRAP_CALL_CARDINALITY_INVALID');
+assert(lifecyclePreflight.split(strictApprovalCall).length === 2,
+  'ATOMIC_LANDING_STRICT_APPROVAL_CALL_CARDINALITY_INVALID');
+assert(terminalBootstrap >= 0 && lifecycleApprovalValidation > terminalBootstrap,
+  'ATOMIC_LANDING_TERMINAL_BOOTSTRAP_NOT_BEFORE_APPROVAL_VALIDATION');
+// Import declarations intentionally precede the bootstrap. Only the executable
+// strict-approval call is relevant to the prevalidation ordering invariant.
+const reorderedLifecycle = lifecyclePreflight
+  .replace(terminalBootstrapCall, '')
+  .replace(strictApprovalCall, `${strictApprovalCall}${terminalBootstrapCall}`);
+const reorderedBootstrap = reorderedLifecycle.indexOf(terminalBootstrapCall);
+const reorderedApproval = reorderedLifecycle.indexOf(strictApprovalCall);
+assert(reorderedApproval >= 0 && reorderedBootstrap > reorderedApproval,
+  'ATOMIC_LANDING_PREVALIDATION_MUTATION_SETUP_INVALID');
+assert(!(reorderedBootstrap >= 0 && reorderedApproval > reorderedBootstrap),
+  'ATOMIC_LANDING_PREVALIDATION_REORDER_FALSE_GREEN');
+assert(lifecyclePreflight.includes("terminal_class: 'PREVALIDATION_FAIL_CLOSED_BOOTSTRAP'")
+  && lifecyclePreflight.includes('authorization_id_sha256: sha256(authorizationId)')
+  && lifecyclePreflight.includes('raw_authorization_persisted: false')
+  && lifecyclePreflight.includes("path.join(runnerTemp, 'kidults-atomic-landing-terminal', 'receipt.json')")
+  && lifecyclePreflight.includes('mode: 0o600'),
+'ATOMIC_LANDING_PREVALIDATION_TERMINAL_DURABILITY_INVARIANT_MISSING');
+
 const lifecycleApprovalTokens = [
   'assertLandingActorAndAuthorization',
   'selectExactHeadProgramOwnerApproval',
@@ -77,9 +105,11 @@ assert(oneUsePreflight.includes(`pages(\`/issues/\${prNumber}/timeline\`)`)
 
 console.log(JSON.stringify({
   id: 'kidults-atomic-landing-preconsumption-order-receipt-v1',
-  version: '1.0.0',
+  version: '1.1.0',
   state: 'VERIFIED_PASS',
   lifecycle_authority_precedes_one_use_consumption: true,
+  terminal_bootstrap_precedes_strict_approval_validation: true,
+  malformed_authorization_failure_keeps_sanitized_terminal_receipt: true,
   authorization_not_burned_by_missing_lifecycle: true,
   complete_owner_approval_contract_precedes_one_use_consumption: true,
   invalid_approval_not_recorded_as_consumed: true,

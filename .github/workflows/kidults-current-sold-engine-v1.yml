@@ -103,8 +103,8 @@ jobs:
         run: |
           set -euo pipefail
           node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs | tee /tmp/current-sold-tests.tap
-          grep -Eq '^# tests 56$' /tmp/current-sold-tests.tap
-          grep -Eq '^# pass 56$' /tmp/current-sold-tests.tap
+          grep -Eq '^# tests 57$' /tmp/current-sold-tests.tap
+          grep -Eq '^# pass 57$' /tmp/current-sold-tests.tap
           grep -Eq '^# fail 0$' /tmp/current-sold-tests.tap
       - name: Verify legacy raw bundle persistence is disabled
         shell: bash
@@ -185,7 +185,7 @@ jobs:
             "whole_batch_atomic":true,
             "strict_current_max_age_days":7,
             "max_clock_skew_seconds":300,
-            "expected_tests":56,
+            "expected_tests":57,
             "lawful_empirical_current_sold_count":0,
             "private_candidate_current_sold_count":0,
             "postgres_migration_applied":false,
