@@ -48,6 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+          node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs --self-test
       - name: Apply authorized append-only 25-member generation plus aggregate commit
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -57,7 +58,7 @@ jobs:
           CANONICAL_GENERATION_RECEIPT_PATH: ${{ runner.temp }}/canonical-generation-v3-receipt.json
         run: |
           set -euo pipefail
-          node scripts/kidults/kpmo/canonical-generation-v3.mjs --write
+          node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs
       - name: Validate terminal receipt
         if: always()
         run: |
@@ -69,8 +70,9 @@ jobs:
           const x=JSON.parse(fs.readFileSync(p,'utf8'));
           if(!['VERIFIED_PASS','VERIFIED_FAIL'].includes(x.state)) throw new Error('CANONICAL_V3_RECEIPT_STATE_INVALID');
           if(x.promotion_eligible!==false||x.production!=='HOLD'||x.public!=='HOLD'||x.g5!=='HOLD') throw new Error('CANONICAL_V3_RECEIPT_BOUNDARY_INVALID');
-          if(x.state==='VERIFIED_PASS' && !['COMMITTED','IDEMPOTENT_EXISTING_GENERATION'].includes(x.mode)) throw new Error('CANONICAL_V3_PASS_MODE_INVALID');
-          console.log(JSON.stringify({state:x.state,mode:x.mode,writes:x.writes,generation_id:x.generation_id||null}));
+          if(x.state==='VERIFIED_PASS' && !['COMMITTED','IDEMPOTENT_EXISTING_GENERATION','COMMITTED_EVENTUAL_READBACK_RECOVERED'].includes(x.mode)) throw new Error('CANONICAL_V3_PASS_MODE_INVALID');
+          if(x.mode==='COMMITTED_EVENTUAL_READBACK_RECOVERED' && (x.writes!==26||x.recovered_same_generation!==true||x.recovered_from_failure_class!=='POST_WRITE_READBACK_INVALID')) throw new Error('CANONICAL_V3_RECOVERY_RECEIPT_INVALID');
+          console.log(JSON.stringify({state:x.state,mode:x.mode,writes:x.writes,generation_id:x.generation_id||null,aggregate_comment_id:x.aggregate_comment_id||null}));
           NODE
       - name: Upload exact-run Canonical V3 receipt
         if: always()
