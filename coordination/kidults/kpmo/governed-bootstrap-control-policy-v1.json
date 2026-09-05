@@ -1,0 +1,135 @@
+{
+  "id": "kidults-governed-bootstrap-control-policy-v1",
+  "version": "1.0.0",
+  "status": "STAGE_A_BOOTSTRAP_EXCEPTION_DIRECTION_APPROVED_PENDING_SEPARATE_NATURAL_CANARY",
+  "owner": "KPMO",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "base_branch": "main",
+  "workflow_event": "pull_request_target",
+  "check_context": "KIDULTS Governed Bootstrap Control Validation V1",
+  "candidate_executable_authority": false,
+  "maximum_changed_files": 24,
+  "maximum_candidate_file_bytes": 1048576,
+  "approval_receipt": {
+    "issue": 238,
+    "comment_id": 5465472511,
+    "scope": "ITEMS_1_TO_7_DIRECTION_APPROVAL",
+    "operation_specific_merge_or_external_mutation_token": false
+  },
+  "defect_links": {
+    "deterministic_landing_token": 1592,
+    "closed_unmerged_bootstrap_candidate": 1595
+  },
+  "trusted_stage_a_paths": [
+    ".github/workflows/kidults-governed-bootstrap-control-validation-v1.yml",
+    "scripts/kidults/kpmo/validate-governed-bootstrap-candidate-v1.mjs",
+    "coordination/kidults/kpmo/governed-bootstrap-control-policy-v1.json",
+    "tests/kidults/kpmo/governed-bootstrap-control-validation-v1.test.mjs"
+  ],
+  "stage_b_allowed_paths": [
+    {
+      "path": ".github/workflows/kidults-atomic-governed-landing-v1.yml",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "90b451052d789bc46654e47f2d88788add3eb589"
+    },
+    {
+      "path": "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "cd4b19f9130f38355a9395ad4076fef42a25d486"
+    },
+    {
+      "path": "scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "fe27bdb8c748eaa8aba727603cdb30f8688f7583"
+    },
+    {
+      "path": "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "5bcf98a9a24617bd723a45be4f5e070e6631e0e8"
+    },
+    {
+      "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "4b3966fbf527659e74b4191633c7fe1ac32d69f1"
+    },
+    {
+      "path": "scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "8f0451ed28391a5c24e1da6211b2d35249188477"
+    },
+    {
+      "path": "coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "24864ed875780df1e7fe5b2023c31f756f95ad8e"
+    },
+    {
+      "path": "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
+      "base_state": "PRESENT",
+      "base_blob_sha1": "67eb4ea1ccfe995e7199e32ffa28eba4ad910e8e"
+    },
+    {
+      "path": "coordination/kidults/governance/governed-landing-one-shot-approval-ledger-v1.json",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "scripts/governance/governed-landing-one-shot-approval-ledger-v1.mjs",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "tests/kidults/kpmo/governed-landing-one-shot-approval-ledger-v1.test.mjs",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "services/kidults-governed-landing-approval-trust-root/src/index.mjs",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "services/kidults-governed-landing-approval-trust-root/test/approval-ledger.test.mjs",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "services/kidults-governed-landing-approval-trust-root/wrangler.jsonc",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "tests/kidults/kpmo/governed-landing-producer-provenance-v1.test.mjs",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    },
+    {
+      "path": "coordination/kidults/kpmo/governed-bootstrap-canary-v1.json",
+      "base_state": "ABSENT",
+      "base_blob_sha1": null
+    }
+  ],
+  "pre_native_binding_acceptance": {
+    "trusted_base_workflow_run": "SUCCESS",
+    "governed_landing_exact_head_status": "PENDING",
+    "scope_aware_exact_head_status": "SUCCESS",
+    "ordinary_readiness_must_never_publish_governed_success": true,
+    "separate_natural_canary_required": true
+  },
+  "native_binding_boundary": {
+    "stage_a_changes_ruleset": false,
+    "stage_b_changes_ruleset": false,
+    "bind_only_after_protected_main_readback_and_natural_canary": true,
+    "preserve_existing_native_context_count": 3,
+    "strict_required_status_policy": true,
+    "bypass_actor_count": 0
+  },
+  "authority_boundary": {
+    "technical_check_is_merge_authority": false,
+    "approval_receipt_is_external_mutation_authority": false,
+    "provider_credentials": "FORBIDDEN",
+    "provider_calls": "FORBIDDEN",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
