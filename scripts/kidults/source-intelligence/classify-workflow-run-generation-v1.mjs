@@ -4,12 +4,13 @@ import fs from 'node:fs';
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 
-export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath}) {
+export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath,expectedProducerEvent=null}) {
   const run=event?.workflow_run;
   const base={
-    id:'kidults-workflow-run-generation-classification-v1',version:'1.0.0',
+    id:'kidults-workflow-run-generation-classification-v1',version:'1.1.0',
     state:'VERIFIED_FAIL',classification:'INVALID_TRIGGER',reason:'UNCLASSIFIED',
     repository,current_main_sha:currentMainSha,execution_sha:executionSha,expected_producer_workflow_path:expectedWorkflowPath,
+    expected_producer_event:expectedProducerEvent,producer_event:run?.event??null,
     producer_workflow_path:run?.path??null,producer_run_id:Number.isInteger(run?.id)?run.id:null,
     producer_run_attempt:Number.isInteger(run?.run_attempt)?run.run_attempt:null,
     producer_head_repository:run?.head_repository?.full_name??null,producer_head_branch:run?.head_branch??null,
@@ -24,6 +25,7 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
   if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
   if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
   if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
+  if(expectedProducerEvent&&run.event!==expectedProducerEvent)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'PRODUCER_EVENT_MISMATCH'};
   if(!SHA_RE.test(run.head_sha??''))return {...base,reason:'PRODUCER_HEAD_SHA_INVALID'};
   if(run.conclusion!=='success')return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'UPSTREAM_NON_SUCCESS',producer_conclusion:run.conclusion??'UNKNOWN'};
   if(run.head_sha!==currentMainSha)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'STALE_PRIOR_MAIN_TRIGGER'};
@@ -31,10 +33,10 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
 }
 
 function main(){
-  const [eventPath,currentMainSha,executionSha,repository,expectedWorkflowPath,outputPath]=process.argv.slice(2);
+  const [eventPath,currentMainSha,executionSha,repository,expectedWorkflowPath,outputPath,expectedProducerEvent]=process.argv.slice(2);
   if(!eventPath||!currentMainSha||!executionSha||!repository||!expectedWorkflowPath||!outputPath)throw new Error('WORKFLOW_RUN_CLASSIFIER_ARGUMENTS_REQUIRED');
   const event=JSON.parse(fs.readFileSync(eventPath,'utf8'));
-  const result=classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath});
+  const result=classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath,expectedProducerEvent:expectedProducerEvent||null});
   fs.writeFileSync(outputPath,`${JSON.stringify(result,null,2)}\n`);
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
