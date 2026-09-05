@@ -59,6 +59,8 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EDITED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY/);
+  assert.match(runner, /readyEvent\?\.latest_invalidating_event/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_LATEST_INVALIDATION/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_RULESET_BYPASS_FORBIDDEN/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS/);
