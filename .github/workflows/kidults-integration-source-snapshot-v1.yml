@@ -30,7 +30,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           export SOURCE_PACKET="$RUNNER_TEMP/kir-source-snapshot"
           mkdir -m 700 "$SOURCE_PACKET"
-          for entry in "kir:$EXPECTED_SHA" 'landing:3d7ed543487c8adc2ab75fe607dc030b71ef3675' 'cloudflare:439d44a0c1a4e703f7d239285f6683dc79c4c2b4' 'main:24ad2e6f8358d6af23d4a4b9cd7bb0cfd89b962d'; do
+          for entry in "kir:$EXPECTED_SHA" 'landing:3d7ed543487c8adc2ab75fe607dc030b71ef3675' 'cloudflare:439d44a0c1a4e703f7d239285f6683dc79c4c2b4' 'main:71319213c35f628b8bd54124ac9131abc47120d2'; do
             label="${entry%%:*}"
             sha="${entry#*:}"
             [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
