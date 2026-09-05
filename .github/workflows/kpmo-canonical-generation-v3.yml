@@ -50,12 +50,15 @@ jobs:
           const fs=require('fs');
           const p='.github/workflows/kpmo-canonical-generation-v3.yml';
           const s=fs.readFileSync(p,'utf8');
-          for(const forbidden of [/issues:\s*write/, /^  push:/m, /^  issues:/m, /^  schedule:/m]) {
-            if(forbidden.test(s)) throw new Error(`CANONICAL_V3_BOOTSTRAP_WRITE_SURFACE_PRESENT:${forbidden}`);
+          const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
+          if(!trigger.startsWith('on:\n')) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_SECTION_INVALID');
+          for(const forbidden of [/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
+            if(forbidden.test(trigger)) throw new Error(`CANONICAL_V3_BOOTSTRAP_FORBIDDEN_TRIGGER:${forbidden}`);
           }
+          if(/issues:\s*write/.test(s)) throw new Error('CANONICAL_V3_BOOTSTRAP_ISSUE_WRITE_PRESENT');
           const writeFlag=['--','write'].join('');
           if(s.includes(writeFlag)) throw new Error('CANONICAL_V3_BOOTSTRAP_WRITE_FLAG_PRESENT');
-          if(!/^  pull_request:/m.test(s)||!/^  workflow_dispatch:/m.test(s)) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_BOUNDARY_INVALID');
+          if(!/^  pull_request:/m.test(trigger)||!/^  workflow_dispatch:/m.test(trigger)) throw new Error('CANONICAL_V3_BOOTSTRAP_TRIGGER_BOUNDARY_INVALID');
           console.log('Canonical V3 bootstrap write authority unreachable: PASS');
           NODE
       - name: Validate one-shot apply workflow authority surface
@@ -65,9 +68,12 @@ jobs:
           const fs=require('fs');
           const p='.github/workflows/kpmo-canonical-generation-v3-apply.yml';
           const s=fs.readFileSync(p,'utf8');
-          for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m,/\$\{\{[^}]*secrets/i]) {
-            if(forbidden.test(s)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_SURFACE:${forbidden}`);
+          const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
+          if(!trigger.startsWith('on:\n')) throw new Error('CANONICAL_V3_APPLY_TRIGGER_SECTION_INVALID');
+          for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
+            if(forbidden.test(trigger)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_TRIGGER:${forbidden}`);
           }
+          if(/\$\{\{[^}]*secrets/i.test(s)) throw new Error('CANONICAL_V3_APPLY_SECRET_REFERENCE_FORBIDDEN');
           const writeFlag=['--','write'].join('');
           const requiredPatterns=[
             /^  workflow_dispatch:/m,
