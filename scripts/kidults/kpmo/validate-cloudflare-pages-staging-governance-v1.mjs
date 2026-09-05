@@ -97,8 +97,16 @@ for (const script of [readonly, deployScript]) {
 req(readonly.includes('legacy_deployments_enabled_authoritative:false'), 'READONLY_LEGACY_INFORMATIONAL');
 req(readonly.includes('preview_branch_rules_authoritative_only_when_custom:true'), 'READONLY_PREVIEW_RULE_SCOPE');
 req(readonly.includes('select(.environment == "preview" and .materialized == true)'), 'READONLY_MATERIALIZED_PREVIEW');
+req(readonly.includes('"$skipped_attempt_count" -eq 0'), 'READONLY_ALL_SKIPPED_ATTEMPTS_FAIL_CLOSED');
+req(readonly.includes('skipped_attempt_count:$skipped_attempt_count'), 'READONLY_ALL_SKIPPED_ATTEMPTS_BOUND');
+req(readonly.includes('BLOCKED_INVENTORY_CAPACITY') && readonly.includes('DEPLOYMENT_INVENTORY_PAGE_LIMIT'), 'READONLY_CAPACITY_TERMINAL_RECEIPT');
+req(readonly.includes('DEPLOYMENT_INVENTORY_READBACK_FAILED') && readonly.includes('READBACK_ERROR'), 'READONLY_READBACK_FAILURE_TERMINAL_RECEIPT');
+req(readonly.includes('api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 69'), 'READONLY_API_FAILURE_PROPAGATION');
+req(readonly.includes('capacity_state:$capacity_state') && readonly.includes('promotion_eligible:false'), 'READONLY_CAPACITY_TRUTH_BOUND');
 req(readonly.includes('APPROVAL_BOUND_V1') && readonly.includes('LEGACY_GOVERNED_V1'), 'READONLY_GOVERNED_LINEAGE_FORMATS');
 req(cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_PREVIEW_ONLY');
+req(cleanup.includes('BLOCKED_INVENTORY_CAPACITY') && cleanup.includes('PRE_MUTATION') && cleanup.includes('POST_MUTATION'), 'CLEANUP_CAPACITY_TERMINAL_RECEIPTS');
+req(cleanup.includes('production_preservation_verified:false') && cleanup.includes('promotion_eligible:false'), 'CLEANUP_CAPACITY_TRUTH_BOUND');
 req(cleanup.includes('test "$initial_production_ids" = "$final_production_ids"'), 'PRODUCTION_HISTORY_GUARD');
 req(!cleanup.includes('select(.environment == "production") | .id | @sh'), 'NO_PROD_DELETE');
 req(contain.includes('.config.production_deployments_enabled = false'), 'CONTAIN_PRODUCTION_OFF');

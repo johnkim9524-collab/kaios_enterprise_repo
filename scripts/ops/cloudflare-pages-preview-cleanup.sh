@@ -34,6 +34,24 @@ mkdir -p "$RECEIPT_DIR"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+write_inventory_failure_receipt() {
+  local state="$1" reason_code="$2" exit_code="$3" capacity_state="$4" inventory_stage="$5"
+  local deleted_count="${deleted:-0}"
+  jq -n --arg project "$PROJECT_NAME" --arg mode "$MODE" --arg state "$state" \
+    --arg reason_code "$reason_code" --arg capacity_state "$capacity_state" --arg inventory_stage "$inventory_stage" \
+    --argjson exit_code "$exit_code" --argjson deleted_preview_count "$deleted_count" '{
+      id:"kidults-cloudflare-preview-cleanup-receipt-v1",project:$project,mode:$mode,
+      state:$state,reason_code:$reason_code,exit_code:$exit_code,
+      inventory_stage:$inventory_stage,deleted_preview_count:$deleted_preview_count,
+      deletion_performed:($deleted_preview_count > 0),post_mutation_verification_complete:false,
+      production_preservation_verified:false,production_delete_forbidden:true,
+      capacity_state:$capacity_state,promotion_eligible:false,
+      platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
+    }' > "$RECEIPT_DIR/final.json"
+  cat "$RECEIPT_DIR/final.json"
+  exit "$exit_code"
+}
+
 api_request() {
   local method="$1" url="$2" output="$3"
   shift 3
@@ -56,10 +74,10 @@ list_all_deployments() {
       return 68
     fi
     page_file="$tmp_dir/${prefix}-page-${page}.json"
-    api_request GET "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
-    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
-    jq -c '.result[]' "$page_file" >> "$ndjson"
-    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
+    api_request GET "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 69
+    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null || return 69
+    jq -c '.result[]' "$page_file" >> "$ndjson" || return 69
+    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")" || return 69
     if (( total_pages > MAX_PAGES )); then
       echo "Cloudflare deployment inventory exceeds bounded pagination: $total_pages pages" >&2
       return 68
@@ -67,9 +85,9 @@ list_all_deployments() {
     page=$((page + 1))
   done
   if [[ -s "$ndjson" ]]; then
-    jq -s '.' "$ndjson" > "$output"
+    jq -s '.' "$ndjson" > "$output" || return 69
   else
-    printf '[]\n' > "$output"
+    printf '[]\n' > "$output" || return 69
   fi
 }
 
@@ -88,7 +106,13 @@ normalize() {
   }]'
 }
 
-list_all_deployments "$tmp_dir/initial-raw.json" initial
+inventory_rc=0
+list_all_deployments "$tmp_dir/initial-raw.json" initial || inventory_rc=$?
+if (( inventory_rc == 68 )); then
+  write_inventory_failure_receipt "BLOCKED_INVENTORY_CAPACITY" "DEPLOYMENT_INVENTORY_PAGE_LIMIT" 68 "EXHAUSTED" "PRE_MUTATION"
+elif (( inventory_rc != 0 )); then
+  write_inventory_failure_receipt "VERIFIED_FAIL" "DEPLOYMENT_INVENTORY_READBACK_FAILED" 69 "READBACK_ERROR" "PRE_MUTATION"
+fi
 initial="$(normalize < "$tmp_dir/initial-raw.json")"
 initial_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$initial")"
 initial_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$initial")"
@@ -146,7 +170,13 @@ while IFS= read -r deployment_id; do
   fi
 done < <(jq -r '.[]' <<<"$initial_preview_ids")
 
-list_all_deployments "$tmp_dir/final-raw.json" final
+inventory_rc=0
+list_all_deployments "$tmp_dir/final-raw.json" final || inventory_rc=$?
+if (( inventory_rc == 68 )); then
+  write_inventory_failure_receipt "BLOCKED_INVENTORY_CAPACITY" "DEPLOYMENT_INVENTORY_PAGE_LIMIT" 68 "EXHAUSTED" "POST_MUTATION"
+elif (( inventory_rc != 0 )); then
+  write_inventory_failure_receipt "VERIFIED_FAIL" "DEPLOYMENT_INVENTORY_READBACK_FAILED" 69 "READBACK_ERROR" "POST_MUTATION"
+fi
 final="$(normalize < "$tmp_dir/final-raw.json")"
 final_production_ids="$(jq -c '[.[] | select(.environment == "production") | .id] | unique | sort' <<<"$final")"
 remaining_preview_ids="$(jq -c '[.[] | select(.environment == "preview" and .materialized == true) | .id] | unique | sort' <<<"$final")"
