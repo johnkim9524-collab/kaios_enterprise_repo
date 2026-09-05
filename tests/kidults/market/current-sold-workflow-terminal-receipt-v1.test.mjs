@@ -53,13 +53,17 @@ test('workflow initializes durable fail receipt and reconciles all required outc
   const init = workflow.indexOf('Initialize fail-closed Current-SOLD terminal receipt');
   const checkout = workflow.indexOf('id: checkout');
   const reconcile = workflow.indexOf('Reconcile Current-SOLD semantic terminal receipt');
+  const stage = workflow.indexOf('Stage Current-SOLD terminal artifact');
   const upload = workflow.indexOf('Upload Current-SOLD terminal artifact');
-  assert.ok(init >= 0 && checkout > init && reconcile > checkout && upload > reconcile);
+  assert.ok(init >= 0 && checkout > init && reconcile > checkout && stage > reconcile && upload > stage);
   assert.match(workflow.slice(init, checkout), /"state":"VERIFIED_FAIL"/);
   assert.match(workflow.slice(init, checkout), /"failed_check_ids":\["CURRENT_SOLD_WORKFLOW_NOT_RECONCILED"\]/);
   assert.match(workflow.slice(reconcile, upload), /if: always\(\)/);
   for (const stage of Object.keys(stages)) assert.ok(workflow.includes(`${stage}_OUTCOME:`), stage);
   assert.match(workflow, /CURRENT_SOLD_EXPECTED_TESTS: \$\{\{ steps\.current_sold_tests\.outputs\.expected_tests \}\}/);
   assert.match(workflow, /scripts\/kidults\/market\/reconcile-current-sold-terminal-v1\.mjs/);
+  assert.match(workflow.slice(stage, upload), /cp "\$CURRENT_SOLD_RECEIPT_PATH" out\/current-sold-engine\/receipt\.json/);
+  assert.match(workflow.slice(upload), /path: out\/current-sold-engine/);
+  assert.doesNotMatch(workflow.slice(upload), /kidults-current-sold-terminal\/receipt\.json/);
   assert.doesNotMatch(workflow, /"expected_tests":[1-9][0-9]*/);
 });
