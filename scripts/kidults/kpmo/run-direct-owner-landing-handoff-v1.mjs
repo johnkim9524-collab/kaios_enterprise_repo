@@ -103,7 +103,7 @@ function parseApproval(body) {
   if (lines.length !== approvalKeys.length + 1) fail('DIRECT_OWNER_HANDOFF_APPROVAL_SHAPE_INVALID');
   const fields = {};
   for (const line of lines.slice(1)) {
-    const match = /^([a-z_]+)=(.+)$/.exec(line);
+    const match = /^([a-z0-9_]+)=(.+)$/.exec(line);
     if (!match || !approvalKeys.includes(match[1]) || Object.hasOwn(fields, match[1])) fail('DIRECT_OWNER_HANDOFF_APPROVAL_FIELD_INVALID');
     fields[match[1]] = match[2];
   }
