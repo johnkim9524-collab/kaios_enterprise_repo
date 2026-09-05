@@ -10,6 +10,8 @@
 /coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json text eol=lf
 /coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json text eol=lf
 /coordination/kidults/registry/ai-agent-governance-registry-v1.json text eol=lf
+/coordination/kidults/source-intelligence/global-sold-source-registry-evidence-manifest-v1.json text eol=lf
+/coordination/kidults/source-intelligence/global-sold-source-registry-v1.json text eol=lf
 /scripts/governance/bootstrap-ai-agent-from-github-v1.mjs text eol=lf
 /scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs text eol=lf
 /scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs text eol=lf
