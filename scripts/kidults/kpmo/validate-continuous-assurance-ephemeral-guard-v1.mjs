@@ -166,14 +166,16 @@ assert(one.remediation_plan.source_receipt_digest === one.alias_receipt.receipt_
 const repositoryArtifactWithoutEmbeddedLineage = structuredClone(leader.artifact);
 delete repositoryArtifactWithoutEmbeddedLineage.workflow_run;
 const runScopedArtifact = structuredClone(repositoryArtifactWithoutEmbeddedLineage);
+const lineageRun = structuredClone(leader.run);
+lineageRun.head_sha = sourceSha;
 const lineageInput = {
   repository_artifact: repositoryArtifactWithoutEmbeddedLineage,
-  run: leader.run,
+  run: lineageRun,
   run_artifact_index: { total_count: 1, artifacts: [runScopedArtifact] },
   receipt: leader.receipt,
 };
 const reconstructed = reconstructArtifactLineage(lineageInput);
-assert(reconstructed.workflow_run.id === leader.run.id && reconstructed.workflow_run.head_sha === leader.run.head_sha, 'RUN_SCOPED_LINEAGE_RECONSTRUCTION');
+assert(reconstructed.workflow_run.id === lineageRun.id && reconstructed.workflow_run.head_sha === lineageRun.head_sha, 'RUN_SCOPED_LINEAGE_RECONSTRUCTION');
 assert(reconstructed.lineage_resolution === 'RUN_SCOPED_ARTIFACT_MEMBERSHIP', 'RUN_SCOPED_LINEAGE_MODE');
 const lineageMutations = [
   ['MEMBERSHIP_MISSING', (x) => { x.run_artifact_index = { total_count: 0, artifacts: [] }; }],
