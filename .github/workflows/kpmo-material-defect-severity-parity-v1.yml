@@ -24,7 +24,7 @@ permissions:
   issues: read
 
 concurrency:
-  group: kpmo-material-defect-severity-parity-${{ github.event_name }}-${{ github.event_name == 'issues' && github.event.issue.number || github.ref || github.run_id }}
+  group: kpmo-material-defect-severity-parity-${{ github.event_name }}-${{ github.event_name == 'issues' && 'all-material-defects' || github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -51,5 +51,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = issues ]; then
+            sleep 15
+          fi
           node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
           node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
