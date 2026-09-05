@@ -163,11 +163,14 @@ function writeReceipt(receipt) {
 let statusTouched = false;
 let receipt = null;
 try {
+  const repositoryMetadata = await request('');
+  const owner = repositoryMetadata?.owner?.login;
+  if (!owner || actor !== owner) fail('DIRECT_OWNER_HANDOFF_DISPATCH_ACTOR_NOT_OWNER');
+
   await publish('pending', 'Direct Owner exact-head handoff validation in progress');
   statusTouched = true;
 
-  const [repo, pr, main, files, timeline, comments, headCommit, statuses, runs, rulesets] = await Promise.all([
-    request(''),
+  const [pr, main, files, timeline, comments, headCommit, statuses, runs, rulesets] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/pulls/${prNumber}/files`),
@@ -178,8 +181,6 @@ try {
     checkRuns(expectedHeadSha),
     request('/rulesets'),
   ]);
-  const owner = repo?.owner?.login;
-  if (!owner || actor !== owner) fail('DIRECT_OWNER_HANDOFF_DISPATCH_ACTOR_NOT_OWNER');
   assertPromotablePullRequest(pr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
   if (pr.user?.login !== owner || pr.head?.repo?.full_name !== repository) fail('DIRECT_OWNER_HANDOFF_PR_OWNER_BINDING_INVALID');
   if (pr.base?.sha !== expectedBaseSha || main?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_BASE_NOT_CURRENT_MAIN');
@@ -250,10 +251,22 @@ try {
   writeReceipt(receipt);
 
   await sleep(handoffWindowSeconds * 1000);
-  const after = await request(`/pulls/${prNumber}`);
+  const [after, afterMain, afterTimeline, afterComments] = await Promise.all([
+    request(`/pulls/${prNumber}`),
+    request('/branches/main'),
+    pages(`/issues/${prNumber}/timeline`),
+    pages(`/issues/${prNumber}/comments`),
+  ]);
+  const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
+  if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
+  const afterApproval = selectApproval(afterComments, owner, after, headCommit, afterReady);
+  if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+
   if (after?.merged === true) {
+    if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
     if (after?.merged_by?.login !== owner) fail('DIRECT_OWNER_HANDOFF_MERGED_BY_NON_OWNER');
     if (!SHA.test(after?.merge_commit_sha || '')) fail('DIRECT_OWNER_HANDOFF_MERGE_SHA_INVALID');
+    if (afterMain?.commit?.sha !== after.merge_commit_sha) fail('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
     receipt = {
       ...receipt,
       state: 'CONSUMED_BY_DIRECT_OWNER_MERGE',
@@ -267,8 +280,7 @@ try {
     process.exit(0);
   }
 
-  const currentMain = await request('/branches/main');
-  if (currentMain?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_MAIN_MOVED_WITHOUT_BOUND_MERGE');
+  if (afterMain?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_MAIN_MOVED_WITHOUT_BOUND_MERGE');
   if (after?.head?.sha !== expectedHeadSha || after?.state !== 'open') fail('DIRECT_OWNER_HANDOFF_PR_DRIFT_DURING_WINDOW');
   await publish('pending', 'Direct Owner handoff expired unconsumed; fresh authorization required');
   receipt = {

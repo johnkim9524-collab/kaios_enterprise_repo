@@ -49,3 +49,26 @@ test('Atomic Landing remains fail-closed before authority consumption while dire
   assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex && lifecycleIndex < consumptionIndex);
   assert.match(atomic, /ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED/);
 });
+
+test('approval revocation cannot queue behind the handoff window or be triggered by an untrusted commenter', () => {
+  assert.match(workflow, /group: kidults-direct-owner-landing-handoff-v1-\$\{\{ github\.event_name == 'workflow_dispatch' && 'handoff' \|\| 'revocation' \}\}/);
+  assert.match(workflow, /github\.event\.comment\.user\.login == github\.repository_owner/);
+  assert.match(workflow, /github\.event\.comment\.author_association == 'OWNER'/);
+  assert.doesNotMatch(workflow, /github\.event\.action == 'deleted' \|\|/);
+});
+
+test('dispatch actor is verified before any governed status mutation', () => {
+  const actorGuard = runner.indexOf("DIRECT_OWNER_HANDOFF_DISPATCH_ACTOR_NOT_OWNER");
+  const firstPublish = runner.indexOf("await publish('pending'");
+  assert.ok(actorGuard >= 0 && actorGuard < firstPublish);
+});
+
+test('post-window merge classification revalidates approval, ready event, head and current main', () => {
+  const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
+  const approvalRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  const readyRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
+  const headRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
+  const mainRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
+  assert.ok(sleepIndex >= 0);
+  for (const index of [approvalRecheck, readyRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+});
