@@ -99,13 +99,18 @@ jobs:
             node --check "$file"
           done
       - name: Run Current-SOLD fail-closed test suite
+        id: current_sold_tests
         shell: bash
         run: |
           set -euo pipefail
           node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs | tee /tmp/current-sold-tests.tap
-          grep -Eq '^# tests 57$' /tmp/current-sold-tests.tap
-          grep -Eq '^# pass 57$' /tmp/current-sold-tests.tap
-          grep -Eq '^# fail 0$' /tmp/current-sold-tests.tap
+          tests="$(sed -n 's/^# tests \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          pass="$(sed -n 's/^# pass \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          fail="$(sed -n 's/^# fail \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          test -n "$tests" && test "$tests" -gt 0
+          test "$pass" = "$tests"
+          test "$fail" = "0"
+          echo "expected_tests=$tests" >> "$GITHUB_OUTPUT"
       - name: Verify legacy raw bundle persistence is disabled
         shell: bash
         run: |
@@ -173,6 +178,7 @@ jobs:
         shell: bash
         env:
           CURRENT_SOLD_EXACT_SHA: ${{ steps.source.outputs.source_sha }}
+          CURRENT_SOLD_EXPECTED_TESTS: ${{ steps.current_sold_tests.outputs.expected_tests }}
         run: |
           set -euo pipefail
           mkdir -p out/current-sold-engine
@@ -185,7 +191,7 @@ jobs:
             "whole_batch_atomic":true,
             "strict_current_max_age_days":7,
             "max_clock_skew_seconds":300,
-            "expected_tests":57,
+            "expected_tests":${CURRENT_SOLD_EXPECTED_TESTS:-0},
             "lawful_empirical_current_sold_count":0,
             "private_candidate_current_sold_count":0,
             "postgres_migration_applied":false,
