@@ -2,12 +2,14 @@
 import fs from 'node:fs';
 
 const authPath = 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json';
-const workflowPath = '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml';
+const activeWorkflowPath = '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml';
+const workflowPath = 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-workers-shadow-deploy-v1.yml';
 const registryPath = 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json';
 const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
 const registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const ok = (value, code) => { if (!value) throw new Error(code); };
+ok(!fs.existsSync(activeWorkflowPath), 'ACTIVE_WORKFLOW_TOMBSTONE_MUST_BE_ABSENT');
 
 ok(auth.status === 'CONSUMED_ZERO_EXECUTABLE_AUTHORITY', 'AUTH_STATUS');
 ok(auth.executable_authority === false, 'EXECUTABLE_AUTHORITY');

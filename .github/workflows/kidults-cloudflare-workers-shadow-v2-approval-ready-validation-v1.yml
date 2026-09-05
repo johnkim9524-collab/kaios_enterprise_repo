@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml'
+      - 'coordination/kidults/governance/workflow-tombstones/kidults-cloudflare-workers-shadow-deploy-v2.yml'
       - '.github/workflows/kidults-cloudflare-workers-shadow-v2-approval-ready-validation-v1.yml'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json'
       - 'coordination/kidults/governance/cloudflare-workers-shadow-v2-execution-contract-v1.json'
