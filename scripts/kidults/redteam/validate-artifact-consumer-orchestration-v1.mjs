@@ -106,11 +106,11 @@ assert(!supersession.includes('if [[ "${code}" == "202" || "${code}" == "409" ]]
 assert(supersession.includes('same_head_runs_cancelled:0'), 'EXACT_HEAD_SUPERSESSION_SAME_HEAD_INVARIANT_MISSING');
 assert(supersession.includes('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml'), 'EXACT_HEAD_SUPERSESSION_DIRECT_OWNER_BRIDGE_RETENTION_MISSING');
 assert(supersession.includes('.github/workflows/kidults-atomic-governed-landing-v1.yml'), 'EXACT_HEAD_SUPERSESSION_ATOMIC_LANDING_BRIDGE_RETENTION_MISSING');
-assert(supersession.includes("if retain_generation_bridge \"${workflow_path}\"; then"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_MISSING');
+assert(supersession.includes("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_MISSING');
 assert(supersession.includes("generation_bridge_runs_retained:$generation_bridge_retained"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RECEIPT_MISSING');
 assert(supersession.includes('[[ "${run_event}" == "workflow_dispatch" ]] || return 1'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_EVENT_BINDING_MISSING');
 assert(supersession.includes('.workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RUN_FIELDS_MISSING');
-assert(supersession.indexOf("if retain_generation_bridge \"${workflow_path}\"; then") < supersession.indexOf('/actions/runs/${run_id}/cancel', supersession.indexOf("if retain_generation_bridge \"${workflow_path}\"; then")), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_ORDER_INVALID');
+assert(supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then") < supersession.indexOf('/actions/runs/${run_id}/cancel', supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then")), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_ORDER_INVALID');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(snapshot.includes('/actions/runs/${P2_RUN_ID}/artifacts'), 'SNAPSHOT_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(snapshot.includes('main.commit?.sha!==run.head_sha') && snapshot.includes('main.commit.sha!==process.env.GITHUB_SHA'), 'SNAPSHOT_CURRENT_MAIN_BINDING_MISSING');
