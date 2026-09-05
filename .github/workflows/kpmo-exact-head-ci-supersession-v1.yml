@@ -55,11 +55,20 @@ jobs:
           stale_cancelled=0
           force_cancelled=0
           exact_head_retained=0
+          generation_bridge_retained=0
           cancellation_retry_attempts=0
           force_cancel_attempts=0
           terminal_race_readbacks=0
           terminal_readback_attempts=0
           examined=0
+
+          retain_generation_bridge() {
+            local workflow_path="$1"
+            case "${workflow_path}" in
+              ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml"|".github/workflows/kidults-atomic-governed-landing-v1.yml") return 0 ;;
+              *) return 1 ;;
+            esac
+          }
 
           read_run_terminal() {
             local target_run_id="$1"
@@ -130,7 +139,110 @@ jobs:
             count="$(jq '.workflow_runs | length' <<<"${response}")"
             examined=$((examined + count))
 
-            while IFS=$'\t' read -r run_id head_sha status workflow_name; do
+            while IFS=
+              [[ -n "${run_id}" ]] || continue
+              [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
+              [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
+
+              if retain_generation_bridge "${workflow_path}"; then
+                generation_bridge_retained=$((generation_bridge_retained + 1))
+                continue
+              fi
+
+              if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
+                exact_head_retained=$((exact_head_retained + 1))
+                continue
+              fi
+
+              code=""
+              for attempt in 1 2 3; do
+                code="$(curl --silent --show-error --output /tmp/cancel-response.json --write-out '%{http_code}' \
+                  --request POST \
+                  -H "Authorization: Bearer ${GH_TOKEN}" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  "${api}/actions/runs/${run_id}/cancel")"
+
+                if [[ "${code}" == "202" || "${code}" == "409" ]]; then
+                  break
+                fi
+                if [[ "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
+                  cancellation_retry_attempts=$((cancellation_retry_attempts + 1))
+                  sleep $((attempt * 2))
+                  continue
+                fi
+                break
+              done
+
+              if [[ "${code}" == "202" || "${code}" == "409" || "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
+                readback_result="$(read_run_terminal "${run_id}")"
+                latest_status="$(jq -r '.status' <<<"${readback_result}")"
+                latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
+                readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
+                terminal_readback_attempts=$((terminal_readback_attempts + readback_attempts))
+                if [[ "${latest_status}" == "completed" ]]; then
+                  if [[ "${latest_conclusion}" == "cancelled" ]]; then
+                    cancelled=$((cancelled + 1))
+                    stale_cancelled=$((stale_cancelled + 1))
+                  else
+                    terminal_race_readbacks=$((terminal_race_readbacks + 1))
+                  fi
+                  continue
+                fi
+
+                force_result="$(force_cancel_run "${run_id}")"
+                force_code="$(jq -r '.code' <<<"${force_result}")"
+                force_attempts="$(jq -r '.attempts' <<<"${force_result}")"
+                force_cancel_attempts=$((force_cancel_attempts + force_attempts))
+
+                if [[ "${force_code}" == "202" || "${force_code}" == "409" || "${force_code}" == "429" || "${force_code}" =~ ^5[0-9][0-9]$ ]]; then
+                  readback_result="$(read_run_terminal "${run_id}")"
+                  latest_status="$(jq -r '.status' <<<"${readback_result}")"
+                  latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
+                  readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
+                  terminal_readback_attempts=$((terminal_readback_attempts + readback_attempts))
+                  if [[ "${latest_status}" == "completed" ]]; then
+                    if [[ "${latest_conclusion}" == "cancelled" ]]; then
+                      cancelled=$((cancelled + 1))
+                      stale_cancelled=$((stale_cancelled + 1))
+                      force_cancelled=$((force_cancelled + 1))
+                    else
+                      terminal_race_readbacks=$((terminal_race_readbacks + 1))
+                    fi
+                    continue
+                  fi
+                fi
+
+                cat /tmp/cancel-response.json
+                if [[ -f /tmp/force-cancel-response.json ]]; then cat /tmp/force-cancel-response.json; fi
+                echo "Cancellation not terminally confirmed for run ${run_id} status=${latest_status} conclusion=${latest_conclusion} normal_code=${code} force_code=${force_code:-NOT_ATTEMPTED}" >&2
+                exit 1
+              else
+                cat /tmp/cancel-response.json
+                echo "Unexpected cancellation status ${code} for run ${run_id}" >&2
+                exit 1
+              fi
+            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .path] | @tsv' <<<"${response}")
+
+            [[ "${count}" -eq 100 ]] || break
+          done
+
+          jq -n \
+            --arg state "VERIFIED_PASS" \
+            --arg exact_head_sha "${EXACT_HEAD_SHA}" \
+            --argjson pr_number "${PR_NUMBER}" \
+            --argjson examined "${examined}" \
+            --argjson cancelled "${cancelled}" \
+            --argjson stale_cancelled "${stale_cancelled}" \
+            --argjson force_cancelled "${force_cancelled}" \
+            --argjson exact_head_retained "${exact_head_retained}" \
+            --argjson generation_bridge_retained "${generation_bridge_retained}" \
+            --argjson cancellation_retry_attempts "${cancellation_retry_attempts}" \
+            --argjson force_cancel_attempts "${force_cancel_attempts}" \
+            --argjson terminal_race_readbacks "${terminal_race_readbacks}" \
+            --argjson terminal_readback_attempts "${terminal_readback_attempts}" \
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,force_cancelled:$force_cancelled,exact_head_impact_runs_retained:$exact_head_retained,generation_bridge_runs_retained:$generation_bridge_retained,cancellation_retry_attempts:$cancellation_retry_attempts,force_cancel_attempts:$force_cancel_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
+\t' read -r run_id head_sha status workflow_path; do
               [[ -n "${run_id}" ]] || continue
               [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
