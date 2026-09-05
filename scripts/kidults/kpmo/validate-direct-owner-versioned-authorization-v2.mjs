@@ -173,6 +173,7 @@ assert(mutations[1].event_id === 702 && mutations[1].performed_via_github_app?.s
   'WINDOW_READY_MUTATION_APP_RECEIPT');
 
 const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
+const lifecycleWorkflow = fs.readFileSync('.github/workflows/kpmo-pr-lifecycle-integrity-v1.yml', 'utf8');
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 assert(workflow.includes('description: Legacy DIRECT-PR-<number>-<head12> or retry DIRECT-PR-<number>-<head12>-R<positive_integer>'),
@@ -195,13 +196,28 @@ assert(mutationReceiptIndex > 0 && mutationReceiptIndex < mutationFailureIndex,
 assert(runner.includes('assertDirectOwnerGenerationUnused') && runner.includes('handoffWorkflowRuns()')
   && runner.includes('statusHistory(expectedHeadSha)'), 'GLOBAL_REPLAY_EVIDENCE_BOUND');
 const directPolicy = policy.direct_owner_handoff_policy;
-assert(policy.version === '1.5.0' && directPolicy?.one_shot_scope === 'REPOSITORY_GLOBAL_PR_EXACT_HEAD_GENERATION',
+assert(policy.version === '1.6.0' && directPolicy?.one_shot_scope === 'REPOSITORY_GLOBAL_PR_EXACT_HEAD_GENERATION',
   'POLICY_GLOBAL_ONE_SHOT');
 assert(directPolicy?.prior_generation_consumption_blocks_new_explicit_generation === false
   && directPolicy?.same_generation_replay_allowed === false, 'POLICY_GENERATION_ISOLATION');
 assert(directPolicy?.owner_ui_attestation?.must_bind_latest_ready_event_id === true
   && directPolicy?.window_lifecycle_receipt?.ready_and_draft_mutations_recorded_before_failure === true,
   'POLICY_UI_AND_MUTATION_RECEIPT');
+const lifecycleBinding = directPolicy?.approval_lifecycle_binding;
+assert(JSON.stringify(lifecycleBinding?.invalidating_events) === JSON.stringify(['convert_to_draft', 'closed', 'reopened'])
+  && lifecycleBinding?.approval_must_be_strictly_after_final_invalidation === true
+  && lifecycleBinding?.approval_same_timestamp_as_final_invalidation_allowed === false
+  && lifecycleBinding?.cross_resource_event_id_ordering_claimed === false,
+  'POLICY_STALE_APPROVAL_INVALIDATION');
+const selectorIndex = runner.indexOf('function selectApproval(');
+const invalidationGuardIndex = runner.indexOf('assertApprovalAfterFinalInvalidation(approvedAt, readyEvent)', selectorIndex);
+const readyBoundaryIndex = runner.indexOf("fail('DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY')", selectorIndex);
+assert(selectorIndex > 0 && invalidationGuardIndex > selectorIndex && invalidationGuardIndex < readyBoundaryIndex
+  && approvalIndex > readyBoundaryIndex,
+  'RUNTIME_INVALIDATION_GUARD_ORDER');
+assert(lifecycleWorkflow.includes("'tests/kidults/kpmo/direct-owner-approval-selection-history-v1.test.mjs'")
+  && lifecycleWorkflow.includes('node --test tests/kidults/kpmo/direct-owner-approval-selection-history-v1.test.mjs'),
+  'LIFECYCLE_DYNAMIC_TEST_WIRING');
 
 console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
@@ -215,5 +231,6 @@ console.log(JSON.stringify({
   global_concurrency_serialized: true,
   owner_ui_attestation_negative_cases: 9,
   window_mutation_receipt_verified: true,
+  stale_approval_rebinding_rejected: true,
   production: 'HOLD', public: 'HOLD', g5: 'HOLD',
 }, null, 2));

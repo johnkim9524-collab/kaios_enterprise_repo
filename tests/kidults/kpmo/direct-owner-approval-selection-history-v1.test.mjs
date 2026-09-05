@@ -9,7 +9,8 @@ const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 function extractFunction(name) {
   const start = runner.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `${name} source unavailable`);
-  let cursor = runner.indexOf('{', start);
+  let cursor = runner.indexOf(') {', start) + 2;
+  assert.ok(cursor > 1, `${name} body unavailable`);
   let depth = 0;
   for (; cursor < runner.length; cursor += 1) {
     if (runner[cursor] === '{') depth += 1;
@@ -30,7 +31,7 @@ function loadProductionSelector(nowMs) {
     'crypto', 'MARKER', 'OPERATION', 'TRANSPORT', 'SCOPE', 'MAX_APPROVAL_LIFETIME_MS', 'NONCE',
     'repository', 'prNumber', 'expectedBaseSha', 'expectedHeadSha', 'authorizationId', 'purpose',
     'handoffWindowSeconds', 'parseTime', 'fail', 'Date',
-    `${runner.slice(keysStart, keysEnd)}\n${extractFunction('parseApproval')}\n${extractFunction('selectApproval')}\nreturn {parseApproval, selectApproval};`,
+    `${runner.slice(keysStart, keysEnd)}\n${extractFunction('parseApproval')}\n${extractFunction('assertApprovalAfterFinalInvalidation')}\n${extractFunction('selectApproval')}\nreturn {parseApproval, selectApproval};`,
   );
 
   const fail = code => {
@@ -157,4 +158,59 @@ test('selector chooses marker generation before parsing approval body', () => {
   const parseSelected = selector.indexOf('const fields = parseApproval(comment?.body)');
   assert.ok(markerFilter >= 0 && parseSelected > markerFilter);
   assert.doesNotMatch(selector, /\.map\(comment => \(\{comment, fields: parseApproval/);
+});
+
+for (const invalidatingEvent of ['convert_to_draft', 'closed', 'reopened']) {
+  test(`${invalidatingEvent} invalidates an older approval and permits a newly issued approval`, () => {
+    const now = Date.parse('2026-09-05T05:00:00Z');
+    const {selectApproval} = loadProductionSelector(now);
+    const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+    const pr = {created_at: iso(-40)};
+    const headCommit = {commit: {committer: {date: iso(-35)}}};
+    const readyEvent = {
+      created_at: iso(-1),
+      latest_invalidating_event: {id: 700, event: invalidatingEvent, created_at: iso(-5)},
+    };
+    const stale = ownerComment({
+      id: 710,
+      createdAt: iso(-10),
+      body: approvalBody({nonce: '55555555555555555555555555555555', expiresAt: iso(20)}),
+    });
+    assert.throws(
+      () => selectApproval([stale], 'johnkim9524-collab', pr, headCommit, readyEvent),
+      /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_INVALIDATION/,
+    );
+
+    const rebound = ownerComment({
+      id: 720,
+      createdAt: iso(-3),
+      body: approvalBody({nonce: '66666666666666666666666666666666', expiresAt: iso(25)}),
+    });
+    assert.equal(
+      selectApproval([stale, rebound], 'johnkim9524-collab', pr, headCommit, readyEvent).comment_id,
+      720,
+    );
+  });
+}
+
+test('approval at the same timestamp as final invalidation fails closed', () => {
+  const now = Date.parse('2026-09-05T05:00:00Z');
+  const {selectApproval} = loadProductionSelector(now);
+  const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+  const pr = {created_at: iso(-40)};
+  const headCommit = {commit: {committer: {date: iso(-35)}}};
+  const readyEvent = {
+    created_at: iso(-1),
+    latest_invalidating_event: {id: 800, event: 'convert_to_draft', created_at: iso(-5)},
+  };
+  const simultaneous = ownerComment({
+    id: 801,
+    createdAt: iso(-5),
+    body: approvalBody({nonce: '77777777777777777777777777777777', expiresAt: iso(25)}),
+  });
+
+  assert.throws(
+    () => selectApproval([simultaneous], 'johnkim9524-collab', pr, headCommit, readyEvent),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_INVALIDATION/,
+  );
 });

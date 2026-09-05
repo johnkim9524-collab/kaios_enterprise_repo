@@ -132,6 +132,22 @@ function parseApproval(body) {
   return fields;
 }
 
+function assertApprovalAfterFinalInvalidation(approvedAt, readyEvent) {
+  const invalidation = readyEvent?.latest_invalidating_event;
+  if (invalidation == null) return;
+  if (!['convert_to_draft', 'closed', 'reopened'].includes(invalidation.event)
+      || !Number.isSafeInteger(Number(invalidation.id)) || Number(invalidation.id) <= 0) {
+    fail('DIRECT_OWNER_HANDOFF_FINAL_INVALIDATION_EVENT_INVALID');
+  }
+  const invalidatedAt = parseTime(
+    invalidation.created_at,
+    'DIRECT_OWNER_HANDOFF_FINAL_INVALIDATION_TIME_INVALID',
+  );
+  if (approvedAt <= invalidatedAt) {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_INVALIDATION');
+  }
+}
+
 function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {phase = 'pre_window'} = {}) {
   if (!['pre_window', 'post_window'].includes(phase)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PHASE_INVALID');
   const marked = comments
@@ -159,6 +175,7 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   const now = Date.now();
   const headCommittedAt = parseTime(headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date, 'DIRECT_OWNER_HANDOFF_HEAD_TIME_INVALID');
   if (approvedAt < parseTime(pr.created_at, 'DIRECT_OWNER_HANDOFF_PR_TIME_INVALID') || approvedAt < headCommittedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_EXACT_HEAD');
+  assertApprovalAfterFinalInvalidation(approvedAt, readyEvent);
   if (approvedAt > parseTime(readyEvent.created_at, 'DIRECT_OWNER_HANDOFF_READY_TIME_INVALID')) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_WINDOW_INVALID');
   if (now < approvedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_YET_VALID');

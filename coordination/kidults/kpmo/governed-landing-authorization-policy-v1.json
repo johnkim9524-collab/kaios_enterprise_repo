@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "issue": 1281,
@@ -126,6 +126,19 @@
     "workflow_dispatch_concurrency": "ONE_GLOBAL_SERIALIZED_HANDOFF",
     "prior_generation_consumption_blocks_new_explicit_generation": false,
     "same_generation_replay_allowed": false,
+    "approval_lifecycle_binding": {
+      "invalidating_events": [
+        "convert_to_draft",
+        "closed",
+        "reopened"
+      ],
+      "final_invalidation_selection_order": "EVENT_TIMESTAMP_THEN_TIMELINE_EVENT_ID",
+      "approval_must_be_strictly_after_final_invalidation": true,
+      "approval_same_timestamp_as_final_invalidation_allowed": false,
+      "approval_must_not_follow_latest_ready": true,
+      "cross_resource_event_id_ordering_claimed": false,
+      "natural_owner_merge_close_excluded_by_ready_event_contract": true
+    },
     "owner_ui_attestation": {
       "marker": "KIDULTS_DIRECT_OWNER_UI_SESSION_ATTESTATION_V1",
       "must_be_owner_authored_user_comment": true,
