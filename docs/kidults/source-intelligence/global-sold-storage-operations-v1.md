@@ -42,6 +42,8 @@ This change does not apply a database migration, write the Evidence Volume, acti
 
 Raw or copyrighted content is not written merely because a public URL exists. `HOLD` and `NO_GO` sources retain KIDULTS-authored assessment metadata only unless a purpose-specific right explicitly permits more.
 
+Restricted evidence bytes are hard-disabled until the validator resolves both admission IDs against authoritative, content-bound, exact-source receipts and verifies terminal PASS, scope, purpose, digest, lineage and expiry. UUID shape, a registry PASS, or a database foreign-key declaration alone never authorizes an Evidence Volume write.
+
 ## Runtime sequence
 
 1. Validate and digest the GitHub registry.
