@@ -16,7 +16,7 @@ const die=(message)=>{throw new Error(message);};
 
 function receipt(extra){
   fs.mkdirSync(path.dirname(receiptPath),{recursive:true});
-  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.3.0',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
+  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.4.0',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
 }
 
 async function api(url,options={}){
@@ -67,8 +67,8 @@ async function snapshot(){
   const registry=buildMaterialRegistry(issues);
   const active=baseline.filter((issue)=>issue.state==='open').map((issue)=>issue.number).sort((a,b)=>a-b);
   const cardinality={
-    P0:registry.filter((record)=>record.effective_priority==='P0').length,
-    P1:registry.filter((record)=>record.effective_priority==='P1').length
+    P0:registry.filter((record)=>record.labels.includes('P0')).length,
+    P1:registry.filter((record)=>record.labels.includes('P1')).length
   };
   const payload={repository:repo,protected_main_sha:main,canonical_issue_numbers:MEMBERS,canonical_issue_count:MEMBERS.length,active_baseline_defects:active,material_defect_count:registry.length,material_defect_issue_numbers:registry.map((record)=>record.issue_number),material_defect_registry_sha256:materialRegistryDigest(registry),material_defect_query_cardinality:cardinality,material_defects:registry,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false,empirical_gate_effect:'NONE'};
   return {...payload,truth_digest:sha256(payload)};
@@ -157,9 +157,11 @@ async function write(){
     }
     const body=marked(CS,CE,commitPayload(snapshotValue,id,run,attempt,entries,new Date().toISOString()));
     const aggregate=await post(AGGREGATE,body);
-    const verified=await validateCurrent(snapshotValue,run);
+    const postWriteSnapshot=await snapshot();
+    if(postWriteSnapshot.truth_digest!==snapshotValue.truth_digest)die('POST_WRITE_TRUTH_MOVED');
+    const verified=await validateCurrent(postWriteSnapshot,run);
     if(!verified||verified.stale||verified.aggregate_comment_id!==aggregate.id)die('POST_WRITE_READBACK_INVALID');
-    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:snapshotValue.truth_digest,authorization,writes:26});
+    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26});
   }catch(error){
     receipt({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',generation_id:id,member_comments_written:entries.length,authorization,writes:entries.length,failure_class:error.message});
     throw error;
@@ -171,7 +173,7 @@ async function validate(){
   const snapshotValue=await snapshot();
   const current=await validateCurrent(snapshotValue);
   if(!current||current.stale)die(current?'LATEST_COMMITTED_GENERATION_STALE':'COMMITTED_GENERATION_MISSING');
-  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.3.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.4.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
 }
 
 function selfTest(){
@@ -189,6 +191,7 @@ function selfTest(){
     "attempt!==1",
     'runEnvelope?.triggering_actor?.login!==OWNER',
     'runEnvelope?.run_started_at',
+    'POST_WRITE_TRUTH_MOVED',
     'authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID)',
     'runEnvelope?.path!==WRITER_WORKFLOW',
     'comment?.performed_via_github_app',
@@ -214,7 +217,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authorization_negative_cases:4},null,2));
 }
 
 try{
