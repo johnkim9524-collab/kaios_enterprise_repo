@@ -25,9 +25,7 @@ function loadProductionApprovalParser() {
     }
   }
   assert.ok(functionEnd > functionStart, 'production parser boundary unavailable');
-  const factory = new Function('MARKER', 'fail', `${runner.slice(keysStart, keysEnd)}
-${runner.slice(functionStart, functionEnd)}
-return {approvalKeys, parseApproval};`);
+  const factory = new Function('MARKER', 'fail', `${runner.slice(keysStart, keysEnd)}\n${runner.slice(functionStart, functionEnd)}\nreturn {approvalKeys, parseApproval};`);
   return factory(
     'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2',
     code => {
@@ -144,4 +142,28 @@ test('post-window merge classification revalidates approval, ready event, head a
   const mainRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
   assert.ok(sleepIndex >= 0);
   for (const index of [approvalRecheck, readyRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+});
+
+test('post-window approval reconciliation does not require a second future handoff window', () => {
+  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{phase = 'pre_window'\} = \{\}\)/);
+  assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
+  assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
+  assert.match(runner, /selectApproval\(afterComments, owner, after, headCommit, afterReady, \{phase: 'post_window'\}\)/);
+  const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
+  const postPhaseIndex = runner.indexOf("{phase: 'post_window'}", sleepIndex);
+  assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
+});
+
+test('consumed merge is explicitly bounded to opened window and approval expiry', () => {
+  const mergedBranch = runner.indexOf('if (after?.merged === true)');
+  for (const code of [
+    'DIRECT_OWNER_HANDOFF_MERGE_BEFORE_WINDOW_OPEN',
+    'DIRECT_OWNER_HANDOFF_MERGE_AFTER_WINDOW',
+    'DIRECT_OWNER_HANDOFF_MERGE_AFTER_APPROVAL_EXPIRY',
+  ]) {
+    const index = runner.indexOf(code);
+    assert.ok(index > mergedBranch, `${code} must be enforced inside merged classification`);
+  }
+  assert.match(runner, /const closesAtMs = openedAtMs \+ handoffWindowSeconds \* 1000/);
+  assert.match(runner, /const approvalExpiresAtMs = parseTime\(approval\.expires_at/);
 });

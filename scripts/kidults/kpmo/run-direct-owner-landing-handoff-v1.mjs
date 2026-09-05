@@ -45,7 +45,7 @@ const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
-  'User-Agent': 'kidults-direct-owner-landing-handoff-v1',
+  'User-Agent': 'kidults-direct-owner-handoff-v1',
 };
 const request = async (apiPath, options = {}) => {
   const response = await fetch(`https://api.github.com/repos/${repository}${apiPath}`, {
@@ -103,7 +103,8 @@ function parseApproval(body) {
   return fields;
 }
 
-function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent) {
+function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {phase = 'pre_window'} = {}) {
+  if (!['pre_window', 'post_window'].includes(phase)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PHASE_INVALID');
   const marked = comments
     .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === MARKER)
     .sort((a, b) => parseTime(b.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
@@ -131,8 +132,9 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent) {
   if (approvedAt < parseTime(pr.created_at, 'DIRECT_OWNER_HANDOFF_PR_TIME_INVALID') || approvedAt < headCommittedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_EXACT_HEAD');
   if (approvedAt > parseTime(readyEvent.created_at, 'DIRECT_OWNER_HANDOFF_READY_TIME_INVALID')) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_WINDOW_INVALID');
-  if (now < approvedAt || now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
-  if (expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
+  if (now < approvedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_YET_VALID');
+  if (phase === 'pre_window' && now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
+  if (phase === 'pre_window' && expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
 
   return {
     comment_id: Number(comment.id),
@@ -276,13 +278,20 @@ try {
   ]);
   const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
   if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
-  const afterApproval = selectApproval(afterComments, owner, after, headCommit, afterReady);
+  const afterApproval = selectApproval(afterComments, owner, after, headCommit, afterReady, {phase: 'post_window'});
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
     if (after?.merged_by?.login !== owner) fail('DIRECT_OWNER_HANDOFF_MERGED_BY_NON_OWNER');
     if (!SHA.test(after?.merge_commit_sha || '')) fail('DIRECT_OWNER_HANDOFF_MERGE_SHA_INVALID');
+    const mergedAt = parseTime(after?.merged_at, 'DIRECT_OWNER_HANDOFF_MERGED_AT_INVALID');
+    const openedAtMs = parseTime(openedAt, 'DIRECT_OWNER_HANDOFF_OPENED_AT_INVALID');
+    const closesAtMs = openedAtMs + handoffWindowSeconds * 1000;
+    const approvalExpiresAtMs = parseTime(approval.expires_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_INVALID');
+    if (mergedAt < openedAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_BEFORE_WINDOW_OPEN');
+    if (mergedAt > closesAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_AFTER_WINDOW');
+    if (mergedAt > approvalExpiresAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_AFTER_APPROVAL_EXPIRY');
     if (afterMain?.commit?.sha !== after.merge_commit_sha) fail('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
     receipt = {
       ...receipt,
