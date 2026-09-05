@@ -13,12 +13,17 @@ on:
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/direct-owner-versioned-authorization-v2.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-staged-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/lib/atomic-landing-handoff-compatibility-v1.mjs'
       - 'scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-handoff-compatibility-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-direct-owner-versioned-authorization-v2.mjs'
+      - 'scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs'
+      - '.github/workflows/kidults-direct-owner-landing-handoff-v1.yml'
+      - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
       - 'scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs'
       - 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'
@@ -60,6 +65,9 @@ jobs:
 
       - name: Run direct repository-owner Ready regression
         run: node scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs
+
+      - name: Run versioned Direct Owner authorization regression and replay attacks
+        run: node scripts/kidults/kpmo/validate-direct-owner-versioned-authorization-v2.mjs
 
       - name: Run staged lifecycle authority regression
         run: node scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs

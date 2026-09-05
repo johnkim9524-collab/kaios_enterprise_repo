@@ -23,7 +23,7 @@ const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-eq
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-requireValue(policy.version === '1.4.0', 'POLICY_VERSION');
+requireValue(policy.version === '1.5.0', 'POLICY_VERSION');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');

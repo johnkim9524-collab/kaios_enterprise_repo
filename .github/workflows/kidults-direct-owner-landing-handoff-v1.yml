@@ -17,7 +17,11 @@ on:
         required: true
         type: string
       handoff_authorization_id:
-        description: DIRECT-PR-<number>-<first-12-head-sha>
+        description: Legacy DIRECT-PR-<number>-<head12> or retry DIRECT-PR-<number>-<head12>-R<positive_integer>
+        required: true
+        type: string
+      owner_ui_evidence_comment_id:
+        description: Exact OWNER-authored post-Ready UI-session attestation comment ID
         required: true
         type: string
       purpose:
@@ -54,7 +58,9 @@ jobs:
       github.event.comment.author_association == 'OWNER' &&
       (
         startsWith(github.event.comment.body, 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2') ||
-        startsWith(github.event.changes.body.from, 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2')
+        startsWith(github.event.changes.body.from, 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2') ||
+        startsWith(github.event.comment.body, 'KIDULTS_DIRECT_OWNER_UI_SESSION_ATTESTATION_V1') ||
+        startsWith(github.event.changes.body.from, 'KIDULTS_DIRECT_OWNER_UI_SESSION_ATTESTATION_V1')
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -141,6 +147,7 @@ jobs:
           EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
           HANDOFF_AUTHORIZATION_ID: ${{ inputs.handoff_authorization_id }}
+          OWNER_UI_EVIDENCE_COMMENT_ID: ${{ inputs.owner_ui_evidence_comment_id }}
           HANDOFF_PURPOSE: ${{ inputs.purpose }}
           HANDOFF_WINDOW_SECONDS: ${{ inputs.handoff_window_seconds }}
           LANDING_ACTOR: ${{ github.actor }}

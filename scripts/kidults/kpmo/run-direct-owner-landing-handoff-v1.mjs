@@ -7,6 +7,13 @@ import {
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {selectLatestDirectOwnerReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
+import {
+  assertDirectOwnerGenerationUnused,
+  collectDirectOwnerReadyStateMutations,
+  directOwnerConsumptionContext,
+  parseDirectOwnerAuthorizationId,
+  selectDirectOwnerUiAttestation,
+} from './lib/direct-owner-versioned-authorization-v2.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -27,6 +34,8 @@ const purpose = process.env.HANDOFF_PURPOSE || '';
 const actor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR || '';
 const executionRef = process.env.GITHUB_REF || '';
 const runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT || '0');
+const runId = process.env.GITHUB_RUN_ID || '';
+const ownerUiEvidenceCommentId = process.env.OWNER_UI_EVIDENCE_COMMENT_ID || '';
 const receiptPath = process.env.HANDOFF_RECEIPT_PATH || 'out/direct-owner-landing-handoff-v1/receipt.json';
 const handoffWindowSeconds = Number(process.env.HANDOFF_WINDOW_SECONDS || '600');
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
@@ -78,10 +87,30 @@ const checkRuns = async sha => {
   }
   fail('DIRECT_OWNER_HANDOFF_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const statusHistory = async sha => pages(`/commits/${sha}/statuses`);
+const handoffWorkflowRuns = async () => {
+  const output = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const payload = await request(`/actions/workflows/kidults-direct-owner-landing-handoff-v1.yml/runs?event=workflow_dispatch&per_page=100&page=${page}`);
+    if (!Array.isArray(payload?.workflow_runs)) fail('DIRECT_OWNER_HANDOFF_WORKFLOW_RUNS_SHAPE_INVALID');
+    output.push(...payload.workflow_runs);
+    if (payload.workflow_runs.length < 100) return output;
+  }
+  fail('DIRECT_OWNER_HANDOFF_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
+};
 const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
+});
+const publishConsumption = (consumptionContext, generationKey) => request(`/statuses/${expectedHeadSha}`, {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({
+    state: 'pending',
+    context: consumptionContext,
+    description: `One-shot ${generationKey} consumed by handoff run ${runId}`,
+  }),
 });
 
 const approvalKeys = [
@@ -156,6 +185,8 @@ function writeReceipt(receipt) {
 }
 
 let statusTouched = false;
+let authorizationGeneration = null;
+let authorizationClaim = null;
 let receipt = {
   id: 'kidults-direct-owner-landing-handoff-receipt-v1',
   version: '1.0.0',
@@ -176,10 +207,17 @@ try {
   writeReceipt(receipt);
   if (!token || !/^[^/]+\/[^/]+$/.test(repository) || !/^\d+$/.test(prNumber)) fail('DIRECT_OWNER_HANDOFF_ENVIRONMENT_INVALID');
   if (!SHA.test(expectedHeadSha) || !SHA.test(expectedBaseSha)) fail('DIRECT_OWNER_HANDOFF_SHA_INVALID');
-  if (authorizationId !== `DIRECT-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`) fail('DIRECT_OWNER_HANDOFF_AUTHORIZATION_ID_INVALID');
+  authorizationGeneration = parseDirectOwnerAuthorizationId({authorizationId, prNumber, headSha: expectedHeadSha});
   if (!PURPOSE.test(purpose)) fail('DIRECT_OWNER_HANDOFF_PURPOSE_INVALID');
   if (executionRef !== 'refs/heads/main') fail('DIRECT_OWNER_HANDOFF_MAIN_REF_REQUIRED');
   if (runAttempt !== 1) fail('DIRECT_OWNER_HANDOFF_RERUN_FORBIDDEN');
+  if (!/^\d+$/.test(runId) || !Number.isSafeInteger(Number(runId)) || Number(runId) <= 0) {
+    fail('DIRECT_OWNER_HANDOFF_RUN_ID_INVALID');
+  }
+  if (!/^\d+$/.test(ownerUiEvidenceCommentId)
+      || !Number.isSafeInteger(Number(ownerUiEvidenceCommentId)) || Number(ownerUiEvidenceCommentId) <= 0) {
+    fail('DIRECT_OWNER_UI_ATTESTATION_COMMENT_ID_INVALID');
+  }
   if (!Number.isInteger(handoffWindowSeconds) || handoffWindowSeconds < 60 || handoffWindowSeconds > 900) fail('DIRECT_OWNER_HANDOFF_WINDOW_INVALID');
 
   const repositoryMetadata = await request('');
@@ -189,7 +227,7 @@ try {
   await publish('pending', 'Direct Owner exact-head handoff validation in progress');
   statusTouched = true;
 
-  const [pr, main, files, timeline, comments, headCommit, statuses, runs, rulesets] = await Promise.all([
+  const [pr, main, files, timeline, comments, headCommit, statuses, runs, rulesets, priorStatuses, priorWorkflowRuns] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/pulls/${prNumber}/files`),
@@ -199,7 +237,48 @@ try {
     request(`/commits/${expectedHeadSha}/status`),
     checkRuns(expectedHeadSha),
     request('/rulesets'),
+    statusHistory(expectedHeadSha),
+    handoffWorkflowRuns(),
   ]);
+  const consumptionContext = directOwnerConsumptionContext({
+    prNumber,
+    headSha: expectedHeadSha,
+    generationKey: authorizationGeneration.generation_key,
+  });
+  assertDirectOwnerGenerationUnused({
+    authorizationId,
+    consumptionContext,
+    statuses: priorStatuses,
+    workflowRuns: priorWorkflowRuns,
+    currentRunId: runId,
+  });
+  const consumptionStatus = await publishConsumption(consumptionContext, authorizationGeneration.generation_key);
+  const consumptionStatusId = Number(consumptionStatus?.id);
+  if (!Number.isSafeInteger(consumptionStatusId) || consumptionStatusId <= 0
+      || !consumptionStatus?.created_at || Number.isNaN(Date.parse(consumptionStatus.created_at))) {
+    fail('DIRECT_OWNER_HANDOFF_CONSUMPTION_STATUS_RECEIPT_INVALID');
+  }
+  const authorizationGenerationReceipt = {
+    scheme: authorizationGeneration.scheme,
+    generation: authorizationGeneration.generation,
+    generation_key: authorizationGeneration.generation_key,
+  };
+  authorizationClaim = {
+    state: 'CONSUMED_ON_FIRST_WORKFLOW_ATTEMPT',
+    scheme: authorizationGeneration.scheme,
+    generation: authorizationGeneration.generation,
+    generation_key: authorizationGeneration.generation_key,
+    authorization_id_sha256: `sha256:${crypto.createHash('sha256').update(authorizationId).digest('hex')}`,
+    run_id: Number(runId),
+    run_attempt: runAttempt,
+    status_id: consumptionStatusId,
+    status_context: consumptionContext,
+    consumed_at: consumptionStatus.created_at,
+    replay_allowed: false,
+  };
+  receipt = {...receipt, authorization_generation: authorizationGenerationReceipt, one_shot_consumption: authorizationClaim};
+  writeReceipt(receipt);
+
   assertPromotablePullRequest(pr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
   if (pr.user?.login !== owner || pr.head?.repo?.full_name !== repository) fail('DIRECT_OWNER_HANDOFF_PR_OWNER_BINDING_INVALID');
   if (pr.base?.sha !== expectedBaseSha || main?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_BASE_NOT_CURRENT_MAIN');
@@ -208,6 +287,17 @@ try {
 
   const readyEvent = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner: owner});
   const approval = selectApproval(comments, owner, pr, headCommit, readyEvent);
+  const ownerUiEvidence = selectDirectOwnerUiAttestation(comments, {
+    evidenceCommentId: Number(ownerUiEvidenceCommentId),
+    repository,
+    repositoryOwner: owner,
+    prNumber,
+    headSha: expectedHeadSha,
+    authorizationId,
+    readyEvent,
+    evaluationTime: new Date().toISOString(),
+    handoffWindowSeconds,
+  });
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
   const protect = rulesets.find(value => value.name === 'Protect main' && value.enforcement === 'active');
@@ -240,6 +330,15 @@ try {
   if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
   const finalApproval = selectApproval(finalComments, owner, finalPr, headCommit, finalReady);
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
+  const finalOwnerUiEvidence = selectDirectOwnerUiAttestation(finalComments, {
+    evidenceCommentId: Number(ownerUiEvidenceCommentId), repository, repositoryOwner: owner,
+    prNumber, headSha: expectedHeadSha, authorizationId, readyEvent: finalReady,
+    evaluationTime: new Date().toISOString(), handoffWindowSeconds,
+  });
+  if (finalOwnerUiEvidence.comment_id !== ownerUiEvidence.comment_id
+      || finalOwnerUiEvidence.comment_body_sha256 !== ownerUiEvidence.comment_body_sha256) {
+    fail('DIRECT_OWNER_UI_ATTESTATION_DRIFT');
+  }
 
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();
@@ -254,6 +353,8 @@ try {
     direct_owner: owner,
     transport: TRANSPORT,
     purpose,
+    authorization_generation: authorizationGenerationReceipt,
+    one_shot_consumption: authorizationClaim,
     authorization_id_sha256: approval.authorization_id_sha256,
     approval_comment_id: approval.comment_id,
     approval_comment_body_sha256: approval.comment_body_sha256,
@@ -261,6 +362,8 @@ try {
     approval_expires_at: approval.expires_at,
     latest_ready_event_id: readyEvent.id,
     latest_ready_event_at: readyEvent.created_at,
+    owner_ui_attestation: ownerUiEvidence,
+    window_ready_state_mutations: [],
     handoff_window_seconds: handoffWindowSeconds,
     handoff_opened_at: openedAt,
     merge_performed_by_workflow: false,
@@ -276,10 +379,23 @@ try {
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
   ]);
+  const windowReadyStateMutations = collectDirectOwnerReadyStateMutations(afterTimeline, readyEvent);
+  receipt = {...receipt, window_ready_state_mutations: windowReadyStateMutations};
+  writeReceipt(receipt);
+  if (windowReadyStateMutations.length > 0) fail('DIRECT_OWNER_HANDOFF_READY_STATE_MUTATED_DURING_WINDOW');
   const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
   if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
   const afterApproval = selectApproval(afterComments, owner, after, headCommit, afterReady, {phase: 'post_window'});
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  const afterOwnerUiEvidence = selectDirectOwnerUiAttestation(afterComments, {
+    evidenceCommentId: Number(ownerUiEvidenceCommentId), repository, repositoryOwner: owner,
+    prNumber, headSha: expectedHeadSha, authorizationId, readyEvent: afterReady,
+    evaluationTime: new Date().toISOString(), handoffWindowSeconds: 1, phase: 'post_window',
+  });
+  if (afterOwnerUiEvidence.comment_id !== ownerUiEvidence.comment_id
+      || afterOwnerUiEvidence.comment_body_sha256 !== ownerUiEvidence.comment_body_sha256) {
+    fail('DIRECT_OWNER_UI_ATTESTATION_DRIFT_AFTER_WINDOW');
+  }
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
