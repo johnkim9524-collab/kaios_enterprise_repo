@@ -10,6 +10,9 @@ on:
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/runtime/**'
+      - 'scripts/production/**'
+      - 'contracts/certification/**'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
   pull_request:
     branches: [main]
@@ -20,6 +23,9 @@ on:
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/runtime/**'
+      - 'scripts/production/**'
+      - 'contracts/certification/**'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
 
 permissions:
@@ -71,6 +77,7 @@ jobs:
           cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-runtime-evaluation-v1.json
           cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-current-sold-control-receipt-v1.json
           cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-ledger-control-receipt-v1.json
+          cp /tmp/kidults-kir-runtime-terminal-receipt-v1.json /tmp/kidults-kir-readiness-control-receipt-v1.json
 
       - name: Checkout exact candidate head
         id: checkout
@@ -109,6 +116,8 @@ jobs:
           node --check tests/kidults/runtime/kir-memory-ledger-client-v1.mjs
           node --check tests/kidults/runtime/kir-ledger-control-probe-v1.mjs
           node --check tests/kidults/runtime/kir-ledger-control-v1.test.mjs
+          node --check scripts/kidults/runtime/kir-readiness-evidence-intake-v1.mjs
+          node --check tests/kidults/runtime/kir-readiness-control-probe-v1.mjs
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs --self-test
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
@@ -117,7 +126,7 @@ jobs:
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs
+          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs
 
       - name: Evaluate exact-head KIR runtime truth
         id: evaluate
@@ -197,6 +206,19 @@ jobs:
           console.log(JSON.stringify(packet,null,2));
           NODE
 
+      - name: Exercise readiness composer and full member closure with synthetic controls
+        id: readiness
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { runKirReadinessControlProbe } from './tests/kidults/runtime/kir-readiness-control-probe-v1.mjs';
+          const identity={repository:process.env.GITHUB_REPOSITORY,source_sha:process.env.KIR_SOURCE_SHA,run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),trigger_event:process.env.GITHUB_EVENT_NAME};
+          const packet=runKirReadinessControlProbe(identity);
+          fs.writeFileSync('/tmp/kidults-kir-readiness-control-receipt-v1.json',JSON.stringify(packet,null,2)+'\n');
+          console.log(JSON.stringify(packet));
+          NODE
+
       - name: Reconcile exact-head KIR workflow terminal truth
         id: reconcile
         if: ${{ always() }}
@@ -211,6 +233,7 @@ jobs:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           BRIDGE_OUTCOME: ${{ steps.bridge.outcome }}
           LEDGER_OUTCOME: ${{ steps.ledger_bridge.outcome }}
+          READINESS_OUTCOME: ${{ steps.readiness.outcome }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -220,6 +243,7 @@ jobs:
           evaluation_path=Path('/tmp/kidults-kir-runtime-evaluation-v1.json')
           bridge_path=Path('/tmp/kidults-kir-current-sold-control-receipt-v1.json')
           ledger_path=Path('/tmp/kidults-kir-ledger-control-receipt-v1.json')
+          readiness_path=Path('/tmp/kidults-kir-readiness-control-receipt-v1.json')
           stages=[
             ('INITIALIZE',os.environ.get('INIT_OUTCOME','')),
             ('CHECKOUT',os.environ.get('CHECKOUT_OUTCOME','')),
@@ -230,6 +254,7 @@ jobs:
             ('EVALUATE',os.environ.get('EVALUATE_OUTCOME','')),
             ('BRIDGE',os.environ.get('BRIDGE_OUTCOME','')),
             ('LEDGER',os.environ.get('LEDGER_OUTCOME','')),
+            ('READINESS',os.environ.get('READINESS_OUTCOME','')),
           ]
           failed=[name for name,outcome in stages if outcome!='success']
           if not failed:
@@ -299,6 +324,26 @@ jobs:
                 'receipt_failure':{'failure_at':'receipt-insert-v1','simulation_rollback_verified':True,'simulated_residual_rows':0}
               }
               assert json.dumps(ledger['cases'],sort_keys=True,separators=(',',':'))==json.dumps(expected_cases,sort_keys=True,separators=(',',':'))
+              readiness_bytes=readiness_path.read_bytes()
+              readiness=json.loads(readiness_bytes)
+              assert set(readiness)=={'id','version','state','scope','repository','source_sha','run_id','run_attempt','trigger_event','kir_receipt_sha256','case_count','cases','input_class','natural_runs_observed','empirical_current_sold_delta','postgres_rows_written','staging_business_workload_verified','production_readiness_verified','provider_authority','database_authority','empirical_authority','runtime_activation_authorized','producer_health_authority','promotion_eligible','public_release','production','g5'}
+              assert readiness['id']=='kidults-kir-readiness-control-integration-v1'
+              assert readiness['version']=='1.0.0' and readiness['state']=='VERIFIED_PASS'
+              assert readiness['scope']=='SYNTHETIC_KIR_READINESS_COMPOSER_AND_MEMBER_GATE_ONLY'
+              assert readiness['input_class']=='SYNTHETIC_TEST_FIXTURE_NOT_LIVE_EVIDENCE'
+              for key in ('repository','source_sha','run_id','run_attempt','trigger_event'):
+                assert type(readiness[key]) is type(data[key]) and readiness[key]==data[key]
+              assert readiness['kir_receipt_sha256']==kir_digest
+              assert type(readiness['case_count']) is int and readiness['case_count']==2
+              assert readiness['cases']=={'composer_to_member_gate':True,'missing_staging_member_rejected':True}
+              assert all(v is True for v in readiness['cases'].values())
+              for key in ('natural_runs_observed','empirical_current_sold_delta','postgres_rows_written'):
+                assert type(readiness[key]) is int and readiness[key]==0
+              for key in ('staging_business_workload_verified','production_readiness_verified','provider_authority','database_authority','empirical_authority','runtime_activation_authorized','producer_health_authority','promotion_eligible'):
+                assert readiness[key] is False
+              for key in ('public_release','production','g5'):
+                assert readiness[key]=='HOLD'
+              data['readiness_control_integration']={'state':'VERIFIED_PASS','scope':readiness['scope'],'case_count':2,'receipt_file_sha256':'sha256:'+hashlib.sha256(readiness_bytes).hexdigest(),'staging_business_workload_verified':False,'production_readiness_verified':False,'promotion_eligible':False}
               data['ledger_control_integration']={
                 'state':'VERIFIED_PASS','scope':ledger['scope'],'case_count':5,
                 'database_transport':ledger['database_transport'],
@@ -343,5 +388,6 @@ jobs:
             /tmp/kidults-kir-runtime-evaluation-v1.json
             /tmp/kidults-kir-current-sold-control-receipt-v1.json
             /tmp/kidults-kir-ledger-control-receipt-v1.json
+            /tmp/kidults-kir-readiness-control-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
