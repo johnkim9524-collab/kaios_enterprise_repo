@@ -136,6 +136,12 @@ jobs:
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
 
+      - name: Validate global SOLD source registry persistence controls
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs
+          node --test tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs
+
       - name: Run KAIOS pipeline
         run: python scripts/run_kaios.py
 
