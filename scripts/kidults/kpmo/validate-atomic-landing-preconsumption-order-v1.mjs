@@ -17,6 +17,7 @@ const assert = (condition, code) => {
 
 const orderedMarkers = [
   'Require base-workflow to candidate terminal handoff compatibility',
+  'Require event-emitting post-merge CI transport',
   'Require latest terminal exact-head lifecycle authority',
   'Consume one-use exact-head landing authorization',
   'Stage trusted Current-SOLD post-landing validator',
@@ -34,6 +35,12 @@ assert(positions.every((position, index) => index === 0 || position > positions[
 
 const lifecycleMarker = 'Require latest terminal exact-head lifecycle authority';
 const consumptionMarker = 'Consume one-use exact-head landing authorization';
+const postMergeTransportMarker = 'Require event-emitting post-merge CI transport';
+assert(workflow.split(postMergeTransportMarker).length === 2,
+  'ATOMIC_LANDING_POSTMERGE_TRANSPORT_GUARD_CARDINALITY_INVALID');
+assert(workflow.includes('ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED')
+  && workflow.indexOf(postMergeTransportMarker) < workflow.indexOf(lifecycleMarker),
+'ATOMIC_LANDING_POSTMERGE_TRANSPORT_NOT_FAIL_CLOSED_BEFORE_AUTHORITY');
 assert(workflow.split(lifecycleMarker).length === 2,
   'ATOMIC_LANDING_LIFECYCLE_PREFLIGHT_CARDINALITY_INVALID');
 assert(workflow.split(consumptionMarker).length === 2,
@@ -85,6 +92,8 @@ console.log(JSON.stringify({
   invalid_approval_not_recorded_as_consumed: true,
   consumption_receipt_written_after_final_pr_main_reread: true,
   complete_approval_authority_inputs_paginated: true,
+  post_merge_ci_transport_fail_closed_before_authority_consumption: true,
+  github_token_recursive_trigger_not_claimed: true,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
