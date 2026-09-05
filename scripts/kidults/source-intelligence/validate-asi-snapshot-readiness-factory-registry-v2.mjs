@@ -308,6 +308,17 @@ for (const marker of [
   "const explicitSelfTest = args.length === 1 && args[0] === '--self-test'",
   "invocation_mode: noArgumentSelfTest ? 'NO_ARGUMENT_SAFE_SELF_TEST' : 'EXPLICIT_SELF_TEST'",
 ]) assert(upstreamValidator.includes(marker), `UPSTREAM_VALIDATOR_MARKER:${marker}`);
+for (const marker of [
+  'const outcomeCandidates=[',
+  "name:'snapshot-pair-generation-receipt-v2.json'",
+  "name:'snapshot-non-generation-receipt-v2.json'",
+  'if(outcomeCandidates.length!==1)process.exit(2);',
+  'outcomeCandidate.generated!==generated',
+  'generation_outcome_receipt_sha256:outcomeReceiptSha256',
+  'outcome_content_validated:true',
+  'pair_receipt_sha256:generated?outcomeReceiptSha256:null',
+  'non_generation_receipt_sha256:generated?null:outcomeReceiptSha256',
+]) assert(workflow.includes(marker), `WORKFLOW_TERMINAL_OUTCOME_RECEIPT_MARKER:${marker}`);
 assert(!library.includes('p1Gate.decision_count === 576'), 'READINESS_LIBRARY_HISTORICAL_GATE_CARDINALITY_REINTRODUCED');
 assert(!library.includes('p1Admission.candidate_count === 576'), 'READINESS_LIBRARY_HISTORICAL_ADMISSION_CARDINALITY_REINTRODUCED');
 assert(!library.includes('p1Actions.action_count === 672'), 'READINESS_LIBRARY_HISTORICAL_ACTION_CARDINALITY_REINTRODUCED');
