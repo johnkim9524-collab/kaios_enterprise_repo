@@ -11,8 +11,12 @@ This change does not apply a database migration, write the Evidence Volume, acti
 | Asset | Canonical location |
 | --- | --- |
 | Research registry | `coordination/kidults/source-intelligence/global-sold-source-registry-v1.json` |
+| Evidence manifest contract | `coordination/kidults/source-intelligence/source-intelligence-evidence-manifest-contract-v1.json` |
+| Registry evidence manifest | `coordination/kidults/source-intelligence/global-sold-source-registry-evidence-manifest-v1.json` |
 | Validation and generic PostgreSQL writer | `scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs` |
+| Evidence manifest validator | `scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs` |
 | PostgreSQL migration | `infrastructure/postgres/source-intelligence/0001_global_sold_source_registry_v1.sql` |
+| Evidence manifest migration | `infrastructure/postgres/source-intelligence/0002_source_evidence_manifest_ledger_v1.sql` |
 | Evidence root after separately approved activation | `/mnt/ih_prod_01/evidence/current-sold` |
 | D1 | Approved projection only; never raw evidence or canonical rights state |
 
@@ -45,9 +49,10 @@ Raw or copyrighted content is not written merely because a public URL exists. `H
 3. Provision a dedicated LOGIN outside GitHub and grant exactly the `kidults_control_supply` group role.
 4. Call `appendRegistrySnapshot(client, registry)`; the writer sets `kidults.writer_id=kpmo-supply-chain-admission-v1`, obtains a transaction advisory lock, inserts the snapshot and all assessments, and rolls back on any conflict.
 5. Replaying the same digest is idempotent. Any same-digest payload difference fails closed.
-6. A later source version creates a new snapshot. Existing rows are never updated or deleted.
-7. Adapter execution remains impossible until a separate current rights receipt, schema receipt and activation receipt are bound.
-8. D1 projection remains disabled until an approved outbox event and projector receipt exist.
+6. Validate the evidence manifest against the exact registry digest and artifact bytes before recording its ledger row.
+7. A later source version creates a new snapshot and a new manifest. Existing rows are never updated or deleted.
+8. Adapter execution remains impossible until a separate current rights receipt, schema receipt and activation receipt are bound.
+9. D1 projection remains disabled until an approved outbox event and projector receipt exist.
 
 ## Retention and deletion
 
@@ -61,7 +66,10 @@ Raw or copyrighted content is not written merely because a public URL exists. `H
 
 ```bash
 node scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs
-node --test tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs
+node scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs
+node --test \
+  tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs \
+  tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs
 ```
 
-Expected result: validator PASS, five tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+Expected result: both validators PASS, eleven tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
