@@ -100,6 +100,7 @@ export function assessmentDigest(source) {
 }
 
 export async function appendRegistrySnapshot(client, registry, options = {}) {
+  registry = structuredClone(registry);
   const validation = validateGlobalSoldSourceRegistry(registry);
   const writerId = options.writerId ?? 'kpmo-supply-chain-admission-v1';
   const counts = { snapshots_inserted: 0, snapshots_idempotent: 0, assessments_inserted: 0, assessments_idempotent: 0 };
@@ -153,7 +154,11 @@ export async function appendRegistrySnapshot(client, registry, options = {}) {
     await client.query('COMMIT');
     return { ...validation, status: 'COMMITTED', counts };
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      throw new AggregateError([error, rollbackError], 'REGISTRY_WRITE_AND_ROLLBACK_FAILED', { cause: error });
+    }
     throw error;
   }
 }

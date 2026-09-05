@@ -1,0 +1,158 @@
+name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
+      - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
+      - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
+      - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
+      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+      - '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'
+      - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
+      - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
+      - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
+      - 'scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - 'coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json'
+      - 'coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv'
+      - 'coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs'
+      - 'package.json'
+      - 'npm-shrinkwrap.json'
+  schedule:
+    - cron: '23,53 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  contract-self-test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and run sentinel negative regression suite
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs
+
+  exact-main-health:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Initialize durable non-authorizing sentinel failure receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY_BOOTSTRAP'
+          import json, os
+          from pathlib import Path
+          receipt = {
+            'receipt_id': 'kpmo-continuous-assurance-sentinel-health-v1',
+            'version': '1.0.0', 'state': 'VERIFIED_FAIL',
+            'failure_class': 'SENTINEL_NOT_RECONCILED',
+            'repository': os.environ['GITHUB_REPOSITORY'],
+            'source_sha': os.environ['GITHUB_SHA'],
+            'observer_run_id': int(os.environ['GITHUB_RUN_ID']),
+            'observer_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+            'coverage_scope': 'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
+            'semantic_content_verified': False, 'runtime_health_proven': False,
+            'whole_platform_authority': False, 'promotion_eligible': False,
+            'provider_authority': False, 'database_authority': False,
+            'empirical_delta': 0, 'public': 'HOLD', 'production': 'HOLD', 'g5': 'HOLD'
+          }
+          destination = Path(os.environ['RUNNER_TEMP']) / 'kpmo-continuous-assurance-sentinel-health-v1.json'
+          destination.write_text(json.dumps(receipt, indent=2) + '\n')
+          PY_BOOTSTRAP
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Resolve latest applicable exact-SHA producer health
+        id: resolve
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs \
+            --output "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+      - name: Upload exact-run sentinel health receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-sentinel-health-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-continuous-assurance-sentinel-health-v1.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Enforce fail-closed producer health after receipt retention
+        if: always()
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+          jq -e '
+            .receipt_id=="kpmo-continuous-assurance-sentinel-health-v1" and
+            .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
+            .source_sha==env.GITHUB_SHA and
+            .observer_run_id==(env.GITHUB_RUN_ID|tonumber) and
+            .observer_run_attempt==(env.GITHUB_RUN_ATTEMPT|tonumber) and
+            .semantic_content_verified==true and .runtime_health_proven==false and
+            .whole_platform_authority==false and
+            .promotion_eligible==false and
+            .provider_authority==false and
+            .database_authority==false and
+            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            .state=="VERIFIED_PASS" and
+            (.producers|length)==4 and
+            ([.producers[].state]|all(.=="VERIFIED_PASS")) and
+            ([.producers[].artifact_content_validated]|all(.==true))
+          ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null

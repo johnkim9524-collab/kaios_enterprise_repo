@@ -42,6 +42,8 @@ This change does not apply a database migration, write the Evidence Volume, acti
 
 Raw or copyrighted content is not written merely because a public URL exists. `HOLD` and `NO_GO` sources retain KIDULTS-authored assessment metadata only unless a purpose-specific right explicitly permits more.
 
+Restricted evidence bytes are hard-disabled until the validator resolves both admission IDs against authoritative, content-bound, exact-source receipts and verifies terminal PASS, scope, purpose, digest, lineage and expiry. UUID shape, a registry PASS, or a database foreign-key declaration alone never authorizes an Evidence Volume write.
+
 ## Runtime sequence
 
 1. Validate and digest the GitHub registry.
@@ -72,4 +74,10 @@ node --test \
   tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs
 ```
 
-Expected result: both validators PASS, twelve tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+Expected result: both validators PASS, all selected tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+
+## Asynchronous writer integrity
+
+Both writers capture caller-independent structured snapshots before validation and before the first SQL await. Every insert parameter is derived from that same snapshot. Caller mutation during BEGIN, lock acquisition or lookups cannot change the validated registry or manifest payload. Manifest validation also checks the bound registry's non-authority semantics and requires an explicit boolean raw-content flag.
+
+If a write and its rollback both fail, an AggregateError retains the original failure as its cause and records both errors. This is recovery uncertainty, never a committed result or a successful rollback attestation. These tests use a query recorder, not a PostgreSQL server.

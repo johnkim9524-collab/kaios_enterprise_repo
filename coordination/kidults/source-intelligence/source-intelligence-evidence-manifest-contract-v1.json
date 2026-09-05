@@ -39,6 +39,7 @@
     "restricted_bytes_require_registry_store_pass": true,
     "restricted_bytes_require_registry_raw_archive_pass": true,
     "restricted_bytes_require_rights_decision_and_supply_run_foreign_keys": true,
+    "restricted_bytes_hard_disabled_until_authoritative_receipt_resolution": true,
     "acquisition_requires_sold_transaction_role": true,
     "acquisition_requires_collect_store_pass": true,
     "acquisition_requires_external_admission_receipts": true,
