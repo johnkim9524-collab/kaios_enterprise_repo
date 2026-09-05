@@ -104,6 +104,13 @@ assert(supersession.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 
 assert(supersession.includes('Cancellation not terminally confirmed for run'), 'EXACT_HEAD_SUPERSESSION_FAIL_CLOSED_MISSING');
 assert(!supersession.includes('if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'), 'EXACT_HEAD_SUPERSESSION_ACCEPTED_AS_TERMINAL_FORBIDDEN');
 assert(supersession.includes('same_head_runs_cancelled:0'), 'EXACT_HEAD_SUPERSESSION_SAME_HEAD_INVARIANT_MISSING');
+assert(supersession.includes('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml'), 'EXACT_HEAD_SUPERSESSION_DIRECT_OWNER_BRIDGE_RETENTION_MISSING');
+assert(supersession.includes('.github/workflows/kidults-atomic-governed-landing-v1.yml'), 'EXACT_HEAD_SUPERSESSION_ATOMIC_LANDING_BRIDGE_RETENTION_MISSING');
+assert(supersession.includes("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_MISSING');
+assert(supersession.includes("generation_bridge_runs_retained:$generation_bridge_retained"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RECEIPT_MISSING');
+assert(supersession.includes('[[ "${run_event}" == "workflow_dispatch" ]] || return 1'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_EVENT_BINDING_MISSING');
+assert(supersession.includes('.workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RUN_FIELDS_MISSING');
+assert(supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then") < supersession.indexOf('/actions/runs/${run_id}/cancel', supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then")), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_ORDER_INVALID');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(snapshot.includes('/actions/runs/${P2_RUN_ID}/artifacts'), 'SNAPSHOT_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(snapshot.includes('main.commit?.sha!==run.head_sha') && snapshot.includes('main.commit.sha!==process.env.GITHUB_SHA'), 'SNAPSHOT_CURRENT_MAIN_BINDING_MISSING');
@@ -192,6 +199,12 @@ const supersessionRetryMutation = supersession.replace('for attempt in 1 2 3; do
 assert(supersessionRetryMutation !== supersession && !supersessionRetryMutation.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_RETRY_MUTATION_NOT_DETECTED');
 const supersessionTerminalProofMutation = supersession.replaceAll('if [[ "${latest_conclusion}" == "cancelled" ]]', 'if [[ -n "${latest_conclusion}" ]]');
 assert(supersessionTerminalProofMutation !== supersession && !supersessionTerminalProofMutation.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 'EXACT_HEAD_SUPERSESSION_TERMINAL_PROOF_MUTATION_NOT_DETECTED');
+const supersessionBridgeEventMutation = supersession.replace('"${run_event}" == "workflow_dispatch"', '"${run_event}" == "push"');
+assert(supersessionBridgeEventMutation !== supersession && !supersessionBridgeEventMutation.includes('"${run_event}" == "workflow_dispatch"'), 'EXACT_HEAD_SUPERSESSION_BRIDGE_EVENT_MUTATION_NOT_DETECTED');
+const supersessionDirectOwnerBridgeMutation = supersession.replace('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', '.github/workflows/removed-direct-owner.yml');
+assert(supersessionDirectOwnerBridgeMutation !== supersession && !supersessionDirectOwnerBridgeMutation.includes('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml'), 'EXACT_HEAD_SUPERSESSION_DIRECT_OWNER_BRIDGE_MUTATION_NOT_DETECTED');
+const supersessionAtomicBridgeMutation = supersession.replace('.github/workflows/kidults-atomic-governed-landing-v1.yml', '.github/workflows/removed-atomic-landing.yml');
+assert(supersessionAtomicBridgeMutation !== supersession && !supersessionAtomicBridgeMutation.includes('.github/workflows/kidults-atomic-governed-landing-v1.yml'), 'EXACT_HEAD_SUPERSESSION_ATOMIC_BRIDGE_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
 const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
@@ -207,7 +220,7 @@ console.log(JSON.stringify({
   unbounded_independent_triggers: 0,
   current_main_bound_liveness_schedules: 1,
   repository_global_artifact_queries: 0,
-  adversarial_mutations_rejected: 35,
+  adversarial_mutations_rejected: 36,
   production: 'HOLD',
   public_release: 'HOLD',
   g5: 'HOLD',
