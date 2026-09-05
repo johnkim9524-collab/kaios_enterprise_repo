@@ -2,40 +2,40 @@
 
 **Owner:** KPMO  
 **Priority:** P0  
-**Execution:** Bounded live public-metadata discovery  
+**Execution:** Exact-main shared Source Fabric consumption; P0B provider requests = 0  
 **Direction:** Autonomous → Global → Irreplaceable Value → Transparent
 
 ## Purpose
 
-P0B takes the 576 runtime-preflighted discovery tasks from P0 and executes four live public-metadata scope rotations through the existing OpenAlex and GDELT discovery lanes.
+P0B takes the 576 runtime-preflighted discovery tasks from P0 and consumes one exact protected-main artifact produced by **KIDULTS ASI Source Fabric Scale PI1**. P0B does not open a second OpenAlex/GDELT request budget and does not reset the durable provider circuit.
 
-Observed HTTP(S) endpoints are canonicalized and deduplicated into a KIDULTS-owned Source Candidate Registry. Candidates are then bound to the 192 missions by exact scope hint while regional relevance and factual-origin independence remain explicit unresolved gates.
+The upstream producer performs the governed public-metadata rotations. P0B validates the producer run, source SHA, artifact digest, required-file cardinality, Source Fabric, and provider circuit before converting observed HTTP(S) endpoints into a KIDULTS-owned Source Candidate Registry.
 
 ## Execution chain
 
 ```text
 192 Missions / 576 P0 Discovery Tasks
         ↓
-Four governed scope rotations
+Exact protected-main Source Fabric Scale PI1 artifact
         ↓
-OpenAlex public metadata discovery
-+
-GDELT public metadata discovery
+Safe archive validation and exact required-file restore
         ↓
-Source Fabric merge and validation
+Source Fabric + durable provider circuit validation
+        ↓
+P0B issues zero provider requests
         ↓
 Canonical endpoint and host normalization
         ↓
 Source Candidate Registry
         ↓
-Mission candidate binding
-        ↓
-Candidate Gap Register
+Mission candidate binding / Candidate Gap Register
         ↓
 Provider / Host Diversity Report
         ↓
-KPMO Receipt and Artifact
+Run-attempt-SHA-bound KPMO Receipt and Artifact
 ```
+
+Source Fabric Scale PI1 remains the sole provider-budget authority. Its upstream lanes include OpenAlex public metadata discovery and GDELT public metadata discovery. Their observations do not prove target-site collection, evidence admission, or market truth.
 
 ## Candidate binding
 
@@ -45,30 +45,26 @@ Each mission may receive up to three candidates:
 2. Independent fallback candidate;
 3. Factual-origin replacement candidate for investigation.
 
-The third slot never proves factual-origin independence. A different hostname or discovery provider is not automatically a different factual origin.
-
-Exact regional hints are preferred. Unknown or global hints may remain candidate inputs, but they do not count as proven regional coverage.
+The third slot never proves factual-origin independence. A different hostname or discovery provider is not automatically a different factual origin. Exact regional hints are preferred, while unknown or global hints do not count as proven regional coverage.
 
 ## What this stage proves
 
-- bounded public-metadata network discovery was executed;
-- at least one live lane returned results;
-- canonical HTTP(S) source candidates were observed;
+- one exact protected-main Source Fabric artifact and durable provider circuit were restored and validated;
+- the producer run, source SHA, artifact ID, and digest are preserved in the terminal receipt;
+- P0B issues zero provider requests;
+- canonical HTTP(S) source candidates were observed in the shared Source Fabric;
 - duplicate endpoint observations were superseded deterministically;
-- mission candidate coverage and gaps were measured;
-- host and discovery-provider diversity were measured;
-- source-candidate lineage is reproducible from the source-fabric digest.
+- mission candidate coverage, gaps, host diversity, and discovery-provider diversity were measured;
+- source-candidate lineage is reproducible from the shared source-fabric digest.
 
 ## What this stage does not prove
 
-- target-site body collection;
-- target-content acquisition;
+- that P0B executed public-metadata network discovery;
+- target-site body collection or target-content acquisition;
 - rights to collect or derive from the target site;
 - source-owner or factual-origin independence;
-- regional market coverage;
-- market-semantic relevance;
-- evidence admission;
-- a market claim.
+- regional market coverage or market-semantic relevance;
+- evidence admission or a market claim.
 
 ## Automatic activation
 
@@ -79,11 +75,13 @@ or successful P0 Mission Consumption run
         ↓
 Rebuild P0 mission queue
         ↓
-Execute four public-metadata discovery rotations
+Restore exact-main Source Fabric Scale PI1 artifact
         ↓
-Build and validate candidate outputs
+Validate exact producer lineage, Source Fabric, and provider circuit
         ↓
-Reject overclaim mutations
+Build and validate candidate outputs with provider requests = 0
+        ↓
+Reject overclaim and duplicate-provider mutations
         ↓
 Emit KPMO Receipt and 90-day Artifact
 ```
@@ -111,6 +109,7 @@ Evidence Admission Candidate
 ```
 
 ```text
+Shared Source Fabric Observation ≠ P0B Network Execution
 Public Metadata Discovery ≠ Target-Site Collection
 Source Candidate ≠ Evidence
 Scope Hint ≠ Proven Relevance
