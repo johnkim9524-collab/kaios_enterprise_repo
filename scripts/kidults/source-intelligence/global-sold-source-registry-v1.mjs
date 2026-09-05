@@ -157,7 +157,7 @@ export async function appendRegistrySnapshot(client, registry, options = {}) {
     try {
       await client.query('ROLLBACK');
     } catch (rollbackError) {
-      throw new AggregateError([error, rollbackError], 'REGISTRY_WRITE_AND_ROLLBACKBACK_FAILED', { cause: error });
+      throw new AggregateError([error, rollbackError], 'REGISTRY_WRITE_AND_ROLLBACK_FAILED', { cause: error });
     }
     throw error;
   }
