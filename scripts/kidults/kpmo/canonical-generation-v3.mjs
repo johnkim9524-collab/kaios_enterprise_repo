@@ -7,8 +7,10 @@ import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseM
 const repo=process.env.GITHUB_REPOSITORY;
 const token=process.env.GITHUB_TOKEN||process.env.GH_TOKEN;
 const receiptPath=process.env.CANONICAL_GENERATION_RECEIPT_PATH||`${process.env.RUNNER_TEMP||'/tmp'}/canonical-generation-v3-receipt.json`;
-const readHeaders={Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
-const writeHeaders={...readHeaders,Authorization:`Bearer ${token||''}`,'Content-Type':'application/json'};
+const baseHeaders={Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+const readHeadersFor=(value)=>({...baseHeaders,...(value?{Authorization:`Bearer ${value}`}:{})});
+const readHeaders=readHeadersFor(token);
+const writeHeaders={...readHeaders,'Content-Type':'application/json'};
 const OWNER='johnkim9524-collab';
 const APPROVAL_ISSUE=1713;
 const WRITE_ACTION='APPLY_APPEND_ONLY_25_PLUS_COMMIT';
@@ -17,14 +19,21 @@ const die=(message)=>{throw new Error(message);};
 
 function receipt(extra){
   fs.mkdirSync(path.dirname(receiptPath),{recursive:true});
-  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.5.0',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
+  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.5.1',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
+}
+
+function githubApiUrl(url){
+  const raw=url.startsWith('http')?url:`https://api.github.com/repos/${repo}${url}`;
+  const endpoint=new URL(raw);
+  if(endpoint.origin!=='https://api.github.com')die('GITHUB_API_ORIGIN_INVALID');
+  return endpoint.toString();
 }
 
 async function api(url,options={}){
   const method=String(options.method||'GET').toUpperCase();
   const mutating=!['GET','HEAD'].includes(method);
   if(mutating&&!token)die('WRITE_TOKEN_MISSING');
-  const response=await fetch(url.startsWith('http')?url:`https://api.github.com/repos/${repo}${url}`,{
+  const response=await fetch(githubApiUrl(url),{
     ...options,
     method,
     headers:{...(mutating?writeHeaders:readHeaders),...(options.headers||{})},
@@ -92,7 +101,7 @@ async function validateCurrent(snapshotValue,expectedRun=null){
   if(commit.protected_main_sha!==snapshotValue.protected_main_sha)return {stale:true,generation_id:commit.generation_id};
   validateCommit(commit,snapshotValue,expectedRun);
   const comments=[];
-  for(const entry of commit.member_comments) comments.push(await api(`/issues/comments/${entry.comment_id}`));
+  for(const entry of commit.member_comments)comments.push(await api(`/issues/comments/${entry.comment_id}`));
   for(let index=0;index<MEMBERS.length;index+=1){
     const comment=comments[index],entry=commit.member_comments[index];
     if(comment.user?.login!==BOT||issueNo(comment)!==MEMBERS[index]||comment.id>=aggregate.id||sha256(String(comment.body||''))!==entry.comment_body_sha256)die(`MEMBER_COMMENT_${MEMBERS[index]}_IDENTITY_INVALID`);
@@ -180,7 +189,7 @@ async function validate(){
   const snapshotValue=await snapshot();
   const current=await validateCurrent(snapshotValue);
   if(!current||current.stale)die(current?'LATEST_COMMITTED_GENERATION_STALE':'COMMITTED_GENERATION_MISSING');
-  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.5.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.5.1',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
 }
 
 function selfTest(){
@@ -199,15 +208,28 @@ function selfTest(){
     'runEnvelope?.triggering_actor?.login!==OWNER',
     'runEnvelope?.run_started_at',
     'POST_WRITE_TRUTH_MOVED',
-    "const readHeaders=",
-    "const writeHeaders=",
+    "const baseHeaders=",
+    "const readHeadersFor=",
+    "const readHeaders=readHeadersFor(token)",
+    "const writeHeaders={...readHeaders,'Content-Type':'application/json'}",
     "mutating?writeHeaders:readHeaders",
+    'GITHUB_API_ORIGIN_INVALID',
+    'fetch(githubApiUrl(url)',
     'authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID)',
     'runEnvelope?.path!==WRITER_WORKFLOW',
     'comment?.performed_via_github_app',
     'comment.created_at!==comment.updated_at',
     'AUTHORIZATION_COMMENT_CARDINALITY'
-  ]) if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
+  ])if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
+  const publicHeaders=readHeadersFor(null);
+  const authenticatedHeaders=readHeadersFor('self-test-token');
+  if(Object.hasOwn(publicHeaders,'Authorization'))die('SELF_TEST_PUBLIC_READ_FALLBACK_AUTH_PRESENT');
+  if(authenticatedHeaders.Authorization!=='Bearer self-test-token')die('SELF_TEST_AUTHENTICATED_READ_HEADER_MISSING');
+  if(writeHeaders['Content-Type']!=='application/json')die('SELF_TEST_WRITE_CONTENT_TYPE_MISSING');
+  let originRejected=false;
+  try{githubApiUrl('https://example.com/exfil');}catch{originRejected=true;}
+  if(!originRejected)die('SELF_TEST_EXTERNAL_API_ORIGIN_ESCAPED');
+  if(!githubApiUrl('https://api.github.com/search/issues?q=test').startsWith('https://api.github.com/'))die('SELF_TEST_GITHUB_API_ORIGIN_REJECTED');
   const main='a'.repeat(40);
   const id=authorizationId(main,'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001');
   if(id!=='CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001')die('SELF_TEST_AUTHORIZATION_ID');
@@ -227,7 +249,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,public_read_plane_separated_from_write_token:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,mutation_authority_not_widened:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
 }
 
 try{
