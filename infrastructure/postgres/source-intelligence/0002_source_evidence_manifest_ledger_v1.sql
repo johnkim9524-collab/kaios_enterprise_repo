@@ -46,25 +46,14 @@ CREATE TABLE IF NOT EXISTS kidults_control.source_evidence_manifest_ledger (
       AND manifest_payload#>>'{release_boundary,production}' = 'HOLD'
       AND manifest_payload#>>'{release_boundary,g5}' = 'HOLD'
     ),
-    CONSTRAINT source_evidence_manifest_uri_ck CHECK (
-      (
-        contains_external_raw_content = false
-        AND storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'
-        AND evidence_uri IS NULL
-        AND rights_decision_id IS NULL
-        AND supply_chain_run_id IS NULL
-        AND manifest_payload#>>'{artifact,evidence_uri}' IS NULL
-      ) OR (
-        contains_external_raw_content = true
-        AND storage_mode = 'RESTRICTED_EVIDENCE_BYTES'
-        AND evidence_uri LIKE '/mnt/ih_prod_01/evidence/current-sold/%'
-        AND position('/../' IN evidence_uri) = 0
-        AND right(evidence_uri, 3) <> '/..'
-        AND rights_decision_id IS NOT NULL
-        AND supply_chain_run_id IS NOT NULL
-        AND manifest_payload#>>'{artifact,evidence_uri}' = evidence_uri
-        AND manifest_payload->>'status' = 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY'
-      )
+    CONSTRAINT source_evidence_manifest_restricted_bytes_hard_stop_ck CHECK (
+      contains_external_raw_content = false
+      AND storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'
+      AND evidence_uri IS NULL
+      AND rights_decision_id IS NULL
+      AND supply_chain_run_id IS NULL
+      AND manifest_payload#>>'{artifact,evidence_uri}' IS NULL
+      AND manifest_payload->>'status' <> 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY'
     )
 );
 
@@ -92,6 +81,6 @@ GRANT SELECT, INSERT ON kidults_control.source_evidence_manifest_ledger TO kidul
 GRANT USAGE, SELECT ON SEQUENCE kidults_control.source_evidence_manifest_ledger_ledger_id_seq TO kidults_control_supply;
 
 COMMENT ON TABLE kidults_control.source_evidence_manifest_ledger IS
-  'Append-only metadata manifests binding source intelligence artifacts to registry snapshots; no row grants acquisition, adapter, database, D1, Public, Production or G5 authority.';
+  'Append-only source-intelligence metadata manifests. Restricted evidence-byte admission is hard-disabled until content-bound authoritative receipt resolution is separately implemented and governed; no row grants acquisition, adapter, database, D1, Public, Production or G5 authority.';
 
 COMMIT;
