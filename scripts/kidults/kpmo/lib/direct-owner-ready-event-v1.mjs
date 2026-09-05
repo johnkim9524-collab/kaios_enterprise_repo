@@ -25,7 +25,7 @@ const normalizeLifecycleEvent = item => {
   };
 };
 
-const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner}) => {
+const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner, latestReady}) => {
   if (closeEntry?.item?.event !== 'closed') return false;
   if (closeEntry.item?.actor?.login !== repositoryOwner) return false;
   if (closeEntry.item?.performed_via_github_app !== null) return false;
@@ -35,6 +35,8 @@ const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner}) => {
     .map(normalizeLifecycleEvent)
     .filter(entry =>
       entry.id < closeEntry.id
+      && (entry.time > latestReady.time
+        || (entry.time === latestReady.time && entry.id > latestReady.id))
       && entry.createdAt === closeEntry.createdAt
       && entry.item?.actor?.login === repositoryOwner
       && entry.item?.performed_via_github_app === null
@@ -63,7 +65,7 @@ export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = 
 
   const invalidatingEvents = lifecycleEvents.filter(entry =>
     GENERATION_INVALIDATING_EVENTS.has(entry.item?.event)
-    && !isBoundNaturalMergedClose({timeline, closeEntry: entry, repositoryOwner}));
+    && !isBoundNaturalMergedClose({timeline, closeEntry: entry, repositoryOwner, latestReady}));
 
   const laterInvalidatingEvent = invalidatingEvents.find(entry =>
     entry.time > latestReady.time
