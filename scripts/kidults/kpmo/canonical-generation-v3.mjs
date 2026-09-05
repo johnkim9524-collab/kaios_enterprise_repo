@@ -16,7 +16,7 @@ const die=(message)=>{throw new Error(message);};
 
 function receipt(extra){
   fs.mkdirSync(path.dirname(receiptPath),{recursive:true});
-  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.2.0',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
+  fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.3.0',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
 }
 
 async function api(url,options={}){
@@ -103,13 +103,13 @@ function authorizationId(main,requested){
 }
 const authorizationBody=(id,main)=>`CANONICAL_V3_AUTHORIZATION_ID: ${id}\nTARGET_MAIN_SHA: ${main}\nACTION: ${WRITE_ACTION}`;
 
-function validateAuthorizationComment(comment,expectedBody,runCreatedAt){
+function validateAuthorizationComment(comment,expectedBody,runStartedAt){
   if(comment?.user?.login!==OWNER)die('AUTHORIZATION_OWNER_IDENTITY_INVALID');
   if(comment?.author_association!=='OWNER')die('AUTHORIZATION_OWNER_ASSOCIATION_INVALID');
   if(comment?.performed_via_github_app)die('AUTHORIZATION_APP_MEDIATED_FORBIDDEN');
   if(String(comment?.body||'').trim()!==expectedBody)die('AUTHORIZATION_BODY_MISMATCH');
   if(!comment?.created_at||!comment?.updated_at||comment.created_at!==comment.updated_at)die('AUTHORIZATION_COMMENT_MUTATED');
-  const approvalTime=Date.parse(comment.created_at),runTime=Date.parse(runCreatedAt);
+  const approvalTime=Date.parse(comment.created_at),runTime=Date.parse(runStartedAt);
   if(!Number.isFinite(approvalTime)||!Number.isFinite(runTime)||approvalTime>=runTime)die('AUTHORIZATION_NOT_PREEXISTING');
   if(runTime-approvalTime>AUTHORIZATION_MAX_AGE_MS)die('AUTHORIZATION_STALE');
 }
@@ -120,19 +120,20 @@ async function verifyWriteAuthority(snapshotValue,run,attempt){
   if(process.env.GITHUB_EVENT_NAME!=='workflow_dispatch')die('WRITE_REQUIRES_WORKFLOW_DISPATCH');
   if(process.env.GITHUB_REF!=='refs/heads/main')die('WRITE_REQUIRES_MAIN_REF');
   if(process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
+  if(attempt!==1)die('WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED');
   const expectedId=authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID);
 
   const runEnvelope=await api(`/actions/runs/${run}`);
   if(runEnvelope?.id!==run||runEnvelope?.run_attempt!==attempt)die('WRITER_RUN_IDENTITY_MISMATCH');
   if(runEnvelope?.repository?.full_name!==repo||runEnvelope?.head_branch!=='main'||runEnvelope?.head_sha!==snapshotValue.protected_main_sha)die('WRITER_RUN_SOURCE_SCOPE_INVALID');
-  if(runEnvelope?.event!=='workflow_dispatch'||runEnvelope?.path!==WRITER_WORKFLOW||runEnvelope?.actor?.login!==OWNER)die('WRITER_RUN_AUTHORITY_ENVELOPE_INVALID');
-  if(!runEnvelope?.created_at)die('WRITER_RUN_CREATED_AT_MISSING');
+  if(runEnvelope?.event!=='workflow_dispatch'||runEnvelope?.path!==WRITER_WORKFLOW||runEnvelope?.actor?.login!==OWNER||runEnvelope?.triggering_actor?.login!==OWNER)die('WRITER_RUN_AUTHORITY_ENVELOPE_INVALID');
+  if(!runEnvelope?.run_started_at)die('WRITER_RUN_STARTED_AT_MISSING');
 
   const expectedBody=authorizationBody(expectedId,snapshotValue.protected_main_sha);
   const approvals=(await pages(`/issues/${APPROVAL_ISSUE}/comments`)).filter((comment)=>String(comment?.body||'').trim()===expectedBody);
   if(approvals.length!==1)die(`AUTHORIZATION_COMMENT_CARDINALITY:${approvals.length}`);
-  validateAuthorizationComment(approvals[0],expectedBody,runEnvelope.created_at);
-  return {authorization_id:expectedId,approval_issue:APPROVAL_ISSUE,approval_comment_id:approvals[0].id,approval_created_at:approvals[0].created_at,writer_workflow_path:WRITER_WORKFLOW,writer_run_id:run,writer_run_attempt:attempt};
+  validateAuthorizationComment(approvals[0],expectedBody,runEnvelope.run_started_at);
+  return {authorization_id:expectedId,approval_issue:APPROVAL_ISSUE,approval_comment_id:approvals[0].id,approval_created_at:approvals[0].created_at,writer_workflow_path:WRITER_WORKFLOW,writer_run_id:run,writer_run_attempt:attempt,writer_run_started_at:runEnvelope.run_started_at};
 }
 
 async function write(){
@@ -170,7 +171,7 @@ async function validate(){
   const snapshotValue=await snapshot();
   const current=await validateCurrent(snapshotValue);
   if(!current||current.stale)die(current?'LATEST_COMMITTED_GENERATION_STALE':'COMMITTED_GENERATION_MISSING');
-  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.2.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
+  console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.3.0',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
 }
 
 function selfTest(){
@@ -185,13 +186,16 @@ function selfTest(){
     "GITHUB_EVENT_NAME!=='workflow_dispatch'",
     "GITHUB_REF!=='refs/heads/main'",
     'GITHUB_ACTOR!==OWNER',
+    "attempt!==1",
+    'runEnvelope?.triggering_actor?.login!==OWNER',
+    'runEnvelope?.run_started_at',
     'authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID)',
     'runEnvelope?.path!==WRITER_WORKFLOW',
     'comment?.performed_via_github_app',
     'comment.created_at!==comment.updated_at',
     'AUTHORIZATION_COMMENT_CARDINALITY'
   ]) if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
-  const main='a'.repeat(40),run=123,attempt=2;
+  const main='a'.repeat(40);
   const id=authorizationId(main,'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001');
   if(id!=='CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001')die('SELF_TEST_AUTHORIZATION_ID');
   for(const badId of ['CANONICAL-V3-aaaaaaaaaaaa-short','CANONICAL-V3-bbbbbbbbbbbb-OWNER_NONCE_0001','CANONICAL-V3-aaaaaaaaaaaa-owner-lowercase-nonce']){
@@ -201,7 +205,7 @@ function selfTest(){
   if(body!==`CANONICAL_V3_AUTHORIZATION_ID: ${id}\nTARGET_MAIN_SHA: ${main}\nACTION: ${WRITE_ACTION}`)die('SELF_TEST_AUTHORIZATION_BODY');
   let rejected=0;
   for(const bad of [
-    {...{user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:01Z'}},
+    {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:01Z'},
     {user:{login:'other'},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},
     {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:{id:1},body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},
     {user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2025-12-31T23:29:59Z',updated_at:'2025-12-31T23:29:59Z'}
@@ -210,7 +214,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,authorization_negative_cases:4},null,2));
 }
 
 try{
