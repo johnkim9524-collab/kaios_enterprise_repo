@@ -240,13 +240,21 @@ jobs:
           set -euo pipefail
           node scripts/kidults/market/reconcile-current-sold-terminal-v1.mjs
 
+      - name: Stage Current-SOLD terminal artifact
+        id: stage_artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/current-sold-engine
+          cp "$CURRENT_SOLD_RECEIPT_PATH" out/current-sold-engine/receipt.json
+          test "$(stat -c '%a' out/current-sold-engine/receipt.json)" = 600
+
       - name: Upload Current-SOLD terminal artifact
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: kidults-current-sold-engine-v1-2-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            /tmp/kidults-current-sold-terminal/receipt.json
-            out/current-sold-engine/control-smoke-receipt.json
+          path: out/current-sold-engine
           if-no-files-found: error
           retention-days: 30
