@@ -30,12 +30,21 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           export SOURCE_PACKET="$RUNNER_TEMP/kir-source-snapshot"
           mkdir -m 700 "$SOURCE_PACKET"
-          git rev-list --objects --no-object-names HEAD | git pack-objects --stdout > "$SOURCE_PACKET/source.pack"
-          git cat-file commit HEAD > "$SOURCE_PACKET/commit.raw"
+          for entry in "kir:$EXPECTED_SHA" 'landing:3d7ed543487c8adc2ab75fe607dc030b71ef3675' 'cloudflare:439d44a0c1a4e703f7d239285f6683dc79c4c2b4' 'main:24ad2e6f8358d6af23d4a4b9cd7bb0cfd89b962d'; do
+            label="${entry%%:*}"
+            sha="${entry#*:}"
+            [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+            git fetch --no-tags --depth=1 origin "$sha"
+            test "$(git rev-parse FETCH_HEAD)" = "$sha"
+            mkdir -m 700 "$SOURCE_PACKET/$label"
+            git rev-list --objects --no-object-names "$sha" | git pack-objects --stdout > "$SOURCE_PACKET/$label/source.pack"
+            git cat-file commit "$sha" > "$SOURCE_PACKET/$label/commit.raw"
+            printf '%s\n' "$sha" > "$SOURCE_PACKET/$label/source-sha.txt"
+          done
           python3 -I - <<'PY'
           import hashlib,json,os,pathlib
           root=pathlib.Path(os.environ['SOURCE_PACKET'])
-          value={'id':'kidults-integration-source-snapshot-v1','source_sha':os.environ['EXPECTED_SHA'],'repository':os.environ['GITHUB_REPOSITORY'],'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'scope':'TRACKED_SOURCE_REPRODUCIBILITY_ONLY_NOT_RUNTIME_EVIDENCE','git_config_exported':False,'credentials_exported':False,'promotion_eligible':False,'production':'HOLD','public':'HOLD','g5':'HOLD','files':{p.name:'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir()}}
+          value={'id':'kidults-integration-source-snapshot-v1','source_sha':os.environ['EXPECTED_SHA'],'repository':os.environ['GITHUB_REPOSITORY'],'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'scope':'TRACKED_SOURCE_REPRODUCIBILITY_ONLY_NOT_RUNTIME_EVIDENCE','git_config_exported':False,'credentials_exported':False,'promotion_eligible':False,'production':'HOLD','public':'HOLD','g5':'HOLD','files':{p.relative_to(root).as_posix():'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest() for p in root.rglob('*') if p.is_file()}}
           (root/'manifest.json').write_text(json.dumps(value,indent=2)+'\n')
           PY
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
