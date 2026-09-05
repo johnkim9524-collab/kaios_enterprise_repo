@@ -1,0 +1,46 @@
+name: KIDULTS Integration Source Snapshot v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-integration-source-snapshot-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Export tracked Git objects only, never runner configuration or credentials
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = johnkim9524-collab/kaios_enterprise_repo
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          export SOURCE_PACKET="$RUNNER_TEMP/kir-source-snapshot"
+          mkdir -m 700 "$SOURCE_PACKET"
+          git rev-list --objects --no-object-names HEAD | git pack-objects --stdout > "$SOURCE_PACKET/source.pack"
+          git cat-file commit HEAD > "$SOURCE_PACKET/commit.raw"
+          python3 -I - <<'PY'
+          import hashlib,json,os,pathlib
+          root=pathlib.Path(os.environ['SOURCE_PACKET'])
+          value={'id':'kidults-integration-source-snapshot-v1','source_sha':os.environ['EXPECTED_SHA'],'repository':os.environ['GITHUB_REPOSITORY'],'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'scope':'TRACKED_SOURCE_REPRODUCIBILITY_ONLY_NOT_RUNTIME_EVIDENCE','git_config_exported':False,'credentials_exported':False,'promotion_eligible':False,'production':'HOLD','public':'HOLD','g5':'HOLD','files':{p.name:'sha256:'+hashlib.sha256(p.read_bytes()).hexdigest() for p in root.iterdir()}}
+          (root/'manifest.json').write_text(json.dumps(value,indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kir-source-snapshot-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kir-source-snapshot
+          if-no-files-found: error
+          retention-days: 7
