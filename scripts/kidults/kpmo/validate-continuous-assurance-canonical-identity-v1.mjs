@@ -55,6 +55,8 @@ for (const entry of contract.workflow_run_class_allowlist) {
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE').length === 4, 'SOURCE_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_ADAPTER_EVIDENCE_CASCADE').length === 7, 'ADAPTER_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'KPMO_CONTROL_PLANE_VALIDATORS').length === 3, 'CONTROL_CLASS_CARDINALITY');
+const arlContract = contract.workflow_run_class_allowlist.find((entry) => entry.workflow_path === '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml');
+assert(JSON.stringify(arlContract?.non_consumable_success_runtime_name_patterns) === JSON.stringify(['^KIDULTS ARL / recovery-[a-f0-9]{40}$']), 'ARL_NON_CONSUMABLE_SUCCESS_RULE');
 
 const base = {
   event_name: 'workflow_run',
@@ -157,6 +159,18 @@ const dynamicArl = classifyCanonicalIdentity({
   upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
 }, contract, contractText);
 assert(dynamicArl.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE', 'ARL_DYNAMIC_RUN_NAME_NOT_PATH_BOUND');
+assert(dynamicArl.state === 'NON_CONSUMABLE_SUCCESS_OBSERVATION_FAIL_CLOSED', 'ARL_RECOVERY_NON_CONSUMABLE_STATE');
+assert(dynamicArl.non_consumable_success_observation === true && dynamicArl.terminal_observation_non_dedupable === true, 'ARL_RECOVERY_NON_CONSUMABLE_FLAG');
+assert(dynamicArl.dedupe_eligible === false && dynamicArl.ephemeral_actions_alias_eligible === false, 'ARL_RECOVERY_ALIAS_OR_DEDUPE_FORBIDDEN');
+assert(dynamicArl.generation_discriminator === 'non-consumable-upstream:8850:attempt:1', 'ARL_RECOVERY_EXACT_RUN_IDENTITY');
+const dynamicArlProducer = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9852',
+  upstream_run_id: '8852',
+  upstream_workflow_name: 'KIDULTS ARL / p1-1963',
+  upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+}, contract, contractText);
+assert(dynamicArlProducer.non_consumable_success_observation === false && dynamicArlProducer.dedupe_eligible === true, 'ARL_P1_PRODUCER_WRONGLY_CONTAINED');
 const dynamicCoverage = classifyCanonicalIdentity({
   ...base,
   run_id: '9851',
@@ -238,6 +252,15 @@ for (const [name, fixture] of negativeCases) {
   try { classifyCanonicalIdentity(fixture, contract, contractText); } catch { rejected = true; }
   assert(rejected, `NEGATIVE_NOT_REJECTED:${name}`);
 }
+
+const weakenedSemanticRole = structuredClone(contract);
+delete weakenedSemanticRole.workflow_run_class_allowlist.find((entry) => entry.workflow_path === '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml').non_consumable_success_runtime_name_patterns;
+const weakenedRecovery = classifyCanonicalIdentity({
+  ...base,
+  upstream_workflow_name: `KIDULTS ARL / recovery-${shaA}`,
+  upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+}, weakenedSemanticRole, `${JSON.stringify(weakenedSemanticRole, null, 2)}\n`);
+assert(weakenedRecovery.non_consumable_success_observation === false, 'SEMANTIC_ROLE_MUTATION_CANARY_NOT_LIVE');
 
 const weakened = structuredClone(contract);
 weakened.runtime_dedupe.state = 'ACTIVE';
