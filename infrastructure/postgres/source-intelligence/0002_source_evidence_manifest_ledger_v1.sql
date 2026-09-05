@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS kidults_control.source_evidence_manifest_ledger (
       'RESTRICTED_EVIDENCE_BYTES', 'DELETION_RECEIPT_ONLY'
     )),
     evidence_uri TEXT,
-    contains_external_raw_content BOOLEAN NOT NULL CHECK (contains_external_raw_content = false),
+    contains_external_raw_content BOOLEAN NOT NULL,
+    rights_decision_id UUID REFERENCES kidults_control.source_rights_decisions(rights_decision_id),
+    supply_chain_run_id UUID REFERENCES kidults_control.supply_chain_runs(supply_chain_run_id),
     manifest_payload JSONB NOT NULL,
     writer_id TEXT NOT NULL REFERENCES kidults_control.writer_principals(writer_id),
     inserted_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
@@ -32,7 +34,9 @@ CREATE TABLE IF NOT EXISTS kidults_control.source_evidence_manifest_ledger (
       AND manifest_payload->>'registry_snapshot_digest' = registry_snapshot_digest
       AND manifest_payload#>>'{artifact,digest}' = artifact_digest
       AND manifest_payload#>>'{artifact,storage_mode}' = storage_mode
-      AND manifest_payload#>>'{artifact,contains_external_raw_content}' = 'false'
+      AND (manifest_payload#>>'{artifact,contains_external_raw_content}')::boolean = contains_external_raw_content
+      AND (manifest_payload#>>'{admission,rights_decision_id}')::uuid IS NOT DISTINCT FROM rights_decision_id
+      AND (manifest_payload#>>'{admission,supply_chain_run_id}')::uuid IS NOT DISTINCT FROM supply_chain_run_id
       AND jsonb_array_length(source_ids) = source_count
       AND manifest_payload#>>'{release_boundary,source_acquisition}' = 'false'
       AND manifest_payload#>>'{release_boundary,adapter_activation}' = 'false'
@@ -43,8 +47,24 @@ CREATE TABLE IF NOT EXISTS kidults_control.source_evidence_manifest_ledger (
       AND manifest_payload#>>'{release_boundary,g5}' = 'HOLD'
     ),
     CONSTRAINT source_evidence_manifest_uri_ck CHECK (
-      evidence_uri IS NULL
-      AND manifest_payload#>>'{artifact,evidence_uri}' IS NULL
+      (
+        contains_external_raw_content = false
+        AND storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'
+        AND evidence_uri IS NULL
+        AND rights_decision_id IS NULL
+        AND supply_chain_run_id IS NULL
+        AND manifest_payload#>>'{artifact,evidence_uri}' IS NULL
+      ) OR (
+        contains_external_raw_content = true
+        AND storage_mode = 'RESTRICTED_EVIDENCE_BYTES'
+        AND evidence_uri LIKE '/mnt/ih_prod_01/evidence/current-sold/%'
+        AND position('/../' IN evidence_uri) = 0
+        AND right(evidence_uri, 3) <> '/..'
+        AND rights_decision_id IS NOT NULL
+        AND supply_chain_run_id IS NOT NULL
+        AND manifest_payload#>>'{artifact,evidence_uri}' = evidence_uri
+        AND manifest_payload->>'status' = 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY'
+      )
     )
 );
 
