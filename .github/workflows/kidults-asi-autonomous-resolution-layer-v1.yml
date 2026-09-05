@@ -38,6 +38,7 @@ on:
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-runtime-lineage-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -71,6 +72,7 @@ on:
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-p1-runtime-lineage-v1.mjs'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P1 Source Preflight v1'
@@ -109,6 +111,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-p1-runtime-lineage-v1.mjs
           node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
@@ -202,7 +205,7 @@ jobs:
         run: |
           set -euo pipefail
           CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')
-          node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+          node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json             workflow_run
           echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "current_main_sha=$CURRENT_MAIN_SHA" >> "$GITHUB_OUTPUT"
@@ -247,6 +250,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-p1-runtime-lineage-v1.mjs
           node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
@@ -290,7 +294,7 @@ jobs:
           test "$P1_SOURCE_SHA" = "$TARGET_SHA"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}" > /tmp/p1-run.json
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
-            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
+            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .event=="workflow_run" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
             /tmp/p1-run.json >/dev/null
           for ARTIFACT_ATTEMPT in {1..12}; do
             rm -f /tmp/p1-artifact.json
@@ -366,7 +370,8 @@ jobs:
             --max-compression-ratio 100 \
             --required-basename p1-gate1-source-safety-decisions-v1.json \
             --required-basename p1-evidence-admission-candidate-register-v1.json \
-            --required-basename p1-preflight-action-queue-v1.json
+            --required-basename p1-preflight-action-queue-v1.json \
+            --required-basename kidults-asi-p1-source-preflight-receipt-v1.json
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in \
@@ -384,9 +389,17 @@ jobs:
             test "${#FILES[@]}" -eq 1
             cp "${FILES[0]}" "/tmp/p1-input/$NAME"
           done
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          import { validateP1RuntimeLineageFromEnvironment } from './scripts/kidults/source-intelligence/validate-asi-p1-runtime-lineage-v1.mjs';
+          const result=validateP1RuntimeLineageFromEnvironment();
+          fs.writeFileSync('/tmp/p1-runtime-lineage-validation-v1.json',JSON.stringify(result,null,2)+'\n');
+          console.log(JSON.stringify(result));
+          NODE
+          cp /tmp/p1-runtime-lineage-validation-v1.json /tmp/p1-input/
           P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P0B_ID="$P0B_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" P1_DIGEST="$P1_DIGEST" P0B_DIGEST="$P0B_DIGEST" VALIDATION_ONLY="$VALIDATION_ONLY" P1_RECOVERY_DISPATCHED="$P1_RECOVERY_DISPATCHED" node - <<'NODE'
           const fs=require('fs');
-          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.1.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,p0b_artifact_name:'kidults-asi-p0b-bounded-discovery-candidates-v1',p0b_artifact_id:Number(process.env.P0B_ID),p0b_artifact_digest:process.env.P0B_DIGEST,transactionally_paired_artifacts:true,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
+          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.2.0',producer_event:'workflow_run',runtime_lineage_content_validated:true,runtime_lineage_receipt:'p1-runtime-lineage-validation-v1.json',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,p0b_artifact_name:'kidults-asi-p0b-bounded-discovery-candidates-v1',p0b_artifact_id:Number(process.env.P0B_ID),p0b_artifact_digest:process.env.P0B_DIGEST,transactionally_paired_artifacts:true,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
           fs.writeFileSync('/tmp/p1-input/p1-upstream-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
