@@ -1,0 +1,34 @@
+{
+  "id": "direct-owner-landing-handoff-natural-canary-2026-09-05",
+  "version": "1.0.0",
+  "issue_refs": [1982, 1987],
+  "base_sha": "0e5852b437afb89971f28641c2b230cc30c5b1e0",
+  "mode": "CONTROL_ONLY_NON_PRODUCTION",
+  "purpose": "Prove approval-mutation revocation for the Direct Owner Landing Handoff V1 and then prove that a fresh direct repository-Owner GitHub UI merge emits natural protected-main push workflows on the exact merge SHA.",
+  "phase": "PREPARED_NOT_EXECUTED",
+  "expected": {
+    "approval_mutation_revokes_during_open_handoff_window": true,
+    "mutated_or_deleted_approval_cannot_authorize_merge": true,
+    "fresh_approval_must_precede_fresh_direct_owner_ready_event": true,
+    "merge_actor_must_be_repository_owner": true,
+    "merge_transport": "DIRECT_OWNER_GITHUB_UI",
+    "natural_protected_main_push_workflows_required": true,
+    "post_merge_workflow_sha_must_equal_merge_sha": true,
+    "predecessor_head_proof_reuse_forbidden": true
+  },
+  "truth_boundary": {
+    "provider_mutation": "NONE",
+    "credential_mutation": "NONE",
+    "database_mutation": "NONE",
+    "empirical_admission": "NONE",
+    "external_spend": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "closure": {
+    "issue_1987": "Require a natural approval edit/delete canary while the handoff window is open and verify immediate revocation plus terminal rejection on the affected approval generation.",
+    "issue_1982": "Require a subsequent fresh approval plus fresh direct Owner Ready event, direct Owner UI merge, and exact merge-SHA protected-main push workflow set created and terminal without PR-head proof reuse."
+  },
+  "rollback": "Close the canary PR or revert this single control-only receipt after validation; no runtime, provider, credential, legal, Public, Production or G5 change is authorized."
+}
