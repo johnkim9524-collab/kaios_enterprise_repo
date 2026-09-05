@@ -23,7 +23,7 @@
     {"id":"governance-and-data","prefixes":["coordination/","contracts/","config/","data/","artifacts/","backups/","secrets/"],"exact_paths":[],"required_contexts":[]},
     {"id":"implementation-and-tests","prefixes":["scripts/","tests/","tooling/"],"exact_paths":[],"required_contexts":[]},
     {"id":"documentation","prefixes":["docs/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitignore","AGENTS.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
+    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitattributes",".gitignore","AGENTS.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
   ],
   "aggregation_policy": {
     "latest_completed_result_per_exact_context": true,
