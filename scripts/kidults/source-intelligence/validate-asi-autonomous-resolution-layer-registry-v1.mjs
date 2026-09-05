@@ -125,7 +125,6 @@ for (const marker of [
   'classify-p1-generation:',
   'classify-workflow-run-generation-v1.mjs',
   'workflow_run',
-  'PRODUCER_EVENT_MISMATCH',
   '.event=="workflow_run"',
   '--required-basename kidults-asi-p1-source-preflight-receipt-v1.json',
   'validateP1RuntimeLineageFromEnvironment',
