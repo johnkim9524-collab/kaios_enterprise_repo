@@ -1,0 +1,97 @@
+name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
+      - 'scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs'
+  schedule:
+    - cron: '23,53 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  contract-self-test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and run sentinel negative regression suite
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
+
+  exact-main-health:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Resolve latest applicable exact-SHA producer health
+        id: resolve
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs \
+            --output "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+      - name: Upload exact-run sentinel health receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-sentinel-health-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-continuous-assurance-sentinel-health-v1.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Enforce fail-closed producer health after receipt retention
+        if: always()
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+          jq -e '
+            .receipt_id=="kpmo-continuous-assurance-sentinel-health-v1" and
+            .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
+            .source_sha==env.GITHUB_SHA and
+            .whole_platform_authority==false and
+            .promotion_eligible==false and
+            .provider_authority==false and
+            .database_authority==false and
+            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            .state=="VERIFIED_PASS" and
+            (.producers|length)==4 and
+            ([.producers[].state]|all(.=="VERIFIED_PASS"))
+          ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null

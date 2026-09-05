@@ -6,6 +6,13 @@ import path from 'node:path';
 const shaPattern = /^[0-9a-f]{40}$/;
 const receiptId = 'kidults-direct-owner-landing-handoff-receipt-v1';
 const policyPath = process.env.POSTMERGE_PUSH_SUITE_POLICY_PATH || 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json';
+const assuranceWorkflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+const assuranceBindingSteps = [
+  'Validate exact ASI SHADOW upstream evidence binding',
+  'Validate exact Requirement Coverage upstream evidence binding',
+  'Validate exact Sharded Reserve upstream terminal binding',
+  'Validate exact Canonical Truth upstream terminal binding',
+];
 
 function codedError(code, details = null) {
   const error = new Error(code);
@@ -28,7 +35,7 @@ function readJson(filePath, code) {
 
 function validatePolicy(policy) {
   requireCondition(policy?.id === 'direct-owner-postmerge-push-suite-policy-v1', 'DIRECT_OWNER_POSTMERGE_POLICY_ID_INVALID');
-  requireCondition(policy?.version === '1.0.0', 'DIRECT_OWNER_POSTMERGE_POLICY_VERSION_INVALID');
+  requireCondition(policy?.version === '1.1.0', 'DIRECT_OWNER_POSTMERGE_POLICY_VERSION_INVALID');
   requireCondition(policy?.branch === 'main' && policy?.event === 'push', 'DIRECT_OWNER_POSTMERGE_POLICY_EVENT_INVALID');
   requireCondition(Number.isInteger(policy?.max_pages) && policy.max_pages >= 1 && policy.max_pages <= 10, 'DIRECT_OWNER_POSTMERGE_POLICY_MAX_PAGES_INVALID');
   requireCondition(Number.isInteger(policy?.poll_interval_seconds) && policy.poll_interval_seconds >= 1 && policy.poll_interval_seconds <= 15, 'DIRECT_OWNER_POSTMERGE_POLICY_POLL_INVALID');
@@ -39,11 +46,19 @@ function validatePolicy(policy) {
   requireCondition(paths.every(value => typeof value === 'string' && /^\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml$/.test(value)), 'DIRECT_OWNER_POSTMERGE_POLICY_WORKFLOW_PATH_INVALID');
   requireCondition(new Set(paths).size === paths.length, 'DIRECT_OWNER_POSTMERGE_POLICY_WORKFLOW_PATH_DUPLICATE');
   requireCondition(policy.required_workflows.every(item => typeof item?.name === 'string' && item.name.length > 0), 'DIRECT_OWNER_POSTMERGE_POLICY_WORKFLOW_NAME_INVALID');
-  requireCondition(policy?.proof_contract?.exact_merge_sha_only === true, 'DIRECT_OWNER_POSTMERGE_POLICY_EXACT_SHA_REQUIRED');
-  requireCondition(policy?.proof_contract?.predecessor_head_proof_reuse_forbidden === true, 'DIRECT_OWNER_POSTMERGE_POLICY_PREDECESSOR_REUSE_FORBIDDEN');
-  requireCondition(policy?.proof_contract?.all_required_workflows_must_be_present === true, 'DIRECT_OWNER_POSTMERGE_POLICY_REQUIRED_SET_INVALID');
-  requireCondition(policy?.proof_contract?.all_required_workflows_must_be_terminal === true, 'DIRECT_OWNER_POSTMERGE_POLICY_TERMINAL_REQUIRED');
-  requireCondition(policy?.proof_contract?.production === 'HOLD' && policy?.proof_contract?.public === 'HOLD' && policy?.proof_contract?.g5 === 'HOLD', 'DIRECT_OWNER_POSTMERGE_POLICY_HOLD_BOUNDARY_INVALID');
+  requireCondition(paths.filter(value => value === assuranceWorkflowPath).length === 1, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_WORKFLOW_REQUIRED');
+  const proof = policy?.proof_contract;
+  requireCondition(proof?.exact_merge_sha_only === true, 'DIRECT_OWNER_POSTMERGE_POLICY_EXACT_SHA_REQUIRED');
+  requireCondition(proof?.predecessor_head_proof_reuse_forbidden === true, 'DIRECT_OWNER_POSTMERGE_POLICY_PREDECESSOR_REUSE_FORBIDDEN');
+  requireCondition(proof?.all_required_workflows_must_be_present === true, 'DIRECT_OWNER_POSTMERGE_POLICY_REQUIRED_SET_INVALID');
+  requireCondition(proof?.all_required_workflows_must_be_terminal === true, 'DIRECT_OWNER_POSTMERGE_POLICY_TERMINAL_REQUIRED');
+  requireCondition(proof?.landing_integrity_only === true, 'DIRECT_OWNER_POSTMERGE_POLICY_LANDING_ONLY_REQUIRED');
+  requireCondition(proof?.continuous_assurance_role === 'STRUCTURAL_RUN_WITH_EXPLICIT_SEMANTIC_CLASSIFICATION', 'DIRECT_OWNER_POSTMERGE_POLICY_ASSURANCE_ROLE_INVALID');
+  requireCondition(proof?.deferred_semantic_health_never_promotion_authority === true, 'DIRECT_OWNER_POSTMERGE_POLICY_DEFERRED_HEALTH_BOUNDARY_INVALID');
+  requireCondition(proof?.separate_exact_sha_producer_health_gate_required === true, 'DIRECT_OWNER_POSTMERGE_POLICY_SEPARATE_HEALTH_GATE_REQUIRED');
+  requireCondition(proof?.canonical_truth_refresh_required_before_promotion === true, 'DIRECT_OWNER_POSTMERGE_POLICY_CANONICAL_REFRESH_REQUIRED');
+  requireCondition(proof?.promotion_eligible === false, 'DIRECT_OWNER_POSTMERGE_POLICY_PROMOTION_MUST_BE_FALSE');
+  requireCondition(proof?.production === 'HOLD' && proof?.public === 'HOLD' && proof?.g5 === 'HOLD', 'DIRECT_OWNER_POSTMERGE_POLICY_HOLD_BOUNDARY_INVALID');
   return policy;
 }
 
@@ -111,6 +126,63 @@ export function evaluatePostMergePushSuite(runs, policy, mergeSha, mergedAt) {
   };
 }
 
+export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
+  requireCondition(Array.isArray(jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_INVALID');
+  requireCondition(shaPattern.test(mergeSha || ''), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_MERGE_SHA_INVALID');
+  requireCondition(Number.isInteger(Number(expectedRunId)) && Number(expectedRunId) > 0, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_ID_INVALID');
+
+  const exactJobs = jobs.filter(job => Number(job?.run_id) === Number(expectedRunId) && job?.head_sha === mergeSha);
+  const auditJobs = exactJobs.filter(job => job?.name === 'audit');
+  if (auditJobs.length !== 1) {
+    return {ok: false, reason: 'ASSURANCE_AUDIT_JOB_CARDINALITY_INVALID', audit_job_count: auditJobs.length};
+  }
+  const audit = auditJobs[0];
+  if (audit.status !== 'completed' || audit.conclusion !== 'success') {
+    return {ok: false, reason: 'ASSURANCE_AUDIT_JOB_NOT_SUCCESS', status: audit.status || null, conclusion: audit.conclusion || null};
+  }
+
+  const bindings = [];
+  for (const stepName of assuranceBindingSteps) {
+    const matches = (audit.steps || []).filter(step => step?.name === stepName);
+    if (matches.length !== 1) {
+      return {ok: false, reason: 'ASSURANCE_BINDING_STEP_CARDINALITY_INVALID', step: stepName, count: matches.length};
+    }
+    const step = matches[0];
+    if (step.status !== 'completed') {
+      return {ok: false, reason: 'ASSURANCE_BINDING_STEP_NOT_TERMINAL', step: stepName, status: step.status || null};
+    }
+    bindings.push({name: stepName, status: step.status, conclusion: step.conclusion || null});
+  }
+
+  const conclusions = bindings.map(item => item.conclusion);
+  if (conclusions.every(value => value === 'success')) {
+    return {
+      ok: true,
+      state: 'ASSURANCE_AUTHORITATIVE_BINDINGS_VERIFIED',
+      structural_run_accepted: true,
+      producer_health_authority: true,
+      exact_merge_sha: mergeSha,
+      run_id: Number(expectedRunId),
+      audit_job_id: Number(audit.id),
+      bindings,
+    };
+  }
+  if (conclusions.every(value => value === 'skipped')) {
+    return {
+      ok: true,
+      state: 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH',
+      structural_run_accepted: true,
+      producer_health_authority: false,
+      exact_merge_sha: mergeSha,
+      run_id: Number(expectedRunId),
+      audit_job_id: Number(audit.id),
+      bindings,
+      required_separate_gate: 'KPMO_CONTINUOUS_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_SENTINEL_V1',
+    };
+  }
+  return {ok: false, reason: 'ASSURANCE_BINDING_OUTCOMES_MIXED_OR_UNSAFE', bindings};
+}
+
 async function selfTest() {
   const policy = validatePolicy(readJson(policyPath, 'DIRECT_OWNER_POSTMERGE_POLICY_JSON_INVALID'));
   const mergeSha = 'a'.repeat(40);
@@ -137,31 +209,57 @@ async function selfTest() {
   const missing = evaluatePostMergePushSuite(positive.slice(1), policy, mergeSha, mergedAt);
   assert.equal(missing.ready, false);
   assert.equal(missing.waiting[0].reason, 'MISSING');
-
   const predecessorOnly = positive.map(run => ({...run, head_sha: predecessorSha}));
   assert.equal(evaluatePostMergePushSuite(predecessorOnly, policy, mergeSha, mergedAt).ready, false);
-
   const prOnly = positive.map(run => ({...run, event: 'pull_request'}));
   assert.equal(evaluatePostMergePushSuite(prOnly, policy, mergeSha, mergedAt).ready, false);
-
   const nonTerminal = structuredClone(positive);
   nonTerminal[0].status = 'in_progress';
   nonTerminal[0].conclusion = null;
   assert.equal(evaluatePostMergePushSuite(nonTerminal, policy, mergeSha, mergedAt).waiting[0].reason, 'NOT_TERMINAL');
-
   const cancelled = structuredClone(positive);
   cancelled[0].conclusion = 'cancelled';
   assert.equal(evaluatePostMergePushSuite(cancelled, policy, mergeSha, mergedAt).invalid[0].reason, 'TERMINAL_CONCLUSION_FORBIDDEN');
-
   const duplicate = [...positive, {...positive[0], id: 9001}];
   assert.equal(evaluatePostMergePushSuite(duplicate, policy, mergeSha, mergedAt).invalid[0].reason, 'AMBIGUOUS_MULTIPLE_RUNS');
+
+  const assuranceRunId = 4444;
+  const baseAudit = {
+    id: 5555,
+    run_id: assuranceRunId,
+    head_sha: mergeSha,
+    name: 'audit',
+    status: 'completed',
+    conclusion: 'success',
+    steps: assuranceBindingSteps.map((name, index) => ({name, number: index + 1, status: 'completed', conclusion: 'success'})),
+  };
+  const authoritative = classifyAssuranceSemantics([baseAudit], mergeSha, assuranceRunId);
+  assert.equal(authoritative.ok, true);
+  assert.equal(authoritative.producer_health_authority, true);
+
+  const deferredAudit = structuredClone(baseAudit);
+  for (const step of deferredAudit.steps) step.conclusion = 'skipped';
+  const deferred = classifyAssuranceSemantics([deferredAudit], mergeSha, assuranceRunId);
+  assert.equal(deferred.ok, true);
+  assert.equal(deferred.state, 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
+  assert.equal(deferred.producer_health_authority, false);
+
+  const mixedAudit = structuredClone(deferredAudit);
+  mixedAudit.steps[0].conclusion = 'success';
+  assert.equal(classifyAssuranceSemantics([mixedAudit], mergeSha, assuranceRunId).reason, 'ASSURANCE_BINDING_OUTCOMES_MIXED_OR_UNSAFE');
+  const wrongShaAudit = structuredClone(baseAudit);
+  wrongShaAudit.head_sha = predecessorSha;
+  assert.equal(classifyAssuranceSemantics([wrongShaAudit], mergeSha, assuranceRunId).reason, 'ASSURANCE_AUDIT_JOB_CARDINALITY_INVALID');
 
   console.log(JSON.stringify({
     state: 'VERIFIED_PASS',
     contract: 'DIRECT_OWNER_POSTMERGE_PUSH_SUITE_CONSUMER_V1',
-    negative_mutations_rejected: 6,
+    negative_mutations_rejected: 8,
     terminal_failure_preserved_as_evidence: true,
     predecessor_head_proof_reuse_forbidden: true,
+    assurance_semantic_classification_required: true,
+    deferred_semantic_health_never_promotion_authority: true,
+    separate_exact_sha_producer_health_gate_required: true,
   }));
 }
 
@@ -195,13 +293,7 @@ async function main() {
   const readRuns = async () => {
     const output = [];
     for (let page = 1; page <= policy.max_pages; page += 1) {
-      const query = new URLSearchParams({
-        branch: policy.branch,
-        event: policy.event,
-        head_sha: mergeSha,
-        per_page: '100',
-        page: String(page),
-      });
+      const query = new URLSearchParams({branch: policy.branch, event: policy.event, head_sha: mergeSha, per_page: '100', page: String(page)});
       const payload = await request(`/actions/runs?${query.toString()}`);
       requireCondition(Array.isArray(payload?.workflow_runs), 'DIRECT_OWNER_POSTMERGE_RUN_LIST_SHAPE_INVALID');
       output.push(...payload.workflow_runs);
@@ -212,14 +304,12 @@ async function main() {
 
   const currentMain = await request('/branches/main');
   requireCondition(currentMain?.commit?.sha === mergeSha, 'DIRECT_OWNER_POSTMERGE_MAIN_ADVANCED_BEFORE_CONSUMPTION');
-
   const waitSeconds = Number(process.env.POSTMERGE_PUSH_SUITE_WAIT_SECONDS || policy.max_wait_seconds);
   requireCondition(Number.isInteger(waitSeconds) && waitSeconds >= 0 && waitSeconds <= 120, 'DIRECT_OWNER_POSTMERGE_WAIT_SECONDS_INVALID');
   const deadline = Date.now() + waitSeconds * 1000;
   let evaluation = null;
-  let runs = [];
   while (true) {
-    runs = await readRuns();
+    const runs = await readRuns();
     evaluation = evaluatePostMergePushSuite(runs, policy, mergeSha, receipt.merged_at);
     if (evaluation.invalid.length > 0) throw codedError('DIRECT_OWNER_POSTMERGE_PUSH_SUITE_INVALID', evaluation);
     if (evaluation.ready) break;
@@ -227,22 +317,37 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, policy.poll_interval_seconds * 1000));
   }
 
-  const requiredRunIds = evaluation.required.map(run => run.run_id);
+  const assuranceRun = evaluation.required.find(run => run.path === assuranceWorkflowPath);
+  requireCondition(assuranceRun, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_MISSING');
+  const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
+  requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
+  requireCondition(Number(jobsPayload?.total_count) === jobsPayload.jobs.length, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_PAGINATION_REQUIRED');
+  const assuranceSemanticProof = classifyAssuranceSemantics(jobsPayload.jobs, mergeSha, assuranceRun.run_id);
+  requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+
   const postMergeProof = {
     id: 'direct-owner-postmerge-push-suite-receipt-v1',
+    version: '1.3.0',
     state: 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE',
+    proof_scope: 'LANDING_INTEGRITY_ONLY_NOT_PROMOTION_HEALTH',
     exact_merge_sha: mergeSha,
     event: policy.event,
     branch: policy.branch,
     policy_id: policy.id,
+    policy_version: policy.version,
     required_workflow_count: policy.required_workflows.length,
     observed_exact_push_run_count: evaluation.exact_run_count,
     required_workflows: evaluation.required,
-    required_run_ids: requiredRunIds,
+    required_run_ids: evaluation.required.map(run => run.run_id),
     required_success_count: evaluation.success_count,
     required_failure_count: evaluation.failure_count,
     all_required_terminal: true,
     all_required_success: evaluation.all_required_success,
+    assurance_semantic_classification: assuranceSemanticProof,
+    producer_health_authority: assuranceSemanticProof.producer_health_authority === true,
+    producer_health_gate_state: assuranceSemanticProof.producer_health_authority === true ? 'VERIFIED_PASS' : 'HOLD_SEPARATE_EXACT_SHA_GATE_REQUIRED',
+    canonical_truth_refresh_required_before_promotion: true,
+    separate_exact_sha_producer_health_gate_required: true,
     terminal_failure_preserved_as_fail_closed_evidence: evaluation.failure_count > 0,
     predecessor_head_proof_reused: false,
     consumed_at: new Date().toISOString(),
@@ -251,15 +356,8 @@ async function main() {
     public: 'HOLD',
     g5: 'HOLD',
   };
-  const updated = {
-    ...receipt,
-    version: '1.1.0',
-    post_merge_push_suite: postMergeProof,
-    post_merge_push_suite_consumed: true,
-    promotion_eligible: false,
-  };
-  const directory = path.dirname(receiptPath);
-  fs.mkdirSync(directory, {recursive: true, mode: 0o700});
+  const updated = {...receipt, version: '1.3.0', post_merge_push_suite: postMergeProof, post_merge_push_suite_consumed: true, promotion_eligible: false};
+  fs.mkdirSync(path.dirname(receiptPath), {recursive: true, mode: 0o700});
   const temporary = `${receiptPath}.postmerge-${process.pid}`;
   fs.writeFileSync(temporary, `${JSON.stringify(updated, null, 2)}\n`, {encoding: 'utf8', mode: 0o600, flag: 'w'});
   fs.chmodSync(temporary, 0o600);
@@ -286,9 +384,13 @@ if (process.argv.includes('--self-test')) {
         post_merge_push_suite_consumed: false,
         post_merge_push_suite: {
           id: 'direct-owner-postmerge-push-suite-receipt-v1',
+          version: '1.3.0',
           state: 'VERIFIED_FAIL',
+          proof_scope: 'LANDING_INTEGRITY_ONLY_NOT_PROMOTION_HEALTH',
           failure_code: failureCode,
           exact_merge_sha: receipt?.merge_commit_sha || null,
+          producer_health_authority: false,
+          producer_health_gate_state: 'HOLD_SEPARATE_EXACT_SHA_GATE_REQUIRED',
           predecessor_head_proof_reused: false,
           promotion_eligible: false,
           production: 'HOLD',
