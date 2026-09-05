@@ -5,6 +5,7 @@ import {
   ACTIVATION_RECEIPT_STEP_NAME,
   CONTRACT_PATH,
   LIVE_MAIN_GUARD_STEP_NAME,
+  ONE_SHOT_AUTHORIZATION_STEP_NAME,
   REGISTRY_PATH,
   analyzeWorkflow,
   buildReadbackReceipt,
@@ -208,7 +209,7 @@ test('current exact registry binds every registered secret-bearing lane but exte
   assert.equal(current.empirical_evidence_promoted, false);
 });
 
-test('actions read and GitHub token use stay exact to the registered Production artifact readback lane', () => {
+test('actions read and GitHub token use stay exact to registered artifact and exact-run review lanes', () => {
   const productionWorkflow = '.github/workflows/production-release.yml';
   const productionLane = currentInventory.lanes.find((lane) => lane.workflow === productionWorkflow);
   const productionJob = productionLane?.secret_bearing_jobs.find((job) => job.job === 'certify');
@@ -225,7 +226,7 @@ test('actions read and GitHub token use stay exact to the registered Production 
     registry.required_environment_bindings.filter((binding) => (
       binding.required_github_token_permissions?.includes('actions:read')
     )).length,
-    1
+    2
   );
 
   const missingActionsInventory = structuredClone(currentInventory);
@@ -250,6 +251,7 @@ test('actions read and GitHub token use stay exact to the registered Production 
   const nonProductionRegistry = structuredClone(registry);
   const nonProductionBinding = nonProductionRegistry.required_environment_bindings.find((binding) => (
     binding.workflow !== productionWorkflow
+      && !binding.required_one_shot_authorization
   ));
   const nonProductionJob = nonProductionInventory.lanes
     .find((lane) => lane.workflow === nonProductionBinding.workflow)
@@ -257,7 +259,7 @@ test('actions read and GitHub token use stay exact to the registered Production 
   nonProductionBinding.required_github_token_permissions = ['actions:read', 'contents:read'];
   nonProductionJob.workflow_token_permissions = ['actions:read', 'contents:read'];
   assert.ok(validateRequiredEnvironmentBindings(nonProductionInventory, nonProductionRegistry).some((failure) => (
-    failure.startsWith('ACTIONS_READ_OUTSIDE_PRODUCTION_RELEASE:')
+    failure.startsWith('ACTIONS_READ_OUTSIDE_REGISTERED_EXACT_RUN_REVIEW:')
   )));
 });
 
@@ -388,7 +390,7 @@ test('all registered secret-bearing jobs reject secret scope and guard order mut
     const secretExpression = '$' + '{{ secrets.MUTATED_SCOPE_SECRET }}';
 
     const workflowScoped = source.replace(
-      '\njobs:\n',
+      /\r?\njobs:\r?\n/,
       `\nenv:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:\n`
     );
     let failures = validateRequiredEnvironmentBindings(
@@ -567,7 +569,7 @@ jobs:
   assert.equal(analysis.secret_bearing_jobs[1].dynamic_secret_context, true);
 });
 
-test('trigger transformation and missing explicit activation guard fail closed', () => {
+test('trigger transformation and missing exact-run one-shot guards fail closed', () => {
   const workflow = '.github/workflows/p0-remote-postgres-persistence-pitr.yml';
   const source = fs.readFileSync(workflow, 'utf8');
   const lane = analyzeWorkflow(source, workflow);
@@ -581,22 +583,21 @@ test('trigger transformation and missing explicit activation guard fail closed',
   assert.ok(failures.some((failure) => failure.startsWith('TRIGGER_CLASS_MISMATCH:')));
 
   const noActivationGuard = source.replace(
-    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'",
+    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'false'",
     ''
   );
   failures = validateRequiredEnvironmentBindings(
     replaceLaneSource(currentInventory, workflow, noActivationGuard),
     registry
   );
-  assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_GUARD_MISSING:')));
+  assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_STANDING_GUARD_MISSING:')));
 });
 
 test('activation receipt body and first-step ordering fail closed under mutation', () => {
   for (const workflow of [
-    '.github/workflows/p0-remote-postgres-persistence-pitr.yml',
     '.github/workflows/p0-postgres-target-time-restore-verification.yml'
   ]) {
-    const source = fs.readFileSync(workflow, 'utf8');
+    const source = fs.readFileSync(workflow, 'utf8').replace(/\r\n/g, '\n');
     const lane = analyzeWorkflow(source, workflow);
     const job = lane.secret_bearing_jobs[0];
     assert.equal(job.activation_receipt.count, 1);
@@ -606,7 +607,7 @@ test('activation receipt body and first-step ordering fail closed under mutation
     assert.equal(job.activation_receipt.before_all_provider_secret_steps, true);
 
     const noAuthorizationAssertion = source.replace(
-      '          test "$ACTIVATION_AUTHORIZED" = "true"\n',
+      /          test "\$ACTIVATION_AUTHORIZED" = "true"\r?\n/,
       '          test -n "$ACTIVATION_AUTHORIZED"\n'
     );
     let failures = validateRequiredEnvironmentBindings(
@@ -643,6 +644,31 @@ test('activation receipt body and first-step ordering fail closed under mutation
     );
     assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
   }
+});
+
+test('exact-run Program Owner approval stays before live-main and provider-secret steps', () => {
+  const workflow = '.github/workflows/p0-remote-postgres-persistence-pitr.yml';
+  const source = fs.readFileSync(workflow, 'utf8');
+  const job = analyzeWorkflow(source, workflow).secret_bearing_jobs[0];
+  assert.equal(job.one_shot_authorization.count, 1);
+  assert.equal(job.one_shot_authorization.contract_valid, true);
+  assert.equal(job.one_shot_authorization.before_live_main_guard, true);
+  assert.equal(job.one_shot_authorization.before_all_provider_secret_steps, true);
+  assert.equal(job.upstream_one_shot_authorized_guard, true);
+
+  const weakened = source.replace('          assert len(matches)==1\n', '          assert len(matches)>=0\n');
+  let failures = validateRequiredEnvironmentBindings(
+    replaceLaneSource(currentInventory, workflow, weakened),
+    registry
+  );
+  assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_AUTHORIZATION_STEP_CONTRACT:')));
+
+  const reordered = moveNamedStepAfter(source, ONE_SHOT_AUTHORIZATION_STEP_NAME, LIVE_MAIN_GUARD_STEP_NAME);
+  failures = validateRequiredEnvironmentBindings(
+    replaceLaneSource(currentInventory, workflow, reordered),
+    registry
+  );
+  assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_AUTHORIZATION_BEFORE_LIVE_MAIN:')));
 });
 
 test('ruleset context is recorded but never promoted to issue 936 closure', () => {

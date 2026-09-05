@@ -26,7 +26,6 @@ on:
 permissions:
   actions: read
   contents: read
-  deployments: read
 
 concurrency:
   group: p0-remote-postgres-persistence-pitr

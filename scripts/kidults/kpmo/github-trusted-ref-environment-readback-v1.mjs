@@ -10,6 +10,7 @@ const DEFAULT_REPOSITORY = 'johnkim9524-collab/kaios_enterprise_repo';
 const DEFAULT_BRANCH = 'main';
 export const LIVE_MAIN_GUARD_STEP_NAME = 'Verify live main before provider credential resolution';
 export const ACTIVATION_RECEIPT_STEP_NAME = 'Verify explicit STAGING activation authorization before secret resolution';
+export const ONE_SHOT_AUTHORIZATION_STEP_NAME = 'Verify exact-run Program Owner environment approval';
 
 const digest = (value) => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const uniqueSorted = (values) => [...new Set(values)].sort();
@@ -217,6 +218,31 @@ function activationReceiptContract(step, requiredVariable, triggerClasses) {
     && !/\|\|\s*true|continue\s*$/m.test(step.text);
 }
 
+function oneShotAuthorizationContract(step) {
+  if (!step || step.name !== ONE_SHOT_AUTHORIZATION_STEP_NAME) return false;
+  const required = [
+    'GITHUB_TOKEN: ${{ github.token }}',
+    'AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}',
+    'AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}',
+    'EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}',
+    'set -euo pipefail',
+    'test "$GITHUB_REF" = "refs/heads/main"',
+    'test "$GITHUB_EVENT_NAME" = "workflow_dispatch"',
+    'test "$GITHUB_RUN_ATTEMPT" = "1"',
+    'test "$EXACT_MAIN_SHA" = "$GITHUB_SHA"',
+    '/actions/runs/$GITHUB_RUN_ID/approvals',
+    'KPMO_PROGRAM_OWNER_APPROVED_STAGING_POSTGRES_ONE_SHOT:',
+    "get('id')==297161720",
+    "get('login')=='johnkim9524-collab'",
+    "e.get('name')=='kidults-do-staging-ssh'",
+    'assert len(matches)==1'
+  ];
+  return required.every((marker) => step.text.includes(marker))
+    && !secretMetadata(step.text).secret_bearing
+    && !/continue-on-error\s*:\s*true/i.test(step.text)
+    && !/\|\|\s*true|continue\s*$/m.test(step.text);
+}
+
 export function workflowTriggerClasses(text) {
   const active = activeWorkflowText(text);
   const allowed = new Set(['push', 'pull_request', 'pull_request_target', 'workflow_dispatch', 'workflow_run', 'workflow_call', 'schedule', 'repository_dispatch']);
@@ -288,8 +314,13 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
     const activationGuardVariables = uniqueSorted(
       [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]true['"]/g)].map((match) => match[1])
     );
+    const standingDisabledVariables = uniqueSorted(
+      [...block.matchAll(/vars\.([A-Z][A-Z0-9_]*)\s*==\s*['"]false['"]/g)].map((match) => match[1])
+    );
     const activationReceiptSteps = parsedSteps.steps.filter((step) => step.name === ACTIVATION_RECEIPT_STEP_NAME);
     const activationReceipt = activationReceiptSteps.length === 1 ? activationReceiptSteps[0] : null;
+    const oneShotAuthorizationSteps = parsedSteps.steps.filter((step) => step.name === ONE_SHOT_AUTHORIZATION_STEP_NAME);
+    const oneShotAuthorization = oneShotAuthorizationSteps.length === 1 ? oneShotAuthorizationSteps[0] : null;
     return {
       job: header.id,
       secret_bearing: secretBearing,
@@ -312,6 +343,8 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         && providerSecretSteps.length > 0
         && JSON.stringify(uniqueSorted(providerSecretSteps.flatMap((step) => step.secret_names))) === JSON.stringify(secretNames),
       activation_guard_variables: activationGuardVariables,
+      standing_disabled_variables: standingDisabledVariables,
+      upstream_one_shot_authorized_guard: block.includes("needs.activation-readiness-receipt.outputs.authorized == 'true'"),
       step_names: parsedSteps.steps.map((step) => step.name).filter(Boolean),
       activation_receipt: {
         count: activationReceiptSteps.length,
@@ -330,6 +363,17 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
           activationReceipt
           && providerSecretSteps.length > 0
           && providerSecretSteps.every((step) => activationReceipt.index < step.index)
+        )
+      },
+      one_shot_authorization: {
+        count: oneShotAuthorizationSteps.length,
+        step_index: oneShotAuthorization?.index ?? null,
+        contract_valid: oneShotAuthorizationContract(oneShotAuthorization),
+        before_live_main_guard: Boolean(oneShotAuthorization && liveMainGuard && oneShotAuthorization.index < liveMainGuard.index),
+        before_all_provider_secret_steps: Boolean(
+          oneShotAuthorization
+          && providerSecretSteps.length > 0
+          && providerSecretSteps.every((step) => oneShotAuthorization.index < step.index)
         )
       },
       live_main_guard: {
@@ -426,7 +470,7 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
   require(privilegedPolicy.guard_token_context === '${{ github.token }}', 'LIVE_MAIN_GUARD_TOKEN_CONTEXT_POLICY');
   require(privilegedPolicy.guard_token_permission === 'contents:read', 'LIVE_MAIN_GUARD_TOKEN_PERMISSION_POLICY');
   require(privilegedPolicy.workflow_token_permissions_are_exact_per_binding === true, 'WORKFLOW_TOKEN_PERMISSION_BINDING_POLICY');
-  require(privilegedPolicy.actions_read_is_allowed_only_for_registered_production_artifact_readback === true, 'ACTIONS_READ_EXCEPTION_POLICY');
+  require(privilegedPolicy.actions_read_is_allowed_only_for_registered_production_artifact_or_exact_run_environment_review_readback === true, 'ACTIONS_READ_EXCEPTION_POLICY');
   require(privilegedPolicy.provider_secret_scope === 'STEP_ONLY_AFTER_LIVE_MAIN_GUARD', 'PROVIDER_SECRET_SCOPE_POLICY');
   require(privilegedPolicy.api_unreadable === 'FAIL_CLOSED', 'LIVE_MAIN_API_UNREADABLE_POLICY');
   require(privilegedPolicy.stale_main_sha === 'FAIL_CLOSED', 'STALE_MAIN_SHA_POLICY');
@@ -457,11 +501,15 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     );
     require(
       !requiredTokenPermissions.includes('actions:read') || (
-        binding?.workflow === '.github/workflows/production-release.yml'
-        && binding?.job === 'certify'
-        && binding?.remote_mutation_class === 'PRODUCTION_MUTATION'
+        (binding?.workflow === '.github/workflows/production-release.yml'
+          && binding?.job === 'certify'
+          && binding?.remote_mutation_class === 'PRODUCTION_MUTATION')
+        || (binding?.workflow === '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+          && binding?.job === 'remote-persistence-pitr-fixture'
+          && binding?.remote_mutation_class === 'REMOTE_STAGING_MUTATION'
+          && Boolean(binding?.required_one_shot_authorization))
       ),
-      `ACTIONS_READ_OUTSIDE_PRODUCTION_RELEASE:${key}`
+      `ACTIONS_READ_OUTSIDE_REGISTERED_EXACT_RUN_REVIEW:${key}`
     );
     const requiredTokenStepNames = binding?.required_github_token_step_names || [LIVE_MAIN_GUARD_STEP_NAME];
     require(
@@ -508,6 +556,18 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
         require(job.activation_receipt?.contract_valid === true, `ACTIVATION_RECEIPT_STEP_CONTRACT:${key}`);
         require(job.activation_receipt?.before_live_main_guard === true, `ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:${key}`);
         require(job.activation_receipt?.before_all_provider_secret_steps === true, `ACTIVATION_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
+      }
+      if (expected.required_one_shot_authorization) {
+        const oneShot = expected.required_one_shot_authorization;
+        require(
+          job.standing_disabled_variables.includes(oneShot.standing_guard_variable),
+          `ONE_SHOT_STANDING_GUARD_MISSING:${key}`
+        );
+        require(job.upstream_one_shot_authorized_guard === true, `ONE_SHOT_UPSTREAM_GUARD_MISSING:${key}`);
+        require(job.one_shot_authorization?.count === 1, `ONE_SHOT_AUTHORIZATION_STEP_MISSING:${key}`);
+        require(job.one_shot_authorization?.contract_valid === true, `ONE_SHOT_AUTHORIZATION_STEP_CONTRACT:${key}`);
+        require(job.one_shot_authorization?.before_live_main_guard === true, `ONE_SHOT_AUTHORIZATION_BEFORE_LIVE_MAIN:${key}`);
+        require(job.one_shot_authorization?.before_all_provider_secret_steps === true, `ONE_SHOT_AUTHORIZATION_BEFORE_PROVIDER_SECRET:${key}`);
       }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
       const requiredTokenPermissions = uniqueSorted(
