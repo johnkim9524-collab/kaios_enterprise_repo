@@ -56,7 +56,7 @@ jobs:
     timeout-minutes: 8
     env:
       CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      CURRENT_SOLD_RECEIPT_PATH: ${{ runner.temp }}/kidults-current-sold-terminal/receipt.json
+      CURRENT_SOLD_RECEIPT_PATH: /tmp/kidults-current-sold-terminal/receipt.json
     steps:
       - name: Initialize fail-closed Current-SOLD terminal receipt
         id: initialize
@@ -246,7 +246,7 @@ jobs:
         with:
           name: kidults-current-sold-engine-v1-2-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/kidults-current-sold-terminal/receipt.json
+            /tmp/kidults-current-sold-terminal/receipt.json
             out/current-sold-engine/control-smoke-receipt.json
           if-no-files-found: error
           retention-days: 30
