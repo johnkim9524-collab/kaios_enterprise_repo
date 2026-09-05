@@ -15,6 +15,14 @@ test('Atomic landing durably publishes fail-closed intent before irreversible me
   assert.match(workflow, /Initialize durable atomic landing terminal receipt[\s\S]*?GH_TOKEN: \$\{\{ github\.token \}\}/);
 });
 
+test('Atomic landing blocks GITHUB_TOKEN merge before authority consumption', () => {
+  const transportIndex = workflow.indexOf('Require event-emitting post-merge CI transport');
+  const lifecycleIndex = workflow.indexOf('Require latest terminal exact-head lifecycle authority');
+  const consumptionIndex = workflow.indexOf('Consume one-use exact-head landing authorization');
+  assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex && lifecycleIndex < consumptionIndex);
+  assert.match(workflow, /ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED/);
+});
+
 test('Atomic landing durable status cannot silently green a missing post-merge proof', () => {
   assert.match(reconciler, /const terminalStatusContext = 'KIDULTS Atomic Landing Terminal V2';/);
   assert.match(reconciler, /await postHeadStatus\('pending', 'Pre-merge intent staged; terminal landing proof pending'\)/);
@@ -23,6 +31,10 @@ test('Atomic landing durable status cannot silently green a missing post-merge p
   assert.match(reconciler, /pr\.base\.sha === mainBranch\.commit\.sha/);
   assert.match(reconciler, /ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT/);
   assert.match(reconciler, /let state = 'MERGE_COMMITTED_PROOF_PENDING'/);
+  assert.match(reconciler, /state = 'MERGE_COMMITTED_POSTLANDING_PROOF_PENDING'/);
+  assert.match(reconciler, /terminalClass = 'EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED'/);
+  assert.match(reconciler, /proof = 'REQUIRED_NOT_OBSERVED'/);
+  assert.doesNotMatch(reconciler, /proof = 'NOT_REQUIRED_NON_CURRENT_SOLD'/);
   assert.match(reconciler, /if \(state === 'VERIFIED_PASS'\)[\s\S]*?postHeadStatus\('success'/);
   assert.match(reconciler, /else if \(state === 'VERIFIED_FAIL'\)[\s\S]*?postHeadStatus\('failure'/);
   assert.match(reconciler, /else \{[\s\S]*?postHeadStatus\('pending', terminalClass\)/);
