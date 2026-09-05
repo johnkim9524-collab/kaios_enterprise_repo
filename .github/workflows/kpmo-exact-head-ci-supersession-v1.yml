@@ -55,6 +55,7 @@ jobs:
           stale_cancelled=0
           force_cancelled=0
           exact_head_retained=0
+          terminal_finalizer_retained=0
           cancellation_retry_attempts=0
           force_cancel_attempts=0
           terminal_race_readbacks=0
@@ -130,13 +131,18 @@ jobs:
             count="$(jq '.workflow_runs | length' <<<"${response}")"
             examined=$((examined + count))
 
-            while IFS=$'\t' read -r run_id head_sha status workflow_name; do
+            while IFS=$'\t' read -r run_id head_sha status workflow_name run_event workflow_path; do
               [[ -n "${run_id}" ]] || continue
               [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
 
               if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
                 exact_head_retained=$((exact_head_retained + 1))
+                continue
+              fi
+
+              if [[ "${run_event}" == "workflow_dispatch" && "${workflow_path}" == ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml" ]]; then
+                terminal_finalizer_retained=$((terminal_finalizer_retained + 1))
                 continue
               fi
 
@@ -208,7 +214,7 @@ jobs:
                 echo "Unexpected cancellation status ${code} for run ${run_id}" >&2
                 exit 1
               fi
-            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .name] | @tsv' <<<"${response}")
+            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .name, .event, .path] | @tsv' <<<"${response}")
 
             [[ "${count}" -eq 100 ]] || break
           done
@@ -222,8 +228,9 @@ jobs:
             --argjson stale_cancelled "${stale_cancelled}" \
             --argjson force_cancelled "${force_cancelled}" \
             --argjson exact_head_retained "${exact_head_retained}" \
+            --argjson terminal_finalizer_retained "${terminal_finalizer_retained}" \
             --argjson cancellation_retry_attempts "${cancellation_retry_attempts}" \
             --argjson force_cancel_attempts "${force_cancel_attempts}" \
             --argjson terminal_race_readbacks "${terminal_race_readbacks}" \
             --argjson terminal_readback_attempts "${terminal_readback_attempts}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,force_cancelled:$force_cancelled,exact_head_impact_runs_retained:$exact_head_retained,cancellation_retry_attempts:$cancellation_retry_attempts,force_cancel_attempts:$force_cancel_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,force_cancelled:$force_cancelled,exact_head_impact_runs_retained:$exact_head_retained,direct_owner_handoff_finalizers_retained:$terminal_finalizer_retained,cancellation_retry_attempts:$cancellation_retry_attempts,force_cancel_attempts:$force_cancel_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
