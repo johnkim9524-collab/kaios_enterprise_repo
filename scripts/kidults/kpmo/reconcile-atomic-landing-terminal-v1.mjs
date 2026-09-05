@@ -259,9 +259,9 @@ try {
   let terminalClass = exactMainMatchesMerge ? 'POSTLANDING_PROOF_PENDING' : 'POSTMERGE_MAIN_READBACK_MISMATCH';
   let proof = 'PENDING';
   if (!currentSoldChanged && landingOutcome === 'success' && exactMainMatchesMerge) {
-    state = 'VERIFIED_PASS';
-    terminalClass = 'MERGE_COMMITTED_VERIFIED';
-    proof = 'NOT_REQUIRED_NON_CURRENT_SOLD';
+    state = 'MERGE_COMMITTED_POSTLANDING_PROOF_PENDING';
+    terminalClass = 'EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED';
+    proof = 'REQUIRED_NOT_OBSERVED';
   } else if (currentSoldChanged && postLandingReceipt?.state === 'VERIFIED_PASS' && postLandingOutcome === 'success' && exactMainMatchesMerge) {
     state = 'VERIFIED_PASS';
     terminalClass = 'MERGE_COMMITTED_POSTLANDING_VERIFIED';
@@ -280,6 +280,8 @@ try {
     landing_current_sold_changed: landingCurrentSoldChanged === 'true',
     current_sold_classifier_consistent: true,
     current_sold_changed_file_count: currentSoldChangedFiles.length,
+    exact_merge_sha_push_suite_required: !currentSoldChanged,
+    github_token_recursive_push_trigger_claimed: false,
     landing_step_outcome: landingOutcome,
     current_sold_postlanding_outcome: postLandingOutcome,
     post_landing_proof: proof,
