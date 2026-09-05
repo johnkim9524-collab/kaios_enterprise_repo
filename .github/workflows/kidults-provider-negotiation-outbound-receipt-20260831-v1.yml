@@ -1,0 +1,84 @@
+name: KIDULTS Provider Negotiation Outbound Receipt 20260831 V1
+
+on:
+  pull_request:
+    paths:
+      - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json'
+      - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
+      - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json'
+      - 'coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json'
+      - 'scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs'
+      - '.github/workflows/kidults-provider-negotiation-outbound-receipt-20260831-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate selected negotiation outbound receipts
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs
+          node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs \
+            | tee /tmp/kidults-provider-outbound-authority-classification-v1.json
+
+      - name: Reject self-attested or retroactive authority promotion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json /tmp/base.json
+          cp coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json /tmp/supplement.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const base = JSON.parse(fs.readFileSync('/tmp/base.json', 'utf8'));
+          base.authorization_provenance.state = 'INDEPENDENTLY_PROVEN';
+          base.authorization_provenance.promotable = true;
+          base.authorization_provenance.post_send_receipt_can_retroactively_create_authority = true;
+          base.authorization_provenance.execution_fact_machine_proven_by_this_repository_artifact = true;
+          fs.writeFileSync('/tmp/base.json', JSON.stringify(base, null, 2));
+          NODE
+          if node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs /tmp/base.json /tmp/supplement.json; then
+            echo 'Validator accepted self-attested authority, retroactive promotion, or committed execution self-proof' >&2
+            exit 1
+          fi
+
+      - name: Reject supplement reuse of consumed base assertion
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json /tmp/base.json
+          cp coordination/kidults/provider/provider-negotiation-outbound-broad-arrow-supplement-20260831-v1.json /tmp/supplement.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const supplement = JSON.parse(fs.readFileSync('/tmp/supplement.json', 'utf8'));
+          supplement.authorization_provenance.base_one_time_assertion_reusable_for_supplement = true;
+          fs.writeFileSync('/tmp/supplement.json', JSON.stringify(supplement, null, 2));
+          NODE
+          if node scripts/kidults/provider/validate-provider-negotiation-outbound-execution-receipt-20260831-v1.mjs /tmp/base.json /tmp/supplement.json; then
+            echo 'Validator accepted reuse of consumed base authority assertion' >&2
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-provider-outbound-authority-classification-v1-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-provider-outbound-authority-classification-v1.json
+          retention-days: 90
+          if-no-files-found: error
