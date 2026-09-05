@@ -169,14 +169,61 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
       transition({id: 752, at: '2026-09-02T00:29:01Z', event: 'closed'}),
     ],
   }));
-expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:reopened', () =>
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
   selectLatestDirectOwnerReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 760, at: '2026-09-02T00:30:00Z'}),
       merged({id: 761, at: '2026-09-02T00:31:00Z'}),
-      transition({id: 762, at: '2026-09-02T00:31:00Z', event: 'closed'}),
-      transition({id: 763, at: '2026-09-02T00:32:00Z', event: 'reopened'}),
+      transition({id: 762, at: '2026-09-02T00:31:00Z', event: 'closed', actor: 'collaborator'}),
+    ],
+  }));
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      ready({id: 770, at: '2026-09-02T00:32:00Z'}),
+      merged({id: 771, at: '2026-09-02T00:33:00Z'}),
+      transition({id: 772, at: '2026-09-02T00:33:00Z', event: 'closed', app: {id: 1144995}}),
+    ],
+  }));
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      ready({id: 780, at: '2026-09-02T00:34:00Z'}),
+      merged({id: 781, at: '2026-09-02T00:35:00Z', commit: 'not-a-sha'}),
+      transition({id: 782, at: '2026-09-02T00:35:00Z', event: 'closed'}),
+    ],
+  }));
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      ready({id: 790, at: '2026-09-02T00:36:00Z'}),
+      merged({id: 791, at: '2026-09-02T00:37:00Z', commit: 'a'.repeat(40)}),
+      merged({id: 792, at: '2026-09-02T00:37:00Z', commit: 'b'.repeat(40)}),
+      transition({id: 793, at: '2026-09-02T00:37:00Z', event: 'closed'}),
+    ],
+  }));
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      merged({id: 800, at: '2026-09-02T00:38:00Z'}),
+      ready({id: 801, at: '2026-09-02T00:38:00Z'}),
+      transition({id: 802, at: '2026-09-02T00:38:00Z', event: 'closed'}),
+    ],
+  }));
+
+expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:reopened', () =>
+  selectLatestDirectOwnerReadyEvent({
+    repositoryOwner: owner,
+    timeline: [
+      ready({id: 810, at: '2026-09-02T00:39:00Z'}),
+      merged({id: 811, at: '2026-09-02T00:40:00Z'}),
+      transition({id: 812, at: '2026-09-02T00:40:00Z', event: 'closed'}),
+      transition({id: 813, at: '2026-09-02T00:41:00Z', event: 'reopened'}),
     ],
   }));
 
