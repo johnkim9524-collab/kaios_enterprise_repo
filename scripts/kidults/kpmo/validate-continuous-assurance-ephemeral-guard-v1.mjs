@@ -9,6 +9,9 @@ import {
   receiptDigestWithoutObservation,
   sha256,
 } from './resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+import {
+  reconstructArtifactLineage,
+} from './reconstruct-continuous-assurance-artifact-lineage-v1.mjs';
 
 const contractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const contractText = fs.readFileSync(contractPath, 'utf8');
@@ -160,6 +163,37 @@ assert(one.alias_receipt.execution.canonical_identity.canonical_receipt_digest =
 assert(one.alias_receipt.receipt_digest === receiptDigestWithoutObservation(one.alias_receipt), 'ALIAS_OWN_DIGEST');
 assert(one.remediation_plan.source_receipt_digest === one.alias_receipt.receipt_digest && one.remediation_plan.activation.eligible === false, 'ALIAS_PLAN_BINDING');
 
+const repositoryArtifactWithoutEmbeddedLineage = structuredClone(leader.artifact);
+delete repositoryArtifactWithoutEmbeddedLineage.workflow_run;
+const runScopedArtifact = structuredClone(repositoryArtifactWithoutEmbeddedLineage);
+const lineageRun = structuredClone(leader.run);
+lineageRun.head_sha = sourceSha;
+const lineageInput = {
+  repository_artifact: repositoryArtifactWithoutEmbeddedLineage,
+  run: lineageRun,
+  run_artifact_index: { total_count: 1, artifacts: [runScopedArtifact] },
+  receipt: leader.receipt,
+};
+const reconstructed = reconstructArtifactLineage(lineageInput);
+assert(reconstructed.workflow_run.id === lineageRun.id && reconstructed.workflow_run.head_sha === lineageRun.head_sha, 'RUN_SCOPED_LINEAGE_RECONSTRUCTION');
+assert(reconstructed.lineage_resolution === 'RUN_SCOPED_ARTIFACT_MEMBERSHIP', 'RUN_SCOPED_LINEAGE_MODE');
+const lineageMutations = [
+  ['MEMBERSHIP_MISSING', (x) => { x.run_artifact_index = { total_count: 0, artifacts: [] }; }],
+  ['READBACK_TRUNCATED', (x) => { x.run_artifact_index.total_count = 2; }],
+  ['METADATA_DRIFT', (x) => { x.run_artifact_index.artifacts[0].digest = `sha256:${'0'.repeat(64)}`; }],
+  ['RECEIPT_RUN_DRIFT', (x) => { x.receipt.execution.workflow_run_id = '7002'; }],
+  ['RECEIPT_SOURCE_DRIFT', (x) => { x.receipt.source.actual_sha = '0'.repeat(40); }],
+  ['EMBEDDED_REPOSITORY_CONTRADICTION', (x) => { x.repository_artifact.workflow_run = { id: 7002, head_sha: x.run.head_sha }; }],
+  ['EMBEDDED_RUN_SCOPED_CONTRADICTION', (x) => { x.run_artifact_index.artifacts[0].workflow_run = { id: 7002, head_sha: x.run.head_sha }; }],
+];
+for (const [name, mutate] of lineageMutations) {
+  const candidate = structuredClone(lineageInput);
+  mutate(candidate);
+  let rejected = false;
+  try { reconstructArtifactLineage(candidate); } catch { rejected = true; }
+  assert(rejected, `RUN_SCOPED_LINEAGE_MUTATION_NOT_REJECTED:${name}`);
+}
+
 const two = resolveEphemeralGuard(input([leaderCandidate(7001), leaderCandidate(7002)]), contract);
 assert(two.state === 'INPUT_DIVERGENCE_HOLD' && two.fail_closed === true && two.execute_full_audit === false, 'MULTIPLE_LEADERS_FAIL_CLOSED');
 
@@ -250,6 +284,8 @@ process.stdout.write(`${JSON.stringify({
   mutation_cases_rejected: mutationCases.length,
   bypass_cases: bypassFixtures.length,
   alias_receipt_digest_bound: true,
+  run_scoped_lineage_reconstruction: true,
+  run_scoped_lineage_mutations_rejected: lineageMutations.length,
   canonical_execution_claimed: false,
   runtime_dedupe_state: 'REMOTE_LEDGER_ACTIVATION_HOLD',
   public: 'HOLD',

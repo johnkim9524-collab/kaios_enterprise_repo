@@ -327,6 +327,100 @@ jobs:
                 continue
               fi
               RUN_ID=$(jq -r '.workflow_run.id // 0' <<<"$ARTIFACT_ROW")
+              if ! [[ "$RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+                # Repository-wide artifact rows can legally omit workflow_run.
+                # Recover lineage only from a content-bound receipt and exact,
+                # bounded membership in that run's artifact index.
+                LINEAGE_DIR="$RUNNER_TEMP/canonical-lineage-${ARTIFACT_ID}"
+                rm -rf "$LINEAGE_DIR"
+                mkdir -p "$LINEAGE_DIR/unpacked"
+                LINEAGE_ZIP="$LINEAGE_DIR/artifact.zip"
+                LINEAGE_SIZE=$(jq -r '.size_in_bytes // 0' <<<"$ARTIFACT_ROW")
+                LINEAGE_DIGEST=$(jq -r '.digest // ""' <<<"$ARTIFACT_ROW")
+                if ! [[ "$LINEAGE_SIZE" =~ ^[1-9][0-9]*$ ]] || (( LINEAGE_SIZE > 4194304 )); then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_SIZE_INVALID"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! [[ "$LINEAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_DIGEST_INVALID"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                    "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > "$LINEAGE_ZIP"; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_DOWNLOAD_FAILED"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                LINEAGE_ACTUAL_DIGEST="sha256:$(sha256sum "$LINEAGE_ZIP" | awk '{print $1}')"
+                if [[ "$LINEAGE_ACTUAL_DIGEST" != "$LINEAGE_DIGEST" ]]; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_DIGEST_MISMATCH"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! python scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+                    --archive "$LINEAGE_ZIP" \
+                    --expected-digest "$LINEAGE_DIGEST" \
+                    --receipt "$LINEAGE_DIR/safe-zip-receipt.json" \
+                    --max-compressed-bytes 4194304 \
+                    --max-entries 32 \
+                    --max-entry-uncompressed-bytes 2097152 \
+                    --max-total-uncompressed-bytes 8388608 \
+                    --max-compression-ratio 100 \
+                    --required-basename audit-receipt.json >/dev/null; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_ARCHIVE_INVALID"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! unzip -q "$LINEAGE_ZIP" -d "$LINEAGE_DIR/unpacked"; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_UNZIP_FAILED"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                mapfile -t LINEAGE_RECEIPTS < <(find "$LINEAGE_DIR/unpacked" -type f -name 'audit-receipt.json' -print)
+                if (( ${#LINEAGE_RECEIPTS[@]} != 1 )); then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_RECEIPT_NOT_EXACT"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                LINEAGE_RECEIPT="${LINEAGE_RECEIPTS[0]}"
+                LINEAGE_RUN_ID=$(jq -r '.execution.workflow_run_id // 0' "$LINEAGE_RECEIPT")
+                if ! [[ "$LINEAGE_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_RECEIPT_RUN_ID_INVALID"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                LINEAGE_RUN_JSON="$LINEAGE_DIR/run.json"
+                LINEAGE_INDEX_JSON="$LINEAGE_DIR/run-artifacts.json"
+                LINEAGE_ARTIFACT_JSON="$LINEAGE_DIR/artifact.json"
+                LINEAGE_RESOLVED_JSON="$LINEAGE_DIR/resolved-artifact.json"
+                printf '%s\n' "$ARTIFACT_ROW" > "$LINEAGE_ARTIFACT_JSON"
+                if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                    "/repos/${GITHUB_REPOSITORY}/actions/runs/${LINEAGE_RUN_ID}" > "$LINEAGE_RUN_JSON"; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_RUN_READ_FAILED"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                    "/repos/${GITHUB_REPOSITORY}/actions/runs/${LINEAGE_RUN_ID}/artifacts?per_page=100" > "$LINEAGE_INDEX_JSON"; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_MEMBERSHIP_READ_FAILED"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                if ! node scripts/kidults/kpmo/reconstruct-continuous-assurance-artifact-lineage-v1.mjs \
+                    --artifact "$LINEAGE_ARTIFACT_JSON" \
+                    --run "$LINEAGE_RUN_JSON" \
+                    --run-artifacts "$LINEAGE_INDEX_JSON" \
+                    --receipt "$LINEAGE_RECEIPT" \
+                    --output "$LINEAGE_RESOLVED_JSON"; then
+                  READBACK_STATE="CANONICAL_ARTIFACT_LINEAGE_RECONSTRUCTION_FAILED"
+                  printf '%s\n' '{"run":null,"receipt":null}' > "$CANDIDATE_DIR/${ARTIFACT_ID}.json"
+                  continue
+                fi
+                ARTIFACT_ROW=$(jq -c . "$LINEAGE_RESOLVED_JSON")
+                RUN_ID=$(jq -r '.workflow_run.id // 0' <<<"$ARTIFACT_ROW")
+              fi
               if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
                 "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" > "$CANDIDATE_DIR/run-${ARTIFACT_ID}.json"; then
                 READBACK_STATE=CANONICAL_RUN_READBACK_FAILED
