@@ -96,6 +96,19 @@ test('production approval parser accepts g5 and rejects unknown or duplicate dig
   assert.equal(parseApproval('NOT_AN_APPROVAL'), null);
 });
 
+test('every pre-window rejection overwrites the initializer with a terminal sanitized receipt', () => {
+  const tryIndex = runner.indexOf('try {\n  writeReceipt(receipt);');
+  const inputGuardIndex = runner.indexOf("DIRECT_OWNER_HANDOFF_ENVIRONMENT_INVALID");
+  const catchIndex = runner.lastIndexOf('} catch (error) {');
+  const catchBlock = runner.slice(catchIndex);
+  assert.ok(tryIndex >= 0 && inputGuardIndex > tryIndex, 'input validation must execute inside terminal reconciliation');
+  assert.match(runner, /state: 'VALIDATION_PENDING'/);
+  assert.match(catchBlock, /state: 'VERIFIED_FAIL'/);
+  assert.match(catchBlock, /failure_code: failureCode/);
+  assert.doesNotMatch(catchBlock, /if \(receipt\)/);
+  assert.match(workflow, /name: Upload bounded direct-owner handoff receipt\n        if: always\(\)/);
+});
+
 test('approval comment mutation revokes any open direct-owner handoff', () => {
   assert.match(workflow, /KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2/);
   assert.match(workflow, /Direct Owner approval changed; fresh handoff authorization required/);
