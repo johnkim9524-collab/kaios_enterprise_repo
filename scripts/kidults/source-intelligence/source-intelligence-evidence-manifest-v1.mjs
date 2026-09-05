@@ -29,6 +29,7 @@ export function artifactDigest(filePath) {
 export function validateEvidenceManifest(manifest, registry, contract, options = {}) {
   requireValue(contract?.id === 'kidults-source-intelligence-evidence-manifest-contract-v1', 'EVIDENCE_CONTRACT_INVALID');
   requireValue(contract?.status === 'MANDATORY_FAIL_CLOSED', 'EVIDENCE_CONTRACT_NOT_FAIL_CLOSED');
+  requireValue(contract?.rules?.restricted_bytes_hard_disabled_until_authoritative_receipt_resolution === true, 'EVIDENCE_RESTRICTED_BYTES_HARD_STOP_MISSING');
   requireValue(contract.manifest_types.includes(manifest?.manifest_type), 'EVIDENCE_MANIFEST_TYPE_INVALID');
   requireValue(typeof manifest?.id === 'string' && SAFE_ID.test(manifest.id), 'EVIDENCE_MANIFEST_ID_INVALID');
   requireValue(contract.manifest_statuses.includes(manifest.status), 'EVIDENCE_MANIFEST_STATUS_INVALID');
@@ -53,6 +54,7 @@ export function validateEvidenceManifest(manifest, registry, contract, options =
   const storesExternalBytes = manifest.artifact.contains_external_raw_content === true;
   const restrictedMode = manifest.artifact.storage_mode === 'RESTRICTED_EVIDENCE_BYTES';
   requireValue(storesExternalBytes === restrictedMode, 'EVIDENCE_RAW_STORAGE_MODE_MISMATCH');
+  requireValue(!storesExternalBytes && !restrictedMode, 'EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED_RECEIPT_RESOLUTION_NOT_IMPLEMENTED');
   if (storesExternalBytes) {
     requireValue(manifest.status === 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY', 'EVIDENCE_RAW_STATUS_INVALID');
     requireValue(typeof manifest.artifact.evidence_uri === 'string', 'EVIDENCE_VOLUME_URI_REQUIRED');
