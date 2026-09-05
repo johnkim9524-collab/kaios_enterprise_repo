@@ -1,0 +1,157 @@
+name: KIDULTS Direct Owner Landing Handoff V1
+run-name: "KIDULTS Direct Owner Handoff PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.handoff_authorization_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: Exact pull request number
+        required: true
+        type: string
+      expected_base_sha:
+        description: Exact current protected-main SHA
+        required: true
+        type: string
+      expected_head_sha:
+        description: Exact 40-character pull request head SHA
+        required: true
+        type: string
+      handoff_authorization_id:
+        description: DIRECT-PR-<number>-<first-12-head-sha>
+        required: true
+        type: string
+      purpose:
+        description: Bounded uppercase purpose token
+        required: true
+        type: string
+      handoff_window_seconds:
+        description: Direct Owner merge window, 60-900 seconds
+        required: true
+        default: '600'
+        type: string
+  issue_comment:
+    types: [created, edited, deleted]
+
+concurrency:
+  # Revocation must never queue behind the bounded handoff sleeper.
+  group: kidults-direct-owner-landing-handoff-v1-${{ github.event_name == 'workflow_dispatch' && 'handoff' || 'revocation' }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+  issues: read
+  pull-requests: read
+  statuses: write
+
+jobs:
+  revoke-on-approval-comment-mutation:
+    name: Revoke stale direct-owner handoff on approval comment mutation
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.author_association == 'OWNER' &&
+      (
+        startsWith(github.event.comment.body, 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2') ||
+        startsWith(github.event.changes.body.from, 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2')
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Revoke governed landing status to pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const token = process.env.GH_TOKEN;
+          const repo = process.env.GH_REPOSITORY;
+          const number = process.env.PR_NUMBER;
+          const headers = {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': 'kidults-direct-owner-handoff-revocation-v1',
+          };
+          const api = async (path, options = {}) => {
+            const response = await fetch(`https://api.github.com/repos/${repo}${path}`, {
+              ...options,
+              headers: {...headers, ...(options.headers || {})},
+              redirect: 'error',
+            });
+            const payload = response.status === 204 ? null : await response.json().catch(() => null);
+            if (!response.ok) throw new Error(`DIRECT_OWNER_HANDOFF_REVOCATION_API_${response.status}`);
+            return payload;
+          };
+          const pr = await api(`/pulls/${number}`);
+          if (pr.state !== 'open' || pr.merged === true) process.exit(0);
+          if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) throw new Error('DIRECT_OWNER_HANDOFF_REVOCATION_HEAD_INVALID');
+          await api(`/statuses/${pr.head.sha}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              state: 'pending',
+              context: 'KIDULTS Governed Landing Authorization V1',
+              description: 'Direct Owner approval changed; fresh handoff authorization required',
+            }),
+          });
+          console.log(JSON.stringify({state:'REVOKED_TO_PENDING', pull_request:Number(number), exact_head_sha:pr.head.sha}));
+          NODE
+
+  direct-owner-handoff:
+    name: Validate and open bounded direct-owner merge window
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted protected-main implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Verify trusted main execution ref
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git branch --show-current)" = main
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Initialize fail-closed handoff receipt path
+        run: |
+          set -euo pipefail
+          install -d -m 0700 out/direct-owner-landing-handoff-v1
+          printf '%s\n' '{"id":"kidults-direct-owner-landing-handoff-receipt-v1","state":"VALIDATION_PENDING","production":"HOLD","public":"HOLD","g5":"HOLD"}' > out/direct-owner-landing-handoff-v1/receipt.json
+          chmod 0600 out/direct-owner-landing-handoff-v1/receipt.json
+
+      - name: Validate exact-head direct-owner handoff and open bounded merge window
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          HANDOFF_AUTHORIZATION_ID: ${{ inputs.handoff_authorization_id }}
+          HANDOFF_PURPOSE: ${{ inputs.purpose }}
+          HANDOFF_WINDOW_SECONDS: ${{ inputs.handoff_window_seconds }}
+          LANDING_ACTOR: ${{ github.actor }}
+          HANDOFF_RECEIPT_PATH: out/direct-owner-landing-handoff-v1/receipt.json
+        run: node scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs
+
+      - name: Upload bounded direct-owner handoff receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-direct-owner-landing-handoff-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/direct-owner-landing-handoff-v1
+          if-no-files-found: error
+          retention-days: 90
