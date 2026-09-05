@@ -36,6 +36,13 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /await publish\('failure'/);
 });
 
+test('approval parser accepts mandatory digit-bearing g5 key while explicit allowlist remains authoritative', () => {
+  assert.ok(runner.includes("const match = /^([a-z0-9_]+)=(.+)$/.exec(line);"));
+  assert.ok(runner.includes("'production', 'public', 'g5',"));
+  assert.ok(runner.includes('!approvalKeys.includes(match[1])'));
+  assert.ok(runner.includes('Object.hasOwn(fields, match[1])'));
+});
+
 test('approval comment mutation revokes any open direct-owner handoff', () => {
   assert.match(workflow, /KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2/);
   assert.match(workflow, /Direct Owner approval changed; fresh handoff authorization required/);
