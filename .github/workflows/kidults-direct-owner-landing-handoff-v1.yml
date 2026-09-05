@@ -147,6 +147,44 @@ jobs:
           HANDOFF_RECEIPT_PATH: out/direct-owner-landing-handoff-v1/receipt.json
         run: node scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs
 
+      - name: Consume exact merge-SHA protected-main push suite
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          HANDOFF_RECEIPT_PATH: out/direct-owner-landing-handoff-v1/receipt.json
+          POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json
+          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '90'
+        run: node scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs
+
+      - name: Fail closed on required post-merge workflow failures
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const receiptPath = 'out/direct-owner-landing-handoff-v1/receipt.json';
+          const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+          const proof = receipt.post_merge_push_suite;
+          if (receipt.post_merge_push_suite_consumed !== true || proof?.state !== 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE' || proof?.all_required_terminal !== true) {
+            throw new Error('DIRECT_OWNER_POSTMERGE_SUITE_NOT_CONSUMED');
+          }
+          if (proof.all_required_success !== true) {
+            const failed = {
+              ...receipt,
+              state: 'VERIFIED_FAIL',
+              prior_merge_terminal_state: receipt.state,
+              failure_code: 'DIRECT_OWNER_POSTMERGE_REQUIRED_WORKFLOW_FAILURE',
+              promotion_eligible: false,
+              production: 'HOLD',
+              public: 'HOLD',
+              g5: 'HOLD',
+            };
+            fs.writeFileSync(receiptPath, `${JSON.stringify(failed, null, 2)}\n`, {encoding: 'utf8', mode: 0o600});
+            fs.chmodSync(receiptPath, 0o600);
+            throw new Error('DIRECT_OWNER_POSTMERGE_REQUIRED_WORKFLOW_FAILURE');
+          }
+          console.log(JSON.stringify({state:'VERIFIED_PASS', post_merge_push_suite_consumed:true, all_required_success:true}));
+          NODE
+
       - name: Upload bounded direct-owner handoff receipt
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

@@ -23,6 +23,9 @@ test('Atomic landing durable status cannot silently green a missing post-merge p
   assert.match(reconciler, /pr\.base\.sha === mainBranch\.commit\.sha/);
   assert.match(reconciler, /ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT/);
   assert.match(reconciler, /let state = 'MERGE_COMMITTED_PROOF_PENDING'/);
+  assert.match(reconciler, /EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED/);
+  assert.match(reconciler, /MERGE_COMMITTED_POSTLANDING_PROOF_PENDING/);
+  assert.doesNotMatch(reconciler, /NOT_REQUIRED_NON_CURRENT_SOLD/);
   assert.match(reconciler, /if \(state === 'VERIFIED_PASS'\)[\s\S]*?postHeadStatus\('success'/);
   assert.match(reconciler, /else if \(state === 'VERIFIED_FAIL'\)[\s\S]*?postHeadStatus\('failure'/);
   assert.match(reconciler, /else \{[\s\S]*?postHeadStatus\('pending', terminalClass\)/);

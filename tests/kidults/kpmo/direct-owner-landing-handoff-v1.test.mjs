@@ -5,6 +5,8 @@ import assert from 'node:assert/strict';
 const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
 const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
+const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
+const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
 function loadProductionApprovalParser() {
   const keysStart = runner.indexOf('const approvalKeys = [');
@@ -166,4 +168,47 @@ test('consumed merge is explicitly bounded to opened window and approval expiry'
   }
   assert.match(runner, /const closesAtMs = openedAtMs \+ handoffWindowSeconds \* 1000/);
   assert.match(runner, /const approvalExpiresAtMs = parseTime\(approval\.expires_at/);
+});
+
+test('terminal Handoff consumption is followed by exact merge-SHA push-suite consumption before artifact upload', () => {
+  const handoffIndex = workflow.indexOf('Validate exact-head direct-owner handoff and open bounded merge window');
+  const consumeIndex = workflow.indexOf('Consume exact merge-SHA protected-main push suite');
+  const uploadIndex = workflow.indexOf('Upload bounded direct-owner handoff receipt');
+  assert.ok(handoffIndex >= 0 && handoffIndex < consumeIndex && consumeIndex < uploadIndex);
+  assert.match(workflow, /POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination\/kidults\/kpmo\/direct-owner-postmerge-push-suite-policy-v1\.json/);
+  assert.match(workflow, /POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '90'/);
+  assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
+});
+
+test('post-merge suite policy binds core protected-main push controls and preserves RED as evidence', () => {
+  const requiredPaths = postMergePolicy.required_workflows.map(item => item.path);
+  assert.deepEqual(requiredPaths, [
+    '.github/workflows/ci-validation.yml',
+    '.github/workflows/kidults-p0-control-plane-closure-v1.yml',
+    '.github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml',
+    '.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+    '.github/workflows/kpmo-exact-head-ci-supersession-v1.yml',
+    '.github/workflows/solo-owner-preflight.yml',
+  ]);
+  assert.deepEqual(postMergePolicy.accepted_terminal_conclusions, ['success', 'failure']);
+  assert.equal(postMergePolicy.proof_contract.exact_merge_sha_only, true);
+  assert.equal(postMergePolicy.proof_contract.predecessor_head_proof_reuse_forbidden, true);
+  assert.equal(postMergePolicy.proof_contract.terminal_failure_does_not_become_promotion_authority, true);
+  assert.equal(postMergePolicy.proof_contract.production, 'HOLD');
+  assert.equal(postMergePolicy.proof_contract.public, 'HOLD');
+  assert.equal(postMergePolicy.proof_contract.g5, 'HOLD');
+});
+
+test('post-merge consumer rejects PR-head reuse, nonterminal, cancelled and ambiguous workflow evidence', () => {
+  assert.match(postMergeConsumer, /head_sha: mergeSha/);
+  assert.match(postMergeConsumer, /event: policy\.event/);
+  assert.match(postMergeConsumer, /branch: policy\.branch/);
+  assert.match(postMergeConsumer, /run\?\.head_sha === mergeSha && run\?\.event === policy\.event && run\?\.head_branch === policy\.branch/);
+  assert.match(postMergeConsumer, /AMBIGUOUS_MULTIPLE_RUNS/);
+  assert.match(postMergeConsumer, /NOT_TERMINAL/);
+  assert.match(postMergeConsumer, /TERMINAL_CONCLUSION_FORBIDDEN/);
+  assert.match(postMergeConsumer, /predecessor_head_proof_reused: false/);
+  assert.match(postMergeConsumer, /state: 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE'/);
+  assert.match(postMergeConsumer, /post_merge_push_suite_consumed: true/);
+  assert.match(postMergeConsumer, /promotion_eligible: false/);
 });

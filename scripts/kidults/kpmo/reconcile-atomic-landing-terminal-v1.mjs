@@ -87,7 +87,7 @@ const authorizationConsumption = readConsumptionReceipt();
 
 const baseReceipt = (state, terminalClass, extra = {}) => ({
   id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-  version: '2.2.0',
+  version: '2.3.0',
   state,
   terminal_class: terminalClass,
   repository,
@@ -259,9 +259,9 @@ try {
   let terminalClass = exactMainMatchesMerge ? 'POSTLANDING_PROOF_PENDING' : 'POSTMERGE_MAIN_READBACK_MISMATCH';
   let proof = 'PENDING';
   if (!currentSoldChanged && landingOutcome === 'success' && exactMainMatchesMerge) {
-    state = 'VERIFIED_PASS';
-    terminalClass = 'MERGE_COMMITTED_VERIFIED';
-    proof = 'NOT_REQUIRED_NON_CURRENT_SOLD';
+    state = 'MERGE_COMMITTED_PROOF_PENDING';
+    terminalClass = 'MERGE_COMMITTED_POSTLANDING_PROOF_PENDING';
+    proof = 'EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED';
   } else if (currentSoldChanged && postLandingReceipt?.state === 'VERIFIED_PASS' && postLandingOutcome === 'success' && exactMainMatchesMerge) {
     state = 'VERIFIED_PASS';
     terminalClass = 'MERGE_COMMITTED_POSTLANDING_VERIFIED';
