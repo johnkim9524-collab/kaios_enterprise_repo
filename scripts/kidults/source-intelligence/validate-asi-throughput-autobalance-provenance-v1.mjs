@@ -18,6 +18,7 @@ function validate(text) {
   rejectText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml"', 'retired v1 producer path binding');
   rejectText('.name=="kidults-asi-global-any-site-source-pool-v1"', 'retired v1 source-pool artifact');
   rejectText('.name=="kidults-asi-global-any-site-hourly-cycle-v1"', 'retired v1 hourly-cycle artifact');
+  rejectText("find discovery-out/raw -type f -name 'global-low-risk-discovery.json'", 'raw discovery payload selector');
 
   requireText('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs', 'canonical producer workflow-run lookup');
   requireText('/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100', 'run-scoped artifact lookup');
@@ -34,6 +35,29 @@ function validate(text) {
   requireText('UPSTREAM_EXACT_GENERATION_TERMINAL_NON_SUCCESS', 'precise terminal non-success diagnosis');
   requireText('UPSTREAM_EXACT_GENERATION_NOT_TERMINAL', 'precise bounded-wait timeout diagnosis');
   requireText('sleep "$AUTOBALANCE_PRODUCER_WAIT_SECONDS"', 'bounded producer wait sleep');
+  requireText("find discovery-out/raw -type f -name 'global-low-risk-discovery-governed-v2.json'", 'governed discovery payload selector');
+  requireText('AUTOBALANCE_DISCOVERY_PAYLOAD=global-low-risk-discovery-governed-v2.json', 'governed discovery receipt binding');
+  requireText("discovery_payload: process.env.AUTOBALANCE_DISCOVERY_PAYLOAD", 'governed discovery receipt field');
+  requireText('build-asi-throughput-coverage-autobalance-v1.mjs --self-test', 'source-family and gate-schema self-test');
+
+  requireText('scripts/kidults/kpmo/validate-safe-zip-archive-v1.py', 'safe ZIP pre-extraction validator');
+  requireText('--archive /tmp/meta.zip', 'source-pool safe ZIP validation');
+  requireText('--archive /tmp/disc.zip', 'hourly-cycle safe ZIP validation');
+  for (const basename of [
+    'asi-gate1-safe-candidate-pool-v2.json',
+    'asi-gate2-independent-reverification-v2.json',
+    'asi-gate3-admission-runtime-v2.json',
+    'asi-admitted-metadata-pool-v2.json',
+    'global-low-risk-discovery-governed-v2.json',
+  ]) requireText(`--required-basename ${basename}`, `safe ZIP required basename ${basename}`);
+  requireText('AUTOBALANCE_META_SAFE_ZIP_RECEIPT_DIGEST', 'source-pool safe ZIP receipt binding');
+  requireText('AUTOBALANCE_DISC_SAFE_ZIP_RECEIPT_DIGEST', 'hourly-cycle safe ZIP receipt binding');
+  requireText('safe_zip_validated_before_extraction: true', 'safe ZIP receipt assertion');
+  for (const archive of ['meta', 'disc']) {
+    const validation = text.indexOf(`--archive /tmp/${archive}.zip`);
+    const extraction = text.indexOf(`unzip -q -o /tmp/${archive}.zip`);
+    if (validation < 0 || extraction < 0 || validation > extraction) failures.push(`unsafe extraction order ${archive}`);
+  }
 
   const prBoundaryMatches = text.match(/if: github\.event_name != 'pull_request'/g) || [];
   if (prBoundaryMatches.length < 5) failures.push('missing PR structural/live execution separation');
@@ -74,7 +98,11 @@ const mutations = [
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
-  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND']
+  ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND'],
+  ["global-low-risk-discovery-governed-v2.json","global-low-risk-discovery.json"],
+  ['--archive /tmp/meta.zip','--archive /tmp/meta-unverified.zip'],
+  ['--archive /tmp/disc.zip','--archive /tmp/disc-unverified.zip'],
+  ['safe_zip_validated_before_extraction: true','safe_zip_validated_before_extraction: false']
 ];
 
 for (const [from, to] of mutations) {
@@ -89,6 +117,14 @@ for (const [from, to] of mutations) {
   }
 }
 
+const unsafeExtractionMutation = text
+  .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename global-low-risk-discovery-governed-v2\.json\n/, '')
+  .replace(/python3 scripts\/kidults\/kpmo\/validate-safe-zip-archive-v1\.py[\s\S]*?--required-basename asi-admitted-metadata-pool-v2\.json\n/, '');
+if (validate(unsafeExtractionMutation).length === 0) {
+  console.error('ASI throughput autobalance provenance self-test failed to reject safe-ZIP pre-extraction removal');
+  process.exit(1);
+}
+
 const boundaryMutation = text.replaceAll("if: github.event_name != 'pull_request'", "if: always()");
 if (validate(boundaryMutation).length === 0) {
   console.error('ASI throughput autobalance provenance self-test failed to reject PR live-execution boundary removal');
@@ -98,10 +134,11 @@ if (validate(boundaryMutation).length === 0) {
 console.log(JSON.stringify({
   status: 'VERIFIED_PASS',
   control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_PRODUCER_PROVENANCE',
-  mutation_cases_rejected: mutations.length + 1,
+  mutation_cases_rejected: mutations.length + 2,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
   producer_wait: {max_attempts:10,interval_seconds:3,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
+  artifact_consumption: {download_digest_bound:true,safe_zip_pre_extraction_required:true,required_basename_cardinality_bound:true},
   production: 'HOLD',
   public_release: 'HOLD'
 }, null, 2));
