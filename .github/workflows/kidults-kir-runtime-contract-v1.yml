@@ -7,6 +7,11 @@ on:
       - 'coordination/kidults/runtime/**'
       - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
       - 'scripts/kidults/runtime/**'
+      - 'scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs'
+      - 'coordination/kidults/source-intelligence/global-sold-source-registry*.json'
+      - 'coordination/kidults/source-intelligence/source-intelligence-evidence-manifest-contract-v1.json'
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/runtime/**'
@@ -20,6 +25,11 @@ on:
       - 'coordination/kidults/runtime/**'
       - 'coordination/kidults/market/current-sold-value-chain-readiness-v1.json'
       - 'scripts/kidults/runtime/**'
+      - 'scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs'
+      - 'scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs'
+      - 'coordination/kidults/source-intelligence/global-sold-source-registry*.json'
+      - 'coordination/kidults/source-intelligence/source-intelligence-evidence-manifest-contract-v1.json'
       - 'scripts/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/market/current-sold-*.mjs'
       - 'tests/kidults/runtime/**'
@@ -126,7 +136,7 @@ jobs:
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs
+          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
 
       - name: Evaluate exact-head KIR runtime truth
         id: evaluate

@@ -74,4 +74,10 @@ node --test \
   tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs
 ```
 
-Expected result: both validators PASS, twelve tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+Expected result: both validators PASS, all selected tests PASS, zero tests FAIL. These are static/private controls and do not prove remote PostgreSQL, PITR, Evidence Volume, provider access, empirical current-SOLD, D1 projection, Public, Production or G5.
+
+## Asynchronous writer integrity
+
+Both writers capture caller-independent structured snapshots before validation and before the first SQL await. Every insert parameter is derived from that same snapshot. Caller mutation during BEGIN, lock acquisition or lookups cannot change the validated registry or manifest payload. Manifest validation also checks the bound registry's non-authority semantics and requires an explicit boolean raw-content flag.
+
+If a write and its rollback both fail, an AggregateError retains the original failure as its cause and records both errors. This is recovery uncertainty, never a committed result or a successful rollback attestation. These tests use a query recorder, not a PostgreSQL server.
