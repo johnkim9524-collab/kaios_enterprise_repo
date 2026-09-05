@@ -1,0 +1,169 @@
+name: KIDULTS Track A Current-SOLD Ownership and Holistic Guard V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/README.md'
+      - 'coordination/kidults/governance/track-a-current-sold-job-description-v1.json'
+      - 'coordination/kidults/market/current-sold-*.json'
+      - 'docs/kidults/platform-track-alignment-directive-v1.md'
+      - 'docs/kidults/governance/track-a-current-sold-job-description-v1.md'
+      - 'docs/kidults/market/current-sold-*.md'
+      - 'scripts/kidults/kpmo/validate-track-a-current-sold-job-description-v1.mjs'
+      - 'scripts/kidults/market/current-sold-*.mjs'
+      - 'scripts/kidults/market/validate-current-sold-*.mjs'
+      - 'tests/kidults/kpmo/track-a-current-sold-*.test.mjs'
+      - 'tests/kidults/market/track-a-current-sold-*.test.mjs'
+      - '.github/workflows/kidults-track-a-current-sold-governance-v1.yml'
+  pull_request:
+    paths:
+      - 'coordination/kidults/README.md'
+      - 'coordination/kidults/governance/track-a-current-sold-job-description-v1.json'
+      - 'coordination/kidults/market/current-sold-*.json'
+      - 'docs/kidults/platform-track-alignment-directive-v1.md'
+      - 'docs/kidults/governance/track-a-current-sold-job-description-v1.md'
+      - 'docs/kidults/market/current-sold-*.md'
+      - 'scripts/kidults/kpmo/validate-track-a-current-sold-job-description-v1.mjs'
+      - 'scripts/kidults/market/current-sold-*.mjs'
+      - 'scripts/kidults/market/validate-current-sold-*.mjs'
+      - 'tests/kidults/kpmo/track-a-current-sold-*.test.mjs'
+      - 'tests/kidults/market/track-a-current-sold-*.test.mjs'
+      - '.github/workflows/kidults-track-a-current-sold-governance-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-track-a-current-sold:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Bind exact checked-out source SHA
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Parse Track A JD, authority and readiness contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = [
+            'coordination/kidults/governance/track-a-current-sold-job-description-v1.json',
+            'coordination/kidults/market/current-sold-governed-receipt-authority-contract-v1.json',
+            'coordination/kidults/market/current-sold-governed-receipt-authority-envelope-schema-v1.json',
+            'coordination/kidults/market/current-sold-governed-receipt-authority-verification-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-value-chain-readiness-v1.json',
+            'coordination/kidults/market/current-sold-engine-v1.json'
+          ];
+          for (const file of files) JSON.parse(fs.readFileSync(file, 'utf8'));
+          console.log(`TRACK_A_CURRENT_SOLD_JSON_PASS=${files.length}`);
+          NODE
+
+      - name: Check new modules and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            scripts/kidults/market/current-sold-governed-receipt-authority-adapter-v1.mjs
+            scripts/kidults/market/validate-current-sold-canonical-entrypoint-v1.mjs
+            scripts/kidults/market/validate-current-sold-value-chain-readiness-v1.mjs
+            scripts/kidults/kpmo/validate-track-a-current-sold-job-description-v1.mjs
+            tests/kidults/market/track-a-current-sold-governed-receipt-authority-adapter-v1.test.mjs
+            tests/kidults/market/track-a-current-sold-canonical-entrypoint-v1.test.mjs
+            tests/kidults/market/track-a-current-sold-value-chain-readiness-v1.test.mjs
+            tests/kidults/kpmo/track-a-current-sold-job-description-v1.test.mjs
+          )
+          for file in "${files[@]}"; do node --check "$file"; done
+
+      - name: Re-run protected Current-SOLD core regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs \
+            | tee /tmp/current-sold-core.tap
+          grep -Eq '^# tests 56$' /tmp/current-sold-core.tap
+          grep -Eq '^# pass 56$' /tmp/current-sold-core.tap
+          grep -Eq '^# fail 0$' /tmp/current-sold-core.tap
+
+      - name: Run Track A JD, authority, entrypoint and readiness negative suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap \
+            tests/kidults/market/track-a-current-sold-governed-receipt-authority-adapter-v1.test.mjs \
+            tests/kidults/market/track-a-current-sold-canonical-entrypoint-v1.test.mjs \
+            tests/kidults/market/track-a-current-sold-value-chain-readiness-v1.test.mjs \
+            tests/kidults/kpmo/track-a-current-sold-job-description-v1.test.mjs \
+            | tee /tmp/track-a-current-sold-governance.tap
+          grep -Eq '^# tests 22$' /tmp/track-a-current-sold-governance.tap
+          grep -Eq '^# pass 22$' /tmp/track-a-current-sold-governance.tap
+          grep -Eq '^# fail 0$' /tmp/track-a-current-sold-governance.tap
+
+      - name: Validate Track A ownership and cross-track boundary
+        run: node scripts/kidults/kpmo/validate-track-a-current-sold-job-description-v1.mjs
+
+      - name: Validate Current-SOLD holistic readiness truth
+        run: node scripts/kidults/market/validate-current-sold-value-chain-readiness-v1.mjs
+
+      - name: Reject non-atomic production entrypoints
+        run: node scripts/kidults/market/validate-current-sold-canonical-entrypoint-v1.mjs
+
+      - name: Emit bounded control-only receipt
+        if: always()
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/track-a-current-sold-governance
+          cat > out/track-a-current-sold-governance/receipt.json <<EOF_RECEIPT
+          {
+            "control": "KIDULTS_TRACK_A_CURRENT_SOLD_OWNERSHIP_AND_HOLISTIC_GUARD_V1",
+            "source_sha": "${SOURCE_SHA:-${{ github.event.pull_request.head.sha || github.sha }}}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "job_status": "${JOB_STATUS}",
+            "primary_track": "TRACK_A",
+            "runtime_owner": "ASI",
+            "governance_owner": "KPMO",
+            "core_tests_expected": 56,
+            "new_governance_tests_expected": 22,
+            "lawful_empirical_current_sold_admitted": 0,
+            "postgres_rows_written": 0,
+            "provider_calls": 0,
+            "deployment": false,
+            "public": "HOLD",
+            "production": "HOLD",
+            "g5": "HOLD"
+          }
+          EOF_RECEIPT
+          chmod 600 out/track-a-current-sold-governance/receipt.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kidults-track-a-current-sold-governance-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/track-a-current-sold-governance
+          if-no-files-found: error
+          retention-days: 30

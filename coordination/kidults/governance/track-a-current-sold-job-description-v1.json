@@ -1,0 +1,149 @@
+{
+  "id": "kidults-track-a-current-sold-job-description-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_WHEN_PRESENT_ON_PROTECTED_MAIN",
+  "effective_date": "2026-09-03",
+  "program_owner": "John",
+  "product_owner": "KIDULTS",
+  "primary_track": "TRACK_A",
+  "accountable_track": "TRACK_A",
+  "canonical_issue": 235,
+  "governance_owner": "KPMO",
+  "runtime_owner": "ASI",
+  "mission": "Own the Current-SOLD intelligence engine and convert lawfully acquired, rights-admitted sold observations into atomic canonical Current-SOLD events and Evidence that can become an immutable Track A Candidate/Evidence pair for independent Track B assessment.",
+  "track_a_accountabilities": [
+    "OWN_CURRENT_SOLD_PRODUCT_CONTRACT_AND_SCHEMAS",
+    "OWN_ATOMIC_CURRENT_SOLD_ADMISSION_AND_STRICT_FRESHNESS",
+    "OWN_CANONICAL_EVENT_CONTENT_AND_CORRECTION_IDENTITY",
+    "OWN_CANONICAL_EVIDENCE_TRANSFORMATION",
+    "OWN_CONTROL_SYNTHETIC_PRIVATE_CANDIDATE_AND_LAWFUL_EMPIRICAL_CLASS_SEPARATION",
+    "OWN_TRACK_A_CANDIDATE_AND_EVIDENCE_PACKAGE_HANDOFF",
+    "OWN_ENGINE_REGRESSION_NEGATIVE_AND_POST_LANDING_PROOF",
+    "REJECT_SOURCE_FIRST_OR_PROVIDER_OWNED_BUSINESS_TRUTH",
+    "NEVER_SELF_APPROVE_TRACK_B_RANKABILITY_OR_PUBLICATION"
+  ],
+  "raci": {
+    "TRACK_A": {
+      "role": "ACCOUNTABLE_AND_RESPONSIBLE",
+      "duties": [
+        "Current-SOLD engine product contract",
+        "observation classification",
+        "atomic batch admission",
+        "canonical event and Evidence",
+        "Candidate/Evidence packaging",
+        "quality and regression controls"
+      ]
+    },
+    "ASI": {
+      "role": "RUNTIME_RESPONSIBLE",
+      "duties": [
+        "execute Track A engine workloads",
+        "operate source-to-observation adapters within approved authority",
+        "produce run-bound receipts and artifacts",
+        "preserve control versus empirical counters"
+      ]
+    },
+    "KPMO": {
+      "role": "GOVERNANCE_ACCOUNTABLE",
+      "duties": [
+        "approval and trust-boundary enforcement",
+        "receipt authority verification",
+        "fail-closed governance",
+        "red-team review",
+        "truth synchronization"
+      ]
+    },
+    "TRACK_Z": {
+      "role": "UPSTREAM_RESPONSIBLE",
+      "duties": [
+        "source and provider evaluation",
+        "field-by-purpose rights",
+        "provider authorization and credentials",
+        "lawful acquisition route",
+        "replacement and concentration strategy"
+      ]
+    },
+    "TRACK_D": {
+      "role": "PERSISTENCE_AND_RUNTIME_SUPPORT",
+      "duties": [
+        "private runtime",
+        "append-only PostgreSQL ledger",
+        "PITR and restore proof",
+        "observability and rollback",
+        "D1 read-model boundary"
+      ]
+    },
+    "TRACK_B": {
+      "role": "INDEPENDENT_DOWNSTREAM_VALIDATOR",
+      "duties": [
+        "accept exactly one immutable Candidate/Evidence pair",
+        "independently assess rankability and representativeness",
+        "never alter source Evidence",
+        "never accept control-only output as empirical input"
+      ]
+    },
+    "TRACK_C": {
+      "role": "APPROVED_PROJECTION_CONSUMER",
+      "duties": [
+        "render only approved Projection",
+        "explain evidence confidence and limitations",
+        "never calculate Current-SOLD admission or rankability"
+      ]
+    }
+  },
+  "canonical_inputs": [
+    "AUTHORITATIVE_ACQUISITION_RECEIPT",
+    "PURPOSE_SPECIFIC_RIGHTS_RECEIPT",
+    "GOVERNED_RECEIPT_REGISTRY_AUTHORITY",
+    "STRICT_CURRENT_SOLD_OBSERVATION",
+    "EXACT_SOURCE_SHA",
+    "EXACT_CANONICAL_RUN_ID"
+  ],
+  "canonical_outputs": [
+    "ATOMIC_CURRENT_SOLD_BATCH_RECEIPT",
+    "CURRENT_SOLD_EVENT",
+    "CANONICAL_EVIDENCE",
+    "APPEND_ONLY_LEDGER_WRITE_RECEIPT",
+    "IMMUTABLE_TRACK_A_SNAPSHOT_CANDIDATE",
+    "IMMUTABLE_TRACK_A_EVIDENCE_PACKAGE"
+  ],
+  "mandatory_gates": [
+    "WHOLE_BATCH_ATOMIC_PASS",
+    "STRICT_CURRENT_MAX_AGE_7_DAYS",
+    "MAX_FUTURE_CLOCK_SKEW_300_SECONDS",
+    "EXACT_RECEIPT_AND_REGISTRY_BINDING",
+    "GOVERNED_EXTERNAL_AUTHORITY_VERIFIED",
+    "NO_FIXTURE_OR_COMMITTED_REPLAY_EMPIRICAL_PROMOTION",
+    "APPEND_ONLY_LEDGER_READ_BACK",
+    "EXACT_CANDIDATE_EVIDENCE_PAIR",
+    "TRACK_B_INDEPENDENT_ASSESSMENT"
+  ],
+  "prohibited_actions_and_claims": [
+    "TRACK_A_SELF_APPROVAL_OF_RANKABILITY",
+    "TRACK_A_PROVIDER_OR_RIGHTS_SELF_ATTESTATION",
+    "TRACK_A_DIRECT_PUBLICATION",
+    "TRACK_A_PRODUCTION_APPROVAL",
+    "CONTROL_SYNTHETIC_AS_EMPIRICAL",
+    "PRIVATE_CANDIDATE_AS_LAWFUL_EMPIRICAL",
+    "LISTING_AS_SOLD",
+    "COMMITTED_REFERENCE_REPLAY_AS_LIVE_ACQUISITION",
+    "POSTGRES_WRITE_WITHOUT_SEPARATE_GATE",
+    "PUBLIC_PRODUCTION_OR_G5_PROMOTION_WITHOUT_EXPLICIT_AUTHORITY"
+  ],
+  "handoff_contract": {
+    "to_track_b": "EXACT_IMMUTABLE_SNAPSHOT_CANDIDATE_PLUS_EVIDENCE_PACKAGE_ONLY",
+    "track_b_may_mutate_evidence": false,
+    "track_a_may_self_approve": false
+  },
+  "current_truth_at_change_base": {
+    "protected_main_sha": "f46bdcd9003eb5c4b58208789956644f4ba19fe2",
+    "core_engine_post_landing_tests": "56_OF_56_PASS",
+    "lawful_empirical_current_sold_admitted": 0,
+    "postgres_migration_applied": false,
+    "postgres_rows_written": 0,
+    "official_track_b_started": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
