@@ -1,4 +1,5 @@
 const fail = code => { throw new Error(code); };
+const SHA40 = /^[0-9a-f]{40}$/;
 const READY_EVENTS = new Set(['ready_for_review', 'convert_to_draft']);
 const GENERATION_INVALIDATING_EVENTS = new Set(['convert_to_draft', 'closed', 'reopened']);
 const LIFECYCLE_EVENTS = new Set([
@@ -24,6 +25,26 @@ const normalizeLifecycleEvent = item => {
   };
 };
 
+const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner, latestReady}) => {
+  if (closeEntry?.item?.event !== 'closed') return false;
+  if (closeEntry.item?.actor?.login !== repositoryOwner) return false;
+  if (closeEntry.item?.performed_via_github_app !== null) return false;
+
+  const matchingMergedEvents = timeline
+    .filter(item => item?.event === 'merged')
+    .map(normalizeLifecycleEvent)
+    .filter(entry =>
+      entry.id < closeEntry.id
+      && (entry.time > latestReady.time
+        || (entry.time === latestReady.time && entry.id > latestReady.id))
+      && entry.createdAt === closeEntry.createdAt
+      && entry.item?.actor?.login === repositoryOwner
+      && entry.item?.performed_via_github_app === null
+      && SHA40.test(String(entry.item?.commit_id || '')));
+
+  return matchingMergedEvents.length === 1;
+};
+
 export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = {}) {
   if (!Array.isArray(timeline)) fail('LIFECYCLE_READY_TIMELINE_INVALID');
   if (typeof repositoryOwner !== 'string' || repositoryOwner.length === 0) {
@@ -42,10 +63,13 @@ export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = 
     fail('LIFECYCLE_LATEST_READY_EVENT_REQUIRED');
   }
 
-  const laterInvalidatingEvent = lifecycleEvents.find(entry =>
+  const invalidatingEvents = lifecycleEvents.filter(entry =>
     GENERATION_INVALIDATING_EVENTS.has(entry.item?.event)
-    && (entry.time > latestReady.time
-      || (entry.time === latestReady.time && entry.id > latestReady.id)));
+    && !isBoundNaturalMergedClose({timeline, closeEntry: entry, repositoryOwner, latestReady}));
+
+  const laterInvalidatingEvent = invalidatingEvents.find(entry =>
+    entry.time > latestReady.time
+    || (entry.time === latestReady.time && entry.id > latestReady.id));
   if (laterInvalidatingEvent) {
     fail(`LIFECYCLE_READY_GENERATION_INVALIDATED:${laterInvalidatingEvent.item.event}`);
   }
@@ -58,9 +82,7 @@ export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = 
     fail('LIFECYCLE_READY_EVENT_APP_MEDIATED');
   }
 
-  const latestInvalidatingEvent = lifecycleEvents
-    .filter(entry => GENERATION_INVALIDATING_EVENTS.has(entry.item?.event))
-    .at(-1);
+  const latestInvalidatingEvent = invalidatingEvents.at(-1);
 
   return Object.freeze({
     id: latestReady.id,
