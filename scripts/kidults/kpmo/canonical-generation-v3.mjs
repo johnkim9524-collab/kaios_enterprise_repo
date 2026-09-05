@@ -61,7 +61,7 @@ async function openIssues(){
     if(out.length>=total)break;
     if(!value.items.length||page===10)die('OPEN_ISSUE_PAGINATION_TRUNCATED');
   }
-  if(out.length!==total||out.some((issue)=>issue.pull_request)||new Set(out.map((issue)=>issue.number).size!==out.length)die('OPEN_ISSUE_SET_INVALID');
+  if(out.length!==total||out.some((issue)=>issue.pull_request)||new Set(out.map((issue)=>issue.number)).size!==out.length)die('OPEN_ISSUE_SET_INVALID');
   return out;
 }
 
