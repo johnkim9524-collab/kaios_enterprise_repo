@@ -19,9 +19,10 @@ def validate_contract(text: str) -> None:
     assert 'generation_bridge_runs_retained:$generation_bridge_retained' in text
     assert ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml" in text
     assert ".github/workflows/kidults-atomic-governed-landing-v1.yml" in text
-    assert ".workflow_runs[] | [.id, .head_sha, .status, .path] | @tsv" in text
+    assert ".workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv" in text
+    assert '[[ "${run_event}" == "workflow_dispatch" ]] || return 1' in text
 
-    bridge_guard = text.index('if retain_generation_bridge "${workflow_path}"; then')
+    bridge_guard = text.index('if retain_generation_bridge "${run_event}" "${workflow_path}"; then')
     normal_cancel_call = text.index('/actions/runs/${run_id}/cancel', bridge_guard)
     assert bridge_guard < normal_cancel_call
 
@@ -66,6 +67,16 @@ def test_same_head_force_cancel_is_forbidden() -> None:
     except (AssertionError, ValueError):
         return
     raise AssertionError("same-head protection removal was not rejected")
+
+
+def test_generation_bridge_retention_requires_workflow_dispatch() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    mutated = text.replace('"${run_event}" == "workflow_dispatch"', '"${run_event}" == "push"', 1)
+    try:
+        validate_contract(mutated)
+    except AssertionError:
+        return
+    raise AssertionError("generation-bridge event drift was not rejected")
 
 
 def test_direct_owner_generation_bridge_retention_is_required() -> None:
