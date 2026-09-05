@@ -6,7 +6,6 @@ import { canonicalJson, registryDigest } from './global-sold-source-registry-v1.
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{2,127}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function requireValue(condition, code) {
   if (!condition) throw new Error(code);
@@ -29,6 +28,8 @@ export function artifactDigest(filePath) {
 export function validateEvidenceManifest(manifest, registry, contract, options = {}) {
   requireValue(contract?.id === 'kidults-source-intelligence-evidence-manifest-contract-v1', 'EVIDENCE_CONTRACT_INVALID');
   requireValue(contract?.status === 'MANDATORY_FAIL_CLOSED', 'EVIDENCE_CONTRACT_NOT_FAIL_CLOSED');
+  requireValue(contract.rules?.restricted_bytes_hard_disabled_until_authoritative_receipt_resolution === true, 'EVIDENCE_RESTRICTED_BYTES_HARD_STOP_CONTRACT_MISSING');
+  requireValue(contract.rules?.restricted_bytes_require_content_bound_authoritative_receipt_resolution === true, 'EVIDENCE_CONTENT_BOUND_RECEIPT_CONTRACT_MISSING');
   requireValue(contract.manifest_types.includes(manifest?.manifest_type), 'EVIDENCE_MANIFEST_TYPE_INVALID');
   requireValue(typeof manifest?.id === 'string' && SAFE_ID.test(manifest.id), 'EVIDENCE_MANIFEST_ID_INVALID');
   requireValue(contract.manifest_statuses.includes(manifest.status), 'EVIDENCE_MANIFEST_STATUS_INVALID');
@@ -50,38 +51,24 @@ export function validateEvidenceManifest(manifest, registry, contract, options =
   requireValue(manifest.release_boundary?.public === 'HOLD', 'EVIDENCE_PUBLIC_MUST_HOLD');
   requireValue(manifest.release_boundary?.production === 'HOLD', 'EVIDENCE_PRODUCTION_MUST_HOLD');
   requireValue(manifest.release_boundary?.g5 === 'HOLD', 'EVIDENCE_G5_MUST_HOLD');
+
   const storesExternalBytes = manifest.artifact.contains_external_raw_content === true;
   const restrictedMode = manifest.artifact.storage_mode === 'RESTRICTED_EVIDENCE_BYTES';
   requireValue(storesExternalBytes === restrictedMode, 'EVIDENCE_RAW_STORAGE_MODE_MISMATCH');
-  if (storesExternalBytes) {
-    requireValue(manifest.status === 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY', 'EVIDENCE_RAW_STATUS_INVALID');
-    requireValue(typeof manifest.artifact.evidence_uri === 'string', 'EVIDENCE_VOLUME_URI_REQUIRED');
-    const root = `${contract.evidence_root}/`;
-    requireValue(manifest.artifact.evidence_uri.startsWith(root), 'EVIDENCE_VOLUME_URI_OUTSIDE_ROOT');
-    const suffix = manifest.artifact.evidence_uri.slice(root.length);
-    requireValue(suffix.length > 0 && !suffix.split('/').includes('..') && path.posix.normalize(suffix) === suffix, 'EVIDENCE_VOLUME_URI_UNSAFE');
-    requireValue(UUID.test(manifest.admission?.rights_decision_id ?? ''), 'EVIDENCE_RIGHTS_DECISION_ID_REQUIRED');
-    requireValue(UUID.test(manifest.admission?.supply_chain_run_id ?? ''), 'EVIDENCE_SUPPLY_CHAIN_RUN_ID_REQUIRED');
-    for (const sourceId of manifestIds) {
-      const source = registry.sources.find((candidate) => candidate.source_id === sourceId);
-      requireValue(source.rights.store === 'PASS' && source.rights.raw_archive === 'PASS', `EVIDENCE_RAW_ARCHIVE_RIGHTS_NOT_PASS:${sourceId}`);
-    }
-  } else {
-    requireValue(manifest.artifact.evidence_uri === null, 'EVIDENCE_VOLUME_WRITE_UNAUTHORIZED');
-    requireValue(manifest.status !== 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY', 'EVIDENCE_ADMITTED_STATUS_WITHOUT_BYTES');
-    requireValue(manifest.admission?.rights_decision_id == null, 'EVIDENCE_UNUSED_RIGHTS_DECISION_ID');
-    requireValue(manifest.admission?.supply_chain_run_id == null, 'EVIDENCE_UNUSED_SUPPLY_CHAIN_RUN_ID');
-  }
+
+  // Fail closed until an authoritative, content-bound receipt resolver is implemented.
+  // UUID shape, registry PASS, or foreign-key type alone is never admission authority.
+  requireValue(!storesExternalBytes && !restrictedMode, 'EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED');
+  requireValue(manifest.artifact.evidence_uri === null, 'EVIDENCE_VOLUME_WRITE_UNAUTHORIZED');
+  requireValue(manifest.status !== 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY', 'EVIDENCE_ADMITTED_STATUS_WITHOUT_BYTES');
+  requireValue(manifest.admission?.rights_decision_id == null, 'EVIDENCE_UNUSED_RIGHTS_DECISION_ID');
+  requireValue(manifest.admission?.supply_chain_run_id == null, 'EVIDENCE_UNUSED_SUPPLY_CHAIN_RUN_ID');
+
   requireValue(manifest.retention?.mode === 'APPEND_ONLY_INSTITUTIONAL_HISTORY', 'EVIDENCE_RETENTION_INVALID');
   requireValue(manifest.retention?.expires_at === null, 'EVIDENCE_RETENTION_EXPIRY_FORBIDDEN');
   requireValue(manifest.retention?.deletion_required === false, 'EVIDENCE_DELETION_FLAG_INVALID');
   if (manifest.manifest_type === 'ACQUISITION_EVIDENCE') {
-    requireValue(storesExternalBytes, 'EVIDENCE_ACQUISITION_BYTES_REQUIRED');
-    for (const sourceId of manifestIds) {
-      const source = registry.sources.find((candidate) => candidate.source_id === sourceId);
-      requireValue(source.source_roles.includes('SOLD_TRANSACTION') || source.source_roles.includes('PLATFORM_SOLD_SIGNAL'), `EVIDENCE_SOURCE_NOT_TRANSACTIONAL:${sourceId}`);
-      requireValue(source.rights.collect === 'PASS' && source.rights.store === 'PASS', `EVIDENCE_SOURCE_RIGHTS_NOT_PASS:${sourceId}`);
-    }
+    throw new Error('EVIDENCE_ACQUISITION_HARD_DISABLED_PENDING_AUTHORITATIVE_RECEIPT_RESOLUTION');
   }
   const expectedArtifactPath = options.artifactPath;
   if (expectedArtifactPath) {
@@ -97,7 +84,8 @@ export function validateEvidenceManifest(manifest, registry, contract, options =
     registry_snapshot_digest: registry.snapshot_digest,
     source_count: manifestIds.length,
     storage_mode: manifest.artifact.storage_mode,
-    external_raw_content: storesExternalBytes,
+    external_raw_content: false,
+    restricted_evidence_bytes_authorized: false,
     database_mutation_authorized: false,
     production: 'HOLD'
   };
