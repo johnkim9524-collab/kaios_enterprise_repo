@@ -158,3 +158,45 @@ test('selector chooses marker generation before parsing approval body', () => {
   assert.ok(markerFilter >= 0 && parseSelected > markerFilter);
   assert.doesNotMatch(selector, /\.map\(comment => \(\{comment, fields: parseApproval/);
 });
+
+test('pre-Draft approval cannot be rebound by a later Ready generation', () => {
+  const now = Date.parse('2026-09-05T05:00:00Z');
+  const {selectApproval} = loadProductionSelector(now);
+  const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+  const pr = {created_at: iso(-40)};
+  const headCommit = {commit: {committer: {date: iso(-35)}}};
+  const readyEvent = {
+    created_at: iso(-2),
+    latest_invalidating_event: {id: 500, event: 'convert_to_draft', created_at: iso(-6)},
+  };
+  const staleApproval = ownerComment({
+    id: 400,
+    createdAt: iso(-10),
+    body: approvalBody({nonce: '55555555555555555555555555555555', expiresAt: iso(20)}),
+  });
+
+  assert.throws(
+    () => selectApproval([staleApproval], 'johnkim9524-collab', pr, headCommit, readyEvent),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_LATEST_INVALIDATION/,
+  );
+});
+
+test('fresh post-Draft approval remains valid before the new Ready event', () => {
+  const now = Date.parse('2026-09-05T05:00:00Z');
+  const {selectApproval} = loadProductionSelector(now);
+  const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+  const pr = {created_at: iso(-40)};
+  const headCommit = {commit: {committer: {date: iso(-35)}}};
+  const readyEvent = {
+    created_at: iso(-2),
+    latest_invalidating_event: {id: 500, event: 'convert_to_draft', created_at: iso(-6)},
+  };
+  const freshApproval = ownerComment({
+    id: 600,
+    createdAt: iso(-4),
+    body: approvalBody({nonce: '66666666666666666666666666666666', expiresAt: iso(20)}),
+  });
+
+  const selected = selectApproval([freshApproval], 'johnkim9524-collab', pr, headCommit, readyEvent);
+  assert.equal(selected.comment_id, 600);
+});
