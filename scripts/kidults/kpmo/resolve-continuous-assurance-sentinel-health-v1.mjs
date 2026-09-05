@@ -28,7 +28,12 @@ function exactArtifact(spec,run,artifacts,observedAt){
   if(!DIGEST.test(a.digest||''))return {state:'VERIFIED_FAIL',failure_class:`${spec.id}_ARTIFACT_DIGEST`};
   if(!Number.isFinite(Date.parse(a.expires_at||''))||Date.parse(a.expires_at)<=Date.parse(observedAt))return {state:'VERIFIED_FAIL',failure_class:`${spec.id}_ARTIFACT_EXPIRY`};
   const waiting=spec.waitingArtifact&&a.name===spec.waitingArtifact;
-  return {state:waiting?'VERIFIED_HOLD':'VERIFIED_PASS',artifact_id:Number(a.id),artifact_name:a.name,artifact_digest:a.digest,artifact_expires_at:a.expires_at};
+  if(waiting)return {state:'VERIFIED_HOLD',failure_class:`${spec.id}_WAITING_ARTIFACT`,artifact_transport_verified:true,artifact_content_validated:false,artifact_id:Number(a.id),artifact_name:a.name,artifact_digest:a.digest,artifact_expires_at:a.expires_at};
+  // GitHub artifact-index metadata proves transport existence only. It cannot
+  // prove the producer's internal terminal receipt state or authority ceiling.
+  // Until a producer-specific payload validator supplies content-bound proof,
+  // metadata-only evidence must remain HOLD and can never become semantic PASS.
+  return {state:'VERIFIED_HOLD',failure_class:`${spec.id}_ARTIFACT_CONTENT_NOT_VALIDATED`,artifact_transport_verified:true,artifact_content_validated:false,artifact_id:Number(a.id),artifact_name:a.name,artifact_digest:a.digest,artifact_expires_at:a.expires_at};
 }
 
 export function evaluateProducer(spec,runs,artifactsByRun,sourceSha,observedAt){
@@ -106,13 +111,13 @@ function selfTest(){
   const sha='a'.repeat(40),observed='2026-09-04T01:00:00Z';
   const input={repository:'o/r',source_sha:sha,observed_at:observed,runs:{},artifacts_by_run:{}};
   for(const spec of SPECS){const run=fakeRun(10+SPECS.indexOf(spec),spec,sha);input.runs[spec.id]=[run];const name=spec.artifactForRun?spec.artifactForRun(run):spec.artifacts[0];input.artifacts_by_run[run.id]=[fakeArtifact(100+SPECS.indexOf(spec),run,name)];}
-  const green=evaluateHealth(input);if(green.state!=='VERIFIED_PASS'||green.producers.length!==4||green.whole_platform_authority!==false)fail('SELF_GREEN');
+  const metadataOnly=evaluateHealth(input);if(metadataOnly.state!=='VERIFIED_HOLD'||metadataOnly.producers.length!==4||metadataOnly.whole_platform_authority!==false||metadataOnly.producers.some((p)=>p.artifact_transport_verified!==true||p.artifact_content_validated!==false))fail('SELF_METADATA_ONLY_MUST_HOLD');
   const red=structuredClone(input);red.runs.SHADOW.push(fakeRun(99,SPECS[0],sha,{conclusion:'failure',minute:59}));if(evaluateHealth(red).state!=='VERIFIED_FAIL')fail('SELF_LATEST_RED');
   const pending=structuredClone(input);pending.runs.REQUIREMENT.push(fakeRun(98,SPECS[1],sha,{status:'in_progress',conclusion:null,minute:58}));if(evaluateHealth(pending).state!=='VERIFIED_HOLD')fail('SELF_PENDING');
   const missing=structuredClone(input);missing.artifacts_by_run[missing.runs.CANONICAL_TRUTH[0].id]=[];if(evaluateHealth(missing).state!=='VERIFIED_FAIL')fail('SELF_MISSING_ARTIFACT');
   const waiting=structuredClone(input);const rr=waiting.runs.RESERVE[0];waiting.artifacts_by_run[rr.id]=[fakeArtifact(333,rr,SPECS[2].waitingArtifact)];if(evaluateHealth(waiting).state!=='VERIFIED_HOLD')fail('SELF_WAITING');
-  const supersede=structuredClone(input);const spec=SPECS[0];const old=fakeRun(1,spec,sha,{conclusion:'failure',minute:1});const newer=fakeRun(2,spec,sha,{conclusion:'success',minute:2});supersede.runs.SHADOW=[old,newer];supersede.artifacts_by_run[newer.id]=[fakeArtifact(444,newer,spec.artifacts[0])];const result=evaluateHealth(supersede);const shadow=result.producers.find((p)=>p.id==='SHADOW');if(result.state!=='VERIFIED_PASS'||shadow.superseded_red_run_ids[0]!==1)fail('SELF_SUPERSESSION');
-  console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',positive:2,negative:4,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
+  const supersede=structuredClone(input);const spec=SPECS[0];const old=fakeRun(1,spec,sha,{conclusion:'failure',minute:1});const newer=fakeRun(2,spec,sha,{conclusion:'success',minute:2});supersede.runs.SHADOW=[old,newer];supersede.artifacts_by_run[newer.id]=[fakeArtifact(444,newer,spec.artifacts[0])];const result=evaluateHealth(supersede);const shadow=result.producers.find((p)=>p.id==='SHADOW');if(result.state!=='VERIFIED_HOLD'||shadow.failure_class!=='SHADOW_ARTIFACT_CONTENT_NOT_VALIDATED'||shadow.superseded_red_run_ids.length!==0)fail('SELF_METADATA_SUPERSESSION_MUST_HOLD');
+  console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',metadata_only_semantic_pass:false,metadata_only_state:'VERIFIED_HOLD',positive:0,negative:6,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
 }
 
 function outputPath(){const index=process.argv.indexOf('--output');return index>=0?process.argv[index+1]:'';}
