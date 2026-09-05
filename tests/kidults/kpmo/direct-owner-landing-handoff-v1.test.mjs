@@ -6,6 +6,38 @@ const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
 const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
 
+function loadProductionApprovalParser() {
+  const keysStart = runner.indexOf('const approvalKeys = [');
+  const keysEnd = runner.indexOf('];', keysStart) + 2;
+  const functionStart = runner.indexOf('function parseApproval(body) {');
+  assert.ok(keysStart >= 0 && keysEnd > keysStart && functionStart >= 0, 'production parser source unavailable');
+  let cursor = runner.indexOf('{', functionStart);
+  let depth = 0;
+  let functionEnd = -1;
+  for (; cursor < runner.length; cursor += 1) {
+    if (runner[cursor] === '{') depth += 1;
+    if (runner[cursor] === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        functionEnd = cursor + 1;
+        break;
+      }
+    }
+  }
+  assert.ok(functionEnd > functionStart, 'production parser boundary unavailable');
+  const factory = new Function('MARKER', 'fail', `${runner.slice(keysStart, keysEnd)}
+${runner.slice(functionStart, functionEnd)}
+return {approvalKeys, parseApproval};`);
+  return factory(
+    'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2',
+    code => {
+      const error = new Error(code);
+      error.code = code;
+      throw error;
+    },
+  );
+}
+
 test('direct-owner handoff separates status authorization from the event-emitting merge', () => {
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /issue_comment:\n    types: \[created, edited, deleted\]/);
@@ -36,11 +68,32 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /await publish\('failure'/);
 });
 
-test('approval parser accepts mandatory digit-bearing g5 key while explicit allowlist remains authoritative', () => {
-  assert.ok(runner.includes("const match = /^([a-z0-9_]+)=(.+)$/.exec(line);"));
-  assert.ok(runner.includes("'production', 'public', 'g5',"));
-  assert.ok(runner.includes('!approvalKeys.includes(match[1])'));
-  assert.ok(runner.includes('Object.hasOwn(fields, match[1])'));
+test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
+  const {approvalKeys, parseApproval} = loadProductionApprovalParser();
+  const approval = [
+    'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2',
+    'repository=johnkim9524-collab/kaios_enterprise_repo',
+    'pull_request=1988',
+    'exact_base_sha=0e5852b437afb89971f28641c2b230cc30c5b1e0',
+    'exact_head_sha=21d9785d2a9513e4c6432c810cdfce27200fe94a',
+    'operation=MERGE_PROTECTED_MAIN',
+    'transport=DIRECT_OWNER_GITHUB_UI',
+    'authorization_id=DIRECT-PR-1988-21d9785d2a95',
+    'nonce=2e4a92805b23fb3eb9eba27f3e4f4d9f',
+    'expires_at=2026-09-05T03:00:00Z',
+    'purpose=P1_1987_REVOCATION_CANARY',
+    'scope=ONE_DIRECT_OWNER_MERGE_ONLY',
+    'approval_rebind=FORBIDDEN',
+    'production=HOLD',
+    'public=HOLD',
+    'g5=HOLD',
+  ].join('\n');
+
+  assert.equal(approvalKeys.length, 15);
+  assert.equal(parseApproval(approval).g5, 'HOLD');
+  assert.throws(() => parseApproval(approval.replace('g5=HOLD', 'g6=HOLD')), /DIRECT_OWNER_HANDOFF_APPROVAL_FIELD_INVALID/);
+  assert.throws(() => parseApproval(approval.replace('public=HOLD', 'production=HOLD')), /DIRECT_OWNER_HANDOFF_APPROVAL_FIELD_INVALID/);
+  assert.equal(parseApproval('NOT_AN_APPROVAL'), null);
 });
 
 test('approval comment mutation revokes any open direct-owner handoff', () => {
