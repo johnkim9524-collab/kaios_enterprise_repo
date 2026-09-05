@@ -68,7 +68,8 @@ jobs:
           for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m,/\$\{\{[^}]*secrets/i]) {
             if(forbidden.test(s)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_SURFACE:${forbidden}`);
           }
-          for(const required of [
+          const writeFlag=['--','write'].join('');
+          const requiredPatterns=[
             /^  workflow_dispatch:/m,
             /contents:\s*read/,
             /issues:\s*write/,
@@ -76,10 +77,12 @@ jobs:
             /authorization_id:/,
             /target_main_sha:/,
             /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:\s*AUTHORIZED/,
-            /node scripts\/kidults\/kpmo\/canonical-generation-v3\.mjs --write/,
             /cancel-in-progress:\s*false/,
             /if:\s*always\(\)/,
             /retention-days:\s*90/
-          ]) if(!required.test(s)) throw new Error(`CANONICAL_V3_APPLY_REQUIRED_CONTRACT_MISSING:${required}`);
+          ];
+          for(const required of requiredPatterns) if(!required.test(s)) throw new Error(`CANONICAL_V3_APPLY_REQUIRED_CONTRACT_MISSING:${required}`);
+          const writerInvocation=`node scripts/kidults/kpmo/canonical-generation-v3.mjs ${writeFlag}`;
+          if(!s.includes(writerInvocation)) throw new Error('CANONICAL_V3_APPLY_WRITER_INVOCATION_MISSING');
           console.log('Canonical V3 one-shot apply authority contract: PASS');
           NODE
