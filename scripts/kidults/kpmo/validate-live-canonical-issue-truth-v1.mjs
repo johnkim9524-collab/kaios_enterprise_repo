@@ -20,14 +20,19 @@ function assertV3Authority(v3){
   const issueNumbers=v3.material_defects.map((item)=>item?.issue_number);
   if(issueNumbers.some((number)=>!Number.isInteger(number)||number<1)||new Set(issueNumbers).size!==issueNumbers.length) throw new Error('V3_MATERIAL_MEMBER_SET_INVALID');
   if(!v3?.material_defect_query_cardinality||!Number.isInteger(v3.material_defect_query_cardinality.P0)||!Number.isInteger(v3.material_defect_query_cardinality.P1)) throw new Error('V3_MATERIAL_CARDINALITY_INVALID');
-  if(v3.material_defect_query_cardinality.P0+v3.material_defect_query_cardinality.P1!==v3.material_defect_count) throw new Error('V3_MATERIAL_CARDINALITY_SUM_INVALID');
+  const p0=v3.material_defects.filter((item)=>Array.isArray(item?.labels)&&item.labels.includes('P0')).length;
+  const p1=v3.material_defects.filter((item)=>Array.isArray(item?.labels)&&item.labels.includes('P1')).length;
+  if(v3.material_defect_query_cardinality.P0!==p0||v3.material_defect_query_cardinality.P1!==p1) throw new Error('V3_MATERIAL_CARDINALITY_BINDING_INVALID');
   if(v3?.empirical_promotion!==false||v3?.whole_platform_closure!==false||v3?.promotion_eligible!==false||v3?.production!=='HOLD'||v3?.public!=='HOLD'||v3?.g5!=='HOLD') throw new Error('V3_PROMOTION_BOUNDARY_INVALID');
   return true;
 }
 
 function runSelfTest(){
-  const records=[{issue_number:10,effective_priority:'P0'},{issue_number:11,effective_priority:'P1'}];
-  const valid={state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',protected_main_sha:'a'.repeat(40),generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-123-1',aggregate_comment_id:100,canonical_issue_count:25,canonical_issues:Array.from({length:25},(_,i)=>i+1),active_baseline_trust_root_defects:[1330],material_defect_count:2,material_defect_registry_sha256:`sha256:${'1'.repeat(64)}`,material_defect_query_cardinality:{P0:1,P1:1},material_defects:records,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+  const records=[
+    {issue_number:10,effective_priority:'P0',labels:['P0','P1']},
+    {issue_number:11,effective_priority:'P1',labels:['P1']}
+  ];
+  const valid={state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',protected_main_sha:'a'.repeat(40),generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-123-1',aggregate_comment_id:100,canonical_issue_count:25,canonical_issues:Array.from({length:25},(_,i)=>i+1),active_baseline_trust_root_defects:[1330],material_defect_count:2,material_defect_registry_sha256:`sha256:${'1'.repeat(64)}`,material_defect_query_cardinality:{P0:1,P1:2},material_defects:records,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
   assertV3Authority(valid);
   const mutations=[
     {...valid,state:'VERIFIED_FAIL'},
@@ -38,7 +43,7 @@ function runSelfTest(){
     {...valid,whole_platform_closure:true}
   ];
   for(const mutated of mutations){let rejected=false;try{assertV3Authority(mutated);}catch{rejected=true;}if(!rejected)throw new Error('SELF_TEST_V3_MUTATION_ESCAPED');}
-  console.log(JSON.stringify({test:'LIVE_CANONICAL_ISSUE_TRUTH_V3_AUTHORITY_SELF_TEST',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',legacy_v2_body_authority:false,negative_cases:mutations.length}));
+  console.log(JSON.stringify({test:'LIVE_CANONICAL_ISSUE_TRUTH_V3_AUTHORITY_SELF_TEST',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',legacy_v2_body_authority:false,label_overlap_cardinality_preserved:true,negative_cases:mutations.length}));
 }
 
 if(process.argv.includes('--self-test')){
@@ -59,7 +64,7 @@ try{
   if(!allowPrMainAdvance&&v3.protected_main_sha!==expectedMainSha) throw new Error(`MAIN_MOVED:${expectedMainSha}:${v3.protected_main_sha}`);
   console.log(JSON.stringify({
     validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',
-    version:'3.0.0',
+    version:'3.1.0',
     state:'VERIFIED_PASS',
     authority_model:'CANONICAL_GENERATION_V3_ONLY',
     generation_id:v3.generation_id,
