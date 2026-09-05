@@ -160,6 +160,14 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   const headCommittedAt = parseTime(headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date, 'DIRECT_OWNER_HANDOFF_HEAD_TIME_INVALID');
   if (approvedAt < parseTime(pr.created_at, 'DIRECT_OWNER_HANDOFF_PR_TIME_INVALID') || approvedAt < headCommittedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_EXACT_HEAD');
   if (approvedAt > parseTime(readyEvent.created_at, 'DIRECT_OWNER_HANDOFF_READY_TIME_INVALID')) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY');
+  const latestInvalidatingEvent = readyEvent?.latest_invalidating_event || null;
+  if (latestInvalidatingEvent) {
+    const invalidatedAt = parseTime(
+      latestInvalidatingEvent.created_at,
+      'DIRECT_OWNER_HANDOFF_LATEST_INVALIDATION_TIME_INVALID',
+    );
+    if (approvedAt <= invalidatedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PRECEDES_LATEST_INVALIDATION');
+  }
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_WINDOW_INVALID');
   if (now < approvedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_YET_VALID');
   if (phase === 'pre_window' && now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
