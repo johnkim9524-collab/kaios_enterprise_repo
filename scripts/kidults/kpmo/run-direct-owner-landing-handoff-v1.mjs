@@ -113,13 +113,14 @@ function parseApproval(body) {
 
 function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent) {
   const marked = comments
-    .map(comment => ({comment, fields: parseApproval(comment?.body)}))
-    .filter(value => value.fields)
-    .sort((a, b) => parseTime(b.comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
-      - parseTime(a.comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
-      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+    .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === MARKER)
+    .sort((a, b) => parseTime(b.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
+      - parseTime(a.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
+      || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  const {comment, fields} = marked[0];
+  const comment = marked[0];
+  const fields = parseApproval(comment?.body);
+  if (!fields) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
   if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
   if (comment.updated_at !== comment.created_at) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
