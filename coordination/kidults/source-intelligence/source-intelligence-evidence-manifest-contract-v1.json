@@ -1,6 +1,6 @@
 {
   "id": "kidults-source-intelligence-evidence-manifest-contract-v1",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "status": "MANDATORY_FAIL_CLOSED",
   "evidence_root": "/mnt/ih_prod_01/evidence/current-sold",
   "manifest_types": [
@@ -36,6 +36,8 @@
     "registry_digest_binding_required": true,
     "artifact_sha256_required": true,
     "source_ids_must_exist_in_bound_registry": true,
+    "restricted_bytes_hard_disabled_until_authoritative_receipt_resolution": true,
+    "restricted_bytes_require_content_bound_authoritative_receipt_resolution": true,
     "restricted_bytes_require_registry_store_pass": true,
     "restricted_bytes_require_registry_raw_archive_pass": true,
     "restricted_bytes_require_rights_decision_and_supply_run_foreign_keys": true,
