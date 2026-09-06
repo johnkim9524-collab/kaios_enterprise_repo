@@ -28,6 +28,14 @@ on:
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'scripts/kidults/kpmo/initialize-atomic-dispatch-terminal-receipt-v1.mjs'
+      - 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs'
+      - 'tests/kidults/kpmo/atomic-*.test.mjs'
+      - 'tests/kidults/kpmo/canonical-*.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-*.test.mjs'
+      - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
+      - 'tests/production/production-release-evidence-gate-v1.test.mjs'
+      - 'apps/dual-staging-http-runtime/src/**'
   pull_request:
     branches: [main]
     paths:
@@ -55,6 +63,14 @@ on:
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'scripts/kidults/kpmo/initialize-atomic-dispatch-terminal-receipt-v1.mjs'
+      - 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs'
+      - 'tests/kidults/kpmo/atomic-*.test.mjs'
+      - 'tests/kidults/kpmo/canonical-*.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-*.test.mjs'
+      - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
+      - 'tests/production/production-release-evidence-gate-v1.test.mjs'
+      - 'apps/dual-staging-http-runtime/src/**'
 
 permissions:
   contents: read
@@ -155,6 +171,27 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
+
+      - name: Run all five KIR integration control gates on one exact source
+        id: five_gate_regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/kir-five-gate-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -m 0700 "$OUT"
+          node scripts/kidults/runtime/run-kir-five-gate-control-suite-v1.mjs run \
+            --expected-sha "$EXPECTED_HEAD_SHA" --output-dir "$OUT"
+          node scripts/kidults/runtime/run-kir-five-gate-control-suite-v1.mjs verify \
+            --expected-sha "$EXPECTED_HEAD_SHA" --output-dir "$OUT"
+
+      - name: Retain five-gate control logs and failure evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-kir-five-gate-controls-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kir-five-gate-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Evaluate exact-head KIR runtime truth
         id: evaluate
@@ -258,6 +295,7 @@ jobs:
           SETUP_NODE_OUTCOME: ${{ steps.setup_node.outcome }}
           VALIDATE_CONTRACT_OUTCOME: ${{ steps.validate_contract.outcome }}
           REGRESSION_OUTCOME: ${{ steps.regression.outcome }}
+          FIVE_GATE_OUTCOME: ${{ steps.five_gate_regression.outcome }}
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           BRIDGE_OUTCOME: ${{ steps.bridge.outcome }}
           LEDGER_OUTCOME: ${{ steps.ledger_bridge.outcome }}
@@ -279,6 +317,7 @@ jobs:
             ('SETUP_NODE',os.environ.get('SETUP_NODE_OUTCOME','')),
             ('VALIDATE_CONTRACT',os.environ.get('VALIDATE_CONTRACT_OUTCOME','')),
             ('REGRESSION',os.environ.get('REGRESSION_OUTCOME','')),
+            ('FIVE_GATE',os.environ.get('FIVE_GATE_OUTCOME','')),
             ('EVALUATE',os.environ.get('EVALUATE_OUTCOME','')),
             ('BRIDGE',os.environ.get('BRIDGE_OUTCOME','')),
             ('LEDGER',os.environ.get('LEDGER_OUTCOME','')),

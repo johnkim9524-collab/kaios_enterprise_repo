@@ -3,9 +3,12 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const shaPattern = /^[0-9a-f]{40}$/;
 const repoPattern = /^[^/]+\/[^/]+$/;
+const positiveIdentity = value => (typeof value === 'string' || typeof value === 'number')
+  && /^[1-9][0-9]*$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
 
 const digest = value => crypto.createHash('sha256').update(String(value ?? '')).digest('hex');
 
@@ -17,6 +20,8 @@ export function buildAtomicDispatchTerminalReceipt({
   landingActor,
   landingRunId,
   landingRunAttempt,
+  executionSourceSha,
+  checkoutSha,
   now = new Date().toISOString(),
 }) {
   const prText = String(prNumber ?? '');
@@ -26,10 +31,12 @@ export function buildAtomicDispatchTerminalReceipt({
   const authorizationText = String(authorizationId ?? '');
 
   const repositoryValid = repoPattern.test(String(repository ?? ''));
-  const prValid = /^\d+$/.test(prText);
+  const prValid = positiveIdentity(prNumber);
   const headValid = shaPattern.test(headText);
-  const runIdValid = /^\d+$/.test(runIdText);
-  const runAttemptValid = /^\d+$/.test(runAttemptText);
+  const runIdValid = positiveIdentity(landingRunId);
+  const runAttemptValid = positiveIdentity(landingRunAttempt);
+  const executionBound = shaPattern.test(executionSourceSha || '')
+    && checkoutSha === executionSourceSha;
   const expectedAuthorization = prValid && headValid
     ? `LAND-PR-${prText}-${headText.slice(0, 12)}`
     : null;
@@ -41,12 +48,13 @@ export function buildAtomicDispatchTerminalReceipt({
   else if (!headValid) failureCode = 'ATOMIC_DISPATCH_RECEIPT_HEAD_INVALID';
   else if (!runIdValid) failureCode = 'ATOMIC_DISPATCH_RECEIPT_RUN_ID_INVALID';
   else if (!runAttemptValid) failureCode = 'ATOMIC_DISPATCH_RECEIPT_RUN_ATTEMPT_INVALID';
+  else if (!executionBound) failureCode = 'ATOMIC_DISPATCH_EXECUTION_SOURCE_MISMATCH';
   else if (!authorizationBindingValid) failureCode = 'ATOMIC_TERMINAL_AUTHORIZATION_BINDING_INVALID';
 
   const structurallyValid = failureCode === null;
   return {
     id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-    version: '2.4.0',
+    version: '2.5.0',
     state: structurallyValid ? 'DISPATCH_RECEIVED_FAIL_CLOSED' : 'VERIFIED_FAIL',
     terminal_class: structurallyValid
       ? 'PREMUTATION_DISPATCH_RECEIPT_INITIALIZED'
@@ -55,6 +63,9 @@ export function buildAtomicDispatchTerminalReceipt({
     repository: repositoryValid ? String(repository) : null,
     pull_request: prValid ? Number(prText) : null,
     exact_head_sha: headValid ? headText : null,
+    execution_source_sha: shaPattern.test(executionSourceSha || '') ? executionSourceSha : null,
+    checked_out_sha: shaPattern.test(checkoutSha || '') ? checkoutSha : null,
+    execution_source_bound: executionBound,
     landing_actor: landingActor || null,
     landing_workflow_run_id: runIdValid ? Number(runIdText) : null,
     landing_workflow_run_attempt: runAttemptValid ? Number(runAttemptText) : null,
@@ -88,7 +99,16 @@ export function writeAtomicDispatchTerminalReceipt(receipt, receiptPath) {
 async function main() {
   const receiptPath = process.env.ATOMIC_LANDING_TERMINAL_RECEIPT_PATH
     || path.join(process.env.RUNNER_TEMP || '/tmp', 'kidults-atomic-landing-terminal', 'receipt.json');
+  let checkoutSha = null;
+  try {
+    checkoutSha = execFileSync('git', ['--no-replace-objects', '-c', 'core.fsmonitor=false', 'rev-parse', 'HEAD'], {
+      encoding:'utf8', timeout:5000, stdio:['ignore','pipe','ignore'],
+      env:{PATH:'/usr/bin:/bin', GIT_CONFIG_NOSYSTEM:'1', GIT_CONFIG_GLOBAL:'/dev/null', GIT_TERMINAL_PROMPT:'0'},
+    }).trim();
+  } catch {} // Still retain a nonauthorizing failure receipt when checkout cannot be bound.
   const receipt = buildAtomicDispatchTerminalReceipt({
+    executionSourceSha: process.env.GITHUB_SHA,
+    checkoutSha,
     repository: process.env.GH_REPOSITORY || process.env.GITHUB_REPOSITORY,
     prNumber: process.env.PR_NUMBER,
     expectedHeadSha: process.env.EXPECTED_HEAD_SHA,

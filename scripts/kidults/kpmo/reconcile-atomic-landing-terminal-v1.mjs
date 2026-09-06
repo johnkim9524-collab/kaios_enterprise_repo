@@ -2,6 +2,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {isDeepStrictEqual} from 'node:util';
+import {buildAtomicDispatchTerminalReceipt} from './initialize-atomic-dispatch-terminal-receipt-v1.mjs';
 
 const mode = process.argv[2];
 const repository = process.env.GH_REPOSITORY || process.env.GITHUB_REPOSITORY;
@@ -36,6 +38,26 @@ function assert(condition, code) {
     const error = new Error(code);
     error.code = code;
     throw error;
+  }
+}
+
+// Retain the earliest source/identity rejection before token, lifecycle or API gates.
+// Recompute against this exact invocation; a copied or modified packet cannot be
+// used to authorize anything or silently replace the diagnostic of another run.
+if (mode === '--finalize' && fs.existsSync(receiptPath)) {
+  const metadata = fs.lstatSync(receiptPath);
+  assert(metadata.isFile() && !metadata.isSymbolicLink() && metadata.nlink === 1
+    && metadata.size <= 65536, 'ATOMIC_DISPATCH_REJECTION_FILE_INVALID');
+  const prior = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+  if (prior.version === '2.5.0' && prior.terminal_class === 'PREMUTATION_DISPATCH_REJECTED') {
+    const expected = buildAtomicDispatchTerminalReceipt({repository, prNumber, expectedHeadSha,
+      authorizationId, landingActor, landingRunId, landingRunAttempt,
+      executionSourceSha: process.env.GITHUB_SHA, checkoutSha: prior.checked_out_sha, now: prior.created_at});
+    assert(isDeepStrictEqual(prior, expected) && prior.state === 'VERIFIED_FAIL'
+      && prior.merge_committed === false, 'ATOMIC_DISPATCH_REJECTION_BINDING_MISMATCH');
+    console.error(JSON.stringify({state:'VERIFIED_FAIL', failure_code:prior.failure_code,
+      dispatch_rejection_preserved:true, remote_request_performed:false, merge_committed:false}));
+    process.exit(1);
   }
 }
 
