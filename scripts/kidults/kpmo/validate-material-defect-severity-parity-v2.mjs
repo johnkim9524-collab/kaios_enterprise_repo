@@ -14,12 +14,18 @@ function fail(message) {
   process.exit(1);
 }
 
+const MATERIAL_PRIORITY_LABELS = Object.freeze(['P0', 'P1']);
+
 export function declaredSeverityLabels(title) {
   const declared = new Set();
   const text = String(title || '');
+  const prefixMatch = text.match(/^\s*((?:P0|P1)(?:\s*\/\s*(?:P0|P1))*)\s*:/);
+  if (prefixMatch) {
+    for (const part of String(prefixMatch[1] || '').split('/').map(part => part.trim()).filter(Boolean)) declared.add(part);
+  }
   for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
     const parts = String(match[1] || '').split('/').map(part => part.trim()).filter(Boolean);
-    if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1')) continue;
+    if (parts.length === 0 || !parts.every(part => MATERIAL_PRIORITY_LABELS.includes(part))) continue;
     for (const part of parts) declared.add(part);
   }
   return [...declared].sort();
@@ -44,7 +50,7 @@ export function parityFailures(issue) {
 export function materialRecord(issue) {
   const declared = declaredSeverityLabels(issue.title);
   const labels = normalizedLabels(issue);
-  const priorities = [...new Set([...declared, ...labels.filter(label => label === 'P0' || label === 'P1')])].sort();
+  const priorities = [...new Set([...declared, ...labels.filter(label => MATERIAL_PRIORITY_LABELS.includes(label))])].sort();
   if (!Number.isInteger(issue.number) || String(issue.state || '').toLowerCase() !== 'open' || priorities.length === 0) return null;
   return {
     issue_number: issue.number,
@@ -72,19 +78,28 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
+  const prefixP1 = { number: 6, state: 'open', title: 'P1: strict prefix', labels: [{ name: 'P1' }] };
+  const prefixCombined = { number: 7, state: 'open', title: 'P1/P0: combined prefix', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const prefixMissing = { number: 8, state: 'open', title: 'P1: missing label', labels: [] };
+  const prose = { number: 9, state: 'open', title: 'ordinary text mentioning P1: later', labels: [] };
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
   if (declaredSeverityLabels(support.title).length !== 0) throw new Error('SELF_TEST_SUPPORT_ALIASING');
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
-  if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (parityFailures(prefixP1).length || parityFailures(prefixCombined).length) throw new Error('SELF_TEST_PREFIX_REJECTED');
+  if (!parityFailures(prefixMissing).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_PREFIX_MISMATCH_NOT_REJECTED');
+  if (declaredSeverityLabels(prose.title).length !== 0 || parityFailures(prose).length) throw new Error('SELF_TEST_NONPREFIX_PROSE_FALSE_MATERIAL');
+  if (materialRecord({ number: 10, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
     exact_marker: true,
     combined_marker_normalization: true,
+    strict_prefix_normalization: true,
     support_alias_excluded: true,
+    nonprefix_prose_excluded: true,
     label_only_authority_preserved: true,
     mismatch_fail_closed: true
   }));
@@ -105,11 +120,25 @@ const headers = {
   'X-GitHub-Api-Version': '2022-11-28'
 };
 
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
 async function get(url) {
-  const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
-  return JSON.parse(text);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+    const text = await response.text();
+    if (response.ok) return JSON.parse(text);
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const reset = Number(response.headers.get('x-ratelimit-reset'));
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? retryAfter * 1000 + 1000
+      : Number.isFinite(reset) && reset > 0 ? Math.max(0, reset * 1000 - Date.now() + 1500) : 0;
+    if ((response.status === 403 || response.status === 429) && attempt < 2 && waitMs > 0 && waitMs <= 75_000) {
+      await sleep(waitMs);
+      continue;
+    }
+    throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
+  }
+  throw new Error('GITHUB_RETRY_EXHAUSTED');
 }
 
 async function fetchAllOpenIssues() {
@@ -145,8 +174,11 @@ try {
     complete_open_issue_pagination: true,
     cardinality_stable: true,
     exact_and_combined_marker_normalization: true,
+    strict_prefix_normalization: true,
     support_alias_excluded: true,
+    nonprefix_prose_excluded: true,
     label_only_material_authority_preserved: true,
+    bounded_rate_limit_retry: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
