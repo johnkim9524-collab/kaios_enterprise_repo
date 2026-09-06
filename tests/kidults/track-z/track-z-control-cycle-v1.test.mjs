@@ -23,6 +23,7 @@ test('evaluates the complete current provider universe without opening protected
   assert.equal(receipt.summary.contract_spend_credential_acquisition_authorized, 0);
   assert.equal(receipt.summary.production_public_g5_authorized, 0);
   assert.equal(receipt.summary.queue_overflow_count, 0);
+  assert.equal(receipt.summary.case_validation_failure_count, 0);
   assert.equal(receipt.case_decisions.length, 18);
   assert.equal(new Set(receipt.case_decisions.map(item => item.provider_id)).size, 18);
   assert.ok(receipt.case_decisions.every(item => item.external_action_authorized === false));
@@ -56,15 +57,6 @@ const mutations = [
   ['routing bypass', input => { input.routing.cross_track_rule.must_route_external_provider_decision_to_track_z = false; }, /TRACK_Z_ROUTING_NOT_MANDATORY/],
   ['written channel drift', input => { input.sourcing.negotiation_communication_policy.channel = 'PHONE'; }, /GROUP_WRITTEN_ONLY_POLICY_MISSING/],
   ['duplicate provider identity', input => input.providerState.providers.push(clone(input.providerState.providers[0])), /DUPLICATE_PROVIDER_ID/],
-  ['external communication authority', input => { input.providerState.providers[0].external_communication_authorized = true; }, /PROTECTED_AUTHORITY_OPEN/],
-  ['spend authority', input => { input.providerState.providers[0].new_spend_authorized = true; }, /PROTECTED_AUTHORITY_OPEN/],
-  ['credential authority', input => { input.providerState.providers[0].credential_authorized = true; }, /PROTECTED_AUTHORITY_OPEN/],
-  ['acquisition authority', input => { input.providerState.providers[0].acquisition_authorized = true; }, /PROTECTED_AUTHORITY_OPEN/],
-  ['public release', input => { input.providerState.providers[0].public_release = 'PASS'; }, /PUBLIC_NOT_HOLD/],
-  ['production release', input => { input.providerState.providers[0].production = 'PASS'; }, /PRODUCTION_NOT_HOLD/],
-  ['resend authority', input => { input.providerState.providers[0].communication.resend_authorized = true; }, /RESEND_AUTHORITY_PRESENT/],
-  ['automatic followup authority', input => { input.providerState.providers[0].communication.automatic_followup_authorized = true; }, /AUTOMATIC_FOLLOWUP_AUTHORITY_PRESENT/],
-  ['evidence removal', input => { input.providerState.providers[0].evidence_refs = []; }, /PROVIDER_EVIDENCE_EMPTY/],
   ['provider-off gate removal', input => { input.policy.scale_and_resilience.provider_off_test_required_before_pilot = false; }, /PROVIDER_OFF_GATE_MISSING/]
 ];
 
@@ -73,6 +65,30 @@ for (const [name, mutate, expected] of mutations) {
     const input = fixture();
     mutate(input);
     assert.throws(() => runTrackZControlCycle(input), expected);
+  });
+}
+
+const protectedCaseMutations = [
+  ['external communication authority', input => { input.providerState.providers[0].external_communication_authorized = true; }],
+  ['spend authority', input => { input.providerState.providers[0].new_spend_authorized = true; }],
+  ['credential authority', input => { input.providerState.providers[0].credential_authorized = true; }],
+  ['acquisition authority', input => { input.providerState.providers[0].acquisition_authorized = true; }],
+  ['public release', input => { input.providerState.providers[0].public_release = 'PASS'; }],
+  ['production release', input => { input.providerState.providers[0].production = 'PASS'; }],
+  ['resend authority', input => { input.providerState.providers[0].communication.resend_authorized = true; }],
+  ['automatic followup authority', input => { input.providerState.providers[0].communication.automatic_followup_authorized = true; }]
+];
+
+for (const [name, mutate] of protectedCaseMutations) {
+  test(`isolates and neutralizes protected case mutation: ${name}`, () => {
+    const input = fixture();
+    mutate(input);
+    const receipt = runTrackZControlCycle(input);
+    assert.equal(receipt.state, 'VERIFIED_HOLD_CASE_ERRORS');
+    assert.equal(receipt.summary.case_validation_failure_count, 1);
+    assert.equal(receipt.case_decisions[0].verdict_reason, 'PROVIDER_CASE_INVALID_ISOLATED');
+    assert.equal(receipt.case_decisions[0].external_action_authorized, false);
+    assert.equal(receipt.case_decisions[0].production_public_g5_authorized, false);
   });
 }
 
@@ -85,4 +101,35 @@ test('stale evidence narrows to HOLD without authorizing an outbound action', ()
   assert.equal(decision.track_z_verdict, 'HOLD');
   assert.equal(decision.verdict_reason, 'EVIDENCE_STALE');
   assert.equal(decision.external_action_authorized, false);
+});
+
+test('isolates a malformed provider case while preserving decisions for healthy providers', () => {
+  const input = fixture();
+  input.providerState.providers[0].evidence_refs = [];
+  const receipt = runTrackZControlCycle(input);
+  assert.equal(receipt.state, 'VERIFIED_HOLD_CASE_ERRORS');
+  assert.equal(receipt.summary.case_validation_failure_count, 1);
+  assert.equal(receipt.case_decisions.length, 18);
+  assert.equal(receipt.case_decisions[0].verdict_reason, 'PROVIDER_CASE_INVALID_ISOLATED');
+  assert.equal(receipt.case_decisions[0].outbound_disposition, 'NO_OUTBOUND_INVALID_CASE');
+  assert.ok(receipt.case_decisions.slice(1).every(item => item.verdict_reason !== 'PROVIDER_CASE_INVALID_ISOLATED'));
+});
+
+test('future evidence is held as out-of-order and cannot authorize action', () => {
+  const input = fixture();
+  input.providerState.providers[1].evidence_date = '2026-09-08';
+  const receipt = runTrackZControlCycle(input);
+  const decision = receipt.case_decisions[1];
+  assert.equal(decision.track_z_verdict, 'HOLD');
+  assert.equal(decision.verdict_reason, 'EVIDENCE_FROM_FUTURE_OUT_OF_ORDER');
+  assert.equal(decision.external_action_authorized, false);
+});
+
+test('queue overflow is a terminal internal hold rather than bypass authority', () => {
+  const input = fixture();
+  input.policy.work_queues.WAITING_WRITTEN_RESPONSE.wip_limit = 0;
+  const receipt = runTrackZControlCycle(input);
+  assert.equal(receipt.state, 'VERIFIED_HOLD_BACKPRESSURE');
+  assert.equal(receipt.summary.queue_overflow_count, 1);
+  assert.equal(receipt.summary.external_actions_authorized, 0);
 });

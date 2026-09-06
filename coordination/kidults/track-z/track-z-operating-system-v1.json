@@ -176,6 +176,11 @@
   },
   "receipt_contract": {
     "id": "KIDULTS_TRACK_Z_CONTROL_CYCLE_RECEIPT_V1",
+    "terminal_states": [
+      "VERIFIED_PASS_INTERNAL_CONTROL_ONLY",
+      "VERIFIED_HOLD_CASE_ERRORS",
+      "VERIFIED_HOLD_BACKPRESSURE"
+    ],
     "required_fields": [
       "source_ref",
       "observed_at",

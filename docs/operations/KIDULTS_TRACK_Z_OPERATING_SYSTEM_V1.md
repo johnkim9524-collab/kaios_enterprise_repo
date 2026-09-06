@@ -45,6 +45,8 @@ Every new provider, provider product, inbound reply, terms or licence change, AP
 
 Queue overflow is evidence of backpressure; it does not create authority or allow bypass. Each provider is evaluated independently so one provider failure cannot erase other case outcomes.
 
+A malformed provider case is isolated as `VERIFIED_HOLD_CASE_ERRORS`; healthy cases are still evaluated, but no protected action is authorized. A WIP overflow is `VERIFIED_HOLD_BACKPRESSURE`. Evidence dated after the observation time is held as out-of-order and cannot overwrite the current generation.
+
 ## Execution
 
 Run the current canonical provider state through the control cycle:

@@ -39,10 +39,6 @@ export function sha256(value) {
   return `sha256:${crypto.createHash('sha256').update(material).digest('hex')}`;
 }
 
-function readJson(path) {
-  return JSON.parse(fs.readFileSync(path, 'utf8'));
-}
-
 export function loadTrackZInputs(paths = DEFAULT_PATHS) {
   const inputs = {};
   const inputDigests = {};
@@ -64,11 +60,41 @@ function assert(condition, code, errors) {
   if (!condition) errors.push(code);
 }
 
-function evidenceAgeDays(evidenceDate, observedAt) {
-  const evidence = Date.parse(`${evidenceDate}T23:59:59Z`);
+function evidenceTiming(evidenceDate, observedAt) {
+  const evidenceStart = Date.parse(`${evidenceDate}T00:00:00Z`);
+  const evidenceEnd = Date.parse(`${evidenceDate}T23:59:59Z`);
   const observed = Date.parse(observedAt);
-  if (!Number.isFinite(evidence) || !Number.isFinite(observed)) return Number.POSITIVE_INFINITY;
-  return Math.max(0, Math.floor((observed - evidence) / 86_400_000));
+  if (!Number.isFinite(evidenceStart) || !Number.isFinite(evidenceEnd) || !Number.isFinite(observed)) {
+    return { ageDays: Number.POSITIVE_INFINITY, invalid: true, future: false };
+  }
+  return {
+    ageDays: Math.max(0, Math.floor((observed - evidenceEnd) / 86_400_000)),
+    invalid: false,
+    future: evidenceStart > observed
+  };
+}
+
+function providerValidationErrors(provider) {
+  const errors = [];
+  for (const field of PROVIDER_REQUIRED_FIELDS) {
+    assert(Object.hasOwn(provider, field), `PROVIDER_FIELD_MISSING:${field}`, errors);
+  }
+  assert(Array.isArray(provider.brands_or_verticals) && provider.brands_or_verticals.length > 0,
+    'PROVIDER_VERTICALS_EMPTY', errors);
+  assert(Array.isArray(provider.evidence_refs) && provider.evidence_refs.length > 0,
+    'PROVIDER_EVIDENCE_EMPTY', errors);
+  for (const field of ['acquisition_authorized', 'external_communication_authorized', 'credential_authorized', 'new_spend_authorized']) {
+    assert(provider[field] === false, `PROTECTED_AUTHORITY_OPEN:${field}`, errors);
+  }
+  assert(provider.public_release === 'HOLD', 'PUBLIC_NOT_HOLD', errors);
+  assert(provider.production === 'HOLD', 'PRODUCTION_NOT_HOLD', errors);
+  assert(provider.communication?.duplicate_outreach_prohibited === true,
+    'DUPLICATE_OUTREACH_NOT_PROHIBITED', errors);
+  assert(provider.communication?.resend_authorized === false,
+    'RESEND_AUTHORITY_PRESENT', errors);
+  assert(provider.communication?.automatic_followup_authorized === false,
+    'AUTOMATIC_FOLLOWUP_AUTHORITY_PRESENT', errors);
+  return errors;
 }
 
 export function validateTrackZInputs({ policy, routing, providerState, providerRegistry, sourcing, writtenOnly }) {
@@ -103,27 +129,8 @@ export function validateTrackZInputs({ policy, routing, providerState, providerR
   const providers = providerState?.providers ?? [];
   assert(providers.length > 0, 'PROVIDER_UNIVERSE_EMPTY', errors);
   const ids = providers.map(provider => provider.provider_id);
+  assert(ids.every(id => typeof id === 'string' && id.length > 0), 'PROVIDER_ID_INVALID', errors);
   assert(new Set(ids).size === ids.length, 'DUPLICATE_PROVIDER_ID', errors);
-  for (const provider of providers) {
-    for (const field of PROVIDER_REQUIRED_FIELDS) {
-      assert(Object.hasOwn(provider, field), `PROVIDER_FIELD_MISSING:${provider.provider_id ?? 'UNKNOWN'}:${field}`, errors);
-    }
-    assert(Array.isArray(provider.brands_or_verticals) && provider.brands_or_verticals.length > 0,
-      `PROVIDER_VERTICALS_EMPTY:${provider.provider_id}`, errors);
-    assert(Array.isArray(provider.evidence_refs) && provider.evidence_refs.length > 0,
-      `PROVIDER_EVIDENCE_EMPTY:${provider.provider_id}`, errors);
-    for (const field of ['acquisition_authorized', 'external_communication_authorized', 'credential_authorized', 'new_spend_authorized']) {
-      assert(provider[field] === false, `PROTECTED_AUTHORITY_OPEN:${provider.provider_id}:${field}`, errors);
-    }
-    assert(provider.public_release === 'HOLD', `PUBLIC_NOT_HOLD:${provider.provider_id}`, errors);
-    assert(provider.production === 'HOLD', `PRODUCTION_NOT_HOLD:${provider.provider_id}`, errors);
-    assert(provider.communication?.duplicate_outreach_prohibited === true,
-      `DUPLICATE_OUTREACH_NOT_PROHIBITED:${provider.provider_id}`, errors);
-    assert(provider.communication?.resend_authorized === false,
-      `RESEND_AUTHORITY_PRESENT:${provider.provider_id}`, errors);
-    assert(provider.communication?.automatic_followup_authorized === false,
-      `AUTOMATIC_FOLLOWUP_AUTHORITY_PRESENT:${provider.provider_id}`, errors);
-  }
   if (errors.length) throw new Error(errors.join('\n'));
   return { providerCount: providers.length };
 }
@@ -153,12 +160,45 @@ function classifyOutbound(provider) {
 }
 
 function evaluateProvider(provider, policy, observedAt) {
-  const ageDays = evidenceAgeDays(provider.evidence_date, observedAt);
+  const validationErrors = providerValidationErrors(provider);
+  if (validationErrors.length > 0) {
+    return {
+      case_id: `TRACK_Z:${provider.provider_id}:CURRENT_PROVIDER_STATE`,
+      provider_id: provider.provider_id,
+      provider_name: provider.provider_name ?? 'UNKNOWN_FAIL_CLOSED',
+      operator_id: provider.operator_id ?? provider.provider_id,
+      ultimate_parent_id: provider.ultimate_parent_id ?? 'UNKNOWN_FAIL_CLOSED',
+      source_layer: provider.source_layer ?? 'UNKNOWN_FAIL_CLOSED',
+      brands_or_verticals: Array.isArray(provider.brands_or_verticals) ? provider.brands_or_verticals : [],
+      provider_state: provider.state ?? 'HOLD',
+      track_z_verdict: 'HOLD',
+      verdict_reason: 'PROVIDER_CASE_INVALID_ISOLATED',
+      rights_state: provider.rights_state ?? 'UNKNOWN_FAIL_CLOSED',
+      schema_state: provider.schema_state ?? 'UNKNOWN_FAIL_CLOSED',
+      evidence_date: provider.evidence_date ?? null,
+      evidence_age_days: null,
+      evidence_stale: true,
+      queue: 'INTERNAL_DILIGENCE',
+      outbound_disposition: 'NO_OUTBOUND_INVALID_CASE',
+      recommended_internal_action: 'REPAIR_CANONICAL_PROVIDER_CASE_WITHOUT_BLOCKING_OTHER_PROVIDER_REVIEWS',
+      blocker: validationErrors.join('|'),
+      evidence_refs: Array.isArray(provider.evidence_refs) ? provider.evidence_refs : [],
+      case_validation_errors: validationErrors,
+      external_action_authorized: false,
+      contract_spend_credential_acquisition_authorized: false,
+      production_public_g5_authorized: false
+    };
+  }
+  const timing = evidenceTiming(provider.evidence_date, observedAt);
+  const ageDays = timing.ageDays;
   const maxAgeDays = policy.evidence_freshness_days?.[provider.state];
-  const stale = !Number.isInteger(maxAgeDays) || ageDays > maxAgeDays;
+  const stale = timing.invalid || !Number.isInteger(maxAgeDays) || ageDays > maxAgeDays;
   let verdict = provider.state === 'CLOSED' ? 'WAIT' : classifyRights(provider);
   let reason = provider.state === 'CLOSED' ? 'CLOSED_WITHOUT_AUTHORIZED_REOPEN' : 'MATERIAL_GATE_UNRESOLVED';
-  if (stale) {
+  if (timing.future) {
+    verdict = 'HOLD';
+    reason = 'EVIDENCE_FROM_FUTURE_OUT_OF_ORDER';
+  } else if (stale) {
     verdict = 'HOLD';
     reason = 'EVIDENCE_STALE';
   } else if (verdict === 'NO_GO') {
@@ -190,6 +230,7 @@ function evaluateProvider(provider, policy, observedAt) {
     recommended_internal_action: provider.next_action,
     blocker: provider.blocker,
     evidence_refs: provider.evidence_refs,
+    case_validation_errors: [],
     external_action_authorized: false,
     contract_spend_credential_acquisition_authorized: false,
     production_public_g5_authorized: false
@@ -217,10 +258,16 @@ export function runTrackZControlCycle({
     verdict,
     caseDecisions.filter(item => item.track_z_verdict === verdict).length
   ]));
+  const caseValidationFailureCount = caseDecisions.filter(item => item.case_validation_errors.length > 0).length;
+  const state = caseValidationFailureCount > 0
+    ? 'VERIFIED_HOLD_CASE_ERRORS'
+    : overflowQueues.length > 0
+      ? 'VERIFIED_HOLD_BACKPRESSURE'
+      : 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY';
   const receipt = {
     id: policy.receipt_contract.id,
     version: '1.0.0',
-    state: 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY',
+    state,
     source_ref: sourceRef,
     observed_at: observedAt,
     provider_state_as_of: providerState.as_of,
@@ -231,7 +278,8 @@ export function runTrackZControlCycle({
       external_actions_authorized: 0,
       contract_spend_credential_acquisition_authorized: 0,
       production_public_g5_authorized: 0,
-      queue_overflow_count: overflowQueues.length
+      queue_overflow_count: overflowQueues.length,
+      case_validation_failure_count: caseValidationFailureCount
     },
     case_decisions: caseDecisions,
     queue_summary: queueSummary,
