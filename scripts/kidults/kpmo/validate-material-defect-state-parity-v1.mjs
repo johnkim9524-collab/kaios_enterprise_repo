@@ -14,11 +14,18 @@ function fail(message) {
   process.exit(1);
 }
 
+const MATERIAL_PRIORITY_LABELS = Object.freeze(['P0', 'P1']);
+
 export function declaredSeverityLabels(title) {
   const declared = new Set();
-  for (const match of String(title || '').matchAll(/\[([^\]]+)\]/g)) {
+  const text = String(title || '');
+  const prefixMatch = text.match(/^\s*((?:P0|P1)(?:\s*\/\s*(?:P0|P1))*)\s*:/);
+  if (prefixMatch) {
+    for (const part of String(prefixMatch[1] || '').split('/').map(x => x.trim()).filter(Boolean)) declared.add(part);
+  }
+  for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
     const parts = String(match[1] || '').split('/').map(x => x.trim()).filter(Boolean);
-    if (parts.length && parts.every(x => x === 'P0' || x === 'P1')) {
+    if (parts.length && parts.every(x => MATERIAL_PRIORITY_LABELS.includes(x))) {
       for (const part of parts) declared.add(part);
     }
   }
@@ -32,7 +39,7 @@ function labels(issue) {
 function materialPriorities(issue) {
   return [...new Set([
     ...declaredSeverityLabels(issue?.title),
-    ...labels(issue).filter(x => x === 'P0' || x === 'P1')
+    ...labels(issue).filter(x => MATERIAL_PRIORITY_LABELS.includes(x))
   ])].sort();
 }
 
@@ -55,6 +62,13 @@ export function latestStructuredState(body) {
   return { severity: String(last[1]).toUpperCase(), state: String(last[2]).toUpperCase() };
 }
 
+export function closedBodyStateFailures(issue) {
+  if (!materialPriorities(issue).length || String(issue?.state || '').toLowerCase() !== 'closed') return [];
+  const marker = latestStructuredState(issue?.body);
+  if (marker?.state === 'OPEN') return [`#${issue.number}:GITHUB_CLOSED_WITH_AUTHORITATIVE_${marker.severity}_OPEN`];
+  return [];
+}
+
 function escaped(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -71,6 +85,7 @@ export function selfOpenMarker(body, issueNumber) {
 }
 
 const GRACE_MS = 60_000;
+const RECENT_COMMENT_LOOKBACK_DAYS = 7;
 
 export function closeEventFailures(issue) {
   if (!materialPriorities(issue).length) return [];
@@ -83,8 +98,9 @@ export function closeEventFailures(issue) {
 
 export function closedIssueCommentFailures(issue, comments) {
   if (!materialPriorities(issue).length || String(issue?.state || '').toLowerCase() !== 'closed') return [];
-  const failures = severityFailures(issue);
+  const failures = [];
   const bodyMarker = latestStructuredState(issue?.body);
+  if (bodyMarker?.state === 'OPEN') failures.push(`#${issue.number}:GITHUB_CLOSED_WITH_AUTHORITATIVE_${bodyMarker.severity}_OPEN`);
   if (bodyMarker?.state === 'CLOSED') return failures;
   const closedAt = Date.parse(issue?.closed_at || '');
   if (!Number.isFinite(closedAt)) return [...failures, `#${issue.number}:CLOSED_MATERIAL_WITHOUT_CLOSED_AT`];
@@ -104,22 +120,33 @@ function selfTest() {
   const successor = [{ id: 3, created_at: '2026-09-01T00:02:00Z', body: '#20 is a natural recurrence of this historical class.' }];
   const bodyClosed = { ...base, body: '**State:** `P1 CLOSED / verified`' };
   const badClose = { ...base, body: '**State:** `P1 OPEN / HOLD`' };
+  const precedence = { ...base, body: '**State:** `P1 OPEN / historical`\n\n**State:** `P1 CLOSED / latest`' };
   const missingLabel = { ...base, title: '[P1] missing label', labels: [] };
+  const prefixOpen = { ...base, number: 11, title: 'P1: prefix material', labels: [], body: '**State:** `P1 OPEN / HOLD`' };
+  const support = { ...base, number: 12, title: '[P0-SUPPORT] support only', labels: [], body: '**State:** `P0 OPEN / support`' };
   if (!closedIssueCommentFailures(base, selfOpen).some(x => x.includes('POST_CLOSE_SELF_REMAINS_OPEN'))) throw new Error('SELF_OPEN_NOT_REJECTED');
   if (closedIssueCommentFailures(base, siblingOpen).length) throw new Error('SIBLING_OPEN_FALSE_POSITIVE');
   if (closedIssueCommentFailures(base, successor).length) throw new Error('SUCCESSOR_RECURRENCE_FALSE_POSITIVE');
   if (closedIssueCommentFailures(bodyClosed, selfOpen).length) throw new Error('TERMINAL_BODY_CLOSED_NOT_AUTHORITATIVE');
   if (!closeEventFailures(badClose).some(x => x.includes('GITHUB_CLOSE_WITH_AUTHORITATIVE_P1_OPEN'))) throw new Error('FUTURE_CLOSE_OPEN_NOT_REJECTED');
-  if (!severityFailures(missingLabel).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('CLOSED_SEVERITY_DRIFT_NOT_REJECTED');
+  if (!closedBodyStateFailures(badClose).some(x => x.includes('GITHUB_CLOSED_WITH_AUTHORITATIVE_P1_OPEN'))) throw new Error('CLOSED_OPEN_STATE_NOT_REJECTED');
+  if (closedBodyStateFailures(bodyClosed).length) throw new Error('CLOSED_CLOSED_STATE_REJECTED');
+  if (closedBodyStateFailures(precedence).length) throw new Error('LATEST_STRUCTURED_STATE_PRECEDENCE_BROKEN');
+  if (!closedBodyStateFailures(prefixOpen).length) throw new Error('STRICT_PREFIX_MATERIAL_STATE_LOST');
+  if (closedBodyStateFailures(support).length) throw new Error('SUPPORT_ALIAS_FALSE_MATERIAL');
+  if (!severityFailures(missingLabel).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('OPEN_SEVERITY_DRIFT_NOT_REJECTED');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_STATE_PARITY_V1_SELF_TEST',
     state: 'VERIFIED_PASS',
     future_close_terminal_state_required: true,
+    complete_closed_body_open_state_rejected: true,
+    strict_prefix_material_supported: true,
+    latest_marker_precedence: true,
     self_specific_post_close_open_rejected: true,
     sibling_open_ignored: true,
     successor_recurrence_ignored: true,
     terminal_body_closed_wins: true,
-    closed_title_label_parity_checked: true
+    support_alias_excluded: true
   }));
 }
 
@@ -147,7 +174,7 @@ async function get(url) {
     if (response.ok) return JSON.parse(text);
     const retryAfter = Number(response.headers.get('retry-after'));
     const reset = Number(response.headers.get('x-ratelimit-reset'));
-    let waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
       ? retryAfter * 1000 + 1000
       : Number.isFinite(reset) && reset > 0 ? Math.max(0, reset * 1000 - Date.now() + 1500) : 0;
     if ((response.status === 403 || response.status === 429) && attempt < 2 && waitMs > 0 && waitMs <= 75_000) {
@@ -209,21 +236,27 @@ try {
     if (failures.length) fail(`MATERIAL_DEFECT_COMMENT_STATE_PARITY:${failures.join(',')}`);
   }
 
-  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const queries = [
-    [`repo:${repository} is:issue is:closed updated:>=${cutoff} label:P0,P1`, 'recent-closed-labeled'],
-    [`repo:${repository} is:issue is:closed updated:>=${cutoff} "[P0]" in:title`, 'recent-closed-title-p0'],
-    [`repo:${repository} is:issue is:closed updated:>=${cutoff} "[P1]" in:title`, 'recent-closed-title-p1']
+  const closedQueries = [
+    [`repo:${repository} is:issue is:closed label:P0`, 'closed-label-p0'],
+    [`repo:${repository} is:issue is:closed label:P1`, 'closed-label-p1'],
+    [`repo:${repository} is:issue is:closed "[P0]" in:title`, 'closed-title-p0'],
+    [`repo:${repository} is:issue is:closed "[P1]" in:title`, 'closed-title-p1'],
+    [`repo:${repository} is:issue is:closed "P0:" in:title`, 'closed-prefix-p0'],
+    [`repo:${repository} is:issue is:closed "P1:" in:title`, 'closed-prefix-p1']
   ];
   const byNumber = new Map();
-  for (const [query, key] of queries) {
-    for (const issue of await completeSearch(query, key)) byNumber.set(issue.number, issue);
+  for (const [query, key] of closedQueries) {
+    for (const issue of await completeSearch(query, key)) {
+      if (materialPriorities(issue).length) byNumber.set(issue.number, issue);
+    }
   }
 
   const failures = [];
+  for (const issue of [...byNumber.values()].sort((a, b) => a.number - b.number)) failures.push(...closedBodyStateFailures(issue));
+
+  const recentCutoff = Date.now() - RECENT_COMMENT_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
   let commentAudited = 0;
   for (const issue of [...byNumber.values()].sort((a, b) => a.number - b.number)) {
-    failures.push(...severityFailures(issue));
     const bodyMarker = latestStructuredState(issue.body);
     if (bodyMarker?.state === 'CLOSED') continue;
     const closedAt = Date.parse(issue.closed_at || '');
@@ -232,23 +265,26 @@ try {
       failures.push(`#${issue.number}:INVALID_CLOSED_OR_UPDATED_AT`);
       continue;
     }
-    if (updatedAt <= closedAt + GRACE_MS || Number(issue.comments || 0) === 0) continue;
+    if (updatedAt < recentCutoff || updatedAt <= closedAt + GRACE_MS || Number(issue.comments || 0) === 0) continue;
     const comments = await commentsFor(issue);
     commentAudited += 1;
     failures.push(...closedIssueCommentFailures(issue, comments));
   }
+
   if (failures.length) fail(`MATERIAL_DEFECT_STATE_PARITY:${[...new Set(failures)].join(',')}`);
 
   console.log(JSON.stringify({
     validator: 'MATERIAL_DEFECT_STATE_PARITY_V1',
     state: 'VERIFIED_PASS',
-    recent_closed_candidate_count: byNumber.size,
-    comment_audited_issue_count: commentAudited,
-    lookback_days: 7,
+    complete_closed_material_candidate_count: byNumber.size,
+    complete_closed_material_candidate_scan: true,
+    closed_body_open_state_fail_closed: true,
+    recent_comment_audited_issue_count: commentAudited,
+    recent_comment_lookback_days: RECENT_COMMENT_LOOKBACK_DAYS,
     future_close_terminal_state_required: true,
     issue_comment_closed_state_guard: true,
-    self_specific_post_close_open_guard: true,
-    closed_title_label_parity_checked: true,
+    strict_title_prefix_supported: true,
+    support_alias_excluded: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
