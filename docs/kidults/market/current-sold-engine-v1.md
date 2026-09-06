@@ -109,6 +109,33 @@ Any failure publishes a failure status on the exact merge SHA and leaves Public,
 
 The previous protected-main `push` trigger remains a fallback for non-token-suppressed changes. It is not the authoritative evidence path for normal Atomic Governed Landing.
 
+## V1.4 event-emitting transport correction
+
+V1.3 contained the post-landing check but did not solve the trigger defect: a merge made with the
+workflow `GITHUB_TOKEN` still cannot be the source of the protected-main `push` evidence that the
+required suite needs. V1.4 therefore forbids repository-token merge mutation and uses the existing
+`DIRECT_OWNER_GITHUB_UI` transport. The workflow retains only read access to contents and pull
+requests; no personal token, GitHub App, new secret, or expanded merge permission is introduced.
+
+Before the one-use landing authorization is consumed, a preflight binds the open Ready PR to the
+exact base SHA, head SHA, head tree SHA, repository owner, and bounded transport window. After
+consumption, the globally serialized observer revalidates all authority and waits for the owner UI
+merge. It accepts only a merge made by the repository owner inside that window, with protected main
+equal to the returned merge SHA, merge tree equal to the approved head tree, and exactly two parents
+ordered as the approved base and head.
+
+The observer then consumes only protected-main `push` workflow runs whose `head_sha` equals that
+merge SHA. Missing, nonterminal, failed, cancelled, ambiguous, predecessor-head, timed-out, or
+partially observed evidence produces a `VERIFIED_FAIL` receipt. Terminal `VERIFIED_PASS` is impossible
+until every required push workflow is present, terminal, and successful; Current-SOLD validation is
+an additional requirement when its governed surface changed.
+
+Threat boundary: the owner UI step is intentionally external to the workflow and is not claimed to
+be transactionally atomic with the preceding status/label reads. Main, PR identity, actor, merge time,
+tree, and parent drift are detected after the event-emitting operation and fail closed; a merge already
+committed cannot be rolled back by this evidence path. Serialization reduces competing governed
+landings but does not turn GitHub UI transport into a database transaction.
+
 ## Execution classes
 
 | Execution class | Registry authority class | Truth ceiling | Lawful empirical count |

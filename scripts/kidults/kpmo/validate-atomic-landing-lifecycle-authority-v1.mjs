@@ -267,11 +267,14 @@ expectReject('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED', () => invoke({
 
 const workflow = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
 const order = [
+  'Verify event-emitting merge transport before authority consumption',
   'Require latest terminal exact-head lifecycle authority',
+  'Consume one-use exact-head landing authorization',
   'Stage trusted Current-SOLD post-landing validator',
   'Initialize durable atomic landing terminal receipt',
   'Upload pre-mutation atomic landing intent',
-  'Re-read live authority and execute exact-head server merge',
+  'Re-read live authority and await exact-head event-emitting merge',
+  'Consume exact merge-SHA protected-main push suite',
   'Reconcile durable atomic landing terminal receipt',
   'Upload durable atomic landing terminal receipt',
 ].map(value => workflow.indexOf(value));

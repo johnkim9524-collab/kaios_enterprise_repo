@@ -115,12 +115,14 @@ test('approval comment mutation revokes any open direct-owner handoff', () => {
   assert.match(workflow, /state: 'pending'/);
 });
 
-test('Atomic Landing remains fail-closed before authority consumption while direct-owner handoff is the successor transport', () => {
-  const transportIndex = atomic.indexOf('Require event-emitting post-merge CI transport');
+test('Atomic Landing validates the direct-owner event transport before authority consumption', () => {
+  const transportIndex = atomic.indexOf('Verify event-emitting merge transport before authority consumption');
   const lifecycleIndex = atomic.indexOf('Require latest terminal exact-head lifecycle authority');
   const consumptionIndex = atomic.indexOf('Consume one-use exact-head landing authorization');
   assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex && lifecycleIndex < consumptionIndex);
-  assert.match(atomic, /ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED/);
+  assert.match(atomic, /run-atomic-event-emitting-transport-preflight-v1\.mjs/);
+  assert.doesNotMatch(atomic, /contents: write/);
+  assert.doesNotMatch(atomic, /pull-requests: write/);
 });
 
 test('approval revocation cannot queue behind the handoff window or be triggered by an untrusted commenter', () => {

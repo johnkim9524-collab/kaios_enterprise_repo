@@ -17,12 +17,13 @@ const assert = (condition, code) => {
 
 const orderedMarkers = [
   'Require base-workflow to candidate terminal handoff compatibility',
+  'Verify event-emitting merge transport before authority consumption',
   'Require latest terminal exact-head lifecycle authority',
   'Consume one-use exact-head landing authorization',
   'Stage trusted Current-SOLD post-landing validator',
   'Initialize durable atomic landing terminal receipt',
   'Upload pre-mutation atomic landing intent',
-  'Re-read live authority and execute exact-head server merge',
+  'Re-read live authority and await exact-head event-emitting merge',
   'Reconcile durable atomic landing terminal receipt',
   'Upload durable atomic landing terminal receipt',
 ];
@@ -40,6 +41,15 @@ assert(workflow.split(consumptionMarker).length === 2,
   'ATOMIC_LANDING_AUTHORIZATION_CONSUMPTION_CARDINALITY_INVALID');
 assert(workflow.indexOf(lifecycleMarker) < workflow.indexOf(consumptionMarker),
   'ATOMIC_LANDING_AUTHORIZATION_CONSUMED_BEFORE_LIFECYCLE_AUTHORITY');
+const transportMarker = 'Verify event-emitting merge transport before authority consumption';
+assert(workflow.indexOf(transportMarker) < workflow.indexOf(lifecycleMarker),
+  'ATOMIC_LANDING_TRANSPORT_VALIDATED_AFTER_AUTHORITY_CONSUMPTION');
+const transportSection = workflow.slice(workflow.indexOf(transportMarker), workflow.indexOf(lifecycleMarker));
+assert(transportSection.includes('EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}')
+  && transportSection.includes('EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}')
+  && transportSection.includes('EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}')
+  && transportSection.includes('run-atomic-event-emitting-transport-preflight-v1.mjs'),
+'ATOMIC_LANDING_TRANSPORT_EXACT_IDENTITY_PREFLIGHT_MISSING');
 const lifecycleSection = workflow.slice(
   workflow.indexOf(lifecycleMarker),
   workflow.indexOf(consumptionMarker),
@@ -85,6 +95,8 @@ console.log(JSON.stringify({
   invalid_approval_not_recorded_as_consumed: true,
   consumption_receipt_written_after_final_pr_main_reread: true,
   complete_approval_authority_inputs_paginated: true,
+  event_emitting_transport_validated_before_consumption: true,
+  exact_base_head_tree_validated_before_consumption: true,
   public: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

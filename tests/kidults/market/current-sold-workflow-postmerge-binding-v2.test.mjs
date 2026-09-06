@@ -58,7 +58,7 @@ test('Current-SOLD keeps an exact-surface main-push fallback without treating it
   assert.ok(pushPaths.includes('scripts/kidults/market/current-sold-control-smoke-v1.mjs'));
 });
 
-test('Atomic Governed Landing performs exact Current-SOLD post-merge proof in the same trusted job', () => {
+test('Atomic Governed Landing consumes exact merge-SHA push proof before Current-SOLD proof in the trusted observer job', () => {
   const workflow = fileText(atomicWorkflowPath);
   const runner = fileText(atomicRunnerPath);
   const reconciler = fileText(atomicTerminalReconcilerPath);
@@ -80,13 +80,15 @@ test('Atomic Governed Landing performs exact Current-SOLD post-merge proof in th
 
   const stageIndex = workflow.indexOf('Stage trusted Current-SOLD post-landing validator');
   const initIndex = workflow.indexOf('Initialize durable atomic landing terminal receipt');
-  const landingIndex = workflow.indexOf('Re-read live authority and execute exact-head server merge');
+  const landingIndex = workflow.indexOf('Re-read live authority and await exact-head event-emitting merge');
+  const pushSuiteIndex = workflow.indexOf('Consume exact merge-SHA protected-main push suite');
   const mergedCheckoutIndex = workflow.indexOf('Checkout exact merged Current-SOLD target');
   const validationIndex = workflow.indexOf('Validate exact merged Current-SOLD target and publish commit status');
   const reconcileIndex = workflow.indexOf('Reconcile durable atomic landing terminal receipt');
   const terminalUploadIndex = workflow.indexOf('Upload durable atomic landing terminal receipt');
   assert.ok(stageIndex >= 0 && stageIndex < initIndex && initIndex < landingIndex, 'durable pre-merge binding must be staged before mutation');
-  assert.ok(landingIndex < mergedCheckoutIndex && mergedCheckoutIndex < validationIndex, 'post-merge validation order must be exact');
+  assert.ok(landingIndex < pushSuiteIndex && pushSuiteIndex < mergedCheckoutIndex
+    && mergedCheckoutIndex < validationIndex, 'post-merge validation order must be exact');
   assert.ok(validationIndex < reconcileIndex && reconcileIndex < terminalUploadIndex, 'terminal reconciliation and upload must run last');
   assert.match(workflow, /Reconcile durable atomic landing terminal receipt\n        if: always\(\)/);
   assert.match(workflow, /Upload durable atomic landing terminal receipt\n        if: always\(\)/);
@@ -96,20 +98,22 @@ test('Atomic Governed Landing performs exact Current-SOLD post-merge proof in th
 
   assert.match(runner, /const changedFileRecords = await pages\(`\/pulls\/\$\{prNumber\}\/files`\);/);
   assert.match(runner, /const currentSoldChangedFiles = changedFilenames\.filter\(isCurrentSoldPath\);/);
-  assert.match(runner, /const postMergeMain = await request\('\/branches\/main'\);/);
+  assert.match(runner, /request\('\/branches\/main'\)/);
   assert.match(runner, /POST_MERGE_MAIN_SHA_MISMATCH/);
   assert.match(runner, /fs\.appendFileSync\(githubOutput/);
   assert.match(runner, /`merge_commit_sha=\$\{merged\.sha\}`/);
   assert.match(runner, /`premerge_main_sha=\$\{initial\.base\.sha\}`/);
   assert.match(runner, /`merged_pr_head_sha=\$\{expectedHeadSha\}`/);
   assert.match(runner, /`current_sold_changed=\$\{currentSoldChanged\}`/);
-  assert.match(runner, /MERGED_VERIFIED_POSTLANDING_REQUIRED/);
+  assert.match(runner, /MERGE_COMMITTED_POSTMERGE_SUITE_REQUIRED/);
   assert.match(runner, /REQUIRED_SAME_TRUSTED_JOB/);
 
   assert.match(reconciler, /mode === '--initialize' \|\| mode === '--finalize'/);
   assert.match(reconciler, /'NOT_ATTEMPTED', 'PREMERGE_BINDING_STAGED'/);
   assert.match(reconciler, /'MERGE_REJECTED', 'MERGE_NOT_COMMITTED'/);
-  assert.match(reconciler, /let state = 'MERGE_COMMITTED_PROOF_PENDING'/);
+  assert.match(reconciler, /let state = 'VERIFIED_FAIL'/);
+  assert.match(reconciler, /postMergeSuiteReceipt\?\.all_required_terminal === true/);
+  assert.match(reconciler, /postMergeSuiteReceipt\?\.all_required_success === true/);
   assert.match(reconciler, /state = 'VERIFIED_PASS'/);
   assert.match(reconciler, /state = 'VERIFIED_FAIL'/);
   assert.match(reconciler, /request\(`\/pulls\/\$\{prNumber\}`\)/);
