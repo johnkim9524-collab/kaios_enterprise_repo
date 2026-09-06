@@ -3,7 +3,7 @@ name: KIDULTS ASI Throughput Coverage Autobalance Live v1
 on:
   workflow_run:
     workflows:
-      - KIDULTS ASI Global Any-Site Hourly Pooling v2
+      - KIDULTS ASI Sharded Source Reserve v1
     types: [completed]
     branches: [main]
   pull_request:
@@ -12,6 +12,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
 
 permissions:
   contents: read
@@ -23,22 +24,22 @@ concurrency:
 
 jobs:
   live-autobalance:
-    if: github.event_name == 'pull_request' || github.event.workflow_run.event == 'schedule'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
-      - name: Emit triggering producer terminal envelope
+      - name: Emit relay terminal envelope
         if: github.event_name == 'workflow_run'
         env:
-          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
-          TRIGGER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          TRIGGER_NAME: ${{ github.event.workflow_run.name }}
-          TRIGGER_PATH: ${{ github.event.workflow_run.path }}
-          TRIGGER_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          TRIGGER_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          TRIGGER_STATUS: ${{ github.event.workflow_run.status }}
-          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-          TRIGGER_EVENT: ${{ github.event.workflow_run.event }}
+          RELAY_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELAY_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          RELAY_NAME: ${{ github.event.workflow_run.name }}
+          RELAY_PATH: ${{ github.event.workflow_run.path }}
+          RELAY_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RELAY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELAY_STATUS: ${{ github.event.workflow_run.status }}
+          RELAY_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RELAY_EVENT: ${{ github.event.workflow_run.event }}
         shell: bash
         run: |
           set -euo pipefail
@@ -47,17 +48,17 @@ jobs:
           const fs = require('node:fs');
           const receipt = {
             id: 'kidults-asi-throughput-autobalance-trigger-envelope-v1',
-            state: 'TRIGGER_CAPTURED_NON_PROMOTABLE_UNTIL_VALIDATED',
-            producer: {
-              run_id: Number(process.env.TRIGGER_RUN_ID),
-              run_attempt: Number(process.env.TRIGGER_RUN_ATTEMPT),
-              workflow_name: process.env.TRIGGER_NAME,
-              workflow_path: process.env.TRIGGER_PATH,
-              head_branch: process.env.TRIGGER_HEAD_BRANCH,
-              head_sha: process.env.TRIGGER_HEAD_SHA,
-              status: process.env.TRIGGER_STATUS,
-              conclusion: process.env.TRIGGER_CONCLUSION,
-              event: process.env.TRIGGER_EVENT
+            state: 'RELAY_CAPTURED_NON_PROMOTABLE_UNTIL_VALIDATED',
+            relay: {
+              run_id: Number(process.env.RELAY_RUN_ID),
+              run_attempt: Number(process.env.RELAY_RUN_ATTEMPT),
+              workflow_name: process.env.RELAY_NAME,
+              workflow_path: process.env.RELAY_PATH,
+              head_branch: process.env.RELAY_HEAD_BRANCH,
+              head_sha: process.env.RELAY_HEAD_SHA,
+              status: process.env.RELAY_STATUS,
+              conclusion: process.env.RELAY_CONCLUSION,
+              event: process.env.RELAY_EVENT
             },
             empirical_authority: false,
             provider_authority: false,
@@ -70,166 +71,132 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
 
       - name: Verify exact source and provenance guard
         env:
-          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id || '' }}
-          TRIGGER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt || '' }}
-          TRIGGER_NAME: ${{ github.event.workflow_run.name || '' }}
-          TRIGGER_PATH: ${{ github.event.workflow_run.path || '' }}
-          TRIGGER_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
-          TRIGGER_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}
-          TRIGGER_STATUS: ${{ github.event.workflow_run.status || '' }}
-          TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
-          TRIGGER_EVENT: ${{ github.event.workflow_run.event || '' }}
+          EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          EXPECTED_CHECKOUT_SHA="$GITHUB_SHA"
-          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
-            EXPECTED_CHECKOUT_SHA="$TRIGGER_HEAD_SHA"
-            test -n "$TRIGGER_RUN_ID"
-            test -n "$TRIGGER_RUN_ATTEMPT"
-            test "$TRIGGER_NAME" = "KIDULTS ASI Global Any-Site Hourly Pooling v2"
-            test "$TRIGGER_PATH" = ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
-            test "$TRIGGER_HEAD_BRANCH" = "main"
-            test "$TRIGGER_STATUS" = "completed"
-            test "$TRIGGER_CONCLUSION" = "success"
-            test "$TRIGGER_EVENT" = "schedule"
-          fi
-          test "$(git rev-parse HEAD)" = "$EXPECTED_CHECKOUT_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
 
-      - name: Verify producer-driven trigger regression contract
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const p = '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml';
-          const s = fs.readFileSync(p, 'utf8');
-          const required = [
-            'workflow_run:',
-            'KIDULTS ASI Global Any-Site Hourly Pooling v2',
-            'types: [completed]',
-            'branches: [main]',
-            'github.event.workflow_run.id',
-            'github.event.workflow_run.run_attempt',
-            'github.event.workflow_run.head_sha',
-            'github.event.workflow_run.event',
-            'TRIGGER_EVENT',
-            'CURRENT_MAIN_ADVANCED_BEFORE_AUTOBALANCE',
-            'kidults-asi-throughput-autobalance-trigger-envelope-v1'
-          ];
-          for (const token of required) {
-            if (!s.includes(token)) throw new Error(`MISSING_PRODUCER_DRIVEN_CONTRACT:${token}`);
-          }
-          if (/\n  schedule:\s*\n/.test(s)) throw new Error('INDEPENDENT_CONSUMER_SCHEDULE_REINTRODUCED');
-          if (/\n  workflow_dispatch:\s*\n/.test(s)) throw new Error('INDEPENDENT_CONSUMER_DISPATCH_REINTRODUCED');
-          const legacyWaitToken = ['AUTOBALANCE', 'PRODUCER', 'WAIT', 'MAX', 'ATTEMPTS'].join('_');
-          if (s.includes(legacyWaitToken)) throw new Error('BOUNDED_POLL_RACE_REINTRODUCED');
-          const legacySearchPath = ['/actions', 'workflows', 'kidults-asi-global-any-site-hourly-pooling-v2.yml', 'runs'].join('/');
-          if (s.includes(legacySearchPath)) {
-            throw new Error('SEARCH_BASED_PRODUCER_SELECTION_REINTRODUCED');
-          }
-          NODE
-
-      - name: Restore exact-trigger hourly gate artifacts
+      - name: Restore exact hourly ancestor through reserve relay
         if: github.event_name == 'workflow_run'
         env:
           GH_TOKEN: ${{ github.token }}
-          TRIGGER_RUN_ID: ${{ github.event.workflow_run.id }}
-          TRIGGER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          EXPECTED_PRODUCER_SHA: ${{ github.event.workflow_run.head_sha }}
+          RELAY_RUN_ID: ${{ github.event.workflow_run.id }}
+          RELAY_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          RELAY_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/live-gates/raw /tmp/live-gates/canonical discovery-out/raw discovery-out
+          mkdir -p /tmp/relay /tmp/live-gates/raw /tmp/live-gates/canonical discovery-out/raw discovery-out
 
           CURRENT_SHA="$(git rev-parse HEAD)"
-          test "$CURRENT_SHA" = "$EXPECTED_PRODUCER_SHA"
-          test "$GITHUB_REF" = "refs/heads/main"
-
+          test "$CURRENT_SHA" = "$RELAY_HEAD_SHA"
           LIVE_MAIN_SHA="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
-          if [ "$LIVE_MAIN_SHA" != "$EXPECTED_PRODUCER_SHA" ]; then
-            echo "::error title=Autobalance current-main advanced::CURRENT_MAIN_ADVANCED_BEFORE_AUTOBALANCE:${EXPECTED_PRODUCER_SHA}:${LIVE_MAIN_SHA}" >&2
+          if [ "$LIVE_MAIN_SHA" != "$RELAY_HEAD_SHA" ]; then
+            echo "::error title=Autobalance current-main advanced::CURRENT_MAIN_ADVANCED_BEFORE_AUTOBALANCE:${RELAY_HEAD_SHA}:${LIVE_MAIN_SHA}" >&2
             exit 1
           fi
 
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${TRIGGER_RUN_ID}" > /tmp/hourly-trigger-run.json
-
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${RELAY_RUN_ID}" > /tmp/relay-run.json
           jq -e \
-            --argjson run "$TRIGGER_RUN_ID" \
-            --argjson attempt "$TRIGGER_RUN_ATTEMPT" \
-            --arg sha "$EXPECTED_PRODUCER_SHA" \
+            --argjson run "$RELAY_RUN_ID" \
+            --argjson attempt "$RELAY_RUN_ATTEMPT" \
+            --arg sha "$RELAY_HEAD_SHA" \
             '.id==$run
               and .run_attempt==$attempt
-              and .name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"
-              and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
+              and .name=="KIDULTS ASI Sharded Source Reserve v1"
+              and .path==".github/workflows/kidults-asi-sharded-source-reserve-v1.yml"
               and .head_branch=="main"
               and .head_sha==$sha
-              and .event=="schedule"
+              and .event=="workflow_run"
               and .status=="completed"
-              and .conclusion=="success"' \
-            /tmp/hourly-trigger-run.json >/dev/null
+              and .conclusion=="success"' /tmp/relay-run.json >/dev/null
 
-          HOURLY_RUN_ID="$TRIGGER_RUN_ID"
-          HOURLY_RUN_ATTEMPT="$TRIGGER_RUN_ATTEMPT"
-          HOURLY_SOURCE_SHA="$EXPECTED_PRODUCER_SHA"
-          HOURLY_TRIGGER_EVENT="schedule"
-          BINDING_MODE="EXACT_TRIGGERING_PRODUCER_RUN"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${RELAY_RUN_ID}/artifacts?per_page=100" > /tmp/relay-artifacts.json
+          RELAY_RECORD="$(jq -c '[.artifacts[] | select(.name=="kidults-asi-sharded-source-reserve-v1" and .expired==false)] | if length==1 then .[0] else empty end' /tmp/relay-artifacts.json)"
+          test -n "$RELAY_RECORD"
+          RELAY_ARTIFACT_ID="$(jq -r '.id' <<<"$RELAY_RECORD")"
+          RELAY_ARTIFACT_DIGEST="$(jq -r '.digest // empty' <<<"$RELAY_RECORD")"
+          [[ "$RELAY_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${RELAY_ARTIFACT_ID}/zip" > /tmp/relay.zip
+          test "$(sha256sum /tmp/relay.zip | awk '{print "sha256:"$1}')" = "$RELAY_ARTIFACT_DIGEST"
+          unzip -Z1 /tmp/relay.zip > /tmp/relay-members.txt
+          if grep -Eq '(^/|(^|/)\.\.(/|$)|\\)' /tmp/relay-members.txt; then
+            echo "::error title=Unsafe relay archive::UNSAFE_RELAY_ZIP_MEMBER" >&2
+            exit 1
+          fi
+          unzip -q /tmp/relay.zip -d /tmp/relay
+          mapfile -t RELAY_RECEIPTS < <(find /tmp/relay -type f -name 'asi-sharded-source-reserve-activation-receipt-v1.json' -print)
+          test "${#RELAY_RECEIPTS[@]}" -eq 1
+          RELAY_RECEIPT="${RELAY_RECEIPTS[0]}"
+          jq -e --arg sha "$RELAY_HEAD_SHA" '
+            .state=="VERIFIED_PASS"
+            and .trigger_event=="workflow_run"
+            and .exact_generation_bound==true
+            and .discovery_producer_head_sha==$sha
+            and (.discovery_producer_run_id|type)=="number"
+            and (.discovery_artifact_id|type)=="number"
+            and .promotion_authority==false
+            and .content_acquisition_authorized==false
+            and .collection_right_created==false
+            and .public_release=="HOLD"
+            and .production=="HOLD"' "$RELAY_RECEIPT" >/dev/null
 
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100" \
-            > /tmp/hourly-artifacts.json
+          HOURLY_RUN_ID="$(jq -r '.discovery_producer_run_id' "$RELAY_RECEIPT")"
+          RECEIPT_DISCOVERY_ARTIFACT_ID="$(jq -r '.discovery_artifact_id' "$RELAY_RECEIPT")"
+          EXPECTED_PRODUCER_SHA="$(jq -r '.discovery_producer_head_sha' "$RELAY_RECEIPT")"
+          test "$EXPECTED_PRODUCER_SHA" = "$RELAY_HEAD_SHA"
 
-          META_RECORD=$(jq -c \
-            '[.artifacts[]
-              | select(
-                  .name=="kidults-asi-global-any-site-source-pool-v2"
-                  and .expired==false
-                )
-            ] | if length==1 then .[0] else empty end' /tmp/hourly-artifacts.json)
-          DISC_RECORD=$(jq -c \
-            '[.artifacts[]
-              | select(
-                  .name=="kidults-asi-global-any-site-hourly-cycle-v2"
-                  and .expired==false
-                )
-            ] | if length==1 then .[0] else empty end' /tmp/hourly-artifacts.json)
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${HOURLY_RUN_ID}" > /tmp/hourly-run.json
+          jq -e --argjson run "$HOURLY_RUN_ID" --arg sha "$EXPECTED_PRODUCER_SHA" '
+            .id==$run
+            and (.run_attempt|type)=="number"
+            and .run_attempt>0
+            and .name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"
+            and .path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"
+            and .head_branch=="main"
+            and .head_sha==$sha
+            and .event=="schedule"
+            and .status=="completed"
+            and .conclusion=="success"' /tmp/hourly-run.json >/dev/null
+          HOURLY_RUN_ATTEMPT="$(jq -r '.run_attempt' /tmp/hourly-run.json)"
+
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${HOURLY_RUN_ID}/artifacts?per_page=100" > /tmp/hourly-artifacts.json
+          META_RECORD="$(jq -c '[.artifacts[] | select(.name=="kidults-asi-global-any-site-source-pool-v2" and .expired==false)] | if length==1 then .[0] else empty end' /tmp/hourly-artifacts.json)"
+          DISC_RECORD="$(jq -c '[.artifacts[] | select(.name=="kidults-asi-global-any-site-hourly-cycle-v2" and .expired==false)] | if length==1 then .[0] else empty end' /tmp/hourly-artifacts.json)"
           test -n "$META_RECORD"
           test -n "$DISC_RECORD"
-
-          META_ID=$(jq -r '.id' <<<"$META_RECORD")
-          DISC_ID=$(jq -r '.id' <<<"$DISC_RECORD")
-          META_DIGEST=$(jq -r '.digest // empty' <<<"$META_RECORD")
-          DISC_DIGEST=$(jq -r '.digest // empty' <<<"$DISC_RECORD")
+          META_ID="$(jq -r '.id' <<<"$META_RECORD")"
+          DISC_ID="$(jq -r '.id' <<<"$DISC_RECORD")"
+          test "$DISC_ID" = "$RECEIPT_DISCOVERY_ARTIFACT_ID"
+          META_DIGEST="$(jq -r '.digest // empty' <<<"$META_RECORD")"
+          DISC_DIGEST="$(jq -r '.digest // empty' <<<"$DISC_RECORD")"
           [[ "$META_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$DISC_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
 
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISC_ID}/zip" > /tmp/disc.zip
-
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${META_ID}/zip" > /tmp/meta.zip
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISC_ID}/zip" > /tmp/disc.zip
           test "$(sha256sum /tmp/meta.zip | awk '{print "sha256:"$1}')" = "$META_DIGEST"
           test "$(sha256sum /tmp/disc.zip | awk '{print "sha256:"$1}')" = "$DISC_DIGEST"
-
           for z in /tmp/meta.zip /tmp/disc.zip; do
             unzip -Z1 "$z" > /tmp/zip-members.txt
             if grep -Eq '(^/|(^|/)\.\.(/|$)|\\)' /tmp/zip-members.txt; then
-              echo "::error title=Unsafe producer artifact archive::UNSAFE_ZIP_MEMBER:${z}" >&2
+              echo "::error title=Unsafe producer archive::UNSAFE_PRODUCER_ZIP_MEMBER:${z}" >&2
               exit 1
             fi
           done
-
           unzip -q /tmp/meta.zip -d /tmp/live-gates/raw
           unzip -q /tmp/disc.zip -d discovery-out/raw
 
@@ -243,12 +210,15 @@ jobs:
           cp "${DISC_MATCHES[0]}" discovery-out/global-low-risk-discovery.json
 
           {
-            echo "AUTOBALANCE_BINDING_MODE=$BINDING_MODE"
+            echo "AUTOBALANCE_BINDING_MODE=EXACT_RESERVE_RELAY_TO_HOURLY_PRODUCER"
+            echo "AUTOBALANCE_RELAY_RUN_ID=$RELAY_RUN_ID"
+            echo "AUTOBALANCE_RELAY_RUN_ATTEMPT=$RELAY_RUN_ATTEMPT"
+            echo "AUTOBALANCE_RELAY_ARTIFACT_ID=$RELAY_ARTIFACT_ID"
+            echo "AUTOBALANCE_RELAY_ARTIFACT_DIGEST=$RELAY_ARTIFACT_DIGEST"
             echo "AUTOBALANCE_EXPECTED_PRODUCER_SHA=$EXPECTED_PRODUCER_SHA"
             echo "AUTOBALANCE_HOURLY_RUN_ID=$HOURLY_RUN_ID"
             echo "AUTOBALANCE_HOURLY_RUN_ATTEMPT=$HOURLY_RUN_ATTEMPT"
-            echo "AUTOBALANCE_HOURLY_TRIGGER_EVENT=$HOURLY_TRIGGER_EVENT"
-            echo "AUTOBALANCE_HOURLY_SOURCE_SHA=$HOURLY_SOURCE_SHA"
+            echo "AUTOBALANCE_HOURLY_SOURCE_SHA=$EXPECTED_PRODUCER_SHA"
             echo "AUTOBALANCE_META_ID=$META_ID"
             echo "AUTOBALANCE_META_DIGEST=$META_DIGEST"
             echo "AUTOBALANCE_DISC_ID=$DISC_ID"
@@ -267,7 +237,7 @@ jobs:
             /tmp/asi-throughput-coverage-autobalance-live-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
 
-      - name: Emit exact producer provenance receipt
+      - name: Emit exact relayed producer provenance receipt
         if: github.event_name == 'workflow_run'
         shell: bash
         run: |
@@ -275,59 +245,43 @@ jobs:
           node - <<'NODE'
           const fs = require('node:fs');
           const required = [
-            'AUTOBALANCE_BINDING_MODE',
-            'AUTOBALANCE_EXPECTED_PRODUCER_SHA',
-            'AUTOBALANCE_HOURLY_RUN_ID',
-            'AUTOBALANCE_HOURLY_RUN_ATTEMPT',
-            'AUTOBALANCE_HOURLY_TRIGGER_EVENT',
-            'AUTOBALANCE_HOURLY_SOURCE_SHA',
-            'AUTOBALANCE_META_ID',
-            'AUTOBALANCE_META_DIGEST',
-            'AUTOBALANCE_DISC_ID',
-            'AUTOBALANCE_DISC_DIGEST'
+            'AUTOBALANCE_BINDING_MODE','AUTOBALANCE_RELAY_RUN_ID','AUTOBALANCE_RELAY_RUN_ATTEMPT',
+            'AUTOBALANCE_RELAY_ARTIFACT_ID','AUTOBALANCE_RELAY_ARTIFACT_DIGEST','AUTOBALANCE_EXPECTED_PRODUCER_SHA',
+            'AUTOBALANCE_HOURLY_RUN_ID','AUTOBALANCE_HOURLY_RUN_ATTEMPT','AUTOBALANCE_HOURLY_SOURCE_SHA',
+            'AUTOBALANCE_META_ID','AUTOBALANCE_META_DIGEST','AUTOBALANCE_DISC_ID','AUTOBALANCE_DISC_DIGEST'
           ];
-          for (const key of required) {
-            if (!process.env[key]) throw new Error(`MISSING_${key}`);
-          }
-          if (process.env.AUTOBALANCE_BINDING_MODE !== 'EXACT_TRIGGERING_PRODUCER_RUN') {
-            throw new Error('INVALID_BINDING_MODE');
-          }
-          if (process.env.AUTOBALANCE_HOURLY_TRIGGER_EVENT !== 'schedule') {
-            throw new Error('NON_CANONICAL_PRODUCER_EVENT');
-          }
-          if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
-            throw new Error('PRODUCER_SHA_MISMATCH');
-          }
-          for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_DISC_DIGEST']) {
+          for (const key of required) if (!process.env[key]) throw new Error(`MISSING_${key}`);
+          if (process.env.AUTOBALANCE_BINDING_MODE !== 'EXACT_RESERVE_RELAY_TO_HOURLY_PRODUCER') throw new Error('INVALID_BINDING_MODE');
+          if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) throw new Error('PRODUCER_SHA_MISMATCH');
+          for (const key of ['AUTOBALANCE_RELAY_ARTIFACT_DIGEST','AUTOBALANCE_META_DIGEST','AUTOBALANCE_DISC_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
           const receipt = {
             id: 'kidults-asi-throughput-autobalance-provenance-v1',
-            status: 'VERIFIED_EXACT_TRIGGERING_PRODUCER_BINDING',
+            status: 'VERIFIED_EXACT_RELAYED_PRODUCER_BINDING',
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
-            expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
+            relay: {
+              workflow_path: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+              workflow_name: 'KIDULTS ASI Sharded Source Reserve v1',
+              run_id: Number(process.env.AUTOBALANCE_RELAY_RUN_ID),
+              run_attempt: Number(process.env.AUTOBALANCE_RELAY_RUN_ATTEMPT),
+              artifact_id: Number(process.env.AUTOBALANCE_RELAY_ARTIFACT_ID),
+              artifact_digest: process.env.AUTOBALANCE_RELAY_ARTIFACT_DIGEST
+            },
             producer: {
-              repository: process.env.GITHUB_REPOSITORY,
               workflow_path: '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
               workflow_name: 'KIDULTS ASI Global Any-Site Hourly Pooling v2',
               run_id: Number(process.env.AUTOBALANCE_HOURLY_RUN_ID),
               run_attempt: Number(process.env.AUTOBALANCE_HOURLY_RUN_ATTEMPT),
-              event: process.env.AUTOBALANCE_HOURLY_TRIGGER_EVENT,
+              event: 'schedule',
               head_sha: process.env.AUTOBALANCE_HOURLY_SOURCE_SHA
             },
             artifacts: [
-              {
-                name: 'kidults-asi-global-any-site-source-pool-v2',
-                id: Number(process.env.AUTOBALANCE_META_ID),
-                digest: process.env.AUTOBALANCE_META_DIGEST
-              },
-              {
-                name: 'kidults-asi-global-any-site-hourly-cycle-v2',
-                id: Number(process.env.AUTOBALANCE_DISC_ID),
-                digest: process.env.AUTOBALANCE_DISC_DIGEST
-              }
+              {name:'kidults-asi-global-any-site-source-pool-v2',id:Number(process.env.AUTOBALANCE_META_ID),digest:process.env.AUTOBALANCE_META_DIGEST},
+              {name:'kidults-asi-global-any-site-hourly-cycle-v2',id:Number(process.env.AUTOBALANCE_DISC_ID),digest:process.env.AUTOBALANCE_DISC_DIGEST}
             ],
+            relay_chain_exact: true,
             mixed_generation_allowed: false,
             empirical_authority: false,
             provider_authority: false,
@@ -358,7 +312,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      - name: Preserve triggering producer terminal envelope
+      - name: Preserve relay terminal envelope
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always() && github.event_name == 'workflow_run'
         with:
