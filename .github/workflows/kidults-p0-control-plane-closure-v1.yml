@@ -41,10 +41,11 @@ jobs:
     timeout-minutes: 30
     env:
       KPMO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
     steps:
       - name: Initialize current-run fail-closed P0 receipt
         shell: bash
+        env:
+          KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
         run: |
           set -euo pipefail
           python3 -I - <<'PY_RECEIPT'
@@ -75,6 +76,8 @@ jobs:
         with:
           node-version: '24.19.0'
       - name: Verify exact source and execute integrated closure suite
+        env:
+          KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
@@ -85,6 +88,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-p0-control-plane-closure-v1
-          path: ${{ env.KPMO_RECEIPT_PATH }}
+          path: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
           retention-days: 90
           if-no-files-found: error

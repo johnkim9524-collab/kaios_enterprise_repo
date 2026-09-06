@@ -10,7 +10,7 @@ const p0=fs.readFileSync('.github/workflows/kidults-p0-control-plane-closure-v1.
 test('P0 failure receipt initializes before checkout and uploads even when the suite fails',()=>{
   assert.ok(p0.indexOf('Initialize current-run fail-closed P0 receipt')<p0.indexOf('uses: actions/checkout@'));
   assert.match(p0,/name: Preserve P0 receipt on both success and failure\n        if: always\(\)/);
-  assert.match(p0,/path: \$\{\{ env.KPMO_RECEIPT_PATH \}\}/);
+  assert.match(p0,/path: \$\{\{ runner.temp \}\}\/kidults-p0-control-plane-closure-receipt-v1.json/);
   assert.match(p0,/if-no-files-found: error/);assert.match(p0,/retention-days: 90/);
   assert.doesNotMatch(p0,/continue-on-error:|issues: write|contents: write|secrets\./);
 });
@@ -53,4 +53,16 @@ test('both change triggers and the existing P0 suite execute the receipt regress
   assert.equal(p0.split(`      - '${file}'`).length-1,2);
   assert.ok(p0.includes(`node --test ${file}`));
   assert.ok(p0.indexOf(`node --test ${file}`)<p0.indexOf('node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'));
+});
+
+
+test('runner context is restricted to step env and upload inputs, not job env',()=>{
+  const jobEnv=p0.match(/^    env:\n([\s\S]*?)\n    steps:/m);
+  assert.ok(jobEnv);assert.doesNotMatch(jobEnv[1],/runner\./);
+  const boundPath='KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json';
+  assert.equal(p0.split(boundPath).length-1,2);
+  for(const name of ['Initialize current-run fail-closed P0 receipt','Verify exact source and execute integrated closure suite']){
+    const step=p0.split(`      - name: ${name}\n`)[1].split('      - ')[0];
+    assert.ok(step.includes(`        env:\n          ${boundPath}`));
+  }
 });
