@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 IMAGE = 'postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94'
 BASE = [
     'services/kidults-control-plane/migrations/postgres/0001_system_of_record.sql',
+    'services/kidults-control-plane/migrations/postgres/0002_workflow_run_receipts.sql',
     'infrastructure/postgres/source-intelligence/0001_global_sold_source_registry_v1.sql',
     'infrastructure/postgres/source-intelligence/0002_source_evidence_manifest_ledger_v1.sql',
     'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql',
