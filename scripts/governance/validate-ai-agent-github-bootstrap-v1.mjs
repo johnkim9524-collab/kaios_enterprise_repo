@@ -279,16 +279,42 @@ const trustedGitPath = () => {
   return [gitDir, gitRoot, path.join(gitRoot, 'mingw64', 'bin'), path.join(gitRoot, 'usr', 'bin')]
     .join(path.delimiter);
 };
+const GIT_ISOLATION = (() => {
+  const created = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-git-environment-'));
+  const root = fs.realpathSync(created);
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) fail('GIT_ISOLATION_ROOT_INVALID');
+  const home = path.join(root, 'home');
+  const xdg = path.join(root, 'xdg');
+  const hooks = path.join(root, 'hooks');
+  for (const directory of [home, xdg, hooks]) {
+    fs.mkdirSync(directory, { mode: 0o700 });
+    const stat = fs.lstatSync(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) fail('GIT_ISOLATION_DIRECTORY_INVALID');
+  }
+  const config = path.join(root, 'gitconfig');
+  fs.writeFileSync(config, '', { flag: 'wx', mode: 0o600 });
+  const configStat = fs.lstatSync(config);
+  if (!configStat.isFile() || configStat.isSymbolicLink() || configStat.size !== 0) fail('GIT_ISOLATION_CONFIG_INVALID');
+  return Object.freeze({ root, home, xdg, hooks, config });
+})();
+process.once('exit', () => {
+  try {
+    fs.rmSync(GIT_ISOLATION.root, { recursive: true, force: true });
+  } catch {
+    // Exit cleanup is best-effort; the exclusive directory contained no credentials.
+  }
+});
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_ISOLATION.home,
+    XDG_CONFIG_HOME: GIT_ISOLATION.xdg,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_ISOLATION.config,
+    GIT_CONFIG_SYSTEM: GIT_ISOLATION.config,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -303,7 +329,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_ISOLATION.home;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -328,7 +354,7 @@ const git = (repositoryRoot, args, {
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_ISOLATION.hooks}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
@@ -761,6 +787,20 @@ assert(packageJson.scripts?.['agent:bootstrap'] === `node ${paths.entrypoint}`, 
 assert(packageJson.scripts?.['verify:agent-bootstrap'] === `node ${paths.verifier}`, 'PACKAGE_VERIFIER_COMMAND');
 assert(packageJson.scripts?.['validate:agent-bootstrap'] === `node ${paths.validator}`, 'PACKAGE_VALIDATOR_COMMAND');
 
+const gitTrustArtifactPaths = [paths.entrypoint, paths.verifier, paths.validator];
+for (const artifactPath of gitTrustArtifactPaths) {
+  const source = read(artifactPath);
+  assert(source.includes("const GIT_ISOLATION = (() => {"), `GIT_ISOLATION_FACTORY_MISSING:${artifactPath}`);
+  assert(source.includes('GIT_CONFIG_GLOBAL: GIT_ISOLATION.config'), `GIT_ISOLATION_GLOBAL_CONFIG_MISSING:${artifactPath}`);
+  assert(source.includes('GIT_CONFIG_SYSTEM: GIT_ISOLATION.config'), `GIT_ISOLATION_SYSTEM_CONFIG_MISSING:${artifactPath}`);
+  assert(source.includes('core.hooksPath=${GIT_ISOLATION.hooks}'), `GIT_ISOLATION_HOOKS_MISSING:${artifactPath}`);
+  assert(!/(?:HOME|XDG_CONFIG_HOME|GIT_CONFIG_GLOBAL|GIT_CONFIG_SYSTEM):\s*os\.devNull/.test(source),
+    `DEVICE_BACKED_GIT_ENVIRONMENT_FORBIDDEN:${artifactPath}`);
+  assert(!/core\.hooksPath=\$\{os\.devNull\}/.test(source),
+    `DEVICE_BACKED_GIT_HOOKS_FORBIDDEN:${artifactPath}`);
+}
+
+
 const agents = read(paths.agents);
 const policy = read(paths.policy);
 const copilot = read(paths.copilot);
@@ -858,7 +898,8 @@ const staticResult = {
   git_replacement_refs_rejected: true,
   git_object_alternates_rejected: true,
   unsafe_repository_git_config_rejected: true,
-  nonce_keyed_receipt_hmac_required: true
+  nonce_keyed_receipt_hmac_required: true,
+  portable_git_environment_isolation_validated: true
 };
 if (staticOnly) {
   console.log(JSON.stringify(staticResult, null, 2));
@@ -1412,6 +1453,7 @@ console.log(JSON.stringify({
     'INDEX_VISIBILITY_FLAGS_REJECTION',
     'VERIFIER_INDEX_VISIBILITY_BASELINE_REJECTION',
     'HOSTILE_PATH_AND_GIT_ENVIRONMENT_ISOLATION',
+    'WINDOWS_GIT_DEVICE_PATH_REINTRODUCTION_REJECTION',
     'MAXIMUM_IDENTIFIER_RECEIPT_FILENAME_BOUND',
     'RECEIPT_FILENAME_BINDING_REJECTION',
     'CURRENT_WORKTREE_BASELINE_CHANGE_REJECTION',

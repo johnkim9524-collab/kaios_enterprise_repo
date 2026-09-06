@@ -19,6 +19,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'classify-p1-generation:',
     "CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'",
     'classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"',
+    '.event=="workflow_run"',
+    '--required-basename kidults-asi-p1-source-preflight-receipt-v1.json',
+    'validateP1RuntimeLineageFromEnvironment',
+    'runtime_lineage_content_validated:true',
     "steps.classify.outputs.classification == 'INVALID_TRIGGER'",
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error',
@@ -35,6 +39,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '/actions/runs/${P1_RUN_ID}',
     '/actions/runs/${P1_RUN_ID}/artifacts?per_page=100',
     'test \"$P1_ARTIFACT_COUNT\" = 1',
+    'test \"$P0B_ARTIFACT_COUNT\" = 1',
+    "artifact.name==='kidults-asi-p0b-bounded-discovery-candidates-v1'",
+    'p0b_artifact_digest:process.env.P0B_DIGEST',
+    'transactionally_paired_artifacts:true',
     'artifact.workflow_run?.id===Number(process.env.P1_RUN_ID)',
     'artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA',
     'artifact_digest:process.env.P1_DIGEST',
@@ -48,6 +56,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '-f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE"',
     '--mode arl-generation-pages',
     'validate-safe-zip-archive-v1.py',
+    '--expected-digest "$P0B_DIGEST"',
+    '--receipt /tmp/p0b-archive-validation-receipt-v1.json',
+    '--required-basename p0b-source-candidate-registry-v1.json',
+    '--required-basename p0b-mission-candidate-binding-ledger-v1.json',
     '--expected-digest "$P1_DIGEST"',
     '--receipt /tmp/p1-archive-validation-receipt-v1.json',
     '--required-basename p1-preflight-action-queue-v1.json',
@@ -76,9 +88,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'MAX_ARL_HISTORY_PAGES = 20',
     'pagination_reconciled_complete: true',
   ]) if (!runHistorySource.includes(marker)) failures.push(`missing run-history marker: ${marker}`);
-  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) {
-    failures.push('P1 safe ZIP validation must precede extraction');
-  }
+  if (workflowSource.indexOf('--expected-digest "$P0B_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p0b.zip')) failures.push('P0B safe ZIP validation must precede extraction');
+  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) failures.push('P1 safe ZIP validation must precede extraction');
+  const p1ValidationBlock = workflowSource.slice(workflowSource.indexOf('--archive /tmp/p1.zip'), workflowSource.indexOf('unzip -q -o /tmp/p1.zip'));
+  if (p1ValidationBlock.includes('--required-basename p0b-')) failures.push('P0B files must not be required from the P1 archive');
 
   const forbidden = [
     'git merge-base --is-ancestor',
@@ -126,7 +139,7 @@ for (const [from, to, label] of workflowMutations) {
     console.error(`Autonomous Resolution provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  if (failuresFor(workflowSource.replace(from, to), builderSource, runHistorySource).length === 0) {
+  if (failuresFor(workflowSource.replaceAll(from, to), builderSource, runHistorySource).length === 0) {
     console.error(`Autonomous Resolution provenance self-test failed to reject: ${label}`);
     process.exit(3);
   }

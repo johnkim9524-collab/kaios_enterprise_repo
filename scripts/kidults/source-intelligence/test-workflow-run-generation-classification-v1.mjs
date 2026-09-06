@@ -6,11 +6,13 @@ import {classifyWorkflowRunGeneration} from './classify-workflow-run-generation-
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const expectedWorkflowPath='.github/workflows/kidults-asi-p1-source-preflight-v1.yml';
 const currentMainSha='a'.repeat(40), priorMainSha='b'.repeat(40);
-const event=(overrides={})=>({workflow_run:{id:123,run_attempt:1,path:expectedWorkflowPath,head_repository:{full_name:repository},head_branch:'main',head_sha:currentMainSha,conclusion:'success',...overrides}});
-const classify=(overrides={},options={})=>classifyWorkflowRunGeneration({event:event(overrides),currentMainSha:options.currentMainSha??currentMainSha,executionSha:options.executionSha??currentMainSha,repository,expectedWorkflowPath});
+const event=(overrides={})=>({workflow_run:{id:123,run_attempt:1,path:expectedWorkflowPath,head_repository:{full_name:repository},head_branch:'main',head_sha:currentMainSha,event:'workflow_run',conclusion:'success',...overrides}});
+const classify=(overrides={},options={})=>classifyWorkflowRunGeneration({event:event(overrides),currentMainSha:options.currentMainSha??currentMainSha,executionSha:options.executionSha??currentMainSha,repository,expectedWorkflowPath,expectedProducerEvent:'workflow_run'});
 
 let result=classify();
 assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_PASS','CURRENT_MAIN_EXACT','CURRENT_MAIN_PRODUCER_BOUND',true]);
+result=classify({event:'schedule'});
+assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority,result.producer_event],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','PRODUCER_EVENT_MISMATCH',false,'schedule']);
 result=classify({head_sha:priorMainSha});
 assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','STALE_PRIOR_MAIN_TRIGGER',false]);
 for(const conclusion of ['failure','cancelled','timed_out']){
