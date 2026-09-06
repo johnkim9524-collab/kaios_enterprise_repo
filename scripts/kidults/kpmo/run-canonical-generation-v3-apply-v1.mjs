@@ -11,8 +11,8 @@ const die=(message)=>{throw new Error(message);};
 const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
 const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 
-function runCanonical(args){
-  const result=spawnSync(process.execPath,[WRITER,...args],{encoding:'utf8',env:process.env});
+function runCanonical(args,env=process.env){
+  const result=spawnSync(process.execPath,[WRITER,...args],{encoding:'utf8',env});
   if(result.stdout)process.stdout.write(result.stdout);
   if(result.stderr)process.stderr.write(result.stderr);
   return result;
@@ -31,8 +31,10 @@ function recoveryEligible(receipt){
   return receipt?.state==='VERIFIED_FAIL'
     && receipt?.mode==='PARTIAL_NONAUTHORITATIVE'
     && receipt?.failure_class==='POST_WRITE_READBACK_INVALID'
-    && Number(receipt?.member_comments_written)===25
-    && Number(receipt?.writes)===25
+    && receipt?.member_comments_written===25
+    && receipt?.writes===26
+    && receipt?.aggregate_comment_written===true
+    && Number.isSafeInteger(receipt?.aggregate_comment_id)&&receipt.aggregate_comment_id>0
     && /^kpmo-canonical-v3-[0-9a-f]{12}-[1-9][0-9]*-1$/.test(String(receipt?.generation_id||''));
 }
 
@@ -43,7 +45,7 @@ function validateRecoveredAuthority(receipt,validation){
   if(Number(validation?.writer_run_id)!==Number(process.env.GITHUB_RUN_ID))die('CANONICAL_V3_RECOVERY_RUN_MISMATCH');
   if(validation?.protected_main_sha!==process.env.TARGET_MAIN_SHA)die('CANONICAL_V3_RECOVERY_MAIN_MISMATCH');
   if(validation?.canonical_issue_count!==25)die('CANONICAL_V3_RECOVERY_MEMBER_COUNT_INVALID');
-  if(!Number.isInteger(validation?.aggregate_comment_id)||validation.aggregate_comment_id<1)die('CANONICAL_V3_RECOVERY_AGGREGATE_ID_INVALID');
+  if(!Number.isSafeInteger(validation?.aggregate_comment_id)||validation.aggregate_comment_id<1||validation.aggregate_comment_id!==receipt.aggregate_comment_id)die('CANONICAL_V3_RECOVERY_AGGREGATE_ID_INVALID');
   if(validation?.promotion_eligible!==false||validation?.production!=='HOLD'||validation?.public!=='HOLD'||validation?.g5!=='HOLD')die('CANONICAL_V3_RECOVERY_BOUNDARY_INVALID');
 }
 
@@ -56,12 +58,15 @@ function writeReceipt(receipt){
 }
 
 function selfTest(){
-  const valid={state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',failure_class:'POST_WRITE_READBACK_INVALID',member_comments_written:25,writes:25,generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-123-1'};
+  const valid={state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',failure_class:'POST_WRITE_READBACK_INVALID',member_comments_written:25,writes:26,aggregate_comment_written:true,aggregate_comment_id:999,generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-123-1'};
   if(!recoveryEligible(valid))die('SELF_TEST_RECOVERY_ELIGIBLE_REJECTED');
   for(const mutation of [
     {...valid,failure_class:'POST_WRITE_TRUTH_MOVED'},
     {...valid,member_comments_written:24},
-    {...valid,writes:26},
+    {...valid,writes:25},
+    {...valid,writes:'26'},
+    {...valid,aggregate_comment_written:false},
+    {...valid,aggregate_comment_id:0},
     {...valid,generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-123-2'},
     {...valid,state:'VERIFIED_PASS'}
   ]) if(recoveryEligible(mutation))die('SELF_TEST_RECOVERY_MUTATION_ESCAPED');
@@ -86,12 +91,14 @@ const failedReceipt=parseJson(failedText,'CANONICAL_V3_FAILED_RECEIPT');
 if(!recoveryEligible(failedReceipt))process.exit(Number.isInteger(first.status)?first.status:1);
 
 const originalReceiptSha256=sha256(failedText);
+// Read-only retry failures must never overwrite the acknowledged writer receipt.
+const recoveryDirectory=fs.mkdtempSync(path.join(path.dirname(receiptPath),'canonical-readback-'));
 for(let index=0;index<RECOVERY_DELAYS_MS.length;index+=1){
   await sleep(RECOVERY_DELAYS_MS[index]);
-  const validationRun=runCanonical([]);
+  const validationRun=runCanonical([],{...process.env,CANONICAL_GENERATION_RECEIPT_PATH:path.join(recoveryDirectory,`attempt-${index+1}.json`)});
   if(validationRun.status!==0)continue;
   const validation=parseJson(String(validationRun.stdout||'').trim(),'CANONICAL_V3_RECOVERY_VALIDATION');
-  validateRecoveredAuthority(failedReceipt,validation);
+  try{validateRecoveredAuthority(failedReceipt,validation);}catch(error){fs.rmSync(recoveryDirectory,{recursive:true,force:true});throw error;}
   const recovered={
     ...failedReceipt,
     state:'VERIFIED_PASS',
@@ -107,12 +114,14 @@ for(let index=0;index<RECOVERY_DELAYS_MS.length;index+=1){
     readback_recovered_at:new Date().toISOString(),
     independent_validation_authority_model:validation.authority_model,
     recovered_same_generation:true,
-    inferred_aggregate_write_from_post_write_failure_path:true
+    inferred_aggregate_write_from_post_write_failure_path:false
   };
   writeReceipt(recovered);
+  fs.rmSync(recoveryDirectory,{recursive:true,force:true});
   console.log(JSON.stringify({state:recovered.state,mode:recovered.mode,generation_id:recovered.generation_id,aggregate_comment_id:recovered.aggregate_comment_id,writes:recovered.writes,readback_recovery_attempt:recovered.readback_recovery_attempt}));
   process.exit(0);
 }
 
+fs.rmSync(recoveryDirectory,{recursive:true,force:true});
 console.error('CANONICAL_V3_EVENTUAL_READBACK_RECOVERY_EXHAUSTED');
 process.exit(Number.isInteger(first.status)?first.status:1);

@@ -17,9 +17,11 @@ const WRITE_ACTION='APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 const AUTHORIZATION_MAX_AGE_MS=30*60*1000;
 const die=(message)=>{throw new Error(message);};
 
+let receiptWrittenThisInvocation=false;
 function receipt(extra){
   fs.mkdirSync(path.dirname(receiptPath),{recursive:true});
   fs.writeFileSync(receiptPath,`${JSON.stringify({receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.5.1',repository:repo||null,run_id:Number(process.env.GITHUB_RUN_ID||0)||null,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0)||null,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD',...extra},null,2)}\n`);
+  receiptWrittenThisInvocation=true;
 }
 
 function githubApiUrl(url){
@@ -120,7 +122,7 @@ async function validateCurrent(snapshotValue,expectedRun=null,{allowMaterialRefr
   for(const entry of commit.member_comments)comments.push(await api(`/issues/comments/${entry.comment_id}`));
   for(let index=0;index<MEMBERS.length;index+=1){
     const comment=comments[index],entry=commit.member_comments[index];
-    if(comment.user?.login!==BOT||issueNo(comment)!==MEMBERS[index]||comment.id>=aggregate.id||sha256(String(comment.body||''))!==entry.comment_body_sha256)die(`MEMBER_COMMENT_${MEMBERS[index]}_IDENTITY_INVALID`);
+    if(comment.id!==entry.comment_id||comment.user?.login!==BOT||issueNo(comment)!==MEMBERS[index]||comment.id>=aggregate.id||sha256(String(comment.body||''))!==entry.comment_body_sha256)die(`MEMBER_COMMENT_${MEMBERS[index]}_IDENTITY_INVALID`);
     const member=parseMarked(comment.body,MS,ME);
     if(refresh){
       immutableProducerComment(comment);
@@ -196,21 +198,23 @@ async function write(){
   const currentApproval=await api(`/issues/comments/${authorization.approval_comment_id}`);
   validateAuthorizationComment(currentApproval,authorizationBody(authorization.authorization_id,snapshotValue.protected_main_sha),new Date().toISOString());
   const id=generationId(snapshotValue.protected_main_sha,run,attempt),generatedAt=new Date().toISOString(),entries=[];
+  let aggregate=null;
   try{
     for(let index=0;index<MEMBERS.length;index+=1){
       const body=marked(MS,ME,memberPayload(snapshotValue,id,MEMBERS[index],index,run,attempt,generatedAt));
       const comment=await post(MEMBERS[index],body);
       entries.push({issue_number:MEMBERS[index],comment_id:comment.id,comment_body_sha256:sha256(body)});
     }
+    if((await snapshot()).truth_digest!==snapshotValue.truth_digest)die('PRE_COMMIT_TRUTH_MOVED');
     const body=marked(CS,CE,commitPayload(snapshotValue,id,run,attempt,entries,new Date().toISOString()));
-    const aggregate=await post(AGGREGATE,body);
+    aggregate=await post(AGGREGATE,body);
     const postWriteSnapshot=await snapshot();
     if(postWriteSnapshot.truth_digest!==snapshotValue.truth_digest)die('POST_WRITE_TRUTH_MOVED');
     const verified=await validateCurrent(postWriteSnapshot,run);
     if(!verified||verified.stale||verified.aggregate_comment_id!==aggregate.id)die('POST_WRITE_READBACK_INVALID');
     receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26,refresh:prior?.refresh||null});
   }catch(error){
-    receipt({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',generation_id:id,member_comments_written:entries.length,authorization,writes:entries.length,failure_class:error.message});
+    receipt({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',generation_id:id,member_comments_written:entries.length,aggregate_comment_written:aggregate!==null,aggregate_comment_id:aggregate?.id||null,authorization,writes:entries.length+(aggregate?1:0),failure_class:error.message});
     throw error;
   }
 }
@@ -288,7 +292,7 @@ try{
   else if(process.argv.includes('--write'))await write();
   else await validate();
 }catch(error){
-  if(!process.argv.includes('--self-test')&&!fs.existsSync(receiptPath))receipt({state:'VERIFIED_FAIL',mode:'UNCOMMITTED',failure_class:error instanceof Error?error.message:String(error),mismatch_fields:Array.isArray(error?.mismatch_fields)?error.mismatch_fields:[],writes:0});
+  if(!process.argv.includes('--self-test')&&!receiptWrittenThisInvocation)receipt({state:'VERIFIED_FAIL',mode:'UNCOMMITTED',failure_class:error instanceof Error?error.message:String(error),mismatch_fields:Array.isArray(error?.mismatch_fields)?error.mismatch_fields:[],writes:0});
   console.error(error);
   process.exit(1);
 }
