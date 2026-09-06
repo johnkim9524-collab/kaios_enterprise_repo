@@ -349,12 +349,15 @@ jobs:
                   READBACK_STATE=PRIOR_ADMISSION_READBACK_FAILED
                   break
                 fi
-                ADMISSION_COUNT=$(jq -r '[.artifacts[] | select(.name == $name and .expired != true)] | length' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
+                ADMISSION_COUNT=$(jq -r '[.artifacts[] | select(.name == $name and .expired != true and .workflow_run.id == $run_id)] | length' \
+                  --arg name "$ADMISSION_NAME" --argjson run_id "$PRIOR_RUN_ID" "$ADMISSION_META")
                 if [ "$ADMISSION_COUNT" -ne 1 ]; then
                   continue
                 fi
-                ADMISSION_ID=$(jq -r '.artifacts[] | select(.name == $name and .expired != true) | .id' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
-                ADMISSION_DIGEST=$(jq -r '.artifacts[] | select(.name == $name and .expired != true) | .digest' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
+                ADMISSION_ID=$(jq -r '.artifacts[] | select(.name == $name and .expired != true and .workflow_run.id == $run_id) | .id' \
+                  --arg name "$ADMISSION_NAME" --argjson run_id "$PRIOR_RUN_ID" "$ADMISSION_META")
+                ADMISSION_DIGEST=$(jq -r '.artifacts[] | select(.name == $name and .expired != true and .workflow_run.id == $run_id) | .digest' \
+                  --arg name "$ADMISSION_NAME" --argjson run_id "$PRIOR_RUN_ID" "$ADMISSION_META")
                 ADMISSION_ARCHIVE="$GUARD_DIR/prior-admission-${PRIOR_RUN_ID}.zip"
                 ADMISSION_EXTRACT="$GUARD_DIR/prior-admission-${PRIOR_RUN_ID}"
                 mkdir -p "$ADMISSION_EXTRACT"
@@ -374,8 +377,18 @@ jobs:
                   READBACK_STATE=PRIOR_ADMISSION_RECEIPT_CARDINALITY_INVALID
                   break
                 fi
-                if jq -e --arg source "$SOURCE_SHA" \
-                  '.id == "kidults-asi-requirement-coverage-admission-v1" and .version == "1.0.0" and .state == "VERIFIED_SKIP" and .admission == "EXPECTED_NONAUTHORITATIVE_SKIP" and .should_run == false and .promotion_authority == false and .arl_run_id != null and .execution_sha == $source and .production == "HOLD" and .public_release == "HOLD" and .g5 == "HOLD"' \
+                if jq -e --arg source "$SOURCE_SHA" --arg repo "$GITHUB_REPOSITORY" \
+                  'keys == ["admission","arl_head_sha","arl_run_attempt","arl_run_id","classification","classification_reason","execution_sha","g5","id","production","promotion_authority","public_release","reason","repository","should_run","state","version"] and
+                   .id == "kidults-asi-requirement-coverage-admission-v1" and .version == "1.0.0" and
+                   .state == "VERIFIED_SKIP" and .admission == "EXPECTED_NONAUTHORITATIVE_SKIP" and
+                   .should_run == false and .promotion_authority == false and .repository == $repo and
+                   (.arl_run_id | type == "number" and isfinite and floor == . and . > 0 and . <= 9007199254740991) and
+                   (.arl_run_attempt | type == "number" and isfinite and floor == . and . > 0 and . <= 9007199254740991) and
+                   .arl_head_sha == $source and .execution_sha == $source and
+                   (((.reason == "ARL_PUSH_RECOVERY_NONAUTHORITATIVE") and .classification == null and .classification_reason == null) or
+                    ((.reason == "PRODUCER_EVENT_MISMATCH" or .reason == "UPSTREAM_NON_SUCCESS" or .reason == "STALE_PRIOR_MAIN_TRIGGER") and
+                     .classification == "EXPECTED_NONAUTHORITATIVE_SKIP" and .classification_reason == .reason)) and
+                   .production == "HOLD" and .public_release == "HOLD" and .g5 == "HOLD"' \
                   "${ADMISSION_RECEIPTS[0]}" >/dev/null; then
                   jq --argjson id "$PRIOR_RUN_ID" '. + [$id] | unique | sort' \
                     "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json" > "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.tmp"

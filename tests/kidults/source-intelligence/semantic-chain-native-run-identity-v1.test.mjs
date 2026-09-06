@@ -142,6 +142,22 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(!/^  workflow_run:/m.test(strict));
 });
 
+test('Coverage prior-skip exclusion binds artifact ownership and exact admission semantics', () => {
+ assert.ok(covSource.includes('.workflow_run.id == $run_id'));
+ for (const binding of [
+  '.repository == $repo',
+  '.arl_head_sha == $source',
+  '.execution_sha == $source',
+  '.arl_run_id | type == "number"',
+  '.arl_run_attempt | type == "number"',
+  '.classification == "EXPECTED_NONAUTHORITATIVE_SKIP"',
+  '.classification_reason == .reason',
+ '.reason == "ARL_PUSH_RECOVERY_NONAUTHORITATIVE"',
+  '. <= 9007199254740991',
+ ]) assert.ok(covSource.includes(binding), `missing prior-skip binding: ${binding}`);
+ assert.ok(covSource.includes('keys == ["admission","arl_head_sha","arl_run_attempt","arl_run_id"'));
+});
+
 function embeddedPython(marker){
  const s=workflow.split(`<<'${marker}'\n`)[1]?.split(`\n          ${marker}`)[0];assert.ok(s,marker);
  return s.split('\n').map(x=>x.startsWith('          ')?x.slice(10):x).join('\n');
