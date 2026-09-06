@@ -134,7 +134,8 @@ jobs:
           if (/\n  workflow_dispatch:\s*\n/.test(s)) throw new Error('INDEPENDENT_CONSUMER_DISPATCH_REINTRODUCED');
           const legacyWaitToken = ['AUTOBALANCE', 'PRODUCER', 'WAIT', 'MAX', 'ATTEMPTS'].join('_');
           if (s.includes(legacyWaitToken)) throw new Error('BOUNDED_POLL_RACE_REINTRODUCED');
-          if (s.includes('/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs')) {
+          const legacySearchPath = ['/actions', 'workflows', 'kidults-asi-global-any-site-hourly-pooling-v2.yml', 'runs'].join('/');
+          if (s.includes(legacySearchPath)) {
             throw new Error('SEARCH_BASED_PRODUCER_SELECTION_REINTRODUCED');
           }
           NODE
