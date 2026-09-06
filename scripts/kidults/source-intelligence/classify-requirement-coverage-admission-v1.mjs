@@ -21,9 +21,15 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   if (!run || !positive(run.id) || !positive(run.run_attempt)) return {...base, reason: 'ARL_RUN_IDENTITY_INVALID'};
   if (!SHA_RE.test(executionSha ?? '') || !SHA_RE.test(run.head_sha ?? '')) return {...base, reason: 'SHA_INVALID'};
   if (run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return {...base, reason: 'ARL_REPOSITORY_MISMATCH'};
-  if (run.path !== ARL_PATH || run.event !== 'workflow_run' || run.head_branch !== 'main') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
+  if (run.path !== ARL_PATH || run.head_branch !== 'main') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (run.status !== 'completed' || run.conclusion !== 'success') return {...base, reason: 'ARL_NOT_SUCCESS'};
   if (run.head_sha !== executionSha) return {...base, reason: 'ARL_NOT_CURRENT_EXECUTION'};
+  if (run.event === 'push') {
+    const title = run.display_title ?? run.name ?? '';
+    if (title !== `KIDULTS ARL / recovery-${executionSha}` || classification != null) return {...base, reason: 'ARL_RECOVERY_IDENTITY_INVALID'};
+    return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: 'ARL_PUSH_RECOVERY_NONAUTHORITATIVE', should_run: false};
+  }
+  if (run.event !== 'workflow_run') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (!classification || classification.id !== 'kidults-workflow-run-generation-classification-v1' || classification.version !== '1.1.0') return {...base, reason: 'CLASSIFICATION_SCHEMA_INVALID'};
   if (classification.repository !== repository || classification.execution_sha !== executionSha || classification.current_main_sha !== executionSha) return {...base, reason: 'CLASSIFICATION_GENERATION_MISMATCH'};
   if (classification.expected_producer_workflow_path !== P1_PATH || classification.expected_producer_event !== 'workflow_run') return {...base, reason: 'CLASSIFICATION_CONTRACT_MISMATCH'};
@@ -47,7 +53,7 @@ function main() {
   if (!runPath || !classificationPath || !repository || !executionSha || !outputPath) throw new Error('REQUIREMENT_COVERAGE_ADMISSION_ARGUMENTS_REQUIRED');
   const result = classifyRequirementCoverageAdmission({
     run: JSON.parse(fs.readFileSync(runPath, 'utf8')),
-    classification: JSON.parse(fs.readFileSync(classificationPath, 'utf8')),
+    classification: classificationPath === '-' ? null : JSON.parse(fs.readFileSync(classificationPath, 'utf8')),
     repository, executionSha
   });
   fs.writeFileSync(outputPath, `${JSON.stringify(result, null, 2)}\n`);
