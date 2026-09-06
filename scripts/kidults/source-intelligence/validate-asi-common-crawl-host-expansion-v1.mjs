@@ -52,6 +52,18 @@ if (expansion.seed_selection_mode === 'ROLLING_FAIR_FRONTIER') {
   if (frontier.frontier_digest !== expectedDigest) fail('FRONTIER_DIGEST');
   const counts = frontier.host_frontier.map(row => Number(row.selected_count));
   if (counts.some(count => !Number.isInteger(count) || count < 0) || Math.max(...counts) - Math.min(...counts) > 1) fail('FRONTIER_FAIRNESS');
+  const priorCounts = frontier.host_frontier.map(row => Number(row.selected_count) - (row.selected_this_cycle ? 1 : 0));
+  if (Math.max(...priorCounts) - Math.min(...priorCounts) > 1) fail('FRONTIER_REBASED_PRIOR_FAIRNESS');
+  for (const row of frontier.host_frontier) {
+    const historicalBefore = Number(row.historical_selected_count_before_cycle);
+    const historicalAfter = Number(row.historical_selected_count);
+    const priorCount = Number(row.selected_count) - (row.selected_this_cycle ? 1 : 0);
+    if (!Number.isInteger(historicalBefore) || historicalBefore < 0 || historicalAfter !== historicalBefore + (row.selected_this_cycle ? 1 : 0)) fail(`FRONTIER_HISTORICAL_COUNT:${row.host}`);
+    if (!Number.isInteger(Number(row.selection_count_rebase_delta)) || Number(row.selection_count_rebase_delta) !== historicalBefore - priorCount || Number(row.selection_count_rebase_delta) < 0) fail(`FRONTIER_REBASE_DELTA:${row.host}`);
+  }
+  if (frontier.historical_selection_rebase_policy !== 'PRESERVE_ABSOLUTE_HISTORY_REBASE_CURRENT_UNIVERSE_TO_UNIT_SPREAD') fail('FRONTIER_REBASE_POLICY');
+  if (!/^sha256:[0-9a-f]{64}$/.test(String(frontier.removed_host_history_digest || ''))) fail('FRONTIER_REMOVED_HISTORY_DIGEST');
+  if (Number(frontier.retained_host_count) + Number(frontier.new_host_count) !== frontier.host_frontier.length || Number(frontier.previous_host_universe_count) - Number(frontier.retained_host_count) !== Number(frontier.removed_host_count)) fail('FRONTIER_HOST_CHURN');
   for (const row of frontier.host_frontier) {
     if (row.rights_state !== 'UNASSESSED' || row.admission_state !== 'NOT_ADMITTED' || row.acquisition_authorized !== false || row.target_site_body_crawled !== false || row.production !== 'HOLD') fail(`FRONTIER_HOST_PROMOTION:${row.host}`);
   }
