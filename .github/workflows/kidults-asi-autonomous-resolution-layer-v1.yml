@@ -37,6 +37,8 @@ on:
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
+      - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   pull_request:
     branches: [main]
@@ -70,6 +72,8 @@ on:
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
+      - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
   workflow_run:
     workflows:
@@ -114,6 +118,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
           node --check scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
           node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
@@ -228,6 +233,25 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - name: Initialize non-consumable ARL terminal observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY_ARL_INITIAL'
+          import json, os
+          from pathlib import Path
+          value = {
+            'id': 'kidults-asi-arl-terminal-observation-v1', 'version': '1.0.0',
+            'repository': os.environ['GITHUB_REPOSITORY'], 'source_sha': os.environ['GITHUB_SHA'],
+            'run_id': int(os.environ['GITHUB_RUN_ID']), 'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+            'state': 'VERIFIED_FAIL', 'failure_class': 'ARL_PRODUCER_NOT_COMPLETED',
+            'artifact_role': 'TERMINAL_NON_CONSUMABLE', 'authoritative_producer': False,
+            'downstream_consumable': False, 'promotion_authority': False,
+            'canonical_artifact_published': False,
+            'production': 'HOLD', 'public': 'HOLD', 'g5': 'HOLD'
+          }
+          (Path(os.environ['RUNNER_TEMP']) / 'kir-arl-producer-terminal-v1.json').write_text(json.dumps(value, indent=2) + '\n')
+          PY_ARL_INITIAL
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
@@ -262,6 +286,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
             | tee /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
       - name: Restore exact producer-bound P0B and P1 artifact pair
+        id: producer_restore
         env:
           GH_TOKEN: ${{ github.token }}
           UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -290,7 +315,7 @@ jobs:
           test "$P1_SOURCE_SHA" = "$TARGET_SHA"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}" > /tmp/p1-run.json
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
-            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
+            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .event=="workflow_run" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
             /tmp/p1-run.json >/dev/null
           for ARTIFACT_ATTEMPT in {1..12}; do
             rm -f /tmp/p1-artifact.json
@@ -400,6 +425,7 @@ jobs:
           echo "P1_VALIDATION_ONLY=$VALIDATION_ONLY" >> "$GITHUB_ENV"
           echo "p1_run_id=$P1_RUN_ID p1_artifact_id=$P1_ID source_sha=$P1_SOURCE_SHA consumer_sha=$CURRENT_SHA exact_generation=true validation_only=$VALIDATION_ONLY"
       - name: Build autonomous resolution layer twice
+        id: producer_build
         run: |
           set -euo pipefail
           for RUN in 1 2; do
@@ -492,6 +518,7 @@ jobs:
           fi
           mv /tmp/resolution-registry.json coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-registry-v1.json
       - name: Revalidate pristine resolution outputs and registry
+        id: producer_validate
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
@@ -510,6 +537,7 @@ jobs:
             coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json \
             > /tmp/kidults-asi-autonomous-resolution-layer-final-validation-v1.json
       - name: Claim single authoritative producer for exact P1 generation
+        id: producer_claim
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -519,7 +547,12 @@ jobs:
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             > /tmp/arl-current-run.json
           CURRENT_ARL_CREATED_AT=$(jq -er --argjson run "$GITHUB_RUN_ID" \
-            'select(.id==$run and .name=="KIDULTS ASI Autonomous Resolution Layer v1" and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run" and .head_sha==env.GITHUB_SHA and .head_branch=="main") | .created_at' \
+            --argjson attempt "$GITHUB_RUN_ATTEMPT" --arg repo "$GITHUB_REPOSITORY" \
+            --arg title "KIDULTS ARL / p1-${P1_RUN_ID}" \
+            'select(.id==$run and .run_attempt==$attempt and .repository.full_name==$repo and .head_repository.full_name==$repo
+             and (.name=="KIDULTS ASI Autonomous Resolution Layer v1" or .name==$title) and .display_title==$title
+             and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run"
+             and .head_sha==env.GITHUB_SHA and .head_branch=="main") | .created_at' \
             /tmp/arl-current-run.json)
           CREATED_WINDOW="${P1_GENERATION_WINDOW_START}..${CURRENT_ARL_CREATED_AT}"
           printf '[]\n' > /tmp/arl-authoritative-generation-run-pages.json
@@ -554,12 +587,14 @@ jobs:
             --created-since "$P1_GENERATION_WINDOW_START" --created-through "$CURRENT_ARL_CREATED_AT" \
             --output /tmp/arl-authoritative-generation-history-receipt-v1.json
       - name: Emit KPMO autonomous-resolution receipt
+        id: producer_receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
           const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const generationKey=`${process.env.GITHUB_SHA}:${process.env.P1_RUN_ID}:${process.env.P0B_ARTIFACT_ID}:${process.env.P0B_ARTIFACT_DIGEST}:${process.env.P1_ARTIFACT_ID}:${process.env.P1_ARTIFACT_DIGEST}`;process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,producer_workflow_run_id:Number(process.env.GITHUB_RUN_ID),producer_display_title:`KIDULTS ARL / p1-${process.env.P1_RUN_ID}`,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p0b_artifact_id:Number(process.env.P0B_ARTIFACT_ID),p0b_artifact_digest:process.env.P0B_ARTIFACT_DIGEST,p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,transactionally_paired_artifacts:true,p1_source_sha:process.env.P1_SOURCE_SHA,authoritative_generation_key:generationKey,artifact_role:'AUTHORITATIVE_CONSUMABLE',authoritative_producer:true,downstream_consumable:true,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: producer_archive
         with:
           name: kidults-asi-autonomous-resolution-layer-v1
           path: |
@@ -573,5 +608,45 @@ jobs:
             /tmp/kidults-asi-autonomous-resolution-layer-registry-final-validation-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-final-validation-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Finalize non-consumable ARL terminal observation
+        if: always()
+        shell: bash
+        env:
+          ARL_JOB_STATUS: ${{ job.status }}
+          ARL_RESTORE: ${{ steps.producer_restore.outcome }}
+          ARL_BUILD: ${{ steps.producer_build.outcome }}
+          ARL_VALIDATE: ${{ steps.producer_validate.outcome }}
+          ARL_CLAIM: ${{ steps.producer_claim.outcome }}
+          ARL_RECEIPT: ${{ steps.producer_receipt.outcome }}
+          ARL_ARCHIVE: ${{ steps.producer_archive.outcome }}
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY_ARL_FINAL'
+          import json, os
+          from pathlib import Path
+          destination = Path(os.environ['RUNNER_TEMP']) / 'kir-arl-producer-terminal-v1.json'
+          value = json.loads(destination.read_text())
+          for field, key in [('source_sha', 'GITHUB_SHA'), ('repository', 'GITHUB_REPOSITORY')]:
+            if value[field] != os.environ[key]:
+              raise ValueError('ARL_TERMINAL_IDENTITY_CHANGED')
+          if value['run_id'] != int(os.environ['GITHUB_RUN_ID']) or value['run_attempt'] != int(os.environ['GITHUB_RUN_ATTEMPT']):
+            raise ValueError('ARL_TERMINAL_RUN_CHANGED')
+          outcomes = {key: os.environ.get('ARL_' + key, '') for key in ['RESTORE', 'BUILD', 'VALIDATE', 'CLAIM', 'RECEIPT', 'ARCHIVE']}
+          complete = os.environ.get('ARL_JOB_STATUS') == 'success' and all(v == 'success' for v in outcomes.values())
+          value.update(state='VERIFIED_PASS' if complete else 'VERIFIED_FAIL',
+            failure_class=None if complete else 'ARL_PRODUCER_STEP_NOT_SUCCESS',
+            job_status=os.environ.get('ARL_JOB_STATUS'), step_outcomes=outcomes,
+            canonical_artifact_published=outcomes['ARCHIVE'] == 'success')
+          destination.write_text(json.dumps(value, indent=2) + '\n')
+          PY_ARL_FINAL
+      - name: Retain non-consumable ARL terminal observation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-arl-terminal-observation-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kir-arl-producer-terminal-v1.json
           retention-days: 90
           if-no-files-found: error

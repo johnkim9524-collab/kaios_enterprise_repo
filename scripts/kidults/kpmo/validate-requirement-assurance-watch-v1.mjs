@@ -21,7 +21,7 @@ function validate(text) {
   if (count(text, watch) !== 1) fail('REQUIREMENT_WATCH_CARDINALITY_NOT_ONE');
   const block = extractStep(text, 'Validate exact Requirement Coverage upstream evidence binding');
   const required = [
-    "if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'",
+    "if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'",
     'GH_TOKEN: ${{ github.token }}',
     'REQUIREMENT_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
     'REQUIREMENT_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}',
@@ -29,7 +29,7 @@ function validate(text) {
     'REQUIREMENT_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}',
     '^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$',
     '/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}',
-    '.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1"',
+    '(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))',
     '.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"',
     '.repository.full_name==$repo',
     '.run_attempt==$attempt',
@@ -75,6 +75,7 @@ validate(source);
 
 const block = extractStep(source, 'Validate exact Requirement Coverage upstream evidence binding');
 const mutations = [
+  ['(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))', 'true'],
   ['GH_TOKEN: ${{ github.token }}\n', ''],
   ['.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"', '.path!=".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],

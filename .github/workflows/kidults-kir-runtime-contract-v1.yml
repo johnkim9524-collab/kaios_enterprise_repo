@@ -19,6 +19,15 @@ on:
       - 'contracts/certification/**'
       - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
+      - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs'
+      - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
+      - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+      - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -37,6 +46,15 @@ on:
       - 'contracts/certification/**'
       - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - '.github/workflows/kidults-kir-runtime-contract-v1.yml'
+      - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs'
+      - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
+      - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+      - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
 
 permissions:
   contents: read
@@ -136,7 +154,7 @@ jobs:
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
+          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
 
       - name: Evaluate exact-head KIR runtime truth
         id: evaluate

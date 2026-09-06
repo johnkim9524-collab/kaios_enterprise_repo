@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { nativeWorkflowRunNameMatches } from './native-workflow-run-identity-v1.mjs';
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
@@ -26,7 +27,7 @@ function requireSha(value, code = 'SOURCE_SHA_INVALID') {
 
 function requirePositiveInteger(value, code) {
   const text = String(value ?? '');
-  if (!POSITIVE_INTEGER_PATTERN.test(text)) fail(code, text);
+  if (!POSITIVE_INTEGER_PATTERN.test(text) || !Number.isSafeInteger(Number(text))) fail(code, text);
   return Number(text);
 }
 
@@ -44,7 +45,7 @@ function requireSafeCount(value, code) {
 function validateRunIdentity(run, { workflowName, workflowPath, sourceSha, headBranch }) {
   if (!run || typeof run !== 'object') fail('WORKFLOW_RUN_INVALID');
   requirePositiveInteger(run.id, 'WORKFLOW_RUN_ID_INVALID');
-  if (run.name !== workflowName || run.path !== workflowPath) fail('WORKFLOW_RUN_IDENTITY_MISMATCH', run.id);
+  if (!nativeWorkflowRunNameMatches(run, workflowName, workflowPath)) fail('WORKFLOW_RUN_IDENTITY_MISMATCH', run.id);
   if (run.event !== 'workflow_run') fail('WORKFLOW_RUN_EVENT_FILTER_DRIFT', run.id);
   if (run.head_sha !== sourceSha || run.head_branch !== headBranch) fail('WORKFLOW_RUN_SOURCE_FILTER_DRIFT', run.id);
   return run;
