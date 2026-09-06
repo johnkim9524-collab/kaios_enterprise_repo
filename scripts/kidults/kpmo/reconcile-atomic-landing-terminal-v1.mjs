@@ -144,8 +144,16 @@ function readTransportAvailability() {
     assert(typeof receipt?.failure_code === 'string' && /^ATOMIC_EVENT_TRANSPORT_[A-Z0-9_]+$/.test(receipt.failure_code),
       'ATOMIC_TERMINAL_TRANSPORT_FAILURE_CODE_INVALID');
     const observation = receipt?.repository_merge_commit_observation;
-    assert(observation?.api_surface === 'GET /repos/{owner}/{repo}'
-      && observation?.field_name === 'allow_merge_commit'
+    const observationSourceValid = (
+      observation?.api_surface === 'GET /repos/{owner}/{repo}'
+        && observation?.field_name === 'allow_merge_commit'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+    ) || (
+      observation?.api_surface === 'POST /graphql Repository.mergeCommitAllowed'
+        && observation?.field_name === 'mergeCommitAllowed'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA'
+    );
+    assert(observationSourceValid
       && observation?.raw_response_persisted === false
       && typeof observation?.classification === 'string',
     'ATOMIC_TERMINAL_TRANSPORT_OBSERVATION_INVALID');

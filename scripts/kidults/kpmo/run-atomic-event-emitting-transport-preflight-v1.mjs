@@ -9,6 +9,8 @@ const TRANSPORT = 'DIRECT_OWNER_GITHUB_UI';
 
 const API_SURFACE = 'GET /repos/{owner}/{repo}';
 const API_PROVENANCE = 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA';
+const GRAPHQL_API_SURFACE = 'POST /graphql Repository.mergeCommitAllowed';
+const GRAPHQL_API_PROVENANCE = 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA';
 
 const fail = (code, detail = '', evidence = null) => {
   const error = new Error(detail ? `${code}:${detail}` : code);
@@ -118,6 +120,42 @@ export function classifyRepositoryMergeCommitObservation({
     classification = 'ENABLED';
   }
   return {...base, classification, failure_code: failureCode};
+}
+
+export function classifyGraphqlRepositoryMergeCommitObservation({
+  httpStatus,
+  responseOk,
+  headers = {},
+  payload,
+  jsonParsed = true,
+} = {}) {
+  const repository = payload?.data?.repository;
+  const responseShapeValid = repository && typeof repository === 'object' && !Array.isArray(repository)
+    && !(Array.isArray(payload?.errors) && payload.errors.length > 0)
+    && !(!Array.isArray(payload?.errors) && payload?.errors !== undefined);
+  const normalizedPayload = responseShapeValid
+    ? (Object.hasOwn(repository, 'mergeCommitAllowed')
+      ? {allow_merge_commit: repository.mergeCommitAllowed}
+      : {})
+    : null;
+  const observation = classifyRepositoryMergeCommitObservation({
+    httpStatus,
+    responseOk,
+    headers,
+    payload: normalizedPayload,
+    jsonParsed: jsonParsed === true && normalizedPayload !== null,
+    apiSurface: GRAPHQL_API_SURFACE,
+    provenance: GRAPHQL_API_PROVENANCE,
+  });
+  return {
+    ...observation,
+    field_name: 'mergeCommitAllowed',
+  };
+}
+
+export function selectRepositoryMergeCommitObservation(restObservation, graphqlObservation = null) {
+  if (restObservation?.classification !== 'FIELD_MISSING') return restObservation;
+  return graphqlObservation || restObservation;
 }
 
 export function compareRepositoryMergeCommitOwnerView(actionsObservation, ownerObservation = null) {
@@ -230,6 +268,14 @@ async function selfTest() {
       base: {ref: 'main', sha: baseSha}, head: {sha: headSha}},
   };
   assert.equal(validateTransportSnapshot(snapshot, expected).identity_verified, true);
+  const restMissing = classifyRepositoryMergeCommitObservation({
+    httpStatus: 200, responseOk: true, payload: {},
+  });
+  const graphqlEnabled = classifyGraphqlRepositoryMergeCommitObservation({
+    httpStatus: 200, responseOk: true,
+    payload: {data: {repository: {mergeCommitAllowed: true}}},
+  });
+  assert.equal(selectRepositoryMergeCommitObservation(restMissing, graphqlEnabled).classification, 'ENABLED');
   const mutations = [
     [{...snapshot, actor: 'other'}, 'ATOMIC_EVENT_TRANSPORT_OWNER_ACTOR_REQUIRED'],
     [{...snapshot, repositoryMergeCommitObservation: classifyRepositoryMergeCommitObservation({
@@ -298,9 +344,39 @@ async function main() {
     let payload = null;
     let jsonParsed = true;
     try { payload = await response.json(); } catch { jsonParsed = false; }
-    const observation = classifyRepositoryMergeCommitObservation({
+    const restObservation = classifyRepositoryMergeCommitObservation({
       httpStatus: response.status, responseOk: response.ok, headers: response.headers, payload, jsonParsed,
     });
+    let graphqlObservation = null;
+    if (restObservation.classification === 'FIELD_MISSING') {
+      const [owner, name] = repository.split('/');
+      let graphqlResponse;
+      try {
+        graphqlResponse = await fetch('https://api.github.com/graphql', {
+          method: 'POST', headers, redirect: 'error',
+          body: JSON.stringify({
+            query: 'query($owner:String!,$name:String!){repository(owner:$owner,name:$name){mergeCommitAllowed}}',
+            variables: {owner, name},
+          }),
+        });
+      } catch (error) {
+        graphqlObservation = classifyGraphqlRepositoryMergeCommitObservation({
+          httpStatus: null, responseOk: false, payload: null, jsonParsed: false,
+        });
+        fail('ATOMIC_EVENT_TRANSPORT_REPOSITORY_HTTP_FAILURE', error?.name || '', graphqlObservation);
+      }
+      let graphqlPayload = null;
+      let graphqlJsonParsed = true;
+      try { graphqlPayload = await graphqlResponse.json(); } catch { graphqlJsonParsed = false; }
+      graphqlObservation = classifyGraphqlRepositoryMergeCommitObservation({
+        httpStatus: graphqlResponse.status,
+        responseOk: graphqlResponse.ok,
+        headers: graphqlResponse.headers,
+        payload: graphqlPayload,
+        jsonParsed: graphqlJsonParsed,
+      });
+    }
+    const observation = selectRepositoryMergeCommitObservation(restObservation, graphqlObservation);
     requireEnabledRepositoryMergeCommit(observation);
     return {payload, observation};
   };
