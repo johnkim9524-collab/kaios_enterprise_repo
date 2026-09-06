@@ -1,6 +1,6 @@
 {
   "id": "direct-owner-postmerge-push-suite-policy-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "branch": "main",
   "event": "push",
   "max_pages": 10,
@@ -43,6 +43,12 @@
     "all_required_workflows_must_be_terminal": true,
     "terminal_failure_is_preserved_as_fail_closed_evidence": true,
     "terminal_failure_does_not_become_promotion_authority": true,
+    "landing_integrity_only": true,
+    "continuous_assurance_role": "STRUCTURAL_RUN_WITH_EXPLICIT_SEMANTIC_CLASSIFICATION",
+    "deferred_semantic_health_never_promotion_authority": true,
+    "separate_exact_sha_producer_health_gate_required": true,
+    "canonical_truth_refresh_required_before_promotion": true,
+    "promotion_eligible": false,
     "production": "HOLD",
     "public": "HOLD",
     "g5": "HOLD"

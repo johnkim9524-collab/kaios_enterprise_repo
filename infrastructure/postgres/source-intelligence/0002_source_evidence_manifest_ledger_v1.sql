@@ -65,6 +65,13 @@ CREATE TABLE IF NOT EXISTS kidults_control.source_evidence_manifest_ledger (
         AND manifest_payload#>>'{artifact,evidence_uri}' = evidence_uri
         AND manifest_payload->>'status' = 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY'
       )
+    ),
+    CONSTRAINT source_evidence_manifest_restricted_bytes_hard_stop_ck CHECK (
+      contains_external_raw_content = false
+      AND storage_mode <> 'RESTRICTED_EVIDENCE_BYTES'
+      AND evidence_uri IS NULL
+      AND rights_decision_id IS NULL
+      AND supply_chain_run_id IS NULL
     )
 );
 

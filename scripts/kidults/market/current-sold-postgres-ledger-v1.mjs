@@ -3,7 +3,8 @@ import {
   canonicalCurrentSoldBatchReceiptId,
   canonicalJsonDigest
 } from './current-sold-batch-v1.mjs';
-import { admitCurrentSoldBatch, verifyCanonicalCurrentSoldEvent } from './current-sold-engine-v1.mjs';
+import { admitAtomicCurrentSoldBatch } from './current-sold-atomic-batch-v1.mjs';
+import { verifyCanonicalCurrentSoldEvent } from './current-sold-engine-v1.mjs';
 import {
   currentSoldEvidenceDigest,
   transformCurrentSoldEventsToEvidence
@@ -123,7 +124,7 @@ function verifyBundle(bundleInput) {
   if (receipt.receipt_registry_digest !== canonicalJsonDigest(receiptRegistry)) fail('CURRENT_SOLD_LEDGER_RECEIPT_REGISTRY_DIGEST_MISMATCH');
   const evaluatedAt = new Date(receipt.evaluated_at);
   if (Number.isNaN(evaluatedAt.getTime()) || receipt.evaluated_at !== evaluatedAt.toISOString()) fail('CURRENT_SOLD_LEDGER_INVALID_EVALUATED_AT');
-  const recomputedAdmission = admitCurrentSoldBatch(envelope.observations, { now: evaluatedAt, receiptRegistry });
+  const recomputedAdmission = admitAtomicCurrentSoldBatch(envelope.observations, { now: evaluatedAt, receiptRegistry });
   if (canonicalCurrentSoldAdmissionDigest(recomputedAdmission) !== canonicalCurrentSoldAdmissionDigest(admission)) {
     fail('CURRENT_SOLD_LEDGER_ADMISSION_RECOMPUTE_MISMATCH');
   }

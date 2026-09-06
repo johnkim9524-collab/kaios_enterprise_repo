@@ -261,7 +261,7 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs \
             | tee /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json
-      - name: Restore exact producer-bound P1 artifact
+      - name: Restore exact producer-bound P0B and P1 artifact pair
         env:
           GH_TOKEN: ${{ github.token }}
           UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -272,7 +272,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/p1-expanded /tmp/p1-input
+          mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p0b-input /tmp/p1-input
           CURRENT_SHA=$(git rev-parse HEAD)
           TARGET_SHA="$CURRENT_SHA"
           VALIDATION_ONLY=false
@@ -317,6 +317,19 @@ jobs:
             sleep 5
           done
           test "$P1_ARTIFACT_COUNT" = 1
+          P0B_ARTIFACT_COUNT=$(P1_RUN_ID="$P1_RUN_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" node - <<'NODE'
+          const fs=require('fs');
+          const x=JSON.parse(fs.readFileSync('/tmp/p1-artifacts.json','utf8'));
+          const matches=(x.artifacts||[]).filter((artifact)=>
+            artifact.name==='kidults-asi-p0b-bounded-discovery-candidates-v1'&&artifact.expired===false&&
+            artifact.workflow_run?.id===Number(process.env.P1_RUN_ID)&&
+            artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA);
+          if(matches.length!==1)throw new Error(`P0B_ARTIFACT_CARDINALITY:${matches.length}`);
+          fs.writeFileSync('/tmp/p0b-artifact.json',JSON.stringify(matches[0],null,2));
+          process.stdout.write(String(matches.length));
+          NODE
+          )
+          test "$P0B_ARTIFACT_COUNT" = 1
           P1_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).id")
           test -n "$P1_RUN_ID"
           test -n "$P1_SOURCE_SHA"
@@ -324,7 +337,24 @@ jobs:
           P1_DIGEST=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p1-artifact.json')).digest")
           test -n "$P1_DIGEST"
           [[ "$P1_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          P0B_ID=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p0b-artifact.json')).id")
+          P0B_DIGEST=$(node -p "JSON.parse(require('fs').readFileSync('/tmp/p0b-artifact.json')).digest")
+          test -n "$P0B_ID"
+          test -n "$P0B_DIGEST"
+          [[ "$P0B_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P0B_ID}/zip" > /tmp/p0b.zip
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${P1_ID}/zip" > /tmp/p1.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b.zip \
+            --expected-digest "$P0B_DIGEST" \
+            --receipt /tmp/p0b-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 4194304 \
+            --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 \
+            --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json
           python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
             --archive /tmp/p1.zip \
             --expected-digest "$P1_DIGEST" \
@@ -334,15 +364,19 @@ jobs:
             --max-entry-uncompressed-bytes 8388608 \
             --max-total-uncompressed-bytes 33554432 \
             --max-compression-ratio 100 \
-            --required-basename p0b-source-candidate-registry-v1.json \
-            --required-basename p0b-mission-candidate-binding-ledger-v1.json \
             --required-basename p1-gate1-source-safety-decisions-v1.json \
             --required-basename p1-evidence-admission-candidate-register-v1.json \
             --required-basename p1-preflight-action-queue-v1.json
+          unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in \
             p0b-source-candidate-registry-v1.json \
-            p0b-mission-candidate-binding-ledger-v1.json \
+            p0b-mission-candidate-binding-ledger-v1.json; do
+            mapfile -t FILES < <(find /tmp/p0b-expanded -type f -name "$NAME" -print)
+            test "${#FILES[@]}" -eq 1
+            cp "${FILES[0]}" "/tmp/p0b-input/$NAME"
+          done
+          for NAME in \
             p1-gate1-source-safety-decisions-v1.json \
             p1-evidence-admission-candidate-register-v1.json \
             p1-preflight-action-queue-v1.json; do
@@ -350,11 +384,13 @@ jobs:
             test "${#FILES[@]}" -eq 1
             cp "${FILES[0]}" "/tmp/p1-input/$NAME"
           done
-          P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" P1_DIGEST="$P1_DIGEST" VALIDATION_ONLY="$VALIDATION_ONLY" P1_RECOVERY_DISPATCHED="$P1_RECOVERY_DISPATCHED" node - <<'NODE'
+          P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P0B_ID="$P0B_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" P1_DIGEST="$P1_DIGEST" P0B_DIGEST="$P0B_DIGEST" VALIDATION_ONLY="$VALIDATION_ONLY" P1_RECOVERY_DISPATCHED="$P1_RECOVERY_DISPATCHED" node - <<'NODE'
           const fs=require('fs');
-          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.1.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
+          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.1.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,p0b_artifact_name:'kidults-asi-p0b-bounded-discovery-candidates-v1',p0b_artifact_id:Number(process.env.P0B_ID),p0b_artifact_digest:process.env.P0B_DIGEST,transactionally_paired_artifacts:true,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
           fs.writeFileSync('/tmp/p1-input/p1-upstream-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
+          echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
+          echo "P0B_ARTIFACT_DIGEST=$P0B_DIGEST" >> "$GITHUB_ENV"
           echo "P1_ARTIFACT_ID=$P1_ID" >> "$GITHUB_ENV"
           echo "P1_RUN_ID=$P1_RUN_ID" >> "$GITHUB_ENV"
           echo "P1_SOURCE_SHA=$P1_SOURCE_SHA" >> "$GITHUB_ENV"
@@ -368,8 +404,8 @@ jobs:
           set -euo pipefail
           for RUN in 1 2; do
             node scripts/kidults/source-intelligence/build-asi-autonomous-resolution-layer-v1.mjs \
-              /tmp/p1-input/p0b-source-candidate-registry-v1.json \
-              /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
+              /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
               /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
               /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
               /tmp/p1-input/p1-preflight-action-queue-v1.json \
@@ -386,8 +422,8 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
             /tmp/kidults-asi-autonomous-resolution-layer-run-1 \
-            /tmp/p1-input/p0b-source-candidate-registry-v1.json \
-            /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
             /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
             /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
             /tmp/p1-input/p1-preflight-action-queue-v1.json \
@@ -404,8 +440,8 @@ jobs:
           validate() {
             node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
               "$1" \
-              /tmp/p1-input/p0b-source-candidate-registry-v1.json \
-              /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
+              /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
               /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
               /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
               /tmp/p1-input/p1-preflight-action-queue-v1.json \
@@ -462,8 +498,8 @@ jobs:
             > /tmp/kidults-asi-autonomous-resolution-layer-registry-final-validation-v1.json
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
             /tmp/kidults-asi-autonomous-resolution-layer-run-1 \
-            /tmp/p1-input/p0b-source-candidate-registry-v1.json \
-            /tmp/p1-input/p0b-mission-candidate-binding-ledger-v1.json \
+            /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
+            /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
             /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
             /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
             /tmp/p1-input/p1-preflight-action-queue-v1.json \
@@ -520,7 +556,7 @@ jobs:
       - name: Emit KPMO autonomous-resolution receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const generationKey=`${process.env.GITHUB_SHA}:${process.env.P1_RUN_ID}:${process.env.P1_ARTIFACT_ID}:${process.env.P1_ARTIFACT_DIGEST}`;process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,producer_workflow_run_id:Number(process.env.GITHUB_RUN_ID),producer_display_title:`KIDULTS ARL / p1-${process.env.P1_RUN_ID}`,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,p1_source_sha:process.env.P1_SOURCE_SHA,authoritative_generation_key:generationKey,artifact_role:'AUTHORITATIVE_CONSUMABLE',authoritative_producer:true,downstream_consumable:true,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const generationKey=`${process.env.GITHUB_SHA}:${process.env.P1_RUN_ID}:${process.env.P0B_ARTIFACT_ID}:${process.env.P0B_ARTIFACT_DIGEST}:${process.env.P1_ARTIFACT_ID}:${process.env.P1_ARTIFACT_DIGEST}`;process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,producer_workflow_run_id:Number(process.env.GITHUB_RUN_ID),producer_display_title:`KIDULTS ARL / p1-${process.env.P1_RUN_ID}`,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p0b_artifact_id:Number(process.env.P0B_ARTIFACT_ID),p0b_artifact_digest:process.env.P0B_ARTIFACT_DIGEST,p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,transactionally_paired_artifacts:true,p1_source_sha:process.env.P1_SOURCE_SHA,authoritative_generation_key:generationKey,artifact_role:'AUTHORITATIVE_CONSUMABLE',authoritative_producer:true,downstream_consumable:true,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -529,6 +565,7 @@ jobs:
           path: |
             /tmp/kidults-asi-autonomous-resolution-layer-run-1
             /tmp/p1-input/p1-upstream-artifact-binding-v1.json
+            /tmp/p0b-archive-validation-receipt-v1.json
             /tmp/p1-archive-validation-receipt-v1.json
             /tmp/arl-authoritative-generation-history-receipt-v1.json
             /tmp/kidults-asi-autonomous-resolution-layer-registry-validation-v1.json

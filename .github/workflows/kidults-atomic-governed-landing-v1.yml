@@ -46,6 +46,19 @@ jobs:
           test "$GITHUB_REF" = refs/heads/main
           test "$(git branch --show-current)" = main
 
+      # Every dispatch gets a sanitized, fail-closed receipt before any gate can
+      # stop the job. This guarantees durable evidence for malformed tuples
+      # without consuming approval or creating merge authority.
+      - name: Initialize fail-closed atomic dispatch terminal receipt
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
+          LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
+        run: node scripts/kidults/kpmo/initialize-atomic-dispatch-terminal-receipt-v1.mjs
+
       - name: Require base-workflow to candidate terminal handoff compatibility
         env:
           GH_TOKEN: ${{ github.token }}

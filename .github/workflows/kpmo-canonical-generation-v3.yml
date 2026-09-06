@@ -8,6 +8,9 @@ on:
       - '.github/workflows/kpmo-canonical-generation-v3-apply.yml'
       - 'scripts/kidults/kpmo/canonical-generation-v3.mjs'
       - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
+      - 'tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs'
+      - 'tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs'
+      - 'tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
       - 'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'
   workflow_dispatch:
@@ -44,6 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
+          node --test tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs
           node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs --self-test
       - name: Prove bootstrap cannot reach issue-write authority
         run: |

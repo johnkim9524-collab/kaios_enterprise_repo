@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { canonicalJson, registryDigest } from './global-sold-source-registry-v1.mjs';
+import { canonicalJson, registryDigest, validateGlobalSoldSourceRegistry } from './global-sold-source-registry-v1.mjs';
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{2,127}$/;
@@ -29,6 +29,8 @@ export function artifactDigest(filePath) {
 export function validateEvidenceManifest(manifest, registry, contract, options = {}) {
   requireValue(contract?.id === 'kidults-source-intelligence-evidence-manifest-contract-v1', 'EVIDENCE_CONTRACT_INVALID');
   requireValue(contract?.status === 'MANDATORY_FAIL_CLOSED', 'EVIDENCE_CONTRACT_NOT_FAIL_CLOSED');
+  requireValue(contract?.rules?.restricted_bytes_hard_disabled_until_authoritative_receipt_resolution === true, 'EVIDENCE_RESTRICTED_BYTES_HARD_STOP_MISSING');
+  validateGlobalSoldSourceRegistry(registry);
   requireValue(contract.manifest_types.includes(manifest?.manifest_type), 'EVIDENCE_MANIFEST_TYPE_INVALID');
   requireValue(typeof manifest?.id === 'string' && SAFE_ID.test(manifest.id), 'EVIDENCE_MANIFEST_ID_INVALID');
   requireValue(contract.manifest_statuses.includes(manifest.status), 'EVIDENCE_MANIFEST_STATUS_INVALID');
@@ -50,9 +52,11 @@ export function validateEvidenceManifest(manifest, registry, contract, options =
   requireValue(manifest.release_boundary?.public === 'HOLD', 'EVIDENCE_PUBLIC_MUST_HOLD');
   requireValue(manifest.release_boundary?.production === 'HOLD', 'EVIDENCE_PRODUCTION_MUST_HOLD');
   requireValue(manifest.release_boundary?.g5 === 'HOLD', 'EVIDENCE_G5_MUST_HOLD');
+  requireValue(typeof manifest.artifact?.contains_external_raw_content === 'boolean', 'EVIDENCE_RAW_CONTENT_FLAG_INVALID');
   const storesExternalBytes = manifest.artifact.contains_external_raw_content === true;
   const restrictedMode = manifest.artifact.storage_mode === 'RESTRICTED_EVIDENCE_BYTES';
   requireValue(storesExternalBytes === restrictedMode, 'EVIDENCE_RAW_STORAGE_MODE_MISMATCH');
+  requireValue(!storesExternalBytes && !restrictedMode, 'EVIDENCE_RESTRICTED_BYTES_HARD_DISABLED_RECEIPT_RESOLUTION_NOT_IMPLEMENTED');
   if (storesExternalBytes) {
     requireValue(manifest.status === 'ADMITTED_RESTRICTED_EVIDENCE_NOT_RELEASE_AUTHORITY', 'EVIDENCE_RAW_STATUS_INVALID');
     requireValue(typeof manifest.artifact.evidence_uri === 'string', 'EVIDENCE_VOLUME_URI_REQUIRED');
@@ -104,6 +108,9 @@ export function validateEvidenceManifest(manifest, registry, contract, options =
 }
 
 export async function appendEvidenceManifest(client, manifest, registry, contract, options = {}) {
+  manifest = structuredClone(manifest);
+  registry = structuredClone(registry);
+  contract = structuredClone(contract);
   const validation = validateEvidenceManifest(manifest, registry, contract, options);
   const writerId = options.writerId ?? 'kpmo-supply-chain-admission-v1';
   const sourceIds = manifest.scope.source_ids.length === 0
@@ -140,7 +147,11 @@ export async function appendEvidenceManifest(client, manifest, registry, contrac
     await client.query('COMMIT');
     return { ...validation, state: 'COMMITTED', disposition };
   } catch (error) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      throw new AggregateError([error, rollbackError], 'EVIDENCE_WRITE_AND_ROLLBACK_FAILED', { cause: error });
+    }
     throw error;
   }
 }

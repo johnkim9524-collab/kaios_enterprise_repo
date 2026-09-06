@@ -84,6 +84,42 @@ test('append is transactional and replay-idempotent', async () => {
   assert.equal(replay.counts.assessments_idempotent, registry.sources.length);
 });
 
+test('snapshots caller-owned registry before the first asynchronous SQL boundary', async () => {
+  const registry = loadRegistry();
+  const originalName = registry.sources[0].source_name;
+  class MutatingClient extends MemoryClient {
+    async query(sql, params = []) {
+      if (sql === 'BEGIN') registry.sources[0].source_name = 'MUTATED_AFTER_VALIDATION';
+      return super.query(sql, params);
+    }
+  }
+  const client = new MutatingClient();
+  await appendRegistrySnapshot(client, registry);
+  assert.equal(client.snapshot.registry_payload.sources[0].source_name, originalName);
+  assert.equal([...client.assessments.values()][0].assessment_payload.source_name, originalName);
+});
+
+test('preserves the original registry write failure when rollback also fails', async () => {
+  const original = new Error('ORIGINAL_WRITE_FAILURE');
+  const rollback = new Error('ROLLBACK_FAILURE');
+  const client = {
+    async query(sql) {
+      if (sql === 'BEGIN') return { rows: [], rowCount: 0 };
+      if (sql === 'ROLLBACK') throw rollback;
+      throw original;
+    }
+  };
+  await assert.rejects(
+    () => appendRegistrySnapshot(client, loadRegistry()),
+    (error) => {
+      assert.ok(error instanceof AggregateError);
+      assert.equal(error.cause, original);
+      assert.deepEqual(error.errors, [original, rollback]);
+      return true;
+    }
+  );
+});
+
 test('migration is append-only and prevents release authority', () => {
   const sql = fs.readFileSync(migrationPath, 'utf8');
   assert.match(sql, /global_source_registry_snapshot_ledger/);
