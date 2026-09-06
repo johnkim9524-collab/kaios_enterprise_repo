@@ -22,6 +22,7 @@ const repository = process.env.GH_REPOSITORY || process.env.GITHUB_REPOSITORY ||
 const prNumber = process.env.PR_NUMBER || '';
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA || '';
 const expectedBaseSha = process.env.EXPECTED_BASE_SHA || '';
+const expectedHeadTreeSha = process.env.EXPECTED_HEAD_TREE_SHA || '';
 const authorizationId = process.env.HANDOFF_AUTHORIZATION_ID || '';
 const purpose = process.env.HANDOFF_PURPOSE || '';
 const actor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR || '';
@@ -85,7 +86,7 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
 });
 
 const approvalKeys = [
-  'repository', 'pull_request', 'exact_base_sha', 'exact_head_sha', 'operation', 'transport',
+  'repository', 'pull_request', 'exact_base_sha', 'exact_head_sha', 'expected_head_tree_sha', 'operation', 'transport',
   'authorization_id', 'nonce', 'expires_at', 'purpose', 'scope', 'approval_rebind',
   'production', 'public', 'g5',
 ];
@@ -118,7 +119,8 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
   if (comment.updated_at !== comment.created_at) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
   if (fields.repository !== repository || fields.pull_request !== prNumber) fail('DIRECT_OWNER_HANDOFF_APPROVAL_REPOSITORY_PR_MISMATCH');
-  if (fields.exact_base_sha !== expectedBaseSha || fields.exact_head_sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH');
+  if (fields.exact_base_sha !== expectedBaseSha || fields.exact_head_sha !== expectedHeadSha
+      || fields.expected_head_tree_sha !== expectedHeadTreeSha) fail('DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH');
   if (fields.operation !== OPERATION || fields.transport !== TRANSPORT) fail('DIRECT_OWNER_HANDOFF_APPROVAL_OPERATION_TRANSPORT_INVALID');
   if (fields.authorization_id !== authorizationId || fields.purpose !== purpose) fail('DIRECT_OWNER_HANDOFF_APPROVAL_BINDING_INVALID');
   if (!NONCE.test(fields.nonce || '')) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NONCE_INVALID');
@@ -164,6 +166,7 @@ let receipt = {
   pull_request: /^\d+$/.test(prNumber) ? Number(prNumber) : null,
   exact_base_sha: SHA.test(expectedBaseSha) ? expectedBaseSha : null,
   exact_head_sha: SHA.test(expectedHeadSha) ? expectedHeadSha : null,
+  expected_head_tree_sha: SHA.test(expectedHeadTreeSha) ? expectedHeadTreeSha : null,
   transport: TRANSPORT,
   purpose: PURPOSE.test(purpose) ? purpose : null,
   merge_performed_by_workflow: false,
@@ -175,7 +178,7 @@ let receipt = {
 try {
   writeReceipt(receipt);
   if (!token || !/^[^/]+\/[^/]+$/.test(repository) || !/^\d+$/.test(prNumber)) fail('DIRECT_OWNER_HANDOFF_ENVIRONMENT_INVALID');
-  if (!SHA.test(expectedHeadSha) || !SHA.test(expectedBaseSha)) fail('DIRECT_OWNER_HANDOFF_SHA_INVALID');
+  if (!SHA.test(expectedHeadSha) || !SHA.test(expectedBaseSha) || !SHA.test(expectedHeadTreeSha)) fail('DIRECT_OWNER_HANDOFF_SHA_INVALID');
   if (authorizationId !== `DIRECT-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`) fail('DIRECT_OWNER_HANDOFF_AUTHORIZATION_ID_INVALID');
   if (!PURPOSE.test(purpose)) fail('DIRECT_OWNER_HANDOFF_PURPOSE_INVALID');
   if (executionRef !== 'refs/heads/main') fail('DIRECT_OWNER_HANDOFF_MAIN_REF_REQUIRED');
@@ -201,6 +204,9 @@ try {
     request('/rulesets'),
   ]);
   assertPromotablePullRequest(pr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
+  if (headCommit?.sha !== expectedHeadSha || headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+    fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_MISMATCH');
+  }
   if (pr.user?.login !== owner || pr.head?.repo?.full_name !== repository) fail('DIRECT_OWNER_HANDOFF_PR_OWNER_BINDING_INVALID');
   if (pr.base?.sha !== expectedBaseSha || main?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_BASE_NOT_CURRENT_MAIN');
   if (pr.mergeable !== true || !['clean', 'unstable', 'blocked', 'has_hooks'].includes(pr.mergeable_state)) fail('DIRECT_OWNER_HANDOFF_PR_NOT_SERVER_MERGEABLE');
@@ -231,14 +237,18 @@ try {
   if (aggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS');
   evaluateRequiredCheckRuns(runs, scopePolicy.technical_base_contexts);
 
-  const [finalPr, finalMain, finalTimeline, finalComments] = await Promise.all([
+  const [finalPr, finalMain, finalTimeline, finalComments, finalHeadCommit] = await Promise.all([
     request(`/pulls/${prNumber}`), request('/branches/main'), pages(`/issues/${prNumber}/timeline`), pages(`/issues/${prNumber}/comments`),
+    request(`/commits/${expectedHeadSha}`),
   ]);
   assertPromotablePullRequest(finalPr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
+  if (finalHeadCommit?.sha !== expectedHeadSha || finalHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+    fail('DIRECT_OWNER_HANDOFF_FINAL_HEAD_TREE_DRIFT');
+  }
   if (finalPr.base?.sha !== expectedBaseSha || finalMain?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_FINAL_BASE_DRIFT');
   const finalReady = selectLatestDirectOwnerReadyEvent({timeline: finalTimeline, repositoryOwner: owner});
   if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
-  const finalApproval = selectApproval(finalComments, owner, finalPr, headCommit, finalReady);
+  const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady);
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
 
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
@@ -251,6 +261,7 @@ try {
     pull_request: Number(prNumber),
     exact_base_sha: expectedBaseSha,
     exact_head_sha: expectedHeadSha,
+    expected_head_tree_sha: expectedHeadTreeSha,
     direct_owner: owner,
     transport: TRANSPORT,
     purpose,
@@ -270,21 +281,33 @@ try {
   writeReceipt(receipt);
 
   await sleep(handoffWindowSeconds * 1000);
-  const [after, afterMain, afterTimeline, afterComments] = await Promise.all([
+  const [after, afterMain, afterTimeline, afterComments, afterHeadCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
+    request(`/commits/${expectedHeadSha}`),
   ]);
+  if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+    fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
+  }
   const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
   if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
-  const afterApproval = selectApproval(afterComments, owner, after, headCommit, afterReady, {phase: 'post_window'});
+  const afterApproval = selectApproval(afterComments, owner, after, afterHeadCommit, afterReady, {phase: 'post_window'});
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
     if (after?.merged_by?.login !== owner) fail('DIRECT_OWNER_HANDOFF_MERGED_BY_NON_OWNER');
     if (!SHA.test(after?.merge_commit_sha || '')) fail('DIRECT_OWNER_HANDOFF_MERGE_SHA_INVALID');
+    const mergeCommit = await request(`/commits/${after.merge_commit_sha}`);
+    if (mergeCommit?.sha !== after.merge_commit_sha || mergeCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+      fail('DIRECT_OWNER_HANDOFF_RESULTING_TREE_MISMATCH');
+    }
+    const parentShas = (mergeCommit?.parents || []).map(parent => parent?.sha);
+    if (parentShas.length !== 2 || parentShas[0] !== expectedBaseSha || parentShas[1] !== expectedHeadSha) {
+      fail('DIRECT_OWNER_HANDOFF_ORDERED_PARENTS_MISMATCH');
+    }
     const mergedAt = parseTime(after?.merged_at, 'DIRECT_OWNER_HANDOFF_MERGED_AT_INVALID');
     const openedAtMs = parseTime(openedAt, 'DIRECT_OWNER_HANDOFF_OPENED_AT_INVALID');
     const closesAtMs = openedAtMs + handoffWindowSeconds * 1000;
@@ -297,6 +320,8 @@ try {
       ...receipt,
       state: 'CONSUMED_BY_DIRECT_OWNER_MERGE',
       merge_commit_sha: after.merge_commit_sha,
+      resulting_tree_sha: mergeCommit.commit.tree.sha,
+      ordered_parent_shas: parentShas,
       merged_by: after.merged_by.login,
       merged_at: after.merged_at || null,
       handoff_closed_at: new Date().toISOString(),

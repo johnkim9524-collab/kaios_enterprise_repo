@@ -77,6 +77,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
         run: node scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs
 
       - name: Verify event-emitting merge transport before authority consumption

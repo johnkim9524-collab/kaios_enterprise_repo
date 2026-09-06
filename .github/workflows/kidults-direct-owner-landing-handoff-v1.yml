@@ -16,6 +16,10 @@ on:
         description: Exact 40-character pull request head SHA
         required: true
         type: string
+      expected_head_tree_sha:
+        description: Exact tree SHA of the approved pull request head
+        required: true
+        type: string
       handoff_authorization_id:
         description: DIRECT-PR-<number>-<first-12-head-sha>
         required: true
@@ -140,6 +144,7 @@ jobs:
           PR_NUMBER: ${{ inputs.pull_request_number }}
           EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           HANDOFF_AUTHORIZATION_ID: ${{ inputs.handoff_authorization_id }}
           HANDOFF_PURPOSE: ${{ inputs.purpose }}
           HANDOFF_WINDOW_SECONDS: ${{ inputs.handoff_window_seconds }}
