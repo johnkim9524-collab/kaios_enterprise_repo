@@ -23,8 +23,12 @@ const historical = JSON.parse(fs.readFileSync('coordination/kidults/governance/r
 ok(historical.evidence_class === 'POST_HOC_CONTROL_RECORD_NOT_EXECUTION_ARTIFACT', 'HISTORICAL_EVIDENCE_CLASS');
 ok(historical.run_artifact_present === false && historical.empirical_evidence === false, 'HISTORICAL_FALSE_EVIDENCE');
 
-ok(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'NO_TRIGGER_PERMISSIONS');
+const runtimeValidNoMatchPush = /^on:\n  push:\n    branches-ignore:\n      - '\*\*'\n    tags-ignore:\n      - '\*\*'\n\npermissions:\n  contents: read\n/m;
+ok(runtimeValidNoMatchPush.test(workflow), 'RUNTIME_VALID_NO_MATCH_TRIGGER');
+ok(!/^on:\s*\[\]\s*$/m.test(workflow), 'EMPTY_EVENT_LIST_REINTRODUCED');
 ok(!workflow.includes('workflow_dispatch'), 'MANUAL_DISPATCH_REINTRODUCED');
+ok(!workflow.includes('pull_request:'), 'PR_TRIGGER_REINTRODUCED');
+ok(!workflow.includes('schedule:'), 'SCHEDULE_REINTRODUCED');
 ok(workflow.includes('runs-on: ubuntu-24.04'), 'PINNED_RUNNER');
 ok(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'DETERMINISTIC_RED');
 ok(workflow.includes('if: ${{ always() }}'), 'ALWAYS_UPLOAD');
@@ -50,6 +54,7 @@ console.log(JSON.stringify({
   id: 'kidults-cloudflare-workers-shadow-v1-consumed-zero-authority-validation-v1',
   state: 'VERIFIED_PASS',
   authorization_state: auth.status,
+  runtime_valid_no_match_trigger: true,
   secret_registry_membership: false,
   environment_bound: false,
   manual_dispatch_present: false,

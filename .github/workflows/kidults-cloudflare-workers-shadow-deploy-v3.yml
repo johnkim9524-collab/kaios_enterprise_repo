@@ -1,7 +1,14 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v3
 
-# Consumed one-shot lane: no event may start this historical workflow.
-on: []
+# Consumed one-shot lane: use a runtime-valid event map that rejects every
+# branch and tag push. No manual, PR, schedule, Environment, secret, checkout,
+# or provider authority exists on this historical workflow.
+on:
+  push:
+    branches-ignore:
+      - '**'
+    tags-ignore:
+      - '**'
 
 permissions:
   contents: read
