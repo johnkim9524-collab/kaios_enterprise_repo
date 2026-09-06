@@ -326,25 +326,10 @@ jobs:
             READBACK_TOTAL=$(jq -r '.total_count' "$GUARD_DIR/artifacts.json")
             READBACK_RETURNED=$(jq -r '.artifacts|length' "$GUARD_DIR/artifacts.json")
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then READBACK_STATE=API_RESPONSE_TRUNCATED; fi
-            CREATED_SINCE=$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ)
-            if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success \
-              -f created=">=${CREATED_SINCE}" -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-requirement-adapter-coverage-v1.yml/runs" \
-              > "$GUARD_DIR/prior-success-runs.json"; then
-              READBACK_STATE=PRIOR_SUCCESS_READBACK_FAILED
-            elif ! jq -e '.total_count|numbers' "$GUARD_DIR/prior-success-runs.json" >/dev/null || \
-              ! jq -e '.workflow_runs|arrays' "$GUARD_DIR/prior-success-runs.json" >/dev/null; then
-              READBACK_STATE=PRIOR_SUCCESS_RESPONSE_INVALID
-            elif ! node scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs \
-              --mode coverage-prior-success \
-              --input "$GUARD_DIR/prior-success-runs.json" \
-              --source-sha "$SOURCE_SHA" --head-branch main --created-since "$CREATED_SINCE" \
-              --output "$GUARD_DIR/coverage-prior-success-exact-query-receipt-v1.json"; then
-              READBACK_STATE=PRIOR_SUCCESS_EXACT_QUERY_INVALID
-            else
-              PRIOR_SUCCESS_COUNT=$(jq -r '.prior_success_count' "$GUARD_DIR/coverage-prior-success-exact-query-receipt-v1.json")
-            fi
+            # Canonical producer existence is proven only by exact-name artifact
+            # readback. A successful classification-only workflow has no canonical
+            # producer artifact and must never suppress the first producer run.
+            PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_DIR/artifacts.json")
             for ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ROW")

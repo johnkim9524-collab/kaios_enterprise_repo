@@ -229,7 +229,7 @@ for (const marker of [
   'coverage-semantic-input-receipt-v1.json',
   'SEMANTIC_INPUT_RECEIPT_DIGEST',
   '--mode coverage-exact-producer',
-  '--mode coverage-prior-success',
+  'PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"',
   'KIDULTS_COVERAGE_EXECUTE_FULL',
   'Publish successful bounded Coverage canonical leader artifact',
   'retention-days: 90',
@@ -238,7 +238,7 @@ const canonicalCoverageConcurrency = "group: kidults-asi-requirement-adapter-cov
 assert(workflow.includes(canonicalCoverageConcurrency) && workflow.includes('cancel-in-progress: false'), 'WORKFLOW_CANONICAL_FANOUT_CONCURRENCY');
 assert(workflow.indexOf(canonicalCoverageConcurrency) > workflow.indexOf('verify-requirement-adapter-coverage:'), 'WORKFLOW_JOB_LEVEL_CONCURRENCY_REQUIRED');
 assert(workflow.includes('-f name="$CANONICAL_ARTIFACT_NAME"'), 'WORKFLOW_EXACT_CANONICAL_ARTIFACT_LOOKUP');
-assert(workflow.includes('-f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_SERVER_FILTERS');
+assert(!workflow.includes('prior-success-runs.json') && !workflow.includes('--mode coverage-prior-success'), 'WORKFLOW_SUCCESS_ENVELOPE_CANNOT_PROVE_CANONICAL_PRODUCER');
 assert(workflow.includes("if: success() && env.KIDULTS_COVERAGE_EXECUTE_FULL == 'true' && env.KIDULTS_COVERAGE_EPHEMERAL_LEADER == 'true'"), 'WORKFLOW_FINAL_LEADER_PUBLICATION_GUARD');
 assert(workflow.includes("upstream_class:upstreamClass") && workflow.includes("canonical_run_key:canonicalRunKey"), 'WORKFLOW_CANONICAL_RUN_BINDING');
 assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND_TRIGGER_FORBIDDEN');
@@ -249,7 +249,7 @@ assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NA
 assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
-assert(runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_QUERY_GUARD_MISSING');
+assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
