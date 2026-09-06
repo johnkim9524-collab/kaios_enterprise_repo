@@ -11,6 +11,8 @@ const common = {
   repository,
   prNumber,
   expectedHeadSha: head,
+  executionSourceSha: head,
+  checkoutSha: head,
   landingActor: 'johnkim9524-collab',
   landingRunId: '12345',
   landingRunAttempt: '1',
