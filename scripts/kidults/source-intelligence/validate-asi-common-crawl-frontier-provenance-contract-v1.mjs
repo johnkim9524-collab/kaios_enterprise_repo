@@ -6,18 +6,26 @@ const targets = [
 ];
 
 const required = [
-  "github.event.pull_request.base.sha",
-  "github.event.pull_request.base.ref",
-  "PR_BASE_COMPATIBILITY_ONLY",
+  "github.sha",
+  "  schedule:",
   "EXACT_EXECUTION_GENERATION",
-  "--jq '.workflow_runs[] | [.id, .repository.full_name, .path, .head_branch, .head_sha, .conclusion] | @tsv'",
-  '$2==repo',
-  '$3==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml"',
-  '$5==sha',
-  '$6=="success"',
-  "ART_COUNT",
-  "ART_COUNT\" -eq 1",
-  "^sha256:[0-9a-f]{64}$",
+  "resolve-asi-exact-generation-orchestration-v1.mjs",
+  "--mode live",
+  "--mode pr-fixture",
+  '--trigger-expected "$TRIGGER_EXPECTED"',
+  "--trigger-expected false",
+  "--max-attempts 24 \\",
+  "--poll-milliseconds 10000",
+  "--workflow-path .github/workflows/kidults-asi-self-driving-control-loop-v1.yml",
+  "--artifact-name kidults-asi-self-driving-cycle-v1",
+  '--expected-base-sha "$EXPECTED_BASE_SHA"',
+  '--expected-head-sha "$EXPECTED_HEAD_SHA"',
+  '--expected-generation-sha "$EXPECTED_GENERATION_SHA"',
+  'EXPECTED_SHA: ${{ github.sha }}',
+  'TARGET_BRANCH: main',
+  'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
+  "if: github.event_name != 'pull_request'",
+  "if: always() && github.event_name != 'pull_request'",
   "${#DISCOVERIES[@]}\" -eq 1",
   "producer_workflow_path",
   "producer_run_id",
@@ -32,6 +40,8 @@ const required = [
 const forbidden = [
   '.workflow_runs[0].id',
   'branch-compatible Self-Driving',
+  'github.event.pull_request.base.ref',
+  'PR_BASE_COMPATIBILITY_ONLY',
   "[.artifacts[] | select(.name==\"kidults-asi-self-driving-cycle-v1\" and .expired==false)][0].id // empty",
 ];
 
@@ -50,12 +60,13 @@ for (const { target, text } of load()) validateText(text, target);
 
 if (process.argv.includes('--self-test')) {
   const mutations = [
-    text => text.replace('github.event.pull_request.base.sha', 'github.sha'),
-    text => text.replace('$5==sha', '$4==branch'),
-    text => text.replace('$2==repo', 'true'),
-    text => text.replace('$3==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml"', 'true'),
-    text => text.replace('ART_COUNT" -eq 1', 'ART_COUNT" -ge 1'),
-    text => text.replace('^sha256:[0-9a-f]{64}$', '.+'),
+    text => text.replaceAll('--expected-generation-sha "$EXPECTED_GENERATION_SHA"', '--expected-generation-sha "$EXPECTED_BASE_SHA"'),
+    text => text.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs'),
+    text => text.replace('--trigger-expected "$TRIGGER_EXPECTED"', '--trigger-expected false'),
+    text => text.replace('  schedule:', '  push:'),
+    text => text.replace('--max-attempts 24', '--max-attempts 240'),
+    text => text.replaceAll("if: github.event_name != 'pull_request'", 'if: always()'),
+    text => text.replaceAll('--artifact-name kidults-asi-self-driving-cycle-v1', '--artifact-name unbound'),
     text => text.replace('${#DISCOVERIES[@]}" -eq 1', '${#DISCOVERIES[@]}" -ge 1'),
     text => text.replace('empirical_promotion:false', 'empirical_promotion:true'),
   ];

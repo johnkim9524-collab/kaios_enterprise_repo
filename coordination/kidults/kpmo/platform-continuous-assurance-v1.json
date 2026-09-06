@@ -15,6 +15,7 @@
     ],
     "exact_source_sha_required": true,
     "same_head_runs_must_not_be_cancelled": true,
+    "expected_gated_workflow_run_skip_policy": "CANONICAL_IDENTITY_CONTRACT_EXACT_PATH_ALLOWLIST_ONLY",
     "diagnostic_payload": "DIGEST_ONLY_REDACTED",
     "receipt_retention_days": 90
   },
