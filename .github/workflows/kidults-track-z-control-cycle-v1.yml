@@ -70,7 +70,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/track-z/track-z-operating-system-v1.json','utf8'))"
       - name: Run Track Z regression and negative tests
         run: node --test tests/kidults/track-z/track-z-control-cycle-v1.test.mjs
-      - name: Execute Track Z current-provider control cycle
+      - name: Execute and validate bounded Track Z terminal receipt
         run: |
           set -euo pipefail
           node scripts/kidults/track-z/run-track-z-control-cycle-v1.mjs \
@@ -80,13 +80,20 @@ jobs:
             | tee /tmp/kidults-track-z-control-cycle-v1.log
           node - <<'NODE'
           const receipt = JSON.parse(require('fs').readFileSync('/tmp/kidults-track-z-control-cycle-v1.json', 'utf8'));
+          const terminalStates = new Set([
+            'VERIFIED_PASS_INTERNAL_CONTROL_ONLY',
+            'VERIFIED_HOLD_CASE_ERRORS',
+            'VERIFIED_HOLD_BACKPRESSURE'
+          ]);
           if (receipt.source_ref !== process.env.EXPECTED_SHA) throw new Error('TRACK_Z_SOURCE_REF_MISMATCH');
-          if (receipt.state !== 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY') throw new Error('TRACK_Z_STATE_INVALID');
+          if (!terminalStates.has(receipt.state)) throw new Error('TRACK_Z_TERMINAL_STATE_INVALID');
           if (receipt.summary.external_actions_authorized !== 0) throw new Error('TRACK_Z_EXTERNAL_AUTHORITY_OPEN');
+          if (receipt.summary.contract_spend_credential_acquisition_authorized !== 0) throw new Error('TRACK_Z_PROTECTED_AUTHORITY_OPEN');
           if (receipt.summary.production_public_g5_authorized !== 0) throw new Error('TRACK_Z_RELEASE_AUTHORITY_OPEN');
           NODE
           git diff --exit-code
-      - name: Upload Track Z execution receipt
+      - name: Upload Track Z terminal receipt
+        if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-track-z-control-cycle-v1-${{ env.EXPECTED_SHA }}
@@ -95,3 +102,20 @@ jobs:
             /tmp/kidults-track-z-control-cycle-v1.log
           retention-days: 90
           if-no-files-found: error
+      - name: Reapply fail-closed Track Z terminal verdict
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = '/tmp/kidults-track-z-control-cycle-v1.json';
+          if (!fs.existsSync(path)) throw new Error('TRACK_Z_TERMINAL_RECEIPT_MISSING');
+          const receipt = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (receipt.source_ref !== process.env.EXPECTED_SHA) throw new Error('TRACK_Z_SOURCE_REF_MISMATCH');
+          if (receipt.summary.external_actions_authorized !== 0) throw new Error('TRACK_Z_EXTERNAL_AUTHORITY_OPEN');
+          if (receipt.summary.contract_spend_credential_acquisition_authorized !== 0) throw new Error('TRACK_Z_PROTECTED_AUTHORITY_OPEN');
+          if (receipt.summary.production_public_g5_authorized !== 0) throw new Error('TRACK_Z_RELEASE_AUTHORITY_OPEN');
+          if (receipt.state !== 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY') {
+            throw new Error(`TRACK_Z_TERMINAL_HOLD:${receipt.state}`);
+          }
+          NODE
