@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   ExactArtifactRestoreError,
   collectCompletePages,
+  selectAllowedProducerRuns,
   validateArtifact,
   validateProducerRun,
 } from './restore-exact-github-artifact-v1.mjs';
@@ -110,6 +111,30 @@ for (const [code, mutation] of runMutations) {
   expectRejected(() => validateProducerRun({ ...run, ...mutation }, specification, repository), code);
 }
 
+const newerPullRequestRun = {
+  ...run,
+  id: 43,
+  event: 'pull_request',
+  created_at: new Date(Date.now() + 1_000).toISOString(),
+};
+const olderPushRun = {
+  ...run,
+  id: 42,
+  event: 'push',
+  created_at: new Date().toISOString(),
+};
+const selectedAllowedRuns = selectAllowedProducerRuns(
+  [newerPullRequestRun, olderPushRun],
+  specification,
+  repository,
+);
+assert.deepEqual(selectedAllowedRuns.map((entry) => entry.id), [olderPushRun.id]);
+assert.equal(selectedAllowedRuns[0].event, 'push');
+assert.deepEqual(selectAllowedProducerRuns([newerPullRequestRun], specification, repository), []);
+expectRejected(() => selectAllowedProducerRuns([
+  { ...olderPushRun, head_sha: 'malformed' },
+], specification, repository), 'RUN_SOURCE_SHA_INVALID');
+
 const artifact = {
   id: 71,
   name: specification.artifactName,
@@ -140,6 +165,8 @@ function staticFailures(resolverSource, criticalSources) {
     'pagination_reconciled_complete: true',
     'validateWorkflowMetadata',
     'validateProducerRun',
+    'selectAllowedProducerRuns',
+    'NO_ALLOWED_PRODUCER_HISTORY',
     'validateArtifact',
     'ARTIFACT_CARDINALITY_INVALID',
     'ARTIFACT_READBACK_MISMATCH',
@@ -184,6 +211,7 @@ const sourceMutations = [
   ['remove required basename binding', '--required-basename', '--optional-basename'],
   ['move Safe-ZIP after extraction', "execFileSync('python3', safeZipArguments", "execFileSync('python3-after-unzip', safeZipArguments"],
   ['allow stale baseline reset', 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK', 'PRODUCER_HISTORY_BASELINE_ALLOWED'],
+  ['allow forbidden-only history as empty baseline', 'NO_ALLOWED_PRODUCER_HISTORY', 'NO_PRODUCER_HISTORY'],
 ];
 for (const [label, from, to] of sourceMutations) {
   assert(resolverSource.includes(from), `missing mutation fixture: ${label}`);
@@ -208,6 +236,8 @@ console.log(JSON.stringify({
   complete_pagination_page_two_case: true,
   pagination_mutations_rejected: 4,
   producer_provenance_mutations_rejected: runMutations.length,
+  forbidden_newer_run_skipped_before_allowed_selection: true,
+  forbidden_only_history_not_selected: true,
   artifact_binding_mutations_rejected: artifactMutations.length,
   source_mutations_rejected: sourceMutations.length + criticalSources.length,
   critical_consumers: criticalPaths.length,

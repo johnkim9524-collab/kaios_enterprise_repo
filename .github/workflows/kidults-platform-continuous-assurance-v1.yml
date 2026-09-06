@@ -67,6 +67,8 @@ jobs:
       canonical_input_digest: ${{ steps.classify.outputs.canonical_input_digest }}
       dedupe_eligible: ${{ steps.classify.outputs.dedupe_eligible }}
       terminal_observation_non_dedupable: ${{ steps.classify.outputs.terminal_observation_non_dedupable }}
+      upstream_audit_conclusion_acceptable: ${{ steps.classify.outputs.upstream_audit_conclusion_acceptable }}
+      upstream_audit_disposition: ${{ steps.classify.outputs.upstream_audit_disposition }}
       special_exact_artifact_class: ${{ steps.classify.outputs.special_exact_artifact_class }}
       ephemeral_actions_alias_eligible: ${{ steps.classify.outputs.ephemeral_actions_alias_eligible }}
       runtime_dedupe_state: ${{ steps.classify.outputs.runtime_dedupe_state }}
@@ -140,6 +142,8 @@ jobs:
       KPMO_UPSTREAM_WORKFLOW_PATH: ${{ github.event.workflow_run.path || '' }}
       KPMO_UPSTREAM_EVENT: ${{ github.event.workflow_run.event || '' }}
       KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion || '' }}
+      KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE: ${{ needs.classify-canonical-identity.outputs.upstream_audit_conclusion_acceptable }}
+      KPMO_UPSTREAM_AUDIT_DISPOSITION: ${{ needs.classify-canonical-identity.outputs.upstream_audit_disposition }}
       KPMO_UPSTREAM_CREATED_AT: ${{ github.event.workflow_run.created_at || '' }}
       KPMO_UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
       KPMO_UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch || '' }}
@@ -197,6 +201,8 @@ jobs:
                 workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
                 workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
                 conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+                audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
+                audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
                 created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null
               } : null,
               canonical_identity: {

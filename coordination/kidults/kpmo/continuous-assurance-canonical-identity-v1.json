@@ -42,6 +42,11 @@
     "generation_discriminator": "UPSTREAM_RUN_ID_ATTEMPT_CONCLUSION",
     "reason": "A prior success or another failure must never suppress an exact failed, cancelled, skipped, timed-out, action-required, neutral, or stale terminal observation."
   },
+  "expected_workflow_run_skip_paths": [
+    ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
+    ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
+    ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"
+  ],
   "workflow_run_class_allowlist": [
     {
       "workflow_name": "KIDULTS ASI Snapshot Readiness Factory v2",

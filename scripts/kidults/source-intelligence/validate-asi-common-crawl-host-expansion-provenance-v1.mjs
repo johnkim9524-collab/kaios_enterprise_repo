@@ -8,16 +8,25 @@ function fail(message) {
 
 export function validateWorkflowText(text) {
   const required = [
-    ['canonical producer workflow endpoint', '/actions/workflows/kidults-asi-global-open-market-discovery-v1.yml/runs?branch=main&status=success&head_sha=${EXPECTED_SHA}&per_page=30'],
-    ['exact producer SHA filter', 'and .head_sha==$sha'],
-    ['canonical producer path filter', 'and .path==$path'],
-    ['canonical producer name filter', 'and .name==$name'],
-    ['successful producer conclusion filter', 'and .conclusion=="success"'],
-    ['exact producer-run readback', '/actions/runs/${PRODUCER_RUN_ID}'],
-    ['repository binding', `test "$(jq -r '.repository.full_name' <<<"$RUN_JSON")" = "$GITHUB_REPOSITORY"`],
-    ['run-scoped artifact listing', '/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100'],
-    ['artifact exact-cardinality assertion', 'test "$ARTIFACT_COUNT" -eq 1'],
-    ['provider digest validation', '[[ "$ART_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]'],
+    ['governed resolver', 'resolve-asi-exact-generation-orchestration-v1.mjs'],
+    ['bounded receipt', '/tmp/asi-common-crawl-host-expansion-orchestration-v1.json'],
+    ['live mode', '--mode live'],
+    ['PR fixture mode', '--mode pr-fixture'],
+    ['PR fixture no-trigger contract', '--trigger-expected false'],
+    ['event-derived trigger expectation', '--trigger-expected "$TRIGGER_EXPECTED"'],
+    ['bounded attempts', '--max-attempts 24 \\'],
+    ['bounded polling', '--poll-milliseconds 10000'],
+    ['exact producer SHA', '--expected-sha "$EXPECTED_SHA"'],
+    ['exact producer branch', '--branch "$TARGET_BRANCH"'],
+    ['bounded automatic schedule', "- cron: '5 * * * *'"],
+    ['producer SHA binding', 'EXPECTED_SHA: ${{ github.sha }}'],
+    ['producer branch binding', 'TARGET_BRANCH: main'],
+    ['exact event checkout', 'ref: ${{ github.event.pull_request.head.sha || github.sha }}'],
+    ['canonical producer path', '--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml'],
+    ['canonical producer name', "--workflow-name 'KIDULTS ASI Global Any-Site Discovery v2'"],
+    ['artifact binding', '--artifact-name kidults-asi-global-any-site-discovery-v2'],
+    ['PR live separation', "if: github.event_name != 'pull_request'"],
+    ['request-free PR receipt', 'external_provider_requests'],
     ['single extracted source assertion', 'test "${#SOURCES[@]}" -eq 1'],
     ['provenance receipt', '/tmp/asi-common-crawl-host-expansion-provenance-v1.json'],
     ['no empirical promotion', 'empirical_promotion:false'],
@@ -45,21 +54,14 @@ validateWorkflowText(source);
 
 if (process.argv.includes('--self-test')) {
   const mutations = [
-    ['global artifact lookup', source.replace(
-      '/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100',
-      '/actions/artifacts?per_page=100'
-    )],
-    ['remove exact SHA filter', source.replace('and .head_sha==$sha', 'and true')],
-    ['remove canonical path filter', source.replace('and .path==$path', 'and true')],
-    ['remove repository binding', source.replace(
-      `test "$(jq -r '.repository.full_name' <<<"$RUN_JSON")" = "$GITHUB_REPOSITORY"`,
-      'true # repository binding removed'
-    )],
-    ['weaken cardinality', source.replace('test "$ARTIFACT_COUNT" -eq 1', 'test "$ARTIFACT_COUNT" -ge 1')],
-    ['remove digest validation', source.replace(
-      '[[ "$ART_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]',
-      'test -n "$ART_DIGEST"'
-    )],
+    ['remove resolver', source.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs')],
+    ['remove exact SHA', source.replaceAll('--expected-sha "$EXPECTED_SHA"', '--expected-sha "$PR_BASE_SHA"')],
+    ['remove automatic trigger', source.replace("- cron: '5 * * * *'", "- cron: '5 1 1 1 *'")],
+    ['remove producer SHA binding', source.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound')],
+    ['remove canonical path', source.replaceAll('--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml', '--workflow-path .github/workflows/forged.yml')],
+    ['unbound attempts', source.replace('--max-attempts 24', '--max-attempts 240')],
+    ['allow PR live execution', source.replaceAll("if: github.event_name != 'pull_request'", "if: always()")],
+    ['claim PR live trigger', source.replace('--trigger-expected false', '--trigger-expected "$TRIGGER_EXPECTED"')],
     ['forge empirical promotion', source.replace('empirical_promotion:false', 'empirical_promotion:true')]
   ];
   for (const [label, mutated] of mutations) {
