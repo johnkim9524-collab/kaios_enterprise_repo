@@ -272,6 +272,9 @@ const resolveTrustedGit = () => {
 };
 
 const TRUSTED_GIT = resolveTrustedGit();
+const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : os.devNull;
+const boundedGitFailureDetail = (error) => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
+  .split(/\r?\n/,1)[0].replace(/[^\x20-\x7e]/g,'?').slice(0,160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
 const trustedGitPath = () => {
   if (process.platform !== 'win32') return '/usr/bin:/bin';
   const gitDir = path.dirname(TRUSTED_GIT);
@@ -286,13 +289,13 @@ const trustedGitPath = () => {
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_NULL_DEVICE,
+    XDG_CONFIG_HOME: GIT_NULL_DEVICE,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
+    GIT_CONFIG_SYSTEM: GIT_NULL_DEVICE,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -307,7 +310,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_NULL_DEVICE;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -369,7 +372,7 @@ const git = (root, args, { buffer = false, network = 'none', allowFile = false, 
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_NULL_DEVICE}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
@@ -519,8 +522,8 @@ const trustedGitEvidence = () => ({
 const repositoryRoot = () => {
   try {
     return gitText(null, ['rev-parse', '--show-toplevel']);
-  } catch {
-    fail('NOT_INSIDE_GIT_REPOSITORY');
+  } catch (error) {
+    fail('NOT_INSIDE_GIT_REPOSITORY', boundedGitFailureDetail(error));
   }
 };
 
