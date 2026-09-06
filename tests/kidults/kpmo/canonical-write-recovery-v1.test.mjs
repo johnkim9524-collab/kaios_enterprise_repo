@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
+import {canonicalPreloadUrl} from './canonical-test-preload-url-v1.mjs';
 
 // Exercise the actual CLI with a closed in-process transport. Every unexpected
 // request throws. No real token, GitHub write, or runtime evidence is involved.
@@ -139,7 +140,7 @@ cp.spawnSync=(_file,args,options)=>{
 };syncBuiltinESMExports();`;
  try{
  const pre=path.join(dir,'mock.mjs');fs.writeFileSync(pre,code);
- const p=spawnSync(process.execPath,['--import',pre,'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,HOME:dir,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',TARGET_MAIN_SHA:'a'.repeat(40),CANONICAL_GENERATION_RECEIPT_PATH:original}});
+ const p=spawnSync(process.execPath,['--import',canonicalPreloadUrl(pre),'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,HOME:dir,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',TARGET_MAIN_SHA:'a'.repeat(40),CANONICAL_GENERATION_RECEIPT_PATH:original}});
  assert.equal(p.error,undefined,p.error?.message);
  return {status:p.status,stderr:p.stderr,receipt:JSON.parse(fs.readFileSync(original,'utf8')),calls:JSON.parse(fs.readFileSync(trace,'utf8')),remaining:fs.readdirSync(dir),original};
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
