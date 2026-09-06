@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
   clone,
@@ -132,4 +133,26 @@ test('queue overflow is a terminal internal hold rather than bypass authority', 
   assert.equal(receipt.state, 'VERIFIED_HOLD_BACKPRESSURE');
   assert.equal(receipt.summary.queue_overflow_count, 1);
   assert.equal(receipt.summary.external_actions_authorized, 0);
+});
+
+test('workflow preserves bounded HOLD receipts before reapplying fail-closed verdict', () => {
+  const workflow = fs.readFileSync('.github/workflows/kidults-track-z-control-cycle-v1.yml', 'utf8');
+  const executeIndex = workflow.indexOf('Execute and validate bounded Track Z terminal receipt');
+  const uploadIndex = workflow.indexOf('Upload Track Z terminal receipt');
+  const reapplyIndex = workflow.indexOf('Reapply fail-closed Track Z terminal verdict');
+  assert.ok(executeIndex >= 0 && uploadIndex > executeIndex && reapplyIndex > uploadIndex);
+  for (const state of [
+    'VERIFIED_PASS_INTERNAL_CONTROL_ONLY',
+    'VERIFIED_HOLD_CASE_ERRORS',
+    'VERIFIED_HOLD_BACKPRESSURE'
+  ]) assert.ok(workflow.includes(state), `missing bounded terminal state: ${state}`);
+  const uploadSection = workflow.slice(uploadIndex, reapplyIndex);
+  const reapplySection = workflow.slice(reapplyIndex);
+  assert.ok(uploadSection.includes('if: ${{ always() }}'));
+  assert.ok(uploadSection.includes('if-no-files-found: error'));
+  assert.ok(reapplySection.includes('if: ${{ always() }}'));
+  assert.ok(reapplySection.includes('TRACK_Z_TERMINAL_RECEIPT_MISSING'));
+  assert.ok(reapplySection.includes("receipt.state !== 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY'"));
+  assert.ok(reapplySection.includes('TRACK_Z_TERMINAL_HOLD:'));
+  assert.ok(workflow.includes('contract_spend_credential_acquisition_authorized !== 0'));
 });
