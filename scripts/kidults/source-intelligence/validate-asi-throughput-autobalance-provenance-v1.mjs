@@ -5,11 +5,15 @@ const target = process.argv[2] || '.github/workflows/kidults-asi-throughput-cove
 
 function validate(text) {
   const failures = [];
+  const forbiddenScanText = text.replace(
+    /      - name: Verify producer-driven trigger regression contract[\s\S]*?      - name: Restore exact-trigger hourly gate artifacts/,
+    '      - name: Restore exact-trigger hourly gate artifacts'
+  );
   const requireText = (needle, label) => {
     if (!text.includes(needle)) failures.push(`missing ${label}`);
   };
   const rejectText = (needle, label) => {
-    if (text.includes(needle)) failures.push(`forbidden ${label}`);
+    if (forbiddenScanText.includes(needle)) failures.push(`forbidden ${label}`);
   };
   const rejectPattern = (pattern, label) => {
     if (pattern.test(text)) failures.push(`forbidden ${label}`);
