@@ -114,7 +114,7 @@ const mutations = [
   ['test "$DISC_ID" = "$RECEIPT_DISCOVERY_ARTIFACT_ID"','test "$DISC_ID" != "$RECEIPT_DISCOVERY_ARTIFACT_ID"'],
   ['if length==1 then .[0] else empty end','.[0] // empty'],
   ['.run_attempt==$attempt','.run_attempt>0'],
-  ['.head_sha==$sha','.head_branch=="main"'],
+  ['.head_sha==$sha','.head_sha=="0000000000000000000000000000000000000000"'],
   ['.event=="schedule"','.event!="pull_request"'],
   ['CURRENT_MAIN_ADVANCED_BEFORE_AUTOBALANCE','CURRENT_MAIN_CHANGED'],
   ['relay_chain_exact: true','relay_chain_exact: false'],
