@@ -382,10 +382,8 @@ async function main() {
 }
 
 const direct = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-if (direct) {
-  if (process.argv.includes('--self-test')) {
-    await selfTest();
-  } else try {
+export async function runCli() {
+  try {
     await main();
   } catch (error) {
     const failureCode = String(error?.code || error?.message || 'DIRECT_OWNER_POSTMERGE_PUSH_SUITE_FAILED').split(':')[0].slice(0, 120);
@@ -426,5 +424,13 @@ if (direct) {
     } catch {}
     console.error(failureCode);
     process.exit(1);
+  }
+}
+
+if (direct) {
+  if (process.argv.includes('--self-test')) {
+    await selfTest();
+  } else {
+    await runCli();
   }
 }
