@@ -130,7 +130,7 @@ const timer=globalThis.setTimeout;globalThis.setTimeout=(fn,_ms,...args)=>timer(
 cp.spawnSync=(_file,args,options)=>{
  const writing=args.includes('--write');const output=options.env.CANONICAL_GENERATION_RECEIPT_PATH;
  fs.appendFileSync(process.env.TRACE,JSON.stringify({writing,output})+'\\n');
- if(writing){fs.writeFileSync(original,JSON.stringify({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',failure_class:'POST_WRITE_READBACK_INVALID',member_comments_written:25,writes:26,aggregate_comment_written:true,aggregate_comment_id:999,generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-900-1',production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false}));return {status:1,stdout:'',stderr:''};}
+ if(writing){fs.writeFileSync(original,JSON.stringify({repository:'johnkim9524-collab/kaios_enterprise_repo',run_id:900,run_attempt:1,state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',failure_class:'POST_WRITE_READBACK_INVALID',member_comments_written:25,writes:26,aggregate_comment_written:true,aggregate_comment_id:999,generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-900-1',production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false}));return {status:1,stdout:'',stderr:''};}
  reads++;
  if(process.env.SCENARIO==='exhausted'||reads<3){fs.mkdirSync(output.slice(0,output.lastIndexOf('/')),{recursive:true});fs.writeFileSync(output,JSON.stringify({state:'VERIFIED_FAIL',failure_class:'TRANSIENT_READ_FAILURE',writes:0}));return {status:1,stdout:'',stderr:''};}
  const validation={state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',generation_id:'kpmo-canonical-v3-aaaaaaaaaaaa-900-1',writer_run_id:900,protected_main_sha:'a'.repeat(40),canonical_issue_count:25,aggregate_comment_id:process.env.SCENARIO==='wrong-aggregate'?888:999,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
@@ -138,7 +138,7 @@ cp.spawnSync=(_file,args,options)=>{
 };syncBuiltinESMExports();`;
  try{
   const preload=path.join(dir,'mock.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',preload,'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,SCENARIO:scenario,TRACE:trace,CANONICAL_GENERATION_RECEIPT_PATH:receiptPath,GITHUB_RUN_ID:'900',TARGET_MAIN_SHA:SHA}});
+  const result=spawnSync(process.execPath,['--import',preload,'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,SCENARIO:scenario,TRACE:trace,CANONICAL_GENERATION_RECEIPT_PATH:receiptPath,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',TARGET_MAIN_SHA:SHA}});
   assert.equal(result.error,undefined,result.stderr);
   return {result,receipt:JSON.parse(fs.readFileSync(receiptPath)),calls:fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse),receiptPath};
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
