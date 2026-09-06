@@ -327,6 +327,7 @@ jobs:
             READBACK_RETURNED=$(jq -r '.artifacts|length' "$GUARD_DIR/artifacts.json")
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then READBACK_STATE=API_RESPONSE_TRUNCATED; fi
             CREATED_SINCE=$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ)
+            printf '[]\n' > "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json"
             if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
               -f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success \
               -f created=">=${CREATED_SINCE}" -f per_page=100 \
@@ -336,13 +337,60 @@ jobs:
             elif ! jq -e '.total_count|numbers' "$GUARD_DIR/prior-success-runs.json" >/dev/null || \
               ! jq -e '.workflow_runs|arrays' "$GUARD_DIR/prior-success-runs.json" >/dev/null; then
               READBACK_STATE=PRIOR_SUCCESS_RESPONSE_INVALID
-            elif ! node scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs \
+            else
+              while IFS= read -r PRIOR_RUN; do
+                PRIOR_RUN_ID=$(jq -r '.id' <<<"$PRIOR_RUN")
+                PRIOR_RUN_ATTEMPT=$(jq -r '.run_attempt' <<<"$PRIOR_RUN")
+                ADMISSION_NAME="kidults-asi-requirement-coverage-admission-v1-${PRIOR_RUN_ID}-${PRIOR_RUN_ATTEMPT}"
+                ADMISSION_META="$GUARD_DIR/prior-admission-artifacts-${PRIOR_RUN_ID}.json"
+                if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                  -f name="$ADMISSION_NAME" -f per_page=100 \
+                  "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRIOR_RUN_ID}/artifacts" > "$ADMISSION_META"; then
+                  READBACK_STATE=PRIOR_ADMISSION_READBACK_FAILED
+                  break
+                fi
+                ADMISSION_COUNT=$(jq -r '[.artifacts[] | select(.name == $name and .expired != true)] | length' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
+                if [ "$ADMISSION_COUNT" -ne 1 ]; then
+                  continue
+                fi
+                ADMISSION_ID=$(jq -r '.artifacts[] | select(.name == $name and .expired != true) | .id' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
+                ADMISSION_DIGEST=$(jq -r '.artifacts[] | select(.name == $name and .expired != true) | .digest' --arg name "$ADMISSION_NAME" "$ADMISSION_META")
+                ADMISSION_ARCHIVE="$GUARD_DIR/prior-admission-${PRIOR_RUN_ID}.zip"
+                ADMISSION_EXTRACT="$GUARD_DIR/prior-admission-${PRIOR_RUN_ID}"
+                mkdir -p "$ADMISSION_EXTRACT"
+                if ! gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ADMISSION_ID}/zip" > "$ADMISSION_ARCHIVE" || \
+                   ! python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+                     --archive "$ADMISSION_ARCHIVE" --expected-digest "$ADMISSION_DIGEST" \
+                     --receipt "$GUARD_DIR/prior-admission-archive-validation-${PRIOR_RUN_ID}.json" \
+                     --max-compressed-bytes 1048576 --max-entries 4 \
+                     --max-entry-uncompressed-bytes 262144 --max-total-uncompressed-bytes 524288 \
+                     --max-compression-ratio 100; then
+                  READBACK_STATE=PRIOR_ADMISSION_INTEGRITY_FAILED
+                  break
+                fi
+                unzip -q -o "$ADMISSION_ARCHIVE" -d "$ADMISSION_EXTRACT"
+                mapfile -d '' -t ADMISSION_RECEIPTS < <(find "$ADMISSION_EXTRACT" -type f -name coverage-admission-v1.json -print0)
+                if [ "${#ADMISSION_RECEIPTS[@]}" -ne 1 ]; then
+                  READBACK_STATE=PRIOR_ADMISSION_RECEIPT_CARDINALITY_INVALID
+                  break
+                fi
+                if jq -e --arg source "$SOURCE_SHA" \
+                  '.id == "kidults-asi-requirement-coverage-admission-v1" and .version == "1.0.0" and .state == "VERIFIED_SKIP" and .admission == "EXPECTED_NONAUTHORITATIVE_SKIP" and .should_run == false and .promotion_authority == false and .arl_run_id != null and .execution_sha == $source and .production == "HOLD" and .public_release == "HOLD" and .g5 == "HOLD"' \
+                  "${ADMISSION_RECEIPTS[0]}" >/dev/null; then
+                  jq --argjson id "$PRIOR_RUN_ID" '. + [$id] | unique | sort' \
+                    "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json" > "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.tmp"
+                  mv "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.tmp" "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json"
+                fi
+              done < <(jq -c '.workflow_runs[]' "$GUARD_DIR/prior-success-runs.json")
+            fi
+            if [ "$READBACK_STATE" = COMPLETE ] && ! node scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs \
               --mode coverage-prior-success \
               --input "$GUARD_DIR/prior-success-runs.json" \
               --source-sha "$SOURCE_SHA" --head-branch main --created-since "$CREATED_SINCE" \
+              --verified-skip-run-ids "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json" \
               --output "$GUARD_DIR/coverage-prior-success-exact-query-receipt-v1.json"; then
               READBACK_STATE=PRIOR_SUCCESS_EXACT_QUERY_INVALID
-            else
+            elif [ "$READBACK_STATE" = COMPLETE ]; then
               PRIOR_SUCCESS_COUNT=$(jq -r '.prior_success_count' "$GUARD_DIR/coverage-prior-success-exact-query-receipt-v1.json")
             fi
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_DIR/artifacts.json")

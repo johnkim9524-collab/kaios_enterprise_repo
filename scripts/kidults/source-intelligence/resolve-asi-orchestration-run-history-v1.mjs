@@ -167,6 +167,7 @@ export function resolveCoveragePriorSuccessExactQuery({
   sourceSha,
   headBranch = 'main',
   createdSince,
+  verifiedNonAuthoritativeSkipRunIds = [],
 }) {
   requireSha(sourceSha);
   const cutoff = Date.parse(requireIso(createdSince, 'CREATED_SINCE_INVALID'));
@@ -194,6 +195,14 @@ export function resolveCoveragePriorSuccessExactQuery({
       fail('COVERAGE_PRIOR_SUCCESS_CREATED_FILTER_DRIFT', run.id);
     }
   }
+  if (!Array.isArray(verifiedNonAuthoritativeSkipRunIds)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_IDS_INVALID');
+  const skipIds = new Set();
+  for (const value of verifiedNonAuthoritativeSkipRunIds) {
+    const id = requirePositiveInteger(value, 'COVERAGE_NONAUTHORITATIVE_SKIP_RUN_ID_INVALID');
+    if (!ids.has(id)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_RUN_NOT_IN_SUCCESS_QUERY', id);
+    if (skipIds.has(id)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_RUN_ID_DUPLICATE', id);
+    skipIds.add(id);
+  }
   return {
     id: 'kidults-coverage-prior-success-exact-query-receipt-v1',
     state: 'VERIFIED_PASS_SERVER_FILTERED_EXACT_COUNT',
@@ -202,7 +211,10 @@ export function resolveCoveragePriorSuccessExactQuery({
     source_sha: sourceSha,
     head_branch: headBranch,
     created_since: createdSince,
-    prior_success_count: total,
+    raw_success_count: total,
+    verified_nonauthoritative_skip_count: skipIds.size,
+    verified_nonauthoritative_skip_run_ids: [...skipIds].sort((left, right) => left - right),
+    prior_success_count: total - skipIds.size,
     validation_sample_count: payload.workflow_runs.length,
     exact_query_filters: ['workflow_id', 'head_sha', 'branch', 'event', 'status', 'created'],
     pagination_required_for_count: false,
@@ -214,7 +226,7 @@ function parseArgs(argv) {
   const options = {};
   const allowed = new Set([
     '--mode', '--input', '--run', '--receipt', '--source-sha', '--head-branch', '--display-title',
-    '--current-run-id', '--created-since', '--created-through', '--output',
+    '--current-run-id', '--created-since', '--created-through', '--verified-skip-run-ids', '--output',
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
@@ -266,6 +278,9 @@ async function main() {
       sourceSha: options.source_sha,
       headBranch: options.head_branch,
       createdSince: options.created_since,
+      verifiedNonAuthoritativeSkipRunIds: options.verified_skip_run_ids
+        ? readJson(options.verified_skip_run_ids, 'COVERAGE_NONAUTHORITATIVE_SKIP_IDS_INPUT_INVALID')
+        : [],
     });
   }
   fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });
