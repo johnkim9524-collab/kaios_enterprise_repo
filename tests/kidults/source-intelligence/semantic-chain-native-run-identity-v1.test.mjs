@@ -69,8 +69,12 @@ for(const [label,change] of [['receipt run',{producer_workflow_run_id:99}],['P1 
  ['unbound source',{exact_generation_bound:false}],['unbound trigger',{exact_triggering_run_bound:false}]])
  test(`Coverage producer rejects ${label}`,()=>assert.throws(()=>producer({run:arl(),receipt:{...arlReceipt(),...change},sourceSha:source})));
 test('dynamic Coverage history retains exact server-filtered cardinality contract',()=>{
- const rows=Array.from({length:100},(_,i)=>coverage({id:1000+i}));
+ const rows=Array.from({length:2001},(_,i)=>coverage({id:1000+i}));
  assert.equal(prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince}).prior_success_count,2001);
+ const filtered=prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[2500]});
+ assert.equal(filtered.raw_success_count,2001);assert.equal(filtered.verified_nonauthoritative_skip_count,1);assert.equal(filtered.prior_success_count,2000);
+ assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[999]}),/SKIP_RUN_NOT_IN_SUCCESS_QUERY/);
+ assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[2500,2500]}),/SKIP_RUN_ID_DUPLICATE/);
  rows[0].name='KIDULTS Coverage / manual-1000';assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince}));
 });
 
@@ -136,6 +140,33 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
  assert.ok(!/^  workflow_run:/m.test(strict));
+});
+
+test('Coverage prior-skip scan requires bounded complete pagination', () => {
+ assert.ok(!covSource.includes('gh api --paginate'));
+ assert.ok(covSource.includes('for PAGE in $(seq 1 25)'));
+ assert.ok(covSource.includes('-f per_page=100 -f page="$PAGE"'));
+ assert.ok(covSource.includes('PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED'));
+ assert.ok(covSource.includes('prior-success-pages.json'));
+ assert.ok(covSource.includes('.total_count <= 2500 and .total_count == (.workflow_runs | length)'));
+ const incomplete = Array.from({length:100},(_,i)=>coverage({id:1000+i}));
+ assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:incomplete},sourceSha:source,createdSince:options.createdSince}),/PAGINATION_INCOMPLETE/);
+});
+
+test('Coverage prior-skip exclusion binds artifact ownership and exact admission semantics', () => {
+ assert.ok(covSource.includes('.workflow_run.id == $run_id'));
+ for (const binding of [
+  '.repository == $repo',
+  '.arl_head_sha == $source',
+  '.execution_sha == $source',
+  '.arl_run_id | type == "number"',
+  '.arl_run_attempt | type == "number"',
+  '.classification == "EXPECTED_NONAUTHORITATIVE_SKIP"',
+  '.classification_reason == .reason',
+ '.reason == "ARL_PUSH_RECOVERY_NONAUTHORITATIVE"',
+  '. <= 9007199254740991',
+ ]) assert.ok(covSource.includes(binding), `missing prior-skip binding: ${binding}`);
+ assert.ok(covSource.includes('keys == ["admission","arl_head_sha","arl_run_attempt","arl_run_id"'));
 });
 
 function embeddedPython(marker){

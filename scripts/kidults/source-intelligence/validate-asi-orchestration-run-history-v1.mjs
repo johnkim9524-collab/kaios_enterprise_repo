@@ -122,7 +122,7 @@ assert.equal(exactProducer.global_same_head_history_scan_performed, false);
 function exactPriorPayload(total) {
   return {
     total_count: total,
-    workflow_runs: Array.from({ length: Math.min(total, 100) }, (_, index) => coverageRun(9000 + index)),
+    workflow_runs: Array.from({ length: total }, (_, index) => coverageRun(9000 + index)),
   };
 }
 
@@ -134,8 +134,21 @@ const prior2001 = resolveCoveragePriorSuccessExactQuery({
 });
 assert.equal(prior2000.prior_success_count, 2000);
 assert.equal(prior2001.prior_success_count, 2001);
-assert.equal(prior2000.pagination_required_for_count, false);
-assert.equal(prior2001.pagination_required_for_count, false);
+assert.equal(prior2000.pagination_complete, true);
+assert.equal(prior2001.pagination_complete, true);
+assert.equal(prior2000.pagination_required_for_semantic_exclusion, true);
+assert.equal(prior2001.pagination_required_for_semantic_exclusion, true);
+const priorWithVerifiedSkip = resolveCoveragePriorSuccessExactQuery({
+  payload: exactPriorPayload(2001), sourceSha, headBranch: 'main', createdSince,
+  verifiedNonAuthoritativeSkipRunIds: [10500],
+});
+assert.equal(priorWithVerifiedSkip.raw_success_count, 2001);
+assert.equal(priorWithVerifiedSkip.verified_nonauthoritative_skip_count, 1);
+assert.equal(priorWithVerifiedSkip.prior_success_count, 2000);
+assert.throws(() => resolveCoveragePriorSuccessExactQuery({
+  payload: exactPriorPayload(2001), sourceSha, headBranch: 'main', createdSince,
+  verifiedNonAuthoritativeSkipRunIds: [8999],
+}), /COVERAGE_NONAUTHORITATIVE_SKIP_RUN_NOT_IN_SUCCESS_QUERY/);
 
 const filterDrift = exactPriorPayload(2001);
 filterDrift.workflow_runs[0].display_title = 'KIDULTS Coverage / manual-1';
@@ -144,10 +157,10 @@ assert.throws(() => resolveCoveragePriorSuccessExactQuery({
 }), (error) => error instanceof OrchestrationRunHistoryError && error.message.startsWith('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT'));
 
 const shortPage = exactPriorPayload(2001);
-shortPage.workflow_runs.pop();
+shortPage.workflow_runs = shortPage.workflow_runs.slice(0, 100);
 assert.throws(() => resolveCoveragePriorSuccessExactQuery({
   payload: shortPage, sourceSha, headBranch: 'main', createdSince,
-}), (error) => error instanceof OrchestrationRunHistoryError && error.message.startsWith('COVERAGE_PRIOR_SUCCESS_EXACT_QUERY_RETURN_COUNT_INVALID'));
+}), (error) => error instanceof OrchestrationRunHistoryError && error.message.startsWith('COVERAGE_PRIOR_SUCCESS_PAGINATION_INCOMPLETE'));
 
 process.stdout.write(`${JSON.stringify({
   id: 'kidults-asi-orchestration-run-history-validation-v1',
@@ -159,6 +172,9 @@ process.stdout.write(`${JSON.stringify({
   coverage_exact_upstream_query_history_independent: true,
   coverage_prior_success_2000_resolved: prior2000.prior_success_count,
   coverage_prior_success_2001_resolved: prior2001.prior_success_count,
+  coverage_verified_nonauthoritative_skip_excluded: true,
+  coverage_verified_skip_beyond_first_page_excluded: true,
+  coverage_history_pagination_complete: true,
   exact_query_filter_drift_rejected: true,
   exact_query_short_page_rejected: true,
   production: 'HOLD',

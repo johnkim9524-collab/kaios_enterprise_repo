@@ -249,7 +249,7 @@ assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NA
 assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
-assert(runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_QUERY_GUARD_MISSING');
+assert(!workflow.includes('--paginate') && workflow.includes('for PAGE in $(seq 1 25); do') && workflow.includes('-f per_page=100 -f page="$PAGE"') && workflow.includes('PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED') && workflow.includes('PRIOR_SUCCESS_PAGINATION_INCOMPLETE') && runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_semantic_exclusion'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_QUERY_GUARD_MISSING');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
   'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',

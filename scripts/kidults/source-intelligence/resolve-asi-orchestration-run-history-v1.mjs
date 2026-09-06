@@ -12,6 +12,7 @@ const ARL_WORKFLOW_PATH = '.github/workflows/kidults-asi-autonomous-resolution-l
 const COVERAGE_WORKFLOW_NAME = 'KIDULTS ASI Requirement-to-Adapter Coverage v1';
 const COVERAGE_WORKFLOW_PATH = '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
 const MAX_ARL_HISTORY_PAGES = 20;
+const MAX_COVERAGE_HISTORY_PAGES = 25;
 const GITHUB_PAGE_SIZE = 100;
 
 export class OrchestrationRunHistoryError extends Error {}
@@ -167,16 +168,20 @@ export function resolveCoveragePriorSuccessExactQuery({
   sourceSha,
   headBranch = 'main',
   createdSince,
+  verifiedNonAuthoritativeSkipRunIds = [],
 }) {
   requireSha(sourceSha);
   const cutoff = Date.parse(requireIso(createdSince, 'CREATED_SINCE_INVALID'));
   const total = requireSafeCount(payload?.total_count, 'COVERAGE_PRIOR_SUCCESS_TOTAL_INVALID');
-  if (!Array.isArray(payload?.workflow_runs) || payload.workflow_runs.length > GITHUB_PAGE_SIZE) {
+  const maximumRuns = MAX_COVERAGE_HISTORY_PAGES * GITHUB_PAGE_SIZE;
+  if (total > maximumRuns) {
+    fail('COVERAGE_PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED', `${total}/${maximumRuns}`);
+  }
+  if (!Array.isArray(payload?.workflow_runs) || payload.workflow_runs.length > maximumRuns) {
     fail('COVERAGE_PRIOR_SUCCESS_RESPONSE_INVALID');
   }
-  const expectedReturned = Math.min(total, GITHUB_PAGE_SIZE);
-  if (payload.workflow_runs.length !== expectedReturned) {
-    fail('COVERAGE_PRIOR_SUCCESS_EXACT_QUERY_RETURN_COUNT_INVALID', `${payload.workflow_runs.length}/${expectedReturned}`);
+  if (payload.workflow_runs.length !== total) {
+    fail('COVERAGE_PRIOR_SUCCESS_PAGINATION_INCOMPLETE', `${payload.workflow_runs.length}/${total}`);
   }
   const expectedTitle = `KIDULTS Coverage / source-${sourceSha}`;
   const ids = new Set();
@@ -194,6 +199,14 @@ export function resolveCoveragePriorSuccessExactQuery({
       fail('COVERAGE_PRIOR_SUCCESS_CREATED_FILTER_DRIFT', run.id);
     }
   }
+  if (!Array.isArray(verifiedNonAuthoritativeSkipRunIds)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_IDS_INVALID');
+  const skipIds = new Set();
+  for (const value of verifiedNonAuthoritativeSkipRunIds) {
+    const id = requirePositiveInteger(value, 'COVERAGE_NONAUTHORITATIVE_SKIP_RUN_ID_INVALID');
+    if (!ids.has(id)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_RUN_NOT_IN_SUCCESS_QUERY', id);
+    if (skipIds.has(id)) fail('COVERAGE_NONAUTHORITATIVE_SKIP_RUN_ID_DUPLICATE', id);
+    skipIds.add(id);
+  }
   return {
     id: 'kidults-coverage-prior-success-exact-query-receipt-v1',
     state: 'VERIFIED_PASS_SERVER_FILTERED_EXACT_COUNT',
@@ -202,10 +215,14 @@ export function resolveCoveragePriorSuccessExactQuery({
     source_sha: sourceSha,
     head_branch: headBranch,
     created_since: createdSince,
-    prior_success_count: total,
-    validation_sample_count: payload.workflow_runs.length,
+    raw_success_count: total,
+    verified_nonauthoritative_skip_count: skipIds.size,
+    verified_nonauthoritative_skip_run_ids: [...skipIds].sort((left, right) => left - right),
+    prior_success_count: total - skipIds.size,
+    validated_run_count: payload.workflow_runs.length,
     exact_query_filters: ['workflow_id', 'head_sha', 'branch', 'event', 'status', 'created'],
-    pagination_required_for_count: false,
+    pagination_complete: true,
+    pagination_required_for_semantic_exclusion: total > GITHUB_PAGE_SIZE,
     production: 'HOLD',
   };
 }
@@ -214,7 +231,7 @@ function parseArgs(argv) {
   const options = {};
   const allowed = new Set([
     '--mode', '--input', '--run', '--receipt', '--source-sha', '--head-branch', '--display-title',
-    '--current-run-id', '--created-since', '--created-through', '--output',
+    '--current-run-id', '--created-since', '--created-through', '--verified-skip-run-ids', '--output',
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
@@ -266,6 +283,9 @@ async function main() {
       sourceSha: options.source_sha,
       headBranch: options.head_branch,
       createdSince: options.created_since,
+      verifiedNonAuthoritativeSkipRunIds: options.verified_skip_run_ids
+        ? readJson(options.verified_skip_run_ids, 'COVERAGE_NONAUTHORITATIVE_SKIP_IDS_INPUT_INVALID')
+        : [],
     });
   }
   fs.mkdirSync(path.dirname(path.resolve(options.output)), { recursive: true });
