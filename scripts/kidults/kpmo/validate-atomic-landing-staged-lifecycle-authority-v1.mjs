@@ -136,7 +136,7 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_MUTATION_AUTHORITY_FORBIDDEN', () =>
 
 const workflow = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
-const mergeStep = workflow.slice(workflow.indexOf('Re-read live authority and execute exact-head server merge'));
+const mergeStep = workflow.slice(workflow.indexOf('Re-read live authority and await exact-head event-emitting merge'));
 assert(mergeStep.includes('LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json'),
   'ATOMIC_MERGE_STEP_LIFECYCLE_PATH_MISSING');
 assert(runner.includes("selectLatestDirectOwnerReadyEvent"), 'ATOMIC_RUNNER_DIRECT_READY_HELPER_MISSING');

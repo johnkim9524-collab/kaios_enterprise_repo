@@ -8,13 +8,26 @@ on:
         description: Exact pull request number
         required: true
         type: string
+      expected_base_sha:
+        description: Exact current protected-main SHA
+        required: true
+        type: string
       expected_head_sha:
         description: Exact 40-character pull request head SHA
+        required: true
+        type: string
+      expected_head_tree_sha:
+        description: Exact tree SHA of the approved pull request head
         required: true
         type: string
       landing_authorization_id:
         description: LAND-PR-<number>-<first-12-head-sha>
         required: true
+        type: string
+      event_emitting_transport_wait_seconds:
+        description: Direct Owner event-emitting merge window, 60-900 seconds
+        required: true
+        default: '600'
         type: string
 
 concurrency:
@@ -27,9 +40,9 @@ jobs:
     permissions:
       actions: read
       checks: read
-      contents: write
+      contents: read
       issues: read
-      pull-requests: write
+      pull-requests: read
       statuses: write
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -66,12 +79,18 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
         run: node scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs
 
-      - name: Require event-emitting post-merge CI transport
-        run: |
-          set -euo pipefail
-          echo 'ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED' >&2
-          echo 'Use an independently approved event-emitting merge transport or an exact-main dispatch plan before consuming landing authority.' >&2
-          exit 1
+      - name: Verify event-emitting merge transport before authority consumption
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
+          LANDING_ACTOR: ${{ github.actor }}
+          ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS: ${{ inputs.event_emitting_transport_wait_seconds }}
+          ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH: ${{ runner.temp }}/kpmo-atomic-landing/event-transport-availability.json
+        run: node scripts/kidults/kpmo/run-atomic-event-emitting-transport-preflight-v1.mjs
 
       # Lifecycle authority and the complete exact-head Program Owner approval
       # contract are validated before the one-use authorization is consumed.
@@ -82,7 +101,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
@@ -93,7 +114,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
@@ -111,10 +134,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
+          ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH: ${{ runner.temp }}/kpmo-atomic-landing/event-transport-availability.json
           ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
         run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --initialize
 
@@ -126,18 +152,38 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Re-read live authority and execute exact-head server merge
+      - name: Re-read live authority and await exact-head event-emitting merge
         id: landing
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
+          ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS: ${{ inputs.event_emitting_transport_wait_seconds }}
+          ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH: ${{ runner.temp }}/kpmo-atomic-landing/event-transport-availability.json
         run: node scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs
+
+      - name: Consume exact merge-SHA protected-main push suite
+        id: postmerge_push_suite
+        if: steps.landing.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
+          EXACT_MERGE_SHA: ${{ steps.landing.outputs.merge_commit_sha }}
+          MERGED_AT: ${{ steps.landing.outputs.merged_at }}
+          ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-postmerge/receipt.json
+          POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json
+          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '120'
+        run: node scripts/kidults/kpmo/consume-atomic-postmerge-push-suite-v1.mjs
 
       - name: Checkout exact merged Current-SOLD target
         if: steps.landing.outputs.current_sold_changed == 'true'
@@ -175,6 +221,8 @@ jobs:
           CURRENT_SOLD_LANDING_RUN_ATTEMPT: ${{ steps.landing.outputs.landing_run_attempt }}
           CURRENT_SOLD_LANDING_AUTHORIZATION_ID: ${{ steps.landing.outputs.landing_authorization_id }}
           CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+          ATOMIC_POSTMERGE_PUSH_SUITE_OUTCOME: ${{ steps.postmerge_push_suite.outcome }}
+          ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-postmerge/receipt.json
         run: node "$RUNNER_TEMP/current-sold-postlanding-v1.mjs"
 
       - name: Upload exact merged Current-SOLD post-landing receipt
@@ -192,14 +240,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ inputs.pull_request_number }}
+          EXPECTED_BASE_SHA: ${{ inputs.expected_base_sha }}
           EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
           LANDING_STEP_OUTCOME: ${{ steps.landing.outcome }}
           CURRENT_SOLD_POSTLANDING_OUTCOME: ${{ steps.current_sold_postlanding.outcome }}
           CURRENT_SOLD_CHANGED: ${{ steps.landing.outputs.current_sold_changed }}
           CURRENT_SOLD_RECEIPT_PATH: out/current-sold-postlanding/receipt.json
+          ATOMIC_POSTMERGE_PUSH_SUITE_OUTCOME: ${{ steps.postmerge_push_suite.outcome }}
+          ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-postmerge/receipt.json
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
+          ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH: ${{ runner.temp }}/kpmo-atomic-landing/event-transport-availability.json
           ATOMIC_LANDING_TERMINAL_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-terminal/receipt.json
         run: node scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs --finalize
 

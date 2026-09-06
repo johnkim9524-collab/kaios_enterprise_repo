@@ -159,7 +159,7 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
   ].join('\n')).digest('hex');
   const receipt = {
     id: 'kidults-atomic-landing-one-use-consumption-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     state: 'CONSUMED_BY_FIRST_MATCHING_DISPATCH',
     repository,
     pull_request: prNumber,
@@ -178,6 +178,8 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     pr_head_matches_input: true,
     pr_base_matches_dispatch_main: true,
     live_main_matches_dispatch_main: true,
+    program_owner_approval: {},
+    complete_owner_approval_contract_validated_before_consumption: true,
   };
   assert.equal(assertAtomicLandingConsumptionReceipt(receipt, {
     repository,
@@ -225,13 +227,15 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
   }), 'ATOMIC_CONSUMPTION_ACTOR_BINDING_MISMATCH');
 });
 
-test('workflow places one-use consumption before lifecycle and always reconciles terminal receipt', () => {
+test('workflow validates transport and lifecycle before one-use consumption and always reconciles terminal receipt', () => {
   const workflow = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
   assert.match(workflow, /run-name: "KIDULTS Atomic Landing PR #\$\{\{ inputs\.pull_request_number \}\} @ \$\{\{ inputs\.expected_head_sha \}\} \/ \$\{\{ inputs\.landing_authorization_id \}\}"/);
   const consumeIndex = workflow.indexOf('Consume one-use exact-head landing authorization');
   const lifecycleIndex = workflow.indexOf('Require latest terminal exact-head lifecycle authority');
-  const mergeIndex = workflow.indexOf('Re-read live authority and execute exact-head server merge');
-  assert.ok(consumeIndex >= 0 && consumeIndex < lifecycleIndex && lifecycleIndex < mergeIndex);
+  const transportIndex = workflow.indexOf('Verify event-emitting merge transport before authority consumption');
+  const mergeIndex = workflow.indexOf('Re-read live authority and await exact-head event-emitting merge');
+  assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex
+    && lifecycleIndex < consumeIndex && consumeIndex < mergeIndex);
   assert.match(workflow, /run: node scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs/);
   assert.match(workflow, /ATOMIC_LANDING_CONSUMPTION_PATH: \$\{\{ runner\.temp \}\}\/kidults-atomic-landing-consumption\/receipt\.json/);
   assert.match(workflow, /Reconcile durable atomic landing terminal receipt\n        if: always\(\)/);
@@ -241,10 +245,10 @@ test('runner rechecks one-use consumption and explicit Ready authority immediate
   const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
   const gates = fs.readFileSync('scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs', 'utf8');
   const oneUse = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs', 'utf8');
-  assert.match(runner, /selectLatestProgramOwnerReadyEvent/);
+  assert.match(runner, /selectLatestDirectOwnerReadyEvent/);
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
-  assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha\)/);
+  assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha, repositoryOwner\)/);
   assert.match(gates, /PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED/);
   assert.match(oneUse, /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
   assert.doesNotMatch(oneUse, /&& run\?\.head_sha === protectedMainShaAtDispatch\n    && run\?\.display_title === expectedRunName/);
