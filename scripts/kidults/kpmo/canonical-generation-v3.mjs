@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {buildMaterialRegistry,materialRegistryDigest,parityFailures,runMaterialRegistrySelfTest,sha256} from './material-defect-registry-v3.mjs';
-import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommit,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
+import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommitEnvelope,validateCommit,classifyCommitSnapshot,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
 
 const repo=process.env.GITHUB_REPOSITORY;
 const token=process.env.GITHUB_TOKEN||process.env.GH_TOKEN;
@@ -99,6 +99,9 @@ async function validateCurrent(snapshotValue,expectedRun=null){
   if(aggregate.user?.login!==BOT||issueNo(aggregate)!==AGGREGATE)die('AGGREGATE_COMMENT_IDENTITY_INVALID');
   const commit=parseMarked(aggregate.body,CS,CE);
   if(commit.protected_main_sha!==snapshotValue.protected_main_sha)return {stale:true,generation_id:commit.generation_id};
+  validateCommitEnvelope(commit,expectedRun);
+  const classification=classifyCommitSnapshot(commit,snapshotValue);
+  if(classification.stale)return {...classification,generation_id:commit.generation_id};
   validateCommit(commit,snapshotValue,expectedRun);
   const comments=[];
   for(const entry of commit.member_comments)comments.push(await api(`/issues/comments/${entry.comment_id}`));
