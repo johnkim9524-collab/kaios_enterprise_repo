@@ -3,7 +3,6 @@
 import fs from 'node:fs';
 
 const SHA_RE = /^[0-9a-f]{40}$/;
-const EVENT_RE = /^[a-z_]+$/;
 
 export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath,expectedProducerEvent='workflow_run'}) {
   const run=event?.workflow_run;
@@ -11,8 +10,9 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
     id:'kidults-workflow-run-generation-classification-v1',version:'1.1.0',
     state:'VERIFIED_FAIL',classification:'INVALID_TRIGGER',reason:'UNCLASSIFIED',
     repository,current_main_sha:currentMainSha,execution_sha:executionSha,expected_producer_workflow_path:expectedWorkflowPath,
-    expected_producer_event:expectedProducerEvent,producer_workflow_path:run?.path??null,producer_event:run?.event??null,
-    producer_run_id:Number.isInteger(run?.id)?run.id:null,producer_run_attempt:Number.isInteger(run?.run_attempt)?run.run_attempt:null,
+    expected_producer_event:expectedProducerEvent,producer_event:run?.event??null,
+    producer_workflow_path:run?.path??null,producer_run_id:Number.isInteger(run?.id)?run.id:null,
+    producer_run_attempt:Number.isInteger(run?.run_attempt)?run.run_attempt:null,
     producer_head_repository:run?.head_repository?.full_name??null,producer_head_branch:run?.head_branch??null,
     producer_head_sha:run?.head_sha??null,producer_conclusion:run?.conclusion??null,
     current_main_authority:false,promotion_eligible:false,promotion_authority:false,
@@ -25,9 +25,13 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
   if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
   if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
   if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
-  if(!EVENT_RE.test(expectedProducerEvent??''))return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
-  if(run.event!==expectedProducerEvent)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'PRODUCER_EVENT_MISMATCH'};
   if(!SHA_RE.test(run.head_sha??''))return {...base,reason:'PRODUCER_HEAD_SHA_INVALID'};
+  // Validate malformed metadata before classifying a non-authoritative event.
+  if(expectedProducerEvent!=='workflow_run')return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
+  if(!Number.isSafeInteger(run.id)||run.id<=0||!Number.isSafeInteger(run.run_attempt)||run.run_attempt<=0)return {...base,reason:'PRODUCER_RUN_ATTEMPT_INVALID'};
+  if(run.status!=='completed')return {...base,reason:'PRODUCER_NOT_COMPLETED'};
+  if(!['workflow_run','workflow_dispatch','schedule','push','pull_request'].includes(run.event))return {...base,reason:'PRODUCER_EVENT_INVALID'};
+  if(run.event!==expectedProducerEvent)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'PRODUCER_EVENT_MISMATCH'};
   if(run.conclusion!=='success')return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'UPSTREAM_NON_SUCCESS',producer_conclusion:run.conclusion??'UNKNOWN'};
   if(run.head_sha!==currentMainSha)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'STALE_PRIOR_MAIN_TRIGGER'};
   return {...base,state:'VERIFIED_PASS',classification:'CURRENT_MAIN_EXACT',reason:'CURRENT_MAIN_PRODUCER_BOUND',current_main_authority:true};
