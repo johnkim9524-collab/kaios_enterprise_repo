@@ -16,6 +16,22 @@ test('admits only exact current-main ARL producer', () => {
   assert.equal(result.should_run, true);
 });
 
+test('terminates exact main-push ARL recovery as proven nonauthority without classification artifact', () => {
+  const recovery = {...structuredClone(run), event: 'push', name: `KIDULTS ARL / recovery-${sha}`, display_title: `KIDULTS ARL / recovery-${sha}`};
+  const result = classify({run: recovery, classification: null, repository: repo, executionSha: sha});
+  assert.equal(result.state, 'VERIFIED_SKIP');
+  assert.equal(result.admission, 'EXPECTED_NONAUTHORITATIVE_SKIP');
+  assert.equal(result.reason, 'ARL_PUSH_RECOVERY_NONAUTHORITATIVE');
+  assert.equal(result.should_run, false);
+});
+
+test('rejects forged main-push ARL recovery identity', () => {
+  const recovery = {...structuredClone(run), event: 'push', name: 'KIDULTS ARL / recovery-forged', display_title: 'KIDULTS ARL / recovery-forged'};
+  const result = classify({run: recovery, classification: null, repository: repo, executionSha: sha});
+  assert.equal(result.state, 'VERIFIED_FAIL');
+  assert.equal(result.reason, 'ARL_RECOVERY_IDENTITY_INVALID');
+});
+
 for (const reason of ['PRODUCER_EVENT_MISMATCH', 'UPSTREAM_NON_SUCCESS', 'STALE_PRIOR_MAIN_TRIGGER']) test(`expected skip is terminal nonauthority: ${reason}`, () => {
   const result = classifyWith(run, {...receipt, state: 'VERIFIED_SKIP', classification: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason, current_main_authority: false});
   assert.equal(result.state, 'VERIFIED_SKIP');
