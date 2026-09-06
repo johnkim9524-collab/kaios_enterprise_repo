@@ -11,6 +11,7 @@ The mandatory GitHub-source bootstrap contract is `coordination/kidults/governan
 The mandatory fix-first bootstrap is `coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json`.
 The mandatory report-after-remediation gate is `coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json`.
 The mandatory group provider sourcing strategy is `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md` and its machine contract is `coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json`.
+The mandatory Track Z external-provider operating system is `coordination/kidults/track-z/track-z-operating-system-v1.json`; its executable control cycle is `scripts/kidults/track-z/run-track-z-control-cycle-v1.mjs`.
 
 Any agent analyzing, sourcing, contacting, contracting, integrating, monitoring, or reporting on a data provider must read both provider documents from the exact committed `HEAD` after passing bootstrap. It must also inspect current registry and communication evidence, avoid duplicate outreach, preserve legal/spend/credential/Production/external-communication gates, and report by source layer, brand/vertical, and provider. A previously sent message—including the eBay Developer Relations licensing inquiry—must not be resent without explicit authority.
 
