@@ -15,12 +15,35 @@ const assert = (condition, code) => {
 };
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
-export function nativeGovernanceConverged(statuses, requiredContexts) {
+const timestampMilliseconds = value => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const milliseconds = Date.parse(value);
+  return Number.isFinite(milliseconds) ? milliseconds : null;
+};
+
+export function nativeGovernanceConverged(
+  statuses,
+  requiredContexts,
+  minimumStatusUpdatedAt = null,
+) {
   if (!Array.isArray(statuses) || !Array.isArray(requiredContexts) || !requiredContexts.length) {
     return false;
   }
+  const minimumMilliseconds = minimumStatusUpdatedAt === null
+    ? null
+    : timestampMilliseconds(minimumStatusUpdatedAt);
+  if (minimumStatusUpdatedAt !== null && minimumMilliseconds === null) return false;
+
   return requiredContexts.every(context => {
-    const matches = statuses.filter(status => status?.context === context);
+    const matches = statuses.filter(status => {
+      if (status?.context !== context) return false;
+      if (minimumMilliseconds === null) return true;
+      const statusMilliseconds = timestampMilliseconds(
+        status?.updated_at || status?.created_at,
+      );
+      return statusMilliseconds !== null
+        && statusMilliseconds >= minimumMilliseconds;
+    });
     return matches.length === 1 && isAtomicLandingNativeStatusReady(matches[0]);
   });
 }
@@ -50,6 +73,26 @@ function runSelfTest() {
   ], required), 'LIFECYCLE_CONVERGENCE_SELFTEST_GENERIC_PENDING_ACCEPTED');
   assert(!nativeGovernanceConverged([scope], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_MISSING_CONTEXT_ACCEPTED');
+
+  const eventAt = '2026-09-06T11:48:00Z';
+  const currentGeneration = [
+    {...scope, created_at: eventAt, updated_at: '2026-09-06T11:48:14Z'},
+    {...governed, created_at: eventAt, updated_at: '2026-09-06T11:48:19Z'},
+  ];
+  assert(nativeGovernanceConverged(currentGeneration, required, eventAt),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_CURRENT_GENERATION_REJECTED');
+  assert(!nativeGovernanceConverged([
+    {...scope, created_at: '2026-09-06T11:38:00Z'},
+    currentGeneration[1],
+  ], required, eventAt),
+  'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_SCOPE_GENERATION_ACCEPTED');
+  assert(!nativeGovernanceConverged([
+    scope,
+    currentGeneration[1],
+  ], required, eventAt),
+  'LIFECYCLE_CONVERGENCE_SELFTEST_UNTIMED_SCOPE_GENERATION_ACCEPTED');
+  assert(!nativeGovernanceConverged(currentGeneration, required, 'invalid'),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_INVALID_EVENT_TIME_ACCEPTED');
   console.log('PR lifecycle native convergence self-test: PASS');
 }
 
@@ -64,6 +107,7 @@ async function main() {
   const prNumber = process.env.PR_NUMBER;
   const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
   const expectedBaseSha = process.env.EXPECTED_BASE_SHA;
+  const expectedPrEventAt = process.env.EXPECTED_PR_EVENT_AT;
   assert(token, 'LIFECYCLE_CONVERGENCE_GH_TOKEN_MISSING');
   assert(repository && /^[^/]+\/[^/]+$/.test(repository),
     'LIFECYCLE_CONVERGENCE_REPOSITORY_INVALID');
@@ -72,6 +116,8 @@ async function main() {
     'LIFECYCLE_CONVERGENCE_HEAD_INVALID');
   assert(/^[0-9a-f]{40}$/.test(expectedBaseSha || ''),
     'LIFECYCLE_CONVERGENCE_BASE_INVALID');
+  assert(timestampMilliseconds(expectedPrEventAt) !== null,
+    'LIFECYCLE_CONVERGENCE_EVENT_TIME_INVALID');
 
   const policy = JSON.parse(fs.readFileSync(
     'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json',
@@ -124,7 +170,7 @@ async function main() {
       && main?.commit?.sha === expectedBaseSha;
     if (!stableReadyCandidate) break;
     const statuses = Array.isArray(status?.statuses) ? status.statuses : [];
-    if (nativeGovernanceConverged(statuses, required)) {
+    if (nativeGovernanceConverged(statuses, required, expectedPrEventAt)) {
       converged = true;
       break;
     }
@@ -137,6 +183,7 @@ async function main() {
     attempts,
     max_attempts: maxAttempts,
     delay_ms: delayMs,
+    minimum_status_updated_at: expectedPrEventAt,
     status_write_authority: false,
     status_write_performed: false,
   }));
