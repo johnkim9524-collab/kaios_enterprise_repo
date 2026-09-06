@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 const root=process.cwd();
 const p0=fs.readFileSync('.github/workflows/kidults-p0-control-plane-closure-v1.yml','utf8');
 
@@ -39,7 +40,7 @@ for(const fail of [false,true])test(`actual P0 suite preserves outcome and recei
     fs.writeFileSync(hook,`import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';
 cp.spawnSync=(_file,args)=>({status:${fail}&&args.includes('scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs')?1:0,stdout:'',stderr:''});
 syncBuiltinESMExports();globalThis.fetch=()=>{throw Error('REAL_NETWORK_FORBIDDEN');};`);
-    const p=spawnSync(process.execPath,['--import',hook,'scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'],
+    const p=spawnSync(process.execPath,['--import',pathToFileURL(hook).href,'scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'],
       {cwd:root,encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,KPMO_RECEIPT_PATH:output,KPMO_SOURCE_SHA:'a'.repeat(40)}});
     assert.equal(p.status,fail?1:0);const x=JSON.parse(fs.readFileSync(output,'utf8'));
     assert.equal(x.state,fail?'VERIFIED_FAIL':'VERIFIED_PASS');assert.equal(x.facts.checks_passed,fail?17:18);assert.equal(x.facts.checks_total,18);

@@ -9,7 +9,9 @@ const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 function extractFunction(name) {
   const start = runner.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `${name} source unavailable`);
-  let cursor = runner.indexOf('{', start);
+  let cursor = runner.indexOf(') {', start);
+  assert.ok(cursor >= 0, `${name} body unavailable`);
+  cursor += 2;
   let depth = 0;
   for (; cursor < runner.length; cursor += 1) {
     if (runner[cursor] === '{') depth += 1;
@@ -28,7 +30,7 @@ function loadProductionSelector(nowMs) {
 
   const factory = new Function(
     'crypto', 'MARKER', 'OPERATION', 'TRANSPORT', 'SCOPE', 'MAX_APPROVAL_LIFETIME_MS', 'NONCE',
-    'repository', 'prNumber', 'expectedBaseSha', 'expectedHeadSha', 'authorizationId', 'purpose',
+    'repository', 'prNumber', 'expectedBaseSha', 'expectedHeadSha', 'expectedHeadTreeSha', 'authorizationId', 'purpose',
     'handoffWindowSeconds', 'parseTime', 'fail', 'Date',
     `${runner.slice(keysStart, keysEnd)}\n${extractFunction('parseApproval')}\n${extractFunction('selectApproval')}\nreturn {parseApproval, selectApproval};`,
   );
@@ -59,6 +61,7 @@ function loadProductionSelector(nowMs) {
     '1993',
     'cdf360a9fed2005e71651cdfa55659a924def90d',
     '6381174d0b5969c19234fc47d482d465d1eb7249',
+    '7381174d0b5969c19234fc47d482d465d1eb724a',
     'DIRECT-PR-1993-6381174d0b59',
     'P1_1987_REVOCATION_CANARY',
     180,
@@ -75,6 +78,7 @@ function approvalBody({nonce, expiresAt}) {
     'pull_request=1993',
     'exact_base_sha=cdf360a9fed2005e71651cdfa55659a924def90d',
     'exact_head_sha=6381174d0b5969c19234fc47d482d465d1eb7249',
+    'expected_head_tree_sha=7381174d0b5969c19234fc47d482d465d1eb724a',
     'operation=MERGE_PROTECTED_MAIN',
     'transport=DIRECT_OWNER_GITHUB_UI',
     'authorization_id=DIRECT-PR-1993-6381174d0b59',

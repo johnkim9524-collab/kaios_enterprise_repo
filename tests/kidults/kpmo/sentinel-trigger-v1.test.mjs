@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
@@ -90,7 +91,7 @@ globalThis.fetch=async(url,options)=>{
 };`;
  try{
   const preload=path.join(dir,'hook.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',preload,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
+  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
   assert.equal(result.error,undefined,result.stderr);
   const r=JSON.parse(fs.readFileSync(output,'utf8')),calls=JSON.parse(fs.readFileSync(trace,'utf8'));
   assert.equal(r.promotion_eligible,false);assert.equal(r.semantic_content_verified,false);

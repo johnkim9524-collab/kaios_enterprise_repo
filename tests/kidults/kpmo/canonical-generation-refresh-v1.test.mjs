@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
+import {canonicalPreloadUrl} from './canonical-test-preload-url-v1.mjs';
 
 // This suite runs the actual CLI, but ALL fetch calls terminate in an isolated
 // in-memory transport. No GitHub credentials, requests, comments or dispatches.
@@ -83,7 +84,7 @@ process.on('exit',()=>fs.writeFileSync(process.env.FINAL_STATE,JSON.stringify({o
     // A pre-existing bootstrap must not hide this invocation's actual failure.
     fs.writeFileSync(receiptPath,JSON.stringify({state:'VERIFIED_FAIL',failure_class:'BOOTSTRAP_NOT_RUN'}));
     const env={PATH:process.env.PATH,LANG:'C.UTF-8',GITHUB_REPOSITORY:REPO,GITHUB_TOKEN:'SYNTHETIC_ONLY_NOT_A_CREDENTIAL',GITHUB_ACTIONS:'true',GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REF:'refs/heads/main',GITHUB_SHA:SHA,TARGET_MAIN_SHA:SHA,GITHUB_ACTOR:'johnkim9524-collab',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',CANONICAL_GENERATION_AUTHORIZATION_ID:'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED',CANONICAL_GENERATION_RECEIPT_PATH:receiptPath,SCENARIO:scenario,TRACE:trace,POSTS:path.join(dir,'posts.jsonl'),FINAL_STATE:path.join(dir,'final.json'),...envOverrides};
-    const result=spawnSync(process.execPath,['--import',preload,'scripts/kidults/kpmo/canonical-generation-v3.mjs',...(readOnly?[]:['--write'])],{env,encoding:'utf8',timeout:15000,maxBuffer:1024*1024});
+    const result=spawnSync(process.execPath,['--import',canonicalPreloadUrl(preload),'scripts/kidults/kpmo/canonical-generation-v3.mjs',...(readOnly?[]:['--write'])],{env,encoding:'utf8',timeout:15000,maxBuffer:1024*1024});
     assert.equal(result.error,undefined,result.stderr);
     const receipt=JSON.parse(fs.readFileSync(receiptPath));
     const calls=fs.readFileSync(trace,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
@@ -138,7 +139,7 @@ cp.spawnSync=(_file,args,options)=>{
 };syncBuiltinESMExports();`;
  try{
   const preload=path.join(dir,'mock.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',preload,'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,SCENARIO:scenario,TRACE:trace,CANONICAL_GENERATION_RECEIPT_PATH:receiptPath,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',TARGET_MAIN_SHA:SHA}});
+  const result=spawnSync(process.execPath,['--import',canonicalPreloadUrl(preload),'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'],{encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,SCENARIO:scenario,TRACE:trace,CANONICAL_GENERATION_RECEIPT_PATH:receiptPath,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',TARGET_MAIN_SHA:SHA}});
   assert.equal(result.error,undefined,result.stderr);
   return {result,receipt:JSON.parse(fs.readFileSync(receiptPath)),calls:fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse),receiptPath};
  }finally{fs.rmSync(dir,{recursive:true,force:true});}

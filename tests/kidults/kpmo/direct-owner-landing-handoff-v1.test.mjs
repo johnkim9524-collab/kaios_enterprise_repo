@@ -76,6 +76,7 @@ test('production approval parser accepts g5 and rejects unknown or duplicate dig
     'pull_request=1988',
     'exact_base_sha=0e5852b437afb89971f28641c2b230cc30c5b1e0',
     'exact_head_sha=21d9785d2a9513e4c6432c810cdfce27200fe94a',
+    'expected_head_tree_sha=31d9785d2a9513e4c6432c810cdfce27200fe94b',
     'operation=MERGE_PROTECTED_MAIN',
     'transport=DIRECT_OWNER_GITHUB_UI',
     'authorization_id=DIRECT-PR-1988-21d9785d2a95',
@@ -89,10 +90,14 @@ test('production approval parser accepts g5 and rejects unknown or duplicate dig
     'g5=HOLD',
   ].join('\n');
 
-  assert.equal(approvalKeys.length, 15);
+  assert.equal(approvalKeys.length, 16);
   assert.equal(parseApproval(approval).g5, 'HOLD');
   assert.throws(() => parseApproval(approval.replace('g5=HOLD', 'g6=HOLD')), /DIRECT_OWNER_HANDOFF_APPROVAL_FIELD_INVALID/);
   assert.throws(() => parseApproval(approval.replace('public=HOLD', 'production=HOLD')), /DIRECT_OWNER_HANDOFF_APPROVAL_FIELD_INVALID/);
+  assert.throws(() => parseApproval(approval.replace(/\nexpected_head_tree_sha=[^\n]+/, '')), /DIRECT_OWNER_HANDOFF_APPROVAL_SHAPE_INVALID/);
+  assert.equal(parseApproval(approval.replace('31d9785d2a9513e4c6432c810cdfce27200fe94b',
+    '41d9785d2a9513e4c6432c810cdfce27200fe94c')).expected_head_tree_sha,
+  '41d9785d2a9513e4c6432c810cdfce27200fe94c');
   assert.equal(parseApproval('NOT_AN_APPROVAL'), null);
 });
 
@@ -115,12 +120,14 @@ test('approval comment mutation revokes any open direct-owner handoff', () => {
   assert.match(workflow, /state: 'pending'/);
 });
 
-test('Atomic Landing remains fail-closed before authority consumption while direct-owner handoff is the successor transport', () => {
-  const transportIndex = atomic.indexOf('Require event-emitting post-merge CI transport');
+test('Atomic Landing validates the direct-owner event transport before authority consumption', () => {
+  const transportIndex = atomic.indexOf('Verify event-emitting merge transport before authority consumption');
   const lifecycleIndex = atomic.indexOf('Require latest terminal exact-head lifecycle authority');
   const consumptionIndex = atomic.indexOf('Consume one-use exact-head landing authorization');
   assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex && lifecycleIndex < consumptionIndex);
-  assert.match(atomic, /ATOMIC_LANDING_GITHUB_TOKEN_POSTMERGE_CI_SUPPRESSED/);
+  assert.match(atomic, /run-atomic-event-emitting-transport-preflight-v1\.mjs/);
+  assert.doesNotMatch(atomic, /contents: write/);
+  assert.doesNotMatch(atomic, /pull-requests: write/);
 });
 
 test('approval revocation cannot queue behind the handoff window or be triggered by an untrusted commenter', () => {
@@ -143,17 +150,31 @@ test('post-window merge classification revalidates approval, ready event, head a
   const headRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
   const mainRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
   assert.ok(sleepIndex >= 0);
-  for (const index of [approvalRecheck, readyRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+  const treeRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
+  for (const index of [approvalRecheck, readyRecheck, treeRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
 });
 
 test('post-window approval reconciliation does not require a second future handoff window', () => {
   assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{phase = 'pre_window'\} = \{\}\)/);
   assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
   assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
-  assert.match(runner, /selectApproval\(afterComments, owner, after, headCommit, afterReady, \{phase: 'post_window'\}\)/);
+  assert.match(runner, /selectApproval\(afterComments, owner, after, afterHeadCommit, afterReady, \{phase: 'post_window'\}\)/);
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
   const postPhaseIndex = runner.indexOf("{phase: 'post_window'}", sleepIndex);
   assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
+});
+
+test('head tree is explicit in input, structured approval, receipt, preflight and window readbacks', () => {
+  assert.match(workflow, /expected_head_tree_sha:/);
+  assert.match(workflow, /EXPECTED_HEAD_TREE_SHA: \$\{\{ inputs\.expected_head_tree_sha \}\}/);
+  assert.match(runner, /'expected_head_tree_sha'/);
+  assert.match(runner, /fields\.expected_head_tree_sha !== expectedHeadTreeSha/);
+  assert.match(runner, /expected_head_tree_sha: expectedHeadTreeSha/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_HEAD_TREE_MISMATCH/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_FINAL_HEAD_TREE_DRIFT/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_RESULTING_TREE_MISMATCH/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_ORDERED_PARENTS_MISMATCH/);
 });
 
 test('consumed merge is explicitly bounded to opened window and approval expiry', () => {

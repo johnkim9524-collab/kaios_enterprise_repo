@@ -27,6 +27,8 @@ const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
 const prNumber = process.env.PR_NUMBER;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+const expectedBaseSha = process.env.EXPECTED_BASE_SHA;
+const expectedHeadTreeSha = process.env.EXPECTED_HEAD_TREE_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const executionRef = process.env.GITHUB_REF;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
@@ -36,8 +38,13 @@ const githubOutput = process.env.GITHUB_OUTPUT;
 const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
 const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
 const runnerTemp = process.env.RUNNER_TEMP;
+const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH;
+const transportWaitSeconds = Number(process.env.ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS || '600');
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
+}
+if (!/^[0-9a-f]{40}$/.test(expectedBaseSha || '') || !/^[0-9a-f]{40}$/.test(expectedHeadTreeSha || '')) {
+  throw new Error('ATOMIC_LANDING_EXACT_IDENTITY_BINDING_INVALID');
 }
 if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') || !githubOutput) {
   throw new Error('ATOMIC_LANDING_WORKFLOW_OUTPUT_BINDING_INVALID');
@@ -45,6 +52,10 @@ if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') 
 if (Number(landingRunAttempt) !== 1) throw new Error('ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
 if (!consumptionPath) throw new Error('ATOMIC_LANDING_CONSUMPTION_PATH_REQUIRED');
 if (!lifecycleAuthorityPath || !runnerTemp) throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_PATH_REQUIRED');
+if (!transportReceiptPath || !Number.isInteger(transportWaitSeconds)
+  || transportWaitSeconds < 60 || transportWaitSeconds > 900) {
+  throw new Error('ATOMIC_EVENT_TRANSPORT_BINDING_INVALID');
+}
 if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
@@ -123,6 +134,8 @@ const currentSoldPathMatchers = [
   /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-event-emitting-transport-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/consume-atomic-postmerge-push-suite-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
 ];
@@ -143,6 +156,40 @@ const readConsumptionReceipt = () => {
   if (!fs.existsSync(consumptionPath)) throw new Error('ATOMIC_LANDING_CONSUMPTION_RECEIPT_MISSING');
   return JSON.parse(fs.readFileSync(consumptionPath, 'utf8'));
 };
+
+const readTransportReceipt = repositoryOwner => {
+  if (!fs.existsSync(transportReceiptPath)) throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_MISSING');
+  const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
+  if (receipt?.id !== 'kidults-atomic-event-emitting-transport-availability-v1'
+    || receipt?.version !== '1.0.0'
+    || receipt?.state !== 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_INVALID');
+  }
+  if (receipt.repository !== repository || Number(receipt.pull_request) !== Number(prNumber)
+    || receipt.exact_base_sha !== expectedBaseSha || receipt.exact_head_sha !== expectedHeadSha
+    || receipt.exact_head_tree_sha !== expectedHeadTreeSha) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_IDENTITY_MISMATCH');
+  }
+  if (receipt.repository_owner !== repositoryOwner || receipt.dispatch_actor !== repositoryOwner
+    || receipt.transport !== 'DIRECT_OWNER_GITHUB_UI') {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_ACTOR_MISMATCH');
+  }
+  if (receipt.merge_performed_by_workflow !== false
+    || receipt.transport_available !== true
+    || receipt.authorization_consumed !== false
+    || receipt.repository_github_token_merge_forbidden !== true
+    || receipt.event_emitting_push_required !== true
+    || receipt.new_secret_required !== false
+    || receipt.permission_expansion_required !== false) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_BOUNDARY_INVALID');
+  }
+  if (!Number.isFinite(Date.parse(receipt.expires_at)) || Date.now() >= Date.parse(receipt.expires_at)) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_EXPIRED');
+  }
+  return receipt;
+};
+
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 const readStagedLifecycleAuthorityReceipt = () => {
   const trustedRoot = fs.realpathSync(runnerTemp);
@@ -267,6 +314,7 @@ try {
   const repositoryState = await request('');
   const repositoryOwner = repositoryState.owner?.login;
   assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);
+  const eventEmittingTransport = readTransportReceipt(repositoryOwner);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
   const changedFileRecords = await pages(`/pulls/${prNumber}/files`);
@@ -276,6 +324,7 @@ try {
     noMergePolicy: policy.no_merge_policy,
   });
   if (initial.user?.login !== repositoryOwner) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
+  if (initial.base?.sha !== expectedBaseSha) throw new Error('ATOMIC_LANDING_EXPECTED_BASE_MISMATCH');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
 
   const authorizationConsumption = await assertLiveOneUseConsumption(initial.base.sha, repositoryOwner);
@@ -315,6 +364,9 @@ try {
     pages(`/issues/${prNumber}/comments`),
     request(`/commits/${expectedHeadSha}`),
   ]);
+  if (headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+    throw new Error('ATOMIC_LANDING_EXPECTED_HEAD_TREE_MISMATCH');
+  }
   const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
   const lifecycleAuthority = assertLifecycleAuthorityAgainstReady(latestReady, initial.base.sha);
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
@@ -448,19 +500,54 @@ try {
     throw new Error('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
 
-  const merged = await request(`/pulls/${prNumber}/merge`, {
-    method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'}),
-  });
-  if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
+  const transportWindowOpenedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
+  await publish('success', `Direct Owner event-emitting merge window open for ${transportWaitSeconds}s`);
+  const transportDeadline = Date.now() + transportWaitSeconds * 1000;
+  let mergedPr = null;
+  let postMergeMain = null;
+  while (Date.now() <= transportDeadline) {
+    [mergedPr, postMergeMain] = await Promise.all([
+      request(`/pulls/${prNumber}`),
+      request('/branches/main'),
+    ]);
+    if (mergedPr?.merged === true) break;
+    if (mergedPr?.state !== 'open' || mergedPr?.draft === true
+      || mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
+      throw new Error('ATOMIC_EVENT_TRANSPORT_PR_DRIFT_DURING_WINDOW');
+    }
+    if (postMergeMain?.commit?.sha !== expectedBaseSha) {
+      throw new Error('ATOMIC_EVENT_TRANSPORT_MAIN_MOVED_WITHOUT_BOUND_MERGE');
+    }
+    await sleep(5000);
+  }
+  if (mergedPr?.merged !== true) throw new Error('ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED');
+  postMergeMain = await request('/branches/main');
+  if (mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_IDENTITY_MISMATCH');
+  }
+  if (mergedPr?.merged_by?.login !== repositoryOwner) throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER');
+  const mergedAt = Date.parse(mergedPr?.merged_at || '');
+  if (!Number.isFinite(mergedAt) || mergedAt < transportWindowOpenedAt.getTime()
+    || mergedAt > transportDeadline) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_OUTSIDE_WINDOW');
+  }
+  const mergeSha = mergedPr?.merge_commit_sha;
+  if (!/^[0-9a-f]{40}$/.test(mergeSha || '')) throw new Error('ATOMIC_EVENT_TRANSPORT_MERGE_SHA_INVALID');
+  if (postMergeMain?.commit?.sha !== mergeSha) throw new Error('POST_MERGE_MAIN_SHA_MISMATCH');
+  const mergeCommit = await request(`/git/commits/${mergeSha}`);
+  if (mergeCommit?.tree?.sha !== expectedHeadTreeSha) throw new Error('POST_MERGE_TREE_SHA_MISMATCH');
+  if (!Array.isArray(mergeCommit?.parents) || mergeCommit.parents.length !== 2
+    || mergeCommit.parents[0]?.sha !== expectedBaseSha
+    || mergeCommit.parents[1]?.sha !== expectedHeadSha) {
+    throw new Error('POST_MERGE_PARENT_BINDING_MISMATCH');
+  }
 
-  const postMergeMain = await request('/branches/main');
-  if (postMergeMain?.commit?.sha !== merged.sha) throw new Error('POST_MERGE_MAIN_SHA_MISMATCH');
+  const merged = {sha: mergeSha};
 
   const currentSoldChanged = currentSoldChangedFiles.length > 0;
   fs.appendFileSync(githubOutput, [
     `merge_commit_sha=${merged.sha}`,
+    `merged_at=${mergedPr.merged_at}`,
     `premerge_main_sha=${initial.base.sha}`,
     `merged_pr_head_sha=${expectedHeadSha}`,
     `pull_request_number=${prNumber}`,
@@ -474,8 +561,8 @@ try {
 
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.4.0',
-    state: currentSoldChanged ? 'MERGED_VERIFIED_POSTLANDING_REQUIRED' : 'MERGED_VERIFIED',
+    version: '1.5.0',
+    state: 'MERGE_COMMITTED_POSTMERGE_SUITE_REQUIRED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
     exact_base_sha: initial.base.sha,
@@ -500,11 +587,18 @@ try {
     final_premerge_lifecycle_authority_reread: true,
     direct_owner_ready_event_bound: true,
     post_merge_main_reread: true,
-    server_side_expected_head_compare: true,
+    event_emitting_transport: eventEmittingTransport.transport,
+    merge_performed_by_workflow: false,
+    repository_github_token_merge_forbidden: true,
+    exact_head_tree_sha: expectedHeadTreeSha,
+    exact_merge_tree_verified: true,
+    exact_merge_parents_verified: true,
+    merged_by_direct_owner: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: policy.bypass_policy.required_status_contexts,
     current_sold_changed_file_count: currentSoldChangedFiles.length,
-    post_landing_validation: currentSoldChanged ? 'REQUIRED_SAME_TRUSTED_JOB' : 'NOT_REQUIRED',
+    post_landing_validation: currentSoldChanged ? 'REQUIRED_SAME_TRUSTED_JOB' : 'NOT_APPLICABLE',
+    exact_merge_sha_push_suite: 'REQUIRED_BEFORE_TERMINAL_PASS',
     public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {

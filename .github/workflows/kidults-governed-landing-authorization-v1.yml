@@ -149,7 +149,20 @@ jobs:
           };
 
           if (governedFiles.length) {
-            if (pr.draft) fail('governed PR is Draft');
+            if (pr.draft) {
+              console.log(JSON.stringify({
+                id:'kidults-governed-landing-authorization-receipt-v1',
+                state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',
+                pull_request:Number(prNumber),
+                exact_head_sha:pr.head.sha,
+                governed_files:governedFiles,
+                readiness:readinessReceipt,
+                landing_authorization_created:false,
+                promotion_eligible:false,
+                public_release:'HOLD',production:'HOLD',g5:'HOLD'
+              },null,2));
+              process.exit(0);
+            }
             if(lastReadiness?.event==='convert_to_draft') fail('latest readiness event is convert_to_draft');
 
             if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');
@@ -226,10 +239,19 @@ jobs:
           const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
           const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
           const api=async(path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error'});if(!r.ok)throw new Error(`GITHUB_API_${r.status}:${path}`);return r.json();};
-          const status=async(state,description)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context:policy.required_status_context,description})});
+          const scopePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
+          const status=async(state,description,context=policy.required_status_context)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context,description})});
           let failure=null;
           try {
             const final=await api(`/pulls/${number}`);
+            if(final.draft===true){
+              if(final.state!=='open'||final.merged===true||final.head?.sha!==head||final.head?.repo?.full_name!==repo||final.base?.ref!=='main')throw new Error('DRAFT_DEVELOPMENT_FINAL_REREAD_INVALID');
+              if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
+              await status('pending','Draft is non-promotable; Ready authorization required');
+              await status('success','Draft development controls verified; landing remains blocked',scopePolicy.draft_development_status_context);
+              console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'DRAFT_DEVELOPMENT_VERIFIED_NON_PROMOTABLE',pull_request:Number(number),exact_head_sha:head,landing_authorization_created:false,promotion_eligible:false,final_live_reread:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
+              process.exit(0);
+            }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
             if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
             await status('pending','Ready; operation-specific atomic landing is required');
