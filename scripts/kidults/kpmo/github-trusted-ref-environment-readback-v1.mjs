@@ -219,7 +219,7 @@ function activationReceiptContract(step, requiredVariable, triggerClasses) {
 
 export function workflowTriggerClasses(text) {
   const active = activeWorkflowText(text);
-  const allowed = new Set(['push', 'pull_request', 'pull_request_target', 'workflow_dispatch', 'workflow_run', 'workflow_call', 'schedule', 'repository_dispatch']);
+  const allowed = new Set(['push', 'pull_request', 'pull_request_target', 'workflow_dispatch', 'workflow_run', 'workflow_call', 'schedule', 'repository_dispatch', 'issue_comment']);
   const observed = new Set();
   const inlineList = active.match(/^on\s*:\s*\[([^\]]+)\]\s*$/m);
   if (inlineList) {
@@ -439,7 +439,7 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     require(
       Array.isArray(binding?.allowed_trigger_classes)
       && binding.allowed_trigger_classes.length > 0
-      && binding.allowed_trigger_classes.every((trigger) => ['push','pull_request','pull_request_target','workflow_dispatch','workflow_run','workflow_call','schedule','repository_dispatch'].includes(trigger))
+      && binding.allowed_trigger_classes.every((trigger) => ['push','pull_request','pull_request_target','workflow_dispatch','workflow_run','workflow_call','schedule','repository_dispatch','issue_comment'].includes(trigger))
       && new Set(binding.allowed_trigger_classes).size === binding.allowed_trigger_classes.length,
       `INVALID_ALLOWED_TRIGGER_CLASSES:${key}`
     );

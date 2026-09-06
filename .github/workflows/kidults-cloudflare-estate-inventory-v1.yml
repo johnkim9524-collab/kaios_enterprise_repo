@@ -1,0 +1,150 @@
+name: KIDULTS Cloudflare Workers and Pages Estate Inventory V1
+run-name: KIDULTS Cloudflare Estate Inventory / comment-${{ github.event.comment.id || 'none' }}
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-estate-inventory-v1-${{ github.event.comment.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: >-
+      github.event.issue.number == 1809 &&
+      github.event.comment.user.login == 'johnkim9524-collab' &&
+      github.event.comment.author_association == 'OWNER' &&
+      startsWith(github.event.comment.body, 'CF-CLOUDFLARE-ESTATE-INVENTORY-')
+    environment: kidults-cloudflare-staging-deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout trusted current-main implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify exact event source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_EVENT_NAME" = "issue_comment"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Prepare fail-closed receipt directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 0700 "$RUNNER_TEMP/kidults-cloudflare-estate-inventory"
+
+      - name: Verify exact Program Owner approval and consume one-shot authority
+        id: approval
+        continue-on-error: true
+        env:
+          APPROVAL_EVENT_ACTION: ${{ github.event.action }}
+          APPROVAL_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          APPROVAL_COMMENT_ID: ${{ github.event.comment.id }}
+          APPROVAL_COMMENT_CREATED_AT: ${{ github.event.comment.created_at }}
+          APPROVAL_COMMENT_UPDATED_AT: ${{ github.event.comment.updated_at }}
+          APPROVAL_AUTHOR: ${{ github.event.comment.user.login }}
+          APPROVAL_AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+          APPROVAL_BODY: ${{ github.event.comment.body }}
+        run: >-
+          node scripts/kidults/kpmo/verify-cloudflare-estate-inventory-approval-v1.mjs
+          "$RUNNER_TEMP/kidults-cloudflare-estate-inventory/approval.json"
+
+      - name: Verify cross-run one-shot approval uniqueness
+        id: uniqueness
+        if: steps.approval.outcome == 'success'
+        continue-on-error: true
+        env:
+          APPROVAL_COMMENT_ID: ${{ github.event.comment.id }}
+        run: >-
+          node scripts/kidults/kpmo/verify-cloudflare-estate-run-uniqueness-v1.mjs
+          "$RUNNER_TEMP/kidults-cloudflare-estate-inventory/run-uniqueness.json"
+
+      - name: Verify live main before provider credential resolution
+        id: live-main
+        if: steps.approval.outcome == 'success' && steps.uniqueness.outcome == 'success'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Execute bounded sanitized Cloudflare estate inventory
+        id: provider
+        if: steps.approval.outcome == 'success' && steps.uniqueness.outcome == 'success' && steps.live-main.outcome == 'success'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          echo "::add-mask::$CLOUDFLARE_API_TOKEN"
+          echo "::add-mask::$CLOUDFLARE_ACCOUNT_ID"
+          node scripts/kidults/kpmo/run-cloudflare-estate-inventory-v1.mjs \
+            "$RUNNER_TEMP/kidults-cloudflare-estate-inventory/approval.json" \
+            "$RUNNER_TEMP/kidults-cloudflare-estate-inventory/final.json"
+
+      - name: Upload sanitized terminal estate inventory receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-cloudflare-estate-inventory-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-cloudflare-estate-inventory/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Reapply fail-closed terminal verdict
+        if: always()
+        shell: bash
+        env:
+          APPROVAL_OUTCOME: ${{ steps.approval.outcome }}
+          UNIQUENESS_OUTCOME: ${{ steps.uniqueness.outcome }}
+          LIVE_MAIN_OUTCOME: ${{ steps.live-main.outcome }}
+          PROVIDER_OUTCOME: ${{ steps.provider.outcome }}
+        run: |
+          set -euo pipefail
+          test "$APPROVAL_OUTCOME" = success
+          test "$UNIQUENESS_OUTCOME" = success
+          test "$LIVE_MAIN_OUTCOME" = success
+          test "$PROVIDER_OUTCOME" = success
+          jq -e '
+            .state == "VERIFIED_PASS_CLOUDFLARE_ESTATE_INVENTORY"
+            and .cloudflare_get_request_count <= .maximum_cloudflare_get_requests
+            and .raw_provider_responses_persisted == false
+            and .raw_provider_responses_uploaded == false
+            and .worker_mutation_count == 0
+            and .pages_mutation_count == 0
+            and .route_mutation_count == 0
+            and .domain_mutation_count == 0
+            and .deployment_mutation_count == 0
+            and .public == "HOLD"
+            and .production == "HOLD"
+            and .g5 == "HOLD"' \
+            "$RUNNER_TEMP/kidults-cloudflare-estate-inventory/final.json" >/dev/null
