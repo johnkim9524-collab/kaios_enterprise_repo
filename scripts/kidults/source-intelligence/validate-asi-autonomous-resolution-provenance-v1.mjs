@@ -19,7 +19,7 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'classify-p1-generation:',
     "CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'",
     'classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"',
-    "steps.classify.outputs.classification == 'INVALID_TRIGGER'",
+    "steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'",
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error',
     'request-p1-recovery:',
