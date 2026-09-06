@@ -189,6 +189,31 @@ jobs:
           if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
           if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
           NODE
+      - name: Initialize fail-closed terminal receipt
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const receipt={
+            id:'kidults-asi-source-fabric-scale-pi1-receipt',
+            status:'INITIALIZED_FAIL_CLOSED',
+            source_sha:process.env.EXPECTED_SHA,
+            run_id:Number(process.env.GITHUB_RUN_ID),
+            run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+            trigger_event:process.env.GITHUB_EVENT_NAME,
+            terminal_job_status:'in_progress',
+            provider_requests_proven:false,
+            candidate_admission:'NONE',
+            evidence_admission:'NONE',
+            empirical_market_effect:'NONE',
+            content_acquisition_authorized:false,
+            collection_right_created:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
+          };
+          fs.writeFileSync('/tmp/asi-source-fabric-scale-pi1-receipt.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
       - name: Restore prior provider circuit and rolling reserve from main
         env:
           GH_TOKEN: ${{ github.token }}
@@ -288,7 +313,53 @@ jobs:
           process.stdout.write(JSON.stringify({id:'kidults-asi-source-fabric-scale-pi1-receipt',status:'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',scheduled_scopes:f.scheduled_scope_count,empirical_scopes:f.empirical_scope_count,current_increment_candidates:f.candidate_count,current_increment_unique_hosts:f.unique_host_count,provider_candidate_counts:f.provider_counts,healthy_provider_lanes:f.healthy_lane_count,degraded_provider_lanes:f.degraded_lane_count,provider_circuit_cycle:c.cycle_number,full_budget_providers:c.summary.full_budget_provider_count,reduced_budget_providers:c.summary.reduced_budget_provider_count,open_provider_circuits:c.summary.open_circuit_count,half_open_provider_probes:c.summary.half_open_probe_count,reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,empirical_market_effect:'NONE',content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-source-fabric-scale-pi1-receipt.json
+      - name: Reconcile terminal receipt
+        if: always()
+        env:
+          TERMINAL_JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path='/tmp/asi-source-fabric-scale-pi1-receipt.json';
+          let receipt={};
+          try { receipt=JSON.parse(fs.readFileSync(path,'utf8')); } catch {}
+          const successfulEmpiricalReceipt=
+            process.env.TERMINAL_JOB_STATUS==='success'
+            && receipt.status==='SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE';
+          if (!successfulEmpiricalReceipt) {
+            receipt={
+              id:'kidults-asi-source-fabric-scale-pi1-receipt',
+              status:'VERIFIED_FAIL_PRE_ADMISSION',
+              source_sha:process.env.EXPECTED_SHA,
+              run_id:Number(process.env.GITHUB_RUN_ID),
+              run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+              trigger_event:process.env.GITHUB_EVENT_NAME,
+              terminal_job_status:process.env.TERMINAL_JOB_STATUS,
+              provider_requests_proven:false,
+              candidate_admission:'NONE',
+              evidence_admission:'NONE',
+              empirical_market_effect:'NONE',
+              content_acquisition_authorized:false,
+              collection_right_created:false,
+              public_release:'HOLD',
+              production:'HOLD',
+              g5:'HOLD'
+            };
+          } else {
+            receipt.source_sha=process.env.EXPECTED_SHA;
+            receipt.run_id=Number(process.env.GITHUB_RUN_ID);
+            receipt.run_attempt=Number(process.env.GITHUB_RUN_ATTEMPT);
+            receipt.terminal_job_status=process.env.TERMINAL_JOB_STATUS;
+            receipt.candidate_admission='SHADOW_CANDIDATES_ONLY';
+            receipt.evidence_admission='NONE';
+            receipt.g5='HOLD';
+          }
+          fs.writeFileSync(path,JSON.stringify(receipt,null,2)+'\n');
+          console.log(JSON.stringify(receipt,null,2));
+          NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-source-fabric-scale-pi1
           path: |
