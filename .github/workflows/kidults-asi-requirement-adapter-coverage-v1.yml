@@ -359,6 +359,14 @@ jobs:
               fi
               ARCHIVE="$CANDIDATE_DIR/artifact-${ARTIFACT_ID}.zip"
               EXTRACT="$CANDIDATE_DIR/extract-${ARTIFACT_ID}"
+                        ARL_EVENT=$(jq -r .event /tmp/arl-admission-run.json)
+          if [ "$ARL_EVENT" != workflow_run ]; then
+            node scripts/kidults/source-intelligence/classify-requirement-coverage-admission-v1.mjs /tmp/arl-admission-run.json - "$GITHUB_REPOSITORY" "$GITHUB_SHA" /tmp/coverage-admission-v1.json
+            echo "should_run=$(jq -r .should_run /tmp/coverage-admission-v1.json)" >> "$GITHUB_OUTPUT"
+            echo "admission=$(jq -r .admission /tmp/coverage-admission-v1.json)" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
               mkdir -p "$EXTRACT"
               if ! gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > "$ARCHIVE" || \
                  ! python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
