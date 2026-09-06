@@ -36,3 +36,19 @@ test('terminal PASS requires successful exact merge-SHA push suite', () => {
   assert.match(terminal, /postMergeSuiteReceipt\?\.all_required_success === true/);
   assert.match(terminal, /let state = 'VERIFIED_FAIL'/);
 });
+
+
+test('bound transport failure is converted into durable terminal truth before any merge authority', () => {
+  assert.match(terminal, /receipt\.state === 'VERIFIED_FAIL'/);
+  assert.match(terminal, /\^ATOMIC_EVENT_TRANSPORT_\[A-Z0-9_\]\{1,96\}\$/);
+  assert.match(terminal, /repository_github_token_merge_forbidden === true/);
+  assert.doesNotMatch(terminal, /receipt\?\.repository_token_merge_forbidden/);
+  assert.match(terminal, /transportAvailability\.state === 'VERIFIED_FAIL'/);
+  assert.match(terminal, /ATOMIC_TERMINAL_TRANSPORT_FAILURE_PR_ALREADY_MERGED/);
+  assert.match(terminal, /ATOMIC_TERMINAL_TRANSPORT_FAILURE_MAIN_DRIFT/);
+  assert.match(terminal, /ATOMIC_TERMINAL_TRANSPORT_FAILURE_AUTHORIZATION_CONSUMED/);
+  assert.match(terminal, /merge_commit_state: 'NOT_COMMITTED_VERIFIED'/);
+  assert.match(terminal, /authorization_consumed: false/);
+  assert.match(terminal, /transport_failure_preserved: true/);
+  assert.match(terminal, /failure_code: terminalClass/);
+});
