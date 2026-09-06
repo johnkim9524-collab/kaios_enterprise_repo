@@ -143,7 +143,10 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
 });
 
 test('Coverage prior-skip scan requires bounded complete pagination', () => {
- assert.ok(covSource.includes('gh api --paginate --slurp --method GET'));
+ assert.ok(!covSource.includes('gh api --paginate'));
+ assert.ok(covSource.includes('for PAGE in $(seq 1 25)'));
+ assert.ok(covSource.includes('-f per_page=100 -f page="$PAGE"'));
+ assert.ok(covSource.includes('PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED'));
  assert.ok(covSource.includes('prior-success-pages.json'));
  assert.ok(covSource.includes('.total_count <= 2500 and .total_count == (.workflow_runs | length)'));
  const incomplete = Array.from({length:100},(_,i)=>coverage({id:1000+i}));
