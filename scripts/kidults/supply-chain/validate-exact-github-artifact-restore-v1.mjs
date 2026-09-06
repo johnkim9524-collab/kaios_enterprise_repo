@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   ExactArtifactRestoreError,
   collectCompletePages,
+  partitionProducerRuns,
   validateArtifact,
   validateProducerRun,
 } from './restore-exact-github-artifact-v1.mjs';
@@ -110,6 +111,36 @@ for (const [code, mutation] of runMutations) {
   expectRejected(() => validateProducerRun({ ...run, ...mutation }, specification, repository), code);
 }
 
+const newerPullRequestRun = {
+  ...run,
+  id: 42,
+  event: 'pull_request',
+  created_at: new Date(Date.now() + 1_000).toISOString(),
+};
+const mixedHistory = partitionProducerRuns(
+  [newerPullRequestRun, run],
+  specification,
+  repository,
+);
+assert.deepEqual(mixedHistory.authoritative.map((row) => row.id), [run.id]);
+assert.deepEqual(mixedHistory.excluded.map((row) => row.id), [newerPullRequestRun.id]);
+assert.equal(mixedHistory.excluded[0].event, 'pull_request');
+const allDisallowedHistory = partitionProducerRuns(
+  [newerPullRequestRun, { ...newerPullRequestRun, id: 43, event: 'pull_request_target' }],
+  specification,
+  repository,
+);
+assert.equal(allDisallowedHistory.authoritative.length, 0);
+assert.equal(allDisallowedHistory.excluded.length, 2);
+expectRejected(
+  () => partitionProducerRuns(
+    [{ ...newerPullRequestRun, repository: { full_name: 'attacker/repo' } }],
+    specification,
+    repository,
+  ),
+  'RUN_REPOSITORY_MISMATCH',
+);
+
 const artifact = {
   id: 71,
   name: specification.artifactName,
@@ -140,6 +171,9 @@ function staticFailures(resolverSource, criticalSources) {
     'pagination_reconciled_complete: true',
     'validateWorkflowMetadata',
     'validateProducerRun',
+    'validateProducerRunEnvelope',
+    'partitionProducerRuns',
+    'disallowed_event_run_count',
     'validateArtifact',
     'ARTIFACT_CARDINALITY_INVALID',
     'ARTIFACT_READBACK_MISMATCH',
@@ -180,6 +214,7 @@ const sourceMutations = [
   ['remove complete pagination', 'pagination_reconciled_complete: true', 'pagination_reconciled_complete: false'],
   ['remove artifact cardinality', 'ARTIFACT_CARDINALITY_INVALID', 'ARTIFACT_CARDINALITY_IGNORED'],
   ['remove exact producer validation', 'validateProducerRun', 'acceptProducerRun'],
+  ['remove authoritative event partition', 'partitionProducerRuns', 'acceptAllProducerRuns'],
   ['remove archive digest binding', 'ARCHIVE_DIGEST_MISMATCH', 'ARCHIVE_DIGEST_IGNORED'],
   ['remove required basename binding', '--required-basename', '--optional-basename'],
   ['move Safe-ZIP after extraction', "execFileSync('python3', safeZipArguments", "execFileSync('python3-after-unzip', safeZipArguments"],
@@ -200,6 +235,19 @@ for (let index = 0; index < criticalSources.length; index += 1) {
     staticFailures(resolverSource, mutatedCriticalSources).length > 0,
     `critical resolver removal accepted: ${criticalSources[index][0]}`,
   );
+}
+
+const sourceFabricWorkflow = fs.readFileSync(
+  '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml',
+  'utf8',
+);
+for (const marker of [
+  'Initialize fail-closed terminal receipt',
+  'Reconcile terminal receipt',
+  'if: always()',
+  'VERIFIED_FAIL_PRE_ADMISSION',
+]) {
+  assert(sourceFabricWorkflow.includes(marker), `source-fabric terminal invariant missing: ${marker}`);
 }
 
 console.log(JSON.stringify({

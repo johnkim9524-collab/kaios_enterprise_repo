@@ -197,7 +197,7 @@ function validateWorkflowMetadata(workflow, specification) {
   if (workflow?.state !== 'active') fail('WORKFLOW_NOT_ACTIVE', workflow?.state);
 }
 
-export function validateProducerRun(run, specification, repository) {
+export function validateProducerRunEnvelope(run, specification, repository) {
   requirePositiveInteger(run?.id, 'RUN_ID_INVALID');
   requirePositiveInteger(run?.run_attempt, 'RUN_ATTEMPT_INVALID');
   if (run?.repository?.full_name !== repository) fail('RUN_REPOSITORY_MISMATCH', run?.id);
@@ -206,9 +206,33 @@ export function validateProducerRun(run, specification, repository) {
   if (run?.head_branch !== specification.branch) fail('RUN_BRANCH_MISMATCH', run?.id);
   if (!SHA_PATTERN.test(run?.head_sha || '')) fail('RUN_SOURCE_SHA_INVALID', run?.id);
   if (run?.status !== 'completed' || run?.conclusion !== 'success') fail('RUN_NOT_SUCCESSFUL', run?.id);
-  if (!specification.allowedEvents.includes(run?.event)) fail('RUN_EVENT_FORBIDDEN', run?.event);
+  if (typeof run?.event !== 'string' || !run.event) fail('RUN_EVENT_INVALID', run?.id);
   if (!Number.isFinite(Date.parse(run?.created_at || ''))) fail('RUN_CREATED_AT_INVALID', run?.id);
   return run;
+}
+
+export function validateProducerRun(run, specification, repository) {
+  validateProducerRunEnvelope(run, specification, repository);
+  if (!specification.allowedEvents.includes(run.event)) fail('RUN_EVENT_FORBIDDEN', run.event);
+  return run;
+}
+
+export function partitionProducerRuns(rows, specification, repository) {
+  if (!Array.isArray(rows)) fail('WORKFLOW_RUN_HISTORY_ROWS_INVALID');
+  const authoritative = [];
+  const excluded = [];
+  for (const row of rows) {
+    validateProducerRunEnvelope(row, specification, repository);
+    if (specification.allowedEvents.includes(row.event)) authoritative.push(row);
+    else excluded.push({
+      id: row.id,
+      run_attempt: row.run_attempt,
+      event: row.event,
+      head_sha: row.head_sha,
+      created_at: row.created_at,
+    });
+  }
+  return { authoritative, excluded };
 }
 
 export function validateArtifact(artifact, run, specification) {
@@ -340,32 +364,38 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     maxPages: specification.maxPages,
     fetchPage: (page) => getJson(`${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${runQuery(page)}`),
   });
-  const runs = runReadback.rows.map((run) => validateProducerRun(run, specification, repository))
-    .sort((left, right) => {
-      const byCreated = Date.parse(right.created_at) - Date.parse(left.created_at);
-      return byCreated || right.id - left.id;
-    });
+  const runPartition = partitionProducerRuns(runReadback.rows, specification, repository);
+  const runs = runPartition.authoritative.sort((left, right) => {
+    const byCreated = Date.parse(right.created_at) - Date.parse(left.created_at);
+    return byCreated || right.id - left.id;
+  });
 
   if (!runs.length) {
     if (!specification.allowNoProducerHistory) fail('NO_PRODUCER_HISTORY');
-    const allHistoryProbe = await getJson(
-      `${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
-        branch: specification.branch,
-        status: 'success',
-        per_page: 1,
-        page: 1,
-      })}`,
-    );
-    const allHistoryTotal = requireNonNegativeInteger(
-      allHistoryProbe?.total_count,
-      'ALL_HISTORY_TOTAL_COUNT_INVALID',
-    );
-    if (!Array.isArray(allHistoryProbe?.workflow_runs) || allHistoryProbe.workflow_runs.length > 1) {
-      fail('ALL_HISTORY_PROBE_INVALID');
+    const allowedHistoryCounts = {};
+    for (const event of specification.allowedEvents) {
+      const allowedHistoryProbe = await getJson(
+        `${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
+          branch: specification.branch,
+          status: 'success',
+          event,
+          per_page: 1,
+          page: 1,
+        })}`,
+      );
+      const allowedHistoryTotal = requireNonNegativeInteger(
+        allowedHistoryProbe?.total_count,
+        'ALLOWED_HISTORY_TOTAL_COUNT_INVALID',
+      );
+      if (!Array.isArray(allowedHistoryProbe?.workflow_runs)
+          || allowedHistoryProbe.workflow_runs.length > 1) {
+        fail('ALLOWED_HISTORY_PROBE_INVALID', event);
+      }
+      allowedHistoryCounts[event] = allowedHistoryTotal;
     }
-    if (allHistoryTotal !== 0 || allHistoryProbe.workflow_runs.length !== 0) {
-      fail('PRODUCER_HISTORY_OUTSIDE_LOOKBACK', allHistoryTotal);
-    }
+    const allHistoryTotal = Object.values(allowedHistoryCounts)
+      .reduce((total, count) => total + count, 0);
+    if (allHistoryTotal !== 0) fail('PRODUCER_HISTORY_OUTSIDE_LOOKBACK', allHistoryTotal);
     const baselineArchivePath = path.resolve(specification.archivePath);
     const baselineExtractDir = path.resolve(specification.extractDir);
     fs.rmSync(baselineArchivePath, { force: true });
@@ -382,8 +412,11 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
       producer_branch: specification.branch,
       artifact_name: specification.artifactName,
       lookback_start: lookbackStart,
-      run_total_count: 0,
+      run_total_count: runReadback.totalCount,
+      authoritative_run_count: 0,
+      disallowed_event_run_count: runPartition.excluded.length,
       run_pages_fetched: runReadback.pagesFetched,
+      allowed_history_counts: allowedHistoryCounts,
       all_history_total_count: 0,
       pagination_reconciled_complete: true,
       baseline_reset_after_producer_history_forbidden: true,
@@ -506,6 +539,8 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     safe_zip_state: safeZipReceipt.state,
     required_files: requiredFiles,
     run_total_count: runReadback.totalCount,
+    authoritative_run_count: runs.length,
+    disallowed_event_run_count: runPartition.excluded.length,
     run_pages_fetched: runReadback.pagesFetched,
     artifact_total_count_for_selected_run: selectedArtifactReadback.totalCount,
     artifact_pages_fetched_for_selected_run: selectedArtifactReadback.pagesFetched,
