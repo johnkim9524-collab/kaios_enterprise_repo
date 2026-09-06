@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {buildMaterialRegistry,materialRegistryDigest,parityFailures,runMaterialRegistrySelfTest,sha256} from './material-defect-registry-v3.mjs';
-import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommit,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
+import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommit,snapshotMismatchFields,validateMaterialRefreshProjection,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
 
 const repo=process.env.GITHUB_REPOSITORY;
 const token=process.env.GITHUB_TOKEN||process.env.GH_TOKEN;
@@ -93,20 +93,42 @@ async function latestCommit(){
   return (await pages(`/issues/${AGGREGATE}/comments`)).filter((comment)=>String(comment.body||'').includes(CS)).sort((a,b)=>b.id-a.id)[0]||null;
 }
 
-async function validateCurrent(snapshotValue,expectedRun=null){
+function immutableProducerComment(comment){
+  if(comment?.user?.login!==BOT||comment?.user?.type!=='Bot'||comment?.performed_via_github_app?.slug!=='github-actions'||
+     typeof comment.created_at!=='string'||!Number.isFinite(Date.parse(comment.created_at))||comment.created_at!==comment.updated_at)die('REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED');
+}
+
+async function validateCurrent(snapshotValue,expectedRun=null,{allowMaterialRefresh=false}={}){
   const aggregate=await latestCommit();
   if(!aggregate)return null;
   if(aggregate.user?.login!==BOT||issueNo(aggregate)!==AGGREGATE)die('AGGREGATE_COMMENT_IDENTITY_INVALID');
   const commit=parseMarked(aggregate.body,CS,CE);
   if(commit.protected_main_sha!==snapshotValue.protected_main_sha)return {stale:true,generation_id:commit.generation_id};
-  validateCommit(commit,snapshotValue,expectedRun);
+  const refresh=allowMaterialRefresh&&snapshotMismatchFields(commit,snapshotValue).length>0;
+  const changedFields=refresh?validateMaterialRefreshProjection(commit,snapshotValue):[];
+  const comparison=refresh?commit:snapshotValue;
+  validateCommit(commit,comparison,expectedRun);
+  if(refresh){
+    immutableProducerComment(aggregate);
+    const priorRun=await api(`/actions/runs/${commit.writer_run_id}`);
+    if(priorRun?.id!==commit.writer_run_id||priorRun?.run_attempt!==commit.writer_run_attempt||
+       priorRun?.repository?.full_name!==repo||priorRun?.head_branch!=='main'||priorRun?.head_sha!==snapshotValue.protected_main_sha||
+       priorRun?.path!==WRITER_WORKFLOW||priorRun?.event!=='workflow_dispatch'||priorRun?.status!=='completed'||priorRun?.conclusion!=='success'||
+       priorRun?.actor?.login!==OWNER||priorRun?.triggering_actor?.login!==OWNER)die('REFRESH_PRIOR_WRITER_RUN_INVALID');
+  }
   const comments=[];
   for(const entry of commit.member_comments)comments.push(await api(`/issues/comments/${entry.comment_id}`));
   for(let index=0;index<MEMBERS.length;index+=1){
     const comment=comments[index],entry=commit.member_comments[index];
     if(comment.user?.login!==BOT||issueNo(comment)!==MEMBERS[index]||comment.id>=aggregate.id||sha256(String(comment.body||''))!==entry.comment_body_sha256)die(`MEMBER_COMMENT_${MEMBERS[index]}_IDENTITY_INVALID`);
-    validateMember(parseMarked(comment.body,MS,ME),snapshotValue,{id:commit.generation_id,issue:MEMBERS[index],index:index+1,run:commit.writer_run_id,attempt:commit.writer_run_attempt});
+    const member=parseMarked(comment.body,MS,ME);
+    if(refresh){
+      immutableProducerComment(comment);
+      if(member.version!=='3.1.0')die('REFRESH_PRIOR_MEMBER_VERSION_INVALID');
+    }
+    validateMember(member,comparison,{id:commit.generation_id,issue:MEMBERS[index],index:index+1,run:commit.writer_run_id,attempt:commit.writer_run_attempt});
   }
+  if(refresh)return {stale:true,refresh:{reason:'MATERIAL_SNAPSHOT_CHANGED',prior_generation_id:commit.generation_id,prior_aggregate_comment_id:aggregate.id,prior_aggregate_body_sha256:sha256(String(aggregate.body)),mismatch_fields:changedFields,prior_member_count_verified:MEMBERS.length}};
   return {stale:false,generation_id:commit.generation_id,aggregate_comment_id:aggregate.id,writer_run_id:commit.writer_run_id,truth_digest:snapshotValue.truth_digest};
 }
 
@@ -162,8 +184,17 @@ async function write(){
   const run=Number(process.env.GITHUB_RUN_ID),attempt=Number(process.env.GITHUB_RUN_ATTEMPT);
   if(!Number.isInteger(run)||run<1||!Number.isInteger(attempt)||attempt<1)die('WRITER_RUN_IDENTITY_INVALID');
   const authorization=await verifyWriteAuthority(snapshotValue,run,attempt);
-  const prior=await validateCurrent(snapshotValue);
+  // The read-only validator remains strict. Only this authority-checked writer
+  // can replace verified historical material with a new append-only generation.
+  const prior=await validateCurrent(snapshotValue,null,{allowMaterialRefresh:true});
   if(prior&&!prior.stale){receipt({state:'VERIFIED_PASS',mode:'IDEMPOTENT_EXISTING_GENERATION',...prior,authorization,writes:0});return;}
+  // Recheck the current truth and revocable approval after potentially long
+  // historical evidence reads, before the first append. This is read-back
+  // continuity, not a distributed lock or a claim of future immutability.
+  const preWriteSnapshot=await snapshot();
+  if(preWriteSnapshot.truth_digest!==snapshotValue.truth_digest)die('PRE_WRITE_TRUTH_MOVED');
+  const currentApproval=await api(`/issues/comments/${authorization.approval_comment_id}`);
+  validateAuthorizationComment(currentApproval,authorizationBody(authorization.authorization_id,snapshotValue.protected_main_sha),new Date().toISOString());
   const id=generationId(snapshotValue.protected_main_sha,run,attempt),generatedAt=new Date().toISOString(),entries=[];
   try{
     for(let index=0;index<MEMBERS.length;index+=1){
@@ -177,7 +208,7 @@ async function write(){
     if(postWriteSnapshot.truth_digest!==snapshotValue.truth_digest)die('POST_WRITE_TRUTH_MOVED');
     const verified=await validateCurrent(postWriteSnapshot,run);
     if(!verified||verified.stale||verified.aggregate_comment_id!==aggregate.id)die('POST_WRITE_READBACK_INVALID');
-    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26});
+    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26,refresh:prior?.refresh||null});
   }catch(error){
     receipt({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',generation_id:id,member_comments_written:entries.length,authorization,writes:entries.length,failure_class:error.message});
     throw error;
@@ -257,7 +288,7 @@ try{
   else if(process.argv.includes('--write'))await write();
   else await validate();
 }catch(error){
-  if(!process.argv.includes('--self-test')&&!fs.existsSync(receiptPath))receipt({state:'VERIFIED_FAIL',mode:'UNCOMMITTED',failure_class:error instanceof Error?error.message:String(error),writes:0});
+  if(!process.argv.includes('--self-test')&&!fs.existsSync(receiptPath))receipt({state:'VERIFIED_FAIL',mode:'UNCOMMITTED',failure_class:error instanceof Error?error.message:String(error),mismatch_fields:Array.isArray(error?.mismatch_fields)?error.mismatch_fields:[],writes:0});
   console.error(error);
   process.exit(1);
 }
