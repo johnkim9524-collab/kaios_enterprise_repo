@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 
 function fail(message) {
   console.error(JSON.stringify({
@@ -55,21 +56,59 @@ function effectiveMaterialPriorities(issue) {
   return [...new Set([...declared, ...labels])].sort();
 }
 
-export function stateParityFailures(issue) {
+function severityMarkerFailure(issue, marker) {
+  if (!marker) return [];
+  const priorities = effectiveMaterialPriorities(issue);
+  if (!priorities.length || priorities.includes(marker.severity)) return [];
+  return [`#${issue.number}:AUTHORITATIVE_${marker.severity}_STATE_WITHOUT_${marker.severity}_MATERIAL_METADATA`];
+}
+
+export function openStateParityFailures(issue) {
+  const priorities = effectiveMaterialPriorities(issue);
+  if (!priorities.length || String(issue.state || '').toLowerCase() !== 'open') return [];
+  const marker = latestStructuredMaterialState(issue.body);
+  const failures = severityMarkerFailure(issue, marker);
+  if (marker?.state === 'CLOSED') failures.push(`#${issue.number}:GITHUB_OPEN_WITH_AUTHORITATIVE_${marker.severity}_CLOSED`);
+  return failures;
+}
+
+export function closeEventStateFailures(issue) {
   const priorities = effectiveMaterialPriorities(issue);
   if (!priorities.length) return [];
   const marker = latestStructuredMaterialState(issue.body);
-  if (!marker) return [];
-  const githubState = String(issue.state || '').toLowerCase();
+  if (!marker) return [`#${issue.number}:MATERIAL_CLOSE_WITHOUT_AUTHORITATIVE_TERMINAL_STATE`];
+  const failures = severityMarkerFailure(issue, marker);
+  if (marker.state !== 'CLOSED') failures.push(`#${issue.number}:GITHUB_CLOSE_WITH_AUTHORITATIVE_${marker.severity}_${marker.state}`);
+  return failures;
+}
+
+export function postCloseRecurrenceMarker(body, issueNumber) {
+  const text = String(body || '');
+  const marker = latestStructuredMaterialState(text);
+  if (marker?.state === 'OPEN') return `STRUCTURED_${marker.severity}_OPEN`;
+  const compact = text.replace(/\s+/g, ' ');
+  if (/\b(?:must\s+)?remain(?:s)?\s+OPEN\b/i.test(compact)) return 'EXPLICIT_REMAINS_OPEN';
+  const escapedNumber = String(issueNumber).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (new RegExp(`(?:does\\s+not|did\\s+not)\\s+close\\s+#?${escapedNumber}\\b`, 'i').test(compact)) return 'EXPLICIT_DOES_NOT_CLOSE_SELF';
+  const recurrenceContext = '(?:fresh|natural|exact[- ]current[- ]main|current[- ]main|protected[- ]main)';
+  if (new RegExp(`\\b${recurrenceContext}\\b.{0,260}\\brecurr(?:ence|ed|ing)\\b`, 'i').test(compact)) return 'FRESH_RECURRENCE';
+  if (new RegExp(`\\brecurr(?:ence|ed|ing)\\b.{0,260}\\b${recurrenceContext}\\b`, 'i').test(compact)) return 'FRESH_RECURRENCE';
+  return null;
+}
+
+const POST_CLOSE_GRACE_MS = 60_000;
+
+export function postCloseRecurrenceFailures(issue, comments) {
+  const priorities = effectiveMaterialPriorities(issue);
+  if (!priorities.length || String(issue.state || '').toLowerCase() !== 'closed') return [];
+  const closedAtMs = Date.parse(issue.closed_at || '');
+  if (!Number.isFinite(closedAtMs)) return [`#${issue.number}:CLOSED_MATERIAL_ISSUE_WITHOUT_CLOSED_AT`];
   const failures = [];
-  if (!priorities.includes(marker.severity)) {
-    failures.push(`#${issue.number}:AUTHORITATIVE_${marker.severity}_STATE_WITHOUT_${marker.severity}_MATERIAL_METADATA`);
-  }
-  if (githubState === 'closed' && marker.state === 'OPEN') {
-    failures.push(`#${issue.number}:GITHUB_CLOSED_WITH_AUTHORITATIVE_${marker.severity}_OPEN`);
-  }
-  if (githubState === 'open' && marker.state === 'CLOSED') {
-    failures.push(`#${issue.number}:GITHUB_OPEN_WITH_AUTHORITATIVE_${marker.severity}_CLOSED`);
+  for (const comment of comments || []) {
+    const createdAtMs = Date.parse(comment?.created_at || '');
+    if (!Number.isFinite(createdAtMs) || createdAtMs <= closedAtMs + POST_CLOSE_GRACE_MS) continue;
+    const recurrence = postCloseRecurrenceMarker(comment?.body, issue.number);
+    if (recurrence) failures.push(`#${issue.number}:POST_CLOSE_${recurrence}:COMMENT_${comment.id || 'UNKNOWN'}`);
   }
   return failures;
 }
@@ -105,9 +144,12 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
-  const closedOpen = { number: 6, state: 'closed', title: '[P1] closed drift', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / HOLD`' };
-  const closedClosed = { number: 7, state: 'closed', title: '[P1] legitimate closure', labels: [], body: '**State:** `P1 OPEN / old`\ntext\n**State:** `P1 CLOSED / verified`' };
+  const closeWithOpenBody = { number: 6, state: 'closed', title: '[P1] invalid close', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / HOLD`' };
+  const closeWithClosedBody = { number: 7, state: 'closed', title: '[P1] valid close', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / old`\n**State:** `P1 CLOSED / verified`' };
   const openClosed = { number: 8, state: 'open', title: '[P0] reopened stale body', labels: [{ name: 'P0' }], body: 'State: `P0 CLOSED / stale`' };
+  const historicalClosedStaleBody = { number: 10, state: 'closed', title: '[P1] historical closure', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / historical`', closed_at: '2026-08-29T00:00:00Z' };
+  const recurrenceComments = [{ id: 11, created_at: '2026-09-06T00:00:00Z', body: 'Exact-current-main fresh #10 producer leadership recurrence reproduced. HOLD remains.' }];
+  const closureComment = [{ id: 12, created_at: '2026-08-29T00:00:30Z', body: 'Closing this historical lane as superseded; no provider mutation is authorized.' }];
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
@@ -115,10 +157,12 @@ function selfTest() {
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
   if (materialRecord({ number: 9, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
-  if (!stateParityFailures(closedOpen).some(x => x.includes('GITHUB_CLOSED_WITH_AUTHORITATIVE_P1_OPEN'))) throw new Error('SELF_TEST_CLOSED_OPEN_STATE_DRIFT_NOT_REJECTED');
-  if (stateParityFailures(closedClosed).length) throw new Error('SELF_TEST_LATEST_CLOSED_STATE_REJECTED');
-  if (!stateParityFailures(openClosed).some(x => x.includes('GITHUB_OPEN_WITH_AUTHORITATIVE_P0_CLOSED'))) throw new Error('SELF_TEST_OPEN_CLOSED_STATE_DRIFT_NOT_REJECTED');
-  if (latestStructuredMaterialState(closedClosed.body)?.state !== 'CLOSED') throw new Error('SELF_TEST_LATEST_STATE_SELECTION_FAILED');
+  if (!closeEventStateFailures(closeWithOpenBody).some(x => x.includes('GITHUB_CLOSE_WITH_AUTHORITATIVE_P1_OPEN'))) throw new Error('SELF_TEST_FUTURE_CLOSE_OPEN_STATE_NOT_REJECTED');
+  if (closeEventStateFailures(closeWithClosedBody).length) throw new Error('SELF_TEST_CLOSED_TERMINAL_STATE_REJECTED');
+  if (!openStateParityFailures(openClosed).some(x => x.includes('GITHUB_OPEN_WITH_AUTHORITATIVE_P0_CLOSED'))) throw new Error('SELF_TEST_OPEN_CLOSED_STATE_DRIFT_NOT_REJECTED');
+  if (postCloseRecurrenceFailures(historicalClosedStaleBody, closureComment).length) throw new Error('SELF_TEST_HISTORICAL_CLOSURE_FALSE_POSITIVE');
+  if (!postCloseRecurrenceFailures(historicalClosedStaleBody, recurrenceComments).some(x => x.includes('POST_CLOSE_FRESH_RECURRENCE'))) throw new Error('SELF_TEST_POST_CLOSE_RECURRENCE_NOT_REJECTED');
+  if (latestStructuredMaterialState(closeWithClosedBody.body)?.state !== 'CLOSED') throw new Error('SELF_TEST_LATEST_STATE_SELECTION_FAILED');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
@@ -127,8 +171,10 @@ function selfTest() {
     support_alias_excluded: true,
     label_only_authority_preserved: true,
     mismatch_fail_closed: true,
-    closed_open_state_drift_rejected: true,
+    future_close_requires_terminal_state: true,
     open_closed_state_drift_rejected: true,
+    historical_closure_grace_preserved: true,
+    post_close_recurrence_rejected: true,
     latest_structured_state_wins: true
   }));
 }
@@ -201,9 +247,6 @@ async function fetchAllOpenIssues() {
 }
 
 async function fetchClosedMaterialCandidates() {
-  // GitHub's comma-separated label qualifier is OR. Query all labeled material
-  // closures once, then add exact-title mismatch probes so title authority cannot
-  // disappear merely because the corresponding severity label was stripped.
   const queries = [
     [`repo:${repository} is:issue is:closed label:P0,P1`, 'closed-label-material'],
     [`repo:${repository} is:issue is:closed "[P0]" in:title -label:P0`, 'closed-title-p0-label-drift'],
@@ -219,22 +262,66 @@ async function fetchClosedMaterialCandidates() {
   return [...byNumber.values()].sort((a, b) => a.number - b.number);
 }
 
+async function fetchAllIssueComments(issue) {
+  const expected = Number(issue.comments || 0);
+  if (!Number.isInteger(expected) || expected < 0 || expected > 1000) throw new Error(`INVALID_COMMENT_TOTAL:#${issue.number}:${issue.comments}`);
+  if (expected === 0) return [];
+  const out = [];
+  for (let page = 1; page <= 10; page += 1) {
+    const data = await get(`https://api.github.com/repos/${repository}/issues/${issue.number}/comments?per_page=100&page=${page}`);
+    if (!Array.isArray(data)) throw new Error(`INVALID_COMMENTS:#${issue.number}:page=${page}`);
+    out.push(...data);
+    if (out.length >= expected) break;
+    if (data.length === 0 || page === 10) throw new Error(`COMMENT_PAGINATION_TRUNCATED:#${issue.number}:${out.length}/${expected}`);
+  }
+  if (out.length !== expected) throw new Error(`COMMENT_CARDINALITY_MOVED:#${issue.number}:${out.length}/${expected}`);
+  return out;
+}
+
+function closeEventIssue() {
+  if (process.env.GITHUB_EVENT_NAME !== 'issues' || !process.env.GITHUB_EVENT_PATH) return null;
+  const payload = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+  if (payload?.action !== 'closed' || !payload?.issue || payload.issue.pull_request) return null;
+  return payload.issue;
+}
+
 try {
+  const closingIssue = closeEventIssue();
+  if (closingIssue) {
+    const closeFailures = [...parityFailures(closingIssue), ...closeEventStateFailures(closingIssue)];
+    if (closeFailures.length) fail(`MATERIAL_DEFECT_CLOSE_EVENT_PARITY:${closeFailures.join(',')}`);
+  }
+
   const openIssues = await fetchAllOpenIssues();
-  const closedMaterialCandidates = await fetchClosedMaterialCandidates();
-  // Preserve the existing open-registry severity contract. Closed candidates are
-  // admitted only to the state-parity audit: historical title/label cleanup must
-  // not mask or block the narrower authoritative OPEN/CLOSED invariant.
   const metadataFailures = openIssues.flatMap(parityFailures);
   if (metadataFailures.length) fail(`SEVERITY_METADATA_MISMATCH:${metadataFailures.join(',')}`);
-  const stateFailures = [...openIssues, ...closedMaterialCandidates].flatMap(stateParityFailures);
-  if (stateFailures.length) fail(`MATERIAL_DEFECT_STATE_PARITY:${stateFailures.join(',')}`);
+  const openStateFailures = openIssues.flatMap(openStateParityFailures);
+  if (openStateFailures.length) fail(`MATERIAL_DEFECT_OPEN_STATE_PARITY:${openStateFailures.join(',')}`);
+
+  const closedMaterialCandidates = await fetchClosedMaterialCandidates();
+  const postCloseFailures = [];
+  let postCloseAuditedIssueCount = 0;
+  for (const issue of closedMaterialCandidates) {
+    const closedAtMs = Date.parse(issue.closed_at || '');
+    const updatedAtMs = Date.parse(issue.updated_at || '');
+    if (!Number.isFinite(closedAtMs) || !Number.isFinite(updatedAtMs)) {
+      postCloseFailures.push(`#${issue.number}:INVALID_CLOSED_OR_UPDATED_TIMESTAMP`);
+      continue;
+    }
+    if (updatedAtMs <= closedAtMs + POST_CLOSE_GRACE_MS || Number(issue.comments || 0) === 0) continue;
+    const comments = await fetchAllIssueComments(issue);
+    postCloseAuditedIssueCount += 1;
+    postCloseFailures.push(...postCloseRecurrenceFailures(issue, comments));
+  }
+  if (postCloseFailures.length) fail(`MATERIAL_DEFECT_POST_CLOSE_RECURRENCE:${postCloseFailures.join(',')}`);
+
   const registry = openIssues.map(materialRecord).filter(Boolean).sort((a, b) => a.issue_number - b.issue_number);
   console.log(JSON.stringify({
     validator: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2',
     state: 'VERIFIED_PASS',
     open_issue_count: openIssues.length,
     closed_material_candidate_count: closedMaterialCandidates.length,
+    post_close_audited_issue_count: postCloseAuditedIssueCount,
     material_defect_count: registry.length,
     material_registry_sha256: sha256(registry),
     complete_open_issue_pagination: true,
@@ -243,8 +330,9 @@ try {
     exact_and_combined_marker_normalization: true,
     support_alias_excluded: true,
     label_only_material_authority_preserved: true,
-    authoritative_state_parity_checked: true,
-    closed_metadata_is_advisory_for_state_parity: true,
+    future_close_terminal_state_required: true,
+    historical_stale_body_not_auto_reopened: true,
+    post_close_recurrence_audited: true,
     bounded_rate_limit_backoff: true,
     promotion_eligible: false,
     production: 'HOLD',
