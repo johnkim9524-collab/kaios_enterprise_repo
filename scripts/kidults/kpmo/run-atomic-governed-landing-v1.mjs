@@ -187,15 +187,22 @@ const readTransportReceipt = repositoryOwner => {
     throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_BOUNDARY_INVALID');
   }
   const observation = receipt.repository_merge_commit_observation;
-  if (observation?.api_surface !== 'GET /repos/{owner}/{repo}'
+  const observationSourceValid = (
+    observation?.api_surface === 'GET /repos/{owner}/{repo}'
+      && observation?.field_name === 'allow_merge_commit'
+      && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+  ) || (
+    observation?.api_surface === 'POST /graphql Repository.mergeCommitAllowed'
+      && observation?.field_name === 'mergeCommitAllowed'
+      && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA'
+  );
+  if (!observationSourceValid
     || observation?.http_status !== 200
     || observation?.response_ok !== true
     || observation?.response_json_parsed !== true
-    || observation?.field_name !== 'allow_merge_commit'
     || observation?.field_present !== true
     || observation?.value_type !== 'boolean'
     || observation?.boolean_value !== true
-    || observation?.provenance !== 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
     || observation?.raw_response_persisted !== false
     || observation?.classification !== 'ENABLED'
     || observation?.failure_code !== null) {

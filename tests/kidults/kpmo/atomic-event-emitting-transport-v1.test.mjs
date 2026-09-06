@@ -7,6 +7,8 @@ import {pathToFileURL} from 'node:url';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {
   classifyRepositoryMergeCommitObservation,
+  classifyGraphqlRepositoryMergeCommitObservation,
+  selectRepositoryMergeCommitObservation,
   compareRepositoryMergeCommitOwnerView,
   requireEnabledRepositoryMergeCommit,
   buildTransportFailureReceipt,
@@ -131,6 +133,45 @@ test('Actions-token and Owner-view disagreement is distinct and fail-closed', ()
   assert.deepEqual(compareRepositoryMergeCommitOwnerView(owner), {
     state: 'NOT_AVAILABLE_NO_OWNER_CREDENTIAL_USED', mismatch: null,
   });
+});
+
+test('REST field omission uses the same-token GraphQL repository capability without widening authority', () => {
+  const restMissing = classifyRepositoryMergeCommitObservation({
+    httpStatus: 200, responseOk: true, payload: {},
+  });
+  const graphqlEnabled = classifyGraphqlRepositoryMergeCommitObservation({
+    httpStatus: 200, responseOk: true,
+    payload: {data: {repository: {mergeCommitAllowed: true}}},
+  });
+  const selected = selectRepositoryMergeCommitObservation(restMissing, graphqlEnabled);
+  assert.equal(selected.classification, 'ENABLED');
+  assert.equal(selected.field_name, 'mergeCommitAllowed');
+  assert.equal(selected.provenance, 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA');
+  assert.doesNotThrow(() => requireEnabledRepositoryMergeCommit(selected));
+
+  const graphqlCases = [
+    [{data: {repository: {mergeCommitAllowed: false}}}, 'DISABLED'],
+    [{data: {repository: {}}}, 'FIELD_MISSING'],
+    [{data: {repository: {mergeCommitAllowed: 'true'}}}, 'FIELD_MALFORMED'],
+    [{errors: [{message: 'denied'}], data: {repository: {mergeCommitAllowed: true}}}, 'RESPONSE_MALFORMED'],
+  ];
+  for (const [payload, classification] of graphqlCases) {
+    const observation = classifyGraphqlRepositoryMergeCommitObservation({
+      httpStatus: 200, responseOk: true, payload,
+    });
+    assert.equal(observation.classification, classification);
+    assert.throws(() => requireEnabledRepositoryMergeCommit(observation));
+  }
+
+  const restDisabled = classifyRepositoryMergeCommitObservation({
+    httpStatus: 200, responseOk: true, payload: {allow_merge_commit: false},
+  });
+  assert.equal(selectRepositoryMergeCommitObservation(restDisabled, graphqlEnabled), restDisabled);
+  assert.throws(() => requireEnabledRepositoryMergeCommit(
+    selectRepositoryMergeCommitObservation(restDisabled, graphqlEnabled)),
+  /ATOMIC_EVENT_TRANSPORT_MERGE_COMMIT_DISABLED/);
+  assert.match(workflow, /^      contents: read$/m);
+  assert.match(workflow, /^      pull-requests: read$/m);
 });
 
 test('terminal reconciler preserves a classified pre-consumption transport failure', () => {
