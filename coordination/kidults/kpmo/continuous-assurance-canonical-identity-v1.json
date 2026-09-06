@@ -119,6 +119,9 @@
       "runtime_name_patterns": [
         "^KIDULTS ARL / (?:p1-[1-9][0-9]*|recovery-[a-f0-9]{40})$"
       ],
+      "non_consumable_success_runtime_name_patterns": [
+        "^KIDULTS ARL / recovery-[a-f0-9]{40}$"
+      ],
       "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
     },
     {

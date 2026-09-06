@@ -20,6 +20,7 @@ const files = {
   canonicalGuardValidator: 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-canonical-guard-v1.mjs',
   safeZipValidator: 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py',
   safeZipNegativeTests: 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py',
+  strictExpiryParser: 'scripts/kidults/kpmo/read-strict-json-boolean-v1.mjs',
   registryValidator: 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-registry-v1.mjs',
   workflow: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
   documentation: 'docs/kidults/asi/asi-requirement-adapter-coverage-v1.md',
@@ -42,6 +43,7 @@ const workflow = read(files.workflow);
 const runHistory = read(runHistoryPath);
 const semanticInputProjector = read(files.semanticInputProjector);
 const documentation = read(files.documentation);
+const strictExpiryParser = read(files.strictExpiryParser);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
 assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'CONTRACT_ID_VERSION');
@@ -248,6 +250,9 @@ assert(workflow.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'WORKF
 assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
 assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
+assert(workflow.includes('read-strict-json-boolean-v1.mjs --self-test') && workflow.includes('read-strict-json-boolean-v1.mjs expired'), 'WORKFLOW_STRICT_EXPIRY_PARSER_MISSING');
+assert(!workflow.includes('.expired // true'), 'WORKFLOW_UNSAFE_EXPIRY_BOOLEAN_COALESCING');
+assert(strictExpiryParser.includes("typeof value[field] !== 'boolean'") && strictExpiryParser.includes('Object.prototype.hasOwnProperty.call(value, field)'), 'STRICT_EXPIRY_PARSER_CONTRACT');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
 assert(runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'WORKFLOW_PRIOR_SUCCESS_EXACT_QUERY_GUARD_MISSING');
 for (const pin of [

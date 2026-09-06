@@ -90,6 +90,20 @@ export function validateCanonicalIdentityContract(contract) {
         try { new RegExp(pattern); } catch { fail('WORKFLOW_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
       }
     }
+    if (entry.non_consumable_success_runtime_name_patterns !== undefined) {
+      if (!Array.isArray(entry.non_consumable_success_runtime_name_patterns) || entry.non_consumable_success_runtime_name_patterns.length < 1) {
+        fail('NON_CONSUMABLE_SUCCESS_RUNTIME_NAME_PATTERNS', entry.workflow_name);
+      }
+      if (!Array.isArray(entry.runtime_name_patterns) || entry.runtime_name_patterns.length < 1) {
+        fail('NON_CONSUMABLE_SUCCESS_RUNTIME_NAME_REQUIRES_ALLOWLIST', entry.workflow_name);
+      }
+      for (const pattern of entry.non_consumable_success_runtime_name_patterns) {
+        if (typeof pattern !== 'string' || !pattern.startsWith('^') || !pattern.endsWith('$')) {
+          fail('NON_CONSUMABLE_SUCCESS_RUNTIME_NAME_PATTERN_UNANCHORED', entry.workflow_name);
+        }
+        try { new RegExp(pattern); } catch { fail('NON_CONSUMABLE_SUCCESS_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
+      }
+    }
     const pair = `${entry.workflow_name}\u0000${entry.workflow_path}`;
     if (pairs.has(pair)) fail('WORKFLOW_CLASS_PAIR_DUPLICATE', entry.workflow_name);
     names.add(entry.workflow_name);
@@ -181,6 +195,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   let upstream = null;
   let logicalSlotValue = null;
   let specialExactArtifactClass = false;
+  let nonConsumableSuccessObservation = false;
   let ephemeralActionsAliasEligible = false;
 
   if (eventName === 'workflow_run') {
@@ -195,9 +210,14 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     if (!contract.terminal_conclusions.includes(conclusion)) fail('UPSTREAM_CONCLUSION_INVALID', conclusion);
     upstreamClass = entry.upstream_class;
     specialExactArtifactClass = contract.special_exact_artifact_classes.includes(upstreamClass);
-    terminalObservation = conclusion !== 'success';
+    nonConsumableSuccessObservation = conclusion === 'success' &&
+      (entry.non_consumable_success_runtime_name_patterns || []).some((pattern) => new RegExp(pattern).test(workflowName));
+    terminalObservation = conclusion !== 'success' || nonConsumableSuccessObservation;
     dedupeEligible = !terminalObservation;
-    if (terminalObservation) {
+    if (nonConsumableSuccessObservation) {
+      generationKind = 'NON_CONSUMABLE_SUCCESS_OBSERVATION';
+      generationDiscriminator = `non-consumable-upstream:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
+    } else if (terminalObservation) {
       generationKind = 'NON_SUCCESS_TERMINAL_OBSERVATION';
       generationDiscriminator = `upstream:${upstreamRunId}:attempt:${upstreamRunAttempt}:conclusion:${conclusion}`;
     } else if (upstreamRunAttempt > 1) {
@@ -277,7 +297,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   const canonicalInputMaterial = {
     domain: 'KIDULTS_CONTINUOUS_ASSURANCE_CANONICAL_INPUT_V1',
     ...keyMaterial,
-    ...(specialExactArtifactClass ? {
+    ...((specialExactArtifactClass || nonConsumableSuccessObservation) ? {
       exact_upstream_observation: {
         workflow_path: upstream.workflow_path,
         workflow_run_id: upstream.workflow_run_id,
@@ -293,7 +313,9 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   const base = {
     id: 'kidults-continuous-assurance-canonical-identity-receipt-v1',
     version: contract.version,
-    state: terminalObservation ? 'TERMINAL_OBSERVATION_NON_DEDUPABLE' : 'CLASSIFIED_EPHEMERAL_GUARD_REMOTE_LEDGER_HOLD',
+    state: nonConsumableSuccessObservation
+      ? 'NON_CONSUMABLE_SUCCESS_OBSERVATION_FAIL_CLOSED'
+      : terminalObservation ? 'TERMINAL_OBSERVATION_NON_DEDUPABLE' : 'CLASSIFIED_EPHEMERAL_GUARD_REMOTE_LEDGER_HOLD',
     observed_at: observedAt,
     repository,
     consumer_workflow_id: consumerWorkflowId,
@@ -307,13 +329,14 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     logical_schedule_slot: logicalSlotValue,
     classifier_contract_digest: classifierContractDigest,
     canonical_input_digest: canonicalInputDigest,
-    canonical_input_digest_state: specialExactArtifactClass
+    canonical_input_digest_state: specialExactArtifactClass || nonConsumableSuccessObservation
       ? 'UPSTREAM_OBSERVATION_BOUND_EXACT_ARTIFACT_VERIFICATION_REQUIRED'
       : 'VERIFIED_GROUPED_SEMANTIC_INPUT',
     canonical_key: canonicalKey,
     concurrency_group: `kidults-continuous-assurance-${canonicalKey.slice('sha256:'.length)}`,
     dedupe_eligible: dedupeEligible,
     terminal_observation_non_dedupable: terminalObservation,
+    non_consumable_success_observation: nonConsumableSuccessObservation,
     special_exact_artifact_class: specialExactArtifactClass,
     ephemeral_actions_alias_eligible: ephemeralActionsAliasEligible,
     upstream,
@@ -370,6 +393,7 @@ function emitGithubOutputs(receipt) {
     canonical_input_digest: receipt.canonical_input_digest,
     dedupe_eligible: String(receipt.dedupe_eligible),
     terminal_observation_non_dedupable: String(receipt.terminal_observation_non_dedupable),
+    non_consumable_success_observation: String(receipt.non_consumable_success_observation),
     special_exact_artifact_class: String(receipt.special_exact_artifact_class),
     ephemeral_actions_alias_eligible: String(receipt.ephemeral_actions_alias_eligible),
     runtime_dedupe_state: receipt.runtime_dedupe_state,
