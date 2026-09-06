@@ -1,5 +1,7 @@
 name: KIDULTS Integration Source Snapshot v1
 
+# Producer-chain integration reuses this tracked-source-only snapshot lane.
+# This export never confers runtime, provider, landing, or release authority.
 on:
   pull_request:
     branches: [main]
