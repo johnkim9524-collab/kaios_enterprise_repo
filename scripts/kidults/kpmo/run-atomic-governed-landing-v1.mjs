@@ -22,6 +22,9 @@ import {
 import {
   assertChangedApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
+import {
+  requireEnabledRepositoryMergeCommit,
+} from './run-atomic-event-emitting-transport-preflight-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -161,7 +164,7 @@ const readTransportReceipt = repositoryOwner => {
   if (!fs.existsSync(transportReceiptPath)) throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_MISSING');
   const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
   if (receipt?.id !== 'kidults-atomic-event-emitting-transport-availability-v1'
-    || receipt?.version !== '1.0.0'
+    || receipt?.version !== '1.1.0'
     || receipt?.state !== 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
     throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_INVALID');
   }
@@ -183,6 +186,26 @@ const readTransportReceipt = repositoryOwner => {
     || receipt.permission_expansion_required !== false) {
     throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_BOUNDARY_INVALID');
   }
+  const observation = receipt.repository_merge_commit_observation;
+  if (observation?.api_surface !== 'GET /repos/{owner}/{repo}'
+    || observation?.http_status !== 200
+    || observation?.response_ok !== true
+    || observation?.response_json_parsed !== true
+    || observation?.field_name !== 'allow_merge_commit'
+    || observation?.field_present !== true
+    || observation?.value_type !== 'boolean'
+    || observation?.boolean_value !== true
+    || observation?.provenance !== 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+    || observation?.raw_response_persisted !== false
+    || observation?.classification !== 'ENABLED'
+    || observation?.failure_code !== null) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_OBSERVATION_INVALID');
+  }
+  if (receipt.owner_view_comparison?.state !== 'NOT_AVAILABLE_NO_OWNER_CREDENTIAL_USED'
+    || receipt.owner_view_comparison?.mismatch !== null) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_OWNER_VIEW_INVALID');
+  }
+  requireEnabledRepositoryMergeCommit(observation, receipt.owner_view_comparison);
   if (!Number.isFinite(Date.parse(receipt.expires_at)) || Date.now() >= Date.parse(receipt.expires_at)) {
     throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_EXPIRED');
   }
