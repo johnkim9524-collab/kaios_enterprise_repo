@@ -11,6 +11,7 @@ on:
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
       - 'scripts/kidults/kpmo/canonical-generation-v3-lib.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
+      - 'scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs'
       - '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'
       - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
