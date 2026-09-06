@@ -248,16 +248,42 @@ const trustedGitPath = () => {
   return [gitDir, gitRoot, path.join(gitRoot, 'mingw64', 'bin'), path.join(gitRoot, 'usr', 'bin')]
     .join(path.delimiter);
 };
+const GIT_ISOLATION = (() => {
+  const created = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-git-environment-'));
+  const root = fs.realpathSync(created);
+  const rootStat = fs.lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) fail('GIT_ISOLATION_ROOT_INVALID');
+  const home = path.join(root, 'home');
+  const xdg = path.join(root, 'xdg');
+  const hooks = path.join(root, 'hooks');
+  for (const directory of [home, xdg, hooks]) {
+    fs.mkdirSync(directory, { mode: 0o700 });
+    const stat = fs.lstatSync(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) fail('GIT_ISOLATION_DIRECTORY_INVALID');
+  }
+  const config = path.join(root, 'gitconfig');
+  fs.writeFileSync(config, '', { flag: 'wx', mode: 0o600 });
+  const configStat = fs.lstatSync(config);
+  if (!configStat.isFile() || configStat.isSymbolicLink() || configStat.size !== 0) fail('GIT_ISOLATION_CONFIG_INVALID');
+  return Object.freeze({ root, home, xdg, hooks, config });
+})();
+process.once('exit', () => {
+  try {
+    fs.rmSync(GIT_ISOLATION.root, { recursive: true, force: true });
+  } catch {
+    // Exit cleanup is best-effort; the exclusive directory contained no credentials.
+  }
+});
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_ISOLATION.home,
+    XDG_CONFIG_HOME: GIT_ISOLATION.xdg,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_ISOLATION.config,
+    GIT_CONFIG_SYSTEM: GIT_ISOLATION.config,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -272,7 +298,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_ISOLATION.home;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -335,7 +361,7 @@ const git = (root, args, { buffer = false, network = 'none', allowFile = false, 
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_ISOLATION.hooks}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
