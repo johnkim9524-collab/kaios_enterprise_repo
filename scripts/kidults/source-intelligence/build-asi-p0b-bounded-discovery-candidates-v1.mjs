@@ -40,12 +40,15 @@ if (p0Queue.id !== 'kidults-asi-p0-source-discovery-task-queue-v1' || p0Queue.st
 if (p0Queue.mission_count !== 192 || p0Queue.task_count !== 576 || p0Queue.tasks?.length !== 576) {
   throw new Error('P0_TASK_QUEUE_COUNTS_INVALID');
 }
-if (contract.id !== 'kidults-asi-p0b-bounded-discovery-candidate-contract-v1' || contract.version !== '1.0.0') {
+if (contract.id !== 'kidults-asi-p0b-bounded-discovery-candidate-contract-v1' || contract.version !== '1.1.0') {
   throw new Error('P0B_CONTRACT_INVALID');
 }
 if (JSON.stringify(contract.platform_principles) !== JSON.stringify(principles)) throw new Error('P0B_PRINCIPLE_ORDER_INVALID');
-if (contract.scope_rotation_count !== 4 || contract.truth_boundary?.executes_bounded_public_metadata_network_discovery !== true) {
-  throw new Error('P0B_LIVE_DISCOVERY_CONTRACT_INVALID');
+if (contract.upstream_scope_rotation_count !== 4 || contract.upstream_bounded_live_lanes?.length !== 2 ||
+  contract.truth_boundary?.executes_bounded_public_metadata_network_discovery !== false ||
+  contract.truth_boundary?.consumes_exact_main_shared_source_fabric !== true ||
+  contract.truth_boundary?.provider_requests_issued_by_p0b !== 0) {
+  throw new Error('P0B_SHARED_PROVIDER_CONTRACT_INVALID');
 }
 if (contract.truth_boundary?.crawls_target_site_bodies !== false || contract.truth_boundary?.acquires_target_content !== false ||
   contract.truth_boundary?.creates_collection_right !== false || contract.truth_boundary?.admits_evidence !== false) {
@@ -424,7 +427,7 @@ files.push(await writeJson('p0b-provider-host-diversity-v1.json', diversity));
 const manifest = {
   id: 'kidults-asi-p0b-bounded-discovery-manifest-v1',
   version: '1.0.0',
-  state: 'BOUNDED_PUBLIC_METADATA_DISCOVERY_EXECUTED_SOURCE_CANDIDATES_OBSERVED',
+  state: 'SHARED_SOURCE_FABRIC_CONSUMED_SOURCE_CANDIDATES_OBSERVED',
   platform_principles: principles,
   input_bindings: {
     p0_task_queue: { id: p0Queue.id, digest: p0QueueDigest, missions: p0Queue.mission_count, tasks: p0Queue.task_count },
@@ -437,7 +440,11 @@ const manifest = {
     contract: { id: contract.id, version: contract.version, digest: sha256Ref(stableJson(contract)) }
   },
   results: {
-    bounded_public_metadata_network_discovery_executed: true,
+    bounded_public_metadata_network_discovery_executed: false,
+    bounded_public_metadata_network_discovery_executed_by_p0b: false,
+    shared_source_fabric_consumed: true,
+    provider_requests_issued_by_p0b: 0,
+    upstream_successful_live_discovery_lane_observations: successfulLaneObservations.length,
     successful_live_discovery_lane_observations: successfulLaneObservations.length,
     raw_candidate_observations: rawCandidates.length,
     canonical_source_candidates_observed: candidates.length,
@@ -458,11 +465,11 @@ const manifest = {
     market_claims_created: 0
   },
   output_files: files,
-  autonomous_effect: 'POSITIVE_P0_TASKS_DRIVE_BOUNDED_LIVE_DISCOVERY_WITHOUT_MANUAL_PROVIDER_SELECTION',
-  global_effect: 'POSITIVE_ALL_SCOPE_ROTATIONS_EXECUTED_AND_MISSION_COVERAGE_GAPS_MEASURED',
+  autonomous_effect: 'POSITIVE_P0_TASKS_CONSUME_ONE_SHARED_EXACT_MAIN_SOURCE_FABRIC_WITH_ZERO_DUPLICATE_PROVIDER_REQUESTS',
+  global_effect: 'POSITIVE_SHARED_GLOBAL_SOURCE_FABRIC_CONSUMED_AND_MISSION_COVERAGE_GAPS_MEASURED',
   irreplaceable_value_effect: 'POSITIVE_KIDULTS_OWNED_CANONICAL_CANDIDATE_BINDING_GAP_AND_DIVERSITY_ASSETS',
-  transparency_effect: 'POSITIVE_EXACT_LIVE_LANE_CANDIDATE_HOST_BINDING_AND_UNPROVEN_ORIGIN_BOUNDARIES',
-  truth_boundary: 'Observed public metadata endpoints are source candidates only. No target body was crawled, no content was acquired, no collection right was created, no evidence was admitted, and no factual-origin independence or market claim was proven.',
+  transparency_effect: 'POSITIVE_EXACT_PRODUCER_LINEAGE_CANDIDATE_HOST_BINDING_AND_UNPROVEN_ORIGIN_BOUNDARIES',
+  truth_boundary: 'P0B issued zero provider requests and consumed one exact-main shared Source Fabric. Observed public metadata endpoints are source candidates only. No target body was crawled, no content was acquired, no collection right was created, no evidence was admitted, and no factual-origin independence or market claim was proven.',
   public_release: 'HOLD',
   production: 'HOLD'
 };

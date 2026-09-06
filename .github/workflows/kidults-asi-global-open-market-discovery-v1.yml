@@ -8,6 +8,8 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs'
+      - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
       - '.github/workflows/kidults-asi-global-open-market-discovery-v1.yml'
 
 permissions:

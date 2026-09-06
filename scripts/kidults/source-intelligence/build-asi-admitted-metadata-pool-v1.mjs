@@ -21,23 +21,27 @@ function canonicalKey(raw){
 const revocations=registry.revocations||[];
 const revoked=new Set();
 for(const r of revocations){for(const v of [r.canonical_key,...(r.aliases||[])].filter(Boolean)){try{revoked.add(canonicalKey(v))}catch{revoked.add(String(v).toLowerCase())}}}
-const admitted=[];const stale=[];const revokedQueue=[];const receipts=[];const seen=new Set();
+const admitted=[];const stale=[];const revokedQueue=[];const productValueRevalidation=[];const receipts=[];const seen=new Set();
+const hasProductValueProof=c=>c?.product_value_gate==='PASS'&&Number.isFinite(c.product_value_score)&&c.product_value_score>=70&&Boolean(c.product_value_source_id);
+const productValueHold=(c,key,origin)=>({...c,canonical_source_key:key,product_value_revalidation_reason:'PRODUCT_VALUE_PASS_SCORE_SOURCE_BINDING_REQUIRED',product_value_revalidation_origin:origin,acquisition_authorized:false,content_acquisition_authorized:false,market_claim_authorized:false,evidence_admission_authorized:false,track_b_authorized:false,projection_authorized:false,public_projection:false,production:'HOLD'});
 for(const c of gate3.bounded_metadata_index_admission_pool||[]){
   const g3=c.gate_3_receipt||{};const at=new Date(g3.verified_at||0);const ageH=(now-at)/36e5;const fresh=Number.isFinite(ageH)&&ageH>=0&&ageH<=24;
   let key;try{key=canonicalKey(c.endpoint_url)}catch{continue}
-  const isRevoked=revoked.has(key);const receipt={candidate_id:c.candidate_id,canonical_key:key,endpoint_url:c.endpoint_url,checked_at:new Date().toISOString(),gate3_receipt_age_hours:Number(ageH.toFixed(3)),freshness_ttl_hours:24,fresh,is_revoked:isRevoked,alias_reentry_blocked:isRevoked,content_acquisition_authorized:false,collection_right_created:false,production:'HOLD'};
+  const isRevoked=revoked.has(key);const productValueProven=hasProductValueProof(c);const receipt={candidate_id:c.candidate_id,canonical_key:key,endpoint_url:c.endpoint_url,checked_at:new Date().toISOString(),gate3_receipt_age_hours:Number(ageH.toFixed(3)),freshness_ttl_hours:24,fresh,is_revoked:isRevoked,alias_reentry_blocked:isRevoked,product_value_proven:productValueProven,content_acquisition_authorized:false,collection_right_created:false,production:'HOLD'};
   receipts.push(receipt);
   const wrapped={...c,canonical_source_key:key,admitted_pool_receipt:receipt,content_acquisition_authorized:false,acquisition_authorized:false,production:'HOLD'};
   if(isRevoked){revokedQueue.push(wrapped);continue}
+  if(!productValueProven){productValueRevalidation.push(productValueHold(wrapped,key,'CURRENT_GATE3'));continue}
   if(!fresh){stale.push(wrapped);continue}
   if(!seen.has(key)){seen.add(key);admitted.push(wrapped)}
 }
 for(const c of previous?.active_admitted_metadata_pool||[]){
   let key;try{key=canonicalKey(c.endpoint_url)}catch{continue}
   if(seen.has(key)||revoked.has(key))continue;
+  if(!hasProductValueProof(c)){productValueRevalidation.push(productValueHold(c,key,'PREVIOUS_ACTIVE_POOL'));continue}
   const g3=c.gate_3_receipt||{};const at=new Date(g3.verified_at||0);const ageH=(now-at)/36e5;const fresh=Number.isFinite(ageH)&&ageH>=0&&ageH<=24;
   if(fresh){seen.add(key);admitted.push({...c,canonical_source_key:key})}else stale.push({...c,canonical_source_key:key});
 }
-const output={id:'kidults-asi-admitted-metadata-pool-v1',version:'1.0.0',status:'SHADOW_ADMITTED_METADATA_POOL_REVALIDATED',scope:'DISCOVERY_METADATA_INDEX_ONLY',freshness_ttl_hours:24,active_count:admitted.length,stale_revalidation_count:stale.length,revoked_block_count:revokedQueue.length,active_admitted_metadata_pool:admitted,stale_revalidation_queue:stale,revoked_block_queue:revokedQueue,receipts,revocation_registry_fingerprint:sha(JSON.stringify(registry)),alias_reentry_block_required:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
+const output={id:'kidults-asi-admitted-metadata-pool-v1',version:'1.0.0',status:'SHADOW_ADMITTED_METADATA_POOL_REVALIDATED',scope:'DISCOVERY_METADATA_INDEX_ONLY',freshness_ttl_hours:24,active_count:admitted.length,stale_revalidation_count:stale.length,revoked_block_count:revokedQueue.length,product_value_revalidation_count:productValueRevalidation.length,active_admitted_metadata_pool:admitted,stale_revalidation_queue:stale,revoked_block_queue:revokedQueue,product_value_revalidation_queue:productValueRevalidation,product_value_gate_required_for_active:true,receipts,revocation_registry_fingerprint:sha(JSON.stringify(registry)),alias_reentry_block_required:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
 fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(output,null,2)+'\n');
-console.log(JSON.stringify({status:output.status,active:output.active_count,stale:output.stale_revalidation_count,revoked:output.revoked_block_count,production:'HOLD'},null,2));
+console.log(JSON.stringify({status:output.status,active:output.active_count,stale:output.stale_revalidation_count,revoked:output.revoked_block_count,product_value_revalidation:output.product_value_revalidation_count,production:'HOLD'},null,2));
