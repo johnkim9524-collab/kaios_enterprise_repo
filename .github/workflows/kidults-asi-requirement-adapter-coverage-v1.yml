@@ -328,25 +328,46 @@ jobs:
             if [ "$READBACK_TOTAL" -ne "$READBACK_RETURNED" ]; then READBACK_STATE=API_RESPONSE_TRUNCATED; fi
             CREATED_SINCE=$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ)
             printf '[]\n' > "$GUARD_DIR/verified-nonauthoritative-skip-run-ids.json"
-            if ! gh api --paginate --slurp --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success \
-              -f created=">=${CREATED_SINCE}" -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-requirement-adapter-coverage-v1.yml/runs" \
-              > "$GUARD_DIR/prior-success-pages.json"; then
-              READBACK_STATE=PRIOR_SUCCESS_READBACK_FAILED
-            elif ! jq -e '
-              type == "array" and length > 0 and length <= 25 and
-              (all(.[]; (.total_count | type) == "number" and (.workflow_runs | type) == "array" and (.workflow_runs | length) <= 100)) and
-              (([.[].total_count] | unique | length) == 1)
-            ' "$GUARD_DIR/prior-success-pages.json" >/dev/null; then
-              READBACK_STATE=PRIOR_SUCCESS_RESPONSE_INVALID
-            elif ! jq '{total_count: .[0].total_count, workflow_runs: [.[].workflow_runs[]]}' \
-              "$GUARD_DIR/prior-success-pages.json" > "$GUARD_DIR/prior-success-runs.json"; then
-              READBACK_STATE=PRIOR_SUCCESS_FLATTEN_FAILED
-            elif ! jq -e '.total_count <= 2500 and .total_count == (.workflow_runs | length)' \
-              "$GUARD_DIR/prior-success-runs.json" >/dev/null; then
-              READBACK_STATE=PRIOR_SUCCESS_PAGINATION_INCOMPLETE
-            else
+            printf '[]\n' > "$GUARD_DIR/prior-success-pages.json"
+            for PAGE in $(seq 1 25); do
+              PAGE_FILE="$GUARD_DIR/prior-success-page-${PAGE}.json"
+              if ! gh api --method GET -H 'Accept: application/vnd.github+json' \
+                -f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success \
+                -f created=">=${CREATED_SINCE}" -f per_page=100 -f page="$PAGE" \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-requirement-adapter-coverage-v1.yml/runs" \
+                > "$PAGE_FILE"; then
+                READBACK_STATE=PRIOR_SUCCESS_READBACK_FAILED
+                break
+              fi
+              if ! jq -e '
+                (.total_count | type) == "number" and .total_count >= 0 and .total_count <= 2500 and
+                (.workflow_runs | type) == "array" and (.workflow_runs | length) <= 100
+              ' "$PAGE_FILE" >/dev/null; then
+                READBACK_STATE=PRIOR_SUCCESS_RESPONSE_INVALID
+                break
+              fi
+              if [ "$PAGE" -gt 1 ] && [ "$(jq -r '.[0].total_count' "$GUARD_DIR/prior-success-pages.json")" != "$(jq -r '.total_count' "$PAGE_FILE")" ]; then
+                READBACK_STATE=PRIOR_SUCCESS_TOTAL_DRIFT
+                break
+              fi
+              jq --slurpfile page "$PAGE_FILE" '. + [$page[0]]' \
+                "$GUARD_DIR/prior-success-pages.json" > "$GUARD_DIR/prior-success-pages.tmp"
+              mv "$GUARD_DIR/prior-success-pages.tmp" "$GUARD_DIR/prior-success-pages.json"
+              PAGE_TOTAL=$(jq -r '.total_count' "$PAGE_FILE")
+              COLLECTED=$(jq '[.[].workflow_runs[]] | length' "$GUARD_DIR/prior-success-pages.json")
+              if [ "$COLLECTED" -ge "$PAGE_TOTAL" ]; then break; fi
+              if [ "$PAGE" -eq 25 ]; then READBACK_STATE=PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED; fi
+            done
+            if [ "$READBACK_STATE" = COMPLETE ]; then
+              if ! jq '{total_count: .[0].total_count, workflow_runs: [.[].workflow_runs[]]}' \
+                "$GUARD_DIR/prior-success-pages.json" > "$GUARD_DIR/prior-success-runs.json"; then
+                READBACK_STATE=PRIOR_SUCCESS_FLATTEN_FAILED
+              elif ! jq -e '.total_count <= 2500 and .total_count == (.workflow_runs | length)' \
+                "$GUARD_DIR/prior-success-runs.json" >/dev/null; then
+                READBACK_STATE=PRIOR_SUCCESS_PAGINATION_INCOMPLETE
+              fi
+            fi
+            if [ "$READBACK_STATE" = COMPLETE ]; then
               while IFS= read -r PRIOR_RUN; do
                 PRIOR_RUN_ID=$(jq -r '.id' <<<"$PRIOR_RUN")
                 PRIOR_RUN_ATTEMPT=$(jq -r '.run_attempt' <<<"$PRIOR_RUN")
