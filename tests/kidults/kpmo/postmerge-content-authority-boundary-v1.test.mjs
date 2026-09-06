@@ -36,7 +36,7 @@ function execute({stepOutcome='success', moveMain=false, changeAttempt=false, fa
    else throw new Error('MOCK_UNEXPECTED_API');
    return {ok:true,status:200,json:async()=>body};
   };
-  await import(${JSON.stringify(pathToFileURL(path.resolve(SCRIPT)).href)});
+  await (await import(${JSON.stringify(pathToFileURL(path.resolve(SCRIPT)).href)})).runCli();
  `;
  try {
   const r=spawnSync(process.execPath,['--input-type=module','-e',harness],{cwd:ROOT,encoding:'utf8',timeout:10000,env:{PATH:path.dirname(process.execPath)+':/usr/bin:/bin',GH_REPOSITORY:REPOSITORY,GH_TOKEN:'SYNTHETIC_NOT_A_CREDENTIAL',HANDOFF_RECEIPT_PATH:file,POSTMERGE_PUSH_SUITE_WAIT_SECONDS:'0'}});

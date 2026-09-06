@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 
 const shaPattern = /^[0-9a-f]{40}$/;
 const receiptId = 'kidults-direct-owner-landing-handoff-receipt-v1';
@@ -33,7 +34,7 @@ function readJson(filePath, code) {
   }
 }
 
-function validatePolicy(policy) {
+export function validatePolicy(policy) {
   requireCondition(policy?.id === 'direct-owner-postmerge-push-suite-policy-v1', 'DIRECT_OWNER_POSTMERGE_POLICY_ID_INVALID');
   requireCondition(policy?.version === '1.1.0', 'DIRECT_OWNER_POSTMERGE_POLICY_VERSION_INVALID');
   requireCondition(policy?.branch === 'main' && policy?.event === 'push', 'DIRECT_OWNER_POSTMERGE_POLICY_EVENT_INVALID');
@@ -380,9 +381,8 @@ async function main() {
   console.log(JSON.stringify(postMergeProof));
 }
 
-if (process.argv.includes('--self-test')) {
-  await selfTest();
-} else {
+const direct = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+export async function runCli() {
   try {
     await main();
   } catch (error) {
@@ -424,5 +424,13 @@ if (process.argv.includes('--self-test')) {
     } catch {}
     console.error(failureCode);
     process.exit(1);
+  }
+}
+
+if (direct) {
+  if (process.argv.includes('--self-test')) {
+    await selfTest();
+  } else {
+    await runCli();
   }
 }

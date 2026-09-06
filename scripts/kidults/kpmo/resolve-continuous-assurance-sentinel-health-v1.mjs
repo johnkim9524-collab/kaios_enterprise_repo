@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
 import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
 
@@ -256,5 +257,6 @@ async function main(){
   catch(error){const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state:'VERIFIED_FAIL',coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',repository:process.env.GITHUB_REPOSITORY||null,observer_run_id:process.env.GITHUB_RUN_ID||null,observer_run_attempt:process.env.GITHUB_RUN_ATTEMPT||null,semantic_content_verified:false,runtime_health_proven:false,source_sha:process.env.GITHUB_SHA||null,observed_at:new Date().toISOString(),failure_class:String(error?.message||error),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};const receipt=sealReceipt(base);if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}console.error(error);process.exitCode=1;}
 }
 
-if(import.meta.url===`file://${process.argv[1]}`)await main();
+const direct=process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href;
+if(direct)await main();
 export {SPECS};

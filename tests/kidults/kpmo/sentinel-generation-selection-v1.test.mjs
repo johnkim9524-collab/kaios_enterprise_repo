@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
 import {SPECS,evaluateProducer,evaluateHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
@@ -103,8 +104,9 @@ globalThis.fetch=async(value,options={})=>{
 };`;
  try{
   fs.writeFileSync(path.join(dir,'hook.mjs'),hook);fs.writeFileSync(path.join(dir,'input.json'),JSON.stringify({scenario,sha:sourceSha,run:good,artifact,bytes:bytes.toString('base64')}));
-  const result=spawnSync(process.execPath,['--import',path.join(dir,'hook.mjs'),'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',out],{encoding:'utf8',timeout:15000,env:{PATH:process.env.PATH,LANG:'C.UTF-8',GITHUB_REPOSITORY:REPOSITORY,GITHUB_SHA:sourceSha,GITHUB_REF:'refs/heads/main',GITHUB_EVENT_NAME:'schedule',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GH_TOKEN:'SYNTHETIC_NEVER_TRANSMITTED',FIXTURE_INPUT:path.join(dir,'input.json'),TRACE:trace}});
-  assert.equal(result.error,undefined);assert.ok(fs.existsSync(out),result.stderr);
+  const result=spawnSync(process.execPath,['--import',pathToFileURL(path.join(dir,'hook.mjs')).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',out],{encoding:'utf8',timeout:15000,env:{PATH:process.env.PATH,LANG:'C.UTF-8',GITHUB_REPOSITORY:REPOSITORY,GITHUB_SHA:sourceSha,GITHUB_REF:'refs/heads/main',GITHUB_EVENT_NAME:'schedule',GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GH_TOKEN:'SYNTHETIC_NEVER_TRANSMITTED',FIXTURE_INPUT:path.join(dir,'input.json'),TRACE:trace}});
+  assert.equal(result.error,undefined,result.error?.stack);
+  assert.ok(fs.existsSync(out),JSON.stringify({status:result.status,signal:result.signal,stdout:result.stdout,stderr:result.stderr}));
   const receipt=JSON.parse(fs.readFileSync(out));const calls=fs.readFileSync(trace,'utf8').trim().split('\n').filter(Boolean).map(line=>JSON.parse(line));
   assert.ok(calls.length>0&&calls.every(call=>call.method==='GET'));
   assert.ok(!JSON.stringify(receipt).includes('SYNTHETIC_NEVER_TRANSMITTED'));

@@ -7,7 +7,9 @@ import {
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
-if (!token || !/^[^/]+\/[^/]+$/.test(repository || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
+const expectedHeadTreeSha = process.env.EXPECTED_HEAD_TREE_SHA;
+if (!token || !/^[^/]+\/[^/]+$/.test(repository || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')
+    || !/^[0-9a-f]{40}$/.test(expectedHeadTreeSha || '')) {
   throw new Error('ATOMIC_HANDOFF_PREFLIGHT_ENVIRONMENT_INVALID');
 }
 if (process.env.GITHUB_REF !== 'refs/heads/main') {
@@ -18,6 +20,23 @@ if (String(process.env.GITHUB_RUN_ATTEMPT || '') !== '1') {
 }
 
 const candidatePath = 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs';
+const commitResponse = await fetch(
+  `https://api.github.com/repos/${repository}/commits/${expectedHeadSha}`,
+  {
+    redirect: 'error',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'kidults-atomic-landing-handoff-preflight-v1',
+    },
+  },
+);
+const commitPayload = await commitResponse.json().catch(() => null);
+if (!commitResponse.ok) throw new Error(`ATOMIC_HANDOFF_HEAD_COMMIT_READ_FAILED:${commitResponse.status}`);
+if (commitPayload?.sha !== expectedHeadSha || commitPayload?.commit?.tree?.sha !== expectedHeadTreeSha) {
+  throw new Error('ATOMIC_HANDOFF_HEAD_TREE_MISMATCH');
+}
 const encoded = candidatePath.split('/').map(encodeURIComponent).join('/');
 const response = await fetch(
   `https://api.github.com/repos/${repository}/contents/${encoded}?ref=${expectedHeadSha}`,
@@ -50,5 +69,6 @@ console.log(JSON.stringify({
   id: 'kidults-atomic-landing-handoff-preflight-receipt-v1',
   version: '1.0.0',
   exact_candidate_head_sha: expectedHeadSha,
+  exact_candidate_head_tree_sha: expectedHeadTreeSha,
   ...receipt,
 }, null, 2));

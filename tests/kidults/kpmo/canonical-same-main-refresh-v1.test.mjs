@@ -21,10 +21,11 @@ const o=${JSON.stringify(options)};
 const repo='johnkim9524-collab/kaios_enterprise_repo',main='a'.repeat(40),owner='johnkim9524-collab';
 const now=new Date(),earlier=new Date(now-120000).toISOString(),started=new Date(now-60000).toISOString();
 const issue=(n,title='[P1] synthetic control')=>({number:n,state:'open',title,labels:[{name:'P1'}]});
-const original=[issue(9)];
-let live=o.current?structuredClone(original):[...structuredClone(original),issue(10)];
+let original=o.deleted?[issue(9),issue(10)]:[issue(9)];
+let live=o.current?structuredClone(original):o.deleted?[issue(9)]:[...structuredClone(original),issue(10)];
 if(o.baseline)live=[...structuredClone(original),issue(BASELINE[0])];
 if(o.titleOnly)live=[issue(9,'[P1] changed synthetic title')];
+if(o.labelChange)live=[{...issue(9),labels:[{name:'P1'},{name:'registry-drift-regression'}]}];
 function snap(issues){const registry=buildMaterialRegistry(issues);const s={repository:repo,protected_main_sha:main,canonical_issue_numbers:MEMBERS,canonical_issue_count:25,active_baseline_defects:BASELINE.filter(n=>issues.some(x=>x.number===n)).sort((a,b)=>a-b),material_defect_count:registry.length,material_defect_issue_numbers:registry.map(x=>x.issue_number),material_defect_registry_sha256:materialRegistryDigest(registry),material_defect_query_cardinality:{P0:0,P1:registry.length},material_defects:registry,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false,empirical_gate_effect:'NONE'};return {...s,truth_digest:sha256(s)};}
 const old=snap(original),id=generationId(main,500,1),members=new Map();
 const bot=(number,cid,body)=>({id:cid,user:{login:BOT,type:'Bot'},performed_via_github_app:{slug:'github-actions'},issue_url:'https://api.github.com/repos/'+repo+'/issues/'+number,created_at:earlier,updated_at:earlier,body});
@@ -40,6 +41,10 @@ const mutations={
   'baseline':()=>payload.active_baseline_defects=[999999],
   'member-count':()=>payload.member_comments.pop(),
   'member-digest':()=>payload.member_comments[0].comment_body_sha256='sha256:'+'f'.repeat(64),
+  'canonical-count':()=>payload.canonical_issue_count=24,
+  'canonical-membership':()=>payload.canonical_issue_numbers=MEMBERS.slice(1),
+  'committed-time':()=>payload.committed_at='invalid',
+  'member-extra-field':()=>payload.member_comments[0].approved=true,
   'extra-field':()=>payload.approved=true,
 };
 if(mutations[o.corrupt])mutations[o.corrupt]();
@@ -88,12 +93,12 @@ await import(${JSON.stringify(pathToFileURL(path.join(root,'scripts/kidults/kpmo
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 }
 
-for(const [name,o] of [['new material issue',{}],['material title-only change',{titleOnly:true}],['active baseline change',{baseline:true}]])test(`authorized same-main refresh appends 25 members + commit for ${name}`,()=>{
- const x=exercise(o);assert.equal(x.status,0,x.stderr);assert.equal(x.posts.length,26);assert.equal(x.receipt.state,'VERIFIED_PASS');assert.equal(x.receipt.mode,'COMMITTED');assert.equal(x.receipt.refresh.reason,'MATERIAL_SNAPSHOT_CHANGED');assert.equal(x.receipt.refresh.prior_generation_id,'kpmo-canonical-v3-aaaaaaaaaaaa-500-1');assert.equal(x.receipt.promotion_eligible,false);
+for(const [name,o] of [['issue addition',{}],['issue deletion',{deleted:true}],['material title-only digest change',{titleOnly:true}],['label and digest change',{labelChange:true}],['active baseline change',{baseline:true}]])test(`authorized same-main refresh appends 25 members + commit for ${name}`,()=>{
+ const x=exercise(o);assert.equal(x.status,0,x.stderr);assert.equal(x.posts.length,26);assert.equal(x.receipt.state,'VERIFIED_PASS');assert.equal(x.receipt.mode,'COMMITTED');assert.equal(x.receipt.stale_reason,'ISSUE_REGISTRY_SNAPSHOT_MOVED');assert.equal(x.receipt.refresh.reason,'ISSUE_REGISTRY_SNAPSHOT_MOVED');assert.equal(x.receipt.refresh.prior_generation_id,'kpmo-canonical-v3-aaaaaaaaaaaa-500-1');assert.equal(x.receipt.promotion_eligible,false);
 });
 test('unchanged current generation remains idempotent with zero posts',()=>{const x=exercise({current:true});assert.equal(x.status,0,x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.mode,'IDEMPOTENT_EXISTING_GENERATION');});
 test('read-only validation never silently repairs or accepts same-main stale truth',()=>{const x=exercise({read:true});assert.equal(x.status,1);assert.equal(x.posts.length,0);assert.equal(x.receipt.failure_class,'COMMIT_MISMATCH');assert.ok(x.receipt.mismatch_fields.includes('material_defect_count'));});
-const corruptionCodes={repository:'REFRESH_NON_MATERIAL_DRIFT',hold:'REFRESH_NON_MATERIAL_DRIFT',count:'REFRESH_PRIOR_MATERIAL_SET_INVALID',version:'REFRESH_PRIOR_VERSION_OR_RUN_INVALID',digest:'REFRESH_PRIOR_DIGEST_INVALID','duplicate-defects':'REFRESH_PRIOR_MATERIAL_SET_INVALID',baseline:'REFRESH_PRIOR_BASELINE_INVALID','member-count':'COMMIT_PAYLOAD_INVALID','member-digest':'MEMBER_COMMENT_235_IDENTITY_INVALID','extra-field':'REFRESH_PRIOR_FIELDS_MISMATCH','aggregate-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','aggregate-author':'AGGREGATE_COMMENT_IDENTITY_INVALID','aggregate-app':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-body':'MEMBER_COMMENT_235_IDENTITY_INVALID','member-version':'REFRESH_PRIOR_MEMBER_VERSION_INVALID'};
+const corruptionCodes={repository:'REFRESH_NON_MATERIAL_DRIFT',hold:'REFRESH_NON_MATERIAL_DRIFT',count:'REFRESH_PRIOR_MATERIAL_SET_INVALID',version:'REFRESH_PRIOR_VERSION_OR_RUN_INVALID',digest:'REFRESH_PRIOR_DIGEST_INVALID','duplicate-defects':'REFRESH_PRIOR_MATERIAL_SET_INVALID',baseline:'REFRESH_PRIOR_BASELINE_INVALID','member-count':'COMMIT_PAYLOAD_INVALID','member-digest':'MEMBER_COMMENT_235_IDENTITY_INVALID','canonical-count':'REFRESH_NON_MATERIAL_DRIFT','canonical-membership':'REFRESH_NON_MATERIAL_DRIFT','committed-time':'REFRESH_PRIOR_TIME_INVALID','member-extra-field':'COMMIT_MEMBER_FIELDS_MISMATCH','extra-field':'REFRESH_PRIOR_FIELDS_MISMATCH','aggregate-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','aggregate-author':'AGGREGATE_COMMENT_IDENTITY_INVALID','aggregate-app':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-body':'MEMBER_COMMENT_235_IDENTITY_INVALID','member-version':'REFRESH_PRIOR_MEMBER_VERSION_INVALID'};
 for(const corrupt of Object.keys(corruptionCodes))test(`refresh rejects damaged prior ${corrupt} before writes`,()=>{const x=exercise({corrupt});assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,corruptionCodes[corrupt],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
 const boundaryCodes=['EXPLICIT_WRITE_AUTHORITY_MISSING','AUTHORIZATION_COMMENT_CARDINALITY:0','AUTHORIZATION_APP_MEDIATED_FORBIDDEN','WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED','AUTHORIZATION_BODY_MISMATCH','PRE_WRITE_TRUTH_MOVED','PRE_WRITE_TRUTH_MOVED','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID'];
 for(const [index,[name,o]] of [['missing authority',{noAuthority:true}],['missing Owner comment',{noApproval:true}],['App-mediated approval',{authApp:true}],['rerun',{retry:true}],['revoked approval during prior read',{revoked:true}],['main changed before first write',{mainDrift:true}],['truth changed before first write',{liveDrift:true}],['prior failed writer',{priorFailed:true}],['prior retried writer',{priorRetry:true}],['prior writer source drift',{priorWrongSource:true}]].entries())test(`same-main refresh preserves ${name} fail-closed boundary`,()=>{const x=exercise(o);assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,boundaryCodes[index],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
