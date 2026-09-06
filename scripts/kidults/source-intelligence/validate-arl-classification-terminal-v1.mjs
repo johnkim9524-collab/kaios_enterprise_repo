@@ -7,7 +7,7 @@ const TERMINAL_BLOCK = `      - name: Preserve non-authoritative or invalid trig
         if: steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'
         run: exit 1`;
 const PRODUCER_GUARD = "if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'";
-const COVERAGE_GUARD = "if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run')";
+const COVERAGE_GUARD = "if: needs.classify-upstream-arl-generation.outputs.should_run == 'true'";
 const CLASSIFICATION_UPLOAD = 'name: kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}';
 const occurrences = (source, needle) => source.split(needle).length - 1;
 const fail = (code) => { const error = new Error(code); error.code = code; throw error; };
@@ -39,7 +39,7 @@ const mutations = [
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(TERMINAL_BLOCK, TERMINAL_BLOCK.replace('run: exit 1', 'run: exit 0')) },
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(PRODUCER_GUARD, PRODUCER_GUARD.replace(" == 'CURRENT_MAIN_EXACT'", " != 'INVALID_TRIGGER'")) },
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(CLASSIFICATION_UPLOAD, 'name: classification-unbound') },
-  { ...pristine, [COVERAGE_PATH]: pristine[COVERAGE_PATH].replace(COVERAGE_GUARD, "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion != 'cancelled'") },
+  { ...pristine, [COVERAGE_PATH]: pristine[COVERAGE_PATH].replace(COVERAGE_GUARD, "if: needs.classify-upstream-arl-generation.outputs.should_run != 'false'") },
 ];
 const result = validateArlClassificationTerminal((path) => pristine[path]);
 for (const mutation of mutations) {
