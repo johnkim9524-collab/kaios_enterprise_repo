@@ -91,6 +91,8 @@ jobs:
           set -euo pipefail
           node --test tests/kidults/kpmo/dependency-bootstrap-lock-v1.test.mjs
           node scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs
+          node --test tests/kidults/kpmo/requirement-coverage-dependency-bootstrap-v1.test.mjs
+          node scripts/kidults/kpmo/validate-requirement-coverage-dependency-bootstrap-v1.mjs
 
       - name: Verify Production release gate synthetic controls
         run: |
