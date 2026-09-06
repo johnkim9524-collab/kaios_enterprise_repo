@@ -98,6 +98,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_PR_EVENT_AT: ${{ github.event.pull_request.updated_at }}
           RECEIPT_PATH: /tmp/kpmo-pr-lifecycle/receipt.json
           LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS: '30'
           LIFECYCLE_CONVERGENCE_DELAY_MS: '1000'
