@@ -25,6 +25,13 @@ for (const entry of contract.workflow_run_class_allowlist) {
   assert(fs.existsSync(entry.workflow_path), `ALLOWLIST_WORKFLOW_PATH_MISSING:${entry.workflow_path}`);
   const source = fs.readFileSync(entry.workflow_path, 'utf8');
   assert(source.match(/^name:\s*(.+)$/m)?.[1]?.trim() === entry.workflow_name, `ALLOWLIST_WORKFLOW_NAME_PATH_MISMATCH:${entry.workflow_name}`);
+  if (contract.expected_workflow_run_skip_paths.includes(entry.workflow_path)) {
+    assert(source.includes("if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'"),
+      `EXPECTED_SKIP_WORKFLOW_GUARD_MISSING:${entry.workflow_path}`);
+    const jobsSource = source.slice(source.indexOf('\njobs:\n'));
+    const jobIds = [...jobsSource.matchAll(/^  ([a-z0-9-]+):$/gm)].map((match) => match[1]);
+    assert(jobIds.length === 1, `EXPECTED_SKIP_WORKFLOW_NOT_SINGLE_GATED_JOB:${entry.workflow_path}`);
+  }
 }
 assert(watched.length === contract.workflow_run_class_allowlist.length, 'WORKFLOW_WATCH_ALLOWLIST_COUNT_MISMATCH');
 assert(new Set(contract.workflow_run_class_allowlist.map((entry) => entry.workflow_path)).size === contract.workflow_run_class_allowlist.length, 'ALLOWLIST_WORKFLOW_PATH_DUPLICATE');
@@ -87,6 +94,49 @@ assert(first.dedupe_eligible === true && first.runtime_dedupe_state === 'REMOTE_
 assert(first.ephemeral_actions_alias_eligible === true, 'GROUPED_SUCCESS_EPHEMERAL_ALIAS_ELIGIBILITY');
 assert(first.canonical_input_digest === sameClassDifferentRun.canonical_input_digest, 'GROUPED_SUCCESS_CANONICAL_INPUT_DIGEST_DRIFT');
 assert(first.canonical_execution_claimed === false && first.alias === false, 'UNPROVEN_LEADER_OR_ALIAS_CLAIM');
+assert(first.upstream_audit_conclusion_acceptable === true && first.upstream_audit_disposition === 'UPSTREAM_SUCCESS', 'SUCCESS_AUDIT_HEALTH');
+
+for (const [index, expectedSkipPath] of contract.expected_workflow_run_skip_paths.entries()) {
+  const entry = contract.workflow_run_class_allowlist.find((candidate) => candidate.workflow_path === expectedSkipPath);
+  const expectedSkip = classifyCanonicalIdentity({
+    ...base,
+    run_id: String(9050 + index),
+    upstream_run_id: String(8050 + index),
+    upstream_workflow_name: entry.workflow_name,
+    upstream_workflow_path: entry.workflow_path,
+    upstream_event: 'workflow_run',
+    upstream_conclusion: 'skipped',
+  }, contract, contractText);
+  assert(expectedSkip.upstream_audit_conclusion_acceptable === true, `EXPECTED_SKIP_REJECTED:${expectedSkipPath}`);
+  assert(expectedSkip.upstream_audit_disposition === 'EXPECTED_GATED_WORKFLOW_RUN_SKIP', `EXPECTED_SKIP_DISPOSITION:${expectedSkipPath}`);
+  assert(expectedSkip.terminal_observation_non_dedupable === true && expectedSkip.dedupe_eligible === false,
+    `EXPECTED_SKIP_MUST_REMAIN_NON_DEDUPABLE:${expectedSkipPath}`);
+}
+
+const unexpectedSkip = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9060',
+  upstream_run_id: '8060',
+  upstream_workflow_name: 'KIDULTS ASI Snapshot Readiness Factory v2',
+  upstream_workflow_path: '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',
+  upstream_event: 'workflow_run',
+  upstream_conclusion: 'skipped',
+}, contract, contractText);
+assert(unexpectedSkip.upstream_audit_conclusion_acceptable === false && unexpectedSkip.upstream_audit_disposition === 'UPSTREAM_CONTROL_FAILURE',
+  'UNEXPECTED_SKIP_ACCEPTED');
+const wrongEventSkip = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9061',
+  upstream_run_id: '8061',
+  upstream_event: 'push',
+  upstream_conclusion: 'skipped',
+}, contract, contractText);
+assert(wrongEventSkip.upstream_audit_conclusion_acceptable === false, 'NON_WORKFLOW_RUN_SKIP_ACCEPTED');
+for (const [index, conclusion] of ['failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'stale'].entries()) {
+  const failed = classifyCanonicalIdentity({ ...base, run_id: String(9070 + index), upstream_run_id: String(8070 + index), upstream_event: 'workflow_run', upstream_conclusion: conclusion }, contract, contractText);
+  assert(failed.upstream_audit_conclusion_acceptable === false && failed.upstream_audit_disposition === 'UPSTREAM_CONTROL_FAILURE',
+    `CONTROL_FAILURE_ACCEPTED:${conclusion}`);
+}
 
 const otherSha = classifyCanonicalIdentity({ ...base, source_sha: shaB, run_id: '9003', upstream_run_id: '8003' }, contract, contractText);
 assert(otherSha.canonical_key !== first.canonical_key, 'DIFFERENT_SOURCE_SHA_COLLISION');
@@ -245,6 +295,12 @@ let weakenedRejected = false;
 try { validateCanonicalIdentityContract(weakened); } catch { weakenedRejected = true; }
 assert(weakenedRejected, 'UNPROVEN_RUNTIME_ACTIVATION_NOT_REJECTED');
 
+const widenedSkipPolicy = structuredClone(contract);
+widenedSkipPolicy.expected_workflow_run_skip_paths.push('.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml');
+let widenedSkipPolicyRejected = false;
+try { validateCanonicalIdentityContract(widenedSkipPolicy); } catch { widenedSkipPolicyRejected = true; }
+assert(widenedSkipPolicyRejected, 'EXPECTED_SKIP_POLICY_WIDENING_NOT_REJECTED');
+
 process.stdout.write(`${JSON.stringify({
   id: 'kidults-continuous-assurance-canonical-identity-validation-v1',
   state: 'VERIFIED_PASS',
@@ -256,7 +312,9 @@ process.stdout.write(`${JSON.stringify({
   special_exact_three_way_bursts_isolated: exactBurstCases,
   special_exact_upstream_attempts_isolated: exactBurstCases,
   non_success_conclusions_non_dedupable: 7,
-  negative_cases_rejected: negativeCases.length + 1,
+  expected_workflow_run_skips_accepted: contract.expected_workflow_run_skip_paths.length,
+  unexpected_skips_and_control_failures_rejected: 8,
+  negative_cases_rejected: negativeCases.length + 2,
   runtime_dedupe_state: contract.runtime_dedupe.state,
   canonical_execution_claimed: false,
   detector_authority: contract.truth_boundary.detector_authority,
