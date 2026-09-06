@@ -211,6 +211,17 @@ export function validateProducerRun(run, specification, repository) {
   return run;
 }
 
+export function selectAllowedProducerRuns(rows, specification, repository) {
+  if (!Array.isArray(rows)) fail('WORKFLOW_RUN_HISTORY_ROWS_INVALID');
+  return rows
+    .filter((run) => specification.allowedEvents.includes(run?.event))
+    .map((run) => validateProducerRun(run, specification, repository))
+    .sort((left, right) => {
+      const byCreated = Date.parse(right.created_at) - Date.parse(left.created_at);
+      return byCreated || right.id - left.id;
+    });
+}
+
 export function validateArtifact(artifact, run, specification) {
   requirePositiveInteger(artifact?.id, 'ARTIFACT_ID_INVALID');
   if (artifact?.name !== specification.artifactName) fail('ARTIFACT_NAME_MISMATCH', artifact?.id);
@@ -340,13 +351,10 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     maxPages: specification.maxPages,
     fetchPage: (page) => getJson(`${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${runQuery(page)}`),
   });
-  const runs = runReadback.rows.map((run) => validateProducerRun(run, specification, repository))
-    .sort((left, right) => {
-      const byCreated = Date.parse(right.created_at) - Date.parse(left.created_at);
-      return byCreated || right.id - left.id;
-    });
+  const runs = selectAllowedProducerRuns(runReadback.rows, specification, repository);
 
   if (!runs.length) {
+    if (runReadback.totalCount > 0) fail('NO_ALLOWED_PRODUCER_HISTORY', runReadback.totalCount);
     if (!specification.allowNoProducerHistory) fail('NO_PRODUCER_HISTORY');
     const allHistoryProbe = await getJson(
       `${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
