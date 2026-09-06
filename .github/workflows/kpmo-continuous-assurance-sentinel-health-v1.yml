@@ -14,6 +14,11 @@ on:
       - 'scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs'
       - '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'
       - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs'
+      - 'tests/kidults/kpmo/sentinel-observation-v1.test.mjs'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
       - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
       - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
@@ -75,10 +80,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
 
   exact-main-health:
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

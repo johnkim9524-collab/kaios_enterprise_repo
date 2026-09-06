@@ -1009,3 +1009,79 @@ jobs:
             ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/ephemeral-guard-receipt.json
           if-no-files-found: error
           retention-days: 90
+
+  observe-core-producer-content:
+    name: Record core producer content classification (not health authorization)
+    if: >-
+      github.event_name == 'workflow_run' && github.ref == 'refs/heads/main' &&
+      github.repository == 'johnkim9524-collab/kaios_enterprise_repo' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_sha == github.sha &&
+      github.event.workflow_run.status == 'completed' &&
+      contains(fromJSON('["KIDULTS ASI SHADOW Operating Evidence v1","KIDULTS ASI Requirement-to-Adapter Coverage v1","KIDULTS ASI Sharded Source Reserve v1","KPMO Live Canonical Issue Truth V1"]'), github.event.workflow_run.name)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Initialize durable non-authorizing sentinel failure receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY_BOOTSTRAP'
+          import json, os
+          from pathlib import Path
+          receipt = {
+            'receipt_id': 'kpmo-continuous-assurance-sentinel-health-v1',
+            'version': '1.0.0', 'state': 'VERIFIED_FAIL',
+            'failure_class': 'SENTINEL_NOT_RECONCILED',
+            'repository': os.environ['GITHUB_REPOSITORY'],
+            'source_sha': os.environ['GITHUB_SHA'],
+            'observer_run_id': int(os.environ['GITHUB_RUN_ID']),
+            'observer_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+            'coverage_scope': 'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
+            'semantic_content_verified': False, 'runtime_health_proven': False,
+            'whole_platform_authority': False, 'promotion_eligible': False,
+            'provider_authority': False, 'database_authority': False,
+            'empirical_delta': 0, 'public': 'HOLD', 'production': 'HOLD', 'g5': 'HOLD'
+          }
+          destination = Path(os.environ['RUNNER_TEMP']) / 'kpmo-continuous-assurance-sentinel-health-v1.json'
+          destination.write_text(json.dumps(receipt, indent=2) + '\n')
+          PY_BOOTSTRAP
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Resolve latest applicable exact-SHA producer health
+        id: resolve
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs \
+            --output "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+      - name: Upload exact-run sentinel health receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-sentinel-health-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-continuous-assurance-sentinel-health-v1.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Validate observation integrity without granting producer health authority
+        if: always()
+        env:
+          SENTINEL_RESOLVER_OUTCOME: ${{ steps.resolve.outcome }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs \
+            "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
