@@ -98,19 +98,35 @@ function readTransportAvailability() {
   if (!fs.existsSync(transportReceiptPath)) return { state: 'NOT_ESTABLISHED_FAIL_CLOSED' };
   const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
   assert(receipt?.id === 'kidults-atomic-event-emitting-transport-availability-v1', 'ATOMIC_TERMINAL_TRANSPORT_ID_INVALID');
-  assert(receipt?.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED', 'ATOMIC_TERMINAL_TRANSPORT_STATE_INVALID');
+  assert(receipt?.version === '1.0.0', 'ATOMIC_TERMINAL_TRANSPORT_VERSION_INVALID');
   assert(receipt?.repository === repository, 'ATOMIC_TERMINAL_TRANSPORT_REPOSITORY_MISMATCH');
-  assert(Number(receipt?.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_TRANSPORT_PR_MISMATCH');
+  assert(Number.isSafeInteger(receipt?.pull_request)
+    && Number(receipt.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_TRANSPORT_PR_MISMATCH');
   assert(receipt?.exact_base_sha === expectedBaseSha, 'ATOMIC_TERMINAL_TRANSPORT_BASE_MISMATCH');
   assert(receipt?.exact_head_sha === expectedHeadSha, 'ATOMIC_TERMINAL_TRANSPORT_HEAD_MISMATCH');
   assert(receipt?.exact_head_tree_sha === expectedHeadTreeSha, 'ATOMIC_TERMINAL_TRANSPORT_TREE_MISMATCH');
-  assert(receipt?.repository_owner === landingActor && receipt?.dispatch_actor === landingActor
+  assert(receipt?.dispatch_actor === landingActor
     && receipt?.transport === 'DIRECT_OWNER_GITHUB_UI', 'ATOMIC_TERMINAL_TRANSPORT_ACTOR_MISMATCH');
-  assert(receipt?.repository_token_merge_forbidden === true
-    && receipt?.transport_available === true
+  assert(receipt?.repository_github_token_merge_forbidden === true
     && receipt?.authorization_consumed === false
     && receipt?.new_secret_required === false
     && receipt?.permission_expansion_required === false, 'ATOMIC_TERMINAL_TRANSPORT_BOUNDARY_INVALID');
+
+  if (receipt.state === 'VERIFIED_FAIL') {
+    assert(/^ATOMIC_EVENT_TRANSPORT_[A-Z0-9_]{1,96}$/.test(receipt?.failure_code || ''),
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_CODE_INVALID');
+    assert(receipt?.transport_available === false, 'ATOMIC_TERMINAL_TRANSPORT_FAILURE_AVAILABILITY_INVALID');
+    return receipt;
+  }
+
+  assert(receipt?.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED',
+    'ATOMIC_TERMINAL_TRANSPORT_STATE_INVALID');
+  assert(receipt?.repository_owner === landingActor
+    && receipt?.identity_verified === true
+    && receipt?.transport_available === true
+    && receipt?.merge_performed_by_workflow === false
+    && receipt?.event_emitting_push_required === true,
+  'ATOMIC_TERMINAL_TRANSPORT_SUCCESS_BOUNDARY_INVALID');
   return receipt;
 }
 
@@ -252,6 +268,41 @@ const currentSoldPathMatchers = [
 ];
 
 try {
+  if (transportAvailability.state === 'VERIFIED_FAIL') {
+    const [pr, mainBranch] = await Promise.all([
+      request(`/pulls/${prNumber}`),
+      request('/branches/main'),
+    ]);
+    assert(pr?.head?.sha === expectedHeadSha, 'ATOMIC_TERMINAL_TRANSPORT_FAILURE_HEAD_DRIFT');
+    assert(pr?.base?.ref === 'main' && pr?.base?.sha === expectedBaseSha,
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_BASE_DRIFT');
+    assert(pr?.merged !== true, 'ATOMIC_TERMINAL_TRANSPORT_FAILURE_PR_ALREADY_MERGED');
+    assert(mainBranch?.commit?.sha === expectedBaseSha,
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_MAIN_DRIFT');
+    assert(authorizationConsumption.state === 'NOT_ESTABLISHED_FAIL_CLOSED',
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_AUTHORIZATION_CONSUMED');
+
+    const terminalClass = transportAvailability.failure_code;
+    const receipt = baseReceipt('VERIFIED_FAIL', terminalClass, {
+      failure_code: terminalClass,
+      premerge_main_sha: expectedBaseSha,
+      current_protected_main_sha_at_finalize: mainBranch.commit.sha,
+      landing_step_outcome: landingOutcome,
+      current_sold_postlanding_outcome: postLandingOutcome,
+      post_merge_push_suite_outcome: postMergeSuiteOutcome,
+      merge_commit_state: 'NOT_COMMITTED_VERIFIED',
+      merge_committed: false,
+      authorization_consumed: false,
+      transport_failure_preserved: true,
+      terminal_pass_requires_exact_merge_sha_postmerge_success: true,
+      remote_intent_status: 'FAILURE',
+    });
+    writeReceipt(receipt);
+    await postHeadStatus('failure', terminalClass);
+    console.log(JSON.stringify(receipt));
+    process.exit(0);
+  }
+
   const [pr, mainBranch, fileRecords] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
