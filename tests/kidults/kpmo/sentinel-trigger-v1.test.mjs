@@ -45,14 +45,20 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',()=>
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
-test('existing sentinel workflow wires bounded completion events and trigger regressions',()=>{
+test('completion collection reuses existing Assurance edges and keeps strict sentinel gate',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- assert.match(s,/^  workflow_run:\n    workflows:/m);
- for(const x of PRODUCER_COMPLETIONS)assert.ok(s.includes(`      - '${x.name}'`));
- assert.match(s,/types: \[completed\]/);assert.match(s,/branches: \[main\]/);
+ const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+ assert.doesNotMatch(s,/^  workflow_run:/m);
+ assert.match(a,/^  workflow_run:\n    workflows:/m);
+ for(const x of PRODUCER_COMPLETIONS)assert.ok(a.includes(`      - '${x.name}'`));
+ assert.match(a,/types: \[completed\]/);assert.match(a,/branches: \[main\]/);
  assert.ok(s.includes('tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'));
- assert.match(s,/github\.event\.workflow_run\.head_sha == github\.sha/);
- assert.doesNotMatch(s,/issues: write|contents: write|secrets\./);
+ const job=a.slice(a.indexOf('  observe-core-producer-content:'));
+ assert.match(job,/github\.event\.workflow_run\.head_sha == github\.sha/);
+ assert.ok(job.includes('validate-sentinel-observation-v1.mjs'));
+ assert.ok(job.includes('not health authorization'));
+ assert.ok(s.includes('.state=="VERIFIED_PASS"'));
+ assert.doesNotMatch(s+job,/issues: write|contents: write|secrets\./);
 });
 
 // Execute the real resolver with a closed HTTP/Git transport. A valid trigger

@@ -16,6 +16,9 @@ on:
       - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
       - 'tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs'
+      - 'tests/kidults/kpmo/sentinel-observation-v1.test.mjs'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
       - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
       - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
@@ -43,14 +46,6 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs'
       - 'package.json'
       - 'npm-shrinkwrap.json'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI SHADOW Operating Evidence v1'
-      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
-      - 'KIDULTS ASI Sharded Source Reserve v1'
-      - 'KPMO Live Canonical Issue Truth V1'
-    branches: [main]
-    types: [completed]
   schedule:
     - cron: '23,53 * * * *'
   workflow_dispatch:
@@ -60,7 +55,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event.pull_request.head.sha || github.sha }}-${{ github.event.workflow_run.run_attempt || '0' }}
+  group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -85,18 +80,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
 
   exact-main-health:
-    if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'workflow_run' &&
-        github.event.workflow_run.repository.full_name == github.repository &&
-        github.event.workflow_run.head_repository.full_name == github.repository &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.head_sha == github.sha &&
-        github.event.workflow_run.status == 'completed'))
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

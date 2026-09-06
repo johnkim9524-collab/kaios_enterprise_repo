@@ -29,32 +29,51 @@ permissions and provider execution surfaces. It is not a general YAML parser.
 The four existing control validators keep their other checks. The existing v3
 validation workflow runs the new 31-case negative/positive suite.
 
-## Exact-SHA producer completion observer
+## Exact-SHA producer completion observation without extra fanout
 
-The existing semantic sentinel previously had only scheduled and manual live
-activation. Its PR job tested contracts; a completed Live Canonical workflow
-was consumed by structural Continuous Assurance but did not directly start the
-four-producer semantic observer.
+The first PR #2042 candidate `636878f1...` added a separate workflow-run
+listener to the strict sentinel. Its native P0 run `34010460178`, job
+`101425257276`, correctly rejected 17 consumers against the unchanged maximum
+of 16. That candidate was not landed, and the failure is not reclassified.
 
-The existing sentinel now additionally watches completed SHADOW, Coverage,
-Reserve and Live Canonical producers. The cron schedule and manual recovery
-remain. Failed/cancelled producers also trigger re-evaluation; their failure is
-not hidden behind a success-only listener. GitHub's workflow-run chain-depth
-limit still applies, so this is not a guarantee of delivery from arbitrary
-upstream chains. The schedule is the fallback, not a proof of an execution.
+The corrected route uses the four producer edges already watched by the
+terminal Continuous Assurance workflow. Its existing classifier, audit and
+trigger definitions are preserved. One independent, bounded read-only job
+collects the four-producer content classification when those producers finish.
+It is deliberately named **Record core producer content classification (not
+health authorization)**. No additional workflow-run consumer, graph edge,
+dispatch credential, or limit increase is needed. The resulting repository
+metrics are 16 consumers, 38 edges (19 execution + 19 observer), depth 7 and
+zero cycles; the limits themselves are not modified.
 
-Only the same repository, main branch and exact trusted checkout SHA are
-accepted. A bounded regular JSON event file is read without following symlinks.
-The named upstream native run is fetched before and after collection and its
-ID, attempt, workflow name/path, event, source, terminal result and repository
+The separate strict sentinel retains its existing schedule and manual health
+gate; it does not acquire a new workflow-run trigger. A classification artifact
+is not that gate. The observer records healthy, blocked or failed state exactly
+as returned by the resolver. A successful observation-integrity step means
+only the exact receipt was retained and its digest, identity, state aggregation
+and no-authority boundaries were checked. It never converts producer HOLD/FAIL
+to health PASS. The dedicated sentinel still fails unless all four producers'
+actual content has been validated. This separation also preserves the role of
+Continuous Assurance in the protected-main structural landing suite.
+
+Failed/cancelled producers also cause collection; the new job is not filtered
+only to successful producers. Only the canonical repository, main and current
+checkout SHA are accepted. A bounded regular JSON event file is read without
+following symlinks. The upstream native run is fetched before and after
+collection and its ID, attempt, name/path, event, source, result and repository
 IDs must remain equal. The trigger is a pointer, never a success receipt.
 Existing latest-generation selection, complete pagination, archive validation,
-producer-specific semantic content checks and no-authority flags remain.
+producer-content checks and release boundaries remain unchanged.
 
-A new 41-case suite includes the actual resolver with closed HTTP/Git transport:
-valid triggers with absent producers remain HOLD; malformed/fork/stale/native
-identity and readback drift produce durable RED without network writes. The
-existing full semantic regression command remains in hosted CI.
+GitHub's workflow-run chain-depth limit still applies. This reuses existing
+terminal-observer edges rather than adding a new chained workflow; it does not
+guarantee arbitrary-depth delivery. The existing cron is retained as fallback.
+
+The 41-case trigger suite includes the actual resolver with closed HTTP/Git
+transport. The additional 28-case classification suite covers failed/HOLD
+preservation, copied or altered receipts, actual CLI output, falsely claimed PASS, unchanged
+workflow fanout and the separate strict gate. The hosted semantic command
+still executes all existing 152 tests as well; it is not reduced to new tests.
 
 ## Evidence and limits
 
@@ -67,6 +86,7 @@ PASS but overall HOLD. These are historical, exact-generation observations,
 not assurances about a later issue registry or a new candidate SHA.
 
 Local tests use Node 22; hosted Node 24 validation is required for a new head.
+The initial head's passing checks cannot be reused as this correction's checks.
 A locally validated trigger is not natural main consumption. Full four-producer
 semantic proof, the native invalid-authorization Atomic dispatch receipt,
 lawful staging workload, managed PostgreSQL/PITR and operating readiness remain
@@ -76,7 +96,8 @@ separate exit criteria. No control test is an independent business sample.
 
 ```sh
 node --test tests/kidults/kpmo/cloudflare-consumed-workflow-v1.test.mjs
-node --test tests/kidults/kpmo/sentinel-trigger-v1.test.mjs
+node --test tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
+node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs
 node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs
 node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
 ```
