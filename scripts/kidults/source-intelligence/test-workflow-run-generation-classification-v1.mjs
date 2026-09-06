@@ -6,7 +6,7 @@ import {classifyWorkflowRunGeneration} from './classify-workflow-run-generation-
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const expectedWorkflowPath='.github/workflows/kidults-asi-p1-source-preflight-v1.yml';
 const currentMainSha='a'.repeat(40), priorMainSha='b'.repeat(40);
-const event=(overrides={})=>({workflow_run:{id:123,run_attempt:1,path:expectedWorkflowPath,event:'workflow_run',head_repository:{full_name:repository},head_branch:'main',head_sha:currentMainSha,conclusion:'success',...overrides}});
+const event=(overrides={})=>({workflow_run:{id:123,run_attempt:1,path:expectedWorkflowPath,event:'workflow_run',status:'completed',head_repository:{full_name:repository},head_branch:'main',head_sha:currentMainSha,conclusion:'success',...overrides}});
 const classify=(overrides={},options={})=>classifyWorkflowRunGeneration({event:event(overrides),currentMainSha:options.currentMainSha??currentMainSha,executionSha:options.executionSha??currentMainSha,repository,expectedWorkflowPath,expectedProducerEvent:options.expectedProducerEvent??'workflow_run'});
 
 let result=classify();
