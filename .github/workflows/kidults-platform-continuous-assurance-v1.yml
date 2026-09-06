@@ -493,7 +493,7 @@ jobs:
           echo "KPMO_UPSTREAM_BINDING_DIGEST=sha256:$(sha256sum "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/shadow-upstream-binding.json" | cut -d ' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Validate exact Requirement Coverage upstream evidence binding
-        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
+        if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
         env:
           GH_TOKEN: ${{ github.token }}
           REQUIREMENT_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -518,7 +518,7 @@ jobs:
             --arg conclusion "$REQUIREMENT_UPSTREAM_CONCLUSION" \
             '.id==$run
              and .run_attempt==$attempt
-             and .name=="KIDULTS ASI Requirement-to-Adapter Coverage v1"
+             and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))
              and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
@@ -1020,7 +1020,7 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.head_sha == github.sha &&
       github.event.workflow_run.status == 'completed' &&
-      contains(fromJSON('["KIDULTS ASI SHADOW Operating Evidence v1","KIDULTS ASI Requirement-to-Adapter Coverage v1","KIDULTS ASI Sharded Source Reserve v1","KPMO Live Canonical Issue Truth V1"]'), github.event.workflow_run.name)
+      contains(fromJSON('[".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"]'), github.event.workflow_run.path)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

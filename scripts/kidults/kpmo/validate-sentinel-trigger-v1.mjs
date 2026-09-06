@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
@@ -33,7 +34,7 @@ function validateRun(run,sourceSha){
   if(!object(run)||!positive(run.id)||!positive(run.run_attempt))fail('SENTINEL_UPSTREAM_IDENTITY');
   if(run.repository?.full_name!==REPO||run.head_repository?.full_name!==REPO)fail('SENTINEL_UPSTREAM_REPOSITORY');
   if(!sha.test(sourceSha||'')||run.head_sha!==sourceSha||run.head_branch!=='main')fail('SENTINEL_UPSTREAM_MAIN_SHA');
-  const source=PRODUCER_COMPLETIONS.find(x=>x.path===run.path&&x.name===run.name);
+  const source=PRODUCER_COMPLETIONS.find(x=>nativeWorkflowRunNameMatches(run,x.name,x.path));
   if(!source||!source.events.includes(run.event))fail('SENTINEL_UPSTREAM_WORKFLOW_EVENT');
   if(run.status!=='completed'||!terminal.has(run.conclusion))fail('SENTINEL_UPSTREAM_NOT_TERMINAL');
 }
@@ -46,7 +47,7 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   validateRun(run,env.GITHUB_SHA);
   if(remoteRun!==null){
     validateRun(remoteRun,env.GITHUB_SHA);
-    for(const key of ['id','run_attempt','name','path','event','head_branch','head_sha','status','conclusion']){
+    for(const key of ['id','run_attempt','name','display_title','path','event','head_branch','head_sha','status','conclusion']){
       if(remoteRun[key]!==run[key])fail('SENTINEL_UPSTREAM_REMOTE_CHANGED');
     }
     for(const key of ['repository','head_repository']){
