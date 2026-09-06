@@ -177,6 +177,29 @@ const RECEIPT_AUTHORITY_BOUNDARY = Object.freeze({
 });
 
 const fail = (code, detail = '') => { throw new Error(detail ? `${code}:${detail}` : code); };
+const boundedGitFailureDetail = error => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
+  .split(/\r?\n/, 1)[0].replace(/[^\x20-\x7e]/g, '?').slice(0, 160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
+const emitBoundedFailureReceipt = error => {
+  const message = String(error?.message || 'BOOTSTRAP_VERIFICATION_FAILED');
+  const separator = message.indexOf(':');
+  const failureCode = (separator >= 0 ? message.slice(0, separator) : message).slice(0, 120);
+  const detail = boundedGitFailureDetail(separator >= 0 ? {message: message.slice(separator + 1)} : error);
+  process.stderr.write(`Error: ${failureCode}${separator >= 0 ? `:${detail}` : ''}\n`);
+  process.stderr.write(`${JSON.stringify({
+    id: 'kidults-ai-agent-bootstrap-verifier-bounded-failure-receipt-v1',
+    version: '1.0.0',
+    state: 'VERIFIED_FAIL',
+    failure_code: failureCode,
+    bounded_failure_detail: detail,
+    bounded_failure_detail_max_bytes: 160,
+    repository_receipt_written: false,
+    raw_nonce_persisted_or_logged: false,
+  })}\n`);
+};
+process.once('uncaughtException', error => {
+  try { emitBoundedFailureReceipt(error); } catch {}
+  process.exitCode = 1;
+});
 const sha256Hex = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const sha256 = (value) => `sha256:${sha256Hex(value)}`;
 const stableStringify = (value) => {
@@ -242,8 +265,6 @@ const resolveTrustedGit = () => {
 
 const TRUSTED_GIT = resolveTrustedGit();
 const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : os.devNull;
-const boundedGitFailureDetail = (error) => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
-  .split(/\r?\n/,1)[0].replace(/[^\x20-\x7e]/g,'?').slice(0,160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
 const trustedGitPath = () => {
   if (process.platform !== 'win32') return '/usr/bin:/bin';
   const gitDir = path.dirname(TRUSTED_GIT);
