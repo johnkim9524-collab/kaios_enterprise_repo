@@ -87,6 +87,11 @@ function runSelfTest() {
   ], required, eventAt),
   'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_SCOPE_GENERATION_ACCEPTED');
   assert(!nativeGovernanceConverged([
+    currentGeneration[0],
+    {...governed, created_at: '2026-09-06T11:38:00Z'},
+  ], required, eventAt),
+  'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_GOVERNED_GENERATION_ACCEPTED');
+  assert(!nativeGovernanceConverged([
     scope,
     currentGeneration[1],
   ], required, eventAt),
