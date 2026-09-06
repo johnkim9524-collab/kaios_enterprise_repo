@@ -129,7 +129,7 @@ for (const [from, to] of mutations) {
     console.error(`ASI throughput autobalance provenance self-test fixture missing: ${from}`);
     process.exit(1);
   }
-  const mutated = text.replace(from, to);
+  const mutated = text.replaceAll(from, to);
   if (validate(mutated).length === 0) {
     console.error(`ASI throughput autobalance provenance self-test failed to reject mutation: ${from} -> ${to}`);
     process.exit(1);
