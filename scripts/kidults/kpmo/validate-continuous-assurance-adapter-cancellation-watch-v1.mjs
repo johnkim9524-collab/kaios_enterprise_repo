@@ -138,7 +138,10 @@ for (const control of eventConsumerControls) {
 }
 
 for (const marker of [
-  "process.env.KPMO_UPSTREAM_CONCLUSION === 'success'",
+  'classifyUpstreamAuditHealth',
+  'upstreamAuditHealth.acceptable === true',
+  "process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true'",
+  'process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION === upstreamAuditHealth.disposition',
   "'UPSTREAM_WORKFLOW_CONCLUSION'",
   'process.env.KPMO_UPSTREAM_REPOSITORY === process.env.GITHUB_REPOSITORY',
   "process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main'"
