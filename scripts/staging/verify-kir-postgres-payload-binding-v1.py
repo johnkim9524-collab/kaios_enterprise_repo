@@ -120,7 +120,9 @@ def variants(field: str, row: dict, paths: list[list[str]]) -> list[tuple[str, d
             for key in p[:-1]:parent=parent[key]
             if null:parent[p[-1]]=None
             else:del parent[p[-1]]
-            result.append((('null-' if null else 'missing-') + '-'.join(p),x,field=='registry_payload' and p==['sources'] and null))
+            legacy_reject = null and ((field=='registry_payload' and p==['sources']) or
+                (field=='assessment_payload' and p[0] in {'rights','source_roles','verticals','official_urls'}))
+            result.append((('null-' if null else 'missing-') + '-'.join(p),x,legacy_reject))
     # Values that are correctly rejected even by the original CHECK remain rejected.
     x=copy.deepcopy(row);x[field][paths[0][0]]='BOUND_VALUE_MISMATCH'
     result.append(('mismatched-value',x,True))
@@ -155,11 +157,16 @@ def probe_sql(hardened: bool) -> tuple[str,int,int]:
         for label,variant,legacy_invariant in variants(field,row,paths):
             accept = label=='valid' or (not hardened and not legacy_invariant)
             count+=1;negative+=not accept
+            # jsonb_populate_record maps a top-level JSON null to SQL NULL.
+            # Preserve JSONB payload bytes explicitly so CHECK, not NOT NULL, is tested.
+            columns=','.join(variant)
+            values=','.join(literal(v) if k==field else f'r.{k}' for k,v in variant.items())
             statements.append(f"""DO $probe$
 DECLARE accepted boolean := false;
 BEGIN
   BEGIN
-    INSERT INTO {temp} SELECT (jsonb_populate_record(NULL::{temp},{literal(variant)})).*;
+    INSERT INTO {temp} ({columns}) SELECT {values}
+      FROM jsonb_populate_record(NULL::{temp},{literal(variant)}) AS r;
     accepted := true;
   EXCEPTION WHEN check_violation OR invalid_parameter_value THEN accepted := false;
   END;
@@ -205,6 +212,12 @@ def self_test() -> None:
             for key in p:value=value[key]
     a,n,_=probe_sql(False);b,n2,negative=probe_sql(True)
     assert n==n2 and negative==n-6 and a!=b
+    assert a.count("'null'::jsonb")==6 and b.count("'null'::jsonb")==6
+    assert 'AS r;' in a
+    # JSONB equality rejects explicit null vs an object/array even before repair.
+    assess=next(x for x in f if x[1]=='assessment_payload')
+    av=variants(assess[1],assess[2],assess[3])
+    assert all(old for name,_,old in av if name in {'null-rights','null-source_roles','null-verticals','null-official_urls'})
     env={'GITHUB_REPOSITORY':'johnkim9524-collab/kaios_enterprise_repo','GITHUB_ACTIONS':'true','GITHUB_EVENT_NAME':'pull_request','KIR_SQL_TEST_CONTAINER_ID':'b'*64,
          'GITHUB_RUN_ID':'10','GITHUB_RUN_ATTEMPT':'1','KIR_EXPECTED_SOURCE_SHA':'a'*40}
     verify_context(env)
