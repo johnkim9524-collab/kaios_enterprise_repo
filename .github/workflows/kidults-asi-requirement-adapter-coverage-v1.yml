@@ -14,8 +14,66 @@ permissions:
   actions: read
 
 jobs:
+  classify-upstream-arl-generation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      should_run: ${{ steps.classify.outputs.should_run }}
+      admission: ${{ steps.classify.outputs.admission }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Classify exact upstream ARL generation
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_ARL_RUN_ID: ${{ github.event.workflow_run.id }}
+          EVENT_ARL_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo 'should_run=true' >> "$GITHUB_OUTPUT"
+            echo 'admission=MANUAL_EXPLICIT' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          test -n "$EVENT_ARL_RUN_ID"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_ARL_RUN_ID}" > /tmp/arl-admission-run.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_ARL_RUN_ID}/artifacts?per_page=100" > /tmp/arl-admission-artifacts.json
+          EVENT_ARL_RUN_ID="$EVENT_ARL_RUN_ID" EVENT_ARL_RUN_ATTEMPT="$EVENT_ARL_RUN_ATTEMPT" node - <<'NODE'
+          const fs=require('fs'); const x=JSON.parse(fs.readFileSync('/tmp/arl-admission-artifacts.json','utf8'));
+          const name=`kidults-asi-arl-p1-generation-classification-v1-${process.env.EVENT_ARL_RUN_ID}-${process.env.EVENT_ARL_RUN_ATTEMPT}`;
+          const matches=(x.artifacts||[]).filter(a=>a.name===name&&a.expired===false&&a.workflow_run?.id===Number(process.env.EVENT_ARL_RUN_ID));
+          if(matches.length!==1)throw new Error(`ARL_CLASSIFICATION_ARTIFACT_CARDINALITY:${matches.length}`);
+          fs.writeFileSync('/tmp/arl-admission-artifact.json', JSON.stringify(matches[0], null, 2));
+          NODE
+          ARTIFACT_ID=$(jq -r .id /tmp/arl-admission-artifact.json)
+          ARTIFACT_DIGEST=$(jq -r .digest /tmp/arl-admission-artifact.json)
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/arl-admission.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py --archive /tmp/arl-admission.zip --expected-digest "$ARTIFACT_DIGEST" --receipt /tmp/arl-admission-archive-receipt.json --max-compressed-bytes 1048576 --max-entries 4 --max-entry-uncompressed-bytes 1048576 --max-total-uncompressed-bytes 1048576 --max-compression-ratio 100 --required-basename arl-p1-generation-classification-v1.json
+          mkdir -p /tmp/arl-admission-expanded
+          unzip -q /tmp/arl-admission.zip -d /tmp/arl-admission-expanded
+          mapfile -t RECEIPTS < <(find /tmp/arl-admission-expanded -type f -name 'arl-p1-generation-classification-v1.json' -print)
+          test "${#RECEIPTS[@]}" -eq 1
+          node scripts/kidults/source-intelligence/classify-requirement-coverage-admission-v1.mjs /tmp/arl-admission-run.json "${RECEIPTS[0]}" "$GITHUB_REPOSITORY" "$GITHUB_SHA" /tmp/coverage-admission-v1.json
+          echo "should_run=$(jq -r .should_run /tmp/coverage-admission-v1.json)" >> "$GITHUB_OUTPUT"
+          echo "admission=$(jq -r .admission /tmp/coverage-admission-v1.json)" >> "$GITHUB_OUTPUT"
+      - name: Retain exact Coverage admission receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-requirement-coverage-admission-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/coverage-admission-v1.json
+          retention-days: 90
+          if-no-files-found: ${{ github.event_name == 'workflow_dispatch' && 'ignore' || 'error' }}
+
   verify-requirement-adapter-coverage:
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run')
+    needs: classify-upstream-arl-generation
+    if: needs.classify-upstream-arl-generation.outputs.should_run == 'true'
     concurrency:
       group: kidults-asi-requirement-adapter-coverage-v1-${{ github.event_name == 'workflow_run' && format('{0}-{1}', github.event.workflow_run.head_sha, 'ASI_AUTONOMOUS_RESOLUTION') || github.run_id }}
       cancel-in-progress: false
@@ -44,11 +102,13 @@ jobs:
           node --check scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs
           node --check scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs
+          node --check scripts/kidults/source-intelligence/classify-requirement-coverage-admission-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-canonical-guard-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
+          node --test tests/kidults/source-intelligence/requirement-coverage-admission-v1.test.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
