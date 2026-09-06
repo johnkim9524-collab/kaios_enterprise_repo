@@ -5,6 +5,13 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/kidults-integration-source-snapshot-v1.yml'
+      - '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'
+      - '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      - '.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml'
+      - '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+      - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
+      - 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs'
+      - 'tests/kidults/source-intelligence/semantic-chain-*.test.mjs'
 
 permissions:
   contents: read
