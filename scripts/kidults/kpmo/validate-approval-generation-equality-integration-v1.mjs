@@ -7,6 +7,7 @@ import {
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from './lib/approval-generation-equality-v1.mjs';
+import {assertGovernedLandingAuthorizationPolicyV150} from './lib/governed-landing-authorization-policy-v1.mjs';
 
 const requireValue = (condition, code) => {
   if (!condition) throw new Error(`APPROVAL_GENERATION_INTEGRATION_FAIL:${code}`);
@@ -18,12 +19,14 @@ const library = read('scripts/kidults/kpmo/lib/approval-generation-equality-v1.m
 const lifecycle = read('scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs');
 const scope = read('scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs');
 const atomic = read('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
+const oneUse = read('scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs');
 const readinessWorkflow = read('.github/workflows/kidults-governed-landing-authorization-v1.yml');
 const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs');
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-requireValue(policy.version === '1.4.0', 'POLICY_VERSION');
+assertGovernedLandingAuthorizationPolicyV150(policy);
+requireValue(policy.version === '1.5.0', 'POLICY_VERSION');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
@@ -62,6 +65,18 @@ for (const [name, text] of [
   requireValue(text.includes('liveMainSha'), `${name}_LIVE_MAIN_BINDING`);
   requireValue(text.includes('prBaseSha'), `${name}_PR_BASE_BINDING`);
 }
+
+for (const marker of [
+  'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN',
+  'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED',
+  'protectedMainShaAtDispatch',
+  'authorization_id_sha256',
+  'tuple_sha256',
+  'raw_authorization_persisted: false',
+  'complete_owner_approval_contract_validated_before_consumption: true',
+]) requireValue(oneUse.includes(marker), `ONE_USE_REPLAY_DEFENSE:${marker}`);
+requireValue(atomic.includes('assertAtomicLandingConsumptionReceipt'), 'ATOMIC_CONSUMPTION_RECEIPT_REREAD');
+requireValue(atomic.includes('immediate_one_use_consumption_reread: true'), 'ATOMIC_IMMEDIATE_ONE_USE_REREAD');
 
 requireValue(liveValidator.includes('assertFullApprovalGenerationEquality'), 'LIVE_VALIDATOR_FULL_REGISTRY_DIRECT');
 requireValue(liveValidator.includes('GITHUB_EVENT_PATH'), 'LIVE_VALIDATOR_EVENT_PATH_BINDING');
@@ -136,6 +151,8 @@ console.log(JSON.stringify({
   same_candidate_blob_different_main_rejected: true,
   stale_canonical_comment_rejected: true,
   terminal_records_non_authority: true,
+  policy_version_exact: '1.5.0',
+  one_use_replay_defense_integrated: true,
   provider_credentials_resolved: false,
   external_requests: 0,
   public: 'HOLD',
