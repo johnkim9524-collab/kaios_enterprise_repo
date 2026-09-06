@@ -21,6 +21,9 @@ on:
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v2-approval-ready-v1.mjs'
       - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-v3-approval-ready-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-cloudflare-consumed-workflow-v1.mjs'
+      - 'tests/kidults/kpmo/cloudflare-consumed-workflow-v1.test.mjs'
+      - '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
       - 'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
       - 'tooling/kidults-cloudflare-workers-shadow/package.json'
       - 'tooling/kidults-cloudflare-workers-shadow/package-lock.json'
@@ -59,6 +62,9 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+
+      - name: Regress inert consumed workflow syntax and no-replay boundaries
+        run: node --test tests/kidults/kpmo/cloudflare-consumed-workflow-v1.test.mjs
 
       - name: Validate consumed v1 zero-authority tombstone
         run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs

@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
+import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
 const DIGEST=/^sha256:[0-9a-f]{64}$/;
@@ -179,13 +180,17 @@ async function liveInput(){
   const repo=process.env.GITHUB_REPOSITORY||'';
   const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   if(repo!==REPOSITORY||!token)fail('REPOSITORY_OR_TOKEN_MISSING');
-  if(!['schedule','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME||''))fail('SENTINEL_EVENT_NOT_ALLOWED');
+  const triggerPayload=process.env.GITHUB_EVENT_NAME==='workflow_run'?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
+  const upstreamTrigger=validateSentinelTrigger(process.env,triggerPayload);
   if(process.env.GITHUB_REF!=='refs/heads/main')fail('SENTINEL_MAIN_REF_REQUIRED');
   const observerRun=Number(process.env.GITHUB_RUN_ID),observerAttempt=Number(process.env.GITHUB_RUN_ATTEMPT);
   if(!Number.isSafeInteger(observerRun)||observerRun<=0||!Number.isSafeInteger(observerAttempt)||observerAttempt<=0)fail('SENTINEL_OBSERVER_IDENTITY_INVALID');
   const main=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   const sourceSha=main?.commit?.sha||'';
   if(!SHA.test(sourceSha)||process.env.GITHUB_SHA!==sourceSha||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()!==sourceSha)fail('SENTINEL_EXACT_LIVE_MAIN_MISMATCH');
+  // Event payload is an assertion; re-read the named native producer before use.
+  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+    await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const runs={},artifactsByRun={},archivesById={},relatedById={};
   for(const spec of SPECS){
     runs[spec.id]=await workflowRuns(repo,spec,sourceSha,token);
@@ -220,6 +225,8 @@ async function liveInput(){
     const fresh=await api(`https://api.github.com/repos/${repo}/actions/runs/${related.run.id}`,token);
     if(generationSignature(fresh)!==generationSignature(related.run)||fresh.head_sha!==sourceSha||fresh.status!=='completed'||fresh.conclusion!=='success')fail('COVERAGE_ALIAS_RUN_CHANGED_DURING_READ');
   }
+  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+    await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const afterMain=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   if(afterMain?.commit?.sha!==sourceSha)fail('SENTINEL_MAIN_CHANGED_DURING_READ');
   return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById};
