@@ -148,11 +148,33 @@ const headers = {
   'X-GitHub-Api-Version': '2022-11-28'
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function get(url) {
-  const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
-  return JSON.parse(text);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+    const text = await response.text();
+    if (response.ok) return JSON.parse(text);
+
+    const rateLimited = response.status === 403 || response.status === 429;
+    const retryAfterSeconds = Number(response.headers.get('retry-after'));
+    const resetEpochSeconds = Number(response.headers.get('x-ratelimit-reset'));
+    let waitMs = 0;
+    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+      waitMs = retryAfterSeconds * 1000 + 1000;
+    } else if (Number.isFinite(resetEpochSeconds) && resetEpochSeconds > 0) {
+      waitMs = Math.max(0, resetEpochSeconds * 1000 - Date.now() + 1500);
+    }
+    if (rateLimited && attempt < 2 && waitMs > 0 && waitMs <= 75_000) {
+      console.error(JSON.stringify({ state: 'RATE_LIMIT_BACKOFF', attempt: attempt + 1, wait_ms: waitMs }));
+      await sleep(waitMs);
+      continue;
+    }
+    throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
+  }
+  throw new Error('GITHUB_RATE_LIMIT_RETRY_EXHAUSTED');
 }
 
 async function fetchCompleteSearch(query, key) {
@@ -179,11 +201,13 @@ async function fetchAllOpenIssues() {
 }
 
 async function fetchClosedMaterialCandidates() {
+  // GitHub's comma-separated label qualifier is OR. Query all labeled material
+  // closures once, then add exact-title mismatch probes so title authority cannot
+  // disappear merely because the corresponding severity label was stripped.
   const queries = [
-    [`repo:${repository} is:issue is:closed label:P0`, 'closed-label-p0'],
-    [`repo:${repository} is:issue is:closed label:P1`, 'closed-label-p1'],
-    [`repo:${repository} is:issue is:closed "[P0]" in:title`, 'closed-title-p0'],
-    [`repo:${repository} is:issue is:closed "[P1]" in:title`, 'closed-title-p1']
+    [`repo:${repository} is:issue is:closed label:P0,P1`, 'closed-label-material'],
+    [`repo:${repository} is:issue is:closed "[P0]" in:title -label:P0`, 'closed-title-p0-label-drift'],
+    [`repo:${repository} is:issue is:closed "[P1]" in:title -label:P1`, 'closed-title-p1-label-drift']
   ];
   const byNumber = new Map();
   for (const [query, key] of queries) {
@@ -217,6 +241,7 @@ try {
     support_alias_excluded: true,
     label_only_material_authority_preserved: true,
     authoritative_state_parity_checked: true,
+    bounded_rate_limit_backoff: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
