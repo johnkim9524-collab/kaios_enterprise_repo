@@ -56,7 +56,7 @@ function validate(text) {
   requireText('.name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"', 'hourly producer name binding');
   requireText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"', 'hourly producer path binding');
   requireText('.event=="schedule"', 'hourly canonical schedule binding');
-  requirePattern(/\.path==\"\\.github\\/workflows\\/kidults-asi-global-any-site-hourly-pooling-v2\\.yml\"\s+and \.head_branch==\"main\"\s+and \.head_sha==\$sha\s+and \.event==\"schedule\"/, 'exact hourly producer identity and SHA binding');
+  requireText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"\\n            and .head_branch=="main"\\n            and .head_sha==$sha\\n            and .event=="schedule"', 'exact hourly producer identity and SHA binding');
   requireText('.status=="completed"', 'producer terminal status binding');
   requireText('.conclusion=="success"', 'producer terminal success binding');
   requireText('/branches/main', 'live current-main read-back');
