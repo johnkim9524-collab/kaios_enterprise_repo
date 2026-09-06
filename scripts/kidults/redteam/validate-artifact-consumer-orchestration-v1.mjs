@@ -15,11 +15,13 @@ const files = {
   supersession: '.github/workflows/kpmo-exact-head-ci-supersession-v1.yml',
   assurance: '.github/workflows/kidults-platform-continuous-assurance-v1.yml',
   runHistory: 'scripts/kidults/source-intelligence/resolve-asi-orchestration-run-history-v1.mjs',
+  coverageAdmission: 'scripts/kidults/source-intelligence/classify-requirement-coverage-admission-v1.mjs',
 };
 
 for (const path of Object.values(files)) assert(fs.existsSync(path), `WORKFLOW_MISSING:${path}`);
 
 const requirement = read(files.requirement);
+const coverageAdmission = read(files.coverageAdmission);
 const snapshot = read(files.snapshot);
 const steering = read(files.steering);
 const autonomousResolution = read(files.autonomousResolution);
@@ -65,9 +67,10 @@ assert(!requirement.includes('--paginate') && requirement.includes('-f branch=ma
 assert(requirement.includes("if: success() && env.KIDULTS_COVERAGE_EXECUTE_FULL == 'true' && env.KIDULTS_COVERAGE_EPHEMERAL_LEADER == 'true'"), 'REQUIREMENT_FINAL_LEADER_PUBLICATION_MISSING');
 assert(requirement.includes('validate-safe-zip-archive-v1.py'), 'REQUIREMENT_PRE_EXTRACTION_LIMITS_MISSING');
 assert(requirement.includes("const upstreamClass='ASI_AUTONOMOUS_RESOLUTION'") && requirement.includes('canonical_run_key:canonicalRunKey'), 'REQUIREMENT_CANONICAL_RUN_BINDING_MISSING');
-const requirementProducerEventGuard = "github.event.workflow_run.event == 'workflow_run'";
+const requirementProducerEventGuard = "needs.classify-upstream-arl-generation.outputs.should_run == 'true'";
 const requirementExactTriggerLine = '\n            RUN_ID="$EVENT_ARL_RUN_ID"\n';
 assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_GUARD_MISSING');
+assert(requirement.includes('classify-requirement-coverage-admission-v1.mjs') && requirement.includes('kidults-asi-arl-p1-generation-classification-v1-${process.env.EVENT_ARL_RUN_ID}-${process.env.EVENT_ARL_RUN_ATTEMPT}') && coverageAdmission.includes("admission: 'EXPECTED_NONAUTHORITATIVE_SKIP'") && coverageAdmission.includes("admission: 'AUTHORITATIVE_REQUIRED'"), 'REQUIREMENT_ARL_CLASSIFICATION_ADMISSION_MISSING');
 assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
 assert(requirement.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MISSING');
 assert(requirement.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'REQUIREMENT_EXACT_TRIGGER_CONSUMER_SEMANTICS_MISSING');
