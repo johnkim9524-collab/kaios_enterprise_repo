@@ -12,6 +12,7 @@ const ARL_WORKFLOW_PATH = '.github/workflows/kidults-asi-autonomous-resolution-l
 const COVERAGE_WORKFLOW_NAME = 'KIDULTS ASI Requirement-to-Adapter Coverage v1';
 const COVERAGE_WORKFLOW_PATH = '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
 const MAX_ARL_HISTORY_PAGES = 20;
+const MAX_COVERAGE_HISTORY_PAGES = 25;
 const GITHUB_PAGE_SIZE = 100;
 
 export class OrchestrationRunHistoryError extends Error {}
@@ -172,12 +173,15 @@ export function resolveCoveragePriorSuccessExactQuery({
   requireSha(sourceSha);
   const cutoff = Date.parse(requireIso(createdSince, 'CREATED_SINCE_INVALID'));
   const total = requireSafeCount(payload?.total_count, 'COVERAGE_PRIOR_SUCCESS_TOTAL_INVALID');
-  if (!Array.isArray(payload?.workflow_runs) || payload.workflow_runs.length > GITHUB_PAGE_SIZE) {
+  const maximumRuns = MAX_COVERAGE_HISTORY_PAGES * GITHUB_PAGE_SIZE;
+  if (total > maximumRuns) {
+    fail('COVERAGE_PRIOR_SUCCESS_HISTORY_BUDGET_EXCEEDED', `${total}/${maximumRuns}`);
+  }
+  if (!Array.isArray(payload?.workflow_runs) || payload.workflow_runs.length > maximumRuns) {
     fail('COVERAGE_PRIOR_SUCCESS_RESPONSE_INVALID');
   }
-  const expectedReturned = Math.min(total, GITHUB_PAGE_SIZE);
-  if (payload.workflow_runs.length !== expectedReturned) {
-    fail('COVERAGE_PRIOR_SUCCESS_EXACT_QUERY_RETURN_COUNT_INVALID', `${payload.workflow_runs.length}/${expectedReturned}`);
+  if (payload.workflow_runs.length !== total) {
+    fail('COVERAGE_PRIOR_SUCCESS_PAGINATION_INCOMPLETE', `${payload.workflow_runs.length}/${total}`);
   }
   const expectedTitle = `KIDULTS Coverage / source-${sourceSha}`;
   const ids = new Set();
@@ -215,9 +219,10 @@ export function resolveCoveragePriorSuccessExactQuery({
     verified_nonauthoritative_skip_count: skipIds.size,
     verified_nonauthoritative_skip_run_ids: [...skipIds].sort((left, right) => left - right),
     prior_success_count: total - skipIds.size,
-    validation_sample_count: payload.workflow_runs.length,
+    validated_run_count: payload.workflow_runs.length,
     exact_query_filters: ['workflow_id', 'head_sha', 'branch', 'event', 'status', 'created'],
-    pagination_required_for_count: false,
+    pagination_complete: true,
+    pagination_required_for_semantic_exclusion: total > GITHUB_PAGE_SIZE,
     production: 'HOLD',
   };
 }
