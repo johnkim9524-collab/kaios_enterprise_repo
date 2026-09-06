@@ -14,7 +14,7 @@ on:
       - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   issues:
-    types: [opened, edited, reopened, labeled, unlabeled]
+    types: [opened, edited, reopened, closed, labeled, unlabeled]
   schedule:
     - cron: '9 * * * *'
   workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Validate open material-defect severity parity with complete pagination
+      - name: Validate material-defect severity and state parity with complete pagination
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
