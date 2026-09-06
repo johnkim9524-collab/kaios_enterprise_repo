@@ -106,7 +106,7 @@ function selfTest() {
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
   const closedOpen = { number: 6, state: 'closed', title: '[P1] closed drift', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / HOLD`' };
-  const closedClosed = { number: 7, state: 'closed', title: '[P1] legitimate closure', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / old`\ntext\n**State:** `P1 CLOSED / verified`' };
+  const closedClosed = { number: 7, state: 'closed', title: '[P1] legitimate closure', labels: [], body: '**State:** `P1 OPEN / old`\ntext\n**State:** `P1 CLOSED / verified`' };
   const openClosed = { number: 8, state: 'open', title: '[P0] reopened stale body', labels: [{ name: 'P0' }], body: 'State: `P0 CLOSED / stale`' };
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
@@ -222,7 +222,10 @@ async function fetchClosedMaterialCandidates() {
 try {
   const openIssues = await fetchAllOpenIssues();
   const closedMaterialCandidates = await fetchClosedMaterialCandidates();
-  const metadataFailures = [...openIssues, ...closedMaterialCandidates].flatMap(parityFailures);
+  // Preserve the existing open-registry severity contract. Closed candidates are
+  // admitted only to the state-parity audit: historical title/label cleanup must
+  // not mask or block the narrower authoritative OPEN/CLOSED invariant.
+  const metadataFailures = openIssues.flatMap(parityFailures);
   if (metadataFailures.length) fail(`SEVERITY_METADATA_MISMATCH:${metadataFailures.join(',')}`);
   const stateFailures = [...openIssues, ...closedMaterialCandidates].flatMap(stateParityFailures);
   if (stateFailures.length) fail(`MATERIAL_DEFECT_STATE_PARITY:${stateFailures.join(',')}`);
@@ -241,6 +244,7 @@ try {
     support_alias_excluded: true,
     label_only_material_authority_preserved: true,
     authoritative_state_parity_checked: true,
+    closed_metadata_is_advisory_for_state_parity: true,
     bounded_rate_limit_backoff: true,
     promotion_eligible: false,
     production: 'HOLD',
