@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {buildMaterialRegistry,materialRegistryDigest,parityFailures,runMaterialRegistrySelfTest,sha256} from './material-defect-registry-v3.mjs';
-import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommit,snapshotMismatchFields,validateMaterialRefreshProjection,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
+import {MEMBERS,AGGREGATE,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,BOT,marked,parseMarked,issueNo,generationId,memberPayload,commitPayload,validateMember,validateCommit,classifyIssueRegistrySnapshot,selfTest as libSelfTest} from './canonical-generation-v3-lib.mjs';
 
 const repo=process.env.GITHUB_REPOSITORY;
 const token=process.env.GITHUB_TOKEN||process.env.GH_TOKEN;
@@ -106,8 +106,9 @@ async function validateCurrent(snapshotValue,expectedRun=null,{allowMaterialRefr
   if(aggregate.user?.login!==BOT||issueNo(aggregate)!==AGGREGATE)die('AGGREGATE_COMMENT_IDENTITY_INVALID');
   const commit=parseMarked(aggregate.body,CS,CE);
   if(commit.protected_main_sha!==snapshotValue.protected_main_sha)return {stale:true,generation_id:commit.generation_id};
-  const refresh=allowMaterialRefresh&&snapshotMismatchFields(commit,snapshotValue).length>0;
-  const changedFields=refresh?validateMaterialRefreshProjection(commit,snapshotValue):[];
+  const classification=allowMaterialRefresh?classifyIssueRegistrySnapshot(commit,snapshotValue):null;
+  const refresh=classification?.stale===true;
+  const changedFields=refresh?classification.mismatch_fields:[];
   const comparison=refresh?commit:snapshotValue;
   validateCommit(commit,comparison,expectedRun);
   if(refresh){
@@ -130,7 +131,7 @@ async function validateCurrent(snapshotValue,expectedRun=null,{allowMaterialRefr
     }
     validateMember(member,comparison,{id:commit.generation_id,issue:MEMBERS[index],index:index+1,run:commit.writer_run_id,attempt:commit.writer_run_attempt});
   }
-  if(refresh)return {stale:true,refresh:{reason:'MATERIAL_SNAPSHOT_CHANGED',prior_generation_id:commit.generation_id,prior_aggregate_comment_id:aggregate.id,prior_aggregate_body_sha256:sha256(String(aggregate.body)),mismatch_fields:changedFields,prior_member_count_verified:MEMBERS.length}};
+  if(refresh)return {stale:true,stale_reason:classification.stale_reason,refresh:{reason:classification.stale_reason,prior_generation_id:commit.generation_id,prior_aggregate_comment_id:aggregate.id,prior_aggregate_body_sha256:sha256(String(aggregate.body)),mismatch_fields:changedFields,prior_member_count_verified:MEMBERS.length}};
   return {stale:false,generation_id:commit.generation_id,aggregate_comment_id:aggregate.id,writer_run_id:commit.writer_run_id,truth_digest:snapshotValue.truth_digest};
 }
 
@@ -212,7 +213,7 @@ async function write(){
     if(postWriteSnapshot.truth_digest!==snapshotValue.truth_digest)die('POST_WRITE_TRUTH_MOVED');
     const verified=await validateCurrent(postWriteSnapshot,run);
     if(!verified||verified.stale||verified.aggregate_comment_id!==aggregate.id)die('POST_WRITE_READBACK_INVALID');
-    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26,refresh:prior?.refresh||null});
+    receipt({state:'VERIFIED_PASS',mode:'COMMITTED',generation_id:id,aggregate_comment_id:aggregate.id,member_count:MEMBERS.length,truth_digest:postWriteSnapshot.truth_digest,authorization,writes:26,stale_reason:prior?.stale_reason||null,refresh:prior?.refresh||null});
   }catch(error){
     receipt({state:'VERIFIED_FAIL',mode:'PARTIAL_NONAUTHORITATIVE',generation_id:id,member_comments_written:entries.length,aggregate_comment_written:aggregate!==null,aggregate_comment_id:aggregate?.id||null,authorization,writes:entries.length+(aggregate?1:0),failure_class:error.message});
     throw error;
