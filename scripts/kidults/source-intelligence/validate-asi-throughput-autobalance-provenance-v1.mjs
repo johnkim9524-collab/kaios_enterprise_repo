@@ -56,7 +56,7 @@ function validate(text) {
   requireText('.name=="KIDULTS ASI Global Any-Site Hourly Pooling v2"', 'hourly producer name binding');
   requireText('.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"', 'hourly producer path binding');
   requireText('.event=="schedule"', 'hourly canonical schedule binding');
-  requireText('.head_sha==$sha', 'exact hourly producer SHA binding');
+  requirePattern(/\.path==\"\\.github\\/workflows\\/kidults-asi-global-any-site-hourly-pooling-v2\\.yml\"\s+and \.head_branch==\"main\"\s+and \.head_sha==\$sha\s+and \.event==\"schedule\"/, 'exact hourly producer identity and SHA binding');
   requireText('.status=="completed"', 'producer terminal status binding');
   requireText('.conclusion=="success"', 'producer terminal success binding');
   requireText('/branches/main', 'live current-main read-back');
@@ -114,7 +114,7 @@ const mutations = [
   ['test "$DISC_ID" = "$RECEIPT_DISCOVERY_ARTIFACT_ID"','test "$DISC_ID" != "$RECEIPT_DISCOVERY_ARTIFACT_ID"'],
   ['if length==1 then .[0] else empty end','.[0] // empty'],
   ['.run_attempt==$attempt','.run_attempt>0'],
-  ['.head_sha==$sha','.head_sha=="0000000000000000000000000000000000000000"'],
+  ['.head_sha==$sha\n            and .event=="schedule"','.head_sha=="0000000000000000000000000000000000000000"\n            and .event=="schedule"'],
   ['.event=="schedule"','.event!="pull_request"'],
   ['CURRENT_MAIN_ADVANCED_BEFORE_AUTOBALANCE','CURRENT_MAIN_CHANGED'],
   ['relay_chain_exact: true','relay_chain_exact: false'],
