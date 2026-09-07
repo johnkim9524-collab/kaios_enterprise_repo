@@ -1,0 +1,47 @@
+name: KIDULTS D-Day Operations Readiness V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/operations/**'
+      - 'docs/operations/d-day/**'
+      - 'scripts/kidults/operations/**'
+      - 'tests/kidults/operations/**'
+      - '.github/workflows/kidults-d-day-operations-readiness-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/operations/**'
+      - 'docs/operations/d-day/**'
+      - 'scripts/kidults/operations/**'
+      - 'tests/kidults/operations/**'
+      - '.github/workflows/kidults-d-day-operations-readiness-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-operations-readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate operational readiness package
+        run: |
+          node --test tests/kidults/operations/d-day-operations-readiness-v1.test.mjs
+          node scripts/kidults/operations/validate-d-day-operations-readiness-v1.mjs
+          node scripts/kidults/operations/run-d-day-provider-simulation-v1.mjs > "$RUNNER_TEMP/provider-simulation.json"
+          node scripts/kidults/operations/build-d-day-observability-dashboard-v1.mjs > "$RUNNER_TEMP/operations-dashboard.json"
+      - name: Revalidate Current SOLD engine controls
+        run: |
+          node --test tests/kidults/market/current-sold-engine-v1.test.mjs tests/kidults/market/current-sold-atomic-admission-v1.test.mjs tests/kidults/market/current-sold-batch-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs
+          node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs
+          node scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs
