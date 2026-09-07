@@ -241,15 +241,18 @@ expectFailClosed((input) => { input.candidates[0].receipt.canonical_input_digest
 expectFailClosed((input) => { input.candidates[0].receipt.coverage_manifest_digest = `sha256:${'e'.repeat(64)}`; }, 'receipt tamper');
 expectFailClosed((input) => { input.candidates[0].semantic_input_receipt_file_digest = `sha256:${'e'.repeat(64)}`; }, 'semantic receipt file tamper');
 expectFailClosed((input) => { input.candidates[0].semantic_input_receipt.material.source_sha = 'f'.repeat(40); }, 'semantic material tamper');
-expectFailClosed((input) => { input.readback.total_count = 2; }, 'incomplete readback');
-expectFailClosed((input) => { input.candidates.push(structuredClone(input.candidates[0])); input.readback.total_count = 2; input.readback.returned_count = 2; }, 'multiple leaders');
+expectFailClosed((input) => { input.readback.total_count = 2; input.readback.prior_success_count = 2; }, 'incomplete readback');
+expectFailClosed((input) => { input.candidates.push(structuredClone(input.candidates[0])); input.readback.total_count = 2; input.readback.returned_count = 2; input.readback.prior_success_count = 2; }, 'multiple leaders');
 expectFailClosed((input) => { input.candidates[0].run.id = 200; input.candidates[0].artifact.workflow_run.id = 200; input.candidates[0].receipt.canonical_workflow_run_id = 200; }, 'current run cannot be prior leader');
-const visibilityLag = resolveCoverageCanonicalGuard({
+assert.throws(() => resolveCoverageCanonicalGuard({
   ...emptyInput,
   readback: { state: 'COMPLETE', total_count: 0, returned_count: 0, prior_success_count: 1, reason_codes: [] },
-});
-assert.equal(visibilityLag.fail_closed, true);
-assert.equal(visibilityLag.guard.state, 'ARTIFACT_VISIBILITY_OR_RETENTION_HOLD');
+}), /PRIOR_SUCCESS_MUST_EQUAL_CANONICAL_ARTIFACT_TOTAL/);
+const expiredCanonical = structuredClone(aliasInput);
+expiredCanonical.candidates[0].artifact.expired = true;
+const retentionHold = resolveCoverageCanonicalGuard(expiredCanonical);
+assert.equal(retentionHold.fail_closed, true);
+assert.equal(retentionHold.guard.state, 'ARTIFACT_VISIBILITY_OR_RETENTION_HOLD');
 const trueSemanticDivergence = resolveCoverageCanonicalGuard({
   ...aliasInput,
   current: {
