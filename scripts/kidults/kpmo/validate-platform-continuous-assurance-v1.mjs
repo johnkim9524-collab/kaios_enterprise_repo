@@ -6,19 +6,21 @@ await import('./validate-platform-continuous-assurance-core-v1.mjs');
 const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const workflowName = 'KIDULTS Platform Continuous Assurance V1';
 const barrierMarker = 'Enforce exact-main core-four producer health before canonical leader publication';
+const leaderMarker = 'Publish successful bounded canonical leader artifact';
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 
 export function mustFailClosedForP11550({ ref, event, activeWorkflow, source }) {
   const liveAssurance = ref === 'refs/heads/main' && event !== 'pull_request' && activeWorkflow === workflowName;
-  const inlineBarrierPresent = typeof source === 'string' && source.includes(barrierMarker) &&
-    source.indexOf(barrierMarker) < source.indexOf('Publish successful bounded canonical leader artifact');
+  const barrierIndex = typeof source === 'string' ? source.indexOf(barrierMarker) : -1;
+  const leaderIndex = typeof source === 'string' ? source.indexOf(leaderMarker) : -1;
+  const inlineBarrierPresent = barrierIndex >= 0 && leaderIndex >= 0 && barrierIndex < leaderIndex;
   return liveAssurance && !inlineBarrierPresent;
 }
 
 if (!mustFailClosedForP11550({ ref: 'refs/heads/main', event: 'schedule', activeWorkflow: workflowName, source: workflow })) {
   throw new Error('P1_1550_CONTAINMENT_SELFTEST_LIVE_MAIN_MUST_FAIL_WITHOUT_INLINE_BARRIER');
 }
-if (mustFailClosedForP11550({ ref: 'refs/heads/main', event: 'schedule', activeWorkflow: workflowName, source: `${workflow}\n${barrierMarker}\nPublish successful bounded canonical leader artifact` })) {
+if (mustFailClosedForP11550({ ref: 'refs/heads/main', event: 'schedule', activeWorkflow: workflowName, source: `${barrierMarker}\n${leaderMarker}` })) {
   throw new Error('P1_1550_CONTAINMENT_SELFTEST_INLINE_BARRIER_MUST_RELEASE_CONTAINMENT');
 }
 if (mustFailClosedForP11550({ ref: 'refs/heads/main', event: 'pull_request', activeWorkflow: workflowName, source: workflow })) {
