@@ -176,7 +176,9 @@ export function renderK100(k100) {
           <span class="k100-category">${esc(item.category)}</span>
         </header>
         <h3>${esc(item.title)}</h3>
-        <div class="k100-figure"><img src="${esc(item.asset)}?v=658" alt="${esc(item.title)}" loading="lazy"></div>
+        <div class="k100-figure">${typeof item.asset === "string" && item.asset
+          ? `<img src="${esc(item.asset)}?v=658" alt="${esc(item.title)}" loading="lazy">`
+          : `<span class="snapshot-state">${esc(item.portal_label ?? item.asset_status ?? "VISUAL NOT AVAILABLE")}</span>`}</div>
         <div class="k100-score${item.score === null ? " score-gated" : ""}">
           <strong>${score}</strong>
           <p>${detail}</p>

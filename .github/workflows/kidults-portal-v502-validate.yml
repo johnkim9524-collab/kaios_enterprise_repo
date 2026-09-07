@@ -168,10 +168,19 @@ jobs:
 
       - name: Start local KIDULTS portal
         run: |
-          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v663-server.log 2>&1 &
+          mkdir -p /tmp/kidults-v663-conversion-data
+          printf 'kidults-v663-visual-nonproduction-secret' > /tmp/kidults-v663-conversion-secret
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-v663-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-v663-conversion-secret \
+          KIDULTS_SYNTHETIC_PORTAL_PROJECTION_PATH="$GITHUB_WORKSPACE/coordination/kidults/synthetic/generated/synthetic-portal-projection-v1.json" \
+          HOST=127.0.0.1 PORT=4173 \
+          node apps/kidults-enterprise-staging/server.mjs > /tmp/kidults-v663-server.log 2>&1 &
           echo $! > /tmp/kidults-v663-server.pid
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:4173/portal/index.html >/dev/null; then
+            if curl --fail --silent http://127.0.0.1:4173/health >/dev/null; then
               exit 0
             fi
             sleep 1
