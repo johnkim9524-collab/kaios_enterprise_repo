@@ -8,6 +8,7 @@ const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, charac
 }[character]));
 const human = value => String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
 const present = value => value !== null && value !== undefined && value !== "";
+const isSynthetic = record => record?.data_bucket === "SYNTHETIC" || record?.environment === "SYNTHETIC" || record?.synthetic === true;
 
 export function assertDecisionDataSeparation(record) {
   const bucket = record?.data_bucket ?? (record?.environment === "SYNTHETIC" || record?.synthetic === true ? "SYNTHETIC" : "CURRENT");
@@ -60,21 +61,22 @@ export function buildDecisionSnapshot(data) {
 }
 
 export function buildMarketCardMetadata(signal, data) {
+  const synthetic = isSynthetic(signal);
+  if (synthetic) assertDecisionDataSeparation(signal);
   const rightsReleased = data?.connections?.sources?.some(source => source.publicationEligible === true) === true;
   return {
-    confidence: present(signal?.confidence) ? `${signal.confidence}% PREVIEW` : "NOT AVAILABLE",
+    confidence: !synthetic && present(signal?.confidence) ? `${signal.confidence}% PREVIEW` : "NOT AVAILABLE",
     freshness: signal?.updated ?? data?.signals?.updated_at ?? "NOT AVAILABLE",
-    rights: rightsReleased ? "PARTIAL" : "HOLD",
-    evidence_count: present(signal?.sources) ? String(signal.sources) : "NOT AVAILABLE",
+    rights: !synthetic && rightsReleased ? "PARTIAL" : "HOLD",
     market_authority: false,
     decision_eligible: false
   };
 }
 
 export function buildObjectDecisionModel(object, k100, manifest, registry = {}) {
-  const synthetic = object?.environment === "SYNTHETIC" || object?.synthetic === true;
+  const synthetic = isSynthetic(object);
   if (synthetic) assertDecisionDataSeparation(object);
-  const confidence = present(object?.confidence) ? `${object.confidence}%` : "NOT AVAILABLE";
+  const confidence = !synthetic && present(object?.confidence) ? `${object.confidence}%` : "NOT AVAILABLE";
   const rights = object?.rights_status ?? "HOLD";
   const trackB = registry.assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE";
   const currentSold = object?.current_sold?.verified === true && !synthetic
@@ -121,12 +123,8 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
 }
 
 export function buildResearchDecisionFlow(data) {
-  const sections = data?.research?.sections ?? [];
   return {
     timeline: data?.research?.issue ?? "NOT AVAILABLE",
-    reasoning: sections.find(item => /intelligence|pulse/i.test(item.title))?.summary ?? "NOT AVAILABLE",
-    market_context: sections.find(item => /observability|market/i.test(item.title))?.summary ?? "NOT AVAILABLE",
-    conclusion: sections.find(item => /risk/i.test(item.title))?.summary ?? "HOLD — evidence gates unresolved",
     evidence_state: data?.registry?.evidence?.status ?? "NOT AVAILABLE",
     final_decision_allowed: false
   };
@@ -223,8 +221,9 @@ function extendMarketCards(data) {
     const meta = buildMarketCardMetadata(data.signals?.signals?.[index], data);
     const node = document.createElement("dl");
     node.dataset.v587MarketMeta = "true";
-    node.className = "v587-market-meta";
-    node.innerHTML = [["Confidence", meta.confidence], ["Freshness", meta.freshness], ["Rights", meta.rights], ["Evidence Count", meta.evidence_count]]
+    node.className = "v587-market-badges";
+    node.setAttribute("aria-label", "Signal confidence, rights and freshness");
+    node.innerHTML = [["Confidence", meta.confidence], ["Rights", meta.rights], ["Freshness", meta.freshness]]
       .map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("");
     card.append(node);
     card.insertAdjacentHTML("beforeend", evidenceButton(`market-${index}`));
@@ -236,11 +235,10 @@ function extendResearch(data) {
   if (!host || host.querySelector("[data-v587-research-flow]")) return;
   const flow = buildResearchDecisionFlow(data);
   const node = document.createElement("section");
-  node.className = "v587-research-flow";
+  node.className = "v587-research-timeline";
   node.dataset.v587ResearchFlow = "true";
-  node.setAttribute("aria-label", "Research decision flow");
-  node.innerHTML = [["Evidence Timeline", flow.timeline], ["Reasoning", flow.reasoning], ["Market Context", flow.market_context], ["Conclusion", flow.conclusion]]
-    .map(([label, value]) => `<article><p class="eyebrow">${esc(label)}</p><p>${esc(value)}</p></article>`).join("");
+  node.setAttribute("aria-label", "Research evidence timeline");
+  node.innerHTML = `<p class="eyebrow">EVIDENCE TIMELINE</p><time>${esc(flow.timeline)}</time><span>${esc(flow.evidence_state)}</span>`;
   host.append(node);
 }
 

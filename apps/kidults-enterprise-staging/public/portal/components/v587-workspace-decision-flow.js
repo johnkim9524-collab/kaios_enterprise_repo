@@ -1,5 +1,6 @@
 const STORAGE_KEY = "kidults-v587-watchlist-v1";
 const STYLE_ID = "kidults-v587-decision-intelligence-style";
+const isSynthetic = record => record?.data_bucket === "SYNTHETIC" || record?.environment === "SYNTHETIC" || record?.synthetic === true;
 
 const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
@@ -7,6 +8,7 @@ const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, charac
 
 export function buildWorkspaceDecisionPacket(data, selectedIds = []) {
   const objects = (data?.k100?.items ?? []).filter(item => selectedIds.includes(item.id));
+  if (objects.some(isSynthetic)) throw new Error("V587_SYNTHETIC_EXPORT_PROHIBITED");
   return {
     packet_id: "kidults-v587-workspace-decision-packet-v1",
     snapshot_id: data?.registry?.snapshot?.candidate_id ?? data?.registry?.snapshot?.baseline_id ?? "NOT AVAILABLE",
@@ -90,7 +92,7 @@ export function startV587WorkspaceDecisionFlow(data) {
 
   const render = () => {
     const packet = buildWorkspaceDecisionPacket(data, selected);
-    objectsNode.innerHTML = (data.k100?.items ?? []).map(item => {
+    objectsNode.innerHTML = (data.k100?.items ?? []).filter(item => !isSynthetic(item)).map(item => {
       const active = selected.includes(item.id);
       return `<button type="button" data-v587-watch="${esc(item.id)}" aria-pressed="${active}">
         <span>${active ? "WATCHING" : "ADD"}</span><strong>${esc(item.title)}</strong><small>Rights ${esc(item.rights_status ?? "HOLD")}</small></button>`;

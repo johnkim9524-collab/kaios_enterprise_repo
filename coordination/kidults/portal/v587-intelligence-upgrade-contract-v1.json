@@ -16,15 +16,22 @@
   },
   "protected_surfaces": ["HERO", "TYPOGRAPHY", "PRIMARY_NAVIGATION", "GRID", "LAYOUT_RHYTHM", "LUXURY_SPACING", "COLOR_SYSTEM", "FOOTER", "ANIMATION_LANGUAGE", "BRAND_IDENTITY"],
   "visual_change_budget_percent": 5,
-  "features": ["DECISION_SNAPSHOT", "MARKET_CARD_EVIDENCE_META", "OBJECT_DECISION_HIERARCHY", "STICKY_DECISION_PANEL", "RIGHT_EVIDENCE_DRAWER", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_FLOW", "RESEARCH_REASONING_FLOW"],
+  "north_star": "THE_GLOBAL_LUXURY_COLLECTIBLES_INTELLIGENCE_PLATFORM",
+  "experience_hierarchy": ["LUXURY", "TRUST", "AUTHORITY", "DECISION"],
+  "features": ["DECISION_SNAPSHOT", "CONFIDENCE_BADGE", "RIGHTS_BADGE", "FRESHNESS_BADGE", "EVIDENCE_DRAWER", "DECISION_PANEL", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_MEMO", "RESEARCH_EVIDENCE_TIMELINE"],
   "data_separation": {
     "physical_buckets": ["CURRENT", "HISTORICAL", "PROJECTED", "SYNTHETIC"],
     "synthetic_notice": "SYNTHETIC TEST DATA",
     "synthetic_production": false,
     "synthetic_public": false,
     "synthetic_market_authority": false,
-    "cross_bucket_inference": false
+    "cross_bucket_inference": false,
+    "synthetic_rankings": false,
+    "synthetic_confidence": false,
+    "synthetic_market_statistics": false,
+    "synthetic_exports": false
   },
+  "acceptance_questions": ["PRESERVES_V587_LUXURY_DNA", "INCREASES_TRUST", "IMPROVES_DECISION_QUALITY", "REDUCES_UNCERTAINTY", "MEETS_APPLE_HERMES_BLOOMBERG_QUALITY_BAR"],
   "truth_rules": {
     "missing_evidence": "NOT_AVAILABLE",
     "missing_rights": "HOLD",

@@ -28,6 +28,7 @@ test("keeps every protected V587 foundation file byte-stable", () => {
   }
   assert.equal(contract.upgrade_class, "EXTENSION_ONLY_NOT_REDESIGN_NOT_V600");
   assert.equal(contract.visual_change_budget_percent, 5);
+  assert.deepEqual(contract.features, ["DECISION_SNAPSHOT", "CONFIDENCE_BADGE", "RIGHTS_BADGE", "FRESHNESS_BADGE", "EVIDENCE_DRAWER", "DECISION_PANEL", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_MEMO", "RESEARCH_EVIDENCE_TIMELINE"]);
 });
 
 test("does not retarget protected identity selectors or introduce a replacement design system", () => {
@@ -64,9 +65,9 @@ test("renders the required evidence-confidence-decision hierarchy with fail-clos
   assert.equal(object.market_authority, false);
 });
 
-test("extends market cards with evidence metadata without granting market authority", () => {
+test("extends market cards with only approved confidence, rights and freshness badges", () => {
   const meta = buildMarketCardMetadata(signals.signals[0], { signals, connections: { sources: [] } });
-  assert.deepEqual(Object.keys(meta), ["confidence", "freshness", "rights", "evidence_count", "market_authority", "decision_eligible"]);
+  assert.deepEqual(Object.keys(meta), ["confidence", "freshness", "rights", "market_authority", "decision_eligible"]);
   assert.equal(meta.rights, "HOLD");
   assert.equal(meta.market_authority, false);
   assert.equal(meta.decision_eligible, false);
@@ -84,6 +85,13 @@ test("physically separates synthetic records and rejects any weakened boundary",
     portal_label: "SYNTHETIC TEST DATA — INTERNAL VALIDATION ONLY"
   };
   assert.equal(assertDecisionDataSeparation(synthetic), "SYNTHETIC");
+  const syntheticObject = buildObjectDecisionModel({ ...synthetic, id: "synthetic-object", confidence: 100, evidence_count: 99, rights_status: "CLEARED", current_sold: { verified: true, display_value: "$1" } }, k100, manifest, { assessment: { gate_state: "PASS" } });
+  assert.equal(syntheticObject.panel.confidence, "NOT AVAILABLE");
+  assert.equal(syntheticObject.panel.evidence, "NOT AVAILABLE");
+  assert.equal(syntheticObject.panel.decision, "HOLD");
+  const syntheticMarket = buildMarketCardMetadata({ ...synthetic, confidence: 100, sources: 99 }, { connections: { sources: [{ publicationEligible: true }] } });
+  assert.equal(syntheticMarket.confidence, "NOT AVAILABLE");
+  assert.equal(syntheticMarket.rights, "HOLD");
   for (const mutation of [
     ["empirical", true], ["production_eligible", true], ["public_eligible", true],
     ["market_authority", true], ["portal_label", "COLLECTIBLE MARKET DATA"]
@@ -101,11 +109,13 @@ test("preserves the complete internal workspace decision sequence and non-promot
   assert.equal(packet.final_decision_allowed, false);
   assert.equal(packet.production_eligible, false);
   assert.equal(packet.public_eligible, false);
+  const synthetic = { id: "synthetic-export", data_bucket: "SYNTHETIC", environment: "SYNTHETIC", synthetic: true };
+  assert.throws(() => buildWorkspaceDecisionPacket({ k100: { items: [...k100.items, synthetic] }, registry }, [synthetic.id]), /V587_SYNTHETIC_EXPORT_PROHIBITED/);
 });
 
-test("adds research reasoning and canonical evidence preview without popup or new-page evidence UX", () => {
+test("adds the approved research evidence timeline and canonical preview without popup or new-page evidence UX", () => {
   const flow = buildResearchDecisionFlow({ research, registry });
-  assert.deepEqual(Object.keys(flow), ["timeline", "reasoning", "market_context", "conclusion", "evidence_state", "final_decision_allowed"]);
+  assert.deepEqual(Object.keys(flow), ["timeline", "evidence_state", "final_decision_allowed"]);
   assert.equal(flow.final_decision_allowed, false);
   const component = read("public/portal/components/v587-decision-intelligence.js");
   assert.match(component, /document\.createElement\("aside"\)/);
@@ -119,6 +129,7 @@ test("adds research reasoning and canonical evidence preview without popup or ne
   assert.match(interactions, /evidencePreview/);
   assert.match(store, /canonicalState/);
   assert.match(store, /evidencePreview/);
+  assert.match(store, /item\.data_bucket === "SYNTHETIC"/);
 });
 
 test("integrates all extensions after existing renderers without modifying frozen homepage markup", () => {

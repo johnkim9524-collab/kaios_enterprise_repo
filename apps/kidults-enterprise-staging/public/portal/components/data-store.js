@@ -123,6 +123,7 @@ function buildSearchIndex({ verticals, k100, research, archive }) {
   }
 
   for (const item of k100.items) {
+    if (item.data_bucket === "SYNTHETIC" || item.environment === "SYNTHETIC" || item.synthetic === true) continue;
     records.push({
       type: "Object",
       title: item.title,
