@@ -34,6 +34,7 @@ if assessment_path.exists():
     envelope = json.loads(assessment_path.read_text(encoding="utf-8"))
     assessment = envelope["assessment"]
     check(envelope["synthetic"] is False, "synthetic input admitted")
+    check(envelope["promotable"] is False, "HOLD envelope was marked promotable")
     check(assessment["assessment_status"] == "COMPLETED", "Track B not completed")
     check(assessment["recommendation"] == "CONDITIONAL", "expected CONDITIONAL")
     check(assessment["overall_rankability"] is False, "conditional pair promoted")
