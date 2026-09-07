@@ -10,6 +10,41 @@ PAGE_SIZE="${PAGE_SIZE:-25}"
 
 mkdir -p "$RECEIPT_DIR"
 
+api_call_attempted=false
+failure_reason_code="CLOUDFLARE_READONLY_RUNTIME_FAILURE"
+tmp_dir=""
+
+preserve_terminal_receipt() {
+  local status="$1"
+  trap - EXIT
+  if (( status != 0 )) && [[ ! -s "$RECEIPT_DIR/final.json" ]]; then
+    local token_present=false account_id_present=false receipt_tmp="$RECEIPT_DIR/final.json.tmp"
+    [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] && token_present=true
+    [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] && account_id_present=true
+    jq -n --arg reason_code "$failure_reason_code" --arg project "$PROJECT_NAME" \
+      --arg expected_repository "$EXPECTED_REPOSITORY" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
+      --argjson exit_code "$status" --argjson api_token_present "$token_present" \
+      --argjson account_id_present "$account_id_present" --argjson api_call_attempted "$api_call_attempted" '{
+        id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:"VERIFIED_FAIL",reason_code:$reason_code,
+        exit_code:$exit_code,project:$project,expected_repository:$expected_repository,current_main_sha:$current_main_sha,
+        credential_presence:{api_token_present:$api_token_present,account_id_present:$account_id_present},
+        cloudflare_api_call_attempted:$api_call_attempted,cloudflare_api_called:$api_call_attempted,
+        settings_readback_complete:false,deployment_inventory_complete:false,terminal_receipt_preserved:true,
+        read_only:true,settings_mutated:false,deployment_created:false,deployment_deleted:false,
+        platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
+      }' > "$receipt_tmp"
+    mv "$receipt_tmp" "$RECEIPT_DIR/final.json"
+  fi
+  [[ -z "${tmp_dir:-}" ]] || rm -rf "$tmp_dir"
+  exit "$status"
+}
+trap 'status=$?; preserve_terminal_receipt "$status"' EXIT
+
+if [[ "${KIDULTS_CLOUDFLARE_RECEIPT_SELF_TEST:-false}" == "true" ]]; then
+  failure_reason_code="DEPLOYMENT_PAGE_LIMIT_EXCEEDED"
+  exit 68
+fi
+
 write_preflight_failure_receipt() {
   local state="$1" reason_code="$2" exit_code="$3"
   local token_present=false account_id_present=false
@@ -38,9 +73,9 @@ write_preflight_failure_receipt() {
 
 API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT_NAME}"
 tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
 
 api_get() {
+  api_call_attempted=true
   curl --fail-with-body --silent --show-error --retry 3 --retry-delay 1 --retry-all-errors \
     --connect-timeout 10 --max-time 45 --request GET \
     --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" --header "Accept: application/json" "$1" > "$2"
@@ -50,13 +85,13 @@ list_all_deployments() {
   local output="$1" page=1 total_pages=1 page_file
   : > "$tmp_dir/deployments.ndjson"
   while (( page <= total_pages )); do
-    (( page <= MAX_PAGES )) || return 68
+    (( page <= MAX_PAGES )) || { failure_reason_code="DEPLOYMENT_PAGE_LIMIT_EXCEEDED"; return 68; }
     page_file="$tmp_dir/deployments-page-${page}.json"
     api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
     jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
     jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson"
     total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
-    (( total_pages <= MAX_PAGES )) || return 68
+    (( total_pages <= MAX_PAGES )) || { failure_reason_code="DEPLOYMENT_PAGE_LIMIT_EXCEEDED"; return 68; }
     page=$((page + 1))
   done
   [[ -s "$tmp_dir/deployments.ndjson" ]] && jq -s '.' "$tmp_dir/deployments.ndjson" > "$output" || printf '[]\n' > "$output"
