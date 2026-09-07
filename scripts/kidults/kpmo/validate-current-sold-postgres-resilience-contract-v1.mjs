@@ -75,7 +75,7 @@ if (process.argv.includes('--self-test')) {
   const workflowMutations = [
     [workflow.replace('      - name: Initialize fail-closed Current-SOLD resilience receipt', '      - name: Removed prevalidation receipt'), 'WORKFLOW_PREVALIDATION_RECEIPT_NOT_SEALED'],
     [workflow.replace(stepBinding, ''), 'WORKFLOW_STEP_SERVICE_CONTEXT_BINDING_MISSING'],
-    [workflow.replace(stepBinding, '    env:\n      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n'), 'WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE']
+    [workflow.replace(stepBinding, '').replace('\n    steps:\n', '\n    env:\n      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n\n    steps:\n'), 'WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE']
   ];
   for (const [candidate, expected] of workflowMutations) {
     let observed = null;
