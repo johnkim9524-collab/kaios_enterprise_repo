@@ -2,8 +2,6 @@ name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '37 * * * *'
   push:
     branches: [main]
     paths:
@@ -20,6 +18,8 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+      - '.github/workflows/kidults-asi-p0b-provider-hard-disable-regression-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -36,11 +36,8 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI P0 Mission Consumption v1'
-    branches: [main]
-    types: [completed]
+      - '.github/workflows/kidults-asi-p0b-provider-hard-disable-regression-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs'
 
 permissions:
   contents: read
@@ -57,6 +54,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
+      - name: Enforce P0B direct-provider hard-disable
+        run: |
+          set -euo pipefail
+          echo "::error::P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED: Source Fabric must be the sole provider-budget authority"
+          exit 1
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
@@ -237,6 +239,10 @@ jobs:
             job_status:process.env.KPMO_JOB_STATUS,
             manifest_present:manifestExists,
             failure_contained:!pass,
+            failure_code:pass?null:'P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED',
+            provider_requests_issued_by_p0b:0,
+            provider_execution_authority:false,
+            shared_provider_budget_required:true,
             candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',
             evidence_admission:'NONE',
             public_release:'HOLD',
