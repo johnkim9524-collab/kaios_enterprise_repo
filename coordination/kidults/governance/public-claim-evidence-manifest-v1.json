@@ -1,0 +1,26 @@
+{
+  "id": "public-claim-evidence-manifest-v1",
+  "version": "1.0.0",
+  "status": "COMPLETE_EMPTY_PUBLIC_CLAIM_SET_RELEASE_HOLD",
+  "scope": "EXTERNALLY_VISIBLE_KIDULTS_PORTAL_CLAIMS",
+  "portal_surfaces": ["portal/index.html", "portal/workspace.html", "portal/vertical.html", "portal/object.html"],
+  "rules": {
+    "claim_requires_authoritative_evidence": true,
+    "claim_requires_field_level_release_allow": true,
+    "missing_evidence": "REJECT",
+    "orphan_evidence": "REJECT",
+    "claim_strength_must_not_exceed_evidence_strength": true,
+    "public_hold_requires_zero_released_claims": true
+  },
+  "claims": [],
+  "evidence": [],
+  "summary": {"claim_count":0,"evidence_count":0,"missing_evidence_count":0,"orphan_evidence_count":0,"released_claim_count":0},
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD",
+  "truth_boundary": "The empty set proves that no externally visible data claim is authorized while Public remains HOLD. It is not evidence that current-market claims exist or are sufficient.",
+  "autonomous_effect": "Unsupported or orphaned public claims fail validation.",
+  "global_effect": "No global empirical claim is made from an empty release set.",
+  "irreplaceable_value_effect": "Future claims must bind KIDULTS-owned lineage to authoritative source evidence.",
+  "transparency_effect": "Zero claims, zero evidence, zero missing links, and zero orphan links are explicit."
+}
