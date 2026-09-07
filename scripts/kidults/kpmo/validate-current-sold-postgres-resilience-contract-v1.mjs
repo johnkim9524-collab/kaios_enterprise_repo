@@ -35,15 +35,19 @@ function validateWorkflow(text) {
     'validate-current-sold-postgres-resilience-contract-v1.mjs --self-test',
     'verify-current-sold-postgres-resilience-v1.sh',
     'if: always()',
+    '"failure_code": "PRE_EXECUTION_VALIDATION_INCOMPLETE_FAIL_CLOSED"',
     'out/current-sold-postgres-resilience/receipt.json',
     'if-no-files-found: error'
   ]) if (!text.includes(token)) fail(`WORKFLOW_CONTRACT_TOKEN_MISSING:${token}`);
 
   const stepsBoundary = text.indexOf('\n    steps:\n');
+  const initStep = text.indexOf('      - name: Initialize fail-closed Current-SOLD resilience receipt');
+  const contractStep = text.indexOf('      - name: Verify resilience contract and mutation self-tests');
   const executionStep = text.indexOf('      - name: Execute pinned ephemeral Current-SOLD PostgreSQL resilience attacks');
   const executionRun = text.indexOf('        run: bash scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh', executionStep);
   const serviceBinding = text.indexOf('          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}', executionStep);
   if (stepsBoundary < 0 || executionStep < stepsBoundary) fail('WORKFLOW_STEPS_BOUNDARY_INVALID');
+  if (initStep < stepsBoundary || contractStep < initStep || executionStep < contractStep) fail('WORKFLOW_PREVALIDATION_RECEIPT_NOT_SEALED');
   if (text.slice(0, stepsBoundary).includes('KIR_SQL_TEST_CONTAINER_ID')) fail('WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE');
   if (serviceBinding < executionStep || serviceBinding > executionRun) fail('WORKFLOW_STEP_SERVICE_CONTEXT_BINDING_MISSING');
 }
@@ -55,8 +59,8 @@ validateWorkflow(workflow);
 
 if (process.argv.includes('--self-test')) {
   const mutations = [
-    [script.replace("| grep -qx '0'", "| cat"), 'ZERO_CARDINALITY_ASSERTION_MISSING'],
-    [script.replace("| grep -qx '1'", "| cat"), 'ONE_CARDINALITY_ASSERTION_MISSING'],
+    [script.replaceAll("| grep -qx '0'", "| cat"), 'ZERO_CARDINALITY_ASSERTION_MISSING'],
+    [script.replaceAll("| grep -qx '1'", "| cat"), 'ONE_CARDINALITY_ASSERTION_MISSING'],
     [script.replace('\nwrite_fail_receipt\n', '\n# removed fail receipt\n'), 'FAIL_RECEIPT_NOT_SEALED_BEFORE_MUTATION'],
     [script.replace('\nwrite_pass_receipt\n', '\ntrue\n'), 'PASS_RECEIPT_PUBLISHED_BEFORE_RESTART_PROOF'],
     [`${script}\nprintf '%s\\n' $((1/0))\n`, 'CONSTANT_FOLDED_ASSERTION_TRAP_PRESENT']
@@ -69,6 +73,7 @@ if (process.argv.includes('--self-test')) {
 
   const stepBinding = '        env:\n          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n';
   const workflowMutations = [
+    [workflow.replace('      - name: Initialize fail-closed Current-SOLD resilience receipt', '      - name: Removed prevalidation receipt'), 'WORKFLOW_PREVALIDATION_RECEIPT_NOT_SEALED'],
     [workflow.replace(stepBinding, ''), 'WORKFLOW_STEP_SERVICE_CONTEXT_BINDING_MISSING'],
     [workflow.replace(stepBinding, '    env:\n      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n'), 'WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE']
   ];
