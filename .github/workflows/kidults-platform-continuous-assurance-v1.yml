@@ -1196,6 +1196,51 @@ jobs:
           if (!baseValid || !branchValid) process.exit(1);
           NODE
 
+      - name: Resolve exact-SHA producer health inside Assurance before canonical publication
+        id: same-run-producer-health
+        if: >-
+          github.event_name != 'pull_request' &&
+          env.KPMO_EXECUTE_FULL_AUDIT == 'true' &&
+          env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs \
+            --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/kpmo-continuous-assurance-same-run-producer-health-v1.json"
+
+      - name: Upload same-run producer-health barrier receipt
+        if: >-
+          always() && github.event_name != 'pull_request' &&
+          env.KPMO_EXECUTE_FULL_AUDIT == 'true' &&
+          env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-same-run-authority-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/kpmo-continuous-assurance-same-run-producer-health-v1.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce same-run producer health before canonical publication
+        if: >-
+          always() && github.event_name != 'pull_request' &&
+          env.KPMO_EXECUTE_FULL_AUDIT == 'true' &&
+          env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'
+        env:
+          SAME_RUN_RESOLVER_OUTCOME: ${{ steps.same-run-producer-health.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$SAME_RUN_RESOLVER_OUTCOME" = success
+          node scripts/kidults/kpmo/validate-continuous-assurance-same-run-authority-v1.mjs \
+            --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/kpmo-continuous-assurance-same-run-producer-health-v1.json" \
+            --expected-repository "$GITHUB_REPOSITORY" \
+            --expected-source-sha "$KPMO_SOURCE_SHA" \
+            --expected-run-id "$GITHUB_RUN_ID" \
+            --expected-run-attempt "$GITHUB_RUN_ATTEMPT"
+
       - name: Publish successful bounded canonical leader artifact
         if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
