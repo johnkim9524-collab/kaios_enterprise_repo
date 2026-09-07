@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const P = {
   policy: 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json',
@@ -107,6 +110,59 @@ req(containment.mutation_by_containment?.cloudflare_api_called === false, 'CONTA
 req(containment.mutation_by_containment?.credentials_read === false, 'CONTAINMENT_NO_SECRET_READ');
 
 const readonly = read(P.readonlyScript);
+const terminalTrap = `trap 'status=$?; preserve_terminal_receipt "$status"' EXIT`;
+const readonlyReceiptInvariant = (text) => {
+  const trapIndex = text.indexOf(terminalTrap);
+  const providerCallIndex = text.indexOf('api_get "$API_ROOT"');
+  return (text.match(/preserve_terminal_receipt\(\)/g) || []).length === 1
+    && (text.split(terminalTrap).length - 1) === 1
+    && trapIndex >= 0
+    && providerCallIndex > trapIndex
+    && text.includes('mv "$receipt_tmp" "$RECEIPT_DIR/final.json"')
+    && text.includes('KIDULTS_CLOUDFLARE_RECEIPT_SELF_TEST')
+    && text.includes('failure_reason_code="DEPLOYMENT_PAGE_LIMIT_EXCEEDED"')
+    && text.includes('state:"VERIFIED_FAIL",reason_code:$reason_code')
+    && text.includes('terminal_receipt_preserved:true')
+    && text.includes('public_release:"HOLD",production:"HOLD",g5:"HOLD"');
+};
+req(readonlyReceiptInvariant(readonly), 'READONLY_TERMINAL_RECEIPT_INVARIANT');
+req(readonlyReceiptInvariant(readonly.replace(terminalTrap, '')) === false, 'MUTATION_FALSE_GREEN:READONLY_RECEIPT_TRAP_REMOVED');
+const trapRelocated = readonly.replace(`${terminalTrap}\n`, '').replace('api_get "$API_ROOT"', `api_get "$API_ROOT"\n${terminalTrap}`);
+req(readonlyReceiptInvariant(trapRelocated) === false, 'MUTATION_FALSE_GREEN:READONLY_RECEIPT_TRAP_AFTER_PROVIDER');
+req(readonlyReceiptInvariant(readonly.replace('state:"VERIFIED_FAIL",reason_code:$reason_code', 'state:"COMPLETE_VERIFIED",reason_code:$reason_code')) === false, 'MUTATION_FALSE_GREEN:READONLY_FAILURE_RECEIPT_GREEN');
+
+const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cloudflare-receipt-'));
+try {
+  const probe = spawnSync('bash', [P.readonlyScript], {
+    env: {
+      ...process.env,
+      RECEIPT_DIR: fixtureDir,
+      KIDULTS_CLOUDFLARE_RECEIPT_SELF_TEST: 'true',
+      CLOUDFLARE_API_TOKEN: '',
+      CLOUDFLARE_ACCOUNT_ID: ''
+    },
+    encoding: 'utf8'
+  });
+  req(probe.status === 68, 'READONLY_RECEIPT_SELF_TEST_EXIT');
+  const fixtureReceiptPath = path.join(fixtureDir, 'final.json');
+  req(fs.existsSync(fixtureReceiptPath), 'READONLY_RECEIPT_SELF_TEST_FILE');
+  let fixtureReceipt = {};
+  try {
+    fixtureReceipt = JSON.parse(read(fixtureReceiptPath));
+  } catch {
+    findings.push('READONLY_RECEIPT_SELF_TEST_JSON');
+  }
+  req(fixtureReceipt.state === 'VERIFIED_FAIL', 'READONLY_RECEIPT_SELF_TEST_STATE');
+  req(fixtureReceipt.reason_code === 'DEPLOYMENT_PAGE_LIMIT_EXCEEDED', 'READONLY_RECEIPT_SELF_TEST_REASON');
+  req(fixtureReceipt.exit_code === 68, 'READONLY_RECEIPT_SELF_TEST_CODE');
+  req(fixtureReceipt.cloudflare_api_call_attempted === false && fixtureReceipt.cloudflare_api_called === false, 'READONLY_RECEIPT_SELF_TEST_NO_PROVIDER');
+  req(fixtureReceipt.settings_readback_complete === false && fixtureReceipt.deployment_inventory_complete === false, 'READONLY_RECEIPT_SELF_TEST_INCOMPLETE');
+  req(fixtureReceipt.terminal_receipt_preserved === true, 'READONLY_RECEIPT_SELF_TEST_PRESERVED');
+  req(fixtureReceipt.public_release === 'HOLD' && fixtureReceipt.production === 'HOLD' && fixtureReceipt.g5 === 'HOLD', 'READONLY_RECEIPT_SELF_TEST_HOLD');
+} finally {
+  fs.rmSync(fixtureDir, { recursive: true, force: true });
+}
+
 const deployScript = read(P.deployScript);
 const cleanup = read(P.cleanupScript);
 const contain = read(P.containScript);
