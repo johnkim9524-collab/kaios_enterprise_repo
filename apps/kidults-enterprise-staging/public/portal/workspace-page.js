@@ -7,6 +7,7 @@ import { startMobileReconstruction } from "./components/mobile-reconstruction.js
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
 import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js";
+import { startWhyEngine } from "./components/why-engine.js";
 
 function human(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
@@ -54,6 +55,7 @@ function renderContext(data) {
 }
 
 function mountWorkspace(data) {
+  startWhyEngine({ data, contract: data.why });
   startCopilot({ data, contract: data.copilot });
   startCompareEngine({ data, contract: data.compare });
   startDecisionEngine({ data, contract: data.decision });

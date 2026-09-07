@@ -592,22 +592,24 @@ export function startWhyEngine({ data, contract } = {}) {
   const dialog = ensureDialog();
   let returnFocus = null;
 
+  const open = (type, index, trigger = null) => {
+    const numericIndex = Number(index);
+    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(numericIndex)) return false;
+    const model = modelFor(data, type, numericIndex);
+    if (!model) return false;
+    returnFocus = trigger;
+    renderModel(dialog, model);
+    if (!dialog.open) dialog.showModal();
+    return true;
+  };
+
   decorateTargets(data);
 
   document.addEventListener("click", event => {
     const trigger = event.target.closest("[data-why-type]");
     if (!trigger) return;
 
-    const type = trigger.dataset.whyType;
-    const index = Number(trigger.dataset.whyIndex);
-    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(index)) return;
-
-    const model = modelFor(data, type, index);
-    if (!model) return;
-
-    returnFocus = trigger;
-    renderModel(dialog, model);
-    if (!dialog.open) dialog.showModal();
+    open(trigger.dataset.whyType, trigger.dataset.whyIndex, trigger);
   });
 
   dialog.querySelector("[data-why-close]").addEventListener("click", () => dialog.close());
@@ -624,6 +626,7 @@ export function startWhyEngine({ data, contract } = {}) {
     engine: normalizedContract.engine_id,
     version: normalizedContract.version,
     targets: normalizedContract.supported_targets.slice(),
-    truthRules: { ...normalizedContract.truth_rules }
+    truthRules: { ...normalizedContract.truth_rules },
+    open
   });
 }

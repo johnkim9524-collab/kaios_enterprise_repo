@@ -312,7 +312,13 @@ function extendResearch(data) {
   node.className = "v587-research-timeline";
   node.dataset.v587ResearchFlow = "true";
   node.setAttribute("aria-label", "Research evidence timeline");
-  node.innerHTML = `<p class="eyebrow">EVIDENCE TIMELINE</p><time>${esc(flow.timeline)}</time><span>${esc(flow.evidence_state)}</span>`;
+  node.innerHTML = `<p class="eyebrow">EVIDENCE TIMELINE</p><time>${esc(flow.timeline)}</time>
+    <div class="v587-research-decision">
+      <span>Evidence · ${esc(flow.evidence_state)}</span>
+      <span>Reason · ${esc(flow.reasoning.reason)}</span>
+      <span>Conclusion · ${esc(flow.conclusion)}</span>
+      <a href="workspace.html?mode=ask">Continue in Workspace <span aria-hidden="true">→</span></a>
+    </div>`;
   host.append(node);
 }
 

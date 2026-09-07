@@ -530,6 +530,7 @@ function chooseDefaults(verticals, contract) {
 
 function openWhy(index) {
   if (!Number.isInteger(index) || index < 0) return;
+  if (window.KIDULTS_WHY?.open?.("vertical", index)) return;
   const trigger = document.querySelector(`[data-why-type="vertical"][data-why-index="${index}"]`);
   trigger?.click();
 }

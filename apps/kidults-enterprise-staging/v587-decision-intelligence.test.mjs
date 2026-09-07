@@ -136,6 +136,11 @@ test("adds the approved research evidence timeline and canonical preview without
   assert.deepEqual(Object.keys(flow), ["timeline", "evidence_state", "reasoning", "conclusion", "final_decision_allowed"]);
   assert.equal(flow.conclusion, "RIGHTS BLOCKED");
   assert.equal(flow.final_decision_allowed, false);
+  const implementation = read("public/portal/components/v587-decision-intelligence.js");
+  assert.match(implementation, /Evidence · \$\{esc\(flow\.evidence_state\)\}/);
+  assert.match(implementation, /Reason · \$\{esc\(flow\.reasoning\.reason\)\}/);
+  assert.match(implementation, /Conclusion · \$\{esc\(flow\.conclusion\)\}/);
+  assert.match(implementation, /workspace\.html\?mode=ask/);
   const component = read("public/portal/components/v587-decision-intelligence.js");
   assert.match(component, /document\.createElement\("aside"\)/);
   assert.match(component, /drawer\.hidden = true/);
@@ -193,5 +198,18 @@ test("integrates all extensions after existing renderers without modifying froze
   assert.match(portal, /startHomepageStructure\(\);\s+startV587DecisionIntelligence\(data\);/);
   assert.match(detail, /enrichObjectDetailV587/);
   assert.match(workspace, /startV587WorkspaceDecisionFlow\(data\)/);
+  assert.match(workspace, /startWhyEngine\(\{ data, contract: data\.why \}\)/);
   assert.match(workspaceFlow, /v587-decision-intelligence\.css/);
+});
+
+test("workspace engines invoke the shared WHY engine without depending on homepage-only DOM triggers", () => {
+  const why = read("public/portal/components/why-engine.js");
+  const copilot = read("public/portal/components/copilot.js");
+  const compare = read("public/portal/components/compare-engine.js");
+  const decision = read("public/portal/components/decision-engine.js");
+  assert.match(why, /const open = \(type, index, trigger = null\)/);
+  assert.match(why, /truthRules: \{ \.\.\.normalizedContract\.truth_rules \},\s+open/);
+  assert.match(copilot, /KIDULTS_WHY\?\.open\?\.\(action\.targetType, Number\(action\.targetIndex\)\)/);
+  assert.match(compare, /KIDULTS_WHY\?\.open\?\.\("vertical", index\)/);
+  assert.match(decision, /KIDULTS_WHY\?\.open\?\.\("vertical", index\)/);
 });
