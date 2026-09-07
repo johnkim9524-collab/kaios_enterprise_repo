@@ -83,7 +83,12 @@
     "raw_successful_assurance_authority": "NON_AUTHORIZING_OBSERVATION",
     "all_success_events_gate_required": true,
     "event_specific_bypass_forbidden": true,
-    "gate_workflow": "KPMO Continuous Assurance Success Authority Gate V1",
+    "enforcement_location": "SAME_ASSURANCE_RUN_BEFORE_CANONICAL_LEADER_PUBLICATION",
+    "same_run_prepublication_gate_required": true,
+    "canonical_leader_publication_requires_verified_producer_health": true,
+    "downstream_workflow_run_gate_role": "DEFENSE_IN_DEPTH_NON_AUTHORIZING_OBSERVATION",
+    "downstream_gate_workflow": "KPMO Continuous Assurance Success Authority Gate V1",
+    "workflow_load_validity_required": true,
     "producer_health_source": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
     "coverage_scope": "CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM",
     "required_bindings": [
