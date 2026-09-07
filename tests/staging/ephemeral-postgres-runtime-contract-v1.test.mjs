@@ -28,9 +28,11 @@ test('workflow is automatic, bounded, exact-checkout, and retains the runtime re
   assert.match(workflow, /push:\n\s+branches: \[main\]/);
   assert.match(workflow, /timeout-minutes: 15/);
   assert.match(workflow, /actions\/checkout@[0-9a-f]{40}/);
-  assert.equal((workflow.match(/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g) ?? []).length, 2);
+  assert.equal((workflow.match(/ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/g) ?? []).length, 3);
   assert.match(workflow, /git show -s --format=%H HEAD/);
   assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(workflow, /verify-ephemeral-postgres-runtime-v1\.sh/);
   assert.match(workflow, /if-no-files-found: error/);
+  assert.match(workflow, /run-kir-five-gate-control-suite-v1\.mjs run/);
+  assert.match(workflow, /run-kir-five-gate-control-suite-v1\.mjs verify/);
 });
