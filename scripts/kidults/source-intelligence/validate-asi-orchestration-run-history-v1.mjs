@@ -58,6 +58,8 @@ const reconciled101 = reconcileArlAuthoritativeGenerationPages({
 assert.equal(reconciled101.returned_count, 101);
 assert.equal(reconciled101.pagination_reconciled_complete, true);
 assert.equal(reconciled101.current_run_in_complete_query, true);
+assert.equal(reconciled101.current_run_identity_authority, 'DIRECT_RUN_ENDPOINT_REQUIRED');
+assert.equal(reconciled101.history_query_role, 'HISTORICAL_PEER_RECONCILIATION');
 
 assert.throws(() => reconcileArlAuthoritativeGenerationPages({
   pages: [{ total_count: 101, workflow_runs: oneHundredOne.slice(0, 100) }],
@@ -86,7 +88,7 @@ assert.throws(() => reconcileArlAuthoritativeGenerationPages({
 
 const missingCurrent = structuredClone(oneHundredOne);
 missingCurrent[100] = arlRun(101);
-assert.throws(() => reconcileArlAuthoritativeGenerationPages({
+const missingCurrentReconciled = reconcileArlAuthoritativeGenerationPages({
   pages: [
     { total_count: 101, workflow_runs: missingCurrent.slice(0, 100) },
     { total_count: 101, workflow_runs: missingCurrent.slice(100) },
@@ -97,7 +99,26 @@ assert.throws(() => reconcileArlAuthoritativeGenerationPages({
   currentRunId: 9999,
   createdSince,
   createdThrough,
-}), (error) => error instanceof OrchestrationRunHistoryError && error.message === 'ARL_CURRENT_RUN_MISSING_FROM_COMPLETE_QUERY:9999');
+});
+assert.equal(missingCurrentReconciled.current_run_in_complete_query, false);
+assert.equal(missingCurrentReconciled.current_run_listing_visibility_required, false);
+assert.equal(missingCurrentReconciled.current_run_identity_authority, 'DIRECT_RUN_ENDPOINT_REQUIRED');
+assert.equal(missingCurrentReconciled.history_query_role, 'HISTORICAL_PEER_RECONCILIATION');
+
+const wrongCurrentTitle = structuredClone(oneHundredOne);
+wrongCurrentTitle[100] = arlRun(9999, 'KIDULTS ARL / p1-9998');
+assert.throws(() => reconcileArlAuthoritativeGenerationPages({
+  pages: [
+    { total_count: 101, workflow_runs: wrongCurrentTitle.slice(0, 100) },
+    { total_count: 101, workflow_runs: wrongCurrentTitle.slice(100) },
+  ],
+  sourceSha,
+  headBranch: 'main',
+  expectedDisplayTitle: 'KIDULTS ARL / p1-9999',
+  currentRunId: 9999,
+  createdSince,
+  createdThrough,
+}), (error) => error instanceof OrchestrationRunHistoryError && error.message === 'ARL_CURRENT_RUN_GENERATION_TITLE_MISMATCH:9999');
 
 const exactArlRun = arlRun(8101, 'KIDULTS ARL / p1-7101');
 const exactProducer = resolveCoverageAuthoritativeProducer({
@@ -155,7 +176,9 @@ process.stdout.write(`${JSON.stringify({
   arl_same_head_101_reconciled: true,
   arl_incomplete_101_rejected: true,
   arl_duplicate_generation_rejected: true,
-  arl_current_run_required: true,
+  arl_current_run_list_visibility_race_tolerated: true,
+  arl_current_run_visible_title_mismatch_rejected: true,
+  arl_current_run_identity_requires_direct_endpoint: true,
   coverage_exact_upstream_query_history_independent: true,
   coverage_prior_success_2000_resolved: prior2000.prior_success_count,
   coverage_prior_success_2001_resolved: prior2001.prior_success_count,
