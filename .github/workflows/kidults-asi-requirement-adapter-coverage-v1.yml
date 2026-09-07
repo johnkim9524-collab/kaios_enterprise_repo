@@ -757,3 +757,79 @@ jobs:
             /tmp/kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
+
+  dispatch-kir-coverage-assurance:
+    needs: [classify-upstream-arl-generation, verify-requirement-adapter-coverage]
+    if: >-
+      always() && github.event_name == 'workflow_run' &&
+      needs.classify-upstream-arl-generation.result == 'success' &&
+      needs.classify-upstream-arl-generation.outputs.should_run == 'true' &&
+      needs.verify-requirement-adapter-coverage.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Issue exact Coverage assurance continuation receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          SOURCE_TREE=$(git rev-parse 'HEAD^{tree}')
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            > /tmp/kir-coverage-run.json
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" \
+            --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+            --slurpfile runRecord /tmp/kir-coverage-run.json \
+            '{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_run_id:$run,coverage_run_attempt:$attempt,run:$runRecord[0]}' \
+            > /tmp/kir-coverage-assurance-issue-input-v1.json
+          node scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs issue \
+            --input /tmp/kir-coverage-assurance-issue-input-v1.json \
+            --output /tmp/kir-coverage-assurance-continuation-v1.json
+      - name: Retain exact Coverage assurance continuation receipt
+        id: dispatch_archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kir-coverage-assurance-continuation-v1.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Dispatch exact Coverage consumer and Assurance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_ARTIFACT_ID: ${{ steps.dispatch_archive.outputs.artifact-id }}
+          DISPATCH_ARTIFACT_DIGEST_RAW: ${{ steps.dispatch_archive.outputs.artifact-digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DISPATCH_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          DISPATCH_ARTIFACT_DIGEST="$DISPATCH_ARTIFACT_DIGEST_RAW"
+          if [[ "$DISPATCH_ARTIFACT_DIGEST" =~ ^[a-f0-9]{64}$ ]]; then
+            DISPATCH_ARTIFACT_DIGEST="sha256:${DISPATCH_ARTIFACT_DIGEST}"
+          fi
+          [[ "$DISPATCH_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          SOURCE_TREE=$(jq -r .source_tree /tmp/kir-coverage-assurance-continuation-v1.json)
+          COVERAGE_CREATED_AT=$(jq -r .coverage_created_at /tmp/kir-coverage-assurance-continuation-v1.json)
+          CONTINUATION_KEY=$(jq -r .continuation_key /tmp/kir-coverage-assurance-continuation-v1.json)
+          jq -n --arg ref main --arg profile sentinel \
+            --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" --arg created "$COVERAGE_CREATED_AT" \
+            --arg artifact "$DISPATCH_ARTIFACT_ID" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
+            '{ref:$ref,inputs:{profile:$profile,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_source_sha:$sha,coverage_source_tree:$tree,coverage_created_at:$created,coverage_dispatch_artifact_id:$artifact,coverage_dispatch_artifact_digest:$digest,coverage_continuation_key:$key}}' \
+            > /tmp/kir-coverage-assurance-dispatch-request-v1.json
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \
+            --input /tmp/kir-coverage-assurance-dispatch-request-v1.json
