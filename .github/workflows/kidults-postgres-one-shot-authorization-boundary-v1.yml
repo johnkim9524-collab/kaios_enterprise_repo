@@ -1,0 +1,58 @@
+name: KIDULTS PostgreSQL One-Shot Authorization Boundary V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-postgres-one-shot-authorization-boundary-v1.yml'
+      - '.github/workflows/p0-postgres-target-time-restore-verification.yml'
+      - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
+      - 'coordination/kidults/governance/external-one-shot-approval-ledger-v1.json'
+      - 'coordination/kidults/runtime/postgres-external-one-shot-authorization-v1.json'
+      - 'docs/kidults/security/postgres-external-one-shot-authorization-v1.md'
+      - 'scripts/governance/external-one-shot-approval-ledger-v1.mjs'
+      - 'scripts/staging/validate-postgres-external-one-shot-authorization-v1.mjs'
+      - 'scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh'
+      - 'tests/kidults/kpmo/external-one-shot-approval-ledger-v1.test.mjs'
+      - 'tests/staging/postgres-external-one-shot-authorization-v1.test.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-postgres-one-shot-authorization-boundary-v1-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: KIDULTS PostgreSQL One-Shot Authorization Boundary V1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact pull-request source SHA
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Validate focused PostgreSQL one-shot boundary
+        run: |
+          set -euo pipefail
+          node --check scripts/governance/external-one-shot-approval-ledger-v1.mjs
+          node --check scripts/staging/validate-postgres-external-one-shot-authorization-v1.mjs
+          bash -n scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh
+          node scripts/staging/validate-postgres-external-one-shot-authorization-v1.mjs
+          node --test tests/kidults/kpmo/external-one-shot-approval-ledger-v1.test.mjs
+          node --test tests/staging/postgres-external-one-shot-authorization-v1.test.mjs

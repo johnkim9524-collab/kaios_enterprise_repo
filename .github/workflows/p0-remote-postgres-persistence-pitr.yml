@@ -2,12 +2,22 @@ name: P0 Remote PostgreSQL Persistence and PITR Readiness
 
 on:
   workflow_dispatch:
+    inputs:
+      approval_id:
+        description: Exact ACTIVE external-ledger approval ID for this one run
+        required: true
+        type: string
+      approval_expires_at:
+        description: Expected immutable ledger expiry (RFC3339 UTC); input cannot create or extend authority
+        required: true
+        type: string
   push:
     branches:
       - main
     paths:
       - '.github/workflows/p0-remote-postgres-persistence-pitr.yml'
       - 'scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh'
+      - 'scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh'
       - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
 
 permissions:
@@ -23,7 +33,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
-      authorized: ${{ steps.receipt.outputs.authorized }}
+      eligible: ${{ steps.receipt.outputs.eligible }}
+      consume_nonce: ${{ steps.receipt.outputs.consume_nonce }}
+      requested_at: ${{ steps.receipt.outputs.requested_at }}
+      request_expires_at: ${{ steps.receipt.outputs.request_expires_at }}
     steps:
       - name: Verify exact live main without resolving provider credentials
         shell: bash
@@ -48,30 +61,98 @@ jobs:
         id: receipt
         shell: bash
         env:
-          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
+          STANDING_ACTIVATION: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
           HOST_BOUND: ${{ vars.KIDULTS_STAGING_PUBLIC_IP != '' }}
           FINGERPRINT_BOUND: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT != '' }}
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          APPROVAL_EXPIRES_AT: ${{ inputs.approval_expires_at }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/p0-remote-postgres
-          if [ "$ACTIVATION_AUTHORIZED" = "true" ]; then
-            AUTHORIZED=true
-            STATUS=READY_FOR_REMOTE_EXECUTION
+          ELIGIBLE=false
+          CONSUME_NONCE=''
+          REQUESTED_AT=''
+          REQUEST_EXPIRES_AT=''
+          APPROVAL_EXPIRY_VALID="$(python3 - "$APPROVAL_EXPIRES_AT" <<'PY'
+          import datetime, re, sys
+          value=sys.argv[1]
+          valid=False
+          if re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z',value):
+              expiry=datetime.datetime.fromisoformat(value[:-1]+'+00:00')
+              now=datetime.datetime.now(datetime.timezone.utc)
+              valid=now < expiry <= now+datetime.timedelta(hours=1)
+          print(str(valid).lower())
+          PY
+          )"
+          if [ "$STANDING_ACTIVATION" != "false" ]; then
+            STATUS=BLOCKED_STANDING_AUTHORIZATION_MUST_BE_FALSE
+          elif [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            STATUS=BLOCKED_ONE_SHOT_AUTHORIZATION_REQUIRED
+          elif [ "$GITHUB_RUN_ATTEMPT" != "1" ]; then
+            STATUS=BLOCKED_RUN_ATTEMPT_REPLAY
+          elif ! [[ "$APPROVAL_ID" =~ ^[A-Z0-9][A-Z0-9._:-]{7,127}$ ]]; then
+            STATUS=BLOCKED_INVALID_APPROVAL_ID
+          elif [ "$APPROVAL_EXPIRY_VALID" != "true" ]; then
+            STATUS=BLOCKED_INVALID_OR_EXCESSIVE_EXPECTED_APPROVAL_EXPIRY
           else
-            AUTHORIZED=false
-            STATUS=BLOCKED_EXTERNAL_AUTHORIZATION
+            ELIGIBLE=true
+            STATUS=READY_FOR_EXTERNAL_ONE_SHOT_CONSUME
+            CONSUME_NONCE="$(python3 -c 'import uuid; print(uuid.uuid4())')"
+            read -r REQUESTED_AT REQUEST_EXPIRES_AT < <(python3 - <<'PY'
+          import datetime
+          now=datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
+          print(now.isoformat().replace('+00:00','Z'), (now+datetime.timedelta(seconds=600)).isoformat().replace('+00:00','Z'))
+          PY
+          )
           fi
-          printf 'authorized=%s\n' "$AUTHORIZED" >> "$GITHUB_OUTPUT"
-          python3 - "$STATUS" "$AUTHORIZED" "$HOST_BOUND" "$FINGERPRINT_BOUND" <<'PY' > artifacts/p0-remote-postgres/activation-readiness.json
+          printf 'eligible=%s\n' "$ELIGIBLE" >> "$GITHUB_OUTPUT"
+          printf 'consume_nonce=%s\n' "$CONSUME_NONCE" >> "$GITHUB_OUTPUT"
+          printf 'requested_at=%s\n' "$REQUESTED_AT" >> "$GITHUB_OUTPUT"
+          printf 'request_expires_at=%s\n' "$REQUEST_EXPIRES_AT" >> "$GITHUB_OUTPUT"
+          python3 - "$STATUS" "$ELIGIBLE" "$HOST_BOUND" "$FINGERPRINT_BOUND" "$CONSUME_NONCE" "$REQUESTED_AT" "$REQUEST_EXPIRES_AT" <<'PY' > artifacts/p0-remote-postgres/activation-readiness.json
           import json, os, sys
-          status, authorized, host_bound, fingerprint_bound = sys.argv[1:]
+          status, eligible, host_bound, fingerprint_bound, consume_nonce, requested_at, request_expires_at = sys.argv[1:]
+          ledger_request=None
+          if eligible == "true":
+              ledger_request={
+                  "id":"kidults-external-one-shot-approval-consume-request-v1",
+                  "version":"1.0.0",
+                  "approval_id":os.environ["APPROVAL_ID"],
+                  "operation_id":"KIDULTS_POSTGRES_SOURCE_FIXTURE_V1",
+                  "repository":os.environ["GITHUB_REPOSITORY"],
+                  "workflow_ref":os.environ["GITHUB_WORKFLOW_REF"],
+                  "control_sha":os.environ["GITHUB_SHA"],
+                  "source_sha":os.environ["GITHUB_SHA"],
+                  "github_run_id":os.environ["GITHUB_RUN_ID"],
+                  "github_run_attempt":int(os.environ["GITHUB_RUN_ATTEMPT"]),
+                  "consume_nonce":consume_nonce,
+                  "requested_at":requested_at,
+                  "request_expires_at":request_expires_at,
+                  "approval_expires_at":os.environ["APPROVAL_EXPIRES_AT"],
+                  "target":{
+                      "provider":"DIGITALOCEAN",
+                      "resource_type":"MANAGED_POSTGRESQL_CLUSTER",
+                      "resource_id":"kidults-staging-postgres-source",
+                      "environment":"STAGING",
+                      "target_digest":"sha256:53d988ca6b138c4340d7da117e1da5aba6d0c0eb5206cddd2edacbbf17d87778",
+                  },
+              }
           print(json.dumps({
               "gate": "REMOTE_POSTGRES_PITR_ACTIVATION_READINESS",
               "status": status,
               "source_ref": os.environ["GITHUB_REF"],
               "source_sha": os.environ["GITHUB_SHA"],
               "event": os.environ["GITHUB_EVENT_NAME"],
-              "activation_authorized": authorized == "true",
+              "standing_activation_value_is_false": os.environ.get("STANDING_ACTIVATION") == "false",
+              "standing_activation_may_authorize": False,
+              "one_shot_consume_eligible": eligible == "true",
+              "approval_id": os.environ.get("APPROVAL_ID") or None,
+              "expected_approval_expires_at": os.environ.get("APPROVAL_EXPIRES_AT") or None,
+              "expected_approval_expiry_is_authority": False,
+              "consume_nonce": consume_nonce or None,
+              "requested_at": requested_at or None,
+              "request_expires_at": request_expires_at or None,
+              "external_ledger_request": ledger_request,
               "staging_host_binding_present": host_bound == "true",
               "staging_fingerprint_binding_present": fingerprint_bound == "true",
               "provider_secrets_resolved": False,
@@ -85,7 +166,7 @@ jobs:
               "provider_contract_authorized_by_this_workflow": False,
               "production_touch": False,
               "g5_touch": False,
-              "unblock_condition": None if authorized == "true" else "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED=true under the existing approved STAGING security boundary"
+              "unblock_condition": None if eligible == "true" else "SET_STANDING_VARIABLE_FALSE_AND_SUPPLY_ONE_EXTERNAL_ACTIVE_OPERATION_SPECIFIC_GRANT"
           }, indent=2))
           PY
           cat artifacts/p0-remote-postgres/activation-readiness.json
@@ -97,26 +178,182 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  remote-persistence-pitr-fixture:
+  consume-one-shot-authorization:
     needs: activation-readiness-receipt
-    if: needs.activation-readiness-receipt.outputs.authorized == 'true' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'
+    if: needs.activation-readiness-receipt.outputs.eligible == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'false'
+    environment: kidults-approval-ledger-consume
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      authorized: ${{ steps.consume.outputs.authorized }}
+      approval_id: ${{ steps.consume.outputs.approval_id }}
+      operation_id: ${{ steps.consume.outputs.operation_id }}
+      control_sha: ${{ steps.consume.outputs.control_sha }}
+      source_sha: ${{ steps.consume.outputs.source_sha }}
+      github_run_id: ${{ steps.consume.outputs.github_run_id }}
+      github_run_attempt: ${{ steps.consume.outputs.github_run_attempt }}
+      workflow_ref: ${{ steps.consume.outputs.workflow_ref }}
+      target_digest: ${{ steps.consume.outputs.target_digest }}
+      consume_nonce_sha256: ${{ steps.consume.outputs.consume_nonce_sha256 }}
+      approval_expires_at: ${{ steps.consume.outputs.approval_expires_at }}
+      receipt_sha256: ${{ steps.consume.outputs.receipt_sha256 }}
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
+      - name: Checkout exact main SHA for one-shot client
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Load repository-machine-pinned ledger verification digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIN="$(python3 - <<'PY'
+          import json
+          with open('coordination/kidults/runtime/postgres-external-one-shot-authorization-v1.json', encoding='utf-8') as handle:
+              print(json.load(handle)['external_ledger']['response_verification']['public_key_spki_sha256'])
+          PY
+          )"
+          [[ "$PIN" =~ ^sha256:[a-f0-9]{64}$ ]]
+          printf 'KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256=%s\n' "$PIN" >> "$GITHUB_ENV"
+
+      - name: Atomically consume external one-shot PostgreSQL authorization
+        id: consume
+        shell: bash
+        env:
+          KIDULTS_APPROVAL_LEDGER_BASE_URL: ${{ vars.KIDULTS_APPROVAL_LEDGER_BASE_URL }}
+          KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64: ${{ secrets.KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64 }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+          STANDING_ACTIVATION: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          CONSUME_NONCE: ${{ needs.activation-readiness-receipt.outputs.consume_nonce }}
+          REQUESTED_AT: ${{ needs.activation-readiness-receipt.outputs.requested_at }}
+          REQUEST_EXPIRES_AT: ${{ needs.activation-readiness-receipt.outputs.request_expires_at }}
+          EXPECTED_APPROVAL_EXPIRES_AT: ${{ inputs.approval_expires_at }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          test "$STANDING_ACTIVATION" = "false"
+          [[ "$CONSUME_NONCE" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]
+          mkdir -p artifacts/p0-remote-postgres
+          python3 - <<'PY'
+          import datetime, hashlib, json, os
+          target={
+              'provider':'DIGITALOCEAN',
+              'resource_type':'MANAGED_POSTGRESQL_CLUSTER',
+              'resource_id':'kidults-staging-postgres-source',
+              'environment':'STAGING',
+          }
+          target['target_digest']='sha256:'+hashlib.sha256(json.dumps(target,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          context={
+              'id':'kidults-external-one-shot-approval-consume-request-v1',
+              'version':'1.0.0',
+              'approval_id':os.environ['APPROVAL_ID'],
+              'operation_id':'KIDULTS_POSTGRES_SOURCE_FIXTURE_V1',
+              'repository':os.environ['GITHUB_REPOSITORY'],
+              'workflow_ref':os.environ['GITHUB_WORKFLOW_REF'],
+              'control_sha':os.environ['GITHUB_SHA'],
+              'source_sha':os.environ['GITHUB_SHA'],
+              'github_run_id':os.environ['GITHUB_RUN_ID'],
+              'github_run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'consume_nonce':os.environ['CONSUME_NONCE'],
+              'requested_at':os.environ['REQUESTED_AT'],
+              'request_expires_at':os.environ['REQUEST_EXPIRES_AT'],
+              'approval_expires_at':os.environ['EXPECTED_APPROVAL_EXPIRES_AT'],
+              'target':target,
+          }
+          expiry=datetime.datetime.fromisoformat(context['approval_expires_at'].removesuffix('Z')+'+00:00')
+          assert datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(seconds=1800) < expiry
+          with open('artifacts/p0-remote-postgres/authorization-context.json','w',encoding='utf-8') as handle:
+              json.dump(context,handle,indent=2); handle.write('\n')
+          PY
+          node scripts/governance/external-one-shot-approval-ledger-v1.mjs consume \
+            --request artifacts/p0-remote-postgres/authorization-context.json \
+            --receipt-out artifacts/p0-remote-postgres/authorization-consumption.json
+          node scripts/governance/external-one-shot-approval-ledger-v1.mjs verify \
+            --request artifacts/p0-remote-postgres/authorization-context.json \
+            --receipt artifacts/p0-remote-postgres/authorization-consumption.json
+          python3 - <<'PY'
+          import datetime, hashlib, json, os, re
+          from pathlib import Path
+          context=json.loads(Path('artifacts/p0-remote-postgres/authorization-context.json').read_text())
+          receipt_path=Path('artifacts/p0-remote-postgres/authorization-consumption.json')
+          receipt=json.loads(receipt_path.read_text())
+          ledger=receipt['ledger_receipt']
+          assert ledger['state']=='CONSUMED'
+          assert ledger['consume_nonce']==context['consume_nonce']
+          assert ledger['approval_expires_at']==context['approval_expires_at']
+          consumed_at=ledger['consumed_at']
+          approval_expires_at=ledger['approval_expires_at']
+          assert consumed_at.endswith('Z') and approval_expires_at.endswith('Z')
+          parse=lambda value: datetime.datetime.fromisoformat(value[:-1]+'+00:00')
+          assert parse(consumed_at)+datetime.timedelta(seconds=1800) < parse(approval_expires_at)
+          digest='sha256:'+hashlib.sha256(receipt_path.read_bytes()).hexdigest()
+          assert re.fullmatch(r'sha256:[a-f0-9]{64}',digest)
+          outputs={
+              'authorized':'true',
+              'approval_id':context['approval_id'],
+              'operation_id':context['operation_id'],
+              'control_sha':context['control_sha'],
+              'source_sha':context['source_sha'],
+              'github_run_id':context['github_run_id'],
+              'github_run_attempt':str(context['github_run_attempt']),
+              'workflow_ref':context['workflow_ref'],
+              'target_digest':context['target']['target_digest'],
+              'consume_nonce_sha256':'sha256:'+hashlib.sha256(context['consume_nonce'].encode()).hexdigest(),
+              'approval_expires_at':approval_expires_at,
+              'receipt_sha256':digest,
+          }
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as handle:
+              for key,value in outputs.items():
+                  assert '\n' not in value and '\r' not in value
+                  handle.write(f'{key}={value}\n')
+          PY
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: p0-remote-postgres-authorization-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            artifacts/p0-remote-postgres/authorization-context.json
+            artifacts/p0-remote-postgres/authorization-consumption.json
+          if-no-files-found: error
+          retention-days: 30
+
+  remote-persistence-pitr-fixture:
+    needs:
+      - activation-readiness-receipt
+      - consume-one-shot-authorization
+    if: needs.consume-one-shot-authorization.result == 'success' && needs.consume-one-shot-authorization.outputs.authorized == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'false'
     environment: kidults-do-staging-ssh
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
     env:
       HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
       EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
     steps:
-      - name: Verify explicit STAGING activation authorization before secret resolution
-        shell: bash
-        env:
-          ACTIVATION_AUTHORIZED: ${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}
-        run: |
-          set -euo pipefail
-          test "$ACTIVATION_AUTHORIZED" = "true"
-          test "$GITHUB_REF" = "refs/heads/main"
-          test "$GITHUB_EVENT_NAME" = "push" -o "$GITHUB_EVENT_NAME" = "workflow_dispatch"
-
       - name: Verify live main before provider credential resolution
         shell: bash
         env:
@@ -148,6 +385,163 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
+      - name: Load repository-machine-pinned ledger verification digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          PIN="$(python3 - <<'PY'
+          import json
+          with open('coordination/kidults/runtime/postgres-external-one-shot-authorization-v1.json', encoding='utf-8') as handle:
+              print(json.load(handle)['external_ledger']['response_verification']['public_key_spki_sha256'])
+          PY
+          )"
+          [[ "$PIN" =~ ^sha256:[a-f0-9]{64}$ ]]
+          printf 'KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256=%s\n' "$PIN" >> "$GITHUB_ENV"
+
+      - name: Download exact same-run signed authorization receipt
+        id: authorization_artifact
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: p0-remote-postgres-authorization-${{ github.sha }}-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          destination="$RUNNER_TEMP/postgres-one-shot-authorization"
+          mkdir -p "$destination"
+          found=false
+          for attempt in $(seq 1 12); do
+            if curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100&name=$ARTIFACT_NAME" \
+              > "$RUNNER_TEMP/postgres-authorization-artifacts.json" \
+              && python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          payload=json.loads(Path(os.environ['RUNNER_TEMP']+'/postgres-authorization-artifacts.json').read_text())
+          matches=[
+              item for item in payload.get('artifacts',[])
+              if item.get('name')==os.environ['ARTIFACT_NAME']
+              and not item.get('expired')
+              and item.get('workflow_run',{}).get('id')==int(os.environ['GITHUB_RUN_ID'])
+              and item.get('workflow_run',{}).get('head_sha')==os.environ['GITHUB_SHA']
+              and re.fullmatch(r'sha256:[a-f0-9]{64}',str(item.get('digest','')))
+          ]
+          assert payload.get('total_count')==1 and len(matches)==1
+          Path(os.environ['RUNNER_TEMP']+'/postgres-authorization-artifact-id').write_text(str(matches[0]['id']))
+          Path(os.environ['RUNNER_TEMP']+'/postgres-authorization-artifact-digest').write_text(matches[0]['digest'])
+          PY
+            then
+              found=true
+              break
+            fi
+            if [ "$attempt" -lt 12 ]; then sleep 5; fi
+          done
+          test "$found" = "true"
+          artifact_id="$(<"$RUNNER_TEMP/postgres-authorization-artifact-id")"
+          downloaded=false
+          for attempt in $(seq 1 6); do
+            if curl --fail-with-body --silent --show-error --location \
+              --connect-timeout 10 \
+              --max-time 60 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$RUNNER_TEMP/postgres-authorization.zip" \
+              && python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          archive=Path(os.environ['RUNNER_TEMP']+'/postgres-authorization.zip')
+          expected=(Path(os.environ['RUNNER_TEMP'])/'postgres-authorization-artifact-digest').read_text()
+          assert 'sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()==expected
+          PY
+            then
+              downloaded=true
+              break
+            fi
+            if [ "$attempt" -lt 6 ]; then sleep 5; fi
+          done
+          test "$downloaded" = "true"
+          python3 - "$destination" <<'PY'
+          import hashlib, os, re, stat, sys, zipfile
+          from pathlib import Path, PurePosixPath
+          destination=Path(sys.argv[1])
+          archive=Path(os.environ['RUNNER_TEMP']+'/postgres-authorization.zip')
+          expected=(Path(os.environ['RUNNER_TEMP'])/'postgres-authorization-artifact-digest').read_text()
+          assert 'sha256:'+hashlib.sha256(archive.read_bytes()).hexdigest()==expected
+          with zipfile.ZipFile(archive) as zf:
+              files=[]
+              for member in zf.infolist():
+                  path=PurePosixPath(member.filename)
+                  assert not path.is_absolute() and '..' not in path.parts
+                  assert not stat.S_ISLNK(member.external_attr >> 16)
+                  if not member.is_dir(): files.append(member)
+              assert sorted(item.filename for item in files)==['authorization-consumption.json','authorization-context.json']
+              zf.extractall(destination)
+          contexts=list(destination.rglob('authorization-context.json'))
+          receipts=list(destination.rglob('authorization-consumption.json'))
+          assert len(contexts)==len(receipts)==1
+          outputs={'context_path':str(contexts[0]),'receipt_path':str(receipts[0]),'artifact_digest':expected}
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as handle:
+              for key,value in outputs.items():
+                  assert '\n' not in value and '\r' not in value
+                  handle.write(f'{key}={value}\n')
+          PY
+
+      - name: Verify consumed external one-shot authorization binding before provider credentials
+        shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+          AUTHORIZED: ${{ needs.consume-one-shot-authorization.outputs.authorized }}
+          RECEIPT_SHA256: ${{ needs.consume-one-shot-authorization.outputs.receipt_sha256 }}
+          CONSUME_NONCE_SHA256: ${{ needs.consume-one-shot-authorization.outputs.consume_nonce_sha256 }}
+          EXPECTED_APPROVAL_ID: ${{ inputs.approval_id }}
+          EXPECTED_APPROVAL_EXPIRES_AT: ${{ inputs.approval_expires_at }}
+        run: |
+          set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 1800
+          python3 - "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" <<'PY'
+          import datetime, hashlib, json, os, re, sys
+          from pathlib import Path
+          context=json.loads(Path(sys.argv[1]).read_text())
+          receipt_path=Path(sys.argv[2])
+          receipt=json.loads(receipt_path.read_text())
+          ledger=receipt['ledger_receipt']
+          assert ledger['state']=='CONSUMED'
+          for field in ('approval_id','operation_id','repository','workflow_ref','control_sha','source_sha','github_run_id','github_run_attempt','consume_nonce','requested_at','request_expires_at','approval_expires_at','target'):
+              assert ledger[field]==context[field]
+          assert context['approval_id']==os.environ['EXPECTED_APPROVAL_ID']
+          assert context['approval_expires_at']==os.environ['EXPECTED_APPROVAL_EXPIRES_AT']
+          assert context['operation_id']=='KIDULTS_POSTGRES_SOURCE_FIXTURE_V1'
+          assert context['repository']==os.environ['GITHUB_REPOSITORY']
+          assert context['workflow_ref']==os.environ['GITHUB_WORKFLOW_REF']
+          assert context['control_sha']==context['source_sha']==os.environ['GITHUB_SHA']
+          assert context['github_run_id']==os.environ['GITHUB_RUN_ID']
+          assert context['github_run_attempt']==int(os.environ['GITHUB_RUN_ATTEMPT'])==1
+          assert context['target']=={
+              'provider':'DIGITALOCEAN',
+              'resource_type':'MANAGED_POSTGRESQL_CLUSTER',
+              'resource_id':'kidults-staging-postgres-source',
+              'environment':'STAGING',
+              'target_digest':'sha256:53d988ca6b138c4340d7da117e1da5aba6d0c0eb5206cddd2edacbbf17d87778',
+          }
+          assert 'sha256:'+hashlib.sha256(context['consume_nonce'].encode()).hexdigest()==os.environ['CONSUME_NONCE_SHA256']
+          assert 'sha256:'+hashlib.sha256(receipt_path.read_bytes()).hexdigest()==os.environ['RECEIPT_SHA256']
+          assert re.fullmatch(r'sha256:[a-f0-9]{64}',receipt['verification_key_spki_sha256'])
+          expiry=datetime.datetime.fromisoformat(context['approval_expires_at'].removesuffix('Z')+'+00:00')
+          assert datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(seconds=1800) < expiry
+          PY
+          test "$AUTHORIZED" = "true"
+          test "${{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}" = "false"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+
       - name: Assert required non-secret STAGING bindings
         shell: bash
         run: |
@@ -158,19 +552,38 @@ jobs:
 
       - name: Pin and verify ED25519 host key
         shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
         run: |
           set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
           mkdir -p "$RUNNER_TEMP/ssh"
           timeout 10 ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
           observed="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
           test "$observed" = "$EXPECTED_FINGERPRINT"
 
+      - name: Reverify signed authorization immediately before SSH credential use
+        shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
+
       - name: Materialize dedicated STAGING key
         env:
           SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
         shell: bash
         run: |
           set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
           test -n "$SSH_PRIVATE_KEY_B64"
           printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
           tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
@@ -181,16 +594,26 @@ jobs:
 
       - name: Verify exact non-root STAGING identity
         shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
         run: |
           set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
           test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
 
       - name: Discover existing PostgreSQL runtime read-only
         shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
         run: |
           set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
           mkdir -p artifacts/p0-remote-postgres
           SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
           "${SSH[@]}" kidults-staging@"$HOST" 'python3 - <<'"'"'PY'"'"'
@@ -235,14 +658,46 @@ jobs:
           grep -Fq " $expected_client" <<<"$pg_isready_version"
           printf 'psql_version=%s\npg_isready_version=%s\n' "$psql_version" "$pg_isready_version"
 
+      - name: Reverify signed authorization immediately before PostgreSQL credential use
+        shell: bash
+        env:
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
+
       - name: Execute source PostgreSQL fixture through pinned SSH tunnel
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
+          AUTHORIZATION_CONTEXT: ${{ steps.authorization_artifact.outputs.context_path }}
+          AUTHORIZATION_RECEIPT: ${{ steps.authorization_artifact.outputs.receipt_path }}
+          KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64: ${{ vars.KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64 }}
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$POSTGRES_DSN"
           mkdir -p artifacts/p0-remote-postgres
+          RECEIPT_PATH=artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
+          RAW_RECEIPT="$RUNNER_TEMP/postgres-persistence-pitr-readiness.raw.json"
+          python3 - "$RECEIPT_PATH" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          Path(sys.argv[1]).write_text(json.dumps({
+              'id':'kidults-p0-remote-postgres-terminal-source-receipt-v1',
+              'status':'VERIFIED_FAIL',
+              'failure_class':'SOURCE_FIXTURE_NOT_COMPLETED',
+              'source_sha':os.environ['GITHUB_SHA'],
+              'run_id':int(os.environ['GITHUB_RUN_ID']),
+              'run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'provider_secret_value_recorded':False,
+              'production_touch':False,
+              'public_touch':False,
+              'g5_touch':False,
+          },indent=2)+'\n',encoding='utf-8')
+          PY
+          scripts/staging/verify-postgres-one-shot-authorization-fresh-v1.sh "$AUTHORIZATION_CONTEXT" "$AUTHORIZATION_RECEIPT" 0
+          test -n "$POSTGRES_DSN"
           export KAIOS_ENVIRONMENT=staging
           export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
           export KAIOS_STAGING_SSH_HOST="$HOST"
@@ -275,8 +730,35 @@ jobs:
               raise SystemExit('DSN shape invalid: sslmode')
           print('DSN_SHAPE_DIAGNOSTIC_PASS')
           PY
-          scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source \
-            | tee artifacts/p0-remote-postgres/postgres-persistence-pitr-readiness.json
+          set +e
+          scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source > "$RAW_RECEIPT"
+          verifier_rc=$?
+          set -e
+          if [ "$verifier_rc" -eq 0 ] && python3 - "$RAW_RECEIPT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          raw=Path(sys.argv[1]).read_bytes()
+          assert raw
+          receipt=json.loads(raw)
+          assert receipt['status']=='PASS'
+          PY
+          then
+            mv "$RAW_RECEIPT" "$RECEIPT_PATH"
+          else
+            rm -f "$RAW_RECEIPT"
+            python3 - "$RECEIPT_PATH" "$verifier_rc" <<'PY'
+          import json, sys
+          from pathlib import Path
+          path=Path(sys.argv[1])
+          receipt=json.loads(path.read_text())
+          receipt['failure_class']='SOURCE_FIXTURE_COMMAND_FAILED'
+          receipt['exit_code']=int(sys.argv[2])
+          path.write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+          PY
+            test "$verifier_rc" -ne 0 || verifier_rc=65
+            exit "$verifier_rc"
+          fi
+          test -s "$RECEIPT_PATH"
 
       - name: Assert source receipt and emit external-restore handoff
         shell: bash
@@ -389,5 +871,79 @@ jobs:
         with:
           name: p0-remote-postgres-persistence-pitr-${{ github.sha }}
           path: artifacts/p0-remote-postgres
+          if-no-files-found: error
+          retention-days: 30
+
+  terminal-receipt:
+    name: Remote PostgreSQL sanitized terminal receipt
+    needs:
+      - activation-readiness-receipt
+      - consume-one-shot-authorization
+      - remote-persistence-pitr-fixture
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Emit exactly one non-empty sanitized terminal receipt
+        shell: bash
+        env:
+          APPROVAL_ID: ${{ inputs.approval_id }}
+          READINESS_RESULT: ${{ needs.activation-readiness-receipt.result }}
+          CONSUME_RESULT: ${{ needs.consume-one-shot-authorization.result }}
+          PROVIDER_RESULT: ${{ needs.remote-persistence-pitr-fixture.result }}
+        run: |
+          set -euo pipefail
+          ROOT=artifacts/p0-remote-postgres-terminal
+          RECEIPT="$ROOT/terminal-receipt.json"
+          mkdir -p "$ROOT"
+          python3 - "$RECEIPT" <<'PY'
+          import hashlib, json, os, sys
+          from pathlib import Path
+
+          readiness=os.environ['READINESS_RESULT']
+          consume=os.environ['CONSUME_RESULT']
+          provider=os.environ['PROVIDER_RESULT']
+          if provider == 'success':
+              status='VERIFIED_PASS_SOURCE_FIXTURE_ONLY'
+          elif provider == 'failure' or consume == 'failure' or readiness == 'failure':
+              status='VERIFIED_FAIL'
+          else:
+              status='BLOCKED_NO_PROVIDER_EXECUTION'
+          approval=os.environ.get('APPROVAL_ID','')
+          receipt={
+              'id':'kidults-p0-remote-postgres-sanitized-terminal-receipt-v1',
+              'status':status,
+              'workflow':'.github/workflows/p0-remote-postgres-persistence-pitr.yml',
+              'event':os.environ['GITHUB_EVENT_NAME'],
+              'source_sha':os.environ['GITHUB_SHA'],
+              'run_id':int(os.environ['GITHUB_RUN_ID']),
+              'run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'readiness_result':readiness,
+              'one_shot_consume_result':consume,
+              'provider_job_result':provider,
+              'approval_id_sha256':('sha256:'+hashlib.sha256(approval.encode()).hexdigest()) if approval else None,
+              'standing_boolean_accepted_as_authority':False,
+              'provider_credentials_may_resolve_only_after_signed_atomic_consume':True,
+              'provider_secret_value_recorded':False,
+              'remote_mutation_state':'NOT_PERFORMED' if provider == 'skipped' else 'REQUIRES_PROVIDER_JOB_RECEIPT',
+              'pitr':'NOT_VERIFIED',
+              'rollback':'NOT_VERIFIED',
+              'terminal_receipt_cardinality':1,
+              'production':'HOLD',
+              'public_release':'HOLD',
+              'g5':'HOLD',
+          }
+          Path(sys.argv[1]).write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+          PY
+          test -s "$RECEIPT"
+          test "$(find "$ROOT" -type f -name '*.json' | wc -l)" -eq 1
+          python3 -m json.tool "$RECEIPT" >/dev/null
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: p0-remote-postgres-terminal-${{ github.sha }}-${{ github.run_id }}
+          path: artifacts/p0-remote-postgres-terminal/terminal-receipt.json
           if-no-files-found: error
           retention-days: 30

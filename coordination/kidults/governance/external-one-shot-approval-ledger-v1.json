@@ -1,0 +1,179 @@
+{
+  "id": "external-one-shot-approval-ledger-v1",
+  "version": "1.0.0",
+  "state": "IMPLEMENTED_CONSUME_CLIENT_AND_SERVICE_NOT_DEPLOYED_READBACK_BLOCKED",
+  "purpose": "Consume an operation-specific authorization exactly once in a durable system outside GitHub before any provider or infrastructure mutation job can start.",
+  "transport": {
+    "scheme": "HTTPS_ONLY",
+    "method": "POST",
+    "path": "/v1/approvals/consume",
+    "redirects": "FORBIDDEN",
+    "request_content_type": "application/json",
+    "timeout_milliseconds_default": 5000,
+    "timeout_milliseconds_maximum": 30000,
+    "maximum_response_bytes": 65536
+  },
+  "authentication": {
+    "request": {
+      "header": "X-KIDULTS-Approval-Request-Signature",
+      "format": "hmac-sha256=<lowercase-hex-digest>",
+      "algorithm": "HMAC-SHA-256",
+      "signed_bytes": "EXACT_RAW_HTTP_BODY_BYTES",
+      "minimum_key_bytes": 32,
+      "key_environment": "KIDULTS_APPROVAL_LEDGER_REQUEST_HMAC_KEY_B64"
+    },
+    "response": {
+      "header": "X-KIDULTS-Approval-Signature",
+      "format": "ed25519=<canonical-base64-64-byte-detached-signature>",
+      "algorithm": "Ed25519",
+      "signed_bytes": "EXACT_RAW_HTTP_BODY_BYTES",
+      "ledger_only_private_key_format": "PKCS8_DER_BASE64",
+      "ledger_only_private_key_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PRIVATE_KEY_B64",
+      "client_public_key_format": "SPKI_DER_BASE64",
+      "client_public_key_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_B64",
+      "client_public_key_sha256_environment": "KIDULTS_APPROVAL_LEDGER_RESPONSE_ED25519_PUBLIC_KEY_SHA256",
+      "client_public_key_sha256_must_be_pinned_by_repository_machine_binding": true,
+      "github_private_signing_key_forbidden": true
+    },
+    "base_url_environment": "KIDULTS_APPROVAL_LEDGER_BASE_URL"
+  },
+  "consume_request": {
+    "id": "kidults-external-one-shot-approval-consume-request-v1",
+    "version": "1.0.0",
+    "additional_properties": false,
+    "required_fields": [
+      "id",
+      "version",
+      "approval_id",
+      "operation_id",
+      "repository",
+      "workflow_ref",
+      "control_sha",
+      "source_sha",
+      "github_run_id",
+      "github_run_attempt",
+      "consume_nonce",
+      "requested_at",
+      "request_expires_at",
+      "approval_expires_at",
+      "target"
+    ],
+    "github_run_id_type": "DECIMAL_STRING",
+    "github_run_attempt_exact": 1,
+    "consume_nonce": "UUID_V4",
+    "clock_skew_seconds_maximum": 60,
+    "request_ttl_seconds_maximum": 600,
+    "sha_format": "LOWERCASE_40_HEX",
+    "target_required_fields": [
+      "provider",
+      "resource_type",
+      "resource_id",
+      "environment",
+      "target_digest"
+    ],
+    "target_additional_properties": false,
+    "target_digest": {
+      "format": "sha256:<lowercase-64-hex>",
+      "canonical_input": "UTF-8 JSON with lexicographically sorted keys over exactly {environment,provider,resource_id,resource_type}, no whitespace"
+    }
+  },
+  "consume_response": {
+    "id": "kidults-external-one-shot-approval-consumption-receipt-v1",
+    "version": "1.0.0",
+    "success_http_status": 201,
+    "success_state": "CONSUMED",
+    "additional_properties": false,
+    "mirrors_all_request_operation_bindings_excluding_request_id_and_version": true,
+    "additional_required_fields": [
+      "consumption_id",
+      "consumed_at",
+      "ledger_transaction_id"
+    ]
+  },
+  "atomic_transition": {
+    "precondition": "approval exists in ACTIVE state, all immutable bindings match, and durable-store server time is not later than either expiry",
+    "immutable_binding_validation_precedes_consumed_or_replay_status": true,
+    "transition": "ACTIVE_TO_CONSUMED_COMPARE_AND_SWAP",
+    "commit_before_response": true,
+    "reset_or_delete_endpoint": false,
+    "second_consumer_can_succeed": false
+  },
+  "http_outcomes": {
+    "201": "CONSUMED",
+    "409": "ALREADY_CONSUMED_OR_REPLAY",
+    "410": "EXPIRED",
+    "404": "UNKNOWN_APPROVAL",
+    "422": "IMMUTABLE_BINDING_MISMATCH"
+  },
+  "historical_state_readback": {
+    "required_for_historical_backfill_authority": true,
+    "method": "AUTHENTICATED_READ_ONLY_POST",
+    "path": "/v1/approvals/readback",
+    "exact_immutable_binding_request_required": true,
+    "ed25519_signed_exact_state_receipt_required": true,
+    "repository_boolean_is_authority": false,
+    "signed_409_is_exact_record_proof": false,
+    "implementation_state": "BLOCKED_NOT_IMPLEMENTED_DEPLOYED_OR_ISSUED"
+  },
+  "client_receipt": {
+    "id": "kidults-external-one-shot-approval-client-receipt-v1",
+    "version": "1.0.0",
+    "additional_properties": false,
+    "required_fields": [
+      "id",
+      "version",
+      "verified_at",
+      "endpoint_path",
+      "http_status",
+      "request_sha256",
+      "verification_key_spki_sha256",
+      "signature_header",
+      "response_body_base64",
+      "ledger_receipt"
+    ],
+    "ledger_state_path": "ledger_receipt.state",
+    "raw_body_retained_for_later_detached_signature_verification": true,
+    "parsed_raw_body_must_deep_equal_ledger_receipt": true
+  },
+  "fail_closed_on": [
+    "MISSING_OR_INVALID_CONFIGURATION",
+    "NON_HTTPS_OR_CREDENTIALED_BASE_URL",
+    "TIMEOUT_OR_NETWORK_ERROR",
+    "REDIRECT",
+    "NON_201_HTTP_STATUS",
+    "HTTP_5XX",
+    "OVERSIZED_OR_NON_JSON_RESPONSE",
+    "SCHEMA_OR_ADDITIONAL_PROPERTY_MISMATCH",
+    "MISSING_OR_INVALID_RESPONSE_SIGNATURE",
+    "RESPONSE_ED25519_SIGNATURE_MISMATCH",
+    "TIME_OR_EXPIRY_MISMATCH",
+    "REQUEST_RESPONSE_BINDING_MISMATCH",
+    "TARGET_DIGEST_MISMATCH"
+  ],
+  "job_isolation": {
+    "consume_job_has_provider_credentials": false,
+    "provider_mutation_job_requires_verified_client_receipt": true,
+    "provider_mutation_job_must_use_only_response_public_key": true,
+    "provider_mutation_job_must_verify_repository_pinned_spki_sha256": true,
+    "github_response_private_signing_key_forbidden": true,
+    "provider_mutation_job_must_depend_on_successful_consume_job": true,
+    "provider_mutation_job_must_not_reconsume": true
+  },
+  "truth_boundary": {
+    "repository_contract_or_client_is_durable_store_deployment": false,
+    "repository_contract_or_client_is_operation_authorization": false,
+    "trust_root_complete": false,
+    "external_issuance_backfill_key_provisioning_and_signed_readback": "BLOCKED",
+    "missing_ledger_configuration": "NO_PROVIDER_MUTATION",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "principle_effects": {
+    "autonomous_effect": "A protected runtime can consume a valid approval without a manual rerun while replays fail closed.",
+    "global_effect": "The binding is provider-neutral and partitions authorization by exact target and operation.",
+    "irreplaceable_value_effect": "Authorization truth and receipts remain KIDULTS-governed instead of depending on a provider-specific success response.",
+    "transparency_effect": "Every successful consume retains an authenticated raw response and exact immutable bindings."
+  }
+}
+
