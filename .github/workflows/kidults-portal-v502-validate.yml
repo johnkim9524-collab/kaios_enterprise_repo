@@ -83,7 +83,7 @@ jobs:
           node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
           node --check scripts/kidults/portal/validate-v663-hero-layout.mjs
           node --check scripts/kidults/portal/capture-v662-visual-check.mjs
-          node --check scripts/kidults/portal/validate-v587-human-acceptance.mjs
+          node --check scripts/kidults/portal/validate-v587-role-journey-control.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -194,11 +194,11 @@ jobs:
           KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v663-visual
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
-      - name: Validate six-role V587 human acceptance
+      - name: Validate six-role V587 role journey control simulation
         env:
           KIDULTS_PORTAL_BASE_URL: http://127.0.0.1:4173
-          KIDULTS_HUMAN_ACCEPTANCE_OUTPUT: artifacts/kidults-v587-human-acceptance-v1.json
-        run: node scripts/kidults/portal/validate-v587-human-acceptance.mjs
+          KIDULTS_ROLE_JOURNEY_CONTROL_OUTPUT: artifacts/kidults-v587-role-journey-control-v1.json
+        run: node scripts/kidults/portal/validate-v587-role-journey-control.mjs
 
       - name: Upload V663 Hero evidence
         if: always()
@@ -207,6 +207,6 @@ jobs:
           name: kidults-v663-hero-evidence
           path: |
             artifacts/kidults-v663-visual
-            artifacts/kidults-v587-human-acceptance-v1.json
+            artifacts/kidults-v587-role-journey-control-v1.json
           if-no-files-found: warn
           retention-days: 14
