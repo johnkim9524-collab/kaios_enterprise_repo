@@ -1,0 +1,64 @@
+{
+  "id": "track-z-money-to-usable-data-gate-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "effective_date": "2026-09-02",
+  "authority": ["PROGRAM_OWNER", "KPMO"],
+  "scope": "ALL_EXTERNAL_DATA_PROVIDER_PAYMENTS_TRIALS_CONTRACTS_CREDENTIALS_AND_ACQUISITIONS",
+  "control_incident": {
+    "provider": "PSA",
+    "failure_class": "PAYMENT_WITHOUT_LAWFUL_USABLE_INPUT_PATH",
+    "lesson": "Paid API access and a successful schema probe do not prove lawful usable data when required lookup inputs and provenance are not closed before payment.",
+    "rights_expansion_authorized": false,
+    "additional_spend_authorized": false
+  },
+  "required_chain": ["PAYMENT", "ACCESS", "INPUT", "DATA", "RIGHTS", "PRODUCT"],
+  "links": {
+    "PAYMENT": ["exact-fee", "billing-trigger", "auto-conversion", "renewal", "cancellation-deadline", "refund-position", "maximum-bounded-exposure"],
+    "ACCESS": ["licensed-product", "endpoint-or-export", "credential-prerequisites", "rate-and-volume-limits", "activation-owner"],
+    "INPUT": ["lawful-seed-source", "non-enumeration", "input-supplier", "provenance-receipt"],
+    "DATA": ["schema-matching-sample", "required-record-fields", "field-semantics", "coverage", "correction-path"],
+    "RIGHTS": ["collection", "storage", "retention", "normalization", "matching", "human-qa", "derived-artifacts", "display", "attribution", "deletion", "termination"],
+    "PRODUCT": ["named-product-decision", "measurable-success-criteria", "stop-criteria", "end-to-end-adapter", "claim-support" ]
+  },
+  "required_order": [
+    "WRITTEN_PRODUCT_AND_RIGHTS_REVIEW",
+    "SCHEMA_MATCHING_SAMPLE",
+    "LAWFUL_INPUT_SOURCE_CLOSURE",
+    "ONE_RECORD_END_TO_END_PROOF",
+    "FIVE_RECORD_CANARY",
+    "THIRTY_TO_ONE_HUNDRED_TWENTY_RECORD_BOUNDED_PILOT",
+    "SPEND_APPROVAL",
+    "CONTRACT_AND_CREDENTIAL_ACTIVATION"
+  ],
+  "prepayment_policy": {
+    "all_links_required": true,
+    "unknown_or_ambiguous_fails_closed": true,
+    "post_payment_discovery_of_material_terms_forbidden": true,
+    "paid_trial_before_gate_pass_forbidden": true,
+    "auto_converting_trial_before_gate_pass_forbidden": true,
+    "annual_prepayment_before_successful_bounded_pilot_forbidden": true,
+    "consumer_membership_is_data_license": false,
+    "token_or_http_success_is_usable_data_proof": false,
+    "missing_link_state": "NO_PAY_HOLD"
+  },
+  "sample_exception": {
+    "provider_prohibits_live_precontract_canary": "SCHEMA_MATCHING_PROVIDER_SAMPLE_PLUS_VALIDATED_INTERNAL_DRY_RUN",
+    "waives_input_rights_payment_or_product_evidence": false
+  },
+  "decision_states": ["NO_PAY_HOLD", "READY_FOR_SPEND_REVIEW", "BOUNDED_ACTIVE", "REPLACE", "DROP"],
+  "ready_for_spend_review_grants_spend_authority": false,
+  "provider_record_required_fields": [
+    "provider", "licensed_product", "brand_or_vertical", "required_fields", "claim_classes",
+    "chain_evidence_refs", "chain_observed_at", "sample_digest", "adapter_result",
+    "lawful_input_owner", "provenance_receipt", "price", "maximum_exposure",
+    "billing_renewal_cancellation_controls", "rights_result", "retention_deletion_result",
+    "derived_output_result", "termination_result", "success_criteria", "stop_criteria",
+    "rollback_criteria", "replacement_criteria", "decision"
+  ],
+  "protected_gates": ["SPEND", "CONTRACT", "EXPANDED_CREDENTIAL", "PUBLIC", "PRODUCTION", "G5"],
+  "protected_gate_owner": "PROGRAM_OWNER",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

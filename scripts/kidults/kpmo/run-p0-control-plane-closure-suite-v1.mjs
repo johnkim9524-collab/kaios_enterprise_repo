@@ -17,6 +17,8 @@ const commands = [
   ['sharded-reserve-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs']],
   ['hourly-v2-promotion-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs']],
   ['mission-directed-provenance', ['node', 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs']],
+  ['track-z-money-to-usable-data-contract', ['node', 'scripts/kidults/provider/validate-track-z-money-to-usable-data-gate-v1.mjs']],
+  ['track-z-money-to-usable-data-mutations', ['node', '--test', 'tests/kidults/provider/track-z-money-to-usable-data-gate-v1.test.mjs']],
   ['track-b-authority-boundary', ['node', 'scripts/kidults/scope/validate-track-b-boundary-no-shadow-assessment-v1.mjs']],
   ['canonical-anchor-consumers', ['node', 'scripts/kidults/supply-chain/validate-canonical-anchor-consumers-v1.mjs']],
   ['asi-workflow-fanout-budget', ['node', 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs']],

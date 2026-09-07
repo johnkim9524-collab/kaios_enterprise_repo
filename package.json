@@ -7,6 +7,8 @@
     "agent:bootstrap": "node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs",
     "verify:agent-bootstrap": "node scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs",
     "validate:agent-bootstrap": "node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs",
+    "validate:track-z-money-gate": "node scripts/kidults/provider/validate-track-z-money-to-usable-data-gate-v1.mjs",
+    "test:track-z-money-gate": "node --test tests/kidults/provider/track-z-money-to-usable-data-gate-v1.test.mjs",
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
     "validate:control-plane": "npm --prefix services/kidults-control-plane run validate && npm --prefix services/kidults-control-plane test",
     "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",

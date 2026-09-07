@@ -94,6 +94,12 @@ jobs:
           node --test tests/kidults/kpmo/requirement-coverage-dependency-bootstrap-v1.test.mjs
           node scripts/kidults/kpmo/validate-requirement-coverage-dependency-bootstrap-v1.mjs
 
+      - name: Enforce Track Z money-to-usable-data gate
+        run: |
+          set -euo pipefail
+          npm run validate:track-z-money-gate
+          npm run test:track-z-money-gate
+
       - name: Verify Production release gate synthetic controls
         run: |
           set -euo pipefail

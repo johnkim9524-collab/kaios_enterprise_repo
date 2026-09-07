@@ -1,15 +1,17 @@
 {
   "id": "ih-group-provider-sourcing-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY",
   "effective_date": "2026-08-29",
-  "amended_at": "2026-09-01T00:00:00Z",
+  "amended_at": "2026-09-02T00:00:00Z",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
   "mandatory_strategy_addenda": [
-    "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md"
+    "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md",
+    "docs/strategy/TRACK_Z_MONEY_TO_USABLE_DATA_GATE_V1.md"
   ],
   "machine_readable_strategy_addenda": [
-    "coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json"
+    "coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json",
+    "coordination/kidults/governance/track-z-money-to-usable-data-gate-v1.json"
   ],
   "scope": [
     "Intelligence Holdings",
@@ -43,6 +45,14 @@
     "group_reuse_threshold": "two-revenue-products-or-at-least-25-percent-duplicate-cost-saving",
     "critical_dependency_threshold": "at-least-20-percent-of-revenue-or-release-critical-capability",
     "default_terms": ["monthly", "cancellable", "non-exclusive", "usage-capped", "no-annual-prepay-before-pilot"]
+  },
+  "money_to_usable_data_gate": {
+    "status": "MANDATORY_FAIL_CLOSED",
+    "canonical_addendum": "coordination/kidults/governance/track-z-money-to-usable-data-gate-v1.json",
+    "required_chain": ["PAYMENT", "ACCESS", "INPUT", "DATA", "RIGHTS", "PRODUCT"],
+    "missing_or_unknown_state": "NO_PAY_HOLD",
+    "payment_before_complete_evidence_forbidden": true,
+    "paid_or_auto_converting_trial_before_complete_evidence_forbidden": true
   },
   "rights_hard_gates": [
     "approved-legal-entity-and-authority",
