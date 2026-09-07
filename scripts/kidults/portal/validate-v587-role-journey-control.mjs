@@ -53,7 +53,7 @@ try {
     if (receipt.promotion_eligible !== false) failures.push(`${role}:PROMOTION_MUST_BE_FALSE`);
     if (JSON.stringify(receipt.steps) !== JSON.stringify(steps)) failures.push(`${role}:STEP_DRIFT`);
     if (receipt.missing_evidence.length) failures.push(`${role}:MISSING_${receipt.missing_evidence.join('_')}`);
-    if (questions.some(question => !receipt.acceptance_questions[question])) failures.push(`${role}:QUESTION_UNANSWERED`);
+    if (questions.some(question => !receipt.journey_questions[question])) failures.push(`${role}:QUESTION_UNANSWERED`);
     if (/\bUNKNOWN\b/.test(JSON.stringify(receipt))) failures.push(`${role}:UNKNOWN_PRESENT`);
     receipts.push({ ...receipt, elapsed_ms: Date.now() - startedAt });
     await context.close();
