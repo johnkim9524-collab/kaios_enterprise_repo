@@ -6,6 +6,53 @@ set -euo pipefail
 : "${CURRENT_SOLD_EXPECTED_HEAD_SHA:?CURRENT_SOLD_EXPECTED_HEAD_SHA required}"
 [[ "$CURRENT_SOLD_EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
 
+receipt_dir='out/current-sold-postgres-resilience'
+receipt_path="$receipt_dir/receipt.json"
+mkdir -p "$receipt_dir"
+
+write_fail_receipt() {
+  cat > "$receipt_path" <<JSON
+{
+  "id": "kidults-current-sold-postgres-resilience-receipt-v1",
+  "state": "VERIFIED_FAIL",
+  "failure_code": "EXECUTION_INCOMPLETE_FAIL_CLOSED",
+  "source_sha": "$CURRENT_SOLD_EXPECTED_HEAD_SHA",
+  "database": "EPHEMERAL_PINNED_POSTGRESQL_16",
+  "explicit_rollback_zero_rows": false,
+  "disconnect_rollback_zero_rows": false,
+  "restart_persistence_verified": false,
+  "remote_database_authority": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
+JSON
+  chmod 600 "$receipt_path"
+}
+
+write_pass_receipt() {
+  cat > "$receipt_path" <<JSON
+{
+  "id": "kidults-current-sold-postgres-resilience-receipt-v1",
+  "state": "VERIFIED_PASS",
+  "failure_code": null,
+  "source_sha": "$CURRENT_SOLD_EXPECTED_HEAD_SHA",
+  "database": "EPHEMERAL_PINNED_POSTGRESQL_16",
+  "explicit_rollback_zero_rows": true,
+  "disconnect_rollback_zero_rows": true,
+  "restart_persistence_verified": true,
+  "remote_database_authority": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}
+JSON
+  chmod 600 "$receipt_path"
+}
+
+# Preserve a durable non-promotable terminal receipt even if any later attack fails.
+write_fail_receipt
+
 resilience_database='kaios_current_sold_resilience'
 admin_dsn="${KAIOS_POSTGRES_DSN%/*}/postgres"
 resilience_dsn="${KAIOS_POSTGRES_DSN%/*}/$resilience_database"
@@ -36,19 +83,19 @@ INSERT INTO kidults_private.current_sold_batch_receipt_ledger
   (receipt_id,receipt_digest,batch_id,status,source_sha,canonical_run_id,envelope_digest,event_versions_digest,evidence_digest,receipt_payload)
 VALUES $rollback_receipt;
 ROLLBACK;
-SELECT CASE WHEN count(*)=0 THEN 1 ELSE 1/0 END
-  FROM kidults_private.current_sold_batch_receipt_ledger
- WHERE receipt_id='csr_$rollback_id';
-
 BEGIN;
 INSERT INTO kidults_private.current_sold_batch_receipt_ledger
   (receipt_id,receipt_digest,batch_id,status,source_sha,canonical_run_id,envelope_digest,event_versions_digest,evidence_digest,receipt_payload)
 VALUES $commit_receipt;
 COMMIT;
-SELECT CASE WHEN count(*)=1 THEN 1 ELSE 1/0 END
-  FROM kidults_private.current_sold_batch_receipt_ledger
- WHERE receipt_id='csr_$commit_id';
 SQL
+
+"${psql_cmd[@]}" --tuples-only --no-align \
+  --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_$rollback_id'" \
+  | grep -qx '0'
+"${psql_cmd[@]}" --tuples-only --no-align \
+  --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_$commit_id'" \
+  | grep -qx '1'
 
 PGAPPNAME=kidults_current_sold_disconnect "${psql_cmd[@]}" <<SQL >/tmp/current-sold-disconnect.log 2>&1 &
 BEGIN;
@@ -81,20 +128,4 @@ done
 pg_isready --dbname="$resilience_dsn" >/dev/null
 "${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_$commit_id'" | grep -qx '1'
 
-mkdir -p out/current-sold-postgres-resilience
-cat > out/current-sold-postgres-resilience/receipt.json <<JSON
-{
-  "id": "kidults-current-sold-postgres-resilience-receipt-v1",
-  "state": "VERIFIED_PASS",
-  "source_sha": "$CURRENT_SOLD_EXPECTED_HEAD_SHA",
-  "database": "EPHEMERAL_PINNED_POSTGRESQL_16",
-  "explicit_rollback_zero_rows": true,
-  "disconnect_rollback_zero_rows": true,
-  "restart_persistence_verified": true,
-  "remote_database_authority": false,
-  "production": "HOLD",
-  "public": "HOLD",
-  "g5": "HOLD"
-}
-JSON
-chmod 600 out/current-sold-postgres-resilience/receipt.json
+write_pass_receipt
