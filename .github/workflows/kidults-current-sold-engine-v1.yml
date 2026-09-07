@@ -1,12 +1,48 @@
 name: KIDULTS Current-SOLD Engine V1
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'coordination/kidults/market/current-sold-event-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-evidence-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-engine-v1.json'
+      - 'scripts/kidults/market/current-sold-engine-v1.mjs'
+      - 'scripts/kidults/market/current-sold-evidence-v1.mjs'
+      - 'scripts/kidults/market/current-sold-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-private-dry-run-v1.mjs'
+      - 'scripts/kidults/market/current-sold-control-smoke-v1.mjs'
+      - 'scripts/kidults/market/current-sold-postgres-ledger-v1.mjs'
+      - 'tests/kidults/market/current-sold-*.mjs'
+      - 'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
+      - 'docs/kidults/market/current-sold-engine-v1.md'
+      - '.github/workflows/kidults-current-sold-engine-v1.yml'
   pull_request:
     paths:
       - 'coordination/kidults/market/current-sold-event-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-evidence-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json'
+      - 'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json'
       - 'coordination/kidults/market/current-sold-engine-v1.json'
       - 'scripts/kidults/market/current-sold-engine-v1.mjs'
-      - 'tests/kidults/market/current-sold-engine-v1.test.mjs'
+      - 'scripts/kidults/market/current-sold-evidence-v1.mjs'
+      - 'scripts/kidults/market/current-sold-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-batch-v1.mjs'
+      - 'scripts/kidults/market/current-sold-private-dry-run-v1.mjs'
+      - 'scripts/kidults/market/current-sold-control-smoke-v1.mjs'
+      - 'scripts/kidults/market/current-sold-postgres-ledger-v1.mjs'
+      - 'tests/kidults/market/current-sold-*.mjs'
+      - 'infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
       - 'docs/kidults/market/current-sold-engine-v1.md'
       - '.github/workflows/kidults-current-sold-engine-v1.yml'
   workflow_dispatch:
@@ -17,31 +53,208 @@ permissions:
 jobs:
   validate-current-sold-engine:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 8
+    env:
+      CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CURRENT_SOLD_RECEIPT_PATH: /tmp/kidults-current-sold-terminal/receipt.json
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+      - name: Initialize fail-closed Current-SOLD terminal receipt
+        id: initialize
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$CURRENT_SOLD_EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          mkdir -p "$(dirname "$CURRENT_SOLD_RECEIPT_PATH")"
+          cat > "$CURRENT_SOLD_RECEIPT_PATH" <<EOF_RECEIPT
+          {
+            "control":"KIDULTS_CURRENT_SOLD_ENGINE_V1_3",
+            "receipt_class":"WORKFLOW_FAIL_CLOSED_BOOTSTRAP",
+            "state":"VERIFIED_FAIL",
+            "overall_state":"RED",
+            "repository":"${GITHUB_REPOSITORY}",
+            "source_sha":"${CURRENT_SOLD_EXPECTED_HEAD_SHA}",
+            "expected_head_sha":"${CURRENT_SOLD_EXPECTED_HEAD_SHA}",
+            "run_id":${GITHUB_RUN_ID},
+            "run_attempt":${GITHUB_RUN_ATTEMPT},
+            "trigger_event":"${GITHUB_EVENT_NAME}",
+            "failed_check_ids":["CURRENT_SOLD_WORKFLOW_NOT_RECONCILED"],
+            "first_failed_stage":"CURRENT_SOLD_WORKFLOW_NOT_RECONCILED",
+            "expected_tests":0,
+            "producer_health_authority":false,
+            "promotion_eligible":false,
+            "empirical_authority":false,
+            "database_authority":false,
+            "provider_authority":false,
+            "public":"HOLD",
+            "production":"HOLD",
+            "g5":"HOLD"
+          }
+          EOF_RECEIPT
+          chmod 600 "$CURRENT_SOLD_RECEIPT_PATH"
+
+      - name: Checkout exact candidate head
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+      - name: Bind exact checked-out source SHA
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+      - name: Set up pinned Node
+        id: setup_node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
         with:
           node-version: 24.19.0
           package-manager-cache: false
           check-latest: false
-      - name: Validate schema JSON
-        run: node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/market/current-sold-event-schema-v1.json','utf8')); console.log('CURRENT_SOLD_SCHEMA_JSON_PASS')"
-      - name: Run owned Current-SOLD engine tests
-        run: node --test tests/kidults/market/current-sold-engine-v1.test.mjs
-      - name: Emit control-only receipt
-        if: always()
+      - name: Parse all Current-SOLD control schemas
+        id: schemas
+        shell: bash
         run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const files = [
+            'coordination/kidults/market/current-sold-event-schema-v1.json',
+            'coordination/kidults/market/current-sold-evidence-schema-v1.json',
+            'coordination/kidults/market/current-sold-receipt-registry-schema-v1.json',
+            'coordination/kidults/market/current-sold-batch-envelope-schema-v1.json',
+            'coordination/kidults/market/current-sold-batch-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-private-dry-run-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-ledger-write-receipt-schema-v1.json',
+            'coordination/kidults/market/current-sold-engine-v1.json'
+          ];
+          for (const file of files) JSON.parse(fs.readFileSync(file, 'utf8'));
+          console.log(`CURRENT_SOLD_SCHEMA_JSON_PASS=${files.length}`);
+          NODE
+      - name: Check Current-SOLD module syntax
+        id: syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in scripts/kidults/market/current-sold-*.mjs tests/kidults/market/current-sold-*.mjs; do
+            node --check "$file"
+          done
+      - name: Run Current-SOLD fail-closed test suite
+        id: current_sold_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap tests/kidults/market/current-sold-*.test.mjs | tee /tmp/current-sold-tests.tap
+          tests="$(sed -n 's/^# tests \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          pass="$(sed -n 's/^# pass \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          fail="$(sed -n 's/^# fail \([0-9][0-9]*\)$/\1/p' /tmp/current-sold-tests.tap | tail -n 1)"
+          test -n "$tests" && test "$tests" -gt 0
+          test "$pass" = "$tests"
+          test "$fail" = "0"
+          echo "expected_tests=$tests" >> "$GITHUB_OUTPUT"
+      - name: Verify legacy raw bundle persistence is disabled
+        id: legacy
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='scripts/kidults/market/current-sold-batch-v1.mjs'
+          grep -q "CURRENT_SOLD_BATCH_RAW_BUNDLE_PERSISTENCE_DISABLED" "$file"
+          grep -q "CURRENT_SOLD_BATCH_LEGACY_CLI_DISABLED_USE_PRIVATE_DRY_RUN" "$file"
+          if grep -Eq "fs\.writeFile\(outputPath|writeCurrentSoldBatchBundle\(outputPath" "$file"; then
+            echo 'CURRENT_SOLD_LEGACY_RAW_PERSISTENCE_NEGATIVE_CHECK_FAIL' >&2
+            exit 1
+          fi
+          echo 'CURRENT_SOLD_LEGACY_RAW_PERSISTENCE_DISABLED_PASS'
+      - name: Run runtime-generated synthetic control smoke
+        id: smoke
+        shell: bash
+        env:
+          CURRENT_SOLD_SOURCE_SHA: ${{ steps.source.outputs.source_sha }}
+        run: |
+          set -euo pipefail
           mkdir -p out/current-sold-engine
-          cat > out/current-sold-engine/receipt.json <<EOF
-          {"control":"KIDULTS_CURRENT_SOLD_ENGINE_V1","source_sha":"${GITHUB_SHA}","run_id":"${GITHUB_RUN_ID}","run_attempt":"${GITHUB_RUN_ATTEMPT}","public":"HOLD","production":"HOLD","g5":"HOLD"}
-          EOF
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+          node scripts/kidults/market/current-sold-control-smoke-v1.mjs \
+            --output out/current-sold-engine/control-smoke-receipt.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const receipt = JSON.parse(fs.readFileSync('out/current-sold-engine/control-smoke-receipt.json', 'utf8'));
+          if (receipt.status !== 'PASS') throw new Error('CURRENT_SOLD_CONTROL_SMOKE_STATUS_NOT_PASS');
+          if (receipt.execution_class !== 'CONTROL_SYNTHETIC') throw new Error('CURRENT_SOLD_CONTROL_SMOKE_CLASS_MISMATCH');
+          if (receipt.counts.control_synthetic_admitted !== 1 ||
+              receipt.counts.private_candidate_admitted !== 0 ||
+              receipt.counts.lawful_empirical_admitted !== 0) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_EMPIRICAL_BOUNDARY_BROKEN');
+          }
+          if (!receipt.atomicity.whole_batch_atomic || !receipt.atomicity.non_pass_admission_withheld) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_ATOMICITY_MISSING');
+          }
+          if (receipt.ledger.write_performed || receipt.ledger.migration_applied || receipt.ledger.rows_written !== 0) {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_LEDGER_BOUNDARY_BROKEN');
+          }
+          if (receipt.claim_boundary.public !== 'HOLD' ||
+              receipt.claim_boundary.production !== 'HOLD' ||
+              receipt.claim_boundary.g5 !== 'HOLD') {
+            throw new Error('CURRENT_SOLD_CONTROL_SMOKE_RELEASE_BOUNDARY_BROKEN');
+          }
+          NODE
+          test "$(stat -c '%a' out/current-sold-engine/control-smoke-receipt.json)" = 600
+          if grep -Eq 'example\.invalid|control:synthetic|realized_consideration|source_url' out/current-sold-engine/control-smoke-receipt.json; then
+            echo 'CURRENT_SOLD_CONTROL_SMOKE_RAW_DATA_LEAK' >&2
+            exit 1
+          fi
+          echo 'CURRENT_SOLD_CONTROL_SMOKE_PASS'
+      - name: Verify append-only PostgreSQL migration boundary
+        id: migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          sql='infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql'
+          grep -q 'BEFORE UPDATE OR DELETE ON kidults_private.current_sold_event_ledger' "$sql"
+          grep -q 'BEFORE TRUNCATE ON kidults_private.current_sold_event_ledger' "$sql"
+          grep -q 'REVOKE UPDATE, DELETE, TRUNCATE' "$sql"
+          if grep -Eqi 'ON CONFLICT.*DO UPDATE|UPDATE[[:space:]]+kidults_private\.current_sold_|DELETE[[:space:]]+FROM[[:space:]]+kidults_private\.current_sold_' "$sql"; then
+            echo 'CURRENT_SOLD_APPEND_ONLY_NEGATIVE_CHECK_FAIL' >&2
+            exit 1
+          fi
+          echo 'CURRENT_SOLD_APPEND_ONLY_SQL_PASS'
+      - name: Reconcile Current-SOLD semantic terminal receipt
+        id: reconcile
         if: always()
+        shell: bash
+        env:
+          CURRENT_SOLD_EXACT_SHA: ${{ steps.source.outputs.source_sha }}
+          CURRENT_SOLD_EXPECTED_TESTS: ${{ steps.current_sold_tests.outputs.expected_tests }}
+          INITIALIZE_OUTCOME: ${{ steps.initialize.outcome }}
+          CHECKOUT_OUTCOME: ${{ steps.checkout.outcome }}
+          SOURCE_OUTCOME: ${{ steps.source.outcome }}
+          SETUP_NODE_OUTCOME: ${{ steps.setup_node.outcome }}
+          SCHEMAS_OUTCOME: ${{ steps.schemas.outcome }}
+          SYNTAX_OUTCOME: ${{ steps.syntax.outcome }}
+          TESTS_OUTCOME: ${{ steps.current_sold_tests.outcome }}
+          LEGACY_OUTCOME: ${{ steps.legacy.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          MIGRATION_OUTCOME: ${{ steps.migration.outcome }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/market/reconcile-current-sold-terminal-v1.mjs
+
+      - name: Stage Current-SOLD terminal artifact
+        id: stage_artifact
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/current-sold-engine
+          cp "$CURRENT_SOLD_RECEIPT_PATH" out/current-sold-engine/receipt.json
+          test "$(stat -c '%a' out/current-sold-engine/receipt.json)" = 600
+
+      - name: Upload Current-SOLD terminal artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: kidults-current-sold-engine-v1-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/current-sold-engine/receipt.json
+          name: kidults-current-sold-engine-v1-2-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-engine
           if-no-files-found: error
           retention-days: 30

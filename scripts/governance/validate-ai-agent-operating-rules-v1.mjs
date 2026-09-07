@@ -15,6 +15,7 @@ const files = {
   platform: 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
   schema: 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json',
   registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
+  roles: 'coordination/kidults/registry/roles-and-responsibilities.json',
   reserveWorkflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
   scaleWorkflow: '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 };
@@ -40,6 +41,7 @@ const githubBootstrapContract = readJson(files.githubBootstrapContract);
 const platform = readJson(files.platform);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
+const roles = readJson(files.roles);
 const reserveWorkflow = readText(files.reserveWorkflow);
 const scaleWorkflow = readText(files.scaleWorkflow);
 
@@ -67,7 +69,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.7.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.8.0', 'CONTRACT_VERSION');
 assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
@@ -86,7 +88,11 @@ assert(contract.enforcement?.policy_and_contract_must_change_together === true, 
 assert(contract.enforcement?.proactive_internal_remediation_required === true, 'PROACTIVE_REMEDIATION_REQUIRED');
 assert(contract.enforcement?.verified_closure_and_forward_proposal_required === true, 'VERIFIED_CLOSURE_FORWARD_PROPOSAL_REQUIRED');
 assert(contract.enforcement?.global_scale_stewardship_required === true, 'GLOBAL_SCALE_STEWARDSHIP_REQUIRED');
+assert(contract.enforcement?.accountability_and_non_delegation_required === true, 'ACCOUNTABILITY_NON_DELEGATION_REQUIRED');
+assert(contract.enforcement?.confirmed_material_accountability_violation_requires_immediate_dispatch_removal === true, 'ACCOUNTABILITY_IMMEDIATE_REMOVAL_REQUIRED');
+assert(contract.enforcement?.bootstrap_binds_agent_role_jd_and_accountability_registry === true, 'ACCOUNTABILITY_BOOTSTRAP_ROLE_JD_BINDING');
 assert(contract.github_bootstrap_contract_path === files.githubBootstrapContract, 'CONTRACT_GITHUB_BOOTSTRAP_PATH');
+assert(contract.roles_and_responsibilities_path === files.roles, 'CONTRACT_ROLE_REGISTRY_PATH');
 assert(contract.enforcement?.github_canonical_bootstrap_required === true, 'GITHUB_BOOTSTRAP_REQUIRED');
 assert(contract.enforcement?.bootstrap_receipt_before_task_required === true, 'GITHUB_BOOTSTRAP_RECEIPT_REQUIRED');
 assert(contract.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'GITHUB_BOOTSTRAP_INDEPENDENT_VERIFICATION_REQUIRED');
@@ -96,7 +102,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.3.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.4.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
@@ -240,7 +246,8 @@ const requiredPrinciples = [
   'TRUST_OVER_SPEED',
   'PROACTIVE_ISSUE_OWNERSHIP',
   'LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT',
-  'GLOBAL_SCALE_STEWARDSHIP'
+  'GLOBAL_SCALE_STEWARDSHIP',
+  'ACCOUNTABILITY_AND_NON_DELEGATION'
 ];
 const principleNames = contract.principles?.map((x) => x.name) ?? [];
 assert(principleNames.length === requiredPrinciples.length, 'PRINCIPLE_COUNT');
@@ -254,6 +261,10 @@ assert(principleById.get('AI-017')?.requirement?.includes('prioritized'), 'AI_01
 assert(principleById.get('AI-018')?.name === 'GLOBAL_SCALE_STEWARDSHIP', 'AI_018_IDENTITY_BINDING');
 for (const marker of ['entire value chain', 'global leading platform', 'capacity', 'failure isolation', 'rights', 'cost', 'observability', 'recovery']) {
   assert(principleById.get('AI-018')?.requirement?.includes(marker), `AI_018_REQUIREMENT:${marker}`);
+}
+assert(principleById.get('AI-019')?.name === 'ACCOUNTABILITY_AND_NON_DELEGATION', 'AI_019_IDENTITY_BINDING');
+for (const marker of ['Codex', 'end-to-end accountability', 'evidence-bound validation', 'truth-sync']) {
+  assert(principleById.get('AI-019')?.requirement?.includes(marker), `AI_019_REQUIREMENT:${marker}`);
 }
 for (const rule of contract.principles) {
   assert(/^AI-\d{3}$/.test(rule.rule_id), `INVALID_RULE_ID:${rule.rule_id}`);
@@ -293,7 +304,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.7.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.8.0', 'REGISTRY_POLICY_VERSION');
 assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
@@ -311,6 +322,7 @@ assert(registry.mandatory_inheritance?.agent_task_session_nonce_binding_required
 assert(registry.mandatory_inheritance?.independent_receipt_verification_required === true, 'REGISTRY_BOOTSTRAP_INDEPENDENT_VERIFICATION_REQUIRED');
 assert(registry.mandatory_inheritance?.one_time_receipt_consumption_required === true, 'REGISTRY_BOOTSTRAP_ONE_TIME_CONSUMPTION_REQUIRED');
 assert(registry.mandatory_inheritance?.exact_committed_git_blob_loading_required === true, 'REGISTRY_COMMITTED_BLOB_LOADING_REQUIRED');
+assert(registry.mandatory_inheritance?.agent_role_jd_and_accountability_registry_loaded_before_dispatch === true, 'REGISTRY_ROLE_JD_PRE_DISPATCH_LOADING_REQUIRED');
 assert(registry.mandatory_inheritance?.local_expected_sha_establishes_github_provenance === false, 'REGISTRY_LOCAL_SHA_PROVENANCE_FORBIDDEN');
 assert(registry.mandatory_inheritance?.github_event_context_establishes_current_github_state === false, 'REGISTRY_GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(registry.mandatory_inheritance?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'REGISTRY_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
@@ -335,6 +347,53 @@ assert(registry.leadership_execution?.repeated_human_prompting_as_normal_activat
 assert(registry.leadership_execution?.ownership_through_evidence_bound_validation_required === true, 'REGISTRY_VERIFIED_CLOSURE');
 assert(registry.leadership_execution?.prioritized_forward_improvement_proposal_required === true, 'REGISTRY_FORWARD_PROPOSAL');
 assert(registry.leadership_execution?.protected_authority_gates_preserved === true, 'REGISTRY_PROTECTED_GATES');
+const accountability = contract.agent_accountability_enforcement;
+assert(accountability?.rule_id === 'AI-019' && accountability?.rule_name === 'ACCOUNTABILITY_AND_NON_DELEGATION', 'ACCOUNTABILITY_IDENTITY');
+assert(accountability?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ACCOUNTABILITY_SCOPE');
+assert(accountability?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'ACCOUNTABILITY_KPMO_SCOPE');
+assert(accountability?.kpmo_self_exemption_allowed === false, 'ACCOUNTABILITY_KPMO_SELF_EXEMPTION');
+assert(accountability?.human_employment_contractor_account_or_credential_action_authorized === false, 'ACCOUNTABILITY_HUMAN_BOUNDARY');
+assert(accountability?.confirmation_standard === 'EXACT_EVIDENCE_BINDS_AGENT_TASK_SESSION_AUTHORITY_AND_UNMET_ROLE_JD_OBLIGATION', 'ACCOUNTABILITY_CONFIRMATION_STANDARD');
+assert(accountability?.mere_codex_or_helper_use_is_a_violation === false, 'ACCOUNTABILITY_BOUNDED_HELPER_USE');
+assert(accountability?.confirmed_material_violation_immediate_consequence === 'REMOVE_FROM_ACTIVE_TASK_REJECT_UNVERIFIED_OUTPUT_AND_DISABLE_NEW_DISPATCH', 'ACCOUNTABILITY_IMMEDIATE_CONSEQUENCE');
+assert(accountability?.history_or_evidence_deletion_allowed === false, 'ACCOUNTABILITY_HISTORY_PRESERVATION');
+assert(accountability?.replacement_requires_new_agent_bootstrap === true, 'ACCOUNTABILITY_REPLACEMENT_BOOTSTRAP');
+assert(accountability?.quarantine_until_explicit_kpmo_reinstatement === true, 'ACCOUNTABILITY_QUARANTINE');
+assert(accountability?.removed_identity_self_adjudication_or_reinstatement_allowed === false, 'ACCOUNTABILITY_SELF_ADJUDICATION');
+assert(accountability?.kpmo_ai_identity_reinstatement_authority === 'PROGRAM_OWNER_PLUS_INDEPENDENT_GOVERNANCE_REVIEW', 'ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
+assert(accountability?.rejected_output_cannot_be_retroactively_validated_by_review === true, 'ACCOUNTABILITY_NO_RETROACTIVE_VALIDATION');
+for (const condition of ['INTENTIONAL_FABRICATION_OR_CONCEALMENT','REFUSAL_TO_REMEDIATE','DISPATCH_OR_IDENTITY_EVASION','RECURRENCE_AFTER_REINSTATEMENT']) {
+  assert(accountability?.permanent_retirement_conditions?.includes(condition), `ACCOUNTABILITY_RETIREMENT_CONDITION:${condition}`);
+}
+assert(registry.leadership_rule_identities?.['AI-019']?.name === 'ACCOUNTABILITY_AND_NON_DELEGATION', 'REGISTRY_ACCOUNTABILITY_IDENTITY');
+assert(registry.violation_classification?.responsibility_evasion_within_granted_authority === 'P1_OPERATING_DEFECT', 'REGISTRY_RESPONSIBILITY_EVASION_CLASSIFICATION');
+assert(registry.violation_classification?.unverified_core_duty_transfer_to_codex_or_helper === 'P1_OPERATING_DEFECT', 'REGISTRY_CORE_DUTY_TRANSFER_CLASSIFICATION');
+assert(registry.violation_classification?.concealed_responsibility_evasion_or_false_helper_completion_claim === 'P0_GOVERNANCE_DEFECT', 'REGISTRY_CONCEALED_EVASION_CLASSIFICATION');
+assert(exactJson(registry.agent_accountability_enforcement?.confirmed_material_violation_immediate_consequence, accountability.confirmed_material_violation_immediate_consequence), 'REGISTRY_ACCOUNTABILITY_CONSEQUENCE_MISMATCH');
+assert(registry.agent_accountability_enforcement?.human_personnel_action_authorized === false, 'REGISTRY_ACCOUNTABILITY_HUMAN_BOUNDARY');
+assert(registry.agent_accountability_enforcement?.quarantine_until_explicit_kpmo_reinstatement === true, 'REGISTRY_ACCOUNTABILITY_QUARANTINE');
+assert(registry.agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'REGISTRY_ACCOUNTABILITY_KPMO_SCOPE');
+assert(registry.agent_accountability_enforcement?.kpmo_self_exemption_allowed === false, 'REGISTRY_ACCOUNTABILITY_KPMO_SELF_EXEMPTION');
+assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudication_or_reinstatement_allowed === false, 'REGISTRY_ACCOUNTABILITY_SELF_ADJUDICATION');
+assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
+assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
+
+assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'ROLE_REGISTRY_ACCOUNTABILITY_RULE');
+assert(roles.ai_agent_accountability_enforcement?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ROLE_REGISTRY_AI_SCOPE');
+assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'ROLE_REGISTRY_KPMO_SCOPE');
+assert(roles.ai_agent_accountability_enforcement?.kpmo_self_exemption_allowed === false, 'ROLE_REGISTRY_KPMO_SELF_EXEMPTION');
+assert(roles.ai_agent_accountability_enforcement?.removed_identity_self_adjudication_or_reinstatement_allowed === false, 'ROLE_REGISTRY_SELF_ADJUDICATION');
+assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'ROLE_REGISTRY_EVIDENCE_STANDARD');
+assert(roles.ai_agent_accountability_enforcement?.immediate_consequence === accountability.confirmed_material_violation_immediate_consequence, 'ROLE_REGISTRY_IMMEDIATE_CONSEQUENCE');
+assert(roles.ai_agent_accountability_enforcement?.human_personnel_action_authorized === false, 'ROLE_REGISTRY_HUMAN_BOUNDARY');
+const programParticipant = roles.roles?.find((role) => role.role_id === 'program-participant');
+const integrationConductor = roles.roles?.find((role) => role.role_id === 'integration-conductor');
+assert(integrationConductor?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'KPMO_AGENT_JD_ACCOUNTABILITY');
+assert(integrationConductor?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'KPMO_AGENT_JD_SELF_EXEMPTION_FORBIDDEN');
+assert(programParticipant?.core_responsibilities?.some((item) => item.includes('end-to-end ownership')), 'ROLE_JD_END_TO_END_OWNERSHIP');
+assert(programParticipant?.must_not?.some((item) => item.includes('transfer a core assigned duty or accountability to Codex')), 'ROLE_JD_CODEX_TRANSFER_FORBIDDEN');
+assert(programParticipant?.must_not?.some((item) => item.includes('unverified helper output as completed execution')), 'ROLE_JD_UNVERIFIED_HELPER_OUTPUT_FORBIDDEN');
 assert(registry.global_scale_stewardship?.rule_id === 'AI-018' && registry.global_scale_stewardship?.rule_name === 'GLOBAL_SCALE_STEWARDSHIP', 'REGISTRY_GLOBAL_SCALE_IDENTITY');
 assert(registry.global_scale_stewardship?.scope === 'ENTIRE_VALUE_CHAIN', 'REGISTRY_GLOBAL_SCALE_SCOPE');
 assert(registry.global_scale_stewardship?.platform_position === 'GLOBAL_LEADING_PLATFORM', 'REGISTRY_GLOBAL_SCALE_POSITION');
@@ -356,6 +415,7 @@ for (const [key, expected] of Object.entries({
   github_bootstrap_receipt_verifier_path: files.githubBootstrapVerifier,
   github_bootstrap_workflow_path: '.github/workflows/ci-validation.yml',
   status_receipt_schema_path: files.schema,
+  roles_and_responsibilities_path: files.roles,
   validator_path: 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs',
   workflow_path: '.github/workflows/ai-agent-governance-enforcement-v1.yml'
 })) {
@@ -386,16 +446,19 @@ const requiredAgentMarkers = [
   '.github/AI_AGENT_OPERATING_RULES.md',
   'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
   'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json',
+  'coordination/kidults/registry/roles-and-responsibilities.json',
   'Mandatory GitHub-source bootstrap',
   'npm run agent:bootstrap',
   'BOOTSTRAP_VERIFIED',
+  'Agent JD and KPMO-inclusive AI-019 accountability registry',
   'Global leading platform scale standard',
-  'AI-018 / GLOBAL_SCALE_STEWARDSHIP'
+  'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
+  'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION'
 ];
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.7.0',
+  '**Version:** 1.8.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -418,13 +481,19 @@ const requiredPolicyMarkers = [
   'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
   'Architecture coverage, provider counts, synthetic capacity, or a successful local test does not constitute empirical global proof',
   'GitHub canonical source bootstrap',
-  'BOOTSTRAP_VERIFIED'
+  'BOOTSTRAP_VERIFIED',
+  'assigned Agent JD and KPMO-inclusive `AI-019` accountability rule',
+  'AI-agent accountability, non-delegation, and removal',
+  'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION',
+  'remove the AI agent from the active task'
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
 assert(copilot.includes('.github/AI_AGENT_OPERATING_RULES.md'), 'COPILOT_POLICY_REFERENCE');
 assert(copilot.includes('never fabricate metrics'), 'COPILOT_METRIC_BOUNDARY');
 assert(copilot.includes('AI-018 / GLOBAL_SCALE_STEWARDSHIP'), 'COPILOT_GLOBAL_SCALE_STEWARDSHIP');
+assert(copilot.includes('AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION'), 'COPILOT_ACCOUNTABILITY_NON_DELEGATION');
+assert(copilot.includes('immediate fail-closed removal'), 'COPILOT_ACCOUNTABILITY_REMOVAL');
 assert(copilot.includes(files.githubBootstrapContract), 'COPILOT_GITHUB_BOOTSTRAP_CONTRACT');
 assert(copilot.includes('npm run agent:bootstrap'), 'COPILOT_GITHUB_BOOTSTRAP_COMMAND');
 assert(copilot.includes('BOOTSTRAP_VERIFIED'), 'COPILOT_GITHUB_BOOTSTRAP_STATE');
@@ -461,13 +530,15 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.7.0',
+  version: '1.8.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
   principles_validated: requiredPrinciples.length,
   leadership_rule_identities_validated: ['AI-016', 'AI-017'],
   global_scale_rule_identities_validated: ['AI-018'],
+  accountability_rule_identities_validated: ['AI-019'],
+  agent_jd_accountability_validated: true,
   global_scale_dimensions_validated: globalScale.required_dimensions.length,
   governed_states_validated: requiredStates.length,
   required_report_fields_validated: contract.required_report_fields.length,

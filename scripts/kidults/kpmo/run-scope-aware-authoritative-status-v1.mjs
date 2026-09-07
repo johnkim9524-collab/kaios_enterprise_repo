@@ -6,6 +6,9 @@ import {
   evaluateRequiredCheckRuns,
   resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
+import {
+  assertChangedApprovalGenerationEquality,
+} from './lib/approval-generation-equality-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
@@ -23,6 +26,7 @@ if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 90 || !Nu
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
 const landingPolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 const context = policy.required_status_context;
+const draftDevelopmentContext = policy.draft_development_status_context;
 const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
@@ -39,9 +43,9 @@ const api = async (path, options = {}) => {
   if (response.status === 204) return null;
   return response.json();
 };
-const postStatus = (state, description) => api(`/statuses/${expectedHeadSha}`, {
+const postStatus = (state, description, statusContext = context) => api(`/statuses/${expectedHeadSha}`, {
   method: 'POST',
-  body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
+  body: JSON.stringify({state, context: statusContext, description: String(description).slice(0, 140)}),
   headers: {'Content-Type': 'application/json'},
 });
 const arrayPages = async path => {
@@ -65,21 +69,56 @@ const checkPages = async sha => {
   }
   throw new Error('GITHUB_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const encodePath = filename => filename.split('/').map(part => encodeURIComponent(part)).join('/');
+const readJsonAtRef = async (filename, ref) => {
+  const payload = await api(`/contents/${encodePath(filename)}?ref=${ref}`);
+  if (payload?.type !== 'file' || payload?.encoding !== 'base64' || typeof payload?.content !== 'string') {
+    throw new Error(`APPROVAL_GENERATION_CONTENT_SHAPE_INVALID:${filename}`);
+  }
+  return JSON.parse(Buffer.from(payload.content.replace(/\s/g, ''), 'base64').toString('utf8'));
+};
 const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const retryable = new Set(['REQUIRED_CONTEXT_MISSING', 'REQUIRED_CONTEXT_NOT_TERMINAL']);
 
 let pendingPublished = false;
+let activeStatusContext = context;
 try {
-  const initial = await api(`/pulls/${prNumber}`);
-  assertStableFinalReread(initial, initial, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: landingPolicy.no_merge_policy,
-  });
-  await postStatus('pending', 'Waiting for exact-head scope requirements');
+  const [initial, mainBranch] = await Promise.all([
+    api(`/pulls/${prNumber}`),
+    api('/branches/main'),
+  ]);
+  const draftDevelopment = initial.draft === true;
+  if (draftDevelopment) {
+    if (initial.state !== 'open' || initial.merged === true || initial.head?.sha !== expectedHeadSha
+        || initial.head?.repo?.full_name !== repository || initial.base?.ref !== 'main') {
+      throw new Error('DRAFT_DEVELOPMENT_SNAPSHOT_INVALID');
+    }
+    if (typeof draftDevelopmentContext !== 'string' || !draftDevelopmentContext.length) {
+      throw new Error('DRAFT_DEVELOPMENT_CONTEXT_MISSING');
+    }
+    activeStatusContext = draftDevelopmentContext;
+  } else {
+    assertStableFinalReread(initial, initial, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: landingPolicy.no_merge_policy,
+    });
+  }
+  if (initial.base?.sha !== mainBranch?.commit?.sha) {
+    throw new Error('SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN');
+  }
+  await postStatus('pending', draftDevelopment
+    ? 'Draft development validation in progress; landing remains blocked'
+    : 'Waiting for exact-head scope requirements', activeStatusContext);
   pendingPublished = true;
 
   const files = await arrayPages(`/pulls/${prNumber}/files`);
+  const approvalGeneration = await assertChangedApprovalGenerationEquality({
+    files,
+    readJson: filename => readJsonAtRef(filename, expectedHeadSha),
+    prBaseSha: initial.base.sha,
+    liveMainSha: mainBranch.commit.sha,
+  });
   const scope = resolveScopeRequirements(files, initial, policy);
   let results = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -92,31 +131,52 @@ try {
     }
   }
   if (!results) throw new Error('SCOPE_AGGREGATOR_NO_TERMINAL_RESULT');
-  const final = await api(`/pulls/${prNumber}`);
-  assertStableFinalReread(initial, final, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: landingPolicy.no_merge_policy,
-  });
-  await postStatus('success', `${scope.required_contexts.length} exact-head contexts verified`);
+  const [final, finalMain] = await Promise.all([
+    api(`/pulls/${prNumber}`),
+    api('/branches/main'),
+  ]);
+  if (draftDevelopment) {
+    if (final.state !== 'open' || final.merged === true || final.draft !== true
+        || final.head?.sha !== initial.head.sha || final.base?.sha !== initial.base.sha) {
+      throw new Error('DRAFT_DEVELOPMENT_STATE_DRIFT');
+    }
+  } else {
+    assertStableFinalReread(initial, final, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: landingPolicy.no_merge_policy,
+    });
+  }
+  if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== mainBranch.commit.sha) {
+    throw new Error('SCOPE_AGGREGATOR_LIVE_MAIN_DRIFT');
+  }
+  await postStatus('success', draftDevelopment
+    ? `${scope.required_contexts.length} exact-head contexts verified; Draft non-promotable`
+    : `${scope.required_contexts.length} exact-head contexts verified`, activeStatusContext);
   console.log(JSON.stringify({
     id: 'kidults-scope-aware-authoritative-status-receipt-v1',
-    version: '1.0.0',
+    version: '1.1.0',
     state: 'VERIFIED_PASS',
+    validation_lane: draftDevelopment ? 'DRAFT_DEVELOPMENT' : 'READY_PROMOTION',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
+    exact_base_sha: initial.base.sha,
+    live_main_sha: mainBranch.commit.sha,
     scopes: scope.scopes,
     files_accounted_for: scope.files.length,
     required_contexts: scope.required_contexts,
     check_results: results,
+    approval_generation_equality: approvalGeneration,
     final_live_reread: true,
     zero_coverage_scopes: 0,
     technical_status_is_merge_authority: false,
+    landing_authorization_created: false,
+    draft_non_promotable: draftDevelopment,
     production: 'HOLD', public_release: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {
   if (pendingPublished) {
-    try { await postStatus('failure', error?.code || error?.message || 'scope aggregation failed'); } catch {}
+    try { await postStatus('failure', error?.code || error?.message || 'scope aggregation failed', activeStatusContext); } catch {}
   }
   throw error;
 }

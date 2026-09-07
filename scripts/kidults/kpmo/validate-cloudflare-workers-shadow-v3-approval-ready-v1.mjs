@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import {assertConsumedWorkflowInactive} from './validate-cloudflare-consumed-workflow-v1.mjs';
 import path from 'node:path';
 
 const P = {
@@ -122,7 +123,7 @@ ok(terminal.release_boundary?.public === 'HOLD'
   && terminal.release_boundary?.g5 === 'HOLD', 'TERMINAL_HOLD');
 
 // Historical v3 workflow is a zero-authority tombstone.
-ok(/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+assertConsumedWorkflowInactive(workflow);
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH_REINTRODUCED');
 ok(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'WORKFLOW_TOMBSTONE_MARKER');
 ok(workflow.includes('historical_cloudflare_error_code:7003'), 'WORKFLOW_HISTORICAL_ERROR_TRUTH');
@@ -185,7 +186,7 @@ ok(credentialTerminal.state === 'VERIFIED_FAIL_PREAUTHORIZATION_NO_EXTERNAL_CALL
 ok(credentialTerminal.external_read_request_count === 0, 'PREFLIGHT_TERMINAL_REQUESTS');
 ok(credentialTerminal.operational_authority?.v1_lane_exhausted === true, 'PREFLIGHT_TERMINAL_EXHAUSTED');
 
-ok(/^on:\s*\[\]\s*$/m.test(credentialV1Workflow), 'PREFLIGHT_WORKFLOW_NO_TRIGGER');
+assertConsumedWorkflowInactive(credentialV1Workflow);
 ok(!credentialV1Workflow.includes('workflow_dispatch'), 'PREFLIGHT_WORKFLOW_DISPATCH');
 ok(!credentialV1Workflow.includes('environment:'), 'PREFLIGHT_WORKFLOW_ENVIRONMENT');
 ok(!credentialV1Workflow.includes('${{ secrets.'), 'PREFLIGHT_WORKFLOW_SECRETS');

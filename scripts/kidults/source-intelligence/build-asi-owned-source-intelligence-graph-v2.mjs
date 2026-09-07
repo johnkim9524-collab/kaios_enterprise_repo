@@ -3,8 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const [candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,contractPath,outputDir] = process.argv.slice(2);
-if (![candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,contractPath,outputDir].every(Boolean)) throw new Error('P2_ARGUMENTS_REQUIRED');
+const [candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,p1ContractPath,contractPath,outputDir] = process.argv.slice(2);
+if (![candidateRegistryPath,bindingLedgerPath,gate1Path,admissionPath,actionQueuePath,p1ContractPath,contractPath,outputDir].every(Boolean)) throw new Error('P2_ARGUMENTS_REQUIRED');
 const readJson=async p=>JSON.parse(await fs.readFile(p,'utf8'));
 const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])])):v;
 const stableJson=v=>`${JSON.stringify(stable(v),null,2)}\n`;
@@ -17,17 +17,55 @@ const bindings=await readJson(bindingLedgerPath);
 const gate1=await readJson(gate1Path);
 const admissions=await readJson(admissionPath);
 const actions=await readJson(actionQueuePath);
+const p1Contract=await readJson(p1ContractPath);
 const contract=await readJson(contractPath);
 const principles=['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT'];
 
 if(candidates.id!=='kidults-asi-p0b-source-candidate-registry-v1'||candidates.canonical_candidate_count===0||!Array.isArray(candidates.candidates)) throw new Error('P0B_CANDIDATE_REGISTRY_INVALID');
 if(bindings.id!=='kidults-asi-p0b-mission-candidate-binding-ledger-v1'||bindings.mission_count!==192||bindings.bindings?.length!==192) throw new Error('P0B_BINDING_LEDGER_INVALID');
-if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||gate1.decision_count!==576||gate1.decisions?.length!==576) throw new Error('P1_GATE1_INVALID');
-if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||admissions.candidate_count!==576||admissions.candidates?.length!==576||admissions.admitted_count!==0) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
-if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||actions.action_count!==672||actions.actions?.length!==672) throw new Error('P1_ACTION_QUEUE_INVALID');
+const candidateIds=new Set(candidates.candidates.map(candidate=>candidate.candidate_id));
+const missionIds=new Set(bindings.bindings.map(binding=>binding.mission_id));
+const gate1Decisions=Array.isArray(gate1.decisions)?gate1.decisions:[];
+if(gate1.id!=='kidults-asi-p1-gate1-source-safety-decisions-v1'||!Number.isInteger(gate1.decision_count)||gate1.decision_count<=0||gate1.decision_count!==gate1Decisions.length) throw new Error('P1_GATE1_INVALID');
+const gate1ByGrain=new Map();
+const gate1DecisionIds=new Set();
+const gate1ObservedCounts={PASS:0,HOLD:0,REJECT:0};
+for(const decision of gate1Decisions){
+  if(!decision?.gate1_decision_id||gate1DecisionIds.has(decision.gate1_decision_id)||!decision?.grain_id||gate1ByGrain.has(decision.grain_id)||!candidateIds.has(decision.candidate_id)||!missionIds.has(decision.mission_id)||!Object.hasOwn(gate1ObservedCounts,decision.decision)) throw new Error('P1_GATE1_INVALID');
+  gate1DecisionIds.add(decision.gate1_decision_id);
+  gate1ByGrain.set(decision.grain_id,decision);
+  gate1ObservedCounts[decision.decision]+=1;
+}
+if(gate1ObservedCounts.PASS!==gate1.pass_count||gate1ObservedCounts.HOLD!==gate1.hold_count||gate1ObservedCounts.REJECT!==gate1.reject_count) throw new Error('P1_GATE1_INVALID');
+const admissionCandidates=Array.isArray(admissions.candidates)?admissions.candidates:[];
+if(admissions.id!=='kidults-asi-p1-evidence-admission-candidate-register-v1'||!Number.isInteger(admissions.candidate_count)||admissions.candidate_count<=0||admissions.candidate_count!==admissionCandidates.length||admissions.admitted_count!==0||admissions.candidate_count!==gate1.decision_count) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+const admissionByGrain=new Map();
+const admissionIds=new Set();
+for(const admission of admissionCandidates){
+  const decision=gate1ByGrain.get(admission?.grain_id);
+  if(!admission?.admission_candidate_id||admissionIds.has(admission.admission_candidate_id)||admissionByGrain.has(admission.grain_id)||!decision||admission.candidate_id!==decision.candidate_id||admission.mission_id!==decision.mission_id||admission.gate1_decision!==decision.decision||admission.rights_state!==decision.rights_state||admission.evidence_admitted!==false||admission.admitted_evidence_id!==null||admission.collection_authorized!==false||admission.market_claim_authorized!==false) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+  admissionIds.add(admission.admission_candidate_id);
+  admissionByGrain.set(admission.grain_id,admission);
+}
+if(admissionByGrain.size!==gate1ByGrain.size) throw new Error('P1_ADMISSION_CANDIDATES_INVALID');
+if(p1Contract.id!=='kidults-asi-p1-source-classification-admission-preflight-contract-v1'||p1Contract.version!=='1.0.0'||!Array.isArray(p1Contract.preflight_actions)||p1Contract.preflight_actions.length===0) throw new Error('P1_CONTRACT_INVALID');
 if(contract.id!=='kidults-asi-owned-source-intelligence-graph-contract-v2'||contract.version!=='2.0.0') throw new Error('P2_CONTRACT_INVALID');
 if(JSON.stringify(contract.platform_principles)!==JSON.stringify(principles)) throw new Error('P2_PRINCIPLE_ORDER_INVALID');
 if(contract.truth_boundary?.creates_market_event!==false||contract.truth_boundary?.admits_evidence!==false||contract.truth_boundary?.creates_snapshot_candidate!==false) throw new Error('P2_TRUTH_BOUNDARY_INVALID');
+const actionTypes=Array.isArray(actions.action_types)?actions.action_types:[];
+if(actions.id!=='kidults-asi-p1-preflight-action-queue-v1'||actions.state!=='QUEUED_NOT_EXECUTED'||!Number.isInteger(actions.unique_candidate_count)||actions.unique_candidate_count<=0||!Array.isArray(actions.actions)||actions.action_count!==actions.actions.length||actionTypes.length===0||JSON.stringify(actionTypes)!==JSON.stringify(p1Contract.preflight_actions)||actions.action_count!==actions.unique_candidate_count*actionTypes.length) throw new Error('P1_ACTION_QUEUE_INVALID');
+const actionIds=new Set();
+const actionsByCandidate=new Map();
+for(const action of actions.actions){
+  if(!action?.action_id||actionIds.has(action.action_id)||!action?.candidate_id||!actionTypes.includes(action.action_type)||action.state!=='QUEUED_NOT_EXECUTED'||action.network_probe_authorized!==false||action.collection_authorized!==false||action.evidence_admitted!==false) throw new Error('P1_ACTION_QUEUE_INVALID');
+  actionIds.add(action.action_id);
+  if(!actionsByCandidate.has(action.candidate_id)) actionsByCandidate.set(action.candidate_id,[]);
+  actionsByCandidate.get(action.candidate_id).push(action);
+}
+if(actionsByCandidate.size!==actions.unique_candidate_count) throw new Error('P1_ACTION_QUEUE_INVALID');
+for(const candidateActions of actionsByCandidate.values()){
+  if(candidateActions.length!==actionTypes.length||new Set(candidateActions.map(action=>action.action_type)).size!==actionTypes.length) throw new Error('P1_ACTION_QUEUE_INVALID');
+}
 await fs.mkdir(outputDir,{recursive:true});
 
 const nodeMap=new Map(),edgeMap=new Map();
@@ -137,7 +175,7 @@ const countType=(arr,key,type)=>arr.filter(x=>x[key]===type).length;
 const assignedUnique=new Set(bindings.bindings.flatMap(b=>(b.slot_bindings||[]).map(s=>s.candidate_id))).size;
 const quality={id:'kidults-owned-source-intelligence-quality-v2',version:'2.0.0',state:'VERIFIED_GRAPH_INTEGRITY_READY',as_of:asOf,node_type_counts:Object.fromEntries(contract.graph_model.node_types.map(t=>[t,countType(nodes,'node_type',t)])),edge_type_counts:Object.fromEntries(contract.graph_model.edge_types.map(t=>[t,countType(edges,'edge_type',t)])),duplicate_node_ids:0,duplicate_edge_ids:0,invalid_edge_node_references:0,forbidden_node_type_count:nodes.filter(n=>contract.forbidden_node_types.includes(n.node_type)).length,forbidden_edge_type_count:edges.filter(e=>contract.forbidden_edge_types.includes(e.edge_type)).length,unassigned_source_candidates:candidates.canonical_candidate_count-assignedUnique,evidence_admitted:0,market_events_created:0,public_release:'HOLD',production:'HOLD'};
 if(quality.forbidden_node_type_count||quality.forbidden_edge_type_count) throw new Error('FORBIDDEN_GRAPH_SEMANTICS');
-const lineage={id:'kidults-owned-source-intelligence-lineage-v2',version:'2.0.0',state:'IMMUTABLE_INPUT_AND_OUTPUT_DIGESTS_BOUND',as_of:asOf,inputs:[candidates,bindings,gate1,admissions,actions,contract].map(x=>({id:x.id,version:x.version,digest:hash(stableJson(x))})),graph:{id:graph.id,version:graph.version,digest:graphDigest,node_count:graph.node_count,edge_count:graph.edge_count},public_release:'HOLD',production:'HOLD'};
+const lineage={id:'kidults-owned-source-intelligence-lineage-v2',version:'2.0.0',state:'IMMUTABLE_INPUT_AND_OUTPUT_DIGESTS_BOUND',as_of:asOf,inputs:[candidates,bindings,gate1,admissions,actions,p1Contract,contract].map(x=>({id:x.id,version:x.version,digest:hash(stableJson(x))})),graph:{id:graph.id,version:graph.version,digest:graphDigest,node_count:graph.node_count,edge_count:graph.edge_count},public_release:'HOLD',production:'HOLD'};
 const value={id:'kidults-owned-source-intelligence-value-receipt-v2',version:'2.0.0',state:'KIDULTS_OWNED_VALUE_INCREMENT_VERIFIED',as_of:asOf,graph_digest:graphDigest,mission_nodes:idx.mission.size,scope_nodes:idx.scope.size,domain_nodes:idx.domain.size,region_nodes:idx.region.size,evidence_class_nodes:idx.evidence.size,source_candidate_nodes:idx.candidate.size,canonical_host_nodes:idx.host.size,discovery_provider_nodes:idx.provider.size,factual_origin_candidate_nodes:idx.origin.size,gate1_decision_nodes:idx.gate.size,admission_candidate_nodes:idx.admission.size,preflight_action_nodes:idx.action.size,provider_switching_primitives_created:idx.host.size+idx.provider.size+idx.origin.size,external_raw_data_is_owned_moat:false,source_intelligence_graph_is_market_evidence_graph:false,public_release:'HOLD',production:'HOLD'};
 async function write(name,value){const content=stableJson(value);await fs.writeFile(path.join(outputDir,name),content);return{name,sha256:hash(content),bytes:Buffer.byteLength(content)}}
 const outputs=[];

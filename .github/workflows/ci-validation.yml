@@ -91,6 +91,8 @@ jobs:
           set -euo pipefail
           node --test tests/kidults/kpmo/dependency-bootstrap-lock-v1.test.mjs
           node scripts/kidults/kpmo/validate-dependency-bootstrap-lock-v1.mjs
+          node --test tests/kidults/kpmo/requirement-coverage-dependency-bootstrap-v1.test.mjs
+          node scripts/kidults/kpmo/validate-requirement-coverage-dependency-bootstrap-v1.mjs
 
       - name: Verify Production release gate synthetic controls
         run: |
@@ -135,6 +137,16 @@ jobs:
 
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
+
+      - name: Validate global SOLD source registry persistence controls
+        run: |
+          set -euo pipefail
+          node scripts/kidults/source-intelligence/global-sold-source-registry-v1.mjs
+          node scripts/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.mjs
+          node --test \
+            tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs \
+            tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs \
+            tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
 
       - name: Run KAIOS pipeline
         run: python scripts/run_kaios.py

@@ -55,11 +55,22 @@ jobs:
           stale_cancelled=0
           force_cancelled=0
           exact_head_retained=0
+          generation_bridge_retained=0
           cancellation_retry_attempts=0
           force_cancel_attempts=0
           terminal_race_readbacks=0
           terminal_readback_attempts=0
           examined=0
+
+          retain_generation_bridge() {
+            local run_event="$1"
+            local workflow_path="$2"
+            [[ "${run_event}" == "workflow_dispatch" ]] || return 1
+            case "${workflow_path}" in
+              ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml"|".github/workflows/kidults-atomic-governed-landing-v1.yml") return 0 ;;
+              *) return 1 ;;
+            esac
+          }
 
           read_run_terminal() {
             local target_run_id="$1"
@@ -130,10 +141,15 @@ jobs:
             count="$(jq '.workflow_runs | length' <<<"${response}")"
             examined=$((examined + count))
 
-            while IFS=$'\t' read -r run_id head_sha status workflow_name; do
+            while IFS=$'\t' read -r run_id head_sha status run_event workflow_path; do
               [[ -n "${run_id}" ]] || continue
               [[ "${run_id}" != "${CURRENT_RUN_ID}" ]] || continue
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
+
+              if retain_generation_bridge "${run_event}" "${workflow_path}"; then
+                generation_bridge_retained=$((generation_bridge_retained + 1))
+                continue
+              fi
 
               if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
                 exact_head_retained=$((exact_head_retained + 1))
@@ -208,7 +224,7 @@ jobs:
                 echo "Unexpected cancellation status ${code} for run ${run_id}" >&2
                 exit 1
               fi
-            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .name] | @tsv' <<<"${response}")
+            done < <(jq -r '.workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv' <<<"${response}")
 
             [[ "${count}" -eq 100 ]] || break
           done
@@ -222,8 +238,9 @@ jobs:
             --argjson stale_cancelled "${stale_cancelled}" \
             --argjson force_cancelled "${force_cancelled}" \
             --argjson exact_head_retained "${exact_head_retained}" \
+            --argjson generation_bridge_retained "${generation_bridge_retained}" \
             --argjson cancellation_retry_attempts "${cancellation_retry_attempts}" \
             --argjson force_cancel_attempts "${force_cancel_attempts}" \
             --argjson terminal_race_readbacks "${terminal_race_readbacks}" \
             --argjson terminal_readback_attempts "${terminal_readback_attempts}" \
-            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,force_cancelled:$force_cancelled,exact_head_impact_runs_retained:$exact_head_retained,cancellation_retry_attempts:$cancellation_retry_attempts,force_cancel_attempts:$force_cancel_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'
+            '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,exact_head_sha:$exact_head_sha,runs_examined:$examined,runs_cancelled:$cancelled,same_head_runs_cancelled:0,stale_runs_cancelled:$stale_cancelled,force_cancelled:$force_cancelled,exact_head_impact_runs_retained:$exact_head_retained,generation_bridge_runs_retained:$generation_bridge_retained,cancellation_retry_attempts:$cancellation_retry_attempts,force_cancel_attempts:$force_cancel_attempts,terminal_race_readbacks:$terminal_race_readbacks,terminal_readback_attempts:$terminal_readback_attempts,lookup_bound:{pages:10,per_page:100},fork_pr_actions_write:false}'

@@ -7,6 +7,8 @@ on:
       - ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml"
       - ".github/workflows/kpmo-canonical-issue-transition-guard-v1.yml"
       - "scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs"
+      - "scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs"
+      - "tests/kidults/kpmo/canonical-failure-terminal-v1.test.mjs"
       - "scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs"
       - "scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs"
       - "coordination/kidults/**"
@@ -90,6 +92,7 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs --self-test
           node scripts/kidults/kpmo/validate-canonical-truth-receipt-bootstrap-v1.mjs
+          node --test tests/kidults/kpmo/canonical-failure-terminal-v1.test.mjs
       - name: Fail closed on material-defect severity metadata drift
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -106,14 +109,20 @@ jobs:
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_EVENT: ${{ github.event_name }}
         shell: bash
         run: |
           set -euo pipefail
           TMP_OUTPUT="$RUNNER_TEMP/canonical-truth-validation-output-v1.tmp.json"
-          if node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"; then
+          if node scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs | tee "$TMP_OUTPUT"; then
             test -s "$TMP_OUTPUT"
             mv "$TMP_OUTPUT" "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"
           else
+            # Preserve structured RED output; an empty/crashed capture keeps bootstrap RED.
+            if test -s "$TMP_OUTPUT"; then
+              mv "$TMP_OUTPUT" "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"
+            fi
             rm -f "$TMP_OUTPUT"
             exit 1
           fi
@@ -148,8 +157,8 @@ jobs:
           try { validation = JSON.parse(validationText); } catch { throw new Error('CANONICAL_VALIDATION_OUTPUT_JSON_INVALID'); }
 
           let registryDigest = null;
-          let registryCount = 0;
-          let registryIssueNumbers = [];
+          let registryCount = null;
+          let registryIssueNumbers = null;
           let registryCardinality = null;
           let validatedProtectedMainSha = null;
           if (outcome === 'success') {
@@ -169,6 +178,14 @@ jobs:
             validatedProtectedMainSha = validation.protected_main_sha;
           }
 
+          const diagnosticBound = outcome === 'failure' && validation?.state === 'VERIFIED_FAIL' &&
+            validation.failure_scope === 'CANONICAL_READ_ONLY_DIAGNOSTIC_NOT_PROOF' &&
+            validation.repository === process.env.GITHUB_REPOSITORY && validation.head_sha === process.env.RECEIPT_HEAD_SHA &&
+            validation.run_id === Number(process.env.GITHUB_RUN_ID) && validation.run_attempt === Number(process.env.GITHUB_RUN_ATTEMPT) &&
+            validation.event === process.env.RECEIPT_EVENT && /^[A-Z][A-Z0-9_]{0,79}$/.test(validation.failure_class || '');
+          const rootFailureClass = outcome === 'success' ? null : diagnosticBound ? validation.failure_class : 'CANONICAL_DIAGNOSTIC_NOT_AVAILABLE';
+          const mismatchFields = diagnosticBound && Array.isArray(validation.mismatch_fields) ? validation.mismatch_fields : [];
+
           const receipt = {
             receipt_id: 'kpmo-live-canonical-issue-truth-receipt-v1',
             version: '1.1.0',
@@ -182,6 +199,9 @@ jobs:
             validation_outcome: outcome,
             state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
             failure_class: outcome === 'success' ? null : 'CANONICAL_VALIDATION_NON_SUCCESS',
+            root_failure_class: rootFailureClass,
+            mismatch_fields: mismatchFields,
+            material_registry_verified: outcome === 'success',
             validation_output_sha256: validationOutputSha256,
             validation_output_state: validation?.state || 'VERIFIED_FAIL',
             validated_protected_main_sha: validatedProtectedMainSha,
@@ -191,7 +211,8 @@ jobs:
             material_defect_query_cardinality: registryCardinality,
             promotion_eligible: false,
             production: 'HOLD',
-            public: 'HOLD'
+            public: 'HOLD',
+            g5: 'HOLD'
           };
           fs.writeFileSync(`${process.env.RUNNER_TEMP}/canonical-truth-receipt-v1.json`, `${JSON.stringify(receipt, null, 2)}\n`);
           NODE

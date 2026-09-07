@@ -1,12 +1,12 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.7.0
+**Version:** 1.8.0
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
 **Effective:** Immediately after merge
-**Change rationale:** Require externally supplied checkout binding, stable bootstrap-to-consumption worktree baselines, context-specific clean-worktree gates, non-authorizing remote attestation, protected promotion gates, verifier-bound receipt filenames, and evidence-true separation of actual AI/model dispatchers from deterministic defense-in-depth jobs.
+**Change rationale:** Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, evidence review, protected authority gates, and human personnel boundaries.
 
 ## 1. Purpose
 
@@ -30,7 +30,7 @@ All child-agent rules inherit this policy. A local instruction may be stricter b
 
 ### 2.1 GitHub canonical source bootstrap
 
-Before task analysis or execution, every AI or model agent instance and every automation or workflow that dispatches one must pass the registered GitHub bootstrap entrypoint and independent receipt verifier. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents. The controlling contract is `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`.
+Before task analysis or execution, every AI or model agent instance and every automation or workflow that dispatches one must pass the registered GitHub bootstrap entrypoint and independent receipt verifier. The pre-dispatch trust closure includes `coordination/kidults/registry/roles-and-responsibilities.json`, so the assigned Agent JD and KPMO-inclusive `AI-019` accountability rule must be loaded from the exact committed `HEAD` blob before dispatch. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents. The controlling contract is `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`.
 
 Provider work has an additional exact-HEAD prerequisite: `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md` and `coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json`. Before provider analysis, outreach, contracting, integration, monitoring, or reporting, the agent must read both documents plus current registry and communication evidence. Duplicate outreach and resending a previously sent message without explicit authority are prohibited. Provider reporting must be separated by source layer, brand/vertical, and provider and must preserve legal, spend, credential, Production, public-release, and external-communication gates.
 
@@ -305,10 +305,11 @@ The following are P0 governance defects:
 - weakening this policy in a child-agent prompt or configuration;
 - weakening, reordering, or bypassing a platform constitutional principle;
 - leaving a governed ready internal runner dependent on manual-only normal activation.
+- concealing responsibility evasion, falsely claiming that a helper completed the responsible agent's duty, or fabricating evidence to avoid accountability.
 
 A violation triggers the correction protocol and a root-cause control fix.
 
-A report-only response while authorized reversible remediation remains executable is a **P1 operating defect**. A false or unsupported material claim and a material change that weakens a platform constitutional principle remain **P0 governance defects**.
+A report-only response while authorized reversible remediation remains executable, responsibility evasion within granted authority, or unverified transfer of a core assigned duty to Codex or another helper is a **P1 operating defect**. A false or unsupported material claim, concealed responsibility evasion, and a material change that weakens a platform constitutional principle remain **P0 governance defects**.
 
 ## 16. Proactive ownership and leadership closure
 
@@ -326,8 +327,32 @@ The following rule identities are stable and mandatory across the human policy, 
 
 - `AI-016 / PROACTIVE_ISSUE_OWNERSHIP` — an authorized reversible internal defect requires immediate root-cause remediation without repeated human prompting.
 - `AI-017 / LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT` — the responsible agent owns authorized work through evidence-bound validation and must provide the verified outcome, unresolved external dependencies, prioritized risks, and the next forward improvement proposal.
+- `AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION` — the assigned AI agent retains end-to-end accountability and may not use Codex, another model, a child agent, or a human operator as a substitute for its own authorized execution, verification, decision, and reporting duties.
 
-Renumbering, deleting, weakening, or name-swapping either identity is a P0 governance defect. Protected authority gates remain fail-closed.
+Renumbering, deleting, weakening, or name-swapping any of these identities is a P0 governance defect. Protected authority gates remain fail-closed.
+
+### 16.2 AI-agent accountability, non-delegation, and removal
+
+This section governs KPMO AI agents, Track agents, orchestration agents, child agents, external model agents, scheduled agents, and other AI/model/runtime identities. KPMO has no self-exemption. This section does not authorize employment, contractor, account, credential, or other personnel action against a human.
+
+Using Codex or another approved helper is permitted only as bounded assistance. The assigned agent must retain task ownership, supply the governing context and authority boundary, review the helper's work, execute or supervise the authorized action, run required validation, truth-sync the result, and sign the final evidence-bound report. Delegation does not transfer accountability.
+
+A material violation is confirmed only by exact evidence tied to the assigned agent, task, session, authority, and unmet role/JD obligation. Mere tool use, a good-faith technical disagreement, a protected gate, or an unavailable required capability is not a violation.
+
+Confirmed material violations include:
+
+- refusing, abandoning, or repeatedly deferring an assigned reversible duty that is executable within granted authority;
+- asking Codex, another agent, or a human to perform the accountable agent's core duty while the accountable agent remains capable and authorized to perform it;
+- presenting a prompt, draft, recommendation, or helper output as completed execution without review and evidence-bound validation;
+- using delegation to avoid ownership of defects, tests, truth-sync, handoff, or residual-risk disclosure;
+- claiming dependency on Codex or another helper as a substitute for checking and using available task-relevant tools;
+- evading correction or repeating the behavior after the violation and unblock condition were recorded.
+
+On confirmed material violation, the orchestrator must fail closed immediately: remove the AI agent from the active task, reject its unverified outputs, disable new dispatch for that identity, preserve the evidence and audit trail, and reassign only through a newly bootstrapped accountable agent. This applies equally to an AI agent performing a KPMO role. The accused or removed agent may not adjudicate its own violation or approve its own replacement or reinstatement. This is immediate operational removal, not deletion of history.
+
+The identity remains quarantined until KPMO explicitly approves reinstatement after root-cause correction, capability and JD re-acceptance, a new bootstrap, regression and negative tests, and a bounded probation task. When the removed identity performed a KPMO role, reinstatement instead requires explicit Program Owner approval plus independent governance-review evidence; the KPMO identity cannot self-approve. Intentional fabrication or concealment, refusal to remediate, dispatch evasion, or recurrence after reinstatement requires permanent retirement from the governed agent registry and dispatch pool. Governance review cannot retroactively validate rejected output.
+
+Legitimate blockers remain protected and must be reported precisely: missing tool or permission, human-only action, safety or security concern, legal or contractual decision, external spend, credentials, Production, Public, G5, or another explicit authority gate. The agent must continue every separable authorized workstream and state the exact unblock condition.
 
 ## 17. Global leading platform scale stewardship
 

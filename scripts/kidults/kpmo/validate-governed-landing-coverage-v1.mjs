@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.3.0', 'POLICY_VERSION');
+  require(policy.version === '1.5.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -41,6 +41,17 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   }
   require(!prefixes.has('coordination/kidults/providers/'), 'STALE_PROVIDER_PREFIX_POLICY');
   require(!workflow.includes("'coordination/kidults/providers/'"), 'STALE_PROVIDER_PREFIX_WORKFLOW');
+
+  const generation = policy.approval_generation_policy || {};
+  require(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'APPROVAL_GENERATION_MODE');
+  require(generation.active_record_exact_main_equality_required === true, 'APPROVAL_GENERATION_ACTIVE_RECORD');
+  require(generation.issuance_main_must_equal_pr_base_sha === true, 'APPROVAL_GENERATION_PR_BASE');
+  require(generation.issuance_main_must_equal_live_main_sha === true, 'APPROVAL_GENERATION_LIVE_MAIN');
+  require(generation.survives_main_drift === false, 'APPROVAL_GENERATION_DRIFT');
+  require(generation.ancestor_reuse_allowed === false, 'APPROVAL_GENERATION_ANCESTRY');
+  require(generation.same_candidate_blob_different_main_allowed === false, 'APPROVAL_GENERATION_SAME_BLOB');
+  require(generation.stale_canonical_comment_allowed === false, 'APPROVAL_GENERATION_STALE_COMMENT');
+  require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
   const review = policy.review_policy || {};
   require(review.minimum_non_author_approvals === 0, 'APPROVAL_COUNT_NOT_ZERO');
@@ -53,10 +64,21 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.exact_labels?.includes('no-merge'), 'NO_MERGE_LABEL_BLOCK_MISSING');
   require(policy.atomic_landing_policy?.ordinary_readiness_may_publish_success === false, 'READINESS_FALSE_SUCCESS_ALLOWED');
-  require(policy.atomic_landing_policy?.server_side_merge_must_bind_expected_head_sha === true, 'SERVER_SHA_COMPARE_MISSING');
+  require(policy.atomic_landing_policy?.repository_github_token_merge_forbidden === true, 'REPOSITORY_TOKEN_MERGE_MUST_BE_FORBIDDEN');
+  require(policy.atomic_landing_policy?.event_emitting_transport === 'DIRECT_OWNER_GITHUB_UI', 'EVENT_TRANSPORT_INVALID');
+  require(policy.atomic_landing_policy?.event_emitting_transport_availability_before_consumption === true, 'PRECONSUMPTION_TRANSPORT_CHECK_MISSING');
+  require(policy.atomic_landing_policy?.expected_base_sha_required === true
+    && policy.atomic_landing_policy?.expected_head_sha_required === true
+    && policy.atomic_landing_policy?.expected_head_tree_sha_required === true, 'EXACT_IDENTITY_BINDING_MISSING');
+  require(policy.atomic_landing_policy?.postmerge_exact_main_tree_and_parent_binding_required === true, 'POSTMERGE_GRAPH_BINDING_MISSING');
+  require(policy.atomic_landing_policy?.postmerge_exact_merge_sha_push_suite_required === true, 'POSTMERGE_PUSH_SUITE_MISSING');
+  require(policy.atomic_landing_policy?.terminal_pass_requires_postmerge_success === true, 'EARLY_TERMINAL_PASS_ALLOWED');
+  require(policy.atomic_landing_policy?.new_secret_or_permission_expansion_forbidden === true, 'SECRET_PERMISSION_BOUNDARY_MISSING');
   require(policy.atomic_landing_policy?.live_dispatch_actor_must_equal_repository_owner === true, 'LIVE_LANDING_ACTOR_GUARD_MISSING');
   require(policy.atomic_landing_policy?.immediate_post_status_premerge_reread_required === true, 'IMMEDIATE_PREMERGE_REREAD_POLICY_MISSING');
-  require(policy.atomic_landing_policy?.expected_head_compare_is_atomic_for_sha_only === true && policy.atomic_landing_policy?.no_merge_label_atomicity_claimed === false, 'ATOMICITY_CLAIM_BOUNDARY_INVALID');
+  require(policy.atomic_landing_policy?.expected_head_compare_is_atomic_for_sha_only === false
+    && policy.atomic_landing_policy?.external_transport_race_detected_postmerge_fail_closed === true
+    && policy.atomic_landing_policy?.no_merge_label_atomicity_claimed === false, 'ATOMICITY_CLAIM_BOUNDARY_INVALID');
 
   for (const marker of [
     "required_approving_review_count||0)!==0",
@@ -74,14 +96,21 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready; operation-specific atomic landing is required",
+    'validate-approval-generation-equality-live-pr-v1.mjs',
+    'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
 
   for (const marker of [
     'workflow_dispatch:',
     'cancel-in-progress: false',
     'LANDING_AUTHORIZATION_ID',
+    'expected_base_sha:',
+    'expected_head_tree_sha:',
+    'run-atomic-event-emitting-transport-preflight-v1.mjs',
     'run-atomic-governed-landing-v1.mjs',
-    'contents: write',
+    'consume-atomic-postmerge-push-suite-v1.mjs',
+    'contents: read',
+    'pull-requests: read',
     'statuses: write',
   ]) require(atomicWorkflow.includes(marker), `ATOMIC_WORKFLOW_MARKER_MISSING:${marker}`);
   for (const marker of [
@@ -91,11 +120,20 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'assertNativeRequiredContexts',
     'SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS',
     'assertLandingActorAndAuthorization',
+    'assertChangedApprovalGenerationEquality',
+    'ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN',
     'immediatePreMerge',
     'IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT',
-    "body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})",
+    'IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT',
+    'ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED',
+    'ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER',
+    'POST_MERGE_TREE_SHA_MISMATCH',
+    'POST_MERGE_PARENT_BINDING_MISMATCH',
     "await publish('failure'",
   ]) require(atomicRunner.includes(marker), `ATOMIC_RUNNER_MARKER_MISSING:${marker}`);
+  require(!atomicWorkflow.includes('contents: write'), 'ATOMIC_WORKFLOW_CONTENTS_WRITE_FORBIDDEN');
+  require(!atomicWorkflow.includes('pull-requests: write'), 'ATOMIC_WORKFLOW_PULL_REQUESTS_WRITE_FORBIDDEN');
+  require(!atomicRunner.includes("method: 'PUT'"), 'ATOMIC_RUNNER_MERGE_API_FORBIDDEN');
   require(aggregatePolicy.id === 'kidults-scope-aware-required-status-policy-v1', 'AGGREGATE_POLICY_ID');
   require(aggregatePolicy.zero_coverage_policy === 'FAIL_CLOSED', 'AGGREGATE_ZERO_COVERAGE_FAIL_CLOSE');
   require(aggregatePolicy.required_status_context === policy.scope_aware_required_status_context, 'AGGREGATE_CONTEXT_MISMATCH');
@@ -106,9 +144,14 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   for (const marker of ['pull_request_target:', 'statuses: write', 'run-scope-aware-authoritative-status-v1.mjs', 'closed]']) {
     require(aggregateWorkflow.includes(marker), `AGGREGATE_WORKFLOW_MARKER_MISSING:${marker}`);
   }
-  for (const marker of ['resolveScopeRequirements', 'evaluateRequiredCheckRuns', "await postStatus('failure'", 'assertStableFinalReread(initial, final']) {
-    require(aggregateRunner.includes(marker), `AGGREGATE_RUNNER_MARKER_MISSING:${marker}`);
-  }
+  for (const marker of [
+    'resolveScopeRequirements',
+    'evaluateRequiredCheckRuns',
+    'assertChangedApprovalGenerationEquality',
+    'SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN',
+    "await postStatus('failure'",
+    'assertStableFinalReread(initial, final',
+  ]) require(aggregateRunner.includes(marker), `AGGREGATE_RUNNER_MARKER_MISSING:${marker}`);
 
   require(workflow.includes("state:'ZERO_DIFF_NO_GOVERNED_CHANGE_PASS'"), 'ZERO_DIFF_RECEIPT_MISSING');
   require(workflow.includes('commitCount !== 0 || changedFileCount !== 0'), 'ZERO_DIFF_METADATA_FAIL_CLOSED_MISSING');
@@ -235,14 +278,14 @@ const mutations = [
     aggregateRunner,
   },
   {
-    id: 'SERVER_EXPECTED_SHA_COMPARE_REMOVED',
+    id: 'POSTMERGE_TREE_BINDING_REMOVED',
     policy,
     workflow,
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
     aggregatePolicy,
-    atomicRunner: atomicRunner.replace("body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'})", "body: JSON.stringify({merge_method: 'merge'})"),
+    atomicRunner: atomicRunner.replace("throw new Error('POST_MERGE_TREE_SHA_MISMATCH')", "throw new Error('POST_MERGE_TREE_NOT_ENFORCED')"),
     aggregateRunner,
   },
   {
@@ -253,6 +296,34 @@ const mutations = [
     atomicWorkflow,
     aggregateWorkflow,
     aggregatePolicy: {...aggregatePolicy, zero_coverage_policy: 'ALLOW'},
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'APPROVAL_ANCESTOR_REUSE_REINTRODUCED',
+    policy: {
+      ...policy,
+      approval_generation_policy: {
+        ...policy.approval_generation_policy,
+        ancestor_reuse_allowed: true,
+      },
+    },
+    workflow,
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
+    atomicRunner,
+    aggregateRunner,
+  },
+  {
+    id: 'APPROVAL_READY_GATE_REMOVED',
+    policy,
+    workflow: workflow.replace('Enforce active approval-generation equality before readiness', 'Approval generation check removed'),
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy,
     atomicRunner,
     aggregateRunner,
   },
@@ -275,7 +346,7 @@ for (const result of mutationResults) if (!result.rejected) findings.push(`MUTAT
 
 const receipt = {
   id: 'kidults-governed-landing-coverage-receipt-v1',
-  version: '1.3.0',
+  version: '1.5.0',
   state: findings.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
   governance_mode: 'SOLO_OWNER_GOVERNED',
   decision_id: 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
@@ -303,12 +374,21 @@ const receipt = {
     final_live_reread: true,
     live_dispatch_actor_is_repository_owner: true,
     immediate_post_status_premerge_reread: true,
-    server_side_expected_head_compare: true,
-    expected_head_compare_atomic_scope: 'SHA_ONLY',
+    repository_token_merge_forbidden: true,
+    event_emitting_transport: 'DIRECT_OWNER_GITHUB_UI',
+    transport_available_before_authorization_consumption: true,
+    exact_base_head_tree_binding: true,
+    exact_merge_sha_push_suite_required: true,
+    terminal_pass_requires_postmerge_success: true,
+    expected_head_compare_atomic_scope: 'POSTMERGE_GRAPH_VERIFIED_FAIL_CLOSED',
     no_merge_label_atomicity_claimed: false,
     native_required_status_contexts: policy.bypass_policy.required_status_contexts,
     zero_coverage_scope_fails_closed: true,
     technical_preflight_is_merge_authorization: false,
+    active_approval_exact_main_equality: true,
+    approval_ancestor_reuse_allowed: false,
+    same_candidate_blob_different_main_allowed: false,
+    stale_canonical_comment_allowed: false,
   },
   mutations: mutationResults,
   findings,

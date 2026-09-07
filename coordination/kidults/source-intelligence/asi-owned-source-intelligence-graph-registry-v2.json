@@ -20,7 +20,8 @@
   },
   "registered_inputs": {
     "p0b_artifact": "kidults-asi-p0b-bounded-discovery-candidates-v1",
-    "p1_artifact": "kidults-asi-p1-source-preflight-v1"
+    "p1_artifact": "kidults-asi-p1-source-preflight-v1",
+    "p1_contract": "coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json"
   },
   "registered_outputs": [
     "owned-source-intelligence-graph-v2.json",
@@ -65,5 +66,10 @@
     "snapshot_candidate_created": false,
     "public_release": "HOLD",
     "production": "HOLD"
+  },
+  "current_cardinality_policy": {
+    "preflight_actions": "DYNAMIC_RELATIONAL",
+    "rule": "UNIQUE_CANDIDATES_X_P1_CONTRACT_ACTION_TYPES",
+    "historical_empirical_baseline_is_not_current_requirement": true
   }
 }

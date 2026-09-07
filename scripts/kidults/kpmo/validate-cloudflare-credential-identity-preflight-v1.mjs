@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import {assertConsumedWorkflowInactive} from './validate-cloudflare-consumed-workflow-v1.mjs';
 
 const P = {
   auth: 'coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json',
@@ -95,7 +96,7 @@ ok(terminal.operational_authority?.rerun_authorized === false
   && terminal.operational_authority?.second_dispatch_authorized === false, 'TERMINAL_NO_REPLAY');
 ok(terminal.operational_authority?.same_approval_reusable === false, 'TERMINAL_NO_REUSE');
 
-ok(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+assertConsumedWorkflowInactive(workflow);
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH');
 ok(!workflow.includes('environment:'), 'WORKFLOW_ENVIRONMENT');
 ok(!workflow.includes('${{ secrets.'), 'WORKFLOW_SECRET_EXPRESSION');

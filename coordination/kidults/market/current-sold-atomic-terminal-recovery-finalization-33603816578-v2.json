@@ -1,0 +1,127 @@
+{
+  "id": "kidults-atomic-terminal-recovery-finalization-manifest-v2",
+  "version": "2.0.0",
+  "state": "PENDING_APPEND_ONLY_RECOVERY_SUCCESS",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "source_issues": [
+    1864,
+    1868,
+    1882,
+    1897,
+    1905
+  ],
+  "approval_issue": 1868,
+  "correction_issue": 1905,
+  "cause": "FINALIZATION_WORKFLOW_RUN_NAME_AUTHORITY_TUPLE_MISMATCH",
+  "predecessor_pull_request": {
+    "number": 1865,
+    "exact_base_sha": "212cd64e581b202c38a2e32534737c4a1af2299c",
+    "exact_head_sha": "cda8375478fbce301ad538e90354fb4288ac7d14",
+    "merge_commit_sha": "b09e0e8d679fa0e41bf64c3f674f8c806af2b1f6",
+    "merge_tree_sha": "1143b71fb4e834b0c1c992df7b9b3555b9d72c62"
+  },
+  "predecessor_atomic_run": {
+    "id": 33603816578,
+    "attempt": 1,
+    "workflow_id": 345463226,
+    "display_title": "KIDULTS Atomic Landing PR #1865 @ cda8375478fbce301ad538e90354fb4288ac7d14 / LAND-PR-1865-cda8375478fb",
+    "expected_conclusion": "failure",
+    "authorization_id_sha256": "sha256:8c206e16bdf34c67ba57127b55e1a5513b44a7b32f7ff17d0a3f92d96057b5f2"
+  },
+  "historical_terminal_status": {
+    "id": 53361838386,
+    "context": "KIDULTS Atomic Landing Terminal V2",
+    "state": "failure",
+    "description": "ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID",
+    "target_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33603816578",
+    "created_at": "2026-09-02T07:29:57Z"
+  },
+  "prior_recovery_failure_status": {
+    "id": 53372834946,
+    "context": "KIDULTS Atomic Landing Recovery V1",
+    "state": "failure",
+    "description": "ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH",
+    "target_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33621062695",
+    "created_at": "2026-09-02T10:45:29Z"
+  },
+  "prior_failed_remediation": {
+    "run_id": 33621062695,
+    "run_attempt": 1,
+    "workflow_id": 348289049,
+    "workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-v1.yml",
+    "head_sha": "23c98e1b04f4105cd3f3f0be5fc42c2e6302deef",
+    "display_title": "KIDULTS Atomic Terminal Recovery Run #33603816578 @ 23c98e1b04f4105cd3f3f0be5fc42c2e6302deef / RECOVER-RUN-33603816578-23c98e1b04f4",
+    "conclusion": "failure",
+    "authorization_id": "RECOVER-RUN-33603816578-23c98e1b04f4",
+    "authorization_id_sha256": "sha256:eca7cfe33084fd2a655ba8ccefe439c43369a7e3c840da85afbb3ae3d2629e68",
+    "approval_comment_id": 5508325466,
+    "approval_comment_body_digest": "sha256:6b4f402784b627302c13a5a678aa9d95d39b64cca02e75ba748218872a4c19f9",
+    "evidence_artifact": {
+      "id": 9842911193,
+      "name": "kidults-atomic-terminal-recovery-remediation-evidence-v1-33621062695-1",
+      "digest": "sha256:bc7e1648fcaa07f9307899345fbfe86ab11904d811e1a65e00787d1f86dfd732",
+      "entry": "evidence-receipt.json",
+      "receipt_sha256": "sha256:4c4c5a658fc50186e222a8692e47b25832702426e6b0bf13680b31922deb77e5"
+    },
+    "publication_artifact": {
+      "id": 9842919682,
+      "name": "kidults-atomic-terminal-recovery-remediation-publication-v1-33621062695-1",
+      "digest": "sha256:c5451c4390cdb4c45198b137dbae83a3be1fe8466e30fd7153613baf2820fcc1",
+      "entry": "publication-receipt.json",
+      "receipt_sha256": "sha256:5821656c57ddb6d84daacf45da6d9c1018f3a21dc78278a17c06d185b2cdb08e"
+    }
+  },
+  "prior_failed_finalization": {
+    "run_id": 33652944964,
+    "run_attempt": 1,
+    "workflow_id": 348374437,
+    "workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v1.yml",
+    "head_sha": "e8e957f97cc46f711e90040ad68827362d880990",
+    "display_title": "KIDULTS Atomic Terminal Recovery Finalization Run #33603816578 @ e8e957f97cc46f711e90040ad68827362d880990 / RECOVER-RUN-33603816578-e8e957f97cc4",
+    "created_at": "2026-09-02T16:07:28Z",
+    "conclusion": "failure",
+    "failure_code": "ATOMIC_RECOVERY_CURRENT_RUN_TUPLE_MISMATCH",
+    "authorization_id": "RECOVER-RUN-33603816578-e8e957f97cc4",
+    "authorization_id_sha256": "sha256:4801d715b7fca83282cc4194206f75226cc6ca4b792a3257edecd3b6f373c19c",
+    "evidence_artifact": {
+      "id": 9855507420,
+      "name": "kidults-atomic-terminal-recovery-finalization-evidence-v1-33652944964-1",
+      "digest": "sha256:e95548653694daba789569a42766dc2403cba72a9bffdf4526240a85df6db0f2",
+      "preflight_entry": "preflight-receipt.json",
+      "preflight_receipt_sha256": "sha256:1f6df8776b8cc0c3c2ccd18dfb62799231fb14e65071c8ce344dccc361f1ff31",
+      "terminal_entry": "terminal-receipt.json",
+      "terminal_receipt_sha256": "sha256:c6aa33189ce198da4d9816963edfcab03aac05f46f2ccab1132dc36b7bf4b65b"
+    }
+  },
+  "recovery_context": "KIDULTS Atomic Landing Recovery V1",
+  "authorized_workflow_path": ".github/workflows/kidults-current-sold-atomic-terminal-recovery-finalization-v2.yml",
+  "evidence_artifact_name_prefix": "kidults-atomic-terminal-recovery-finalization-evidence-v2",
+  "publication_artifact_name_prefix": "kidults-atomic-terminal-recovery-finalization-publication-v2",
+  "approval_policy": {
+    "marker": "KIDULTS_ATOMIC_TERMINAL_RECOVERY_FINALIZATION_EXACT_APPROVAL_V2",
+    "operation": "PUBLISH_DISTINCT_ATOMIC_TERMINAL_RECOVERY_SUCCESS_V2",
+    "scope": "ONE_BOUNDED_FINALIZATION_V2_ONLY",
+    "authorization_prefix": "FINALIZE-RUN-33603816578-",
+    "max_lifetime_seconds": 3600,
+    "first_dispatch_only": true,
+    "rerun_forbidden": true,
+    "prior_generation_replay_forbidden": true,
+    "approval_rebind_forbidden": true,
+    "historical_terminal_context_immutable": true,
+    "prior_recovery_failure_status_immutable": true
+  },
+  "invariants": {
+    "prior_remediation_run_rerun_forbidden": true,
+    "prior_finalization_run_rerun_forbidden": true,
+    "historical_terminal_status_write_forbidden": true,
+    "prior_recovery_failure_status_write_forbidden": true,
+    "merge_reexecution_forbidden": true,
+    "provider_calls": 0,
+    "postgres_rows_written": 0,
+    "deployment": false,
+    "empirical_authority_created": false
+  },
+  "public": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD"
+}

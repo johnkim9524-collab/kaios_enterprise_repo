@@ -6,6 +6,7 @@
   "additionalProperties": false,
   "required": [
     "event_id",
+    "content_digest",
     "canonical_object_id",
     "source_id",
     "source_event_id",
@@ -17,23 +18,33 @@
     "observed_at",
     "realized_consideration",
     "currency",
+    "hammer_price",
+    "all_in_price",
+    "normalized_price",
+    "normalized_currency",
     "fee_semantics",
+    "lot_or_listing_id",
     "provenance_digest",
     "acquisition_receipt_id",
     "rights_receipt_id",
     "rights_decision",
     "confidence",
-    "correction_state"
+    "correction_state",
+    "supersedes_event_id",
+    "supersedes_content_digest",
+    "source_sha",
+    "canonical_run_id"
   ],
   "properties": {
     "event_id": {"type": "string", "pattern": "^cs_[a-f0-9]{24}$"},
+    "content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
     "canonical_object_id": {"type": "string", "minLength": 1},
     "source_id": {"type": "string", "minLength": 1},
     "source_event_id": {"type": "string", "minLength": 1},
     "source_url": {"type": "string", "format": "uri", "pattern": "^https://"},
     "source_owner": {"type": "string", "minLength": 1},
     "venue": {"type": "string", "minLength": 1},
-    "transaction_status": {"enum": ["SOLD", "PASSED", "WITHDRAWN", "UNSOLD", "ASKING", "UNKNOWN"]},
+    "transaction_status": {"const": "SOLD"},
     "sold_at": {"type": "string", "format": "date-time"},
     "observed_at": {"type": "string", "format": "date-time"},
     "realized_consideration": {"type": "number", "exclusiveMinimum": 0},
@@ -47,11 +58,32 @@
     "provenance_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
     "acquisition_receipt_id": {"type": "string", "minLength": 1},
     "rights_receipt_id": {"type": "string", "minLength": 1},
-    "rights_decision": {"enum": ["ALLOW_PRIVATE_CURRENT_SOLD", "HOLD", "DENY"]},
+    "rights_decision": {"const": "ALLOW_PRIVATE_CURRENT_SOLD"},
     "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-    "correction_state": {"enum": ["ORIGINAL", "CORRECTED", "CANCELLED"]},
-    "supersedes_event_id": {"type": ["string", "null"]},
-    "source_sha": {"type": ["string", "null"]},
-    "canonical_run_id": {"type": ["string", "null"]}
-  }
+    "correction_state": {"enum": ["ORIGINAL", "CORRECTED"]},
+    "supersedes_event_id": {"type": ["string", "null"], "pattern": "^cs_[a-f0-9]{24}$"},
+    "supersedes_content_digest": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+    "source_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "canonical_run_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"correction_state": {"const": "ORIGINAL"}}},
+      "then": {
+        "properties": {
+          "supersedes_event_id": {"type": "null"},
+          "supersedes_content_digest": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"correction_state": {"const": "CORRECTED"}}},
+      "then": {
+        "properties": {
+          "supersedes_event_id": {"type": "string", "pattern": "^cs_[a-f0-9]{24}$"},
+          "supersedes_content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+        }
+      }
+    }
+  ]
 }

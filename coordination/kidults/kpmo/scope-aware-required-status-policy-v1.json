@@ -4,6 +4,7 @@
   "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
+  "draft_development_status_context": "KIDULTS Draft Development Validation V1",
   "exact_head_required": true,
   "zero_diff_policy": "PASS_ONLY_WHEN_PULL_REQUEST_METADATA_COUNTS_ARE_BOTH_ZERO",
   "zero_coverage_policy": "FAIL_CLOSED",
@@ -37,6 +38,8 @@
   "authority_boundary": {
     "technical_status_is_merge_authority": false,
     "governed_landing_is_separate_native_context": true,
+    "draft_development_status_is_merge_authority": false,
+    "draft_must_remain_non_promotable": true,
     "production": "HOLD",
     "public_release": "HOLD",
     "g5": "HOLD"

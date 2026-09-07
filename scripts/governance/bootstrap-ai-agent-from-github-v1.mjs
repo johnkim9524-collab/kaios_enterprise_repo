@@ -61,6 +61,7 @@ const TRUST = Object.freeze({
     ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
     ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
     ['coordination/kidults/registry/ai-agent-governance-registry-v1.json', 'GOVERNANCE_SYSTEM_OF_RECORD'],
+    ['coordination/kidults/registry/roles-and-responsibilities.json', 'AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY'],
     ['coordination/kidults/bootstrap/README.md', 'TRACK_AND_ROLE_STARTUP_ROUTER'],
     ['.github/copilot-instructions.md', 'GITHUB_AGENT_ADAPTER']
   ],
@@ -84,7 +85,7 @@ const TRUST = Object.freeze({
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
     'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.3.0',
+  receiptVersion: '1.4.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -200,6 +201,29 @@ const RECEIPT_AUTHORITY_BOUNDARY = Object.freeze({
 const fail = (code, detail = '') => {
   throw new Error(detail ? `${code}:${detail}` : code);
 };
+const boundedGitFailureDetail = error => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
+  .split(/\r?\n/, 1)[0].replace(/[^\x20-\x7e]/g, '?').slice(0, 160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
+const emitBoundedFailureReceipt = error => {
+  const message = String(error?.message || 'BOOTSTRAP_FAILED');
+  const separator = message.indexOf(':');
+  const failureCode = (separator >= 0 ? message.slice(0, separator) : message).slice(0, 120);
+  const detail = boundedGitFailureDetail(separator >= 0 ? {message: message.slice(separator + 1)} : error);
+  process.stderr.write(`Error: ${failureCode}${separator >= 0 ? `:${detail}` : ''}\n`);
+  process.stderr.write(`${JSON.stringify({
+    id: 'kidults-ai-agent-bootstrap-bounded-failure-receipt-v1',
+    version: '1.0.0',
+    state: 'VERIFIED_FAIL',
+    failure_code: failureCode,
+    bounded_failure_detail: detail,
+    bounded_failure_detail_max_bytes: 160,
+    repository_receipt_written: false,
+    raw_nonce_persisted_or_logged: false,
+  })}\n`);
+};
+process.once('uncaughtException', error => {
+  try { emitBoundedFailureReceipt(error); } catch {}
+  process.exitCode = 1;
+});
 
 const sha256Hex = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const sha256 = (value) => `sha256:${sha256Hex(value)}`;
@@ -272,6 +296,7 @@ const resolveTrustedGit = () => {
 };
 
 const TRUSTED_GIT = resolveTrustedGit();
+const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : os.devNull;
 const trustedGitPath = () => {
   if (process.platform !== 'win32') return '/usr/bin:/bin';
   const gitDir = path.dirname(TRUSTED_GIT);
@@ -286,13 +311,13 @@ const trustedGitPath = () => {
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_NULL_DEVICE,
+    XDG_CONFIG_HOME: GIT_NULL_DEVICE,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
+    GIT_CONFIG_SYSTEM: GIT_NULL_DEVICE,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -307,7 +332,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_NULL_DEVICE;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -369,7 +394,7 @@ const git = (root, args, { buffer = false, network = 'none', allowFile = false, 
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_NULL_DEVICE}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
@@ -519,8 +544,8 @@ const trustedGitEvidence = () => ({
 const repositoryRoot = () => {
   try {
     return gitText(null, ['rev-parse', '--show-toplevel']);
-  } catch {
-    fail('NOT_INSIDE_GIT_REPOSITORY');
+  } catch (error) {
+    fail('NOT_INSIDE_GIT_REPOSITORY', boundedGitFailureDetail(error));
   }
 };
 
@@ -614,7 +639,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.3.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.4.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -642,6 +667,7 @@ const verifyContract = (contract) => {
     [stableStringify(contract.fail_closed_conditions) === stableStringify(FAIL_CLOSED_CONDITIONS), 'CONTRACT_FAIL_CLOSED_CONDITIONS'],
     [stableStringify(contract.worktree_baseline_policy) === stableStringify(WORKTREE_BASELINE_POLICY), 'CONTRACT_WORKTREE_BASELINE_POLICY'],
     [contract.trust_model?.required_documents_are_read_from_exact_head_git_blobs === true, 'CONTRACT_COMMITTED_BLOB_TRUST'],
+    [contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'CONTRACT_AGENT_ROLE_JD_TRUST'],
     [contract.trust_model?.local_expected_sha_is_binding_only_not_github_provenance === true, 'CONTRACT_EXPECTED_SHA_PROVENANCE'],
     [contract.trust_model?.github_event_context_binding_is_not_cryptographic_or_current_state_proof === true, 'CONTRACT_GITHUB_CONTEXT_LIMIT'],
     [contract.trust_model?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'CONTRACT_CURRENT_GITHUB_STATE_PROOF'],
