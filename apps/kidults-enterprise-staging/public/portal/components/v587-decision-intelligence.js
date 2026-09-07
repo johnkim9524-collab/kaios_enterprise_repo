@@ -473,7 +473,7 @@ function renderPresenceLayer(data) {
     document.querySelector("[data-research-subtitle]").textContent = researchPresentation.subtitle;
     document.querySelector("[data-research-summary]").textContent = researchPresentation.summary;
     document.querySelector("[data-research-notes]").innerHTML = researchPresentation.sections.map(section => `
-      <article class="research-note reveal"><span>${esc(section.index)}</span><div><h3>${esc(section.title)}</h3><p>${esc(section.summary)}</p></div></article>`).join("");
+      <article class="research-note"><span>${esc(section.index)}</span><div><h3>${esc(section.title)}</h3><p>${esc(section.summary)}</p></div></article>`).join("");
     const action = researchHost.querySelector("[data-dialog=research]");
     if (action) {
       action.disabled = true;
