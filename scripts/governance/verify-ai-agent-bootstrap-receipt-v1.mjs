@@ -42,6 +42,7 @@ const REQUIRED_DOCUMENTS = [
   ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
   ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
   ['coordination/kidults/registry/ai-agent-governance-registry-v1.json', 'GOVERNANCE_SYSTEM_OF_RECORD'],
+  ['coordination/kidults/registry/roles-and-responsibilities.json', 'AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY'],
   ['coordination/kidults/bootstrap/README.md', 'TRACK_AND_ROLE_STARTUP_ROUTER'],
   ['.github/copilot-instructions.md', 'GITHUB_AGENT_ADAPTER']
 ].map(([documentPath, purpose], index) => ({ order: index + 1, path: documentPath, purpose }));
@@ -663,7 +664,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.3.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.4.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -692,6 +693,7 @@ const verifyCommittedContract = (contract) => {
     [contract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'CONTRACT_CLEAN_CHECKOUT_ROOT_ESCALATION'],
     [contract.trust_model?.target_revision_must_be_treated_as_data_by_the_root_launcher === true, 'CONTRACT_TARGET_AS_DATA'],
     [contract.trust_model?.exact_committed_governance_trust_closure_is_bound === true, 'CONTRACT_TRUST_CLOSURE'],
+    [contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'CONTRACT_AGENT_ROLE_JD_TRUST'],
     [contract.trust_model?.full_worktree_immutability_is_claimed === false, 'CONTRACT_FULL_WORKTREE_ESCALATION'],
     [contract.trust_model?.git_child_process_environment_is_minimal_and_excludes_orchestrator_nonce === true, 'CONTRACT_GIT_ENVIRONMENT_ISOLATION'],
     [contract.trust_model?.repository_git_config_with_execution_or_transport_overrides_is_rejected === true, 'CONTRACT_GIT_CONFIG_ISOLATION'],
@@ -882,7 +884,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.3.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.4.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -977,7 +979,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.3.0',
+  version: '1.4.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,

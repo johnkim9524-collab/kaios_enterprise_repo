@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
+const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
 const terminal=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
+const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run']);
 export const PRODUCER_COMPLETIONS=Object.freeze([
   {name:'KIDULTS ASI SHADOW Operating Evidence v1',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch']},
   {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run']},
@@ -30,29 +32,46 @@ export function readSentinelEvent(file){
     return payload;
   }finally{if(fd!==undefined)fs.closeSync(fd);}
 }
-function validateRun(run,sourceSha){
+function validateBaseRun(run,sourceSha){
   if(!object(run)||!positive(run.id)||!positive(run.run_attempt))fail('SENTINEL_UPSTREAM_IDENTITY');
   if(run.repository?.full_name!==REPO||run.head_repository?.full_name!==REPO)fail('SENTINEL_UPSTREAM_REPOSITORY');
   if(!sha.test(sourceSha||'')||run.head_sha!==sourceSha||run.head_branch!=='main')fail('SENTINEL_UPSTREAM_MAIN_SHA');
+  if(typeof run.path!=='string'||!/^\.github\/workflows\/[A-Za-z0-9._-]+\.ya?ml$/.test(run.path))fail('SENTINEL_UPSTREAM_WORKFLOW_PATH');
+  if(typeof run.event!=='string'||!run.event)fail('SENTINEL_UPSTREAM_EVENT');
+  if(run.status!=='completed'||!terminal.has(run.conclusion))fail('SENTINEL_UPSTREAM_NOT_TERMINAL');
+}
+function validateRun(run,sourceSha){
+  validateBaseRun(run,sourceSha);
   const source=PRODUCER_COMPLETIONS.find(x=>nativeWorkflowRunNameMatches(run,x.name,x.path));
   if(!source||!source.events.includes(run.event))fail('SENTINEL_UPSTREAM_WORKFLOW_EVENT');
-  if(run.status!=='completed'||!terminal.has(run.conclusion))fail('SENTINEL_UPSTREAM_NOT_TERMINAL');
+}
+function validateRemoteIdentity(remoteRun,run,sourceSha,inline=false){
+  (inline?validateBaseRun:validateRun)(remoteRun,sourceSha);
+  for(const key of ['id','run_attempt','name','display_title','path','event','head_branch','head_sha','status','conclusion']){
+    if(remoteRun[key]!==run[key])fail('SENTINEL_UPSTREAM_REMOTE_CHANGED');
+  }
+  for(const key of ['repository','head_repository']){
+    if(!positive(remoteRun[key].id)||remoteRun[key].id!==run[key].id)fail('SENTINEL_UPSTREAM_REMOTE_REPOSITORY_CHANGED');
+  }
 }
 export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   if(env.GITHUB_REPOSITORY!==REPO||env.GITHUB_REF!=='refs/heads/main'||!sha.test(env.GITHUB_SHA||''))fail('SENTINEL_TRIGGER_MAIN_CONTEXT');
+  const inline=env.KPMO_INLINE_ASSURANCE_HEALTH_GATE==='true';
+  if(inline){
+    if(env.GITHUB_WORKFLOW!==ASSURANCE_WORKFLOW)fail('SENTINEL_INLINE_ASSURANCE_WORKFLOW_INVALID');
+    if(!inlineEvents.has(env.GITHUB_EVENT_NAME))fail('SENTINEL_INLINE_ASSURANCE_EVENT_INVALID');
+    if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+    if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
+    const run=payload.workflow_run;
+    validateBaseRun(run,env.GITHUB_SHA);
+    if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
+    return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
+  }
   if(['schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;
   validateRun(run,env.GITHUB_SHA);
-  if(remoteRun!==null){
-    validateRun(remoteRun,env.GITHUB_SHA);
-    for(const key of ['id','run_attempt','name','display_title','path','event','head_branch','head_sha','status','conclusion']){
-      if(remoteRun[key]!==run[key])fail('SENTINEL_UPSTREAM_REMOTE_CHANGED');
-    }
-    for(const key of ['repository','head_repository']){
-      if(!positive(remoteRun[key].id)||remoteRun[key].id!==run[key].id)fail('SENTINEL_UPSTREAM_REMOTE_REPOSITORY_CHANGED');
-    }
-  }
+  if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,false);
   return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
 }
