@@ -1,0 +1,79 @@
+name: KIDULTS ASI Provider Budget Single Authority Regression v1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+      - '.github/workflows/kidults-asi-provider-budget-single-authority-regression-v1.yml'
+      - 'coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCTION: HOLD
+  PUBLIC_RELEASE: HOLD
+  G5: HOLD
+
+jobs:
+  single-provider-budget-authority:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Reject autonomous P1 provider-request authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('.github/workflows/kidults-asi-p1-source-preflight-v1.yml')
+          text = path.read_text(encoding='utf-8')
+          if not text.startswith('name: KIDULTS ASI P1 Source Preflight v1'):
+              raise SystemExit('P1_WORKFLOW_IDENTITY_DRIFT')
+
+          marker = '\npermissions:'
+          if marker not in text:
+              raise SystemExit('P1_PERMISSIONS_BOUNDARY_MISSING')
+          trigger_block = text.split(marker, 1)[0]
+
+          forbidden_triggers = []
+          for trigger in ('workflow_dispatch', 'schedule', 'push'):
+              if re.search(rf'^  {re.escape(trigger)}:', trigger_block, flags=re.M):
+                  forbidden_triggers.append(trigger)
+          if forbidden_triggers:
+              raise SystemExit('P1_AUTONOMOUS_PROVIDER_TRIGGER_PRESENT:' + ','.join(forbidden_triggers))
+
+          forbidden_provider_markers = {
+              'run_local_no_prior_circuit': 'ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json',
+              'direct_public_metadata_provider_runner': 'node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs',
+              'local_p0b_rebuild': 'name: Rebuild current P0B source candidates',
+          }
+          present = [name for name, value in forbidden_provider_markers.items() if value in text]
+          if present:
+              raise SystemExit('P1_DIRECT_PROVIDER_AUTHORITY_PRESENT:' + ','.join(present))
+
+          required = [
+              'workflow_run:',
+              'KIDULTS ASI P0B Bounded Discovery Candidates v1',
+              'P0B_INPUT_MODE=UPSTREAM_ARTIFACT',
+          ]
+          missing = [value for value in required if value not in text]
+          if missing:
+              raise SystemExit('P1_UPSTREAM_ARTIFACT_AUTHORITY_MISSING:' + ','.join(missing))
+
+          print('P1_PROVIDER_BUDGET_SINGLE_AUTHORITY_REGRESSION_PASS')
+          PY
+      - name: Preserve approval and empirical boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PRODUCTION" = HOLD
+          test "$PUBLIC_RELEASE" = HOLD
+          test "$G5" = HOLD
+          printf '%s\n' 'CONTROL_ONLY_NO_PROVIDER_EXECUTION_NO_EMPIRICAL_PROMOTION'
