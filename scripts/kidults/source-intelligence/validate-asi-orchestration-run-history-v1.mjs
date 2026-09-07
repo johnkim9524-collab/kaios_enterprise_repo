@@ -21,8 +21,7 @@ function validateDirectCurrentRunContract(workflowSource) {
     '--argjson attempt "$GITHUB_RUN_ATTEMPT"',
     '.id==$run and .run_attempt==$attempt',
     'and .display_title==$title',
-    'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml"',
-    'and .event=="workflow_run"',
+    'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run"',
     'and .head_sha==env.GITHUB_SHA and .head_branch=="main"',
     'CURRENT_ARL_CREATED_AT=$(jq -er',
   ];
@@ -36,8 +35,7 @@ for (const marker of [
   '--argjson attempt "$GITHUB_RUN_ATTEMPT"',
   '.id==$run and .run_attempt==$attempt',
   'and .display_title==$title',
-  'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml"',
-  'and .event=="workflow_run"',
+  'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run"',
   'and .head_sha==env.GITHUB_SHA and .head_branch=="main"',
 ]) {
   assert.notDeepEqual(validateDirectCurrentRunContract(arlWorkflowSource.replace(marker, '__REMOVED_DIRECT_CURRENT_RUN_BINDING__')), []);
