@@ -1,6 +1,6 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
-import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js";
+import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-final-polish-1";
 import { loadPortalData } from "./components/data-store.js";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
@@ -146,6 +146,8 @@ async function init() {
   const root = document.querySelector("[data-detail-root]");
   const type = document.documentElement.dataset.detailType;
   const id = new URLSearchParams(window.location.search).get("id");
+  const loadingTitle = root?.querySelector(".detail-loading h1");
+  if (loadingTitle) loadingTitle.textContent = "Checking Evidence and Rights…";
 
   try {
     const { manifest, verticals, k100, registry, integrationBus } = await loadPortalData();
@@ -162,12 +164,13 @@ async function init() {
     window.KIDULTS_PERFORMANCE_RECEIPT_READY = completePerformanceQualification(integrationBus);
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
   } catch (error) {
+    document.documentElement.dataset.detailErrorCode = String(error?.message ?? error).slice(0, 80);
     root.innerHTML = `
       <section class="detail-loading">
-        <p class="eyebrow">FAIL-CLOSED</p>
-        <h1>Detail not available.</h1>
-        <p class="detail-intro">${esc(error.message)}</p>
-        <p><a class="button button-primary" href="index.html">Return to V502</a></p>
+        <p class="eyebrow">ACTION UNAVAILABLE</p>
+        <h1>This record could not be verified.</h1>
+        <p class="detail-intro">Evidence or Rights are not yet available. Return to the Portal and select another record while Qualification completes.</p>
+        <p><a class="button button-primary" href="index.html">Return to Portal</a></p>
       </section>
     `;
   }

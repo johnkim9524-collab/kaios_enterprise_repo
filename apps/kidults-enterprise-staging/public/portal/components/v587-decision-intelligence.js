@@ -4,6 +4,7 @@ const STYLE_ID = "kidults-v587-decision-intelligence-style";
 const DRAWER_ID = "kidults-v587-evidence-drawer";
 const SYNTHETIC_NOTICE = "SYNTHETIC TEST DATA";
 const BUCKETS = new Set(["CURRENT", "HISTORICAL", "PROJECTED", "SYNTHETIC"]);
+const EMPTY_STATES = new Set(["", "—", "NOT AVAILABLE", "NOT VERIFIED", "NOT REGISTERED", "WAITING", "HOLD"]);
 
 const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, character => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
@@ -22,6 +23,52 @@ const rightsInput = record => ({
   release_state: record?.release_state ?? record?.rights_release_state,
   allowed_actions: record?.allowed_actions ?? []
 });
+
+export function operationalPortalValue(label, value, now = Date.now()) {
+  const raw = String(value ?? "NOT AVAILABLE").trim();
+  const normalized = raw.toUpperCase().replaceAll("_", " ");
+  if (label === "Freshness") {
+    const timestamp = Date.parse(raw);
+    if (Number.isFinite(timestamp)) {
+      const elapsedMinutes = Math.max(0, Math.floor((now - timestamp) / 60000));
+      if (elapsedMinutes < 1) return "Updated just now";
+      if (elapsedMinutes < 60) return `Updated ${elapsedMinutes} minute${elapsedMinutes === 1 ? "" : "s"} ago`;
+      if (elapsedMinutes < 24 * 60) return `Updated ${Math.floor(elapsedMinutes / 60)} hour${Math.floor(elapsedMinutes / 60) === 1 ? "" : "s"} ago`;
+      return elapsedMinutes < 48 * 60 ? "Validated today" : "Awaiting provider qualification";
+    }
+    if (normalized.includes("PENDING") || EMPTY_STATES.has(normalized)) return "Awaiting provider qualification";
+  }
+  if (label === "Current SOLD" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Current SOLD not yet qualified";
+  if (label === "Evidence" || label === "Evidence Coverage") {
+    if (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE")) return "Evidence not yet available";
+  }
+  if (label === "Timeline" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Awaiting provider qualification";
+  if (label === "Sources" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Evidence not yet available";
+  if (label === "Quality" && normalized.includes("NOT AVAILABLE")) return "Waiting for Evidence and Qualification";
+  if (label === "Provider" && (normalized.includes("NONE ACTIVATED") || EMPTY_STATES.has(normalized))) return "Awaiting provider qualification";
+  if (label === "Confidence" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Waiting for Evidence and Qualification";
+  if (label === "Rights" || label === "Rights Coverage") {
+    if (EMPTY_STATES.has(normalized) || normalized.includes("REVIEW REQUIRED") || normalized.includes("BLOCKED")) return "Rights not yet released";
+  }
+  if (label === "Qualification" || label === "Track B") {
+    if (EMPTY_STATES.has(normalized) || normalized === "WAIT" || normalized.includes("WAITING FOR EXACT")) return "Awaiting provider qualification";
+  }
+  if (label === "Research" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT YET REGISTERED"))) return "Research not yet available";
+  if (label === "Projection" && (normalized.includes("RELEASE CANDIDATE") || EMPTY_STATES.has(normalized))) return "Awaiting Qualification";
+  if (label === "Decision" || label === "Decision Readiness") {
+    if (normalized.includes("RIGHTS BLOCKED")) return "Action unavailable — Rights not yet released";
+    if (EMPTY_STATES.has(normalized) || normalized === "WAIT") return "Waiting for provider qualification";
+  }
+  return human(raw);
+}
+
+function stateGuidance(label, value) {
+  const displayed = operationalPortalValue(label, value);
+  if (label === "Confidence") return "Evidence, Freshness, Rights and Qualification determine this value.";
+  if (label === "Rights" || label === "Rights Coverage") return displayed === "Rights not yet released" ? "Viewing remains available; Export and Publish require released Rights." : "Available actions follow the released Rights record.";
+  if (label === "Decision" || label === "Decision Readiness") return displayed.startsWith("Action unavailable") ? "Complete Rights and Qualification before taking action." : "Review the Evidence before taking action.";
+  return null;
+}
 
 export function assertDecisionDataSeparation(record) {
   const bucket = record?.data_bucket ?? (record?.environment === "SYNTHETIC" || record?.synthetic === true ? "SYNTHETIC" : "CURRENT");
@@ -216,7 +263,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/v587-decision-intelligence.css?v=587-intelligence-1";
+  link.href = "components/v587-decision-intelligence.css?v=587-final-polish-1";
   document.head.append(link);
 }
 
@@ -250,7 +297,11 @@ function renderDrawer(drawer, evidence) {
     ["Freshness", evidence.freshness ?? "NOT AVAILABLE"],
     ["Provider", evidence.provider ?? "NONE ACTIVATED"]
   ];
-  body.innerHTML = rows.map(([label, value]) => `<section><p class="eyebrow">${esc(label)}</p><p>${esc(Array.isArray(value) ? value.join(", ") || "NOT AVAILABLE" : value)}</p></section>`).join("");
+  body.innerHTML = `<section class="v587-evidence-why"><p class="eyebrow">WHY THIS MATTERS</p>
+    <p>Evidence shows what supports this decision and whether it is current. Rights and Qualification determine which actions are available.</p></section>${rows.map(([label, value]) => {
+      const resolved = Array.isArray(value) ? value.join(", ") : value;
+      return `<section><p class="eyebrow">${esc(label)}</p><p>${esc(operationalPortalValue(label, resolved))}</p></section>`;
+    }).join("")}`;
 }
 
 function bindDrawer(drawer, resolveEvidence) {
@@ -275,7 +326,16 @@ function bindDrawer(drawer, resolveEvidence) {
     }
     if (event.target.closest("[data-v587-evidence-close]")) close();
   });
-  document.addEventListener("keydown", event => { if (event.key === "Escape" && drawer.dataset.open === "true") close(); });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && drawer.dataset.open === "true") close();
+    if (event.key !== "Tab" || drawer.dataset.open !== "true") return;
+    const focusable = [...drawer.querySelectorAll('button, a[href], [tabindex]:not([tabindex="-1"])')].filter(node => !node.disabled);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
 }
 
 function renderDecisionSnapshot(data, snapshot) {
@@ -287,9 +347,9 @@ function renderDecisionSnapshot(data, snapshot) {
   section.setAttribute("aria-labelledby", "v587-decision-snapshot-title");
   section.innerHTML = `<div class="shell"><header><div><p class="eyebrow">DECISION SNAPSHOT</p>
       <h2 id="v587-decision-snapshot-title">Evidence before decision.</h2></div>
-      <div><strong>${esc(snapshot.decision)}</strong><small>${esc(snapshot.decision_reason)}</small></div></header>
+      <div><strong>${esc(operationalPortalValue("Decision", snapshot.decision))}</strong><small>A decision becomes available when Evidence is current, Rights are released and Qualification is complete.</small></div></header>
     <div class="v587-decision-snapshot__grid">${snapshot.fields.map(([label, value]) =>
-      `<article><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`).join("")}</div>
+      `<article><span>${esc(label)}</span><strong>${esc(operationalPortalValue(label, value))}</strong>${stateGuidance(label, value) ? `<small>${esc(stateGuidance(label, value))}</small>` : ""}</article>`).join("")}</div>
     <footer>${evidenceButton("platform")}</footer></div>`;
   hero.insertAdjacentElement("afterend", section);
   section.dataset.source = data?.registry?.projection_id ?? "NOT AVAILABLE";
@@ -305,7 +365,7 @@ function extendMarketCards(data) {
     node.className = "v587-market-badges";
     node.setAttribute("aria-label", "Signal confidence, rights and freshness");
     node.innerHTML = [["Confidence", meta.confidence], ["Rights", meta.rights], ["Freshness", meta.freshness]]
-      .map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("");
+      .map(([label, value]) => `<div title="${esc(stateGuidance(label, value) ?? `${label} status`)}"><dt>${esc(label)}</dt><dd>${esc(operationalPortalValue(label, value))}</dd></div>`).join("");
     card.append(node);
     card.insertAdjacentHTML("beforeend", evidenceButton(`market-${index}`));
   });
@@ -321,9 +381,9 @@ function extendResearch(data) {
   node.setAttribute("aria-label", "Research evidence timeline");
   node.innerHTML = `<p class="eyebrow">EVIDENCE TIMELINE</p><time>${esc(flow.timeline)}</time>
     <div class="v587-research-decision">
-      <span>Evidence · ${esc(flow.evidence_state)}</span>
+      <span>Evidence · ${esc(operationalPortalValue("Evidence", flow.evidence_state))}</span>
       <span>Reason · ${esc(flow.reasoning.reason)}</span>
-      <span>Conclusion · ${esc(flow.conclusion)}</span>
+      <span>Decision · ${esc(operationalPortalValue("Decision", flow.conclusion))}</span>
       <a href="workspace.html?mode=ask">Continue in Workspace <span aria-hidden="true">→</span></a>
     </div>`;
   host.append(node);
@@ -360,15 +420,17 @@ export function enrichObjectDetailV587({ root, object, k100, manifest, registry 
   hierarchy.setAttribute("aria-labelledby", "v587-object-intelligence-title");
   hierarchy.innerHTML = `${model.synthetic ? `<strong class="v587-synthetic-notice">${SYNTHETIC_NOTICE}</strong>` : ""}
     <p class="eyebrow">DECISION INTELLIGENCE</p><h2 id="v587-object-intelligence-title">From identity to decision.</h2>
-    <ol>${model.hierarchy.map(([label, value]) => `<li><span>${esc(label)}</span><strong>${esc(value)}</strong></li>`).join("")}</ol>
+    <ol>${model.hierarchy.map(([label, value]) => `<li><span>${esc(label)}</span><strong>${esc(operationalPortalValue(label, value))}</strong>${stateGuidance(label, value) ? `<small>${esc(stateGuidance(label, value))}</small>` : ""}</li>`).join("")}</ol>
     ${evidenceButton("object")}`;
   root.append(hierarchy);
 
   const panel = document.createElement("aside");
   panel.className = "v587-decision-panel";
   panel.setAttribute("aria-label", "Decision panel");
-  panel.innerHTML = `<p class="eyebrow">DECISION PANEL</p>${Object.entries(model.panel).map(([label, value]) =>
-    `<div><span>${esc(human(label))}</span><strong>${esc(value)}</strong>${label === "confidence" ? `<small>${esc(model.confidence_explanation)}</small>` : ""}</div>`).join("")}`;
+  panel.innerHTML = `<p class="eyebrow">DECISION PANEL</p>${Object.entries(model.panel).map(([label, value]) => {
+    const displayLabel = label === "track_b" ? "Qualification" : human(label).replace(/\b\w/g, character => character.toUpperCase());
+    return `<div><span>${esc(displayLabel)}</span><strong>${esc(operationalPortalValue(displayLabel, value))}</strong>${label === "confidence" ? `<small>${esc(model.confidence_explanation)}</small>` : stateGuidance(displayLabel, value) ? `<small>${esc(stateGuidance(displayLabel, value))}</small>` : ""}</div>`;
+  }).join("")}`;
   root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", panel);
 
   const drawer = ensureEvidenceDrawer();

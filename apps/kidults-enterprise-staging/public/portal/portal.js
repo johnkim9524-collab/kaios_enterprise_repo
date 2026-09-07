@@ -8,7 +8,7 @@ import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.j
 import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95-final";
 import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
-import { startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js";
+import { startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js?v=587-final-polish-1";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 import {

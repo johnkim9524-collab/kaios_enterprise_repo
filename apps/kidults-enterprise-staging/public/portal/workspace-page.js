@@ -6,7 +6,7 @@ import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
-import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js";
+import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js?v=587-final-polish-1";
 import { startWhyEngine } from "./components/why-engine.js";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
@@ -105,10 +105,11 @@ async function init() {
   } catch (error) {
     console.error("KIDULTS Intelligence Workspace initialization failed.", error);
     document.documentElement.dataset.dataState = "error";
+    document.documentElement.dataset.workspaceErrorCode = String(error?.message ?? error).slice(0, 80);
     document.body.insertAdjacentHTML("afterbegin", `
       <div class="workspace-page-error" role="alert">
-        <strong>Workspace fail-closed.</strong>
-        Required Registry-grounded data could not be loaded.
+        <strong>Action unavailable.</strong>
+        Evidence and Rights could not be verified. Return to the Portal while Qualification completes.
       </div>
     `);
   }

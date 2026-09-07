@@ -1,4 +1,5 @@
 import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
+import { operationalPortalValue } from "./v587-decision-intelligence.js?v=587-final-polish-1";
 
 const STORAGE_KEY = "kidults-v587-watchlist-v1";
 const STYLE_ID = "kidults-v587-decision-intelligence-style";
@@ -82,7 +83,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/v587-decision-intelligence.css?v=587-intelligence-1";
+  link.href = "components/v587-decision-intelligence.css?v=587-final-polish-1";
   document.head.append(link);
 }
 
@@ -110,8 +111,8 @@ export function startV587WorkspaceDecisionFlow(data) {
     <ol>${["Watchlist", "Evidence Collection", "Comparison", "Decision Memo", "Action"].map((label, index) =>
       `<li><span>${String(index + 1).padStart(2, "0")}</span><strong>${label}</strong></li>`).join("")}</ol>
     <div class="v587-workspace-flow__objects" data-v587-workspace-objects></div>
-    <div class="v587-workspace-flow__memo" aria-live="polite" data-v587-workspace-memo></div>
-    <button class="button button-secondary" type="button" data-v587-export disabled>Export internal memo</button>`;
+    <div class="v587-workspace-flow__memo" id="v587-workspace-export-guidance" aria-live="polite" data-v587-workspace-memo></div>
+    <button class="button button-secondary" type="button" data-v587-export aria-describedby="v587-workspace-export-guidance" disabled>Export internal memo</button>`;
   mount.append(root);
 
   let selected = readSelection();
@@ -126,10 +127,15 @@ export function startV587WorkspaceDecisionFlow(data) {
       return `<button type="button" data-v587-watch="${esc(item.id)}" aria-pressed="${active}">
         <span>${active ? "WATCHING" : "ADD"}</span><strong>${esc(item.title)}</strong><small>Rights ${esc(item.rights_status ?? "HOLD")}</small></button>`;
     }).join("");
-    memoNode.innerHTML = packet.objects.length
-      ? `<strong>${packet.objects.length} object${packet.objects.length === 1 ? "" : "s"} selected</strong><p>Decision: ${esc(packet.objects.map(item => item.decision).join(", "))}. Actions remain rights-gated.</p>`
-      : "<strong>No objects selected</strong><p>Add objects to assemble an internal evidence comparison.</p>";
+    const selectedObject = packet.objects[0];
+    memoNode.innerHTML = `<strong>Decision Summary</strong><dl>
+      <div><dt>Decision</dt><dd>${esc(selectedObject ? operationalPortalValue("Decision", selectedObject.decision) : "Select an object to begin")}</dd></div>
+      <div><dt>Evidence</dt><dd>${esc(selectedObject ? operationalPortalValue("Evidence", selectedObject.evidence_state) : "Evidence not yet available")}</dd></div>
+      <div><dt>Qualification</dt><dd>${esc(operationalPortalValue("Qualification", data.registry?.assessment?.gate_state))}</dd></div>
+      <div><dt>Rights</dt><dd>${esc(selectedObject ? operationalPortalValue("Rights", selectedObject.rights) : "Rights not yet released")}</dd></div>
+    </dl>`;
     exportButton.disabled = !packet.action_allowed;
+    exportButton.title = packet.action_allowed ? "Export the internal Decision Summary" : "Export unavailable — released Rights and Qualification are required";
     exportButton.onclick = () => downloadPacket(packet);
     window.KIDULTS_V587_WORKSPACE_PACKET = Object.freeze(packet);
   };

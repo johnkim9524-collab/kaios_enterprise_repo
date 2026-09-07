@@ -312,10 +312,11 @@ export function renderReleaseBaseline(registry, manifest) {
 
 export function renderPortalError(error) {
   const message = error instanceof Error ? error.message : String(error);
+  document.documentElement.dataset.portalErrorCode = message.slice(0, 80);
   document.body.insertAdjacentHTML("afterbegin", `
     <div class="portal-error" role="alert">
-      <strong>V6 fail-closed.</strong>
-      Required portal data could not be loaded. ${esc(message)}
+      <strong>Action unavailable.</strong>
+      Evidence and Rights could not be verified. Refresh the page or return later while Qualification completes.
     </div>
   `);
 }

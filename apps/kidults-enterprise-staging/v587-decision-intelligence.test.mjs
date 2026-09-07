@@ -7,7 +7,8 @@ import {
   buildDecisionSnapshot,
   buildMarketCardMetadata,
   buildObjectDecisionModel,
-  buildResearchDecisionFlow
+  buildResearchDecisionFlow,
+  operationalPortalValue
 } from "./public/portal/components/v587-decision-intelligence.js";
 import { buildWorkspaceDecisionPacket } from "./public/portal/components/v587-workspace-decision-flow.js";
 import {
@@ -140,9 +141,9 @@ test("adds the approved research evidence timeline and canonical preview without
   assert.equal(flow.conclusion, "RIGHTS BLOCKED");
   assert.equal(flow.final_decision_allowed, false);
   const implementation = read("public/portal/components/v587-decision-intelligence.js");
-  assert.match(implementation, /Evidence · \$\{esc\(flow\.evidence_state\)\}/);
+  assert.match(implementation, /Evidence · \$\{esc\(operationalPortalValue\("Evidence", flow\.evidence_state\)\)\}/);
   assert.match(implementation, /Reason · \$\{esc\(flow\.reasoning\.reason\)\}/);
-  assert.match(implementation, /Conclusion · \$\{esc\(flow\.conclusion\)\}/);
+  assert.match(implementation, /Decision · \$\{esc\(operationalPortalValue\("Decision", flow\.conclusion\)\)\}/);
   assert.match(implementation, /workspace\.html\?mode=ask/);
   const component = read("public/portal/components/v587-decision-intelligence.js");
   assert.match(component, /document\.createElement\("aside"\)/);
@@ -289,4 +290,43 @@ test("registers exact role-specific browser journey receipts without generic sub
   assert.match(source, /BLOCKED_BY_RIGHTS/);
   assert.match(source, /receipt_digest/);
   assert.doesNotMatch(source, /INSTITUTIONAL|GENERIC/);
+});
+
+test("translates unavailable states into calm operational guidance without changing engine truth", () => {
+  assert.equal(operationalPortalValue("Evidence", "NOT AVAILABLE"), "Evidence not yet available");
+  assert.equal(operationalPortalValue("Current SOLD", "NOT AVAILABLE"), "Current SOLD not yet qualified");
+  assert.equal(operationalPortalValue("Rights", "HOLD"), "Rights not yet released");
+  assert.equal(operationalPortalValue("Qualification", "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE"), "Awaiting provider qualification");
+  assert.equal(operationalPortalValue("Qualification", "WAIT"), "Awaiting provider qualification");
+  assert.equal(operationalPortalValue("Research", "NOT_YET_REGISTERED"), "Research not yet available");
+  assert.equal(operationalPortalValue("Decision", "RIGHTS BLOCKED"), "Action unavailable — Rights not yet released");
+  assert.equal(operationalPortalValue("Sources", "NOT AVAILABLE"), "Evidence not yet available");
+  assert.equal(operationalPortalValue("Quality", "NOT AVAILABLE — Confidence unavailable"), "Waiting for Evidence and Qualification");
+  assert.equal(operationalPortalValue("Provider", "NONE ACTIVATED"), "Awaiting provider qualification");
+  assert.equal(operationalPortalValue("Freshness", "2026-09-08T00:00:00Z", Date.parse("2026-09-08T00:08:00Z")), "Updated 8 minutes ago");
+});
+
+test("keeps final experience polish inside existing V587 extension surfaces", () => {
+  const decision = read("public/portal/components/v587-decision-intelligence.js");
+  const workspace = read("public/portal/components/v587-workspace-decision-flow.js");
+  const search = read("public/portal/components/interactions.js");
+  const detail = read("public/portal/detail.js");
+  const portalError = read("public/portal/components/renderers.js");
+  const objectPage = read("public/portal/object.html");
+  const verticalPage = read("public/portal/vertical.html");
+  const workspacePage = read("public/portal/workspace.html");
+  assert.match(decision, /WHY THIS MATTERS/);
+  assert.match(decision, /Rights and Qualification determine which actions are available/);
+  assert.match(workspace, /<strong>Decision Summary<\/strong><dl>/);
+  for (const label of ["Decision", "Evidence", "Qualification", "Rights"]) assert.match(workspace, new RegExp(`<dt>${label}<\\/dt>`));
+  assert.match(search, /Matched because/);
+  assert.match(search, /Canonical Name, Edition, Variant or Collector Alias/);
+  assert.match(detail, /This record could not be verified/);
+  assert.doesNotMatch(detail, /<p class="detail-intro">\$\{esc\(error\.message\)\}<\/p>/);
+  assert.match(portalError, /Action unavailable/);
+  assert.doesNotMatch(portalError, /Required portal data could not be loaded\. \$\{esc\(message\)\}/);
+  assert.match(objectPage, /Checking Evidence and Rights/);
+  assert.match(verticalPage, /Checking Evidence and Rights/);
+  assert.match(workspacePage, /Checking Qualification/);
+  assert.doesNotMatch(`${objectPage}${verticalPage}${workspacePage}`, />Loading(?: verified detail)?…</);
 });
