@@ -153,6 +153,7 @@ function ensureEvidenceDrawer() {
   drawer.className = "v587-evidence-drawer";
   drawer.setAttribute("aria-labelledby", "v587-evidence-drawer-title");
   drawer.setAttribute("aria-hidden", "true");
+  drawer.hidden = true;
   drawer.innerHTML = `
     <header><div><p class="eyebrow">EVIDENCE</p><h2 id="v587-evidence-drawer-title">Decision evidence</h2></div>
       <button type="button" data-v587-evidence-close aria-label="Close evidence drawer">Close</button></header>
@@ -178,6 +179,7 @@ function bindDrawer(drawer, resolveEvidence) {
   const close = () => {
     drawer.dataset.open = "false";
     drawer.setAttribute("aria-hidden", "true");
+    drawer.hidden = true;
     document.body.classList.remove("v587-drawer-open");
     returnFocus?.focus?.();
   };
@@ -186,6 +188,7 @@ function bindDrawer(drawer, resolveEvidence) {
     if (trigger) {
       returnFocus = trigger;
       renderDrawer(drawer, resolveEvidence(trigger.dataset.v587EvidenceOpen));
+      drawer.hidden = false;
       drawer.dataset.open = "true";
       drawer.setAttribute("aria-hidden", "false");
       document.body.classList.add("v587-drawer-open");

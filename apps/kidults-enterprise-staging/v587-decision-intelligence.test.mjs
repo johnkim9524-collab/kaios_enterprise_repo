@@ -109,6 +109,8 @@ test("adds research reasoning and canonical evidence preview without popup or ne
   assert.equal(flow.final_decision_allowed, false);
   const component = read("public/portal/components/v587-decision-intelligence.js");
   assert.match(component, /document\.createElement\("aside"\)/);
+  assert.match(component, /drawer\.hidden = true/);
+  assert.match(component, /drawer\.hidden = false/);
   assert.doesNotMatch(component, /showModal\(|window\.open\(/);
   const interactions = read("public/portal/components/interactions.js");
   const store = read("public/portal/components/data-store.js");
