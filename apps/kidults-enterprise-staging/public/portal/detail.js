@@ -1,6 +1,6 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
-import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-presence-1";
+import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-graduation-1";
 import { loadPortalData } from "./components/data-store.js";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
@@ -39,7 +39,7 @@ function renderVertical(root, verticals, manifest, id) {
   const vertical = verticals.verticals.find(item => item.id === id);
   if (!vertical) throw new Error(`Unknown vertical: ${id || "missing id"}`);
 
-  document.title = `${vertical.name} — KIDULTS V502`;
+  document.title = `${vertical.name} — KIDULTS V6 RC`;
   root.innerHTML = `
     <section class="detail-hero">
       <div>
@@ -96,7 +96,7 @@ function renderObject(root, k100, manifest, id) {
   const object = k100.items.find(item => item.id === id);
   if (!object) throw new Error(`Unknown object: ${id || "missing id"}`);
 
-  document.title = `${object.title} — KIDULTS V502`;
+  document.title = `${object.title} — KIDULTS V6 RC`;
   const score = object.score === null ? "GATED" : Number(object.score).toFixed(1);
 
   root.innerHTML = `

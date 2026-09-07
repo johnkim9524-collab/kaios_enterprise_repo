@@ -8,10 +8,14 @@ import {
   buildMarketCardMetadata,
   buildObjectDecisionModel,
   buildResearchDecisionFlow,
+  buildResearchPresentation,
+  buildAvailabilityState,
+  gateResearchSearchIndex,
   buildPresenceContext,
   operationalPortalValue
 } from "./public/portal/components/v587-decision-intelligence.js";
 import { buildWorkspaceDecisionPacket } from "./public/portal/components/v587-workspace-decision-flow.js";
+import { validateHumanAcceptance } from "./public/portal/components/v587-business-journey-qualification.js";
 import {
   buildIntelligenceDecision,
   computeConfidence,
@@ -74,7 +78,7 @@ test("renders the required evidence-confidence-decision hierarchy with fail-clos
 
   const object = buildObjectDecisionModel(k100.items[0], k100, manifest, registry);
   assert.deepEqual(object.hierarchy.map(([label]) => label), [
-    "Identity", "Current SOLD", "Evidence", "Confidence", "Rights", "Research", "Projection", "Decision"
+    "Identity", "Current SOLD", "Availability", "Evidence", "Confidence", "Rights", "Research", "Projection", "Decision"
   ]);
   assert.deepEqual(Object.keys(object.panel), ["decision", "confidence", "evidence", "rights", "track_b", "risk", "freshness"]);
   assert.equal(object.panel.decision, "RIGHTS BLOCKED");
@@ -351,4 +355,54 @@ test("reveals only existing governed state through the thin V587 presence layer"
   const styles = read("public/portal/components/v587-decision-intelligence.css");
   assert.match(styles, /height:54px/);
   assert.doesNotMatch(implementation, /predict|recommend|forecast/i);
+});
+
+test("graduates the remaining role experience defects without changing intelligence truth", () => {
+  const data = {
+    integrationBus: { state: "NO_PROJECTION" },
+    searchIndex: [{ type: "Research", title: research.title, description: research.summary, keywords: [], searchText: research.summary.toLowerCase() }],
+    research,
+    registry: {
+      evidence: { status: "WAITING_FOR_NEW_BOUNDED_POC_EVIDENCE_PACKAGE" },
+      assessment: { gate_state: "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE" },
+      release: { status: "HOLD" }
+    }
+  };
+  const gated = buildResearchPresentation(data);
+  assert.equal(gated.available, false);
+  assert.deepEqual([gated.subtitle, gated.summary, gated.title], ["Evidence pending", "Qualification pending", "Research unavailable"]);
+  assert.doesNotMatch(JSON.stringify(gated), /Demand remains|strongest in|market conclusion/i);
+  assert.match(gateResearchSearchIndex(data)[0].description, /^Evidence pending\. Qualification pending\./);
+
+  const object = buildObjectDecisionModel(k100.items[0], k100, manifest, registry);
+  assert.equal(buildAvailabilityState(object), "Awaiting Qualification — Current SOLD cannot be used yet");
+  assert.match(object.hierarchy.find(([label]) => label === "Availability")[1], /^Awaiting Qualification/);
+
+  const completeEvidence = {
+    identity: "Archive Sneaker 01",
+    market_context: "Current Market unavailable",
+    availability: "Awaiting Qualification",
+    current_sold: "Current SOLD not yet qualified",
+    evidence: "Evidence not yet available",
+    evidence_availability: "Evidence not yet available",
+    confidence: "Waiting for Evidence and Qualification",
+    rights: "Rights not yet released",
+    qualification: "Awaiting provider qualification",
+    research_availability: "Research not yet available",
+    provenance_state: "Editorial provenance available",
+    risk: "Why · release gates are unresolved · Next Action · wait for qualification",
+    decision: "Action unavailable",
+    workspace_context: "Workspace Context",
+    workspace_decision: "Complete Rights and Qualification",
+    export_permission: "BLOCKED_BY_RIGHTS"
+  };
+  for (const role of ["COLLECTOR", "DEALER", "INVESTOR", "MUSEUM", "AUCTION_HOUSE", "FAMILY_OFFICE"]) {
+    const acceptance = validateHumanAcceptance(role, completeEvidence);
+    assert.equal(acceptance.accepted, true, role);
+    assert.deepEqual(acceptance.missing, [], role);
+    assert.equal(Object.values(acceptance.acceptance_questions).every(Boolean), true, role);
+  }
+
+  const pages = `${read("public/portal/index.html")}${read("public/portal/object.html")}${read("public/portal/vertical.html")}${read("public/portal/workspace.html")}`;
+  assert.doesNotMatch(pages, /Back to V502|> V502 RC</);
 });

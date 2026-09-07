@@ -62,6 +62,54 @@ export function operationalPortalValue(label, value, now = Date.now()) {
   return human(raw);
 }
 
+function researchIsAvailable(data) {
+  const evidence = operationalPortalValue("Evidence", data?.registry?.evidence?.status);
+  const qualification = operationalPortalValue("Qualification", data?.registry?.assessment?.gate_state ?? data?.registry?.assessment?.status);
+  const projectionState = data?.integrationBus?.state ?? data?.meta?.governedApiState ?? "NO_PROJECTION";
+  return projectionState === "LIVE_APPROVED"
+    && evidence !== "Evidence not yet available"
+    && qualification !== "Awaiting provider qualification";
+}
+
+export function buildResearchPresentation(data) {
+  if (researchIsAvailable(data)) return Object.freeze({ available: true, ...data.research });
+  return Object.freeze({
+    available: false,
+    issue: "EVIDENCE PENDING",
+    title: "Research unavailable",
+    subtitle: "Evidence pending",
+    summary: "Qualification pending",
+    sections: Object.freeze([
+      Object.freeze({ index: "01", title: "Evidence", summary: "Evidence pending" }),
+      Object.freeze({ index: "02", title: "Qualification", summary: "Qualification pending" }),
+      Object.freeze({ index: "03", title: "Research", summary: "Research unavailable" })
+    ])
+  });
+}
+
+export function gateResearchSearchIndex(data) {
+  const presentation = buildResearchPresentation(data);
+  if (presentation.available) return data.searchIndex;
+  return data.searchIndex.map(record => record.type !== "Research" ? record : {
+    ...record,
+    title: presentation.title,
+    description: `${presentation.subtitle}. ${presentation.summary}. Research unavailable until Evidence and Qualification are complete.`,
+    evidencePreview: "Evidence pending · Qualification pending · Research unavailable",
+    keywords: ["research", "evidence pending", "qualification pending"],
+    searchText: "research evidence pending qualification pending research unavailable"
+  });
+}
+
+export function buildAvailabilityState(model) {
+  const currentSold = operationalPortalValue("Current SOLD", model?.hierarchy?.find(([label]) => label === "Current SOLD")?.[1]);
+  const qualification = operationalPortalValue("Qualification", model?.panel?.track_b);
+  const rights = operationalPortalValue("Rights", model?.panel?.rights);
+  if (qualification === "Awaiting provider qualification") return "Awaiting Qualification — Current SOLD cannot be used yet";
+  if (rights === "Rights not yet released") return "Provider Restricted — Rights do not permit use";
+  if (currentSold === "Current SOLD not yet qualified") return "Unavailable — Current SOLD evidence is not available";
+  return "Available — Current SOLD is qualified for review";
+}
+
 export function buildPresenceContext(data, objectModel = null) {
   const registry = data?.registry ?? {};
   const projectionState = data?.integrationBus?.state ?? data?.meta?.governedApiState ?? "NO_PROJECTION";
@@ -72,6 +120,7 @@ export function buildPresenceContext(data, objectModel = null) {
   const currentMarket = objectModel
     ? operationalPortalValue("Current SOLD", objectModel.hierarchy.find(([label]) => label === "Current SOLD")?.[1])
     : "Current Market not yet qualified";
+  const availability = objectModel ? buildAvailabilityState(objectModel) : "Awaiting Qualification — Current SOLD cannot be used yet";
   const verifiedProjection = projectionState === "LIVE_APPROVED";
   return Object.freeze({
     projectionState,
@@ -80,7 +129,7 @@ export function buildPresenceContext(data, objectModel = null) {
       ? `Latest verified intelligence · ${freshness}`
       : "Latest verified intelligence · Awaiting a governed Evidence update",
     objectLines: Object.freeze([
-      `Current Market · ${currentMarket}`,
+      `Current Market · ${currentMarket} · Availability · ${availability}`,
       `Evidence · ${evidence} · Confidence · ${objectModel ? operationalPortalValue("Confidence", objectModel.panel.confidence) : "Waiting for Evidence and Qualification"}`
     ]),
     workspace: `Evidence · ${evidence} · Qualification · ${qualification} · Rights · ${rights} · ${currentMarket}`,
@@ -230,7 +279,7 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
   });
   const confidence = intelligence.confidence.label;
   const decision = intelligence.decision;
-  return {
+  const model = {
     object_id: object?.id ?? object?.record_id ?? "NOT AVAILABLE",
     synthetic,
     notice: synthetic ? SYNTHETIC_NOTICE : null,
@@ -266,6 +315,8 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
     public_eligible: false,
     market_authority: false
   };
+  model.hierarchy.splice(2, 0, ["Availability", buildAvailabilityState(model)]);
+  return model;
 }
 
 export function buildResearchDecisionFlow(data) {
@@ -296,7 +347,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/v587-decision-intelligence.css?v=587-final-polish-1";
+  link.href = "components/v587-decision-intelligence.css?v=587-graduation-1";
   document.head.append(link);
 }
 
@@ -414,6 +465,23 @@ function renderPresenceLayer(data) {
     research.innerHTML = `<strong>RESEARCH CONTEXT</strong><span>${presence.research.map(esc).join("</span><span>")}</span>`;
     researchHost.insertAdjacentElement("beforebegin", research);
   }
+
+  const researchPresentation = buildResearchPresentation(data);
+  if (!researchPresentation.available && researchHost) {
+    document.querySelector("[data-research-issue]").textContent = researchPresentation.issue;
+    document.querySelector("[data-research-title]").textContent = researchPresentation.title;
+    document.querySelector("[data-research-subtitle]").textContent = researchPresentation.subtitle;
+    document.querySelector("[data-research-summary]").textContent = researchPresentation.summary;
+    document.querySelector("[data-research-notes]").innerHTML = researchPresentation.sections.map(section => `
+      <article class="research-note reveal"><span>${esc(section.index)}</span><div><h3>${esc(section.title)}</h3><p>${esc(section.summary)}</p></div></article>`).join("");
+    const action = researchHost.querySelector("[data-dialog=research]");
+    if (action) {
+      action.disabled = true;
+      action.setAttribute("aria-disabled", "true");
+      action.textContent = "Research unavailable";
+    }
+    researchHost.dataset.researchGate = "EVIDENCE_AND_QUALIFICATION_PENDING";
+  }
 }
 
 function extendMarketCards(data) {
@@ -491,7 +559,12 @@ export function enrichObjectDetailV587({ root, object, k100, manifest, registry 
   panel.setAttribute("aria-label", "Decision panel");
   panel.innerHTML = `<p class="eyebrow">DECISION PANEL</p>${Object.entries(model.panel).map(([label, value]) => {
     const displayLabel = label === "track_b" ? "Qualification" : human(label).replace(/\b\w/g, character => character.toUpperCase());
-    return `<div><span>${esc(displayLabel)}</span><strong>${esc(operationalPortalValue(displayLabel, value))}</strong>${label === "confidence" ? `<small>Evidence → Freshness → Rights → Qualification</small>` : stateGuidance(displayLabel, value) ? `<small>${esc(stateGuidance(displayLabel, value))}</small>` : ""}</div>`;
+    const guidance = label === "confidence"
+      ? "Evidence → Freshness → Rights → Qualification"
+      : label === "risk"
+        ? `Why · release gates are unresolved. Current Situation · ${operationalPortalValue("Decision", model.panel.decision)}. Evidence · ${operationalPortalValue("Evidence", model.panel.evidence)}. Rights · ${operationalPortalValue("Rights", model.panel.rights)}. Qualification · ${operationalPortalValue("Qualification", model.panel.track_b)}. Next Action · wait for verified Evidence, released Rights and completed Qualification.`
+        : stateGuidance(displayLabel, value);
+    return `<div><span>${esc(displayLabel)}</span><strong>${esc(operationalPortalValue(displayLabel, value))}</strong>${guidance ? `<small>${esc(guidance)}</small>` : ""}</div>`;
   }).join("")}`;
   root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", panel);
 
@@ -501,6 +574,16 @@ export function enrichObjectDetailV587({ root, object, k100, manifest, registry 
   objectContext.setAttribute("aria-label", "Market context");
   objectContext.innerHTML = `<strong>MARKET CONTEXT</strong>${presence.objectLines.map(line => `<span>${esc(line)}</span>`).join("")}`;
   root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", objectContext);
+
+  const context = document.createElement("section");
+  context.className = "v587-object-context v587-museum-context";
+  context.setAttribute("aria-label", "Evidence and provenance context");
+  context.innerHTML = `<strong>EVIDENCE &amp; PROVENANCE</strong>
+    <span>Evidence Availability · ${esc(operationalPortalValue("Evidence", model.panel.evidence))}</span>
+    <span>Qualification · ${esc(operationalPortalValue("Qualification", model.panel.track_b))}</span>
+    <span>Research Availability · ${esc(operationalPortalValue("Research", model.hierarchy.find(([label]) => label === "Research")?.[1]))}</span>
+    <span>Provenance State · ${esc(object?.provenance ? "Editorial provenance available" : "Provenance not yet available")}</span>`;
+  objectContext.insertAdjacentElement("afterend", context);
 
   const drawer = ensureEvidenceDrawer();
   bindDrawer(drawer, () => model.evidence_drawer);

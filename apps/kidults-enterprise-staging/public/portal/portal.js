@@ -8,7 +8,7 @@ import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.j
 import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95-final";
 import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
-import { startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js?v=587-presence-1";
+import { gateResearchSearchIndex, startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js?v=587-graduation-1";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 import {
@@ -98,7 +98,7 @@ async function init() {
 
     setupDialogs(data);
     setupVerticalFilter();
-    setupSearch(data.searchIndex);
+    setupSearch(gateResearchSearchIndex(data));
     startAccessibilityR1();
     setupReveal();
 

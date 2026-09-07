@@ -34,6 +34,7 @@
 .v587-research-context span,.v587-object-context span{font-size:10px;line-height:1.4}
 .v587-research-context span:last-child,.v587-object-context span:last-child{margin-left:auto}
 .v587-object-context{margin:14px 0}
+.v587-museum-context{flex-wrap:wrap}
 .v587-evidence-drawer{position:fixed;z-index:250;top:0;right:0;width:min(430px,92vw);height:100dvh;padding:30px;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(102%);overflow:auto}
 .v587-evidence-drawer[data-open=true]{transform:translateX(0)}
 .v587-evidence-drawer header{display:flex;align-items:start;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--line)}
