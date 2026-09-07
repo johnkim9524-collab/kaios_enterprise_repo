@@ -301,6 +301,15 @@ test("registers exact role-specific browser journey control receipts without gen
   assert.doesNotMatch(source, /v587-human-acceptance|validateHumanAcceptance/);
   assert.doesNotMatch(source, /state: complete[^\n]*"VERIFIED_PASS"/);
   assert.doesNotMatch(source, /INSTITUTIONAL|GENERIC/);
+  const runner = read("../../scripts/kidults/portal/validate-v587-role-journey-control.mjs");
+  const workflow = read("../../.github/workflows/kidults-portal-v502-validate.yml");
+  assert.match(runner, /CONTROL_SIMULATION_PASS/);
+  assert.match(runner, /receipt\.journey_questions/);
+  for (const marker of ["evidence_class", "human_acceptance", "independent_human_review_required", "promotion_eligible"]) {
+    assert.match(runner, new RegExp(marker));
+  }
+  assert.doesNotMatch(`${runner}${workflow}`, /human acceptance|human-acceptance|KIDULTS_HUMAN_ACCEPTANCE_OUTPUT|kidults-v587-human-acceptance|validate-v587-human-acceptance/i);
+  assert.doesNotMatch(runner, /VERIFIED_PASS/);
 });
 
 test("translates unavailable states into calm operational guidance without changing engine truth", () => {
