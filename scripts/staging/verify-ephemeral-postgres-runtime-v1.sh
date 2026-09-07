@@ -41,6 +41,22 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$SOURCE_SOCKET" "$RECOVERY_SOCKET" "$ARCHIVE_DIRECTORY" "$OUTPUT_DIRECTORY"
+receipt_path="$OUTPUT_DIRECTORY/receipt.json"
+python3 - "$receipt_path" "$SOURCE_SHA" "$SOURCE_TREE" <<'PY'
+import json, pathlib, sys
+path, sha, tree = sys.argv[1:]
+pathlib.Path(path).write_text(json.dumps({
+    "schema": "KIDULTS_KIR_EPHEMERAL_POSTGRES_RUNTIME_V1",
+    "state": "VERIFIED_FAIL",
+    "failure_class": "OPERATIONAL_RUNTIME_NOT_COMPLETED",
+    "source_sha": sha,
+    "source_tree": tree,
+    "environment": "EPHEMERAL_CI",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD",
+}, indent=2) + "\n", encoding="utf-8")
+PY
 "$PG_BINDIR/initdb" --no-locale --encoding=UTF8 --data-checksums --auth=trust -D "$SOURCE_DATA" >/dev/null
 cat >> "$SOURCE_DATA/postgresql.conf" <<EOF
 listen_addresses = ''
@@ -55,7 +71,10 @@ synchronous_commit = on
 full_page_writes = on
 EOF
 
-"$PG_BINDIR/pg_ctl" -D "$SOURCE_DATA" -l "$SOURCE_LOG" -w start >/dev/null
+if ! "$PG_BINDIR/pg_ctl" -D "$SOURCE_DATA" -l "$SOURCE_LOG" -w start >/dev/null; then
+  cat "$SOURCE_LOG" >&2
+  exit 1
+fi
 SOURCE_STARTED=true
 export PGHOST="$SOURCE_SOCKET" PGPORT="$SOURCE_PORT" PGDATABASE=postgres
 
@@ -118,7 +137,10 @@ recovery_target_action = 'promote'
 EOF
 touch "$RECOVERY_DATA/recovery.signal"
 
-"$PG_BINDIR/pg_ctl" -D "$RECOVERY_DATA" -l "$RECOVERY_LOG" -w start >/dev/null
+if ! "$PG_BINDIR/pg_ctl" -D "$RECOVERY_DATA" -l "$RECOVERY_LOG" -w start >/dev/null; then
+  cat "$RECOVERY_LOG" >&2
+  exit 1
+fi
 RECOVERY_STARTED=true
 export PGHOST="$RECOVERY_SOCKET" PGPORT="$RECOVERY_PORT"
 "$PG_BINDIR/pg_isready" -h "$RECOVERY_SOCKET" -p "$RECOVERY_PORT" -d postgres >/dev/null
@@ -134,7 +156,6 @@ server_version="$(psql_scalar 'SHOW server_version')"
 data_checksums="$(psql_scalar 'SHOW data_checksums')"
 wal_level="$(psql_scalar 'SHOW wal_level')"
 archive_count="$(find "$ARCHIVE_DIRECTORY" -maxdepth 1 -type f | wc -l | tr -d ' ')"
-receipt_path="$OUTPUT_DIRECTORY/receipt.json"
 python3 - "$receipt_path" "$SOURCE_SHA" "$SOURCE_TREE" "$server_version" "$data_checksums" "$wal_level" "$archive_count" "$pitr_target_time" <<'PY'
 import json, pathlib, sys
 path, sha, tree, version, checksums, wal_level, archive_count, target = sys.argv[1:]
