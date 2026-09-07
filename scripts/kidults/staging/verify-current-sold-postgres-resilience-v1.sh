@@ -25,14 +25,18 @@ INSERT INTO kidults_private.current_sold_batch_receipt_ledger
   (receipt_id,receipt_digest,batch_id,status,source_sha,canonical_run_id,envelope_digest,event_versions_digest,evidence_digest,receipt_payload)
 VALUES $rollback_receipt;
 ROLLBACK;
-SELECT CASE WHEN count(*)=0 THEN 1 ELSE 1/0 END FROM kidults_private.current_sold_batch_receipt_ledger;
+SELECT CASE WHEN count(*)=0 THEN 1 ELSE 1/0 END
+  FROM kidults_private.current_sold_batch_receipt_ledger
+ WHERE receipt_id='csr_000000000000000000000001';
 
 BEGIN;
 INSERT INTO kidults_private.current_sold_batch_receipt_ledger
   (receipt_id,receipt_digest,batch_id,status,source_sha,canonical_run_id,envelope_digest,event_versions_digest,evidence_digest,receipt_payload)
 VALUES $commit_receipt;
 COMMIT;
-SELECT CASE WHEN count(*)=1 THEN 1 ELSE 1/0 END FROM kidults_private.current_sold_batch_receipt_ledger;
+SELECT CASE WHEN count(*)=1 THEN 1 ELSE 1/0 END
+  FROM kidults_private.current_sold_batch_receipt_ledger
+ WHERE receipt_id='csr_000000000000000000000002';
 SQL
 
 PGAPPNAME=kidults_current_sold_disconnect "${psql_cmd[@]}" <<SQL >/tmp/current-sold-disconnect.log 2>&1 &
