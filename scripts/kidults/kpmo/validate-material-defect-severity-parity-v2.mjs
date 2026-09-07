@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
+import { declaredSeverityLabels as canonicalDeclaredSeverityLabels } from './material-defect-registry-v3.mjs';
 
 function fail(message) {
   console.error(JSON.stringify({
@@ -15,14 +16,7 @@ function fail(message) {
 }
 
 export function declaredSeverityLabels(title) {
-  const declared = new Set();
-  const text = String(title || '');
-  for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
-    const parts = String(match[1] || '').split('/').map(part => part.trim()).filter(Boolean);
-    if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1')) continue;
-    for (const part of parts) declared.add(part);
-  }
-  return [...declared].sort();
+  return canonicalDeclaredSeverityLabels(title);
 }
 
 function normalizedLabels(issue) {
@@ -72,21 +66,41 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
+  const strictPrefix = { number: 6, state: 'open', title: 'P1: strict prefix', labels: [{ name: 'P1' }] };
+  const combinedPrefix = { number: 7, state: 'open', title: 'P1/P0: combined strict prefix', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const missingStrictPrefix = { number: 8, state: 'open', title: 'P1: missing strict-prefix label', labels: [] };
+  const conflictingStrictPrefix = { number: 9, state: 'open', title: 'P0: conflicting strict-prefix label', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const subclass = { number: 10, state: 'open', title: '[P0-A] subclass only', labels: [] };
+  const prose = { number: 11, state: 'open', title: 'ordinary text mentioning P1: later', labels: [] };
+
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
   if (declaredSeverityLabels(support.title).length !== 0) throw new Error('SELF_TEST_SUPPORT_ALIASING');
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
-  if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (materialRecord({ number: 12, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+
+  if (parityFailures(strictPrefix).length) throw new Error('SELF_TEST_STRICT_PREFIX_REJECTED');
+  if (parityFailures(combinedPrefix).length) throw new Error('SELF_TEST_COMBINED_PREFIX_REJECTED');
+  if (!parityFailures(missingStrictPrefix).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_STRICT_PREFIX_MISSING_LABEL_NOT_REJECTED');
+  if (!parityFailures(conflictingStrictPrefix).some(x => x.includes('P1_LABEL_WITH_P0_ONLY_TITLE'))) throw new Error('SELF_TEST_STRICT_PREFIX_CONFLICT_NOT_REJECTED');
+  if (declaredSeverityLabels(subclass.title).length !== 0) throw new Error('SELF_TEST_SUBCLASS_ALIASING');
+  if (declaredSeverityLabels(prose.title).length !== 0) throw new Error('SELF_TEST_NON_PREFIX_PROSE_FALSE_MATERIAL');
+
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
     exact_marker: true,
     combined_marker_normalization: true,
+    strict_prefix_normalization: true,
+    combined_prefix_normalization: true,
     support_alias_excluded: true,
+    subclass_alias_excluded: true,
+    non_prefix_prose_excluded: true,
     label_only_authority_preserved: true,
-    mismatch_fail_closed: true
+    mismatch_fail_closed: true,
+    canonical_parser_shared: true
   }));
 }
 
@@ -145,8 +159,11 @@ try {
     complete_open_issue_pagination: true,
     cardinality_stable: true,
     exact_and_combined_marker_normalization: true,
+    strict_prefix_normalization: true,
+    combined_prefix_normalization: true,
     support_alias_excluded: true,
     label_only_material_authority_preserved: true,
+    canonical_parser_shared: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
