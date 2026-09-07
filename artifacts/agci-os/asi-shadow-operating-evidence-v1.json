@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 30234)
-Total output lines: 2275
-
 {
   "id": "kidults-asi-shadow-operating-evidence-v1",
   "record_type": "asi_shadow_operating_evidence",
@@ -1200,7 +1197,20 @@ Total output lines: 2275
       "r7i_ambiguous_case_declared_expected_decision": "REVIEW",
       "r7i_ambiguous_case_auto_merge_allowed": false,
       "r7i_ambiguous_case_auto_split_allowed": false,
-      "r7j_construc…234 tokens truncated…",
+      "r7j_constructed_control_extension_implementation_present": true,
+      "r7j_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7j-designer-maker-minimums",
+      "r7j_declared_output_scope": "R7J_PARTIAL_APPROVED_STRATA_6_OF_7_SIX_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7j_declared_input_case_count": 18,
+      "r7j_declared_output_case_count": 21,
+      "r7j_declared_represented_grammar_count": 6,
+      "r7j_declared_required_grammar_count": 7,
+      "r7j_declared_all_required_grammars_complete": false,
+      "r7j_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7j_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "finalization_preflight_implementation_present": true,
+      "current_r7j_finalization_state": "BLOCKED",
+      "current_r7j_finalization_blockers": [
+        "FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population",
         "FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED",
         "FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED",
         "FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED",
