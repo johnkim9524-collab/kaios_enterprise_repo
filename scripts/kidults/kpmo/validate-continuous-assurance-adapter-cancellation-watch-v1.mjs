@@ -70,17 +70,20 @@ const eventConsumerControls = [
     unsafe: "group: kidults-asi-p0-mission-consumption-v1-${{ github.ref }}"
   },
   {
-    label: 'P0B Bounded Discovery Candidates',
-    text: p0bWorkflow,
-    expected: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}",
-    unsafe: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.ref }}"
-  },
-  {
     label: 'Autonomous Resolution Layer',
     text: autonomousResolutionWorkflow,
     expected: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}",
     unsafe: "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.sha }}",
     cancelInProgress: false
+  }
+];
+
+const disabledProviderControls = [
+  {
+    label: 'P0B Bounded Discovery Candidates',
+    text: p0bWorkflow,
+    marker: 'P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED',
+    providerMarker: 'ASI_SCOPE_ROTATION='
   }
 ];
 
@@ -90,6 +93,22 @@ function validateStaticProducer(control) {
   if (control.text.includes('github.event.workflow_run')) findings.push(`${control.label} stale workflow_run expression remains`);
   if (!control.text.includes(control.expected)) findings.push(`${control.label} concurrency is not coalesced by event and exact source generation`);
   if (!control.text.includes('cancel-in-progress: true')) findings.push(`${control.label} exact-generation coalescing missing`);
+  return findings;
+}
+
+function validateDisabledProvider(control) {
+  const findings = [];
+  const permissionsIndex = control.text.indexOf('\npermissions:');
+  const triggerHeader = permissionsIndex > 0 ? control.text.slice(0, permissionsIndex) : control.text;
+  if (/\n  schedule:/.test(triggerHeader)) findings.push(`${control.label} autonomous schedule remains`);
+  if (/\n  workflow_run:/.test(triggerHeader)) findings.push(`${control.label} autonomous workflow_run remains`);
+  const gateIndex = control.text.indexOf(control.marker);
+  const checkoutIndex = control.text.indexOf('      - uses: actions/checkout@');
+  const providerIndex = control.text.indexOf(control.providerMarker);
+  if (gateIndex < 0) findings.push(`${control.label} hard-disable marker missing`);
+  if (gateIndex >= checkoutIndex || gateIndex >= providerIndex) findings.push(`${control.label} hard-disable does not precede checkout/provider code`);
+  if (!control.text.includes('provider_requests_issued_by_p0b:0')) findings.push(`${control.label} zero-request terminal receipt missing`);
+  if (!control.text.includes('provider_execution_authority:false')) findings.push(`${control.label} provider authority false missing`);
   return findings;
 }
 
@@ -138,6 +157,21 @@ for (const control of eventConsumerControls) {
   const mutated = { ...control, text: control.text.replace(control.expected, control.unsafe) };
   if (validateEventConsumer(mutated).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);
 }
+for (const control of disabledProviderControls) {
+  errors.push(...validateDisabledProvider(control));
+  const scheduleMutation = {
+    ...control,
+    text: control.text.replace('  workflow_dispatch:\n', "  workflow_dispatch:\n  schedule:\n    - cron: '37 * * * *'\n")
+  };
+  if (validateDisabledProvider(scheduleMutation).length === 0) errors.push(`${control.label} autonomous schedule mutation escaped`);
+  const triggerMutation = {
+    ...control,
+    text: control.text.replace('  workflow_dispatch:\n', "  workflow_dispatch:\n  workflow_run:\n    workflows: ['KIDULTS ASI P0 Mission Consumption v1']\n    types: [completed]\n")
+  };
+  if (validateDisabledProvider(triggerMutation).length === 0) errors.push(`${control.label} autonomous workflow_run mutation escaped`);
+  const markerMutation = { ...control, text: control.text.replace(control.marker, 'P0B_PROVIDER_EXECUTION_ALLOWED') };
+  if (validateDisabledProvider(markerMutation).length === 0) errors.push(`${control.label} hard-disable marker mutation escaped`);
+}
 
 for (const marker of [
   'classifyUpstreamAuditHealth',
@@ -163,6 +197,7 @@ console.log(JSON.stringify({
   cancellation_or_failure_must_surface: true,
   static_validators_detached_from_workflow_run: staticProducerControls.map((control) => control.label),
   exact_run_consumers_preserved: eventConsumerControls.map((control) => control.label),
+  disabled_provider_producers_preserved: disabledProviderControls.map((control) => control.label),
   production: 'HOLD',
   public: 'HOLD',
   g5: 'EXPLICIT_APPROVAL_REQUIRED'
