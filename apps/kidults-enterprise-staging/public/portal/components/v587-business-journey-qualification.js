@@ -63,24 +63,24 @@ function captureSurface(surface, exportAllowed) {
   return {};
 }
 
-export function validateHumanAcceptance(role, evidence) {
+export function validateRoleJourneyControl(role, evidence) {
   const normalizedRole = normalizeRole(role);
   const required = ROLE_REQUIREMENTS[normalizedRole] ?? [];
   const missing = required.filter(key => !clean(evidence?.[key]));
-  const acceptance_questions = Object.freeze({
+  const journey_questions = Object.freeze({
     what_happened: clean(evidence.market_context || evidence.presence),
     why: clean(evidence.risk || evidence.decision),
     can_i_trust: clean([evidence.evidence, evidence.confidence, evidence.rights, evidence.qualification].filter(Boolean).join(" · ")),
     can_i_use: clean([evidence.availability, evidence.export_permission, evidence.decision].filter(Boolean).join(" · ")),
     what_should_i_do: clean(evidence.risk || evidence.workspace_decision || evidence.decision)
   });
-  const unanswered = Object.entries(acceptance_questions).filter(([, value]) => !value).map(([key]) => key);
+  const unanswered = Object.entries(journey_questions).filter(([, value]) => !value).map(([key]) => key);
   return Object.freeze({
     role: normalizedRole,
     required_evidence: Object.freeze(required.reduce((output, key) => ({ ...output, [key]: clean(evidence?.[key]) }), {})),
-    acceptance_questions,
+    journey_questions,
     missing: Object.freeze([...missing, ...unanswered]),
-    accepted: missing.length === 0 && unanswered.length === 0
+    control_complete: missing.length === 0 && unanswered.length === 0
   });
 }
 
@@ -132,16 +132,20 @@ export function startBusinessJourneyQualification({ surface, integrationBus, exp
 
   state = readState() ?? state;
   const complete = state.steps.length === ORDER.length;
-  const validation = validateHumanAcceptance(state.role, state.evidence ?? {});
+  const validation = validateRoleJourneyControl(state.role, state.evidence ?? {});
   const core = {
-    receipt_id: `v587-human-acceptance-${state.role.toLowerCase()}-${Date.parse(state.started_at)}`,
+    receipt_id: `v587-role-journey-control-${state.role.toLowerCase()}-${Date.parse(state.started_at)}`,
     role: state.role,
     observed_at: new Date().toISOString(),
-    state: complete ? (validation.accepted ? "VERIFIED_PASS" : "VERIFIED_FAIL") : "RUNNING_VERIFIED",
+    state: complete ? (validation.control_complete ? "CONTROL_SIMULATION_PASS" : "VERIFIED_FAIL") : "CONTROL_SIMULATION_RUNNING",
+    evidence_class: "CONTROL_SIMULATION",
+    human_acceptance: false,
+    independent_human_review_required: true,
+    promotion_eligible: false,
     steps: [...state.steps],
     integration_states: [...state.integration_states],
     role_evidence: validation.required_evidence,
-    acceptance_questions: validation.acceptance_questions,
+    journey_questions: validation.journey_questions,
     missing_evidence: validation.missing,
     export_permission: exportAllowed === true ? "ALLOWED" : exportAllowed === false ? "BLOCKED_BY_RIGHTS" : "NOT_YET_EVALUATED",
     production: "HOLD",
@@ -162,6 +166,10 @@ export const businessJourneyQualificationContract = Object.freeze({
   steps: ORDER,
   questions: ["what_happened", "why", "can_i_trust", "can_i_use", "what_should_i_do"],
   role_requirements: ROLE_REQUIREMENTS,
+  evidence_class: "CONTROL_SIMULATION",
+  human_acceptance: false,
+  independent_human_review_required: true,
+  promotion_eligible: false,
   production: "HOLD",
   public: "HOLD",
   g5: "HOLD"
