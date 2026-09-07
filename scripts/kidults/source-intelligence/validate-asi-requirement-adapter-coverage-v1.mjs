@@ -54,6 +54,8 @@ const artifactBindingSchema = json(contract.authoritative_inputs?.artifact_bindi
 const purposeRightsPreflight = json(purposeRightsPreflightPath);
 const artifactBinding = json(artifactBindingPath);
 const queue = json(queuePath);
+const resolutionManifest = json(manifestPath);
+const resolutionReceipt = json(receiptPath);
 const ledger = json(file(required[0]));
 const familyCoverage = json(file(required[1]));
 const claimCeilings = json(file(required[2]));
@@ -281,7 +283,13 @@ assert(!Object.hasOwn(outputManifest.results, 'software_gap_requirements') && !O
 assert(outputManifest.deprecated_compatibility_metrics?.status === 'READ_ONLY_TRANSLATION_NOT_CANONICAL_STATUS', 'OUTPUT_MANIFEST_DEPRECATED_METRICS_STATUS');
 assert(outputManifest.deprecated_compatibility_metrics?.software_gap_requirements?.value === 153 && outputManifest.deprecated_compatibility_metrics?.software_gap_requirements?.interpretation_forbidden === 'MISSING_INTERNAL_CODE_MODULES', 'OUTPUT_MANIFEST_DEPRECATED_SOFTWARE_GAP_TRANSLATION');
 assert(outputManifest.deprecated_compatibility_metrics?.unmapped_requirements?.value === 138 && outputManifest.deprecated_compatibility_metrics?.unmapped_requirements?.canonical_replacement === 'claim_parser_not_implemented_requirements', 'OUTPUT_MANIFEST_DEPRECATED_UNMAPPED_TRANSLATION');
-assert(outputManifest.results?.original_preflight_actions === 672 && outputManifest.results?.terminal_preflight_actions === 672 && outputManifest.results?.unresolved_preflight_actions === 0, 'OUTPUT_MANIFEST_PREFLIGHT_TERMINALIZATION');
+assert(Number.isSafeInteger(resolutionManifest.results?.original_actions) && resolutionManifest.results.original_actions > 0 &&
+  resolutionManifest.results?.terminal_actions === resolutionManifest.results.original_actions &&
+  resolutionReceipt.results?.original_actions === resolutionManifest.results.original_actions &&
+  resolutionReceipt.results?.terminal_actions === resolutionManifest.results.terminal_actions &&
+  outputManifest.results?.original_preflight_actions === resolutionManifest.results.original_actions &&
+  outputManifest.results?.terminal_preflight_actions === resolutionManifest.results.terminal_actions &&
+  outputManifest.results?.unresolved_preflight_actions === 0, 'OUTPUT_MANIFEST_PREFLIGHT_TERMINALIZATION');
 assert(outputManifest.results?.gate1_remaining_hold === 0 && outputManifest.results?.internal_unbound_execution_queue_count === 0, 'OUTPUT_MANIFEST_INTERNAL_QUEUE_CLOSED');
 assert(outputManifest.results?.rights_clear_registered_profiles === expectedRightsClear, 'OUTPUT_MANIFEST_RIGHTS_CLEAR_COUNT');
 assert(outputManifest.results?.rights_hold_registered_profiles === purposeRightsIndex.size - expectedRightsClear, 'OUTPUT_MANIFEST_RIGHTS_HOLD_COUNT');
