@@ -18,6 +18,8 @@ const requiredWorkflowTokens = [
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
   'resolve-continuous-assurance-sentinel-health-v1.mjs',
+  'GATE_DIR="$RUNNER_TEMP/kpmo-scheduled-assurance-authority-gate"',
+  'echo "GATE_DIR=$GATE_DIR" >> "$GITHUB_ENV"',
   'if: always()',
   'kpmo-continuous-assurance-scheduled-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
@@ -34,6 +36,9 @@ for (const token of requiredWorkflowTokens) {
 
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce scheduled Assurance authority gate/.test(workflow)) {
   fail('SCHEDULED_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
+}
+if (/^\s{4,}GATE_DIR:\s*\$\{\{\s*runner\.temp/m.test(workflow)) {
+  fail('SCHEDULED_AUTHORITY_GATE_JOB_ENV_RUNNER_CONTEXT_FORBIDDEN');
 }
 
 const gate = policy.scheduled_authority_gate;
