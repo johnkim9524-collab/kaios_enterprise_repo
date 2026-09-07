@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   OrchestrationRunHistoryError,
   reconcileArlAuthoritativeGenerationPages,
@@ -10,6 +11,37 @@ import {
 const sourceSha = 'a'.repeat(40);
 const createdSince = '2026-08-30T00:00:00.000Z';
 const createdThrough = '2026-08-30T00:10:00.000Z';
+const arlWorkflowPath = '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml';
+
+function validateDirectCurrentRunContract(workflowSource) {
+  const required = [
+    '/actions/runs/${GITHUB_RUN_ID}',
+    '> /tmp/arl-current-run.json',
+    '--argjson run "$GITHUB_RUN_ID"',
+    '--argjson attempt "$GITHUB_RUN_ATTEMPT"',
+    '.id==$run and .run_attempt==$attempt',
+    'and .display_title==$title',
+    'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml"',
+    'and .event=="workflow_run"',
+    'and .head_sha==env.GITHUB_SHA and .head_branch=="main"',
+    'CURRENT_ARL_CREATED_AT=$(jq -er',
+  ];
+  return required.filter((marker) => !workflowSource.includes(marker));
+}
+
+const arlWorkflowSource = fs.readFileSync(arlWorkflowPath, 'utf8');
+assert.deepEqual(validateDirectCurrentRunContract(arlWorkflowSource), []);
+for (const marker of [
+  '/actions/runs/${GITHUB_RUN_ID}',
+  '--argjson attempt "$GITHUB_RUN_ATTEMPT"',
+  '.id==$run and .run_attempt==$attempt',
+  'and .display_title==$title',
+  'and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml"',
+  'and .event=="workflow_run"',
+  'and .head_sha==env.GITHUB_SHA and .head_branch=="main"',
+]) {
+  assert.notDeepEqual(validateDirectCurrentRunContract(arlWorkflowSource.replace(marker, '__REMOVED_DIRECT_CURRENT_RUN_BINDING__')), []);
+}
 
 function arlRun(id, displayTitle = `KIDULTS ARL / p1-${id}`) {
   return {
@@ -179,6 +211,7 @@ process.stdout.write(`${JSON.stringify({
   arl_current_run_list_visibility_race_tolerated: true,
   arl_current_run_visible_title_mismatch_rejected: true,
   arl_current_run_identity_requires_direct_endpoint: true,
+  arl_direct_current_run_contract_static_bound: true,
   coverage_exact_upstream_query_history_independent: true,
   coverage_prior_success_2000_resolved: prior2000.prior_success_count,
   coverage_prior_success_2001_resolved: prior2001.prior_success_count,
