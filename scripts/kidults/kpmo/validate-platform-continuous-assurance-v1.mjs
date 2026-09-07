@@ -13,6 +13,7 @@ const plannerPath = 'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs';
 const canonicalContractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const classifierPath = 'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs';
 const resolverPath = 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+const sameRunValidatorPath = 'scripts/kidults/kpmo/validate-continuous-assurance-same-run-authority-v1.mjs';
 const errors = [];
 
 function activeWorkflowText(text) {
@@ -52,7 +53,7 @@ function signReceipt(receipt) {
   };
 }
 
-for (const file of [workflowPath, policyPath, auditPath, plannerPath, canonicalContractPath, classifierPath, resolverPath]) {
+for (const file of [workflowPath, policyPath, auditPath, plannerPath, canonicalContractPath, classifierPath, resolverPath, sameRunValidatorPath]) {
   if (!fs.existsSync(path.join(root, file))) errors.push(`required file missing: ${file}`);
 }
 
@@ -117,6 +118,11 @@ if (!errors.length) {
     'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_COVERAGE_ALIAS_OBSERVER',
     'zipinfo -1',
     'cancel-in-progress: false'
+    ,'Resolve exact-SHA producer health inside Assurance before canonical publication'
+    ,'Upload same-run producer-health barrier receipt'
+    ,'Enforce same-run producer health before canonical publication'
+    ,'resolve-continuous-assurance-sentinel-health-v1.mjs'
+    ,'validate-continuous-assurance-same-run-authority-v1.mjs'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
   if (!/- name: Run audit and always retain receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
@@ -130,9 +136,18 @@ if (!errors.length) {
     if (!activeWorkflow.includes(marker)) errors.push(`final fail-closed binding missing: ${marker}`);
   }
   const verifierIndex = activeWorkflow.indexOf('Preserve control result without promoting overall HOLD');
+  const sameRunResolveIndex = activeWorkflow.indexOf('Resolve exact-SHA producer health inside Assurance before canonical publication');
+  const sameRunUploadIndex = activeWorkflow.indexOf('Upload same-run producer-health barrier receipt');
+  const sameRunEnforceIndex = activeWorkflow.indexOf('Enforce same-run producer health before canonical publication');
   const leaderUploadIndex = activeWorkflow.indexOf('Publish successful bounded canonical leader artifact');
-  if (verifierIndex < 0 || leaderUploadIndex <= verifierIndex) errors.push('canonical leader artifact must publish only after final packet verification');
+  if (verifierIndex < 0 || sameRunResolveIndex <= verifierIndex || sameRunUploadIndex <= sameRunResolveIndex || sameRunEnforceIndex <= sameRunUploadIndex || leaderUploadIndex <= sameRunEnforceIndex) errors.push('canonical leader artifact must publish only after same-run producer-health enforcement');
   if (/Publish successful bounded canonical leader artifact\n\s+if: always\(\)/.test(activeWorkflow)) errors.push('canonical leader artifact must never upload under always()');
+  if (!/Publish successful bounded canonical leader artifact\n\s+if: success\(\)/.test(activeWorkflow)) errors.push('canonical leader artifact must retain success() barrier');
+  const enforcementBlock = activeWorkflow.slice(sameRunEnforceIndex, leaderUploadIndex);
+  if (enforcementBlock.includes('continue-on-error: true')) errors.push('same-run producer-health enforcement must not continue on error');
+  for (const marker of ["always() && github.event_name != 'pull_request'", 'test "$SAME_RUN_RESOLVER_OUTCOME" = success', '--expected-source-sha "$KPMO_SOURCE_SHA"', '--expected-run-id "$GITHUB_RUN_ID"', '--expected-run-attempt "$GITHUB_RUN_ATTEMPT"']) {
+    if (!enforcementBlock.includes(marker)) errors.push(`same-run producer-health enforcement binding missing: ${marker}`);
+  }
 
   for (const marker of ['auditDeadline', 'finally', 'diagnostic_digest', 'diagnostic_persisted: false', 'overall_state', 'promotion_eligible: false', 'receipt_digest', 'safeChildEnv', 'SOURCE_SHA_BINDING', 'UPSTREAM_WORKFLOW_CONCLUSION', 'classifyUpstreamAuditHealth', 'KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE', 'KPMO_UPSTREAM_AUDIT_DISPOSITION', 'AUDIT_INPUT_TREE_IMMUTABILITY', 'AUDIT_EXECUTION_INPUT_IMMUTABILITY', 'finding_fingerprint', 'observation_id', 'runEphemeralPair', 'EPHEMERAL_REBUILD_EXHAUSTED', 'canonical_identity', 'canonical_key', 'canonical_input_digest', 'classifier_contract_digest', 'classification_receipt_digest', 'ephemeral_guard_receipt_digest', 'workflow_path', 'workflow_event', 'run_attempt', 'exact_binding_digest']) {
     if (!audit.includes(marker)) errors.push(`audit hardening marker missing: ${marker}`);
@@ -152,6 +167,12 @@ if (!errors.length) {
   if (policy.immediate_improvement?.auto_merge !== false) errors.push('auto merge must be false');
   if (policy.immediate_improvement?.attempt_ledger_authority !== 'KPMO_EXTERNAL_INCIDENT_LEDGER') errors.push('circuit-breaker ledger authority drift');
   if (policy.state_model?.generic_top_level_pass_forbidden !== true) errors.push('generic top-level PASS must be forbidden');
+  const successGate = policy.successful_assurance_authority_gate;
+  if (successGate?.enforcement_location !== 'SAME_ASSURANCE_RUN_BEFORE_CANONICAL_LEADER_PUBLICATION' ||
+      successGate?.same_run_prepublication_gate_required !== true ||
+      successGate?.canonical_leader_publication_requires_verified_producer_health !== true ||
+      successGate?.downstream_workflow_run_gate_role !== 'DEFENSE_IN_DEPTH_NON_AUTHORIZING_OBSERVATION' ||
+      successGate?.workflow_load_validity_required !== true) errors.push('same-run successful Assurance authority policy drift');
   if (!policy.hard_denies?.includes('PUBLIC_PRODUCTION_OR_G5_PROMOTION')) errors.push('release hard deny missing');
   const expectedCoverageAliasBindings = [
     'exact_coverage_workflow_run',
