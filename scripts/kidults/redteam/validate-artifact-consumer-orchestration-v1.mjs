@@ -126,7 +126,10 @@ assert(ownedGraph.includes('P1_EVENT_RUN_ID') && ownedGraph.includes('/actions/r
 assert(ownedGraph.includes('SAME_SUCCESSFUL_P1_WORKFLOW_RUN'), 'OWNED_GRAPH_TRANSACTIONAL_PAIR_BINDING_MISSING');
 assert(ownedGraph.includes('.path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml"') && ownedGraph.includes('.conclusion=="success"'), 'OWNED_GRAPH_P1_RUN_IDENTITY_BINDING_MISSING');
 assert(!p1.includes(globalArtifactListing), 'P1_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
-assert(p1.includes("if: github.event_name == 'pull_request'") && p1.includes("if: github.event_name != 'pull_request'"), 'P1_PR_AND_LIVE_DISCOVERY_SEPARATION_MISSING');
+const p1Trigger = p1.slice(0, p1.indexOf('\npermissions:'));
+assert(!independentTrigger.test(p1Trigger), 'P1_AUTONOMOUS_PROVIDER_TRIGGER_FORBIDDEN');
+assert(p1.includes("if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'") && p1.includes('P0B_INPUT_MODE=EXACT_CURRENT_MAIN_RECOVERY_ARTIFACT'), 'P1_ARTIFACT_ONLY_RECOVERY_SEPARATION_MISSING');
+for (const forbidden of ['ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json', 'node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs', 'P0B_INPUT_MODE=REBUILT_LOCAL_CONTROL']) assert(!p1.includes(forbidden), 'P1_DIRECT_PROVIDER_AUTHORITY_FORBIDDEN');
 assert(p1.includes('/actions/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml/runs') && p1.includes('/actions/runs/${P0B_ORIGIN_RUN_ID}/artifacts'), 'P1_EXACT_ANCESTOR_P0B_RESTORE_MISSING');
 assert(p1.includes('git merge-base --is-ancestor') && p1.includes('.path==".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"'), 'P1_P0B_PROVENANCE_BINDING_MISSING');
 const p0bDigestGuards = [...p1.matchAll(/--expected-digest "\$P0B_ARTIFACT_DIGEST"/g)].map((match) => match.index);
@@ -211,8 +214,8 @@ const supersessionAtomicBridgeMutation = supersession.replace('.github/workflows
 assert(supersessionAtomicBridgeMutation !== supersession && !supersessionAtomicBridgeMutation.includes('.github/workflows/kidults-atomic-governed-landing-v1.yml'), 'EXACT_HEAD_SUPERSESSION_ATOMIC_BRIDGE_MUTATION_NOT_DETECTED');
 const snapshotCurrentMainMutation = snapshot.replace('||main.commit?.sha!==run.head_sha', '');
 assert(snapshotCurrentMainMutation !== snapshot && !snapshotCurrentMainMutation.includes('main.commit?.sha!==run.head_sha'), 'SNAPSHOT_CURRENT_MAIN_MUTATION_NOT_DETECTED');
-const p1PrSeparationMutation = p1.replace("if: github.event_name != 'pull_request'", "if: github.event_name == 'pull_request'");
-assert(p1PrSeparationMutation !== p1 && !p1PrSeparationMutation.includes("if: github.event_name != 'pull_request'"), 'P1_LIVE_DISCOVERY_SEPARATION_MUTATION_NOT_DETECTED');
+const p1TriggerMutation = p1.replace('  pull_request:', "  schedule:\n    - cron: '52 * * * *'\n  pull_request:");
+assert(p1TriggerMutation !== p1 && independentTrigger.test(p1TriggerMutation.slice(0, p1TriggerMutation.indexOf('\npermissions:'))), 'P1_AUTONOMOUS_TRIGGER_MUTATION_NOT_DETECTED');
 assert((p1 + globalArtifactListing).includes(globalArtifactListing), 'P1_GLOBAL_LISTING_MUTATION_NOT_DETECTED');
 const p1ConcurrencyMutation = p1.replace('github.event_name', 'github.ref');
 assert(p1ConcurrencyMutation !== p1 && !p1ConcurrencyMutation.includes(p1ConcurrencyContract), 'P1_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
