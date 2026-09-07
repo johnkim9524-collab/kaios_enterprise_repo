@@ -1,0 +1,89 @@
+{
+  "id": "kidults-synthetic-market-twin-120-v1",
+  "version": "1.0.0",
+  "state": "CONTROL_ONLY",
+  "purpose": "END_TO_END_INTERNAL_PLATFORM_VALIDATION",
+  "record_count": 120,
+  "vertical_count": 8,
+  "records_per_vertical": 15,
+  "case_mix_per_vertical": {
+    "NORMAL": 9,
+    "BOUNDARY": 3,
+    "DEFECT": 3
+  },
+  "verticals": [
+    "toys-models",
+    "watches-jewelry",
+    "automobiles-mobility",
+    "fashion-accessories",
+    "design-furniture",
+    "technology-cameras",
+    "gaming-music-screen",
+    "cards-comics-memorabilia"
+  ],
+  "pipeline": [
+    "ASI_SYNTHETIC_DISCOVERY",
+    "RIGHTS_GATE",
+    "ENTITY_RESOLUTION",
+    "CURRENT_SOLD_ATOMIC_ADMISSION",
+    "EVIDENCE",
+    "CONTROL_LEDGER",
+    "CANDIDATE",
+    "TRACK_B_CONTROL_ASSESSMENT",
+    "PROJECTION",
+    "PORTAL_CONTAINMENT"
+  ],
+  "stage_execution": {
+    "ASI_SYNTHETIC_DISCOVERY": "DETERMINISTIC_CONTROL_HARNESS",
+    "RIGHTS_GATE": "ACTUAL_CURRENT_SOLD_ADMISSION_IMPLEMENTATION",
+    "ENTITY_RESOLUTION": "DETERMINISTIC_UNIQUENESS_AND_NAMESPACE_CONTROL",
+    "KIR_CURRENT_SOLD_EVIDENCE": "ACTUAL_IMPLEMENTATION",
+    "CANDIDATE_TRACK_B_PROJECTION": "REUSABLE_STRICT_SYNTHETIC_CONTROL_RUNTIME",
+    "PORTAL_CONTAINMENT": "ACTUAL_PORTAL_READ_ADAPTER"
+  },
+  "resilience_validation": {
+    "clock_skew": "ACTUAL_CURRENT_SOLD_ENGINE_FAIL_CLOSED",
+    "out_of_order": "ACTUAL_CURRENT_SOLD_ENGINE_FAIL_CLOSED",
+    "fee_semantics": "ACTUAL_CURRENT_SOLD_ENGINE_FAIL_CLOSED",
+    "correction_supersession": "ACTUAL_CURRENT_SOLD_ENGINE",
+    "cancellation_and_relisting": "NON_SOLD_FAIL_CLOSED_ONLY",
+    "replay": "ACTUAL_CURRENT_SOLD_ENGINE_IDEMPOTENCY",
+    "partial_batch_failure": "ACTUAL_CURRENT_SOLD_ENGINE_ZERO_ADMISSION",
+    "concurrency": "PARALLEL_STATELESS_CONTROL_RUNTIME",
+    "backpressure": "CONTROL_RUNTIME_BATCH_BOUNDARY",
+    "postgres_transaction": "BLOCKED_NO_DATABASE_RUNTIME"
+  },
+  "expected": {
+    "accepted": 96,
+    "rejected": 24,
+    "red_team_mutations": 56,
+    "candidate_controls": 96,
+    "track_b_controls": 96,
+    "projection_controls": 96,
+    "portal_no_projection": 96,
+    "customer_visible": 0,
+    "empirical_current_sold_delta": 0,
+    "postgres_rows_written": 0
+  },
+  "isolation": {
+    "data_class": "SYNTHETIC",
+    "namespace_prefix": "kir-fixture:",
+    "source_host": "kir-fixture.invalid",
+    "actual_provider_names_forbidden": true,
+    "actual_object_identifiers_forbidden": true,
+    "network_fetch": false,
+    "customer_visible": false,
+    "index_eligible": false,
+    "empirical_evidence": false,
+    "production_eligible": false
+  },
+  "authority_boundary": {
+    "provider_authority": false,
+    "database_authority": false,
+    "market_authority": false,
+    "promotion_authority": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
