@@ -16,6 +16,8 @@ const requiredWorkflowTokens = [
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
   'resolve-continuous-assurance-sentinel-health-v1.mjs',
+  'GATE_DIR="$RUNNER_TEMP/kpmo-success-assurance-authority-gate"',
+  'echo "GATE_DIR=$GATE_DIR" >> "$GITHUB_ENV"',
   'if: always()',
   'kpmo-continuous-assurance-success-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
@@ -33,6 +35,9 @@ for (const token of requiredWorkflowTokens) {
 if (workflow.includes("github.event.workflow_run.event == 'schedule'")) {
   fail('SUCCESS_AUTHORITY_GATE_EVENT_SPECIFIC_BYPASS');
 }
+if (/^\s{4,}GATE_DIR:\s*\$\{\{\s*runner\.temp/m.test(workflow)) {
+  fail('SUCCESS_AUTHORITY_GATE_JOB_ENV_RUNNER_CONTEXT_FORBIDDEN');
+}
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
 }
@@ -43,7 +48,12 @@ const expected = {
   raw_successful_assurance_authority: 'NON_AUTHORIZING_OBSERVATION',
   all_success_events_gate_required: true,
   event_specific_bypass_forbidden: true,
-  gate_workflow: 'KPMO Continuous Assurance Success Authority Gate V1',
+  enforcement_location: 'SAME_ASSURANCE_RUN_BEFORE_CANONICAL_LEADER_PUBLICATION',
+  same_run_prepublication_gate_required: true,
+  canonical_leader_publication_requires_verified_producer_health: true,
+  downstream_workflow_run_gate_role: 'DEFENSE_IN_DEPTH_NON_AUTHORIZING_OBSERVATION',
+  downstream_gate_workflow: 'KPMO Continuous Assurance Success Authority Gate V1',
+  workflow_load_validity_required: true,
   producer_health_source: 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',
   coverage_scope: 'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
   whole_platform_green_claim_allowed: false,
