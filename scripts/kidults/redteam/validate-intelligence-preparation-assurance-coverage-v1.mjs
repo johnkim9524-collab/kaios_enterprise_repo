@@ -16,7 +16,7 @@ function validate(prep, assurance) {
   need(assurance,"- 'KIDULTS ASI Intelligence Preparation Wave v1'",'Continuous Assurance producer watch');
   need(auditGate,"(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository",'cancellation-aware workflow_run audit gate');
   reject(auditGate,"github.event.workflow_run.conclusion == 'success'",'success-only workflow_run audit gate');
-  need(auditJob,'KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion || \'\' }}','upstream conclusion receipt');
+  need(auditJob,"KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}",'native and forwarded upstream conclusion receipt');
   need(auditJob,'KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE','terminal observation dedupe bypass receipt');
   need(auditJob,'resolve-continuous-assurance-ephemeral-guard-v1.mjs','canonical guard execution');
   need(prep,'node scripts/kidults/redteam/validate-intelligence-preparation-assurance-coverage-v1.mjs','producer invariant execution');

@@ -78,7 +78,8 @@ assert(requirement.includes("authoritative_producer_event:run.event==='workflow_
 assert(requirement.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && requirement.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'REQUIREMENT_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
-assert(assurance.includes('needs.classify-canonical-identity.outputs.concurrency_group') && assurance.includes('cancel-in-progress: false'), 'ASSURANCE_CANONICAL_SERIALIZATION_MISSING');
+const assuranceCanonicalConcurrencyContract = 'group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}\n      cancel-in-progress: false';
+assert(assurance.includes(assuranceCanonicalConcurrencyContract), 'ASSURANCE_CANONICAL_SERIALIZATION_MISSING');
 assert(assurance.includes('resolve-continuous-assurance-ephemeral-guard-v1.mjs') && assurance.includes('-f name="$CANONICAL_ARTIFACT_NAME"'), 'ASSURANCE_EXACT_CANONICAL_READBACK_MISSING');
 assert(!assurance.includes('-f head_sha='), 'ASSURANCE_BLIND_SOURCE_SHA_ELECTION_FORBIDDEN');
 assert(assurance.includes("if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'"), 'ASSURANCE_VERIFIED_LEADER_PUBLICATION_MISSING');
@@ -161,8 +162,8 @@ const requirementCanonicalBindingMutation = requirement.replace('canonical_run_k
 assert(requirementCanonicalBindingMutation !== requirement && !requirementCanonicalBindingMutation.includes('canonical_run_key:canonicalRunKey'), 'REQUIREMENT_CANONICAL_RUN_BINDING_MUTATION_NOT_DETECTED');
 const requirementSemanticInputMutation = requirement.replaceAll('build-asi-requirement-adapter-coverage-semantic-input-v1.mjs', 'build-raw-run-identity-v1.mjs');
 assert(requirementSemanticInputMutation !== requirement && !requirementSemanticInputMutation.includes('build-asi-requirement-adapter-coverage-semantic-input-v1.mjs'), 'REQUIREMENT_SEMANTIC_INPUT_MUTATION_NOT_DETECTED');
-const assuranceCancellationMutation = assurance.replace('cancel-in-progress: false', 'cancel-in-progress: true');
-assert(assuranceCancellationMutation !== assurance && !assuranceCancellationMutation.includes('cancel-in-progress: false'), 'ASSURANCE_CANCELLATION_MUTATION_NOT_DETECTED');
+const assuranceCancellationMutation = assurance.replace(assuranceCanonicalConcurrencyContract, assuranceCanonicalConcurrencyContract.replace('false', 'true'));
+assert(assuranceCancellationMutation !== assurance && !assuranceCancellationMutation.includes(assuranceCanonicalConcurrencyContract), 'ASSURANCE_CANCELLATION_MUTATION_NOT_DETECTED');
 const assuranceBlindShaMutation = assurance.replace('-f name="$CANONICAL_ARTIFACT_NAME"', '-f head_sha="$KPMO_SOURCE_SHA"');
 assert(assuranceBlindShaMutation !== assurance && assuranceBlindShaMutation.includes('-f head_sha='), 'ASSURANCE_BLIND_SHA_MUTATION_NOT_DETECTED');
 const assuranceLeaderMutation = assurance.replace("if: success() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && env.KPMO_EPHEMERAL_ACTIONS_LEADER == 'true'", 'if: always()');
@@ -173,7 +174,7 @@ const assuranceCanonicalRunMutation = assurance.replace('canonical_run:$canonica
 assert(assuranceCanonicalRunMutation !== assurance && !assuranceCanonicalRunMutation.includes('canonical_run:$canonicalRun[0]'), 'ASSURANCE_COVERAGE_CANONICAL_RUN_MUTATION_NOT_DETECTED');
 const assuranceSemanticReceiptMutation = assurance.replace('semantic_input_receipt:$semantic[0]', 'semantic_input_receipt:null');
 assert(assuranceSemanticReceiptMutation !== assurance && !assuranceSemanticReceiptMutation.includes('semantic_input_receipt:$semantic[0]'), 'ASSURANCE_COVERAGE_SEMANTIC_RECEIPT_MUTATION_NOT_DETECTED');
-const requirementProducerEventMutation = requirement.replace(requirementProducerEventGuard, 'true');
+const requirementProducerEventMutation = requirement.replaceAll(requirementProducerEventGuard, 'true');
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
 const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
 assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
