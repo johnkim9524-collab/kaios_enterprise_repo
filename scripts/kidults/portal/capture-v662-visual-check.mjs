@@ -87,6 +87,7 @@ for (const viewport of viewports) {
       const heroRect = heroImage?.getBoundingClientRect();
       const revealNodes = [...document.querySelectorAll(".reveal")];
       const countChildren = selector => document.querySelector(selector)?.children.length ?? 0;
+      const navigation = performance.getEntriesByType("navigation")[0];
       const visible = node => {
         if (!node) return false;
         const style = getComputedStyle(node);
@@ -103,10 +104,16 @@ for (const viewport of viewports) {
         "[data-archive-list]"
       ];
       return {
+        performance: navigation ? {
+          dom_content_loaded_ms: Math.round(navigation.domContentLoadedEventEnd),
+          load_event_ms: Math.round(navigation.loadEventEnd),
+          transfer_size_bytes: navigation.transferSize
+        } : null,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
         scrollHeight: root.scrollHeight,
         dataState: root.dataset.dataState,
+        integrationBusState: root.dataset.integrationBusState,
         homepageStructure: root.dataset.homepageStructure,
         heroAsset: heroCard?.dataset.heroAsset,
         heroState: heroCard?.dataset.assetState,
@@ -127,6 +134,8 @@ for (const viewport of viewports) {
         revealCount: revealNodes.length,
         unrevealedCount: revealNodes.filter(node => !node.classList.contains("is-visible") || !visible(node)).length,
         invisibleSectionCount: sectionSelectors.filter(selector => !visible(document.querySelector(selector))).length,
+        invisibleSections: sectionSelectors.filter(selector => !visible(document.querySelector(selector))),
+        syntheticCards: cards.filter(card => card.textContent.includes("SYNTHETIC TEST DATA")).length,
         releaseIsLast: main?.lastElementChild === release,
         workspaceBeforeInstitution: Boolean(workspaceEntry && institution && (workspaceEntry.compareDocumentPosition(institution) & Node.DOCUMENT_POSITION_FOLLOWING))
       };
@@ -142,14 +151,22 @@ for (const viewport of viewports) {
     if (!metrics.heroVisible) localFailures.push("hero is not visible");
     if (metrics.snapshotCards !== 4) localFailures.push(`snapshot cards=${metrics.snapshotCards}`);
     if (metrics.verticalCards !== 8) localFailures.push(`vertical cards=${metrics.verticalCards}`);
-    if (metrics.k100Cards !== 4) localFailures.push(`K100 cards=${metrics.k100Cards}`);
-    if (metrics.signalCards < 1) localFailures.push(`signal cards=${metrics.signalCards}`);
+    const syntheticControl = metrics.integrationBusState === "SYNTHETIC_CONTROL";
+    if (syntheticControl && metrics.syntheticCards !== 120) localFailures.push(`synthetic K100 cards=${metrics.syntheticCards}`);
+    if (!syntheticControl && metrics.k100Cards !== 4) localFailures.push(`K100 cards=${metrics.k100Cards}`);
+    if (!syntheticControl && metrics.signalCards < 1) localFailures.push(`signal cards=${metrics.signalCards}`);
+    if (syntheticControl && metrics.signalCards !== 0) localFailures.push(`synthetic signal cards=${metrics.signalCards}`);
     if (metrics.operationCards < 1) localFailures.push(`operation cards=${metrics.operationCards}`);
     if (metrics.researchNotes < 1) localFailures.push(`research notes=${metrics.researchNotes}`);
     if (metrics.archiveItems < 1) localFailures.push(`archive items=${metrics.archiveItems}`);
-    if (metrics.k100Formats.some(value => value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
+    if (metrics.k100Formats.some(value => value && value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
     if (metrics.unrevealedCount !== 0) localFailures.push(`unrevealed content=${metrics.unrevealedCount}/${metrics.revealCount}`);
-    if (metrics.invisibleSectionCount !== 0) localFailures.push(`invisible data sections=${metrics.invisibleSectionCount}`);
+    const allowedInvisible = syntheticControl ? ["[data-signal-grid]"] : [];
+    const unexpectedInvisible = metrics.invisibleSections.filter(selector => !allowedInvisible.includes(selector));
+    if (unexpectedInvisible.length !== 0) localFailures.push(`invisible data sections=${unexpectedInvisible.join(",")}`);
+    if (!metrics.performance) localFailures.push("navigation performance evidence unavailable");
+    if (metrics.performance?.dom_content_loaded_ms > 10_000) localFailures.push(`DOMContentLoaded performance budget exceeded: ${metrics.performance.dom_content_loaded_ms}ms`);
+    if (metrics.performance?.load_event_ms > 15_000) localFailures.push(`load performance budget exceeded: ${metrics.performance.load_event_ms}ms`);
     if (!metrics.releaseIsLast) localFailures.push("Release Baseline is not last");
     if (!metrics.workspaceBeforeInstitution) localFailures.push("Workspace entry order is incorrect");
     if (runtimeErrors.length) localFailures.push(...runtimeErrors);

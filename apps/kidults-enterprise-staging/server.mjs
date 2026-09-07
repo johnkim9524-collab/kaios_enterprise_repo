@@ -12,7 +12,7 @@ import {
 import http from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import {authorizeProjection,loadProjection,toPortalView} from "./projection-capability-v1.mjs";
+import {authorizeProjection,loadProjection,toPortalView,toSyntheticPortalControl} from "./projection-capability-v1.mjs";
 
 const APP_DIR = fileURLToPath(new URL(".", import.meta.url));
 const DEFAULT_PUBLIC_DIR = resolve(APP_DIR, "public", "portal-r001");
@@ -190,6 +190,7 @@ export function createKidultsServer(options) {
   const rateState = new Map();
   const projectionPath = options.projectionPath || null;
   const projectionSecret = options.projectionSecret || null;
+  const syntheticPortalProjectionPath = options.syntheticPortalProjectionPath || null;
 
   const audit = (event, detail = {}) => {
     appendJsonLine(storage.auditPath, {
@@ -224,6 +225,22 @@ export function createKidultsServer(options) {
 
   const projectionResponse = (response, surface) => {
     if (!projectionPath || !projectionSecret) {
+      if (surface === "PORTAL_RENDER" && syntheticPortalProjectionPath) {
+        try {
+          const control = JSON.parse(readFileSync(syntheticPortalProjectionPath, "utf8"));
+          const portalView = toSyntheticPortalControl(control);
+          return json(response, 200, {
+            ok: true,
+            control_class: "NON_PROMOTABLE_SYNTHETIC",
+            revalidate_after_ms: 5000,
+            consumption_receipt: portalView.consumption_receipt,
+            portal_view: portalView
+          });
+        } catch (error) {
+          audit("synthetic_projection_rejected", { reason: error.message });
+          return json(response, 409, { ok: false, error: "synthetic_projection_rejected", reason: error.message, release: "HOLD" });
+        }
+      }
       return json(response, 503, { ok: false, error: "approved_projection_unavailable", release: "HOLD" });
     }
     try {
@@ -430,7 +447,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     secret: readSecret(process.env.KIDULTS_CONVERSION_HASH_SECRET_FILE),
     projectionPath: process.env.KIDULTS_APPROVED_PROJECTION_FILE || null,
     projectionSecret: process.env.KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE ?
-      readFileSync(process.env.KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE, "utf8").trim() : null
+      readFileSync(process.env.KIDULTS_PROJECTION_CAPABILITY_SECRET_FILE, "utf8").trim() : null,
+    syntheticPortalProjectionPath: process.env.KIDULTS_SYNTHETIC_PORTAL_PROJECTION_PATH || null
   });
   server.listen(port, host, () => {
     console.log(`Kidults staging conversion runtime listening on http://${host}:${port}`);

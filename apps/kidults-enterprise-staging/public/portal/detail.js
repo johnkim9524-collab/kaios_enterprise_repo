@@ -1,5 +1,9 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
+import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-graduation-1";
+import { loadPortalData } from "./components/data-store.js";
+import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
+import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -9,12 +13,7 @@ const esc = value =>
     '"': "&quot;",
     "'": "&#039;"
   }[character]));
-
-async function getJson(path) {
-  const response = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error(`${response.status} ${path}`);
-  return response.json();
-}
+const metricPct = value => value === null || value === undefined || !Number.isFinite(Number(value)) ? "NOT AVAILABLE" : `${Number(value).toFixed(2)}%`;
 
 function statusPills(items) {
   return `<div class="detail-status-row">${items.map(item => `<span>${esc(item)}</span>`).join("")}</div>`;
@@ -40,7 +39,7 @@ function renderVertical(root, verticals, manifest, id) {
   const vertical = verticals.verticals.find(item => item.id === id);
   if (!vertical) throw new Error(`Unknown vertical: ${id || "missing id"}`);
 
-  document.title = `${vertical.name} — KIDULTS V502`;
+  document.title = `${vertical.name} — KIDULTS V6 RC`;
   root.innerHTML = `
     <section class="detail-hero">
       <div>
@@ -60,8 +59,8 @@ function renderVertical(root, verticals, manifest, id) {
       <p class="eyebrow">CURRENT OBSERVABILITY</p>
       <h2>Measured under the provider-independent baseline.</h2>
       <div class="detail-metric-grid">
-        <article class="detail-metric-card"><strong>${Number(vertical.right_data_coverage_pct).toFixed(2)}%</strong><span>Right Data Coverage</span></article>
-        <article class="detail-metric-card"><strong>${Number(vertical.demand_evidence_pct).toFixed(1)}%</strong><span>Demand Evidence</span></article>
+        <article class="detail-metric-card"><strong>${metricPct(vertical.right_data_coverage_pct)}</strong><span>Right Data Coverage</span></article>
+        <article class="detail-metric-card"><strong>${metricPct(vertical.demand_evidence_pct)}</strong><span>Demand Evidence</span></article>
         <article class="detail-metric-card"><strong>${esc(vertical.relevant)}</strong><span>Relevant Records</span></article>
         <article class="detail-metric-card"><strong>${esc(vertical.scarcity_evidence_count)}</strong><span>Scarcity Evidence</span></article>
       </div>
@@ -97,7 +96,7 @@ function renderObject(root, k100, manifest, id) {
   const object = k100.items.find(item => item.id === id);
   if (!object) throw new Error(`Unknown object: ${id || "missing id"}`);
 
-  document.title = `${object.title} — KIDULTS V502`;
+  document.title = `${object.title} — KIDULTS V6 RC`;
   const score = object.score === null ? "GATED" : Number(object.score).toFixed(1);
 
   root.innerHTML = `
@@ -107,7 +106,7 @@ function renderObject(root, k100, manifest, id) {
         <h1>${esc(object.title)}</h1>
         ${statusPills([
           object.status,
-          `${object.confidence}% CONFIDENCE`,
+          "DECISION CONFIDENCE EXPLAINED BELOW",
           object.asset_status.replaceAll("_", " ")
         ])}
         <p class="detail-intro">${esc(object.provenance)}</p>
@@ -120,7 +119,7 @@ function renderObject(root, k100, manifest, id) {
       <h2>Evidence and publication state remain separated.</h2>
       <div class="detail-metric-grid">
         <article class="detail-metric-card"><strong>${esc(score)}</strong><span>Preview Score</span></article>
-        <article class="detail-metric-card"><strong>${esc(object.confidence)}%</strong><span>Confidence</span></article>
+        <article class="detail-metric-card"><strong>SEE BELOW</strong><span>Decision Confidence and explanation</span></article>
         <article class="detail-metric-card"><strong>${esc(object.freshness)}</strong><span>Freshness</span></article>
         <article class="detail-metric-card"><strong>${String(object.rank).padStart(2, "0")}</strong><span>Featured Slice Position</span></article>
       </div>
@@ -141,31 +140,37 @@ function renderObject(root, k100, manifest, id) {
 }
 
 async function init() {
+  const completePerformanceQualification = beginPerformanceQualification("DETAIL");
   startDetailMobileReconstruction();
   startAccessibilityR1();
   const root = document.querySelector("[data-detail-root]");
   const type = document.documentElement.dataset.detailType;
   const id = new URLSearchParams(window.location.search).get("id");
+  const loadingTitle = root?.querySelector(".detail-loading h1");
+  if (loadingTitle) loadingTitle.textContent = "Checking Evidence and Rights…";
 
   try {
-    const [manifest, verticals, k100] = await Promise.all([
-      getJson("data/v502-manifest.json?v=652"),
-      getJson("data/verticals.json?v=652"),
-      getJson("data/kidult100.json?v=652")
-    ]);
+    const { manifest, verticals, k100, registry, integrationBus } = await loadPortalData();
+    document.documentElement.dataset.integrationBusState = integrationBus.state;
 
     if (type === "vertical") renderVertical(root, verticals, manifest, id);
-    else if (type === "object") renderObject(root, k100, manifest, id);
+    else if (type === "object") {
+      renderObject(root, k100, manifest, id);
+      enrichObjectDetailV587({ root, object: k100.items.find(item => item.id === id), k100, manifest, registry });
+    }
     else throw new Error(`Unsupported detail type: ${type}`);
     startAccessibilityR1();
+    startBusinessJourneyQualification({ surface: "DETAIL", integrationBus });
+    window.KIDULTS_PERFORMANCE_RECEIPT_READY = completePerformanceQualification(integrationBus);
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
   } catch (error) {
+    document.documentElement.dataset.detailErrorCode = String(error?.message ?? error).slice(0, 80);
     root.innerHTML = `
       <section class="detail-loading">
-        <p class="eyebrow">FAIL-CLOSED</p>
-        <h1>Detail not available.</h1>
-        <p class="detail-intro">${esc(error.message)}</p>
-        <p><a class="button button-primary" href="index.html">Return to V502</a></p>
+        <p class="eyebrow">ACTION UNAVAILABLE</p>
+        <h1>This record could not be verified.</h1>
+        <p class="detail-intro">Evidence or Rights are not yet available. Return to the Portal and select another record while Qualification completes.</p>
+        <p><a class="button button-primary" href="index.html">Return to Portal</a></p>
       </section>
     `;
   }

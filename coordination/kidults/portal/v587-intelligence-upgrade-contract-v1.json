@@ -1,0 +1,63 @@
+{
+  "id": "kidults-portal-v587-intelligence-upgrade-contract-v1",
+  "version": "1.0.0",
+  "project": "V587_INTELLIGENCE_UPGRADE",
+  "upgrade_class": "EXTENSION_ONLY_NOT_REDESIGN_NOT_V600",
+  "identity_statement": "V587 remains the official visual and interaction foundation. The upgrade adds decision intelligence without replacing the existing experience.",
+  "information_hierarchy": ["CURRENT", "EVIDENCE", "CONFIDENCE", "DECISION"],
+  "protected_surface_digests": {
+    "apps/kidults-enterprise-staging/public/portal/index.html": "sha256:3d972bdb133c9ff7beb59f4adbb49846a2bdaaa599ed1ee4f436846bcf73e31b",
+    "apps/kidults-enterprise-staging/public/portal/portal.css": "sha256:df9990deb22b89329b0a0c8cfc7d64bc175b1118deb1662b4b6739cfa3956465",
+    "apps/kidults-enterprise-staging/public/portal/portal-v501-polish.css": "sha256:4fdf99c61b39cc671b6fa388f84049ab31b52baa73f3283cf9365c5c10bc14d3",
+    "apps/kidults-enterprise-staging/public/portal/portal-v502.css": "sha256:30f038e66a451e4a46b554dad13688dd195f632559eae5b56ccd616451cb5a54",
+    "apps/kidults-enterprise-staging/public/portal/components/v662-stability-freeze.css": "sha256:7660b199f61a0b9b011ba88db9a55196859cb0149331c6317a94691af20333ed",
+    "apps/kidults-enterprise-staging/public/portal/components/v663-hero-integrated-footer.css": "sha256:8bcfd330f5fd742c42c4fd5504859ae7647f63854e5edc42cfd9a5ee6be27dcb",
+    "apps/kidults-enterprise-staging/public/portal/components/v664-visible-hero-footer.css": "sha256:35bb3bc9492a32e0779a51ed4e41b0bed9bd3a77cdc3c19c0f33dd34bd69ec1f"
+  },
+  "protected_surfaces": ["HERO", "TYPOGRAPHY", "PRIMARY_NAVIGATION", "GRID", "LAYOUT_RHYTHM", "LUXURY_SPACING", "COLOR_SYSTEM", "FOOTER", "ANIMATION_LANGUAGE", "BRAND_IDENTITY"],
+  "visual_change_budget_percent": 5,
+  "north_star": "THE_GLOBAL_LUXURY_COLLECTIBLES_INTELLIGENCE_PLATFORM",
+  "experience_hierarchy": ["LUXURY", "TRUST", "AUTHORITY", "DECISION"],
+  "features": ["DECISION_SNAPSHOT", "CONFIDENCE_BADGE", "RIGHTS_BADGE", "FRESHNESS_BADGE", "EVIDENCE_DRAWER", "DECISION_PANEL", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_MEMO", "RESEARCH_EVIDENCE_TIMELINE"],
+  "intelligence_engine": {
+    "module": "apps/kidults-enterprise-staging/public/portal/components/v587-intelligence-core.js",
+    "flow": ["EVIDENCE", "REASON", "CONFIDENCE", "DECISION", "ACTION"],
+    "confidence_factors": ["EVIDENCE", "COVERAGE", "FRESHNESS", "RIGHTS", "CONSISTENCY", "QUALIFICATION"],
+    "confidence_without_explanation": "PROHIBITED",
+    "decision_states": ["READY", "WAIT", "LOW CONFIDENCE", "RIGHTS BLOCKED", "INSUFFICIENT EVIDENCE", "SYNTHETIC"],
+    "rights_flow": ["RIGHTS", "PERMISSION", "RELEASE_STATE", "ALLOWED_ACTIONS"],
+    "rights_actions": ["VIEW", "COMPARE", "WORKSPACE", "EXPORT", "PUBLISH"],
+    "consumers": ["PORTAL", "WORKSPACE", "RESEARCH", "OBJECT", "SEARCH", "API"]
+  },
+  "provider_qualification": {
+    "manifest": "coordination/kidults/synthetic/launch-cohort-provider-adapters-v1.json",
+    "providers": ["PSA", "EBAY", "HERITAGE", "GOLDIN", "CLASSIC_COM", "BRING_A_TRAILER"],
+    "live_connections_allowed": false,
+    "credentials_allowed": false,
+    "provider_data_allowed": false
+  },
+  "data_separation": {
+    "physical_buckets": ["CURRENT", "HISTORICAL", "PROJECTED", "SYNTHETIC"],
+    "synthetic_notice": "SYNTHETIC TEST DATA",
+    "synthetic_production": false,
+    "synthetic_public": false,
+    "synthetic_market_authority": false,
+    "cross_bucket_inference": false,
+    "synthetic_rankings": false,
+    "synthetic_confidence": false,
+    "synthetic_market_statistics": false,
+    "synthetic_exports": false
+  },
+  "acceptance_questions": ["PRESERVES_V587_LUXURY_DNA", "INCREASES_TRUST", "IMPROVES_DECISION_QUALITY", "REDUCES_UNCERTAINTY", "MEETS_APPLE_HERMES_BLOOMBERG_QUALITY_BAR"],
+  "truth_rules": {
+    "missing_evidence": "NOT_AVAILABLE",
+    "missing_rights": "HOLD",
+    "missing_track_b": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
+    "allow_market_accuracy_claim": false,
+    "allow_investment_accuracy_claim": false,
+    "allow_final_decision_without_gates": false
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

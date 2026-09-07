@@ -114,11 +114,29 @@ export function setupVerticalFilter() {
   buttons.forEach(button => button.addEventListener("click", () => apply(button.dataset.verticalFilter)));
 }
 
-function resultMarkup(record) {
+function matchedBecause(record, query) {
+  if (record.type === "Archive") return "Edition";
+  if (record.title.toLocaleLowerCase().includes(query)) return "Canonical Name";
+  if ((record.keywords ?? []).some(keyword => String(keyword).toLocaleLowerCase() === query)) return "Collector Alias";
+  return "Variant";
+}
+
+function evidencePreview(record) {
+  const value = String(record.evidencePreview ?? "");
+  if (/RIGHTS BLOCKED|confidence NOT AVAILABLE/i.test(value)) {
+    return "Action unavailable — Rights not yet released. Confidence is waiting for Evidence and Qualification.";
+  }
+  if (/NOT AVAILABLE|NOT VERIFIED/i.test(value)) return "Evidence not yet available.";
+  return value || "Evidence not yet available.";
+}
+
+function resultMarkup(record, reason) {
   return `
     <a class="search-result" href="${esc(record.href)}">
       <span class="search-result-type">${esc(record.type)}</span>
-      <div><h3>${esc(record.title)}</h3><p>${esc(record.description)}</p></div>
+      <div><h3>${esc(record.title)}</h3><p>${esc(record.description)}</p>
+        <small class="search-result-evidence"><b>Matched because</b> · ${esc(reason)} · ${esc(record.canonicalState ?? "Canonical")}</small>
+        <small class="search-result-evidence">${esc(evidencePreview(record))}</small></div>
       <span aria-hidden="true">→</span>
     </a>
   `;
@@ -152,11 +170,11 @@ export function setupSearch(searchIndex) {
 
     meta.textContent = query
       ? `${matches.length} result${matches.length === 1 ? "" : "s"} for “${rawQuery.trim()}”.`
-      : "Search across 8 verticals, featured objects, research and archive.";
+      : "Search by Canonical Name, Edition, Variant or Collector Alias.";
 
     results.innerHTML = matches.length
-      ? matches.map(resultMarkup).join("")
-      : '<div class="search-empty">No matching public-preview intelligence was found.</div>';
+      ? matches.map(record => resultMarkup(record, matchedBecause(record, query))).join("")
+      : '<div class="search-empty"><strong>Evidence not yet available.</strong><span>Try a Canonical Name, Edition, Variant or Collector Alias.</span></div>';
   };
 
   const open = () => {

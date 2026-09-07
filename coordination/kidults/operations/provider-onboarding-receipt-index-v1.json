@@ -1,0 +1,20 @@
+{
+  "id": "kidults-provider-onboarding-receipt-index-v1",
+  "version": "1.0.0",
+  "status": "EMPTY_FAIL_CLOSED",
+  "record_type": "APPEND_ONLY_PROVIDER_ONBOARDING_EVIDENCE_INDEX",
+  "provider_receipt_bundles": [],
+  "receipt_state_required": "VERIFIED_PASS",
+  "receipt_digest_format": "sha256:<64-lowercase-hex>",
+  "immutable_required": true,
+  "duplicate_provider_bundle_forbidden": true,
+  "secret_material_forbidden": true,
+  "authority_boundary": {
+    "empty_index_grants_authority": false,
+    "receipt_bundle_self_authorizes_activation": false,
+    "provider_activation_authorized": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}

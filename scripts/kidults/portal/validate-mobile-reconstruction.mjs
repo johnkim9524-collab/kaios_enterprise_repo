@@ -16,7 +16,7 @@ function readText(relative) {
     errors.push(`Missing required file: ${relative}`);
     return "";
   }
-  return fs.readFileSync(file, "utf8");
+  return fs.readFileSync(file, "utf8").replaceAll("\r\n", "\n");
 }
 
 const paths = {

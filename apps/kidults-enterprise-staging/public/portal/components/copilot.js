@@ -774,6 +774,7 @@ function executeAction(action) {
   if (!action) return;
 
   if (action.kind === "why") {
+    if (window.KIDULTS_WHY?.open?.(action.targetType, Number(action.targetIndex))) return;
     const trigger = document.querySelector(
       `[data-why-type="${CSS.escape(action.targetType)}"][data-why-index="${Number(action.targetIndex)}"]`
     );

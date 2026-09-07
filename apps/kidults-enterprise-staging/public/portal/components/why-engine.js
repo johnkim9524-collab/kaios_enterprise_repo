@@ -393,7 +393,7 @@ function ensureDialog() {
             <strong data-why-confidence-value>—</strong>
           </div>
           <div class="why-engine__confidence" role="meter" aria-valuemin="0" aria-valuemax="100" data-why-confidence-meter>
-            <i data-why-confidence-bar></i>
+            <svg viewBox="0 0 100 8" preserveAspectRatio="none"><rect width="0" height="8" data-why-confidence-bar></rect></svg>
           </div>
           <p class="why-engine__note">Confidence is shown as registered. It is not silently upgraded into an independent assessment.</p>
         </section>
@@ -453,10 +453,10 @@ function renderPairs(node, pairs) {
 
 function renderComposition(node, composition) {
   const total = composition.reduce((sum, item) => sum + Number(item.value || 0), 0) || 1;
-  node.innerHTML = composition.map(item => `
+  node.innerHTML = composition.map((item, index) => `
     <div class="why-engine__composition-row">
-      <span><i style="--why-color:${esc(item.color)}"></i>${esc(item.label)}</span>
-      <div><b style="width:${Math.max(0, Math.min(100, Number(item.value) / total * 100))}%"></b></div>
+      <span><i data-swatch-index="${index % 5}"></i>${esc(item.label)}</span>
+      <div><svg viewBox="0 0 100 5" preserveAspectRatio="none"><rect width="${Math.max(0, Math.min(100, Number(item.value) / total * 100))}" height="5"></rect></svg></div>
       <strong>${esc(item.value)}%</strong>
     </div>
   `).join("");
@@ -486,7 +486,7 @@ function renderModel(dialog, model) {
     dialog.querySelector("[data-why-confidence-value]").textContent = `${value}%`;
     const meter = dialog.querySelector("[data-why-confidence-meter]");
     meter.setAttribute("aria-valuenow", String(value));
-    dialog.querySelector("[data-why-confidence-bar]").style.width = `${value}%`;
+    dialog.querySelector("[data-why-confidence-bar]").setAttribute("width", String(value));
   } else {
     confidenceSection.hidden = true;
   }
@@ -592,22 +592,24 @@ export function startWhyEngine({ data, contract } = {}) {
   const dialog = ensureDialog();
   let returnFocus = null;
 
+  const open = (type, index, trigger = null) => {
+    const numericIndex = Number(index);
+    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(numericIndex)) return false;
+    const model = modelFor(data, type, numericIndex);
+    if (!model) return false;
+    returnFocus = trigger;
+    renderModel(dialog, model);
+    if (!dialog.open) dialog.showModal();
+    return true;
+  };
+
   decorateTargets(data);
 
   document.addEventListener("click", event => {
     const trigger = event.target.closest("[data-why-type]");
     if (!trigger) return;
 
-    const type = trigger.dataset.whyType;
-    const index = Number(trigger.dataset.whyIndex);
-    if (!normalizedContract.supported_targets.includes(type) || !Number.isInteger(index)) return;
-
-    const model = modelFor(data, type, index);
-    if (!model) return;
-
-    returnFocus = trigger;
-    renderModel(dialog, model);
-    if (!dialog.open) dialog.showModal();
+    open(trigger.dataset.whyType, trigger.dataset.whyIndex, trigger);
   });
 
   dialog.querySelector("[data-why-close]").addEventListener("click", () => dialog.close());
@@ -624,6 +626,7 @@ export function startWhyEngine({ data, contract } = {}) {
     engine: normalizedContract.engine_id,
     version: normalizedContract.version,
     targets: normalizedContract.supported_targets.slice(),
-    truthRules: { ...normalizedContract.truth_rules }
+    truthRules: { ...normalizedContract.truth_rules },
+    open
   });
 }

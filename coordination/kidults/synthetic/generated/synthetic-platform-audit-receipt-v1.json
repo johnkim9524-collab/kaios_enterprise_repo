@@ -1,0 +1,51 @@
+{
+  "assertions": {
+    "canonical_integrity": "VERIFIED_PASS",
+    "deterministic_execution": "VERIFIED_PASS",
+    "deterministic_ids": "VERIFIED_PASS",
+    "duplicate_rejection": "VERIFIED_PASS",
+    "entity_integrity": "VERIFIED_PASS",
+    "evidence_integrity": "VERIFIED_PASS",
+    "fail_closed": "VERIFIED_PASS",
+    "no_empirical_promotion": "VERIFIED_PASS",
+    "no_production_eligibility": "VERIFIED_PASS",
+    "no_provider_activation": "VERIFIED_PASS",
+    "no_rights_promotion": "VERIFIED_PASS",
+    "portal_isolation": "VERIFIED_PASS",
+    "replay_protection": "VERIFIED_PASS",
+    "synthetic_origin": "VERIFIED_PASS"
+  },
+  "counts": {
+    "provider_adapters": 6,
+    "records": 120,
+    "records_per_vertical": 15,
+    "stage_receipts": 1440,
+    "stages_per_record": 12,
+    "verticals": 8
+  },
+  "dataset_digest": "sha256:264a0b714aeb4cd9a6dbbafe0a81c62c9b5457691a7bd5dd7df652828fe223d5",
+  "dataset_id": "kidults-spv-120-v1",
+  "effects": {
+    "autonomous_effect": "Deterministic synthetic validation is runnable without provider replies or credentials.",
+    "global_effect": "All eight governed Core Verticals receive exactly fifteen isolated synthetic records.",
+    "irreplaceable_value_effect": "Provider-independent canonical lineage and validation contracts are exercised.",
+    "transparency_effect": "Every record and stage is digest-bound and explicitly marked synthetic and non-promotable."
+  },
+  "observed_at": "2026-09-07T02:00:00.000Z",
+  "pipeline_digest": "sha256:7a60ed87bfd0cde9157adf2c5bc44eaeda27cee667cc36eb3a1f7eb55957ca90",
+  "portal_projection_digest": "sha256:f38c6f7c03bb1f68b00eca008039b17074284459d47f9a9bc157adfcab839c6d",
+  "provider_manifest_digest": "sha256:bd2f7419e640c1fdc144fd15be847de6becb0b1adc8ca7f340eeea93680c9926",
+  "receipt_digest": "sha256:c0e1e5ded16f17d7e98e2b43923b4172dd70033b698dc80df11444f183282a55",
+  "receipt_id": "kidults-spv-audit-receipt-v1",
+  "release_boundary": {
+    "g5": "HOLD",
+    "investment_accuracy_claimed": false,
+    "market_accuracy_claimed": false,
+    "production": "HOLD",
+    "public": "HOLD"
+  },
+  "result": "VERIFIED_PASS",
+  "scope": "SYNTHETIC_ONLY_INTERNAL_VALIDATION",
+  "validator_id": "KIDULTS_SYNTHETIC_PLATFORM_VALIDATOR_V1",
+  "version": "1.0.0"
+}
