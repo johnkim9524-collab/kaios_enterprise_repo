@@ -53,6 +53,7 @@ jobs:
               'run_local_no_prior_circuit': 'ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json',
               'direct_public_metadata_provider_runner': 'node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs',
               'local_p0b_rebuild': 'name: Rebuild current P0B source candidates',
+              'local_rebuild_input_mode': 'P0B_INPUT_MODE=REBUILT_LOCAL_CONTROL',
           }
           present = [name for name, value in forbidden_provider_markers.items() if value in text]
           if present:
@@ -61,7 +62,8 @@ jobs:
           required = [
               'workflow_run:',
               'KIDULTS ASI P0B Bounded Discovery Candidates v1',
-              'P0B_INPUT_MODE=UPSTREAM_ARTIFACT',
+              'P0B_INPUT_MODE=EXACT_TRIGGERING_WORKFLOW_RUN',
+              'P0B_INPUT_MODE=ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST',
           ]
           missing = [value for value in required if value not in text]
           if missing:
