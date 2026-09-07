@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { admitCurrentSoldBatch, canonicalContentDigest, canonicalEventId } from '../../../scripts/kidults/market/current-sold-engine-v1.mjs';
 import { admitAtomicCurrentSoldBatch } from '../../../scripts/kidults/market/current-sold-atomic-batch-v1.mjs';
 import { runSyntheticDownstreamControlBatch } from '../../../scripts/kidults/runtime/synthetic-downstream-control-engine-v1.mjs';
@@ -8,6 +9,10 @@ const NOW = new Date('2026-09-01T05:00:00.000Z');
 const SHA = '7'.repeat(40);
 const RUN = 'kir-fixture-resilience-1';
 const digest = char => `sha256:${char.repeat(64)}`;
+const POSTGRES_RESILIENCE_SCRIPT = readFileSync(
+  new URL('../../../scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh', import.meta.url),
+  'utf8'
+);
 
 function raw(overrides = {}) {
   return {
@@ -123,3 +128,14 @@ test('downstream backpressure boundary and duplicate fan-in fail closed', () => 
   assert.throws(() => runSyntheticDownstreamControlBatch(Array.from({length:10001}, () => one)), /SMT_DOWNSTREAM_BATCH_SIZE/);
   assert.throws(() => runSyntheticDownstreamControlBatch([one, structuredClone(one)]), /SMT_DOWNSTREAM_DUPLICATE_OBJECT/);
 });
+
+test('postgres resilience harness avoids constant-folded assertions and retains a fail-closed receipt', () => {
+  assert.doesNotMatch(POSTGRES_RESILIENCE_SCRIPT, /1\/0/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /write_fail_receipt/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /"state": "VERIFIED_FAIL"/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /"failure_code": "EXECUTION_INCOMPLETE_FAIL_CLOSED"/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /\| grep -qx '0'/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /\| grep -qx '1'/);
+  assert.match(POSTGRES_RESILIENCE_SCRIPT, /write_pass_receipt\s*$/);
+});
+
