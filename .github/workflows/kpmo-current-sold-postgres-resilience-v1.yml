@@ -57,6 +57,25 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
+      - name: Initialize fail-closed Current-SOLD resilience receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/current-sold-postgres-resilience
+          printf '%s\n' \
+            '{' \
+            '  "id": "kidults-current-sold-postgres-resilience-receipt-v1",' \
+            '  "state": "VERIFIED_FAIL",' \
+            '  "failure_code": "PRE_EXECUTION_VALIDATION_INCOMPLETE_FAIL_CLOSED",' \
+            '  "source_sha": "'"$CURRENT_SOLD_EXPECTED_HEAD_SHA"'",' \
+            '  "database": "EPHEMERAL_PINNED_POSTGRESQL_16",' \
+            '  "remote_database_authority": false,' \
+            '  "production": "HOLD",' \
+            '  "public": "HOLD",' \
+            '  "g5": "HOLD"' \
+            '}' > out/current-sold-postgres-resilience/receipt.json
+          chmod 600 out/current-sold-postgres-resilience/receipt.json
+
       - name: Verify resilience contract and mutation self-tests
         shell: bash
         run: |
