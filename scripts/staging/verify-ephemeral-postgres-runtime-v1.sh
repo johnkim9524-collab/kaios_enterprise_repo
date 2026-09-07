@@ -144,9 +144,16 @@ fi
 RECOVERY_STARTED=true
 export PGHOST="$RECOVERY_SOCKET" PGPORT="$RECOVERY_PORT"
 "$PG_BINDIR/pg_isready" -h "$RECOVERY_SOCKET" -p "$RECOVERY_PORT" -d postgres >/dev/null
+recovery_promoted=false
+for _attempt in $(seq 1 30); do
+  recovery_promoted="$(psql_scalar 'SELECT NOT pg_is_in_recovery()')"
+  if [[ "$recovery_promoted" == t ]]; then
+    break
+  fi
+  sleep 1
+done
 recovered_before="$(psql_scalar "SELECT count(*) FROM kir_runtime.runtime_probe WHERE marker='before-target'")"
 recovered_after="$(psql_scalar "SELECT count(*) FROM kir_runtime.runtime_probe WHERE marker='after-target'")"
-recovery_promoted="$(psql_scalar 'SELECT NOT pg_is_in_recovery()')"
 [[ "$recovered_before" == 1 && "$recovered_after" == 0 && "$recovery_promoted" == t ]] || {
   echo "PITR boundary recovery failed: before=$recovered_before after=$recovered_after promoted=$recovery_promoted" >&2
   exit 1

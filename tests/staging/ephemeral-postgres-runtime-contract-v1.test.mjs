@@ -23,6 +23,14 @@ test('receipt binds exact commit and tree while preserving protected holds', () 
   ]) assert.ok(script.includes(required), `missing ${required}`);
 });
 
+test('recovery verification waits boundedly for asynchronous target promotion', () => {
+  assert.match(script, /recovery_promoted=false/);
+  assert.match(script, /for _attempt in \$\(seq 1 30\); do/);
+  assert.match(script, /if \[\[ "\$recovery_promoted" == t \]\]; then\s+break/);
+  assert.match(script, /sleep 1/);
+  assert.match(script, /before=\$recovered_before after=\$recovered_after promoted=\$recovery_promoted/);
+});
+
 test('workflow is automatic, bounded, exact-checkout, and retains the runtime receipt', () => {
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /push:\n\s+branches: \[main\]/);
