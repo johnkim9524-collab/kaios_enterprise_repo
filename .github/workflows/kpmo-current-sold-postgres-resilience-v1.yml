@@ -37,7 +37,6 @@ jobs:
     env:
       KAIOS_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/kaios
       CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
 
     steps:
       - name: Checkout exact review head
@@ -67,6 +66,8 @@ jobs:
 
       - name: Execute pinned ephemeral Current-SOLD PostgreSQL resilience attacks
         shell: bash
+        env:
+          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
         run: bash scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh
 
       - name: Preserve Current-SOLD PostgreSQL resilience receipt
