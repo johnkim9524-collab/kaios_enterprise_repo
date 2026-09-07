@@ -1,5 +1,6 @@
 import { loadDataConnections, sourceIsOverlayEligible } from "./data-source-gateway.js";
 import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
+import { readPortalProjection } from "../portal-r001/projection-store.js";
 
 const LOCAL = {
   manifest: "data/v502-manifest.json?v=502",
@@ -21,12 +22,6 @@ const LOCAL = {
   connections: "data/data-source-manifest-v1.json?v=phase2-1"
 };
 
-const isNumber = value =>
-  value !== null &&
-  value !== undefined &&
-  value !== "" &&
-  Number.isFinite(Number(value));
-
 async function getJson(path, { optional = false } = {}) {
   try {
     const response = await fetch(path, {
@@ -39,73 +34,6 @@ async function getJson(path, { optional = false } = {}) {
     if (optional) return null;
     throw error;
   }
-}
-
-function findMetric(summary, id) {
-  return summary.metrics.find(metric => metric.id === id);
-}
-
-function overlayVerified(summary, quality, monthly) {
-  let verified = 0;
-
-  if (quality?.metrics) {
-    const metrics = quality.metrics;
-    const evidence = summary.operations.find(item => item.label === "EVIDENCE OBJECTS");
-    const sources = summary.operations.find(item => item.label === "SOURCE FAMILIES");
-    const confidence = summary.operations.find(item => item.label === "MODEL CONFIDENCE");
-
-    if (evidence && isNumber(metrics.records)) {
-      evidence.value = Number(metrics.records).toLocaleString();
-      evidence.state = "VERIFIED";
-      evidence.tone = "controlled";
-      evidence.detail = "Verified quality feed";
-      verified += 1;
-    }
-    if (sources && isNumber(metrics.sources)) {
-      sources.value = Number(metrics.sources).toLocaleString();
-      sources.state = "VERIFIED";
-      sources.tone = "controlled";
-      sources.detail = "Verified source registry";
-      verified += 1;
-    }
-    if (confidence && isNumber(metrics.average_confidence)) {
-      confidence.value = "SEE WHY";
-      confidence.state = "EXPLANATION REQUIRED";
-      confidence.tone = "controlled";
-      confidence.detail = "The aggregate quality-feed value is not Decision Confidence.";
-      verified += 1;
-    }
-  }
-
-  if (monthly) {
-    const signals = findMetric(summary, "qualifiedSignals");
-    const countries = findMetric(summary, "countries");
-    const markets = findMetric(summary, "markets");
-
-    if (signals && monthly.signals_ingested) {
-      signals.value = String(monthly.signals_ingested);
-      signals.state = "Verified monthly feed";
-      verified += 1;
-    }
-    if (countries && isNumber(monthly?.coverage?.countries)) {
-      countries.value = String(monthly.coverage.countries);
-      summary.coverage.countries = Number(monthly.coverage.countries);
-      countries.state = "Verified coverage feed";
-      verified += 1;
-    }
-    if (markets && isNumber(monthly?.coverage?.markets)) {
-      markets.value = String(monthly.coverage.markets);
-      summary.coverage.markets = Number(monthly.coverage.markets);
-      markets.state = "Verified coverage feed";
-      verified += 1;
-    }
-    if (isNumber(monthly?.coverage?.languages)) {
-      summary.coverage.languages = Number(monthly.coverage.languages);
-      verified += 1;
-    }
-  }
-
-  return verified;
 }
 
 function searchDecision(record, registry) {
@@ -190,8 +118,122 @@ function buildSearchIndex({ verticals, k100, research, archive, registry }) {
   }));
 }
 
+const governedSignal = (signal, index, projection) => ({
+  id: signal.signal_id ?? `governed-signal-${index + 1}`,
+  category: "GOVERNED PROJECTION",
+  title: signal.label ?? "Governed signal",
+  value: signal.value ?? "NOT AVAILABLE",
+  unit: signal.value === null || signal.value === undefined ? "WAITING" : "CURRENT",
+  change: signal.state ?? projection.projection.state,
+  confidence: signal.confidence ?? null,
+  sources: Array.isArray(signal.evidence_refs) ? signal.evidence_refs.length : 0,
+  updated: signal.as_of ?? projection.projection.as_of ?? "NOT AVAILABLE",
+  series: [],
+  evidence_coverage_pct: Array.isArray(signal.evidence_refs) && signal.evidence_refs.length > 0 ? 100 : 0,
+  coverage_pct: Array.isArray(signal.evidence_refs) && signal.evidence_refs.length > 0 ? 100 : 0,
+  consistency_pct: Array.isArray(signal.evidence_refs) && signal.evidence_refs.length > 0 ? 100 : 0,
+  freshness_state: projection.projection.freshness,
+  rights_status: projection.projection.rights_state,
+  rights_permission: projection.release.state === "READY" ? "ALLOWED" : "DENIED",
+  rights_release_state: projection.release.state === "READY" ? "RELEASED" : "HOLD",
+  allowed_actions: projection.release.state === "READY" ? ["VIEW"] : [],
+  market_authority: false
+});
+
+function governedObject(object, projection, rank) {
+  const decision = projection.decision_intelligence ?? {};
+  const synthetic = object.synthetic === true || object.environment === "SYNTHETIC";
+  return {
+    id: object.canonical_object_id,
+    record_id: object.canonical_object_id,
+    canonical_entity: { display_name: object.title },
+    title: object.title,
+    category: synthetic ? "SYNTHETIC CONTROL" : "GOVERNED OBJECT",
+    vertical_id: "technology-cameras",
+    rank,
+    status: synthetic ? "SYNTHETIC TEST DATA" : projection.projection.state,
+    provenance: synthetic ? "Synthetic control routed through the governed integration path." : "Signed governed Projection.",
+    asset: null,
+    asset_status: "EDITORIAL_VISUAL_NOT_BOUND",
+    score: null,
+    freshness: projection.projection.as_of ?? "NOT AVAILABLE",
+    freshness_state: projection.projection.freshness,
+    evidence_count: Array.isArray(object.evidence_refs) ? object.evidence_refs.length : 0,
+    evidence_coverage_pct: decision.evidence?.score ?? null,
+    coverage_pct: decision.evidence?.coverage ?? null,
+    consistency_pct: decision.evidence?.consistency ?? null,
+    confidence: object.confidence,
+    rights_status: object.rights_state,
+    rights_permission: projection.release.state === "READY" ? "ALLOWED" : "DENIED",
+    rights_release_state: projection.release.state === "READY" ? "RELEASED" : "HOLD",
+    allowed_actions: (object.actions ?? []).map(action => action.action_id).filter(action => ["VIEW", "COMPARE", "WORKSPACE", "EXPORT"].includes(action)),
+    current_sold: object.current_sold ?? null,
+    data_bucket: synthetic ? "SYNTHETIC" : "CURRENT",
+    environment: synthetic ? "SYNTHETIC" : "STAGING",
+    synthetic,
+    empirical: !synthetic,
+    production_eligible: false,
+    public_eligible: false,
+    market_authority: false,
+    portal_label: synthetic ? "SYNTHETIC TEST DATA — INTERNAL VALIDATION ONLY" : null
+  };
+}
+
+export function applyGovernedProjection(data, projection) {
+  const signals = (projection.signals ?? []).map((signal, index) => governedSignal(signal, index, projection));
+  const projectedObjects = (projection.objects ?? []).map((object, index) => governedObject(object, projection, data.k100.items.length + index + 1));
+  const verticals = {
+    ...data.verticals,
+    interpretation: `${data.verticals.interpretation} Current numeric intelligence remains unavailable unless supplied by the governed Projection API.`,
+    verticals: data.verticals.verticals.map(vertical => ({
+      ...vertical,
+      right_data_coverage_pct: null,
+      demand_evidence_pct: null,
+      relevant: "NOT AVAILABLE",
+      scarcity_evidence_count: "NOT AVAILABLE"
+    }))
+  };
+  const registry = structuredClone(data.registry);
+  registry.projection_id = projection.projection.projection_id;
+  registry.snapshot.candidate_id = projection.projection.state === "LIVE_APPROVED" ? projection.projection.projection_id : null;
+  registry.assessment.current_id = projection.projection.assessment_id;
+  registry.assessment.gate_state = projection.decision_intelligence?.evidence?.qualification === 100 ? "PASS" : "WAIT";
+  registry.evidence.status = projection.evidence?.length ? "PAIRED" : "NOT AVAILABLE";
+  registry.evidence.coverage_pct = projection.decision_intelligence?.evidence?.score ?? null;
+  registry.evidence.consistency_pct = projection.decision_intelligence?.evidence?.consistency ?? null;
+  registry.freshness.status = projection.projection.freshness;
+  registry.freshness.as_of = projection.projection.as_of;
+  registry.release.status = projection.release.state === "READY" ? "RELEASED" : "HOLD";
+  registry.release.portal_permission = projection.release.state === "READY" ? "ALLOWED" : "DENIED";
+  registry.release.allowed_actions = projection.decision_intelligence?.rights?.allowed_actions ?? [];
+
+  return {
+    ...data,
+    verticals,
+    registry,
+    signals: { ...data.signals, updated_at: projection.projection.as_of, status: projection.projection.state, signals },
+    k100: { ...data.k100, items: [...data.k100.items, ...projectedObjects] },
+    governedProjection: projection,
+    integrationBus: Object.freeze({
+      version: "v587-governed-integration-bus-v1",
+      source: projection.source,
+      state: projection.projection.state,
+      projection_id: projection.projection.projection_id,
+      assessment_id: projection.projection.assessment_id,
+      exact_pair_digest: projection.audit?.exact_pair_digest ?? null,
+      api_path: "/api/v1/projection",
+      canonical_bound: projection.projection.state === "LIVE_APPROVED",
+      registry_bound: true,
+      qualification_bound: true,
+      production: "HOLD",
+      public: "HOLD",
+      g5: "HOLD"
+    })
+  };
+}
+
 export async function loadPortalData() {
-  const required = await Promise.all([
+  const [required, governedProjection] = await Promise.all([Promise.all([
     getJson(LOCAL.manifest),
     getJson(LOCAL.registry),
     getJson(LOCAL.release),
@@ -208,7 +250,7 @@ export async function loadPortalData() {
     getJson(LOCAL.research),
     getJson(LOCAL.archive),
     getJson(LOCAL.provenance)
-  ]);
+  ]), readPortalProjection({ controlUrl: "portal-r001/data/projection-control-fixture.json" })]);
 
   const [
     manifest,
@@ -234,19 +276,12 @@ export async function loadPortalData() {
     baselineSnapshotId: manifest.snapshot_id
   });
 
-  // Overlay is fail-closed: a fetched file is not enough. The source contract,
-  // exact baseline binding, evidence lineage and publication state must all pass.
-  const quality = sourceIsOverlayEligible(connections, "quality_feed")
-    ? connections.payloads.quality_feed
-    : null;
-  const monthly = sourceIsOverlayEligible(connections, "monthly_intelligence")
-    ? connections.payloads.monthly_intelligence
-    : null;
-
-  const verifiedFields = overlayVerified(summary, quality, monthly);
+  // Connection payloads remain observable, but V587 intelligence is admitted
+  // only through the governed Projection API below. No side-feed may overlay it.
+  const verifiedFields = 0;
   const searchIndex = buildSearchIndex({ verticals, k100, research, archive, registry });
 
-  return {
+  const baseline = {
     manifest,
     registry,
     release,
@@ -276,4 +311,15 @@ export async function loadPortalData() {
       releaseCandidate: manifest.status === "RELEASE_CANDIDATE"
     }
   };
+  const integrated = applyGovernedProjection(baseline, governedProjection);
+  integrated.searchIndex = buildSearchIndex({
+    verticals: integrated.verticals,
+    k100: integrated.k100,
+    research: integrated.research,
+    archive: integrated.archive,
+    registry: integrated.registry
+  });
+  integrated.meta.registryProjectionConnected = governedProjection.projection.state === "LIVE_APPROVED";
+  integrated.meta.governedApiState = governedProjection.projection.state;
+  return integrated;
 }

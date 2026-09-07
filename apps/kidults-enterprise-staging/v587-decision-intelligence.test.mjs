@@ -16,6 +16,9 @@ import {
   evaluateRights,
   v587IntelligenceCoreContract
 } from "./public/portal/components/v587-intelligence-core.js";
+import { applyGovernedProjection } from "./public/portal/components/data-store.js";
+import { authorizeProjection, toPortalView, toSyntheticPortalControl } from "./projection-capability-v1.mjs";
+import { approvedObjectPassportFixture } from "../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs";
 
 const read = path => fs.readFileSync(path, "utf8");
 const json = path => JSON.parse(read(path));
@@ -212,4 +215,78 @@ test("workspace engines invoke the shared WHY engine without depending on homepa
   assert.match(copilot, /KIDULTS_WHY\?\.open\?\.\(action\.targetType, Number\(action\.targetIndex\)\)/);
   assert.match(compare, /KIDULTS_WHY\?\.open\?\.\("vertical", index\)/);
   assert.match(decision, /KIDULTS_WHY\?\.open\?\.\("vertical", index\)/);
+});
+
+test("routes V587 through the governed API integration bus and preserves fail-closed state", () => {
+  const projection = {
+    source: "CONTROL_FALLBACK",
+    projection: { state: "NO_PROJECTION", projection_id: null, assessment_id: null, rights_state: "WAITING", freshness: "NOT_AVAILABLE", as_of: null },
+    release: { state: "HOLD" }, signals: [], objects: [], evidence: [], actions: [],
+    decision_intelligence: null, audit: { exact_pair_digest: null }
+  };
+  const verticals = json("public/portal/data/verticals.json");
+  const integrated = applyGovernedProjection({ registry, signals, k100, verticals }, projection);
+  assert.equal(integrated.integrationBus.api_path, "/api/v1/projection");
+  assert.equal(integrated.integrationBus.state, "NO_PROJECTION");
+  assert.equal(integrated.integrationBus.canonical_bound, false);
+  assert.equal(integrated.registry.release.status, "HOLD");
+  assert.equal(integrated.signals.signals.length, 0);
+  assert.ok(integrated.verticals.verticals.every(vertical => vertical.right_data_coverage_pct === null && vertical.demand_evidence_pct === null));
+  const store = read("public/portal/components/data-store.js");
+  const detail = read("public/portal/detail.js");
+  assert.match(store, /readPortalProjection/);
+  assert.match(store, /api_path: "\/api\/v1\/projection"/);
+  assert.match(detail, /loadPortalData\(\)/);
+  assert.doesNotMatch(detail, /getJson\("data\//);
+});
+
+test("renders all 120 synthetic Current SOLD controls through the shared decision model without promotion", () => {
+  const control = json("../../coordination/kidults/synthetic/generated/synthetic-portal-projection-v1.json");
+  const projection = toSyntheticPortalControl(control);
+  const integrated = applyGovernedProjection({ registry, signals, k100, verticals: json("public/portal/data/verticals.json") }, projection);
+  const syntheticObjects = integrated.k100.items.filter(item => item.synthetic === true);
+  assert.equal(syntheticObjects.length, 120);
+  for (const object of syntheticObjects) {
+    const model = buildObjectDecisionModel(object, integrated.k100, manifest, integrated.registry);
+    assert.equal(model.panel.decision, "SYNTHETIC");
+    assert.match(model.hierarchy.find(([label]) => label === "Current SOLD")[1], /^SYNTHETIC CONTROL ·/);
+    assert.equal(model.production_eligible, false);
+    assert.equal(model.public_eligible, false);
+    assert.equal(model.market_authority, false);
+  }
+  assert.equal(buildDecisionSnapshot(integrated).fields.find(([label]) => label === "Current SOLD")[1], "120 SYNTHETIC CONTROL");
+});
+
+test("maps the signed governed API Current SOLD object into the identical V587 decision path", () => {
+  const raw = approvedObjectPassportFixture();
+  raw.payload.fields.market_observations.value = [{ event_class: "CURRENT_SOLD_TRANSACTION", event_id: "fixture-current-sold-v587", amount: 12500, currency: "USD", event_at: "2026-08-22T09:00:00Z", empirical: true, synthetic: false, current_market_claim_eligible: true }];
+  const authorized = authorizeProjection({ projection: raw, surface: "PORTAL_RENDER", secret: "v587-integration-capability-secret-32-bytes", now: new Date("2026-08-22T10:30:00Z") });
+  const projection = toPortalView(raw, authorized.admission.receipt);
+  const integrated = applyGovernedProjection({ registry, signals, k100, verticals: json("public/portal/data/verticals.json") }, projection);
+  const object = integrated.k100.items.find(item => item.id === raw.payload.canonical_object_id);
+  assert.equal(integrated.integrationBus.state, "LIVE_APPROVED");
+  assert.equal(integrated.integrationBus.canonical_bound, true);
+  assert.equal(object.current_sold.state, "CURRENT_SOLD_VERIFIED");
+  assert.equal(buildObjectDecisionModel(object, integrated.k100, manifest, integrated.registry).hierarchy.find(([label]) => label === "Current SOLD")[1], "12500 USD");
+});
+
+test("registers real browser performance qualification on Home, Detail and Workspace", () => {
+  const performance = read("public/portal/components/v587-performance-qualification.js");
+  for (const metric of ["render_ms", "first_paint_ms", "memory_js_heap_bytes", "layout_shift", "reflow_probe_ms", "longest_task_ms", "max_interaction_delay_ms", "navigation_ms"]) {
+    assert.match(performance, new RegExp(metric));
+  }
+  for (const path of ["public/portal/portal.js", "public/portal/detail.js", "public/portal/workspace-page.js"]) {
+    assert.match(read(path), /beginPerformanceQualification/);
+    assert.match(read(path), /KIDULTS_PERFORMANCE_RECEIPT_READY/);
+  }
+});
+
+test("registers exact role-specific browser journey receipts without generic substitution", async () => {
+  const module = await import("./public/portal/components/v587-business-journey-qualification.js");
+  assert.deepEqual(module.businessJourneyQualificationContract.roles, ["COLLECTOR", "DEALER", "INVESTOR", "MUSEUM", "AUCTION_HOUSE", "FAMILY_OFFICE"]);
+  assert.deepEqual(module.businessJourneyQualificationContract.steps, ["ENTRY", "NAVIGATION", "SEARCH", "OBJECT", "EVIDENCE", "DECISION", "WORKSPACE", "EXPORT_PERMISSION", "COMPLETION"]);
+  const source = read("public/portal/components/v587-business-journey-qualification.js");
+  assert.match(source, /BLOCKED_BY_RIGHTS/);
+  assert.match(source, /receipt_digest/);
+  assert.doesNotMatch(source, /INSTITUTIONAL|GENERIC/);
 });

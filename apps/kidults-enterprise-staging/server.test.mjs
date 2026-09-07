@@ -14,6 +14,8 @@ async function withServer(run, options = {}) {
   writeFileSync(resolve(publicDir, "index.html"), "<!doctype html><title>Kidults</title>", "utf8");
   const projectionPath = resolve(root, "approved-projection.json");
   if (options.projection) writeFileSync(projectionPath, JSON.stringify(options.projection), "utf8");
+  const syntheticPortalProjectionPath = resolve(root, "synthetic-portal-projection.json");
+  if (options.syntheticPortalProjection) writeFileSync(syntheticPortalProjectionPath, JSON.stringify(options.syntheticPortalProjection), "utf8");
   const server = createKidultsServer({
     publicDir,
     dataDir,
@@ -21,7 +23,8 @@ async function withServer(run, options = {}) {
     rateMax: options.rateMax || 20,
     now: options.now || (() => new Date("2026-07-31T03:00:00.000Z")),
     projectionPath: options.projection ? projectionPath : null,
-    projectionSecret: options.projection ? "projection-capability-test-secret-with-at-least-32-bytes" : null
+    projectionSecret: options.projection ? "projection-capability-test-secret-with-at-least-32-bytes" : null,
+    syntheticPortalProjectionPath: options.syntheticPortalProjection ? syntheticPortalProjectionPath : null
   });
   await new Promise((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
   const address = server.address();
@@ -76,6 +79,24 @@ test("projection surfaces fail closed without server capability configuration", 
       assert.equal((await response.json()).release, "HOLD");
     }
   });
+});
+
+test("synthetic Current SOLD control traverses the governed Portal endpoint without promotion", async () => {
+  const syntheticPortalProjection = JSON.parse(readFileSync("../../coordination/kidults/synthetic/generated/synthetic-portal-projection-v1.json", "utf8"));
+  await withServer(async (base) => {
+    const response = await fetch(`${base}/api/v1/projection`);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.control_class, "NON_PROMOTABLE_SYNTHETIC");
+    assert.equal(body.portal_view.objects.length, 120);
+    assert.equal(body.portal_view.objects[0].current_sold.state, "SYNTHETIC_SOLD_CONTROL");
+    assert.equal(body.portal_view.objects[0].current_sold.empirical, false);
+    assert.equal(body.portal_view.release.state, "HOLD");
+    assert.equal(body.consumption_receipt.promotion_eligible, false);
+    for (const path of ["/api/v1/projection/data", "/api/v1/projection/export"]) {
+      assert.equal((await fetch(`${base}${path}`)).status, 503);
+    }
+  }, { syntheticPortalProjection });
 });
 
 test("portal, API and export use signed exact-projection admission and revoke immediately", async () => {

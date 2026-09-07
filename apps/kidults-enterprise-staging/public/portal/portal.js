@@ -9,6 +9,8 @@ import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-
 import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js";
+import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
+import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -63,6 +65,7 @@ function publishConnectionProjection(connections) {
 }
 
 async function init() {
+  const completePerformanceQualification = beginPerformanceQualification("HOME");
   document.documentElement.dataset.release = "v502";
   document.documentElement.dataset.experience = "living-intelligence-v6";
   document.documentElement.dataset.homepageStructure = "v662";
@@ -71,6 +74,7 @@ async function init() {
 
   try {
     const data = await loadPortalData();
+    document.documentElement.dataset.integrationBusState = data.integrationBus.state;
     const connectionProjection = publishConnectionProjection(data.connections);
     document.documentElement.dataset.dataConnectionState = connectionProjection.state;
 
@@ -102,6 +106,8 @@ async function init() {
     startMobileHeroVisibility({ manifest: data.manifest });
     startHomepageStructure();
     startV587DecisionIntelligence(data);
+    startBusinessJourneyQualification({ surface: "HOME", integrationBus: data.integrationBus });
+    window.KIDULTS_PERFORMANCE_RECEIPT_READY = completePerformanceQualification(data.integrationBus);
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({
@@ -113,6 +119,7 @@ async function init() {
       sourceMode: data.manifest.source_mode,
       dataConnectionState: connectionProjection.state,
       dataConnectionManifest: connectionProjection.manifestId,
+      integrationBus: data.integrationBus,
       providerConnectionState: data.registry.provider?.connection_state ?? "NOT_REGISTERED",
       runtimeObservationState: data.registry.runtime?.digitalocean_state ?? "NOT_VERIFIED",
       livingPulse: data.pulse.version,

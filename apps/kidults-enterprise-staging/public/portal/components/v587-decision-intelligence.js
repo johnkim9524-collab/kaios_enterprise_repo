@@ -44,10 +44,13 @@ function operation(summary, label) {
 
 export function buildDecisionSnapshot(data) {
   const registry = data?.registry ?? {};
+  const governed = data?.governedProjection;
   const evidence = operation(data?.summary, "EVIDENCE OBJECTS");
   const rights = data?.connections?.sources?.filter(source => source.publicationEligible === true).length ?? 0;
   const sourceCount = data?.connections?.sources?.length ?? 0;
-  const intelligence = buildIntelligenceDecision({
+  const syntheticCurrentSold = data?.governedProjection?.objects?.filter(object => object?.current_sold?.state === "SYNTHETIC_SOLD_CONTROL").length ?? 0;
+  const governedCurrentSold = data?.governedProjection?.objects?.filter(object => object?.current_sold?.verified === true && object?.synthetic !== true).length ?? 0;
+  const fallbackIntelligence = buildIntelligenceDecision({
     factors: {
       evidence: score(registry.evidence?.coverage_pct),
       coverage: score(data?.summary?.coverage?.coverage_pct),
@@ -65,21 +68,23 @@ export function buildDecisionSnapshot(data) {
     requestedAction: "VIEW",
     reason: "Platform decision readiness requires evidence, coverage, freshness, rights, consistency and independent qualification."
   });
+  const intelligence = governed?.decision_intelligence ?? fallbackIntelligence;
+  const governedEvidenceCount = Array.isArray(governed?.evidence) ? governed.evidence.length : null;
   return {
     decision: intelligence.decision,
     decision_reason: intelligence.reason,
     fields: [
       ["Decision Readiness", intelligence.decision],
-      ["Evidence Coverage", present(evidence?.value) ? evidence.value : "NOT AVAILABLE"],
+      ["Evidence Coverage", governedEvidenceCount > 0 ? `${governedEvidenceCount} GOVERNED` : present(evidence?.value) ? evidence.value : "NOT AVAILABLE"],
       ["Confidence", intelligence.confidence.label],
-      ["Rights Coverage", sourceCount > 0 ? `${rights}/${sourceCount} RELEASE ELIGIBLE` : "HOLD"],
-      ["Current SOLD", "NOT AVAILABLE"],
+      ["Rights Coverage", governed?.release?.state ?? (sourceCount > 0 ? `${rights}/${sourceCount} RELEASE ELIGIBLE` : "HOLD")],
+      ["Current SOLD", governedCurrentSold > 0 ? `${governedCurrentSold} GOVERNED` : syntheticCurrentSold > 0 ? `${syntheticCurrentSold} SYNTHETIC CONTROL` : "NOT AVAILABLE"],
       ["Freshness", registry.freshness?.as_of ?? "NOT AVAILABLE"]
     ],
     confidence_explanation: intelligence.confidence.explanation,
     reasoning: intelligence,
-    evidence_state: registry.evidence?.status ?? "NOT AVAILABLE",
-    rights_state: rights > 0 ? "PARTIAL" : "HOLD",
+    evidence_state: governed?.evidence_methodology?.coverage ?? registry.evidence?.status ?? "NOT AVAILABLE",
+    rights_state: intelligence.rights.release_state,
     track_b: registry.assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     risk: intelligence.decision === "READY" ? "REVIEW REQUIRED" : "HIGH — RELEASE GATES UNRESOLVED",
     production: "HOLD",
@@ -122,7 +127,9 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
   const rights = object?.rights_status ?? "HOLD";
   const trackB = registry.assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE";
   const currentSold = object?.current_sold?.verified === true && !synthetic
-    ? object.current_sold.display_value : "NOT AVAILABLE";
+    ? object.current_sold.display_value
+    : synthetic && object?.current_sold?.state === "SYNTHETIC_SOLD_CONTROL"
+      ? `SYNTHETIC CONTROL · ${object.current_sold.display_value}` : "NOT AVAILABLE";
   const evidenceCount = Number.isInteger(object?.evidence_count) && !synthetic
     ? String(object.evidence_count) : "NOT AVAILABLE";
   const intelligence = buildIntelligenceDecision({

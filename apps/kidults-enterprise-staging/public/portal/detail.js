@@ -1,6 +1,9 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js";
+import { loadPortalData } from "./components/data-store.js";
+import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
+import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -10,12 +13,7 @@ const esc = value =>
     '"': "&quot;",
     "'": "&#039;"
   }[character]));
-
-async function getJson(path) {
-  const response = await fetch(path, { cache: "no-store", headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error(`${response.status} ${path}`);
-  return response.json();
-}
+const metricPct = value => value === null || value === undefined || !Number.isFinite(Number(value)) ? "NOT AVAILABLE" : `${Number(value).toFixed(2)}%`;
 
 function statusPills(items) {
   return `<div class="detail-status-row">${items.map(item => `<span>${esc(item)}</span>`).join("")}</div>`;
@@ -61,8 +59,8 @@ function renderVertical(root, verticals, manifest, id) {
       <p class="eyebrow">CURRENT OBSERVABILITY</p>
       <h2>Measured under the provider-independent baseline.</h2>
       <div class="detail-metric-grid">
-        <article class="detail-metric-card"><strong>${Number(vertical.right_data_coverage_pct).toFixed(2)}%</strong><span>Right Data Coverage</span></article>
-        <article class="detail-metric-card"><strong>${Number(vertical.demand_evidence_pct).toFixed(1)}%</strong><span>Demand Evidence</span></article>
+        <article class="detail-metric-card"><strong>${metricPct(vertical.right_data_coverage_pct)}</strong><span>Right Data Coverage</span></article>
+        <article class="detail-metric-card"><strong>${metricPct(vertical.demand_evidence_pct)}</strong><span>Demand Evidence</span></article>
         <article class="detail-metric-card"><strong>${esc(vertical.relevant)}</strong><span>Relevant Records</span></article>
         <article class="detail-metric-card"><strong>${esc(vertical.scarcity_evidence_count)}</strong><span>Scarcity Evidence</span></article>
       </div>
@@ -142,6 +140,7 @@ function renderObject(root, k100, manifest, id) {
 }
 
 async function init() {
+  const completePerformanceQualification = beginPerformanceQualification("DETAIL");
   startDetailMobileReconstruction();
   startAccessibilityR1();
   const root = document.querySelector("[data-detail-root]");
@@ -149,12 +148,8 @@ async function init() {
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
-    const [manifest, verticals, k100, registry] = await Promise.all([
-      getJson("data/v502-manifest.json?v=652"),
-      getJson("data/verticals.json?v=652"),
-      getJson("data/kidult100.json?v=652"),
-      getJson("data/registry-view.json?v=phase2-1")
-    ]);
+    const { manifest, verticals, k100, registry, integrationBus } = await loadPortalData();
+    document.documentElement.dataset.integrationBusState = integrationBus.state;
 
     if (type === "vertical") renderVertical(root, verticals, manifest, id);
     else if (type === "object") {
@@ -163,6 +158,8 @@ async function init() {
     }
     else throw new Error(`Unsupported detail type: ${type}`);
     startAccessibilityR1();
+    startBusinessJourneyQualification({ surface: "DETAIL", integrationBus });
+    window.KIDULTS_PERFORMANCE_RECEIPT_READY = completePerformanceQualification(integrationBus);
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);
   } catch (error) {
     root.innerHTML = `

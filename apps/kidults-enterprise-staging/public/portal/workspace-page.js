@@ -8,6 +8,8 @@ import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
 import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js";
 import { startWhyEngine } from "./components/why-engine.js";
+import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
+import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
 
 function human(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
@@ -73,16 +75,20 @@ function mountWorkspace(data) {
 }
 
 async function init() {
+  const completePerformanceQualification = beginPerformanceQualification("WORKSPACE");
   setupNavigation();
   startAccessibilityR1();
 
   try {
     const data = await loadPortalData();
+    document.documentElement.dataset.integrationBusState = data.integrationBus.state;
     renderContext(data);
     const mode = mountWorkspace(data);
     startV587WorkspaceDecisionFlow(data);
+    startBusinessJourneyQualification({ surface: "WORKSPACE", integrationBus: data.integrationBus, exportAllowed: window.KIDULTS_V587_WORKSPACE_PACKET?.action_allowed === true });
     startMobileReconstruction();
     startAccessibilityR1();
+    window.KIDULTS_PERFORMANCE_RECEIPT_READY = completePerformanceQualification(data.integrationBus);
 
     document.documentElement.dataset.dataState = "workspace-ready";
     window.KIDULTS_WORKSPACE_PAGE = Object.freeze({
@@ -93,7 +99,8 @@ async function init() {
       baselineSnapshotId: data.registry?.snapshot?.baseline_id ?? null,
       evidencePackageId: data.registry?.evidence?.current_package_id ?? null,
       sourceMode: data.manifest?.source_mode,
-      workspaceVersion: data.workspace?.version
+      workspaceVersion: data.workspace?.version,
+      integrationBus: data.integrationBus
     });
   } catch (error) {
     console.error("KIDULTS Intelligence Workspace initialization failed.", error);

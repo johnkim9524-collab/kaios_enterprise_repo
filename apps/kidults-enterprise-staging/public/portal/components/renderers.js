@@ -205,7 +205,9 @@ export function renderSignals(signalData) {
       <div class="signal-main">
         <div><h3>${esc(signal.title)}</h3><div class="signal-value"><strong>${esc(signal.value)}</strong><span>${esc(signal.unit)}</span></div></div>
       </div>
-      <div class="sparkline">${sparklineSvg(signal.series, `${signal.title} recent registered trend`)}</div>
+      <div class="sparkline">${Array.isArray(signal.series) && signal.series.length > 0
+        ? sparklineSvg(signal.series, `${signal.title} recent registered trend`)
+        : '<span class="snapshot-state">TREND NOT AVAILABLE</span>'}</div>
       <div class="signal-meta">
         <div><b>SEE WHY</b><span>Decision Confidence</span></div>
         <div><b>${esc(signal.sources)}</b><span>Source count</span></div>

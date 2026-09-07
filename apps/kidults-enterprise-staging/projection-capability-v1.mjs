@@ -117,6 +117,19 @@ function portalActions(projection,objectId){
   return actions;
 }
 
+function currentSoldView(value){
+  const events=list(value).filter(event=>event&&typeof event==='object'&&event.event_class==='CURRENT_SOLD_TRANSACTION');
+  if(events.length===0)return null;
+  if(events.length!==1)throw new Error('CURRENT_SOLD_EVENT_AMBIGUOUS');
+  const event=events[0];
+  if(typeof event.event_id!=='string'||!Number.isFinite(event.amount)||!Number.isFinite(Date.parse(event.event_at))||
+    !/^[A-Z]{3}$/.test(event.currency)||event.empirical!==true||event.synthetic!==false||event.current_market_claim_eligible!==true){
+    throw new Error('CURRENT_SOLD_EVENT_INVALID');
+  }
+  return Object.freeze({verified:true,state:'CURRENT_SOLD_VERIFIED',display_value:`${event.amount} ${event.currency}`,
+    event_id:event.event_id,event_at:event.event_at,empirical:true,synthetic:false,market_authority:true});
+}
+
 function objectPassportView(projection){
   if(projection.product_type!=='OBJECT_PASSPORT')return {objects:[],signals:[],evidence:[],actions:[]};
   const fields=projection.payload.fields;
@@ -129,6 +142,7 @@ function objectPassportView(projection){
   const maker=publicFieldValue(fields.maker);
   const model=publicFieldValue(fields.model);
   const identity=publicFieldValue(fields.identity);
+  const currentSold=currentSoldView(publicFieldValue(fields.market_observations));
   const title=identity||[maker,model].filter(Boolean).join(' ')||objectId;
   const limitations=uniqueStrings([
     ...(projection.limitations||[]),
@@ -142,7 +156,7 @@ function objectPassportView(projection){
     confidence:projection.confidence.classification,
     evidence_coverage:projection.evidence_summary.source_count>1?'SUFFICIENT':'BOUNDED',
     source_owner_independence:projection.evidence_summary.independent_source_family_count>1?'MULTI_SOURCE_VERIFIED':'VERIFIED',
-    rights_state:projection.rights.state,limitations,actions
+    rights_state:projection.rights.state,limitations,actions,current_sold:currentSold
   });
   const signals=SIGNAL_FIELDS.flatMap(fieldId=>{
     const field=fields[fieldId];
@@ -207,6 +221,45 @@ export function toPortalView(projection,receipt){
     research_archive:{state:'NOT_AVAILABLE',items:[]},
     audit:{projection_id:projection.projection_id,assessment_id:projection.lineage.assessment_id,replay_id:null,
       exact_pair_digest:receipt.capability_digest,correlation_id:receipt.capability_id,rebuild_state:'NOT_AVAILABLE',replay_state:'NOT_AVAILABLE',rollback_state:'NOT_AVAILABLE',reason_category:'SIGNED_CAPABILITY_ADMISSION'}
+  });
+}
+
+const SYNTHETIC_NOTICE='SYNTHETIC TEST DATA — INTERNAL VALIDATION ONLY';
+
+export function toSyntheticPortalControl(control){
+  if(control?.environment!=='SYNTHETIC'||control?.production_eligible!==false||control?.public_eligible!==false||
+    control?.record_count!==120||!Array.isArray(control?.cards)||control.cards.length!==120||
+    typeof control?.dataset_digest!=='string'||!control.dataset_digest.startsWith('sha256:'))throw new Error('SYNTHETIC_PORTAL_CONTROL_INVALID');
+  const seen=new Set();
+  const objects=control.cards.map(card=>{
+    if(card?.label!==SYNTHETIC_NOTICE||card?.empirical!==false||card?.event_state!=='SYNTHETIC_SOLD_CONTROL'||
+      card?.production_eligible!==false||card?.market_authority!==false||card?.currency!=='XTS'||
+      typeof card?.record_id!=='string'||seen.has(card.record_id))throw new Error('SYNTHETIC_PORTAL_CARD_INVALID');
+    seen.add(card.record_id);
+    return Object.freeze({
+      object_id:card.record_id,canonical_object_id:card.record_id,title:card.title,aliases:[],
+      market_observations:[],comparables:[],evidence_refs:[],confidence:'NOT_ASSESSED',
+      evidence_coverage:'SYNTHETIC_CONTROL',source_owner_independence:'NOT_APPLICABLE',rights_state:'SYNTHETIC',
+      limitations:['SYNTHETIC TEST DATA','NO EMPIRICAL PROMOTION'],actions:[],synthetic:true,environment:'SYNTHETIC',
+      current_sold:Object.freeze({verified:false,state:'SYNTHETIC_SOLD_CONTROL',display_value:`${card.event_value} XTS`,empirical:false,market_authority:false})
+    });
+  });
+  const receipt=Object.freeze({
+    decision:'SYNTHETIC_CONTROL_ACCEPTED',surface:'PORTAL_RENDER',purpose:'INTERNAL_SYNTHETIC_VALIDATION',
+    projection_id:control.projection_id,dataset_id:control.dataset_id,dataset_digest:control.dataset_digest,
+    record_count:objects.length,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false
+  });
+  return Object.freeze({
+    source:'SYNTHETIC_CONTROL_API',projection:{state:'SYNTHETIC_CONTROL',projection_id:control.projection_id,as_of:null,
+      assessment_id:null,rights_state:'SYNTHETIC',freshness:'SYNTHETIC',product_type:'SYNTHETIC_CONTROL',canonical_object_id:null},
+    release:{state:'HOLD'},verticals:[],signals:[],objects,evidence:[],actions:[],
+    decision_intelligence:buildIntelligenceDecision({synthetic:true,requestedAction:'VIEW',reason:'Synthetic Current SOLD control is non-promotable.'}),
+    evidence_methodology:{coverage:'SYNTHETIC CONTROL',independence:'NOT APPLICABLE',freshness:'SYNTHETIC',rights:'NONE',methodology_version:null,lineage_version:null},
+    kidult_100:{state:'NOT_AVAILABLE',index_value:null,change:null,as_of:null,constituents:[],methodology_version:null},
+    research_archive:{state:'NOT_AVAILABLE',items:[]},
+    audit:{projection_id:control.projection_id,assessment_id:null,replay_id:null,exact_pair_digest:control.dataset_digest,
+      correlation_id:control.dataset_id,rebuild_state:'DETERMINISTIC',replay_state:'IDEMPOTENT',rollback_state:'NOT_APPLICABLE',reason_category:'SYNTHETIC_CONTROL_ONLY'},
+    consumption_receipt:receipt
   });
 }
 
