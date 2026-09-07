@@ -653,7 +653,7 @@ jobs:
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and .event=="schedule"
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
