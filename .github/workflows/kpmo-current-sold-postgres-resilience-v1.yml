@@ -1,0 +1,79 @@
+name: KPMO Current-SOLD PostgreSQL Resilience V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh'
+      - 'scripts/kidults/kpmo/validate-current-sold-postgres-resilience-contract-v1.mjs'
+      - 'infrastructure/postgres/current-sold/**'
+      - '.github/workflows/kpmo-current-sold-postgres-resilience-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-current-sold-postgres-resilience-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  current-sold-postgres-resilience:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kaios
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kaios"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      KAIOS_POSTGRES_DSN: postgresql://postgres:postgres@127.0.0.1:5432/kaios
+      CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
+
+    steps:
+      - name: Checkout exact review head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Prove exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CURRENT_SOLD_EXPECTED_HEAD_SHA"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify resilience contract and mutation self-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/kpmo/validate-current-sold-postgres-resilience-contract-v1.mjs
+          node scripts/kidults/kpmo/validate-current-sold-postgres-resilience-contract-v1.mjs --self-test
+
+      - name: Execute pinned ephemeral Current-SOLD PostgreSQL resilience attacks
+        shell: bash
+        run: bash scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh
+
+      - name: Preserve Current-SOLD PostgreSQL resilience receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: current-sold-postgres-resilience-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-postgres-resilience/receipt.json
+          if-no-files-found: error
+          retention-days: 30
