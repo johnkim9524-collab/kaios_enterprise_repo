@@ -13,6 +13,8 @@ on:
       - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-asi-mission-directed-workflow-run-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-mission-directed-workflow-run-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
@@ -36,6 +38,8 @@ on:
       - 'coordination/kidults/source-intelligence/strict-current-market-admission-gate-v1.json'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs'
+      - 'scripts/kidults/source-intelligence/classify-asi-mission-directed-workflow-run-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-mission-directed-workflow-run-classification-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs'
@@ -82,14 +86,116 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/classify-asi-mission-directed-workflow-run-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-mission-directed-workflow-run-classification-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-mission-directed-workflow-run-classification-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
           node scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
 
+  classify-mission-consumption-generation:
+    if: github.event_name == 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      classification: ${{ steps.classify.outputs.classification }}
+      reason: ${{ steps.classify.outputs.reason }}
+      current_main_sha: ${{ steps.classify.outputs.current_main_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Resolve protected main and classify immutable producer generation
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -r '.object.sha')
+          test "$CURRENT_MAIN_SHA" != null
+          test "${#CURRENT_MAIN_SHA}" = 40
+          node scripts/kidults/source-intelligence/classify-asi-mission-directed-workflow-run-v1.mjs \
+            "$GITHUB_EVENT_PATH" "$CURRENT_MAIN_SHA" "$GITHUB_REPOSITORY" \
+            /tmp/mission-directed-workflow-run-classification-v1.json
+          echo "classification=$(jq -r .classification /tmp/mission-directed-workflow-run-classification-v1.json)" >> "$GITHUB_OUTPUT"
+          echo "reason=$(jq -r .reason /tmp/mission-directed-workflow-run-classification-v1.json)" >> "$GITHUB_OUTPUT"
+          echo "current_main_sha=$CURRENT_MAIN_SHA" >> "$GITHUB_OUTPUT"
+      - name: Retain immutable generation classification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-mission-directed-workflow-run-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mission-directed-workflow-run-classification-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+  mission-directed-discovery-nonauthoritative-receipt:
+    needs: classify-mission-consumption-generation
+    if: always() && github.event_name == 'workflow_run' && needs.classify-mission-consumption-generation.outputs.classification != 'CURRENT_MAIN_EXACT'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Emit fail-closed nonauthoritative generation receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLASSIFICATION: ${{ needs.classify-mission-consumption-generation.outputs.classification }}
+          CLASSIFICATION_REASON: ${{ needs.classify-mission-consumption-generation.outputs.reason }}
+          CURRENT_MAIN_SHA: ${{ needs.classify-mission-consumption-generation.outputs.current_main_sha }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_PATH: ${{ github.event.workflow_run.path }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg state "$([ "$CLASSIFICATION" = INVALID_TRIGGER ] && echo VERIFIED_FAIL || echo VERIFIED_SKIP)" \
+            --arg classification "$CLASSIFICATION" \
+            --arg reason "$CLASSIFICATION_REASON" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg execution_sha "$GITHUB_SHA" \
+            --arg current_main_sha "$CURRENT_MAIN_SHA" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --argjson producer_run_id "$UPSTREAM_RUN_ID" \
+            --argjson producer_run_attempt "${UPSTREAM_RUN_ATTEMPT:-1}" \
+            --arg producer_repository "$UPSTREAM_REPOSITORY" \
+            --arg producer_branch "$UPSTREAM_HEAD_BRANCH" \
+            --arg producer_sha "$UPSTREAM_HEAD_SHA" \
+            --arg producer_path "$UPSTREAM_PATH" \
+            --arg producer_conclusion "$UPSTREAM_CONCLUSION" \
+            '{id:"kidults-asi-mission-directed-discovery-terminal-receipt-v1",version:"1.0.0",state:$state,classification:$classification,reason:$reason,repository:$repository,workflow:$workflow,run_id:$run_id,run_attempt:$run_attempt,execution_sha:$execution_sha,current_protected_main_sha:$current_main_sha,producer:{run_id:$producer_run_id,run_attempt:$producer_run_attempt,repository:$producer_repository,head_branch:$producer_branch,head_sha:$producer_sha,path:$producer_path,conclusion:$producer_conclusion},exact_current_main_producer:false,promotion_eligible:false,promotion_authority:false,empirical_authority:false,provider_activation_authority:false,production_authority:false,public_release:"HOLD",production:"HOLD",g5:"HOLD"}' \
+            > /tmp/mission-directed-discovery-terminal-receipt-v1.json
+          cat /tmp/mission-directed-discovery-terminal-receipt-v1.json
+      - name: Retain nonauthoritative generation receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-mission-directed-discovery-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/mission-directed-discovery-terminal-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Preserve invalid-trigger RED after receipt retention
+        if: needs.classify-mission-consumption-generation.outputs.classification == 'INVALID_TRIGGER'
+        run: exit 1
+
   mission-directed-discovery:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    needs: classify-mission-consumption-generation
+    if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-mission-consumption-generation.outputs.classification == 'CURRENT_MAIN_EXACT'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -99,23 +205,38 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Initialize fail-closed terminal receipt
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg execution_sha "$GITHUB_SHA" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            '{id:"kidults-asi-mission-directed-discovery-terminal-receipt-v1",version:"1.0.0",state:"VERIFIED_FAIL",classification:"EARLY_FAILURE",reason:"TERMINALIZATION_PENDING",repository:$repository,workflow:$workflow,run_id:$run_id,run_attempt:$run_attempt,execution_sha:$execution_sha,promotion_eligible:false,promotion_authority:false,empirical_authority:false,provider_activation_authority:false,production_authority:false,public_release:"HOLD",production:"HOLD",g5:"HOLD"}' \
+            > /tmp/mission-directed-discovery-terminal-receipt-v1.json
       - name: Verify exact source, syntax and registered assets
+        id: verify_source
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/asi-mission-directed-public-metadata-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-mission-directed-github-fallback-discovery-v1.mjs
+          node --check scripts/kidults/source-intelligence/classify-asi-mission-directed-workflow-run-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-claim-admission-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-mission-directed-workflow-run-classification-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-provenance-v1.mjs
           node scripts/kidults/source-intelligence/test-asi-mission-directed-zero-candidate-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs \
             | tee /tmp/mission-directed-discovery-registry-validation-v1.json
       - name: Restore exact mission-consumption discovery intents
+        id: restore_mission_consumption
         env:
           GH_TOKEN: ${{ github.token }}
           UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -183,6 +304,7 @@ jobs:
             '{producer_workflow_path:".github/workflows/kidults-asi-mission-consumption-v1.yml",producer_run_id:$run_id,producer_head_sha:$sha,artifact_name:"kidults-asi-mission-consumption-v1",artifact_id:$artifact_id,artifact_digest:$digest,exact_generation_bound:true,artifact_cardinality:1,validation_only:$validation_only,promotion_authority:false}' \
             > /tmp/mission-consumption-provenance-v1.json
       - name: Restore prior rolling discovery cursor
+        id: restore_cursor
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -222,6 +344,7 @@ jobs:
           echo "PREVIOUS_DISCOVERY_ARTIFACT_ID=${PREVIOUS_ID:-NONE}" >> "$GITHUB_ENV"
           echo "PREVIOUS_DISCOVERY_STATE=$PREVIOUS_STATE" >> "$GITHUB_ENV"
       - name: Execute bounded live mission-directed discovery
+        id: execute_discovery
         env:
           GH_TOKEN: ${{ github.token }}
           MISSION_DISCOVERY_BATCH_SIZE: '24'
@@ -406,6 +529,7 @@ jobs:
             coordination/kidults/source-intelligence/asi-mission-directed-discovery-contract-v1.json \
             > /tmp/mission-claim-admission-readiness-final-validation-v1.json
       - name: Emit KPMO mission-directed discovery receipt
+        id: emit_receipt
         run: |
           node - <<'NODE' >/tmp/mission-directed-discovery-kpmo-receipt-v1.json
           const fs=require('fs'),crypto=require('crypto');const p='/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-manifest-v1.json';const d=JSON.parse(fs.readFileSync('/tmp/kidults-asi-mission-directed-discovery-v1/mission-directed-discovery-v1.json'));const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');process.stdout.write(JSON.stringify({id:'kidults-asi-mission-directed-discovery-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,mission_consumption_run_id:Number(process.env.MISSION_CONSUMPTION_RUN_ID),mission_consumption_head_sha:process.env.MISSION_CONSUMPTION_HEAD_SHA,mission_consumption_artifact_id:Number(process.env.MISSION_CONSUMPTION_ARTIFACT_ID),mission_consumption_artifact_digest:process.env.MISSION_CONSUMPTION_ARTIFACT_DIGEST,previous_discovery_run_id:process.env.PREVIOUS_DISCOVERY_RUN_ID,previous_discovery_artifact_id:process.env.PREVIOUS_DISCOVERY_ARTIFACT_ID,exact_generation_bound:true,artifact_cardinality:1,validation_only:process.env.MISSION_VALIDATION_ONLY==='true',promotion_authority:false,manifest_digest:digest,primary_discovery_fallback_used:d.primary_discovery_fallback_used===true,primary_discovery_failure:d.primary_discovery_failure||null,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,current_price_eligible:0,liquidity_eligible:0,market_event_admitted:0,target_site_body_traversed:false,source_content_collected:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
@@ -430,5 +554,67 @@ jobs:
             /tmp/mission-claim-admission-readiness-final-validation-v1.json
             /tmp/mission-directed-discovery-kpmo-receipt-v1.json
             /tmp/mission-consumption-provenance-v1.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Finalize terminal lineage receipt without changing original verdict
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify_source.outcome }}
+          RESTORE_OUTCOME: ${{ steps.restore_mission_consumption.outcome }}
+          CURSOR_OUTCOME: ${{ steps.restore_cursor.outcome }}
+          DISCOVERY_OUTCOME: ${{ steps.execute_discovery.outcome }}
+          RECEIPT_OUTCOME: ${{ steps.emit_receipt.outcome }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          STATE=VERIFIED_FAIL
+          CLASSIFICATION=EARLY_FAILURE
+          REASON=WORKFLOW_DID_NOT_COMPLETE
+          if [ -s /tmp/mission-directed-discovery-kpmo-receipt-v1.json ]; then
+            STATE=VERIFIED_PASS
+            CLASSIFICATION=CURRENT_MAIN_EXACT_COMPLETE
+            REASON=SUCCESS_RECEIPT_EMITTED
+          elif [ "$RESTORE_OUTCOME" = failure ]; then
+            REASON=MISSION_CONSUMPTION_RESTORE_FAILED
+          elif [ "$CURSOR_OUTCOME" = failure ]; then
+            REASON=ROLLING_CURSOR_RESTORE_FAILED
+          elif [ "$DISCOVERY_OUTCOME" = failure ]; then
+            REASON=DISCOVERY_EXECUTION_FAILED
+          elif [ "$VERIFY_OUTCOME" = failure ]; then
+            REASON=SOURCE_OR_REGISTRY_VERIFICATION_FAILED
+          fi
+          jq -n \
+            --arg state "$STATE" \
+            --arg classification "$CLASSIFICATION" \
+            --arg reason "$REASON" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg execution_sha "$GITHUB_SHA" \
+            --argjson run_id "$GITHUB_RUN_ID" \
+            --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg verify_outcome "${VERIFY_OUTCOME:-unknown}" \
+            --arg restore_outcome "${RESTORE_OUTCOME:-unknown}" \
+            --arg cursor_outcome "${CURSOR_OUTCOME:-unknown}" \
+            --arg discovery_outcome "${DISCOVERY_OUTCOME:-unknown}" \
+            --arg receipt_outcome "${RECEIPT_OUTCOME:-unknown}" \
+            --arg producer_run_id "${UPSTREAM_RUN_ID:-}" \
+            --arg producer_run_attempt "${UPSTREAM_RUN_ATTEMPT:-}" \
+            --arg producer_sha "${UPSTREAM_HEAD_SHA:-}" \
+            --arg producer_conclusion "${UPSTREAM_CONCLUSION:-}" \
+            '{id:"kidults-asi-mission-directed-discovery-terminal-receipt-v1",version:"1.0.0",state:$state,classification:$classification,reason:$reason,repository:$repository,workflow:$workflow,run_id:$run_id,run_attempt:$run_attempt,execution_sha:$execution_sha,producer:{run_id:$producer_run_id,run_attempt:$producer_run_attempt,head_sha:$producer_sha,conclusion:$producer_conclusion},step_outcomes:{verify_source:$verify_outcome,restore_mission_consumption:$restore_outcome,restore_cursor:$cursor_outcome,execute_discovery:$discovery_outcome,emit_success_receipt:$receipt_outcome},promotion_eligible:false,promotion_authority:false,empirical_authority:false,provider_activation_authority:false,production_authority:false,public_release:"HOLD",production:"HOLD",g5:"HOLD"}' \
+            > /tmp/mission-directed-discovery-terminal-receipt-v1.json
+          cat /tmp/mission-directed-discovery-terminal-receipt-v1.json
+      - name: Always retain exact-run terminal lineage receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-mission-directed-discovery-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/mission-directed-discovery-terminal-receipt-v1.json
+            /tmp/mission-consumption-provenance-v1.json
+            /tmp/mission-directed-discovery-kpmo-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
