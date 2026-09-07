@@ -5,14 +5,47 @@ import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
+import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
-function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
+function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
 for(const name of ['schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
+
+test('inline Assurance health gate accepts exact protected-main push context',()=>{
+ const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
+ assert.equal(validateSentinelTrigger(inline),null);
+ assert.equal(inlineProducerHealthRequired(inline),true);
+});
+
+test('inline Assurance health gate accepts exact same-main non-core workflow_run after remote re-read',()=>{
+ const inline={...env,GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
+ const p=event();
+ p.workflow_run.name='CI Validation';p.workflow_run.display_title='CI Validation';p.workflow_run.path='.github/workflows/ci-validation.yml';p.workflow_run.event='push';
+ const result=validateSentinelTrigger(inline,p,structuredClone(p.workflow_run));
+ assert.equal(result.run_id,100);assert.equal(result.path,'.github/workflows/ci-validation.yml');
+});
+
+test('inline Assurance health gate rejects workflow impersonation and unsafe events',()=>{
+ const base={...env,GITHUB_EVENT_NAME:'push',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
+ assert.throws(()=>validateSentinelTrigger({...base,GITHUB_WORKFLOW:'CI Validation'}));
+ assert.throws(()=>validateSentinelTrigger({...base,GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',GITHUB_EVENT_NAME:'pull_request'}));
+});
+
+test('Assurance guard only requires producer health for live full-audit guard states',()=>{
+ const live={...env,GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1'};
+ assert.equal(inlineProducerHealthRequired(live),true);
+ assert.equal(inlineProducerHealthRequired({...live,GITHUB_EVENT_NAME:'pull_request'}),false);
+ assert.equal(inlineProducerHealthRequired({...live,GITHUB_REF:'refs/heads/feature'}),false);
+ assert.equal(guardRequiresProducerHealth({state:'EPHEMERAL_CANONICAL_LEADER_SELECTED'}),true);
+ assert.equal(guardRequiresProducerHealth({state:'FULL_AUDIT_BYPASS_NON_ALIASABLE'}),true);
+ assert.equal(guardRequiresProducerHealth({state:'DEDUPED_ALIAS'}),false);
+ assert.equal(guardRequiresProducerHealth({state:'INPUT_DIVERGENCE_HOLD'}),false);
+});
+
 for(const conclusion of ['failure','cancelled','timed_out','skipped'])test(`terminal ${conclusion} triggers re-evaluation rather than hiding RED`,()=>{
  const p=event();p.workflow_run.conclusion=conclusion;assert.equal(validateSentinelTrigger(env,p,p.workflow_run).conclusion,conclusion);
 });
