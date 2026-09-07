@@ -34,6 +34,7 @@ Production, Public, G5, 실제 데이터 수집, 공급자 접촉, 지출 및 cr
 또한 병렬 control 실행의 결정성·불변성, 중복 fan-in 차단과 downstream batch
 상한을 검증한다.
 
-이는 PostgreSQL 트랜잭션 또는 재시작 검증을 주장하지 않는다. 실행 환경에
-PostgreSQL runtime이 없으므로 DB 연결 손실, 재시작 복구, 영속 rollback은
-ephemeral database CI가 실행될 때까지 `BLOCKED_NO_DATABASE_RUNTIME`이다.
+로컬 실행만으로 PostgreSQL 트랜잭션 또는 재시작 검증을 주장하지 않는다.
+별도의 pinned PostgreSQL 16 CI가 동일 exact head에서 명시적 rollback,
+강제 연결 종료 rollback과 컨테이너 재시작 후 영속성을 검증해야만 해당
+항목을 통과한 것으로 판정한다. 이는 원격 또는 Production DB 권한이 아니다.

@@ -51,7 +51,7 @@
     "partial_batch_failure": "ACTUAL_CURRENT_SOLD_ENGINE_ZERO_ADMISSION",
     "concurrency": "PARALLEL_STATELESS_CONTROL_RUNTIME",
     "backpressure": "CONTROL_RUNTIME_BATCH_BOUNDARY",
-    "postgres_transaction": "BLOCKED_NO_DATABASE_RUNTIME"
+    "postgres_transaction": "EPHEMERAL_PINNED_POSTGRESQL_CI_REQUIRED"
   },
   "expected": {
     "accepted": 96,
