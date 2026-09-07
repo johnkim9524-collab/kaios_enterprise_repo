@@ -54,6 +54,7 @@ export function startK100IntegrityReset({ data } = {}) {
 
     card.dataset.k100Id = item.id;
     card.dataset.visualRole = item.visual_role ?? "EDITORIAL_INTERPRETATION";
+    card.setAttribute("data-k100-object-scale", String(Number(item.display_scale) || 1));
 
     if (figure) {
       figure.dataset.visualRole = role;
