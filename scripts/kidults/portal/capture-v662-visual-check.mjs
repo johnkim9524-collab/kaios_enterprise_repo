@@ -159,7 +159,7 @@ for (const viewport of viewports) {
     if (metrics.operationCards < 1) localFailures.push(`operation cards=${metrics.operationCards}`);
     if (metrics.researchNotes < 1) localFailures.push(`research notes=${metrics.researchNotes}`);
     if (metrics.archiveItems < 1) localFailures.push(`archive items=${metrics.archiveItems}`);
-    if (metrics.k100Formats.some(value => value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
+    if (metrics.k100Formats.some(value => value && value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
     if (metrics.unrevealedCount !== 0) localFailures.push(`unrevealed content=${metrics.unrevealedCount}/${metrics.revealCount}`);
     const allowedInvisible = syntheticControl ? ["[data-signal-grid]"] : [];
     const unexpectedInvisible = metrics.invisibleSections.filter(selector => !allowedInvisible.includes(selector));

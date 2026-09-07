@@ -298,14 +298,15 @@
   background:#e8e9e4;
   overflow:hidden
 }
-.compare-engine__bar i{
+.compare-engine__bar svg{
   display:block;
+  width:100%;
   height:100%;
-  border-radius:inherit;
-  background:var(--forest)
+  border-radius:inherit
 }
-.compare-engine__bar i[data-side=right]{
-  background:#b48a31
+.compare-engine__bar rect{fill:var(--forest)}
+.compare-engine__bar rect[data-side=right]{
+  fill:#b48a31
 }
 .compare-engine__delta{
   display:flex;

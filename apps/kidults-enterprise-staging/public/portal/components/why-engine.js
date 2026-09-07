@@ -393,7 +393,7 @@ function ensureDialog() {
             <strong data-why-confidence-value>—</strong>
           </div>
           <div class="why-engine__confidence" role="meter" aria-valuemin="0" aria-valuemax="100" data-why-confidence-meter>
-            <i data-why-confidence-bar></i>
+            <svg viewBox="0 0 100 8" preserveAspectRatio="none"><rect width="0" height="8" data-why-confidence-bar></rect></svg>
           </div>
           <p class="why-engine__note">Confidence is shown as registered. It is not silently upgraded into an independent assessment.</p>
         </section>
@@ -453,10 +453,10 @@ function renderPairs(node, pairs) {
 
 function renderComposition(node, composition) {
   const total = composition.reduce((sum, item) => sum + Number(item.value || 0), 0) || 1;
-  node.innerHTML = composition.map(item => `
+  node.innerHTML = composition.map((item, index) => `
     <div class="why-engine__composition-row">
-      <span><i style="--why-color:${esc(item.color)}"></i>${esc(item.label)}</span>
-      <div><b style="width:${Math.max(0, Math.min(100, Number(item.value) / total * 100))}%"></b></div>
+      <span><i data-swatch-index="${index % 5}"></i>${esc(item.label)}</span>
+      <div><svg viewBox="0 0 100 5" preserveAspectRatio="none"><rect width="${Math.max(0, Math.min(100, Number(item.value) / total * 100))}" height="5"></rect></svg></div>
       <strong>${esc(item.value)}%</strong>
     </div>
   `).join("");
@@ -486,7 +486,7 @@ function renderModel(dialog, model) {
     dialog.querySelector("[data-why-confidence-value]").textContent = `${value}%`;
     const meter = dialog.querySelector("[data-why-confidence-meter]");
     meter.setAttribute("aria-valuenow", String(value));
-    dialog.querySelector("[data-why-confidence-bar]").style.width = `${value}%`;
+    dialog.querySelector("[data-why-confidence-bar]").setAttribute("width", String(value));
   } else {
     confidenceSection.hidden = true;
   }

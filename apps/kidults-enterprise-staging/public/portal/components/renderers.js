@@ -119,7 +119,6 @@ export function renderVerticals(verticalData) {
           class="vertical-card reveal"
           data-vertical-card
           data-featured="${vertical.featured}"
-          style="--coverage:${Number(vertical.right_data_coverage_pct)}%"
         >
           <div class="vertical-card-top">
             <span class="vertical-order">${String(vertical.structural_order).padStart(2, "0")}</span>
@@ -259,12 +258,14 @@ export function renderEvidence(summary, k100) {
       stops.push(`${item.color} ${position}% ${position + item.value}%`);
       position += item.value;
     });
-    donut.style.background = `conic-gradient(${stops.join(",")})`;
-    compositionList.innerHTML = summary.composition.map(item => `
-      <li><span><i style="background:${esc(item.color)}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
+    donut.hidden = false;
+    donut.dataset.compositionState = "REGISTERED";
+    compositionList.innerHTML = summary.composition.map((item, index) => `
+      <li><span><i data-swatch-index="${index % 5}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
     `).join("");
   } else {
-    donut.style.background = "none";
+    donut.hidden = true;
+    donut.dataset.compositionState = "NOT_VERIFIED";
     compositionList.innerHTML = '<li><span>Current source composition</span><strong>NOT VERIFIED</strong></li>';
   }
 }
