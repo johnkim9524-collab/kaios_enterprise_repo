@@ -18,7 +18,9 @@
     "simulate:provider-operations": "node scripts/kidults/operations/run-d-day-provider-simulation-v1.mjs",
     "observe:provider-operations": "node scripts/kidults/operations/build-d-day-observability-dashboard-v1.mjs",
     "validate:provider-operations": "node scripts/kidults/operations/validate-provider-operations-capability-v1.mjs",
-    "console:provider-operations": "node scripts/kidults/operations/build-provider-operations-console-v1.mjs"
+    "console:provider-operations": "node scripts/kidults/operations/build-provider-operations-console-v1.mjs",
+    "build:provider-portfolio": "node scripts/kidults/operations/build-provider-portfolio-v1.mjs",
+    "validate:provider-portfolio": "node scripts/kidults/operations/validate-provider-portfolio-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",

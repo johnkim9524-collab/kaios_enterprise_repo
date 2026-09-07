@@ -49,6 +49,9 @@ jobs:
           node scripts/kidults/operations/run-d-day-provider-simulation-v1.mjs > "$RUNNER_TEMP/provider-simulation.json"
           node scripts/kidults/operations/build-d-day-observability-dashboard-v1.mjs > "$RUNNER_TEMP/operations-dashboard.json"
           node scripts/kidults/operations/build-provider-operations-console-v1.mjs > "$RUNNER_TEMP/provider-operations-console.json"
+          node --test tests/kidults/operations/provider-portfolio-v1.test.mjs
+          node scripts/kidults/operations/validate-provider-portfolio-v1.mjs | tee "$RUNNER_TEMP/provider-portfolio-validation.json"
+          node scripts/kidults/operations/build-provider-portfolio-v1.mjs > "$RUNNER_TEMP/provider-portfolio.json"
       - name: Preserve immutable provider operations evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -59,6 +62,8 @@ jobs:
             ${{ runner.temp }}/provider-simulation.json
             ${{ runner.temp }}/operations-dashboard.json
             ${{ runner.temp }}/provider-operations-console.json
+            ${{ runner.temp }}/provider-portfolio-validation.json
+            ${{ runner.temp }}/provider-portfolio.json
           if-no-files-found: error
           retention-days: 30
       - name: Revalidate Current SOLD engine controls
