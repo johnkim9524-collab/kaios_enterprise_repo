@@ -303,6 +303,7 @@ export function resolveCoverageCanonicalGuard(input) {
   }
   const active = candidates.filter((candidate) => candidate?.artifact?.expired !== true);
   if (!Number.isSafeInteger(readback.prior_success_count) || readback.prior_success_count < 0) fail('PRIOR_SUCCESS_COUNT_INVALID');
+  if (readback.prior_success_count !== readback.total_count) fail('PRIOR_SUCCESS_MUST_EQUAL_CANONICAL_ARTIFACT_TOTAL');
   if (active.length === 0 && readback.prior_success_count > 0) {
     const guard = signReceipt(guardBase(current, readback, 'ARTIFACT_VISIBILITY_OR_RETENTION_HOLD', 'FAIL_CLOSED_NO_COVERAGE_OR_ALIAS',
       { reason: 'PRIOR_SUCCESS_EXISTS_WITHOUT_ACTIVE_CANONICAL_ARTIFACT', prior_success_count: readback.prior_success_count }), observedAt);

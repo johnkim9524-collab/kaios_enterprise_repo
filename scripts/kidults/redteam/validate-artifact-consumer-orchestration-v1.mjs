@@ -61,9 +61,9 @@ assert(requirement.includes('cancel-in-progress: false'), 'REQUIREMENT_CONCURREN
 assert(requirement.indexOf(requirementConcurrencyContract) > requirement.indexOf('verify-requirement-adapter-coverage:'), 'REQUIREMENT_JOB_LEVEL_CONCURRENCY_MISSING');
 assert(requirement.includes('resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs') && requirement.includes('-f name="$CANONICAL_ARTIFACT_NAME"'), 'REQUIREMENT_CANONICAL_LEADER_READBACK_MISSING');
 assert(requirement.includes('build-asi-requirement-adapter-coverage-semantic-input-v1.mjs') && requirement.includes('coverage-semantic-input-receipt-v1.json'), 'REQUIREMENT_SEMANTIC_INPUT_RECEIPT_MISSING');
-assert(requirement.includes('run-name: KIDULTS Coverage /') && requirement.includes('-f head_sha="$SOURCE_SHA"'), 'REQUIREMENT_SOURCE_TITLE_PRIOR_SUCCESS_BINDING_MISSING');
-assert(requirement.includes('PRIOR_SUCCESS_COUNT') && requirement.includes('prior-success-runs.json'), 'REQUIREMENT_EVENTUAL_VISIBILITY_GUARD_MISSING');
-assert(!requirement.includes('--paginate') && requirement.includes('-f branch=main -f head_sha="$SOURCE_SHA" -f event=workflow_run -f status=success') && requirement.includes('--mode coverage-prior-success') && runHistory.includes('COVERAGE_PRIOR_SUCCESS_TITLE_FILTER_DRIFT') && runHistory.includes('pagination_required_for_count: false'), 'REQUIREMENT_PRIOR_SUCCESS_SOURCE_TITLE_QUERY_MISSING');
+assert(requirement.includes('run-name: KIDULTS Coverage /') && requirement.includes('CANONICAL_ARTIFACT_NAME='), 'REQUIREMENT_SOURCE_TITLE_CANONICAL_ARTIFACT_BINDING_MISSING');
+assert(requirement.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'REQUIREMENT_CANONICAL_ARTIFACT_PRODUCER_PROOF_MISSING');
+assert(!requirement.includes('prior-success-runs.json') && !requirement.includes('--mode coverage-prior-success'), 'REQUIREMENT_SUCCESS_ENVELOPE_PRODUCER_PROOF_FORBIDDEN');
 assert(requirement.includes("if: success() && env.KIDULTS_COVERAGE_EXECUTE_FULL == 'true' && env.KIDULTS_COVERAGE_EPHEMERAL_LEADER == 'true'"), 'REQUIREMENT_FINAL_LEADER_PUBLICATION_MISSING');
 assert(requirement.includes('validate-safe-zip-archive-v1.py'), 'REQUIREMENT_PRE_EXTRACTION_LIMITS_MISSING');
 assert(requirement.includes("const upstreamClass='ASI_AUTONOMOUS_RESOLUTION'") && requirement.includes('canonical_run_key:canonicalRunKey'), 'REQUIREMENT_CANONICAL_RUN_BINDING_MISSING');
@@ -155,8 +155,8 @@ const requirementConcurrencyMutation = requirement.replace("github.event.workflo
 assert(requirementConcurrencyMutation !== requirement && !requirementConcurrencyMutation.includes(requirementConcurrencyContract), 'REQUIREMENT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const requirementCancellationMutation = requirement.replace('cancel-in-progress: false', 'cancel-in-progress: true');
 assert(requirementCancellationMutation !== requirement && !requirementCancellationMutation.includes('cancel-in-progress: false'), 'REQUIREMENT_CANCELLATION_MUTATION_NOT_DETECTED');
-const requirementVisibilityMutation = requirement.replace('PRIOR_SUCCESS_COUNT', 'IGNORED_PRIOR_SUCCESS_COUNT');
-assert(requirementVisibilityMutation !== requirement && requirementVisibilityMutation.includes('IGNORED_PRIOR_SUCCESS_COUNT'), 'REQUIREMENT_VISIBILITY_GUARD_MUTATION_NOT_DETECTED');
+const requirementVisibilityMutation = requirement.replace('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"', 'PRIOR_SUCCESS_COUNT="1"');
+assert(requirementVisibilityMutation !== requirement && !requirementVisibilityMutation.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'REQUIREMENT_VISIBILITY_GUARD_MUTATION_NOT_DETECTED');
 const requirementCanonicalBindingMutation = requirement.replace('canonical_run_key:canonicalRunKey', 'canonical_run_key:String(run.id)');
 assert(requirementCanonicalBindingMutation !== requirement && !requirementCanonicalBindingMutation.includes('canonical_run_key:canonicalRunKey'), 'REQUIREMENT_CANONICAL_RUN_BINDING_MUTATION_NOT_DETECTED');
 const requirementSemanticInputMutation = requirement.replaceAll('build-asi-requirement-adapter-coverage-semantic-input-v1.mjs', 'build-raw-run-identity-v1.mjs');

@@ -142,7 +142,12 @@ assert(resolutionReceipt.id === input.resolution_receipt_id && resolutionReceipt
 assert(resolutionReceipt.version === '1.1.0', 'RESOLUTION_RECEIPT_VERSION');
 assert(resolutionReceipt.trigger_event === 'workflow_run' && resolutionReceipt.exact_triggering_run_bound === true, 'RESOLUTION_RECEIPT_EXACT_TRIGGER_REQUIRED');
 assert(resolutionReceipt.artifact_role === 'AUTHORITATIVE_CONSUMABLE' && resolutionReceipt.authoritative_producer === true && resolutionReceipt.downstream_consumable === true, 'RESOLUTION_RECEIPT_AUTHORITATIVE_PRODUCER_REQUIRED');
-const authoritativeGenerationKey = `${resolutionReceipt.source_sha}:${resolutionReceipt.p1_workflow_run_id}:${resolutionReceipt.p1_artifact_id}:${resolutionReceipt.p1_artifact_digest}`;
+assert(resolutionReceipt.transactionally_paired_artifacts === true, 'RESOLUTION_RECEIPT_TRANSACTIONAL_PAIR_REQUIRED');
+assert(Number.isSafeInteger(resolutionReceipt.p0b_artifact_id) && resolutionReceipt.p0b_artifact_id > 0, 'RESOLUTION_RECEIPT_P0B_ARTIFACT_ID_INVALID');
+assert(/^sha256:[0-9a-f]{64}$/.test(resolutionReceipt.p0b_artifact_digest), 'RESOLUTION_RECEIPT_P0B_ARTIFACT_DIGEST_INVALID');
+assert(Number.isSafeInteger(resolutionReceipt.p1_artifact_id) && resolutionReceipt.p1_artifact_id > 0, 'RESOLUTION_RECEIPT_P1_ARTIFACT_ID_INVALID');
+assert(/^sha256:[0-9a-f]{64}$/.test(resolutionReceipt.p1_artifact_digest), 'RESOLUTION_RECEIPT_P1_ARTIFACT_DIGEST_INVALID');
+const authoritativeGenerationKey = `${resolutionReceipt.source_sha}:${resolutionReceipt.p1_workflow_run_id}:${resolutionReceipt.p0b_artifact_id}:${resolutionReceipt.p0b_artifact_digest}:${resolutionReceipt.p1_artifact_id}:${resolutionReceipt.p1_artifact_digest}`;
 assert(resolutionReceipt.authoritative_generation_key === authoritativeGenerationKey, 'RESOLUTION_RECEIPT_GENERATION_KEY_MISMATCH');
 assert(artifactBinding.authoritative_generation_key === authoritativeGenerationKey, 'ARTIFACT_BINDING_GENERATION_KEY_MISMATCH');
 assert(resolutionReceipt.producer_workflow_run_id === artifactBinding.workflow_run_id && resolutionReceipt.producer_display_title === artifactBinding.producer_display_title, 'RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH');
@@ -987,7 +992,7 @@ const outputManifest = {
     },
   },
   output_files: outputs,
-  autonomous_effect: 'POSITIVE_ALL_672_PREFLIGHT_ACTIONS_TERMINAL_AND_REMAINING_REQUIREMENTS_SPLIT_TO_SOURCE_DISCOVERY_OR_SCHEMA_BOUND_ACTIVATION',
+  autonomous_effect: `POSITIVE_ALL_${resolutionManifest.results?.terminal_actions}_PREFLIGHT_ACTIONS_TERMINAL_AND_REMAINING_REQUIREMENTS_SPLIT_TO_SOURCE_DISCOVERY_OR_SCHEMA_BOUND_ACTIVATION`,
   global_effect: 'POSITIVE_ALL_192_SCOPE_REGION_EVIDENCE_REQUIREMENTS_RETAINED_WITHOUT_CALLING_SOURCE_COUNT_GLOBAL_EVIDENCE',
   irreplaceable_value_effect: 'POSITIVE_KIDULTS_OWNED_REQUIREMENT_TO_SOURCE_CLAIM_CEILING_LINEAGE_AND_SWITCHING_GAPS',
   transparency_effect: 'POSITIVE_REGISTERED_IMPLEMENTED_CONTEXT_EMPIRICAL_AND_RELEASE_STATES_SEPARATED_WITH_DIGESTS',
