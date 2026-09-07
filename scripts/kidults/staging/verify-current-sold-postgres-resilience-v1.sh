@@ -10,14 +10,18 @@ psql_cmd=(psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN")
 "${psql_cmd[@]}" --file=infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql
 
 receipt_values() {
-  local suffix="$1" digest_char="$2"
-  printf "('csr_%024d','sha256:%064d','synthetic-batch-%s','PASS','%s','kir-fixture-postgres-1','sha256:%064d','sha256:%064d','sha256:%064d','{\"receipt_id\":\"csr_%024d\",\"batch_id\":\"synthetic-batch-%s\",\"status\":\"PASS\",\"source_sha\":\"%s\",\"canonical_run_id\":\"kir-fixture-postgres-1\",\"envelope_digest\":\"sha256:%064d\",\"event_versions_digest\":\"sha256:%064d\",\"evidence_digest\":\"sha256:%064d\"}'::jsonb)" \
-    "$suffix" "$digest_char" "$suffix" "$CURRENT_SOLD_EXPECTED_HEAD_SHA" 4 5 6 "$suffix" "$suffix" "$CURRENT_SOLD_EXPECTED_HEAD_SHA" 4 5 6
+  local id_char="$1" digest_char="$2" id='' digest_value=''
+  printf -v id '%*s' 24 ''
+  printf -v digest_value '%*s' 64 ''
+  id="${id// /$id_char}"
+  digest_value="${digest_value// /$digest_char}"
+  printf "('csr_%s','sha256:%s','synthetic-batch-%s','PASS','%s','kir-fixture-postgres-1','sha256:%064d','sha256:%064d','sha256:%064d','{\"receipt_id\":\"csr_%s\",\"batch_id\":\"synthetic-batch-%s\",\"status\":\"PASS\",\"source_sha\":\"%s\",\"canonical_run_id\":\"kir-fixture-postgres-1\",\"envelope_digest\":\"sha256:%064d\",\"event_versions_digest\":\"sha256:%064d\",\"evidence_digest\":\"sha256:%064d\"}'::jsonb)" \
+    "$id" "$digest_value" "$id_char" "$CURRENT_SOLD_EXPECTED_HEAD_SHA" 4 5 6 "$id" "$id_char" "$CURRENT_SOLD_EXPECTED_HEAD_SHA" 4 5 6
 }
 
-rollback_receipt="$(receipt_values 1 7)"
-commit_receipt="$(receipt_values 2 8)"
-disconnect_receipt="$(receipt_values 3 9)"
+rollback_receipt="$(receipt_values a 7)"
+commit_receipt="$(receipt_values b 8)"
+disconnect_receipt="$(receipt_values c 9)"
 
 "${psql_cmd[@]}" <<SQL
 BEGIN;
@@ -27,7 +31,7 @@ VALUES $rollback_receipt;
 ROLLBACK;
 SELECT CASE WHEN count(*)=0 THEN 1 ELSE 1/0 END
   FROM kidults_private.current_sold_batch_receipt_ledger
- WHERE receipt_id='csr_000000000000000000000001';
+ WHERE receipt_id='csr_aaaaaaaaaaaaaaaaaaaaaaaa';
 
 BEGIN;
 INSERT INTO kidults_private.current_sold_batch_receipt_ledger
@@ -36,7 +40,7 @@ VALUES $commit_receipt;
 COMMIT;
 SELECT CASE WHEN count(*)=1 THEN 1 ELSE 1/0 END
   FROM kidults_private.current_sold_batch_receipt_ledger
- WHERE receipt_id='csr_000000000000000000000002';
+ WHERE receipt_id='csr_bbbbbbbbbbbbbbbbbbbbbbbb';
 SQL
 
 PGAPPNAME=kidults_current_sold_disconnect "${psql_cmd[@]}" <<SQL >/tmp/current-sold-disconnect.log 2>&1 &
@@ -60,7 +64,7 @@ if wait "$disconnect_pid"; then
   echo 'disconnect transaction unexpectedly committed' >&2
   exit 1
 fi
-"${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_000000000000000000000003'" | grep -qx '0'
+"${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_cccccccccccccccccccccccc'" | grep -qx '0'
 
 docker restart "$KIR_SQL_TEST_CONTAINER_ID" >/dev/null
 for _ in $(seq 1 30); do
@@ -68,7 +72,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 pg_isready --dbname="$KAIOS_POSTGRES_DSN" >/dev/null
-"${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_000000000000000000000002'" | grep -qx '1'
+"${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_bbbbbbbbbbbbbbbbbbbbbbbb'" | grep -qx '1'
 
 mkdir -p out/current-sold-postgres-resilience
 cat > out/current-sold-postgres-resilience/receipt.json <<JSON
