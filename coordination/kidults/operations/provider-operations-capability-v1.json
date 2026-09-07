@@ -1,0 +1,64 @@
+{
+  "id": "kidults-provider-operations-capability-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "scope": "INTERNAL_PROVIDER_OPERATIONS_ONLY",
+  "source_bindings": {
+    "provider_registry": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+    "rights_manifest": "coordination/kidults/governance/field-level-rights-release-manifest-v1.json",
+    "adapter_manifest": "coordination/kidults/synthetic/launch-cohort-provider-adapters-v1.json",
+    "communication_evidence": "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json"
+  },
+  "adapter_identity_bindings": {
+    "PSA": "PSA_PREMIUM",
+    "EBAY": "EBAY_MARKETPLACE_INSIGHTS",
+    "CLASSIC_COM": "CLASSIC_COM",
+    "HERITAGE": "HERITAGE",
+    "GOLDIN": "GOLDIN",
+    "BRING_A_TRAILER": "BRING_A_TRAILER"
+  },
+  "lifecycle": ["DISCOVERY", "EVALUATION", "RIGHTS", "QUALIFICATION", "READY", "ACTIVE", "SUSPENDED", "RETIRED"],
+  "transitions": {
+    "DISCOVERY": ["EVALUATION", "RETIRED"],
+    "EVALUATION": ["RIGHTS", "RETIRED"],
+    "RIGHTS": ["QUALIFICATION", "SUSPENDED", "RETIRED"],
+    "QUALIFICATION": ["READY", "SUSPENDED", "RETIRED"],
+    "READY": ["ACTIVE", "SUSPENDED", "RETIRED"],
+    "ACTIVE": ["SUSPENDED", "RETIRED"],
+    "SUSPENDED": ["EVALUATION", "RIGHTS", "QUALIFICATION", "READY", "ACTIVE", "RETIRED"],
+    "RETIRED": []
+  },
+  "activation_controls": ["RIGHTS", "QUALIFICATION", "EVIDENCE", "CURRENT_SOLD", "OPERATIONAL_HEALTH"],
+  "qualification_controls": ["SCHEMA", "EVIDENCE", "CONFIDENCE", "CURRENT_SOLD", "TRACK_B", "QUALIFICATION"],
+  "evidence_controls": ["FRESHNESS", "COVERAGE", "INTEGRITY", "GROWTH", "QUALITY", "DRIFT"],
+  "current_sold_controls": ["FRESHNESS", "COVERAGE", "LATENCY", "QUALIFICATION", "HEALTH"],
+  "incident_lifecycle": ["DETECTED", "CLASSIFIED", "ASSIGNED", "MITIGATED", "RECOVERED", "VERIFIED", "CLOSED", "AUDITED"],
+  "observability": ["PROVIDER", "RIGHTS", "EVIDENCE", "QUALIFICATION", "CURRENT_SOLD", "RUNTIME", "PORTAL", "INTEGRATION"],
+  "automation": {
+    "dimensions": ["PROVIDER_HEALTH", "SCHEMA_DRIFT", "RIGHTS_DRIFT", "EVIDENCE_DRIFT", "QUALIFICATION_DRIFT", "CURRENT_SOLD_DRIFT"],
+    "alert_policy": "STATE_CHANGE_ONLY_FOR_READY_ACTIVE_OR_SUSPENDED_PROVIDER",
+    "duplicate_policy": "SUPPRESS_BY_PROVIDER_DIMENSION_AND_RESULTING_STATE",
+    "unknown_behavior": "BLOCK",
+    "missing_behavior": "BLOCK"
+  },
+  "console": {
+    "audience": "INTERNAL_OPERATOR",
+    "format": "MACHINE_READABLE_JSON",
+    "business_metrics_prohibited": true,
+    "marketing_content_prohibited": true
+  },
+  "authority_boundary": {
+    "provider_activation_authorized": false,
+    "external_communication_authorized": false,
+    "credential_use_authorized": false,
+    "provider_network_calls_authorized": false,
+    "rights_inference_authorized": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "autonomous_effect": "A deterministic operator snapshot and state-change-only drift detector reduce manual reconciliation without activating providers.",
+  "global_effect": "Every provider present in the canonical registry or adapter inventory is placed into the same lifecycle without claiming empirical global coverage.",
+  "irreplaceable_value_effect": "Provider identities remain replaceable inputs bound to KIDULTS-owned lifecycle, rights, evidence, incident and audit records.",
+  "transparency_effect": "Every lifecycle state, failed activation control, incident transition and emitted alert is source-bound and digest-verifiable."
+}
