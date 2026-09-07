@@ -251,7 +251,6 @@ const scheduledA = classifyCanonicalIdentity({
   upstream_created_at: '2026-08-29T23:31:01.000Z',
 }, contract, contractText);
 const scheduledSameProducerSameSlot = classifyCanonicalIdentity({
-  ...scheduledA.upstream,
   ...base,
   run_id: '9302',
   upstream_run_id: '8302',
@@ -270,7 +269,6 @@ const scheduledDifferentProducerSameSlot = classifyCanonicalIdentity({
   upstream_created_at: '2026-08-29T23:49:59.000Z',
 }, contract, contractText);
 const scheduledNextSlot = classifyCanonicalIdentity({
-  ...scheduledA.upstream,
   ...base,
   run_id: '9304',
   upstream_run_id: '8304',
