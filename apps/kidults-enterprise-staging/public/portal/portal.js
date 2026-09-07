@@ -8,6 +8,7 @@ import { startMobileHeroVisibility } from "./components/mobile-hero-visibility.j
 import { startAssetBindingHotfix } from "./components/editorial-assets.js?v=662-visual95-final";
 import { startHomepageStructure } from "./components/homepage-structure.js?v=662-visual95-final";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
+import { startV587DecisionIntelligence } from "./components/v587-decision-intelligence.js";
 import {
   renderHero,
   renderRegistryRibbon,
@@ -100,6 +101,7 @@ async function init() {
     startMobileReconstruction();
     startMobileHeroVisibility({ manifest: data.manifest });
     startHomepageStructure();
+    startV587DecisionIntelligence(data);
 
     document.documentElement.dataset.dataState = determineDataState(data);
     window.KIDULTS_V502 = Object.freeze({

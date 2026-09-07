@@ -118,7 +118,8 @@ function resultMarkup(record) {
   return `
     <a class="search-result" href="${esc(record.href)}">
       <span class="search-result-type">${esc(record.type)}</span>
-      <div><h3>${esc(record.title)}</h3><p>${esc(record.description)}</p></div>
+      <div><h3>${esc(record.title)}</h3><p>${esc(record.description)}</p>
+        <small class="search-result-evidence">${esc(record.canonicalState ?? "CANONICAL PREVIEW")} → ${esc(record.evidencePreview ?? "Evidence preview unavailable")}</small></div>
       <span aria-hidden="true">→</span>
     </a>
   `;

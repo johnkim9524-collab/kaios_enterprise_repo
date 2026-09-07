@@ -1,5 +1,6 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
+import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js";
 
 const esc = value =>
   String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -148,14 +149,18 @@ async function init() {
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
-    const [manifest, verticals, k100] = await Promise.all([
+    const [manifest, verticals, k100, registry] = await Promise.all([
       getJson("data/v502-manifest.json?v=652"),
       getJson("data/verticals.json?v=652"),
-      getJson("data/kidult100.json?v=652")
+      getJson("data/kidult100.json?v=652"),
+      getJson("data/registry-view.json?v=phase2-1")
     ]);
 
     if (type === "vertical") renderVertical(root, verticals, manifest, id);
-    else if (type === "object") renderObject(root, k100, manifest, id);
+    else if (type === "object") {
+      renderObject(root, k100, manifest, id);
+      enrichObjectDetailV587({ root, object: k100.items.find(item => item.id === id), k100, manifest, registry });
+    }
     else throw new Error(`Unsupported detail type: ${type}`);
     startAccessibilityR1();
     window.setTimeout(() => window.KIDULTS_MOBILE?.audit?.(), 80);

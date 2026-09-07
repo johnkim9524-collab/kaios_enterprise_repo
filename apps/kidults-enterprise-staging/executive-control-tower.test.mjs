@@ -64,7 +64,7 @@ async function runDashboardUi({ initial, incoming, fetchError = false, observedA
     static now() { return observedAt; }
   }
   const script = inlineScript.replace(
-    /const D = \{.*?\};\n    const esc=/s,
+    /const D = \{.*?\};\r?\n    const esc=/s,
     `const D = ${JSON.stringify(initial)};\n    const esc=`
   );
   assert.notEqual(script, inlineScript, 'test snapshot must replace the embedded fallback');
@@ -137,7 +137,7 @@ test('dashboard supports latest governed snapshot refresh', () => {
   assert.match(html, /control-tower-snapshot-v1\.json/);
   assert.match(html, /cache:'no-store'/);
   assert.doesNotMatch(html, /PR #1655|protected landing 대기/);
-  const embedded = html.match(/const D = (\{.*?\});\n\s+const esc=/s);
+  const embedded = html.match(/const D = (\{.*?\});\r?\n\s+const esc=/s);
   assert.ok(embedded, 'embedded governed fallback snapshot is required');
   assert.deepEqual(JSON.parse(embedded[1]), snapshot);
   assert.match(html, /freshnessBanner/);
@@ -415,7 +415,7 @@ test('self-consistent semantic forgery is rejected after source digest verificat
   forged.headline = 'FORGED RIGHTS CLEAR 999';
   fs.writeFileSync(snapshotPath, `${JSON.stringify(forged, null, 2)}\n`);
   const embedded = JSON.stringify(forged).replaceAll('<', '\\u003c');
-  const forgedHtml = fs.readFileSync(htmlPath, 'utf8').replace(/    const D = \{.*?\};\n    const esc=/s, `    const D = ${embedded};\n    const esc=`);
+  const forgedHtml = fs.readFileSync(htmlPath, 'utf8').replace(/    const D = \{.*?\};\r?\n    const esc=/s, `    const D = ${embedded};\n    const esc=`);
   fs.writeFileSync(htmlPath, forgedHtml);
   const validate = spawnSync(process.execPath, ['scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs', snapshotPath, htmlPath], {
     cwd: root,
@@ -442,7 +442,7 @@ test('self-declared fresh evidence state is rejected even with matching embedded
   forged.freshness.evidence.state_at_build = 'FRESH';
   fs.writeFileSync(snapshotPath, `${JSON.stringify(forged, null, 2)}\n`);
   const embedded = JSON.stringify(forged).replaceAll('<', '\\u003c');
-  const forgedHtml = fs.readFileSync(htmlPath, 'utf8').replace(/    const D = \{.*?\};\n    const esc=/s, `    const D = ${embedded};\n    const esc=`);
+  const forgedHtml = fs.readFileSync(htmlPath, 'utf8').replace(/    const D = \{.*?\};\r?\n    const esc=/s, `    const D = ${embedded};\n    const esc=`);
   fs.writeFileSync(htmlPath, forgedHtml);
   const validate = spawnSync(process.execPath, ['scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs', snapshotPath, htmlPath], {
     cwd: root,

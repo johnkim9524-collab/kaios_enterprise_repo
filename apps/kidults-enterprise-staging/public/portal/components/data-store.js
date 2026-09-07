@@ -116,6 +116,8 @@ function buildSearchIndex({ verticals, k100, research, archive }) {
       title: vertical.name,
       description: `${vertical.summary} ${vertical.representative_scope.join(" ")}`,
       href: `vertical.html?id=${encodeURIComponent(vertical.id)}`,
+      canonicalState: "CANONICAL VERTICAL",
+      evidencePreview: `${vertical.relevant ?? "NOT AVAILABLE"} registered records · rights ${vertical.rights_status ?? "HOLD"}`,
       keywords: [vertical.short_name, vertical.slug, ...vertical.representative_scope]
     });
   }
@@ -126,6 +128,8 @@ function buildSearchIndex({ verticals, k100, research, archive }) {
       title: item.title,
       description: `${item.category}. ${item.status}. ${item.provenance}`,
       href: `object.html?id=${encodeURIComponent(item.id)}`,
+      canonicalState: item.entity_image_verified === true ? "CANONICAL VERIFIED" : "EDITORIAL IDENTITY ONLY",
+      evidencePreview: `${item.confidence ?? "NOT AVAILABLE"} confidence · rights ${item.rights_status ?? "HOLD"}`,
       keywords: [item.category, item.vertical_id, item.status]
     });
   }
@@ -135,6 +139,8 @@ function buildSearchIndex({ verticals, k100, research, archive }) {
     title: research.title,
     description: `${research.subtitle}. ${research.summary}`,
     href: "#research",
+    canonicalState: "RESEARCH",
+    evidencePreview: "Evidence timeline · reasoning · market context · conclusion",
     keywords: research.sections.flatMap(section => [section.title, section.summary])
   });
 
@@ -144,6 +150,8 @@ function buildSearchIndex({ verticals, k100, research, archive }) {
       title: edition.title,
       description: `${edition.edition}. ${edition.subtitle}. ${edition.status}`,
       href: "#archive",
+      canonicalState: "HISTORICAL",
+      evidencePreview: `${edition.status} · preserved edition context`,
       keywords: [edition.edition, edition.status]
     });
   }

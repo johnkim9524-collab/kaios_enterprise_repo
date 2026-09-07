@@ -6,6 +6,7 @@ import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
+import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js";
 
 function human(value) {
   return String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
@@ -77,6 +78,7 @@ async function init() {
     const data = await loadPortalData();
     renderContext(data);
     const mode = mountWorkspace(data);
+    startV587WorkspaceDecisionFlow(data);
     startMobileReconstruction();
     startAccessibilityR1();
 
