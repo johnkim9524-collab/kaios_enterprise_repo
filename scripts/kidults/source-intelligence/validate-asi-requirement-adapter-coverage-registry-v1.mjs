@@ -191,6 +191,9 @@ for (const marker of [
   "g5: 'HOLD'",
   'RIGHTS_CLEAR',
   'purposeRightsPreflight',
+  'RESOLUTION_RECEIPT_TRANSACTIONAL_PAIR_REQUIRED',
+  'resolutionReceipt.p0b_artifact_id',
+  'resolutionReceipt.p0b_artifact_digest',
 ]) assert(builder.includes(marker), `BUILDER_CONTROL_MARKER:${marker}`);
 for (const marker of [
   'LEDGER_REQUIREMENT_COUNT',
@@ -200,6 +203,7 @@ for (const marker of [
   'OUTPUT_REBUILD_MISMATCH',
   'OUTPUT_MANIFEST_ACCOUNTING',
   'COVERAGE_PURPOSE_RIGHTS_BINDING',
+  'resolutionManifest.results?.original_actions',
 ]) assert(validator.includes(marker), `VALIDATOR_CONTROL_MARKER:${marker}`);
 
 for (const marker of [
@@ -212,7 +216,9 @@ for (const marker of [
   'node-version: \'24.19.0\'',
   'source_sha_ancestor_of_consumer',
   'Build requirement coverage twice',
+  'Reject incomplete paired-artifact generation key mutation',
   'Reject denominator-substitution mutation',
+  'Reject fixed or forged preflight totals mutation',
   'Reject legacy metric reintroduction mutation',
   'Reject registered-claim inheritance mutation',
   'Reject context-as-parser mutation',
