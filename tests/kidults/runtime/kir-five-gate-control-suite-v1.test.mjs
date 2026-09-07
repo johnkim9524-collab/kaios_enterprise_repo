@@ -83,6 +83,6 @@ test('invalid source still leaves a durable fail-closed CLI receipt, not a PASS'
 test('existing KIR must fail when integrated gate fails; all logs are retained without extra authority',()=>{
  const w=fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml','utf8');
  for(const x of ['id: five_gate_regression','FIVE_GATE_OUTCOME: ${{ steps.five_gate_regression.outcome }}',"('FIVE_GATE',os.environ.get('FIVE_GATE_OUTCOME',''))",'run-kir-five-gate-control-suite-v1.mjs run','run-kir-five-gate-control-suite-v1.mjs verify','kidults-kir-five-gate-controls-'])assert.ok(w.includes(x),x);
- assert.ok(w.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
+ assert.ok(w.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
  assert.ok(!w.includes('secrets.'));assert.ok(!w.includes('contents: write'));assert.ok(!/^  workflow_run:/m.test(w));
 });

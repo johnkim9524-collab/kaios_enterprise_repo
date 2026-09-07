@@ -137,6 +137,14 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
  assert.ok(assurance.includes(`github.event.workflow_run.path == '${coveragePath}'`));
  assert.ok(assurance.includes("'), github.event.workflow_run.path)"));
+ assert.ok(covSource.includes('dispatch-kir-coverage-assurance:'));
+ assert.ok(covSource.includes('kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}'));
+ assert.ok(covSource.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
+ assert.ok(assurance.includes("inputs.coverage_run_id != '' && 'workflow_run' || github.event_name"));
+ assert.ok(assurance.includes('Reject partial forwarded Coverage continuation inputs'));
+ assert.ok(assurance.includes('PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN'));
+ assert.ok(assurance.includes('Validate and consume forwarded exact Coverage continuation'));
+ assert.ok(assurance.includes('CONSUME_REPLAY_DETECTED') || fs.readFileSync('scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs','utf8').includes('CONSUME_REPLAY_DETECTED'));
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
  assert.ok(!/^  workflow_run:/m.test(strict));
@@ -179,6 +187,6 @@ test('expected event cannot widen canonical producer authority', () => {
 });
 test('KIR regression includes the real semantic-chain regression without dropping existing tests', () => {
  const text = fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml', 'utf8');
- assert.ok(text.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
+ assert.ok(text.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
  for (const file of ['kir-readiness-evidence-intake-v1.test.mjs', 'current-sold-postgres-ledger-atomic-recompute-v1.test.mjs', 'source-intelligence-writer-snapshot-v1.test.mjs']) assert.ok(text.includes(file));
 });

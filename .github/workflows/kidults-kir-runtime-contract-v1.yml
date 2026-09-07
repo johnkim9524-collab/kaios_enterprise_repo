@@ -28,6 +28,8 @@ on:
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs'
+      - 'tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs'
       - 'scripts/kidults/kpmo/initialize-atomic-dispatch-terminal-receipt-v1.mjs'
       - 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs'
       - 'tests/kidults/kpmo/atomic-*.test.mjs'
@@ -63,6 +65,8 @@ on:
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs'
+      - 'tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs'
       - 'scripts/kidults/kpmo/initialize-atomic-dispatch-terminal-receipt-v1.mjs'
       - 'scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs'
       - 'tests/kidults/kpmo/atomic-*.test.mjs'
@@ -170,7 +174,7 @@ jobs:
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
+          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
 
       - name: Run all five KIR integration control gates on one exact source
         id: five_gate_regression

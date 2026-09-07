@@ -37,6 +37,7 @@ export const GATES=Object.freeze([
  ],live_exit:'CURRENT_MAIN_AUTHORIZED_CANONICAL_APPLY_AND_NATIVE_LIVE_CONTENT'},
  {id:'SEMANTIC',tests:[
   'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs',
+  'tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs',
   'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
   'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs',
   'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs',

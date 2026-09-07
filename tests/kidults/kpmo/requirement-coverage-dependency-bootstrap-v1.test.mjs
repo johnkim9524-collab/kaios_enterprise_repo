@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import {
+  PINNED_SETUP_NODE,
   REQUIRED_INSTALL_COMMAND,
   WORKFLOW_PATH,
   validateRequirementCoverageDependencyBootstrap
@@ -14,12 +15,19 @@ function expectCode(text, code) {
   assert.throws(() => validateRequirementCoverageDependencyBootstrap(text), new RegExp(code));
 }
 
-test('current requirement coverage workflow has one locked dependency bootstrap before runtime consumers', () => {
+test('current requirement coverage workflow has one locked dependency install and pinned Node in every Node consumer job', () => {
   const receipt = validateRequirementCoverageDependencyBootstrap(readWorkflow());
   assert.equal(receipt.state, 'VERIFIED_PASS');
   assert.equal(receipt.locked_install_count, 1);
   assert.equal(receipt.install_precedes_dependency_consumer, true);
+  assert.equal(receipt.pinned_setup_node_count, 2);
   assert.equal(receipt.production_authorized, false);
+});
+
+test('missing or mutable setup-node fails closed across multiple Node consumer jobs', () => {
+  const pristine = readWorkflow();
+  expectCode(pristine.replace(PINNED_SETUP_NODE, 'uses: actions/setup-node@v7'), 'REQUIREMENT_COVERAGE_SETUP_NODE_PINNING');
+  expectCode(pristine.replaceAll(PINNED_SETUP_NODE, 'uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'), 'REQUIREMENT_COVERAGE_SETUP_NODE_REQUIRED');
 });
 
 test('removing or weakening the locked install fails closed', () => {
