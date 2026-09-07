@@ -1,5 +1,5 @@
 import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
-import { operationalPortalValue } from "./v587-decision-intelligence.js?v=587-final-polish-1";
+import { operationalPortalValue } from "./v587-decision-intelligence.js?v=587-presence-1";
 
 const STORAGE_KEY = "kidults-v587-watchlist-v1";
 const STYLE_ID = "kidults-v587-decision-intelligence-style";
@@ -83,7 +83,7 @@ function ensureStylesheet() {
   const link = document.createElement("link");
   link.id = STYLE_ID;
   link.rel = "stylesheet";
-  link.href = "components/v587-decision-intelligence.css?v=587-final-polish-1";
+  link.href = "components/v587-decision-intelligence.css?v=587-presence-1";
   document.head.append(link);
 }
 

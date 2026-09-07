@@ -40,7 +40,7 @@ export function operationalPortalValue(label, value, now = Date.now()) {
   }
   if (label === "Current SOLD" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Current SOLD not yet qualified";
   if (label === "Evidence" || label === "Evidence Coverage") {
-    if (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE")) return "Evidence not yet available";
+    if (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE") || normalized.includes("WAITING")) return "Evidence not yet available";
   }
   if (label === "Timeline" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Awaiting provider qualification";
   if (label === "Sources" && (EMPTY_STATES.has(normalized) || normalized.includes("NOT AVAILABLE"))) return "Evidence not yet available";
@@ -60,6 +60,39 @@ export function operationalPortalValue(label, value, now = Date.now()) {
     if (EMPTY_STATES.has(normalized) || normalized === "WAIT") return "Waiting for provider qualification";
   }
   return human(raw);
+}
+
+export function buildPresenceContext(data, objectModel = null) {
+  const registry = data?.registry ?? {};
+  const projectionState = data?.integrationBus?.state ?? data?.meta?.governedApiState ?? "NO_PROJECTION";
+  const evidence = operationalPortalValue("Evidence", registry.evidence?.status);
+  const qualification = operationalPortalValue("Qualification", registry.assessment?.gate_state ?? registry.assessment?.status);
+  const rights = operationalPortalValue("Rights", registry.release?.status);
+  const freshness = operationalPortalValue("Freshness", registry.freshness?.as_of);
+  const currentMarket = objectModel
+    ? operationalPortalValue("Current SOLD", objectModel.hierarchy.find(([label]) => label === "Current SOLD")?.[1])
+    : "Current Market not yet qualified";
+  const verifiedProjection = projectionState === "LIVE_APPROVED";
+  return Object.freeze({
+    projectionState,
+    marketPulse: verifiedProjection ? `Latest Evidence · ${freshness}` : "Market Pulse · Governed projection unavailable · Awaiting verified Evidence",
+    intelligenceStrip: verifiedProjection
+      ? `Latest verified intelligence · ${freshness}`
+      : "Latest verified intelligence · Awaiting a governed Evidence update",
+    objectLines: Object.freeze([
+      `Current Market · ${currentMarket}`,
+      `Evidence · ${evidence} · Confidence · ${objectModel ? operationalPortalValue("Confidence", objectModel.panel.confidence) : "Waiting for Evidence and Qualification"}`
+    ]),
+    workspace: `Evidence · ${evidence} · Qualification · ${qualification} · Rights · ${rights} · ${currentMarket}`,
+    research: Object.freeze([
+      `Evidence Window · ${evidence}`,
+      `Qualification Window · ${qualification}`
+    ]),
+    confidenceBasis: "Confidence · Evidence → Freshness → Rights → Qualification",
+    rights,
+    qualification,
+    freshness
+  });
 }
 
 function stateGuidance(label, value) {
@@ -355,6 +388,34 @@ function renderDecisionSnapshot(data, snapshot) {
   section.dataset.source = data?.registry?.projection_id ?? "NOT AVAILABLE";
 }
 
+function renderPresenceLayer(data) {
+  const hero = document.getElementById("discover");
+  if (!hero || document.querySelector("[data-v587-presence-strip]")) return;
+  const presence = buildPresenceContext(data);
+  const strip = document.createElement("section");
+  strip.className = "v587-intelligence-strip";
+  strip.dataset.v587PresenceStrip = "true";
+  strip.setAttribute("aria-label", "Latest verified intelligence");
+  strip.innerHTML = `<div class="shell"><strong>${esc(presence.intelligenceStrip)}</strong><span>${esc(presence.confidenceBasis)}</span></div>`;
+  hero.insertAdjacentElement("afterend", strip);
+
+  const marketSection = document.querySelector(".market-signals-section");
+  const marketEyebrow = marketSection?.querySelector(".section-heading .eyebrow");
+  const marketContext = marketSection?.querySelector(".section-heading > p");
+  if (marketEyebrow) marketEyebrow.textContent = "MARKET PULSE";
+  if (marketContext) marketContext.textContent = presence.marketPulse;
+
+  const researchHost = document.querySelector(".research-layout");
+  if (researchHost && !document.querySelector("[data-v587-research-context]")) {
+    const research = document.createElement("div");
+    research.className = "v587-research-context";
+    research.dataset.v587ResearchContext = "true";
+    research.setAttribute("aria-label", "Research context");
+    research.innerHTML = `<strong>RESEARCH CONTEXT</strong><span>${presence.research.map(esc).join("</span><span>")}</span>`;
+    researchHost.insertAdjacentElement("beforebegin", research);
+  }
+}
+
 function extendMarketCards(data) {
   const cards = [...document.querySelectorAll("[data-signal-grid] .signal-card")];
   cards.forEach((card, index) => {
@@ -393,6 +454,7 @@ export function startV587DecisionIntelligence(data) {
   ensureStylesheet();
   const snapshot = buildDecisionSnapshot(data);
   renderDecisionSnapshot(data, snapshot);
+  renderPresenceLayer(data);
   extendMarketCards(data);
   extendResearch(data);
   const drawer = ensureEvidenceDrawer();
@@ -408,7 +470,7 @@ export function startV587DecisionIntelligence(data) {
     provider: data.registry?.provider?.production_connection === "PROHIBITED" ? "NONE ACTIVATED" : "HOLD"
   }));
   document.documentElement.dataset.v587Intelligence = "1";
-  window.KIDULTS_V587_INTELLIGENCE = Object.freeze({ version: "1.0.0", snapshot, production: "HOLD", public: "HOLD", g5: "HOLD" });
+  window.KIDULTS_V587_INTELLIGENCE = Object.freeze({ version: "1.1.0", snapshot, presence: buildPresenceContext(data), production: "HOLD", public: "HOLD", g5: "HOLD" });
   return window.KIDULTS_V587_INTELLIGENCE;
 }
 
@@ -429,9 +491,16 @@ export function enrichObjectDetailV587({ root, object, k100, manifest, registry 
   panel.setAttribute("aria-label", "Decision panel");
   panel.innerHTML = `<p class="eyebrow">DECISION PANEL</p>${Object.entries(model.panel).map(([label, value]) => {
     const displayLabel = label === "track_b" ? "Qualification" : human(label).replace(/\b\w/g, character => character.toUpperCase());
-    return `<div><span>${esc(displayLabel)}</span><strong>${esc(operationalPortalValue(displayLabel, value))}</strong>${label === "confidence" ? `<small>${esc(model.confidence_explanation)}</small>` : stateGuidance(displayLabel, value) ? `<small>${esc(stateGuidance(displayLabel, value))}</small>` : ""}</div>`;
+    return `<div><span>${esc(displayLabel)}</span><strong>${esc(operationalPortalValue(displayLabel, value))}</strong>${label === "confidence" ? `<small>Evidence → Freshness → Rights → Qualification</small>` : stateGuidance(displayLabel, value) ? `<small>${esc(stateGuidance(displayLabel, value))}</small>` : ""}</div>`;
   }).join("")}`;
   root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", panel);
+
+  const presence = buildPresenceContext({ registry }, model);
+  const objectContext = document.createElement("section");
+  objectContext.className = "v587-object-context";
+  objectContext.setAttribute("aria-label", "Market context");
+  objectContext.innerHTML = `<strong>MARKET CONTEXT</strong>${presence.objectLines.map(line => `<span>${esc(line)}</span>`).join("")}`;
+  root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", objectContext);
 
   const drawer = ensureEvidenceDrawer();
   bindDrawer(drawer, () => model.evidence_drawer);

@@ -6,7 +6,8 @@ import { startWorkspace } from "./components/workspace.js";
 import { startMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
 import { setupNavigation } from "./components/interactions.js";
-import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js?v=587-final-polish-1";
+import { startV587WorkspaceDecisionFlow } from "./components/v587-workspace-decision-flow.js?v=587-presence-1";
+import { buildPresenceContext } from "./components/v587-decision-intelligence.js?v=587-presence-1";
 import { startWhyEngine } from "./components/why-engine.js";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";
@@ -54,6 +55,10 @@ function renderContext(data) {
       <dd>${human(value)}</dd>
     </div>
   `).join("");
+
+  const presence = buildPresenceContext(data);
+  const copy = document.querySelector(".workspace-page-context-copy");
+  if (copy) copy.innerHTML = `<b>Workspace Context</b><span>${presence.workspace}</span>`;
 }
 
 function mountWorkspace(data) {

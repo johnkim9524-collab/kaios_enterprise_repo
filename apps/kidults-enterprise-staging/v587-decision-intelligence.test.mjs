@@ -8,6 +8,7 @@ import {
   buildMarketCardMetadata,
   buildObjectDecisionModel,
   buildResearchDecisionFlow,
+  buildPresenceContext,
   operationalPortalValue
 } from "./public/portal/components/v587-decision-intelligence.js";
 import { buildWorkspaceDecisionPacket } from "./public/portal/components/v587-workspace-decision-flow.js";
@@ -329,4 +330,25 @@ test("keeps final experience polish inside existing V587 extension surfaces", ()
   assert.match(verticalPage, /Checking Evidence and Rights/);
   assert.match(workspacePage, /Checking Qualification/);
   assert.doesNotMatch(`${objectPage}${verticalPage}${workspacePage}`, />Loading(?: verified detail)?…</);
+});
+
+test("reveals only existing governed state through the thin V587 presence layer", () => {
+  const presence = buildPresenceContext({
+    integrationBus: { state: "NO_PROJECTION" },
+    registry: {
+      evidence: { status: "WAITING_FOR_NEW_BOUNDED_POC_EVIDENCE_PACKAGE" },
+      assessment: { gate_state: "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE" },
+      release: { status: "HOLD" },
+      freshness: { as_of: "NOT AVAILABLE" }
+    }
+  });
+  assert.equal(presence.intelligenceStrip, "Latest verified intelligence · Awaiting a governed Evidence update");
+  assert.equal(presence.marketPulse, "Market Pulse · Governed projection unavailable · Awaiting verified Evidence");
+  assert.match(presence.workspace, /Qualification · Awaiting provider qualification/);
+  assert.deepEqual(presence.research, ["Evidence Window · Evidence not yet available", "Qualification Window · Awaiting provider qualification"]);
+  assert.equal(presence.confidenceBasis, "Confidence · Evidence → Freshness → Rights → Qualification");
+  const implementation = read("public/portal/components/v587-decision-intelligence.js");
+  const styles = read("public/portal/components/v587-decision-intelligence.css");
+  assert.match(styles, /height:54px/);
+  assert.doesNotMatch(implementation, /predict|recommend|forecast/i);
 });

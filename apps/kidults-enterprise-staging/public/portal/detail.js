@@ -1,6 +1,6 @@
 import { startDetailMobileReconstruction } from "./components/mobile-reconstruction.js";
 import { startAccessibilityR1 } from "./components/accessibility-r1.js";
-import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-final-polish-1";
+import { enrichObjectDetailV587 } from "./components/v587-decision-intelligence.js?v=587-presence-1";
 import { loadPortalData } from "./components/data-store.js";
 import { beginPerformanceQualification } from "./components/v587-performance-qualification.js";
 import { startBusinessJourneyQualification } from "./components/v587-business-journey-qualification.js";

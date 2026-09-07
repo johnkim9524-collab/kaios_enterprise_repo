@@ -1,4 +1,9 @@
 /* V587 intelligence extension. Existing Hero, navigation, typography, grid, color, rhythm, footer and animation files remain frozen. */
+.v587-intelligence-strip{height:54px;border-bottom:1px solid var(--line);background:var(--paper)}
+.v587-intelligence-strip>div{height:100%;display:flex;align-items:center;justify-content:space-between;gap:24px}
+.v587-intelligence-strip strong,.v587-intelligence-strip span{font-size:9px;letter-spacing:.08em}
+.v587-intelligence-strip strong{color:var(--forest)}
+.v587-intelligence-strip span{color:var(--muted)}
 .v587-decision-snapshot{padding:0 0 clamp(42px,4vw,64px)}
 .v587-decision-snapshot>div{border-block:1px solid var(--line);padding-block:28px}
 .v587-decision-snapshot header{display:flex;align-items:end;justify-content:space-between;gap:30px;margin-bottom:22px}
@@ -24,6 +29,11 @@
 .v587-research-decision{display:grid;gap:3px;margin-left:auto;text-align:right}
 .v587-research-decision span{margin-left:0}
 .v587-research-decision a{color:inherit;font-weight:700;text-decoration:none}
+.v587-research-context,.v587-object-context{display:flex;align-items:center;gap:18px;border-block:1px solid var(--line);padding:13px 0;color:var(--muted)}
+.v587-research-context strong,.v587-object-context strong{color:var(--forest);font-size:9px;letter-spacing:.11em}
+.v587-research-context span,.v587-object-context span{font-size:10px;line-height:1.4}
+.v587-research-context span:last-child,.v587-object-context span:last-child{margin-left:auto}
+.v587-object-context{margin:14px 0}
 .v587-evidence-drawer{position:fixed;z-index:250;top:0;right:0;width:min(430px,92vw);height:100dvh;padding:30px;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--shadow);transform:translateX(102%);overflow:auto}
 .v587-evidence-drawer[data-open=true]{transform:translateX(0)}
 .v587-evidence-drawer header{display:flex;align-items:start;justify-content:space-between;gap:20px;padding-bottom:22px;border-bottom:1px solid var(--line)}
@@ -72,6 +82,8 @@
   .v587-decision-panel>.eyebrow{grid-column:1/-1}
 }
 @media(max-width:680px){
+  .v587-intelligence-strip>div,.v587-research-context,.v587-object-context{align-items:flex-start;flex-direction:column;justify-content:center;gap:3px}
+  .v587-research-context span:last-child,.v587-object-context span:last-child{margin-left:0}
   .v587-decision-snapshot header{display:block}
   .v587-decision-snapshot header>div:last-child{text-align:left;margin-top:14px}
   .v587-decision-snapshot__grid{grid-template-columns:repeat(2,minmax(0,1fr))}
