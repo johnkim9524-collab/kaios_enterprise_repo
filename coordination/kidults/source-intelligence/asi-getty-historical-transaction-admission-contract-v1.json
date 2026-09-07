@@ -1,10 +1,10 @@
 {
   "id": "kidults-asi-getty-historical-transaction-admission-contract-v1",
   "version": "1.0.0",
-  "status": "EXECUTION_CONTRACT_ACTIVE",
+  "status": "CONTROL_REPLAY_CONTRACT_ACTIVE",
   "owner": "KPMO",
   "priority": "P0",
-  "purpose": "Admit exactly one digest-bound CC0 Getty Provenance Index historical title-transfer record without promoting it to a current sold event, current price, demand, liquidity, index, public release, Production or G5.",
+  "purpose": "Parse exactly two committed Getty CC0 reference snapshots as non-promotable replay control; do not claim acquisition-time live verification, empirical admission, a historical event, current-market evidence, Public, Production or G5.",
   "platform_principles": [
     "AUTONOMOUS",
     "GLOBAL",
@@ -27,8 +27,8 @@
     "factual_origin_id": "knoedler-stock-book-a1983",
     "canonical_host": "data.getty.edu",
     "registered_top_16_source_profile": false,
-    "adapter_state": "ACTIVATED_EVIDENCE_BOUND_HISTORICAL_ONLY",
-    "activation_scope": "EXACT_TWO_SNAPSHOT_DIGESTS_ONE_HISTORICAL_TRANSACTION_ONLY"
+    "adapter_state": "REFERENCE_REPLAY_CONTROL_ONLY",
+    "activation_scope": "EXACT_TWO_COMMITTED_SNAPSHOT_DIGESTS_NO_ACQUISITION_RECEIPT"
   },
   "rights_policy": {
     "decision": "ALLOW",
@@ -48,15 +48,16 @@
     "historical_event_class": "HISTORICAL_TRANSACTION_EVENT",
     "amount_semantics": "DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE",
     "event_time_precision": "MONTH",
-    "maximum_evidence_records": 1,
-    "maximum_historical_transaction_events": 1,
+    "maximum_evidence_records": 0,
+    "maximum_historical_transaction_events": 0,
     "generic_market_event_allowed": false,
     "verified_current_sold_event_allowed": false,
     "current_price_allowed": false,
     "demand_allowed": false,
     "liquidity_allowed": false,
     "index_or_projection_allowed": false,
-    "top16_activation_inheritance_allowed": false
+    "top16_activation_inheritance_allowed": false,
+    "committed_reference_records_allowed": 1
   },
   "claim_ceiling": {
     "allowed": [
@@ -64,7 +65,7 @@
       "GETTY_RECORD_DOCUMENTS_A_1471_13_POUND_STERLING_MONETARY_AMOUNT",
       "GETTY_RECORD_BOUNDS_THE_ACTIVITY_TO_THE_1938_09_MONTH_WINDOW",
       "THE_BOUND_OBJECT_RECORD_IS_LABELED_JAMES_CHRISTIE_AND_STOCK_NUMBER_A1983",
-      "ONE_BOUNDED_HISTORICAL_TRANSACTION_PROVENANCE_RECORD_WAS_ADMITTED"
+      "TWO_COMMITTED_GETTY_REFERENCE_SNAPSHOTS_WERE_DETERMINISTICALLY_REPLAYED"
     ],
     "forbidden": [
       "EXACT_TRANSACTION_DAY",
@@ -78,7 +79,10 @@
       "CURRENT_RANKING",
       "MARKET_REPRESENTATIVENESS",
       "TOP16_SOURCE_ACTIVATED",
-      "CUSTOMER_FACING_MARKET_CLAIM"
+      "CUSTOMER_FACING_MARKET_CLAIM",
+      "LIVE_ACQUISITION_VERIFIED_WITHOUT_ACQUISITION_RECEIPT",
+      "EMPIRICAL_HISTORICAL_EVIDENCE_ADMITTED_WITHOUT_ACQUISITION_RECEIPT",
+      "HISTORICAL_TRANSACTION_EVENT_CREATED_FROM_COMMITTED_REPLAY"
     ]
   },
   "required_outputs": [
@@ -99,13 +103,18 @@
     "GENERIC_MARKET_EVENT_FALSE_PROMOTION",
     "DAY_PRECISION_FALSE_PROMOTION",
     "PUBLIC_PRODUCTION_OR_G5_FALSE_PROMOTION",
-    "GENERIC_ROUTER_WRAPPER_BYPASS"
+    "GENERIC_ROUTER_WRAPPER_BYPASS",
+    "LIVE_ACQUISITION_FALSE_PROMOTION",
+    "EMPIRICAL_ADMISSION_FALSE_PROMOTION",
+    "HISTORICAL_EVENT_FALSE_PROMOTION"
   ],
   "truth_boundary": {
-    "immutable_live_source_snapshots_verified": 2,
+    "committed_reference_snapshots_verified": 2,
+    "immutable_live_source_snapshots_verified": 0,
+    "machine_proven_acquisition_receipts": 0,
     "purpose_specific_rights_verified_sources": 1,
-    "historical_transaction_evidence_admitted": 1,
-    "historical_transaction_events_created": 1,
+    "historical_transaction_evidence_admitted": 0,
+    "historical_transaction_events_created": 0,
     "generic_market_events_admitted": 0,
     "verified_current_sold_events_created": 0,
     "top16_source_adapters_activated": 0,
@@ -115,6 +124,7 @@
     "demand_measures_created": 0,
     "snapshot_candidates_created": 0,
     "track_b_input_pairs_created": 0,
+    "promotable": false,
     "public_release": "HOLD",
     "production": "HOLD",
     "g5": "HOLD"
