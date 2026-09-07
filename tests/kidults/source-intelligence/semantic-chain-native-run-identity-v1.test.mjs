@@ -71,6 +71,10 @@ for(const [label,change] of [['receipt run',{producer_workflow_run_id:99}],['P1 
 test('dynamic Coverage history retains exact server-filtered cardinality contract',()=>{
  const rows=Array.from({length:100},(_,i)=>coverage({id:1000+i}));
  assert.equal(prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince}).prior_success_count,2001);
+ const filtered=prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[1000]});
+ assert.equal(filtered.raw_success_count,2001);assert.equal(filtered.verified_nonauthoritative_skip_count,1);assert.equal(filtered.prior_success_count,2000);
+ assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[999]}),/SKIP_RUN_NOT_IN_SUCCESS_QUERY/);
+ assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince,verifiedNonAuthoritativeSkipRunIds:[1000,1000]}),/SKIP_RUN_ID_DUPLICATE/);
  rows[0].name='KIDULTS Coverage / manual-1000';assert.throws(()=>prior({payload:{total_count:2001,workflow_runs:rows},sourceSha:source,createdSince:options.createdSince}));
 });
 
@@ -136,6 +140,22 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
  assert.ok(!/^  workflow_run:/m.test(strict));
+});
+
+test('Coverage prior-skip exclusion binds artifact ownership and exact admission semantics', () => {
+ assert.ok(covSource.includes('.workflow_run.id == $run_id'));
+ for (const binding of [
+  '.repository == $repo',
+  '.arl_head_sha == $source',
+  '.execution_sha == $source',
+  '.arl_run_id | type == "number"',
+  '.arl_run_attempt | type == "number"',
+  '.classification == "EXPECTED_NONAUTHORITATIVE_SKIP"',
+  '.classification_reason == .reason',
+ '.reason == "ARL_PUSH_RECOVERY_NONAUTHORITATIVE"',
+  '. <= 9007199254740991',
+ ]) assert.ok(covSource.includes(binding), `missing prior-skip binding: ${binding}`);
+ assert.ok(covSource.includes('keys == ["admission","arl_head_sha","arl_run_attempt","arl_run_id"'));
 });
 
 function embeddedPython(marker){

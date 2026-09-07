@@ -136,6 +136,17 @@ assert.equal(prior2000.prior_success_count, 2000);
 assert.equal(prior2001.prior_success_count, 2001);
 assert.equal(prior2000.pagination_required_for_count, false);
 assert.equal(prior2001.pagination_required_for_count, false);
+const priorWithVerifiedSkip = resolveCoveragePriorSuccessExactQuery({
+  payload: exactPriorPayload(2001), sourceSha, headBranch: 'main', createdSince,
+  verifiedNonAuthoritativeSkipRunIds: [9000],
+});
+assert.equal(priorWithVerifiedSkip.raw_success_count, 2001);
+assert.equal(priorWithVerifiedSkip.verified_nonauthoritative_skip_count, 1);
+assert.equal(priorWithVerifiedSkip.prior_success_count, 2000);
+assert.throws(() => resolveCoveragePriorSuccessExactQuery({
+  payload: exactPriorPayload(2001), sourceSha, headBranch: 'main', createdSince,
+  verifiedNonAuthoritativeSkipRunIds: [8999],
+}), /COVERAGE_NONAUTHORITATIVE_SKIP_RUN_NOT_IN_SUCCESS_QUERY/);
 
 const filterDrift = exactPriorPayload(2001);
 filterDrift.workflow_runs[0].display_title = 'KIDULTS Coverage / manual-1';
@@ -159,6 +170,7 @@ process.stdout.write(`${JSON.stringify({
   coverage_exact_upstream_query_history_independent: true,
   coverage_prior_success_2000_resolved: prior2000.prior_success_count,
   coverage_prior_success_2001_resolved: prior2001.prior_success_count,
+  coverage_verified_nonauthoritative_skip_excluded: true,
   exact_query_filter_drift_rejected: true,
   exact_query_short_page_rejected: true,
   production: 'HOLD',

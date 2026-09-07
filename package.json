@@ -12,7 +12,8 @@
     "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",
     "validate:control-tower": "node scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs",
     "test:source-eligibility-receipt": "node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs",
-    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs"
+    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs",
+    "validate:synthetic-market-twin-120": "node --test tests/kidults/runtime/synthetic-downstream-control-engine-v1.test.mjs tests/kidults/kpmo/synthetic-market-twin-120-v1.test.mjs && node scripts/kidults/kpmo/run-synthetic-market-twin-120-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",
