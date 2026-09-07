@@ -167,24 +167,34 @@ jobs:
           fs.writeFileSync('/tmp/bad-common-crawl-runtime-frontier-rights.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/bad-common-crawl-runtime-frontier-rights.json; then exit 1; fi
-      - name: Reject poisoned previous snapshot and restart safely
+      - name: Reject poisoned previous snapshot without history reset
         if: github.event_name != 'pull_request'
         run: |
+          set -euo pipefail
           node - <<'NODE'
           const fs=require('fs');
           const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-cycle-1.json','utf8'));
           x.seed_frontier_snapshot.production='APPROVED';
           fs.writeFileSync('/tmp/previous-source-pool/asi-common-crawl-host-expansion-v1.json',JSON.stringify(x));
           NODE
-          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/asi-common-crawl-runtime-poison-recovery.json
-          node scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-runtime-poison-recovery.json
-          node - <<'NODE'
-          const fs=require('fs');
-          const x=JSON.parse(fs.readFileSync('/tmp/asi-common-crawl-runtime-poison-recovery.json','utf8'));
-          if(x.seed_frontier_previous_snapshot_found!==false||x.seed_frontier_bootstrap_state!=='RUNTIME_FRONTIER_FRESH'||x.seed_frontier_cycle!==1)throw new Error('POISONED_SNAPSHOT_NOT_REJECTED');
-          if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.acquisition_authorized!==false)throw new Error('POISON_RECOVERY_BOUNDARY');
-          console.log(JSON.stringify({status:'PASS',poisoned_snapshot_rejected:true,recovery_frontier_cycle:x.seed_frontier_cycle,production:'HOLD'}));
-          NODE
+          rm -f /tmp/asi-common-crawl-runtime-poison-recovery.json
+          set +e
+          node scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs \
+            discovery-out/global-low-risk-discovery.json \
+            /tmp/asi-common-crawl-runtime-poison-recovery.json \
+            > /tmp/asi-common-crawl-runtime-poison.stdout \
+            2> /tmp/asi-common-crawl-runtime-poison.stderr
+          POISON_STATUS=$?
+          set -e
+          test "$POISON_STATUS" -ne 0
+          test ! -e /tmp/asi-common-crawl-runtime-poison-recovery.json
+          grep -F 'PREVIOUS_SNAPSHOT_MALFORMED:SELF_DRIVING_PREVIOUS_EXPANSION:PREVIOUS_FRONTIER_INVALID' \
+            /tmp/asi-common-crawl-runtime-poison.stderr
+          jq -n --arg sha "$GITHUB_SHA" --argjson exit_code "$POISON_STATUS" \
+            '{state:"VERIFIED_PASS",negative_case:"POISONED_PREVIOUS_SNAPSHOT",poisoned_snapshot_disposition:"REJECTED_FAIL_CLOSED",source_sha:$sha,exit_code:$exit_code,output_created:false,history_reset:false,legacy_fallback_used:false,external_provider_requests:0,acquisition_authorized:false,empirical_promotion:false,public_release:"HOLD",production:"HOLD",g5:"HOLD"}' \
+            > /tmp/asi-common-crawl-runtime-poison-rejection.json
+          jq -e '.state=="VERIFIED_PASS" and .poisoned_snapshot_disposition=="REJECTED_FAIL_CLOSED" and .exit_code!=0 and .output_created==false and .history_reset==false and .legacy_fallback_used==false and .external_provider_requests==0 and .production=="HOLD" and .public_release=="HOLD" and .g5=="HOLD"' \
+            /tmp/asi-common-crawl-runtime-poison-rejection.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: github.event_name != 'pull_request'
         with:
@@ -192,7 +202,7 @@ jobs:
           path: |
             /tmp/asi-common-crawl-runtime-cycle-1.json
             /tmp/asi-common-crawl-runtime-cycle-2.json
-            /tmp/asi-common-crawl-runtime-poison-recovery.json
+            /tmp/asi-common-crawl-runtime-poison-rejection.json
             /tmp/asi-common-crawl-frontier-runtime-provenance-v1.json
           retention-days: 30
           if-no-files-found: error
