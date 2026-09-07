@@ -15,7 +15,7 @@ import {
   operationalPortalValue
 } from "./public/portal/components/v587-decision-intelligence.js";
 import { buildWorkspaceDecisionPacket } from "./public/portal/components/v587-workspace-decision-flow.js";
-import { validateHumanAcceptance } from "./public/portal/components/v587-business-journey-qualification.js";
+import { validateRoleJourneyControl } from "./public/portal/components/v587-business-journey-qualification.js";
 import {
   buildIntelligenceDecision,
   computeConfidence,
@@ -287,13 +287,19 @@ test("registers real browser performance qualification on Home, Detail and Works
   }
 });
 
-test("registers exact role-specific browser journey receipts without generic substitution", async () => {
+test("registers exact role-specific browser journey control receipts without generic or human substitution", async () => {
   const module = await import("./public/portal/components/v587-business-journey-qualification.js");
   assert.deepEqual(module.businessJourneyQualificationContract.roles, ["COLLECTOR", "DEALER", "INVESTOR", "MUSEUM", "AUCTION_HOUSE", "FAMILY_OFFICE"]);
   assert.deepEqual(module.businessJourneyQualificationContract.steps, ["ENTRY", "NAVIGATION", "SEARCH", "OBJECT", "EVIDENCE", "DECISION", "WORKSPACE", "EXPORT_PERMISSION", "COMPLETION"]);
   const source = read("public/portal/components/v587-business-journey-qualification.js");
   assert.match(source, /BLOCKED_BY_RIGHTS/);
   assert.match(source, /receipt_digest/);
+  assert.match(source, /evidence_class: "CONTROL_SIMULATION"/);
+  assert.match(source, /human_acceptance: false/);
+  assert.match(source, /independent_human_review_required: true/);
+  assert.match(source, /promotion_eligible: false/);
+  assert.doesNotMatch(source, /v587-human-acceptance|validateHumanAcceptance/);
+  assert.doesNotMatch(source, /state: complete[^\n]*"VERIFIED_PASS"/);
   assert.doesNotMatch(source, /INSTITUTIONAL|GENERIC/);
 });
 
@@ -397,10 +403,10 @@ test("graduates the remaining role experience defects without changing intellige
     export_permission: "BLOCKED_BY_RIGHTS"
   };
   for (const role of ["COLLECTOR", "DEALER", "INVESTOR", "MUSEUM", "AUCTION_HOUSE", "FAMILY_OFFICE"]) {
-    const acceptance = validateHumanAcceptance(role, completeEvidence);
-    assert.equal(acceptance.accepted, true, role);
-    assert.deepEqual(acceptance.missing, [], role);
-    assert.equal(Object.values(acceptance.acceptance_questions).every(Boolean), true, role);
+    const control = validateRoleJourneyControl(role, completeEvidence);
+    assert.equal(control.control_complete, true, role);
+    assert.deepEqual(control.missing, [], role);
+    assert.equal(Object.values(control.journey_questions).every(Boolean), true, role);
   }
 
   const pages = `${read("public/portal/index.html")}${read("public/portal/object.html")}${read("public/portal/vertical.html")}${read("public/portal/workspace.html")}`;
