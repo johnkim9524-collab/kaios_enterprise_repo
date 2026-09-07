@@ -53,4 +53,4 @@ for(const c of x.candidates){
 }
 const sum=Object.values(x.provider_counts||{}).reduce((a,b)=>a+Number(b||0),0);if(sum<Number(x.candidate_count))fail('PROVIDER_COUNTS');
 const diagnosticOnly=p0bDiagnostic&&(Number(x.healthy_lane_count)<1||Number(x.candidate_count)<1);
-console.log(JSON.stringify({status:diagnosticOnly?'PASS_STRUCTURAL_PROVIDER_UNAVAILABLE':'PASS',promotion_eligible:!diagnosticOnly,rotation:x.scope_rotation_index,scopes:x.cycle_scope_count,candidates:x.candidate_count,healthy_lanes:x.healthy_lane_count,circuit_applied:x.provider_circuit_applied,circuit_writeback:x.provider_circuit_writeback_applied,evidence_admission:'NONE',public_release:'HOLD',production:'HOLD'}));
+console.log(JSON.stringify({status:diagnosticOnly?'PASS_STRUCTURAL_PROVIDER_UNAVAILABLE':'PASS',control_observation_eligible:!diagnosticOnly,promotion_eligible:false,rotation:x.scope_rotation_index,scopes:x.cycle_scope_count,candidates:x.candidate_count,healthy_lanes:x.healthy_lane_count,circuit_applied:x.provider_circuit_applied,circuit_writeback:x.provider_circuit_writeback_applied,evidence_admission:'NONE',public_release:'HOLD',production:'HOLD'}));
