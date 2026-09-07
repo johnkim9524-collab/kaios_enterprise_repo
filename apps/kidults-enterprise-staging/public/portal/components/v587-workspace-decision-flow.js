@@ -1,3 +1,5 @@
+import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
+
 const STORAGE_KEY = "kidults-v587-watchlist-v1";
 const STYLE_ID = "kidults-v587-decision-intelligence-style";
 const isSynthetic = record => record?.data_bucket === "SYNTHETIC" || record?.environment === "SYNTHETIC" || record?.synthetic === true;
@@ -9,23 +11,50 @@ const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, charac
 export function buildWorkspaceDecisionPacket(data, selectedIds = []) {
   const objects = (data?.k100?.items ?? []).filter(item => selectedIds.includes(item.id));
   if (objects.some(isSynthetic)) throw new Error("V587_SYNTHETIC_EXPORT_PROHIBITED");
+  const evaluated = objects.map(item => {
+    const intelligence = buildIntelligenceDecision({
+      factors: {
+        evidence: item.evidence_coverage_pct,
+        coverage: item.coverage_pct,
+        freshness: item.freshness_score ?? item.freshness_state,
+        rights: item.rights_status,
+        consistency: item.consistency_pct,
+        qualification: data?.registry?.assessment?.gate_state
+      },
+      rights: {
+        rights: item.rights_status,
+        permission: item.rights_permission ?? item.permission,
+        release_state: item.rights_release_state ?? item.release_state,
+        allowed_actions: item.allowed_actions ?? []
+      },
+      requestedAction: "EXPORT",
+      reason: "Workspace actions require evidence, rights and independent qualification."
+    });
+    return { item, intelligence };
+  });
+  const actionAllowed = evaluated.length > 0 && evaluated.every(({ intelligence }) => intelligence.action === "EXPORT");
   return {
     packet_id: "kidults-v587-workspace-decision-packet-v1",
     snapshot_id: data?.registry?.snapshot?.candidate_id ?? data?.registry?.snapshot?.baseline_id ?? "NOT AVAILABLE",
     evidence_package_id: data?.registry?.evidence?.current_package_id ?? "NOT AVAILABLE",
     assessment_id: data?.registry?.assessment?.current_id ?? "NOT AVAILABLE",
     release: data?.registry?.release?.status ?? "HOLD",
-    sequence: ["WATCHLIST", "EVIDENCE_COLLECTION", "COMPARISON", "DECISION_MEMO", "EXPORT"],
-    objects: objects.map(item => ({
+    sequence: ["WATCHLIST", "EVIDENCE_COLLECTION", "COMPARISON", "DECISION_MEMO", "ACTION"],
+    objects: evaluated.map(({ item, intelligence }) => ({
       id: item.id,
       title: item.title,
-      confidence: item.confidence ?? "NOT AVAILABLE",
+      confidence: intelligence.confidence.label,
+      confidence_explanation: intelligence.confidence.explanation,
       freshness: item.freshness ?? "NOT AVAILABLE",
-      rights: item.rights_status ?? "HOLD",
+      rights: intelligence.rights.release_state,
+      allowed_actions: intelligence.rights.allowed_actions,
       evidence_state: item.evidence_count ?? "NOT AVAILABLE",
-      decision: "HOLD"
+      decision: intelligence.decision,
+      action: intelligence.action,
+      reason: intelligence.reason
     })),
     final_decision_allowed: false,
+    action_allowed: actionAllowed,
     production_eligible: false,
     public_eligible: false,
     export_class: "INTERNAL_DECISION_MEMO",
@@ -78,7 +107,7 @@ export function startV587WorkspaceDecisionFlow(data) {
   root.innerHTML = `
     <header><div><p class="eyebrow">DECISION WORKFLOW</p><h2 id="v587-workspace-flow-title">Collect evidence. Compare with clarity.</h2></div>
       <p>Workspace actions remain internal and fail-closed.</p></header>
-    <ol>${["Watchlist", "Evidence Collection", "Comparison", "Decision Memo", "Export"].map((label, index) =>
+    <ol>${["Watchlist", "Evidence Collection", "Comparison", "Decision Memo", "Action"].map((label, index) =>
       `<li><span>${String(index + 1).padStart(2, "0")}</span><strong>${label}</strong></li>`).join("")}</ol>
     <div class="v587-workspace-flow__objects" data-v587-workspace-objects></div>
     <div class="v587-workspace-flow__memo" aria-live="polite" data-v587-workspace-memo></div>
@@ -98,9 +127,9 @@ export function startV587WorkspaceDecisionFlow(data) {
         <span>${active ? "WATCHING" : "ADD"}</span><strong>${esc(item.title)}</strong><small>Rights ${esc(item.rights_status ?? "HOLD")}</small></button>`;
     }).join("");
     memoNode.innerHTML = packet.objects.length
-      ? `<strong>${packet.objects.length} object${packet.objects.length === 1 ? "" : "s"} selected</strong><p>Evidence and rights gaps remain visible. Decision: HOLD.</p>`
+      ? `<strong>${packet.objects.length} object${packet.objects.length === 1 ? "" : "s"} selected</strong><p>Decision: ${esc(packet.objects.map(item => item.decision).join(", "))}. Actions remain rights-gated.</p>`
       : "<strong>No objects selected</strong><p>Add objects to assemble an internal evidence comparison.</p>";
-    exportButton.disabled = packet.objects.length === 0;
+    exportButton.disabled = !packet.action_allowed;
     exportButton.onclick = () => downloadPacket(packet);
     window.KIDULTS_V587_WORKSPACE_PACKET = Object.freeze(packet);
   };

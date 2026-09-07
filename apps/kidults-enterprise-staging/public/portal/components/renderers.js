@@ -167,7 +167,7 @@ export function renderK100(k100) {
     const score = item.score === null ? "Score gated" : `Score ${Number(item.score).toFixed(1)}`;
     const detail = item.score === null
       ? `${esc(item.status)} · institutional release pending`
-      : `${esc(item.confidence)}% confidence · ${esc(item.freshness)} freshness`;
+      : `Decision confidence explained on object page · ${esc(item.freshness)} freshness`;
 
     return `
       <article class="k100-card reveal">
@@ -207,7 +207,7 @@ export function renderSignals(signalData) {
       </div>
       <div class="sparkline">${sparklineSvg(signal.series, `${signal.title} recent registered trend`)}</div>
       <div class="signal-meta">
-        <div><b>${esc(signal.confidence)}%</b><span>Registered confidence</span></div>
+        <div><b>SEE WHY</b><span>Decision Confidence</span></div>
         <div><b>${esc(signal.sources)}</b><span>Source count</span></div>
         <div><b>${esc(snapshotTime)}</b><span>Snapshot as of</span></div>
       </div>

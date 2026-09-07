@@ -131,7 +131,7 @@ if (renderers.includes("signal.updated")) {
 }
 for (const marker of [
   "Snapshot as of",
-  "Registered confidence",
+  "Decision Confidence",
   "Registered evidence objects",
   "Current editorial slice",
   "Kidult 100"

@@ -87,6 +87,7 @@ for (const viewport of viewports) {
       const heroRect = heroImage?.getBoundingClientRect();
       const revealNodes = [...document.querySelectorAll(".reveal")];
       const countChildren = selector => document.querySelector(selector)?.children.length ?? 0;
+      const navigation = performance.getEntriesByType("navigation")[0];
       const visible = node => {
         if (!node) return false;
         const style = getComputedStyle(node);
@@ -103,6 +104,11 @@ for (const viewport of viewports) {
         "[data-archive-list]"
       ];
       return {
+        performance: navigation ? {
+          dom_content_loaded_ms: Math.round(navigation.domContentLoadedEventEnd),
+          load_event_ms: Math.round(navigation.loadEventEnd),
+          transfer_size_bytes: navigation.transferSize
+        } : null,
         scrollWidth: root.scrollWidth,
         clientWidth: root.clientWidth,
         scrollHeight: root.scrollHeight,
@@ -150,6 +156,9 @@ for (const viewport of viewports) {
     if (metrics.k100Formats.some(value => value !== "museum-editorial-v662")) localFailures.push(`K100 formats=${metrics.k100Formats.join(",")}`);
     if (metrics.unrevealedCount !== 0) localFailures.push(`unrevealed content=${metrics.unrevealedCount}/${metrics.revealCount}`);
     if (metrics.invisibleSectionCount !== 0) localFailures.push(`invisible data sections=${metrics.invisibleSectionCount}`);
+    if (!metrics.performance) localFailures.push("navigation performance evidence unavailable");
+    if (metrics.performance?.dom_content_loaded_ms > 10_000) localFailures.push(`DOMContentLoaded performance budget exceeded: ${metrics.performance.dom_content_loaded_ms}ms`);
+    if (metrics.performance?.load_event_ms > 15_000) localFailures.push(`load performance budget exceeded: ${metrics.performance.load_event_ms}ms`);
     if (!metrics.releaseIsLast) localFailures.push("Release Baseline is not last");
     if (!metrics.workspaceBeforeInstitution) localFailures.push("Workspace entry order is incorrect");
     if (runtimeErrors.length) localFailures.push(...runtimeErrors);

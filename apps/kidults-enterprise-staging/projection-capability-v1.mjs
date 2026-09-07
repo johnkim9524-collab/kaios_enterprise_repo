@@ -1,6 +1,7 @@
 import {createHash,createHmac,randomUUID,timingSafeEqual} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {admitProofProductProjectionWithVerifiedCapability} from './public/portal-r001/proof-product-admission.js';
+import {buildIntelligenceDecision} from './public/portal/components/v587-intelligence-core.js';
 
 const VERSION='kidults_projection_capability_v1';
 const MAX_TTL_SECONDS=300;
@@ -166,13 +167,41 @@ export function toPortalView(projection,receipt){
     evidence_refs:[...(field.evidence_references||[])],as_of:projection.freshness.observed_at
   }));
   const passport=objectPassportView(projection);
+  const projectedFields=Object.values(projection.payload?.fields||projection.payload?.collector_lens||projection.payload?.institutional_lens||{});
+  const verifiedFields=projectedFields.filter(field=>field?.state==='VERIFIED');
+  const consistentFields=verifiedFields.filter(field=>Array.isArray(field.evidence_references)&&field.evidence_references.length>0&&field.rights_state==='CLEARED');
+  const publicAllowed=projection.rights?.public_display==='ALLOWED';
+  const apiAllowed=projection.rights?.api_redistribution==='ALLOWED';
+  const requestedAction=receipt.surface==='EXPORT'?'EXPORT':'VIEW';
+  const allowedActions=[
+    ...(publicAllowed?['VIEW','COMPARE','WORKSPACE']:[]),
+    ...(apiAllowed?['EXPORT']:[])
+  ];
+  const decisionIntelligence=buildIntelligenceDecision({
+    factors:{
+      evidence:projection.evidence_summary?.state==='PAIRED'&&(projection.evidence_summary?.evidence_references||[]).length>0?100:0,
+      coverage:projectedFields.length?Math.round((verifiedFields.length/projectedFields.length)*100):null,
+      freshness:projection.freshness?.state,
+      rights:projection.rights?.state,
+      consistency:verifiedFields.length?Math.round((consistentFields.length/verifiedFields.length)*100):null,
+      qualification:projection.rankability?.state
+    },
+    rights:{
+      rights:projection.rights?.state,
+      permission:(receipt.surface==='EXPORT'?apiAllowed:publicAllowed)?'ALLOWED':'DENIED',
+      release_state:projection.display_eligibility==='PUBLIC_ALLOWED'?'RELEASED':'HOLD',
+      allowed_actions:allowedActions
+    },
+    requestedAction,
+    reason:'Projection decision is computed from evidence, coverage, freshness, rights, consistency and qualification.'
+  });
   return Object.freeze({
     source:'SIGNED_SERVER_CAPABILITY',
     projection:{state:'LIVE_APPROVED',projection_id:projection.projection_id,as_of:projection.freshness.observed_at,
       assessment_id:projection.lineage.assessment_id,rights_state:projection.rights.state,freshness:projection.freshness.state,
       product_type:projection.product_type,canonical_object_id:projection.product_type==='OBJECT_PASSPORT'?projection.payload.canonical_object_id:null},
     release:{state:'READY'},verticals:[],signals:passport.signals.length?passport.signals:marketSignals,
-    objects:passport.objects,evidence:passport.evidence,actions:passport.actions,
+    objects:passport.objects,evidence:passport.evidence,actions:passport.actions,decision_intelligence:decisionIntelligence,
     evidence_methodology:{coverage:`${projection.evidence_summary.source_count} sources`,independence:`${projection.evidence_summary.independent_source_family_count} families`,freshness:projection.freshness.state,rights:projection.rights.state,methodology_version:projection.method_version,lineage_version:projection.contract_version},
     kidult_100:{state:'NOT_AVAILABLE',index_value:null,change:null,as_of:null,constituents:[],methodology_version:null},
     research_archive:{state:'NOT_AVAILABLE',items:[]},

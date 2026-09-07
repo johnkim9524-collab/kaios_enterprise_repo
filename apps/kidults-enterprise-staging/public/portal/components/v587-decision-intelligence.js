@@ -1,3 +1,5 @@
+import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
+
 const STYLE_ID = "kidults-v587-decision-intelligence-style";
 const DRAWER_ID = "kidults-v587-evidence-drawer";
 const SYNTHETIC_NOTICE = "SYNTHETIC TEST DATA";
@@ -9,6 +11,17 @@ const esc = value => String(value ?? "NOT AVAILABLE").replace(/[&<>"']/g, charac
 const human = value => String(value ?? "NOT AVAILABLE").replaceAll("_", " ");
 const present = value => value !== null && value !== undefined && value !== "";
 const isSynthetic = record => record?.data_bucket === "SYNTHETIC" || record?.environment === "SYNTHETIC" || record?.synthetic === true;
+const score = value => {
+  if (!present(value)) return null;
+  const numeric = Number(String(value).replace("%", ""));
+  return Number.isFinite(numeric) && numeric >= 0 && numeric <= 100 ? numeric : null;
+};
+const rightsInput = record => ({
+  rights: record?.rights_status ?? record?.rights_state,
+  permission: record?.permission ?? record?.rights_permission,
+  release_state: record?.release_state ?? record?.rights_release_state,
+  allowed_actions: record?.allowed_actions ?? []
+});
 
 export function assertDecisionDataSeparation(record) {
   const bucket = record?.data_bucket ?? (record?.environment === "SYNTHETIC" || record?.synthetic === true ? "SYNTHETIC" : "CURRENT");
@@ -31,30 +44,44 @@ function operation(summary, label) {
 
 export function buildDecisionSnapshot(data) {
   const registry = data?.registry ?? {};
-  const candidateReady = Boolean(registry.snapshot?.candidate_id);
-  const assessmentReady = Boolean(registry.assessment?.current_id && registry.assessment?.overall_rankability === true);
-  const productionReady = registry.release?.status === "PRODUCTION";
   const evidence = operation(data?.summary, "EVIDENCE OBJECTS");
-  const confidence = operation(data?.summary, "MODEL CONFIDENCE");
   const rights = data?.connections?.sources?.filter(source => source.publicationEligible === true).length ?? 0;
   const sourceCount = data?.connections?.sources?.length ?? 0;
+  const intelligence = buildIntelligenceDecision({
+    factors: {
+      evidence: score(registry.evidence?.coverage_pct),
+      coverage: score(data?.summary?.coverage?.coverage_pct),
+      freshness: registry.freshness?.status,
+      rights: sourceCount > 0 ? Math.round((rights / sourceCount) * 100) : null,
+      consistency: score(registry.evidence?.consistency_pct),
+      qualification: registry.assessment?.gate_state
+    },
+    rights: {
+      rights: rights === sourceCount && sourceCount > 0 ? "CLEARED" : rights > 0 ? "PARTIAL" : "HOLD",
+      permission: registry.release?.portal_permission,
+      release_state: registry.release?.status,
+      allowed_actions: registry.release?.allowed_actions ?? []
+    },
+    requestedAction: "VIEW",
+    reason: "Platform decision readiness requires evidence, coverage, freshness, rights, consistency and independent qualification."
+  });
   return {
-    decision: candidateReady && assessmentReady && productionReady ? "DECISION READY" : "HOLD",
-    decision_reason: !candidateReady ? "Candidate not registered"
-      : !assessmentReady ? "Independent Track B assessment not registered"
-        : !productionReady ? "Production approval not granted" : "All registered gates present",
+    decision: intelligence.decision,
+    decision_reason: intelligence.reason,
     fields: [
-      ["Decision Readiness", candidateReady && assessmentReady && productionReady ? "READY" : "HOLD"],
+      ["Decision Readiness", intelligence.decision],
       ["Evidence Coverage", present(evidence?.value) ? evidence.value : "NOT AVAILABLE"],
-      ["Confidence", present(confidence?.value) ? confidence.value : "NOT AVAILABLE"],
+      ["Confidence", intelligence.confidence.label],
       ["Rights Coverage", sourceCount > 0 ? `${rights}/${sourceCount} RELEASE ELIGIBLE` : "HOLD"],
       ["Current SOLD", "NOT AVAILABLE"],
       ["Freshness", registry.freshness?.as_of ?? "NOT AVAILABLE"]
     ],
+    confidence_explanation: intelligence.confidence.explanation,
+    reasoning: intelligence,
     evidence_state: registry.evidence?.status ?? "NOT AVAILABLE",
     rights_state: rights > 0 ? "PARTIAL" : "HOLD",
     track_b: registry.assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
-    risk: productionReady ? "GATED" : "HIGH — RELEASE GATES UNRESOLVED",
+    risk: intelligence.decision === "READY" ? "REVIEW REQUIRED" : "HIGH — RELEASE GATES UNRESOLVED",
     production: "HOLD",
     public: "HOLD"
   };
@@ -64,10 +91,26 @@ export function buildMarketCardMetadata(signal, data) {
   const synthetic = isSynthetic(signal);
   if (synthetic) assertDecisionDataSeparation(signal);
   const rightsReleased = data?.connections?.sources?.some(source => source.publicationEligible === true) === true;
+  const intelligence = buildIntelligenceDecision({
+    synthetic,
+    factors: {
+      evidence: score(signal?.evidence_coverage_pct),
+      coverage: score(signal?.coverage_pct),
+      freshness: signal?.freshness_score ?? signal?.freshness_state,
+      rights: signal?.rights_status ?? (rightsReleased ? "PARTIAL" : "HOLD"),
+      consistency: score(signal?.consistency_pct),
+      qualification: data?.registry?.assessment?.gate_state
+    },
+    rights: rightsInput(signal),
+    requestedAction: "VIEW",
+    reason: "Market signal review remains bound to registered evidence and release rights."
+  });
   return {
-    confidence: !synthetic && present(signal?.confidence) ? `${signal.confidence}% PREVIEW` : "NOT AVAILABLE",
+    confidence: intelligence.confidence.label,
+    confidence_explanation: intelligence.confidence.explanation,
     freshness: signal?.updated ?? data?.signals?.updated_at ?? "NOT AVAILABLE",
-    rights: !synthetic && rightsReleased ? "PARTIAL" : "HOLD",
+    rights: intelligence.rights.release_state,
+    decision: intelligence.decision,
     market_authority: false,
     decision_eligible: false
   };
@@ -76,16 +119,30 @@ export function buildMarketCardMetadata(signal, data) {
 export function buildObjectDecisionModel(object, k100, manifest, registry = {}) {
   const synthetic = isSynthetic(object);
   if (synthetic) assertDecisionDataSeparation(object);
-  const confidence = !synthetic && present(object?.confidence) ? `${object.confidence}%` : "NOT AVAILABLE";
   const rights = object?.rights_status ?? "HOLD";
   const trackB = registry.assessment?.gate_state ?? "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE";
   const currentSold = object?.current_sold?.verified === true && !synthetic
     ? object.current_sold.display_value : "NOT AVAILABLE";
   const evidenceCount = Number.isInteger(object?.evidence_count) && !synthetic
     ? String(object.evidence_count) : "NOT AVAILABLE";
-  const decision = currentSold !== "NOT AVAILABLE" && evidenceCount !== "NOT AVAILABLE"
-    && confidence !== "NOT AVAILABLE" && rights === "CLEARED" && trackB === "PASS"
-    ? "REVIEW AVAILABLE" : "HOLD";
+  const intelligence = buildIntelligenceDecision({
+    synthetic,
+    factors: {
+      evidence: score(object?.evidence_coverage_pct),
+      coverage: score(object?.coverage_pct),
+      freshness: object?.freshness_score ?? object?.freshness_state,
+      rights,
+      consistency: score(object?.consistency_pct),
+      qualification: trackB
+    },
+    rights: rightsInput(object),
+    requestedAction: "VIEW",
+    reason: currentSold === "NOT AVAILABLE"
+      ? "Current SOLD evidence is not registered."
+      : "Object review is bound to Current SOLD evidence and qualification gates."
+  });
+  const confidence = intelligence.confidence.label;
+  const decision = intelligence.decision;
   return {
     object_id: object?.id ?? object?.record_id ?? "NOT AVAILABLE",
     synthetic,
@@ -109,6 +166,8 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
       risk: decision === "HOLD" ? "UNRESOLVED GATES" : "REVIEW REQUIRED",
       freshness: object?.freshness ?? registry.freshness?.as_of ?? "NOT AVAILABLE"
     },
+    confidence_explanation: intelligence.confidence.explanation,
+    reasoning: intelligence,
     evidence_drawer: {
       timeline: [object?.freshness ?? "NOT AVAILABLE"],
       sources: evidenceCount === "NOT AVAILABLE" ? [] : ["REGISTERED EVIDENCE LEDGER"],
@@ -123,9 +182,24 @@ export function buildObjectDecisionModel(object, k100, manifest, registry = {}) 
 }
 
 export function buildResearchDecisionFlow(data) {
+  const intelligence = buildIntelligenceDecision({
+    factors: {
+      evidence: score(data?.research?.evidence_coverage_pct),
+      coverage: score(data?.research?.coverage_pct),
+      freshness: data?.research?.freshness_state,
+      rights: data?.research?.rights_status,
+      consistency: score(data?.research?.consistency_pct),
+      qualification: data?.registry?.assessment?.gate_state
+    },
+    rights: rightsInput(data?.research),
+    requestedAction: "VIEW",
+    reason: "Research conclusions require registered evidence, context and qualification."
+  });
   return {
     timeline: data?.research?.issue ?? "NOT AVAILABLE",
     evidence_state: data?.registry?.evidence?.status ?? "NOT AVAILABLE",
+    reasoning: intelligence,
+    conclusion: intelligence.decision,
     final_decision_allowed: false
   };
 }
@@ -255,8 +329,8 @@ export function startV587DecisionIntelligence(data) {
       ? `${data.signals?.signals?.[Number(context.split("-")[1])]?.sources ?? "NOT AVAILABLE"} registered preview sources`
       : data.registry?.evidence?.status ?? "NOT AVAILABLE",
     quality: context.startsWith("market-")
-      ? buildMarketCardMetadata(data.signals?.signals?.[Number(context.split("-")[1])], data).confidence
-      : operation(data.summary, "MODEL CONFIDENCE")?.value ?? "NOT AVAILABLE",
+      ? (() => { const meta = buildMarketCardMetadata(data.signals?.signals?.[Number(context.split("-")[1])], data); return `${meta.confidence} — ${meta.confidence_explanation}`; })()
+      : `${snapshot.fields.find(([label]) => label === "Confidence")?.[1] ?? "NOT AVAILABLE"} — ${snapshot.confidence_explanation}`,
     freshness: data.registry?.freshness?.status ?? "NOT AVAILABLE",
     provider: data.registry?.provider?.production_connection === "PROHIBITED" ? "NONE ACTIVATED" : "HOLD"
   }));
@@ -281,7 +355,7 @@ export function enrichObjectDetailV587({ root, object, k100, manifest, registry 
   panel.className = "v587-decision-panel";
   panel.setAttribute("aria-label", "Decision panel");
   panel.innerHTML = `<p class="eyebrow">DECISION PANEL</p>${Object.entries(model.panel).map(([label, value]) =>
-    `<div><span>${esc(human(label))}</span><strong>${esc(value)}</strong></div>`).join("")}`;
+    `<div><span>${esc(human(label))}</span><strong>${esc(value)}</strong>${label === "confidence" ? `<small>${esc(model.confidence_explanation)}</small>` : ""}</div>`).join("")}`;
   root.querySelector(".detail-hero")?.insertAdjacentElement("afterend", panel);
 
   const drawer = ensureEvidenceDrawer();

@@ -10,6 +10,12 @@ import {
   buildResearchDecisionFlow
 } from "./public/portal/components/v587-decision-intelligence.js";
 import { buildWorkspaceDecisionPacket } from "./public/portal/components/v587-workspace-decision-flow.js";
+import {
+  buildIntelligenceDecision,
+  computeConfidence,
+  evaluateRights,
+  v587IntelligenceCoreContract
+} from "./public/portal/components/v587-intelligence-core.js";
 
 const read = path => fs.readFileSync(path, "utf8");
 const json = path => JSON.parse(read(path));
@@ -29,6 +35,11 @@ test("keeps every protected V587 foundation file byte-stable", () => {
   assert.equal(contract.upgrade_class, "EXTENSION_ONLY_NOT_REDESIGN_NOT_V600");
   assert.equal(contract.visual_change_budget_percent, 5);
   assert.deepEqual(contract.features, ["DECISION_SNAPSHOT", "CONFIDENCE_BADGE", "RIGHTS_BADGE", "FRESHNESS_BADGE", "EVIDENCE_DRAWER", "DECISION_PANEL", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_MEMO", "RESEARCH_EVIDENCE_TIMELINE"]);
+  assert.deepEqual(contract.intelligence_engine.flow, ["EVIDENCE", "REASON", "CONFIDENCE", "DECISION", "ACTION"]);
+  assert.deepEqual(contract.intelligence_engine.confidence_factors, ["EVIDENCE", "COVERAGE", "FRESHNESS", "RIGHTS", "CONSISTENCY", "QUALIFICATION"]);
+  assert.deepEqual(contract.intelligence_engine.consumers, ["PORTAL", "WORKSPACE", "RESEARCH", "OBJECT", "SEARCH", "API"]);
+  assert.deepEqual(contract.provider_qualification.providers, ["PSA", "EBAY", "HERITAGE", "GOLDIN", "CLASSIC_COM", "BRING_A_TRAILER"]);
+  assert.equal(contract.provider_qualification.live_connections_allowed, false);
 });
 
 test("does not retarget protected identity selectors or introduce a replacement design system", () => {
@@ -49,7 +60,9 @@ test("renders the required evidence-confidence-decision hierarchy with fail-clos
   assert.deepEqual(snapshot.fields.map(([label]) => label), [
     "Decision Readiness", "Evidence Coverage", "Confidence", "Rights Coverage", "Current SOLD", "Freshness"
   ]);
-  assert.equal(snapshot.decision, "HOLD");
+  assert.ok(v587IntelligenceCoreContract.decision_states.includes(snapshot.decision));
+  assert.equal(snapshot.decision, "RIGHTS BLOCKED");
+  assert.match(snapshot.confidence_explanation, /^Confidence unavailable:/);
   assert.equal(snapshot.fields.find(([label]) => label === "Current SOLD")[1], "NOT AVAILABLE");
   assert.equal(snapshot.production, "HOLD");
   assert.equal(snapshot.public, "HOLD");
@@ -59,7 +72,8 @@ test("renders the required evidence-confidence-decision hierarchy with fail-clos
     "Identity", "Current SOLD", "Evidence", "Confidence", "Rights", "Research", "Projection", "Decision"
   ]);
   assert.deepEqual(Object.keys(object.panel), ["decision", "confidence", "evidence", "rights", "track_b", "risk", "freshness"]);
-  assert.equal(object.panel.decision, "HOLD");
+  assert.equal(object.panel.decision, "RIGHTS BLOCKED");
+  assert.match(object.confidence_explanation, /^Confidence unavailable:/);
   assert.equal(object.production_eligible, false);
   assert.equal(object.public_eligible, false);
   assert.equal(object.market_authority, false);
@@ -67,8 +81,10 @@ test("renders the required evidence-confidence-decision hierarchy with fail-clos
 
 test("extends market cards with only approved confidence, rights and freshness badges", () => {
   const meta = buildMarketCardMetadata(signals.signals[0], { signals, connections: { sources: [] } });
-  assert.deepEqual(Object.keys(meta), ["confidence", "freshness", "rights", "market_authority", "decision_eligible"]);
+  assert.deepEqual(Object.keys(meta), ["confidence", "confidence_explanation", "freshness", "rights", "decision", "market_authority", "decision_eligible"]);
   assert.equal(meta.rights, "HOLD");
+  assert.equal(meta.decision, "RIGHTS BLOCKED");
+  assert.match(meta.confidence_explanation, /^Confidence unavailable:/);
   assert.equal(meta.market_authority, false);
   assert.equal(meta.decision_eligible, false);
 });
@@ -88,7 +104,7 @@ test("physically separates synthetic records and rejects any weakened boundary",
   const syntheticObject = buildObjectDecisionModel({ ...synthetic, id: "synthetic-object", confidence: 100, evidence_count: 99, rights_status: "CLEARED", current_sold: { verified: true, display_value: "$1" } }, k100, manifest, { assessment: { gate_state: "PASS" } });
   assert.equal(syntheticObject.panel.confidence, "NOT AVAILABLE");
   assert.equal(syntheticObject.panel.evidence, "NOT AVAILABLE");
-  assert.equal(syntheticObject.panel.decision, "HOLD");
+  assert.equal(syntheticObject.panel.decision, "SYNTHETIC");
   const syntheticMarket = buildMarketCardMetadata({ ...synthetic, confidence: 100, sources: 99 }, { connections: { sources: [{ publicationEligible: true }] } });
   assert.equal(syntheticMarket.confidence, "NOT AVAILABLE");
   assert.equal(syntheticMarket.rights, "HOLD");
@@ -103,10 +119,12 @@ test("physically separates synthetic records and rejects any weakened boundary",
 
 test("preserves the complete internal workspace decision sequence and non-promotable export", () => {
   const packet = buildWorkspaceDecisionPacket({ k100, registry }, [k100.items[0].id, k100.items[1].id]);
-  assert.deepEqual(packet.sequence, ["WATCHLIST", "EVIDENCE_COLLECTION", "COMPARISON", "DECISION_MEMO", "EXPORT"]);
+  assert.deepEqual(packet.sequence, ["WATCHLIST", "EVIDENCE_COLLECTION", "COMPARISON", "DECISION_MEMO", "ACTION"]);
   assert.equal(packet.objects.length, 2);
-  assert.ok(packet.objects.every(item => item.decision === "HOLD"));
+  assert.ok(packet.objects.every(item => item.decision === "RIGHTS BLOCKED"));
+  assert.ok(packet.objects.every(item => item.action === "NONE"));
   assert.equal(packet.final_decision_allowed, false);
+  assert.equal(packet.action_allowed, false);
   assert.equal(packet.production_eligible, false);
   assert.equal(packet.public_eligible, false);
   const synthetic = { id: "synthetic-export", data_bucket: "SYNTHETIC", environment: "SYNTHETIC", synthetic: true };
@@ -115,7 +133,8 @@ test("preserves the complete internal workspace decision sequence and non-promot
 
 test("adds the approved research evidence timeline and canonical preview without popup or new-page evidence UX", () => {
   const flow = buildResearchDecisionFlow({ research, registry });
-  assert.deepEqual(Object.keys(flow), ["timeline", "evidence_state", "final_decision_allowed"]);
+  assert.deepEqual(Object.keys(flow), ["timeline", "evidence_state", "reasoning", "conclusion", "final_decision_allowed"]);
+  assert.equal(flow.conclusion, "RIGHTS BLOCKED");
   assert.equal(flow.final_decision_allowed, false);
   const component = read("public/portal/components/v587-decision-intelligence.js");
   assert.match(component, /document\.createElement\("aside"\)/);
@@ -130,6 +149,40 @@ test("adds the approved research evidence timeline and canonical preview without
   assert.match(store, /canonicalState/);
   assert.match(store, /evidencePreview/);
   assert.match(store, /item\.data_bucket === "SYNTHETIC"/);
+});
+
+test("computes confidence from all six governed factors and always binds an explanation", () => {
+  const confidence = computeConfidence({ evidence: 100, coverage: 90, freshness: "CURRENT", rights: "CLEARED", consistency: 80, qualification: "PASS" });
+  assert.equal(confidence.value, 92);
+  assert.equal(confidence.label, "92%");
+  assert.match(confidence.explanation, /evidence 100%.*coverage 90%.*freshness 80%.*rights 100%.*consistency 80%.*qualification 100%/);
+  const incomplete = computeConfidence({ evidence: 100, coverage: 90, freshness: "CURRENT", rights: "CLEARED", qualification: "PASS" });
+  assert.equal(incomplete.value, null);
+  assert.match(incomplete.explanation, /missing consistency/);
+});
+
+test("rights engine blocks every action until rights, permission and release are all explicit", () => {
+  const blocked = evaluateRights({ rights: "CLEARED", permission: "ALLOWED", release_state: "HOLD", allowed_actions: ["VIEW"] }, "VIEW");
+  assert.equal(blocked.action_allowed, false);
+  assert.deepEqual(blocked.allowed_actions, []);
+  const released = evaluateRights({ rights: "CLEARED", permission: "ALLOWED", release_state: "RELEASED", allowed_actions: ["VIEW", "EXPORT"] }, "VIEW");
+  assert.equal(released.action_allowed, true);
+  assert.deepEqual(released.allowed_actions, ["VIEW", "EXPORT"]);
+});
+
+test("decision engine exposes only governed user states", () => {
+  const factors = { evidence: 100, coverage: 100, freshness: "FRESH", rights: "CLEARED", consistency: 100, qualification: "PASS" };
+  const released = { rights: "CLEARED", permission: "ALLOWED", release_state: "RELEASED", allowed_actions: ["VIEW"] };
+  const decide = overrides => buildIntelligenceDecision({ factors, rights: released, requestedAction: "VIEW", ...overrides });
+  assert.equal(decide({}).decision, "READY");
+  assert.equal(decide({ factors: { ...factors, qualification: "WAIT" } }).decision, "WAIT");
+  assert.equal(decide({ factors: { ...factors, evidence: 40, coverage: 40, freshness: "STALE", consistency: 20 } }).decision, "LOW CONFIDENCE");
+  assert.equal(decide({ rights: { ...released, release_state: "HOLD" } }).decision, "RIGHTS BLOCKED");
+  assert.equal(decide({ factors: { ...factors, evidence: null } }).decision, "INSUFFICIENT EVIDENCE");
+  assert.equal(decide({ synthetic: true }).decision, "SYNTHETIC");
+  for (const decision of v587IntelligenceCoreContract.decision_states) {
+    assert.doesNotMatch(decision, /PASS|FAIL/);
+  }
 });
 
 test("integrates all extensions after existing renderers without modifying frozen homepage markup", () => {

@@ -1,4 +1,5 @@
 import { loadDataConnections, sourceIsOverlayEligible } from "./data-source-gateway.js";
+import { buildIntelligenceDecision } from "./v587-intelligence-core.js";
 
 const LOCAL = {
   manifest: "data/v502-manifest.json?v=502",
@@ -68,10 +69,10 @@ function overlayVerified(summary, quality, monthly) {
       verified += 1;
     }
     if (confidence && isNumber(metrics.average_confidence)) {
-      confidence.value = `${Math.round(Number(metrics.average_confidence))}%`;
-      confidence.state = "VERIFIED";
+      confidence.value = "SEE WHY";
+      confidence.state = "EXPLANATION REQUIRED";
       confidence.tone = "controlled";
-      confidence.detail = "Verified quality feed";
+      confidence.detail = "The aggregate quality-feed value is not Decision Confidence.";
       verified += 1;
     }
   }
@@ -107,30 +108,54 @@ function overlayVerified(summary, quality, monthly) {
   return verified;
 }
 
-function buildSearchIndex({ verticals, k100, research, archive }) {
+function searchDecision(record, registry) {
+  return buildIntelligenceDecision({
+    synthetic: record?.data_bucket === "SYNTHETIC" || record?.environment === "SYNTHETIC" || record?.synthetic === true,
+    factors: {
+      evidence: record?.evidence_coverage_pct,
+      coverage: record?.coverage_pct ?? record?.right_data_coverage_pct,
+      freshness: record?.freshness_score ?? record?.freshness_state,
+      rights: record?.rights_status,
+      consistency: record?.consistency_pct,
+      qualification: registry?.assessment?.gate_state
+    },
+    rights: {
+      rights: record?.rights_status,
+      permission: record?.rights_permission ?? record?.permission,
+      release_state: record?.rights_release_state ?? record?.release_state,
+      allowed_actions: record?.allowed_actions ?? []
+    },
+    requestedAction: "VIEW",
+    reason: "Canonical search preview is bound to entity, evidence, rights and qualification state."
+  });
+}
+
+function buildSearchIndex({ verticals, k100, research, archive, registry }) {
   const records = [];
 
   for (const vertical of verticals.verticals) {
+    const intelligence = searchDecision(vertical, registry);
     records.push({
       type: "Vertical",
       title: vertical.name,
       description: `${vertical.summary} ${vertical.representative_scope.join(" ")}`,
       href: `vertical.html?id=${encodeURIComponent(vertical.id)}`,
       canonicalState: "CANONICAL VERTICAL",
-      evidencePreview: `${vertical.relevant ?? "NOT AVAILABLE"} registered records · rights ${vertical.rights_status ?? "HOLD"}`,
+      evidencePreview: `${intelligence.decision} · confidence ${intelligence.confidence.label} — ${intelligence.confidence.explanation}`,
       keywords: [vertical.short_name, vertical.slug, ...vertical.representative_scope]
     });
   }
 
   for (const item of k100.items) {
     if (item.data_bucket === "SYNTHETIC" || item.environment === "SYNTHETIC" || item.synthetic === true) continue;
+    const intelligence = searchDecision(item, registry);
     records.push({
       type: "Object",
       title: item.title,
       description: `${item.category}. ${item.status}. ${item.provenance}`,
       href: `object.html?id=${encodeURIComponent(item.id)}`,
       canonicalState: item.entity_image_verified === true ? "CANONICAL VERIFIED" : "EDITORIAL IDENTITY ONLY",
-      evidencePreview: `${item.confidence ?? "NOT AVAILABLE"} confidence · rights ${item.rights_status ?? "HOLD"}`,
+      evidencePreview: `${intelligence.decision} · confidence ${intelligence.confidence.label} — ${intelligence.confidence.explanation}`,
       keywords: [item.category, item.vertical_id, item.status]
     });
   }
@@ -219,7 +244,7 @@ export async function loadPortalData() {
     : null;
 
   const verifiedFields = overlayVerified(summary, quality, monthly);
-  const searchIndex = buildSearchIndex({ verticals, k100, research, archive });
+  const searchIndex = buildSearchIndex({ verticals, k100, research, archive, registry });
 
   return {
     manifest,

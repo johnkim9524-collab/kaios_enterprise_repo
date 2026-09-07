@@ -19,6 +19,23 @@
   "north_star": "THE_GLOBAL_LUXURY_COLLECTIBLES_INTELLIGENCE_PLATFORM",
   "experience_hierarchy": ["LUXURY", "TRUST", "AUTHORITY", "DECISION"],
   "features": ["DECISION_SNAPSHOT", "CONFIDENCE_BADGE", "RIGHTS_BADGE", "FRESHNESS_BADGE", "EVIDENCE_DRAWER", "DECISION_PANEL", "CANONICAL_SEARCH_PREVIEW", "WORKSPACE_DECISION_MEMO", "RESEARCH_EVIDENCE_TIMELINE"],
+  "intelligence_engine": {
+    "module": "apps/kidults-enterprise-staging/public/portal/components/v587-intelligence-core.js",
+    "flow": ["EVIDENCE", "REASON", "CONFIDENCE", "DECISION", "ACTION"],
+    "confidence_factors": ["EVIDENCE", "COVERAGE", "FRESHNESS", "RIGHTS", "CONSISTENCY", "QUALIFICATION"],
+    "confidence_without_explanation": "PROHIBITED",
+    "decision_states": ["READY", "WAIT", "LOW CONFIDENCE", "RIGHTS BLOCKED", "INSUFFICIENT EVIDENCE", "SYNTHETIC"],
+    "rights_flow": ["RIGHTS", "PERMISSION", "RELEASE_STATE", "ALLOWED_ACTIONS"],
+    "rights_actions": ["VIEW", "COMPARE", "WORKSPACE", "EXPORT", "PUBLISH"],
+    "consumers": ["PORTAL", "WORKSPACE", "RESEARCH", "OBJECT", "SEARCH", "API"]
+  },
+  "provider_qualification": {
+    "manifest": "coordination/kidults/synthetic/launch-cohort-provider-adapters-v1.json",
+    "providers": ["PSA", "EBAY", "HERITAGE", "GOLDIN", "CLASSIC_COM", "BRING_A_TRAILER"],
+    "live_connections_allowed": false,
+    "credentials_allowed": false,
+    "provider_data_allowed": false
+  },
   "data_separation": {
     "physical_buckets": ["CURRENT", "HISTORICAL", "PROJECTED", "SYNTHETIC"],
     "synthetic_notice": "SYNTHETIC TEST DATA",

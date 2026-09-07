@@ -108,7 +108,7 @@ function renderObject(root, k100, manifest, id) {
         <h1>${esc(object.title)}</h1>
         ${statusPills([
           object.status,
-          `${object.confidence}% CONFIDENCE`,
+          "DECISION CONFIDENCE EXPLAINED BELOW",
           object.asset_status.replaceAll("_", " ")
         ])}
         <p class="detail-intro">${esc(object.provenance)}</p>
@@ -121,7 +121,7 @@ function renderObject(root, k100, manifest, id) {
       <h2>Evidence and publication state remain separated.</h2>
       <div class="detail-metric-grid">
         <article class="detail-metric-card"><strong>${esc(score)}</strong><span>Preview Score</span></article>
-        <article class="detail-metric-card"><strong>${esc(object.confidence)}%</strong><span>Confidence</span></article>
+        <article class="detail-metric-card"><strong>SEE BELOW</strong><span>Decision Confidence and explanation</span></article>
         <article class="detail-metric-card"><strong>${esc(object.freshness)}</strong><span>Freshness</span></article>
         <article class="detail-metric-card"><strong>${String(object.rank).padStart(2, "0")}</strong><span>Featured Slice Position</span></article>
       </div>
