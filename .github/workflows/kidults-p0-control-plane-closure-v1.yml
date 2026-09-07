@@ -2,18 +2,10 @@ name: KIDULTS P0 Control Plane Closure v1
 
 on:
   workflow_dispatch:
+  # The exact-merge post-merge suite requires this run for every protected-main push.
+  # Keep pull_request filtering below, but never path-filter this push trigger.
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/kidults-*.yml'
-      - 'services/kidults-control-plane/**'
-      - 'services/kidults-autonomous-intelligence/**'
-      - 'scripts/kidults/**'
-      - 'coordination/kidults/kpmo/**'
-      - 'coordination/kidults/redteam/**'
-      - 'coordination/kidults/source-intelligence/**'
-      - 'tests/kidults/kpmo/p0-failure-receipt-retention-v1.test.mjs'
-      - 'package.json'
   pull_request:
     branches: [main]
     paths:
