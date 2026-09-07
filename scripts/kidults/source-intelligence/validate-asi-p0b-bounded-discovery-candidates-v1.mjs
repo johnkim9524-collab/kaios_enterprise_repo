@@ -31,18 +31,20 @@ const requiredOutputs = [
 ];
 
 assert(contract.id === 'kidults-asi-p0b-bounded-discovery-candidate-contract-v1', 'CONTRACT_ID');
-assert(contract.version === '1.0.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.1.0', 'CONTRACT_VERSION');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'CONTRACT_STATUS');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLE_ORDER');
-assert(contract.scope_rotation_count === 4, 'CONTRACT_ROTATION_COUNT');
-assert(contract.bounded_live_lanes?.length === 2, 'CONTRACT_LIVE_LANE_COUNT');
+assert(contract.upstream_scope_rotation_count === 4, 'CONTRACT_UPSTREAM_ROTATION_COUNT');
+assert(contract.upstream_bounded_live_lanes?.length === 2, 'CONTRACT_UPSTREAM_LIVE_LANE_COUNT');
 assert(contract.mission_binding?.scope_exact_match_required === true, 'CONTRACT_SCOPE_MATCH');
 assert(contract.mission_binding?.region_exact_match_preferred === true, 'CONTRACT_REGION_PREFERENCE');
 assert(contract.mission_binding?.region_unknown_counts_as_regional_coverage === false, 'CONTRACT_REGION_UNKNOWN_BOUNDARY');
 assert(contract.mission_binding?.maximum_candidates_per_mission === 3, 'CONTRACT_CANDIDATE_LIMIT');
 assert(contract.mission_binding?.different_host_is_factual_origin_independence === false, 'CONTRACT_HOST_ORIGIN_BOUNDARY');
 assert(contract.mission_binding?.candidate_can_prove_factual_origin_replacement_slot === false, 'CONTRACT_ORIGIN_SLOT_BOUNDARY');
-assert(contract.truth_boundary?.executes_bounded_public_metadata_network_discovery === true, 'CONTRACT_LIVE_EXECUTION');
+assert(contract.truth_boundary?.executes_bounded_public_metadata_network_discovery === false, 'CONTRACT_P0B_NETWORK_EXECUTION');
+assert(contract.truth_boundary?.consumes_exact_main_shared_source_fabric === true, 'CONTRACT_SHARED_FABRIC');
+assert(contract.truth_boundary?.provider_requests_issued_by_p0b === 0, 'CONTRACT_PROVIDER_REQUEST_COUNT');
 assert(contract.truth_boundary?.observes_source_candidates === true, 'CONTRACT_CANDIDATE_OBSERVATION');
 assert(contract.truth_boundary?.crawls_target_site_bodies === false, 'CONTRACT_BODY_CRAWL_BOUNDARY');
 assert(contract.truth_boundary?.acquires_target_content === false, 'CONTRACT_CONTENT_BOUNDARY');
@@ -171,9 +173,12 @@ assert(diversity.discovery_provider_is_factual_origin === false, 'DIVERSITY_PROV
 assert(diversity.factual_origin_independence_proven_count === 0, 'DIVERSITY_ORIGIN_OVERCLAIM');
 
 assert(manifest.id === 'kidults-asi-p0b-bounded-discovery-manifest-v1', 'MANIFEST_ID');
-assert(manifest.state === 'BOUNDED_PUBLIC_METADATA_DISCOVERY_EXECUTED_SOURCE_CANDIDATES_OBSERVED', 'MANIFEST_STATE');
+assert(manifest.state === 'SHARED_SOURCE_FABRIC_CONSUMED_SOURCE_CANDIDATES_OBSERVED', 'MANIFEST_STATE');
 assert(JSON.stringify(manifest.platform_principles) === JSON.stringify(principles), 'MANIFEST_PRINCIPLE_ORDER');
-assert(manifest.results?.bounded_public_metadata_network_discovery_executed === true, 'MANIFEST_LIVE_EXECUTION');
+assert(manifest.results?.bounded_public_metadata_network_discovery_executed === false, 'MANIFEST_P0B_NETWORK_EXECUTION');
+assert(manifest.results?.bounded_public_metadata_network_discovery_executed_by_p0b === false, 'MANIFEST_P0B_NETWORK_EXECUTION_EXPLICIT');
+assert(manifest.results?.shared_source_fabric_consumed === true, 'MANIFEST_SHARED_FABRIC');
+assert(manifest.results?.provider_requests_issued_by_p0b === 0, 'MANIFEST_PROVIDER_REQUEST_COUNT');
 assert(manifest.results?.successful_live_discovery_lane_observations === diversity.successful_live_discovery_lane_observations, 'MANIFEST_LIVE_LANE_COUNT');
 assert(manifest.results?.raw_candidate_observations === candidates.raw_candidate_observations, 'MANIFEST_RAW_COUNT');
 assert(manifest.results?.canonical_source_candidates_observed === candidates.canonical_candidate_count, 'MANIFEST_CANDIDATE_COUNT');
