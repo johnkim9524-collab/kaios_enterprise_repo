@@ -38,6 +38,14 @@ function validateWorkflow(text) {
     'out/current-sold-postgres-resilience/receipt.json',
     'if-no-files-found: error'
   ]) if (!text.includes(token)) fail(`WORKFLOW_CONTRACT_TOKEN_MISSING:${token}`);
+
+  const stepsBoundary = text.indexOf('\n    steps:\n');
+  const executionStep = text.indexOf('      - name: Execute pinned ephemeral Current-SOLD PostgreSQL resilience attacks');
+  const executionRun = text.indexOf('        run: bash scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh', executionStep);
+  const serviceBinding = text.indexOf('          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}', executionStep);
+  if (stepsBoundary < 0 || executionStep < stepsBoundary) fail('WORKFLOW_STEPS_BOUNDARY_INVALID');
+  if (text.slice(0, stepsBoundary).includes('KIR_SQL_TEST_CONTAINER_ID')) fail('WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE');
+  if (serviceBinding < executionStep || serviceBinding > executionRun) fail('WORKFLOW_STEP_SERVICE_CONTEXT_BINDING_MISSING');
 }
 
 const script = fs.readFileSync(scriptPath, 'utf8');
@@ -57,6 +65,17 @@ if (process.argv.includes('--self-test')) {
     let observed = null;
     try { validateScript(candidate); } catch (error) { observed = error.message; }
     if (observed !== expected) fail(`MUTATION_NOT_REJECTED:${expected}:${observed || 'PASS'}`);
+  }
+
+  const stepBinding = '        env:\n          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n';
+  const workflowMutations = [
+    [workflow.replace(stepBinding, ''), 'WORKFLOW_STEP_SERVICE_CONTEXT_BINDING_MISSING'],
+    [workflow.replace(stepBinding, '    env:\n      KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}\n'), 'WORKFLOW_SERVICE_CONTEXT_BOUND_AT_JOB_SCOPE']
+  ];
+  for (const [candidate, expected] of workflowMutations) {
+    let observed = null;
+    try { validateWorkflow(candidate); } catch (error) { observed = error.message; }
+    if (observed !== expected) fail(`WORKFLOW_MUTATION_NOT_REJECTED:${expected}:${observed || 'PASS'}`);
   }
 }
 
