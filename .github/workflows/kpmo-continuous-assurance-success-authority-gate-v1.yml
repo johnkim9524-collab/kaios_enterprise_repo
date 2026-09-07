@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'
+      - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - 'scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-continuous-assurance-same-run-authority-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
@@ -44,7 +47,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
+          node --check scripts/kidults/kpmo/validate-continuous-assurance-same-run-authority-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-continuous-assurance-same-run-authority-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
 
   success-authority-gate:
@@ -63,12 +69,14 @@ jobs:
       UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
       UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
       UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-      GATE_DIR: ${{ runner.temp }}/kpmo-success-assurance-authority-gate
     steps:
       - name: Initialize durable fail-closed gate receipt
         shell: bash
         run: |
           set -euo pipefail
+          GATE_DIR="$RUNNER_TEMP/kpmo-success-assurance-authority-gate"
+          export GATE_DIR
+          echo "GATE_DIR=$GATE_DIR" >> "$GITHUB_ENV"
           mkdir -p "$GATE_DIR"
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
