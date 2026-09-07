@@ -103,7 +103,7 @@ second_backend_pid="$(psql_scalar 'SELECT pg_backend_pid()')"
 [[ "$first_backend_pid" != "$second_backend_pid" ]] || { echo "reconnect did not create a distinct backend" >&2; exit 1; }
 
 "$PG_BINDIR/pg_basebackup" -D "$BASE_BACKUP" --format=plain --wal-method=stream --checkpoint=fast --no-password >/dev/null
-pitr_target_time="$(psql_scalar "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"')")"
+pitr_target_time="$(psql_scalar "SELECT to_char(clock_timestamp(), 'YYYY-MM-DD HH24:MI:SS.USOF')")"
 sleep 2
 "$PG_BINDIR/psql" --no-psqlrc --quiet --set=ON_ERROR_STOP=1 --command="INSERT INTO kir_runtime.runtime_probe(marker, phase) VALUES ('after-target', 'AFTER_TARGET')"
 switched_wal="$(psql_scalar 'SELECT pg_walfile_name(pg_switch_wal())')"
