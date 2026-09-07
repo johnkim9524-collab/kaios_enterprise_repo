@@ -6,7 +6,12 @@ set -euo pipefail
 : "${CURRENT_SOLD_EXPECTED_HEAD_SHA:?CURRENT_SOLD_EXPECTED_HEAD_SHA required}"
 [[ "$CURRENT_SOLD_EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
 
-psql_cmd=(psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$KAIOS_POSTGRES_DSN")
+resilience_database='kaios_current_sold_resilience'
+admin_dsn="${KAIOS_POSTGRES_DSN%/*}/postgres"
+resilience_dsn="${KAIOS_POSTGRES_DSN%/*}/$resilience_database"
+psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$admin_dsn" \
+  --command="CREATE DATABASE $resilience_database"
+psql_cmd=(psql --no-psqlrc --set=ON_ERROR_STOP=1 --dbname="$resilience_dsn")
 "${psql_cmd[@]}" --file=infrastructure/postgres/current-sold/0001_current_sold_append_only_ledger_v1.sql
 
 receipt_values() {
@@ -70,10 +75,10 @@ fi
 
 docker restart "$KIR_SQL_TEST_CONTAINER_ID" >/dev/null
 for _ in $(seq 1 30); do
-  pg_isready --dbname="$KAIOS_POSTGRES_DSN" >/dev/null 2>&1 && break
+  pg_isready --dbname="$resilience_dsn" >/dev/null 2>&1 && break
   sleep 1
 done
-pg_isready --dbname="$KAIOS_POSTGRES_DSN" >/dev/null
+pg_isready --dbname="$resilience_dsn" >/dev/null
 "${psql_cmd[@]}" --tuples-only --no-align --command="SELECT count(*) FROM kidults_private.current_sold_batch_receipt_ledger WHERE receipt_id='csr_$commit_id'" | grep -qx '1'
 
 mkdir -p out/current-sold-postgres-resilience
