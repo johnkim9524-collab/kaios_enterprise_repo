@@ -60,6 +60,7 @@ on:
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate-negative-mutation-harness-v1.mjs'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
   push:
     branches: [main]
@@ -96,6 +97,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-asi-gate-negative-mutation-harness-v1.mjs'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
 
 permissions:
@@ -151,6 +153,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-gate-negative-mutation-harness-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-gate-negative-mutation-harness-v1.mjs --self-test
           node --check scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs
       - name: Restore immutable anchor foundation and previous v2 pools
@@ -201,9 +205,14 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||y.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(!c)process.exit(0);c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-common-crawl-rights-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||y.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(!c)throw new Error('COMMON_CRAWL_RIGHTS_MUTATION_SUBJECT_MISSING');c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-common-crawl-rights-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-common-crawl-rights-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-rights-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-rights-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'CANDIDATE_PROMOTION' <<<"$OUTPUT"
       - name: Backfill canonical 64 and enforce Product Value Gate before Gate1
         run: |
           node scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json /tmp/asi-product-value-backfill-v1.json
@@ -270,16 +279,26 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)throw new Error('GATE1_RIGHTS_MUTATION_SUBJECT_MISSING');x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'Gate1 created downstream right' <<<"$OUTPUT"
       - name: Gate1 reject Review candidate entering Safe Pool mutation
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const c=x.review_required_queue[0];if(!c)process.exit(0);x.safe_candidate_pool.push(c);x.safe_candidate_count++;x.review_required_queue.shift();x.review_required_count--;fs.writeFileSync('/tmp/bad-gate1-pool-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const c=x.review_required_queue[0];if(!c)throw new Error('GATE1_REVIEW_MUTATION_SUBJECT_MISSING');x.safe_candidate_pool.push(c);x.safe_candidate_count++;x.review_required_queue.shift();x.review_required_count--;fs.writeFileSync('/tmp/bad-gate1-pool-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-gate1-pool-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-pool-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-pool-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'safe pool without Gate1 PASS' <<<"$OUTPUT"
       - name: Gate2 independently reverify current Safe Candidate Pool
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v2.json /tmp/asi-gate2-independent-reverification-v2.json
@@ -288,16 +307,26 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].gate1_decision_used_as_evidence=true;fs.writeFileSync('/tmp/bad-gate2-reuse-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)throw new Error('GATE2_REUSE_MUTATION_SUBJECT_MISSING');x.receipts[0].gate1_decision_used_as_evidence=true;fs.writeFileSync('/tmp/bad-gate2-reuse-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-gate2-reuse-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-reuse-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-reuse-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'Gate1 decision reused as evidence' <<<"$OUTPUT"
       - name: Gate2 reject unproven collection right mutation
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].purpose_rights_matrix.collect='ALLOW';fs.writeFileSync('/tmp/bad-gate2-collect-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));if(!x.receipts.length)throw new Error('GATE2_COLLECT_MUTATION_SUBJECT_MISSING');x.receipts[0].purpose_rights_matrix.collect='ALLOW';fs.writeFileSync('/tmp/bad-gate2-collect-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-gate2-collect-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-collect-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-gate2-independent-reverification-v1.mjs /tmp/bad-gate2-collect-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'unproven purpose promoted: collect' <<<"$OUTPUT"
       - name: Gate3 verify bounded metadata admission
         run: |
           node scripts/kidults/source-intelligence/build-asi-gate3-admission-runtime-v1.mjs /tmp/asi-gate2-independent-reverification-v2.json /tmp/asi-gate3-admission-runtime-v2.json
@@ -306,9 +335,14 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].content_acquisition_authorized=true;fs.writeFileSync('/tmp/bad-gate3-content-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));if(!x.receipts.length)throw new Error('GATE3_CONTENT_MUTATION_SUBJECT_MISSING');x.receipts[0].content_acquisition_authorized=true;fs.writeFileSync('/tmp/bad-gate3-content-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-gate3-content-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/bad-gate3-content-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-gate3-admission-runtime-v1.mjs /tmp/bad-gate3-content-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'content acquisition authorized' <<<"$OUTPUT"
       - name: Apply admitted-pool freshness, revocation and alias controls
         run: |
           node scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs /tmp/asi-gate3-admission-runtime-v2.json /tmp/previous-any-site-pool-v2/asi-admitted-metadata-pool-v2.json coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json /tmp/asi-admitted-metadata-pool-v2.json
@@ -317,9 +351,14 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const c=x.revoked_block_queue?.[0];if(!c)process.exit(0);x.active_admitted_metadata_pool.push(c);x.active_count++;fs.writeFileSync('/tmp/bad-revoked-reentry-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const c=x.revoked_block_queue?.[0];if(!c)throw new Error('REVOKED_ALIAS_MUTATION_SUBJECT_MISSING');x.active_admitted_metadata_pool.push(c);x.active_count++;fs.writeFileSync('/tmp/bad-revoked-reentry-v2.json',JSON.stringify(x));
           NODE
-          if [ -f /tmp/bad-revoked-reentry-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs /tmp/bad-revoked-reentry-v2.json; then exit 1; fi
+          set +e
+          OUTPUT=$(node scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs /tmp/bad-revoked-reentry-v2.json 2>&1)
+          STATUS=$?
+          set -e
+          test "$STATUS" -ne 0
+          grep -F 'active candidate stale or revoked' <<<"$OUTPUT"
       - name: Accumulate rolling Common Crawl augmented candidate pool
         run: |
           node scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/previous-any-site-pool-v2/asi-proactive-source-pool-v2.json /tmp/asi-proactive-source-pool-v2.json
