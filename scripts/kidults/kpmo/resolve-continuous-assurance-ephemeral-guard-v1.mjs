@@ -17,6 +17,7 @@ const FULL_AUDIT_GUARD_STATES = new Set([
 ]);
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const FAILURE_REASON_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
@@ -54,6 +55,19 @@ function argumentValue(argv, name) {
 function appendEnvironment(values, env) {
   if (!env.GITHUB_ENV) return;
   fs.appendFileSync(env.GITHUB_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\n')}\n`, 'utf8');
+}
+
+export function terminalFailureEnvironment(reason) {
+  if (!FAILURE_REASON_PATTERN.test(reason || '')) fail('ASSURANCE_TERMINAL_FAILURE_REASON_INVALID');
+  return {
+    KPMO_EXECUTE_FULL_AUDIT: 'false',
+    KPMO_ASSURANCE_TERMINAL_FAIL_CLOSED: 'true',
+    KPMO_ASSURANCE_TERMINAL_FAIL_REASON: reason,
+  };
+}
+
+function containTerminalFailure(env, reason) {
+  appendEnvironment(terminalFailureEnvironment(reason), env);
 }
 
 export function inlineProducerHealthRequired(env = process.env) {
@@ -98,7 +112,10 @@ function runChild(filePath, args, env) {
 
 export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
   const coreStatus = runChild(CORE_PATH, argv, env);
-  if (coreStatus !== 0) return coreStatus;
+  if (coreStatus !== 0) {
+    containTerminalFailure(env, 'EPHEMERAL_GUARD_CORE_FAILED');
+    return coreStatus;
+  }
 
   const guardOutput = argumentValue(argv, '--output');
   const guard = readJson(guardOutput, 'INLINE_HEALTH_GATE_GUARD_RECEIPT_INVALID');
@@ -123,7 +140,10 @@ export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
   const producerPass = receipt.state === 'VERIFIED_PASS' &&
     receipt.semantic_content_verified === true &&
     receipt.producers.every((producer) => producer?.state === 'VERIFIED_PASS' && producer?.artifact_transport_verified === true && producer?.artifact_content_validated === true);
-  if (healthStatus !== 0 || !producerPass) return healthStatus || 1;
+  if (healthStatus !== 0 || !producerPass) {
+    containTerminalFailure(env, 'CORE_FOUR_PRODUCER_HEALTH_FAILED');
+    return healthStatus || 1;
+  }
   return 0;
 }
 
