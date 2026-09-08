@@ -11,12 +11,6 @@ on:
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
-      - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
-      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
-      - 'scripts/kidults/kpmo/validate-material-defect-state-parity-v1.mjs'
-      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   issues:
     types: [opened, edited, reopened, closed, labeled, unlabeled]
   issue_comment:
@@ -52,6 +46,17 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Guard current-main parity trigger freshness
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const workflow = fs.readFileSync('.github/workflows/kpmo-material-defect-severity-parity-v1.yml', 'utf8');
+          const pushBlock = workflow.match(/\n  push:\n([\s\S]*?)\n  issues:/)?.[1] || '';
+          if (!pushBlock.includes('branches: [main]')) throw new Error('PARITY_MAIN_PUSH_TRIGGER_MISSING');
+          if (/\n    paths(?:-ignore)?:/.test(pushBlock)) throw new Error('PARITY_MAIN_PUSH_TRIGGER_PATH_FILTERED');
+          console.log('PARITY_MAIN_PUSH_TRIGGER_UNFILTERED_PASS');
+          NODE
       - name: Validate shared material registry parser and open severity parity
         env:
           GITHUB_TOKEN: ${{ github.token }}
