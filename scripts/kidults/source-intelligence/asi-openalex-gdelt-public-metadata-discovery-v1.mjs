@@ -22,7 +22,7 @@ if(circuitPath&&fs.existsSync(circuitPath)){
 const rawPlan=id=>{const p=circuit?.routing_directives?.[id];return p&&allowedActions.has(p.action)&&p.rights_effect==='NONE'&&p.admission_effect==='NONE'&&p.acquisition_effect==='NONE'?{action:p.action,budget_multiplier:Number(p.budget_multiplier),cooldown_cycles_remaining:Number(p.cooldown_cycles_remaining||0)}:{action:'FULL_DISCOVERY_BUDGET',budget_multiplier:1,cooldown_cycles_remaining:0}};
 const plans={[OPENALEX]:rawPlan(OPENALEX),[GDELT]:rawPlan(GDELT)};
 if(Object.values(plans).every(p=>p.action==='SKIP_PROVIDER_NEXT_CYCLE'||p.budget_multiplier===0))plans[OPENALEX]={action:'SINGLE_BOUNDED_PROBE',budget_multiplier:0.1,cooldown_cycles_remaining:0,forced_recovery_probe:true};
-const shape=(id)=>{const p=plans[id];if(p.action==='SKIP_PROVIDER_NEXT_CYCLE'||p.budget_multiplier===0)return{scopes:[],page:0};if(p.action==='SINGLE_BOUNDED_PROBE')return{scopes:cycleScopes.slice(0,1),page:2};if(p.action==='REDUCED_DISCOVERY_BUDGET')return{scopes:cycleScopes.slice(0,4),page:4};if(p.action==='ON_DEMAND_ONLY')return{scopes:cycleScopes.slice(0,2),page:2};return{scopes:cycleScopes,page:8}};
+const shape=id=>{const p=plans[id];if(p.action==='SKIP_PROVIDER_NEXT_CYCLE'||p.budget_multiplier===0)return{scopes:[],page:0};if(p.action==='SINGLE_BOUNDED_PROBE')return{scopes:cycleScopes.slice(0,1),page:2};if(p.action==='REDUCED_DISCOVERY_BUDGET')return{scopes:cycleScopes.slice(0,4),page:4};if(p.action==='ON_DEMAND_ONLY')return{scopes:cycleScopes.slice(0,2),page:2};return{scopes:cycleScopes,page:8}};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const MAX_FETCH_ATTEMPTS=4;
 const MAX_RETRY_AFTER_MS=20000;
@@ -56,22 +56,57 @@ async function fetchJson(url,opts={},attempt=0){
   return await r.json();
  }finally{clearTimeout(timer)}
 }
+
 const candidates=[],laneHealth=[];
-function add(raw){const endpoint=norm(raw.endpoint_url);if(!endpoint)return;candidates.push({...raw,endpoint_url:endpoint,source_family_hint:'UNCLASSIFIED_ANY_SITE_CANDIDATE',candidate_source_roles:['UNCLASSIFIED_PENDING_RELEVANCE'],rights_state:'UNASSESSED',admission_state:'NOT_ADMITTED',gate_1_state:'PENDING',evidence_state:'DISCOVERY_METADATA_ONLY',live_external_observation:true,acquisition_authorized:false,target_site_body_crawled:false,content_acquired:false,provider_contacted:false,account_created:false,eula_accepted:false,spend_authorized:false,public_release:'HOLD',production:'HOLD'});}
+function add(target,raw){
+ const endpoint=norm(raw.endpoint_url);if(!endpoint)return false;
+ target.push({...raw,endpoint_url:endpoint,source_family_hint:'UNCLASSIFIED_ANY_SITE_CANDIDATE',candidate_source_roles:['UNCLASSIFIED_PENDING_RELEVANCE'],rights_state:'UNASSESSED',admission_state:'NOT_ADMITTED',gate_1_state:'PENDING',evidence_state:'DISCOVERY_METADATA_ONLY',live_external_observation:true,acquisition_authorized:false,target_site_body_crawled:false,content_acquired:false,provider_contacted:false,account_created:false,eula_accepted:false,spend_authorized:false,public_release:'HOLD',production:'HOLD'});
+ return true;
+}
 function lane(id,status,count,error=null){laneHealth.push({lane_id:id,status,observed_candidates:count,error,budget_action:plans[id].action,budget_multiplier:plans[id].budget_multiplier,forced_recovery_probe:Boolean(plans[id].forced_recovery_probe)})}
 
+// LANE_ATOMIC_CANDIDATE_COMMIT_V1: provider candidates remain staged until the entire lane completes.
 const oa=shape(OPENALEX);
-if(!oa.scopes.length)lane(OPENALEX,'SKIPPED_PROVIDER_CIRCUIT_OPEN',0);else try{
- let count=0;for(const s of oa.scopes){const u=new URL('https://api.openalex.org/works');u.searchParams.set('search',`${s.name} collectible`);u.searchParams.set('per-page',String(oa.page));const data=await fetchJson(u,{headers:{Accept:'application/json','User-Agent':'KIDULTS-ASI-Public-Metadata-Discovery-v1'}});for(const work of data.results||[]){const locs=[work.primary_location,work.best_oa_location,...(work.locations||[]).slice(0,2)].filter(Boolean);for(const loc of locs){const endpoint=norm(loc.landing_page_url||loc.pdf_url||loc.source?.homepage_url);if(!endpoint)continue;add({candidate_id:`cand-oa-${hash((work.id||'')+endpoint+s.id)}`,discovery_provider:OPENALEX,discovery_channel:'OPEN_RESEARCH_AND_REPOSITORY_METADATA',observed_at:new Date().toISOString(),endpoint_url:endpoint,source_name:loc.source?.display_name||work.display_name||endpoint,source_owner_hint:loc.source?.host_organization_name||loc.source?.display_name||'UNKNOWN',provider_record_id:String(work.id||endpoint),scope_hint:s.id,region_hint:'GLOBAL_UNRESOLVED',metadata:{work_id:work.id||null,doi:work.doi||null,work_title:work.display_name||null,source_id:loc.source?.id||null,source_type:loc.source?.type||null,scope_name:s.name,observation_purpose:'DISCOVERY_METADATA_INDEX_ONLY'}});count++;}}await sleep(OPENALEX_PACING_MS);}lane(OPENALEX,count?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS',count);
-}catch(e){lane(OPENALEX,'FAILED',0,String(e?.message||e).slice(0,120))}
+if(!oa.scopes.length)lane(OPENALEX,'SKIPPED_PROVIDER_CIRCUIT_OPEN',0);else{
+ const openAlexCandidates=[];
+ try{
+  for(const s of oa.scopes){
+   const u=new URL('https://api.openalex.org/works');u.searchParams.set('search',`${s.name} collectible`);u.searchParams.set('per-page',String(oa.page));
+   const data=await fetchJson(u,{headers:{Accept:'application/json','User-Agent':'KIDULTS-ASI-Public-Metadata-Discovery-v1'}});
+   for(const work of data.results||[]){
+    const locs=[work.primary_location,work.best_oa_location,...(work.locations||[]).slice(0,2)].filter(Boolean);
+    for(const loc of locs){
+     const endpoint=norm(loc.landing_page_url||loc.pdf_url||loc.source?.homepage_url);if(!endpoint)continue;
+     add(openAlexCandidates,{candidate_id:`cand-oa-${hash((work.id||'')+endpoint+s.id)}`,discovery_provider:OPENALEX,discovery_channel:'OPEN_RESEARCH_AND_REPOSITORY_METADATA',observed_at:new Date().toISOString(),endpoint_url:endpoint,source_name:loc.source?.display_name||work.display_name||endpoint,source_owner_hint:loc.source?.host_organization_name||loc.source?.display_name||'UNKNOWN',provider_record_id:String(work.id||endpoint),scope_hint:s.id,region_hint:'GLOBAL_UNRESOLVED',metadata:{work_id:work.id||null,doi:work.doi||null,work_title:work.display_name||null,source_id:loc.source?.id||null,source_type:loc.source?.type||null,scope_name:s.name,observation_purpose:'DISCOVERY_METADATA_INDEX_ONLY'}});
+    }
+   }
+   await sleep(OPENALEX_PACING_MS);
+  }
+  candidates.push(...openAlexCandidates);
+  lane(OPENALEX,openAlexCandidates.length?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS',openAlexCandidates.length);
+ }catch(e){lane(OPENALEX,'FAILED',0,String(e?.message||e).slice(0,120))}
+}
 
 const gd=shape(GDELT);
-if(!gd.scopes.length)lane(GDELT,'SKIPPED_PROVIDER_CIRCUIT_OPEN',0);else try{
- let count=0;for(const s of gd.scopes){const u=new URL('https://api.gdeltproject.org/api/v2/doc/doc');u.searchParams.set('query',`"${s.name}" collectible`);u.searchParams.set('mode','ArtList');u.searchParams.set('maxrecords',String(Math.max(5,gd.page*2)));u.searchParams.set('format','json');u.searchParams.set('sort','HybridRel');const data=await fetchJson(u,{headers:{Accept:'application/json','User-Agent':'KIDULTS-ASI-Public-Metadata-Discovery-v1'}});for(const article of data.articles||[]){const endpoint=norm(article.url);if(!endpoint)continue;add({candidate_id:`cand-gdelt-${hash(endpoint+s.id)}`,discovery_provider:GDELT,discovery_channel:'GLOBAL_EVENT_AND_DOMAIN_MENTION_INDEX',observed_at:new Date().toISOString(),endpoint_url:endpoint,source_name:article.title||article.domain||endpoint,source_owner_hint:article.domain||'UNKNOWN',provider_record_id:hash(endpoint+(article.seendate||'')),scope_hint:s.id,region_hint:'GLOBAL_UNRESOLVED',metadata:{domain:article.domain||null,source_country:article.sourcecountry||null,language:article.language||null,seen_date:article.seendate||null,scope_name:s.name,observation_purpose:'DISCOVERY_METADATA_INDEX_ONLY',attention_is_not_demand:true}});count++;}await sleep(GDELT_PACING_MS);}lane(GDELT,count?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS',count);
-}catch(e){lane(GDELT,'FAILED',0,String(e?.message||e).slice(0,120))}
+if(!gd.scopes.length)lane(GDELT,'SKIPPED_PROVIDER_CIRCUIT_OPEN',0);else{
+ const gdeltCandidates=[];
+ try{
+  for(const s of gd.scopes){
+   const u=new URL('https://api.gdeltproject.org/api/v2/doc/doc');u.searchParams.set('query',`"${s.name}" collectible`);u.searchParams.set('mode','ArtList');u.searchParams.set('maxrecords',String(Math.max(5,gd.page*2)));u.searchParams.set('format','json');u.searchParams.set('sort','HybridRel');
+   const data=await fetchJson(u,{headers:{Accept:'application/json','User-Agent':'KIDULTS-ASI-Public-Metadata-Discovery-v1'}});
+   for(const article of data.articles||[]){
+    const endpoint=norm(article.url);if(!endpoint)continue;
+    add(gdeltCandidates,{candidate_id:`cand-gdelt-${hash(endpoint+s.id)}`,discovery_provider:GDELT,discovery_channel:'GLOBAL_EVENT_AND_DOMAIN_MENTION_INDEX',observed_at:new Date().toISOString(),endpoint_url:endpoint,source_name:article.title||article.domain||endpoint,source_owner_hint:article.domain||'UNKNOWN',provider_record_id:hash(endpoint+(article.seendate||'')),scope_hint:s.id,region_hint:'GLOBAL_UNRESOLVED',metadata:{domain:article.domain||null,source_country:article.sourcecountry||null,language:article.language||null,seen_date:article.seendate||null,scope_name:s.name,observation_purpose:'DISCOVERY_METADATA_INDEX_ONLY',attention_is_not_demand:true}});
+   }
+   await sleep(GDELT_PACING_MS);
+  }
+  candidates.push(...gdeltCandidates);
+  lane(GDELT,gdeltCandidates.length?'SUCCESS_WITH_RESULTS':'SUCCESS_ZERO_RESULTS',gdeltCandidates.length);
+ }catch(e){lane(GDELT,'FAILED',0,String(e?.message||e).slice(0,120))}
+}
 
 const successStatuses=new Set(['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS']);
-const failureCooldown=(error)=>{const t=String(error||'').toUpperCase();if(t.includes('HTTP_403'))return 4;if(t.includes('HTTP_429'))return 2;return 1;};
+const failureCooldown=error=>{const t=String(error||'').toUpperCase();if(t.includes('HTTP_403'))return 4;if(t.includes('HTTP_429'))return 2;return 1;};
 const nextDirectives={};
 for(const l of laneHealth){
  const prior=plans[l.lane_id]||{action:'FULL_DISCOVERY_BUDGET',budget_multiplier:1,cooldown_cycles_remaining:0};
@@ -91,7 +126,8 @@ const writebackEnabled=process.env.ASI_PROVIDER_CIRCUIT_WRITEBACK==='1'||process
 const nextCircuit={id:'kidults-asi-discovery-provider-health-circuit-v1',version:'1.1.0',status:'SHADOW_PROVIDER_HEALTH_CIRCUIT_PLAN_READY',cycle_number:Number(circuit?.cycle_number||0)+1,routing_directives:nextDirectives,rules:{runtime_job_local_writeback:true,provider_health_controls_budget_only:true,failed_provider_full_budget_forbidden:true,at_least_one_bounded_recovery_probe:true,rights_and_admission_unchanged:true},public_release:'HOLD',production:'HOLD'};
 if(writebackEnabled&&circuitPath){fs.mkdirSync(path.dirname(circuitPath),{recursive:true});fs.writeFileSync(circuitPath,JSON.stringify(nextCircuit,null,2)+'\n');}
 
-const unique=new Map();for(const c of candidates){const prior=unique.get(c.endpoint_url);if(!prior)unique.set(c.endpoint_url,c);else unique.set(c.endpoint_url,{...prior,discovery_providers:[...new Set([...(prior.discovery_providers||[prior.discovery_provider]),c.discovery_provider])],scope_hints:[...new Set([...(prior.scope_hints||[prior.scope_hint]).filter(Boolean),c.scope_hint].filter(Boolean))]});}
+const unique=new Map();
+for(const c of candidates){const prior=unique.get(c.endpoint_url);if(!prior)unique.set(c.endpoint_url,c);else unique.set(c.endpoint_url,{...prior,discovery_providers:[...new Set([...(prior.discovery_providers||[prior.discovery_provider]),c.discovery_provider])],scope_hints:[...new Set([...(prior.scope_hints||[prior.scope_hint]).filter(Boolean),c.scope_hint].filter(Boolean))]});}
 const final=[...unique.values()].sort((a,b)=>a.endpoint_url.localeCompare(b.endpoint_url));
 const providerCounts={};for(const c of final)for(const p of c.discovery_providers||[c.discovery_provider])providerCounts[p]=(providerCounts[p]||0)+1;
 const healthy=laneHealth.filter(l=>successStatuses.has(l.status)).length;

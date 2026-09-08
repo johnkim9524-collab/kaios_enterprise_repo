@@ -39,7 +39,7 @@ if(scenario==='member-edited')comments.get(1000).updated_at=new Date(Date.now()+
 if(scenario==='member-digest')comments.get(1000).body+='tamper';
 if(scenario==='missing-member')comments.delete(1000);
 if(scenario==='spoofed-member')comments.get(1000).user.login='other-user';
-const oldBody=aggregate.body;let searchReads=0,approvalReads=0,postCount=0,lastApproval=null;
+const oldBody=aggregate.body;let issuePasses=0,approvalReads=0,postCount=0,lastApproval=null;
 const approvalBody='CANONICAL_V3_AUTHORIZATION_ID: CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001\\nTARGET_MAIN_SHA: '+main+'\\nACTION: APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 globalThis.fetch=async(value,options={})=>{
  const u=new URL(value),method=options.method||'GET';
@@ -55,12 +55,12 @@ globalThis.fetch=async(value,options={})=>{
  }
  if(method!=='GET')throw Error('OFFLINE_MUTATION_FORBIDDEN');
  if(u.pathname.endsWith('/branches/main'))return json({commit:{sha:main}});
- if(u.pathname==='/search/issues'){
-  searchReads++;let items=issues;
-  if(scenario==='prewrite-truth-drift'&&searchReads>=2)items=issues.concat({number:3,state:'open',title:'[P1] synthetic third defect',labels:['P1']});
+ if(u.pathname.endsWith('/issues')&&u.searchParams.get('state')==='open'&&u.searchParams.get('sort')==='updated'&&u.searchParams.get('direction')==='desc'){
+  issuePasses++;let items=issues;
+  if(scenario==='prewrite-truth-drift'&&issuePasses>2)items=issues.concat({number:3,state:'open',title:'[P1] synthetic third defect',labels:['P1']});
   if(scenario==='precommit-truth-drift'&&postCount===25)items=issues.concat({number:3,state:'open',title:'[P1] changed before aggregate',labels:['P1']});
   if(scenario==='postwrite-truth-drift'&&postCount===26)items=issues.concat({number:3,state:'open',title:'[P1] changed after aggregate',labels:['P1']});
-  return json({incomplete_results:false,total_count:items.length,items});
+  return json(items);
  }
  if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},status:'completed',conclusion:'success'});
  if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
@@ -78,7 +78,7 @@ globalThis.fetch=async(value,options={})=>{
  if(id)return comments.has(id)?json(comments.get(id)):json({message:'synthetic missing member'},404);
  throw Error('OFFLINE_UNEXPECTED_ROUTE:'+u.pathname);
 };
-process.on('exit',()=>fs.writeFileSync(process.env.FINAL_STATE,JSON.stringify({oldBody,priorAggregateUntouched:oldBody===marked(CS,CE,oldCommit),aggregate,postCount,searchReads,approvalReads})));`;
+process.on('exit',()=>fs.writeFileSync(process.env.FINAL_STATE,JSON.stringify({oldBody,priorAggregateUntouched:oldBody===marked(CS,CE,oldCommit),aggregate,postCount,issuePasses,approvalReads})));`;
   try{
     const preload=path.join(dir,'transport.mjs');fs.writeFileSync(preload,hook);
     // A pre-existing bootstrap must not hide this invocation's actual failure.

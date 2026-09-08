@@ -104,8 +104,7 @@ export function reconcileArlAuthoritativeGenerationPages({
     if (created < since || created > through) fail('ARL_RUN_CREATED_WINDOW_FILTER_DRIFT', run.id);
   }
   const currentRun = runs.find((run) => run.id === current);
-  if (!currentRun) fail('ARL_CURRENT_RUN_MISSING_FROM_COMPLETE_QUERY', current);
-  if (currentRun.display_title !== expectedDisplayTitle) fail('ARL_CURRENT_RUN_GENERATION_TITLE_MISMATCH', current);
+  if (currentRun && currentRun.display_title !== expectedDisplayTitle) fail('ARL_CURRENT_RUN_GENERATION_TITLE_MISMATCH', current);
   const priorRunIds = runs
     .filter((run) => run.id !== current && run.display_title === expectedDisplayTitle &&
       run.status === 'completed' && run.conclusion === 'success')
@@ -123,7 +122,10 @@ export function reconcileArlAuthoritativeGenerationPages({
     page_count: pages.length,
     page_limit: MAX_ARL_HISTORY_PAGES,
     prior_authoritative_producer_count: 0,
-    current_run_in_complete_query: true,
+    current_run_in_complete_query: Boolean(currentRun),
+    current_run_listing_visibility_required: false,
+    current_run_identity_authority: 'DIRECT_RUN_ENDPOINT_REQUIRED',
+    history_query_role: 'HISTORICAL_PEER_RECONCILIATION',
     exact_generation_window_bound: true,
     pagination_reconciled_complete: true,
     production: 'HOLD',

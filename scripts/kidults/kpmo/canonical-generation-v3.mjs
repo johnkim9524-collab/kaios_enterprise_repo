@@ -57,21 +57,21 @@ async function pages(url){
   die(`PAGINATION_BOUND:${url}`);
 }
 
+async function openIssuePass(){
+  const values=await pages('/issues?state=open&sort=updated&direction=desc');
+  const issues=values.filter((issue)=>!issue.pull_request);
+  const numbers=issues.map((issue)=>issue?.number);
+  if(numbers.some((number)=>!Number.isInteger(number)||number<1)||new Set(numbers).size!==numbers.length)die('OPEN_ISSUE_SET_INVALID');
+  return issues.sort((a,b)=>a.number-b.number);
+}
+
 async function openIssues(){
-  const query=encodeURIComponent(`repo:${repo} is:issue is:open`);
-  const out=[];
-  let total=null;
-  for(let page=1;page<=10;page+=1){
-    const value=await api(`https://api.github.com/search/issues?q=${query}&sort=updated&order=desc&per_page=100&page=${page}`);
-    if(value.incomplete_results!==false||!Number.isInteger(value.total_count)||value.total_count>1000||!Array.isArray(value.items))die('OPEN_ISSUE_SEARCH_INVALID');
-    if(total===null)total=value.total_count;
-    if(total!==value.total_count)die('OPEN_ISSUE_CARDINALITY_MOVED');
-    out.push(...value.items);
-    if(out.length>=total)break;
-    if(!value.items.length||page===10)die('OPEN_ISSUE_PAGINATION_TRUNCATED');
-  }
-  if(out.length!==total||out.some((issue)=>issue.pull_request)||new Set(out.map((issue)=>issue.number)).size!==out.length)die('OPEN_ISSUE_SET_INVALID');
-  return out;
+  const first=await openIssuePass();
+  const second=await openIssuePass();
+  const firstNumbers=first.map((issue)=>issue.number);
+  const secondNumbers=second.map((issue)=>issue.number);
+  if(firstNumbers.length!==secondNumbers.length||firstNumbers.some((number,index)=>number!==secondNumbers[index]))die('OPEN_ISSUE_SET_MOVED');
+  return second;
 }
 
 async function snapshot(){
@@ -251,6 +251,8 @@ function selfTest(){
     "mutating?writeHeaders:readHeaders",
     'GITHUB_API_ORIGIN_INVALID',
     'fetch(githubApiUrl(url)',
+    "pages('/issues?state=open&sort=updated&direction=desc')",
+    'OPEN_ISSUE_SET_MOVED',
     'authorizationId(snapshotValue.protected_main_sha,process.env.CANONICAL_GENERATION_AUTHORIZATION_ID)',
     'runEnvelope?.path!==WRITER_WORKFLOW',
     'comment?.performed_via_github_app',
@@ -265,7 +267,7 @@ function selfTest(){
   let originRejected=false;
   try{githubApiUrl('https://example.com/exfil');}catch{originRejected=true;}
   if(!originRejected)die('SELF_TEST_EXTERNAL_API_ORIGIN_ESCAPED');
-  if(!githubApiUrl('https://api.github.com/search/issues?q=test').startsWith('https://api.github.com/'))die('SELF_TEST_GITHUB_API_ORIGIN_REJECTED');
+  if(!githubApiUrl('https://api.github.com/repos/example/repo/issues?state=open').startsWith('https://api.github.com/'))die('SELF_TEST_GITHUB_API_ORIGIN_REJECTED');
   const main='a'.repeat(40);
   const id=authorizationId(main,'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001');
   if(id!=='CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001')die('SELF_TEST_AUTHORIZATION_ID');
@@ -285,7 +287,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,mutation_authority_not_widened:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:false,write_workflow_not_present:false,owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,open_issue_core_api_two_pass_set_stability:true,search_api_dependency_removed:true,mutation_authority_not_widened:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
 }
 
 try{
