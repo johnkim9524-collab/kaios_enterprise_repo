@@ -14,14 +14,13 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
-      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
       - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
       - '.github/workflows/kidults-asi-p0b-provider-hard-disable-regression-v1.yml'
   workflow_run:
     workflows:
-      - 'KIDULTS ASI Source Fabric Scale PI1'
+      - 'KIDULTS ASI P0 Mission Consumption v1'
     branches: [main]
     types: [completed]
 
@@ -58,8 +57,7 @@ jobs:
             scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
             scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
             scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs \
-            scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
-            scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs; do
+            scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs; do
             node --check "$file"
           done
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
@@ -67,7 +65,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs
 
   bounded-discovery-candidates:
-    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request'))
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -90,7 +88,7 @@ jobs:
             | tee /tmp/kidults-asi-p0b-registry-validation-v1.json
           node scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs
 
-      - name: Restore exact Source Fabric input
+      - name: Bind P0 mission trigger and restore same-generation Source Fabric
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_RUN_ID: ${{ github.event.workflow_run.id || '' }}
@@ -111,72 +109,71 @@ jobs:
 
           if [ "$GITHUB_EVENT_NAME" = 'workflow_run' ]; then
             [[ "$EVENT_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            [[ "$EVENT_SOURCE_SHA" =~ ^[a-f0-9]{40}$ ]]
             test "$EVENT_REPOSITORY" = "$GITHUB_REPOSITORY"
-            test "$EVENT_WORKFLOW_NAME" = 'KIDULTS ASI Source Fabric Scale PI1'
-            test "$EVENT_WORKFLOW_PATH" = '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
+            test "$EVENT_WORKFLOW_NAME" = 'KIDULTS ASI P0 Mission Consumption v1'
+            test "$EVENT_WORKFLOW_PATH" = '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml'
             test "$EVENT_HEAD_BRANCH" = 'main'
             test "$EVENT_CONCLUSION" = 'success'
-            case "$EVENT_WORKFLOW_EVENT" in schedule|workflow_dispatch|push) ;; *) echo 'P0B_SOURCE_FABRIC_EVENT_NOT_RUNTIME_AUTHORITATIVE' >&2; exit 1 ;; esac
+            case "$EVENT_WORKFLOW_EVENT" in schedule|workflow_dispatch|push|workflow_run) ;; *) echo 'P0B_P0_MISSION_EVENT_NOT_RUNTIME_AUTHORITATIVE' >&2; exit 1 ;; esac
             test "$EVENT_SOURCE_SHA" = "$LIVE_MAIN_SHA"
-
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_RUN_ID}" > /tmp/p0b-source-fabric-run.json
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_RUN_ID}" > /tmp/p0b-p0-mission-run.json
             jq -e \
               --argjson run "$EVENT_RUN_ID" --arg sha "$EVENT_SOURCE_SHA" --arg repo "$GITHUB_REPOSITORY" --arg event "$EVENT_WORKFLOW_EVENT" \
-              '.id==$run and .repository.full_name==$repo and .name=="KIDULTS ASI Source Fabric Scale PI1" and .path==".github/workflows/kidults-asi-source-fabric-scale-pi1.yml" and .head_branch=="main" and .head_sha==$sha and .event==$event and .status=="completed" and .conclusion=="success"' \
-              /tmp/p0b-source-fabric-run.json >/dev/null
-
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_RUN_ID}/artifacts?per_page=100" > /tmp/p0b-source-fabric-artifacts.json
-            jq -e '.total_count == (.artifacts | length) and .total_count <= 100' /tmp/p0b-source-fabric-artifacts.json >/dev/null
-            SOURCE_FABRIC_RECORD=$(jq -c --argjson run "$EVENT_RUN_ID" --arg sha "$EVENT_SOURCE_SHA" \
-              '[.artifacts[] | select(.name=="kidults-asi-source-fabric-scale-pi1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0] else empty end' \
-              /tmp/p0b-source-fabric-artifacts.json)
-            test -n "$SOURCE_FABRIC_RECORD"
-            SOURCE_FABRIC_ARTIFACT_ID=$(jq -r '.id' <<<"$SOURCE_FABRIC_RECORD")
-            SOURCE_FABRIC_ARTIFACT_DIGEST=$(jq -r '.digest // empty' <<<"$SOURCE_FABRIC_RECORD")
-            [[ "$SOURCE_FABRIC_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
-            [[ "$SOURCE_FABRIC_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_FABRIC_ARTIFACT_ID}/zip" > /tmp/p0b-source-fabric.zip
-            python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
-              --archive /tmp/p0b-source-fabric.zip \
-              --expected-digest "$SOURCE_FABRIC_ARTIFACT_DIGEST" \
-              --receipt /tmp/p0b-source-fabric-archive-validation-v1.json \
-              --max-compressed-bytes 67108864 \
-              --max-entries 4096 \
-              --max-entry-uncompressed-bytes 16777216 \
-              --max-total-uncompressed-bytes 268435456 \
-              --max-compression-ratio 100 \
-              --required-basename asi-public-metadata-source-fabric-v1.json \
-              --required-basename asi-source-fabric-scale-pi1-receipt.json
-            unzip -q -o /tmp/p0b-source-fabric.zip -d /tmp/p0b-source-fabric-expanded
-            P0B_INPUT_MODE='EXACT_TRIGGERING_SOURCE_FABRIC_ARTIFACT'
-            P0B_ORIGIN_RUN_ID="$EVENT_RUN_ID"
-            P0B_ORIGIN_SOURCE_SHA="$EVENT_SOURCE_SHA"
-            P0B_ORIGIN_EVENT="$EVENT_WORKFLOW_EVENT"
+              '.id==$run and .repository.full_name==$repo and .name=="KIDULTS ASI P0 Mission Consumption v1" and .path==".github/workflows/kidults-asi-p0-mission-consumption-v1.yml" and .head_branch=="main" and .head_sha==$sha and .event==$event and .status=="completed" and .conclusion=="success"' \
+              /tmp/p0b-p0-mission-run.json >/dev/null
+            EXPECTED_GENERATION_SHA="$EVENT_SOURCE_SHA"
+            P0B_TRIGGER_RUN_ID="$EVENT_RUN_ID"
+            P0B_TRIGGER_EVENT="$EVENT_WORKFLOW_EVENT"
+            P0B_INPUT_MODE='P0_MISSION_TRIGGER_PLUS_EXACT_SAME_SHA_SOURCE_FABRIC'
           else
             test "$GITHUB_EVENT_NAME" = 'workflow_dispatch'
             test "$GITHUB_REF" = 'refs/heads/main'
             test "$(git rev-parse HEAD)" = "$LIVE_MAIN_SHA"
-            node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
-              --workflow-path .github/workflows/kidults-asi-source-fabric-scale-pi1.yml \
-              --workflow-name 'KIDULTS ASI Source Fabric Scale PI1' \
-              --artifact-name kidults-asi-source-fabric-scale-pi1 \
-              --branch main \
-              --archive /tmp/p0b-source-fabric.zip \
-              --extract-dir /tmp/p0b-source-fabric-expanded \
-              --receipt /tmp/p0b-source-fabric-exact-restore-receipt-v1.json \
-              --required-basename asi-public-metadata-source-fabric-v1.json \
-              --required-basename asi-source-fabric-scale-pi1-receipt.json \
-              --allowed-event schedule --allowed-event workflow_dispatch --allowed-event push \
-              --max-pages 40 --lookback-days 95 --max-compressed-bytes 67108864
-            P0B_ORIGIN_RUN_ID=$(jq -r '.producer_run_id' /tmp/p0b-source-fabric-exact-restore-receipt-v1.json)
-            P0B_ORIGIN_SOURCE_SHA=$(jq -r '.producer_source_sha' /tmp/p0b-source-fabric-exact-restore-receipt-v1.json)
-            P0B_ORIGIN_EVENT=$(jq -r '.producer_event' /tmp/p0b-source-fabric-exact-restore-receipt-v1.json)
-            SOURCE_FABRIC_ARTIFACT_ID=$(jq -r '.artifact_id' /tmp/p0b-source-fabric-exact-restore-receipt-v1.json)
-            SOURCE_FABRIC_ARTIFACT_DIGEST=$(jq -r '.artifact_digest' /tmp/p0b-source-fabric-exact-restore-receipt-v1.json)
-            test "$P0B_ORIGIN_SOURCE_SHA" = "$LIVE_MAIN_SHA"
-            P0B_INPUT_MODE='EXACT_CURRENT_MAIN_RECOVERY_ARTIFACT'
+            EXPECTED_GENERATION_SHA="$LIVE_MAIN_SHA"
+            P0B_TRIGGER_RUN_ID='0'
+            P0B_TRIGGER_EVENT='workflow_dispatch'
+            P0B_INPUT_MODE='RECOVERY_EXACT_CURRENT_MAIN_SOURCE_FABRIC'
           fi
 
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=success -f head_sha="$EXPECTED_GENERATION_SHA" -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-source-fabric-scale-pi1.yml/runs" \
+            > /tmp/p0b-source-fabric-runs.json
+          jq -e '.total_count == (.workflow_runs | length) and .total_count <= 100' /tmp/p0b-source-fabric-runs.json >/dev/null
+          SOURCE_FABRIC_RECORD=$(jq -c --arg sha "$EXPECTED_GENERATION_SHA" \
+            '[.workflow_runs[] | select(.name=="KIDULTS ASI Source Fabric Scale PI1" and .path==".github/workflows/kidults-asi-source-fabric-scale-pi1.yml" and .head_branch=="main" and .head_sha==$sha and (.event=="schedule" or .event=="workflow_dispatch" or .event=="push") and .status=="completed" and .conclusion=="success")] | sort_by(.created_at) | reverse | .[0] // empty' \
+            /tmp/p0b-source-fabric-runs.json)
+          test -n "$SOURCE_FABRIC_RECORD"
+          P0B_ORIGIN_RUN_ID=$(jq -r '.id' <<<"$SOURCE_FABRIC_RECORD")
+          P0B_ORIGIN_SOURCE_SHA=$(jq -r '.head_sha' <<<"$SOURCE_FABRIC_RECORD")
+          P0B_ORIGIN_EVENT=$(jq -r '.event' <<<"$SOURCE_FABRIC_RECORD")
+          [[ "$P0B_ORIGIN_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          test "$P0B_ORIGIN_SOURCE_SHA" = "$EXPECTED_GENERATION_SHA"
+
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P0B_ORIGIN_RUN_ID}/artifacts?per_page=100" > /tmp/p0b-source-fabric-artifacts.json
+          jq -e '.total_count == (.artifacts | length) and .total_count <= 100' /tmp/p0b-source-fabric-artifacts.json >/dev/null
+          SOURCE_FABRIC_ARTIFACT=$(jq -c --argjson run "$P0B_ORIGIN_RUN_ID" --arg sha "$P0B_ORIGIN_SOURCE_SHA" \
+            '[.artifacts[] | select(.name=="kidults-asi-source-fabric-scale-pi1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0] else empty end' \
+            /tmp/p0b-source-fabric-artifacts.json)
+          test -n "$SOURCE_FABRIC_ARTIFACT"
+          SOURCE_FABRIC_ARTIFACT_ID=$(jq -r '.id' <<<"$SOURCE_FABRIC_ARTIFACT")
+          SOURCE_FABRIC_ARTIFACT_DIGEST=$(jq -r '.digest // empty' <<<"$SOURCE_FABRIC_ARTIFACT")
+          [[ "$SOURCE_FABRIC_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SOURCE_FABRIC_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SOURCE_FABRIC_ARTIFACT_ID}/zip" > /tmp/p0b-source-fabric.zip
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b-source-fabric.zip \
+            --expected-digest "$SOURCE_FABRIC_ARTIFACT_DIGEST" \
+            --receipt /tmp/p0b-source-fabric-archive-validation-v1.json \
+            --max-compressed-bytes 67108864 \
+            --max-entries 4096 \
+            --max-entry-uncompressed-bytes 16777216 \
+            --max-total-uncompressed-bytes 268435456 \
+            --max-compression-ratio 100 \
+            --required-basename asi-public-metadata-source-fabric-v1.json \
+            --required-basename asi-source-fabric-scale-pi1-receipt.json
+          unzip -q -o /tmp/p0b-source-fabric.zip -d /tmp/p0b-source-fabric-expanded
           mapfile -t FABRIC_FILES < <(find /tmp/p0b-source-fabric-expanded -type f -name 'asi-public-metadata-source-fabric-v1.json' -print)
           mapfile -t RECEIPT_FILES < <(find /tmp/p0b-source-fabric-expanded -type f -name 'asi-source-fabric-scale-pi1-receipt.json' -print)
           test "${#FABRIC_FILES[@]}" -eq 1
@@ -188,6 +185,9 @@ jobs:
 
           {
             echo "P0B_INPUT_MODE=$P0B_INPUT_MODE"
+            echo "P0B_TRIGGER_RUN_ID=$P0B_TRIGGER_RUN_ID"
+            echo "P0B_TRIGGER_SOURCE_SHA=$EXPECTED_GENERATION_SHA"
+            echo "P0B_TRIGGER_EVENT=$P0B_TRIGGER_EVENT"
             echo "P0B_ORIGIN_RUN_ID=$P0B_ORIGIN_RUN_ID"
             echo "P0B_ORIGIN_SOURCE_SHA=$P0B_ORIGIN_SOURCE_SHA"
             echo "P0B_ORIGIN_EVENT=$P0B_ORIGIN_EVENT"
@@ -292,23 +292,12 @@ jobs:
         run: |
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
-          const fs=require('fs');
-          const crypto=require('crypto');
+          const fs=require('fs'),crypto=require('crypto');
           const manifestPath='/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1/p0b-bounded-discovery-manifest-v1.json';
           const manifestExists=fs.existsSync(manifestPath);
           const originBound=/^[1-9][0-9]*$/.test(process.env.P0B_ORIGIN_RUN_ID||'')&&/^[a-f0-9]{40}$/.test(process.env.P0B_ORIGIN_SOURCE_SHA||'')&&/^sha256:[a-f0-9]{64}$/.test(process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||'');
           const pass=process.env.KPMO_JOB_STATUS==='success'&&manifestExists&&originBound;
-          const receipt={
-            id:'kidults-asi-p0b-bounded-discovery-receipt-v1',version:'1.1.0',
-            state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',source_sha:process.env.GITHUB_SHA,
-            trigger_event:process.env.GITHUB_EVENT_NAME,run_id:process.env.GITHUB_RUN_ID,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),
-            job_status:process.env.KPMO_JOB_STATUS,manifest_present:manifestExists,failure_contained:!pass,
-            failure_code:pass?null:'P0B_SOURCE_FABRIC_CONSUMER_CHAIN_FAILED',
-            input_mode:process.env.P0B_INPUT_MODE||null,
-            source_fabric_origin:{run_id:Number(process.env.P0B_ORIGIN_RUN_ID||'0'),source_sha:process.env.P0B_ORIGIN_SOURCE_SHA||null,event:process.env.P0B_ORIGIN_EVENT||null,artifact_id:Number(process.env.P0B_SOURCE_FABRIC_ARTIFACT_ID||'0'),artifact_digest:process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||null},
-            provider_requests_issued_by_p0b:0,provider_execution_authority:false,shared_provider_budget_required:true,
-            candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',evidence_admission:'NONE',public_release:'HOLD',production:'HOLD',g5:'HOLD'
-          };
+          const receipt={id:'kidults-asi-p0b-bounded-discovery-receipt-v1',version:'1.2.0',state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,run_id:process.env.GITHUB_RUN_ID,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),job_status:process.env.KPMO_JOB_STATUS,manifest_present:manifestExists,failure_contained:!pass,failure_code:pass?null:'P0B_SOURCE_FABRIC_CONSUMER_CHAIN_FAILED',input_mode:process.env.P0B_INPUT_MODE||null,trigger_mission_run:{run_id:Number(process.env.P0B_TRIGGER_RUN_ID||'0'),source_sha:process.env.P0B_TRIGGER_SOURCE_SHA||null,event:process.env.P0B_TRIGGER_EVENT||null},source_fabric_origin:{run_id:Number(process.env.P0B_ORIGIN_RUN_ID||'0'),source_sha:process.env.P0B_ORIGIN_SOURCE_SHA||null,event:process.env.P0B_ORIGIN_EVENT||null,artifact_id:Number(process.env.P0B_SOURCE_FABRIC_ARTIFACT_ID||'0'),artifact_digest:process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||null},provider_requests_issued_by_p0b:0,provider_execution_authority:false,shared_provider_budget_required:true,candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',evidence_admission:'NONE',public_release:'HOLD',production:'HOLD',g5:'HOLD'};
           if(manifestExists){const bytes=fs.readFileSync(manifestPath);const m=JSON.parse(bytes);receipt.manifest_digest='sha256:'+crypto.createHash('sha256').update(bytes).digest('hex');receipt.results=m.results;receipt.autonomous_effect=m.autonomous_effect;receipt.global_effect=m.global_effect;receipt.irreplaceable_value_effect=m.irreplaceable_value_effect;receipt.transparency_effect=m.transparency_effect;}
           process.stdout.write(JSON.stringify(receipt,null,2));
           NODE
@@ -322,7 +311,8 @@ jobs:
             /tmp/asi-public-metadata-source-fabric-v1.json
             /tmp/asi-source-fabric-scale-pi1-receipt.json
             /tmp/p0b-source-fabric-archive-validation-v1.json
-            /tmp/p0b-source-fabric-exact-restore-receipt-v1.json
+            /tmp/p0b-p0-mission-run.json
+            /tmp/p0b-source-fabric-runs.json
             /tmp/kidults-asi-p0-mission-consumption-v1
             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
             /tmp/kidults-asi-p0b-registry-validation-v1.json
