@@ -55,6 +55,6 @@ const muts=[
   ['- name: Fail closed unresolved steering fan-in','- name: REMOVED unresolved steering fan-in']
 ];
 for(const [a,b] of muts){
-  if(!t.includes(a)||validate(t.replace(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
+  if(!t.includes(a)||validate(t.replaceAll(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
 }
 console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_DUAL_INPUT_EXACT_GENERATION_READINESS',mutation_cases_rejected:muts.length,terminal_fail_closed_receipt_required:true,production:'HOLD',public_release:'HOLD'},null,2));
