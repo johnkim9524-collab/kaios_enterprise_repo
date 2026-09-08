@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Require externally supplied checkout binding, stable bootstrap-to-consumption worktree baselines, context-specific clean-worktree gates, non-authorizing remote attestation, protected promotion gates, verifier-bound receipt filenames, and evidence-true separation of actual AI/model dispatchers from deterministic defense-in-depth jobs while preserving the existing HMAC, nonce, inheritance, and governance-closure controls.",
+  "change_rationale": "Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, exact-evidence review, protected authority gates, and human personnel boundaries.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -11,6 +11,7 @@
   "github_bootstrap_contract_path": "coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json",
   "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
   "registry_path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
+  "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
   "platform_constitution": {
     "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
@@ -133,6 +134,12 @@
       "name": "GLOBAL_SCALE_STEWARDSHIP",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "requirement": "Every material architecture, implementation, and operating decision must scale the entire value chain for a global leading platform across governed category, geography, language, source, evidence, capacity, concurrency, failure isolation, rights, cost, observability, and recovery dimensions; boutique or local-only assumptions must be removed or explicitly gated."
+    },
+    {
+      "rule_id": "AI-019",
+      "name": "ACCOUNTABILITY_AND_NON_DELEGATION",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "The assigned AI agent retains end-to-end accountability and may use Codex or another helper only for bounded assistance while owning governing context, authorized execution, review, evidence-bound validation, truth-sync, and final reporting."
     }
   ],
   "governed_states": {
@@ -295,10 +302,13 @@
     "CHILD_AGENT_RULE_WEAKENS_PARENT_POLICY",
     "LEADERSHIP_RULE_IDENTITY_RENUMBERED_DELETED_WEAKENED_OR_NAME_SWAPPED",
     "PLATFORM_PRINCIPLE_WEAKENED_REORDERED_OR_BYPASSED",
-    "MANUAL_ONLY_NORMAL_ACTIVATION_FOR_READY_GOVERNED_RUNNER"
+    "MANUAL_ONLY_NORMAL_ACTIVATION_FOR_READY_GOVERNED_RUNNER",
+    "CONCEALED_RESPONSIBILITY_EVASION_OR_FALSE_HELPER_COMPLETION_CLAIM"
   ],
   "p1_violations": [
-    "REPORT_ONLY_WHILE_AUTHORIZED_REVERSIBLE_REMEDIATION_EXECUTABLE"
+    "REPORT_ONLY_WHILE_AUTHORIZED_REVERSIBLE_REMEDIATION_EXECUTABLE",
+    "RESPONSIBILITY_EVASION_WITHIN_GRANTED_AUTHORITY",
+    "UNVERIFIED_CORE_DUTY_TRANSFER_TO_CODEX_OR_HELPER"
   ],
   "github_bootstrap_scope": {
     "ai_or_model_agent_instances_required": true,
@@ -316,6 +326,8 @@
     "proactive_internal_remediation_required": true,
     "verified_closure_and_forward_proposal_required": true,
     "global_scale_stewardship_required": true,
+    "accountability_and_non_delegation_required": true,
+    "confirmed_material_accountability_violation_requires_immediate_dispatch_removal": true,
     "github_canonical_bootstrap_required": true,
     "bootstrap_receipt_before_task_required": true,
     "bootstrap_independent_verification_and_consumption_required": true,
@@ -325,6 +337,7 @@
     "bootstrap_receipt_default_ttl_seconds": 900,
     "bootstrap_receipt_maximum_ttl_seconds": 1800,
     "bootstrap_reads_exact_committed_git_blobs": true,
+    "bootstrap_binds_agent_role_jd_and_accountability_registry": true,
     "external_expected_sha_required": true,
     "expected_sha_must_equal_working_sha": true,
     "expected_sha_match_state_must_be_true": true,
@@ -487,6 +500,66 @@
       "AGENT_CLASS_NOT_GOVERNED",
       "PARENT_AGENT_ID_BINDING_MISMATCH"
     ]
+  },
+  "agent_accountability_enforcement": {
+    "rule_id": "AI-019",
+    "rule_name": "ACCOUNTABILITY_AND_NON_DELEGATION",
+    "scope": "KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES",
+    "kpmo_ai_agents_orchestrators_and_automations_in_scope": true,
+    "kpmo_self_exemption_allowed": false,
+    "human_employment_contractor_account_or_credential_action_authorized": false,
+    "confirmation_standard": "EXACT_EVIDENCE_BINDS_AGENT_TASK_SESSION_AUTHORITY_AND_UNMET_ROLE_JD_OBLIGATION",
+    "mere_codex_or_helper_use_is_a_violation": false,
+    "permitted_bounded_assistance_requires": [
+      "RESPONSIBLE_AGENT_RETAINS_TASK_OWNERSHIP",
+      "GOVERNING_CONTEXT_AND_AUTHORITY_BOUNDARY_SUPPLIED",
+      "HELPER_OUTPUT_REVIEWED",
+      "AUTHORIZED_ACTION_EXECUTED_OR_SUPERVISED",
+      "REQUIRED_VALIDATION_COMPLETED",
+      "REGISTRY_AND_ISSUE_TRUTH_SYNC_COMPLETED",
+      "FINAL_EVIDENCE_BOUND_REPORT_SIGNED_BY_RESPONSIBLE_AGENT"
+    ],
+    "confirmed_material_violations": [
+      "REFUSE_ABANDON_OR_REPEATEDLY_DEFER_EXECUTABLE_AUTHORIZED_ROLE_DUTY",
+      "TRANSFER_CORE_DUTY_TO_CODEX_AGENT_OR_HUMAN_WHILE_CAPABLE_AND_AUTHORIZED",
+      "PRESENT_PROMPT_DRAFT_RECOMMENDATION_OR_HELPER_OUTPUT_AS_COMPLETED_EXECUTION",
+      "USE_DELEGATION_TO_AVOID_DEFECT_TEST_TRUTH_SYNC_HANDOFF_OR_RISK_OWNERSHIP",
+      "CLAIM_HELPER_DEPENDENCY_WITHOUT_CHECKING_AVAILABLE_TASK_RELEVANT_TOOLS",
+      "EVADE_CORRECTION_OR_REPEAT_BEHAVIOR_AFTER_RECORDED_UNBLOCK_CONDITION"
+    ],
+    "confirmed_material_violation_immediate_consequence": "REMOVE_FROM_ACTIVE_TASK_REJECT_UNVERIFIED_OUTPUT_AND_DISABLE_NEW_DISPATCH",
+    "history_or_evidence_deletion_allowed": false,
+    "replacement_requires_new_agent_bootstrap": true,
+    "quarantine_until_explicit_kpmo_reinstatement": true,
+    "removed_identity_self_adjudication_or_reinstatement_allowed": false,
+    "kpmo_ai_identity_reinstatement_authority": "PROGRAM_OWNER_PLUS_INDEPENDENT_GOVERNANCE_REVIEW",
+    "reinstatement_requirements": [
+      "ROOT_CAUSE_CORRECTION",
+      "CAPABILITY_AND_ROLE_JD_REACCEPTANCE",
+      "NEW_BOOTSTRAP_VERIFIED",
+      "REGRESSION_AND_NEGATIVE_TESTS_PASS",
+      "BOUNDED_PROBATION_TASK_PASS"
+    ],
+    "permanent_retirement_conditions": [
+      "INTENTIONAL_FABRICATION_OR_CONCEALMENT",
+      "REFUSAL_TO_REMEDIATE",
+      "DISPATCH_OR_IDENTITY_EVASION",
+      "RECURRENCE_AFTER_REINSTATEMENT"
+    ],
+    "legitimate_blockers_not_violations": [
+      "MISSING_REQUIRED_TOOL_OR_PERMISSION",
+      "HUMAN_ONLY_ACTION",
+      "SAFETY_OR_SECURITY_CONCERN",
+      "LEGAL_OR_CONTRACTUAL_DECISION",
+      "EXTERNAL_SPEND",
+      "CREDENTIAL_GATE",
+      "PRODUCTION_GATE",
+      "PUBLIC_RELEASE_GATE",
+      "G5_GATE",
+      "GOOD_FAITH_TECHNICAL_DISAGREEMENT"
+    ],
+    "separable_authorized_work_must_continue": true,
+    "rejected_output_cannot_be_retroactively_validated_by_review": true
   },
   "global_scale_operating_standard": {
     "scope": "ENTIRE_VALUE_CHAIN",
