@@ -1,0 +1,209 @@
+name: KPMO Continuous Assurance Scheduled Authority Gate V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-continuous-assurance-scheduled-authority-gate-v1.yml'
+      - 'scripts/kidults/kpmo/validate-continuous-assurance-scheduled-authority-gate-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
+      - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
+      - 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json'
+  workflow_run:
+    workflows: ['KIDULTS Platform Continuous Assurance V1']
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: kpmo-continuous-assurance-scheduled-authority-gate-${{ github.event.workflow_run.id || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  contract-self-test:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and scheduled authority-gate contract
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/kpmo/validate-continuous-assurance-scheduled-authority-gate-v1.mjs
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
+          node scripts/kidults/kpmo/validate-continuous-assurance-scheduled-authority-gate-v1.mjs
+
+  scheduled-authority-gate:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'schedule' &&
+      github.event.workflow_run.status == 'completed' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+      UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+      UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+      UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      GATE_DIR: ${{ runner.temp }}/kpmo-scheduled-assurance-authority-gate
+    steps:
+      - name: Initialize durable fail-closed gate receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GATE_DIR"
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
+          const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
+          const base={
+            receipt_id:'kpmo-continuous-assurance-scheduled-authority-gate-v1',
+            version:'1.0.0', state:'VERIFIED_FAIL',
+            failure_class:'SCHEDULED_ASSURANCE_AUTHORITY_NOT_RECONCILED',
+            repository:process.env.GITHUB_REPOSITORY,
+            upstream_assurance:{
+              run_id:Number(process.env.UPSTREAM_RUN_ID),
+              run_attempt:Number(process.env.UPSTREAM_RUN_ATTEMPT),
+              head_sha:process.env.UPSTREAM_SHA,
+              event:process.env.UPSTREAM_EVENT,
+              conclusion:process.env.UPSTREAM_CONCLUSION
+            },
+            current_protected_main_sha:null,
+            producer_health_receipt_digest:null,
+            producer_health_state:'UNAVAILABLE',
+            coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
+            whole_platform_authority:false,
+            promotion_eligible:false,
+            empirical_authority:false,
+            provider_authority:false,
+            database_authority:false,
+            empirical_delta:0,
+            public:'HOLD', production:'HOLD', g5:'HOLD'
+          };
+          const receipt={...base,receipt_digest:sha256(base)};
+          fs.writeFileSync(`${process.env.GATE_DIR}/kpmo-continuous-assurance-scheduled-authority-gate-v1.json`,`${JSON.stringify(receipt,null,2)}\n`);
+          NODE
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify exact upstream source is still current protected main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" > "$GATE_DIR/main.json"
+          CURRENT_MAIN=$(jq -r '.commit.sha // empty' "$GATE_DIR/main.json")
+          test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
+          echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
+
+      - name: Resolve exact-SHA core-four producer health
+        id: resolve
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
+          --output "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
+
+      - name: Seal exact scheduled Assurance authority-gate receipt
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
+          const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
+          const gatePath=`${process.env.GATE_DIR}/kpmo-continuous-assurance-scheduled-authority-gate-v1.json`;
+          const healthPath=`${process.env.GATE_DIR}/kpmo-continuous-assurance-sentinel-health-v1.json`;
+          const prior=JSON.parse(fs.readFileSync(gatePath,'utf8'));
+          let health=null;
+          try { health=JSON.parse(fs.readFileSync(healthPath,'utf8')); } catch {}
+          const healthUnsigned=health?structuredClone(health):null;
+          if(healthUnsigned) delete healthUnsigned.receipt_digest;
+          const healthDigest=health&&/^sha256:[0-9a-f]{64}$/.test(health.receipt_digest||'')&&health.receipt_digest===sha256(healthUnsigned)?health.receipt_digest:null;
+          const exactSource=process.env.CURRENT_MAIN_SHA===process.env.UPSTREAM_SHA && /^[0-9a-f]{40}$/.test(process.env.UPSTREAM_SHA||'');
+          const healthPass=health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1' && health?.state==='VERIFIED_PASS' &&
+            health?.source_sha===process.env.UPSTREAM_SHA && health?.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM' &&
+            health?.semantic_content_verified===true && health?.runtime_health_proven===false &&
+            health?.whole_platform_authority===false && health?.promotion_eligible===false && healthDigest;
+          const base={
+            ...prior,
+            state: exactSource&&healthPass?'VERIFIED_PASS':'VERIFIED_FAIL',
+            failure_class: exactSource&&healthPass?null:'SCHEDULED_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_NOT_VERIFIED',
+            current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
+            producer_health_receipt_digest:healthDigest,
+            producer_health_state:health?.state||'UNAVAILABLE'
+          };
+          delete base.receipt_digest;
+          const receipt={...base,receipt_digest:sha256(base)};
+          fs.writeFileSync(gatePath,`${JSON.stringify(receipt,null,2)}\n`);
+          NODE
+
+      - name: Upload exact-run scheduled Assurance authority-gate packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-scheduled-authority-gate-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-scheduled-assurance-authority-gate/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce scheduled Assurance authority gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$GATE_DIR/kpmo-continuous-assurance-scheduled-authority-gate-v1.json"
+          jq -e '
+            .receipt_id=="kpmo-continuous-assurance-scheduled-authority-gate-v1" and
+            .repository==env.GITHUB_REPOSITORY and
+            .upstream_assurance.run_id==(env.UPSTREAM_RUN_ID|tonumber) and
+            .upstream_assurance.run_attempt==(env.UPSTREAM_RUN_ATTEMPT|tonumber) and
+            .upstream_assurance.head_sha==env.UPSTREAM_SHA and
+            .upstream_assurance.event=="schedule" and
+            .upstream_assurance.conclusion=="success" and
+            .current_protected_main_sha==env.UPSTREAM_SHA and
+            (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
+            .producer_health_state=="VERIFIED_PASS" and
+            .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
+            .whole_platform_authority==false and
+            .promotion_eligible==false and
+            .empirical_authority==false and
+            .provider_authority==false and
+            .database_authority==false and
+            .empirical_delta==0 and
+            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            .state=="VERIFIED_PASS"
+          ' "$GATE_DIR/kpmo-continuous-assurance-scheduled-authority-gate-v1.json" >/dev/null
