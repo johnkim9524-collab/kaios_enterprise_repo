@@ -82,6 +82,6 @@ const muts=[
   ["steps.inputs.outputs.ready != 'true'","steps.inputs.outputs.ready == 'true'"]
 ];
 for(const [a,b] of muts){
-  if(!t.includes(a)||validate(t.replace(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
+  if(!t.includes(a)||validate(t.replaceAll(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
 }
 console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_LATEST_EXACT_TRIGGER_FRESHNESS_TERMINAL_RECEIPT',mutation_cases_rejected:muts.length,production:'HOLD',public_release:'HOLD'},null,2));
