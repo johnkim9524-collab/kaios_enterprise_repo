@@ -52,9 +52,26 @@ function argumentValue(argv, name) {
   return value;
 }
 
+function optionalArgumentValue(argv, name) {
+  const indexes = [];
+  for (let index = 0; index < argv.length; index += 1) if (argv[index] === name) indexes.push(index);
+  if (indexes.length > 1) fail('INLINE_HEALTH_GATE_ARGUMENT_CARDINALITY', name);
+  if (indexes.length === 0) return '';
+  const value = argv[indexes[0] + 1];
+  if (!value || value.startsWith('--')) fail('INLINE_HEALTH_GATE_ARGUMENT_VALUE', name);
+  return value;
+}
+
 function appendEnvironment(values, env) {
   if (!env.GITHUB_ENV) return;
   fs.appendFileSync(env.GITHUB_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\n')}\n`, 'utf8');
+}
+
+function atomicWriteJson(filePath, value) {
+  const target = path.resolve(filePath);
+  const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.tmp`);
+  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(temporary, target);
 }
 
 export function terminalFailureEnvironment(reason) {
@@ -66,7 +83,80 @@ export function terminalFailureEnvironment(reason) {
   };
 }
 
-function containTerminalFailure(env, reason) {
+export function terminalFailureReceipt(receipt, reason, env = process.env) {
+  if (!FAILURE_REASON_PATTERN.test(reason || '')) fail('ASSURANCE_TERMINAL_FAILURE_REASON_INVALID');
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('ASSURANCE_TERMINAL_RECEIPT_INVALID');
+  const { observed_at: _observedAt, receipt_digest: _receiptDigest, ...base } = structuredClone(receipt);
+  const checkId = `ASSURANCE_TERMINAL_${reason}`;
+  const checks = (Array.isArray(base.checks) ? base.checks : []).filter((check) => check?.id !== checkId);
+  checks.push({ id: checkId, required: true, state: 'VERIFIED_FAIL', failure_class: reason });
+  const payload = {
+    ...base,
+    states: {
+      ...(base.states || {}),
+      internal_control_state: 'VERIFIED_FAIL',
+      external_empirical_state: 'HOLD',
+      release_state: 'HOLD',
+      overall_state: 'RED',
+      promotion_eligible: false,
+    },
+    checks,
+    fatal_error_code: reason,
+    terminal_failure: {
+      state: 'VERIFIED_FAIL',
+      reason,
+      workflow_run_id: String(env.GITHUB_RUN_ID || 'UNKNOWN'),
+      workflow_run_attempt: String(env.GITHUB_RUN_ATTEMPT || '1'),
+      source_sha: String(env.KPMO_SOURCE_SHA || env.GITHUB_SHA || base.source?.expected_sha || 'UNAVAILABLE'),
+      promotion_eligible: false,
+      public: 'HOLD',
+      production: 'HOLD',
+      g5: 'HOLD',
+    },
+  };
+  return {
+    ...payload,
+    observed_at: new Date().toISOString(),
+    receipt_digest: sha256(stableJson(payload)),
+  };
+}
+
+function writeTerminalFailurePacket(argv, env, reason) {
+  const auditOutput = optionalArgumentValue(argv, '--audit-output');
+  const remediationOutput = optionalArgumentValue(argv, '--remediation-output');
+  if (!auditOutput || !remediationOutput) return false;
+  let current;
+  try {
+    current = JSON.parse(fs.readFileSync(auditOutput, 'utf8'));
+  } catch {
+    return false;
+  }
+  const receipt = terminalFailureReceipt(current, reason, env);
+  const checkId = `ASSURANCE_TERMINAL_${reason}`;
+  atomicWriteJson(auditOutput, receipt);
+  atomicWriteJson(remediationOutput, {
+    schema_version: '1.0.0',
+    plan_type: 'KIDULTS_SAFE_REMEDIATION_PACKET',
+    source_sha: receipt.terminal_failure.source_sha,
+    source_receipt_digest: receipt.receipt_digest,
+    disposition: 'CIRCUIT_OPEN_MANUAL_HOLD',
+    failed_check_ids: [checkId],
+    integrity_findings: [reason],
+    persistent_fix_ids: [],
+    activation_eligible: false,
+    activation: { eligible: false },
+    direct_main_write: false,
+    auto_merge: false,
+    promotion_eligible: false,
+    public: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  });
+  return true;
+}
+
+function containTerminalFailure(argv, env, reason) {
+  writeTerminalFailurePacket(argv, env, reason);
   appendEnvironment(terminalFailureEnvironment(reason), env);
 }
 
@@ -113,7 +203,7 @@ function runChild(filePath, args, env) {
 export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
   const coreStatus = runChild(CORE_PATH, argv, env);
   if (coreStatus !== 0) {
-    containTerminalFailure(env, 'EPHEMERAL_GUARD_CORE_FAILED');
+    containTerminalFailure(argv, env, 'EPHEMERAL_GUARD_CORE_FAILED');
     return coreStatus;
   }
 
@@ -141,7 +231,7 @@ export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
     receipt.semantic_content_verified === true &&
     receipt.producers.every((producer) => producer?.state === 'VERIFIED_PASS' && producer?.artifact_transport_verified === true && producer?.artifact_content_validated === true);
   if (healthStatus !== 0 || !producerPass) {
-    containTerminalFailure(env, 'CORE_FOUR_PRODUCER_HEALTH_FAILED');
+    containTerminalFailure(argv, env, 'CORE_FOUR_PRODUCER_HEALTH_FAILED');
     return healthStatus || 1;
   }
   return 0;
