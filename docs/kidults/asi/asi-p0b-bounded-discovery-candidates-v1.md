@@ -2,27 +2,29 @@
 
 **Owner:** KPMO  
 **Priority:** P0  
-**Execution:** Exact Source Fabric artifact consumption and candidate derivation  
+**Execution:** P0 Mission completion + exact same-generation Source Fabric consumption  
 **Direction:** Autonomous → Global → Irreplaceable Value → Transparent
 
 ## Purpose
 
-P0B converts the P0 mission queue plus the exact protected-main Source Fabric discovery artifact into KIDULTS-owned source candidates. It does **not** issue OpenAlex, GDELT, or other provider requests itself.
+P0B converts the P0 mission queue plus the exact same-generation Source Fabric discovery artifact into KIDULTS-owned source candidates. It does **not** issue OpenAlex, GDELT, or other provider requests itself.
 
-The Source Fabric workflow is the sole provider-budget authority for this lane. P0B is an artifact consumer: it validates the exact producer run, source SHA, runtime event class, artifact identity, digest and archive safety before deriving candidates.
+The Source Fabric workflow is the sole provider-budget authority. P0B is deliberately **not** another direct Source Fabric fan-out consumer: its normal trigger is the existing `KIDULTS ASI P0 Mission Consumption v1` completion, and it then restores only a Source Fabric artifact bound to that exact protected-main SHA.
+
+This preserves downstream liveness without increasing the Source Fabric direct-consumer budget.
 
 ## Execution chain
 
 ```text
 Source Fabric Scale PI1
-(schedule / workflow_dispatch / protected-main push)
+        ↓ existing planning chain
+P0 Mission Consumption
+        ↓ exact successful workflow_run
+P0B
         ↓
-Exact successful protected-main run
-        ↓
-Exact run-bound Source Fabric artifact
+Exact same-SHA Source Fabric run
++ exact run-bound Source Fabric artifact
 + digest / archive integrity validation
-        ↓
-P0B rebuilds the P0 mission task queue
         ↓
 Canonical endpoint and host normalization
         ↓
@@ -37,26 +39,28 @@ Provider / Host Diversity Report
 KPMO Receipt and Artifact
 ```
 
-P0B has no independent schedule or protected-main push provider lane. Normal autonomous activation is the successful `KIDULTS ASI Source Fabric Scale PI1` `workflow_run`; manual dispatch is recovery only and must restore an exact current-main Source Fabric artifact.
+P0B has no independent schedule or protected-main push provider lane. Normal autonomous activation is a successful `KIDULTS ASI P0 Mission Consumption v1` `workflow_run`; manual dispatch is recovery only and must bind to current protected main and a same-SHA Source Fabric artifact.
 
-## Provider-budget boundary
+## Provider-budget and fan-out boundary
 
 ```text
-Source Fabric = provider request authority
-P0B          = exact artifact consumer
+Source Fabric = sole provider request authority
+P0B          = chained exact-artifact consumer
 P1           = exact P0B artifact consumer
 ```
-
-This prevents the same OpenAlex/GDELT provider budget from being spent independently by multiple downstream stages while preserving the downstream candidate pipeline.
 
 For P0B, all of the following are invariant:
 
 - `provider_requests_issued_by_p0b = 0`;
 - `provider_execution_authority = false`;
-- Source Fabric run is repository/path/name/main/SHA/event bound;
-- `pull_request` Source Fabric runs are not runtime authority;
-- artifact must be unique, unexpired, run/SHA-bound and SHA-256 digest-bound;
+- P0 Mission trigger is repository/path/name/main/SHA/event bound;
+- `pull_request` producer runs are never runtime authority;
+- Source Fabric run must use the same exact generation SHA;
+- Source Fabric runtime event must be `schedule`, `workflow_dispatch`, or `push`;
+- Source Fabric artifact must be unique, unexpired, run/SHA-bound and SHA-256 digest-bound;
 - archive limits and digest are checked before extraction;
+- P0B is not a direct Source Fabric workflow-run consumer;
+- direct-consumer budget increase is zero;
 - Production/Public/G5 remain `HOLD`.
 
 ## Candidate binding
@@ -73,12 +77,13 @@ Exact regional hints are preferred. Unknown or global hints may remain candidate
 
 ## What this stage proves
 
-- an exact governed Source Fabric artifact was consumed;
+- an exact P0 Mission runtime generation was observed;
+- a same-generation governed Source Fabric artifact was consumed;
 - canonical HTTP(S) source candidates were derived from that artifact;
 - duplicate endpoint observations were superseded deterministically;
 - mission candidate coverage and gaps were measured;
 - host and discovery-provider diversity were measured;
-- source-candidate lineage is reproducible from the Source Fabric artifact/run/digest lineage;
+- source-candidate lineage is reproducible from P0 Mission + Source Fabric run/artifact/digest lineage;
 - P0B itself issued no provider request.
 
 ## What this stage does not prove
