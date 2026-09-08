@@ -1,12 +1,12 @@
 {
   "id": "runtime-digitalocean-readonly-audit-v1",
   "record_type": "runtime_observation_contract",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "PUBLIC_ENDPOINT_OBSERVED",
   "created_at": "2026-08-16T04:30:00+09:00",
-  "updated_at": "2026-08-16T04:44:32+09:00",
+  "updated_at": "2026-09-02T07:50:07+09:00",
   "created_by": "Track D / KPMO",
-  "approved_by": "John",
+  "approved_by": "John (historical Phase 2 observation only; not exact-current-main provider authority)",
   "environment": "PRODUCTION_REFERENCE",
   "provider": "DigitalOcean",
   "connection_mode": "READ_ONLY_AUDIT",
@@ -19,23 +19,24 @@
     "tls_not_after": "2026-10-03T08:58:49Z",
     "root_http_status": 403,
     "health_http_status": 403,
-    "interpretation": "Public DNS and TLS are observable. Edge HTTP 403 prevents application health verification."
+    "interpretation": "Historical public DNS and TLS observation only. Edge HTTP 403 prevented application health verification."
   },
-  "digitalocean_api_connection": "NOT_CONFIGURED",
-  "required_secret_names": [
-    "DIGITALOCEAN_READ_TOKEN"
-  ],
+  "digitalocean_api_connection": "DISABLED_PENDING_EXACT_MAIN_APPROVAL",
+  "provider_credential_resolution_authorized": false,
+  "autonomous_provider_execution_authorized": false,
+  "required_secret_names": [],
   "required_variable_names": [
-    "DIGITALOCEAN_DROPLET_ID",
     "KIDULTS_MONITORED_BASE_URL"
   ],
   "allowed_operations": [
     "DNS resolve",
     "TLS inspect",
-    "HTTP GET",
-    "DigitalOcean API GET droplet metadata"
+    "HTTP GET against canonical public runtime"
   ],
   "prohibited_operations": [
+    "DigitalOcean credential resolution without new exact-current-main Program Owner approval",
+    "DigitalOcean API request without one-shot execution binding",
+    "autonomous provider schedule",
     "deploy",
     "restart",
     "resize",
@@ -45,17 +46,27 @@
     "SSH",
     "database write"
   ],
-  "last_observed_at": "2026-08-15T19:44:32.305003Z",
+  "last_credentialed_observation": {
+    "run_id": 33567184505,
+    "artifact_id": 9823564125,
+    "artifact_digest": "sha256:4a467b17f1ad64c943b59e886e123faf34cac053863af2990b9e825e4fb88f6a",
+    "classification": "NON_PROMOTABLE_AUTHORIZATION_INVALID_READ_ONLY_OBSERVATION",
+    "mutation_performed": false,
+    "runtime_droplet_binding_verified": false
+  },
   "health_state": "EDGE_ACCESS_BLOCKED_403",
   "mutation_performed": false,
   "production_connection_authorized": false,
   "production_state": "HOLD",
+  "provider_reactivation_requirement": "NEW_WORKFLOW_VERSION_PLUS_EXACT_CURRENT_MAIN_PROGRAM_OWNER_APPROVAL_PLUS_ONE_SHOT_TERMINAL_RECEIPT",
   "evidence_workflow": ".github/workflows/kidults-phase2-data-connection-validate.yml",
-  "evidence_run_id": 31904765488,
-  "evidence_artifact_id": 9252030451,
   "references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1837",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/33567184505",
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/240",
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294",
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/295"
-  ]
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/294"
+  ],
+  "last_observed_at": "2026-08-15T19:44:32.305003Z",
+  "evidence_run_id": 31904765488,
+  "evidence_artifact_id": 9252030451
 }
