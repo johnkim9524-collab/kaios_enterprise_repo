@@ -5,6 +5,7 @@ const workflowPath = '.github/workflows/kidults-full-value-chain-redteam-orchest
 const canonicalScript = 'scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs';
 const severityScript = 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs';
 const guardScript = 'scripts/kidults/kpmo/validate-full-value-chain-live-authority-binding-v1.mjs';
+const terminalScript = 'scripts/kidults/kpmo/reconcile-full-value-chain-redteam-terminal-v1.mjs';
 const canonicalIssues = [235,236,237,238,240,256,344,457,479,480,489,521,550,558,559,560,609,742,769,881,921,951,1066,1166,1296];
 const blockPattern = /<!-- KPMO_CANONICAL_TRUTH_V2_START -->([\s\S]*?)<!-- KPMO_CANONICAL_TRUTH_V2_END -->/g;
 
@@ -28,15 +29,25 @@ export function bindingErrors(source) {
   const canonicalName = 'Validate live canonical current-main HOLD authority';
   const severityName = 'Validate live material-defect severity parity';
   const aggregateName = 'Run aggregate full value-chain Red-Team suite';
+  const initializeName = 'Initialize durable full-chain terminal receipt';
+  const reconcileName = 'Reconcile durable full-chain terminal receipt';
+  const uploadName = 'Upload durable full-chain terminal receipt';
 
+  const initialize = stepSlice(text, initializeName, guardName);
   const guard = stepSlice(text, guardName, canonicalName);
   const canonical = stepSlice(text, canonicalName, severityName);
   const severity = stepSlice(text, severityName, aggregateName);
   const aggregateIndex = text.indexOf(`      - name: ${aggregateName}`);
+  const initializeIndex = text.indexOf(`      - name: ${initializeName}`);
+  const reconcileIndex = text.indexOf(`      - name: ${reconcileName}`);
+  const uploadIndex = text.indexOf(`      - name: ${uploadName}`);
+  const reconcile = stepSlice(text, reconcileName, uploadName);
+  const upload = stepSlice(text, uploadName, null);
   const guardIndex = text.indexOf(`      - name: ${guardName}`);
   const canonicalIndex = text.indexOf(`      - name: ${canonicalName}`);
   const severityIndex = text.indexOf(`      - name: ${severityName}`);
 
+  if (!initialize.includes(`${terminalScript} --initialize`)) errors.push('FULL_CHAIN_TERMINAL_INITIALIZER_MISSING');
   if (!guard.includes(guardScript)) errors.push('FULL_CHAIN_BINDING_GUARD_INVOCATION_MISSING');
   if (!guard.includes('GITHUB_TOKEN: ${{ github.token }}')) errors.push('FULL_CHAIN_GUARD_TOKEN_BINDING_MISSING');
   if (!canonical.includes(`${canonicalScript} --self-test`) || !canonical.includes(`node ${canonicalScript}`)) {
@@ -49,8 +60,26 @@ export function bindingErrors(source) {
     if (!block.includes('GITHUB_TOKEN: ${{ github.token }}')) errors.push(`FULL_CHAIN_${label.toUpperCase()}_TOKEN_BINDING_MISSING`);
     if (!block.includes('set -euo pipefail')) errors.push(`FULL_CHAIN_${label.toUpperCase()}_FAIL_CLOSED_SHELL_MISSING`);
   }
-  if (guardIndex < 0 || canonicalIndex < 0 || severityIndex < 0 || aggregateIndex < 0 || guardIndex > aggregateIndex || canonicalIndex > aggregateIndex || severityIndex > aggregateIndex) {
-    errors.push('FULL_CHAIN_LIVE_AUTHORITY_MUST_PRECEDE_AGGREGATE_PASS');
+  if (!reconcile.includes('if: always()') || !reconcile.includes(`${terminalScript} --finalize`)) {
+    errors.push('FULL_CHAIN_TERMINAL_RECONCILIATION_ALWAYS_MISSING');
+  }
+  if (!reconcile.includes('steps.live_authority_binding.outcome')
+    || !reconcile.includes('steps.canonical_authority.outcome')
+    || !reconcile.includes('steps.severity_parity.outcome')
+    || !reconcile.includes('steps.aggregate_suite.outcome')) {
+    errors.push('FULL_CHAIN_TERMINAL_STAGE_OUTCOME_BINDING_MISSING');
+  }
+  if (!upload.includes('if: always()')
+    || !upload.includes('actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f')
+    || !upload.includes('kidults-full-chain-terminal-${{ github.run_id }}-${{ github.run_attempt }}')
+    || !upload.includes('if-no-files-found: error')) {
+    errors.push('FULL_CHAIN_TERMINAL_UPLOAD_ALWAYS_MISSING');
+  }
+  if (initializeIndex < 0 || guardIndex < 0 || canonicalIndex < 0 || severityIndex < 0 || aggregateIndex < 0
+    || reconcileIndex < 0 || uploadIndex < 0 || initializeIndex > guardIndex || guardIndex > aggregateIndex
+    || canonicalIndex > aggregateIndex || severityIndex > aggregateIndex || reconcileIndex < aggregateIndex
+    || uploadIndex < reconcileIndex) {
+    errors.push('FULL_CHAIN_TERMINAL_AND_AUTHORITY_ORDER_INVALID');
   }
   return errors;
 }
@@ -99,6 +128,16 @@ if (errors.length) {
 requireMutationRejected(source, source.replace('  issues: read', '  issues: none'), 'FULL_CHAIN_ISSUES_READ_PERMISSION_MISSING');
 requireMutationRejected(source, source.replace(`node ${canonicalScript} --self-test`, 'echo canonical-self-test-removed'), 'FULL_CHAIN_CANONICAL_LIVE_VALIDATOR_MISSING');
 requireMutationRejected(source, source.replace(`node ${severityScript} --self-test`, 'echo severity-self-test-removed'), 'FULL_CHAIN_SEVERITY_LIVE_VALIDATOR_MISSING');
+requireMutationRejected(source, source.replace(`${terminalScript} --initialize`, 'terminal-initializer-removed'), 'FULL_CHAIN_TERMINAL_INITIALIZER_MISSING');
+requireMutationRejected(source, source.replace(`${terminalScript} --finalize`, 'terminal-finalizer-removed'), 'FULL_CHAIN_TERMINAL_RECONCILIATION_ALWAYS_MISSING');
+const terminalAlways = source.indexOf('      - name: Reconcile durable full-chain terminal receipt');
+const terminalUpload = source.indexOf('      - name: Upload durable full-chain terminal receipt');
+const reconcileBlock = source.slice(terminalAlways, terminalUpload);
+requireMutationRejected(
+  source,
+  source.replace(reconcileBlock, reconcileBlock.replace('if: always()', 'if: success()')),
+  'FULL_CHAIN_TERMINAL_RECONCILIATION_ALWAYS_MISSING'
+);
 
 const guardName = 'Validate full value-chain live-authority binding regression';
 const canonicalName = 'Validate live canonical current-main HOLD authority';
