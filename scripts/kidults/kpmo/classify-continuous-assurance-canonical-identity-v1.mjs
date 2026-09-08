@@ -64,6 +64,13 @@ export function validateCanonicalIdentityContract(contract) {
   if (contract.identity_namespace !== 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_V1') fail('CANONICAL_IDENTITY_NAMESPACE');
   const expectedKey = ['repository', 'consumer_workflow_id', 'source_sha', 'upstream_class', 'generation_discriminator', 'classifier_contract_digest'];
   if (stableJson(contract.canonical_key_components) !== stableJson(expectedKey)) fail('CANONICAL_KEY_COMPONENTS');
+  const workflowRunSuccessIdentityScope = contract.workflow_run_success_identity_scope;
+  if (workflowRunSuccessIdentityScope?.source_generation !== 'UPSTREAM_WORKFLOW_PATH' ||
+      workflowRunSuccessIdentityScope?.logical_schedule_slot !== 'UPSTREAM_WORKFLOW_PATH_AND_SLOT' ||
+      workflowRunSuccessIdentityScope?.same_producer_retries_grouped !== true ||
+      workflowRunSuccessIdentityScope?.different_producers_never_grouped !== true) {
+    fail('WORKFLOW_RUN_SUCCESS_IDENTITY_SCOPE_INVALID');
+  }
   if (!Number.isInteger(contract.logical_schedule_slot_minutes) || contract.logical_schedule_slot_minutes < 1 || contract.logical_schedule_slot_minutes > 60) {
     fail('LOGICAL_SCHEDULE_SLOT_INVALID');
   }
@@ -219,7 +226,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     } else if (upstreamEvent === 'schedule') {
       generationKind = contract.workflow_run_success_generation_rules.schedule;
       logicalSlotValue = logicalSlot(input.upstream_created_at, contract.logical_schedule_slot_minutes, 'UPSTREAM_CREATED_AT_REQUIRED');
-      generationDiscriminator = `upstream-schedule-slot:${logicalSlotValue}`;
+      generationDiscriminator = `upstream-schedule:${workflowPath}:slot:${logicalSlotValue}`;
     } else if (upstreamEvent === 'workflow_dispatch') {
       generationKind = contract.workflow_run_success_generation_rules.workflow_dispatch;
       generationDiscriminator = `upstream-manual-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
@@ -227,7 +234,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     } else {
       generationKind = contract.workflow_run_success_generation_rules[upstreamEvent];
       if (generationKind !== 'SOURCE_GENERATION') fail('UPSTREAM_GENERATION_RULE_INVALID', upstreamEvent);
-      generationDiscriminator = 'source-generation';
+      generationDiscriminator = `source-generation:${workflowPath}`;
     }
     if (specialExactArtifactClass && !terminalObservation) {
       generationKind = 'SPECIAL_EXACT_ARTIFACT_OBSERVATION';

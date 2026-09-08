@@ -87,19 +87,27 @@ const base = {
 };
 
 const first = classifyCanonicalIdentity(base, contract, contractText);
-const sameClassDifferentRun = classifyCanonicalIdentity({
+const sameProducerRetry = classifyCanonicalIdentity({
   ...base,
   run_id: '9002',
-  upstream_workflow_name: 'KIDULTS ASI P0B Bounded Discovery Candidates v1',
-  upstream_workflow_path: '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml',
   upstream_run_id: '8002',
 }, contract, contractText);
+const sameClassDifferentProducer = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9003',
+  upstream_workflow_name: 'KIDULTS ASI P0B Bounded Discovery Candidates v1',
+  upstream_workflow_path: '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml',
+  upstream_run_id: '8003',
+}, contract, contractText);
 assert(first.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE', 'SOURCE_ACQUISITION_CLASS');
-assert(first.canonical_key === sameClassDifferentRun.canonical_key, 'SAME_SHA_GROUPED_CLASS_NOT_CANONICALIZED');
-assert(first.concurrency_group === sameClassDifferentRun.concurrency_group, 'SAME_KEY_CONCURRENCY_GROUP_MISMATCH');
+assert(first.canonical_key === sameProducerRetry.canonical_key, 'SAME_PRODUCER_SOURCE_GENERATION_NOT_DEDUPED');
+assert(first.concurrency_group === sameProducerRetry.concurrency_group, 'SAME_PRODUCER_CONCURRENCY_GROUP_MISMATCH');
+assert(first.canonical_input_digest === sameProducerRetry.canonical_input_digest, 'SAME_PRODUCER_CANONICAL_INPUT_DIGEST_DRIFT');
+assert(first.canonical_key !== sameClassDifferentProducer.canonical_key, 'DIFFERENT_PRODUCER_SOURCE_GENERATION_COLLISION');
+assert(first.concurrency_group !== sameClassDifferentProducer.concurrency_group, 'DIFFERENT_PRODUCER_CONCURRENCY_GROUP_COLLISION');
+assert(first.canonical_input_digest !== sameClassDifferentProducer.canonical_input_digest, 'DIFFERENT_PRODUCER_CANONICAL_INPUT_DIGEST_COLLISION');
 assert(first.dedupe_eligible === true && first.runtime_dedupe_state === 'REMOTE_LEDGER_ACTIVATION_HOLD', 'SUCCESS_HOLD_CLASSIFICATION');
-assert(first.ephemeral_actions_alias_eligible === true, 'GROUPED_SUCCESS_EPHEMERAL_ALIAS_ELIGIBILITY');
-assert(first.canonical_input_digest === sameClassDifferentRun.canonical_input_digest, 'GROUPED_SUCCESS_CANONICAL_INPUT_DIGEST_DRIFT');
+assert(first.ephemeral_actions_alias_eligible === true, 'PRODUCER_BOUND_SUCCESS_EPHEMERAL_ALIAS_ELIGIBILITY');
 assert(first.canonical_execution_claimed === false && first.alias === false, 'UNPROVEN_LEADER_OR_ALIAS_CLAIM');
 assert(first.upstream_audit_conclusion_acceptable === true && first.upstream_audit_disposition === 'UPSTREAM_SUCCESS', 'SUCCESS_AUDIT_HEALTH');
 
@@ -233,10 +241,46 @@ for (const conclusion of ['failure', 'cancelled', 'timed_out', 'action_required'
   assert(terminal.canonical_key !== otherTerminal.canonical_key, `TERMINAL_RUN_COLLISION:${conclusion}`);
 }
 
-const scheduledA = classifyCanonicalIdentity({ ...base, run_id: '9301', upstream_run_id: '8301', upstream_event: 'schedule', upstream_created_at: '2026-08-29T23:31:01.000Z' }, contract, contractText);
-const scheduledSameSlot = classifyCanonicalIdentity({ ...base, run_id: '9302', upstream_run_id: '8302', upstream_event: 'schedule', upstream_created_at: '2026-08-29T23:49:59.000Z' }, contract, contractText);
-const scheduledNextSlot = classifyCanonicalIdentity({ ...base, run_id: '9303', upstream_run_id: '8303', upstream_event: 'schedule', upstream_created_at: '2026-08-30T00:00:00.000Z' }, contract, contractText);
-assert(scheduledA.canonical_key === scheduledSameSlot.canonical_key, 'SAME_LOGICAL_SCHEDULE_SLOT_NOT_DEDUPED');
+const scheduledA = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9301',
+  upstream_run_id: '8301',
+  upstream_workflow_name: 'KIDULTS ASI Getty Historical Transaction Admission v1',
+  upstream_workflow_path: '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml',
+  upstream_event: 'schedule',
+  upstream_created_at: '2026-08-29T23:31:01.000Z',
+}, contract, contractText);
+const scheduledSameProducerSameSlot = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9302',
+  upstream_run_id: '8302',
+  upstream_workflow_name: 'KIDULTS ASI Getty Historical Transaction Admission v1',
+  upstream_workflow_path: '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml',
+  upstream_event: 'schedule',
+  upstream_created_at: '2026-08-29T23:49:59.000Z',
+}, contract, contractText);
+const scheduledDifferentProducerSameSlot = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9303',
+  upstream_run_id: '8303',
+  upstream_workflow_name: 'KIDULTS ASI State Department Camera Evidence v1',
+  upstream_workflow_path: '.github/workflows/kidults-asi-state-department-camera-evidence-v1.yml',
+  upstream_event: 'schedule',
+  upstream_created_at: '2026-08-29T23:49:59.000Z',
+}, contract, contractText);
+const scheduledNextSlot = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9304',
+  upstream_run_id: '8304',
+  upstream_workflow_name: 'KIDULTS ASI Getty Historical Transaction Admission v1',
+  upstream_workflow_path: '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml',
+  upstream_event: 'schedule',
+  upstream_created_at: '2026-08-30T00:00:00.000Z',
+}, contract, contractText);
+assert(scheduledA.canonical_key === scheduledSameProducerSameSlot.canonical_key, 'SAME_PRODUCER_LOGICAL_SCHEDULE_SLOT_NOT_DEDUPED');
+assert(scheduledA.canonical_key !== scheduledDifferentProducerSameSlot.canonical_key, 'DIFFERENT_PRODUCER_SCHEDULE_SLOT_COLLISION');
+assert(scheduledA.concurrency_group !== scheduledDifferentProducerSameSlot.concurrency_group, 'DIFFERENT_PRODUCER_SCHEDULE_CONCURRENCY_COLLISION');
+assert(scheduledA.canonical_input_digest !== scheduledDifferentProducerSameSlot.canonical_input_digest, 'DIFFERENT_PRODUCER_SCHEDULE_INPUT_COLLISION');
 assert(scheduledA.canonical_key !== scheduledNextSlot.canonical_key, 'NEXT_LOGICAL_SCHEDULE_SLOT_SUPPRESSED');
 
 const directScheduleA = classifyCanonicalIdentity({
@@ -308,6 +352,12 @@ let widenedSkipPolicyRejected = false;
 try { validateCanonicalIdentityContract(widenedSkipPolicy); } catch { widenedSkipPolicyRejected = true; }
 assert(widenedSkipPolicyRejected, 'EXPECTED_SKIP_POLICY_WIDENING_NOT_REJECTED');
 
+const weakenedProducerScope = structuredClone(contract);
+weakenedProducerScope.workflow_run_success_identity_scope.different_producers_never_grouped = false;
+let weakenedProducerScopeRejected = false;
+try { validateCanonicalIdentityContract(weakenedProducerScope); } catch { weakenedProducerScopeRejected = true; }
+assert(weakenedProducerScopeRejected, 'CROSS_PRODUCER_GROUPING_NOT_REJECTED');
+
 process.stdout.write(`${JSON.stringify({
   id: 'kidults-continuous-assurance-canonical-identity-validation-v1',
   state: 'VERIFIED_PASS',
@@ -321,7 +371,9 @@ process.stdout.write(`${JSON.stringify({
   non_success_conclusions_non_dedupable: 7,
   expected_workflow_run_skips_accepted: contract.expected_workflow_run_skip_paths.length,
   unexpected_skips_and_control_failures_rejected: 8,
-  negative_cases_rejected: negativeCases.length + 2,
+  producer_bound_source_generation_pairs_verified: 2,
+  producer_bound_schedule_pairs_verified: 2,
+  negative_cases_rejected: negativeCases.length + 3,
   runtime_dedupe_state: contract.runtime_dedupe.state,
   canonical_execution_claimed: false,
   detector_authority: contract.truth_boundary.detector_authority,

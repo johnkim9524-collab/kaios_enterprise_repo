@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_EPHEMERAL_ACTIONS_GUARD_REMOTE_LEDGER_ACTIVATION_HOLD",
-  "purpose": "Classify every Continuous Assurance trigger into an explicit, provenance-bound canonical identity and suppress repeated grouped-success audits only through a serialized, exact-receipt Actions readback guard whose authority expires with 90-day artifact retention.",
+  "purpose": "Classify every Continuous Assurance trigger into an explicit, provenance-bound canonical identity and suppress repeated producer-bound grouped-success audits only through a serialized, exact-receipt Actions readback guard whose authority expires with 90-day artifact retention.",
   "identity_namespace": "KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_V1",
   "canonical_key_components": [
     "repository",
@@ -27,6 +27,13 @@
     "workflow_dispatch": "ASSURANCE_MANUAL_REQUEST_RUN"
   },
   "logical_schedule_slot_minutes": 30,
+  "workflow_run_success_identity_scope": {
+    "source_generation": "UPSTREAM_WORKFLOW_PATH",
+    "logical_schedule_slot": "UPSTREAM_WORKFLOW_PATH_AND_SLOT",
+    "same_producer_retries_grouped": true,
+    "different_producers_never_grouped": true,
+    "reason": "Grouping is permitted only within one exact allowlisted upstream workflow path. Different producers in the same semantic class must never share a canonical key, concurrency group, or canonical input digest."
+  },
   "terminal_conclusions": [
     "success",
     "failure",
