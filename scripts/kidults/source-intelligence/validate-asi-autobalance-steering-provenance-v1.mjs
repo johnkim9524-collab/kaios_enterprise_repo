@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 const target=process.argv[2]||'.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml';
+const occurrences=(source,needle)=>source.split(needle).length-1;
 function validate(t){
   const f=[];
   const need=(x,l)=>{if(!t.includes(x))f.push('missing '+l)};
+  const exact=(x,n,l)=>{const c=occurrences(t,x);if(c!==n)f.push(`invalid cardinality ${l}: expected ${n} observed ${c}`)};
   const reject=(x,l)=>{if(t.includes(x))f.push('forbidden '+l)};
   reject('git merge-base --is-ancestor','ancestor fallback');
   need("- 'KIDULTS ASI Throughput Coverage Autobalance Live v1'",'autobalance trigger');
@@ -26,7 +28,8 @@ function validate(t){
   need('STEERING_AUTOBALANCE_EVENT=$AUTOBALANCE_EVENT','autobalance event receipt env');
   need("event:e.STEERING_BASE_EVENT",'base event receipt');
   need("event:e.STEERING_AUTOBALANCE_EVENT",'autobalance event receipt');
-  need('pull_request_producer_authority:false','PR producer authority false');
+  exact('runtime_authority_event_filter:true',2,'runtime authority event filter receipts');
+  exact('pull_request_producer_authority:false',2,'PR producer authority false receipts');
   need('.workflow_run.id==$run','artifact run');
   need('.workflow_run.head_sha==$sha','artifact SHA');
   if((t.match(/if length==1 then \.\[0\] else empty end/g)||[]).length<2)f.push('missing exact cardinality');
@@ -56,6 +59,7 @@ const muts=[
   ['(.event=="schedule" or .event=="workflow_dispatch" or .event=="push")','true'],
   ['(.event=="schedule" or .event=="workflow_dispatch")','true'],
   ["pull_request_producer_authority:false","pull_request_producer_authority:true"],
+  ["runtime_authority_event_filter:true","runtime_authority_event_filter:false"],
   ["status:'WAITING_FOR_EXACT_GENERATION_PEER'","status:'VERIFIED_EXACT_GENERATION_BINDING'"],
   ["if: steps.inputs.outputs.ready == 'true'","if: always()"],
   ['if length==1 then .[0] else empty end','.[0] // empty'],
@@ -64,4 +68,4 @@ const muts=[
 for(const [a,b] of muts){
   if(!t.includes(a)||validate(t.replace(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
 }
-console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_RUNTIME_EVENT_BOUND_DUAL_INPUT_EXACT_GENERATION_READINESS',mutation_cases_rejected:muts.length,pull_request_producer_authority:false,production:'HOLD',public_release:'HOLD'},null,2));
+console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_RUNTIME_EVENT_BOUND_DUAL_INPUT_EXACT_GENERATION_READINESS',mutation_cases_rejected:muts.length,receipt_marker_cardinality_verified:true,pull_request_producer_authority:false,production:'HOLD',public_release:'HOLD'},null,2));
