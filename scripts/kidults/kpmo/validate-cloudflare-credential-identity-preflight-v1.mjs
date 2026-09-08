@@ -153,7 +153,7 @@ ok(extractor.includes('process.stdout.write(payload.body)'), 'EXTRACTOR_BYTE_EXA
 ok(!extractor.includes('console.log(payload.body)'), 'EXTRACTOR_CONSOLE_LOG');
 ok(test.includes("execFileSync('jq', ['-r', '.body', oneLfJson])"), 'TEST_JQ_RAW');
 ok(test.includes("execFileSync('jq', ['-j', '.body', oneLfJson])"), 'TEST_JQ_JOIN');
-ok(test.includes("Buffer.from('approval\n\n')"), 'TEST_EXTRA_LF');
+ok(test.includes('jq -r negative control must expose the extra record-separator LF'), 'TEST_EXTRA_LF');
 ok(test.includes('one-terminal-lf'), 'TEST_ONE_LF');
 ok(test.includes('two-terminal-lfs'), 'TEST_TWO_LF');
 
