@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {
+  MATERIAL_PRIORITY_LABELS,
+  declaredSeverityLabels,
+  normalizedLabels,
+  parityFailures as canonicalParityFailures
+} from './material-defect-registry-v3.mjs';
 
 function fail(message) {
   console.error(JSON.stringify({
@@ -14,45 +20,15 @@ function fail(message) {
   process.exit(1);
 }
 
-const MATERIAL_PRIORITY_LABELS = Object.freeze(['P0', 'P1']);
-
-export function declaredSeverityLabels(title) {
-  const declared = new Set();
-  const text = String(title || '');
-  const prefixMatch = text.match(/^\s*((?:P0|P1)(?:\s*\/\s*(?:P0|P1))*)\s*:/);
-  if (prefixMatch) {
-    for (const part of String(prefixMatch[1] || '').split('/').map(x => x.trim()).filter(Boolean)) declared.add(part);
-  }
-  for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
-    const parts = String(match[1] || '').split('/').map(x => x.trim()).filter(Boolean);
-    if (parts.length && parts.every(x => MATERIAL_PRIORITY_LABELS.includes(x))) {
-      for (const part of parts) declared.add(part);
-    }
-  }
-  return [...declared].sort();
-}
-
-function labels(issue) {
-  return [...new Set((issue?.labels || []).map(x => typeof x === 'string' ? x : x?.name).filter(Boolean))].sort();
-}
-
 function materialPriorities(issue) {
   return [...new Set([
     ...declaredSeverityLabels(issue?.title),
-    ...labels(issue).filter(x => MATERIAL_PRIORITY_LABELS.includes(x))
+    ...normalizedLabels(issue).filter(label => MATERIAL_PRIORITY_LABELS.includes(label))
   ])].sort();
 }
 
 export function severityFailures(issue) {
-  const declared = new Set(declaredSeverityLabels(issue?.title));
-  const actual = new Set(labels(issue));
-  const failures = [];
-  for (const severity of declared) {
-    if (!actual.has(severity)) failures.push(`#${issue.number}:${severity}_TITLE_WITHOUT_${severity}_LABEL`);
-  }
-  if (declared.size === 1 && declared.has('P0') && actual.has('P1')) failures.push(`#${issue.number}:P1_LABEL_WITH_P0_ONLY_TITLE`);
-  if (declared.size === 1 && declared.has('P1') && actual.has('P0')) failures.push(`#${issue.number}:P0_LABEL_WITH_P1_ONLY_TITLE`);
-  return failures;
+  return canonicalParityFailures(issue);
 }
 
 export function latestStructuredState(body) {
@@ -122,7 +98,7 @@ function selfTest() {
   const badClose = { ...base, body: '**State:** `P1 OPEN / HOLD`' };
   const precedence = { ...base, body: '**State:** `P1 OPEN / historical`\n\n**State:** `P1 CLOSED / latest`' };
   const missingLabel = { ...base, title: '[P1] missing label', labels: [] };
-  const prefixOpen = { ...base, number: 11, title: 'P1: prefix material', labels: [], body: '**State:** `P1 OPEN / HOLD`' };
+  const prefixOpen = { ...base, number: 11, title: 'P1: prefix material', labels: [{ name: 'P1' }], body: '**State:** `P1 OPEN / HOLD`' };
   const support = { ...base, number: 12, title: '[P0-SUPPORT] support only', labels: [], body: '**State:** `P0 OPEN / support`' };
   if (!closedIssueCommentFailures(base, selfOpen).some(x => x.includes('POST_CLOSE_SELF_REMAINS_OPEN'))) throw new Error('SELF_OPEN_NOT_REJECTED');
   if (closedIssueCommentFailures(base, siblingOpen).length) throw new Error('SIBLING_OPEN_FALSE_POSITIVE');
@@ -138,6 +114,8 @@ function selfTest() {
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_STATE_PARITY_V1_SELF_TEST',
     state: 'VERIFIED_PASS',
+    canonical_parser_shared: true,
+    canonical_severity_parity_shared: true,
     future_close_terminal_state_required: true,
     complete_closed_body_open_state_rejected: true,
     strict_prefix_material_supported: true,
@@ -166,7 +144,6 @@ const headers = {
 };
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
 async function get(url) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
@@ -201,6 +178,9 @@ async function completeSearch(query, key) {
     if (!data.items.length || page === 10) throw new Error(`PAGINATION_TRUNCATED:${key}:${out.length}/${total}`);
   }
   if (out.length !== total) throw new Error(`CARDINALITY_MISMATCH:${key}:${out.length}/${total}`);
+  const numbers = out.map(issue => issue?.number);
+  if (numbers.some(number => !Number.isInteger(number) || number < 1)) throw new Error(`INVALID_ISSUE_NUMBER:${key}`);
+  if (new Set(numbers).size !== numbers.length) throw new Error(`DUPLICATE_ISSUE_NUMBER:${key}`);
   return out;
 }
 
@@ -246,9 +226,7 @@ try {
   ];
   const byNumber = new Map();
   for (const [query, key] of closedQueries) {
-    for (const issue of await completeSearch(query, key)) {
-      if (materialPriorities(issue).length) byNumber.set(issue.number, issue);
-    }
+    for (const issue of await completeSearch(query, key)) if (materialPriorities(issue).length) byNumber.set(issue.number, issue);
   }
 
   const failures = [];
@@ -276,6 +254,8 @@ try {
   console.log(JSON.stringify({
     validator: 'MATERIAL_DEFECT_STATE_PARITY_V1',
     state: 'VERIFIED_PASS',
+    canonical_parser_shared: true,
+    canonical_severity_parity_shared: true,
     complete_closed_material_candidate_count: byNumber.size,
     complete_closed_material_candidate_scan: true,
     closed_body_open_state_fail_closed: true,
