@@ -52,16 +52,6 @@ function argumentValue(argv, name) {
   return value;
 }
 
-function optionalArgumentValue(argv, name) {
-  const indexes = [];
-  for (let index = 0; index < argv.length; index += 1) if (argv[index] === name) indexes.push(index);
-  if (indexes.length > 1) fail('INLINE_HEALTH_GATE_ARGUMENT_CARDINALITY', name);
-  if (indexes.length === 0) return '';
-  const value = argv[indexes[0] + 1];
-  if (!value || value.startsWith('--')) fail('INLINE_HEALTH_GATE_ARGUMENT_VALUE', name);
-  return value;
-}
-
 function appendEnvironment(values, env) {
   if (!env.GITHUB_ENV) return;
   fs.appendFileSync(env.GITHUB_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\n')}\n`, 'utf8');
@@ -121,16 +111,10 @@ export function terminalFailureReceipt(receipt, reason, env = process.env) {
   };
 }
 
-function writeTerminalFailurePacket(argv, env, reason) {
-  const auditOutput = optionalArgumentValue(argv, '--audit-output');
-  const remediationOutput = optionalArgumentValue(argv, '--remediation-output');
-  if (!auditOutput || !remediationOutput) return false;
-  let current;
-  try {
-    current = JSON.parse(fs.readFileSync(auditOutput, 'utf8'));
-  } catch {
-    return false;
-  }
+export function writeTerminalFailurePacket(argv, env, reason) {
+  const auditOutput = argumentValue(argv, '--audit-output');
+  const remediationOutput = argumentValue(argv, '--remediation-output');
+  const current = readJson(auditOutput, 'ASSURANCE_TERMINAL_AUDIT_INPUT_INVALID');
   const receipt = terminalFailureReceipt(current, reason, env);
   const checkId = `ASSURANCE_TERMINAL_${reason}`;
   atomicWriteJson(auditOutput, receipt);
@@ -156,8 +140,8 @@ function writeTerminalFailurePacket(argv, env, reason) {
 }
 
 function containTerminalFailure(argv, env, reason) {
-  writeTerminalFailurePacket(argv, env, reason);
   appendEnvironment(terminalFailureEnvironment(reason), env);
+  writeTerminalFailurePacket(argv, env, reason);
 }
 
 export function inlineProducerHealthRequired(env = process.env) {

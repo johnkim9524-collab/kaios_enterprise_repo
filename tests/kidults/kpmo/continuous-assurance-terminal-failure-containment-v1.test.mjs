@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import { terminalFailureEnvironment, terminalFailureReceipt } from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+import os from 'node:os';
+import path from 'node:path';
+import { terminalFailureEnvironment, terminalFailureReceipt, writeTerminalFailurePacket } from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
 
 const expected = {
   KPMO_EXECUTE_FULL_AUDIT: 'false',
@@ -34,6 +36,39 @@ if (!red.checks.some((check) => check.id === 'ASSURANCE_TERMINAL_CORE_FOUR_PRODU
 if (!/^sha256:[a-f0-9]{64}$/.test(red.receipt_digest)) throw new Error('TERMINAL_RECEIPT_DIGEST_INVALID');
 if (red.terminal_failure.public !== 'HOLD' || red.terminal_failure.production !== 'HOLD' || red.terminal_failure.g5 !== 'HOLD') throw new Error('TERMINAL_HOLD_BOUNDARY_INVALID');
 
+const packetDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-assurance-terminal-'));
+const auditPath = path.join(packetDirectory, 'audit.json');
+const remediationPath = path.join(packetDirectory, 'remediation.json');
+const packetEnv = {
+  GITHUB_RUN_ID: '34278814866',
+  GITHUB_RUN_ATTEMPT: '1',
+  KPMO_SOURCE_SHA: '69f9c45c8371c4439649de0f811f4c6a7b2149d6',
+};
+fs.writeFileSync(auditPath, `${JSON.stringify(baseReceipt)}\n`, 'utf8');
+if (writeTerminalFailurePacket(['--audit-output', auditPath, '--remediation-output', remediationPath], packetEnv, 'CORE_FOUR_PRODUCER_HEALTH_FAILED') !== true) {
+  throw new Error('TERMINAL_FAILURE_PACKET_NOT_WRITTEN');
+}
+const writtenAudit = JSON.parse(fs.readFileSync(auditPath, 'utf8'));
+const writtenRemediation = JSON.parse(fs.readFileSync(remediationPath, 'utf8'));
+if (writtenAudit.states?.internal_control_state !== 'VERIFIED_FAIL' || writtenAudit.states?.overall_state !== 'RED') throw new Error('WRITTEN_TERMINAL_AUDIT_NOT_RED');
+if (writtenRemediation.source_receipt_digest !== writtenAudit.receipt_digest || writtenRemediation.failed_check_ids?.[0] !== 'ASSURANCE_TERMINAL_CORE_FOUR_PRODUCER_HEALTH_FAILED') {
+  throw new Error('TERMINAL_REMEDIATION_NOT_BOUND');
+}
+
+let missingOutputsRejected = false;
+try { writeTerminalFailurePacket([], packetEnv, 'CORE_FOUR_PRODUCER_HEALTH_FAILED'); } catch { missingOutputsRejected = true; }
+if (!missingOutputsRejected) throw new Error('MISSING_TERMINAL_OUTPUTS_SILENTLY_ACCEPTED');
+
+fs.writeFileSync(auditPath, '{not-json}\n', 'utf8');
+let malformedAuditRejected = false;
+try {
+  writeTerminalFailurePacket(['--audit-output', auditPath, '--remediation-output', remediationPath], packetEnv, 'CORE_FOUR_PRODUCER_HEALTH_FAILED');
+} catch {
+  malformedAuditRejected = true;
+}
+if (!malformedAuditRejected) throw new Error('MALFORMED_TERMINAL_AUDIT_SILENTLY_ACCEPTED');
+fs.rmSync(packetDirectory, { recursive: true, force: true });
+
 const source = fs.readFileSync('scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs', 'utf8');
 for (const marker of [
   "containTerminalFailure(argv, env, 'EPHEMERAL_GUARD_CORE_FAILED')",
@@ -54,8 +89,8 @@ if (healthFailure < 0 || healthReturn < healthFailure) throw new Error('HEALTH_F
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CONTINUOUS_ASSURANCE_TERMINAL_FAILURE_CONTAINMENT_V1',
-  positive: 9,
-  negative: 1,
+  positive: 12,
+  negative: 3,
   state: 'VERIFIED_PASS',
   promotion_eligible: false,
   production: 'HOLD',
