@@ -31,9 +31,13 @@ function assertV2IssueBody(body,issueNumber,mainSha){
   if(block===null) throw new Error(`ISSUE_${issueNumber}_V2_BLOCK_MISSING`);
   const recorded=block.match(/protected main:\s*`([0-9a-f]{40})`/i)?.[1]||'';
   if(recorded!==mainSha) throw new Error(`ISSUE_${issueNumber}_V2_STALE_MAIN_${recorded||'NONE'}_EXPECTED_${mainSha}`);
-  const hold=/Production\/Public\/G5:\s*\*\*HOLD\*\*/i.test(block)||(block.includes('Production/Public/G5')&&/\bHOLD\b/i.test(block));
-  if(!hold) throw new Error(`ISSUE_${issueNumber}_V2_RELEASE_HOLD_MISSING`);
-  if(/Production\/Public\/G5[^\n]*(?:PASS|GO|AUTHORIZED)/i.test(block)) throw new Error(`ISSUE_${issueNumber}_V2_RELEASE_ELEVATION_FORBIDDEN`);
+  const releaseDeclarations=block.split(/\r?\n/).filter((line)=>/Production\/Public\/G5\s*:/i.test(line));
+  if(releaseDeclarations.length===0) throw new Error(`ISSUE_${issueNumber}_V2_RELEASE_HOLD_MISSING`);
+  if(releaseDeclarations.length!==1) throw new Error(`ISSUE_${issueNumber}_V2_RELEASE_DECLARATION_CARDINALITY_${releaseDeclarations.length}`);
+  const releaseDeclaration=releaseDeclarations[0].trim();
+  if(!/^(?:[-*]\s*)?Production\/Public\/G5:\s*(?:\*\*HOLD\*\*|HOLD)\s*$/i.test(releaseDeclaration)) {
+    throw new Error(`ISSUE_${issueNumber}_V2_RELEASE_DECLARATION_INVALID`);
+  }
   return true;
 }
 
@@ -76,7 +80,11 @@ function selfTest(){
     'no canonical block',
     `${V2_START}\nprotected main: \`${'b'.repeat(40)}\`\nProduction/Public/G5: **HOLD**\n${V2_END}`,
     `${V2_START}\nprotected main: \`${main}\`\nProduction/Public/G5: PASS\n${V2_END}`,
-    `${validBlock}\n${V2_START}\nprotected main: \`${'b'.repeat(40)}\`\nProduction/Public/G5: **HOLD**\n${V2_END}`
+    `${validBlock}\n${V2_START}\nprotected main: \`${'b'.repeat(40)}\`\nProduction/Public/G5: **HOLD**\n${V2_END}`,
+    `${V2_START}\nprotected main: \`${main}\`\nProduction/Public/G5:\nPASS\nstatus: HOLD\n${V2_END}`,
+    `${V2_START}\nprotected main: \`${main}\`\nProduction/Public/G5: PASS\ncontrol state: HOLD\n${V2_END}`,
+    `${V2_START}\nprotected main: \`${main}\`\nProduction/Public/G5: **HOLD**\nProduction/Public/G5: PASS\n${V2_END}`,
+    `${V2_START}\nprotected main: \`${main}\`\nProduction/Public/G5: HOLD / PASS\n${V2_END}`
   ];
   for(const mutated of v2Mutations){let rejected=false;try{assertV2IssueBody(mutated,235,main);}catch{rejected=true;}if(!rejected)throw new Error('V2_AUTHORITY_MUTATION_ESCAPED');}
   console.log(JSON.stringify({state:'VERIFIED_PASS',authority_model:'CANONICAL_V2_REQUIRED_PLUS_V3',v2_member_count:MEMBERS.length,v2_negative_cases:v2Mutations.length,v3_negative_cases:v3Mutations.length,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'}));
