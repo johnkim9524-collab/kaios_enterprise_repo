@@ -2,46 +2,61 @@ import fs from 'node:fs';
 
 const workflowPath = process.argv[2] || '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml';
 const source = fs.readFileSync(workflowPath, 'utf8');
-
-const assert = (condition, code) => {
-  if (!condition) throw new Error(code);
-};
+const assert = (condition, code) => { if (!condition) throw new Error(code); };
 
 const validate = (text) => {
   const permissionsIndex = text.indexOf('\npermissions:');
   assert(permissionsIndex > 0, 'PERMISSIONS_BOUNDARY_MISSING');
   const triggerHeader = text.slice(0, permissionsIndex);
-  assert(!/\n  schedule:/.test(triggerHeader), 'AUTONOMOUS_SCHEDULE_REINTRODUCED');
-  assert(!/\n  workflow_run:/.test(triggerHeader), 'AUTONOMOUS_WORKFLOW_RUN_REINTRODUCED');
+  assert(!/\n  schedule:/.test(triggerHeader), 'P0B_INDEPENDENT_SCHEDULE_FORBIDDEN');
+  assert(!/\n  push:/.test(triggerHeader), 'P0B_INDEPENDENT_PUSH_FORBIDDEN');
+  assert(/\n  workflow_run:\n[\s\S]*KIDULTS ASI Source Fabric Scale PI1/.test(triggerHeader), 'SOURCE_FABRIC_WORKFLOW_RUN_TRIGGER_MISSING');
+  assert(triggerHeader.includes('workflow_dispatch:'), 'RECOVERY_DISPATCH_MISSING');
+  assert(triggerHeader.includes('pull_request:'), 'PR_CONTRACT_VALIDATION_MISSING');
 
-  const gateName = '      - name: Enforce P0B direct-provider hard-disable\n';
-  const gateIndex = text.indexOf(gateName);
-  const checkoutIndex = text.indexOf('      - uses: actions/checkout@');
-  const providerIndex = text.indexOf('ASI_SCOPE_ROTATION=');
-  assert(gateIndex >= 0, 'HARD_DISABLE_GATE_MISSING');
-  assert(checkoutIndex > gateIndex, 'HARD_DISABLE_NOT_BEFORE_CHECKOUT');
-  assert(providerIndex > gateIndex, 'HARD_DISABLE_NOT_BEFORE_PROVIDER_CODE');
+  assert(text.includes('contents: read') && text.includes('actions: read'), 'READ_ONLY_PERMISSIONS_MISSING');
+  assert(!text.includes('contents: write'), 'CONTENTS_WRITE_FORBIDDEN');
+  assert(!text.includes('ASI_SCOPE_ROTATION='), 'DIRECT_PROVIDER_ROTATION_FORBIDDEN');
+  assert(!text.includes('node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'), 'DIRECT_OPENALEX_GDELT_EXECUTION_FORBIDDEN');
+  assert(!text.includes('P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED'), 'DEAD_JOB_HARD_DISABLE_SENTINEL_FORBIDDEN');
+  assert(!text.includes('Enforce P0B direct-provider hard-disable'), 'DEAD_JOB_HARD_DISABLE_STEP_FORBIDDEN');
 
-  const gateBlock = text.slice(gateIndex, checkoutIndex);
-  assert(gateBlock.includes('P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED'), 'HARD_DISABLE_CODE_MISSING');
-  assert(gateBlock.includes('exit 1'), 'HARD_DISABLE_EXIT_MISSING');
+  assert(text.includes("EVENT_WORKFLOW_NAME"), 'TRIGGER_WORKFLOW_NAME_BINDING_MISSING');
+  assert(text.includes("EVENT_WORKFLOW_PATH"), 'TRIGGER_WORKFLOW_PATH_BINDING_MISSING');
+  assert(text.includes("EVENT_WORKFLOW_EVENT"), 'TRIGGER_WORKFLOW_EVENT_BINDING_MISSING');
+  assert(text.includes("test \"$EVENT_WORKFLOW_NAME\" = 'KIDULTS ASI Source Fabric Scale PI1'"), 'SOURCE_FABRIC_NAME_BINDING_MISSING');
+  assert(text.includes("test \"$EVENT_WORKFLOW_PATH\" = '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'"), 'SOURCE_FABRIC_PATH_BINDING_MISSING');
+  assert(text.includes('case "$EVENT_WORKFLOW_EVENT" in schedule|workflow_dispatch|push)'), 'SOURCE_FABRIC_RUNTIME_EVENT_FILTER_MISSING');
+  assert(text.includes('test "$EVENT_SOURCE_SHA" = "$LIVE_MAIN_SHA"'), 'LIVE_MAIN_SOURCE_BINDING_MISSING');
+  assert(text.includes('/actions/runs/${EVENT_RUN_ID}/artifacts?per_page=100'), 'EXACT_TRIGGER_ARTIFACT_QUERY_MISSING');
+  assert(text.includes('.workflow_run.id==$run') && text.includes('.workflow_run.head_sha==$sha'), 'ARTIFACT_RUN_SHA_BINDING_MISSING');
+  assert(text.includes('.expired==false'), 'ARTIFACT_EXPIRY_BINDING_MISSING');
+  assert(text.includes('kidults-asi-source-fabric-scale-pi1'), 'SOURCE_FABRIC_ARTIFACT_NAME_MISSING');
+  assert(text.includes('--expected-digest "$SOURCE_FABRIC_ARTIFACT_DIGEST"'), 'SAFE_ZIP_DIGEST_PRECHECK_MISSING');
+  assert(text.indexOf('--expected-digest "$SOURCE_FABRIC_ARTIFACT_DIGEST"') < text.indexOf('unzip -q -o /tmp/p0b-source-fabric.zip'), 'SAFE_ZIP_CHECK_ORDER_INVALID');
+  assert(text.includes('--required-basename asi-public-metadata-source-fabric-v1.json'), 'SOURCE_FABRIC_REQUIRED_BASENAME_MISSING');
+  assert(text.includes('--required-basename asi-source-fabric-scale-pi1-receipt.json'), 'SOURCE_FABRIC_RECEIPT_REQUIRED_BASENAME_MISSING');
+  assert(text.includes('Build P0B source candidate increment from Source Fabric'), 'P0B_LIVENESS_CONSUMER_STAGE_MISSING');
 
-  assert(text.includes("failure_code:pass?null:'P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED'"), 'TERMINAL_FAILURE_CODE_MISSING');
   assert(text.includes('provider_requests_issued_by_p0b:0'), 'ZERO_PROVIDER_REQUEST_RECEIPT_MISSING');
   assert(text.includes('provider_execution_authority:false'), 'PROVIDER_AUTHORITY_FALSE_MISSING');
   assert(text.includes('shared_provider_budget_required:true'), 'SHARED_BUDGET_REQUIREMENT_MISSING');
   assert(text.includes("evidence_admission:'NONE'"), 'EVIDENCE_HOLD_MISSING');
   assert(text.includes("public_release:'HOLD'"), 'PUBLIC_HOLD_MISSING');
   assert(text.includes("production:'HOLD'"), 'PRODUCTION_HOLD_MISSING');
+  assert(text.includes("g5:'HOLD'"), 'G5_HOLD_MISSING');
 };
 
 validate(source);
 
 const mutations = [
   ['schedule', source.replace('  workflow_dispatch:\n', "  workflow_dispatch:\n  schedule:\n    - cron: '37 * * * *'\n")],
-  ['workflow_run', source.replace('  workflow_dispatch:\n', "  workflow_dispatch:\n  workflow_run:\n    workflows: ['KIDULTS ASI P0 Mission Consumption v1']\n    types: [completed]\n")],
-  ['gate_exit', source.replace('          exit 1\n', '          true\n')],
-  ['gate_code', source.replace('P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED', 'P0B_PROVIDER_EXECUTION_ALLOWED')],
+  ['push', source.replace('  workflow_dispatch:\n', "  workflow_dispatch:\n  push:\n    branches: [main]\n")],
+  ['provider_execution', source.replace('      - name: Rebuild current P0 mission task queue\n', "      - name: Direct provider regression\n        run: node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs /tmp/direct.json\n      - name: Rebuild current P0 mission task queue\n")],
+  ['runtime_event', source.replace('case "$EVENT_WORKFLOW_EVENT" in schedule|workflow_dispatch|push)', 'case "$EVENT_WORKFLOW_EVENT" in schedule|workflow_dispatch|push|pull_request)')],
+  ['live_main', source.replace('test "$EVENT_SOURCE_SHA" = "$LIVE_MAIN_SHA"', ':')],
+  ['artifact_run_binding', source.replace('.workflow_run.id==$run', 'true')],
+  ['safe_zip', source.replace('--expected-digest "$SOURCE_FABRIC_ARTIFACT_DIGEST"', '--expected-digest sha256:0000000000000000000000000000000000000000000000000000000000000000')],
   ['request_count', source.replace('provider_requests_issued_by_p0b:0', 'provider_requests_issued_by_p0b:1')],
   ['provider_authority', source.replace('provider_execution_authority:false', 'provider_execution_authority:true')],
   ['evidence_boundary', source.replace("evidence_admission:'NONE'", "evidence_admission:'ADMITTED'")]
@@ -60,13 +75,16 @@ for (const [name, mutation] of mutations) {
 
 process.stdout.write(JSON.stringify({
   state: 'VERIFIED_PASS',
-  control: 'P0B_DIRECT_PROVIDER_EXECUTION_HARD_DISABLED',
-  autonomous_triggers: 0,
+  control: 'P0B_SOURCE_FABRIC_EXACT_ARTIFACT_CONSUMER_ONLY',
+  independent_provider_triggers: 0,
   provider_requests_issued_by_p0b: 0,
   provider_execution_authority: false,
+  candidate_pipeline_liveness_preserved: true,
+  exact_source_fabric_provenance_required: true,
   mutation_rejections: rejected,
   mutation_total: mutations.length,
   evidence_admission: 'NONE',
   public_release: 'HOLD',
-  production: 'HOLD'
+  production: 'HOLD',
+  g5: 'HOLD'
 }, null, 2) + '\n');
