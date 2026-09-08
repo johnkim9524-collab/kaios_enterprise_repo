@@ -6,6 +6,11 @@ const SHA_RE = /^[0-9a-f]{40}$/;
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const ARL_PATH = '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml';
 const P1_PATH = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml';
+const RECOVERY_EVENTS = new Map([
+  ['push', 'ARL_PUSH_RECOVERY_NONAUTHORITATIVE'],
+  ['schedule', 'ARL_SCHEDULE_RECOVERY_NONAUTHORITATIVE'],
+  ['workflow_dispatch', 'ARL_MANUAL_RECOVERY_NONAUTHORITATIVE']
+]);
 
 export function classifyRequirementCoverageAdmission({run, classification, repository, executionSha}) {
   const base = {
@@ -24,10 +29,10 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   if (run.path !== ARL_PATH || run.head_branch !== 'main') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (run.status !== 'completed' || run.conclusion !== 'success') return {...base, reason: 'ARL_NOT_SUCCESS'};
   if (run.head_sha !== executionSha) return {...base, reason: 'ARL_NOT_CURRENT_EXECUTION'};
-  if (run.event === 'push') {
+  if (RECOVERY_EVENTS.has(run.event)) {
     const title = run.display_title ?? run.name ?? '';
     if (title !== `KIDULTS ARL / recovery-${executionSha}` || classification != null) return {...base, reason: 'ARL_RECOVERY_IDENTITY_INVALID'};
-    return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: 'ARL_PUSH_RECOVERY_NONAUTHORITATIVE', should_run: false};
+    return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: RECOVERY_EVENTS.get(run.event), should_run: false};
   }
   if (run.event !== 'workflow_run') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (!classification || classification.id !== 'kidults-workflow-run-generation-classification-v1' || classification.version !== '1.1.0') return {...base, reason: 'CLASSIFICATION_SCHEMA_INVALID'};

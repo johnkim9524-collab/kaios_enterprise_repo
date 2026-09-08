@@ -2,31 +2,6 @@ name: KIDULTS ASI P1 Source Preflight v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '52 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-p1-source-classification-admission-preflight-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json'
-      - 'scripts/kidults/source-intelligence/build-asi-p1-source-preflight-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs'
-      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
-      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
-      - 'services/kidults-autonomous-intelligence/src/asi/event.ts'
-      - 'services/kidults-autonomous-intelligence/src/asi/registry.ts'
-      - 'services/kidults-autonomous-intelligence/src/asi/alignment.ts'
-      - 'services/kidults-autonomous-intelligence/scripts/asi-p1-source-preflight-runtime-test.mjs'
-      - 'docs/kidults/asi/asi-p1-source-preflight-v1.md'
-      - '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'
-      - 'coordination/kidults/source-intelligence/asi-owned-source-intelligence-graph-*.json'
-      - 'scripts/kidults/source-intelligence/*asi-owned-source-intelligence-graph*.mjs'
-      - 'docs/kidults/asi/asi-owned-source-intelligence-graph-v2.md'
-      - '.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'
-      - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   pull_request:
     branches: [main]
     paths:
@@ -164,8 +139,8 @@ jobs:
           echo "P0B_INPUT_MODE=EXACT_TRIGGERING_WORKFLOW_RUN" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_RUN_ID=$P0B_EVENT_RUN_ID" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_SOURCE_SHA=$P0B_EVENT_SOURCE_SHA" >> "$GITHUB_ENV"
-      - name: Restore exact successful main P0B for pull-request validation
-        if: github.event_name == 'pull_request'
+      - name: Restore exact main P0B for isolated validation or recovery
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -183,7 +158,8 @@ jobs:
           P0B_ORIGIN_SOURCE_SHA=''
           for candidate in "${P0B_CANDIDATES[@]}"; do
             IFS=$'\t' read -r candidate_run candidate_sha <<<"$candidate"
-            if git merge-base --is-ancestor "$candidate_sha" "$CURRENT_SHA"; then
+            if { [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$candidate_sha" = "$CURRENT_SHA" ]; } || \
+               { [ "$GITHUB_EVENT_NAME" = pull_request ] && git merge-base --is-ancestor "$candidate_sha" "$CURRENT_SHA"; }; then
               P0B_ORIGIN_RUN_ID="$candidate_run"
               P0B_ORIGIN_SOURCE_SHA="$candidate_sha"
               break
@@ -236,59 +212,13 @@ jobs:
             /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
             > /tmp/kidults-asi-p0b-candidate-validation-v1.json
-          echo "P0B_INPUT_MODE=ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST" >> "$GITHUB_ENV"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo "P0B_INPUT_MODE=EXACT_CURRENT_MAIN_RECOVERY_ARTIFACT" >> "$GITHUB_ENV"
+          else
+            echo "P0B_INPUT_MODE=ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST" >> "$GITHUB_ENV"
+          fi
           echo "P0B_ORIGIN_RUN_ID=$P0B_ORIGIN_RUN_ID" >> "$GITHUB_ENV"
           echo "P0B_ORIGIN_SOURCE_SHA=$P0B_ORIGIN_SOURCE_SHA" >> "$GITHUB_ENV"
-      - name: Rebuild current P0B source candidates
-        if: github.event_name != 'pull_request' && github.event_name != 'workflow_run'
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
-            coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json \
-            coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json \
-            /tmp/kidults-global-source-mesh-v1.json
-          node scripts/kidults/source-intelligence/build-asi-intelligence-preparation-wave-v1.mjs \
-            /tmp/kidults-global-source-mesh-v1.json \
-            coordination/kidults/kpmo/verified-intelligence-surface-baseline-v1.json \
-            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
-            /tmp/kidults-asi-intelligence-preparation-wave-v1
-          node scripts/kidults/source-intelligence/validate-asi-intelligence-preparation-wave-v1.mjs \
-            /tmp/kidults-asi-intelligence-preparation-wave-v1 \
-            coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json \
-            > /tmp/kidults-asi-intelligence-preparation-wave-validation-v1.json
-          node scripts/kidults/source-intelligence/build-asi-p0-mission-consumption-v1.mjs \
-            /tmp/kidults-asi-intelligence-preparation-wave-v1/autonomous-mission-queue-v1.json \
-            coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json \
-            services/kidults-autonomous-intelligence/src/asi/registry.ts \
-            /tmp/kidults-asi-p0-mission-consumption-v1
-          node scripts/kidults/source-intelligence/validate-asi-p0-mission-consumption-v1.mjs \
-            /tmp/kidults-asi-p0-mission-consumption-v1 \
-            coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json \
-            > /tmp/kidults-asi-p0-mission-consumption-validation-v1.json
-          mkdir -p /tmp/p1-rotations
-          for R in 0 1 2 3; do
-            ASI_SCOPE_ROTATION="$R" ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json \
-              node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p1-rotations/r${R}.json"
-            node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p1-rotations/r${R}.json"
-          done
-          node scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs \
-            /tmp/p1-rotations/r0.json /tmp/p1-rotations/r1.json /tmp/p1-rotations/r2.json /tmp/p1-rotations/r3.json \
-            /tmp/asi-public-metadata-source-fabric-v1.json
-          node scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
-            /tmp/asi-public-metadata-source-fabric-v1.json
-          node scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
-            /tmp/kidults-asi-p0-mission-consumption-v1/p0-source-discovery-task-queue-v1.json \
-            /tmp/asi-public-metadata-source-fabric-v1.json \
-            coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
-            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1
-          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
-            /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 \
-            coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
-            > /tmp/kidults-asi-p0b-candidate-validation-v1.json
-          echo "P0B_INPUT_MODE=REBUILT_LOCAL_CONTROL" >> "$GITHUB_ENV"
-          echo "P0B_ORIGIN_RUN_ID=" >> "$GITHUB_ENV"
-          echo "P0B_ORIGIN_SOURCE_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
       - name: Enforce P0B producer identity and input-mode contract
         run: |
           set -euo pipefail
@@ -307,11 +237,11 @@ jobs:
           } else if (process.env.GITHUB_EVENT_NAME==='pull_request') {
             if (mode!=='ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST') throw new Error('P0B_PR_INPUT_MODE_INVALID');
             if (!origin || origin===process.env.GITHUB_RUN_ID) throw new Error('P0B_PR_ORIGIN_INVALID');
-          } else {
-            if (mode!=='REBUILT_LOCAL_CONTROL') throw new Error('P0B_LOCAL_INPUT_MODE_INVALID');
-            if (origin!==null) throw new Error('P0B_LOCAL_REBUILD_MUST_NOT_CLAIM_PRODUCER_RUN');
-            if (source!==process.env.GITHUB_SHA) throw new Error('P0B_LOCAL_SOURCE_SHA_MISMATCH');
-          }
+          } else if (process.env.GITHUB_EVENT_NAME==='workflow_dispatch') {
+            if (mode!=='EXACT_CURRENT_MAIN_RECOVERY_ARTIFACT') throw new Error('P0B_RECOVERY_INPUT_MODE_INVALID');
+            if (!origin || origin===process.env.GITHUB_RUN_ID) throw new Error('P0B_RECOVERY_ORIGIN_INVALID');
+            if (source!==process.env.GITHUB_SHA) throw new Error('P0B_RECOVERY_SOURCE_SHA_MISMATCH');
+          } else throw new Error('P1_UNAUTHORIZED_TRIGGER_EVENT');
           NODE
       - name: Build P1 classification qualification and Gate 1 outputs
         run: |
@@ -404,15 +334,15 @@ jobs:
             echo 'Validator accepted unproven target-site preflight execution' >&2
             exit 1
           fi
-      - name: Reject manual-only activation mutation
+      - name: Reject autonomous P1 provider activation mutation
         run: |
           set -euo pipefail
           cp coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json /tmp/p1-registry.json
           node - <<'NODE'
-          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
+          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=true;x.automatic_activation.schedule='52 * * * *';x.automatic_activation.manual_dispatch_role='RECOVERY_OR_EXPLICIT_REPLAY_ONLY';fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs; then
-            echo 'Validator accepted manual-only P1 activation' >&2
+            echo 'Validator accepted autonomous P1 provider activation' >&2
             exit 1
           fi
           mv /tmp/p1-registry.json coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json

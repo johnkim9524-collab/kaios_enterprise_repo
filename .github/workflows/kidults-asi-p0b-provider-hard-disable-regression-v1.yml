@@ -1,0 +1,45 @@
+name: KIDULTS ASI P0B Provider Hard-Disable Regression v1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+      - '.github/workflows/kidults-asi-p0b-provider-hard-disable-regression-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
+      - '.github/workflows/kidults-asi-p0b-provider-hard-disable-regression-v1.yml'
+      - 'scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-asi-p0b-provider-hard-disable-regression-v1-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-p0b-provider-hard-disable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Validate P0B provider hard-disable contract
+        run: |
+          set -euo pipefail
+          node --check scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs
+          node scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs \
+            .github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml

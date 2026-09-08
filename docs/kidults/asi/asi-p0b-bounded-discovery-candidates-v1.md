@@ -2,27 +2,29 @@
 
 **Owner:** KPMO  
 **Priority:** P0  
-**Execution:** Bounded live public-metadata discovery  
+**Execution:** P0 Mission completion + exact same-generation Source Fabric consumption  
 **Direction:** Autonomous → Global → Irreplaceable Value → Transparent
 
 ## Purpose
 
-P0B takes the 576 runtime-preflighted discovery tasks from P0 and executes four live public-metadata scope rotations through the existing OpenAlex and GDELT discovery lanes.
+P0B converts the P0 mission queue plus the exact same-generation Source Fabric discovery artifact into KIDULTS-owned source candidates. It does **not** issue OpenAlex, GDELT, or other provider requests itself.
 
-Observed HTTP(S) endpoints are canonicalized and deduplicated into a KIDULTS-owned Source Candidate Registry. Candidates are then bound to the 192 missions by exact scope hint while regional relevance and factual-origin independence remain explicit unresolved gates.
+The Source Fabric workflow is the sole provider-budget authority. P0B is deliberately **not** another direct Source Fabric fan-out consumer: its normal trigger is the existing `KIDULTS ASI P0 Mission Consumption v1` completion, and it then restores only a Source Fabric artifact bound to that exact protected-main SHA.
+
+This preserves downstream liveness without increasing the Source Fabric direct-consumer budget.
 
 ## Execution chain
 
 ```text
-192 Missions / 576 P0 Discovery Tasks
+Source Fabric Scale PI1
+        ↓ existing planning chain
+P0 Mission Consumption
+        ↓ exact successful workflow_run
+P0B
         ↓
-Four governed scope rotations
-        ↓
-OpenAlex public metadata discovery
-+
-GDELT public metadata discovery
-        ↓
-Source Fabric merge and validation
+Exact same-SHA Source Fabric run
++ exact run-bound Source Fabric artifact
++ digest / archive integrity validation
         ↓
 Canonical endpoint and host normalization
         ↓
@@ -36,6 +38,30 @@ Provider / Host Diversity Report
         ↓
 KPMO Receipt and Artifact
 ```
+
+P0B has no independent schedule or protected-main push provider lane. Normal autonomous activation is a successful `KIDULTS ASI P0 Mission Consumption v1` `workflow_run`; manual dispatch is recovery only and must bind to current protected main and a same-SHA Source Fabric artifact.
+
+## Provider-budget and fan-out boundary
+
+```text
+Source Fabric = sole provider request authority
+P0B          = chained exact-artifact consumer
+P1           = exact P0B artifact consumer
+```
+
+For P0B, all of the following are invariant:
+
+- `provider_requests_issued_by_p0b = 0`;
+- `provider_execution_authority = false`;
+- P0 Mission trigger is repository/path/name/main/SHA/event bound;
+- `pull_request` producer runs are never runtime authority;
+- Source Fabric run must use the same exact generation SHA;
+- Source Fabric runtime event must be `schedule`, `workflow_dispatch`, or `push`;
+- Source Fabric artifact must be unique, unexpired, run/SHA-bound and SHA-256 digest-bound;
+- archive limits and digest are checked before extraction;
+- P0B is not a direct Source Fabric workflow-run consumer;
+- direct-consumer budget increase is zero;
+- Production/Public/G5 remain `HOLD`.
 
 ## Candidate binding
 
@@ -51,13 +77,14 @@ Exact regional hints are preferred. Unknown or global hints may remain candidate
 
 ## What this stage proves
 
-- bounded public-metadata network discovery was executed;
-- at least one live lane returned results;
-- canonical HTTP(S) source candidates were observed;
+- an exact P0 Mission runtime generation was observed;
+- a same-generation governed Source Fabric artifact was consumed;
+- canonical HTTP(S) source candidates were derived from that artifact;
 - duplicate endpoint observations were superseded deterministically;
 - mission candidate coverage and gaps were measured;
 - host and discovery-provider diversity were measured;
-- source-candidate lineage is reproducible from the source-fabric digest.
+- source-candidate lineage is reproducible from P0 Mission + Source Fabric run/artifact/digest lineage;
+- P0B itself issued no provider request.
 
 ## What this stage does not prove
 
@@ -68,27 +95,8 @@ Exact regional hints are preferred. Unknown or global hints may remain candidate
 - regional market coverage;
 - market-semantic relevance;
 - evidence admission;
-- a market claim.
-
-## Automatic activation
-
-```text
-Relevant protected-main push
-or hourly schedule at minute 37
-or successful P0 Mission Consumption run
-        ↓
-Rebuild P0 mission queue
-        ↓
-Execute four public-metadata discovery rotations
-        ↓
-Build and validate candidate outputs
-        ↓
-Reject overclaim mutations
-        ↓
-Emit KPMO Receipt and 90-day Artifact
-```
-
-Manual dispatch remains only for recovery or explicit replay.
+- a market claim;
+- Public, Production or G5 eligibility.
 
 ## Next stage
 
@@ -111,7 +119,7 @@ Evidence Admission Candidate
 ```
 
 ```text
-Public Metadata Discovery ≠ Target-Site Collection
+Source Fabric Observation ≠ Target-Site Collection
 Source Candidate ≠ Evidence
 Scope Hint ≠ Proven Relevance
 Region Hint ≠ Regional Coverage

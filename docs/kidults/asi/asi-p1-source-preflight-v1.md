@@ -104,14 +104,12 @@ Seven deduplicated actions are generated per unique source candidate:
 
 The queue is machine-readable and linked to all affected grains and missions. This stage does not authorize or execute a target-site network probe.
 
-## Automatic activation
+## Upstream-only activation
 
 ```text
-Relevant protected-main push
-or hourly schedule at minute 52
-or successful P0B Bounded Discovery Candidates run
+Successful exact-main P0B Bounded Discovery Candidates run
         ↓
-Rebuild current P0B candidate outputs
+Restore its exact digest-bound P0B candidate artifact
         ↓
 Compile classification and qualification grains
         ↓
@@ -124,7 +122,7 @@ Reject overclaim mutations
 KPMO Receipt and Artifact
 ```
 
-Manual dispatch remains only for recovery or explicit replay.
+Independent push and schedule activation are disabled. P1 has no provider-request authority and must not rebuild P0B or public-metadata rotations locally. Manual recovery can consume only an exact-current-main successful P0B artifact; if none exists it fails closed. Pull-request execution is an isolated control fixture that restores an ancestor-main P0B artifact and grants no empirical or provider authority.
 
 ## Truth boundaries
 

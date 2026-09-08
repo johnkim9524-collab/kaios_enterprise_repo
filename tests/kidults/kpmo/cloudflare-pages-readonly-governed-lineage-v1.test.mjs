@@ -83,10 +83,14 @@ function runCase(scenario) {
 }
 
 const approvalBound = runCase('approval-bound');
-assert.equal(approvalBound.result.status, 0, approvalBound.result.stderr || approvalBound.result.stdout);
-assert.equal(approvalBound.receipt.state, 'COMPLETE_VERIFIED');
+assert.notEqual(approvalBound.result.status, 0, 'skipped attempts must remain residual RED even with valid governed lineage');
+assert.equal(approvalBound.receipt.state, 'VERIFIED_FAIL');
+assert.equal(approvalBound.receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
+assert.equal(approvalBound.receipt.capacity_state, 'RESIDUAL_RED');
+assert.equal(approvalBound.receipt.promotion_eligible, false);
 assert.equal(approvalBound.receipt.settings_pass, true);
 assert.equal(approvalBound.receipt.visible_preview_count, 0);
+assert.equal(approvalBound.receipt.skipped_attempt_count, 1);
 assert.equal(approvalBound.receipt.latest_deployment_governed, true);
 assert.equal(approvalBound.receipt.latest_deployment_lineage_format, 'APPROVAL_BOUND_V1');
 assert.equal(approvalBound.receipt.latest_deployment.commit_hash, '14501ac022bdd7c918924a207f257b047b1ba970');
@@ -95,8 +99,11 @@ assert.equal(approvalBound.receipt.latest_deployment_matches_current_main, false
 assert.equal(approvalBound.receipt.current_main_match_is_informational, true);
 
 const legacy = runCase('legacy');
-assert.equal(legacy.result.status, 0, legacy.result.stderr || legacy.result.stdout);
-assert.equal(legacy.receipt.state, 'COMPLETE_VERIFIED');
+assert.notEqual(legacy.result.status, 0, 'legacy governed lineage cannot override skipped-attempt residual RED');
+assert.equal(legacy.receipt.state, 'VERIFIED_FAIL');
+assert.equal(legacy.receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
+assert.equal(legacy.receipt.capacity_state, 'RESIDUAL_RED');
+assert.equal(legacy.receipt.promotion_eligible, false);
 assert.equal(legacy.receipt.latest_deployment_governed, true);
 assert.equal(legacy.receipt.latest_deployment_lineage_format, 'LEGACY_GOVERNED_V1');
 
@@ -107,14 +114,16 @@ assert.equal(malformed.receipt.settings_pass, true);
 assert.equal(malformed.receipt.visible_preview_count, 0);
 assert.equal(malformed.receipt.latest_deployment_governed, false);
 assert.equal(malformed.receipt.latest_deployment_lineage_format, 'UNRECOGNIZED');
+assert.equal(malformed.receipt.skipped_attempt_count, 1);
+assert.equal(malformed.receipt.promotion_eligible, false);
 
 console.log(JSON.stringify({
   suite:'KIDULTS_CLOUDFLARE_PAGES_READONLY_GOVERNED_LINEAGE_V1',
   result:'PASS',
-  approval_bound_lineage_accepted:true,
-  legacy_lineage_retained:true,
+  approval_bound_lineage_recognized_but_not_promoted_over_skipped_red:true,
+  legacy_lineage_recognized_but_not_promoted_over_skipped_red:true,
   wrong_repository_rejected:true,
-  skipped_current_main_informational:true,
+  skipped_current_main_residual_red:true,
   remote_mutation:false,
   public_release:'HOLD',
   production:'HOLD',
