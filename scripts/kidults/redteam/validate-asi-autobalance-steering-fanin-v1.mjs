@@ -13,7 +13,8 @@ const required = [
   "status:'FAIL_CLOSED_TERMINAL_RECEIPT'",
   "if: always()",
   "Fail closed unresolved steering fan-in",
-  "steps.inputs.outputs.ready != 'true'",
+  "INPUT_STEP_OUTCOME",
+  "READY_STATE",
   "promotion_allowed:false",
   "public_release:'HOLD'",
   "production:'HOLD'"
@@ -40,6 +41,11 @@ if (!terminalBlock || !terminalBlock[0].includes('INPUT_STEP_OUTCOME') || !termi
   throw new Error('TERMINAL_RECEIPT_NOT_RECONCILED_WITH_STEP_OUTCOMES');
 }
 
+const failBlock = text.match(/- name: Fail closed unresolved steering fan-in[\s\S]*$/);
+if (!failBlock || !failBlock[0].includes("github.event_name != 'pull_request'") || !failBlock[0].includes("READY_STATE")) {
+  throw new Error('PR_STRUCTURAL_ONLY_BOUNDARY_MISSING');
+}
+
 console.log(JSON.stringify({
   id: 'validate-asi-autobalance-steering-fanin-v1',
   status: 'VERIFIED_FAIL_CLOSED_STEERING_FANIN',
@@ -47,6 +53,7 @@ console.log(JSON.stringify({
   historical_success_fallback_allowed: false,
   trigger_substitution_allowed: false,
   terminal_receipt_required: true,
+  pull_request_live_authority: false,
   promotion_allowed: false,
   public_release: 'HOLD',
   production: 'HOLD'
