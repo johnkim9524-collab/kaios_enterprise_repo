@@ -63,8 +63,12 @@ for (const marker of [
   'workflow_dispatch:', 'workflow_run:', "'KIDULTS ASI P0 Mission Consumption v1'",
   'Bind P0 mission trigger and restore same-generation Source Fabric',
   'Build P0B source candidate increment from Source Fabric',
-  'Reject source-candidate-as-evidence mutation', 'Reject region-hint-as-coverage mutation',
-  'Reject host-as-factual-origin mutation', 'Reject target-content acquisition mutation',
+  'Reject candidate promotion mutations',
+  '/tmp/p0b-bad-evidence', 'evidence_admitted=true',
+  '/tmp/p0b-bad-region', 'regional_coverage_proven=true',
+  '/tmp/p0b-bad-origin', 'distinct_host_is_distinct_factual_origin=true',
+  '/tmp/p0b-bad-content', 'target_content_acquired=true',
+  '/tmp/p0b-bad-claim', 'market_claims_created=1',
   'Emit fail-closed KPMO P0B consumer receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
 const triggerHeader = workflow.slice(0, workflow.indexOf('\npermissions:'));
