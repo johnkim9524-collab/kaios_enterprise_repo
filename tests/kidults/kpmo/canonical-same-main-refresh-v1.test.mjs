@@ -59,7 +59,7 @@ const aid='CANONICAL-V3-'+main.slice(0,12)+'-SYNTHETIC_1234567890';
 const body='CANONICAL_V3_AUTHORIZATION_ID: '+aid+'\\nTARGET_MAIN_SHA: '+main+'\\nACTION: APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 const approval={id:42,user:{login:owner},author_association:'OWNER',performed_via_github_app:o.authApp?{id:1}:null,body,created_at:earlier,updated_at:earlier};
 const run=n=>({id:n,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:owner},triggering_actor:{login:owner},run_started_at:started,status:n===500?'completed':'in_progress',conclusion:n===500?'success':null});
-let cid=2000,mainReads=0,searches=0;const requests=[];
+let cid=2000,mainReads=0,issuePasses=0;const requests=[];
 process.on('exit',()=>fs.writeFileSync(${JSON.stringify(trace)},JSON.stringify(requests)));
 globalThis.fetch=async (url,opts={})=>{
  const u=new URL(url),method=opts.method||'GET';
@@ -67,7 +67,9 @@ globalThis.fetch=async (url,opts={})=>{
  const p=u.pathname.replace('/repos/'+repo,'');requests.push({method,path:p});
  let value;
  if(method==='GET'&&p==='/branches/main'){mainReads++;value={commit:{sha:o.mainDrift&&mainReads>1?'b'.repeat(40):main}};}
- else if(method==='GET'&&u.pathname==='/search/issues'){searches++;const items=o.liveDrift&&searches>1?[...live,issue(11)]:live;value={items,incomplete_results:false,total_count:items.length};}
+ else if(method==='GET'&&p==='/issues'&&u.searchParams.get('state')==='open'&&u.searchParams.get('sort')==='updated'&&u.searchParams.get('direction')==='desc'){
+   issuePasses++;value=o.liveDrift&&issuePasses>2?[...live,issue(11)]:live;
+ }
  else if(method==='GET'&&p==='/issues/344/comments')value=[aggregate];
  else if(method==='GET'&&p==='/issues/1713/comments')value=o.noApproval?[]:[approval];
  else if(method==='GET'&&p.startsWith('/issues/comments/')){
