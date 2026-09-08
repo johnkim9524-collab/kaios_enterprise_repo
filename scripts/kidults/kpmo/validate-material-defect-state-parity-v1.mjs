@@ -7,6 +7,22 @@ import {
   parityFailures as canonicalParityFailures
 } from './material-defect-registry-v3.mjs';
 
+const GITHUB_API_ORIGIN = 'https://api.github.com';
+const baseHeaders = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28'
+};
+
+export function readHeadersFor(value) {
+  return { ...baseHeaders, ...(value ? { Authorization: `Bearer ${value}` } : {}) };
+}
+
+export function githubApiUrl(value) {
+  const endpoint = new URL(String(value));
+  if (endpoint.origin !== GITHUB_API_ORIGIN) throw new Error('GITHUB_API_ORIGIN_INVALID');
+  return endpoint.toString();
+}
+
 function fail(message) {
   console.error(JSON.stringify({
     state: 'VERIFIED_FAIL',
@@ -111,6 +127,14 @@ function selfTest() {
   if (!closedBodyStateFailures(prefixOpen).length) throw new Error('STRICT_PREFIX_MATERIAL_STATE_LOST');
   if (closedBodyStateFailures(support).length) throw new Error('SUPPORT_ALIAS_FALSE_MATERIAL');
   if (!severityFailures(missingLabel).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('OPEN_SEVERITY_DRIFT_NOT_REJECTED');
+  const publicHeaders = readHeadersFor(null);
+  const authenticatedHeaders = readHeadersFor('self-test-token');
+  if (Object.hasOwn(publicHeaders, 'Authorization')) throw new Error('PUBLIC_READ_FALLBACK_AUTH_PRESENT');
+  if (authenticatedHeaders.Authorization !== 'Bearer self-test-token') throw new Error('AUTHENTICATED_READ_HEADER_MISSING');
+  let externalOriginRejected = false;
+  try { githubApiUrl('https://example.com/repos/x/y/issues'); } catch { externalOriginRejected = true; }
+  if (!externalOriginRejected) throw new Error('PUBLIC_READ_FALLBACK_ORIGIN_ESCAPE');
+  if (!githubApiUrl('https://api.github.com/search/issues?q=test').startsWith(`${GITHUB_API_ORIGIN}/`)) throw new Error('GITHUB_API_ORIGIN_REJECTED');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_STATE_PARITY_V1_SELF_TEST',
     state: 'VERIFIED_PASS',
@@ -124,7 +148,10 @@ function selfTest() {
     sibling_open_ignored: true,
     successor_recurrence_ignored: true,
     terminal_body_closed_wins: true,
-    support_alias_excluded: true
+    support_alias_excluded: true,
+    authenticated_read_primary: true,
+    public_read_rate_limit_fallback: true,
+    public_fallback_origin_pinned: true
   }));
 }
 
@@ -137,30 +164,50 @@ const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 if (!repository || !token) fail('REPOSITORY_OR_TOKEN_MISSING');
 
-const headers = {
-  Accept: 'application/vnd.github+json',
-  Authorization: `Bearer ${token}`,
-  'X-GitHub-Api-Version': '2022-11-28'
-};
+const authenticatedHeaders = readHeadersFor(token);
+const publicHeaders = readHeadersFor(null);
+let publicReadFallbackUsed = false;
 
 function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-async function get(url) {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const response = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+function rateLimited(response, text) {
+  if (response.status !== 403 && response.status !== 429) return false;
+  const remaining = Number(response.headers.get('x-ratelimit-remaining'));
+  return remaining === 0 || /rate limit/i.test(text) || Boolean(response.headers.get('retry-after'));
+}
+function retryDelayMs(response) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  const reset = Number(response.headers.get('x-ratelimit-reset'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000 + 500;
+  if (Number.isFinite(reset) && reset > 0) return Math.max(0, reset * 1000 - Date.now() + 750);
+  return 0;
+}
+async function readWithHeaders(endpoint, requestHeaders, maxAttempts, mode) {
+  let lastRateLimit = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const response = await fetch(endpoint, { headers: requestHeaders, signal: AbortSignal.timeout(20_000) });
     const text = await response.text();
-    if (response.ok) return JSON.parse(text);
-    const retryAfter = Number(response.headers.get('retry-after'));
-    const reset = Number(response.headers.get('x-ratelimit-reset'));
-    const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
-      ? retryAfter * 1000 + 1000
-      : Number.isFinite(reset) && reset > 0 ? Math.max(0, reset * 1000 - Date.now() + 1500) : 0;
-    if ((response.status === 403 || response.status === 429) && attempt < 2 && waitMs > 0 && waitMs <= 75_000) {
+    if (response.ok) return { data: JSON.parse(text), mode };
+    if (!rateLimited(response, text)) throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
+    lastRateLimit = `GITHUB_RATE_LIMIT_${mode}:${response.status}:${text.slice(0, 220)}`;
+    const waitMs = retryDelayMs(response);
+    if (attempt < maxAttempts - 1 && waitMs > 0 && waitMs <= 5_000) {
       await sleep(waitMs);
       continue;
     }
-    throw new Error(`GITHUB_HTTP_${response.status}:${text.slice(0, 300)}`);
+    break;
   }
-  throw new Error('GITHUB_RETRY_EXHAUSTED');
+  return { data: null, mode, rateLimit: lastRateLimit || `GITHUB_RATE_LIMIT_${mode}` };
+}
+async function get(url) {
+  const endpoint = githubApiUrl(url);
+  const authenticated = await readWithHeaders(endpoint, authenticatedHeaders, 2, 'AUTHENTICATED');
+  if (authenticated.data !== null) return authenticated.data;
+  const fallback = await readWithHeaders(endpoint, publicHeaders, 2, 'PUBLIC_FALLBACK');
+  if (fallback.data !== null) {
+    publicReadFallbackUsed = true;
+    return fallback.data;
+  }
+  throw new Error(`GITHUB_READ_RATE_LIMIT_EXHAUSTED_AUTH_AND_PUBLIC:${authenticated.rateLimit}:${fallback.rateLimit}`);
 }
 
 async function completeSearch(query, key) {
@@ -265,6 +312,10 @@ try {
     issue_comment_closed_state_guard: true,
     strict_title_prefix_supported: true,
     support_alias_excluded: true,
+    authenticated_read_primary: true,
+    public_read_rate_limit_fallback_supported: true,
+    public_read_rate_limit_fallback_used: publicReadFallbackUsed,
+    public_fallback_origin_pinned: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
