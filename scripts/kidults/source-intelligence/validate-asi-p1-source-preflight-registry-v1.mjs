@@ -44,22 +44,35 @@ for (const [key, expected] of Object.entries({
 })) assert(registry.registered_assets?.[key] === expected, `REGISTRY_PATH:${key}`);
 assert(registry.registered_outputs?.length === 8, 'REGISTRY_OUTPUT_COUNT');
 assert(registry.execution_chain?.length === 9, 'REGISTRY_EXECUTION_CHAIN');
-assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
-assert(registry.automatic_activation?.schedule === '52 * * * *', 'REGISTRY_SCHEDULE');
+assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH_DISABLED');
+assert(registry.automatic_activation?.schedule === 'NONE', 'REGISTRY_SCHEDULE_DISABLED');
 assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P0B Bounded Discovery Candidates v1', 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_EXACT_CURRENT_MAIN_ARTIFACT_ONLY', 'REGISTRY_MANUAL_BOUNDARY');
+assert(registry.automatic_activation?.provider_execution_authority === false, 'REGISTRY_PROVIDER_AUTHORITY');
+assert(registry.automatic_activation?.input_authority === 'EXACT_UPSTREAM_ARTIFACT_ONLY', 'REGISTRY_INPUT_AUTHORITY');
+assert(JSON.stringify(contract.automatic_activation) === JSON.stringify(registry.automatic_activation), 'CONTRACT_REGISTRY_ACTIVATION_PARITY');
 assert(registry.next_stage?.id === 'P1B_BOUNDED_SOURCE_SAFETY_PREFLIGHT_EXECUTION', 'REGISTRY_NEXT_STAGE');
 assert(registry.next_stage?.required_actions?.length === 7, 'REGISTRY_NEXT_ACTIONS');
 
 for (const marker of [
-  'workflow_dispatch:', 'schedule:', "cron: '52 * * * *'", 'push:', 'workflow_run:',
-  "'KIDULTS ASI P0B Bounded Discovery Candidates v1'", 'Rebuild current P0B source candidates',
+  'workflow_dispatch:', 'pull_request:', 'workflow_run:',
+  "'KIDULTS ASI P0B Bounded Discovery Candidates v1'", 'Restore exact triggering P0B artifact for workflow-run',
+  'P0B_INPUT_MODE=EXACT_TRIGGERING_WORKFLOW_RUN', 'P0B_INPUT_MODE=ANCESTOR_MAIN_CONTROL_FOR_PULL_REQUEST',
+  'P0B_INPUT_MODE=EXACT_CURRENT_MAIN_RECOVERY_ARTIFACT',
   'Build P1 classification qualification and Gate 1 outputs',
   'Run all P1 tasks through actual ASI runtime alignment preflight',
   'Reject owner-hint-to-owner-fact mutation', 'Reject rights-unknown-to-allow mutation',
   'Reject region-hint-to-coverage mutation', 'Reject Gate 1 HOLD-to-PASS mutation',
   'Reject admission-candidate-to-admitted-evidence mutation', 'Emit KPMO P1 source-preflight receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
+const workflowTrigger = workflow.slice(0, workflow.indexOf('\npermissions:'));
+for (const forbidden of ['schedule:', 'push:']) assert(!workflowTrigger.includes(`\n  ${forbidden}`), `WORKFLOW_AUTONOMOUS_TRIGGER:${forbidden}`);
+for (const forbidden of [
+  'ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json',
+  'node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs',
+  'Rebuild current P0B source candidates',
+  'P0B_INPUT_MODE=REBUILT_LOCAL_CONTROL'
+]) assert(!workflow.includes(forbidden), `WORKFLOW_DIRECT_PROVIDER_AUTHORITY:${forbidden}`);
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_MUTATION_BOUNDARY');
 
@@ -103,7 +116,7 @@ console.log(JSON.stringify({
   classification_fleets: contract.classification_fleets.length,
   qualification_fleets: contract.qualification_fleets.length,
   preflight_action_types: contract.preflight_actions.length,
-  automatic_main_push: true,
+  automatic_main_push: false,
   automatic_schedule: registry.automatic_activation.schedule,
   automatic_upstream_workflow: registry.automatic_activation.upstream_workflow,
   next_stage: registry.next_stage.id,

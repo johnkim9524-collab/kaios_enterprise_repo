@@ -81,10 +81,12 @@
     "INDEPENDENCE_AND_SOURCE_REMOVAL_CLUSTERING"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "52 * * * *",
+    "main_push": false,
+    "schedule": "NONE",
     "upstream_workflow": "KIDULTS ASI P0B Bounded Discovery Candidates v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "manual_dispatch_role": "RECOVERY_EXACT_CURRENT_MAIN_ARTIFACT_ONLY",
+    "provider_execution_authority": false,
+    "input_authority": "EXACT_UPSTREAM_ARTIFACT_ONLY"
   },
   "required_outputs": [
     "p1-source-classification-ledger-v1.json",

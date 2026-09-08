@@ -13,6 +13,7 @@ if(oaPacing<500||gdeltPacing<400)fail('RESILIENCE_PROVIDER_PACING');
 if(!source.includes("headers?.get?.('retry-after')")||!source.includes('r.status===408||r.status===429||r.status>=500'))fail('RESILIENCE_HTTP_RETRY');
 if(!/catch\(error\)\{[\s\S]*attempt<MAX_FETCH_ATTEMPTS-1[\s\S]*fetchJson\(url,opts,attempt\+1\)/.test(source))fail('RESILIENCE_TRANSPORT_RETRY');
 if(!source.includes("GITHUB_WORKFLOW==='KIDULTS ASI P0B Bounded Discovery Candidates v1'")||!source.includes('provider_health_circuit_writeback:true')||!source.includes('failed_provider_full_budget_forbidden:true'))fail('P0B_PROVIDER_CIRCUIT_REGRESSION');
+if(!source.includes('LANE_ATOMIC_CANDIDATE_COMMIT_V1')||!source.includes('candidates.push(...openAlexCandidates)')||!source.includes('candidates.push(...gdeltCandidates)')||source.includes('add(candidates,'))fail('LANE_ATOMIC_CANDIDATE_COMMIT_REGRESSION');
 if(x.id!=='kidults-asi-openalex-gdelt-public-metadata-discovery-v1'||x.status!=='SHADOW_MULTI_PROVIDER_PUBLIC_METADATA_DISCOVERY_COMPLETE')fail('IDENTITY');
 if(x.universe_target!=='GLOBAL_ANY_SITE_SOURCE_UNIVERSE'||x.universe_restricted!==false)fail('UNIVERSE_NARROWED');
 if(Number(x.scope_registry_total)!==32||Number(x.scope_rotation_count)!==4||Number(x.cycle_scope_count)!==8||!Number.isInteger(Number(x.scope_rotation_index))||Number(x.scope_rotation_index)<0||Number(x.scope_rotation_index)>3)fail('SCOPE_ROTATION');
@@ -43,10 +44,15 @@ if(p0bDiagnostic){
  }
  if(nextEnabled<1)fail('P0B_BOUNDED_RECOVERY_PROBE_MISSING');
 }
+const successStatuses=new Set(['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS']);
+const laneById=new Map(x.lane_health.map(l=>[l.lane_id,l]));
 const allowed=new Set(ids);const seen=new Set();
 for(const c of x.candidates){
  if(!c.candidate_id||!c.endpoint_url||seen.has(c.endpoint_url))fail('CANDIDATE_IDENTITY_OR_DUPLICATE');seen.add(c.endpoint_url);
- for(const provider of c.discovery_providers||[c.discovery_provider])if(!allowed.has(provider))fail(`PROVIDER:${provider}`);
+ for(const provider of c.discovery_providers||[c.discovery_provider]){
+  if(!allowed.has(provider))fail(`PROVIDER:${provider}`);
+  if(!successStatuses.has(laneById.get(provider)?.status))fail(`CANDIDATE_FROM_UNHEALTHY_LANE:${provider}`);
+ }
  if(!x.cycle_scope_ids.includes(c.scope_hint)&&!(c.scope_hints||[]).some(s=>x.cycle_scope_ids.includes(s)))fail('SCOPE_ESCAPE');
  if(c.source_family_hint!=='UNCLASSIFIED_ANY_SITE_CANDIDATE'||c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED'||c.gate_1_state!=='PENDING'||c.evidence_state!=='DISCOVERY_METADATA_ONLY')fail('SELF_PROMOTION');
  if(c.acquisition_authorized!==false||c.target_site_body_crawled!==false||c.content_acquired!==false||c.provider_contacted!==false||c.account_created!==false||c.eula_accepted!==false||c.spend_authorized!==false||c.production!=='HOLD'||c.public_release!=='HOLD')fail('COMMITMENT_OR_PERMISSION_BOUNDARY');

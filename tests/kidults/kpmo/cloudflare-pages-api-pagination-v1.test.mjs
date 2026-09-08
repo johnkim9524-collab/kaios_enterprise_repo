@@ -22,10 +22,22 @@ for (const key of ['readonly', 'cleanup', 'contain']) {
   assert.match(source[key], /per_page=\$\{PAGE_SIZE\}/);
 }
 assert.equal((source.deploy.match(/per_page=25&page=1/g) || []).length, 2);
-for (const marker of ['is_skipped', 'skip_reason', 'materialized', 'latest-attempt.json', 'skipped_preview_attempt_count']) {
+for (const marker of ['is_skipped', 'skip_reason', 'materialized', 'latest-attempt.json', 'skipped_preview_attempt_count', 'skipped_attempt_count']) {
   assert.equal(source.readonly.includes(marker), true, `readonly marker missing: ${marker}`);
 }
 assert.equal(source.cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), true);
+for (const marker of [
+  'BLOCKED_INVENTORY_CAPACITY',
+  'DEPLOYMENT_INVENTORY_READBACK_FAILED',
+  'READBACK_ERROR',
+  'PRE_MUTATION',
+  'POST_MUTATION',
+  'production_preservation_verified:false',
+  'api_request GET "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 69',
+]) {
+  assert.equal(source.cleanup.includes(marker), true, `cleanup inventory/readback marker missing: ${marker}`);
+}
+assert.equal(source.cleanup.includes('if ! list_all_deployments'), false, 'cleanup must preserve explicit list_all_deployments status');
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cf-pagination-'));
 process.on('exit', () => fs.rmSync(temp, {recursive: true, force: true}));
@@ -39,14 +51,19 @@ if (perPage > 25) {
   process.stdout.write(JSON.stringify({success:false,errors:[{code:8000024,message:'Invalid list options provided.'}],result:null}));
   process.exit(22);
 }
+if (process.env.FORCE_DEPLOYMENT_READBACK_FAILURE === '1' && url.includes('/deployments')) {
+  process.stdout.write(JSON.stringify({success:false,errors:[{code:9109,message:'synthetic readback failure'}],result:null}));
+  process.exit(22);
+}
 const project = {success:true,result:{id:'project-id',name:'kidults-workspace-staging',production_branch:'main',modified_on:'2026-08-29T00:00:00Z',source:{type:'github',config:{owner:'johnkim9524-collab',repo_name:'kaios_enterprise_repo',deployments_enabled:false,production_deployments_enabled:false,preview_deployment_setting:'none',preview_branch_includes:[],preview_branch_excludes:[]}}}};
-const skipped = {id:'skipped-preview',environment:'preview',url:null,aliases:[],created_on:'2026-08-29T00:02:00Z',is_skipped:true,skip_reason:'preview_deployments_disabled',latest_stage:{status:'idle'},deployment_trigger:{type:'github:push',metadata:{branch:'feature/test',commit_hash:'2222222222222222222222222222222222222222',commit_message:'skipped'}}};
+const skippedPreview = {id:'skipped-preview',environment:'preview',url:null,aliases:[],created_on:'2026-08-29T00:03:00Z',is_skipped:true,skip_reason:'preview_deployments_disabled',latest_stage:{status:'idle'},deployment_trigger:{type:'github:push',metadata:{branch:'feature/test',commit_hash:'2222222222222222222222222222222222222222',commit_message:'skipped preview'}}};
+const skippedProduction = {id:'skipped-production',environment:'production',url:null,aliases:[],created_on:'2026-08-29T00:02:00Z',is_skipped:true,skip_reason:'production_deployments_disabled',latest_stage:{status:'idle'},deployment_trigger:{type:'github:push',metadata:{branch:'main',commit_hash:'3333333333333333333333333333333333333333',commit_message:'skipped production'}}};
 const governed = {id:'governed-production',environment:'production',url:'https://governed.kidults-workspace-staging.pages.dev',aliases:[],created_on:'2026-08-29T00:01:00Z',is_skipped:false,latest_stage:{status:'success'},deployment_trigger:{type:'ad_hoc',metadata:{branch:'main',commit_hash:'1111111111111111111111111111111111111111',commit_message:'[KIDULTS-GOVERNED-STAGING] repository=johnkim9524-collab/kaios_enterprise_repo source_sha=1111111111111111111111111111111111111111 run=1 attempt=1 reason=test'}}};
 if (!url.includes('/deployments')) process.stdout.write(JSON.stringify(project));
 else {
   const page = Number((url.match(/[?&]page=(\d+)/) || [,'1'])[1]);
-  const result = page === 1 ? [skipped] : [governed];
-  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:2,total_pages:2}}));
+  const result = page === 1 ? [skippedPreview, skippedProduction] : [governed];
+  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:result.length,total_count:3,total_pages:2}}));
 }
 `;
 fs.writeFileSync(path.join(fakeBin, 'curl'), fakeCurl, {mode:0o755});
@@ -65,15 +82,118 @@ const run = spawnSync('bash', [files.readonly], {
     GITHUB_SHA: '1111111111111111111111111111111111111111',
   },
 });
-assert.equal(run.status, 0, run.stderr || run.stdout);
+assert.notEqual(run.status, 0, 'any skipped deployment attempt must fail closed');
 const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
-assert.equal(receipt.state, 'COMPLETE_VERIFIED');
+assert.equal(receipt.state, 'VERIFIED_FAIL');
+assert.equal(receipt.reason_code, 'SKIPPED_DEPLOYMENT_ATTEMPTS_PRESENT');
+assert.equal(receipt.capacity_state, 'RESIDUAL_RED');
+assert.equal(receipt.promotion_eligible, false);
 assert.equal(receipt.visible_preview_count, 0);
 assert.equal(receipt.skipped_preview_attempt_count, 1);
+assert.equal(receipt.skipped_attempt_count, 2);
+assert.equal(receipt.deployment_inventory_count, 3);
+assert.equal(receipt.inventory_capacity, 2500);
+assert.equal(receipt.inventory_capacity_remaining, 2497);
 assert.equal(receipt.latest_deployment_governed, true);
 assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
 assert.equal(receipt.settings_mutated, false);
+
+const capacityReceiptDir = path.join(temp, 'capacity-receipt');
+const capacityRun = spawnSync('bash', [files.readonly], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+    RECEIPT_DIR: capacityReceiptDir,
+    GITHUB_SHA: '1111111111111111111111111111111111111111',
+    MAX_PAGES: '1',
+  },
+});
+assert.equal(capacityRun.status, 68, capacityRun.stderr || capacityRun.stdout);
+const capacityReceipt = JSON.parse(fs.readFileSync(path.join(capacityReceiptDir, 'final.json')));
+assert.equal(capacityReceipt.state, 'BLOCKED_INVENTORY_CAPACITY');
+assert.equal(capacityReceipt.reason_code, 'DEPLOYMENT_INVENTORY_PAGE_LIMIT');
+assert.equal(capacityReceipt.deployment_inventory_complete, false);
+assert.equal(capacityReceipt.cloudflare_api_called, true);
+assert.equal(capacityReceipt.capacity_state, 'EXHAUSTED');
+assert.equal(capacityReceipt.promotion_eligible, false);
+
+const readbackReceiptDir = path.join(temp, 'readback-receipt');
+const readbackRun = spawnSync('bash', [files.readonly], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+    RECEIPT_DIR: readbackReceiptDir,
+    GITHUB_SHA: '1111111111111111111111111111111111111111',
+    FORCE_DEPLOYMENT_READBACK_FAILURE: '1',
+  },
+});
+assert.equal(readbackRun.status, 69, readbackRun.stderr || readbackRun.stdout);
+const readbackReceipt = JSON.parse(fs.readFileSync(path.join(readbackReceiptDir, 'final.json')));
+assert.equal(readbackReceipt.state, 'VERIFIED_FAIL');
+assert.equal(readbackReceipt.reason_code, 'DEPLOYMENT_INVENTORY_READBACK_FAILED');
+assert.equal(readbackReceipt.deployment_inventory_complete, false);
+assert.equal(readbackReceipt.capacity_state, 'READBACK_ERROR');
+assert.equal(readbackReceipt.promotion_eligible, false);
+
+const cleanupCapacityReceiptDir = path.join(temp, 'cleanup-capacity-receipt');
+const cleanupCapacityRun = spawnSync('bash', [files.cleanup, '--inventory'], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    RECEIPT_DIR: cleanupCapacityReceiptDir,
+    MAX_PAGES: '1',
+  },
+});
+assert.equal(cleanupCapacityRun.status, 68, cleanupCapacityRun.stderr || cleanupCapacityRun.stdout);
+const cleanupCapacityReceipt = JSON.parse(fs.readFileSync(path.join(cleanupCapacityReceiptDir, 'final.json')));
+assert.equal(cleanupCapacityReceipt.state, 'BLOCKED_INVENTORY_CAPACITY');
+assert.equal(cleanupCapacityReceipt.reason_code, 'DEPLOYMENT_INVENTORY_PAGE_LIMIT');
+assert.equal(cleanupCapacityReceipt.inventory_stage, 'PRE_MUTATION');
+assert.equal(cleanupCapacityReceipt.deletion_performed, false);
+assert.equal(cleanupCapacityReceipt.production_preservation_verified, false);
+assert.equal(cleanupCapacityReceipt.promotion_eligible, false);
+
+const cleanupReadbackReceiptDir = path.join(temp, 'cleanup-readback-receipt');
+const cleanupReadbackRun = spawnSync('bash', [files.cleanup, '--inventory'], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    RECEIPT_DIR: cleanupReadbackReceiptDir,
+    FORCE_DEPLOYMENT_READBACK_FAILURE: '1',
+  },
+});
+assert.equal(cleanupReadbackRun.status, 69, cleanupReadbackRun.stderr || cleanupReadbackRun.stdout);
+const cleanupReadbackReceipt = JSON.parse(fs.readFileSync(path.join(cleanupReadbackReceiptDir, 'final.json')));
+assert.equal(cleanupReadbackReceipt.state, 'VERIFIED_FAIL');
+assert.equal(cleanupReadbackReceipt.reason_code, 'DEPLOYMENT_INVENTORY_READBACK_FAILED');
+assert.equal(cleanupReadbackReceipt.inventory_stage, 'PRE_MUTATION');
+assert.equal(cleanupReadbackReceipt.capacity_state, 'READBACK_ERROR');
+assert.equal(cleanupReadbackReceipt.deletion_performed, false);
+assert.equal(cleanupReadbackReceipt.production_preservation_verified, false);
+assert.equal(cleanupReadbackReceipt.promotion_eligible, false);
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
@@ -81,6 +201,11 @@ console.log(JSON.stringify({
   invalid_per_page_100_rejected: true,
   bounded_page_size_25: true,
   skipped_preview_not_materialized: true,
+  all_skipped_attempts_residual_fail_closed: true,
+  inventory_capacity_exhaustion_durable_red: true,
+  inventory_readback_failure_durable_red: true,
+  cleanup_inventory_capacity_exhaustion_durable_red: true,
+  cleanup_inventory_readback_failure_durable_red: true,
   latest_materialized_governed_selection: true,
   public_release: 'HOLD',
   production: 'HOLD',

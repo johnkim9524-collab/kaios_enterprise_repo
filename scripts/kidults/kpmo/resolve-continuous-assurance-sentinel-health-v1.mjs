@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
+import {REPOSITORY, MAX_ARCHIVE_BYTES, readArchive, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
 import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
@@ -96,6 +96,39 @@ function exactArtifact(spec,run,artifacts,observedAt,archivesById={},relatedById
 
 }
 
+function expectedRequirementEnvelope(spec,run,artifacts,observedAt,archivesById,sourceSha){
+  if(spec.id!=='REQUIREMENT'||run.status!=='completed'||run.conclusion==='success')return null;
+  const expectedName=`kidults-asi-requirement-coverage-admission-v1-${run.id}-${run.run_attempt}`;
+  const rows=(artifacts||[]).filter(a=>a?.name===expectedName);
+  if(rows.length===0)return null;
+  if(rows.length!==1)return {state:'VERIFIED_FAIL',failure_class:`REQUIREMENT_EXPECTED_SKIP_ARTIFACT_CARDINALITY_${rows.length}`,artifact_content_validated:false};
+  const a=rows[0];
+  const metadata={artifact_transport_verified:false,artifact_content_validated:false,expected_skip_artifact_id:Number(a?.id)||null,expected_skip_artifact_name:a?.name||null,expected_skip_artifact_digest:a?.digest||null,expected_skip_artifact_expires_at:a?.expires_at||null};
+  if(!positiveInteger(a?.id)||a.expired!==false||!DIGEST.test(a.digest||''))return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_ARTIFACT_IDENTITY'};
+  if(Number(a?.workflow_run?.id)!==Number(run.id)||a?.workflow_run?.head_sha!==sourceSha)return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_ARTIFACT_RUN_BINDING'};
+  if(!Number.isSafeInteger(a.size_in_bytes)||a.size_in_bytes<=0||a.size_in_bytes>MAX_ARCHIVE_BYTES)return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_ARTIFACT_SIZE'};
+  if(!Number.isFinite(Date.parse(a.expires_at||''))||Date.parse(a.expires_at)<=Date.parse(observedAt))return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_ARTIFACT_EXPIRY'};
+  if(!Number.isFinite(Date.parse(a.created_at||''))||Date.parse(a.created_at)>Date.parse(observedAt)||!Number.isFinite(Date.parse(run.run_started_at||''))||Date.parse(a.created_at)<Date.parse(run.run_started_at))return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_ARTIFACT_TIME'};
+  metadata.artifact_transport_verified=true;
+  const bytes=archivesById[a.id];
+  if(!Buffer.isBuffer(bytes))return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_CONTENT_NOT_VALIDATED'};
+  try{
+    const packet=readArchive(bytes,a.digest);
+    const members=packet.members.filter(m=>path.posix.basename(m.name)==='coverage-admission-v1.json');
+    if(members.length!==1)throw new Error(`REQUIREMENT_EXPECTED_SKIP_MEMBER_CARDINALITY_${members.length}`);
+    const x=JSON.parse(members[0].text);
+    if(x.id!=='kidults-asi-requirement-coverage-admission-v1'||x.version!=='1.0.0')throw new Error('REQUIREMENT_EXPECTED_SKIP_SCHEMA');
+    if(x.repository!==REPOSITORY||x.execution_sha!==sourceSha||x.arl_head_sha!==sourceSha||!positiveInteger(x.arl_run_id)||!positiveInteger(x.arl_run_attempt))throw new Error('REQUIREMENT_EXPECTED_SKIP_GENERATION_BINDING');
+    if(x.classification!=='EXPECTED_NONAUTHORITATIVE_SKIP')return null;
+    if(!['PRODUCER_EVENT_MISMATCH','UPSTREAM_NON_SUCCESS','STALE_PRIOR_MAIN_TRIGGER'].includes(x.classification_reason))throw new Error('REQUIREMENT_EXPECTED_SKIP_CLASSIFICATION_REASON');
+    const legacyContained=x.state==='VERIFIED_FAIL'&&x.admission==='INVALID_OR_FAILED'&&x.reason==='ARL_NOT_SUCCESS';
+    const explicitSkip=x.state==='VERIFIED_SKIP'&&x.admission==='EXPECTED_NONAUTHORITATIVE_SKIP'&&x.reason===x.classification_reason;
+    if(!legacyContained&&!explicitSkip)throw new Error('REQUIREMENT_EXPECTED_SKIP_STATE');
+    if(x.should_run!==false||x.promotion_authority!==false||x.production!=='HOLD'||x.public_release!=='HOLD'||x.g5!=='HOLD')throw new Error('REQUIREMENT_EXPECTED_SKIP_AUTHORITY_BOUNDARY');
+    return {...metadata,state:'VERIFIED_HOLD',failure_class:'LATEST_EXPECTED_NONAUTHORITATIVE_SKIP',semantic_scope:'EXPECTED_NONAUTHORITATIVE_REQUIREMENT_ENVELOPE',artifact_content_validated:true,expected_non_authoritative_skip_verified:true,upstream_arl_run_id:x.arl_run_id,upstream_arl_run_attempt:x.arl_run_attempt,classification_reason:x.classification_reason};
+  }catch(error){return {...metadata,state:'VERIFIED_FAIL',failure_class:'REQUIREMENT_EXPECTED_SKIP_RECEIPT_REJECTED',content_error_code:String(error.message).split(':')[0]};}
+}
+
 export function evaluateProducer(spec,runs,artifactsByRun,sourceSha,observedAt,archivesById={},relatedById={}){
   if(typeof sourceSha!=='string'||!SHA.test(sourceSha))fail('SOURCE_SHA_INVALID');
   let candidates;
@@ -106,7 +139,11 @@ export function evaluateProducer(spec,runs,artifactsByRun,sourceSha,observedAt,a
   const olderReds=candidates.slice(0,-1).filter((run)=>run.status==='completed'&&TERMINAL.has(run.conclusion)&&run.conclusion!=='success').map((run)=>Number(run.id));
   if(latest.status!=='completed')return {id:spec.id,state:'VERIFIED_HOLD',failure_class:'NEWER_APPLICABLE_GENERATION_NONTERMINAL',selected_run_id:Number(latest.id),selected_run_status:latest.status,superseded_red_run_ids:[]};
   if(!TERMINAL.has(latest.conclusion))return {id:spec.id,state:'VERIFIED_FAIL',failure_class:`TERMINAL_CONCLUSION_UNKNOWN_${latest.conclusion||'NULL'}`,selected_run_id:Number(latest.id),superseded_red_run_ids:[]};
-  if(latest.conclusion!=='success')return {id:spec.id,state:'VERIFIED_FAIL',failure_class:`LATEST_APPLICABLE_${String(latest.conclusion).toUpperCase()}`,selected_run_id:Number(latest.id),selected_run_attempt:latest.run_attempt,selected_event:latest.event,superseded_red_run_ids:[]};
+  if(latest.conclusion!=='success'){
+    const expectedSkip=expectedRequirementEnvelope(spec,latest,artifactsByRun?.[latest.id]||[],observedAt,archivesById,sourceSha);
+    if(expectedSkip)return {id:spec.id,...expectedSkip,selected_run_id:Number(latest.id),selected_run_attempt:latest.run_attempt,selected_event:latest.event,selected_created_at:latest.created_at,superseded_red_run_ids:[]};
+    return {id:spec.id,state:'VERIFIED_FAIL',failure_class:`LATEST_APPLICABLE_${String(latest.conclusion).toUpperCase()}`,selected_run_id:Number(latest.id),selected_run_attempt:latest.run_attempt,selected_event:latest.event,superseded_red_run_ids:[]};
+  }
   const artifact=exactArtifact(spec,latest,artifactsByRun?.[latest.id]||[],observedAt,archivesById,relatedById,sourceSha);
   return {id:spec.id,...artifact,selected_run_id:Number(latest.id),selected_run_attempt:latest.run_attempt,selected_event:latest.event,selected_created_at:latest.created_at,superseded_red_run_ids:artifact.state==='VERIFIED_PASS'?olderReds:[]};
 }
@@ -196,7 +233,17 @@ async function liveInput(){
   for(const spec of SPECS){
     runs[spec.id]=await workflowRuns(repo,spec,sourceSha,token);
     const run=latestApplicable(runs[spec.id],spec,sourceSha);
-    if(!run||run.status!=='completed'||run.conclusion!=='success')continue;
+    if(!run||run.status!=='completed')continue;
+    if(run.conclusion!=='success'){
+      if(spec.id!=='REQUIREMENT')continue;
+      const value=await api(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`,token);
+      if(!Array.isArray(value?.artifacts)||value.total_count!==value.artifacts.length)fail('ARTIFACT_INDEX_TRUNCATED');
+      artifactsByRun[run.id]=value.artifacts;
+      const expectedName=`kidults-asi-requirement-coverage-admission-v1-${run.id}-${run.run_attempt}`;
+      const selected=value.artifacts.filter(a=>a.name===expectedName);
+      if(selected.length===1)archivesById[selected[0].id]=await downloadArtifact(repo,selected[0],token);
+      continue;
+    }
     const value=await api(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`,token);
     if(!Array.isArray(value?.artifacts)||value.total_count!==value.artifacts.length)fail('ARTIFACT_INDEX_TRUNCATED');
     artifactsByRun[run.id]=value.artifacts;

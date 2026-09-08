@@ -18,6 +18,8 @@ const requiredWorkflowTokens = [
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
   'resolve-continuous-assurance-sentinel-health-v1.mjs',
+  'GATE_DIR="$RUNNER_TEMP/kpmo-scheduled-assurance-authority-gate"',
+  'echo "GATE_DIR=$GATE_DIR" >> "$GITHUB_ENV"',
   'if: always()',
   'kpmo-continuous-assurance-scheduled-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
@@ -34,6 +36,13 @@ for (const token of requiredWorkflowTokens) {
 
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce scheduled Assurance authority gate/.test(workflow)) {
   fail('SCHEDULED_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
+}
+if (/^\s{6}GATE_DIR:\s*\$\{\{\s*runner\.temp\s*\}\}/m.test(workflow)) {
+  fail('SCHEDULED_AUTHORITY_GATE_JOB_ENV_RUNNER_CONTEXT_FORBIDDEN');
+}
+if (workflow.indexOf('GATE_DIR="$RUNNER_TEMP/kpmo-scheduled-assurance-authority-gate"') >
+    workflow.indexOf('mkdir -p "$GATE_DIR"')) {
+  fail('SCHEDULED_AUTHORITY_GATE_DIRECTORY_INITIALIZATION_ORDER_INVALID');
 }
 
 const gate = policy.scheduled_authority_gate;
@@ -61,6 +70,15 @@ if (!Array.isArray(gate.required_bindings) || ![
   'current_protected_main_sha', 'producer_health_receipt_digest'
 ].every((item) => gate.required_bindings.includes(item))) {
   fail('SCHEDULED_AUTHORITY_GATE_REQUIRED_BINDINGS_INCOMPLETE');
+}
+
+const jobContextMutation = workflow.replace(
+  '      UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}',
+  '      UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}\n      GATE_DIR: ${{ runner.temp }}/kpmo-scheduled-assurance-authority-gate'
+);
+if (jobContextMutation === workflow ||
+    !/^\s{6}GATE_DIR:\s*\$\{\{\s*runner\.temp\s*\}\}/m.test(jobContextMutation)) {
+  fail('SCHEDULED_AUTHORITY_GATE_JOB_CONTEXT_MUTATION_SETUP');
 }
 
 console.log(JSON.stringify({

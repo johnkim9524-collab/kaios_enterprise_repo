@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-p0b-bounded-discovery-candidate-registry-v1",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -17,6 +17,9 @@
     "builder": "scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+    "source_fabric_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "source_fabric_artifact": "kidults-asi-source-fabric-scale-pi1",
+    "source_fabric_payload": "asi-public-metadata-source-fabric-v1.json",
     "human_readme": "docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md"
   },
   "registered_outputs": [
@@ -27,20 +30,36 @@
     "p0b-bounded-discovery-manifest-v1.json"
   ],
   "execution_chain": [
-    "P0_MISSION_TASK_QUEUE",
-    "FOUR_PUBLIC_METADATA_SCOPE_ROTATIONS",
-    "OPENALEX_AND_GDELT_LIVE_DISCOVERY",
-    "SOURCE_FABRIC_MERGE_AND_VALIDATION",
+    "P0_MISSION_CONSUMPTION_TERMINAL_SUCCESS",
+    "EXACT_SAME_GENERATION_SOURCE_FABRIC_ARTIFACT_RESTORE",
+    "SOURCE_FABRIC_PROVENANCE_AND_INTEGRITY_VALIDATION",
     "CANONICAL_ENDPOINT_DEDUPLICATION",
     "SCOPE_EXACT_MISSION_BINDING",
     "EXPLICIT_REGION_AND_ORIGIN_GAPS",
     "KPMO_RECEIPT_AND_ARTIFACT"
   ],
+  "provider_budget_authority": {
+    "authority": "KIDULTS_ASI_SOURCE_FABRIC_SCALE_PI1_ONLY",
+    "p0b_direct_provider_execution": false,
+    "p0b_provider_requests": 0,
+    "exact_same_generation_artifact_consumption_required": true,
+    "source_fabric_runtime_authoritative_events": [
+      "schedule",
+      "workflow_dispatch",
+      "push"
+    ]
+  },
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "37 * * * *",
+    "main_push": false,
+    "schedule": null,
     "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "upstream_trigger_class": "workflow_run",
+    "manual_dispatch_role": "RECOVERY_EXACT_CURRENT_MAIN_SOURCE_FABRIC_ONLY"
+  },
+  "fanout_policy": {
+    "source_fabric_direct_consumer": false,
+    "normal_chain": "SOURCE_FABRIC_TO_EXISTING_PLANNING_CHAIN_TO_P0_MISSION_TO_P0B",
+    "direct_consumer_budget_increase": 0
   },
   "next_stage": {
     "id": "P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT",
@@ -51,7 +70,8 @@
     ]
   },
   "truth_boundary": {
-    "public_metadata_network_discovery_is_executed": true,
+    "public_metadata_network_discovery_is_executed_by_p0b": false,
+    "source_fabric_same_generation_artifact_is_consumed": true,
     "source_candidates_are_observed": true,
     "target_site_body_collection_is_executed": false,
     "target_content_is_acquired": false,
@@ -62,6 +82,7 @@
     "evidence_is_admitted": false,
     "market_claim_is_created": false,
     "public_release": "HOLD",
-    "production": "HOLD"
+    "production": "HOLD",
+    "g5": "HOLD"
   }
 }

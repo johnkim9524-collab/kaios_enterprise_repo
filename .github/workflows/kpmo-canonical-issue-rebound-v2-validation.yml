@@ -1,0 +1,81 @@
+name: KPMO Canonical Issue Rebound V2 Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kpmo-canonical-issue-rebound-v2.yml'
+      - '.github/workflows/kpmo-canonical-issue-rebound-v2-validation.yml'
+      - 'scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs'
+      - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kpmo-canonical-issue-rebound-v2-validation-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-rebound-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and syntax
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/kpmo/material-defect-registry-v3.mjs
+          node --check scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs
+          node --check scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs
+      - name: Validate shared registry and rebound self-tests
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/material-defect-registry-v3.mjs --self-test
+          node scripts/kidults/kpmo/validate-canonical-material-registry-binding-v1.mjs --self-test
+          node scripts/kidults/kpmo/run-canonical-issue-rebound-v1.mjs --self-test
+      - name: Reject writer authority widening or terminal-receipt weakening
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='.github/workflows/kpmo-canonical-issue-rebound-v2.yml';
+          const s=fs.readFileSync(p,'utf8');
+          const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
+          if(!trigger.startsWith('on:\n')) throw new Error('REBOUND_TRIGGER_SECTION_INVALID');
+          for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  schedule:/m,/^  workflow_run:/m,/^  issues:/m,/^  issue_comment:/m]) {
+            if(forbidden.test(trigger)) throw new Error(`REBOUND_FORBIDDEN_TRIGGER:${forbidden}`);
+          }
+          for(const required of [
+            /^  workflow_dispatch:/m,
+            /issues:\s*write/,
+            /github\.actor == 'johnkim9524-collab'/,
+            /github\.ref == 'refs\/heads\/main'/,
+            /CANONICAL-REBOUND-<first12-of-expected-main-sha>/,
+            /APPLY_25_CANONICAL_ISSUE_BODY_APPEND_ONLY/,
+            /Initialize fail-closed terminal receipt before any mutable work/,
+            /Persist rollback packet before first mutation/,
+            /Retain terminal receipt on every path/,
+            /if:\s*always\(\)/,
+            /promotion_eligible:false/,
+            /public:'HOLD'/,
+            /production:'HOLD'/,
+            /g5:'HOLD'/
+          ]) if(!required.test(s)) throw new Error(`REBOUND_REQUIRED_CONTRACT_MISSING:${required}`);
+          if(/\$\{\{[^}]*secrets\./i.test(s)) throw new Error('REBOUND_SECRET_REFERENCE_FORBIDDEN');
+          if(!s.includes("cancel-in-progress: false")) throw new Error('REBOUND_CONCURRENCY_MUST_NOT_CANCEL_APPLY');
+          console.log('CANONICAL_REBOUND_V2_STATIC_BOUNDARY_PASS');
+          NODE

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
 
 function fail(message){
   console.error(`FAIL canonical issue truth: ${message}`);
@@ -27,6 +28,32 @@ function assertV3Authority(v3){
   return true;
 }
 
+function rateLimitDiagnostic(receiptPath,repository){
+  try{
+    if(!receiptPath) return false;
+    const stat=fs.lstatSync(receiptPath);
+    if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536) return false;
+    const value=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+    return value?.receipt_id==='kpmo-canonical-generation-v3-receipt'&&value?.version==='3.5.1'&&
+      value?.repository===repository&&value?.state==='VERIFIED_FAIL'&&value?.mode==='UNCOMMITTED'&&value?.writes===0&&
+      value?.promotion_eligible===false&&value?.production==='HOLD'&&value?.public==='HOLD'&&value?.g5==='HOLD'&&
+      /^(GITHUB_HTTP_403|GITHUB_HTTP_429)(?::|$)/.test(String(value?.failure_class||''));
+  }catch{return false;}
+}
+
+function runV3(env){
+  return spawnSync(process.execPath,['scripts/kidults/kpmo/canonical-generation-v3.mjs'],{
+    encoding:'utf8',env,stdio:['ignore','pipe','pipe'],timeout:180000,maxBuffer:4*1024*1024
+  });
+}
+
+function parseV3Success(child){
+  if(child.status!==0||child.error||child.signal) return null;
+  const value=JSON.parse(child.stdout);
+  assertV3Authority(value);
+  return value;
+}
+
 function runSelfTest(){
   const records=[
     {issue_number:10,effective_priority:'P0',labels:['P0','P1']},
@@ -43,7 +70,7 @@ function runSelfTest(){
     {...valid,whole_platform_closure:true}
   ];
   for(const mutated of mutations){let rejected=false;try{assertV3Authority(mutated);}catch{rejected=true;}if(!rejected)throw new Error('SELF_TEST_V3_MUTATION_ESCAPED');}
-  console.log(JSON.stringify({test:'LIVE_CANONICAL_ISSUE_TRUTH_V3_AUTHORITY_SELF_TEST',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',legacy_v2_body_authority:false,label_overlap_cardinality_preserved:true,negative_cases:mutations.length}));
+  console.log(JSON.stringify({test:'LIVE_CANONICAL_ISSUE_TRUTH_V3_AUTHORITY_SELF_TEST',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',legacy_v2_body_authority:false,label_overlap_cardinality_preserved:true,negative_cases:mutations.length,authenticated_read_primary:true,public_read_retry_only_after_verified_rate_limit_receipt:true,write_mode_invoked:false}));
 }
 
 if(process.argv.includes('--self-test')){
@@ -58,9 +85,17 @@ const allowPrMainAdvance=process.env.ALLOW_MAIN_ADVANCE_DURING_PR_VALIDATION==='
 if(!repository||!token||!/^[0-9a-f]{40}$/i.test(expectedMainSha||'')) fail('GITHUB_REPOSITORY, GITHUB_TOKEN, and exact EXPECTED_PROTECTED_MAIN_SHA are required');
 
 try{
-  const text=execFileSync(process.execPath,['scripts/kidults/kpmo/canonical-generation-v3.mjs'],{encoding:'utf8',env:process.env,stdio:['ignore','pipe','pipe']});
-  const v3=JSON.parse(text);
-  assertV3Authority(v3);
+  const receiptPath=process.env.CANONICAL_GENERATION_RECEIPT_PATH;
+  let readFallbackUsed=false;
+  let child=runV3(process.env);
+  let v3=parseV3Success(child);
+  if(!v3&&rateLimitDiagnostic(receiptPath,repository)){
+    const publicEnv={...process.env,GITHUB_TOKEN:'',GH_TOKEN:''};
+    child=runV3(publicEnv);
+    v3=parseV3Success(child);
+    readFallbackUsed=true;
+  }
+  if(!v3) throw new Error('CANONICAL_V3_READ_NON_SUCCESS');
   if(!allowPrMainAdvance&&v3.protected_main_sha!==expectedMainSha) throw new Error(`MAIN_MOVED:${expectedMainSha}:${v3.protected_main_sha}`);
   console.log(JSON.stringify({
     validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',
@@ -92,6 +127,10 @@ try{
     dynamic_new_defect_discovery_mutation_rejected:true,
     dynamic_defect_omission_mutation_rejected:true,
     canonical_main_ancestry_verified:true,
+    authenticated_read_primary:true,
+    public_read_rate_limit_fallback_supported:true,
+    public_read_rate_limit_fallback_used:readFallbackUsed,
+    public_fallback_write_authority:false,
     legacy_v2_body_authority:false,
     empirical_promotion:false,
     whole_platform_closure:false,
