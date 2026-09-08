@@ -49,9 +49,12 @@ syncBuiltinESMExports();globalThis.fetch=()=>{throw Error('REAL_NETWORK_FORBIDDE
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 
-test('both change triggers and the existing P0 suite execute the receipt regression',()=>{
+test('every main push runs P0 while the scoped PR trigger and suite execute the receipt regression',()=>{
   const file='tests/kidults/kpmo/p0-failure-receipt-retention-v1.test.mjs';
-  assert.equal(p0.split(`      - '${file}'`).length-1,2);
+  const push=p0.match(/^  push:\n([\s\S]*?)(?=^  [a-z_]+:|^permissions:)/m);
+  assert.ok(push);assert.match(push[1],/^    branches: \[main\]$/m);
+  assert.doesNotMatch(push[1],/^    paths(?:-ignore)?:/m);
+  assert.equal(p0.split(`      - '${file}'`).length-1,1);
   assert.ok(p0.includes(`node --test ${file}`));
   assert.ok(p0.indexOf(`node --test ${file}`)<p0.indexOf('node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs'));
 });

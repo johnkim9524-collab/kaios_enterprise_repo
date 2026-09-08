@@ -16,6 +16,10 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
       - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
       - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
       - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
@@ -37,6 +41,10 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
       - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
       - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
       - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
@@ -79,6 +87,7 @@ jobs:
           node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
           node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
           node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          node --test tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
           export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
           TASK_ID="source-fabric-contract-${GITHUB_RUN_ID}"

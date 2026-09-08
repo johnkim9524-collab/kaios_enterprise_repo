@@ -91,13 +91,17 @@ test('unknown expected producer event cannot authorize itself',()=>assert.equal(
 function tempRun(run,fn){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'kir-native-shape-'));try{
  const file=path.join(dir,'run.json');fs.writeFileSync(file,JSON.stringify(run));return fn(file);
 }finally{fs.rmSync(dir,{recursive:true,force:true});}}
+function shellPath(file){return process.platform==='win32'?file.replaceAll('\\','/'):file;}
+function singleQuotedJsContent(file){return file.replaceAll('\\','\\\\').replaceAll("'","\\'");}
+function requireSpawn(result){assert.equal(result.error,undefined,result.error?.message);return result;}
+function requireBashJq(result){requireSpawn(result);assert.notEqual(result.status,125,'jq is unavailable inside bash');return result;}
 const workflow=fs.readFileSync(arlPath,'utf8');
 const jqCommand=workflow.match(/CURRENT_ARL_CREATED_AT=\$\((jq[\s\S]*?\/tmp\/arl-current-run\.json)\)/)?.[1];
 assert.ok(jqCommand,'native ARL jq guard must be present');
-function arlGuard(run){return tempRun(run,file=>spawnSync('bash',['-c',jqCommand.replace('/tmp/arl-current-run.json',JSON.stringify(file))],{
- encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,P1_RUN_ID:String(p1)}}));}
+function arlGuard(run){return tempRun(run,file=>requireBashJq(spawnSync('bash',['-c',`command -v jq >/dev/null 2>&1 || exit 125\n${jqCommand.replace('/tmp/arl-current-run.json',JSON.stringify(shellPath(file)))}`],{
+ encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,P1_RUN_ID:String(p1)}})));}
 test('real workflow jq regression: old static-name predicate rejects native fixture; corrected exact predicate succeeds',()=>{
- tempRun(arl(),file=>assert.equal(spawnSync('jq',['-er',`select(.name==${JSON.stringify(arlName)}) | .created_at`,file]).status,4));
+ tempRun(arl(),file=>assert.equal(requireSpawn(spawnSync('jq',['-er',`select(.name==${JSON.stringify(arlName)}) | .created_at`,file])).status,4));
  const r=arlGuard(arl());assert.equal(r.status,0,r.stderr);assert.equal(r.stdout.trim(),'2026-09-06T05:06:36Z');
 });
 for(const [label,change] of [['wrong run',{id:1}],['wrong attempt',{run_attempt:2}],['wrong source',{head_sha:'b'.repeat(40)}],
@@ -108,9 +112,9 @@ for(const [label,change] of [['wrong run',{id:1}],['wrong attempt',{run_attempt:
 const covSource=fs.readFileSync(coveragePath,'utf8');
 const nativeStart=covSource.indexOf("          import fs from 'node:fs';");
 const nativeGuard=covSource.slice(nativeStart,covSource.indexOf('\n          NODE',nativeStart)).split('\n').map(s=>s.slice(10)).join('\n');
-function coverageGuard(run){return tempRun(run,file=>spawnSync(process.execPath,['--input-type=module','-'],{
- input:nativeGuard.replace('/tmp/arl-run.json',file),encoding:'utf8',timeout:5000,
- env:{PATH:process.env.PATH,GITHUB_REPOSITORY:repo,EVENT_ARL_RUN_ID:'34013158292',EVENT_ARL_RUN_ATTEMPT:'1',EVENT_ARL_EVENT:'workflow_run',TARGET_SOURCE_SHA:source,EXPECTED_HEAD_BRANCH:'main'}}));}
+function coverageGuard(run){return tempRun(run,file=>requireSpawn(spawnSync(process.execPath,['--input-type=module','-'],{
+ input:nativeGuard.replace('/tmp/arl-run.json',singleQuotedJsContent(file)),encoding:'utf8',timeout:5000,
+ env:{PATH:process.env.PATH,GITHUB_REPOSITORY:repo,EVENT_ARL_RUN_ID:'34013158292',EVENT_ARL_RUN_ATTEMPT:'1',EVENT_ARL_EVENT:'workflow_run',TARGET_SOURCE_SHA:source,EXPECTED_HEAD_BRANCH:'main'}})));}
 test('real Coverage inline native guard accepts dynamic ARL',()=>{const p=coverageGuard(arl());assert.equal(p.status,0,p.stderr);});
 for(const [label,change] of [['attempt drift',{run_attempt:2}],['run drift',{id:1}],['wrong repository',{repository:{full_name:'fork/repo'}}],
  ['fork head',{head_repository:{full_name:'fork/repo'}}],['nonterminal',{status:'in_progress',conclusion:null}],['wrong name',{name:'unknown'}],
@@ -133,6 +137,14 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
  assert.ok(assurance.includes(`github.event.workflow_run.path == '${coveragePath}'`));
  assert.ok(assurance.includes("'), github.event.workflow_run.path)"));
+ assert.ok(covSource.includes('dispatch-kir-coverage-assurance:'));
+ assert.ok(covSource.includes('kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}'));
+ assert.ok(covSource.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
+ assert.ok(assurance.includes("inputs.coverage_run_id != '' && 'workflow_run' || github.event_name"));
+ assert.ok(assurance.includes('Reject partial forwarded Coverage continuation inputs'));
+ assert.ok(assurance.includes('PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN'));
+ assert.ok(assurance.includes('Validate and consume forwarded exact Coverage continuation'));
+ assert.ok(assurance.includes('CONSUME_REPLAY_DETECTED') || fs.readFileSync('scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs','utf8').includes('CONSUME_REPLAY_DETECTED'));
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
  assert.ok(!/^  workflow_run:/m.test(strict));
@@ -175,6 +187,6 @@ test('expected event cannot widen canonical producer authority', () => {
 });
 test('KIR regression includes the real semantic-chain regression without dropping existing tests', () => {
  const text = fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml', 'utf8');
- assert.ok(text.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
+ assert.ok(text.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
  for (const file of ['kir-readiness-evidence-intake-v1.test.mjs', 'current-sold-postgres-ledger-atomic-recompute-v1.test.mjs', 'source-intelligence-writer-snapshot-v1.test.mjs']) assert.ok(text.includes(file));
 });

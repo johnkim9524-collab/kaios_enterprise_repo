@@ -2,6 +2,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {isDeepStrictEqual} from 'node:util';
+import {buildAtomicDispatchTerminalReceipt} from './initialize-atomic-dispatch-terminal-receipt-v1.mjs';
 
 const mode = process.argv[2];
 const repository = process.env.GH_REPOSITORY || process.env.GITHUB_REPOSITORY;
@@ -36,6 +38,26 @@ function assert(condition, code) {
     const error = new Error(code);
     error.code = code;
     throw error;
+  }
+}
+
+// Retain the earliest source/identity rejection before token, lifecycle or API gates.
+// Recompute against this exact invocation; a copied or modified packet cannot be
+// used to authorize anything or silently replace the diagnostic of another run.
+if (mode === '--finalize' && fs.existsSync(receiptPath)) {
+  const metadata = fs.lstatSync(receiptPath);
+  assert(metadata.isFile() && !metadata.isSymbolicLink() && metadata.nlink === 1
+    && metadata.size <= 65536, 'ATOMIC_DISPATCH_REJECTION_FILE_INVALID');
+  const prior = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+  if (prior.version === '2.5.0' && prior.terminal_class === 'PREMUTATION_DISPATCH_REJECTED') {
+    const expected = buildAtomicDispatchTerminalReceipt({repository, prNumber, expectedHeadSha,
+      authorizationId, landingActor, landingRunId, landingRunAttempt,
+      executionSourceSha: process.env.GITHUB_SHA, checkoutSha: prior.checked_out_sha, now: prior.created_at});
+    assert(isDeepStrictEqual(prior, expected) && prior.state === 'VERIFIED_FAIL'
+      && prior.merge_committed === false, 'ATOMIC_DISPATCH_REJECTION_BINDING_MISMATCH');
+    console.error(JSON.stringify({state:'VERIFIED_FAIL', failure_code:prior.failure_code,
+      dispatch_rejection_preserved:true, remote_request_performed:false, merge_committed:false}));
+    process.exit(1);
   }
 }
 
@@ -98,19 +120,44 @@ function readTransportAvailability() {
   if (!fs.existsSync(transportReceiptPath)) return { state: 'NOT_ESTABLISHED_FAIL_CLOSED' };
   const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
   assert(receipt?.id === 'kidults-atomic-event-emitting-transport-availability-v1', 'ATOMIC_TERMINAL_TRANSPORT_ID_INVALID');
-  assert(receipt?.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED', 'ATOMIC_TERMINAL_TRANSPORT_STATE_INVALID');
+  assert(receipt?.version === '1.1.0', 'ATOMIC_TERMINAL_TRANSPORT_VERSION_INVALID');
+  assert(['AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED', 'VERIFIED_FAIL'].includes(receipt?.state),
+    'ATOMIC_TERMINAL_TRANSPORT_STATE_INVALID');
   assert(receipt?.repository === repository, 'ATOMIC_TERMINAL_TRANSPORT_REPOSITORY_MISMATCH');
   assert(Number(receipt?.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_TRANSPORT_PR_MISMATCH');
   assert(receipt?.exact_base_sha === expectedBaseSha, 'ATOMIC_TERMINAL_TRANSPORT_BASE_MISMATCH');
   assert(receipt?.exact_head_sha === expectedHeadSha, 'ATOMIC_TERMINAL_TRANSPORT_HEAD_MISMATCH');
   assert(receipt?.exact_head_tree_sha === expectedHeadTreeSha, 'ATOMIC_TERMINAL_TRANSPORT_TREE_MISMATCH');
-  assert(receipt?.repository_owner === landingActor && receipt?.dispatch_actor === landingActor
-    && receipt?.transport === 'DIRECT_OWNER_GITHUB_UI', 'ATOMIC_TERMINAL_TRANSPORT_ACTOR_MISMATCH');
-  assert(receipt?.repository_token_merge_forbidden === true
-    && receipt?.transport_available === true
+  assert(receipt?.dispatch_actor === landingActor && receipt?.transport === 'DIRECT_OWNER_GITHUB_UI',
+    'ATOMIC_TERMINAL_TRANSPORT_ACTOR_MISMATCH');
+  if (receipt.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    assert(receipt?.repository_owner === landingActor, 'ATOMIC_TERMINAL_TRANSPORT_OWNER_MISMATCH');
+  }
+  assert(receipt?.repository_github_token_merge_forbidden === true
     && receipt?.authorization_consumed === false
     && receipt?.new_secret_required === false
     && receipt?.permission_expansion_required === false, 'ATOMIC_TERMINAL_TRANSPORT_BOUNDARY_INVALID');
+  if (receipt.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    assert(receipt?.transport_available === true, 'ATOMIC_TERMINAL_TRANSPORT_AVAILABLE_INVALID');
+  } else {
+    assert(receipt?.transport_available === false, 'ATOMIC_TERMINAL_TRANSPORT_FAILURE_AVAILABILITY_INVALID');
+    assert(typeof receipt?.failure_code === 'string' && /^ATOMIC_EVENT_TRANSPORT_[A-Z0-9_]+$/.test(receipt.failure_code),
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_CODE_INVALID');
+    const observation = receipt?.repository_merge_commit_observation;
+    const observationSourceValid = (
+      observation?.api_surface === 'GET /repos/{owner}/{repo}'
+        && observation?.field_name === 'allow_merge_commit'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+    ) || (
+      observation?.api_surface === 'POST /graphql Repository.mergeCommitAllowed'
+        && observation?.field_name === 'mergeCommitAllowed'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA'
+    );
+    assert(observationSourceValid
+      && observation?.raw_response_persisted === false
+      && typeof observation?.classification === 'string',
+    'ATOMIC_TERMINAL_TRANSPORT_OBSERVATION_INVALID');
+  }
   return receipt;
 }
 
@@ -118,7 +165,7 @@ const transportAvailability = readTransportAvailability();
 
 const baseReceipt = (state, terminalClass, extra = {}) => ({
   id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-  version: '2.4.0',
+  version: '2.5.0',
   state,
   terminal_class: terminalClass,
   repository,

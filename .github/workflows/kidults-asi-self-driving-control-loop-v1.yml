@@ -32,7 +32,10 @@ on:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -63,7 +66,10 @@ on:
       - 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-global-low-risk-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
+      - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
@@ -96,6 +102,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/apply-asi-autobalance-steering-overlay-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs
           node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
           node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-global-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-canonical-merge-v1.mjs
@@ -105,6 +113,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs
           node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
           node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          node --test tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
       - name: OBSERVE — rebuild structural acquisition matrix
         run: |

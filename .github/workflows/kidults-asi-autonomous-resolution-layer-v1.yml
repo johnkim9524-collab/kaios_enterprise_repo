@@ -37,6 +37,7 @@ on:
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs'
       - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
       - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
@@ -72,6 +73,7 @@ on:
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
       - 'scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs'
       - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
       - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs'
@@ -118,6 +120,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
           node --check scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
           node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs
+          node scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs
           node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
@@ -220,8 +224,8 @@ jobs:
           path: /tmp/arl-p1-generation-classification-v1.json
           retention-days: 90
           if-no-files-found: error
-      - name: Preserve invalid-trigger RED after receipt retention
-        if: steps.classify.outputs.classification == 'INVALID_TRIGGER'
+      - name: Preserve non-authoritative or invalid trigger RED after receipt retention
+        if: steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'
         run: exit 1
 
   resolve-current-p1-actions:
@@ -276,6 +280,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs
           node --check scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
           node scripts/kidults/source-intelligence/test-workflow-run-generation-classification-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs
+          node scripts/kidults/source-intelligence/validate-arl-classification-terminal-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json','utf8'))"
