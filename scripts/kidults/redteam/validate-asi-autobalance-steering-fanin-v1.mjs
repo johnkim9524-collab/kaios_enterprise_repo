@@ -42,8 +42,8 @@ if (!terminalBlock || !terminalBlock[0].includes('INPUT_STEP_OUTCOME') || !termi
 }
 
 const failBlock = text.match(/- name: Fail closed unresolved steering fan-in[\s\S]*$/);
-if (!failBlock || !failBlock[0].includes("github.event_name != 'pull_request'") || !failBlock[0].includes("READY_STATE")) {
-  throw new Error('PR_STRUCTURAL_ONLY_BOUNDARY_MISSING');
+if (!failBlock || !failBlock[0].includes('READY_STATE') || !failBlock[0].includes('STEERING_FANIN_NOT_VERIFIED')) {
+  throw new Error('UNRESOLVED_FANIN_FAILURE_GATE_MISSING');
 }
 
 console.log(JSON.stringify({
@@ -53,7 +53,7 @@ console.log(JSON.stringify({
   historical_success_fallback_allowed: false,
   trigger_substitution_allowed: false,
   terminal_receipt_required: true,
-  pull_request_live_authority: false,
+  unresolved_fanin_success_allowed: false,
   promotion_allowed: false,
   public_release: 'HOLD',
   production: 'HOLD'
