@@ -115,6 +115,13 @@ jobs:
           node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
           node --test tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const src=fs.readFileSync('.github/workflows/kidults-asi-self-driving-control-loop-v1.yml','utf8');
+          const boundary=src.indexOf('if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then');
+          const restore=src.indexOf('--artifact-name kidults-asi-throughput-coverage-autobalance-live-v1');
+          if(boundary<0||restore<0||boundary>restore)throw new Error('PR_LIVE_AUTOBALANCE_CONSUMPTION_BOUNDARY_MISSING');
+          NODE
       - name: OBSERVE — rebuild structural acquisition matrix
         run: |
           node scripts/kidults/source-intelligence/build-global-data-acquisition-master-matrix-v1.mjs /tmp/global-data-acquisition-master-matrix-v1.json
@@ -162,25 +169,28 @@ jobs:
           PREV_COUNT=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const x=JSON.parse(s);process.stdout.write(String(Number(x.previous_cycle_count||0)))})")
           PREV_VALID=$(printf '%s' "$PREP" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(String(Boolean(JSON.parse(s).previous_pool_valid))))")
 
-          node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
-            --workflow-path .github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml \
-            --workflow-name 'KIDULTS ASI Throughput Coverage Autobalance Live v1' \
-            --artifact-name kidults-asi-throughput-coverage-autobalance-live-v1 \
-            --branch main \
-            --archive /tmp/autobalance.zip \
-            --extract-dir /tmp/autobalance-raw \
-            --receipt /tmp/autobalance-exact-restore-receipt-v1.json \
-            --required-basename asi-throughput-coverage-autobalance-live-v1.json \
-            --max-pages 40 \
-            --lookback-days 35 \
-            --max-compressed-bytes 4194304 \
-            --allow-no-producer-history
-          BAL_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/autobalance-exact-restore-receipt-v1.json")).artifact_id || ""')
-          if [ -n "$BAL_ID" ]; then
-            BAL_SRC=$(find /tmp/autobalance-raw -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
-            if [ -n "$BAL_SRC" ]; then
-              cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
-              node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+          BAL_ID=""
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs \
+              --workflow-path .github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml \
+              --workflow-name 'KIDULTS ASI Throughput Coverage Autobalance Live v1' \
+              --artifact-name kidults-asi-throughput-coverage-autobalance-live-v1 \
+              --branch main \
+              --archive /tmp/autobalance.zip \
+              --extract-dir /tmp/autobalance-raw \
+              --receipt /tmp/autobalance-exact-restore-receipt-v1.json \
+              --required-basename asi-throughput-coverage-autobalance-live-v1.json \
+              --max-pages 40 \
+              --lookback-days 35 \
+              --max-compressed-bytes 4194304 \
+              --allow-no-producer-history
+            BAL_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/autobalance-exact-restore-receipt-v1.json")).artifact_id || ""')
+            if [ -n "$BAL_ID" ]; then
+              BAL_SRC=$(find /tmp/autobalance-raw -type f -name 'asi-throughput-coverage-autobalance-live-v1.json' -print -quit || true)
+              if [ -n "$BAL_SRC" ]; then
+                cp "$BAL_SRC" /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+                node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/live-balance/asi-throughput-coverage-autobalance-live-v1.json
+              fi
             fi
           fi
 
