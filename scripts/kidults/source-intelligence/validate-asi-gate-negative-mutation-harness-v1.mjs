@@ -19,17 +19,18 @@ const count=(source,needle)=>source.split(needle).length-1;
 const fail=message=>{throw new Error(message)};
 const stepBlock=(source,needle)=>{const anchor=source.indexOf(needle);if(anchor<0)fail('missing step anchor '+needle);const start=source.lastIndexOf('\n      - name:',anchor);const next=source.indexOf('\n      - name:',anchor+1);return source.slice(start<0?0:start,next<0?source.length:next);};
 
-function validateShared(source,label){
+function validateShared(source,label,expectedSelfTests){
   if(source.includes('_MUTATION_SUBJECT_MISSING'))fail(`${label}: runtime cardinality coupled to negative proof`);
+  const selfTest=`node ${preparer} --self-test`;
+  if(count(source,selfTest)!==expectedSelfTests)fail(`${label}: deterministic preparer self-test cardinality expected ${expectedSelfTests} observed ${count(source,selfTest)}`);
   // Executing the preparer self-test is itself a Node parse/load check. Do not couple
-  // this validator to whether the workflow expresses syntax checking literally or via a loop.
-  if(!source.includes(`node ${preparer} --self-test`))fail(`${label}: deterministic preparer self-test missing`);
-  if(count(source,preparer)<2)fail(`${label}: preparer not bound into both validation and execution context`);
+  // this validator to whether extra syntax checking is expressed literally or via a loop.
+  if(count(source,preparer)<expectedSelfTests+1)fail(`${label}: preparer not bound into validation/execution context`);
   if(source.includes('process.exit(0)')||source.includes('process.exit(2)'))fail(`${label}: vacuous mutation success exit`);
 }
 
 function validateV1(source){
-  validateShared(source,'v1');
+  validateShared(source,'v1',2);
   const trigger=source.slice(0,source.indexOf('\npermissions:'));
   if(/^\s{2}schedule:/m.test(trigger)||/^\s{2}push:/m.test(trigger))fail('v1: independent production trigger reintroduced');
   if(!trigger.includes('workflow_dispatch:')||!trigger.includes('pull_request:'))fail('v1: recovery/static triggers missing');
@@ -40,7 +41,7 @@ function validateV1(source){
 }
 
 function validateV2(source){
-  validateShared(source,'v2');
+  validateShared(source,'v2',1);
   for(const [scenario,runtime,badPath,validator,reason] of v2Scenarios){
     const prepare=`node ${preparer} --prepare ${scenario} --runtime ${runtime} --output ${badPath}`;
     const block=stepBlock(source,badPath);
@@ -67,8 +68,9 @@ if(process.argv.includes('--self-test')){
   const capture=`OUTPUT=$(node ${validator} ${badPath} 2>&1)`;
   const reasonCheck=`grep -F '${reason}' <<<\"$OUTPUT\"`;
   const cases=[
-    ['v1 self-test removed',workflows.v1,v1.replace(`node ${preparer} --self-test`,'true # removed deterministic fixture proof')],
+    ['v1 one of two self-tests removed',workflows.v1,v1.replace(`node ${preparer} --self-test`,'true # removed deterministic fixture proof')],
     ['v1 schedule restored',workflows.v1,v1.replace('  workflow_dispatch:\n',"  workflow_dispatch:\n  schedule:\n    - cron: '47 * * * *'\n")],
+    ['v2 self-test removed',workflows.v2,v2.replace(`node ${preparer} --self-test`,'true # removed deterministic fixture proof')],
     ['v2 prepare removed',workflows.v2,v2.replace(prepare,'true # mutation preparation removed')],
     ['v2 wrong scenario',workflows.v2,v2.replace(`--prepare ${scenario}`, '--prepare gate1-rights')],
     ['v2 optional validator guard',workflows.v2,v2.replace(capture,'[ -f '+badPath+' ] && '+capture)],
@@ -79,4 +81,4 @@ if(process.argv.includes('--self-test')){
   for(const [name,path,mutated] of cases){const altered=new Map(pristine);altered.set(path,mutated);let rejected=false;try{validateAll(altered)}catch{rejected=true}if(!rejected)fail('self-test mutation survived: '+name);}
 }
 
-console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_GATE_NEGATIVE_PROOF_DETERMINISTIC_FIXTURE_AUTHORITY_V1',v1_redundant_runtime_negative_suite_removed:true,v2_runtime_or_synthetic_negative_scenarios:v2Scenarios.length,runtime_zero_cardinality_supported:true,synthetic_baseline_prevalidated:true,preparer_self_test_is_parse_and_contract_authority:true,exact_validator_rejection_required:true,self_test:process.argv.includes('--self-test'),public_release:'HOLD',production:'HOLD'},null,2));
+console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_GATE_NEGATIVE_PROOF_DETERMINISTIC_FIXTURE_AUTHORITY_V1',v1_preparer_self_test_cardinality:2,v2_preparer_self_test_cardinality:1,v1_redundant_runtime_negative_suite_removed:true,v2_runtime_or_synthetic_negative_scenarios:v2Scenarios.length,runtime_zero_cardinality_supported:true,synthetic_baseline_prevalidated:true,preparer_self_test_is_parse_and_contract_authority:true,exact_validator_rejection_required:true,self_test:process.argv.includes('--self-test'),public_release:'HOLD',production:'HOLD'},null,2));
