@@ -224,6 +224,32 @@ test('polling distinguishes producer absence without external provider calls', a
   assert(requested.every((url) => !url.includes('commoncrawl') && !url.includes('openalex') && !url.includes('datacite')));
 });
 
+test('causal producer run identity excludes unrelated same-SHA runs before semantic validation', async () => {
+  const unrelated = { ...run, id: 99, event: 'pull_request' };
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/artifacts')) {
+      return new Response(JSON.stringify({ total_count: 1, artifacts: [artifact] }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ total_count: 2, workflow_runs: [unrelated, run] }), { status: 200 });
+  };
+  const receipt = await resolveOrchestration({ ...specification, expectedRunId: run.id }, {
+    token: 'test-token',
+    fetchImpl,
+    sleep: async () => {},
+  });
+  assert.equal(receipt.state, 'VERIFIED_PASS');
+  assert.equal(receipt.expected_producer_run_id, run.id);
+  assert.equal(receipt.selected_run_id, run.id);
+  assert.equal(validateReceipt(receipt), true);
+});
+
+test('causal receipt rejects producer run-ID substitution', () => {
+  assert.throws(
+    () => classify({ attempt: 1, runs: [run], artifacts: [artifact] }, { expectedRunId: 99 }),
+    (error) => error instanceof OrchestrationError && error.code === 'RUN_ID_MISMATCH',
+  );
+});
+
 test('transport and malformed API evidence return bounded failure receipts', async () => {
   const transport = await resolveOrchestration(specification, {
     token: 'test-token',

@@ -12,9 +12,12 @@ const resolver = 'scripts/kidults/source-intelligence/resolve-asi-exact-generati
 const resolverTest = 'tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs';
 const frontierTest = 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs';
 const scheduleByWorkflow = new Map([
-  [workflows[1], "- cron: '2 * * * *'"],
   [workflows[2], "- cron: '9 * * * *'"],
-  [workflows[3], "- cron: '7 * * * *'"],
+]);
+const causalByWorkflow = new Map([
+  [workflows[0], { producer: 'KIDULTS ASI Global Any-Site Discovery v2', selectedRun: 'PRODUCER_RUN_ID' }],
+  [workflows[1], { producer: 'KIDULTS ASI Self-Driving Control Loop v1', selectedRun: 'RUN_ID' }],
+  [workflows[3], { producer: 'KIDULTS ASI Self-Driving Control Loop v1', selectedRun: 'RUN_ID' }],
 ]);
 
 function stepBlocks(text) {
@@ -46,10 +49,11 @@ export function violations(text, workflow) {
     'TARGET_BRANCH: main',
   ];
   for (const marker of required) if (!text.includes(marker)) failures.push(`MISSING:${workflow}:${marker}`);
-  if (workflow === workflows[0]) {
+  const causal = causalByWorkflow.get(workflow);
+  if (causal) {
     const causalRequired = [
       'workflow_run:',
-      "workflows: ['KIDULTS ASI Global Any-Site Discovery v2']",
+      `workflows: ['${causal.producer}']`,
       'branches: [main]',
       'types: [completed]',
       "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'",
@@ -59,10 +63,11 @@ export function violations(text, workflow) {
       'EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}',
       "UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}",
       "UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}",
+      '--expected-run-id "$UPSTREAM_RUN_ID"',
       'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
       'MAIN_SHA="$(gh api -H \'Accept: application/vnd.github+json\' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq \'.commit.sha\')"',
       'test "$MAIN_SHA" = "$EXPECTED_SHA"',
-      'test "$PRODUCER_RUN_ID" = "$UPSTREAM_RUN_ID"',
+      `test "$${causal.selectedRun}" = "$UPSTREAM_RUN_ID"`,
     ];
     for (const marker of causalRequired) if (!text.includes(marker)) failures.push(`CAUSAL_TRIGGER_MISSING:${workflow}:${marker}`);
     if (/^\s*schedule:\s*$/m.test(text) || /^\s*-\s*cron:/m.test(text)) {
@@ -139,17 +144,18 @@ const sources = workflows.map((workflow) => [workflow, fs.readFileSync(workflow,
 validateAll(sources);
 
 if (process.argv.includes('--self-test')) {
-  const mutations = [
+  const mutationsFor = (causal) => [
     (text) => text.replaceAll(resolver, 'scripts/unbound-resolver.mjs'),
     (text) => text.replace('--mode pr-fixture', '--mode live'),
     (text) => text.replace('--trigger-expected false', '--trigger-expected "$TRIGGER_EXPECTED"'),
     (text) => text.replace('  workflow_dispatch:', "  schedule:\n    - cron: '5 * * * *'\n  workflow_dispatch:"),
-    (text) => text.replace("workflows: ['KIDULTS ASI Global Any-Site Discovery v2']", "workflows: ['Forged Producer']"),
+    (text) => text.replace(`workflows: ['${causal.producer}']`, "workflows: ['Forged Producer']"),
     (text) => text.replace("if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'", 'if: always()'),
     (text) => text.replace('--max-attempts 24', '--max-attempts 240'),
     (text) => text.replaceAll('EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}', 'EXPECTED_SHA: unbound'),
     (text) => text.replace('test "$MAIN_SHA" = "$EXPECTED_SHA"', 'echo "$MAIN_SHA"'),
-    (text) => text.replace('test "$PRODUCER_RUN_ID" = "$UPSTREAM_RUN_ID"', 'test -n "$PRODUCER_RUN_ID"'),
+    (text) => text.replace(`test "$${causal.selectedRun}" = "$UPSTREAM_RUN_ID"`, `test -n "$${causal.selectedRun}"`),
+    (text) => text.replace('--expected-run-id "$UPSTREAM_RUN_ID"', '--expected-run-id ""'),
     (text) => text.replaceAll('--expected-base-sha "$EXPECTED_BASE_SHA"', '--expected-base-sha unbound'),
     (text) => text.replaceAll('--expected-head-sha "$EXPECTED_HEAD_SHA"', '--expected-head-sha unbound'),
     (text) => text.replaceAll('--expected-generation-sha "$EXPECTED_GENERATION_SHA"', '--expected-generation-sha unbound'),
@@ -159,12 +165,14 @@ if (process.argv.includes('--self-test')) {
     (text) => text.replace("if: always() && github.event_name != 'pull_request'", 'if: success()'),
   ];
   let rejected = 0;
-  for (const mutate of mutations) {
-    const changed = mutate(sources[0][1]);
-    try {
-      violations(changed, sources[0][0]).length && (() => { throw new Error('rejected'); })();
-    } catch {
-      rejected += 1;
+  let mutationTotal = 0;
+  for (const [workflow, causal] of causalByWorkflow) {
+    const source = sources.find(([candidate]) => candidate === workflow);
+    const mutations = mutationsFor(causal);
+    mutationTotal += mutations.length;
+    for (const mutate of mutations) {
+      const changed = mutate(source[1]);
+      if (violations(changed, workflow).length) rejected += 1;
     }
   }
   const poisonMutations = [
@@ -186,7 +194,7 @@ if (process.argv.includes('--self-test')) {
     const changed = mutate(sources[3][1]);
     if (violations(changed, sources[3][0]).length) poisonRejected += 1;
   }
-  if (rejected !== mutations.length) throw new Error(`MUTATION_REJECTION_INCOMPLETE:${rejected}/${mutations.length}`);
+  if (rejected !== mutationTotal) throw new Error(`MUTATION_REJECTION_INCOMPLETE:${rejected}/${mutationTotal}`);
   if (poisonRejected !== poisonMutations.length) throw new Error(`POISON_MUTATION_REJECTION_INCOMPLETE:${poisonRejected}/${poisonMutations.length}`);
   console.log(JSON.stringify({ state: 'VERIFIED_PASS', workflows: workflows.length, mutations_rejected: rejected + poisonRejected, poisoned_snapshot_mutations_rejected: poisonRejected, external_provider_requests_in_pr: 0 }));
 } else {

@@ -108,6 +108,7 @@ jobs:
             --expected-base-sha "$EXPECTED_BASE_SHA" \
             --expected-head-sha "$EXPECTED_HEAD_SHA" \
             --expected-generation-sha "$EXPECTED_GENERATION_SHA" \
+            --expected-run-id "$UPSTREAM_RUN_ID" \
             --trigger-expected "$TRIGGER_EXPECTED" \
             --max-attempts 24 \
             --poll-milliseconds 10000
