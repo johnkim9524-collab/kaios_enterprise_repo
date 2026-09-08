@@ -8,6 +8,15 @@ const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landin
 const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
+function assertUnfilteredMainPush(requiredWorkflow, name) {
+  const push = requiredWorkflow.match(/^  push:\n([\s\S]*?)(?=^  [a-z_]+:|^permissions:)/m);
+  assert.ok(push, `${name} must declare a push trigger`);
+  assert.match(push[1], /^    branches:/m, `${name} must bind push to main`);
+  assert.match(push[1], /\bmain\b/, `${name} must bind push to main`);
+  assert.doesNotMatch(push[1], /^    paths(?:-ignore)?:/m,
+    `${name} cannot be path-filtered because the post-merge consumer requires it for every main push`);
+}
+
 function loadProductionApprovalParser() {
   const keysStart = runner.indexOf('const approvalKeys = [');
   const keysEnd = runner.indexOf('];', keysStart) + 2;
@@ -218,6 +227,20 @@ test('post-merge suite policy binds core protected-main push controls and preser
   assert.equal(postMergePolicy.proof_contract.production, 'HOLD');
   assert.equal(postMergePolicy.proof_contract.public, 'HOLD');
   assert.equal(postMergePolicy.proof_contract.g5, 'HOLD');
+});
+
+test('every required post-merge workflow is guaranteed to run on every main push', () => {
+  for (const {path: workflowPath, name} of postMergePolicy.required_workflows) {
+    assertUnfilteredMainPush(fs.readFileSync(workflowPath, 'utf8'), name);
+  }
+});
+
+test('a path-filtered required main-push workflow is rejected', () => {
+  const workflowPath = '.github/workflows/kidults-p0-control-plane-closure-v1.yml';
+  const requiredWorkflow = fs.readFileSync(workflowPath, 'utf8');
+  const weakened = requiredWorkflow.replace('    branches: [main]\n',
+    "    branches: [main]\n    paths:\n      - 'scripts/kidults/**'\n");
+  assert.throws(() => assertUnfilteredMainPush(weakened, 'synthetic weakened P0'), /cannot be path-filtered/);
 });
 
 test('post-merge consumer rejects PR-head reuse, nonterminal, cancelled and ambiguous workflow evidence', () => {

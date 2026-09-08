@@ -1,12 +1,12 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
-  "change_rationale": "Mirror externally supplied checkout binding, worktree-baseline continuity, context-specific clean-worktree gates, non-authorizing remote attestation, separate protected promotion gates, verifier-bound receipt filenames, the expanded receipt/fail-closed contract, and the evidence-true split between actual AI/model dispatchers and deterministic defense-in-depth jobs.",
+  "change_rationale": "Register KPMO-inclusive fail-closed AI-agent accountability and non-delegation enforcement, immediate active-task and dispatch removal for exact-evidence-confirmed material violations, Agent JD bootstrap binding, controlled reinstatement, and permanent retirement conditions while preserving bounded helper use, protected gates, audit history, and human personnel boundaries.",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.7.0",
+    "policy_version": "1.8.0",
     "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
@@ -19,6 +19,7 @@
     "bootstrap_remediation_sequence_path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
     "report_after_remediation_gate_path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
     "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
+    "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
     "bootstrap_validator_path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
     "report_after_remediation_validator_path": "scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs",
@@ -57,6 +58,7 @@
     "one_time_receipt_consumption_required": true,
     "contract_is_first_document": true,
     "exact_committed_git_blob_loading_required": true,
+    "agent_role_jd_and_accountability_registry_loaded_before_dispatch": true,
     "external_expected_sha_required": true,
     "expected_sha_must_equal_working_sha": true,
     "expected_sha_match_state_must_be_true": true,
@@ -330,7 +332,7 @@
       "transparency_effect"
     ]
   },
-  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP"],
+  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP", "ACCOUNTABILITY_AND_NON_DELEGATION"],
   "leadership_rule_identities": {
     "AI-016": {
       "name": "PROACTIVE_ISSUE_OWNERSHIP",
@@ -340,6 +342,11 @@
       "name": "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "owner": "RESPONSIBLE_AGENT"
+    },
+    "AI-019": {
+      "name": "ACCOUNTABILITY_AND_NON_DELEGATION",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "owner": "ASSIGNED_AI_AGENT"
     }
   },
   "violation_classification": {
@@ -351,6 +358,9 @@
     "manual_only_normal_activation_for_ready_governed_runner": "P0_GOVERNANCE_DEFECT",
     "leadership_rule_identity_renumbered_deleted_weakened_or_name_swapped": "P0_GOVERNANCE_DEFECT",
     "report_only_while_authorized_reversible_remediation_executable": "P1_OPERATING_DEFECT",
+    "responsibility_evasion_within_granted_authority": "P1_OPERATING_DEFECT",
+    "unverified_core_duty_transfer_to_codex_or_helper": "P1_OPERATING_DEFECT",
+    "concealed_responsibility_evasion_or_false_helper_completion_claim": "P0_GOVERNANCE_DEFECT",
     "false_remediation_or_verification_claim": "P0_GOVERNANCE_DEFECT",
     "unlabeled_inference_in_material_report": "P1_OPERATING_DEFECT"
   },
@@ -360,7 +370,7 @@
     "requires_validator_pass": true,
     "requires_version_increment": true,
     "requires_change_rationale": true,
-    "change_rationale": "Version 1.7.0 binds externally supplied checkout identity, worktree-baseline continuity, clean-worktree context, remote-attestation claim limits, protected promotion gates, and fixed receipt filenames across policy and registry."
+    "change_rationale": "Version 1.8.0 binds AI-agent role accountability, bounded helper use, exact-evidence violation confirmation, immediate fail-closed task and dispatch removal, controlled reinstatement, and permanent retirement conditions across policy, machine contract, Agent JD registry, and validator."
   },
   "public_release": "HOLD",
   "production": "HOLD",
@@ -377,6 +387,27 @@
     "routine_report_before_authorized_remediation_forbidden": true,
     "status_report_gate_must_validate_remediation_before_reporting": true,
     "mandatory_bootstrap_sequence": ["DETECT_REVERSIBLE_DEFECT", "CORRECT_ROOT_CAUSE_IMMEDIATELY", "RUN_REGRESSION_AND_NEGATIVE_TESTS", "REVALIDATE_EXACT_HEAD_AND_TARGET_MAIN", "TRUTH_SYNC_REGISTRY_AND_ISSUE", "REPORT_VERIFIED_OUTCOME", "PROPOSE_PRIORITIZED_IMPROVEMENTS"]
+  },
+  "agent_accountability_enforcement": {
+    "rule_id": "AI-019",
+    "rule_name": "ACCOUNTABILITY_AND_NON_DELEGATION",
+    "scope": "KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES",
+    "kpmo_ai_agents_orchestrators_and_automations_in_scope": true,
+    "kpmo_self_exemption_allowed": false,
+    "human_personnel_action_authorized": false,
+    "confirmation_standard": "EXACT_EVIDENCE_BINDS_AGENT_TASK_SESSION_AUTHORITY_AND_UNMET_ROLE_JD_OBLIGATION",
+    "mere_codex_or_helper_use_is_a_violation": false,
+    "assigned_agent_retains_end_to_end_accountability": true,
+    "confirmed_material_violation_immediate_consequence": "REMOVE_FROM_ACTIVE_TASK_REJECT_UNVERIFIED_OUTPUT_AND_DISABLE_NEW_DISPATCH",
+    "history_or_evidence_deletion_allowed": false,
+    "replacement_requires_new_agent_bootstrap": true,
+    "quarantine_until_explicit_kpmo_reinstatement": true,
+    "removed_identity_self_adjudication_or_reinstatement_allowed": false,
+    "kpmo_ai_identity_reinstatement_authority": "PROGRAM_OWNER_PLUS_INDEPENDENT_GOVERNANCE_REVIEW",
+    "reinstatement_requires_role_jd_reacceptance_new_bootstrap_tests_and_probation": true,
+    "intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement": true,
+    "protected_authority_and_capability_blockers_are_not_violations": true,
+    "separable_authorized_work_must_continue": true
   },
   "global_scale_stewardship": {
     "scope": "ENTIRE_VALUE_CHAIN",
