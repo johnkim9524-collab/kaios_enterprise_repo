@@ -12,7 +12,6 @@ const resolver = 'scripts/kidults/source-intelligence/resolve-asi-exact-generati
 const resolverTest = 'tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs';
 const frontierTest = 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs';
 const scheduleByWorkflow = new Map([
-  [workflows[0], "- cron: '5 * * * *'"],
   [workflows[1], "- cron: '2 * * * *'"],
   [workflows[2], "- cron: '9 * * * *'"],
   [workflows[3], "- cron: '7 * * * *'"],
@@ -35,23 +34,50 @@ export function violations(text, workflow) {
     '--expected-generation-sha "$EXPECTED_GENERATION_SHA"',
     '--trigger-expected false',
     '--trigger-expected "$TRIGGER_EXPECTED"',
-    "TRIGGER_EXPECTED: ${{ github.event_name == 'schedule' && 'true' || 'false' }}",
     '--max-attempts 24 \\',
     '--poll-milliseconds 10000',
     'VERIFIED_PASS_LOCAL_FIXTURE',
     'external_provider_requests!==0',
     'writes!==0',
     "if: always() && github.event_name != 'pull_request'",
-    'EXPECTED_SHA: ${{ github.sha }}',
     'EXPECTED_BASE_SHA:',
     'EXPECTED_HEAD_SHA:',
     'EXPECTED_GENERATION_SHA:',
     'TARGET_BRANCH: main',
-    'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
   ];
   for (const marker of required) if (!text.includes(marker)) failures.push(`MISSING:${workflow}:${marker}`);
-  const schedule = scheduleByWorkflow.get(workflow);
-  if (!text.includes(schedule)) failures.push(`PRODUCER_SCHEDULE_MISSING:${workflow}:${schedule}`);
+  if (workflow === workflows[0]) {
+    const causalRequired = [
+      'workflow_run:',
+      "workflows: ['KIDULTS ASI Global Any-Site Discovery v2']",
+      'branches: [main]',
+      'types: [completed]',
+      "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'",
+      "TRIGGER_EXPECTED: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}",
+      'EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}',
+      'ref: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}',
+      'EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}',
+      "UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}",
+      "UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}",
+      'test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"',
+      'MAIN_SHA="$(gh api -H \'Accept: application/vnd.github+json\' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq \'.commit.sha\')"',
+      'test "$MAIN_SHA" = "$EXPECTED_SHA"',
+      'test "$PRODUCER_RUN_ID" = "$UPSTREAM_RUN_ID"',
+    ];
+    for (const marker of causalRequired) if (!text.includes(marker)) failures.push(`CAUSAL_TRIGGER_MISSING:${workflow}:${marker}`);
+    if (/^\s*schedule:\s*$/m.test(text) || /^\s*-\s*cron:/m.test(text)) {
+      failures.push(`INDEPENDENT_CONSUMER_SCHEDULE_FORBIDDEN:${workflow}`);
+    }
+  } else {
+    const scheduledRequired = [
+      "TRIGGER_EXPECTED: ${{ github.event_name == 'schedule' && 'true' || 'false' }}",
+      'EXPECTED_SHA: ${{ github.sha }}',
+      'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
+    ];
+    for (const marker of scheduledRequired) if (!text.includes(marker)) failures.push(`SCHEDULED_TRIGGER_MISSING:${workflow}:${marker}`);
+    const schedule = scheduleByWorkflow.get(workflow);
+    if (!text.includes(schedule)) failures.push(`PRODUCER_SCHEDULE_MISSING:${workflow}:${schedule}`);
+  }
   const blocks = stepBlocks(text);
   const fixture = blocks.find((block) => block.includes('Validate PR fixture orchestration without provider requests'));
   if (!fixture || !fixture.includes("if: github.event_name == 'pull_request'")) failures.push(`PR_FIXTURE_STEP_INVALID:${workflow}`);
@@ -117,9 +143,13 @@ if (process.argv.includes('--self-test')) {
     (text) => text.replaceAll(resolver, 'scripts/unbound-resolver.mjs'),
     (text) => text.replace('--mode pr-fixture', '--mode live'),
     (text) => text.replace('--trigger-expected false', '--trigger-expected "$TRIGGER_EXPECTED"'),
-    (text) => text.replace("- cron: '5 * * * *'", "- cron: '5 1 1 1 *'"),
+    (text) => text.replace('  workflow_dispatch:', "  schedule:\n    - cron: '5 * * * *'\n  workflow_dispatch:"),
+    (text) => text.replace("workflows: ['KIDULTS ASI Global Any-Site Discovery v2']", "workflows: ['Forged Producer']"),
+    (text) => text.replace("if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'", 'if: always()'),
     (text) => text.replace('--max-attempts 24', '--max-attempts 240'),
-    (text) => text.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound'),
+    (text) => text.replaceAll('EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}', 'EXPECTED_SHA: unbound'),
+    (text) => text.replace('test "$MAIN_SHA" = "$EXPECTED_SHA"', 'echo "$MAIN_SHA"'),
+    (text) => text.replace('test "$PRODUCER_RUN_ID" = "$UPSTREAM_RUN_ID"', 'test -n "$PRODUCER_RUN_ID"'),
     (text) => text.replaceAll('--expected-base-sha "$EXPECTED_BASE_SHA"', '--expected-base-sha unbound'),
     (text) => text.replaceAll('--expected-head-sha "$EXPECTED_HEAD_SHA"', '--expected-head-sha unbound'),
     (text) => text.replaceAll('--expected-generation-sha "$EXPECTED_GENERATION_SHA"', '--expected-generation-sha unbound'),
