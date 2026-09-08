@@ -23,10 +23,10 @@ function validate(t){
   if((t.match(/sort_by\(\.created_at\) \| reverse \| \.\[0\] \/\/ empty/g)||[]).length<2)f.push('missing deterministic latest exact-SHA peer selection');
   need('test "$BASE_RUN_ID" = "$TRIGGER_RUN_ID"','self-driving exact trigger run binding');
   need('test "$AUTOBALANCE_RUN_ID" = "$TRIGGER_RUN_ID"','autobalance exact trigger run binding');
-  need("BASE_STATUS != 'completed'",'base terminal state gate');
-  need("AUTOBALANCE_STATUS != 'completed'",'autobalance terminal state gate');
-  need("BASE_CONCLUSION != 'success'",'base conclusion gate');
-  need("AUTOBALANCE_CONCLUSION != 'success'",'autobalance conclusion gate');
+  need('[ "$BASE_STATUS" != \'completed\' ]','base terminal state gate');
+  need('[ "$AUTOBALANCE_STATUS" != \'completed\' ]','autobalance terminal state gate');
+  need('[ "$BASE_CONCLUSION" != \'success\' ]','base conclusion gate');
+  need('[ "$AUTOBALANCE_CONCLUSION" != \'success\' ]','autobalance conclusion gate');
   need("STEERING_PEER_FRESHNESS_SLO_SECONDS: '5400'",'90 minute freshness SLO');
   need('UPSTREAM_STEERING_TIMESTAMP_MALFORMED','malformed timestamp fail-closed');
   need('UPSTREAM_STEERING_TIMESTAMP_FUTURE','future timestamp fail-closed');
