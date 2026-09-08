@@ -22,8 +22,11 @@ function validate(t){
   need('.workflow_run.head_sha==$sha','artifact SHA');
   if((t.match(/if length==1 then \.\[0\] else empty end/g)||[]).length<2)f.push('missing exact cardinality');
   need('^sha256:[0-9a-f]{64}$','digest');
-  need("status:'WAITING_FOR_EXACT_GENERATION_PEER'",'waiting receipt status');
+  need("status:'FAIL_CLOSED_TERMINAL_RECEIPT'",'terminal fail-closed receipt status');
   need("status:'VERIFIED_EXACT_GENERATION_BINDING'",'verified receipt status');
+  need('- name: Ensure terminal steering provenance receipt','terminal receipt reconciler');
+  need('- name: Upload terminal steering artifacts','terminal artifact upload');
+  need('- name: Fail closed unresolved steering fan-in','terminal failure gate');
   const readyGate="if: steps.inputs.outputs.ready == 'true'";
   if((t.split(readyGate).length-1)<3)f.push('missing complete ready gating');
   need("echo 'ready=false' >> \"$GITHUB_OUTPUT\"",'wait output');
@@ -44,12 +47,14 @@ const muts=[
   ['test "$TRIGGER_SOURCE_SHA" = "$CURRENT_SHA"',':'],
   ['test "$TRIGGER_REPOSITORY" = "$GITHUB_REPOSITORY"',':'],
   ["- 'KIDULTS ASI Self-Driving Control Loop v1'",'- INVALID'],
-  ["status:'WAITING_FOR_EXACT_GENERATION_PEER'","status:'VERIFIED_EXACT_GENERATION_BINDING'"],
+  ["status:'FAIL_CLOSED_TERMINAL_RECEIPT'","status:'VERIFIED_EXACT_GENERATION_BINDING'"],
   ["if: steps.inputs.outputs.ready == 'true'","if: always()"],
   ['if length==1 then .[0] else empty end','.[0] // empty'],
-  ['mixed_generation_allowed:false','mixed_generation_allowed:true']
+  ['mixed_generation_allowed:false','mixed_generation_allowed:true'],
+  ['- name: Ensure terminal steering provenance receipt','- name: REMOVED terminal steering provenance receipt'],
+  ['- name: Fail closed unresolved steering fan-in','- name: REMOVED unresolved steering fan-in']
 ];
 for(const [a,b] of muts){
   if(!t.includes(a)||validate(t.replace(a,b)).length===0){console.error('mutation not rejected',a);process.exit(1)}
 }
-console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_DUAL_INPUT_EXACT_GENERATION_READINESS',mutation_cases_rejected:muts.length,production:'HOLD',public_release:'HOLD'},null,2));
+console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_STEERING_DUAL_INPUT_EXACT_GENERATION_READINESS',mutation_cases_rejected:muts.length,terminal_fail_closed_receipt_required:true,production:'HOLD',public_release:'HOLD'},null,2));
