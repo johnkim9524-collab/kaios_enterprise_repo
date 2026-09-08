@@ -21,8 +21,10 @@ const stepBlock=(source,needle)=>{const anchor=source.indexOf(needle);if(anchor<
 
 function validateShared(source,label){
   if(source.includes('_MUTATION_SUBJECT_MISSING'))fail(`${label}: runtime cardinality coupled to negative proof`);
-  if(!source.includes(`node --check ${preparer}`))fail(`${label}: preparer syntax check missing`);
+  // Executing the preparer self-test is itself a Node parse/load check. Do not couple
+  // this validator to whether the workflow expresses syntax checking literally or via a loop.
   if(!source.includes(`node ${preparer} --self-test`))fail(`${label}: deterministic preparer self-test missing`);
+  if(count(source,preparer)<2)fail(`${label}: preparer not bound into both validation and execution context`);
   if(source.includes('process.exit(0)')||source.includes('process.exit(2)'))fail(`${label}: vacuous mutation success exit`);
 }
 
@@ -77,4 +79,4 @@ if(process.argv.includes('--self-test')){
   for(const [name,path,mutated] of cases){const altered=new Map(pristine);altered.set(path,mutated);let rejected=false;try{validateAll(altered)}catch{rejected=true}if(!rejected)fail('self-test mutation survived: '+name);}
 }
 
-console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_GATE_NEGATIVE_PROOF_DETERMINISTIC_FIXTURE_AUTHORITY_V1',v1_redundant_runtime_negative_suite_removed:true,v2_runtime_or_synthetic_negative_scenarios:v2Scenarios.length,runtime_zero_cardinality_supported:true,synthetic_baseline_prevalidated:true,exact_validator_rejection_required:true,self_test:process.argv.includes('--self-test'),public_release:'HOLD',production:'HOLD'},null,2));
+console.log(JSON.stringify({status:'VERIFIED_PASS',control:'ASI_GATE_NEGATIVE_PROOF_DETERMINISTIC_FIXTURE_AUTHORITY_V1',v1_redundant_runtime_negative_suite_removed:true,v2_runtime_or_synthetic_negative_scenarios:v2Scenarios.length,runtime_zero_cardinality_supported:true,synthetic_baseline_prevalidated:true,preparer_self_test_is_parse_and_contract_authority:true,exact_validator_rejection_required:true,self_test:process.argv.includes('--self-test'),public_release:'HOLD',production:'HOLD'},null,2));
