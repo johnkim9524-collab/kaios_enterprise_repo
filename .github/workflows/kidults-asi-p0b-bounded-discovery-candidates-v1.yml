@@ -33,22 +33,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate-consumer-contract:
-    if: github.event_name == 'pull_request'
+  bounded-discovery-candidates:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-      - name: Verify exact PR source and consumer-only contracts
+
+      - name: Verify exact source and consumer-only contracts
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
@@ -61,34 +63,12 @@ jobs:
             node --check "$file"
           done
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
-          node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs
-          node scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs
-
-  bounded-discovery-candidates:
-    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request'))
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: '24.19.0'
-          package-manager-cache: false
-      - name: Verify exact runtime source and consumer-only contracts
-        env:
-          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
             | tee /tmp/kidults-asi-p0b-registry-validation-v1.json
           node scripts/kidults/source-intelligence/validate-asi-p0b-provider-hard-disable-v1.mjs
 
       - name: Bind P0 mission trigger and restore same-generation Source Fabric
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_RUN_ID: ${{ github.event.workflow_run.id || '' }}
@@ -196,6 +176,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Rebuild current P0 mission task queue
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/build-global-source-mesh-v1.mjs \
@@ -222,6 +203,7 @@ jobs:
             > /tmp/kidults-asi-p0-mission-consumption-validation-v1.json
 
       - name: Build P0B source candidate increment from Source Fabric
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
@@ -234,7 +216,8 @@ jobs:
             coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json \
             | tee /tmp/kidults-asi-p0b-candidate-validation-v1.json
 
-      - name: Reject source-candidate-as-evidence mutation
+      - name: Reject candidate promotion mutations
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
           cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-evidence
@@ -242,33 +225,21 @@ jobs:
           const fs=require('fs');const p='/tmp/p0b-bad-evidence/p0b-source-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));if(!x.candidates.length)throw new Error('P0B_NEGATIVE_SUBJECT_MISSING');x.candidates[0].evidence_admitted=true;x.candidates[0].evidence_state='ADMITTED';fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-evidence; then exit 1; fi
-      - name: Reject region-hint-as-coverage mutation
-        run: |
-          set -euo pipefail
           cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-region
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/p0b-bad-region/p0b-mission-candidate-binding-ledger-v1.json';const x=JSON.parse(fs.readFileSync(p));if(!x.bindings.length)throw new Error('P0B_NEGATIVE_SUBJECT_MISSING');x.bindings[0].regional_coverage_proven=true;x.missions_with_regional_coverage_proven=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-region; then exit 1; fi
-      - name: Reject host-as-factual-origin mutation
-        run: |
-          set -euo pipefail
           cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-origin
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/p0b-bad-origin/p0b-provider-host-diversity-v1.json';const x=JSON.parse(fs.readFileSync(p));x.distinct_host_is_distinct_factual_origin=true;x.factual_origin_independence_proven_count=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-origin; then exit 1; fi
-      - name: Reject target-content acquisition mutation
-        run: |
-          set -euo pipefail
           cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-content
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/p0b-bad-content/p0b-source-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));if(!x.candidates.length)throw new Error('P0B_NEGATIVE_SUBJECT_MISSING');x.candidates[0].target_site_body_crawled=true;x.candidates[0].target_content_acquired=true;fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-content; then exit 1; fi
-      - name: Reject unsupported market claim mutation
-        run: |
-          set -euo pipefail
           cp -a /tmp/kidults-asi-p0b-bounded-discovery-candidates-v1 /tmp/p0b-bad-claim
           node - <<'NODE'
           const fs=require('fs');const p='/tmp/p0b-bad-claim/p0b-bounded-discovery-manifest-v1.json';const x=JSON.parse(fs.readFileSync(p));x.results.market_claims_created=1;fs.writeFileSync(p,JSON.stringify(x,null,2));
@@ -276,6 +247,7 @@ jobs:
           if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs /tmp/p0b-bad-claim; then exit 1; fi
 
       - name: Revalidate pristine P0B execution
+        if: github.event_name != 'pull_request'
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
@@ -286,7 +258,7 @@ jobs:
             > /tmp/kidults-asi-p0b-candidate-final-validation-v1.json
 
       - name: Emit fail-closed KPMO P0B consumer receipt
-        if: always()
+        if: github.event_name != 'pull_request' && always()
         env:
           KPMO_JOB_STATUS: ${{ job.status }}
         run: |
@@ -297,14 +269,14 @@ jobs:
           const manifestExists=fs.existsSync(manifestPath);
           const originBound=/^[1-9][0-9]*$/.test(process.env.P0B_ORIGIN_RUN_ID||'')&&/^[a-f0-9]{40}$/.test(process.env.P0B_ORIGIN_SOURCE_SHA||'')&&/^sha256:[a-f0-9]{64}$/.test(process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||'');
           const pass=process.env.KPMO_JOB_STATUS==='success'&&manifestExists&&originBound;
-          const receipt={id:'kidults-asi-p0b-bounded-discovery-receipt-v1',version:'1.2.0',state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,run_id:process.env.GITHUB_RUN_ID,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),job_status:process.env.KPMO_JOB_STATUS,manifest_present:manifestExists,failure_contained:!pass,failure_code:pass?null:'P0B_SOURCE_FABRIC_CONSUMER_CHAIN_FAILED',input_mode:process.env.P0B_INPUT_MODE||null,trigger_mission_run:{run_id:Number(process.env.P0B_TRIGGER_RUN_ID||'0'),source_sha:process.env.P0B_TRIGGER_SOURCE_SHA||null,event:process.env.P0B_TRIGGER_EVENT||null},source_fabric_origin:{run_id:Number(process.env.P0B_ORIGIN_RUN_ID||'0'),source_sha:process.env.P0B_ORIGIN_SOURCE_SHA||null,event:process.env.P0B_ORIGIN_EVENT||null,artifact_id:Number(process.env.P0B_SOURCE_FABRIC_ARTIFACT_ID||'0'),artifact_digest:process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||null},provider_requests_issued_by_p0b:0,provider_execution_authority:false,shared_provider_budget_required:true,candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',evidence_admission:'NONE',public_release:'HOLD',production:'HOLD',g5:'HOLD'};
+          const receipt={id:'kidults-asi-p0b-bounded-discovery-receipt-v1',version:'1.3.0',state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,run_id:process.env.GITHUB_RUN_ID,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||'0'),job_status:process.env.KPMO_JOB_STATUS,manifest_present:manifestExists,failure_contained:!pass,failure_code:pass?null:'P0B_SOURCE_FABRIC_CONSUMER_CHAIN_FAILED',input_mode:process.env.P0B_INPUT_MODE||null,trigger_mission_run:{run_id:Number(process.env.P0B_TRIGGER_RUN_ID||'0'),source_sha:process.env.P0B_TRIGGER_SOURCE_SHA||null,event:process.env.P0B_TRIGGER_EVENT||null},source_fabric_origin:{run_id:Number(process.env.P0B_ORIGIN_RUN_ID||'0'),source_sha:process.env.P0B_ORIGIN_SOURCE_SHA||null,event:process.env.P0B_ORIGIN_EVENT||null,artifact_id:Number(process.env.P0B_SOURCE_FABRIC_ARTIFACT_ID||'0'),artifact_digest:process.env.P0B_SOURCE_FABRIC_ARTIFACT_DIGEST||null},provider_requests_issued_by_p0b:0,provider_execution_authority:false,shared_provider_budget_required:true,candidate_admission:pass?'VALIDATED_SOURCE_CANDIDATES_ONLY':'NONE',evidence_admission:'NONE',public_release:'HOLD',production:'HOLD',g5:'HOLD'};
           if(manifestExists){const bytes=fs.readFileSync(manifestPath);const m=JSON.parse(bytes);receipt.manifest_digest='sha256:'+crypto.createHash('sha256').update(bytes).digest('hex');receipt.results=m.results;receipt.autonomous_effect=m.autonomous_effect;receipt.global_effect=m.global_effect;receipt.irreplaceable_value_effect=m.irreplaceable_value_effect;receipt.transparency_effect=m.transparency_effect;}
           process.stdout.write(JSON.stringify(receipt,null,2));
           NODE
           cat /tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: always()
+        if: github.event_name != 'pull_request' && always()
         with:
           name: kidults-asi-p0b-bounded-discovery-candidates-v1
           path: |
