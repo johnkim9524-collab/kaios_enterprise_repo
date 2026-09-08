@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-hourly-v2-promotion-readiness-v1.yml'
   workflow_run:
     workflows: ['KIDULTS ASI Global Any-Site Hourly Pooling v2']
@@ -27,46 +28,59 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
-      - name: Verify exact source and syntax
+      - name: Verify exact source, syntax, and pre-extraction guard
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const src=fs.readFileSync('.github/workflows/kidults-asi-hourly-v2-promotion-readiness-v1.yml','utf8');
+          const validation=src.indexOf('--archive "/tmp/v2-${i}.zip"');
+          const extraction=src.indexOf('unzip -q -o "/tmp/v2-${i}.zip"');
+          if(validation<0||extraction<0||validation>extraction)throw new Error('SAFE_ZIP_PRE_EXTRACTION_GUARD_MISSING');
+          if(!src.includes('--required-basename asi-global-any-site-hourly-cycle-receipt-v2.json'))throw new Error('RECEIPT_BASENAME_CARDINALITY_GUARD_MISSING');
+          NODE
       - name: Build deterministic two-cycle fixture
         run: |
           node - <<'NODE' >/tmp/promotion-input.json
-          const v2=(run,observed,fresh)=>({artifact_id:`a${run}`,workflow_run_id:String(run),receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:170+fresh,live_external_candidates:106+fresh,healthy_live_lanes:2,common_crawl_applied:true,common_crawl_index_id:'CC-MAIN-2026-30',common_crawl_seed_hosts:8,common_crawl_observed_candidates:observed,common_crawl_new_candidates:fresh,gate1_safe_candidates:75,gate1_review_required:95+fresh,gate1_hard_blocked:0,gate2_verified_for_gate3:73,gate3_bounded_metadata_admitted:73,active_admitted_metadata:73,stale_admission_revalidation:0,revoked_alias_blocked:0,rolling_discovery_pool_candidates:170+fresh,new_pool_candidates:fresh,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}});
+          const v2=(run,observed,fresh)=>({artifact_id:`a${run}`,workflow_run_id:String(run),receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:183,live_external_candidates:119,healthy_live_lanes:4,common_crawl_applied:true,common_crawl_index_id:'CC-MAIN-2026-34',common_crawl_seed_hosts:8,common_crawl_observed_candidates:observed,common_crawl_new_candidates:fresh,gate1_purpose:'DISCOVERY_METADATA_INDEX_ONLY',gate1_safe_candidates:0,gate1_review_required:0,gate1_hard_blocked:0,gate2_verified_for_gate3:0,gate3_bounded_metadata_admitted:0,product_content_eligible_sources:0,active_admitted_metadata:0,rolling_discovery_pool_candidates:484,new_pool_candidates:fresh,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}});
           const v1={artifact_id:'v1a',workflow_run_id:'900',receipt:{id:'kidults-asi-global-any-site-hourly-cycle-receipt-v1',status:'SHADOW_ANY_SITE_FULL_GATE_CHAIN_WITH_REVALIDATED_ADMISSION_COMPLETE',discovered_candidates:164,live_external_candidates:100,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'}};
           process.stdout.write(JSON.stringify({id:'kidults-asi-hourly-v2-promotion-input-v1',v1_baseline:v1,v2_cycles:[v2(1001,7,5),v2(1002,8,6)]}));
           NODE
       - name: Validate promotion readiness contract
         run: node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/promotion-input.json /tmp/promotion-readiness.json
-      - name: Reject single-cycle promotion mutation
+      - name: Reject single-cycle, duplicate-run, boundary, population, and no-increment mutations
         run: |
-          node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles=x.v2_cycles.slice(0,1);fs.writeFileSync('/tmp/bad-single-cycle.json',JSON.stringify(x));
+          set -euo pipefail
+          mutate_and_reject() {
+            local name="$1" mutation="$2"
+            node - "$mutation" "$name" <<'NODE'
+          const fs=require('fs');
+          const mutation=process.argv[2],name=process.argv[3];
+          const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json','utf8'));
+          if(mutation==='single')x.v2_cycles=x.v2_cycles.slice(0,1);
+          if(mutation==='duplicate')x.v2_cycles[1].workflow_run_id=x.v2_cycles[0].workflow_run_id;
+          if(mutation==='production')x.v2_cycles[0].receipt.production='APPROVED';
+          if(mutation==='no_increment')for(const c of x.v2_cycles){c.receipt.common_crawl_observed_candidates=0;c.receipt.common_crawl_new_candidates=0;}
+          if(mutation==='gate1_discovery_overflow'){const r=x.v2_cycles[0].receipt;r.gate1_safe_candidates=r.discovered_candidates+1;r.product_content_eligible_sources=r.discovered_candidates+1;}
+          if(mutation==='gate1_eligible_overflow'){const r=x.v2_cycles[0].receipt;r.gate1_safe_candidates=1;r.product_content_eligible_sources=0;}
+          fs.writeFileSync(`/tmp/${name}.json`,JSON.stringify(x));
           NODE
-          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-single-cycle.json /tmp/bad-out.json; then exit 1; fi
-      - name: Reject duplicate workflow run mutation
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles[1].workflow_run_id=x.v2_cycles[0].workflow_run_id;fs.writeFileSync('/tmp/bad-duplicate-run.json',JSON.stringify(x));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-duplicate-run.json /tmp/bad-out.json; then exit 1; fi
-      - name: Reject Production promotion mutation
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));x.v2_cycles[0].receipt.production='APPROVED';fs.writeFileSync('/tmp/bad-production.json',JSON.stringify(x));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-production.json /tmp/bad-out.json; then exit 1; fi
-      - name: Reject no empirical Common Crawl increment mutation
-        run: |
-          node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/promotion-input.json'));for(const c of x.v2_cycles){c.receipt.common_crawl_observed_candidates=0;c.receipt.common_crawl_new_candidates=0;}fs.writeFileSync('/tmp/bad-no-increment.json',JSON.stringify(x));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs /tmp/bad-no-increment.json /tmp/bad-out.json; then exit 1; fi
+            if node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs "/tmp/${name}.json" "/tmp/${name}-out.json"; then
+              echo "mutation unexpectedly passed: ${name}" >&2
+              exit 1
+            fi
+          }
+          mutate_and_reject bad-single-cycle single
+          mutate_and_reject bad-duplicate-run duplicate
+          mutate_and_reject bad-production production
+          mutate_and_reject bad-no-increment no_increment
+          mutate_and_reject bad-gate1-discovery-overflow gate1_discovery_overflow
+          mutate_and_reject bad-gate1-eligible-overflow gate1_eligible_overflow
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-hourly-v2-promotion-contract-v1
@@ -98,6 +112,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-readiness-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-hourly-v2-promotion-provenance-v1.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
       - name: Bind triggering run and restore two exact-generation v2 cycles
         id: restore
         env:
@@ -106,26 +121,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/v2/0 /tmp/v2/1
-
           test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
           test -n "$EXPECTED_SHA"
           test -n "$UPSTREAM_RUN_ID"
-
           MAIN_SHA="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
           test "$MAIN_SHA" = "$EXPECTED_SHA"
 
           validate_run() {
             local run_id="$1" payload
             payload="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
-            jq -e \
-              --arg repo "$GITHUB_REPOSITORY" \
-              --arg sha "$EXPECTED_SHA" \
-              --arg path "$CANONICAL_PRODUCER_PATH" \
-              '.conclusion=="success"
-               and .head_branch=="main"
-               and .head_sha==$sha
-               and .repository.full_name==$repo
-               and .path==$path' \
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$EXPECTED_SHA" --arg path "$CANONICAL_PRODUCER_PATH" \
+              '.conclusion=="success" and .head_branch=="main" and .head_sha==$sha and .repository.full_name==$repo and .path==$path' \
               <<<"$payload" >/dev/null
           }
 
@@ -133,30 +139,16 @@ jobs:
             local run_id="$1" payload count artifact_id digest
             payload="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100")"
             count="$(jq --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)] | length' <<<"$payload")"
-            [ "$count" -eq 1 ] || {
-              echo "expected exactly one canonical v2 artifact for run ${run_id}; got ${count}" >&2
-              exit 71
-            }
+            [ "$count" -eq 1 ] || { echo "expected exactly one canonical v2 artifact for run ${run_id}; got ${count}" >&2; exit 71; }
             artifact_id="$(jq -r --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)][0].id' <<<"$payload")"
             digest="$(jq -r --arg name "$CANONICAL_V2_ARTIFACT" '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' <<<"$payload")"
-            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
-              echo "canonical v2 artifact digest missing/invalid for run ${run_id}" >&2
-              exit 72
-            }
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "canonical v2 artifact digest missing/invalid for run ${run_id}" >&2; exit 72; }
             printf '%s|%s' "$artifact_id" "$digest"
           }
 
           validate_run "$UPSTREAM_RUN_ID"
-
-          RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
-          SECOND_RUN_ID="$(jq -r --arg sha "$EXPECTED_SHA" --arg trigger "$UPSTREAM_RUN_ID" \
-            '[.workflow_runs[]
-              | select(.head_sha==$sha and .conclusion=="success" and (.id|tostring)!=$trigger)]
-             | sort_by(.updated_at) | reverse | .[0].id // empty' \
-            <<<"$RUNS")"
-
+          RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' -f branch=main -f status=success -f per_page=100 "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
+          SECOND_RUN_ID="$(jq -r --arg sha "$EXPECTED_SHA" --arg trigger "$UPSTREAM_RUN_ID" '[.workflow_runs[] | select(.head_sha==$sha and .conclusion=="success" and (.id|tostring)!=$trigger)] | sort_by(.updated_at) | reverse | .[0].id // empty' <<<"$RUNS")"
           if [ -z "$SECOND_RUN_ID" ]; then
             cat > /tmp/promotion-waiting.json <<JSON
           {"id":"kidults-asi-hourly-v2-promotion-readiness-v1","status":"WAITING_FOR_SECOND_DISTINCT_EXACT_SHA_V2_CYCLE","exact_head_sha":"${EXPECTED_SHA}","triggering_run_id":"${UPSTREAM_RUN_ID}","observed_exact_sha_v2_cycles":1,"public_release":"HOLD","production":"HOLD"}
@@ -165,7 +157,6 @@ jobs:
             echo 'v2_cycle_count=1' >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
           test "$SECOND_RUN_ID" != "$UPSTREAM_RUN_ID"
           validate_run "$SECOND_RUN_ID"
 
@@ -173,6 +164,18 @@ jobs:
             if [ "$i" -eq 0 ]; then RUN_ID="$UPSTREAM_RUN_ID"; else RUN_ID="$SECOND_RUN_ID"; fi
             IFS='|' read -r ART DIGEST <<<"$(exact_artifact "$RUN_ID")"
             gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART}/zip" > "/tmp/v2-${i}.zip"
+            python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+              --archive "/tmp/v2-${i}.zip" \
+              --expected-digest "$DIGEST" \
+              --receipt "/tmp/v2-${i}-safe-zip-receipt.json" \
+              --max-compressed-bytes 67108864 \
+              --max-entries 2048 \
+              --max-entry-uncompressed-bytes 67108864 \
+              --max-total-uncompressed-bytes 268435456 \
+              --max-compression-ratio 100 \
+              --required-basename asi-global-any-site-hourly-cycle-receipt-v2.json
+            SAFE_DIGEST="sha256:$(sha256sum "/tmp/v2-${i}-safe-zip-receipt.json" | awk '{print $1}')"
+            [[ "$SAFE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
             unzip -q -o "/tmp/v2-${i}.zip" -d "/tmp/v2/${i}"
             RECEIPT="$(find "/tmp/v2/${i}" -type f -name asi-global-any-site-hourly-cycle-receipt-v2.json -print -quit)"
             test -n "$RECEIPT"
@@ -184,9 +187,12 @@ jobs:
             cp "$RECEIPT" "/tmp/v2/${i}/receipt.json"
             echo "v2_artifact_${i}=$ART" >> "$GITHUB_OUTPUT"
             echo "v2_digest_${i}=$DIGEST" >> "$GITHUB_OUTPUT"
+            echo "v2_safe_digest_${i}=$SAFE_DIGEST" >> "$GITHUB_OUTPUT"
             echo "v2_run_${i}=$RUN_ID" >> "$GITHUB_OUTPUT"
           done
 
+          V2_SAFE_0="$(grep '^v2_safe_digest_0=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
+          V2_SAFE_1="$(grep '^v2_safe_digest_1=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
           cat > /tmp/asi-hourly-v2-promotion-provenance-v1.json <<JSON
           {
             "id": "kidults-asi-hourly-v2-promotion-provenance-v1",
@@ -196,25 +202,17 @@ jobs:
             "triggering_run_id": "${UPSTREAM_RUN_ID}",
             "triggering_run_included": true,
             "same_generation": true,
+            "safe_zip_validated_before_extraction": true,
             "cycles": [
-              {"run_id": "${UPSTREAM_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_0=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_0=' "$GITHUB_OUTPUT" | cut -d= -f2-)"},
-              {"run_id": "${SECOND_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_1=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_1=' "$GITHUB_OUTPUT" | cut -d= -f2-)"}
+              {"run_id": "${UPSTREAM_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_0=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_0=' "$GITHUB_OUTPUT" | cut -d= -f2-)", "safe_zip_receipt_digest": "${V2_SAFE_0}"},
+              {"run_id": "${SECOND_RUN_ID}", "artifact_id": "$(grep '^v2_artifact_1=' "$GITHUB_OUTPUT" | cut -d= -f2)", "artifact_digest": "$(grep '^v2_digest_1=' "$GITHUB_OUTPUT" | cut -d= -f2-)", "safe_zip_receipt_digest": "${V2_SAFE_1}"}
             ],
             "v1_baseline": "OMITTED_NOT_REQUIRED_FOR_EXACT_V2_PAIR",
             "public_release": "HOLD",
             "production": "HOLD"
           }
           JSON
-          jq -e '
-            .triggering_run_included==true
-            and .same_generation==true
-            and (.cycles|length)==2
-            and (.cycles[0].run_id != .cycles[1].run_id)
-            and (.cycles|all(.artifact_digest|test("^sha256:[0-9a-f]{64}$")))
-            and .public_release=="HOLD"
-            and .production=="HOLD"
-          ' /tmp/asi-hourly-v2-promotion-provenance-v1.json >/dev/null
-
+          jq -e '.triggering_run_included==true and .same_generation==true and .safe_zip_validated_before_extraction==true and (.cycles|length)==2 and (.cycles[0].run_id != .cycles[1].run_id) and (.cycles|all((.artifact_digest|test("^sha256:[0-9a-f]{64}$")) and (.safe_zip_receipt_digest|test("^sha256:[0-9a-f]{64}$")))) and .public_release=="HOLD" and .production=="HOLD"' /tmp/asi-hourly-v2-promotion-provenance-v1.json >/dev/null
           echo 'ready=true' >> "$GITHUB_OUTPUT"
           echo 'v2_cycle_count=2' >> "$GITHUB_OUTPUT"
       - name: Emit waiting evidence
@@ -246,5 +244,7 @@ jobs:
             /tmp/asi-hourly-v2-promotion-provenance-v1.json
             /tmp/asi-hourly-v2-promotion-input-v1.json
             /tmp/asi-hourly-v2-promotion-readiness-v1.json
+            /tmp/v2-0-safe-zip-receipt.json
+            /tmp/v2-1-safe-zip-receipt.json
           retention-days: 90
           if-no-files-found: warn
