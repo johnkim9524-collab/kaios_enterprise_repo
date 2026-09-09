@@ -11,12 +11,11 @@ const workflows = [
 const resolver = 'scripts/kidults/source-intelligence/resolve-asi-exact-generation-orchestration-v1.mjs';
 const resolverTest = 'tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs';
 const frontierTest = 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs';
-const scheduleByWorkflow = new Map([
-  [workflows[2], "- cron: '9 * * * *'"],
-]);
+const scheduleByWorkflow = new Map();
 const causalByWorkflow = new Map([
   [workflows[0], { producer: 'KIDULTS ASI Global Any-Site Discovery v2', selectedRun: 'PRODUCER_RUN_ID' }],
   [workflows[1], { producer: 'KIDULTS ASI Self-Driving Control Loop v1', selectedRun: 'RUN_ID' }],
+  [workflows[2], { producer: 'KIDULTS ASI Global Any-Site Discovery v2', selectedRun: 'RUN_ID' }],
   [workflows[3], { producer: 'KIDULTS ASI Self-Driving Control Loop v1', selectedRun: 'RUN_ID' }],
 ]);
 
