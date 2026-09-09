@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import {
+  validateFingerprint,
+  validateGraphIntegrity,
+  validateQuarantineIntegrity,
+  validateUniqueRecordArray
+} from "./structured-evidence-integrity-v1.mjs";
 
 const output = path.resolve(process.argv[2] ?? "artifacts/agci-os/candidate-r2-preflight-r1");
 const errors = [];
@@ -22,10 +28,6 @@ function integer(value) {
   return Number.isInteger(value) && value >= 0;
 }
 
-function sumValues(value) {
-  return Object.values(value ?? {}).reduce((sum, item) => sum + (Number.isInteger(item) ? item : 0), 0);
-}
-
 const run = read("run-manifest.json");
 const quarantine = read("raw-quarantine-report.json");
 const universe = read("universe-admission-report.json");
@@ -40,6 +42,54 @@ const admittedMarket = run?.admitted_market_event_count;
 const quarantined = run?.quarantined_record_count;
 const admittedTotal = (integer(admittedAuthority) && integer(admittedMarket)) ? admittedAuthority + admittedMarket : NaN;
 const quarantinedRecords = Array.isArray(quarantine?.quarantined_records) ? quarantine.quarantined_records : [];
+
+for (const [document, field, label] of [
+  [run, "run_fingerprint", "Run manifest"],
+  [quarantine, "report_fingerprint", "Raw Quarantine report"],
+  [universe, "report_fingerprint", "Universe report"],
+  [entity, "report_fingerprint", "Entity Resolution report"],
+  [evidenceGraph, "graph_fingerprint", "Evidence Graph"],
+  [marketGraph, "graph_fingerprint", "Market Graph"],
+  [cluster, "report_fingerprint", "Cluster preflight"],
+  [stress, "report_fingerprint", "Stress preflight"]
+]) errors.push(...validateFingerprint(document, field, label));
+
+errors.push(...validateQuarantineIntegrity(quarantine, quarantined));
+errors.push(...validateUniqueRecordArray(universe?.authority_admission_candidates, {
+  label: "Universe authority admission candidates",
+  idKey: "source_record_id",
+  expectedCount: admittedAuthority
+}));
+errors.push(...validateUniqueRecordArray(universe?.market_event_admission_candidates, {
+  label: "Universe Market Event admission candidates",
+  idKey: "market_event_id",
+  expectedCount: admittedMarket
+}));
+
+const admittedAuthorityIds = new Set((universe?.authority_admission_candidates ?? []).map(record => record?.source_record_id));
+for (const record of quarantinedRecords) {
+  assert(!admittedAuthorityIds.has(record?.record_id), `${record?.record_id ?? "unknown"}: quarantined authority identity is also admitted.`);
+}
+
+errors.push(...validateGraphIntegrity(evidenceGraph, {
+  label: "Evidence Graph",
+  nodeTypes: [
+    "CANONICAL_DESIGN_CANDIDATE", "EVIDENCE_ASSERTION", "MARKET_EVENT", "MARKET_OBJECT_REFERENCE",
+    "MONETARY_AMOUNT", "PHYSICAL_OBJECT_CANDIDATE", "SOURCE", "SOURCE_RECORD"
+  ],
+  edgeTypes: [
+    "ASSERTS_MARKET_EVENT", "ASSERTS_PHYSICAL_OBJECT_IDENTITY", "CANDIDATE_DESIGN_MEMBERSHIP",
+    "HAS_RECORDED_AMOUNT", "PUBLISHED_SOURCE_RECORD", "SUPPORTS_ASSERTION", "TRANSFERS_OR_REFERENCES_OBJECT"
+  ]
+}));
+errors.push(...validateGraphIntegrity(marketGraph, {
+  label: "Market Graph",
+  nodeTypes: [
+    "AUTHORITY_OBSERVATION", "MARKET_ENTITY_CANDIDATE", "MARKET_OBJECT_REFERENCE", "MONETARY_AMOUNT",
+    "SOLD_TRANSACTION_EVENT"
+  ],
+  edgeTypes: ["AUTHORITY_CONTEXT_FOR", "SALE_EVENT_HAS_AMOUNT", "SALE_EVENT_REFERENCES_OBJECT"]
+}));
 
 assert(run?.state === "CANDIDATE_R2_PREFLIGHT_PARTIAL_PASS", "Run state mismatch.");
 assert(run?.run_mode === "FOUR_AUTHORITY_PLUS_RIGHTS_CLEARED_TRANSACTION_BOUNDED_LIVE", "Run mode mismatch.");
@@ -95,7 +145,6 @@ assert(quarantine?.admitted_record_count + quarantine?.quarantined_record_count 
 assert(quarantine?.status === (quarantined === 0 ? "PASS_NO_REJECTIONS" : "PASS_FAIL_CLOSED"),
   "Raw Quarantine status must reflect the actual quarantine population.");
 assert(quarantinedRecords.length === quarantined, "Raw Quarantine record list/count mismatch.");
-assert(sumValues(quarantine?.reason_counts) === quarantined, "Raw Quarantine reason counts must account for every quarantined record.");
 for (const record of quarantinedRecords) {
   assert(record?.record_class === "AUTHORITY_RECORD", `${record?.record_id ?? "unknown"}: only authority records may be quarantined in this bounded contract.`);
   assert(Array.isArray(record?.reasons) && record.reasons.length > 0,
@@ -169,8 +218,6 @@ assert(evidenceGraph?.edge_counts?.ASSERTS_MARKET_EVENT === admittedMarket &&
   evidenceGraph?.edge_counts?.HAS_RECORDED_AMOUNT === admittedMarket &&
   evidenceGraph?.edge_counts?.TRANSFERS_OR_REFERENCES_OBJECT === admittedMarket,
   "Evidence Graph transaction edge counts mismatch.");
-assert(sumValues(evidenceGraph?.node_counts) === evidenceGraph?.node_count, "Evidence Graph node classes must sum to total.");
-assert(sumValues(evidenceGraph?.edge_counts) === evidenceGraph?.edge_count, "Evidence Graph edge classes must sum to total.");
 assert(evidenceGraph?.critical_provenance_coverage === 1 && evidenceGraph?.rights_state_coverage === 1,
   "Evidence Graph provenance/rights coverage mismatch.");
 assert(evidenceGraph?.metric_support?.historical_sale_event === "VERIFIED_INTERNAL_POC",
@@ -199,8 +246,6 @@ assert(marketGraph?.event_to_object_edges === admittedMarket && marketGraph?.eve
 assert(marketGraph?.authority_context_edges === admittedAuthority, "Market Graph authority context edge count mismatch.");
 assert(marketGraph?.node_count === run?.market_graph_node_count && marketGraph?.edge_count === run?.market_graph_edge_count,
   "Market Graph totals must reconcile to run manifest.");
-assert(sumValues(marketGraph?.node_counts) === marketGraph?.node_count, "Market Graph node classes must sum to total.");
-assert(sumValues(marketGraph?.edge_counts) === marketGraph?.edge_count, "Market Graph edge classes must sum to total.");
 assert(marketGraph?.historical_price_coverage === 1, "Historical price coverage mismatch.");
 assert(marketGraph?.historical_sale_event_state === "VERIFIED_SINGLE_SOURCE_BOUNDED_POC",
   "Historical sale state mismatch.");
