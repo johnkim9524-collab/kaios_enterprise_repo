@@ -304,9 +304,8 @@ jobs:
             reserve:'/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json',
           };
           const readJson=p=>JSON.parse(fs.readFileSync(p,'utf8'));
-          const rotationFiles=fs.existsSync('/tmp/rotations')
-            ? fs.readdirSync('/tmp/rotations').filter(x=>/^r[0-3]\.json$/.test(x)).sort()
-            : [];
+          const rotationFiles=[];
+          if(fs.existsSync('/tmp/rotations')) rotationFiles.push(...fs.readdirSync('/tmp/rotations').filter(x=>/^r[0-3]\.json$/.test(x)).sort());
           const complete=Object.values(productPaths).every(p=>fs.existsSync(p));
           const priorStatus=process.env.PRIOR_JOB_STATUS||'unknown';
           const receipt={
