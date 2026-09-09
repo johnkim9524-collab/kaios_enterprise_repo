@@ -6,6 +6,7 @@ const auditPath = 'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.m
 const stateDepartmentWorkflowPath = '.github/workflows/kidults-asi-state-department-camera-evidence-v1.yml';
 const gettyWorkflowPath = '.github/workflows/kidults-asi-getty-historical-transaction-admission-v1.yml';
 const p0MissionWorkflowPath = '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml';
+const missionWorkflowPath = '.github/workflows/kidults-asi-mission-consumption-v1.yml';
 const p0bWorkflowPath = '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml';
 const autonomousResolutionWorkflowPath = '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml';
 const wave2WorkflowPath = '.github/workflows/kidults-asi-source-adapter-wave2-v1.yml';
@@ -17,6 +18,7 @@ const audit = fs.readFileSync(auditPath, 'utf8');
 const stateDepartmentWorkflow = fs.readFileSync(stateDepartmentWorkflowPath, 'utf8');
 const gettyWorkflow = fs.readFileSync(gettyWorkflowPath, 'utf8');
 const p0MissionWorkflow = fs.readFileSync(p0MissionWorkflowPath, 'utf8');
+const missionWorkflow = fs.readFileSync(missionWorkflowPath, 'utf8');
 const p0bWorkflow = fs.readFileSync(p0bWorkflowPath, 'utf8');
 const autonomousResolutionWorkflow = fs.readFileSync(autonomousResolutionWorkflowPath, 'utf8');
 const wave2Workflow = fs.readFileSync(wave2WorkflowPath, 'utf8');
@@ -30,6 +32,7 @@ const watched = [
   'KIDULTS ASI State Department Camera Evidence v1',
   'KIDULTS ASI Getty Historical Transaction Admission v1',
   'KIDULTS ASI P0 Mission Consumption v1',
+  'KIDULTS ASI Mission Consumption v1',
   'KIDULTS ASI P0B Bounded Discovery Candidates v1',
   'KIDULTS ASI Autonomous Resolution Layer v1'
 ];
@@ -63,6 +66,12 @@ const staticProducerControls = [
 ];
 
 const eventConsumerControls = [
+  {
+    label: 'Mission Consumption',
+    text: missionWorkflow,
+    expected: "group: kidults-asi-mission-consumption-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}",
+    unsafe: "group: kidults-asi-mission-consumption-v1-${{ github.ref }}"
+  },
   {
     label: 'P0 Mission Consumption',
     text: p0MissionWorkflow,
