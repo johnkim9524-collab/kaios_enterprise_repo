@@ -76,7 +76,7 @@
     ],
     "required_kpmo_verdict": "APPROVED_FOR_PROGRAM_OWNER_REVIEW",
     "required_owner_decision": "APPROVED_TO_SEND_EXACT_PACKAGE",
-    "approval_evidence_ref_pattern": "^https://github\\\\.com/johnkim9524-collab/kaios_enterprise_repo/issues/[0-9]+#issuecomment-[0-9]+$",
+    "approval_evidence_ref_pattern": "^https://github\\.com/johnkim9524-collab/kaios_enterprise_repo/issues/[0-9]+#issuecomment-[0-9]+$",
     "maximum_approval_age_seconds": 86400,
     "timestamps_strict_order": [
       "evidence_refreshed_at",
