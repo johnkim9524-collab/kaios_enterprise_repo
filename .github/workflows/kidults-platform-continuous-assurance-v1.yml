@@ -18,6 +18,8 @@ on:
       - 'KIDULTS ASI Intelligence Preparation Wave v1'
       - 'KIDULTS Autonomous Met Open Access Sample'
       - 'KIDULTS Autonomous V&A Fashion Sample'
+      - 'KIDULTS Autonomous Smithsonian Open Access Sample'
+      - 'KIDULTS Autonomous Art Institute Design Sample'
       - 'KIDULTS Full Value Chain Red-Team Orchestrator V1'
       - 'KIDULTS Unified Audit Control Plane'
       - 'KIDULTS Trusted Merge Control Monotonicity'
@@ -134,6 +136,7 @@ jobs:
           node --check scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
           node --check scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
+          node scripts/kidults/kpmo/validate-autonomous-sample-cancellation-assurance-v1.mjs
           node --test tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs
       - name: Reject partial forwarded Coverage continuation inputs
         if: github.event_name == 'workflow_dispatch'
