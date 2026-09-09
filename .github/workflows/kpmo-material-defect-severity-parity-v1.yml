@@ -9,10 +9,6 @@ on:
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
-      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
-      - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   issues:
     types: [opened, edited, reopened, labeled, unlabeled]
   schedule:
