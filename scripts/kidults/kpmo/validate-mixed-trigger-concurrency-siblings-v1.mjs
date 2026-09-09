@@ -5,6 +5,10 @@ import path from 'node:path';
 const root = process.cwd();
 const targets = [
   {
+    path: '.github/workflows/kidults-asi-mission-consumption-v1.yml',
+    prefix: 'kidults-asi-mission-consumption-v1-'
+  },
+  {
     path: '.github/workflows/kidults-global-source-mesh-v1.yml',
     prefix: 'kidults-global-source-mesh-v1-'
   },
