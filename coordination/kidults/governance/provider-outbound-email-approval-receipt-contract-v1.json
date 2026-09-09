@@ -1,0 +1,106 @@
+{
+  "id": "KIDULTS_PROVIDER_OUTBOUND_EMAIL_APPROVAL_RECEIPT_CONTRACT_V1",
+  "version": "1.0.0",
+  "status": "MANDATORY_NON_BYPASS_CONTROL_ONLY",
+  "issue": 2189,
+  "package_schema": {
+    "required_top_level_fields": [
+      "schema_version",
+      "package_id",
+      "provider_id",
+      "sender_identity",
+      "to",
+      "cc",
+      "bcc",
+      "thread_or_reply_target",
+      "subject",
+      "complete_body",
+      "attachments",
+      "links"
+    ],
+    "schema_version": "1.0.0",
+    "recipient_arrays": [
+      "to",
+      "cc",
+      "bcc"
+    ],
+    "attachments_exact_fields": [
+      "filename",
+      "media_type",
+      "byte_length",
+      "sha256"
+    ],
+    "links_scheme": "HTTPS_ONLY",
+    "empty_to_forbidden": true
+  },
+  "receipt_schema": {
+    "required_top_level_fields": [
+      "id",
+      "version",
+      "state",
+      "repository",
+      "source_sha",
+      "package_id",
+      "provider_id",
+      "email_package_digest",
+      "evidence_refreshed_at",
+      "strategy_prepared_at",
+      "kpmo_review",
+      "program_owner_approval",
+      "post_approval_package_digest",
+      "post_approval_change_absent",
+      "gmail_draft_created",
+      "gmail_message_sent",
+      "expires_at",
+      "authority_boundaries"
+    ],
+    "id": "KIDULTS_PROVIDER_OUTBOUND_EMAIL_APPROVAL_RECEIPT_V1",
+    "version": "1.0.0",
+    "state": "PROGRAM_OWNER_EXACT_CONTENT_APPROVED_CONTROL_ONLY",
+    "digest_algorithm": "SHA-256",
+    "canonicalization": "RFC_8785_JSON",
+    "kpmo_review_exact_fields": [
+      "reviewer_role",
+      "verdict",
+      "strategy_digest",
+      "exact_email_package_digest",
+      "reviewed_at",
+      "distinct_second_pass_adversarial_review"
+    ],
+    "program_owner_approval_exact_fields": [
+      "approver_role",
+      "decision",
+      "approved_email_package_digest",
+      "approved_at",
+      "approval_evidence_ref"
+    ],
+    "required_kpmo_verdict": "APPROVED_FOR_PROGRAM_OWNER_REVIEW",
+    "required_owner_decision": "APPROVED_TO_SEND_EXACT_PACKAGE",
+    "approval_evidence_ref_pattern": "^https://github\\.com/johnkim9524-collab/kaios_enterprise_repo/issues/[0-9]+#issuecomment-[0-9]+$",
+    "maximum_approval_age_seconds": 86400,
+    "timestamps_strict_order": [
+      "evidence_refreshed_at",
+      "strategy_prepared_at",
+      "kpmo_review.reviewed_at",
+      "program_owner_approval.approved_at",
+      "expires_at"
+    ]
+  },
+  "implementation_truth": {
+    "validator_scope": "OFFLINE_PACKAGE_AND_RECEIPT_INTEGRITY_CONTROL",
+    "approval_evidence_live_readback_implemented": false,
+    "gmail_draft_or_send_path_receipt_consumer_implemented": false,
+    "repository_validation_grants_send_authority": false,
+    "successful_validation_state": "VERIFIED_CONTROL_ONLY_DO_NOT_DRAFT_OR_SEND",
+    "promotion_condition": "LIVE_APPROVAL_EVIDENCE_READBACK_AND_GMAIL_SEND_PATH_CONSUMER"
+  },
+  "authority_boundaries": {
+    "external_communication": "EXACT_PROGRAM_OWNER_APPROVAL_AND_RUNTIME_CONSUMER_REQUIRED",
+    "spend": "EXPLICIT_APPROVAL_REQUIRED",
+    "contract": "EXPLICIT_APPROVAL_REQUIRED",
+    "credential": "EXPLICIT_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  }
+}
