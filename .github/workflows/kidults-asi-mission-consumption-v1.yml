@@ -60,7 +60,8 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-mission-consumption-v1-${{ github.ref }}
+  # Isolate schedules, pushes and distinct upstream completions.
+  group: kidults-asi-mission-consumption-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:

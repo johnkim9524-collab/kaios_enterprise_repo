@@ -51,6 +51,42 @@ jobs:
             exit 1
           fi
 
+          read_live_pr_head() {
+            local live_code=""
+            live_code="$(curl --silent --show-error --output /tmp/live-pr.json --write-out '%{http_code}' \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "${api}/pulls/${PR_NUMBER}")"
+            [[ "${live_code}" == "200" ]] || {
+              cat /tmp/live-pr.json
+              echo "Unable to verify live PR head before Actions mutation: HTTP ${live_code}" >&2
+              return 1
+            }
+            jq -e --arg repository "${REPOSITORY}" '
+              .base.ref == "main" and
+              .head.repo.full_name == $repository and
+              (.head.sha | test("^[0-9a-f]{40}$"))
+            ' /tmp/live-pr.json >/dev/null || {
+              echo "Live PR identity is not mutation-safe" >&2
+              return 1
+            }
+            jq -r '.head.sha' /tmp/live-pr.json
+          }
+
+          if [[ "${EVENT_NAME}" == "pull_request_target" ]]; then
+            LIVE_PR_HEAD_SHA="$(read_live_pr_head)" || exit 1
+            if [[ "${LIVE_PR_HEAD_SHA}" != "${EXACT_HEAD_SHA}" ]]; then
+              jq -n \
+                --arg state "STALE_TRIGGER_NO_MUTATION" \
+                --arg event_head_sha "${EXACT_HEAD_SHA}" \
+                --arg live_pr_head_sha "${LIVE_PR_HEAD_SHA}" \
+                --argjson pr_number "${PR_NUMBER}" \
+                '{id:"kpmo-exact-head-ci-supersession-v1",state:$state,pr_number:$pr_number,event_head_sha:$event_head_sha,live_pr_head_sha:$live_pr_head_sha,mutation_authorized:false,runs_cancelled:0}'
+              exit 0
+            fi
+          fi
+
           cancelled=0
           stale_cancelled=0
           force_cancelled=0
@@ -154,6 +190,14 @@ jobs:
               if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
                 exact_head_retained=$((exact_head_retained + 1))
                 continue
+              fi
+
+              if [[ "${EVENT_NAME}" == "pull_request_target" ]]; then
+                LIVE_PR_HEAD_SHA="$(read_live_pr_head)" || exit 1
+                if [[ "${LIVE_PR_HEAD_SHA}" != "${EXACT_HEAD_SHA}" ]]; then
+                  echo "PR head advanced during supersession scan; refusing further Actions mutation" >&2
+                  exit 0
+                fi
               fi
 
               code=""

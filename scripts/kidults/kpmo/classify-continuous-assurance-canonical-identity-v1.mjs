@@ -57,7 +57,7 @@ function logicalSlot(rawTimestamp, slotMinutes, code) {
 }
 
 export function validateCanonicalIdentityContract(contract) {
-  if (contract?.id !== 'kidults-continuous-assurance-canonical-identity-v1' || contract?.version !== '1.0.0') {
+  if (contract?.id !== 'kidults-continuous-assurance-canonical-identity-v1' || contract?.version !== '1.1.0') {
     fail('CANONICAL_IDENTITY_CONTRACT_ID_VERSION');
   }
   if (contract.state !== 'IMPLEMENTED_EPHEMERAL_ACTIONS_GUARD_REMOTE_LEDGER_ACTIVATION_HOLD') fail('CANONICAL_IDENTITY_CONTRACT_STATE');
@@ -78,13 +78,14 @@ export function validateCanonicalIdentityContract(contract) {
   const exactExpectedSkipPaths = [
     '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml',
     '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml',
+    '.github/workflows/kidults-asi-mission-consumption-v1.yml',
     '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml',
   ];
   if (!Array.isArray(expectedSkipPaths) || stableJson([...expectedSkipPaths].sort()) !== stableJson(exactExpectedSkipPaths.sort())) {
     fail('EXPECTED_WORKFLOW_RUN_SKIP_PATHS_INVALID');
   }
   const allowlist = contract.workflow_run_class_allowlist;
-  if (!Array.isArray(allowlist) || allowlist.length !== 19) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
+  if (!Array.isArray(allowlist) || allowlist.length !== 20) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
   const names = new Set();
   const pairs = new Set();
   const paths = new Set();

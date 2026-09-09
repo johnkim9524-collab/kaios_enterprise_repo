@@ -27,6 +27,7 @@ on:
       - 'KIDULTS ASI State Department Camera Evidence v1'
       - 'KIDULTS ASI Getty Historical Transaction Admission v1'
       - 'KIDULTS ASI P0 Mission Consumption v1'
+      - 'KIDULTS ASI Mission Consumption v1'
       - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
       - 'KIDULTS ASI Autonomous Resolution Layer v1'
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
