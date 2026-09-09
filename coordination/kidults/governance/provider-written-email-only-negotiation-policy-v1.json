@@ -27,20 +27,20 @@
     "standard_written_explanation": "English is not my native language, and I would sincerely appreciate your understanding. To ensure accurate and reviewable discussion of technical, rights, pricing, commercial, and contractual terms, I conduct these negotiations by written email only."
   },
   "required_outbound_assertions": {
-    "written_email_only_channel_confirmed": true,
-    "honest_respectful_understanding_request_present_when_channel_reason_is_explained": true,
-    "outbound_call_offer_absent": true,
-    "provider_call_request_declined_in_writing_if_present": true,
-    "all_material_terms_requested_in_writing": true,
-    "program_owner_not_assigned_to_phone_voice_or_video_call": true,
-    "current_provider_evidence_refreshed": true,
-    "detailed_response_strategy_reviewed_by_kpmo": true,
-    "exact_email_package_reviewed_by_kpmo": true,
-    "kpmo_verdict_approved_for_program_owner_review": true,
-    "program_owner_report_contains_strategy_and_exact_email_package": true,
-    "exact_program_owner_send_approval_recorded": true,
-    "approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest": true,
-    "post_approval_change_absent": true
+    "written_email_only_channel_confirmed": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "honest_respectful_understanding_request_present_when_channel_reason_is_explained": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "outbound_call_offer_absent": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "provider_call_request_declined_in_writing_if_present": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "all_material_terms_requested_in_writing": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "program_owner_not_assigned_to_phone_voice_or_video_call": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "current_provider_evidence_refreshed": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "detailed_response_strategy_reviewed_by_kpmo": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "exact_email_package_reviewed_by_kpmo": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "kpmo_verdict_approved_for_program_owner_review": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "program_owner_report_contains_strategy_and_exact_email_package": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "exact_program_owner_send_approval_recorded": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest": "REQUIRED_IN_PER_MESSAGE_RECEIPT",
+    "post_approval_change_absent": "REQUIRED_IN_PER_MESSAGE_RECEIPT"
   },
   "pre_send_review_and_approval": {
     "status": "MANDATORY_NON_BYPASS",
@@ -185,5 +185,14 @@
     "production": "HOLD",
     "public": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "implementation_truth": {
+    "policy_shape_enforced": true,
+    "per_message_package_and_receipt_validator_implemented": true,
+    "approval_evidence_live_readback_implemented": false,
+    "gmail_draft_or_send_path_receipt_consumer_implemented": false,
+    "repository_validation_grants_send_authority": false,
+    "current_state": "CONTROL_ONLY_DO_NOT_DRAFT_OR_SEND",
+    "promotion_condition": "LIVE_APPROVAL_EVIDENCE_READBACK_AND_GMAIL_SEND_PATH_CONSUMER"
   }
 }

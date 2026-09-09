@@ -77,12 +77,21 @@ function validate(input) {
     'post_approval_change_absent',
   ];
   for (const assertion of requiredAssertions) {
-    if (p.required_outbound_assertions?.[assertion] !== true) {
+    if (p.required_outbound_assertions?.[assertion] !== 'REQUIRED_IN_PER_MESSAGE_RECEIPT') {
       errors.push(`OUTBOUND_ASSERTION_MISSING:${assertion}`);
     }
     if (!g.required_checks?.includes(assertion)) {
       errors.push(`PRE_SEND_CHECK_MISSING:${assertion}`);
     }
+  }
+
+  for (const [name, truth] of [['POLICY', p.implementation_truth], ['PRE_SEND', g.implementation_truth]]) {
+    if (truth?.policy_shape_enforced !== true) errors.push(`${name}_POLICY_SHAPE_NOT_ENFORCED`);
+    if (truth?.per_message_package_and_receipt_validator_implemented !== true) errors.push(`${name}_RECEIPT_VALIDATOR_NOT_IMPLEMENTED`);
+    if (truth?.approval_evidence_live_readback_implemented !== false) errors.push(`${name}_LIVE_READBACK_TRUTH_DRIFT`);
+    if (truth?.gmail_draft_or_send_path_receipt_consumer_implemented !== false) errors.push(`${name}_GMAIL_CONSUMER_TRUTH_DRIFT`);
+    if (truth?.repository_validation_grants_send_authority !== false) errors.push(`${name}_SEND_AUTHORITY_OVERCLAIM`);
+    if (truth?.current_state !== 'CONTROL_ONLY_DO_NOT_DRAFT_OR_SEND') errors.push(`${name}_CONTROL_STATE_DRIFT`);
   }
 
   if (!p.provider_call_request_handling?.includes('HONESTLY_AND_RESPECTFULLY_REQUEST_PROVIDER_UNDERSTANDING')) {
@@ -408,6 +417,16 @@ proveNegative(
   'EXACT_APPROVAL_BINDING_FIELD_MISSING:DETERMINISTIC_CONTENT_DIGEST',
 );
 proveNegative(
+  'gmail_runtime_enforcement_overclaimed',
+  input => { input.policy.implementation_truth.gmail_draft_or_send_path_receipt_consumer_implemented = true; },
+  'POLICY_GMAIL_CONSUMER_TRUTH_DRIFT',
+);
+proveNegative(
+  'repository_validation_promoted_to_send_authority',
+  input => { input.policy.implementation_truth.repository_validation_grants_send_authority = true; },
+  'POLICY_SEND_AUTHORITY_OVERCLAIM',
+);
+proveNegative(
   'content_digest_canonicalization_weakened',
   input => {
     input.policy.pre_send_review_and_approval.content_digest_specification.canonicalization = 'UNSPECIFIED_JSON';
@@ -424,8 +443,12 @@ console.log(JSON.stringify({
   phone_voice_video_calls_available: false,
   material_verbal_terms_admissible: false,
   provider_written_refusal: 'HOLD_OR_REPLACE',
-  kpmo_pre_send_review: 'MANDATORY_PASS',
-  program_owner_exact_content_approval: 'MANDATORY_PASS',
+  kpmo_pre_send_review: 'MANDATORY_POLICY_CONTROL_ONLY',
+  program_owner_exact_content_approval: 'MANDATORY_POLICY_CONTROL_ONLY',
+  per_message_receipt_validator: 'IMPLEMENTED',
+  approval_evidence_live_readback: 'NOT_IMPLEMENTED',
+  gmail_send_path_receipt_consumer: 'NOT_IMPLEMENTED',
+  send_authority: false,
   gmail_draft_before_both_gates: 'PROHIBITED',
   negative_tests: negativeTests,
   production: 'HOLD',

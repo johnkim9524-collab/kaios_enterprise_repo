@@ -186,5 +186,14 @@
     "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
     "production": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "implementation_truth": {
+    "policy_shape_enforced": true,
+    "per_message_package_and_receipt_validator_implemented": true,
+    "approval_evidence_live_readback_implemented": false,
+    "gmail_draft_or_send_path_receipt_consumer_implemented": false,
+    "repository_validation_grants_send_authority": false,
+    "current_state": "CONTROL_ONLY_DO_NOT_DRAFT_OR_SEND",
+    "promotion_condition": "LIVE_APPROVAL_EVIDENCE_READBACK_AND_GMAIL_SEND_PATH_CONSUMER"
   }
 }

@@ -75,6 +75,14 @@ if (p.fail_closed?.automatic_gmail_draft_or_send_before_both_gates !== 'PROHIBIT
   errs.push('automatic Gmail draft/send must be prohibited before both gates');
 }
 
+const truth = p.implementation_truth || {};
+if (truth.policy_shape_enforced !== true) errs.push('policy shape must be enforced');
+if (truth.per_message_package_and_receipt_validator_implemented !== true) errs.push('per-message receipt validator must be implemented');
+if (truth.approval_evidence_live_readback_implemented !== false) errs.push('live approval readback truth drift');
+if (truth.gmail_draft_or_send_path_receipt_consumer_implemented !== false) errs.push('Gmail consumer truth drift');
+if (truth.repository_validation_grants_send_authority !== false) errs.push('repository validation must not grant send authority');
+if (truth.current_state !== 'CONTROL_ONLY_DO_NOT_DRAFT_OR_SEND') errs.push('control-only state drift');
+
 const written = p.written_negotiation || {};
 if (written.preferred !== true) errs.push('written negotiation must remain preferred');
 if (written.required !== true) errs.push('written negotiation must be mandatory');
@@ -182,8 +190,12 @@ console.log(
       phone_voice_video_calls: 'NOT_AVAILABLE',
       verbal_material_terms_admissible: false,
       provider_written_refusal_outcome: written.provider_written_refusal_outcome,
-      kpmo_pre_send_review: 'MANDATORY_PASS',
-      program_owner_exact_content_approval: 'MANDATORY_PASS',
+      kpmo_pre_send_review: 'MANDATORY_POLICY_CONTROL_ONLY',
+      program_owner_exact_content_approval: 'MANDATORY_POLICY_CONTROL_ONLY',
+      per_message_receipt_validator: 'IMPLEMENTED',
+      approval_evidence_live_readback: 'NOT_IMPLEMENTED',
+      gmail_send_path_receipt_consumer: 'NOT_IMPLEMENTED',
+      send_authority: false,
       automatic_gmail_draft_or_send_before_both_gates: 'PROHIBITED',
       production: 'HOLD',
     },
