@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "status": "MANDATORY_NON_BYPASS",
   "effective_at": "2026-09-01T00:00:00Z",
   "canonical_strategy_baseline": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
@@ -32,7 +32,84 @@
     "outbound_call_offer_absent": true,
     "provider_call_request_declined_in_writing_if_present": true,
     "all_material_terms_requested_in_writing": true,
-    "program_owner_not_assigned_to_phone_voice_or_video_call": true
+    "program_owner_not_assigned_to_phone_voice_or_video_call": true,
+    "current_provider_evidence_refreshed": true,
+    "detailed_response_strategy_reviewed_by_kpmo": true,
+    "exact_email_package_reviewed_by_kpmo": true,
+    "kpmo_verdict_approved_for_program_owner_review": true,
+    "program_owner_report_contains_strategy_and_exact_email_package": true,
+    "exact_program_owner_send_approval_recorded": true,
+    "approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest": true,
+    "post_approval_change_absent": true
+  },
+  "pre_send_review_and_approval": {
+    "status": "MANDATORY_NON_BYPASS",
+    "applies_before": [
+      "GMAIL_DRAFT_CREATION",
+      "FORWARD",
+      "REPLY",
+      "SEND"
+    ],
+    "required_order": [
+      "CURRENT_EVIDENCE_REFRESH",
+      "DETAILED_RESPONSE_STRATEGY",
+      "KPMO_SEMANTIC_AND_ADVERSARIAL_REVIEW",
+      "KOREAN_PROGRAM_OWNER_REPORT_WITH_EXACT_EMAIL_PACKAGE",
+      "PROGRAM_OWNER_EXACT_CONTENT_SEND_APPROVAL",
+      "SEND_APPROVED_PACKAGE_ONLY",
+      "POST_SEND_GMAIL_EVIDENCE_AND_REGISTRY_TRUTH_SYNC"
+    ],
+    "strategy_required_fields": [
+      "PROVIDER_AND_ACTUAL_SENDER_AUTHORITY",
+      "LATEST_HUMAN_INBOUND_AND_THREAD_EVIDENCE",
+      "OBJECTIVE_AND_REPLY_NECESSITY",
+      "FACTS_PROVIDER_CLAIMS_INFERENCES_AND_CONFLICTS",
+      "UNRESOLVED_QUESTIONS_AND_REQUIRED_EVIDENCE",
+      "CONCESSIONS_AND_PROHIBITED_CONCESSIONS",
+      "PAYMENT_ACCESS_INPUT_DATA_RIGHTS_PRODUCT_GATE_EFFECT",
+      "SOURCE_INDEPENDENCE_AND_REPLACEMENT_PATH",
+      "COST_DEADLINE_ESCALATION_AND_STOP_CONDITIONS",
+      "DISPLAY_IDENTITY_AND_LEGAL_CONTRACTING_ENTITY",
+      "LEGAL_SPEND_CREDENTIAL_ACQUISITION_PUBLIC_PRODUCTION_G5_BOUNDARIES",
+      "SEND_AND_NO_SEND_EFFECT"
+    ],
+    "kpmo_verdicts": [
+      "APPROVED_FOR_PROGRAM_OWNER_REVIEW",
+      "REVISE",
+      "DO_NOT_SEND",
+      "WAIT"
+    ],
+    "self_authored_candidate_requires_distinct_second_pass_adversarial_review": true,
+    "kpmo_review_is_send_authority": false,
+    "program_owner_report_language": "KOREAN",
+    "exact_approval_binding_fields": [
+      "SENDER_IDENTITY",
+      "TO",
+      "CC",
+      "BCC",
+      "THREAD_OR_REPLY_TARGET",
+      "SUBJECT",
+      "COMPLETE_BODY",
+      "ATTACHMENTS",
+      "LINKS",
+      "DETERMINISTIC_CONTENT_DIGEST"
+    ],
+    "content_digest_specification": {
+      "algorithm": "SHA-256",
+      "encoding": "sha256:lowercase-hex",
+      "canonicalization": "RFC_8785_JSON",
+      "text_encoding": "UTF-8",
+      "line_endings": "CRLF_NORMALIZED_TO_LF",
+      "array_order": "PRESERVED",
+      "attachments_bind": [
+        "filename",
+        "media_type",
+        "byte_length",
+        "sha256"
+      ]
+    },
+    "post_approval_change_invalidates_approval": true,
+    "automatic_gmail_draft_or_send_before_approval": "PROHIBITED"
   },
   "forbidden_agent_actions": [
     "OFFER_PHONE_VOICE_OR_VIDEO_CALL",
@@ -70,7 +147,11 @@
     "provider_requires_call_as_prerequisite": "HOLD_OR_REPLACE",
     "provider_refuses_written_material_terms": "HOLD_OR_REPLACE",
     "material_terms_only_verbal": "NON_ADMISSIBLE",
-    "provider_claim_without_written_evidence": "UNVERIFIED_PROVIDER_CLAIM"
+    "provider_claim_without_written_evidence": "UNVERIFIED_PROVIDER_CLAIM",
+    "kpmo_review_missing_or_not_approved": "DO_NOT_DRAFT_OR_SEND",
+    "program_owner_exact_content_approval_missing": "DO_NOT_DRAFT_OR_SEND",
+    "approval_not_bound_to_complete_email_package": "DO_NOT_DRAFT_OR_SEND",
+    "post_approval_email_package_changed": "APPROVAL_INVALIDATED_REVIEW_AGAIN"
   },
   "classic_com_application": {
     "requested_bundles": [
@@ -96,7 +177,7 @@
     "written_refusal_outcome": "HOLD_OR_REPLACE"
   },
   "authority_boundary": {
-    "external_communication": "SEPARATE_EXPLICIT_AUTHORITY_REQUIRED",
+    "external_communication": "KPMO_REVIEW_AND_PROGRAM_OWNER_EXACT_SEND_APPROVAL_REQUIRED",
     "spend": "EXPLICIT_APPROVAL_REQUIRED",
     "contract": "EXPLICIT_APPROVAL_REQUIRED",
     "credential": "EXPLICIT_APPROVAL_REQUIRED",

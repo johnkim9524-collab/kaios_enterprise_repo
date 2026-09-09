@@ -1,7 +1,7 @@
 {
   "contract_id": "KIDULTS_PARTNER_PRE_SEND_INTERNALIZATION_GATE_V1",
-  "version": "1.1.1",
-  "amended_at": "2026-09-01T00:00:00Z",
+  "version": "1.2.0",
+  "amended_at": "2026-09-09T00:00:00Z",
   "parent_issues": [
     1171,
     1166,
@@ -36,13 +36,24 @@
     "provider_call_request_declined_in_writing_if_present",
     "all_material_terms_requested_in_writing",
     "program_owner_not_assigned_to_phone_voice_or_video_call",
+    "current_provider_evidence_refreshed",
+    "detailed_response_strategy_reviewed_by_kpmo",
+    "exact_email_package_reviewed_by_kpmo",
+    "kpmo_verdict_approved_for_program_owner_review",
+    "program_owner_report_contains_strategy_and_exact_email_package",
+    "exact_program_owner_send_approval_recorded",
+    "approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest",
+    "post_approval_change_absent",
     "outbound_necessary"
   ],
   "decision_states": [
     "SEND_ELIGIBLE",
     "DO_NOT_SEND",
     "ANALYSIS_REQUIRED",
-    "WAIT"
+    "WAIT",
+    "KPMO_REVIEW_REQUIRED",
+    "PROGRAM_OWNER_APPROVAL_REQUIRED",
+    "APPROVAL_INVALIDATED"
   ],
   "fail_closed": {
     "any_required_check_false": "DO_NOT_SEND",
@@ -54,7 +65,80 @@
     "outbound_offers_or_accepts_phone_voice_or_video_call": "DO_NOT_SEND",
     "agent_requests_program_owner_to_schedule_or_attend_call": "CONTROL_DEFECT_DO_NOT_SEND",
     "provider_refuses_to_put_material_terms_in_writing": "HOLD_OR_REPLACE",
-    "material_term_exists_only_in_verbal_channel": "NOT_ADMISSIBLE_AS_EVIDENCE"
+    "material_term_exists_only_in_verbal_channel": "NOT_ADMISSIBLE_AS_EVIDENCE",
+    "kpmo_review_missing_or_not_approved": "DO_NOT_DRAFT_OR_SEND",
+    "program_owner_exact_content_approval_missing": "DO_NOT_DRAFT_OR_SEND",
+    "approval_not_bound_to_complete_email_package": "DO_NOT_DRAFT_OR_SEND",
+    "post_approval_email_package_changed": "APPROVAL_INVALIDATED_REVIEW_AGAIN",
+    "automatic_gmail_draft_or_send_before_both_gates": "PROHIBITED"
+  },
+  "kpmo_pre_send_review": {
+    "required": true,
+    "review_scope": "DETAILED_RESPONSE_STRATEGY_AND_EXACT_EMAIL_PACKAGE",
+    "strategy_required_fields": [
+      "provider_actual_sender_and_authority",
+      "latest_human_inbound_and_thread_evidence",
+      "objective_and_reply_necessity",
+      "facts_provider_claims_inferences_and_conflicts",
+      "unresolved_questions_and_required_evidence",
+      "concessions_and_prohibited_concessions",
+      "payment_access_input_data_rights_product_gate_effect",
+      "source_independence_and_replacement_path",
+      "cost_deadline_escalation_and_stop_conditions",
+      "display_identity_and_legal_contracting_entity",
+      "legal_spend_credential_acquisition_public_production_g5_boundaries",
+      "send_and_no_send_effect"
+    ],
+    "verdicts": [
+      "APPROVED_FOR_PROGRAM_OWNER_REVIEW",
+      "REVISE",
+      "DO_NOT_SEND",
+      "WAIT"
+    ],
+    "self_authored_candidate_requires_distinct_second_pass_adversarial_review": true,
+    "kpmo_review_is_send_authority": false,
+    "program_owner_report_language": "KOREAN",
+    "program_owner_report_must_include": [
+      "DETAILED_RESPONSE_STRATEGY",
+      "KPMO_VERDICT",
+      "MATERIAL_RISKS",
+      "EXACT_EMAIL_PACKAGE"
+    ],
+    "exact_email_package_fields": [
+      "sender_identity",
+      "to",
+      "cc",
+      "bcc",
+      "thread_or_reply_target",
+      "subject",
+      "complete_body",
+      "attachments",
+      "links",
+      "deterministic_content_digest"
+    ],
+    "content_digest_specification": {
+      "algorithm": "SHA-256",
+      "encoding": "sha256:lowercase-hex",
+      "canonicalization": "RFC_8785_JSON",
+      "text_encoding": "UTF-8",
+      "line_endings": "CRLF_NORMALIZED_TO_LF",
+      "array_order": "PRESERVED",
+      "attachments_bind": [
+        "filename",
+        "media_type",
+        "byte_length",
+        "sha256"
+      ]
+    },
+    "program_owner_exact_content_send_approval_required": true,
+    "post_approval_change_invalidates_approval": true,
+    "post_send_evidence_required": [
+      "gmail_message_id",
+      "gmail_thread_id",
+      "sent_at",
+      "approved_content_digest",
+      "provider_registry_truth_sync_ref"
+    ]
   },
   "written_negotiation": {
     "preferred": true,

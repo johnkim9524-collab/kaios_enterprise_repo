@@ -23,6 +23,14 @@ const required = [
   'provider_call_request_declined_in_writing_if_present',
   'all_material_terms_requested_in_writing',
   'program_owner_not_assigned_to_phone_voice_or_video_call',
+  'current_provider_evidence_refreshed',
+  'detailed_response_strategy_reviewed_by_kpmo',
+  'exact_email_package_reviewed_by_kpmo',
+  'kpmo_verdict_approved_for_program_owner_review',
+  'program_owner_report_contains_strategy_and_exact_email_package',
+  'exact_program_owner_send_approval_recorded',
+  'approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest',
+  'post_approval_change_absent',
   'outbound_necessary',
 ];
 
@@ -54,6 +62,18 @@ if (p.fail_closed?.provider_refuses_to_put_material_terms_in_writing !== 'HOLD_O
 if (p.fail_closed?.material_term_exists_only_in_verbal_channel !== 'NOT_ADMISSIBLE_AS_EVIDENCE') {
   errs.push('verbal-only material terms must be non-admissible');
 }
+if (p.fail_closed?.kpmo_review_missing_or_not_approved !== 'DO_NOT_DRAFT_OR_SEND') {
+  errs.push('missing KPMO review must DO_NOT_DRAFT_OR_SEND');
+}
+if (p.fail_closed?.program_owner_exact_content_approval_missing !== 'DO_NOT_DRAFT_OR_SEND') {
+  errs.push('missing exact Program Owner approval must DO_NOT_DRAFT_OR_SEND');
+}
+if (p.fail_closed?.post_approval_email_package_changed !== 'APPROVAL_INVALIDATED_REVIEW_AGAIN') {
+  errs.push('post-approval mutation must invalidate approval');
+}
+if (p.fail_closed?.automatic_gmail_draft_or_send_before_both_gates !== 'PROHIBITED') {
+  errs.push('automatic Gmail draft/send must be prohibited before both gates');
+}
 
 const written = p.written_negotiation || {};
 if (written.preferred !== true) errs.push('written negotiation must remain preferred');
@@ -70,6 +90,49 @@ if (written.english_not_native_language_disclosure_required_when_provider_reques
 }
 if (!String(written.reason || '').includes('ENGLISH_IS_NOT_THE_PROGRAM_OWNERS_NATIVE_LANGUAGE')) {
   errs.push('written-only reason must bind the Program Owner non-native-English requirement');
+}
+
+const kpmo = p.kpmo_pre_send_review || {};
+if (kpmo.required !== true) errs.push('KPMO pre-send review must be required');
+if (kpmo.review_scope !== 'DETAILED_RESPONSE_STRATEGY_AND_EXACT_EMAIL_PACKAGE') {
+  errs.push('KPMO review must cover strategy and exact email package');
+}
+if (!kpmo.verdicts?.includes('APPROVED_FOR_PROGRAM_OWNER_REVIEW')) {
+  errs.push('KPMO approved verdict missing');
+}
+if (kpmo.self_authored_candidate_requires_distinct_second_pass_adversarial_review !== true) {
+  errs.push('self-authored candidate must receive a distinct adversarial second pass');
+}
+if (kpmo.kpmo_review_is_send_authority !== false) errs.push('KPMO must not hold send authority');
+if (kpmo.program_owner_report_language !== 'KOREAN') errs.push('Program Owner report must be Korean');
+if (kpmo.program_owner_exact_content_send_approval_required !== true) {
+  errs.push('exact Program Owner send approval must be required');
+}
+if (kpmo.post_approval_change_invalidates_approval !== true) {
+  errs.push('post-approval changes must invalidate approval');
+}
+if (kpmo.content_digest_specification?.algorithm !== 'SHA-256') {
+  errs.push('content digest algorithm must be SHA-256');
+}
+if (kpmo.content_digest_specification?.canonicalization !== 'RFC_8785_JSON') {
+  errs.push('content digest must use RFC 8785 JSON canonicalization');
+}
+if (kpmo.content_digest_specification?.line_endings !== 'CRLF_NORMALIZED_TO_LF') {
+  errs.push('content digest must normalize CRLF to LF');
+}
+for (const field of [
+  'sender_identity',
+  'to',
+  'cc',
+  'bcc',
+  'thread_or_reply_target',
+  'subject',
+  'complete_body',
+  'attachments',
+  'links',
+  'deterministic_content_digest',
+]) {
+  if (!kpmo.exact_email_package_fields?.includes(field)) errs.push(`exact package field missing ${field}`);
 }
 
 const requiredMaterialTerms = [
@@ -119,6 +182,9 @@ console.log(
       phone_voice_video_calls: 'NOT_AVAILABLE',
       verbal_material_terms_admissible: false,
       provider_written_refusal_outcome: written.provider_written_refusal_outcome,
+      kpmo_pre_send_review: 'MANDATORY_PASS',
+      program_owner_exact_content_approval: 'MANDATORY_PASS',
+      automatic_gmail_draft_or_send_before_both_gates: 'PROHIBITED',
       production: 'HOLD',
     },
     null,
