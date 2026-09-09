@@ -17,6 +17,7 @@ const RECEIPT_KEYS = new Set([
   'producer_workflow_name', 'producer_branch', 'expected_producer_sha',
   'expected_base_sha', 'expected_head_sha', 'expected_generation_sha',
   'artifact_name', 'trigger_expected', 'attempts_completed', 'max_attempts',
+  'expected_producer_run_id',
   'matched_run_count', 'selected_run_id', 'selected_run_attempt',
   'selected_run_status', 'selected_run_conclusion', 'artifact_match_count',
   'expired_artifact_count',
@@ -65,13 +66,17 @@ function validateSpecification(specification) {
   if (specification.expectedSha !== specification.expectedGenerationSha) fail('GENERATION_SHA_ALIAS_MISMATCH');
   if (specification.expectedHeadSha !== specification.expectedGenerationSha) fail('HEAD_GENERATION_MISMATCH');
   if (typeof specification.triggerExpected !== 'boolean') fail('TRIGGER_EXPECTED_INVALID');
+  const expectedRunId = specification.expectedRunId == null
+    ? null
+    : integer(specification.expectedRunId, 'EXPECTED_RUN_ID_INVALID', 1);
   const maxAttempts = integer(specification.maxAttempts, 'MAX_ATTEMPTS_INVALID', 1, 60);
   const pollMilliseconds = integer(specification.pollMilliseconds, 'POLL_MILLISECONDS_INVALID', 0, 60_000);
-  return { ...specification, maxAttempts, pollMilliseconds };
+  return { ...specification, expectedRunId, maxAttempts, pollMilliseconds };
 }
 
 function validateRunShape(run, specification) {
   integer(run?.id, 'RUN_ID_INVALID', 1);
+  if (specification.expectedRunId !== null && run?.id !== specification.expectedRunId) fail('RUN_ID_MISMATCH', run?.id);
   integer(run?.run_attempt, 'RUN_ATTEMPT_INVALID', 1);
   if (run?.repository?.full_name !== specification.repository) fail('RUN_REPOSITORY_MISMATCH', run?.id);
   if (run?.path !== specification.workflowPath) fail('RUN_WORKFLOW_PATH_MISMATCH', run?.id);
@@ -111,6 +116,7 @@ function receiptBase(specification, observation) {
     expected_generation_sha: specification.expectedGenerationSha,
     artifact_name: specification.artifactName,
     trigger_expected: specification.triggerExpected,
+    expected_producer_run_id: specification.expectedRunId,
     attempts_completed: observation.attempt,
     max_attempts: specification.maxAttempts,
     matched_run_count: observation.matchedRunCount ?? 0,
@@ -221,6 +227,7 @@ export function validateReceipt(receipt) {
     expectedHeadSha: receipt.expected_head_sha,
     expectedGenerationSha: receipt.expected_generation_sha,
     triggerExpected: receipt.trigger_expected,
+    expectedRunId: receipt.expected_producer_run_id,
     maxAttempts: receipt.max_attempts,
     pollMilliseconds: 0,
   });
@@ -237,6 +244,7 @@ export function validateReceipt(receipt) {
   if (receipt.state === 'VERIFIED_PASS') {
     if (!receipt.terminal || receipt.outcome !== 'EXACT_GENERATION_ARTIFACT_AVAILABLE' || receipt.failure_class !== null) fail('RECEIPT_PASS_INVALID');
     if (!Number.isSafeInteger(receipt.selected_run_id) || !Number.isSafeInteger(receipt.selected_artifact_id) || !DIGEST.test(receipt.selected_artifact_digest || '')) fail('RECEIPT_PASS_BINDING_INVALID');
+    if (receipt.expected_producer_run_id !== null && receipt.selected_run_id !== receipt.expected_producer_run_id) fail('RECEIPT_RUN_ID_BINDING_INVALID');
   } else if (receipt.state === 'VERIFIED_FAIL') {
     if (!receipt.terminal || !['TRIGGER_MISSING', 'PRODUCER_NOT_CREATED', 'PRODUCER_TERMINAL_FAILURE', 'ARTIFACT_MISSING', 'ARTIFACT_EXPIRED', 'ARTIFACT_CARDINALITY_INVALID', 'ORCHESTRATION_TIMEOUT', 'MALFORMED_EVIDENCE', 'TRANSPORT_FAILURE'].includes(receipt.failure_class)) fail('RECEIPT_FAILURE_INVALID');
   } else if (receipt.state === 'RUNNING_VERIFIED') {
@@ -312,7 +320,10 @@ export async function resolveOrchestration(specificationInput, dependencies = {}
       const query = new URLSearchParams({ branch: specification.branch, head_sha: specification.expectedGenerationSha, per_page: '100' });
       const runsPayload = await requestJson(`${base}/workflows/${encodeURIComponent(workflowFile)}/runs?${query}`, token, fetchImpl);
       if (!Array.isArray(runsPayload?.workflow_runs) || Number(runsPayload?.total_count) > 100 || Number(runsPayload?.total_count) !== runsPayload.workflow_runs.length) fail('RUN_EVIDENCE_INVALID');
-      const exactRuns = runsPayload.workflow_runs;
+      const exactRuns = specification.expectedRunId === null
+        ? runsPayload.workflow_runs
+        : runsPayload.workflow_runs.filter((run) => run?.id === specification.expectedRunId);
+      if (specification.expectedRunId !== null && exactRuns.length > 1) fail('RUN_EVIDENCE_INVALID');
       exactRuns.forEach((run) => validateRunShape(run, specification));
       const successful = exactRuns.filter((run) => run?.status === 'completed' && run?.conclusion === 'success')
         .sort((left, right) => Number(right.run_attempt) - Number(left.run_attempt) || Number(right.id) - Number(left.id));
@@ -376,6 +387,7 @@ function parseArguments(argv) {
       expectedHeadSha: values.get('expected-head-sha'),
       expectedGenerationSha: values.get('expected-generation-sha'),
       triggerExpected: triggerExpected === 'true',
+      expectedRunId: values.get('expected-run-id') || null,
       maxAttempts: values.get('max-attempts') || 24,
       pollMilliseconds: values.get('poll-milliseconds') || 10_000,
     },
