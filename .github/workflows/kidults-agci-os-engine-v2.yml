@@ -62,6 +62,7 @@ jobs:
           node --check scripts/kidults/engine-v2/validate-candidate-r2-preflight-structure.mjs
           node --check scripts/kidults/engine-v2/validate-candidate-r2-advancement.mjs
           node --check scripts/kidults/engine-v2/test-candidate-r2-advancement-contract.mjs
+          node --check scripts/kidults/engine-v2/test-candidate-r2-preflight-workflow-contract.mjs
           node --check scripts/kidults/projection/build-agci-os-projection.mjs
           node --check scripts/kidults/portal/build-v502-registry-view.mjs
 
@@ -88,7 +89,9 @@ jobs:
         run: node scripts/kidults/engine-v2/validate-engine-v2-foundation.mjs
 
       - name: Validate Candidate R2 structural-vs-advancement contract
-        run: node scripts/kidults/engine-v2/test-candidate-r2-advancement-contract.mjs
+        run: |
+          node scripts/kidults/engine-v2/test-candidate-r2-advancement-contract.mjs
+          node scripts/kidults/engine-v2/test-candidate-r2-preflight-workflow-contract.mjs
 
       - name: Validate Projection and Portal boundaries
         run: |
