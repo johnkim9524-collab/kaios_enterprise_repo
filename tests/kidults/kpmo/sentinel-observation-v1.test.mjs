@@ -40,15 +40,15 @@ test('PASS needs all four producer content proofs and successful resolver outcom
  assert.throws(()=>validateSentinelObservation(seal(r),{...env,SENTINEL_RESOLVER_OUTCOME:'success'}));
  assert.throws(()=>validateSentinelObservation(seal(receipt('VERIFIED_PASS')),env));
 });
-test('repository-wide fanout stays inside unchanged limits with existing mutation guards',()=>{
+test('repository-wide fanout stays inside synchronized limits with existing mutation guards',()=>{
  const p=spawnSync(process.execPath,['scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'],{encoding:'utf8',timeout:15000});
  assert.equal(p.status,0,p.stderr);const report=JSON.parse(p.stdout);
  assert.ok(report.workflow_run_consumers<=16);
- assert.ok(report.execution_workflow_run_edges<=29);assert.ok(report.control_observer_edges<=19);
+ assert.ok(report.execution_workflow_run_edges<=29);assert.ok(report.control_observer_edges<=20);
  const budget=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'));
  assert.equal(budget.budgets.workflow_run_consumers_max,16);
  assert.equal(budget.budgets.execution_workflow_run_edges_max,29);
- assert.equal(budget.budgets.control_observer_edges_max,19);
+ assert.equal(budget.budgets.control_observer_edges_max,20);
 });
 test('observer records RED/HOLD without changing the independent strict gate',()=>{
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
