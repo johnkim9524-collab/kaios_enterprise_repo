@@ -290,14 +290,90 @@ jobs:
           const fs=require('fs');const p=process.argv[2];const lines=fs.readFileSync(p,'utf8').trim().split(/\r?\n/);const x=JSON.parse(lines[0]);x.rights_state='ALLOW';lines[0]=JSON.stringify(x);fs.writeFileSync(p,lines.join('\n')+'\n');
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs /tmp/bad-reserve-rights; then exit 1; fi
-      - name: Emit empirical scale receipt
+      - name: Emit terminal source-fabric receipt
+        if: always()
+        env:
+          PRIOR_JOB_STATUS: ${{ job.status }}
         run: |
           node - <<'NODE' >/tmp/asi-source-fabric-scale-pi1-receipt.json
-          const fs=require('fs');const f=JSON.parse(fs.readFileSync('/tmp/asi-public-metadata-source-fabric-v1.json'));const c=JSON.parse(fs.readFileSync('/tmp/asi-discovery-provider-health-circuit-v1.json'));const r=JSON.parse(fs.readFileSync('/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-source-fabric-scale-pi1-receipt',status:'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE',trigger_event:process.env.GITHUB_EVENT_NAME,autonomous_effect:'POSITIVE',global_effect:'POSITIVE',irreplaceable_value_effect:'POSITIVE',transparency_effect:'POSITIVE',scheduled_scopes:f.scheduled_scope_count,empirical_scopes:f.empirical_scope_count,current_increment_candidates:f.candidate_count,current_increment_unique_hosts:f.unique_host_count,provider_candidate_counts:f.provider_counts,healthy_provider_lanes:f.healthy_lane_count,degraded_provider_lanes:f.degraded_lane_count,provider_circuit_cycle:c.cycle_number,full_budget_providers:c.summary.full_budget_provider_count,reduced_budget_providers:c.summary.reduced_budget_provider_count,open_provider_circuits:c.summary.open_circuit_count,half_open_provider_probes:c.summary.half_open_probe_count,reserve_cycle:r.cycle_number,reserve_unique_candidates:r.unique_candidate_count,reserve_unique_hosts:r.unique_host_count,reserve_new_candidates:r.new_candidate_count,reserve_updated_candidates:r.updated_candidate_count,reserve_nonempty_shards:r.nonempty_shard_count,reserve_design_capacity:r.design_capacity_minimum_candidates,reserve_is_not_safe_pool:true,empirical_market_effect:'NONE',content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');
+          const path='/tmp/asi-source-fabric-scale-pi1-receipt.json';
+          const productPaths={
+            fabric:'/tmp/asi-public-metadata-source-fabric-v1.json',
+            circuit:'/tmp/asi-discovery-provider-health-circuit-v1.json',
+            reserve:'/tmp/asi-sharded-source-reserve-v1/asi-sharded-source-reserve-manifest-v1.json',
+          };
+          const readJson=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+          const rotationFiles=fs.existsSync('/tmp/rotations')
+            ? fs.readdirSync('/tmp/rotations').filter(x=>/^r[0-3]\.json$/.test(x)).sort()
+            : [];
+          const complete=Object.values(productPaths).every(p=>fs.existsSync(p));
+          const priorStatus=process.env.PRIOR_JOB_STATUS||'unknown';
+          const receipt={
+            id:'kidults-asi-source-fabric-scale-pi1-receipt',
+            state:priorStatus==='success'&&complete?'VERIFIED_PASS':'VERIFIED_FAIL',
+            status:priorStatus==='success'&&complete
+              ?'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE'
+              :'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_FAILED',
+            failure_id:priorStatus==='success'&&complete?null:'SOURCE_FABRIC_PRECEDING_STEP_FAILED_OR_PRODUCT_MISSING',
+            prior_job_status:priorStatus,
+            trigger_event:process.env.GITHUB_EVENT_NAME,
+            run_id:process.env.GITHUB_RUN_ID,
+            run_attempt:process.env.GITHUB_RUN_ATTEMPT,
+            head_sha:process.env.EXPECTED_SHA,
+            partial_rotation_files:rotationFiles,
+            partial_rotation_count:rotationFiles.length,
+            success_products_complete:complete,
+            autonomous_effect:'CONTROL_ONLY',
+            global_effect:'CONTROL_ONLY',
+            irreplaceable_value_effect:'CONTROL_ONLY',
+            transparency_effect:'POSITIVE',
+            empirical_market_effect:'NONE',
+            content_acquisition_authorized:false,
+            collection_right_created:false,
+            promotion_authority:false,
+            empirical_admission_authority:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD',
+          };
+          if(receipt.state==='VERIFIED_PASS'){
+            const f=readJson(productPaths.fabric);
+            const c=readJson(productPaths.circuit);
+            const r=readJson(productPaths.reserve);
+            Object.assign(receipt,{
+              autonomous_effect:'POSITIVE',
+              global_effect:'POSITIVE',
+              irreplaceable_value_effect:'POSITIVE',
+              scheduled_scopes:f.scheduled_scope_count,
+              empirical_scopes:f.empirical_scope_count,
+              current_increment_candidates:f.candidate_count,
+              current_increment_unique_hosts:f.unique_host_count,
+              provider_candidate_counts:f.provider_counts,
+              healthy_provider_lanes:f.healthy_lane_count,
+              degraded_provider_lanes:f.degraded_lane_count,
+              provider_circuit_cycle:c.cycle_number,
+              full_budget_providers:c.summary.full_budget_provider_count,
+              reduced_budget_providers:c.summary.reduced_budget_provider_count,
+              open_provider_circuits:c.summary.open_circuit_count,
+              half_open_provider_probes:c.summary.half_open_probe_count,
+              reserve_cycle:r.cycle_number,
+              reserve_unique_candidates:r.unique_candidate_count,
+              reserve_unique_hosts:r.unique_host_count,
+              reserve_new_candidates:r.new_candidate_count,
+              reserve_updated_candidates:r.updated_candidate_count,
+              reserve_nonempty_shards:r.nonempty_shard_count,
+              reserve_design_capacity:r.design_capacity_minimum_candidates,
+              reserve_is_not_safe_pool:true,
+            });
+          }
+          fs.writeFileSync(path,JSON.stringify(receipt,null,2)+'\n');
+          process.stderr.write(JSON.stringify(receipt)+'\n');
+          if(priorStatus==='success'&&!complete) process.exitCode=1;
           NODE
-          cat /tmp/asi-source-fabric-scale-pi1-receipt.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Upload terminal source-fabric packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-source-fabric-scale-pi1
           path: |
