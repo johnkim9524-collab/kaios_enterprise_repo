@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: kidults-autonomous-artic-sample
+  group: kidults-autonomous-artic-sample-${{ github.event_name }}-${{ github.event_name == 'push' && github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:

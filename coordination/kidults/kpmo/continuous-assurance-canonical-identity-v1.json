@@ -69,6 +69,16 @@
       "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
     },
     {
+      "workflow_name": "KIDULTS Autonomous Smithsonian Open Access Sample",
+      "workflow_path": ".github/workflows/kidults-autonomous-smithsonian-sample.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS Autonomous Art Institute Design Sample",
+      "workflow_path": ".github/workflows/kidults-autonomous-artic-sample.yml",
+      "upstream_class": "ASI_ADAPTER_EVIDENCE_CASCADE"
+    },
+    {
       "workflow_name": "KIDULTS Full Value Chain Red-Team Orchestrator V1",
       "workflow_path": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
       "upstream_class": "KPMO_CONTROL_PLANE_VALIDATORS"

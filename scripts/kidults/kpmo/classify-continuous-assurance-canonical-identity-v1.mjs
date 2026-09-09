@@ -84,7 +84,7 @@ export function validateCanonicalIdentityContract(contract) {
     fail('EXPECTED_WORKFLOW_RUN_SKIP_PATHS_INVALID');
   }
   const allowlist = contract.workflow_run_class_allowlist;
-  if (!Array.isArray(allowlist) || allowlist.length !== 19) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
+  if (!Array.isArray(allowlist) || allowlist.length !== 21) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
   const names = new Set();
   const pairs = new Set();
   const paths = new Set();
