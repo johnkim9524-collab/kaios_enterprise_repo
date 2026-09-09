@@ -66,6 +66,28 @@ function sha256(value) {
   return `sha256:${crypto.createHash('sha256').update(stableJson(value)).digest('hex')}`;
 }
 
+export function normalizeIssueSnapshot(issues) {
+  if (!Array.isArray(issues) || issues.length === 0) throw new Error('OPEN_ISSUE_SET_EMPTY');
+  const seen = new Set();
+  const normalized = issues.map(issue => {
+    if (!issue || typeof issue !== 'object' || issue.pull_request) throw new Error('NON_ISSUE_ENTRY_IN_AUTHORITY_SET');
+    if (!Number.isInteger(issue.number) || issue.number <= 0) throw new Error('ISSUE_NUMBER_INVALID');
+    if (String(issue.state || '').toLowerCase() !== 'open') throw new Error(`ISSUE_${issue.number}_NOT_OPEN`);
+    if (typeof issue.title !== 'string' || !issue.title.trim()) throw new Error(`ISSUE_${issue.number}_TITLE_INVALID`);
+    if (!Array.isArray(issue.labels)) throw new Error(`ISSUE_${issue.number}_LABELS_INVALID`);
+    if (seen.has(issue.number)) throw new Error(`DUPLICATE_ISSUE_NUMBER:${issue.number}`);
+    seen.add(issue.number);
+    return {
+      number: issue.number,
+      state: 'open',
+      title: issue.title,
+      labels: normalizedLabels(issue),
+      updated_at: issue.updated_at || null
+    };
+  }).sort((a, b) => a.number - b.number);
+  return normalized;
+}
+
 function selfTest() {
   const exactP0 = { number: 1, state: 'open', title: '[P0] exact', labels: [{ name: 'P0' }] };
   const combined = { number: 2, state: 'open', title: '[P0/P1][Portal] combined', labels: [{ name: 'P0' }, { name: 'P1' }] };
@@ -79,6 +101,13 @@ function selfTest() {
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
   if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  let emptyRejected = false;
+  try { normalizeIssueSnapshot([]); } catch (error) { emptyRejected = String(error?.message || error).includes('OPEN_ISSUE_SET_EMPTY'); }
+  if (!emptyRejected) throw new Error('SELF_TEST_EMPTY_AUTHORITY_SET_NOT_REJECTED');
+  const restFixture = normalizeIssueSnapshot([
+    { number: 7, state: 'open', title: '[P1] rest issue', labels: [{ name: 'P1' }], updated_at: '2026-09-09T00:00:00Z' }
+  ]);
+  if (restFixture.length !== 1 || restFixture[0].number !== 7) throw new Error('SELF_TEST_REST_AUTHORITY_NORMALIZATION_FAILED');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
@@ -86,6 +115,8 @@ function selfTest() {
     combined_marker_normalization: true,
     support_alias_excluded: true,
     label_only_authority_preserved: true,
+    empty_authority_set_rejected: true,
+    rest_issue_authority_normalized: true,
     mismatch_fail_closed: true
   }));
 }
@@ -112,41 +143,49 @@ async function get(url) {
   return JSON.parse(text);
 }
 
-async function fetchAllOpenIssues() {
-  const out = [];
-  let total = null;
+async function fetchAllOpenIssuesRest() {
+  const raw = [];
   for (let page = 1; page <= 10; page += 1) {
-    const q = encodeURIComponent(`repo:${repository} is:issue is:open`);
-    const data = await get(`https://api.github.com/search/issues?q=${q}&sort=updated&order=desc&per_page=100&page=${page}`);
-    if (data.incomplete_results !== false) throw new Error(`INCOMPLETE_RESULTS:all-open:page=${page}`);
-    if (!Number.isInteger(data.total_count) || data.total_count < 0 || data.total_count > 1000) throw new Error(`INVALID_TOTAL:all-open:${data.total_count}`);
-    if (total === null) total = data.total_count;
-    if (total !== data.total_count) throw new Error(`CARDINALITY_MOVED:all-open:${total}->${data.total_count}`);
-    if (!Array.isArray(data.items)) throw new Error(`INVALID_ITEMS:all-open:page=${page}`);
-    out.push(...data.items);
-    if (out.length >= total) break;
-    if (data.items.length === 0 || page === 10) throw new Error(`PAGINATION_TRUNCATED:all-open:${out.length}/${total}`);
+    const data = await get(`https://api.github.com/repos/${repository}/issues?state=open&per_page=100&page=${page}`);
+    if (!Array.isArray(data)) throw new Error(`INVALID_REST_ITEMS:page=${page}`);
+    raw.push(...data.filter(item => item && typeof item === 'object' && !item.pull_request));
+    if (data.length < 100) return normalizeIssueSnapshot(raw);
+    if (page === 10) throw new Error(`REST_PAGINATION_TRUNCATED:${raw.length}`);
   }
-  if (out.length !== total) throw new Error(`CARDINALITY_MISMATCH:all-open:${out.length}/${total}`);
-  return out;
+  throw new Error('REST_PAGINATION_UNREACHABLE');
 }
 
 try {
-  const issues = await fetchAllOpenIssues();
+  const first = await fetchAllOpenIssuesRest();
+  const second = await fetchAllOpenIssuesRest();
+  if (stableJson(first) !== stableJson(second)) throw new Error('OPEN_ISSUE_METADATA_MOVED_BETWEEN_READS');
+
+  const issues = second.map(issue => ({
+    number: issue.number,
+    state: issue.state,
+    title: issue.title,
+    labels: issue.labels,
+    updated_at: issue.updated_at
+  }));
   const failures = issues.flatMap(parityFailures);
   if (failures.length) fail(`SEVERITY_METADATA_MISMATCH:${failures.join(',')}`);
   const registry = issues.map(materialRecord).filter(Boolean).sort((a, b) => a.issue_number - b.issue_number);
+  if (registry.length === 0) fail('MATERIAL_DEFECT_SET_EMPTY');
   console.log(JSON.stringify({
     validator: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2',
     state: 'VERIFIED_PASS',
+    enumeration_authority: 'REST_ISSUES_COLLECTION_DOUBLE_READ',
+    search_index_authoritative: false,
     open_issue_count: issues.length,
     material_defect_count: registry.length,
     material_registry_sha256: sha256(registry),
     complete_open_issue_pagination: true,
     cardinality_stable: true,
+    metadata_snapshot_stable: true,
     exact_and_combined_marker_normalization: true,
     support_alias_excluded: true,
     label_only_material_authority_preserved: true,
+    empty_authority_set_rejected: true,
     promotion_eligible: false,
     production: 'HOLD',
     public: 'HOLD',
