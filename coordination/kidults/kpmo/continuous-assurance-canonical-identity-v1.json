@@ -1,6 +1,6 @@
 {
   "id": "kidults-continuous-assurance-canonical-identity-v1",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_EPHEMERAL_ACTIONS_GUARD_REMOTE_LEDGER_ACTIVATION_HOLD",
   "purpose": "Classify every Continuous Assurance trigger into an explicit, provenance-bound canonical identity and suppress repeated grouped-success audits only through a serialized, exact-receipt Actions readback guard whose authority expires with 90-day artifact retention.",
