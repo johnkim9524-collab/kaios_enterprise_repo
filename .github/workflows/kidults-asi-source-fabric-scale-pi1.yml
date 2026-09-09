@@ -312,9 +312,7 @@ jobs:
           const receipt={
             id:'kidults-asi-source-fabric-scale-pi1-receipt',
             state:priorStatus==='success'&&complete?'VERIFIED_PASS':'VERIFIED_FAIL',
-            status:priorStatus==='success'&&complete
-              ?'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE'
-              :'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_FAILED',
+            status:priorStatus==='success'&&complete?'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_COMPLETE':'SHADOW_PUBLIC_METADATA_SCALE_INCREMENT_FAILED',
             failure_id:priorStatus==='success'&&complete?null:'SOURCE_FABRIC_PRECEDING_STEP_FAILED_OR_PRODUCT_MISSING',
             prior_job_status:priorStatus,
             trigger_event:process.env.GITHUB_EVENT_NAME,
