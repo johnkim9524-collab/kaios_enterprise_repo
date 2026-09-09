@@ -1,6 +1,6 @@
 {
   "id": "kidults-continuous-assurance-canonical-identity-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_EPHEMERAL_ACTIONS_GUARD_REMOTE_LEDGER_ACTIVATION_HOLD",
   "purpose": "Classify every Continuous Assurance trigger into an explicit, provenance-bound canonical identity and suppress repeated grouped-success audits only through a serialized, exact-receipt Actions readback guard whose authority expires with 90-day artifact retention.",
@@ -45,6 +45,7 @@
   "expected_workflow_run_skip_paths": [
     ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
     ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
+    ".github/workflows/kidults-asi-mission-consumption-v1.yml",
     ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"
   ],
   "workflow_run_class_allowlist": [
@@ -111,6 +112,11 @@
     {
       "workflow_name": "KIDULTS ASI P0 Mission Consumption v1",
       "workflow_path": ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
+      "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
+    },
+    {
+      "workflow_name": "KIDULTS ASI Mission Consumption v1",
+      "workflow_path": ".github/workflows/kidults-asi-mission-consumption-v1.yml",
       "upstream_class": "ASI_SOURCE_ACQUISITION_CASCADE"
     },
     {
