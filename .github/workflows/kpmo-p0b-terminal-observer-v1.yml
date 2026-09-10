@@ -98,10 +98,15 @@ jobs:
 
       - name: Fail closed after durable observer receipts
         if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           SUMMARY="$RUNNER_TEMP/kpmo-p0b-terminal-observer-v1/summary.json"
           test -f "$SUMMARY"
+          LIVE_MAIN_TERMINAL="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_TERMINAL" = "$LIVE_MAIN_SHA"
+          jq -e '.live_main_sha==env.LIVE_MAIN_SHA' "$SUMMARY" >/dev/null
           jq -e '.promotion_eligible==false and .production=="HOLD" and .public=="HOLD" and .g5=="HOLD"' "$SUMMARY" >/dev/null
           if ! jq -e '.state=="VERIFIED_PASS"' "$SUMMARY" >/dev/null; then
             jq -c '{state:"RED",red_run_ids:.red_run_ids,live_main_sha:.live_main_sha}' "$SUMMARY" >&2
