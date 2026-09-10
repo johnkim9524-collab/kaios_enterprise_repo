@@ -1,0 +1,85 @@
+name: KPMO P0B Terminal Observer V1
+
+on:
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observe-p0b-terminal:
+    if: >-
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: kpmo-p0b-terminal-observer-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Resolve live protected main and exact producer artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCER_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          LIVE_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test -n "$LIVE_MAIN_SHA"
+          echo "LIVE_MAIN_SHA=$LIVE_MAIN_SHA" >> "$GITHUB_ENV"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100" \
+            > "$RUNNER_TEMP/p0b-producer-artifacts.json"
+
+      - name: Build exact-generation P0B terminal observer receipt
+        env:
+          PRODUCER_RUN_ID: ${{ github.event.workflow_run.id }}
+          PRODUCER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.workflow_run.head_sha }}"
+          node scripts/kidults/kpmo/build-p0b-terminal-observer-receipt-v1.mjs \
+            "$GITHUB_EVENT_PATH" \
+            "$RUNNER_TEMP/p0b-producer-artifacts.json" \
+            "$RUNNER_TEMP/kpmo-p0b-terminal-observer-receipt-v1.json"
+
+      - name: Validate observer regression contract
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/kpmo/p0b-terminal-observer-v1.test.mjs
+
+      - name: Upload exact producer terminal observer receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-p0b-terminal-observer-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-p0b-terminal-observer-receipt-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Fail closed after durable observer receipt
+        if: always()
+        run: |
+          set -euo pipefail
+          RECEIPT="$RUNNER_TEMP/kpmo-p0b-terminal-observer-receipt-v1.json"
+          test -f "$RECEIPT"
+          node - "$RECEIPT" <<'NODE'
+          const fs=require('node:fs');
+          const receipt=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(receipt.promotion_eligible!==false) throw new Error('PROMOTION_MUST_REMAIN_FALSE');
+          if(receipt.production!=='HOLD'||receipt.public!=='HOLD'||receipt.g5!=='HOLD') throw new Error('RELEASE_HOLD_REQUIRED');
+          if(receipt.producer_terminal_state!=='VERIFIED_PASS') {
+            console.error(JSON.stringify({state:'RED',failure_classes:receipt.failure_classes,producer:receipt.producer}));
+            process.exit(1);
+          }
+          console.log(JSON.stringify({state:'VERIFIED_PASS',scope:receipt.scope,release_state:'HOLD'}));
+          NODE
