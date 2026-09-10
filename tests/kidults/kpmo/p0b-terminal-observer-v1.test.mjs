@@ -107,6 +107,10 @@ test('observer is polling-based so cancellation protection does not consume anot
   assert.match(workflow, /kidults-asi-p0b-bounded-discovery-candidates-v1\.yml\/runs/);
   assert.match(workflow, /actions\/runs\/\$\{RUN_ID\}\/artifacts\?per_page=100/);
   assert.match(workflow, /24 hours ago/);
+  assert.match(workflow, /LIVE_MAIN_RECHECK/);
+  assert.match(workflow, /LIVE_MAIN_FINAL/);
+  assert.match(workflow, /test "\$LIVE_MAIN_RECHECK" = "\$LIVE_MAIN_SHA"/);
+  assert.match(workflow, /test "\$LIVE_MAIN_FINAL" = "\$LIVE_MAIN_SHA"/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /actions: read/);
