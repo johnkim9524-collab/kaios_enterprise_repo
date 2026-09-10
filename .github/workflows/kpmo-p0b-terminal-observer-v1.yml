@@ -1,0 +1,115 @@
+name: KPMO P0B Terminal Observer V1
+
+on:
+  schedule:
+    - cron: '11 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observe-p0b-terminal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: kpmo-p0b-terminal-observer-v1
+      cancel-in-progress: false
+    steps:
+      - name: Resolve live protected main
+        id: live
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LIVE_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [[ "$LIVE_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]
+          echo "sha=$LIVE_MAIN_SHA" >> "$GITHUB_OUTPUT"
+          echo "LIVE_MAIN_SHA=$LIVE_MAIN_SHA" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.live.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Observe recent exact-current-main P0B terminal generations
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LIVE_MAIN_SHA"
+          LIVE_MAIN_RECHECK="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_RECHECK" = "$LIVE_MAIN_SHA"
+          OUT="$RUNNER_TEMP/kpmo-p0b-terminal-observer-v1"
+          mkdir -p "$OUT/receipts"
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f status=completed -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml/runs" \
+            > "$OUT/runs.json"
+          CUTOFF="$(date -u -d '24 hours ago' +%s)"
+          mapfile -t RUN_IDS < <(jq -r --arg sha "$LIVE_MAIN_SHA" --argjson cutoff "$CUTOFF" \
+            '.workflow_runs[]
+             | select(.name=="KIDULTS ASI P0B Bounded Discovery Candidates v1")
+             | select(.head_branch=="main" and .head_sha==$sha and .status=="completed")
+             | select((.created_at|fromdateiso8601) >= $cutoff)
+             | .id' "$OUT/runs.json")
+          test "${#RUN_IDS[@]}" -gt 0
+          test "${#RUN_IDS[@]}" -lt 100
+          for RUN_ID in "${RUN_IDS[@]}"; do
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" > "$OUT/run-${RUN_ID}.json"
+            jq '{action:"completed",workflow_run:.}' "$OUT/run-${RUN_ID}.json" > "$OUT/event-${RUN_ID}.json"
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" > "$OUT/artifacts-${RUN_ID}.json"
+            node scripts/kidults/kpmo/build-p0b-terminal-observer-receipt-v1.mjs \
+              "$OUT/event-${RUN_ID}.json" "$OUT/artifacts-${RUN_ID}.json" \
+              "$OUT/receipts/producer-${RUN_ID}.json"
+          done
+          LIVE_MAIN_FINAL="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_FINAL" = "$LIVE_MAIN_SHA"
+          jq -s '{
+            id:"kpmo-p0b-terminal-observer-summary-v1",
+            state:(if all(.[]; .producer_terminal_state=="VERIFIED_PASS") then "VERIFIED_PASS" else "VERIFIED_FAIL" end),
+            live_main_sha:(.[0].live_main_sha // null),
+            observed_generation_count:length,
+            observed_run_ids:[.[].producer.run_id],
+            red_run_ids:[.[]|select(.producer_terminal_state!="VERIFIED_PASS")|.producer.run_id],
+            later_run_substitution_allowed:false,
+            promotion_eligible:false,
+            production:"HOLD",public:"HOLD",g5:"HOLD"
+          }' "$OUT"/receipts/*.json > "$OUT/summary.json"
+          cat "$OUT/summary.json"
+
+      - name: Validate observer regression contract
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/kpmo/p0b-terminal-observer-v1.test.mjs
+
+      - name: Upload exact producer terminal observer receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-p0b-terminal-observer-${{ steps.live.outputs.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-p0b-terminal-observer-v1
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Fail closed after durable observer receipts
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SUMMARY="$RUNNER_TEMP/kpmo-p0b-terminal-observer-v1/summary.json"
+          test -f "$SUMMARY"
+          LIVE_MAIN_TERMINAL="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_TERMINAL" = "$LIVE_MAIN_SHA"
+          jq -e '.live_main_sha==env.LIVE_MAIN_SHA' "$SUMMARY" >/dev/null
+          jq -e '.promotion_eligible==false and .production=="HOLD" and .public=="HOLD" and .g5=="HOLD"' "$SUMMARY" >/dev/null
+          if ! jq -e '.state=="VERIFIED_PASS"' "$SUMMARY" >/dev/null; then
+            jq -c '{state:"RED",red_run_ids:.red_run_ids,live_main_sha:.live_main_sha}' "$SUMMARY" >&2
+            exit 1
+          fi
+          jq -c '{state:"VERIFIED_PASS",scope:"P0B_TERMINAL_TRANSPORT_OBSERVATION_ONLY",release_state:"HOLD"}' "$SUMMARY"
