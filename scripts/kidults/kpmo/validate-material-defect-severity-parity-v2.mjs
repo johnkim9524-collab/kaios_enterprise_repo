@@ -14,12 +14,18 @@ function fail(message) {
   process.exit(1);
 }
 
+const MATERIAL_PRIORITY_LABELS = Object.freeze(['P0', 'P1']);
+
 export function declaredSeverityLabels(title) {
   const declared = new Set();
   const text = String(title || '');
+  const prefixMatch = text.match(/^\s*((?:P0|P1)(?:\s*\/\s*(?:P0|P1))*)\s*:/);
+  if (prefixMatch) {
+    for (const part of String(prefixMatch[1] || '').split('/').map(part => part.trim()).filter(Boolean)) declared.add(part);
+  }
   for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
     const parts = String(match[1] || '').split('/').map(part => part.trim()).filter(Boolean);
-    if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1')) continue;
+    if (parts.length === 0 || !parts.every(part => MATERIAL_PRIORITY_LABELS.includes(part))) continue;
     for (const part of parts) declared.add(part);
   }
   return [...declared].sort();
@@ -44,7 +50,7 @@ export function parityFailures(issue) {
 export function materialRecord(issue) {
   const declared = declaredSeverityLabels(issue.title);
   const labels = normalizedLabels(issue);
-  const priorities = [...new Set([...declared, ...labels.filter(label => label === 'P0' || label === 'P1')])].sort();
+  const priorities = [...new Set([...declared, ...labels.filter(label => MATERIAL_PRIORITY_LABELS.includes(label))])].sort();
   if (!Number.isInteger(issue.number) || String(issue.state || '').toLowerCase() !== 'open' || priorities.length === 0) return null;
   return {
     issue_number: issue.number,
@@ -94,26 +100,40 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
+  const prefixP1 = { number: 6, state: 'open', title: 'P1: strict prefix', labels: [{ name: 'P1' }] };
+  const prefixCombined = { number: 7, state: 'open', title: 'P1/P0: combined prefix', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const prefixMissing = { number: 8, state: 'open', title: 'P1: missing label', labels: [] };
+  const prefixConflict = { number: 9, state: 'open', title: 'P1: conflicting label', labels: [{ name: 'P0' }] };
+  const prose = { number: 10, state: 'open', title: 'ordinary text mentioning P1: later', labels: [] };
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
   if (declaredSeverityLabels(support.title).length !== 0) throw new Error('SELF_TEST_SUPPORT_ALIASING');
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
-  if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (parityFailures(prefixP1).length || parityFailures(prefixCombined).length) throw new Error('SELF_TEST_PREFIX_REJECTED');
+  if (!parityFailures(prefixMissing).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_PREFIX_MISMATCH_NOT_REJECTED');
+  if (!parityFailures(prefixConflict).some(x => x.includes('P0_LABEL_WITH_P1_ONLY_TITLE'))) throw new Error('SELF_TEST_PREFIX_CONFLICT_NOT_REJECTED');
+  if (!materialRecord(prefixMissing)) throw new Error('SELF_TEST_PREFIX_MISSING_LABEL_MATERIAL_LOST');
+  if (declaredSeverityLabels(prose.title).length !== 0 || parityFailures(prose).length) throw new Error('SELF_TEST_NONPREFIX_PROSE_FALSE_MATERIAL');
+  if (materialRecord({ number: 11, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
   let emptyRejected = false;
   try { normalizeIssueSnapshot([]); } catch (error) { emptyRejected = String(error?.message || error).includes('OPEN_ISSUE_SET_EMPTY'); }
   if (!emptyRejected) throw new Error('SELF_TEST_EMPTY_AUTHORITY_SET_NOT_REJECTED');
   const restFixture = normalizeIssueSnapshot([
-    { number: 7, state: 'open', title: '[P1] rest issue', labels: [{ name: 'P1' }], updated_at: '2026-09-09T00:00:00Z' }
+    { number: 12, state: 'open', title: '[P1] rest issue', labels: [{ name: 'P1' }], updated_at: '2026-09-09T00:00:00Z' }
   ]);
-  if (restFixture.length !== 1 || restFixture[0].number !== 7) throw new Error('SELF_TEST_REST_AUTHORITY_NORMALIZATION_FAILED');
+  if (restFixture.length !== 1 || restFixture[0].number !== 12) throw new Error('SELF_TEST_REST_AUTHORITY_NORMALIZATION_FAILED');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
     exact_marker: true,
     combined_marker_normalization: true,
+    strict_prefix_normalization: true,
+    strict_prefix_missing_label_rejected: true,
+    strict_prefix_conflict_rejected: true,
     support_alias_excluded: true,
+    nonprefix_prose_excluded: true,
     label_only_authority_preserved: true,
     empty_authority_set_rejected: true,
     rest_issue_authority_normalized: true,
@@ -183,7 +203,11 @@ try {
     cardinality_stable: true,
     metadata_snapshot_stable: true,
     exact_and_combined_marker_normalization: true,
+    strict_prefix_normalization: true,
+    strict_prefix_missing_label_rejected: true,
+    strict_prefix_conflict_rejected: true,
     support_alias_excluded: true,
+    nonprefix_prose_excluded: true,
     label_only_material_authority_preserved: true,
     empty_authority_set_rejected: true,
     promotion_eligible: false,
