@@ -98,17 +98,27 @@ test('historical same-branch producer cannot substitute for current protected ma
   assert.ok(receipt.failure_classes.includes('PRODUCER_NOT_CURRENT_PROTECTED_MAIN'));
 });
 
-test('observer workflow is unique-generation, cancellation-resistant and least-privileged', () => {
+test('observer is polling-based so cancellation protection does not consume another workflow_run edge', () => {
   const workflow = fs.readFileSync('.github/workflows/kpmo-p0b-terminal-observer-v1.yml', 'utf8');
   assert.match(workflow, /name: KPMO P0B Terminal Observer V1/);
-  assert.match(workflow, /KIDULTS ASI P0B Bounded Discovery Candidates v1/);
-  assert.match(workflow, /github\.event\.workflow_run\.id/);
-  assert.match(workflow, /github\.event\.workflow_run\.run_attempt/);
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /^\s*workflow_run:/m);
+  assert.match(workflow, /kidults-asi-p0b-bounded-discovery-candidates-v1\.yml\/runs/);
+  assert.match(workflow, /actions\/runs\/\$\{RUN_ID\}\/artifacts\?per_page=100/);
+  assert.match(workflow, /24 hours ago/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /actions: read/);
   assert.doesNotMatch(workflow, /contents: write|issues: write|pull-requests: write|deployments: write/);
   assert.match(workflow, /actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02/);
   assert.match(workflow, /if: always\(\)/);
-  assert.match(workflow, /Fail closed after durable observer receipt/);
+  assert.match(workflow, /Fail closed after durable observer receipts/);
+});
+
+test('current P0B direct workflow_run fanout stays at the pre-correction count', () => {
+  const p1 = fs.readFileSync('.github/workflows/kidults-asi-p1-source-preflight-v1.yml', 'utf8');
+  const observer = fs.readFileSync('.github/workflows/kpmo-p0b-terminal-observer-v1.yml', 'utf8');
+  assert.match(p1, /workflow_run:[\s\S]*KIDULTS ASI P0B Bounded Discovery Candidates v1/);
+  assert.doesNotMatch(observer, /^\s*workflow_run:/m);
 });
