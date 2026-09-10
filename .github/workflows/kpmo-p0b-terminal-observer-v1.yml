@@ -22,13 +22,8 @@ jobs:
       group: kpmo-p0b-terminal-observer-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-          persist-credentials: false
-          fetch-depth: 1
-
       - name: Resolve live protected main and exact producer artifacts
+        id: live
         env:
           GH_TOKEN: ${{ github.token }}
           PRODUCER_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -36,9 +31,16 @@ jobs:
           set -euo pipefail
           LIVE_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
           test -n "$LIVE_MAIN_SHA"
+          echo "sha=$LIVE_MAIN_SHA" >> "$GITHUB_OUTPUT"
           echo "LIVE_MAIN_SHA=$LIVE_MAIN_SHA" >> "$GITHUB_ENV"
           gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN_ID}/artifacts?per_page=100" \
             > "$RUNNER_TEMP/p0b-producer-artifacts.json"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.live.outputs.sha }}
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Build exact-generation P0B terminal observer receipt
         env:
@@ -46,7 +48,7 @@ jobs:
           PRODUCER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "${{ github.event.workflow_run.head_sha }}"
+          test "$(git rev-parse HEAD)" = "$LIVE_MAIN_SHA"
           node scripts/kidults/kpmo/build-p0b-terminal-observer-receipt-v1.mjs \
             "$GITHUB_EVENT_PATH" \
             "$RUNNER_TEMP/p0b-producer-artifacts.json" \
