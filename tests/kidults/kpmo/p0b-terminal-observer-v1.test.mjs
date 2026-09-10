@@ -109,8 +109,11 @@ test('observer is polling-based so cancellation protection does not consume anot
   assert.match(workflow, /24 hours ago/);
   assert.match(workflow, /LIVE_MAIN_RECHECK/);
   assert.match(workflow, /LIVE_MAIN_FINAL/);
+  assert.match(workflow, /LIVE_MAIN_TERMINAL/);
   assert.match(workflow, /test "\$LIVE_MAIN_RECHECK" = "\$LIVE_MAIN_SHA"/);
   assert.match(workflow, /test "\$LIVE_MAIN_FINAL" = "\$LIVE_MAIN_SHA"/);
+  assert.match(workflow, /test "\$LIVE_MAIN_TERMINAL" = "\$LIVE_MAIN_SHA"/);
+  assert.match(workflow, /\.live_main_sha==env\.LIVE_MAIN_SHA/);
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /actions: read/);
