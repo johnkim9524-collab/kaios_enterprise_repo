@@ -16,6 +16,7 @@ on:
       - 'scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs'
       - 'scripts/kidults/kpmo/lib/management-control-tower-model-v1.mjs'
       - 'scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/enforce-management-control-tower-evidence-freshness-v1.mjs'
       - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
       - 'apps/kidults-enterprise-staging/public/executive/control-tower-snapshot-v1.json'
       - 'apps/kidults-enterprise-staging/public/executive/control-tower.html'
@@ -32,6 +33,7 @@ on:
       - 'scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs'
       - 'scripts/kidults/kpmo/lib/management-control-tower-model-v1.mjs'
       - 'scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/enforce-management-control-tower-evidence-freshness-v1.mjs'
       - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
       - 'apps/kidults-enterprise-staging/public/executive/control-tower-snapshot-v1.json'
       - 'apps/kidults-enterprise-staging/public/executive/control-tower.html'
@@ -85,6 +87,7 @@ jobs:
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           node --check scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs
           node --check scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs
+          node --check scripts/kidults/kpmo/enforce-management-control-tower-evidence-freshness-v1.mjs
       - name: Rebuild read-only governed snapshot artifact
         env:
           KIDULTS_CONTROL_TOWER_SNAPSHOT_OUT: /tmp/kidults-management-control-tower/control-tower-snapshot-v1.json
@@ -97,7 +100,9 @@ jobs:
             | tee /tmp/kidults-management-control-tower/build-receipt.json
           node scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs \
             "$KIDULTS_CONTROL_TOWER_SNAPSHOT_OUT" "$KIDULTS_CONTROL_TOWER_HTML_OUT" --require-fresh \
-            | tee /tmp/kidults-management-control-tower/validation-receipt.json
+            | tee /tmp/kidults-management-control-tower/transport-validation-receipt.json
+          node scripts/kidults/kpmo/enforce-management-control-tower-evidence-freshness-v1.mjs \
+            "$KIDULTS_CONTROL_TOWER_SNAPSHOT_OUT" /tmp/kidults-management-control-tower/validation-receipt.json
       - name: Run dashboard integrity and failure-visibility regression
         run: node --test apps/kidults-enterprise-staging/executive-control-tower.test.mjs
       - name: Prove workflow is read-only
@@ -109,7 +114,8 @@ jobs:
             exit 1
           fi
           git diff --exit-code HEAD --
-      - name: Upload exact-head governed snapshot
+      - name: Upload exact-head governed terminal packet
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ env.KIDULTS_CONTROL_TOWER_ARTIFACT_NAME }}
