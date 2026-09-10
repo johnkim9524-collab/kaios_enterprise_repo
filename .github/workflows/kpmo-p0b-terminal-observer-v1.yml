@@ -39,6 +39,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LIVE_MAIN_SHA"
+          LIVE_MAIN_RECHECK="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_RECHECK" = "$LIVE_MAIN_SHA"
           OUT="$RUNNER_TEMP/kpmo-p0b-terminal-observer-v1"
           mkdir -p "$OUT/receipts"
           gh api --method GET -H 'Accept: application/vnd.github+json' \
@@ -64,6 +67,8 @@ jobs:
               "$OUT/event-${RUN_ID}.json" "$OUT/artifacts-${RUN_ID}.json" \
               "$OUT/receipts/producer-${RUN_ID}.json"
           done
+          LIVE_MAIN_FINAL="$(gh api "/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          test "$LIVE_MAIN_FINAL" = "$LIVE_MAIN_SHA"
           jq -s '{
             id:"kpmo-p0b-terminal-observer-summary-v1",
             state:(if all(.[]; .producer_terminal_state=="VERIFIED_PASS") then "VERIFIED_PASS" else "VERIFIED_FAIL" end),
