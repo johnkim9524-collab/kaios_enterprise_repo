@@ -76,3 +76,52 @@ jobs:
             /tmp/asi-autonomous-action-queue-v2.json
           retention-days: 30
           if-no-files-found: error
+      - name: Emit durable fail-closed market feedback terminal receipt
+        if: ${{ always() }}
+        env:
+          KIDULTS_JOB_STATUS: ${{ job.status }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const status=String(process.env.KIDULTS_JOB_STATUS||'unknown').toLowerCase();
+          const pass=status==='success';
+          const receipt={
+            id:'kidults-asi-market-structure-acquisition-feedback-terminal-v1',
+            version:'1.0.0',
+            control:'MARKET_STRUCTURE_ACQUISITION_FEEDBACK_TERMINALIZATION',
+            scope:'INTERNAL_CONTROL_ONLY_NOT_EMPIRICAL_PROOF',
+            terminal_state:pass?'VERIFIED_PASS':'VERIFIED_FAIL',
+            findings:pass?[]:[`WORKFLOW_JOB_${status.toUpperCase()}`],
+            execution:{
+              workflow:'KIDULTS ASI Market Structure Acquisition Feedback v1',
+              repository:process.env.GITHUB_REPOSITORY,
+              event:process.env.GITHUB_EVENT_NAME,
+              ref:process.env.GITHUB_REF,
+              source_sha:process.env.GITHUB_SHA,
+              run_id:process.env.GITHUB_RUN_ID,
+              run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT||0),
+              job_status:status
+            },
+            primary_feedback_artifact_available:pass,
+            promotion_eligible:false,
+            empirical_authority:false,
+            content_acquisition_authorized:false,
+            provider_activation_authorized:false,
+            credential_mutation_authorized:false,
+            external_spend_authorized:false,
+            database_write_authorized:false,
+            cloudflare_mutation_authorized:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
+          };
+          fs.writeFileSync('/tmp/kidults-asi-market-structure-acquisition-feedback-terminal-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Upload durable market feedback terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-asi-market-structure-acquisition-feedback-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-market-structure-acquisition-feedback-terminal-v1.json
+          retention-days: 90
+          if-no-files-found: error
