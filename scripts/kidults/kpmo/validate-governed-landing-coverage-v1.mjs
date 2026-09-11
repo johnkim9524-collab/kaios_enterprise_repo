@@ -13,6 +13,7 @@ const aggregateRunnerPath = 'scripts/kidults/kpmo/run-scope-aware-authoritative-
 const requiredPrefixes = [
   '.github/',
   'docs/architecture/',
+  'architecture/',
   'services/kidults-control-plane/',
   'services/kidults-autonomous-intelligence/',
   'scripts/kidults/kpmo/',

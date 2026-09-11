@@ -9,6 +9,7 @@
   "governed_path_prefixes": [
     ".github/",
     "docs/architecture/",
+    "architecture/",
     "services/kidults-control-plane/",
     "services/kidults-autonomous-intelligence/",
     "scripts/kidults/kpmo/",
