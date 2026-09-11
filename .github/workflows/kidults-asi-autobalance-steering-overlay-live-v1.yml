@@ -9,6 +9,8 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-autobalance-steering-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-self-driving-terminal-receipt-v1.mjs'
+      - 'tests/kidults/source-intelligence/asi-self-driving-terminal-receipt-v1.test.mjs'
       - '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml'
       - 'scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs'
   workflow_run:
@@ -47,6 +49,8 @@ jobs:
           node --check scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-autobalance-steering-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-self-driving-terminal-receipt-v1.mjs
+          node --test tests/kidults/source-intelligence/asi-self-driving-terminal-receipt-v1.test.mjs
           node scripts/kidults/source-intelligence/validate-asi-autobalance-steering-provenance-v1.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
 
@@ -224,3 +228,72 @@ jobs:
             /tmp/asi-discovery-steering-plan-autobalanced-v1.json
           retention-days: 30
           if-no-files-found: error
+
+  self-driving-terminal-receipt:
+    if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Self-Driving Control Loop v1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Read live protected-main SHA without mutating repository state
+        id: live-main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -u
+          live_main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha' 2>/dev/null || true)"
+          printf 'live_main_sha=%s\n' "$live_main_sha" >> "$GITHUB_OUTPUT"
+      - name: Emit exact-upstream terminal receipt
+        shell: bash
+        env:
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+          UPSTREAM_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+          LIVE_MAIN_SHA: ${{ steps.live-main.outputs.live_main_sha }}
+          UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          mkdir -p artifacts/self-driving-terminal
+          node scripts/kidults/source-intelligence/build-asi-self-driving-terminal-receipt-v1.mjs \
+            "$EXPECTED_REPOSITORY" \
+            "$UPSTREAM_REPOSITORY" \
+            "$UPSTREAM_BRANCH" \
+            "$UPSTREAM_SHA" \
+            "$LIVE_MAIN_SHA" \
+            "$UPSTREAM_CONCLUSION" \
+            "$UPSTREAM_RUN_ID" \
+            "$UPSTREAM_RUN_ATTEMPT" \
+            > artifacts/self-driving-terminal/receipt.json
+          jq -e '
+            .id == "kidults-asi-self-driving-terminal-receipt-v1" and
+            (.terminal_state == "VERIFIED_PASS" or .terminal_state == "VERIFIED_FAIL") and
+            .promotion_eligible == false and
+            .empirical_authority == false and
+            .provider_activation_authorized == false and
+            .database_write_authorized == false and
+            .cloudflare_mutation_authorized == false and
+            .public_release == "HOLD" and
+            .production == "HOLD" and
+            .g5 == "HOLD"
+          ' artifacts/self-driving-terminal/receipt.json
+      - name: Upload durable self-driving terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-self-driving-terminal-receipt-v1-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: artifacts/self-driving-terminal/receipt.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Fail closed after durable receipt when upstream is non-authoritative
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          jq -e '.terminal_state == "VERIFIED_PASS"' artifacts/self-driving-terminal/receipt.json
