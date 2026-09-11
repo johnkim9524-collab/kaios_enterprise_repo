@@ -8,6 +8,7 @@
   "scope_aware_required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
   "governed_path_prefixes": [
     ".github/",
+    "docs/architecture/",
     "services/kidults-control-plane/",
     "services/kidults-autonomous-intelligence/",
     "scripts/kidults/kpmo/",
