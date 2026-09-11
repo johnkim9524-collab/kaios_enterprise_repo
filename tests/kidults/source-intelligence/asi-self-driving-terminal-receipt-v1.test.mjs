@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { buildReceipt } from '../../../scripts/kidults/source-intelligence/build-asi-self-driving-terminal-receipt-v1.mjs';
 
 const repo='johnkim9524-collab/kaios_enterprise_repo';
@@ -51,4 +52,12 @@ test('malformed run identity fails closed',()=>{
   assert.equal(r.terminal_state,'VERIFIED_FAIL');
   assert.ok(r.findings.includes('UPSTREAM_RUN_ID_MALFORMED'));
   assert.ok(r.findings.includes('UPSTREAM_RUN_ATTEMPT_MALFORMED'));
+});
+
+
+test('workflow_run terminal receipts are attempt-bound and cannot cancel one another',()=>{
+  const workflow=readFileSync('.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml','utf8');
+  assert.ok(workflow.includes("github.event.workflow_run.run_attempt || github.run_attempt"));
+  assert.ok(workflow.includes("cancel-in-progress: ${{ github.event_name != 'workflow_run' }}"));
+  assert.equal(/cancel-in-progress:\s*true/.test(workflow),false);
 });
