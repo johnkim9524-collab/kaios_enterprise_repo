@@ -25,8 +25,8 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-autobalance-steering-overlay-live-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
-  cancel-in-progress: true
+  group: kidults-asi-autobalance-steering-overlay-live-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt || github.run_attempt }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_run' }}
 
 jobs:
   steering-overlay-live:
