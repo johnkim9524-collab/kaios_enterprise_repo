@@ -139,6 +139,8 @@ test('architecture contracts are governed and the workflow consumes the policy a
   for (const [prefix, examplePath] of [
     ['docs/architecture/', 'docs/architecture/taz-software-architecture-specification-v1.md'],
     ['architecture/', 'architecture/TAZ-000.md'],
+    ['src/trust/', 'src/trust/controller.ts'],
+    ['tests/trust/', 'tests/trust/controller.test.ts'],
   ]) {
     assert.ok(sourcePolicy.governed_path_prefixes.includes(prefix));
     assert.ok(

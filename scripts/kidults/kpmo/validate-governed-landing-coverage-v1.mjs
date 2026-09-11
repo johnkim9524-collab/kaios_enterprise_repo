@@ -14,6 +14,8 @@ const requiredPrefixes = [
   '.github/',
   'docs/architecture/',
   'architecture/',
+  'src/trust/',
+  'tests/trust/',
   'services/kidults-control-plane/',
   'services/kidults-autonomous-intelligence/',
   'scripts/kidults/kpmo/',
