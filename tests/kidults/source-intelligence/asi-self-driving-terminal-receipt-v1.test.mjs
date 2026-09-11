@@ -61,3 +61,15 @@ test('workflow_run terminal receipts are attempt-bound and cannot cancel one ano
   assert.ok(workflow.includes("cancel-in-progress: ${{ github.event_name != 'workflow_run' }}"));
   assert.equal(/cancel-in-progress:\s*true/.test(workflow),false);
 });
+
+test('market feedback step failures retain a non-promotable terminal receipt',()=>{
+  const workflow=readFileSync('.github/workflows/kidults-asi-market-structure-acquisition-feedback-v1.yml','utf8');
+  assert.ok(workflow.includes('Emit durable fail-closed market feedback terminal receipt'));
+  assert.ok(workflow.includes('Upload durable market feedback terminal receipt'));
+  assert.ok((workflow.match(/if: \${{ always\(\) }}/g)||[]).length>=2);
+  assert.ok(workflow.includes("terminal_state:pass?'VERIFIED_PASS':'VERIFIED_FAIL'"));
+  assert.ok(workflow.includes('primary_feedback_artifact_available:pass'));
+  assert.ok(workflow.includes('promotion_eligible:false'));
+  assert.ok(workflow.includes("public_release:'HOLD'"));
+  assert.ok(workflow.indexOf('Upload durable market feedback terminal receipt')>workflow.indexOf('Refresh bounded regional observation'));
+});
