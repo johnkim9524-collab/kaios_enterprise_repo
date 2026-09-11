@@ -133,3 +133,26 @@ test('transport, secret boundary, and atomicity claims cannot be weakened or gen
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
+
+
+test('architecture contracts are governed and the workflow consumes the policy as the single path source', () => {
+  assert.ok(sourcePolicy.governed_path_prefixes.includes('docs/architecture/'));
+  assert.ok(
+    sourcePolicy.governed_path_prefixes.some(prefix =>
+      'docs/architecture/taz-software-architecture-specification-v1.md'.startsWith(prefix)),
+  );
+
+  const workflow = fs.readFileSync(
+    '.github/workflows/kidults-governed-landing-authorization-v1.yml',
+    'utf8',
+  );
+  assert.match(
+    workflow,
+    /const prefixes = policy\.governed_path_prefixes;/,
+  );
+  assert.match(
+    workflow,
+    /const exact = new Set\(policy\.governed_exact_paths\);/,
+  );
+  assert.doesNotMatch(workflow, /const prefixes = \[/);
+});
