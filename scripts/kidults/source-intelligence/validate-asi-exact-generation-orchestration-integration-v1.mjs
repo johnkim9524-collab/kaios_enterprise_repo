@@ -76,6 +76,30 @@ export function violations(text, workflow) {
     if (!block.includes("if: github.event_name != 'pull_request'")) failures.push(`LIVE_STEP_NOT_PR_ISOLATED:${workflow}`);
   }
   if (liveBlocks.length === 0) failures.push(`LIVE_STEPS_NOT_DISCOVERED:${workflow}`);
+  if (workflow === workflows[3]) {
+    const poison = blocks.find((block) => block.includes('Reject poisoned previous snapshot'));
+    const poisonRequired = [
+      'Reject poisoned previous snapshot without history reset',
+      'set +e',
+      'POISON_STATUS=$?',
+      'test "$POISON_STATUS" -ne 0',
+      'test ! -e /tmp/asi-common-crawl-runtime-poison-recovery.json',
+      'PREVIOUS_SNAPSHOT_MALFORMED:SELF_DRIVING_PREVIOUS_EXPANSION:PREVIOUS_FRONTIER_INVALID',
+      'poisoned_snapshot_disposition:"REJECTED_FAIL_CLOSED"',
+      'history_reset:false',
+      'legacy_fallback_used:false',
+      'external_provider_requests:0',
+      'production:"HOLD"',
+      '/tmp/asi-common-crawl-runtime-poison-rejection.json',
+    ];
+    if (!poison) failures.push(`POISONED_SNAPSHOT_STEP_MISSING:${workflow}`);
+    for (const marker of poisonRequired) {
+      if (!poison?.includes(marker)) failures.push(`POISONED_SNAPSHOT_FAIL_CLOSED_MARKER_MISSING:${workflow}:${marker}`);
+    }
+    if (poison?.includes('restart safely') || poison?.includes('validate-asi-common-crawl-host-expansion-v1.mjs /tmp/asi-common-crawl-runtime-poison-recovery.json')) {
+      failures.push(`POISONED_SNAPSHOT_HISTORY_RESET_PATH_PRESENT:${workflow}`);
+    }
+  }
   return failures;
 }
 
@@ -113,8 +137,28 @@ if (process.argv.includes('--self-test')) {
       rejected += 1;
     }
   }
+  const poisonMutations = [
+    (text) => text.replace('without history reset', 'and restart safely'),
+    (text) => text.replace('set +e', ':'),
+    (text) => text.replace('test "$POISON_STATUS" -ne 0', 'test "$POISON_STATUS" -eq 0'),
+    (text) => text.replace('test ! -e /tmp/asi-common-crawl-runtime-poison-recovery.json', 'test -e /tmp/asi-common-crawl-runtime-poison-recovery.json'),
+    (text) => text.replace('PREVIOUS_SNAPSHOT_MALFORMED:SELF_DRIVING_PREVIOUS_EXPANSION:PREVIOUS_FRONTIER_INVALID', 'PREVIOUS_SNAPSHOT_IGNORED'),
+    (text) => text.replace('poisoned_snapshot_disposition:"REJECTED_FAIL_CLOSED"', 'poisoned_snapshot_disposition:"RESET_AND_CONTINUE"'),
+    (text) => text.replace('history_reset:false', 'history_reset:true'),
+    (text) => text.replace('external_provider_requests:0', 'external_provider_requests:1'),
+    (text) => text.replace(
+      /(poisoned_snapshot_disposition:"REJECTED_FAIL_CLOSED"[^\n]*production:)"HOLD"/,
+      '$1"APPROVED"',
+    ),
+  ];
+  let poisonRejected = 0;
+  for (const mutate of poisonMutations) {
+    const changed = mutate(sources[3][1]);
+    if (violations(changed, sources[3][0]).length) poisonRejected += 1;
+  }
   if (rejected !== mutations.length) throw new Error(`MUTATION_REJECTION_INCOMPLETE:${rejected}/${mutations.length}`);
-  console.log(JSON.stringify({ state: 'VERIFIED_PASS', workflows: workflows.length, mutations_rejected: rejected, external_provider_requests_in_pr: 0 }));
+  if (poisonRejected !== poisonMutations.length) throw new Error(`POISON_MUTATION_REJECTION_INCOMPLETE:${poisonRejected}/${poisonMutations.length}`);
+  console.log(JSON.stringify({ state: 'VERIFIED_PASS', workflows: workflows.length, mutations_rejected: rejected + poisonRejected, poisoned_snapshot_mutations_rejected: poisonRejected, external_provider_requests_in_pr: 0 }));
 } else {
   console.log(JSON.stringify({ state: 'VERIFIED_PASS', workflows: workflows.length, pr_fixture_isolated: true, live_receipt_retained_on_failure: true }));
 }
