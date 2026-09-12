@@ -2,6 +2,11 @@ name: Kidults Autonomous Operations
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/kidults-autonomous-operations.yml'
+      - 'apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs'
+      - 'apps/kidults-enterprise-staging/a13-b16-autonomous-operations-certification.test.mjs'
   schedule:
     - cron: '0 3 * * *'
 
