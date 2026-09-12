@@ -182,3 +182,10 @@ A false or unsupported material claim, concealed responsibility evasion, or a ma
 10. report the verified outcome and prioritized improvement proposal.
 
 No agent may weaken, bypass, reorder, or locally override these rules. A change requires an explicit KPMO governance update to the human policy and machine contracts, with validation passing.
+
+
+## Mandatory Track Z provider pre-engagement and outbound approval gate
+
+Track Z must complete the exact-HEAD, evidence-bound provider pre-engagement process before provider review, negotiation, Gmail draft creation, or send. It must verify the latest thread and authority, duplicate risk, provider identity and independence, schema/sample/data-quality/access/economic/rights evidence, ordered PAYMENT -> ACCESS -> INPUT -> DATA -> RIGHTS -> PRODUCT gates, replacement path, written-only handling, and the currently authorized external identity. Any material unknown fails closed.
+
+KPMO must then review the response strategy and line-by-line exact final email, report the strategy, risks, unresolved items, gate effects, recommendation, and exact outbound to the Program Owner, and obtain explicit approval bound to provider, thread, recipients, subject, body, attachments, intended action, protected-gate effects, and content SHA-256. New inbound or any material change invalidates approval. KPMO may propose text in its internal report but may not self-approve, infer/reuse approval, or automatically create/send Gmail. The call-request rule is candid non-native-English disclosure plus a respectful request for understanding and written-email negotiation; it is not a bilingual-email formatting rule. Full details are in `coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json` and `coordination/kidults/internalization/partner-pre-send-internalization-gate-v1.json`.

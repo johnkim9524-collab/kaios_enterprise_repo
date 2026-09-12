@@ -1,9 +1,9 @@
 {
   "id": "ih-group-provider-sourcing-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY",
   "effective_date": "2026-08-29",
-  "amended_at": "2026-09-01T00:00:00Z",
+  "amended_at": "2026-09-12T00:00:00Z",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
   "mandatory_strategy_addenda": [
     "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md"
@@ -35,14 +35,23 @@
     ]
   },
   "economic_gates": {
-    "group_monthly_discovery_pilot_budget_usd": {"min": 500, "max": 2500},
+    "group_monthly_discovery_pilot_budget_usd": {
+      "min": 500,
+      "max": 2500
+    },
     "maximum_concurrent_paid_pilots": 3,
     "maximum_provider_cost_percent_of_attributable_monthly_gross_profit": 10,
     "maximum_target_payback_months": 6,
     "product_evidence_threshold": "attributable-gross-profit-at-least-10x-monthly-provider-cost-for-two-consecutive-months",
     "group_reuse_threshold": "two-revenue-products-or-at-least-25-percent-duplicate-cost-saving",
     "critical_dependency_threshold": "at-least-20-percent-of-revenue-or-release-critical-capability",
-    "default_terms": ["monthly", "cancellable", "non-exclusive", "usage-capped", "no-annual-prepay-before-pilot"]
+    "default_terms": [
+      "monthly",
+      "cancellable",
+      "non-exclusive",
+      "usage-capped",
+      "no-annual-prepay-before-pilot"
+    ]
   },
   "rights_hard_gates": [
     "approved-legal-entity-and-authority",
@@ -80,7 +89,9 @@
       "quota-sla-support-and-schema-change",
       "security-privacy-and-audit",
       "assignment-novation-and-change-of-control"
-    ]
+    ],
+    "honest_non_native_english_disclosure_and_understanding_request_required_when_call_requested": true,
+    "bilingual_email_formatting_rule": false
   },
   "vertical_posture": {
     "Intelligence Holdings": "open-authority-first; buy shared utility only after measured multi-product reuse",
@@ -93,12 +104,30 @@
     "Kompare": "GS1-manufacturer-authorised merchant and affiliate feeds; no uncontrolled production scraping"
   },
   "standing_decisions": {
-    "eBay Marketplace Insights": {"state": "CLOSED", "reopen": "written-authorised-licensed-path"},
-    "PSA Premium": {"state": "BOUNDED", "reopen": "not-applicable"},
-    "PSA Enterprise": {"state": "CURRENT-ROI DROP", "reopen": "product-evidence-or-group-reuse-threshold"},
-    "GemRate": {"state": "CONDITIONAL", "reopen": "measured-incremental-lift"},
-    "ALT": {"state": "COMPETITOR-REFERENCE ONLY", "reopen": "approved-formal-partnership"},
-    "FNDATA": {"state": "COMPETITOR-REFERENCE ONLY", "reopen": "approved-formal-partnership"}
+    "eBay Marketplace Insights": {
+      "state": "CLOSED",
+      "reopen": "written-authorised-licensed-path"
+    },
+    "PSA Premium": {
+      "state": "BOUNDED",
+      "reopen": "not-applicable"
+    },
+    "PSA Enterprise": {
+      "state": "CURRENT-ROI DROP",
+      "reopen": "product-evidence-or-group-reuse-threshold"
+    },
+    "GemRate": {
+      "state": "CONDITIONAL",
+      "reopen": "measured-incremental-lift"
+    },
+    "ALT": {
+      "state": "COMPETITOR-REFERENCE ONLY",
+      "reopen": "approved-formal-partnership"
+    },
+    "FNDATA": {
+      "state": "COMPETITOR-REFERENCE ONLY",
+      "reopen": "approved-formal-partnership"
+    }
   },
   "agent_requirements": {
     "bootstrap_required": true,
@@ -124,7 +153,95 @@
       "next-action",
       "cost-exposure",
       "blocker"
-    ]
+    ],
+    "track_z_pre_engagement_required_before_provider_review_or_negotiation": true,
+    "kpmo_response_strategy_review_required": true,
+    "kpmo_exact_final_message_review_required": true,
+    "program_owner_pre_send_report_required": true,
+    "program_owner_exact_message_approval_required": true,
+    "exact_approval_invalidated_by_new_inbound_or_material_change": true,
+    "automatic_gmail_draft_or_send_forbidden": true
   },
-  "protected_gates": ["legal", "spend", "credential", "production", "public-release", "external-communication"]
+  "protected_gates": [
+    "legal",
+    "spend",
+    "credential",
+    "production",
+    "public-release",
+    "external-communication"
+  ],
+  "track_z_provider_pre_engagement": {
+    "status": "MANDATORY_BEFORE_PROVIDER_REVIEW_OR_NEGOTIATION",
+    "required_checks": [
+      "exact_head_provider_governance_read",
+      "latest_human_inbound_and_complete_thread_read",
+      "message_attachment_authenticity_and_sender_authority_checked",
+      "chronology_and_duplicate_or_resend_risk_checked",
+      "other_monitor_duplicate_message_id_checked",
+      "provider_brand_legal_contract_billing_tax_and_merchant_entities_separated",
+      "provider_company_product_and_use_case_fit_assessed",
+      "source_provenance_upstream_dependency_common_parent_and_provider_independence_assessed",
+      "schema_matching_sample_evidence_assessed",
+      "field_semantics_null_empty_omitted_and_missingness_assessed",
+      "access_method_activation_timing_rate_limit_and_overage_behavior_assessed",
+      "retention_deletion_private_evaluation_and_non_reconstructive_derived_rights_assessed",
+      "image_and_media_rights_assessed",
+      "trial_price_cancellation_refund_auto_renewal_and_tax_terms_assessed",
+      "payment_access_input_data_rights_product_gate_sequence_assessed",
+      "lock_in_replacement_path_and_provider_removal_cost_assessed",
+      "negotiation_objective_evidence_request_concessions_and_prohibited_commitments_defined",
+      "non_native_english_disclosure_and_written_email_only_handling_prepared_if_call_requested",
+      "external_display_name_and_legal_contracting_party_separated",
+      "intelligence_holdings_identity_authority_billing_tax_email_authentication_conditions_checked",
+      "current_authorized_outbound_identity_confirmed",
+      "external_communication_authority_confirmed"
+    ],
+    "evidence_separation": [
+      "fact",
+      "provider-claim",
+      "inference",
+      "unknown"
+    ],
+    "ordered_gate_assessment": [
+      "PAYMENT",
+      "ACCESS",
+      "INPUT",
+      "DATA",
+      "RIGHTS",
+      "PRODUCT"
+    ],
+    "missing_material_evidence": "HOLD_OR_ANALYSIS_REQUIRED"
+  },
+  "kpmo_pre_send_governance": {
+    "response_strategy_review_required": true,
+    "exact_final_message_line_by_line_review_required": true,
+    "program_owner_report_before_gmail_draft_or_send_required": true,
+    "exact_message_bound_approval_required": true,
+    "kpmo_self_approval_allowed": false,
+    "automatic_gmail_draft_or_send_allowed": false,
+    "approval_binding_fields": [
+      "provider",
+      "thread_or_reply_target",
+      "to",
+      "cc",
+      "bcc",
+      "subject",
+      "body",
+      "attachments",
+      "intended_action",
+      "protected_gate_effects",
+      "approved_content_sha256"
+    ],
+    "approval_invalidation_events": [
+      "new_human_inbound",
+      "provider_change",
+      "thread_or_reply_target_change",
+      "recipient_change",
+      "subject_change",
+      "body_change",
+      "attachment_change",
+      "material_scope_change",
+      "protected_gate_effect_change"
+    ]
+  }
 }

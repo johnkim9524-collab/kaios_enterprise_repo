@@ -179,6 +179,33 @@ function validate(input) {
     if (!d.includes(marker)) errors.push(`STRATEGY_MARKER_MISSING:${marker}`);
   }
 
+
+  const trackZChecks = ["exact_head_provider_governance_read","latest_human_inbound_and_complete_thread_read","message_attachment_authenticity_and_sender_authority_checked","chronology_and_duplicate_or_resend_risk_checked","other_monitor_duplicate_message_id_checked","provider_brand_legal_contract_billing_tax_and_merchant_entities_separated","provider_company_product_and_use_case_fit_assessed","source_provenance_upstream_dependency_common_parent_and_provider_independence_assessed","schema_matching_sample_evidence_assessed","field_semantics_null_empty_omitted_and_missingness_assessed","access_method_activation_timing_rate_limit_and_overage_behavior_assessed","retention_deletion_private_evaluation_and_non_reconstructive_derived_rights_assessed","image_and_media_rights_assessed","trial_price_cancellation_refund_auto_renewal_and_tax_terms_assessed","payment_access_input_data_rights_product_gate_sequence_assessed","lock_in_replacement_path_and_provider_removal_cost_assessed","negotiation_objective_evidence_request_concessions_and_prohibited_commitments_defined","non_native_english_disclosure_and_written_email_only_handling_prepared_if_call_requested","external_display_name_and_legal_contracting_party_separated","intelligence_holdings_identity_authority_billing_tax_email_authentication_conditions_checked","current_authorized_outbound_identity_confirmed","external_communication_authority_confirmed"];
+  for (const check of trackZChecks) {
+    if (!p.track_z_pre_engagement_gate?.required_checks?.includes(check)) errors.push(`TRACK_Z_PRE_ENGAGEMENT_CHECK_MISSING:${check}`);
+    if (!g.required_checks?.includes(check)) errors.push(`PRE_SEND_TRACK_Z_CHECK_MISSING:${check}`);
+  }
+  if (p.track_z_pre_engagement_gate?.status !== 'MANDATORY_NON_BYPASS_BEFORE_PROVIDER_REVIEW_OR_NEGOTIATION') errors.push('TRACK_Z_PRE_ENGAGEMENT_NOT_MANDATORY');
+  if (p.policy_interpretation?.bilingual_email_formatting_rule !== false) errors.push('BILINGUAL_FORMATTING_MISINTERPRETATION');
+  const kg = p.kpmo_pre_send_governance || {};
+  if (kg.response_strategy_review?.required !== true) errors.push('KPMO_STRATEGY_REVIEW_NOT_REQUIRED');
+  if (kg.exact_final_message_review?.required !== true || kg.exact_final_message_review?.line_by_line !== true) errors.push('KPMO_FINAL_MESSAGE_REVIEW_NOT_REQUIRED');
+  if (kg.program_owner_pre_send_report_required !== true) errors.push('PROGRAM_OWNER_PRE_SEND_REPORT_NOT_REQUIRED');
+  if (kg.program_owner_explicit_message_bound_approval_required !== true) errors.push('PROGRAM_OWNER_EXACT_MESSAGE_APPROVAL_NOT_REQUIRED');
+  if (kg.kpmo_self_approval_allowed !== false) errors.push('KPMO_SELF_APPROVAL_NOT_FORBIDDEN');
+  if (kg.automatic_gmail_draft_creation !== false || kg.automatic_send !== false) errors.push('AUTOMATIC_GMAIL_ACTION_NOT_FORBIDDEN');
+  if (!kg.approval_binding_fields?.includes('approved_content_sha256')) errors.push('APPROVAL_CONTENT_HASH_BINDING_MISSING');
+  if (!kg.approval_invalidation_events?.includes('new_human_inbound')) errors.push('NEW_INBOUND_APPROVAL_INVALIDATION_MISSING');
+  for (const assertion of ['kpmo_response_strategy_review_completed','kpmo_final_message_review_completed','program_owner_pre_send_report_completed','program_owner_explicit_message_bound_send_approval_recorded','approval_binding_matches_exact_outbound','non_native_english_context_respected']) {
+    if (p.required_outbound_assertions?.[assertion] !== true) errors.push(`OUTBOUND_ASSERTION_MISSING:${assertion}`);
+    if (!g.required_checks?.includes(assertion)) errors.push(`PRE_SEND_CHECK_MISSING:${assertion}`);
+  }
+  if (s.agent_requirements?.track_z_pre_engagement_required_before_provider_review_or_negotiation !== true) errors.push('SOURCING_TRACK_Z_PRE_ENGAGEMENT_MISSING');
+  if (s.kpmo_pre_send_governance?.exact_message_bound_approval_required !== true) errors.push('SOURCING_EXACT_MESSAGE_APPROVAL_MISSING');
+  if (g.fail_closed?.track_z_pre_engagement_missing !== 'DO_NOT_REVIEW_OR_NEGOTIATE') errors.push('TRACK_Z_PRE_ENGAGEMENT_NOT_FAIL_CLOSED');
+  if (g.fail_closed?.exact_message_approval_missing_or_stale !== 'DO_NOT_SEND') errors.push('EXACT_MESSAGE_APPROVAL_NOT_FAIL_CLOSED');
+  if (!d.includes('Mandatory Track Z pre-engagement, KPMO review, and Program Owner approval')) errors.push('TRACK_Z_STRATEGY_SECTION_MISSING');
+  if (!d.includes('it is not a bilingual-email formatting rule')) errors.push('BILINGUAL_RULE_CLARIFICATION_MISSING');
   if (p.authority_boundary?.spend !== 'EXPLICIT_APPROVAL_REQUIRED') errors.push('SPEND_BOUNDARY_DRIFT');
   if (p.authority_boundary?.contract !== 'EXPLICIT_APPROVAL_REQUIRED') errors.push('CONTRACT_BOUNDARY_DRIFT');
   if (p.authority_boundary?.credential !== 'EXPLICIT_APPROVAL_REQUIRED') errors.push('CREDENTIAL_BOUNDARY_DRIFT');
@@ -244,6 +271,32 @@ proveNegative(
   'CLASSIC_COM_CALL_PREREQUISITE_NOT_REJECTED',
 );
 
+
+proveNegative(
+  'track_z_pre_engagement_removed',
+  input => { input.policy.track_z_pre_engagement_gate.required_checks = []; },
+  'TRACK_Z_PRE_ENGAGEMENT_CHECK_MISSING:exact_head_provider_governance_read',
+);
+proveNegative(
+  'kpmo_strategy_review_removed',
+  input => { input.policy.kpmo_pre_send_governance.response_strategy_review.required = false; },
+  'KPMO_STRATEGY_REVIEW_NOT_REQUIRED',
+);
+proveNegative(
+  'program_owner_exact_message_approval_removed',
+  input => { input.policy.kpmo_pre_send_governance.program_owner_explicit_message_bound_approval_required = false; },
+  'PROGRAM_OWNER_EXACT_MESSAGE_APPROVAL_NOT_REQUIRED',
+);
+proveNegative(
+  'kpmo_self_approval_enabled',
+  input => { input.policy.kpmo_pre_send_governance.kpmo_self_approval_allowed = true; },
+  'KPMO_SELF_APPROVAL_NOT_FORBIDDEN',
+);
+proveNegative(
+  'approved_content_hash_binding_removed',
+  input => { input.policy.kpmo_pre_send_governance.approval_binding_fields = []; },
+  'APPROVAL_CONTENT_HASH_BINDING_MISSING',
+);
 console.log(JSON.stringify({
   receipt_id: 'KIDULTS_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_VALIDATION_V1',
   state: 'VERIFIED_PASS',

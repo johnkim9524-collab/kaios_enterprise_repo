@@ -1,7 +1,7 @@
 {
   "registry_version": "1.1.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-09-08T00:00:00+09:00",
+  "updated_at": "2026-09-12T00:00:00Z",
   "change_rationale": "Bind every AI-agent role assignment to end-to-end accountability, bounded helper use, exact-evidence enforcement, immediate fail-closed task and dispatch removal, controlled reinstatement, and permanent retirement for concealment, refusal, evasion, or recurrence.",
   "role_assignment_rule": "A named person, AI agent or service may perform a role only after accepting its mission, authority limits, required outputs and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
   "ai_agent_accountability_enforcement": {
@@ -37,26 +37,31 @@
         "Resolve cross-track priority conflicts",
         "Accept or reject residual risk after independent validation",
         "Approve Production promotion and rollback when business judgment is required",
-        "Approve material synchronization into Master Book, Baseline Book and Architecture Book"
+        "Approve material synchronization into Master Book, Baseline Book and Architecture Book",
+        "Review the KPMO provider response strategy, risks, unresolved items, gate effects and exact final outbound before deciding whether to authorize provider communication",
+        "Approve or reject provider outbound only when the decision is bound to the exact provider, thread, recipients, subject, body, attachments, intended action, protected-gate effects and approved-content SHA-256"
       ],
       "required_deliverables": [
         "Priority decisions",
         "Provider and investment decisions",
         "Production decision record",
         "Residual-risk acceptance or rejection",
-        "Material doctrine approval"
+        "Material doctrine approval",
+        "Provider outbound exact-message approval or rejection record"
       ],
       "decision_authority": [
         "Final program scope",
         "Final budget and provider commitment",
         "Final Production approval",
         "Final residual-risk acceptance",
-        "Final material Book doctrine approval"
+        "Final material Book doctrine approval",
+        "Final exact-message approval or rejection for provider outbound communication"
       ],
       "must_not": [
         "Be required to manage hourly implementation details",
         "Approve a release without traceable evidence, gate status and rollback target",
-        "Treat a chat-only statement as an official program decision"
+        "Treat a chat-only statement as an official program decision",
+        "Allow generic, inferred or prior approval to authorize a changed provider outbound message"
       ],
       "success_measures": [
         "High-value decisions are made from measured evidence",
@@ -81,7 +86,10 @@
         "When performed by an AI agent, retain KPMO accountability through authorized execution, helper review, validation, truth-sync and final reporting",
         "Recommend release readiness but not replace the Program Owner's final approval",
         "Coordinate synchronization into the three official Books",
-        "Prevent isolated chat sessions from becoming divergent sources of truth"
+        "Prevent isolated chat sessions from becoming divergent sources of truth",
+        "Before provider outbound, conduct and evidence KPMO review of the Track Z response strategy and the exact final message line by line",
+        "Report the provider strategy, risks, unresolved items, gate effects, recommendation and exact final outbound to the Program Owner before Gmail draft creation or send",
+        "Block provider review or negotiation when the Track Z pre-engagement receipt is missing or materially incomplete"
       ],
       "required_deliverables": [
         "Integrated status digest",
@@ -90,13 +98,15 @@
         "Decision requests with options and evidence",
         "Architecture and contract change proposals",
         "Book synchronization checklist",
-        "Executive sprint report at each sprint completion"
+        "Executive sprint report at each sprint completion",
+        "KPMO provider response-strategy and exact-final-message review receipt"
       ],
       "decision_authority": [
         "Reject an incomplete or incompatible handoff",
         "Block integration on contract or snapshot mismatch",
         "Recommend release, hold or rollback",
-        "Propose architecture and operating-process changes"
+        "Propose architecture and operating-process changes",
+        "Block provider negotiation, Gmail draft creation or send when Track Z, KPMO or exact-message approval evidence is missing"
       ],
       "must_not": [
         "Invent official doctrine without registering and routing it through change control",
@@ -104,7 +114,10 @@
         "Replace Track B's independent assessment",
         "Approve provider contracts or final Production promotion",
         "When performed by an AI agent, self-exempt from AI-019, transfer KPMO core duties to Codex or another helper, or adjudicate its own removal or reinstatement",
-        "Claim work is completed without verifiable artifacts"
+        "Claim work is completed without verifiable artifacts",
+        "Create or send a provider Gmail message automatically",
+        "Self-approve, infer, reuse or broaden Program Owner approval for provider outbound",
+        "Treat the non-native-English written-negotiation rule as a bilingual-email formatting rule"
       ],
       "success_measures": [
         "No snapshot-ID mismatch reaches release review",
@@ -532,6 +545,48 @@
         "Low rework caused by isolated assumptions"
       ],
       "reporting_cadence": "As defined by the assigned role and immediately on material risk or conflict."
+    },
+    {
+      "role_id": "track-z-provider-commercial",
+      "title": "Track Z Lead — External Provider Review and Written Negotiation",
+      "current_holder": "Track Z provider-commercial workstream agent",
+      "mission": "Complete evidence-bound provider pre-engagement, assess provider fit and independence, and prepare written negotiation strategy without bypassing KPMO or Program Owner authority.",
+      "core_responsibilities": [
+        "Complete the mandatory pre-engagement receipt before any provider review or negotiation",
+        "Read the latest human inbound and complete thread, verify sender authority and prevent duplicate or stale outreach",
+        "Assess provider identity, product fit, upstream dependence, independence, schema evidence, access, data quality, rights, economics, lock-in and replacement path",
+        "Assess PAYMENT, ACCESS, INPUT, DATA, RIGHTS and PRODUCT gates in order without treating payment as evidence of later gates",
+        "When a call is requested, candidly disclose the Program Owner's non-native-English context, respectfully request understanding and continue by written email",
+        "Separate external display identity from the legally verified contracting, billing, merchant-of-record and tax entity",
+        "Submit strategy and proposed exact message to KPMO; do not create a Gmail draft or send"
+      ],
+      "required_deliverables": [
+        "Track Z provider pre-engagement receipt",
+        "Fact, provider-claim, inference and unknown register",
+        "Provider independence and upstream dependency assessment",
+        "PAYMENT to PRODUCT gate assessment",
+        "Negotiation objective, evidence request, prohibited commitments, replacement path and verdict"
+      ],
+      "decision_authority": [
+        "Recommend READY_FOR_KPMO_REVIEW, ANALYSIS_REQUIRED, HOLD, WAIT, NO_GO or INTERNALIZE_FIRST",
+        "Block provider review or negotiation when required evidence is missing"
+      ],
+      "must_not": [
+        "Self-approve external communication",
+        "Create or send provider Gmail automatically",
+        "Treat payment as proof of access, data or rights",
+        "Count a common-parent or upstream-dependent source as an independent replacement",
+        "Present Intelligence Holdings Inc. as contracting party before its exact legal and operational authority conditions are verified",
+        "Treat written-only negotiation as a bilingual-email formatting rule"
+      ],
+      "success_measures": [
+        "No provider review or negotiation begins without a current pre-engagement receipt",
+        "No duplicate or stale outbound",
+        "Every material unknown remains explicit and fail-closed",
+        "Every provider decision preserves replacement leverage and protected gates"
+      ],
+      "reporting_cadence": "Per provider trigger, before review or negotiation, and again when new human inbound or material evidence changes."
     }
-  ]
+  ],
+  "version": "1.2.0"
 }
