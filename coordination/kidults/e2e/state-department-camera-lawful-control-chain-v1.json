@@ -1,0 +1,154 @@
+{
+  "id": "kidults-state-department-camera-lawful-control-chain-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_NON_PROMOTABLE_CONTROL_ONLY",
+  "owner": "KPMO",
+  "priority": "P0",
+  "purpose": "Exercise the Observation to control Candidate/Evidence to Track-B-contract mock to payloadless NO_PROJECTION plumbing with one exact lawful-derived State Department camera reference while preserving every canonical empirical and release gate.",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "authoritative_source": {
+    "observation_path": "coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json",
+    "source_contract_path": "coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json",
+    "source_registry_path": "coordination/kidults/source-intelligence/asi-state-department-camera-evidence-registry-v1.json",
+    "observation_id": "kidults-state-department-camera-auction-observation-v1",
+    "source_id": "us-state-department-online-auction",
+    "source_owner_id": "us-department-of-state",
+    "factual_origin_id": "us-department-of-state-online-auction",
+    "scope_id": "cameras_lenses",
+    "domain_id": "technology_cameras",
+    "source_projection_sha256": "sha256:dcd433fa8d320a0e3e6a22c3425e72b70988815dfb5c69514517588e009f37b5",
+    "claim_ceiling_sha256": "sha256:038995eff8186d1c9090fcdaab935d16644f058285dd814d55dcf4646e02ca7c",
+    "required_evidence_class": "AUCTION_RESULT_REFERENCE",
+    "required_price_type": "BID",
+    "required_rights": {
+      "collect": "ALLOW",
+      "store": "ALLOW",
+      "transform": "ALLOW",
+      "display": "UNKNOWN",
+      "redistribute": "UNKNOWN",
+      "sell": "UNKNOWN"
+    },
+    "rights_review_must_be_current": true,
+    "raw_source_snapshot_verified": false,
+    "generalized_live_fetch_allowed": false
+  },
+  "track_a_control_pair": {
+    "builder": "scripts/kidults/e2e/build-state-department-camera-lawful-control-pair-v1.mjs",
+    "candidate_schema": "coordination/kidults/e2e/lawful-control-snapshot-candidate-v1.schema.json",
+    "evidence_schema": "coordination/kidults/e2e/lawful-control-evidence-package-v1.schema.json",
+    "output_files": [
+      "snapshot-candidate.json",
+      "evidence-package.json",
+      "track-a-control-manifest.json"
+    ],
+    "candidate_record_type": "kidults_lawful_control_snapshot_candidate",
+    "evidence_record_type": "kidults_lawful_control_evidence_package",
+    "fixture_type": "LAWFUL_SOURCE_NON_PROMOTABLE_CONTROL",
+    "content_addressing": "SHA256_CANONICAL_SORTED_JSON",
+    "atomic_directory_commit_required": true,
+    "canonical_handoff_eligible": false
+  },
+  "track_b_contract_mock": {
+    "assessor": "scripts/kidults/e2e/assess-state-department-camera-control-interface-v1.mjs",
+    "schema": "coordination/kidults/e2e/track-b-contract-mock-assessment-v1.schema.json",
+    "allowed_input_files": [
+      "snapshot-candidate.json",
+      "evidence-package.json"
+    ],
+    "output_file": "track-b-contract-mock-assessment.json",
+    "record_type": "kidults_track_b_contract_mock_assessment",
+    "assessment_class": "TRACK_B_CONTRACT_COMPATIBLE_MOCK_ASSESSMENT",
+    "official_track_b_started": false,
+    "rankability_assessment_filename_forbidden": true,
+    "canonical_handoff_state": "BLOCKED_CONTROL_PAIR",
+    "rankable": false,
+    "promotable": false
+  },
+  "projection_control": {
+    "builder": "scripts/kidults/e2e/build-state-department-camera-control-projection-v1.mjs",
+    "schema": "coordination/kidults/e2e/non-promotable-control-projection-v1.schema.json",
+    "output_file": "control-projection.json",
+    "record_type": "kidults_non_promotable_control_projection",
+    "schema_version": "1.0.0",
+    "fixture_type": "NON_PROMOTABLE_CONTROL",
+    "projection_state": "NO_PROJECTION",
+    "source_facts_discarded": true,
+    "portal_content_policy": "DISCARD_ALL_INPUT_CONTENT_AND_RENDER_IMMUTABLE_STRUCTURAL_CATALOG_ONLY",
+    "approved_projection": false,
+    "promotable": false
+  },
+  "validation": {
+    "validator": "scripts/kidults/e2e/validate-state-department-camera-lawful-control-chain-v1.mjs",
+    "workflow": ".github/workflows/kidults-e2e-state-department-camera-lawful-control-v1.yml",
+    "upstream_lineage_schema": "coordination/kidults/e2e/state-department-camera-upstream-lineage-v1.schema.json",
+    "upstream_lineage_verifier": "scripts/kidults/e2e/emit-state-department-camera-upstream-lineage-v1.mjs",
+    "canonical_upstream_workflow_name": "KIDULTS ASI State Department Camera Evidence v1",
+    "canonical_upstream_workflow_path": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml",
+    "canonical_upstream_artifact_name": "kidults-asi-state-department-camera-evidence-v1",
+    "canonical_upstream_artifact_count": 1,
+    "canonical_upstream_artifact_must_be_nonexpired": true,
+    "canonical_upstream_artifact_digest_reverification": "GITHUB_ACTIONS_API_ARCHIVE_SHA256_EXACT_MATCH_PLUS_ACTION_DOWNLOAD_V4",
+    "canonical_handoff_contract": "coordination/kidults/poc/candidate-evidence-handoff-preflight-contract-r2.json",
+    "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
+    "staging_admission_contract": "coordination/kidults/runtime/staging-real-workload-admission-contract-v1.json",
+    "staging_admission_validator": "scripts/kidults/runtime/validate-staging-real-workload-admission-v1.mjs",
+    "portal_projection_store": "apps/kidults-enterprise-staging/public/portal-r001/projection-store.js",
+    "existing_control_dry_run_validator": "scripts/kidults/projection/validate-projection-dry-run-v1.mjs"
+  },
+  "required_negative_mutations": [
+    "SOURCE_PROJECTION_DIGEST_MISMATCH",
+    "RIGHTS_REMOVAL_OR_EXPIRY",
+    "REFERENCE_CLAIM_INFLATION",
+    "PUBLIC_PRODUCTION_OR_G5_PROMOTION",
+    "PAIR_DIGEST_MISMATCH",
+    "PAIR_IDENTITY_REBINDING",
+    "MOCK_TO_OFFICIAL_TRACK_B_PROMOTION",
+    "MOCK_RANKABLE_OR_PROMOTABLE_PROMOTION",
+    "PROJECTION_LIVE_APPROVED_PROMOTION",
+    "PROJECTION_PAYLOAD_LEAKAGE",
+    "CANONICAL_HANDOFF_FALSE_ACCEPTANCE",
+    "STAGING_CONTROL_PAIR_FALSE_ADMISSION"
+  ],
+  "required_upstream_lineage_negative_mutations": [
+    "UPSTREAM_RUN_PATH_OR_HEAD_SHA_REBINDING",
+    "UPSTREAM_RUN_NOT_SUCCESSFULLY_COMPLETED",
+    "UPSTREAM_ARTIFACT_COUNT_EXPIRY_OR_NAME_DRIFT",
+    "UPSTREAM_ARTIFACT_OR_PREDECESSOR_DIGEST_TAMPER"
+  ],
+  "canonical_truth_preservation": {
+    "mutate_canonical_candidate_registry": false,
+    "mutate_track_b_registry": false,
+    "mutate_projection_registry": false,
+    "increment_snapshot_candidate_truth_counter": false,
+    "increment_track_b_input_truth_counter": false,
+    "increment_approved_projection_truth_counter": false,
+    "control_artifact_may_be_used_as_real_workload": false
+  },
+  "truth_boundary": {
+    "underlying_input_data_class": "LAWFUL_BOUNDED_SOURCE_FACT_PROJECTION",
+    "control_pair_created": true,
+    "canonical_candidate_created": false,
+    "canonical_evidence_package_created": false,
+    "canonical_handoff_eligible": false,
+    "official_track_b_started": false,
+    "rankability_assessment_created": false,
+    "track_b_contract_mock_created": true,
+    "real_product_value_proof": false,
+    "approved_projection": false,
+    "live_approved_projection": "NONE",
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "effects": {
+    "autonomous_effect": "POSITIVE",
+    "global_effect": "NEUTRAL_WITH_EVIDENCE",
+    "irreplaceable_value_effect": "POSITIVE",
+    "transparency_effect": "POSITIVE"
+  }
+}

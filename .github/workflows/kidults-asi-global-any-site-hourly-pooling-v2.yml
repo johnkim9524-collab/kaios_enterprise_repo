@@ -12,6 +12,29 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs'
@@ -21,6 +44,15 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-admitted-metadata-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-admitted-metadata-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json'
+      - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
+      - 'scripts/kidults/provider/validate-provider-communication-evidence-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
@@ -37,6 +69,26 @@ on:
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
       - 'scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs'
+      - 'scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs'
+      - 'scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
+      - 'scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs'
+      - 'tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - 'scripts/kidults/source-intelligence/build-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-proactive-source-pool-v1.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-rights-first-source-intake-v1.mjs'
@@ -50,9 +102,12 @@ permissions:
   contents: read
   actions: read
 
+env:
+  KIDULTS_EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 concurrency:
-  group: kidults-asi-global-any-site-hourly-v2-${{ github.ref }}
-  cancel-in-progress: true
+  group: kidults-asi-global-any-site-hourly-v2-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   global-any-site-hourly-pool-v2:
@@ -61,12 +116,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Verify exact source SHA
-        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+        run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_SOURCE_SHA"
       - name: Syntax-check discovery and governance runtime
         run: |
           node --check scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs
@@ -75,6 +131,18 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs
           node --check scripts/kidults/source-intelligence/merge-asi-common-crawl-into-any-site-discovery-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs
+          node --check scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs
+          node --check scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs
+          node --check scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs
+          node --check scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs
+          node --check scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs
           node --check scripts/kidults/source-intelligence/build-asi-gate2-independent-reverification-v1.mjs
@@ -136,9 +204,64 @@ jobs:
           const fs=require('fs');const x=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const c=x.candidates.find(y=>y.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||y.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(!c)process.exit(0);c.rights_state='ALLOW';fs.writeFileSync('/tmp/bad-common-crawl-rights-v2.json',JSON.stringify(x));
           NODE
           if [ -f /tmp/bad-common-crawl-rights-v2.json ] && node scripts/kidults/source-intelligence/validate-asi-common-crawl-any-site-gate-binding-v1.mjs /tmp/bad-common-crawl-rights-v2.json; then exit 1; fi
-      - name: Gate1 classify merged ingress into Safe, Review and Hard Block
+      - name: Backfill canonical 64 and enforce Product Value Gate before Gate1
         run: |
-          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/asi-gate1-safe-candidate-pool-v2.json
+          node scripts/kidults/source-intelligence/build-asi-product-value-backfill-v1.mjs coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json /tmp/asi-product-value-backfill-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-product-value-backfill-v1.mjs /tmp/asi-product-value-backfill-v1.json
+          node scripts/kidults/source-intelligence/apply-asi-product-value-gate-v1.mjs discovery-out/global-low-risk-discovery-governed-v2.json /tmp/asi-product-value-backfill-v1.json /tmp/asi-product-value-gated-discovery-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-product-value-gate-binding-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json /tmp/asi-product-value-backfill-v1.json
+          node scripts/kidults/source-intelligence/test-asi-product-value-gate-binding-v1.mjs
+      - name: Build launch rights-analysis Fast Lane
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-product-value-backfill-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json /tmp/asi-rights-analysis-fast-lane-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-rights-analysis-fast-lane-decisions-v1.mjs /tmp/asi-rights-analysis-fast-lane-v1.json coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json
+      - name: Cross-bind source evidence for canary evaluation without activation authority
+        env:
+          KIDULTS_REPOSITORY: ${{ github.repository }}
+          KIDULTS_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
+          KIDULTS_EXPECTED_REPOSITORY: ${{ github.repository }}
+          KIDULTS_EXPECTED_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_EXPECTED_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_EXPECTED_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_EXPECTED_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-source-eligibility-receipts-v1.mjs \
+            /tmp/asi-product-value-backfill-v1.json \
+            coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json \
+            coordination/kidults/source-intelligence/asi-rights-source-content-snapshot-manifest-v1.json \
+            coordination/kidults/source-intelligence/asi-source-schema-snapshot-manifest-v1.json \
+            coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json \
+            /tmp/asi-source-eligibility-receipts-v1.json
+          node scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs /tmp/asi-source-eligibility-receipts-v1.json coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json
+          node scripts/kidults/source-intelligence/test-asi-source-eligibility-receipts-v1.mjs
+      - name: Reject adapter or content authority without P3 exact-CANARY source binding
+        env:
+          KIDULTS_EXPECTED_REPOSITORY: ${{ github.repository }}
+          KIDULTS_EXPECTED_PRODUCER_WORKFLOW_PATH: .github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml
+          KIDULTS_EXPECTED_SOURCE_SHA: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ID: ${{ github.run_id }}
+          KIDULTS_EXPECTED_WORKFLOW_RUN_ATTEMPT: ${{ github.run_attempt }}
+          KIDULTS_EXPECTED_PRODUCER_EVENT_NAME: ${{ github.event_name }}
+          KIDULTS_EXPECTED_PRODUCER_ARTIFACT_NAME: kidults-asi-global-any-site-source-pool-v2
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));const r=x.records[0];r.p3_exact_canary_receipt_bound=true;r.product_content_admission_authorized=true;r.adapter_activation_authorized=true;x.summary.p3_exact_canary_bound=1;x.summary.product_content_admitted=1;x.summary.adapter_activation_authorized=1;fs.writeFileSync('/tmp/forged-source-eligibility.json',JSON.stringify(x));
+          NODE
+          if node scripts/kidults/source-intelligence/validate-asi-source-eligibility-receipts-v1.mjs /tmp/forged-source-eligibility.json coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json; then exit 1; fi
+      - name: Run source eligibility receipt replay and lineage regression
+        run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
+      - name: Gate1 classify discovery metadata only into Safe Review and Hard Block
+        run: |
+          node scripts/kidults/source-intelligence/build-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-product-value-gated-discovery-v1.json /tmp/asi-gate1-safe-candidate-pool-v2.json
           node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/asi-gate1-safe-candidate-pool-v2.json
           node - <<'NODE'
           const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const all=[...(x.safe_candidate_pool||[]),...(x.review_required_queue||[]),...(x.hard_block_queue||[])];const cc=all.filter(c=>c.discovery_provider==='COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'||c.discovery_providers?.includes('COMMON_CRAWL_URL_INDEX_HOST_EXPANSION'));if(cc.some(c=>c.gate_1_state==='PASS'))throw new Error('COMMON_CRAWL_AUTO_SAFE_WITHOUT_RIGHTS');if(cc.some(c=>c.acquisition_authorized!==false))throw new Error('COMMON_CRAWL_ACQUISITION_PROMOTION');console.log(JSON.stringify({status:'PASS',common_crawl_gate1_candidates:cc.length,common_crawl_auto_safe:0,production:x.production}));
@@ -147,7 +270,7 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE'
-          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(2);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
+          const fs=require('fs');const x=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));if(!x.receipts.length)process.exit(0);x.receipts[0].collection_right_created=true;fs.writeFileSync('/tmp/bad-gate1-right-v2.json',JSON.stringify(x));
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-gate1-safe-candidate-pool-v1.mjs /tmp/bad-gate1-right-v2.json; then exit 1; fi
       - name: Gate1 reject Review candidate entering Safe Pool mutation
@@ -205,14 +328,18 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE' >/tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
-          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v2.json'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v2.json'));const e=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));
+          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_purpose:'DISCOVERY_METADATA_INDEX_ONLY',gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,source_eligibility_purpose:e.purpose_id,product_content_eligible_sources:e.summary.eligible,adapter_activation_authorized_sources:e.summary.adapter_activation_authorized,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:e.summary.product_content_admitted>0,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-global-any-site-source-pool-v2
           path: |
+            /tmp/asi-product-value-backfill-v1.json
+            /tmp/asi-product-value-gated-discovery-v1.json
+            /tmp/asi-rights-analysis-fast-lane-v1.json
+            /tmp/asi-source-eligibility-receipts-v1.json
             /tmp/asi-proactive-source-pool-v2.json
             /tmp/asi-gate1-safe-candidate-pool-v2.json
             /tmp/asi-gate2-independent-reverification-v2.json

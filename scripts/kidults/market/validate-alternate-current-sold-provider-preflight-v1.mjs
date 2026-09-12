@@ -271,7 +271,7 @@ export function validateAlternateCurrentSoldProviderPreflightBundle(bundle) {
     if (gateState?.decision !== provider.recorded_decision || gateState?.activation !== 'DISABLED') errors.push(`${provider.provider_id} provider gate decision or activation drift`);
   }
 
-  if (gate.version !== '1.2.0') errors.push('provider rights gate must be version 1.2.0');
+  if (gate.version !== '1.3.0') errors.push('provider rights gate must be version 1.3.0');
   if (!exact(gate.providers, EXPECTED_GATE_PROVIDERS)) errors.push('provider rights gate provider universe drift');
 
   const portfolio = preflight.portfolio_truth || {};

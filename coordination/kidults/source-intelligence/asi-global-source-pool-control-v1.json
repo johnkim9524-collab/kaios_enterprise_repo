@@ -1,0 +1,366 @@
+{
+  "id": "kidults-asi-global-source-pool-control-v1",
+  "version": "1.3.0",
+  "status": "ACTIVE_AFTER_PROTECTED_MAIN_MERGE",
+  "owner": "KPMO",
+  "purpose": "Continuously manage only globally meaningful sources that can improve a defined KIDULTS customer decision or paid product, without converting discovery, access, or software coverage into rights or product claims.",
+  "authoritative_baseline": {
+    "registered_source_profiles": 16,
+    "source_profile_discovery_requirements": 120,
+    "schema_bound_claim_parser_requirements": 33,
+    "accountable_gap_records": 153,
+    "discovery_work_units": 42,
+    "schema_work_units": 10,
+    "rights_clear_for_purpose": 0,
+    "live_activated_adapters": 0
+  },
+  "pool_layers": [
+    {
+      "layer": "REGISTERED_SOFTWARE_PROFILE",
+      "count": 16,
+      "meaning": "Known software claim ceilings; not rights-clear or live."
+    },
+    {
+      "layer": "DISCOVERY_DEMAND",
+      "count": 120,
+      "meaning": "Requirement-grain demand awaiting a source profile."
+    },
+    {
+      "layer": "SCHEMA_BOUND_DEMAND",
+      "count": 33,
+      "meaning": "Known profile demand awaiting rights, immutable live schema and claim semantics."
+    },
+    {
+      "layer": "QUARANTINED_OBSERVATION",
+      "count": 50,
+      "meaning": "Seaport cohort from closed PR #1626; control-only, non-promotable and not protected-main truth."
+    }
+  ],
+  "mandatory_source_record_fields": [
+    "source_id",
+    "vertical",
+    "regions",
+    "currencies",
+    "official_owner",
+    "official_url",
+    "access_mode",
+    "record_scale",
+    "update_cadence",
+    "freshness_class",
+    "object_identifier",
+    "terminal_state_field",
+    "realized_price_field",
+    "transaction_date_field",
+    "venue_field",
+    "provenance_fields",
+    "rights.collect",
+    "rights.store",
+    "rights.derive",
+    "rights.commercial_use",
+    "rights_evidence_url",
+    "rights_reviewed_at",
+    "customer_decisions",
+    "product_surfaces",
+    "value_hypothesis",
+    "value_score",
+    "marginal_value_vs_existing_pool",
+    "coverage_gap_ids",
+    "decision",
+    "claim_ceiling",
+    "accountable_owner",
+    "ack_sla",
+    "resolution_sla",
+    "fallback_source_ids",
+    "last_verified_at",
+    "next_review_at"
+  ],
+  "decisions": [
+    "PASS",
+    "CONDITIONAL",
+    "HOLD",
+    "NO_GO"
+  ],
+  "freshness": {
+    "STRICT_CURRENT_MAX_AGE_DAYS": 7,
+    "BOUNDED_CURRENT_MAX_AGE_DAYS": 30,
+    "HISTORICAL_MIN_AGE_DAYS": 31
+  },
+  "promotion_gates": {
+    "PASS": [
+      "product value score >= 70 and hard minimum satisfied",
+      "all mandatory fields complete",
+      "official rights evidence independently verified",
+      "collect/store/derive/commercial-use each explicit for stated purpose",
+      "immutable live schema verified",
+      "freshness and provenance verified",
+      "exact object/terminal/price/currency/date/venue semantics verified"
+    ],
+    "CONDITIONAL": [
+      "bounded purpose and claim ceiling explicit",
+      "unresolved atoms cannot be inherited as permission"
+    ],
+    "HOLD": [
+      "any rights atom unknown",
+      "account/login/contract/spend required but unapproved",
+      "schema or provenance incomplete"
+    ],
+    "NO_GO": [
+      "collection prohibited",
+      "required commercial reuse denied",
+      "robots/terms conflict for intended method"
+    ]
+  },
+  "autonomous_actions": {
+    "allowed": [
+      "product-value triage against customer decisions and product surfaces",
+      "official-source discovery",
+      "official terms/license research",
+      "read-only metadata comparison",
+      "candidate dedupe",
+      "freshness classification",
+      "owner/SLA/fallback assignment",
+      "expiry and review scheduling",
+      "fail-closed quarantine"
+    ],
+    "prohibited_without_receipt": [
+      "live external collection",
+      "account creation",
+      "login",
+      "provider contact",
+      "contract acceptance",
+      "spend",
+      "adapter activation",
+      "Evidence admission",
+      "Track B promotion",
+      "Public",
+      "Production",
+      "G5"
+    ]
+  },
+  "provider_operation_receipt": {
+    "required": true,
+    "independent_issuer_required": true,
+    "self_authored_receipt_forbidden": true,
+    "required_fields": [
+      "receipt_id",
+      "issuer",
+      "operation",
+      "provider_owner",
+      "endpoint_origin",
+      "purpose",
+      "cadence",
+      "collect",
+      "store",
+      "derive",
+      "commercial_use",
+      "exact_head_sha",
+      "workflow_run_id",
+      "workflow_run_attempt",
+      "approval_nonce",
+      "issued_at",
+      "expires_at"
+    ],
+    "exact_binding_required": true,
+    "expiry_fail_closed": true,
+    "replay_fail_closed": true
+  },
+  "seaport_boundary": {
+    "prior_pr": 1626,
+    "prior_head": "7e2a61aaed5898f912e13d6e951c50e8a9e1226e",
+    "state": "QUARANTINED_CONTROL_ONLY",
+    "recurring_external_lane_authorized": false,
+    "transport_provider_rights": "HOLD",
+    "sold_claim": false,
+    "promotable": false,
+    "reactivation_requirements": [
+      "independent provider operation receipt",
+      "eth_chainId equals pinned chain",
+      "independently pinned OrderFulfilled topic0",
+      "exact receipt-log tuple match",
+      "block hash match",
+      "minimum finality met",
+      "negative mutation suite",
+      "no network call on unauthorized path"
+    ]
+  },
+  "lifecycle": [
+    "DISCOVERED",
+    "RIGHTS_REVIEW",
+    "SCHEMA_REVIEW",
+    "VALIDATION_COHORT",
+    "CONDITIONAL_PRODUCT_INPUT",
+    "PASS_PRODUCT_INPUT",
+    "SUSPENDED",
+    "RETIRED"
+  ],
+  "queue_policy": {
+    "canonical_key": "source_id:purpose:claim_class",
+    "duplicate_active_work_forbidden": true,
+    "ack_runs": 1,
+    "resolution_runs": {
+      "DISCOVERY_DEMAND": 5,
+      "SCHEMA_BOUND_DEMAND": 3
+    },
+    "expired_sla_action": "ESCALATE_KPMO_AND_ACTIVATE_DECLARED_FALLBACK",
+    "priority_order": [
+      "PRODUCT_VALUE_SCORE_DESC",
+      "RIGHTS_CLARITY_DESC",
+      "STRICT_CURRENT_FIRST",
+      "COVERAGE_GAP_SEVERITY_DESC",
+      "SOURCE_RESILIENCE_DESC"
+    ]
+  },
+  "rights_analysis_capacity": {
+    "contract": "coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-v1.json",
+    "launch_fast_lane_sources": 12,
+    "minimum_vertical_coverage": 3,
+    "automated_official_evidence_wip": 12,
+    "track_z_commercial_wip": 6,
+    "counsel_exception_wip": 3,
+    "scale_trigger_runs": 3,
+    "general_research_headcount_is_first_response": false,
+    "rights_ops_before_counsel": true,
+    "unknown_atom_fails_closed": true
+  },
+  "truth_boundary": {
+    "main_scope_validated": true,
+    "production_authorized": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD",
+    "open_source_is_product_value": false
+  },
+  "product_value_gate": {
+    "gate_order": "PRODUCT_VALUE_BEFORE_ACQUISITION_PRIORITY",
+    "eligible_verticals": [
+      "toys-models",
+      "watches-jewelry",
+      "automobiles-mobility",
+      "fashion-accessories",
+      "design-furniture",
+      "technology-cameras",
+      "gaming-music-screen",
+      "cards-comics-memorabilia"
+    ],
+    "customer_decisions": [
+      "IDENTIFY_OBJECT",
+      "VERIFY_AUTHENTICITY_OR_GRADE",
+      "UNDERSTAND_REALIZED_VALUE",
+      "COMPARE_COMPARABLES",
+      "ASSESS_LIQUIDITY",
+      "MONITOR_MARKET",
+      "MANAGE_COLLECTION",
+      "DECIDE_BUY_SELL_HOLD"
+    ],
+    "product_surfaces": [
+      "DOSSIER",
+      "COMPARE",
+      "WATCHLIST",
+      "INDEX",
+      "MARKET_REPORT",
+      "PROJECTION"
+    ],
+    "hard_minimum": {
+      "named_customer_decision_required": true,
+      "named_product_surface_required": true,
+      "coverage_gap_binding_required": true,
+      "primary_object_identifier_required": true,
+      "provenance_required": true,
+      "one_of": [
+        "terminal_state_and_realized_price",
+        "authoritative_identity_or_specification",
+        "population_or_supply_measure",
+        "repeatable_market_activity_measure"
+      ]
+    },
+    "weighted_score": {
+      "customer_decision_impact": 25,
+      "object_identity_and_joinability": 20,
+      "transaction_or_market_signal": 20,
+      "freshness_and_update_reliability": 15,
+      "global_coverage_increment": 10,
+      "source_resilience_and_fallback_value": 10,
+      "minimum_active_pool_score": 70
+    },
+    "disposition": {
+      "score_70_to_100": "VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW",
+      "score_50_to_69": "WATCHLIST_ONLY_RESEARCH_NO_ACQUISITION",
+      "score_0_to_49": "REJECT_LOW_CUSTOMER_VALUE",
+      "hard_minimum_failure": "REJECT_NOT_PRODUCT_MEANINGFUL"
+    },
+    "forbidden_proxy_metrics": [
+      "source_count",
+      "record_count_without_product_fit",
+      "open_access_alone",
+      "API_availability_alone",
+      "brand_fame",
+      "traffic_rank"
+    ],
+    "ranking_tiebreakers": [
+      "fills_more_uncovered_product_requirements",
+      "stronger_rights_clarity",
+      "strict_current_over_bounded_current",
+      "more_independent_provenance",
+      "lower_switching_risk"
+    ],
+    "portfolio_rules": {
+      "minimum_independent_sources_per_active_vertical": 2,
+      "preferred_independent_sources_per_active_vertical": 3,
+      "maximum_sources_per_vertical": "NO_FIXED_MAXIMUM_WHILE_INCREMENTAL_VALUE_REMAINS_POSITIVE",
+      "redundant_source_without_incremental_value": "REJECT_OR_RETAIN_AS_DECLARED_FALLBACK_ONLY"
+    },
+    "canonical_domain_source": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv"
+  },
+  "operationalization": {
+    "stage_order": [
+      "DISCOVERY_METADATA",
+      "PRODUCT_VALUE_ENRICHMENT",
+      "PRODUCT_VALUE_GATE",
+      "RIGHTS_REVIEW",
+      "SCHEMA_REVIEW",
+      "BOUNDED_COHORT",
+      "EVIDENCE",
+      "TRACK_B",
+      "PROJECTION"
+    ],
+    "hourly_gate_position": "AFTER_DISCOVERY_BEFORE_GATE1_RIGHTS",
+    "baseline_backfill": {
+      "curated_rows": 64,
+      "adapter_profiles": 16,
+      "discovery_requirements": 120,
+      "schema_requirements": 33,
+      "no_unverified_score_may_promote": true
+    },
+    "portfolio_target": {
+      "active_verticals": 8,
+      "minimum_independent_sources_per_vertical": 2,
+      "preferred_independent_sources_per_vertical": 3,
+      "minimum_total_value_eligible_sources": 16,
+      "preferred_total_value_eligible_sources": 24,
+      "fixed_maximum": false
+    },
+    "durable_ledger": {
+      "backend": "POSTGRESQL",
+      "state": "ACTIVATION_HOLD",
+      "required_identity": "source_id:purpose:claim_class",
+      "required_events": [
+        "DISCOVERED",
+        "ENRICHED",
+        "SCORED",
+        "RIGHTS_DECIDED",
+        "SCHEMA_VERIFIED",
+        "COHORT_RUN",
+        "EVIDENCE_ADMITTED",
+        "TRACK_B_DECIDED",
+        "PROJECTION_DECIDED"
+      ],
+      "artifact_only_is_durable": false
+    },
+    "external_authority_boundary": {
+      "provider_contact": false,
+      "contract_acceptance": false,
+      "spend": false,
+      "credential_creation": false
+    }
+  }
+}

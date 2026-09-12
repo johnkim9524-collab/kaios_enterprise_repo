@@ -251,7 +251,7 @@ export function validateRepository(root = process.cwd()) {
   const docs = fs.readFileSync(path.join(root, DOC_PATH), 'utf8');
 
   assert(contract.id === 'kidults-github-trusted-ref-environment-readback-contract-v1', 'CONTRACT_ID');
-  assert(contract.version === '1.4.0', 'CONTRACT_VERSION');
+  assert(contract.version === '1.5.0', 'CONTRACT_VERSION');
   assert(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_SECRET_BEARING_LANE_COUNT');
   assert(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry === true, 'DYNAMIC_LEGACY_MANUAL_LANE_ALIAS');
   assert(contract.scope.legacy_manual_lane_alias_is_registry_lane_count === true, 'LEGACY_ALIAS_REGISTRY_SEMANTICS');
@@ -264,6 +264,9 @@ export function validateRepository(root = process.cwd()) {
   assert(contract.approved_closure_patterns.github_environment.environment_administrator_bypass_is_disabled === true, 'ADMIN_BYPASS_DISABLED');
   assert(contract.approved_closure_patterns.github_environment.required_secret_names_are_absent_from_repository_and_organization_scopes === true, 'ENVIRONMENT_EXCLUSIVE_SECRET_SCOPE');
   assert(contract.approved_closure_patterns.github_environment.all_list_endpoints_are_exhaustively_paginated_and_count_reconciled === true, 'COMPLETE_LIST_READBACK');
+  assert(contract.approved_closure_patterns.github_environment.workflow_token_permissions_are_exact_per_registry_binding === true, 'EXACT_TOKEN_PERMISSION_BINDING');
+  assert(contract.approved_closure_patterns.github_environment.actions_read_is_limited_to_registered_production_artifact_readback === true, 'ACTIONS_READ_PRODUCTION_ONLY');
+  assert(contract.approved_closure_patterns.github_environment.github_token_use_steps_are_exact_per_registry_binding === true, 'EXACT_TOKEN_STEP_BINDING');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.repository_declaration_alone_is_sufficient === false, 'REPOSITORY_DECLARATION_NOT_PROOF');
   assert(contract.approved_closure_patterns.trusted_default_branch_or_release_handoff.implemented_by_this_contract === false, 'HANDOFF_NOT_IMPLEMENTED');
   assert(contract.receipt_requirements.credential_activation_by_authorization_mode.GITHUB_TOKEN_METADATA_READ === 'EPHEMERAL_GITHUB_TOKEN_METADATA_READ', 'EPHEMERAL_TOKEN_SEMANTICS');
@@ -285,6 +288,8 @@ export function validateRepository(root = process.cwd()) {
   assert(registry.control_truth === 'REPOSITORY_ENVIRONMENT_LIVE_MAIN_AND_SECRET_LIFETIME_CONTROLS_IMPLEMENTED_EXTERNAL_POLICY_NOT_VERIFIED', 'REGISTRY_CONTROL_TRUTH');
   assert(registry.repository_privileged_execution_policy?.required_live_main_guard_step_name === LIVE_MAIN_GUARD_STEP_NAME, 'REGISTRY_LIVE_MAIN_GUARD_POLICY');
   assert(registry.repository_privileged_execution_policy?.provider_secret_scope === 'STEP_ONLY_AFTER_LIVE_MAIN_GUARD', 'REGISTRY_PROVIDER_SECRET_SCOPE_POLICY');
+  assert(registry.repository_privileged_execution_policy?.workflow_token_permissions_are_exact_per_binding === true, 'REGISTRY_EXACT_TOKEN_PERMISSION_POLICY');
+  assert(registry.repository_privileged_execution_policy?.actions_read_is_allowed_only_for_registered_production_artifact_readback === true, 'REGISTRY_ACTIONS_READ_EXCEPTION_POLICY');
   assert(registry.inventory_evidence?.evidence_semantics === 'HISTORICAL_REGISTRATION_BASELINE_NOT_LIVE_EXTERNAL_POLICY_READBACK', 'REGISTRY_BASELINE_TIME_SEMANTICS');
   assert(registry.internal_readback_control?.contract === CONTRACT_PATH, 'REGISTRY_READBACK_CONTRACT_POINTER');
   assert(registry.internal_readback_control?.workflow === WORKFLOW_PATH, 'REGISTRY_READBACK_WORKFLOW_POINTER');
@@ -318,6 +323,7 @@ export function validateRepository(root = process.cwd()) {
   assert(testSource.includes('selected non-main ref and stale main SHA are independently rejected'), 'NEGATIVE_REF_TEST_MISSING');
   assert(testSource.includes('all registered secret-bearing jobs reject unreadable, stale, and non-main live-main guards'), 'PRIVILEGED_LIVE_MAIN_MUTATION_TEST_MISSING');
   assert(testSource.includes('all registered secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
+  assert(testSource.includes('actions read and GitHub token use stay exact to the registered Production artifact readback lane'), 'PRODUCTION_ACTIONS_READ_EXCEPTION_TEST_MISSING');
   assert(testSource.includes('activation receipt body and first-step ordering fail closed under mutation'), 'ACTIVATION_RECEIPT_MUTATION_TEST_MISSING');
   assert(testSource.includes('trigger transformation and missing explicit activation guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
@@ -380,7 +386,8 @@ export function validateRepository(root = process.cwd()) {
     ['live_guard_api_unreadable_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
     ['live_guard_stale_sha_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
     ['live_guard_non_main_fail_open', (job) => { job.live_main_guard.contract_valid = false; }],
-    ['github_token_scope_expanded', (job) => { job.live_main_guard.github_token_step_count = 2; }],
+    ['github_token_permission_expanded', (job) => { job.workflow_token_permissions = [...job.workflow_token_permissions, 'issues:write']; }],
+    ['github_token_step_expanded', (job) => { job.live_main_guard.github_token_step_names = [...job.live_main_guard.github_token_step_names, 'Mutated token consumer']; }],
     ['github_token_job_permission_override', (job) => { job.job_permissions_override = true; }],
     ['guard_after_provider_secret', (job) => { job.live_main_guard.before_all_provider_secret_steps = false; }],
     ['workflow_scope_provider_secret', (job) => { job.workflow_scope_secret_names = ['MUTATED_SECRET']; }],

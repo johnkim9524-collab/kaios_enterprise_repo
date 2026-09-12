@@ -46,6 +46,33 @@ The normal path is:
   unexpired rights decision, required permissions, code/schema versions,
   raw/normalized/replay digests and exact cardinality. Any mismatch rolls back
   the run, audit and outbox together.
+- Ordered migration `0002_workflow_run_receipts.sql` adds an operational,
+  append-only PostgreSQL ledger for workflow run ID/attempt, source and result
+  digests, artifact identity and optional canonical leader/alias identity. A
+  dedicated NOLOGIN role receives SELECT/INSERT only; UPDATE, DELETE and
+  TRUNCATE are denied. Existing governed writer roles are preserved and receive
+  only the registry-column and function privileges required by the existing
+  SECURITY INVOKER writer guard.
+- The local writer performs strict type/shape checks, rejects secret-like and
+  over-256-KiB result payloads before database access. Credential-key denial
+  includes API/access keys, client secrets, authorization, cookies, DSNs,
+  passwords, private keys, generic secrets and tokens. The writer inserts then reads back
+  every immutable field, accepts only exact idempotent replay and rolls back a
+  conflicting replay. A SECURITY INVOKER database trigger and runtime checks
+  both require a LEADER receipt to match the exact claim
+  repository/path/run/attempt/leader-binding digest, or an ALIAS receipt to
+  match the exact alias row and parent claim
+  repository/path/run/attempt/alias-binding digest. Forged relations, digests,
+  runs, cross-claim bindings and missing aliases fail before commit; no relation
+  requires all canonical fields to be null.
+- The same migration provides an atomic first-writer canonical claim and
+  append-only alias surface keyed by repository, consumer workflow, source SHA,
+  upstream class, generation discriminator and trusted classifier-contract
+  digest. Only classifier output marked `dedupe_eligible=true` may claim. A
+  same-key canonical-input mismatch is `INPUT_DIVERGENCE_HOLD`, never an alias.
+  Coverage, Sharded Reserve and Shadow Evidence are stricter: their provisional
+  classifier observation digest cannot claim; a final exact-artifact input
+  digest plus upstream-binding and source-receipt digests is mandatory.
 
 ## Local verification
 
@@ -56,12 +83,36 @@ npm --prefix services/kidults-control-plane run validate
 
 These checks verify contracts, schema boundaries, the exact production-source
 writer inventory and the remote-deploy guard. They do not provision PostgreSQL,
-mutate D1, use credentials or prove remote backup/restore.
+mutate D1, use credentials or prove remote backup/restore. They also do not
+prove real PostgreSQL concurrency/privilege behavior or that a STAGING workflow
+receipt row has been persisted.
+
+Workflow receipt and canonical claim read-back uses exact plain SELECT under the
+append-only constraints. PostgreSQL row-locking SELECT forms are intentionally
+absent because they require UPDATE privilege; the dedicated role remains
+SELECT/INSERT-only while unique constraints serialize first-writer CAS.
+
+GitHub Actions artifacts remain expiring transfer evidence, not the permanent
+system of record. No receipt finalizer is activated while an approved STAGING
+DSN, protected environment and migration read-back are unavailable. The future
+finalizer must be a separate, fail-closed workflow; it must not add database
+writes to Continuous Assurance. Canonical failed/stale-leader takeover also
+remains unimplemented and on HOLD.
+
+The dormant remote-activation evaluator is also fail-closed until it receives
+an Ed25519-signed exact-head manifest from a separately protected public-key
+trust root. Its receipt set must be exact and duplicate-free; every receipt
+must be a regular non-symlink file whose real path remains under the declared
+evidence root, match the exact schema and producer/run/artifact identity, and
+carry a PostgreSQL system-of-record authority digest. A co-located digest or a
+self-declared `PASS` is not activation authority.
 
 ## Required next runtime evidence
 
-Before STAGING activation, apply the PostgreSQL migration to an approved
+Before STAGING activation, apply both ordered PostgreSQL migrations to an approved
 ephemeral instance, prove migration/restore/RLS/tenant isolation, deploy the
-projector with the only write-capable D1 binding, rebuild D1 from the outbox and
-prove exact parity. Follow `ACTIVATION_RUNBOOK.md`; Production/Public/G5 remain
+projector with the only write-capable D1 binding, prove two-client canonical
+claim CAS/alias behavior and exact workflow receipt replay/conflict semantics,
+rebuild D1 from the outbox and prove exact parity. Follow
+`ACTIVATION_RUNBOOK.md`; remote PostgreSQL, Public, Production and G5 remain
 HOLD.

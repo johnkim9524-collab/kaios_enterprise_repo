@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   PRINCIPLES, countBy, deriveReadiness, digestObject, hashText, stable, stableJson,
 } from './lib/asi-snapshot-readiness-factory-v2.mjs';
@@ -18,6 +19,7 @@ const required = [
 if (!required.every(Boolean)) throw new Error('P3_ARGUMENTS_REQUIRED');
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, 'utf8'));
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const [
   p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest,
   p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, upstreamBinding, contract,
@@ -26,7 +28,10 @@ const inputs = {
   p0Registry, p0Bindings, p0Manifest, p1Gate, p1Admission, p1Actions, p1Manifest,
   p2Graph, p2Lineage, p2Quality, p2Value, p2Manifest, upstreamBinding,
 };
-const derived = deriveReadiness(inputs, contract);
+const samplePolicyPath = path.resolve(root, contract.current_sold_sample_governance?.canonical_policy || '');
+if (!samplePolicyPath.startsWith(`${root}${path.sep}`)) throw new Error('P3_SAMPLE_POLICY_PATH_ESCAPES_REPOSITORY');
+const samplePolicy = await readJson(samplePolicyPath);
+const derived = deriveReadiness(inputs, contract, samplePolicy);
 
 const destination = path.resolve(outputDir);
 try {
@@ -80,7 +85,7 @@ try {
   }));
   const admissionDemand = {
     id: 'kidults-asi-admission-demand-package-v2',
-    version: '2.1.0',
+    version: '2.2.0',
     state: derived.queuedActions === 0 ? 'NO_PENDING_PREFLIGHT_ACTIONS' : 'P1_ACTION_EXECUTION_REQUIRED',
     as_of: derived.asOf,
     source_graph_digest: derived.sourceGraphDigest,
@@ -116,20 +121,28 @@ try {
         digest: digestObject(record),
       })),
       market_events: derived.marketEvents.map((event) => ({ event_id: event.event_id, evidence_id: event.evidence_id })),
+      sample_policy_binding: derived.sampleGovernance,
+      launch_cohort: derived.launchCohort,
     });
     const suffix = seedDigest.slice('sha256:'.length, 'sha256:'.length + 24);
     const snapshotId = `kidults-asi-snapshot-candidate-${suffix}`;
     const packageId = `kidults-asi-evidence-package-${suffix}`;
-    const claims = derived.evidenceRecords.map((record) => ({
-      claim_id: `claim-${record.evidence_id}`,
-      claim_type: record.market_observation_type,
-      temporality: record.temporality,
-      rights_state: 'ALLOW',
-      claim_strength: record.evidence_strength,
-      evidence_refs: [record.evidence_id],
-      current_market_evidence_present: record.temporality === 'CURRENT_MARKET',
-      listing_only: false,
-    }));
+    const claims = derived.evidenceRecords
+      .filter((record) => record.market_observation_type === 'SOLD_TRANSACTION')
+      .map((record) => ({
+        claim_id: `claim-${record.evidence_id}`,
+        claim_type: record.market_observation_type,
+        claim_target: record.claim_target,
+        sample_purpose: record.sample_purpose,
+        sample_tier: derived.sampleGovernance.sample_tier,
+        maximum_claim: derived.sampleGovernance.maximum_claim,
+        temporality: record.temporality,
+        rights_state: 'ALLOW',
+        claim_strength: record.evidence_strength,
+        evidence_refs: [record.evidence_id],
+        current_market_evidence_present: record.temporality === 'CURRENT_MARKET',
+        listing_only: false,
+      }));
     evidence = {
       package_id: packageId,
       evidence_package_id: packageId,
@@ -143,6 +156,8 @@ try {
       source_graph_digest: derived.sourceGraphDigest,
       upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
       upstream_binding: derived.upstreamBinding,
+      sample_policy_binding: derived.sampleGovernance,
+      launch_cohort: derived.launchCohort,
       evidence_records: derived.evidenceRecords,
       claims,
       entity_resolution: stable(p2Graph.entity_resolution || {
@@ -174,6 +189,10 @@ try {
       source_graph_digest: derived.sourceGraphDigest,
       upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
       upstream_binding: derived.upstreamBinding,
+      sample_policy_binding: derived.sampleGovernance,
+      launch_cohort_digest: derived.launchCohort.cohort_digest,
+      sample_tier: derived.sampleGovernance.sample_tier,
+      maximum_claim: derived.sampleGovernance.maximum_claim,
       evidence_record_count: derived.evidenceRecords.length,
       current_sold_record_count: derived.admittedSold,
       liquidity_record_count: derived.admittedLiquidity,
@@ -190,7 +209,7 @@ try {
     evidenceFileDigest = hashText(stableJson(evidence));
     pairGenerationReceipt = {
       id: 'kidults-asi-snapshot-pair-generation-receipt-v2',
-      version: '2.1.0',
+      version: '2.2.0',
       state: 'CONTENT_ADDRESSED_PAIR_ATOMICALLY_GENERATED_ATTESTATION_PENDING',
       as_of: derived.asOf,
       snapshot_id: snapshotId,
@@ -200,7 +219,15 @@ try {
       exact_pair_digest: pairDigest,
       source_graph_digest: derived.sourceGraphDigest,
       upstream_binding_receipt_sha256: derived.upstreamBindingDigest,
+      sample_policy_binding: derived.sampleGovernance,
+      launch_cohort_digest: derived.launchCohort.cohort_digest,
       admitted_evidence_count: derived.evidenceRecords.length,
+      admitted_current_sold_count: derived.admittedSold,
+      sample_plan_sha256: derived.launchCohort.sample_plan_sha256,
+      canary_source_ids: derived.launchCohort.source_ids,
+      canary_source_binding_digest: derived.launchCohort.source_binding_digest,
+      canary_transactions: derived.launchCohort.canary_transactions,
+      canary_transaction_binding_digest: derived.launchCohort.transaction_binding_digest,
       market_event_count: derived.marketEvents.length,
       atomic_directory_commit: true,
       immutable_storage_receipt: null,
@@ -215,11 +242,13 @@ try {
 
   const readiness = {
     id: 'kidults-asi-snapshot-readiness-ledger-v2',
-    version: '2.1.0',
+    version: '2.2.0',
     state: derived.prerequisitesPass ? 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' : 'NOT_READY_EXACT_PREREQUISITE_BLOCKERS_OPEN',
     as_of: derived.asOf,
     platform_principles: PRINCIPLES,
     source_graph_digest: derived.sourceGraphDigest,
+    sample_policy_binding: derived.sampleGovernance,
+    launch_cohort_digest: derived.launchCohort?.cohort_digest || null,
     snapshot_creation_prerequisites_pass: derived.prerequisitesPass,
     snapshot_creation_gate_pass: derived.prerequisitesPass,
     all_dimensions_pass: false,
@@ -257,7 +286,7 @@ try {
   };
   const blockerPackage = {
     id: 'kidults-asi-immutable-blocker-package-v2',
-    version: '2.1.0',
+    version: '2.2.0',
     state: derived.blockers.length === 0 ? 'NO_OPEN_PREREQUISITE_BLOCKERS' : 'OPEN_PREREQUISITE_BLOCKERS_BOUND_TO_CURRENT_CHAIN',
     as_of: derived.asOf,
     source_graph_digest: derived.sourceGraphDigest,
@@ -273,7 +302,7 @@ try {
   };
   const trackB = {
     id: 'kidults-track-b-handoff-readiness-v2',
-    version: '2.1.0',
+    version: '2.2.0',
     state: derived.prerequisitesPass ? 'PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED' : 'WAITING_FOR_SNAPSHOT_PREREQUISITES',
     as_of: derived.asOf,
     snapshot_candidate_present: derived.prerequisitesPass,
@@ -312,7 +341,7 @@ try {
   } else {
     const nonGeneration = {
       id: 'kidults-asi-snapshot-non-generation-receipt-v2',
-      version: '2.1.0',
+      version: '2.2.0',
       state: 'VERIFIED_NOT_GENERATED_FAIL_CLOSED',
       as_of: derived.asOf,
       source_graph_digest: derived.sourceGraphDigest,
@@ -330,7 +359,7 @@ try {
 
   const manifest = {
     id: 'kidults-asi-snapshot-readiness-manifest-v2',
-    version: '2.1.0',
+    version: '2.2.0',
     state: derived.prerequisitesPass ? 'P3_CONTENT_ADDRESSED_PAIR_GENERATED_STORAGE_AND_ATTESTATION_PENDING' : 'P3_READINESS_ASSESSED_SNAPSHOT_NOT_GENERATED',
     as_of: derived.asOf,
     platform_principles: PRINCIPLES,
@@ -338,6 +367,7 @@ try {
       p0b: { registry_id: p0Registry.id, binding_id: p0Bindings.id, manifest_id: p0Manifest.id, candidate_count: derived.candidateCount, mission_count: derived.missionCount },
       p1: { gate_id: p1Gate.id, admission_id: p1Admission.id, actions_id: p1Actions.id, manifest_id: p1Manifest.id, gate1_hold: derived.actualGateHold, actions_queued: derived.queuedActions },
       p2: { graph_id: p2Graph.id, graph_digest: derived.sourceGraphDigest, quality_id: p2Quality.id, value_id: p2Value.id, manifest_id: p2Manifest.id, node_count: p2Graph.node_count, edge_count: p2Graph.edge_count },
+      sample_policy: derived.sampleGovernance,
     },
     results: {
       readiness_dimensions: dimensions.length,
@@ -351,6 +381,9 @@ try {
       p1_blockers: derived.blockers.filter((value) => value.severity === 'P1').length,
       preflight_actions_queued: derived.queuedActions,
       evidence_admitted: derived.evidenceRecords.length,
+      admitted_current_sold: derived.admittedSold,
+      current_sold_sample_tier: derived.sampleGovernance.sample_tier,
+      current_sold_maximum_claim: derived.sampleGovernance.maximum_claim,
       market_events_created: derived.marketEvents.length,
       snapshot_candidates_created: derived.prerequisitesPass ? 1 : 0,
       evidence_packages_created: derived.prerequisitesPass ? 1 : 0,

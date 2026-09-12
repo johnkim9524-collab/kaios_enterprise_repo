@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/non-promotable-control-projection-v1.schema.json",
+  "title": "KIDULTS payloadless non-promotable control Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema_version",
+    "fixture_type",
+    "input_data_class",
+    "control_record_id",
+    "projection",
+    "release",
+    "audit",
+    "content_policy",
+    "official_track_b_started",
+    "canonical_handoff_eligible",
+    "real_product_value_proof",
+    "approved_projection",
+    "public_release",
+    "production",
+    "g5",
+    "control_payload_sha256"
+  ],
+  "properties": {
+    "record_type": {"const": "kidults_non_promotable_control_projection"},
+    "schema_version": {"const": "1.0.0"},
+    "fixture_type": {"const": "NON_PROMOTABLE_CONTROL"},
+    "input_data_class": {"const": "LAWFUL_BOUNDED_SOURCE_FACT_PROJECTION"},
+    "control_record_id": {"type": "string", "minLength": 1},
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "projection_id", "replay_id", "exact_pair_digest", "as_of", "assessment_id", "rights_state", "freshness", "synthetic", "promotable", "production", "public"],
+      "properties": {
+        "state": {"const": "NO_PROJECTION"},
+        "projection_id": {"type": "null"},
+        "replay_id": {"type": "null"},
+        "exact_pair_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "as_of": {"type": "null"},
+        "assessment_id": {"type": "string", "minLength": 1},
+        "rights_state": {"const": "WAITING"},
+        "freshness": {"const": "NOT_AVAILABLE"},
+        "synthetic": {"const": true},
+        "promotable": {"const": false},
+        "production": {"const": false},
+        "public": {"const": false}
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {"state": {"const": "HOLD"}}
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshot_id", "evidence_package_id", "assessment_id", "exact_pair_digest", "source_projection_sha256", "correlation_id", "reason_category"],
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "evidence_package_id": {"type": "string", "minLength": 1},
+        "assessment_id": {"type": "string", "minLength": 1},
+        "exact_pair_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "source_projection_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "correlation_id": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "reason_category": {"const": "LAWFUL_CONTROL_PLUMBING_ONLY_NO_GOVERNED_PROJECTION"}
+      }
+    },
+    "content_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_facts_discarded", "raw_provider_payload_included", "object_identity_included", "price_or_bid_included", "portal_behavior"],
+      "properties": {
+        "source_facts_discarded": {"const": true},
+        "raw_provider_payload_included": {"const": false},
+        "object_identity_included": {"const": false},
+        "price_or_bid_included": {"const": false},
+        "portal_behavior": {"const": "DISCARD_ALL_INPUT_CONTENT_AND_RENDER_IMMUTABLE_STRUCTURAL_CATALOG_ONLY"}
+      }
+    },
+    "official_track_b_started": {"const": false},
+    "canonical_handoff_eligible": {"const": false},
+    "real_product_value_proof": {"const": false},
+    "approved_projection": {"const": false},
+    "public_release": {"const": "HOLD"},
+    "production": {"const": "HOLD"},
+    "g5": {"const": "HOLD"},
+    "control_payload_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+  }
+}

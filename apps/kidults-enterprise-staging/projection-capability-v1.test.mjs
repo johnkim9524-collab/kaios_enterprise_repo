@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {approvedProjectionFixture} from '../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
-import {authorizeProjection,issueProjectionCapability,projectionDigest,verifyProjectionCapability} from './projection-capability-v1.mjs';
+import {approvedObjectPassportFixture,approvedProjectionFixture} from '../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
+import {authorizeProjection,issueProjectionCapability,projectionDigest,toPortalView,verifyProjectionCapability} from './projection-capability-v1.mjs';
 
 const secret='projection-capability-test-secret-with-at-least-32-bytes';
 const now=new Date('2026-08-22T10:30:00Z');
@@ -29,4 +29,33 @@ test('server authorization admits each rights-specific surface and rejects stale
   const stale=approvedProjectionFixture();
   stale.freshness.valid_until='2026-08-22T10:30:00Z';
   assert.throws(()=>authorizeProjection({projection:stale,surface:'PORTAL_RENDER',secret,now}),/FRESHNESS_EXPIRED/);
+});
+
+test('approved Object Passport preserves canonical dossier, evidence, signals and governed actions',()=>{
+  const projection=approvedObjectPassportFixture();
+  const authorized=authorizeProjection({projection,surface:'PORTAL_RENDER',secret,now});
+  const view=toPortalView(projection,authorized.admission.receipt);
+  assert.equal(view.projection.product_type,'OBJECT_PASSPORT');
+  assert.equal(view.projection.canonical_object_id,projection.payload.canonical_object_id);
+  assert.equal(view.objects.length,1);
+  assert.equal(view.objects[0].object_id,projection.payload.canonical_object_id);
+  assert.deepEqual(view.actions.map(action=>[action.action_id,action.state,action.destination]),[
+    ['COMPARE','ENABLED',projection.actions[0].destination],
+    ['WATCHLIST','ENABLED',projection.actions[1].destination]
+  ]);
+  assert.deepEqual(view.objects[0].actions,view.actions);
+  assert.ok(view.evidence.length>=projection.evidence_summary.evidence_references.length);
+  assert.ok(view.signals.length>0&&view.signals.every(signal=>signal.canonical_object_id===projection.payload.canonical_object_id));
+});
+
+test('Object Passport action destinations fail closed before Portal release',()=>{
+  const projection=approvedObjectPassportFixture();
+  projection.actions[0].destination='https://attacker.invalid/compare';
+  const authorized=authorizeProjection({projection,surface:'PORTAL_RENDER',secret,now});
+  assert.throws(()=>toPortalView(projection,authorized.admission.receipt),/ACTION_DESTINATION_UNSAFE/);
+
+  const duplicate=approvedObjectPassportFixture();
+  duplicate.actions.push({...duplicate.actions[0]});
+  const duplicateAuthorized=authorizeProjection({projection:duplicate,surface:'PORTAL_RENDER',secret,now});
+  assert.throws(()=>toPortalView(duplicate,duplicateAuthorized.admission.receipt),/ACTION_ID_DUPLICATE/);
 });

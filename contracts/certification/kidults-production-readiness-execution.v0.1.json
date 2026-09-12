@@ -1,8 +1,10 @@
 {
   "contract": "kidults-production-readiness-execution",
   "version": "0.1",
+  "status": "SUPERSEDED_FAIL_CLOSED",
+  "superseded_by": "contracts/certification/kidults-controlled-production-promotion.v1.json",
   "default_decision": "hold",
-  "minimum_go_score": 90,
+  "minimum_go_score": 100,
   "maximum_score": 100,
   "mandatory_evidence": [
     "production-audit.json",
@@ -35,7 +37,7 @@
     "implicit_promotion_authorization"
   ],
   "decisions": {
-    "go": "score >= 90, every mandatory gate passes, and no hard blocker exists",
+    "go": "score is exactly 100/100, every mandatory gate passes, and no hard blocker exists",
     "hold": "recoverable evidence or readiness gaps remain",
     "rollback": "a hard blocker exists or the deployed change is unsafe"
   },

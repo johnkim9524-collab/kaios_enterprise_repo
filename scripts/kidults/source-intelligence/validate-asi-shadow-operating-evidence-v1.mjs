@@ -96,6 +96,8 @@ const requiredCandidateHandoffBlockedSelftestBlockers = Object.freeze([
   "ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
   "EVIDENCE_PACKAGE_DIGEST_REQUIRED",
   "EVIDENCE_PACKAGE_NOT_IMMUTABLE",
+  "LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID",
+  "RIGHTS_ASSERTION_INVALID_OR_EXPIRED:selftest-historical-only",
   "SNAPSHOT_DIGEST_REQUIRED"
 ]);
 
@@ -265,7 +267,7 @@ export function evidenceErrors(evidence, expected, contract) {
     candidateHandoffR2?.local_blocked_selftest?.two_run_byte_identical === true &&
     /^sha256:[a-f0-9]{64}$/.test(candidateHandoffR2?.local_blocked_selftest?.result_sha256 ?? "") &&
     candidateHandoffR2?.local_blocked_selftest?.handoff_state === "BLOCKED" &&
-    candidateHandoffR2?.local_blocked_selftest?.blocker_count === 30 &&
+    candidateHandoffR2?.local_blocked_selftest?.blocker_count === 32 &&
     canonicalJson(candidateHandoffR2?.local_blocked_selftest?.blockers) ===
       canonicalJson(requiredCandidateHandoffBlockedSelftestBlockers) &&
     candidateHandoffR2?.local_blocked_selftest?.represented_approved_strata_complete === false &&

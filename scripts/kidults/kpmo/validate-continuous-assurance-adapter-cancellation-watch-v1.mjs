@@ -113,7 +113,9 @@ function validate(text) {
   if (!workflowRun.includes('branches: [main]')) findings.push('workflow_run must remain bound to main');
   if (!text.includes("github.event.workflow_run.repository.full_name == github.repository")) findings.push('repository binding missing');
   if (!text.includes("github.event.workflow_run.head_branch == 'main'")) findings.push('upstream main binding missing');
-  if (!text.includes('KPMO_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion')) findings.push('upstream conclusion receipt binding missing');
+  if (!text.includes("KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}")) {
+    findings.push('native and forwarded upstream conclusion receipt binding missing');
+  }
   if (/github\.event\.workflow_run\.conclusion\s*==\s*['\"]success['\"]/.test(text.match(/jobs:\n([\s\S]*?)\n    runs-on:/)?.[1] || '')) findings.push('job-level success-only filter would hide cancelled/failed upstream runs');
   return findings;
 }
@@ -138,7 +140,10 @@ for (const control of eventConsumerControls) {
 }
 
 for (const marker of [
-  "process.env.KPMO_UPSTREAM_CONCLUSION === 'success'",
+  'classifyUpstreamAuditHealth',
+  'upstreamAuditHealth.acceptable === true',
+  "process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true'",
+  'process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION === upstreamAuditHealth.disposition',
   "'UPSTREAM_WORKFLOW_CONCLUSION'",
   'process.env.KPMO_UPSTREAM_REPOSITORY === process.env.GITHUB_REPOSITORY',
   "process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main'"

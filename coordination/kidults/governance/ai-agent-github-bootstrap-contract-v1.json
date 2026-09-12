@@ -1,7 +1,7 @@
 {
   "id": "kidults-ai-agent-github-bootstrap-contract-v1",
-  "version": "1.3.0",
-  "change_rationale": "Require an external exact-SHA dispatch binding, digest-bound receipt filenames, reproducible dirty-or-clean worktree baselines, explicit non-promotion authority boundaries, and an evidence-true distinction between zero actual in-repository AI/model dispatchers and deterministic defense-in-depth bootstrap jobs.",
+  "version": "1.4.0",
+  "change_rationale": "Bind the KPMO-inclusive AI-019 accountability and non-delegation rule plus the Agent JD registry into the exact committed pre-dispatch trust closure while preserving external exact-SHA binding, receipt integrity, worktree continuity, and protected authority boundaries.",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -23,6 +23,7 @@
   "trust_model": {
     "contract_is_first_document": true,
     "required_documents_are_read_from_exact_head_git_blobs": true,
+    "agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document": true,
     "worktree_copies_of_trust_files_must_match_exact_head": true,
     "symlinks_and_non_regular_trust_files_are_rejected": true,
     "local_expected_sha_is_binding_only_not_github_provenance": true,
@@ -108,11 +109,16 @@
     },
     {
       "order": 11,
+      "path": "coordination/kidults/registry/roles-and-responsibilities.json",
+      "purpose": "AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY"
+    },
+    {
+      "order": 12,
       "path": "coordination/kidults/bootstrap/README.md",
       "purpose": "TRACK_AND_ROLE_STARTUP_ROUTER"
     },
     {
-      "order": 12,
+      "order": 13,
       "path": ".github/copilot-instructions.md",
       "purpose": "GITHUB_AGENT_ADAPTER"
     }

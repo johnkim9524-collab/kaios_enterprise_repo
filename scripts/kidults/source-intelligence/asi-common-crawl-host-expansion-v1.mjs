@@ -89,14 +89,14 @@ if (explicitFrontierPath) {
     try {
       const priorExpansion = JSON.parse(fs.readFileSync(candidatePath, 'utf8'));
       const snapshot = priorExpansion.seed_frontier_snapshot;
-      if (!isValidFrontier(snapshot)) continue;
+      if (!isValidFrontier(snapshot)) throw new Error('PREVIOUS_FRONTIER_INVALID');
       previousFrontierPath = '/tmp/asi-common-crawl-seed-frontier-previous-v1.json';
       fs.writeFileSync(previousFrontierPath, `${JSON.stringify(snapshot, null, 2)}\n`);
       previousSnapshotFound = true;
       previousSnapshotSource = source;
       break;
     } catch (error) {
-      frontierErrors.push(`PREVIOUS_SNAPSHOT_PARSE:${source}:${String(error.message || error).slice(0, 120)}`);
+      throw new Error(`PREVIOUS_SNAPSHOT_MALFORMED:${source}:${String(error.message || error).slice(0, 120)}`);
     }
   }
   try {
@@ -108,6 +108,7 @@ if (explicitFrontierPath) {
       ? 'RUNTIME_FRONTIER_RESTORED_FROM_PREVIOUS_EXPANSION'
       : 'RUNTIME_FRONTIER_FRESH';
   } catch (error) {
+    if (previousSnapshotFound) throw new Error(`PREVIOUS_FRONTIER_REBASE_FAILED:${String(error.message || error).slice(0, 180)}`);
     frontierErrors.push(`FRONTIER_BUILD:${String(error.message || error).slice(0, 180)}`);
     frontierBootstrapState = 'FRONTIER_BUILD_FAILED_LEGACY_FAIL_SAFE';
   }

@@ -1,0 +1,118 @@
+name: KIDULTS Management Control Tower Refresh v1
+
+on:
+  schedule:
+    - cron: '52 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/governance/management-control-tower-contract-v1.json'
+      - 'coordination/kidults/governance/current-sold-sample-governance-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/governance/release-assurance-contract-v1.json'
+      - 'scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/management-control-tower-model-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs'
+      - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
+      - 'apps/kidults-enterprise-staging/public/executive/control-tower-snapshot-v1.json'
+      - 'apps/kidults-enterprise-staging/public/executive/control-tower.html'
+      - '.github/workflows/kidults-management-control-tower-refresh-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/governance/management-control-tower-contract-v1.json'
+      - 'coordination/kidults/governance/current-sold-sample-governance-alignment-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-rights-analysis-fast-lane-decisions-v1.json'
+      - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/governance/release-assurance-contract-v1.json'
+      - 'scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/management-control-tower-model-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs'
+      - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
+      - 'apps/kidults-enterprise-staging/public/executive/control-tower-snapshot-v1.json'
+      - 'apps/kidults-enterprise-staging/public/executive/control-tower.html'
+      - '.github/workflows/kidults-management-control-tower-refresh-v1.yml'
+
+permissions:
+  contents: read
+
+env:
+  KIDULTS_EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  KIDULTS_CONTROL_TOWER_GENERATION_CLASS: ${{ github.event_name == 'pull_request' && 'CANDIDATE_PR' || 'CANONICAL_MAIN' }}
+  KIDULTS_CONTROL_TOWER_ARTIFACT_NAME: ${{ format('kidults-management-control-tower-{0}-{1}-{2}-{3}', github.event_name == 'pull_request' && 'candidate' || 'canonical', github.event.pull_request.head.sha || github.sha, github.run_id, github.run_attempt) }}
+
+concurrency:
+  group: kidults-management-control-tower-refresh-v1-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  rebuild-governed-snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact triggering source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.KIDULTS_EXACT_SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Enforce candidate and protected-main identity boundary
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            test "$GITHUB_BASE_REF" = "main"
+            test "$KIDULTS_CONTROL_TOWER_GENERATION_CLASS" = "CANDIDATE_PR"
+            test "$KIDULTS_CONTROL_TOWER_ARTIFACT_NAME" = "kidults-management-control-tower-candidate-${KIDULTS_EXACT_SOURCE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            [[ "$KIDULTS_CONTROL_TOWER_ARTIFACT_NAME" != *canonical* ]]
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+            test "$KIDULTS_CONTROL_TOWER_GENERATION_CLASS" = "CANONICAL_MAIN"
+            test "$KIDULTS_CONTROL_TOWER_ARTIFACT_NAME" = "kidults-management-control-tower-canonical-${KIDULTS_EXACT_SOURCE_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          fi
+      - name: Set up exact Node.js runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact source and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          node --check scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs
+          node --check scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs
+      - name: Rebuild read-only governed snapshot artifact
+        env:
+          KIDULTS_CONTROL_TOWER_SNAPSHOT_OUT: /tmp/kidults-management-control-tower/control-tower-snapshot-v1.json
+          KIDULTS_CONTROL_TOWER_HTML_OUT: /tmp/kidults-management-control-tower/control-tower.html
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/kidults-management-control-tower
+          cp apps/kidults-enterprise-staging/public/executive/control-tower.html "$KIDULTS_CONTROL_TOWER_HTML_OUT"
+          node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs \
+            | tee /tmp/kidults-management-control-tower/build-receipt.json
+          node scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs \
+            "$KIDULTS_CONTROL_TOWER_SNAPSHOT_OUT" "$KIDULTS_CONTROL_TOWER_HTML_OUT" --require-fresh \
+            | tee /tmp/kidults-management-control-tower/validation-receipt.json
+      - name: Run dashboard integrity and failure-visibility regression
+        run: node --test apps/kidults-enterprise-staging/executive-control-tower.test.mjs
+      - name: Prove workflow is read-only
+        run: |
+          set -euo pipefail
+          repository_status="$(git status --porcelain=v1 --untracked-files=all)"
+          if [[ -n "$repository_status" ]]; then
+            printf '%s\n' "$repository_status"
+            exit 1
+          fi
+          git diff --exit-code HEAD --
+      - name: Upload exact-head governed snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ env.KIDULTS_CONTROL_TOWER_ARTIFACT_NAME }}
+          path: /tmp/kidults-management-control-tower
+          retention-days: 90
+          if-no-files-found: error

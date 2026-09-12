@@ -49,7 +49,10 @@ const p0PrePartnerValidators = [
 ];
 const rightsBoundaryValidators = [
   'scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs',
-  'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs'
+  'scripts/kidults/internalization/validate-provider-commercial-rights-ledger-v1.mjs',
+  'scripts/kidults/provider/validate-provider-operating-state-v1.mjs',
+  'scripts/kidults/source-intelligence/validate-source-channel-control-plane-v1.mjs',
+  'scripts/kidults/source-intelligence/validate-asi-global-discovery-channel-accounting-v1.mjs'
 ];
 const providerAdapterBoundaryValidators = [
   'scripts/kidults/kpmo/validate-provider-adapter-workflow-provenance-v1.mjs',
@@ -173,6 +176,9 @@ console.log(JSON.stringify({
   partner_like_adversarial_fixtures: 12,
   provider_rights_decision_gate_machine_bound: true,
   provider_commercial_rights_ledger_machine_bound: true,
+  provider_operating_state_and_communication_machine_bound: true,
+  source_id_normalization_machine_bound: true,
+  global_discovery_channel_measured_or_hold_machine_bound: true,
   provider_adapter_workflow_provenance_machine_bound: true,
   provider_adapter_boundary_validators: providerAdapterBoundaryValidators.length,
   runtime_boundary_validators: runtimeBoundaryValidators.length,

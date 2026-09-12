@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kidults-current-sold-ledger-write-receipt-v1",
+  "title": "KIDULTS Current-SOLD PostgreSQL Ledger Write Receipt V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "ledger_receipt_id",
+    "status",
+    "committed_at",
+    "batch_receipt_id",
+    "batch_receipt_digest",
+    "source_sha",
+    "canonical_run_id",
+    "counts",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "current-sold-ledger-write-receipt-v1"
+    },
+    "ledger_receipt_id": {
+      "type": "string",
+      "pattern": "^cslw_[a-f0-9]{24}$"
+    },
+    "status": {
+      "const": "COMMITTED"
+    },
+    "committed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "batch_receipt_id": {
+      "type": "string",
+      "pattern": "^csr_[a-f0-9]{24}$"
+    },
+    "batch_receipt_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "canonical_run_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{2,127}$"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events_inserted",
+        "events_idempotent",
+        "evidence_inserted",
+        "evidence_idempotent",
+        "receipts_inserted",
+        "receipts_idempotent"
+      ],
+      "properties": {
+        "events_inserted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events_idempotent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_inserted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_idempotent": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipts_inserted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipts_idempotent": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "public",
+        "production",
+        "g5"
+      ],
+      "properties": {
+        "public": {
+          "const": "HOLD"
+        },
+        "production": {
+          "const": "HOLD"
+        },
+        "g5": {
+          "const": "HOLD"
+        }
+      }
+    }
+  }
+}

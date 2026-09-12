@@ -13,7 +13,9 @@ def test_controlled_promotion_origin_is_not_environment_overridable() -> None:
     text = _read("scripts/production/promote-kidults-controlled.sh")
     assert CANONICAL in text
     assert 'BASE_URL="${BASE_URL:-' not in text
-    assert AUTH_HEADER in text
+    assert "printf 'Authorization: Bearer %s\\n' \"${ADMIN_TOKEN}\"" in text
+    assert '--header "@${SMOKE_TEMP_DIR}/admin-header"' in text
+    assert 'unset ADMIN_TOKEN' in text
     assert '"${BASE_URL}/api/collector?mode=live"' in text
 
 

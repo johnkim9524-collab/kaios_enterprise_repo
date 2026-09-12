@@ -206,15 +206,84 @@ const invalidOutcome = await runtime.normalizeLiquidityObservation(fixtureProfil
 assert.equal(invalidOutcome.state, 'HOLD');
 assert.ok(invalidOutcome.reason_codes.includes('OUTCOME_STATE_INVALID'));
 
-const currentPrice = runtime.assessCurrentPriceReadiness([
+const syntheticCurrentPriceRecords = [
   soldA.normalized_record,
   { ...soldA.normalized_record, normalized_record_id: `sha256:${'3'.repeat(64)}`, source_record_id: 'fixture-sold-002', source_owner_id: 'source-owner-fixture-b', factual_origin_id: 'factual-origin-fixture-b' },
   { ...soldA.normalized_record, normalized_record_id: `sha256:${'4'.repeat(64)}`, source_record_id: 'fixture-sold-003', source_owner_id: 'source-owner-fixture-c', factual_origin_id: 'factual-origin-fixture-c' },
-], '2026-08-23T00:00:00.000Z', 3);
+];
+const currentPrice = await runtime.assessCurrentPriceReadiness(
+  syntheticCurrentPriceRecords,
+  '2026-08-23T00:00:00.000Z',
+  3,
+);
 assert.equal(currentPrice.state, 'HOLD');
 assert.ok(currentPrice.reason_codes.includes('SYNTHETIC_OR_CONTROL_RECORD_PRESENT'));
 assert.ok(currentPrice.reason_codes.includes('OUTLIER_AND_DUPLICATE_CONTROL_NOT_VERIFIED'));
 assert.equal(currentPrice.current_price_eligible, false);
+
+const empiricalCurrentPriceRecords = syntheticCurrentPriceRecords.map((record) => ({
+  ...record,
+  evidence_kind: 'EMPIRICAL_SOURCE_OBSERVATION',
+}));
+const normalizedRecordIds = [...empiricalCurrentPriceRecords]
+  .sort((left, right) => left.normalized_record_id.localeCompare(right.normalized_record_id))
+  .map((record) => record.normalized_record_id);
+const unsignedControlReceipt = {
+  receipt_id: `sha256:${'5'.repeat(64)}`,
+  method_id: 'kidults-outlier-duplicate-control-v1',
+  method_version: '1.0.0',
+  decision: 'VERIFIED_PASS',
+  evaluated_at: '2026-08-22T23:59:00.000Z',
+  normalized_record_ids: normalizedRecordIds,
+  record_set_digest: await runtime.digestCurrentPriceControlRecordSet(empiricalCurrentPriceRecords),
+  duplicate_count: 0,
+  outlier_count: 0,
+};
+const validControlReceipt = {
+  ...unsignedControlReceipt,
+  receipt_digest: await runtime.digestOutlierDuplicateControlReceipt(unsignedControlReceipt),
+};
+const currentPriceReady = await runtime.assessCurrentPriceReadiness(
+  empiricalCurrentPriceRecords,
+  '2026-08-23T00:00:00.000Z',
+  3,
+  validControlReceipt,
+);
+assert.equal(currentPriceReady.state, 'READY_FOR_SEPARATE_CURRENT_PRICE_GATE');
+assert.deepEqual(currentPriceReady.reason_codes, []);
+assert.equal(currentPriceReady.current_price_eligible, false);
+
+const mismatchedRecordSet = await runtime.assessCurrentPriceReadiness(
+  [{ ...empiricalCurrentPriceRecords[0], realized_price: 999999 }, ...empiricalCurrentPriceRecords.slice(1)],
+  '2026-08-23T00:00:00.000Z',
+  3,
+  validControlReceipt,
+);
+assert.equal(mismatchedRecordSet.state, 'HOLD');
+assert.ok(mismatchedRecordSet.reason_codes.includes('OUTLIER_AND_DUPLICATE_CONTROL_RECORD_SET_DIGEST_MISMATCH'));
+
+const tamperedReceipt = await runtime.assessCurrentPriceReadiness(
+  empiricalCurrentPriceRecords,
+  '2026-08-23T00:00:00.000Z',
+  3,
+  { ...validControlReceipt, duplicate_count: 1 },
+);
+assert.equal(tamperedReceipt.state, 'HOLD');
+assert.ok(tamperedReceipt.reason_codes.includes('OUTLIER_AND_DUPLICATE_CONTROL_NOT_PASS'));
+assert.ok(tamperedReceipt.reason_codes.includes('OUTLIER_AND_DUPLICATE_CONTROL_RECEIPT_DIGEST_MISMATCH'));
+
+const futureReceiptUnsigned = { ...unsignedControlReceipt, evaluated_at: '2026-08-24T00:00:00.000Z' };
+const futureReceipt = await runtime.assessCurrentPriceReadiness(
+  empiricalCurrentPriceRecords,
+  '2026-08-23T00:00:00.000Z',
+  3,
+  {
+    ...futureReceiptUnsigned,
+    receipt_digest: await runtime.digestOutlierDuplicateControlReceipt(futureReceiptUnsigned),
+  },
+);
+assert.equal(futureReceipt.state, 'HOLD');
+assert.ok(futureReceipt.reason_codes.includes('OUTLIER_AND_DUPLICATE_CONTROL_AFTER_AS_OF'));
 
 const schemaMatch = runtime.evaluateMarketAdapterSchema(fixtureProfile, fixtureProfile.required_schema_fields);
 assert.equal(schemaMatch.state, 'MATCH');
@@ -245,6 +314,10 @@ const report = {
   schema_drift_hold: 'PASS',
   provider_direct_path_rejection: 'PASS',
   synthetic_current_price_promotion_rejected: 'PASS',
+  empirical_current_price_readiness_with_exact_control_receipt: 'PASS',
+  current_price_control_record_set_mismatch_rejected: 'PASS',
+  current_price_control_receipt_tamper_rejected: 'PASS',
+  future_dated_control_receipt_rejected: 'PASS',
   empirical_normalized_candidate_market_event_admitted: false,
   fixture_market_event_admitted: false,
   current_price_eligible: false,

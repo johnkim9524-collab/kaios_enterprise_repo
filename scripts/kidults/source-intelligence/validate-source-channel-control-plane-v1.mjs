@@ -9,6 +9,17 @@ const DEFAULT_LEDGER = 'coordination/kidults/source-intelligence/source-channel-
 const canonicalJson = value => `${JSON.stringify(value, null, 2)}\n`;
 const sha256 = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 
+export function validateCuratedFrontierSourceIdFormatting(text) {
+  const errors = [];
+  const [, ...lines] = String(text).trim().split(/\r?\n/);
+  for (const [index, line] of lines.entries()) {
+    if (!line) continue;
+    const sourceId = line.split('|')[0];
+    if (!sourceId || sourceId !== sourceId.trim()) errors.push(`CURATED_FRONTIER_SOURCE_ID_NOT_TRIMMED:${index + 2}`);
+  }
+  return errors;
+}
+
 export function validateSourceChannelControlPlane(ledger, contract) {
   const errors = [];
   const fail = (condition, code) => { if (!condition) errors.push(code); };
@@ -18,7 +29,11 @@ export function validateSourceChannelControlPlane(ledger, contract) {
   const byId = new Map(records.map(record => [record.canonical_source_id, record]));
   const allAliases = records.flatMap(record => record.aliases || []);
   const frontierIds = records.flatMap(record => record.curated_frontier_ids || []);
+  const trimmedNonEmpty = value => typeof value === 'string' && value.length > 0 && value === value.trim();
 
+  fail(records.every(record => trimmedNonEmpty(record.canonical_source_id)), 'CANONICAL_SOURCE_ID_NOT_TRIMMED');
+  fail(allAliases.every(trimmedNonEmpty), 'SOURCE_ALIAS_NOT_TRIMMED');
+  fail(frontierIds.every(trimmedNonEmpty), 'CURATED_FRONTIER_ID_NOT_TRIMMED');
   fail(records.length === new Set(records.map(record => record.canonical_source_id)).size, 'DUPLICATE_CANONICAL_SOURCE_ID');
   fail(allAliases.length === new Set(allAliases).size, 'DUPLICATE_SOURCE_ALIAS');
   fail(allAliases.every(alias => !byId.has(alias)), 'ALIAS_COLLIDES_WITH_CANONICAL_SOURCE_ID');
@@ -42,6 +57,8 @@ export function validateSourceChannelControlPlane(ledger, contract) {
   fail(records.every(record => record.acquisition_authorized === false && record.evidence_admitted === false && record.current_market_event_created === false), 'SOURCE_EXECUTION_AUTHORITY_OVERCLAIM');
   fail(records.every(record => record.adapter_active === false && record.activation_eligible === false), 'SOURCE_ACTIVATION_OVERCLAIM');
   fail(packages.length > 0 && packages.every(record => record.decision && record.claim_ceiling && Array.isArray(record.reason_codes)), 'SOURCE_PURPOSE_DECISION_INCOMPLETE');
+  fail(packages.every(record => trimmedNonEmpty(record.canonical_source_id) && trimmedNonEmpty(record.source_purpose_id)), 'SOURCE_PURPOSE_ID_NOT_TRIMMED');
+  fail(packages.every(record => byId.has(record.canonical_source_id)), 'SOURCE_PURPOSE_CANONICAL_SOURCE_MISSING');
   fail(packages.every(record => record.acquisition_authorized === false && record.public_release === 'HOLD' && record.production === 'HOLD'), 'SOURCE_PURPOSE_PROTECTED_BOUNDARY');
 
   const currentSoldPackages = packages.filter(record => record.purpose === 'CURRENT_SOLD_TRANSACTION');
@@ -79,17 +96,23 @@ export function validateSourceChannelControlPlane(ledger, contract) {
   return [...new Set(errors)].sort();
 }
 
-function requireRejected(name, mutate, pristine, contract) {
+function requireRejected(name, mutate, pristine, contract, expectedCode = null) {
   const candidate = structuredClone(pristine);
   mutate(candidate);
+  delete candidate.ledger_digest;
+  candidate.ledger_digest = sha256(canonicalJson(candidate));
   const errors = validateSourceChannelControlPlane(candidate, contract);
   if (!errors.length) throw new Error(`NEGATIVE_MUTATION_ACCEPTED:${name}`);
+  if (expectedCode && !errors.includes(expectedCode)) throw new Error(`NEGATIVE_MUTATION_WRONG_REJECTION:${name}:${errors.join(',')}`);
   return { name, rejected: true, errors };
 }
 
 const root = process.cwd();
 const ledgerPath = process.argv[2] || DEFAULT_LEDGER;
 const contract = JSON.parse(fs.readFileSync(path.join(root, DEFAULT_CONTRACT), 'utf8'));
+const frontierText = fs.readFileSync(path.join(root, contract.inputs.curated_frontier), 'utf8');
+const frontierFormatErrors = validateCuratedFrontierSourceIdFormatting(frontierText);
+if (frontierFormatErrors.length) throw new Error(`CURATED_FRONTIER_SOURCE_ID_FORMAT_INVALID:${frontierFormatErrors.join(',')}`);
 const ledger = JSON.parse(fs.readFileSync(path.join(root, ledgerPath), 'utf8'));
 const rebuilt = buildSourceChannelControlPlane({ root, contractPath: DEFAULT_CONTRACT });
 if (canonicalJson(ledger) !== canonicalJson(rebuilt)) throw new Error('COMMITTED_LEDGER_NOT_REPRODUCIBLE_FROM_REGISTERED_INPUTS');
@@ -119,8 +142,21 @@ const mutations = [
     const declaration = candidate.source_records.flatMap(record => record.admission_declarations)
       .find(row => row.admission_class === 'REPOSITORY_DECLARED_BOUNDED_SHADOW');
     declaration.strict_r1_evidence_bound_admission = true;
-  }, ledger, contract)
+  }, ledger, contract),
+  requireRejected('leading-whitespace-canonical-source-id', candidate => {
+    candidate.source_records[0].canonical_source_id = ` ${candidate.source_records[0].canonical_source_id}`;
+  }, ledger, contract, 'CANONICAL_SOURCE_ID_NOT_TRIMMED')
 ];
+const frontierNegativeText = frontierText.replace(/^(source_id[^\n]*\n)([^\s|])/m, '$1 $2');
+const frontierNegativeErrors = validateCuratedFrontierSourceIdFormatting(frontierNegativeText);
+if (!frontierNegativeErrors.some(error => error.startsWith('CURATED_FRONTIER_SOURCE_ID_NOT_TRIMMED:'))) {
+  throw new Error('NEGATIVE_MUTATION_ACCEPTED:registered-leading-whitespace-source-id');
+}
+mutations.push({
+  name: 'registered-leading-whitespace-source-id',
+  rejected: true,
+  errors: frontierNegativeErrors
+});
 
 process.stdout.write(`${JSON.stringify({
   state: 'VERIFIED_PASS',

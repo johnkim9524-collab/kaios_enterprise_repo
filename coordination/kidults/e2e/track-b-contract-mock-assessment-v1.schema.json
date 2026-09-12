@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/track-b-contract-mock-assessment-v1.schema.json",
+  "title": "KIDULTS Track-B-contract-compatible mock assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "schema_version",
+    "fixture_type",
+    "assessment_class",
+    "assessment_id",
+    "as_of",
+    "input_snapshot_id",
+    "input_evidence_package_id",
+    "pair_digest",
+    "assessor_input_boundary",
+    "decision",
+    "canonical_handoff_state",
+    "official_track_b_started",
+    "rankability_assessment_created",
+    "rankable",
+    "promotable",
+    "real_product_value_proof",
+    "approved_projection",
+    "publication_eligible",
+    "production_authorized",
+    "blocking_dimensions",
+    "public_release",
+    "production",
+    "g5",
+    "assessment_payload_sha256"
+  ],
+  "properties": {
+    "record_type": {"const": "kidults_track_b_contract_mock_assessment"},
+    "schema_version": {"const": "1.0.0"},
+    "fixture_type": {"const": "LAWFUL_SOURCE_NON_PROMOTABLE_CONTROL"},
+    "assessment_class": {"const": "TRACK_B_CONTRACT_COMPATIBLE_MOCK_ASSESSMENT"},
+    "assessment_id": {"type": "string", "minLength": 1},
+    "as_of": {"type": "string", "format": "date-time"},
+    "input_snapshot_id": {"type": "string", "minLength": 1},
+    "input_evidence_package_id": {"type": "string", "minLength": 1},
+    "pair_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "assessor_input_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_input_files", "observation_input", "portal_input", "business_input", "provider_input"],
+      "properties": {
+        "allowed_input_files": {"const": ["snapshot-candidate.json", "evidence-package.json"]},
+        "observation_input": {"const": false},
+        "portal_input": {"const": false},
+        "business_input": {"const": false},
+        "provider_input": {"const": false}
+      }
+    },
+    "decision": {"const": "CONTROL_CONTRACT_PASS"},
+    "canonical_handoff_state": {"const": "BLOCKED_CONTROL_PAIR"},
+    "official_track_b_started": {"const": false},
+    "rankability_assessment_created": {"const": false},
+    "rankable": {"const": false},
+    "promotable": {"const": false},
+    "real_product_value_proof": {"const": false},
+    "approved_projection": {"const": false},
+    "publication_eligible": {"const": false},
+    "production_authorized": {"const": false},
+    "blocking_dimensions": {
+      "const": [
+        "CANONICAL_HANDOFF_INELIGIBLE_CONTROL_PAIR",
+        "CURRENT_MARKET_EVIDENCE_NOT_VERIFIED",
+        "DISPLAY_REDISTRIBUTION_AND_SALE_RIGHTS_UNKNOWN",
+        "IMMUTABLE_RAW_SOURCE_SNAPSHOT_NOT_VERIFIED",
+        "LIQUIDITY_NOT_VERIFIED",
+        "MARKET_REPRESENTATIVENESS_NOT_VERIFIED",
+        "OFFICIAL_TRACK_B_NOT_STARTED"
+      ]
+    },
+    "public_release": {"const": "HOLD"},
+    "production": {"const": "HOLD"},
+    "g5": {"const": "HOLD"},
+    "assessment_payload_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+  }
+}

@@ -1,12 +1,14 @@
 {
   "contract_id": "kidults-production-runtime-audit.v0.1",
+  "status": "SUPERSEDED_FAIL_CLOSED",
+  "superseded_by": "contracts/certification/kidults-controlled-production-promotion.v1.json",
   "environment": "production",
   "default_decision": "hold",
   "production_promotion_authorized": false,
   "artfund_production_promotion_authorized": false,
   "score": {
     "maximum": 100,
-    "go_threshold": 90,
+    "go_threshold": 100,
     "hold_threshold": 70
   },
   "categories": [
@@ -45,8 +47,8 @@
     "production_promotion_implicitly_authorized"
   ],
   "decision_rules": {
-    "go": "score >= 90 and all mandatory probes pass and no hard blocker exists",
-    "hold": "score between 70 and 89 or any recoverable mandatory gap remains",
+    "go": "score is exactly 100/100 and all mandatory probes pass and no hard blocker exists",
+    "hold": "score between 70 and 99 or any recoverable mandatory gap remains",
     "rollback": "score < 70 or any hard blocker exists"
   }
 }

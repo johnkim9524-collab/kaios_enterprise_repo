@@ -16,6 +16,8 @@ command -v docker >/dev/null || { echo "docker is required" >&2; exit 1; }
 
 [[ -d "${PROD_ROOT}" ]] || { echo "Missing production root: ${PROD_ROOT}" >&2; exit 1; }
 [[ -f "${PROD_DB}" ]] || { echo "Missing production database: ${PROD_DB}" >&2; exit 1; }
+SOURCE_SHA="$(git -C "${PROD_ROOT}" rev-parse HEAD 2>/dev/null)" || { echo "Production root is not an exact Git checkout" >&2; exit 1; }
+[[ "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid production source SHA" >&2; exit 1; }
 
 integrity=$(sqlite3 "${PROD_DB}" "PRAGMA integrity_check;")
 [[ "${integrity}" == "ok" ]] || { echo "Production database integrity failed" >&2; exit 1; }
@@ -37,7 +39,7 @@ backup_age_seconds=-1
 backup_integrity="missing"
 if [[ -n "${latest_manifest}" && -f "${latest_manifest}" ]]; then
   backup_age_seconds=$(( $(date +%s) - $(stat -c %Y "${latest_manifest}") ))
-  backup_integrity=$(python3 - "${latest_manifest}" <<'PY'
+  backup_integrity=$(python3 -I - "${latest_manifest}" <<'PY'
 import json, sys
 p=json.load(open(sys.argv[1], encoding='utf-8'))
 print(p.get('integrity','unknown'))
@@ -45,23 +47,46 @@ PY
 )
 fi
 
-python3 - <<PY > "${EVIDENCE_DIR}/production-audit.json"
+SOURCE_SHA="${SOURCE_SHA}" \
+PROD_ROOT="${PROD_ROOT}" \
+PROD_DB="${PROD_DB}" \
+AUDIT_DATABASE_INTEGRITY="${integrity}" \
+AUDIT_DATABASE_SHA256="${db_sha}" \
+AUDIT_SCHEMA_SHA256="${schema_sha}" \
+AUDIT_HEALTH_HTTP="${health_code}" \
+AUDIT_UNAUTH_HTTP="${unauth_code}" \
+AUDIT_PORTAL_HTTP="${portal_code}" \
+AUDIT_LATEST_BACKUP_MANIFEST="${latest_manifest}" \
+AUDIT_BACKUP_AGE_SECONDS="${backup_age_seconds}" \
+AUDIT_BACKUP_INTEGRITY="${backup_integrity}" \
+python3 -I - <<'PY' > "${EVIDENCE_DIR}/production-audit.json"
 import json
+import os
+from datetime import datetime, timezone
+
 payload = {
-  "status": "pass",
-  "production_root": "${PROD_ROOT}",
-  "production_database": "${PROD_DB}",
-  "database_integrity": "${integrity}",
-  "database_checksum": "${db_sha}",
-  "schema_checksum": "${schema_sha}",
-  "health_http": int("${health_code}"),
-  "unauthenticated_collector_http": int("${unauth_code}"),
-  "portal_http": int("${portal_code}"),
-  "latest_backup_manifest": "${latest_manifest}",
-  "backup_age_seconds": int("${backup_age_seconds}"),
-  "backup_integrity": "${backup_integrity}",
-  "publication_promotion_authorized": False,
-  "artfund_production_promotion_authorized": False
+  "id": "KIDULTS_PRODUCTION_AUDIT_EVIDENCE_V1",
+  "version": "1.0.0",
+  "producer_id": "KIDULTS_PRODUCTION_AUDIT_COLLECTOR_V1",
+  "source_sha": os.environ["SOURCE_SHA"],
+  "observed_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+  "state": "VERIFIED",
+  "evidence": {
+    "status": "pass",
+    "production_root": os.environ.get("PROD_ROOT", "/opt/intelligence-holdings/kidults/app"),
+    "production_database": os.environ.get("PROD_DB", "/opt/intelligence-holdings/kidults/data/kaios.db"),
+    "database_integrity": os.environ["AUDIT_DATABASE_INTEGRITY"],
+    "database_checksum": os.environ["AUDIT_DATABASE_SHA256"],
+    "schema_checksum": os.environ["AUDIT_SCHEMA_SHA256"],
+    "health_http": int(os.environ["AUDIT_HEALTH_HTTP"]),
+    "unauthenticated_collector_http": int(os.environ["AUDIT_UNAUTH_HTTP"]),
+    "portal_http": int(os.environ["AUDIT_PORTAL_HTTP"]),
+    "latest_backup_manifest": os.environ["AUDIT_LATEST_BACKUP_MANIFEST"],
+    "backup_age_seconds": int(os.environ["AUDIT_BACKUP_AGE_SECONDS"]),
+    "backup_integrity": os.environ["AUDIT_BACKUP_INTEGRITY"],
+    "publication_promotion_authorized": False,
+    "artfund_production_promotion_authorized": False,
+  },
 }
 print(json.dumps(payload, indent=2))
 PY

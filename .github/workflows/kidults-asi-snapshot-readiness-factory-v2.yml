@@ -9,29 +9,39 @@ on:
     paths:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
       - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
   pull_request:
     branches: [main]
     paths:
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json'
       - 'coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json'
+      - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
+      - 'coordination/kidults/source-intelligence/asi-source-eligibility-receipt-contract-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs'
       - 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs'
+      - 'scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs'
       - 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs'
       - 'docs/kidults/asi/asi-snapshot-readiness-factory-v2.md'
       - '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
+      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py'
   workflow_run:
     workflows:
       - 'KIDULTS ASI Owned Source Intelligence Graph v2'
@@ -114,11 +124,15 @@ jobs:
           node --check scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs
           node --check scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs
+          node --check scripts/kidults/source-intelligence/lib/validate-p3-exact-canary-provenance-v1.mjs
           node --check scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
+          python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.test.py
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-contract-v2.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-snapshot-readiness-factory-registry-v2.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json','utf8'))"
       - name: Validate registered current-chain P3 assets and activation
         run: |
           set -euo pipefail
@@ -180,6 +194,18 @@ jobs:
           P2_ARCHIVE_SHA256="$P2_ARCHIVE_SHA256" node - <<'NODE'
           const fs=require('fs');const p='/tmp/p2-artifact.json';const a=JSON.parse(fs.readFileSync(p));if(a.digest!==process.env.P2_ARCHIVE_SHA256)process.exit(2);a.downloaded_archive_sha256=process.env.P2_ARCHIVE_SHA256;fs.writeFileSync(p,JSON.stringify(a,null,2)+'\n');
           NODE
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p2.zip --expected-digest "$P2_ARCHIVE_SHA256" \
+            --receipt /tmp/p3-p2-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 33554432 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename owned-source-intelligence-graph-v2.json \
+            --required-basename owned-source-intelligence-lineage-v2.json \
+            --required-basename owned-source-intelligence-quality-v2.json \
+            --required-basename owned-source-intelligence-value-receipt-v2.json \
+            --required-basename owned-source-intelligence-manifest-v2.json \
+            --required-basename kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json
           unzip -q -o /tmp/p2.zip -d /tmp/p2-expanded
           copy_unique() { mapfile -t FILES < <(find "$1" -type f -name "$2" -print); test "${#FILES[@]}" -eq 1; cp -- "${FILES[0]}" "$3/$2"; }
           for NAME in owned-source-intelligence-graph-v2.json owned-source-intelligence-lineage-v2.json owned-source-intelligence-quality-v2.json owned-source-intelligence-value-receipt-v2.json owned-source-intelligence-manifest-v2.json kidults-asi-owned-source-intelligence-graph-kpmo-receipt-v2.json; do copy_unique /tmp/p2-expanded "$NAME" /tmp/p2; done
@@ -198,6 +224,25 @@ jobs:
           P0B_ARCHIVE_SHA256="$P0B_ARCHIVE_SHA256" P1_ARCHIVE_SHA256="$P1_ARCHIVE_SHA256" node - <<'NODE'
           const fs=require('fs');for(const [file,digest] of [['/tmp/p0b-artifact.json',process.env.P0B_ARCHIVE_SHA256],['/tmp/p1-artifact.json',process.env.P1_ARCHIVE_SHA256]]){const a=JSON.parse(fs.readFileSync(file));if(a.digest!==digest)process.exit(2);a.downloaded_archive_sha256=digest;fs.writeFileSync(file,JSON.stringify(a,null,2)+'\n');}
           NODE
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p0b.zip --expected-digest "$P0B_ARCHIVE_SHA256" \
+            --receipt /tmp/p3-p0b-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 33554432 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p0b-source-candidate-registry-v1.json \
+            --required-basename p0b-mission-candidate-binding-ledger-v1.json \
+            --required-basename p0b-bounded-discovery-manifest-v1.json
+          python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
+            --archive /tmp/p1.zip --expected-digest "$P1_ARCHIVE_SHA256" \
+            --receipt /tmp/p3-p1-archive-validation-receipt-v1.json \
+            --max-compressed-bytes 33554432 --max-entries 256 \
+            --max-entry-uncompressed-bytes 8388608 --max-total-uncompressed-bytes 33554432 \
+            --max-compression-ratio 100 \
+            --required-basename p1-gate1-source-safety-decisions-v1.json \
+            --required-basename p1-evidence-admission-candidate-register-v1.json \
+            --required-basename p1-preflight-action-queue-v1.json \
+            --required-basename p1-source-preflight-manifest-v1.json
           unzip -q -o /tmp/p0b.zip -d /tmp/p0b-expanded
           unzip -q -o /tmp/p1.zip -d /tmp/p1-expanded
           for NAME in p0b-source-candidate-registry-v1.json p0b-mission-candidate-binding-ledger-v1.json p0b-bounded-discovery-manifest-v1.json; do copy_unique /tmp/p0b-expanded "$NAME" /tmp/p0b; done
@@ -346,11 +391,48 @@ jobs:
         run: |
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
-          const fs=require('fs');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const expectedUrl=`${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`;const rawDigest=process.env.ARTIFACT_DIGEST||'';const normalizedDigest=rawDigest.startsWith('sha256:')?rawDigest:`sha256:${rawDigest}`;if(!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID||'')||!/^sha256:[0-9a-f]{64}$/.test(normalizedDigest)||process.env.ARTIFACT_URL!==expectedUrl)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-provider-artifact-receipt-v2',state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING',repository:process.env.GITHUB_REPOSITORY,source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:process.env.GITHUB_RUN_ID,artifact_id:process.env.ARTIFACT_ID,artifact_digest:normalizedDigest,artifact_url:process.env.ARTIFACT_URL,exact_pair_digest:m.exact_pair_digest,upstream_binding_receipt_sha256:m.upstream_binding_receipt_sha256,immutable_storage_verified:false,artifact_attestation_verified:false,track_b_submission_eligible:false,public_release:'HOLD',production:'HOLD'},null,2)+'\n');
+          const fs=require('fs'),crypto=require('crypto');const m=JSON.parse(fs.readFileSync('/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-readiness-manifest-v2.json'));const pairReceipt='/tmp/kidults-asi-snapshot-readiness-factory-run-1/snapshot-pair-generation-receipt-v2.json';const expectedUrl=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${process.env.ARTIFACT_ID}`;const artifactName=`kidults-asi-snapshot-readiness-factory-v2-main-${process.env.GITHUB_SHA}-${process.env.GITHUB_RUN_ID}`;const rawDigest=process.env.ARTIFACT_DIGEST||'';const normalizedDigest=rawDigest.startsWith('sha256:')?rawDigest:`sha256:${rawDigest}`;const pairReceiptSha256='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(pairReceipt)).digest('hex');if(process.env.GITHUB_SERVER_URL!=='https://github.com'||process.env.GITHUB_REF!=='refs/heads/main'||!['workflow_run','schedule'].includes(process.env.GITHUB_EVENT_NAME)||!(/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||''))||!(/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ID||''))||!(/^[1-9][0-9]*$/.test(process.env.GITHUB_RUN_ATTEMPT||''))||!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID||'')||!/^sha256:[0-9a-f]{64}$/.test(normalizedDigest)||process.env.ARTIFACT_URL!==expectedUrl)process.exit(2);process.stdout.write(JSON.stringify({id:'kidults-asi-snapshot-readiness-provider-artifact-receipt-v2',version:'3.0.0',state:'PROVIDER_ARTIFACT_RECEIPT_CAPTURED_ATTESTATION_PENDING',repository:process.env.GITHUB_REPOSITORY,workflow_path:'.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',protected_ref:'refs/heads/main',source_ref:process.env.GITHUB_REF,source_sha:process.env.GITHUB_SHA,workflow_run_id:process.env.GITHUB_RUN_ID,workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),event_name:process.env.GITHUB_EVENT_NAME,artifact_name:artifactName,artifact_id:process.env.ARTIFACT_ID,artifact_digest:normalizedDigest,artifact_url:process.env.ARTIFACT_URL,exact_pair_digest:m.exact_pair_digest,pair_receipt_sha256:pairReceiptSha256,upstream_binding_receipt_sha256:m.upstream_binding_receipt_sha256,authority_scope:'BOUNDED_CANARY_ADAPTER_ADMISSION_ONLY',track_b_submission_eligible:false,public_release:'HOLD',production:'HOLD'},null,2)+'\n');
           NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-asi-snapshot-readiness-factory-v2-provider-receipt-main-${{ github.sha }}-${{ github.run_id }}
           path: /tmp/kidults-asi-snapshot-readiness-provider-artifact-receipt-v2.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Emit terminal p3 archive-consumer diagnostic
+        if: always()
+        env:
+          TERMINAL_JOB_STATUS: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          names = sorted(name for name in os.listdir("/tmp") if name.startswith("p3-") and name.endswith("-archive-validation-receipt-v1.json"))
+          receipts = []
+          for name in names:
+              path = os.path.join("/tmp", name)
+              with open(path, "rb") as handle:
+                  raw = handle.read()
+              receipts.append({"name": name, "sha256": "sha256:" + hashlib.sha256(raw).hexdigest()})
+          value = {
+              "id": "kidults-asi-p3-archive-consumer-terminal-v1",
+              "state": "VERIFIED_PASS" if os.environ["TERMINAL_JOB_STATUS"] == "success" else "FAILURE_CONTAINED",
+              "job_status": os.environ["TERMINAL_JOB_STATUS"],
+              "source_sha": os.environ["GITHUB_SHA"],
+              "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+              "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "safe_pre_extraction_receipts": receipts,
+              "unsafe_extraction_authorized": False,
+              "public_release": "HOLD",
+              "production": "HOLD",
+          }
+          with open("/tmp/kidults-asi-p3-archive-consumer-terminal-v1.json", "w", encoding="utf-8") as handle:
+              json.dump(value, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-asi-p3-archive-consumer-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-asi-p3-archive-consumer-terminal-v1.json
           retention-days: 90
           if-no-files-found: error

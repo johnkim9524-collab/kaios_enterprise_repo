@@ -21,18 +21,22 @@ function validate(text) {
   if (count(text, watch) !== 1) fail('REQUIREMENT_WATCH_CARDINALITY_NOT_ONE');
   const block = extractStep(text, 'Validate exact Requirement Coverage upstream evidence binding');
   const required = [
-    "if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'",
+    "(github.event_name == 'workflow_run' && github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml')",
+    "(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')",
     'GH_TOKEN: ${{ github.token }}',
-    'REQUIREMENT_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
-    'REQUIREMENT_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}',
-    'REQUIREMENT_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}',
+    'REQUIREMENT_UPSTREAM_RUN_ID: ${{ inputs.coverage_run_id || github.event.workflow_run.id }}',
+    'REQUIREMENT_UPSTREAM_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt || github.event.workflow_run.run_attempt }}',
+    'REQUIREMENT_UPSTREAM_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha }}',
+    "REQUIREMENT_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion }}",
     '^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$',
     '/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}',
-    '.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1"',
+    '(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))',
     '.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"',
     '.repository.full_name==$repo',
+    '.run_attempt==$attempt',
     '.head_branch=="main"',
     'and .head_sha==$sha',
+    'and .event=="workflow_run"',
     '.status=="completed"',
     '.conclusion==$conclusion',
     '/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}/artifacts?per_page=100',
@@ -43,13 +47,44 @@ function validate(text) {
     'REQUIREMENT_BINDING_STATUS=VERIFIED_PASS',
     'REQUIREMENT_BINDING_STATUS=VERIFIED_FAIL',
     '--arg status "$REQUIREMENT_BINDING_STATUS"',
+    '--argjson attempt "$REQUIREMENT_UPSTREAM_RUN_ATTEMPT"',
+    '--arg event "$REQUIREMENT_UPSTREAM_EVENT"',
+    '--arg title "$REQUIREMENT_UPSTREAM_DISPLAY_TITLE"',
     '{status:$status',
-    'if [ "$REQUIREMENT_UPSTREAM_CONCLUSION" != success ]; then',
-    'exit 1'
+    'if [ "$REQUIREMENT_UPSTREAM_CONCLUSION" != success ]; then\n            exit 1\n          fi',
+    'validate-safe-zip-archive-v1.py',
+    'coverage-canonical-alias-receipt-v1.json',
+    'COVERAGE_CANONICAL_ARTIFACT_ACTIVE_CARDINALITY',
+    'a.workflow_run?.id!==alias.canonical_workflow_run_id',
+    '/actions/runs/${CANONICAL_WORKFLOW_RUN_ID}',
+    'coverage_canonical_source_sha:$canonicalSource',
+    'canonical_artifact_workflow_run_id:$canonicalArtifactRun',
+    'canonical_run:$canonicalRun[0]',
+    'coverage-semantic-input-receipt-v1.json',
+    'COVERAGE_SEMANTIC_RECEIPT_DIGEST',
+    'semantic_input_receipt_file_digest:$semanticFileDigest',
+    'semantic_input_receipt:$semantic[0]',
+    'observe-continuous-assurance-coverage-alias-v1.mjs'
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`REQUIREMENT_MARKER_MISSING:${marker}`);
+  const continuationRequired = [
+    'coverage_run_id:',
+    'coverage_dispatch_artifact_digest:',
+    'Reject partial forwarded Coverage continuation inputs',
+    'PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN',
+    'Validate and consume forwarded exact Coverage continuation',
+    'validate-kir-coverage-assurance-continuation-v1.mjs consume',
+    '--argjson prior "$PRIOR_CONSUMPTION_COUNT"',
+    'Retain one-time Coverage continuation consumption receipt',
+    'Verify restored Coverage continuation consumption',
+    '.state=="CONSUMED_VERIFIED"',
+    'classification_only_success_accepted==false',
+    'promotion_eligible==false',
+    '.public=="HOLD" and .production=="HOLD" and .g5=="HOLD"'
+  ];
+  for (const marker of continuationRequired) if (!text.includes(marker)) fail(`CONTINUATION_MARKER_MISSING:${marker}`);
   if (block.includes('{status:"VERIFIED_PASS"')) fail('REQUIREMENT_HARD_CODED_PASS_FORBIDDEN');
-  const header = text.match(/jobs:\n  audit:\n([\s\S]*?)\n    runs-on:/)?.[1] || '';
+  const header = text.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
   if (/workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header)) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
 }
 
@@ -57,19 +92,41 @@ validate(source);
 
 const block = extractStep(source, 'Validate exact Requirement Coverage upstream evidence binding');
 const mutations = [
+  ['(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))', 'true'],
   ['GH_TOKEN: ${{ github.token }}\n', ''],
   ['.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"', '.path!=".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
+  ['.run_attempt==$attempt', '.run_attempt!=$attempt'],
+  ['and .event=="workflow_run"', 'and .event!="workflow_run"'],
   ['test "$REQUIREMENT_ARTIFACT_COUNT" -eq 1', 'test "$REQUIREMENT_ARTIFACT_COUNT" -ge 1'],
   ['REQUIREMENT_BINDING_STATUS=VERIFIED_FAIL', 'REQUIREMENT_BINDING_STATUS=VERIFIED_PASS'],
   ['{status:$status', '{status:"VERIFIED_PASS"'],
-  ['exit 1', 'true']
+  ['a.workflow_run?.id!==alias.canonical_workflow_run_id', 'false'],
+  ['coverage_canonical_source_sha:$canonicalSource', 'coverage_canonical_source_sha:$auditSource'],
+  ['semantic_input_receipt_file_digest:$semanticFileDigest', 'semantic_input_receipt_file_digest:$canonicalArtifactDigest'],
+  ['if [ "$REQUIREMENT_UPSTREAM_CONCLUSION" != success ]; then\n            exit 1\n          fi', 'if [ "$REQUIREMENT_UPSTREAM_CONCLUSION" != success ]; then\n            true\n          fi']
 ];
 for (const [from, to] of mutations) {
   if (!block.includes(from)) fail(`SELF_TEST_MARKER_MISSING:${from}`);
   const mutated = source.replace(block, block.replace(from, to));
   let rejected = false;
   try { validate(mutated); } catch { rejected = true; }
+  if (!rejected) fail(`MUTATION_NOT_REJECTED:${from}`);
+}
+
+const sourceMutations = [
+  ["(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')", "(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id == '')"],
+  ['PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN', 'PARTIAL_INPUTS_ACCEPTED'],
+  ['validate-kir-coverage-assurance-continuation-v1.mjs consume', 'validate-kir-coverage-assurance-continuation-v1.mjs issue'],
+  ['--argjson prior "$PRIOR_CONSUMPTION_COUNT"', '--argjson prior "0"'],
+  ['.state=="CONSUMED_VERIFIED"', '.state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION"'],
+  ['classification_only_success_accepted==false', 'classification_only_success_accepted==true'],
+  ['.public=="HOLD" and .production=="HOLD" and .g5=="HOLD"', '.public=="ACTIVE" and .production=="ACTIVE" and .g5=="ACTIVE"']
+];
+for (const [from, to] of sourceMutations) {
+  if (!source.includes(from)) fail(`SELF_TEST_MARKER_MISSING:${from}`);
+  let rejected = false;
+  try { validate(source.replace(from, to)); } catch { rejected = true; }
   if (!rejected) fail(`MUTATION_NOT_REJECTED:${from}`);
 }
 
@@ -82,7 +139,7 @@ console.log(JSON.stringify({
   github_cli_token_explicit: true,
   failed_upstream_fails_assurance_closed: true,
   hard_coded_pass_rejected: true,
-  mutations_rejected: mutations.length,
+  mutations_rejected: mutations.length + sourceMutations.length,
   empirical_promotion: false,
   production: 'HOLD',
   public: 'HOLD',

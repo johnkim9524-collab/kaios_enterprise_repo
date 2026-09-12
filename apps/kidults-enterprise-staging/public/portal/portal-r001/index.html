@@ -72,6 +72,10 @@
           <dl class="object-facts" aria-label="Object intelligence fields">
             <div><dt>Identity</dt><dd data-object-identity>Waiting</dd></div><div><dt>Market</dt><dd data-object-market>Waiting</dd></div><div><dt>Comparables</dt><dd data-object-comparables>Waiting</dd></div><div><dt>Evidence</dt><dd data-object-evidence>Waiting</dd></div><div><dt>Rights</dt><dd data-object-rights>Waiting</dd></div><div><dt>Limits</dt><dd data-object-limitations>Visible</dd></div>
           </dl>
+          <nav class="object-actions" data-object-actions aria-label="Governed object actions">
+            <a data-object-action="COMPARE" data-action-state="DISABLED" aria-disabled="true">Compare unavailable</a>
+            <a data-object-action="WATCHLIST" data-action-state="DISABLED" aria-disabled="true">Watchlist unavailable</a>
+          </nav>
           <a class="module-link" href="#access">Explore objects <span aria-hidden="true">→</span></a>
         </article>
 
@@ -107,7 +111,7 @@
         <article class="module-card workspace-card" id="workspace" data-content-surface="workspace">
           <header class="module-head"><span>07</span><div><h2>Workspace</h2><p>Build watchlists and compare governed objects in a secure environment.</p></div></header>
           <div class="workspace-grid" role="group" aria-label="Workspace capabilities">
-            <article><span aria-hidden="true">⌕</span><b>Search</b><small>Projection-bound</small></article><article><span aria-hidden="true">⇄</span><b>Compare</b><small>Evidence-aware</small></article><article><span aria-hidden="true">◇</span><b>Watch</b><small>Governed changes</small></article><article><span aria-hidden="true">✓</span><b>Decide</b><small>Admissible inputs</small></article>
+            <article><span aria-hidden="true">⌕</span><b>Search</b><small>Projection-bound</small></article><article data-workspace-action="COMPARE"><span aria-hidden="true">⇄</span><b>Compare</b><a data-workspace-destination aria-disabled="true">Unavailable</a></article><article data-workspace-action="WATCHLIST"><span aria-hidden="true">◇</span><b>Watch</b><a data-workspace-destination aria-disabled="true">Unavailable</a></article><article><span aria-hidden="true">✓</span><b>Decide</b><small>Admissible inputs</small></article>
           </div>
           <a class="module-link" href="#access">Open workspace <span aria-hidden="true">→</span></a>
         </article>

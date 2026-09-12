@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/state-department-camera-upstream-lineage-v1.schema.json",
+  "title": "KIDULTS State Department camera control-chain upstream artifact lineage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "state",
+    "mode",
+    "source_sha",
+    "upstream_workflow",
+    "upstream_artifact",
+    "predecessor_receipts",
+    "source_facts_included",
+    "raw_source_payload_included",
+    "canonical_candidate_created",
+    "official_track_b_started",
+    "real_product_value_proof",
+    "approved_projection",
+    "public_release",
+    "production",
+    "g5"
+  ],
+  "properties": {
+    "id": {"const": "kidults-state-department-camera-upstream-lineage-v1"},
+    "version": {"const": "1.0.0"},
+    "state": {"enum": ["VERIFIED_CANONICAL_UPSTREAM_ARTIFACT", "VALIDATION_ONLY_NO_CANONICAL_UPSTREAM_ARTIFACT"]},
+    "mode": {"enum": ["CANONICAL_WORKFLOW_RUN", "MANUAL_RECOVERY", "PR_OR_LOCAL_VALIDATION_ONLY"]},
+    "source_sha": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "upstream_workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "path", "run_id", "head_sha", "status", "conclusion", "head_branch"],
+      "properties": {
+        "name": {"type": ["string", "null"]},
+        "path": {"type": ["string", "null"]},
+        "run_id": {"type": ["integer", "null"], "minimum": 1},
+        "head_sha": {"type": ["string", "null"], "pattern": "^[a-f0-9]{40}$"},
+        "status": {"type": ["string", "null"]},
+        "conclusion": {"type": ["string", "null"]},
+        "head_branch": {"type": ["string", "null"]}
+      }
+    },
+    "upstream_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "artifact_id", "artifact_count", "archive_digest", "expired", "archive_digest_reverified", "digest_reverification", "download_action_pin", "extracted_content_tree_sha256"],
+      "properties": {
+        "name": {"type": ["string", "null"]},
+        "artifact_id": {"type": ["integer", "null"], "minimum": 1},
+        "artifact_count": {"type": "integer", "minimum": 0},
+        "archive_digest": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+        "expired": {"type": ["boolean", "null"]},
+        "archive_digest_reverified": {"type": "boolean"},
+        "digest_reverification": {"type": ["string", "null"]},
+        "download_action_pin": {"type": ["string", "null"]},
+        "extracted_content_tree_sha256": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "predecessor_receipts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_manifest_path", "evidence_manifest_sha256", "evidence_validation_path", "evidence_validation_sha256", "source_projection_sha256"],
+      "properties": {
+        "evidence_manifest_path": {"type": ["string", "null"]},
+        "evidence_manifest_sha256": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+        "evidence_validation_path": {"type": ["string", "null"]},
+        "evidence_validation_sha256": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"},
+        "source_projection_sha256": {"type": ["string", "null"], "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "source_facts_included": {"const": false},
+    "raw_source_payload_included": {"const": false},
+    "canonical_candidate_created": {"const": false},
+    "official_track_b_started": {"const": false},
+    "real_product_value_proof": {"const": false},
+    "approved_projection": {"const": false},
+    "public_release": {"const": "HOLD"},
+    "production": {"const": "HOLD"},
+    "g5": {"const": "HOLD"}
+  }
+}

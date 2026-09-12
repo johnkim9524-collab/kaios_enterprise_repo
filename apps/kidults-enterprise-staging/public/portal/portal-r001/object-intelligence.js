@@ -4,13 +4,38 @@ const query=(selector,root=document)=>root.querySelector(selector);
 const write=(root,selector,value)=>{const node=query(selector,root);if(node)node.textContent=value};
 const clean=value=>value==null||value===''?'Not available':String(value);
 const summarize=(values,fallback='Waiting')=>Array.isArray(values)&&values.length?values.map(clean).join(' · '):fallback;
+const ACTION_LABELS={COMPARE:'Compare',WATCHLIST:'Watchlist'};
 
-export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
+export function objectIntelligenceModel(data,{objectId=null}={}){
   const projection=data?.projection||{};
   const state=normalizeIntelligenceState(projection.state);
   const objects=Array.isArray(data?.objects)?data.objects:[];
+  const object=state==='LIVE_APPROVED'?(objectId?objects.find(item=>item.object_id===objectId)||null:objects[0]||null):null;
+  const actions=object&&Array.isArray(object.actions)?object.actions.filter(action=>
+    Object.hasOwn(ACTION_LABELS,action?.action_id)&&action?.state==='ENABLED'&&
+    action?.canonical_object_id===object.object_id&&typeof action?.destination==='string'&&action.destination.length>0
+  ):[];
+  return Object.freeze({state,object,actions});
+}
+
+function renderActions(root,actions=[]){
+  for(const [actionId,label] of Object.entries(ACTION_LABELS)){
+    const node=query(`[data-object-action="${actionId}"]`,root);
+    if(!node)continue;
+    const action=actions.find(item=>item.action_id===actionId);
+    node.dataset.actionState=action?'ENABLED':'DISABLED';
+    node.textContent=action?label:`${label} unavailable`;
+    node.setAttribute('aria-disabled',String(!action));
+    if(action)node.setAttribute('href',action.destination);
+    else node.removeAttribute('href');
+  }
+}
+
+export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
+  const projection=data?.projection||{};
   const requestedId=objectId||new URLSearchParams(globalThis.location?.search||'').get('id');
-  const object=state==='LIVE_APPROVED'?(requestedId?objects.find(item=>item.object_id===requestedId)||null:objects[0]||null):null;
+  const {state,object,actions}=objectIntelligenceModel(data,{objectId:requestedId});
+  const objects=Array.isArray(data?.objects)?data.objects:[];
   const localState=object?'LIVE_APPROVED':state==='LIVE_APPROVED'?'NOT_AVAILABLE':state;
   const stage=query('[data-object-state]',root);
 
@@ -29,7 +54,8 @@ export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
     write(root,'[data-object-evidence]','Waiting');
     write(root,'[data-object-rights]',state==='LIVE_APPROVED'?'Not available':clean(projection.rights_state||'Waiting'));
     write(root,'[data-object-limitations]','Visible');
-    return {state,object:null};
+    renderActions(root,[]);
+    return {state,object:null,actions:[]};
   }
 
   const identity=[object.maker,object.model,object.year,...(Array.isArray(object.aliases)?object.aliases:[])].filter(Boolean);
@@ -42,5 +68,6 @@ export function renderObjectIntelligence(data,{root=document,objectId=null}={}){
   write(root,'[data-object-evidence]',summarize(evidence,'Evidence attached'));
   write(root,'[data-object-rights]',clean(object.rights_state));
   write(root,'[data-object-limitations]',summarize(object.limitations,'No stated limitation'));
-  return {state,object};
+  renderActions(root,actions);
+  return {state,object,actions};
 }

@@ -1,0 +1,27 @@
+{
+  "id": "kidults-asi-source-schema-snapshot-manifest-v1",
+  "version": "1.0.0",
+  "status": "FAIL_CLOSED_SOURCE_SPECIFIC_SCHEMA_PENDING",
+  "purpose": "Record source-specific SOLD schema evidence without treating adapter implementation or a generic event schema as empirical source compatibility.",
+  "summary": {
+    "sources": 12,
+    "schema_snapshot_bound": 0,
+    "schema_compatible": 0,
+    "pending": 12
+  },
+  "records": [
+    {"source_id":"classic-com-market-data","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"bonhams-cars-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"bonhams-watches-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"broad-arrow-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"christies-handbags-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"christies-watches-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"gooding-christies-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"sothebys-watches-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"barrett-jackson-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"collecting-cars-sold","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"iconic-auctioneers-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false},
+    {"source_id":"mecum-auction-results","state":"PENDING","schema_version":null,"schema_sha256":null,"sample_digest":null,"observed_at":null,"expires_at":null,"terminal_sold_compatible":false}
+  ],
+  "truth_boundary": {"generic_schema_is_source_compatibility":false,"adapter_implementation_is_schema_evidence":false,"production":"HOLD","public":"HOLD"}
+}

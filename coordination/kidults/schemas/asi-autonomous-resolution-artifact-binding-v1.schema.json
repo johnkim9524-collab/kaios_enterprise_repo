@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.example/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json",
+  "title": "KIDULTS ASI autonomous-resolution artifact binding v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "artifact_id",
+    "artifact_name",
+    "expired",
+    "workflow_run_id",
+    "workflow_event",
+    "consumer_event",
+    "workflow_name",
+    "workflow_path",
+    "producer_display_title",
+    "authoritative_generation_key",
+    "authoritative_producer_cardinality",
+    "upstream_class",
+    "canonical_run_key",
+    "head_branch",
+    "expected_head_branch",
+    "head_sha",
+    "expected_source_sha",
+    "execution_sha",
+    "consumer_sha",
+    "validation_scope",
+    "main_scope_validated",
+    "production_authorized",
+    "exact_triggering_run_bound",
+    "authoritative_producer_event",
+    "source_sha_ancestor_of_consumer",
+    "execution_sha_ancestor_of_consumer",
+    "status",
+    "conclusion",
+    "created_at",
+    "expires_at"
+  ],
+  "properties": {
+    "id": {
+      "const": "kidults-asi-autonomous-resolution-artifact-binding-v1"
+    },
+    "version": {
+      "const": "1.3.0"
+    },
+    "artifact_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "artifact_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expired": {
+      "const": false
+    },
+    "workflow_run_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workflow_event": {
+      "const": "workflow_run"
+    },
+    "consumer_event": {
+      "enum": [
+        "workflow_run",
+        "workflow_dispatch"
+      ]
+    },
+    "workflow_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "producer_display_title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authoritative_generation_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authoritative_producer_cardinality": {
+      "const": 1
+    },
+    "upstream_class": {
+      "const": "ASI_AUTONOMOUS_RESOLUTION"
+    },
+    "canonical_run_key": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}:ASI_AUTONOMOUS_RESOLUTION$"
+    },
+    "head_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_head_branch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "head_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "expected_source_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "execution_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "consumer_sha": {
+      "$ref": "#/$defs/sha"
+    },
+    "validation_scope": {
+      "enum": [
+        "MAIN",
+        "PULL_REQUEST_HEAD"
+      ]
+    },
+    "main_scope_validated": {
+      "type": "boolean"
+    },
+    "production_authorized": {
+      "const": false
+    },
+    "exact_triggering_run_bound": {
+      "type": "boolean"
+    },
+    "authoritative_producer_event": {
+      "const": true
+    },
+    "source_sha_ancestor_of_consumer": {
+      "const": true
+    },
+    "execution_sha_ancestor_of_consumer": {
+      "const": true
+    },
+    "status": {
+      "const": "completed"
+    },
+    "conclusion": {
+      "const": "success"
+    },
+    "created_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expires_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "validation_scope": {
+          "const": "MAIN"
+        },
+        "head_branch": {
+          "const": "main"
+        },
+        "expected_head_branch": {
+          "const": "main"
+        },
+        "main_scope_validated": {
+          "const": true
+        }
+      }
+    },
+    {
+      "properties": {
+        "validation_scope": {
+          "const": "PULL_REQUEST_HEAD"
+        },
+        "head_branch": {
+          "not": {
+            "const": "main"
+          }
+        },
+        "expected_head_branch": {
+          "not": {
+            "const": "main"
+          }
+        },
+        "main_scope_validated": {
+          "const": false
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    }
+  }
+}

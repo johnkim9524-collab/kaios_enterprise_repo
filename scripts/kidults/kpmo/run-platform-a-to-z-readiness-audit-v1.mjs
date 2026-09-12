@@ -5,9 +5,11 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { classifyUpstreamAuditHealth } from './continuous-assurance-upstream-health-v1.mjs';
 
 const root = process.cwd();
 const policyPath = 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json';
+const canonicalIdentityContractPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const workflowPath = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-platform-az-'));
 const sourcePoolOutput = path.join(tempRoot, 'source-pool');
@@ -118,6 +120,8 @@ function run(id, command, args, timeoutMs = 90_000) {
 }
 
 const sentinelChecks = [
+  ['CONTINUOUS_ASSURANCE_CANONICAL_IDENTITY', 'node', ['scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs']],
+  ['CONTINUOUS_ASSURANCE_EPHEMERAL_GUARD', 'node', ['scripts/kidults/kpmo/validate-continuous-assurance-ephemeral-guard-v1.mjs']],
   ['CONTINUOUS_ASSURANCE_CONTRACT', 'node', ['scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs']],
   ['WORKFLOW_REPOSITORY_MUTATION_BOUNDARY', 'node', ['scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs']],
   ['UNIFIED_AUDIT_CONTROL_PLANE', 'node', ['scripts/kidults/audit/validate-unified-audit-control-plane-v1.mjs']],
@@ -209,6 +213,12 @@ function runEphemeralPair(pair) {
 
 const evidencePaths = [...new Set([
   policyPath,
+  canonicalIdentityContractPath,
+  'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs',
+  'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs',
+  'scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs',
+  'scripts/kidults/kpmo/continuous-assurance-upstream-health-v1.mjs',
+  'scripts/kidults/kpmo/validate-continuous-assurance-ephemeral-guard-v1.mjs',
   'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs',
   'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs',
   'scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs',
@@ -228,6 +238,7 @@ let exitCode = 1;
 try {
   const config = parseArgs(process.argv.slice(2));
   const policy = readJson(policyPath);
+  const canonicalIdentityContract = readJson(canonicalIdentityContractPath);
   const preproduction = readJson('coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json');
   const portal = readJson('coordination/kidults/portal/portal-launch-assurance-v1.json');
   const digitalocean = readJson('coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json');
@@ -240,16 +251,24 @@ try {
   ];
   const ephemeralImprovements = [];
   if (process.env.KPMO_UPSTREAM_RUN_ID) {
+    const upstreamAuditHealth = classifyUpstreamAuditHealth({
+      workflowPath: process.env.KPMO_UPSTREAM_WORKFLOW_PATH,
+      workflowEvent: process.env.KPMO_UPSTREAM_EVENT,
+      conclusion: process.env.KPMO_UPSTREAM_CONCLUSION,
+    }, canonicalIdentityContract);
     const upstreamIdentity = [
       process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
       process.env.KPMO_UPSTREAM_RUN_ID,
       process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
       process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
-      process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN'
+      process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+      upstreamAuditHealth.disposition,
     ].join(':');
     checks.push(staticCheck(
       'UPSTREAM_WORKFLOW_CONCLUSION',
-      process.env.KPMO_UPSTREAM_CONCLUSION === 'success' &&
+      upstreamAuditHealth.acceptable === true &&
+        process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true' &&
+        process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION === upstreamAuditHealth.disposition &&
         process.env.KPMO_UPSTREAM_REPOSITORY === process.env.GITHUB_REPOSITORY &&
         process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main',
       upstreamIdentity
@@ -324,11 +343,40 @@ try {
       workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
       upstream: process.env.KPMO_UPSTREAM_RUN_ID ? {
         run_id: process.env.KPMO_UPSTREAM_RUN_ID,
+        run_attempt: process.env.KPMO_UPSTREAM_RUN_ATTEMPT || '1',
         workflow_name: process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
+        workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
+        workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
         conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+        audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
+        audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
         repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
-        head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN'
-      } : null
+        head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
+        created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
+        exact_binding_digest: process.env.KPMO_UPSTREAM_BINDING_DIGEST || null,
+        source_receipt_digest: process.env.KPMO_UPSTREAM_SOURCE_RECEIPT_DIGEST || null
+      } : null,
+      canonical_identity: {
+        canonical_key: process.env.KPMO_CANONICAL_KEY || 'UNAVAILABLE',
+        canonical_input_digest: process.env.KPMO_CANONICAL_INPUT_DIGEST || 'UNAVAILABLE',
+        source_sha: identity.actual,
+        upstream_class: process.env.KPMO_UPSTREAM_CLASS || 'UNAVAILABLE',
+        generation_discriminator: process.env.KPMO_GENERATION_DISCRIMINATOR || 'UNAVAILABLE',
+        classifier_contract_digest: process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST || 'UNAVAILABLE',
+        classification_receipt_digest: process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST || 'UNAVAILABLE',
+        ephemeral_guard_receipt_digest: process.env.KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST || 'UNAVAILABLE',
+        runtime_dedupe_state: 'REMOTE_LEDGER_ACTIVATION_HOLD',
+        canonical_execution_claimed: false,
+        ephemeral_actions_leader: process.env.KPMO_EPHEMERAL_ACTIONS_LEADER === 'true',
+        alias: false,
+        canonical_run_id: process.env.GITHUB_RUN_ID || 'LOCAL',
+        canonical_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+        claim_scope: process.env.KPMO_EPHEMERAL_ACTIONS_LEADER === 'true'
+          ? 'EPHEMERAL_ACTIONS_ARTIFACT_90_DAY'
+          : 'NONE',
+        durable_claim_created: false,
+        audit_execution_disposition: process.env.KPMO_AUDIT_EXECUTION_DISPOSITION || 'EXECUTE_FULL_AUDIT'
+      }
     },
     states: {
       internal_control_state: failed.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
@@ -391,6 +439,43 @@ try {
       actual_sha: identity.actual,
       match: identity.match,
       kind: process.env.KPMO_SOURCE_KIND || 'UNKNOWN'
+    },
+    execution: {
+      trigger: process.env.GITHUB_EVENT_NAME || 'LOCAL',
+      workflow_run_id: process.env.GITHUB_RUN_ID || 'LOCAL',
+      workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+      upstream: process.env.KPMO_UPSTREAM_RUN_ID ? {
+        run_id: process.env.KPMO_UPSTREAM_RUN_ID,
+        run_attempt: process.env.KPMO_UPSTREAM_RUN_ATTEMPT || '1',
+        workflow_name: process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
+        workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
+        workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
+        conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+        audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
+        audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
+        created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
+        exact_binding_digest: process.env.KPMO_UPSTREAM_BINDING_DIGEST || null,
+        source_receipt_digest: process.env.KPMO_UPSTREAM_SOURCE_RECEIPT_DIGEST || null
+      } : null,
+      canonical_identity: {
+        canonical_key: process.env.KPMO_CANONICAL_KEY || 'UNAVAILABLE',
+        canonical_input_digest: process.env.KPMO_CANONICAL_INPUT_DIGEST || 'UNAVAILABLE',
+        source_sha: identity.actual,
+        upstream_class: process.env.KPMO_UPSTREAM_CLASS || 'UNAVAILABLE',
+        generation_discriminator: process.env.KPMO_GENERATION_DISCRIMINATOR || 'UNAVAILABLE',
+        classifier_contract_digest: process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST || 'UNAVAILABLE',
+        classification_receipt_digest: process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST || 'UNAVAILABLE',
+        ephemeral_guard_receipt_digest: process.env.KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST || 'UNAVAILABLE',
+        runtime_dedupe_state: 'REMOTE_LEDGER_ACTIVATION_HOLD',
+        canonical_execution_claimed: false,
+        ephemeral_actions_leader: false,
+        alias: false,
+        canonical_run_id: process.env.GITHUB_RUN_ID || 'LOCAL',
+        canonical_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1',
+        claim_scope: 'NONE',
+        durable_claim_created: false,
+        audit_execution_disposition: process.env.KPMO_AUDIT_EXECUTION_DISPOSITION || 'EXECUTE_FULL_AUDIT_FAILED'
+      }
     },
     states: {
       internal_control_state: 'VERIFIED_FAIL',

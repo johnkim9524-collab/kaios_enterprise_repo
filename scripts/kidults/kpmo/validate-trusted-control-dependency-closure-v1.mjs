@@ -4,6 +4,10 @@ import path from 'node:path';
 const root = process.cwd();
 const aggregatePath = 'scripts/kidults/kpmo/run-full-value-chain-redteam-suite-v1.mjs';
 const orchestratorPath = 'coordination/kidults/kpmo/full-value-chain-redteam-orchestrator-v1.json';
+const governedExecutableRoots = [
+  'scripts/',
+  'services/kidults-control-plane/src/',
+];
 
 const fail = message => {
   console.error(`FAIL trusted-control dependency-closure selftest: ${message}`);
@@ -37,7 +41,9 @@ const executableRefsFromJson = (text, label) => {
 
 const resolveExecutableDependency = (currentPath, relativeRef) => {
   const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(currentPath), relativeRef));
-  if (!resolved.startsWith('scripts/')) throw new Error(`dependency escaped governed scripts root: ${currentPath} -> ${relativeRef}`);
+  if (!governedExecutableRoots.some(prefix => resolved.startsWith(prefix))) {
+    throw new Error(`dependency escaped governed executable roots: ${currentPath} -> ${relativeRef}`);
+  }
   return resolved;
 };
 
@@ -159,6 +165,7 @@ console.log(JSON.stringify({
   total_trust_dependency_refs: closure.size,
   mandatory_discoveries_proven: mandatoryDiscoveries.length,
   cross_tree_executable_escape: 'REJECTED',
+  governed_executable_roots: governedExecutableRoots,
   portal_runtime_owner: 'SCRIPTS_GOVERNED_ROOT',
   portal_runtime_deployment_parity: 'SHA256_FAIL_CLOSED',
   mutation_probes: 6,

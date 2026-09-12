@@ -42,6 +42,7 @@ const REQUIRED_DOCUMENTS = [
   ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
   ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
   ['coordination/kidults/registry/ai-agent-governance-registry-v1.json', 'GOVERNANCE_SYSTEM_OF_RECORD'],
+  ['coordination/kidults/registry/roles-and-responsibilities.json', 'AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY'],
   ['coordination/kidults/bootstrap/README.md', 'TRACK_AND_ROLE_STARTUP_ROUTER'],
   ['.github/copilot-instructions.md', 'GITHUB_AGENT_ADAPTER']
 ].map(([documentPath, purpose], index) => ({ order: index + 1, path: documentPath, purpose }));
@@ -177,6 +178,29 @@ const RECEIPT_AUTHORITY_BOUNDARY = Object.freeze({
 });
 
 const fail = (code, detail = '') => { throw new Error(detail ? `${code}:${detail}` : code); };
+const boundedGitFailureDetail = error => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
+  .split(/\r?\n/, 1)[0].replace(/[^\x20-\x7e]/g, '?').slice(0, 160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
+const emitBoundedFailureReceipt = error => {
+  const message = String(error?.message || 'BOOTSTRAP_VERIFICATION_FAILED');
+  const separator = message.indexOf(':');
+  const failureCode = (separator >= 0 ? message.slice(0, separator) : message).slice(0, 120);
+  const detail = boundedGitFailureDetail(separator >= 0 ? {message: message.slice(separator + 1)} : error);
+  process.stderr.write(`Error: ${failureCode}${separator >= 0 ? `:${detail}` : ''}\n`);
+  process.stderr.write(`${JSON.stringify({
+    id: 'kidults-ai-agent-bootstrap-verifier-bounded-failure-receipt-v1',
+    version: '1.0.0',
+    state: 'VERIFIED_FAIL',
+    failure_code: failureCode,
+    bounded_failure_detail: detail,
+    bounded_failure_detail_max_bytes: 160,
+    repository_receipt_written: false,
+    raw_nonce_persisted_or_logged: false,
+  })}\n`);
+};
+process.once('uncaughtException', error => {
+  try { emitBoundedFailureReceipt(error); } catch {}
+  process.exitCode = 1;
+});
 const sha256Hex = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const sha256 = (value) => `sha256:${sha256Hex(value)}`;
 const stableStringify = (value) => {
@@ -241,6 +265,7 @@ const resolveTrustedGit = () => {
 };
 
 const TRUSTED_GIT = resolveTrustedGit();
+const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : os.devNull;
 const trustedGitPath = () => {
   if (process.platform !== 'win32') return '/usr/bin:/bin';
   const gitDir = path.dirname(TRUSTED_GIT);
@@ -251,13 +276,13 @@ const trustedGitPath = () => {
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_NULL_DEVICE,
+    XDG_CONFIG_HOME: GIT_NULL_DEVICE,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
+    GIT_CONFIG_SYSTEM: GIT_NULL_DEVICE,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -272,7 +297,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_NULL_DEVICE;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -335,7 +360,7 @@ const git = (root, args, { buffer = false, network = 'none', allowFile = false, 
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_NULL_DEVICE}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
@@ -494,8 +519,8 @@ const trustedGitEvidence = () => ({
 const repositoryRoot = () => {
   try {
     return gitText(null, ['rev-parse', '--show-toplevel']);
-  } catch {
-    fail('NOT_INSIDE_GIT_REPOSITORY');
+  } catch (error) {
+    fail('NOT_INSIDE_GIT_REPOSITORY', boundedGitFailureDetail(error));
   }
 };
 
@@ -639,7 +664,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.3.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.4.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -668,6 +693,7 @@ const verifyCommittedContract = (contract) => {
     [contract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'CONTRACT_CLEAN_CHECKOUT_ROOT_ESCALATION'],
     [contract.trust_model?.target_revision_must_be_treated_as_data_by_the_root_launcher === true, 'CONTRACT_TARGET_AS_DATA'],
     [contract.trust_model?.exact_committed_governance_trust_closure_is_bound === true, 'CONTRACT_TRUST_CLOSURE'],
+    [contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'CONTRACT_AGENT_ROLE_JD_TRUST'],
     [contract.trust_model?.full_worktree_immutability_is_claimed === false, 'CONTRACT_FULL_WORKTREE_ESCALATION'],
     [contract.trust_model?.git_child_process_environment_is_minimal_and_excludes_orchestrator_nonce === true, 'CONTRACT_GIT_ENVIRONMENT_ISOLATION'],
     [contract.trust_model?.repository_git_config_with_execution_or_transport_overrides_is_rejected === true, 'CONTRACT_GIT_CONFIG_ISOLATION'],
@@ -858,7 +884,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.3.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.4.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -953,7 +979,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.3.0',
+  version: '1.4.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,

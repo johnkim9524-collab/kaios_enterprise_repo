@@ -133,10 +133,16 @@ function jobEnvironment(block) {
   return { declared: false, name: null, static: false };
 }
 
-function workflowPermissionsContentsReadOnly(workflowScope) {
+function workflowTokenPermissions(workflowScope) {
   const block = workflowScope.match(/^permissions:\s*\n((?: {2}[^\n]+(?:\n|$))*)/m)?.[1] || '';
   const entries = block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  return entries.length === 1 && entries[0] === 'contents: read';
+  const parsed = [];
+  for (const entry of entries) {
+    const match = entry.match(/^([a-z-]+):\s*(read|write|none)$/);
+    if (!match) return [];
+    parsed.push(`${match[1]}:${match[2]}`);
+  }
+  return uniqueSorted(parsed);
 }
 
 function jobSteps(block) {
@@ -243,7 +249,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
   const jobsStart = active.search(/^jobs\s*:\s*$/m);
   const workflowScope = jobsStart >= 0 ? active.slice(0, jobsStart) : active;
   const workflowSecrets = secretMetadata(workflowScope);
-  const contentsReadOnly = workflowPermissionsContentsReadOnly(workflowScope);
+  const workflowTokenPermissionSet = workflowTokenPermissions(workflowScope);
   const lines = active.split(/\r?\n/);
   const jobHeaders = [];
   let insideJobs = false;
@@ -292,7 +298,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       inherited_reusable_secrets: inheritedReusableSecrets,
       environment,
       explicit_main_ref_guard: explicitMainRefGuard,
-      workflow_permissions_contents_read_only: contentsReadOnly,
+      workflow_token_permissions: workflowTokenPermissionSet,
       job_permissions_override: jobPermissionsOverride,
       workflow_scope_secret_names: workflowSecrets.secret_names,
       job_scope_secret_names: jobScopeSecrets.secret_names,
@@ -331,6 +337,10 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         step_index: liveMainGuard?.index ?? null,
         contract_valid: liveMainGuardContract(liveMainGuard),
         github_token_step_count: parsedSteps.steps.filter((step) => step.github_token_context).length,
+        github_token_step_names: parsedSteps.steps
+          .filter((step) => step.github_token_context)
+          .map((step) => step.name || step.uses)
+          .filter(Boolean),
         before_all_provider_secret_steps: Boolean(
           liveMainGuard
           && providerSecretSteps.length > 0
@@ -349,7 +359,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
       inherited_reusable_secrets: workflowSecrets.inherited_reusable_secrets,
       environment: { declared: false, name: null, static: false },
       explicit_main_ref_guard: false,
-      workflow_permissions_contents_read_only: contentsReadOnly,
+      workflow_token_permissions: workflowTokenPermissionSet,
       job_permissions_override: false,
       workflow_scope_secret_names: workflowSecrets.secret_names,
       job_scope_secret_names: [],
@@ -362,6 +372,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         step_index: null,
         contract_valid: false,
         github_token_step_count: 0,
+        github_token_step_names: [],
         before_all_provider_secret_steps: false
       }
     });
@@ -414,6 +425,8 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
   require(privilegedPolicy.required_branch_endpoint === '$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main', 'LIVE_MAIN_BRANCH_ENDPOINT_POLICY');
   require(privilegedPolicy.guard_token_context === '${{ github.token }}', 'LIVE_MAIN_GUARD_TOKEN_CONTEXT_POLICY');
   require(privilegedPolicy.guard_token_permission === 'contents:read', 'LIVE_MAIN_GUARD_TOKEN_PERMISSION_POLICY');
+  require(privilegedPolicy.workflow_token_permissions_are_exact_per_binding === true, 'WORKFLOW_TOKEN_PERMISSION_BINDING_POLICY');
+  require(privilegedPolicy.actions_read_is_allowed_only_for_registered_production_artifact_readback === true, 'ACTIONS_READ_EXCEPTION_POLICY');
   require(privilegedPolicy.provider_secret_scope === 'STEP_ONLY_AFTER_LIVE_MAIN_GUARD', 'PROVIDER_SECRET_SCOPE_POLICY');
   require(privilegedPolicy.api_unreadable === 'FAIL_CLOSED', 'LIVE_MAIN_API_UNREADABLE_POLICY');
   require(privilegedPolicy.stale_main_sha === 'FAIL_CLOSED', 'STALE_MAIN_SHA_POLICY');
@@ -433,6 +446,30 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
     require(
       ['READ_ONLY_CONTROL_PLANE','PROVIDER_BOUNDED_READ','REMOTE_STAGING_MUTATION','PRODUCTION_MUTATION'].includes(binding?.remote_mutation_class),
       `INVALID_REMOTE_MUTATION_CLASS:${key}`
+    );
+    const requiredTokenPermissions = binding?.required_github_token_permissions || ['contents:read'];
+    require(
+      Array.isArray(requiredTokenPermissions)
+      && requiredTokenPermissions.length > 0
+      && new Set(requiredTokenPermissions).size === requiredTokenPermissions.length
+      && requiredTokenPermissions.every((permission) => /^(actions|contents):read$/.test(permission)),
+      `INVALID_GITHUB_TOKEN_PERMISSION_SET:${key}`
+    );
+    require(
+      !requiredTokenPermissions.includes('actions:read') || (
+        binding?.workflow === '.github/workflows/production-release.yml'
+        && binding?.job === 'certify'
+        && binding?.remote_mutation_class === 'PRODUCTION_MUTATION'
+      ),
+      `ACTIONS_READ_OUTSIDE_PRODUCTION_RELEASE:${key}`
+    );
+    const requiredTokenStepNames = binding?.required_github_token_step_names || [LIVE_MAIN_GUARD_STEP_NAME];
+    require(
+      Array.isArray(requiredTokenStepNames)
+      && requiredTokenStepNames.length > 0
+      && new Set(requiredTokenStepNames).size === requiredTokenStepNames.length
+      && requiredTokenStepNames.every((name) => typeof name === 'string' && name.length > 0),
+      `INVALID_GITHUB_TOKEN_STEP_SET:${key}`
     );
     require(/^[a-z0-9][a-z0-9-]{2,62}$/.test(String(binding?.environment || '')), `INVALID_REQUIRED_ENVIRONMENT:${key}`);
     require(/^sha256:[0-9a-f]{64}$/.test(String(binding?.required_secret_name_digest || '')), `INVALID_REQUIRED_SECRET_DIGEST:${key}`);
@@ -473,11 +510,24 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
         require(job.activation_receipt?.before_all_provider_secret_steps === true, `ACTIVATION_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
       }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
-      require(job.workflow_permissions_contents_read_only, `GITHUB_TOKEN_PERMISSION_NOT_CONTENTS_READ_ONLY:${key}`);
+      const requiredTokenPermissions = uniqueSorted(
+        expected.required_github_token_permissions || ['contents:read']
+      );
+      const requiredTokenStepNames = uniqueSorted(
+        expected.required_github_token_step_names || [LIVE_MAIN_GUARD_STEP_NAME]
+      );
+      require(
+        JSON.stringify(job.workflow_token_permissions || []) === JSON.stringify(requiredTokenPermissions),
+        `GITHUB_TOKEN_PERMISSION_SET_MISMATCH:${key}`
+      );
       require(job.job_permissions_override === false, `GITHUB_TOKEN_JOB_PERMISSION_OVERRIDE:${key}`);
       require(job.live_main_guard?.count === 1, `LIVE_MAIN_GUARD_COUNT:${key}`);
       require(job.live_main_guard?.contract_valid === true, `LIVE_MAIN_GUARD_CONTRACT:${key}`);
-      require(job.live_main_guard?.github_token_step_count === 1, `GITHUB_TOKEN_SCOPE_COUNT:${key}`);
+      require(
+        JSON.stringify(uniqueSorted(job.live_main_guard?.github_token_step_names || []))
+          === JSON.stringify(requiredTokenStepNames),
+        `GITHUB_TOKEN_STEP_SET_MISMATCH:${key}`
+      );
       require(job.live_main_guard?.before_all_provider_secret_steps === true, `LIVE_MAIN_GUARD_ORDER:${key}`);
       require(job.workflow_scope_secret_names.length === 0, `WORKFLOW_SCOPE_PROVIDER_SECRET:${key}`);
       require(job.job_scope_secret_names.length === 0, `JOB_SCOPE_PROVIDER_SECRET:${key}`);

@@ -1,0 +1,44 @@
+name: KIDULTS Cloudflare Workers Shadow Approval Validation V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v1.yml'
+      - '.github/workflows/kidults-cloudflare-workers-shadow-approval-validation-v1.yml'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-one-shot-authorization-20260831-v1.json'
+      - 'coordination/kidults/governance/cloudflare-workers-shadow-receipt-lifetime-contract-v1.json'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01.md'
+      - 'coordination/kidults/governance/receipts/CF-WORKERS-SHADOW-20260831-01-terminal.json'
+      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
+      - 'infrastructure/cloudflare/workers/kidults-public-portal-shadow/**'
+      - 'scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs'
+      - 'tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs'
+      - 'tooling/kidults-cloudflare-workers-shadow/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-cloudflare-workers-shadow-approval-validation-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact validation SHA
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+      - name: Set up governed Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Validate consumed one-shot and permanent tombstone
+        run: node scripts/kidults/kpmo/validate-cloudflare-workers-shadow-approved-v1.mjs
+      - name: Regress checkout-clean receipt lifetime
+        run: node tests/kidults/kpmo/cloudflare-workers-shadow-receipt-lifetime-v1.test.mjs

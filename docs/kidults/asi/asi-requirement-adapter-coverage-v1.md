@@ -20,6 +20,14 @@ The runner restores exactly one non-expired artifact from a successful `main` ru
 
 The runner binds the latest exact-main producer at execution time. Run IDs, artifact IDs, SHAs, expiry, and digests are emitted in the artifact binding and KPMO receipt rather than copied into this policy document as a stale baseline.
 
+For an upstream completion, Coverage has one canonical fan-out identity: `head_sha + ASI_AUTONOMOUS_RESOLUTION`. The workflow concurrency key uses that exact SHA and upstream class with non-cancelling serialization (`cancel-in-progress: false`), so repeated successful producer runs for the same source SHA cannot execute canonical Coverage work in parallel. The 90-day canonical artifact guard then selects one leader or a verified alias after serialization. The binding, output manifest, and receipt also carry `upstream_class` and `canonical_run_key` (`<head_sha>:ASI_AUTONOMOUS_RESOLUTION`) so this deduplication identity remains auditable after execution. Manual recovery/replay remains isolated by its own workflow run ID and cannot cancel or impersonate the canonical upstream-triggered lane.
+
+The successful canonical guard is limited to fixed GitHub Actions artifact and receipt readback for that exact source SHA and upstream class. It is not durable exactly-once execution: the artifacts expire after 90 days, and PostgreSQL-backed durable canonical uniqueness remains `REMOTE_LEDGER_ACTIVATION_HOLD`. A manual recovery request has its own request/run identity, is never a canonical leader or verified alias, and must repeat full Coverage validation. A verified alias may skip a duplicate full Coverage build and downstream Continuous Assurance full audit only after exact guard verification, and it must still emit an exact observer/classification receipt identifying what was reused and why. If fixed readback is unavailable, incomplete, or ambiguous, the automatic run fails closed without executing Coverage or emitting an alias; a separate manual recovery remains non-canonical and must repeat full validation.
+
+Canonical semantic projection v1 deliberately separates behavior from observation provenance. Its identity material contains the source SHA and upstream class, the full deterministic replacement queue, manifest `id`/`version`/`results`, only the contract, adapter-contract, frontier, crosswalk, and replacement-queue binding fields consumed by the Coverage builder, the stable ARL receipt behavior/result/HOLD allowlist, and the Coverage contract, authoritative static inputs, implementation files, `package.json`, and `npm-shrinkwrap.json`. Producer run/attempt/title, P1 run and artifact IDs/digest, the raw generation key, timestamps, raw manifest receipt digest, and unrelated manifest bindings or outputs are excluded from semantic identity but remain mandatory in the exact leader or alias observation receipt. Thus a second successful ARL run with identical source and behavior may alias, while a queue, consumed result/binding, rights/HOLD, contract, static-input, implementation, or dependency change fails closed as a different semantic input. The canonical leader artifact embeds the serialized semantic receipt; every leader and Continuous Assurance alias readback verifies its exact file digest and recomputes `canonical_input_digest` from the serialized material before reuse.
+
+Artifact binding v1.3.0 represents this distinction explicitly. `main_scope_validated` means only that the restored software-lineage artifact passed the exact `main` branch and SHA checks. It is never a release or deployment permission. `production_authorized: false` is mandatory for both Main and validation-only bindings, and the legacy `production_eligible` field is forbidden in new Coverage artifacts. Historical Coverage v1.2 artifacts that used `production_eligible` must be read only as legacy Main-scope metadata and must never be translated into Production authority. This naming change is scoped to the Coverage binding v1.3 contract; it does not prove that every dormant or unrelated legacy runtime domain in the repository is false-only or has migrated that field.
+
 If the exact successful main artifact is unavailable, expired, ambiguous, from another workflow or branch, not ancestral to the consumer, or its digests no longer match current authoritative inputs, the runner fails closed. It never substitutes a fixture or a non-main artifact.
 
 ## Join and coverage rules
@@ -59,7 +67,13 @@ The 16 normalized source claim-ceiling records and the 192 mission requirements 
 | `NO_IMPLEMENTED_CLAIM_PARSER` | **138 / 192** |
 | Source-profile discovery required | **120 / 192** |
 | Schema-bound claim parser unavailable | **33 / 192** |
-| Unresolved internal execution queue | **0** |
+| Gap records with owner, declared SLA, idempotency and fallback definitions | **153 / 153** |
+| Region-specific source-discovery work bundles | **42** |
+| Schema-bound source × claim work units | **10** |
+| Missing accountability bindings in the generated definitions | **0** |
+| Active gap-queue consumers | **0** |
+| Persisted first-admission or SLA-clock states | **0** |
+| Queue acknowledgements, attempts, retry or DLQ receipts | **0** |
 | `RIGHTS_SCHEMA_ACTIVATION_HOLD` | 192 / 192 |
 
 The 39 software matches comprise 24 of 96 CURRENT_SOLD requirements and 15 of 96 liquidity requirements. One of 16 families is fully software-covered, five are partial, and ten have zero matching claim-parser coverage. The remaining 153 requirements are not 153 missing code modules: 120 have no registered source profile for the scope/claim, while 33 have a registered profile but cannot receive a truthful claim parser until source-specific rights, a live schema snapshot, and claim semantics are verified.
@@ -72,12 +86,25 @@ The separate acquisition gate currently has 0 `RIGHTS_CLEAR_FOR_PURPOSE` profile
 
 The runtime profile `verified_assignment_count` values sum to 156. That value is source-assignment metadata, not a requirement denominator, and is never compared with or subtracted from 192.
 
+## Accountable gap-queue definitions
+
+The 153 gap records are deterministic, accountable work definitions rather than executable or persisted queue entries. Every generated record names KPMO as the accountable owner and carries a declared P1 queue state, SLA metadata, a stable idempotency key, and a generic fail-closed fallback path. Therefore `153 / 153` proves that zero generated records are missing those accountability bindings; it does not prove queue admission, execution, acknowledgement, persistence, or operational completion.
+
+| Gap class | Deterministic work-unit grain | Units | Intended execution owner | Declared SLA metadata |
+|---|---|---:|---|---|
+| Source-profile discovery | domain × region × evidence class | 42 | Track Z | acknowledge in 1 successful canonical Coverage run; target resolution in 5 |
+| Schema-bound claim parser | source ID × required adapter claim | 10 | Track A | acknowledge in 1 successful canonical Coverage run; target resolution in 3 |
+
+No queue consumer, scheduler, or durable queue-state store is established by this Coverage proof. `FIRST_CANONICAL_QUEUE_ADMISSION` is a declared future clock start, not a persisted event; no first-admission timestamp, running SLA clock, attempt history, acknowledgement, retry receipt, or DLQ receipt exists. The Coverage KPMO receipt is a build-validation receipt only, not a queue admission or completion receipt, and there is no remote finalizer that automatically persists or finalizes these work definitions. Actual queue execution remains **HOLD**.
+
+KPMO retains the fail-closed decision and cross-Track accountability definitions. Track Z is the intended owner for internal lawful-source discovery and rights-route preparation, but this artifact grants no external-contact authority. Track A is the intended owner for immutable-schema and claim-semantics validation only after the protected prerequisites pass. These owner labels and SLA values are declarations, not acknowledgements or evidence of work performed. Fallbacks use only generic KPMO/Track Z/Track A routes: they never hard-code a stale provider, authorize a live request, contact a provider, activate an adapter, or bypass rights, Public, Production, or G5 gates.
+
 ## Generated outputs
 
 - `requirement-adapter-coverage-ledger-v1.json` — all 192 current mission-grain records;
 - `requirement-adapter-family-coverage-v1.json` — the 16 domain × evidence-class reporting families;
 - `source-adapter-claim-ceiling-registry-v1.json` — the normalized 16-source registered/implemented/template/context claim ceilings (software capability records, not rights clearance or live activation);
-- `requirement-adapter-gap-queue-v1.json` — 120 source-profile discovery requirements and 33 schema-bound claim-parser requirements;
+- `requirement-adapter-gap-queue-v1.json` — 120 source-profile discovery requirements and 33 schema-bound claim-parser requirements, bound to 42 discovery and 10 schema work definitions with owner, declared SLA, idempotency and generic fallback metadata; it is not evidence of durable queue admission or execution;
 - `requirement-adapter-coverage-manifest-v1.json` — exact producer/consumer SHA, upstream artifact, input and output digest lineage.
 
 Generated data remains a 90-day workflow artifact. It is not committed as empirical truth.
@@ -94,15 +121,16 @@ The exact-head workflow builds twice and requires a byte-for-byte identical dire
 - registered-claim or cross-claim inheritance;
 - context-only classification as parser coverage;
 - rights, live schema, activation, Evidence, Market Event, Snapshot, Track B, Projection, Public, Production, or G5 promotion;
+- missing owner/SLA/fallback bindings, duplicate idempotency keys, legacy `production_eligible`, or any `production_authorized: true` mutation;
 - a manual-only normal activation path.
 
-## Automatic activation
+## Coverage build activation, not queue execution
 
-Normal execution is registered on:
+Normal Coverage build validation is registered on:
 
 - successful `KIDULTS ASI Autonomous Resolution Layer v1` completion;
 
-The producer owns relevant protected-main and pull-request path activation. The consumer does not race the producer through an independent push or clock trigger; it starts only after the exact upstream run succeeds and restores artifacts from that run. This also prevents a delayed scheduled consumer from binding a newer main SHA with no matching producer artifact.
+The producer owns relevant protected-main path activation. The Coverage build consumer does not race the producer through an independent push or clock trigger; it starts only after the exact upstream run succeeds and restores artifacts from that run. Duplicate upstream completions at the same source SHA and upstream class share one non-cancelling serialized concurrency group. The schema retains a fail-closed `PULL_REQUEST_HEAD` validation tuple for compatibility testing, but the current Coverage workflow has no pull-request artifact-consumption trigger. This also prevents a delayed build consumer from binding a newer main SHA with no matching producer artifact. None of these triggers starts a gap-queue consumer, persists first admission, advances an SLA clock, or finalizes a queue receipt.
 
 Manual dispatch is recovery or explicit replay only.
 
@@ -114,7 +142,7 @@ It executes no live target-source request, contacts no provider, creates no coll
 
 ### Platform effects
 
-- `autonomous_effect`: positive — all 672 preflight actions are terminal and remaining requirements are routed to source discovery or schema-bound activation without manual triage.
+- `autonomous_effect`: positive — all 672 preflight actions are terminal and remaining requirements are deterministically classified into accountable source-discovery or schema-bound work definitions, without claiming queue admission or execution.
 - `global_effect`: positive — all 32 scopes × 3 regions × 2 evidence classes remain explicit, while software coverage is not called global empirical coverage.
 - `irreplaceable_value_effect`: positive — KIDULTS owns the requirement-to-source claim-ceiling lineage and switching gaps.
 - `transparency_effect`: positive — registered, implemented, context-only, empirical, and release states remain separate and digest-bound.

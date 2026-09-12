@@ -1,0 +1,16 @@
+{
+  "snapshot_id": "candidate-seaport-eth-25844482-5198-v1",
+  "snapshot_status": "DRAFT_CANDIDATE",
+  "bound_evidence_package_id": "evidence-seaport-eth-25844482-5198-v1",
+  "registry_version": "current-sold-admission-contract-v1",
+  "methodology_version": "onchain-fulfillment-fact-v1",
+  "evidence_lineage_version": "seaport-ethereum-receipt-v1",
+  "as_of": "2026-08-30T00:00:00Z",
+  "observation_id": "eth-mainnet-25844482-tx-8180cca2-log-639",
+  "claim_ceiling": "STRICT_CURRENT_ONCHAIN_SEAPORT_PAID_FULFILLMENT_FACT_ONLY",
+  "sold_claim": false,
+  "canonical_event_id": "ethereum-mainnet:25844482:0x8180cca28afdc58271732849b20c45e896ca96080aa5925badc0a32b2a52a061:639",
+  "asset_identity_resolution": "PARTIAL_CONTRACT_ADDRESS_REQUIRES_FULL_RAW_LOG_RECONFIRMATION",
+  "publication_eligible": false,
+  "production_authorized": false
+}

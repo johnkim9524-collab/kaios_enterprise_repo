@@ -1,12 +1,12 @@
 {
   "release": "A13-B21",
   "environment": "staging",
-  "evaluatedAt": "2026-08-03T07:11:14.168Z",
+  "evaluatedAt": "2026-08-30T02:42:36.481Z",
   "status": "response-intake-open",
   "productionPromotionAuthorized": false,
   "totals": {
     "packs": 6,
-    "contacted": 0,
+    "contacted": 1,
     "responded": 0,
     "pilotReady": 0,
     "verifiedEvidence": 0,
@@ -19,9 +19,9 @@
       "priority": 1,
       "subject": "Kidults data pilot inquiry — sold-history intelligence",
       "request": "Request limited pilot access, permitted retention scope, production-use rights, quota, latency, uptime and commercial terms.",
-      "packStatus": "draft",
-      "status": "not-contacted",
-      "contacted": false,
+      "packStatus": "sent-closed",
+      "status": "closed",
+      "contacted": true,
       "responded": false,
       "evidenceCount": 0,
       "verifiedEvidenceCount": 0,
@@ -106,14 +106,13 @@
   ],
   "gates": {
     "outreachPackComplete": "passed",
-    "outreachStarted": "blocked",
+    "outreachStarted": "passed",
     "responsesReceived": "blocked",
     "evidenceComplete": "blocked",
     "pilotManifest": "blocked",
     "productionAuthorization": "blocked"
   },
   "blockers": [
-    "No provider outreach has been recorded.",
     "No provider response has been recorded.",
     "Each required role needs one evidence-complete candidate.",
     "The pilot manifest is not explicitly approved.",

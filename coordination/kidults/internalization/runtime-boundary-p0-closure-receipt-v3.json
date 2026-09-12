@@ -1,10 +1,16 @@
 {
-  "receipt_type": "KPMO_RUNTIME_P0_CURRENT_MAIN_TRUTH",
+  "receipt_type": "KPMO_RUNTIME_P0_HISTORICAL_CLOSURE_RECEIPT",
   "version": "3.0",
   "generated_at_kst": "2026-08-27T17:55:00+09:00",
   "repository": "johnkim9524-collab/kaios_enterprise_repo",
   "protected_main": "aa1885dd4a0c63b45ec8283d75055b0a0ccd015d",
   "source_merge_pr": 1327,
+  "historical_receipt": true,
+  "current_main_truth_claimed": false,
+  "superseded_for_live_counts_by": [
+    "services/kidults-control-plane/scripts/validate-boundary-v1.mjs",
+    "coordination/kidults/source-intelligence/source-channel-control-plane-v1.json"
+  ],
   "status": "PROTECTED_MAIN_RUNTIME_BOUNDARY_LANDED__D1_AND_REMOTE_RUNTIME_HOLDS_REMAIN",
   "closed": {
     "reviewer_required_gate": false,
@@ -47,5 +53,5 @@
     "public": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
   },
-  "truth_rule": "Do not relabel D1, PITR, remote staging, empirical Track B, Production/Public or G5 as complete without exact runtime evidence."
+  "truth_rule": "Historical closure evidence only. Do not use its old main SHA or writer counts as current truth, and do not relabel D1, PITR, remote staging, empirical Track B, Production/Public or G5 as complete without exact current runtime evidence."
 }

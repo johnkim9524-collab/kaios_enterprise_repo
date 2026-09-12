@@ -1,0 +1,25 @@
+{
+  "id": "kidults-current-sold-admission-contract-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_CONTROL_ONLY",
+  "as_of": "2026-08-30",
+  "governance_owner": "KPMO",
+  "runtime_owner": "ASI",
+  "policy": "One rights-admitted record proves plumbing only; it cannot prove product, vertical, global, Public, Production, or G5 readiness.",
+  "freshness": {"strict_current_max_age_days": 7, "bounded_current_max_age_days": 30, "older_classification": "HISTORICAL_ONLY"},
+  "required_event_fields": ["stable_object_or_lot_identity", "terminal_sold_state", "sold_at", "realized_consideration", "currency", "venue_or_source_reference", "source_owner", "provenance"],
+  "required_rights_dimensions": ["query_collect", "private_store", "internal_derive", "internal_review", "retention_1_to_30_days", "automation_rate_limits", "attribution", "commercial_use", "public_derived_output_boundary", "onward_transfer", "deletion_termination", "entity_territory_scope"],
+  "rights_receipt_requirements": ["official_source_or_executed_written_grant", "terms_or_license_digest", "observed_or_effective_at", "purpose_by_field_decision", "source_digest", "canonical_run_id", "permanent_ledger_receipt"],
+  "admission_stages": [
+    {"stage": "SMOKE", "minimum_rights_admitted_transactions": 1, "minimum_lighthouse_objects": 1, "claim_ceiling": "PIPELINE_FUNCTIONAL_ONLY", "product_evidence": false, "launch_evidence": false},
+    {"stage": "LIGHTHOUSE_PILOT", "minimum_rights_admitted_transactions": 25, "minimum_lighthouse_objects": 25, "maximum_lighthouse_objects": 50, "claim_ceiling": "INTERNAL_PRODUCT_PILOT_ONLY", "product_evidence": true, "launch_evidence": false},
+    {"stage": "VERTICAL_VALIDATION", "minimum_rights_admitted_transactions_per_vertical": 100, "claim_ceiling": "INTERNAL_VERTICAL_VALIDATION_ONLY", "product_evidence": true, "launch_evidence": false, "note": "Governance floor only; distribution and model-quality gates remain independently fail-closed."},
+    {"stage": "GLOBAL_LAUNCH_BASELINE", "required_vertical_count": 8, "minimum_rights_admitted_transactions_per_vertical": 100, "minimum_rights_admitted_transactions_total": 800, "claim_ceiling": "MAIN_SCOPE_VALIDATED_ONLY", "product_evidence": true, "launch_evidence": false, "note": "Counts never authorize launch; rights, distribution, semantics and model-quality gates must pass independently."},
+    {"stage": "SCALE_TARGET", "target_rights_admitted_transactions_minimum": 8000, "target_rights_admitted_transactions_upper_planning_band": 25000, "hard_maximum": null, "claim_ceiling": "INTERNAL_SCALE_TARGET_ONLY", "product_evidence": true, "launch_evidence": false}
+  ],
+  "mandatory_quality_dimensions": ["region_distribution", "currency_distribution", "venue_distribution", "time_distribution", "field_completeness", "terminal_state_semantics", "correction_and_cancellation_semantics", "deduplication", "source_reliability", "model_quality"],
+  "canonical_chain": ["SOURCE", "OBSERVATION", "CANDIDATE", "EVIDENCE", "TRACK_B", "PROJECTION", "DOSSIER_COMPARE_WATCHLIST"],
+  "canonical_run_identity": ["source_sha", "upstream_class"],
+  "release_boundary": {"main_scope_validated": false, "production_authorized": false, "public": "HOLD", "production": "HOLD", "g5": "HOLD", "separate_human_approval_required": true},
+  "prohibitions": ["SCRAPING_OR_ACCESS_CONTROL_BYPASS", "UNAPPROVED_ACCOUNT_OR_CREDENTIAL_EXPANSION", "UNAPPROVED_SPEND_OR_CONTRACT", "FIXTURE_OR_SYNTHETIC_AS_EMPIRICAL_PROOF", "AGGREGATE_LISTING_OR_ESTIMATE_AS_TERMINAL_SOLD", "COUNT_ONLY_PROMOTION", "SMOKE_TO_LAUNCH_PROMOTION"]
+}
