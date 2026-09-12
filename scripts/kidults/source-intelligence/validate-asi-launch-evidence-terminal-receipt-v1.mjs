@@ -27,7 +27,13 @@ function validate(text) {
 
   const receiptBlock = text.slice(receipt, upload);
   requireTrue(/if:\s*\$\{\{\s*always\(\)\s*\}\}/.test(receiptBlock), 'TERMINAL_RECEIPT_NOT_ALWAYS');
+  requireTrue(receiptBlock.includes("RECEIPT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}"), 'EXACT_SOURCE_SHA_BINDING_MISSING');
+  requireTrue(receiptBlock.includes('RECEIPT_REF: ${{ github.head_ref || github.ref_name }}'), 'EXACT_SOURCE_REF_BINDING_MISSING');
+  requireTrue(receiptBlock.includes("evidence_admission: 'NONE'"), 'EVIDENCE_ADMISSION_NONE_MISSING');
   requireTrue(receiptBlock.includes('promotion_eligible: false'), 'PROMOTION_FALSE_MISSING');
+  requireTrue(receiptBlock.includes('promotion_authority: false'), 'PROMOTION_AUTHORITY_FALSE_MISSING');
+  requireTrue(receiptBlock.includes('database_mutation_authority: false'), 'DATABASE_AUTHORITY_FALSE_MISSING');
+  requireTrue(receiptBlock.includes('external_execution_authority: false'), 'EXTERNAL_AUTHORITY_FALSE_MISSING');
   requireTrue(receiptBlock.includes("production: 'HOLD'"), 'PRODUCTION_HOLD_MISSING');
   requireTrue(receiptBlock.includes("public: 'HOLD'"), 'PUBLIC_HOLD_MISSING');
   requireTrue(receiptBlock.includes("g5: 'HOLD'"), 'G5_HOLD_MISSING');
@@ -60,6 +66,8 @@ if (process.argv.includes('--self-test')) {
     source.replace('if-no-files-found: error', 'if-no-files-found: ignore'),
     source.replace(`uses: ${expectedUpload}`, 'uses: actions/upload-artifact@v6'),
     source.replace('promotion_eligible: false', 'promotion_eligible: true'),
+    source.replace('github.event.pull_request.head.sha || github.sha', 'github.sha'),
+    source.replace("evidence_admission: 'NONE'", "evidence_admission: 'EMPIRICAL'"),
     source.replace('- name: Reapply validation outcome after durable receipt', '- name: Reapply outcome after receipt'),
   ];
   for (const [index, candidate] of negativeCases.entries()) {
