@@ -8,6 +8,15 @@ const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landin
 const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
+function assertEventAwareRunName(source) {
+  assert.match(source, /run-name: >-\n  \$\{\{ github\.event_name == 'workflow_dispatch'/,
+    'run identity must select the display contract by event class');
+  assert.match(source, /format\('KIDULTS Direct Owner Handoff PR #\{0\} @ \{1\} \/ \{2\}', inputs\.pull_request_number, inputs\.expected_head_sha, inputs\.handoff_authorization_id\)/,
+    'dispatch identity must retain exact PR, head and authorization inputs');
+  assert.match(source, /format\('KIDULTS Direct Owner Approval-Mutation Watch issue #\{0\} \/ \{1\}', github\.event\.issue\.number, github\.event\.action\)/,
+    'comment identity must retain the issue or PR number and mutation action');
+}
+
 function assertUnfilteredMainPush(requiredWorkflow, name) {
   const push = requiredWorkflow.match(/^  push:\n([\s\S]*?)(?=^  [a-z_]+:|^permissions:)/m);
   assert.ok(push, `${name} must declare a push trigger`);
@@ -60,6 +69,23 @@ test('direct-owner handoff separates status authorization from the event-emittin
   assert.match(runner, /event_emitting_merge_required: true/);
   assert.doesNotMatch(runner, /merge_method/);
   assert.doesNotMatch(runner, /\/merges/);
+});
+
+test('workflow run identity distinguishes dispatch from comment mutation watches', () => {
+  assertEventAwareRunName(workflow);
+  assert.doesNotMatch(workflow, /^run-name: "KIDULTS Direct Owner Handoff PR #\$\{\{ inputs\./m,
+    'dispatch-only inputs must not label every issue-comment event');
+
+  const mutations = [
+    workflow.replace("github.event_name == 'workflow_dispatch'", 'true'),
+    workflow.replace('github.event.issue.number, github.event.action', 'inputs.pull_request_number, github.event.action'),
+    workflow.replace('github.event.issue.number, github.event.action', 'github.event.issue.number, inputs.handoff_authorization_id'),
+    workflow.replace('inputs.pull_request_number, inputs.expected_head_sha, inputs.handoff_authorization_id',
+      'inputs.pull_request_number, inputs.expected_head_sha, inputs.expected_head_sha'),
+  ];
+  for (const mutation of mutations) {
+    assert.throws(() => assertEventAwareRunName(mutation), /run identity|dispatch identity|comment identity/);
+  }
 });
 
 test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', () => {
