@@ -11,6 +11,7 @@ const requiredTrackZOutputs = [
   'negotiation_objective','track_z_verdict'
 ];
 const requiredTracks = ['A','B','C','D','E','ASI','SOURCE_POOL','INTEGRATION'];
+const requiredTrackZVerdicts = ['READY_FOR_KPMO_REVIEW','ANALYSIS_REQUIRED','HOLD','WAIT','NO_GO','INTERNALIZE_FIRST'];
 const requiredFounderGates = [
   'external_contract_acceptance','eula_acceptance','external_spend','credential_activation','external_data_acquisition',
   'provider_activation','production_or_public_promotion','g5'
@@ -21,6 +22,9 @@ for (const x of requiredRoute) if (!gate.mandatory_route?.includes(x)) errors.pu
 for (const x of requiredTrackZOutputs) if (!gate.track_z_required_outputs?.includes(x)) errors.push(`missing Track Z output: ${x}`);
 for (const x of requiredTracks) if (!gate.cross_track_rule?.tracks?.includes(x)) errors.push(`missing routed track: ${x}`);
 for (const x of requiredFounderGates) if (!gate.founder_decision_required_for?.includes(x)) errors.push(`missing founder gate: ${x}`);
+if (JSON.stringify(gate.track_z_verdicts) !== JSON.stringify(requiredTrackZVerdicts)) {
+  errors.push('Track Z verdicts must end at internal KPMO review and contain no SEND authority');
+}
 
 if (gate.cross_track_rule?.may_make_final_external_provider_decision !== false) errors.push('cross-track final provider decision must be false');
 if (gate.cross_track_rule?.must_route_external_provider_decision_to_track_z !== true) errors.push('Track Z routing must be mandatory');
@@ -66,6 +70,7 @@ console.log(JSON.stringify({
   route: gate.mandatory_route,
   routed_tracks: gate.cross_track_rule.tracks.length,
   track_z_required_outputs: gate.track_z_required_outputs.length,
+  track_z_verdicts: gate.track_z_verdicts,
   track_z_pre_engagement_checks: gate.track_z_pre_engagement.checks.length,
   kpmo_strategy_and_exact_message_review_required: true,
   program_owner_exact_message_approval_required: true,
