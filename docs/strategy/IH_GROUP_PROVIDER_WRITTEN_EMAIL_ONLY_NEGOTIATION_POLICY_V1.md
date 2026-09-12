@@ -123,6 +123,48 @@ Provider requested a call
 
 The next action must instead identify the precise written document or answer required from the provider.
 
+## 7A. Mandatory Track Z pre-engagement, KPMO review, and Program Owner approval
+
+Before Track Z reviews a provider, begins negotiation, prepares a provider-facing Gmail draft, or sends a provider message, Track Z must complete a non-bypass pre-engagement receipt from current evidence. The sequence is:
+
+```text
+provider trigger
+  -> Track Z pre-engagement gate
+  -> Track Z provider review and negotiation strategy
+  -> KPMO response-strategy review
+  -> KPMO line-by-line review of the exact final email
+  -> KPMO report to the Program Owner
+  -> Program Owner exact-message approval
+  -> Gmail draft or send under separately granted authority
+  -> SENT_VERIFIED evidence and registry truth-sync
+```
+
+Track Z must check and evidence, at minimum:
+
+- the latest human inbound message, the complete thread, chronology, attachments, sender identity and authority, and duplicate/resend risk;
+- provider company, product and use-case fit; brand versus legal, contracting, invoicing, merchant-of-record and tax entities;
+- source provenance, upstream dependencies, common ownership and whether the provider is genuinely independent;
+- schema-matching sample evidence; field meanings; null, empty-string and omitted-field behavior; coverage and missingness;
+- access method, activation timing, quota, reset timezone, rate limit, overage behavior and credential boundary;
+- retention and deletion; private internal evaluation; non-raw, non-reconstructive derived-result survival; image and media rights;
+- price, trial, renewal, cancellation, refund, taxes and exact contracting authority;
+- the ordered PAYMENT -> ACCESS -> INPUT -> DATA -> RIGHTS -> PRODUCT gate state;
+- lock-in, replacement path, provider-removal cost, negotiation objective, exact evidence request, concessions and prohibited commitments;
+- the current authorized external identity and the separation of external display name from legal contracting party; and
+- the Program Owner's non-native-English context and written-email-only handling when a provider requests a call.
+
+Track Z must label facts, provider claims, inferences and unknowns separately. Any missing material item produces `HOLD`, `NO_GO`, `INTERNALIZE_FIRST`, `ANALYSIS_REQUIRED`, or `DO_NOT_SEND`; it never becomes an assumed pass. Payment is never evidence of access, data quality, rights, or Product readiness.
+
+KPMO must review both the response strategy and the exact final outbound message. The exact-message review covers provider and thread, To/Cc/Bcc, subject, body, signature, attachments, factual support, legal-entity naming, protected-gate effects, credential/confidential-data exposure, and written-only consistency. KPMO then reports the strategy, risks, unresolved items, gate impact, recommendation, and exact final message to the Program Owner before any Gmail draft or send.
+
+The Program Owner must explicitly approve the exact provider, reply target, recipients, subject, body, attachments, intended action, protected-gate effects, and approved-content SHA-256. KPMO cannot self-approve, infer approval, or reuse a generic or previous approval. Any new human inbound or any material change to provider, thread, recipient, subject, body, attachment, scope, or protected-gate effect invalidates approval and restarts review.
+
+KPMO may include proposed email text inside its internal review report, but neither Track Z nor KPMO may automatically create a Gmail draft or send. A sent message is not `SENT_VERIFIED` until Gmail message ID, thread ID, sent time, actual recipients, approved-content SHA-256, and registry truth-sync are recorded.
+
+When a provider requests a call, Track Z must candidly and respectfully explain that English is not the Program Owner's native language, ask for the provider's understanding, and continue material technical, rights, pricing, commercial and contractual negotiation by written email. This is an honest-disclosure and written-negotiation rule; it is not a bilingual-email formatting rule.
+
+Any missing pre-engagement check, KPMO strategy review, KPMO exact-final-message review, Program Owner report, exact-message approval, or approval binding yields `DO_NOT_SEND`.
+
 ## 8. Non-bypass boundaries
 
 This policy creates no new authority for:

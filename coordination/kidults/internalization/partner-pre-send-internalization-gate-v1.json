@@ -1,7 +1,7 @@
 {
   "contract_id": "KIDULTS_PARTNER_PRE_SEND_INTERNALIZATION_GATE_V1",
-  "version": "1.1.1",
-  "amended_at": "2026-09-01T00:00:00Z",
+  "version": "1.2.0",
+  "amended_at": "2026-09-12T00:00:00Z",
   "parent_issues": [
     1171,
     1166,
@@ -9,7 +9,7 @@
     952,
     1153
   ],
-  "objective": "Make GitHub-first whole-product and internalization analysis, the Program Owner's written-email-only accessibility requirement, and an honest and respectful request for provider understanding mandatory preconditions for provider outbound communication.",
+  "objective": "Require Track Z evidence-bound pre-engagement before provider review or negotiation, then KPMO strategy and exact-final-message review, Program Owner pre-send reporting and exact-message approval, while preserving honest non-native-English disclosure and written-email-only negotiation.",
   "required_checks": [
     "latest_human_inbound_read",
     "inbound_outbound_timestamp_compared",
@@ -36,7 +36,35 @@
     "provider_call_request_declined_in_writing_if_present",
     "all_material_terms_requested_in_writing",
     "program_owner_not_assigned_to_phone_voice_or_video_call",
-    "outbound_necessary"
+    "outbound_necessary",
+    "exact_head_provider_governance_read",
+    "latest_human_inbound_and_complete_thread_read",
+    "message_attachment_authenticity_and_sender_authority_checked",
+    "chronology_and_duplicate_or_resend_risk_checked",
+    "other_monitor_duplicate_message_id_checked",
+    "provider_brand_legal_contract_billing_tax_and_merchant_entities_separated",
+    "provider_company_product_and_use_case_fit_assessed",
+    "source_provenance_upstream_dependency_common_parent_and_provider_independence_assessed",
+    "schema_matching_sample_evidence_assessed",
+    "field_semantics_null_empty_omitted_and_missingness_assessed",
+    "access_method_activation_timing_rate_limit_and_overage_behavior_assessed",
+    "retention_deletion_private_evaluation_and_non_reconstructive_derived_rights_assessed",
+    "image_and_media_rights_assessed",
+    "trial_price_cancellation_refund_auto_renewal_and_tax_terms_assessed",
+    "payment_access_input_data_rights_product_gate_sequence_assessed",
+    "lock_in_replacement_path_and_provider_removal_cost_assessed",
+    "negotiation_objective_evidence_request_concessions_and_prohibited_commitments_defined",
+    "non_native_english_disclosure_and_written_email_only_handling_prepared_if_call_requested",
+    "external_display_name_and_legal_contracting_party_separated",
+    "intelligence_holdings_identity_authority_billing_tax_email_authentication_conditions_checked",
+    "current_authorized_outbound_identity_confirmed",
+    "external_communication_authority_confirmed",
+    "kpmo_response_strategy_review_completed",
+    "kpmo_final_message_review_completed",
+    "program_owner_pre_send_report_completed",
+    "program_owner_explicit_message_bound_send_approval_recorded",
+    "approval_binding_matches_exact_outbound",
+    "non_native_english_context_respected"
   ],
   "decision_states": [
     "SEND_ELIGIBLE",
@@ -54,7 +82,15 @@
     "outbound_offers_or_accepts_phone_voice_or_video_call": "DO_NOT_SEND",
     "agent_requests_program_owner_to_schedule_or_attend_call": "CONTROL_DEFECT_DO_NOT_SEND",
     "provider_refuses_to_put_material_terms_in_writing": "HOLD_OR_REPLACE",
-    "material_term_exists_only_in_verbal_channel": "NOT_ADMISSIBLE_AS_EVIDENCE"
+    "material_term_exists_only_in_verbal_channel": "NOT_ADMISSIBLE_AS_EVIDENCE",
+    "track_z_pre_engagement_missing": "DO_NOT_REVIEW_OR_NEGOTIATE",
+    "kpmo_response_strategy_review_missing": "DO_NOT_SEND",
+    "kpmo_final_message_review_missing": "DO_NOT_SEND",
+    "program_owner_pre_send_report_missing": "DO_NOT_SEND",
+    "exact_message_approval_missing_or_stale": "DO_NOT_SEND",
+    "approval_binding_mismatch": "DO_NOT_SEND",
+    "new_human_inbound_after_approval": "APPROVAL_INVALID_RESTART_REVIEW",
+    "automatic_gmail_draft_or_send_attempt": "CONTROL_DEFECT_DO_NOT_SEND"
   },
   "written_negotiation": {
     "preferred": true,
@@ -94,7 +130,9 @@
       "ASK_THE_PROGRAM_OWNER_FOR_CALL_AVAILABILITY",
       "REPORT_A_CALL_AS_THE_NEXT_REQUIRED_ACTION",
       "TREAT_VERBAL_STATEMENTS_AS_BINDING_RIGHTS_OR_COMMERCIAL_EVIDENCE"
-    ]
+    ],
+    "bilingual_email_formatting_rule": false,
+    "policy_interpretation": "HONEST_NON_NATIVE_ENGLISH_DISCLOSURE_AND_RESPECTFUL_UNDERSTANDING_REQUEST_PLUS_WRITTEN_EMAIL_NEGOTIATION"
   },
   "non_bypass": {
     "spend": "EXPLICIT_APPROVAL_REQUIRED",
@@ -102,5 +140,115 @@
     "credential_activation": "EXPLICIT_APPROVAL_REQUIRED",
     "production": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "track_z_pre_engagement": {
+    "required_before": [
+      "PROVIDER_REVIEW",
+      "PROVIDER_NEGOTIATION",
+      "GMAIL_DRAFT_CREATION",
+      "SEND"
+    ],
+    "required_checks": [
+      "exact_head_provider_governance_read",
+      "latest_human_inbound_and_complete_thread_read",
+      "message_attachment_authenticity_and_sender_authority_checked",
+      "chronology_and_duplicate_or_resend_risk_checked",
+      "other_monitor_duplicate_message_id_checked",
+      "provider_brand_legal_contract_billing_tax_and_merchant_entities_separated",
+      "provider_company_product_and_use_case_fit_assessed",
+      "source_provenance_upstream_dependency_common_parent_and_provider_independence_assessed",
+      "schema_matching_sample_evidence_assessed",
+      "field_semantics_null_empty_omitted_and_missingness_assessed",
+      "access_method_activation_timing_rate_limit_and_overage_behavior_assessed",
+      "retention_deletion_private_evaluation_and_non_reconstructive_derived_rights_assessed",
+      "image_and_media_rights_assessed",
+      "trial_price_cancellation_refund_auto_renewal_and_tax_terms_assessed",
+      "payment_access_input_data_rights_product_gate_sequence_assessed",
+      "lock_in_replacement_path_and_provider_removal_cost_assessed",
+      "negotiation_objective_evidence_request_concessions_and_prohibited_commitments_defined",
+      "non_native_english_disclosure_and_written_email_only_handling_prepared_if_call_requested",
+      "external_display_name_and_legal_contracting_party_separated",
+      "intelligence_holdings_identity_authority_billing_tax_email_authentication_conditions_checked",
+      "current_authorized_outbound_identity_confirmed",
+      "external_communication_authority_confirmed"
+    ],
+    "output_receipt_fields": [
+      "provider",
+      "thread_id",
+      "latest_human_inbound_message_id",
+      "evidence_as_of",
+      "facts",
+      "provider_claims",
+      "inferences",
+      "unknowns",
+      "gate_assessment",
+      "verdict",
+      "evidence_refs",
+      "receipt_sha256"
+    ],
+    "ordered_gate_assessment": [
+      "PAYMENT",
+      "ACCESS",
+      "INPUT",
+      "DATA",
+      "RIGHTS",
+      "PRODUCT"
+    ],
+    "evidence_missing_outcome": "DO_NOT_REVIEW_OR_NEGOTIATE"
+  },
+  "kpmo_pre_send_governance": {
+    "response_strategy_review_required": true,
+    "response_strategy_required_outputs": [
+      "latest_thread_evidence",
+      "sender_and_binding_authority_assessment",
+      "fact_provider_claim_inference_unknown_separation",
+      "provider_independence_and_upstream_dependency_assessment",
+      "payment_access_input_data_rights_product_gate_assessment",
+      "negotiation_objective",
+      "written_evidence_request",
+      "concessions_and_prohibited_commitments",
+      "replacement_path",
+      "recommended_verdict"
+    ],
+    "exact_final_message_line_by_line_review_required": true,
+    "program_owner_pre_send_report_required": true,
+    "program_owner_explicit_message_bound_approval_required": true,
+    "proposed_email_text_allowed_inside_kpmo_report": true,
+    "automatic_gmail_draft_creation_allowed": false,
+    "automatic_send_allowed": false,
+    "kpmo_self_approval_allowed": false,
+    "generic_or_prior_approval_reusable": false,
+    "approval_binding_fields": [
+      "provider",
+      "thread_or_reply_target",
+      "to",
+      "cc",
+      "bcc",
+      "subject",
+      "body",
+      "attachments",
+      "intended_action",
+      "protected_gate_effects",
+      "approved_content_sha256"
+    ],
+    "approval_invalidation_events": [
+      "new_human_inbound",
+      "provider_change",
+      "thread_or_reply_target_change",
+      "recipient_change",
+      "subject_change",
+      "body_change",
+      "attachment_change",
+      "material_scope_change",
+      "protected_gate_effect_change"
+    ],
+    "post_send_verification_fields": [
+      "gmail_message_id",
+      "gmail_thread_id",
+      "sent_at",
+      "actual_recipients",
+      "approved_content_sha256",
+      "registry_truth_sync"
+    ]
   }
 }

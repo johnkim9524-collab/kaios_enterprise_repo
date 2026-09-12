@@ -390,3 +390,10 @@ Policy changes require:
 - explicit change rationale and version increment.
 
 No AI agent may self-exempt.
+
+
+## Mandatory Track Z provider pre-engagement and exact-message approval
+
+Before any provider review, negotiation, provider-facing Gmail draft, or send, an agent must prove the Track Z pre-engagement receipt from current evidence. Required scope includes latest thread and sender authority, duplicate/resend state, brand and legal entities, upstream dependency and provider independence, schema/sample/field/null/missingness evidence, access/activation/rate limits, retention/deletion/derived-result/media rights, commercial and tax terms, PAYMENT -> ACCESS -> INPUT -> DATA -> RIGHTS -> PRODUCT gates, replacement path, negotiation posture, written-only handling, and external identity authority.
+
+KPMO must pre-review the response strategy and the exact final message line by line, report both to the Program Owner, and obtain explicit approval bound to the exact outbound content and SHA-256 before Gmail draft creation or send. KPMO may include proposed copy in the internal report but cannot self-approve, infer or reuse approval, or automatically create/send Gmail. New human inbound or any material message, recipient, attachment, scope, or gate-effect change invalidates approval. Missing evidence is `DO_NOT_SEND`. Candidly disclosing that English is not the Program Owner's native language, respectfully requesting understanding, and negotiating by written email is mandatory when a provider requests a call; this is not a bilingual-email formatting rule.
