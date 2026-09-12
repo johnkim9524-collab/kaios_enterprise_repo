@@ -16,19 +16,35 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
 
+      - name: Prepare terminal evidence
+        if: ${{ always() }}
+        run: mkdir -p artifacts/autonomous-operations-terminal
+
       - name: Run autonomous operations
-        run: node apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs
+        id: run_operations
+        shell: bash
+        run: |
+          set -o pipefail
+          node apps/kidults-enterprise-staging/scripts/run-a13-b16-autonomous-operations.mjs \
+            2>&1 | tee artifacts/autonomous-operations-terminal/operations.log
 
       - name: Run Kidults regression suite
+        id: run_regression
+        if: ${{ always() }}
+        shell: bash
         run: |
+          set -o pipefail
           node --test \
             apps/kidults-enterprise-staging/a13-b10-baseline-lock.test.mjs \
             apps/kidults-enterprise-staging/a13-b11-intelligence-product.test.mjs \
@@ -36,4 +52,107 @@ jobs:
             apps/kidults-enterprise-staging/a13-b13-live-source-resilience.test.mjs \
             apps/kidults-enterprise-staging/a13-b14-integrated-intelligence-activation.test.mjs \
             apps/kidults-enterprise-staging/a13-b15-external-source-certification.test.mjs \
-            apps/kidults-enterprise-staging/a13-b16-autonomous-operations-certification.test.mjs
+            apps/kidults-enterprise-staging/a13-b16-autonomous-operations-certification.test.mjs \
+            2>&1 | tee artifacts/autonomous-operations-terminal/regression.log
+
+      - name: Emit fail-closed terminal receipt
+        id: emit_terminal_receipt
+        if: ${{ always() }}
+        env:
+          OPERATIONS_OUTCOME: ${{ steps.run_operations.outcome }}
+          REGRESSION_OUTCOME: ${{ steps.run_regression.outcome }}
+          EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXACT_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          mkdir -p artifacts/autonomous-operations-terminal
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const terminalDir = 'artifacts/autonomous-operations-terminal';
+          const generatedDir = 'apps/kidults-enterprise-staging/public/a13-b10/data/generated';
+          const generatedFiles = ['operations-health.json', 'autonomous-operations.json'];
+          const copied = {};
+          for (const file of generatedFiles) {
+            const source = path.join(generatedDir, file);
+            copied[file] = fs.existsSync(source);
+            if (copied[file]) fs.copyFileSync(source, path.join(terminalDir, file));
+          }
+
+          const observedAt = new Date();
+          const scheduleEvent = process.env.EVENT_NAME === 'schedule';
+          const scheduledFor = scheduleEvent
+            ? new Date(Date.UTC(observedAt.getUTCFullYear(), observedAt.getUTCMonth(), observedAt.getUTCDate(), 3, 0, 0))
+            : null;
+          const passed = process.env.OPERATIONS_OUTCOME === 'success'
+            && process.env.REGRESSION_OUTCOME === 'success'
+            && Object.values(copied).every(Boolean);
+          const receipt = {
+            schema: 'kidults-autonomous-operations-terminal-receipt-v1',
+            repository: process.env.GITHUB_REPOSITORY,
+            workflow: process.env.GITHUB_WORKFLOW,
+            workflow_path: '.github/workflows/kidults-autonomous-operations.yml',
+            source_sha: process.env.EXACT_SOURCE_SHA,
+            source_ref: process.env.EXACT_SOURCE_REF,
+            event_name: process.env.EVENT_NAME,
+            run_id: Number(process.env.GITHUB_RUN_ID),
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            observed_at: observedAt.toISOString(),
+            configured_schedule_utc: '0 3 * * *',
+            scheduled_for_utc: scheduledFor?.toISOString() ?? null,
+            schedule_delay_seconds: scheduledFor ? Math.max(0, Math.round((observedAt - scheduledFor) / 1000)) : null,
+            state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            result_class: 'STAGING_CONTROL_ONLY',
+            step_outcomes: {
+              autonomous_operations: process.env.OPERATIONS_OUTCOME,
+              regression_suite: process.env.REGRESSION_OUTCOME,
+            },
+            generated_outputs_present: copied,
+            evidence_admission: 'NONE',
+            empirical_authority: false,
+            promotion_eligible: false,
+            promotion_authority: false,
+            provider_activation_authority: false,
+            database_mutation_authority: false,
+            external_execution_authority: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD',
+          };
+          const canonical = JSON.stringify(receipt);
+          receipt.receipt_sha256 = `sha256:${crypto.createHash('sha256').update(canonical).digest('hex')}`;
+          fs.writeFileSync(path.join(terminalDir, 'terminal-receipt-v1.json'), `${JSON.stringify(receipt, null, 2)}\n`);
+          console.log(JSON.stringify(receipt));
+          NODE
+
+      - name: Upload terminal audit evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: autonomous-operations-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/autonomous-operations-terminal
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Reapply fail-closed outcome
+        if: ${{ always() }}
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const receipt = JSON.parse(fs.readFileSync('artifacts/autonomous-operations-terminal/terminal-receipt-v1.json', 'utf8'));
+          if (receipt.evidence_admission !== 'NONE'
+            || receipt.empirical_authority !== false
+            || receipt.promotion_eligible !== false
+            || receipt.promotion_authority !== false
+            || receipt.provider_activation_authority !== false
+            || receipt.database_mutation_authority !== false
+            || receipt.external_execution_authority !== false) {
+            throw new Error('AUTONOMOUS_OPERATIONS_AUTHORITY_DRIFT');
+          }
+          if (receipt.production !== 'HOLD' || receipt.public !== 'HOLD' || receipt.g5 !== 'HOLD') {
+            throw new Error('AUTONOMOUS_OPERATIONS_HOLD_DRIFT');
+          }
+          if (receipt.state !== 'VERIFIED_PASS') process.exit(1);
+          NODE
