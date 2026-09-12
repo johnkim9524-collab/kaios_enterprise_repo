@@ -88,9 +88,10 @@ jobs:
 
           const observedAt = new Date();
           const scheduleEvent = process.env.EVENT_NAME === 'schedule';
-          const scheduledFor = scheduleEvent
-            ? new Date(Date.UTC(observedAt.getUTCFullYear(), observedAt.getUTCMonth(), observedAt.getUTCDate(), 3, 0, 0))
-            : null;
+          let scheduledFor = null;
+          if (scheduleEvent) {
+            scheduledFor = new Date(Date.UTC(observedAt.getUTCFullYear(), observedAt.getUTCMonth(), observedAt.getUTCDate(), 3, 0, 0));
+          }
           const passed = process.env.OPERATIONS_OUTCOME === 'success'
             && process.env.REGRESSION_OUTCOME === 'success'
             && Object.values(copied).every(Boolean);
