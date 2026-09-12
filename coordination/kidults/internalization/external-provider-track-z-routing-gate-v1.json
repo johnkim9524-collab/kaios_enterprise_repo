@@ -67,13 +67,12 @@
     "pre_engagement_receipt"
   ],
   "track_z_verdicts": [
-    "SEND",
-    "REVISE",
+    "READY_FOR_KPMO_REVIEW",
+    "ANALYSIS_REQUIRED",
     "HOLD",
     "WAIT",
     "NO_GO",
-    "INTERNALIZE_FIRST",
-    "PASS_FOR_BOUNDED_PILOT_REVIEW"
+    "INTERNALIZE_FIRST"
   ],
   "kpmo_required_outputs": [
     "whole_value_chain_impact",
