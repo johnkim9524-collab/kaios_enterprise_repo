@@ -109,6 +109,8 @@ test('A13-B16 always retains exact-generation terminal evidence before reapplyin
   assert.match(workflow.slice(regression, receipt), /if: \$\{\{ always\(\) \}\}/);
   assert.match(workflow.slice(receipt, upload), /if: \$\{\{ always\(\) \}\}/);
   assert.match(workflow.slice(upload, reapply), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /a13-b16-autonomous-operations-certification\.test\.mjs/);
   assert.match(workflow, /actions\/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f/);
   assert.match(workflow, /if-no-files-found: error/);
   assert.match(workflow, /github\.event\.pull_request\.head\.sha \|\| github\.sha/);
