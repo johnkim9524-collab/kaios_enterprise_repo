@@ -99,7 +99,8 @@ jobs:
           VALIDATE_SAMPLE_GOVERNANCE_EXIT: ${{ steps.validate_sample_governance.outputs.exit_code }}
           RECEIPT_RUN_ID: ${{ github.run_id }}
           RECEIPT_RUN_ATTEMPT: ${{ github.run_attempt }}
-          RECEIPT_SHA: ${{ github.sha }}
+          RECEIPT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_REF: ${{ github.head_ref || github.ref_name }}
           RECEIPT_EVENT: ${{ github.event_name }}
           RECEIPT_REPOSITORY: ${{ github.repository }}
           RECEIPT_WORKFLOW: ${{ github.workflow }}
@@ -129,13 +130,18 @@ jobs:
             run_id: Number(process.env.RECEIPT_RUN_ID),
             run_attempt: Number(process.env.RECEIPT_RUN_ATTEMPT),
             source_sha: process.env.RECEIPT_SHA,
+            source_ref: process.env.RECEIPT_REF,
             event_name: process.env.RECEIPT_EVENT,
             state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
             validations,
             authority: 'CONTROL_ONLY',
+            evidence_admission: 'NONE',
             empirical_authority: false,
             provider_activation_authority: false,
             promotion_eligible: false,
+            promotion_authority: false,
+            database_mutation_authority: false,
+            external_execution_authority: false,
             production: 'HOLD',
             public: 'HOLD',
             g5: 'HOLD',
@@ -162,7 +168,7 @@ jobs:
           const path = 'artifacts/asi-launch-evidence-terminal/terminal-receipt-v1.json';
           if (!fs.existsSync(path)) throw new Error('TERMINAL_RECEIPT_MISSING');
           const receipt = JSON.parse(fs.readFileSync(path, 'utf8'));
-          if (receipt.promotion_eligible !== false || receipt.empirical_authority !== false || receipt.provider_activation_authority !== false) {
+          if (receipt.evidence_admission !== 'NONE' || receipt.promotion_eligible !== false || receipt.promotion_authority !== false || receipt.empirical_authority !== false || receipt.provider_activation_authority !== false || receipt.database_mutation_authority !== false || receipt.external_execution_authority !== false) {
             throw new Error('TERMINAL_RECEIPT_AUTHORITY_DRIFT');
           }
           if (receipt.production !== 'HOLD' || receipt.public !== 'HOLD' || receipt.g5 !== 'HOLD') {
