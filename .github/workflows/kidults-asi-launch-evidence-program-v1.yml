@@ -17,6 +17,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
       - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
+      - 'tests/test_launch_evidence_terminal_artifact.py'
       - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
   pull_request:
     paths:
@@ -31,6 +32,7 @@ on:
       - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
       - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - 'tests/test_launch_evidence_terminal_artifact.py'
       - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
   schedule:
     - cron: '37 * * * *'
@@ -57,6 +59,81 @@ jobs:
       - name: Validate syntax
         run: node --check scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
       - name: Validate stage truth and fail-closed negative paths
-        run: node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
+        id: validate_program
+        run: |
+          mkdir -p "$RUNNER_TEMP/launch-evidence-terminal"
+          node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs \
+            | tee "$RUNNER_TEMP/launch-evidence-terminal/program-validation.json"
       - name: Validate scientific sample governance
-        run: node scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs
+        id: validate_sample
+        run: |
+          node scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs \
+            | tee "$RUNNER_TEMP/launch-evidence-terminal/sample-governance-validation.json"
+      - name: Create fail-closed terminal receipt
+        if: always()
+        env:
+          PROGRAM_OUTCOME: ${{ steps.validate_program.outcome }}
+          SAMPLE_OUTCOME: ${{ steps.validate_sample.outcome }}
+          EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXACT_SOURCE_REF: ${{ github.head_ref || github.ref_name }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/launch-evidence-terminal"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const dir = path.join(process.env.RUNNER_TEMP, 'launch-evidence-terminal');
+          const passed = process.env.PROGRAM_OUTCOME === 'success' &&
+            process.env.SAMPLE_OUTCOME === 'success';
+          const receipt = {
+            id: 'kidults-asi-launch-evidence-terminal-receipt-v1',
+            version: '1.0.0',
+            state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            result_class: 'CONTROL_ONLY',
+            repository: process.env.GITHUB_REPOSITORY,
+            workflow_path: '.github/workflows/kidults-asi-launch-evidence-program-v1.yml',
+            source_ref: process.env.EXACT_SOURCE_REF,
+            source_sha: process.env.EXACT_SOURCE_SHA,
+            event_name: process.env.GITHUB_EVENT_NAME,
+            run_id: Number(process.env.GITHUB_RUN_ID),
+            run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+            validation_outcomes: {
+              launch_evidence_program: process.env.PROGRAM_OUTCOME,
+              sample_governance: process.env.SAMPLE_OUTCOME
+            },
+            validation_outputs_present: {
+              launch_evidence_program: fs.existsSync(path.join(dir, 'program-validation.json')),
+              sample_governance: fs.existsSync(path.join(dir, 'sample-governance-validation.json'))
+            },
+            evidence_admission: 'NONE',
+            empirical_authority: false,
+            promotion_eligible: false,
+            promotion_authority: false,
+            provider_activation_authority: false,
+            database_mutation_authority: false,
+            external_execution_authority: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync(
+            path.join(dir, 'launch-evidence-terminal-receipt-v1.json'),
+            JSON.stringify(receipt, null, 2) + '\n'
+          );
+          console.log(JSON.stringify(receipt));
+          NODE
+      - name: Upload terminal audit evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-asi-launch-evidence-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/launch-evidence-terminal
+          if-no-files-found: error
+          retention-days: 90
+      - name: Reapply fail-closed validation outcome
+        if: always()
+        env:
+          PROGRAM_OUTCOME: ${{ steps.validate_program.outcome }}
+          SAMPLE_OUTCOME: ${{ steps.validate_sample.outcome }}
+        run: |
+          test "$PROGRAM_OUTCOME" = "success"
+          test "$SAMPLE_OUTCOME" = "success"
