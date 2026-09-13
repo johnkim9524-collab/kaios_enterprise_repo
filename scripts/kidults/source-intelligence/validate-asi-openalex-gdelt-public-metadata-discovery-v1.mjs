@@ -13,6 +13,9 @@ if(oaPacing<500||gdeltPacing<400)fail('RESILIENCE_PROVIDER_PACING');
 if(!source.includes("headers?.get?.('retry-after')")||!source.includes('r.status===408||r.status===429||r.status>=500'))fail('RESILIENCE_HTTP_RETRY');
 if(!/catch\(error\)\{[\s\S]*attempt<MAX_FETCH_ATTEMPTS-1[\s\S]*fetchJson\(url,opts,attempt\+1\)/.test(source))fail('RESILIENCE_TRANSPORT_RETRY');
 if(!source.includes("GITHUB_WORKFLOW==='KIDULTS ASI P0B Bounded Discovery Candidates v1'")||!source.includes('provider_health_circuit_writeback:true')||!source.includes('failed_provider_full_budget_forbidden:true'))fail('P0B_PROVIDER_CIRCUIT_REGRESSION');
+const laneBufferDecls=(source.match(/const laneCandidates=\[\]/g)||[]).length;
+const laneCommits=(source.match(/candidates\.push\(\.\.\.laneCandidates\)/g)||[]).length;
+if(!source.includes('function add(raw,target=candidates)')||laneBufferDecls!==2||laneCommits!==2)fail('FAILED_LANE_CANDIDATE_ISOLATION_REGRESSION');
 if(x.id!=='kidults-asi-openalex-gdelt-public-metadata-discovery-v1'||x.status!=='SHADOW_MULTI_PROVIDER_PUBLIC_METADATA_DISCOVERY_COMPLETE')fail('IDENTITY');
 if(x.universe_target!=='GLOBAL_ANY_SITE_SOURCE_UNIVERSE'||x.universe_restricted!==false)fail('UNIVERSE_NARROWED');
 if(Number(x.scope_registry_total)!==32||Number(x.scope_rotation_count)!==4||Number(x.cycle_scope_count)!==8||!Number.isInteger(Number(x.scope_rotation_index))||Number(x.scope_rotation_index)<0||Number(x.scope_rotation_index)>3)fail('SCOPE_ROTATION');
@@ -20,6 +23,8 @@ if(!Array.isArray(x.cycle_scope_ids)||new Set(x.cycle_scope_ids).size!==8)fail('
 if(!Array.isArray(x.lane_health)||x.lane_health.length!==2||!Number.isInteger(Number(x.healthy_lane_count))||Number(x.healthy_lane_count)<0||Number(x.healthy_lane_count)>2)fail('LANE_HEALTH_SHAPE');
 if(!p0bDiagnostic&&Number(x.healthy_lane_count)<1)fail('LANE_HEALTH');
 const ids=['OPENALEX_PUBLIC_WORK_AND_SOURCE_METADATA','GDELT_PUBLIC_DOMAIN_MENTION_METADATA'];for(const id of ids)if(!x.lane_health.find(l=>l.lane_id===id))fail(`LANE_MISSING:${id}`);
+const healthyStatuses=new Set(['SUCCESS_WITH_RESULTS','SUCCESS_ZERO_RESULTS']);
+const healthyProviders=new Set(x.lane_health.filter(l=>healthyStatuses.has(l.status)).map(l=>l.lane_id));
 if(!x.provider_budget_actions||Object.keys(x.provider_budget_actions).length!==2)fail('BUDGET_ACTIONS');
 const actions=new Set(['FULL_DISCOVERY_BUDGET','REDUCED_DISCOVERY_BUDGET','SKIP_PROVIDER_NEXT_CYCLE','SINGLE_BOUNDED_PROBE','ON_DEMAND_ONLY']);let enabled=0;
 for(const id of ids){const a=x.provider_budget_actions[id];if(!a||!actions.has(a.action)||Number(a.budget_multiplier)<0||Number(a.budget_multiplier)>1||a.rights_effect!=='NONE'||a.admission_effect!=='NONE'||a.acquisition_effect!=='NONE')fail(`BUDGET_BOUNDARY:${id}`);if(Number(a.budget_multiplier)>0)enabled++;const lane=x.lane_health.find(l=>l.lane_id===id);if(lane.budget_action!==a.action||Number(lane.budget_multiplier)!==Number(a.budget_multiplier))fail(`LANE_BUDGET_MISMATCH:${id}`);if(a.action==='SKIP_PROVIDER_NEXT_CYCLE'&&lane.status!=='SKIPPED_PROVIDER_CIRCUIT_OPEN')fail(`SKIP_NOT_APPLIED:${id}`);}
@@ -28,7 +33,7 @@ if(!Array.isArray(x.candidates)||x.candidates.length!==Number(x.candidate_count)
 if(!p0bDiagnostic&&Number(x.candidate_count)<1)fail('EMPIRICAL_CANDIDATES');
 if(Number(x.candidate_count)>0&&Number(x.healthy_lane_count)<1)fail('CANDIDATE_WITHOUT_HEALTHY_LANE');
 if(x.production!=='HOLD'||x.public_release!=='HOLD'||x.acquisition_authorized!==false||x.content_acquired!==false||x.target_site_body_crawled!==false)fail('RELEASE_BOUNDARY');
-const r=x.rules||{};for(const k of ['multi_provider_fail_soft','at_least_one_independent_lane_executes','provider_health_controls_budget_only','provider_health_circuit_writeback','transient_network_retry','retry_after_honored','provider_request_pacing','discovery_metadata_only','target_site_body_traversal_forbidden','attention_is_not_demand','listing_is_not_sold','terminal_transaction_assertion_required','rights_never_promoted','admission_never_promoted'])if(r[k]!==true)fail(`RULE:${k}`);
+const r=x.rules||{};for(const k of ['multi_provider_fail_soft','at_least_one_independent_lane_executes','provider_health_controls_budget_only','provider_health_circuit_writeback','transient_network_retry','retry_after_honored','provider_request_pacing','lane_candidate_commit_atomic','discovery_metadata_only','target_site_body_traversal_forbidden','attention_is_not_demand','listing_is_not_sold','terminal_transaction_assertion_required','rights_never_promoted','admission_never_promoted'])if(r[k]!==true)fail(`RULE:${k}`);
 if(p0bDiagnostic){
  if(x.provider_circuit_writeback_applied!==true)fail('P0B_CIRCUIT_WRITEBACK_NOT_APPLIED');
  if(!x.next_provider_budget_actions||Object.keys(x.next_provider_budget_actions).length!==2)fail('P0B_NEXT_BUDGET_ACTIONS');
@@ -46,7 +51,7 @@ if(p0bDiagnostic){
 const allowed=new Set(ids);const seen=new Set();
 for(const c of x.candidates){
  if(!c.candidate_id||!c.endpoint_url||seen.has(c.endpoint_url))fail('CANDIDATE_IDENTITY_OR_DUPLICATE');seen.add(c.endpoint_url);
- for(const provider of c.discovery_providers||[c.discovery_provider])if(!allowed.has(provider))fail(`PROVIDER:${provider}`);
+ for(const provider of c.discovery_providers||[c.discovery_provider]){if(!allowed.has(provider))fail(`PROVIDER:${provider}`);if(!healthyProviders.has(provider))fail(`CANDIDATE_FROM_UNHEALTHY_LANE:${provider}`);}
  if(!x.cycle_scope_ids.includes(c.scope_hint)&&!(c.scope_hints||[]).some(s=>x.cycle_scope_ids.includes(s)))fail('SCOPE_ESCAPE');
  if(c.source_family_hint!=='UNCLASSIFIED_ANY_SITE_CANDIDATE'||c.rights_state!=='UNASSESSED'||c.admission_state!=='NOT_ADMITTED'||c.gate_1_state!=='PENDING'||c.evidence_state!=='DISCOVERY_METADATA_ONLY')fail('SELF_PROMOTION');
  if(c.acquisition_authorized!==false||c.target_site_body_crawled!==false||c.content_acquired!==false||c.provider_contacted!==false||c.account_created!==false||c.eula_accepted!==false||c.spend_authorized!==false||c.production!=='HOLD'||c.public_release!=='HOLD')fail('COMMITMENT_OR_PERMISSION_BOUNDARY');
