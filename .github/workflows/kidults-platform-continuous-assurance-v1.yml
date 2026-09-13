@@ -1088,6 +1088,12 @@ jobs:
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: node scripts/kidults/redteam/validate-vam-acquisition-assurance-v1.mjs
 
+      - name: Fail closed on unreachable workflow_run chains
+        run: |
+          set -euo pipefail
+          node scripts/kidults/redteam/validate-workflow-run-depth-v1.mjs --self-test
+          node scripts/kidults/redteam/validate-workflow-run-depth-v1.mjs .github/workflows
+
       - name: Validate continuous assurance contract
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: |
