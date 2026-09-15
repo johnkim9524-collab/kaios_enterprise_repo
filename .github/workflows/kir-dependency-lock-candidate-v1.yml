@@ -1,0 +1,57 @@
+name: KIR Dependency Lock Candidate V1
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/kir-dependency-lock-candidate-v1.yml']
+permissions:
+  contents: read
+jobs:
+  candidate:
+    if: github.head_ref == 'fix/kir-security-dependencies-v1' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      npm_config_ignore_scripts: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Build candidate only; no repository writes or deployment
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = johnkim9524-collab/kaios_enterprise_repo
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(npm --version)" = 11.17.0
+          OUT="$RUNNER_TEMP/kir-dependency-candidate"
+          mkdir -p "$OUT"
+          for d in services/kidults-autonomous-intelligence tooling/kidults-cloudflare-workers-shadow; do
+            npm install --prefix "$d" --package-lock-only --ignore-scripts --no-audit --no-fund --save-dev --save-exact wrangler@4.131.2
+            mkdir -p "$OUT/$d"
+            cp "$d/package.json" "$d/package-lock.json" "$OUT/$d/"
+          done
+          python3 -I - "$OUT" <<'PY'
+          import hashlib,json,os,pathlib,subprocess,sys
+          root=pathlib.Path(sys.argv[1]);files=sorted(root.rglob('*.json'))
+          allowed={f'{d}/{f}' for d in ['services/kidults-autonomous-intelligence','tooling/kidults-cloudflare-workers-shadow'] for f in ['package.json','package-lock.json']}
+          changed=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
+          assert changed <= allowed, changed
+          data={'scope':'CANDIDATE_FILES_ONLY_NOT_COMMITTED_SOURCE_ASSURANCE','source_sha':os.environ['EXPECTED_SHA'],'node':'24.19.0','npm':'11.17.0','wrangler':'4.131.2','production':'HOLD','public':'HOLD','g5':'HOLD','github_writes':0,'provider_calls':0,'files':{p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+          (root/'candidate-manifest.json').write_text(json.dumps(data,indent=2)+'\n')
+          PY
+          git diff --stat
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: kir-dependency-candidate-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/kir-dependency-candidate
+          if-no-files-found: error
+          retention-days: 7
