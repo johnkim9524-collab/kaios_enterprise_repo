@@ -216,14 +216,13 @@
   border-radius:999px;
   background:#e5e3da
 }
-.why-engine__confidence i{
+.why-engine__confidence svg{
   display:block;
-  width:0;
+  width:100%;
   height:100%;
-  border-radius:inherit;
-  background:linear-gradient(90deg,#78998a,#0b523e);
-  transition:width .45s cubic-bezier(.2,.8,.2,1)
+  border-radius:inherit
 }
+.why-engine__confidence rect{fill:#0b523e}
 .why-engine__note{
   margin:12px 0 0;
   font-size:10px;
@@ -301,20 +300,25 @@
   height:8px;
   flex:0 0 auto;
   border-radius:50%;
-  background:var(--why-color)
+  background:#123f35
 }
+.why-engine__composition-row>span i[data-swatch-index="1"]{background:#356456}
+.why-engine__composition-row>span i[data-swatch-index="2"]{background:#5f8174}
+.why-engine__composition-row>span i[data-swatch-index="3"]{background:#8fa69d}
+.why-engine__composition-row>span i[data-swatch-index="4"]{background:#c6c7b8}
 .why-engine__composition-row>div{
   height:5px;
   overflow:hidden;
   border-radius:999px;
   background:#e3e2da
 }
-.why-engine__composition-row>div b{
+.why-engine__composition-row>div svg{
   display:block;
+  width:100%;
   height:100%;
-  border-radius:inherit;
-  background:var(--forest)
+  border-radius:inherit
 }
+.why-engine__composition-row>div rect{fill:var(--forest)}
 .why-engine__composition-row>strong{
   font-size:10px;
   text-align:right
@@ -487,7 +491,7 @@
 @media(prefers-reduced-motion:reduce){
   .why-trigger,
   .why-engine[open] .why-engine__surface,
-  .why-engine__confidence i{
+  .why-engine__confidence svg{
     animation:none;
     transition:none
   }

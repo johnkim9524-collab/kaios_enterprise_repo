@@ -119,7 +119,6 @@ export function renderVerticals(verticalData) {
           class="vertical-card reveal"
           data-vertical-card
           data-featured="${vertical.featured}"
-          style="--coverage:${Number(vertical.right_data_coverage_pct)}%"
         >
           <div class="vertical-card-top">
             <span class="vertical-order">${String(vertical.structural_order).padStart(2, "0")}</span>
@@ -167,7 +166,7 @@ export function renderK100(k100) {
     const score = item.score === null ? "Score gated" : `Score ${Number(item.score).toFixed(1)}`;
     const detail = item.score === null
       ? `${esc(item.status)} · institutional release pending`
-      : `${esc(item.confidence)}% confidence · ${esc(item.freshness)} freshness`;
+      : `Decision confidence explained on object page · ${esc(item.freshness)} freshness`;
 
     return `
       <article class="k100-card reveal">
@@ -176,7 +175,9 @@ export function renderK100(k100) {
           <span class="k100-category">${esc(item.category)}</span>
         </header>
         <h3>${esc(item.title)}</h3>
-        <div class="k100-figure"><img src="${esc(item.asset)}?v=658" alt="${esc(item.title)}" loading="lazy"></div>
+        <div class="k100-figure">${typeof item.asset === "string" && item.asset
+          ? `<img src="${esc(item.asset)}?v=658" alt="${esc(item.title)}" loading="lazy">`
+          : `<span class="snapshot-state">${esc(item.portal_label ?? item.asset_status ?? "VISUAL NOT AVAILABLE")}</span>`}</div>
         <div class="k100-score${item.score === null ? " score-gated" : ""}">
           <strong>${score}</strong>
           <p>${detail}</p>
@@ -205,9 +206,11 @@ export function renderSignals(signalData) {
       <div class="signal-main">
         <div><h3>${esc(signal.title)}</h3><div class="signal-value"><strong>${esc(signal.value)}</strong><span>${esc(signal.unit)}</span></div></div>
       </div>
-      <div class="sparkline">${sparklineSvg(signal.series, `${signal.title} recent registered trend`)}</div>
+      <div class="sparkline">${Array.isArray(signal.series) && signal.series.length > 0
+        ? sparklineSvg(signal.series, `${signal.title} recent registered trend`)
+        : '<span class="snapshot-state">TREND NOT AVAILABLE</span>'}</div>
       <div class="signal-meta">
-        <div><b>${esc(signal.confidence)}%</b><span>Registered confidence</span></div>
+        <div><b>SEE WHY</b><span>Decision Confidence</span></div>
         <div><b>${esc(signal.sources)}</b><span>Source count</span></div>
         <div><b>${esc(snapshotTime)}</b><span>Snapshot as of</span></div>
       </div>
@@ -255,12 +258,14 @@ export function renderEvidence(summary, k100) {
       stops.push(`${item.color} ${position}% ${position + item.value}%`);
       position += item.value;
     });
-    donut.style.background = `conic-gradient(${stops.join(",")})`;
-    compositionList.innerHTML = summary.composition.map(item => `
-      <li><span><i style="background:${esc(item.color)}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
+    donut.hidden = false;
+    donut.dataset.compositionState = "REGISTERED";
+    compositionList.innerHTML = summary.composition.map((item, index) => `
+      <li><span><i data-swatch-index="${index % 5}"></i>${esc(item.label)}</span><strong>${esc(item.value)}%</strong></li>
     `).join("");
   } else {
-    donut.style.background = "none";
+    donut.hidden = true;
+    donut.dataset.compositionState = "NOT_VERIFIED";
     compositionList.innerHTML = '<li><span>Current source composition</span><strong>NOT VERIFIED</strong></li>';
   }
 }
@@ -307,10 +312,11 @@ export function renderReleaseBaseline(registry, manifest) {
 
 export function renderPortalError(error) {
   const message = error instanceof Error ? error.message : String(error);
+  document.documentElement.dataset.portalErrorCode = message.slice(0, 80);
   document.body.insertAdjacentHTML("afterbegin", `
     <div class="portal-error" role="alert">
-      <strong>V6 fail-closed.</strong>
-      Required portal data could not be loaded. ${esc(message)}
+      <strong>Action unavailable.</strong>
+      Evidence and Rights could not be verified. Refresh the page or return later while Qualification completes.
     </div>
   `);
 }

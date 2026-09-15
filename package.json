@@ -12,7 +12,15 @@
     "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",
     "validate:control-tower": "node scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs",
     "test:source-eligibility-receipt": "node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs",
-    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs"
+    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs",
+    "validate:synthetic-platform": "node scripts/kidults/synthetic/validate-synthetic-platform-v1.mjs",
+    "validate:operations-readiness": "node scripts/kidults/operations/validate-d-day-operations-readiness-v1.mjs",
+    "simulate:provider-operations": "node scripts/kidults/operations/run-d-day-provider-simulation-v1.mjs",
+    "observe:provider-operations": "node scripts/kidults/operations/build-d-day-observability-dashboard-v1.mjs",
+    "validate:provider-operations": "node scripts/kidults/operations/validate-provider-operations-capability-v1.mjs",
+    "console:provider-operations": "node scripts/kidults/operations/build-provider-operations-console-v1.mjs",
+    "build:provider-portfolio": "node scripts/kidults/operations/build-provider-portfolio-v1.mjs",
+    "validate:provider-portfolio": "node scripts/kidults/operations/validate-provider-portfolio-v1.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",

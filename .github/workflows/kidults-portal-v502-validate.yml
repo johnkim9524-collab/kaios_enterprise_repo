@@ -49,6 +49,9 @@ jobs:
           node --check apps/kidults-enterprise-staging/public/portal/workspace-page.js
           node --check apps/kidults-enterprise-staging/public/portal/detail.js
           node --check apps/kidults-enterprise-staging/public/portal/components/data-store.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/v587-intelligence-core.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/v587-decision-intelligence.js
+          node --check apps/kidults-enterprise-staging/public/portal/components/v587-workspace-decision-flow.js
           node --check apps/kidults-enterprise-staging/public/portal/components/renderers.js
           node --check apps/kidults-enterprise-staging/public/portal/components/interactions.js
           node --check apps/kidults-enterprise-staging/public/portal/components/homepage-structure.js
@@ -80,6 +83,7 @@ jobs:
           node --check scripts/kidults/portal/validate-v662-final-visual95.mjs
           node --check scripts/kidults/portal/validate-v663-hero-layout.mjs
           node --check scripts/kidults/portal/capture-v662-visual-check.mjs
+          node --check scripts/kidults/portal/validate-v587-role-journey-control.mjs
 
       - name: Validate shared coordination
         run: node scripts/kidults/coordination/validate-coordination.mjs
@@ -110,6 +114,10 @@ jobs:
 
       - name: Validate Decision Support Engine
         run: node scripts/kidults/portal/validate-decision-engine.mjs
+
+      - name: Validate V587 shared intelligence core
+        working-directory: apps/kidults-enterprise-staging
+        run: node --test v587-decision-intelligence.test.mjs projection-capability-v1.test.mjs portal-projection-consumption-v1.test.mjs
 
       - name: Validate Living Intelligence Workspace
         run: node scripts/kidults/portal/validate-workspace.mjs
@@ -161,10 +169,19 @@ jobs:
 
       - name: Start local KIDULTS portal
         run: |
-          python3 -m http.server 4173 --directory apps/kidults-enterprise-staging/public > /tmp/kidults-v663-server.log 2>&1 &
+          mkdir -p /tmp/kidults-v663-conversion-data
+          printf 'kidults-v663-visual-nonproduction-secret' > /tmp/kidults-v663-conversion-secret
+          KAIOS_ENVIRONMENT=staging \
+          KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false \
+          KIDULTS_PUBLIC_DIR="$GITHUB_WORKSPACE/apps/kidults-enterprise-staging/public" \
+          KIDULTS_CONVERSION_DATA_DIR=/tmp/kidults-v663-conversion-data \
+          KIDULTS_CONVERSION_HASH_SECRET_FILE=/tmp/kidults-v663-conversion-secret \
+          KIDULTS_SYNTHETIC_PORTAL_PROJECTION_PATH="$GITHUB_WORKSPACE/coordination/kidults/synthetic/generated/synthetic-portal-projection-v1.json" \
+          HOST=127.0.0.1 PORT=4173 \
+          node apps/kidults-enterprise-staging/server.mjs > /tmp/kidults-v663-server.log 2>&1 &
           echo $! > /tmp/kidults-v663-server.pid
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:4173/portal/index.html >/dev/null; then
+            if curl --fail --silent http://127.0.0.1:4173/health >/dev/null; then
               exit 0
             fi
             sleep 1
@@ -177,11 +194,19 @@ jobs:
           KIDULTS_VISUAL_OUTPUT: artifacts/kidults-v663-visual
         run: node scripts/kidults/portal/capture-v662-visual-check.mjs
 
+      - name: Validate six-role V587 role journey control simulation
+        env:
+          KIDULTS_PORTAL_BASE_URL: http://127.0.0.1:4173
+          KIDULTS_ROLE_JOURNEY_CONTROL_OUTPUT: artifacts/kidults-v587-role-journey-control-v1.json
+        run: node scripts/kidults/portal/validate-v587-role-journey-control.mjs
+
       - name: Upload V663 Hero evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: kidults-v663-hero-evidence
-          path: artifacts/kidults-v663-visual
+          path: |
+            artifacts/kidults-v663-visual
+            artifacts/kidults-v587-role-journey-control-v1.json
           if-no-files-found: warn
           retention-days: 14

@@ -24,7 +24,7 @@ mkdirSync(dirname(htmlPath), { recursive: true });
 const snapshotText = `${JSON.stringify(snapshot, null, 2)}\n`;
 writeFileSync(snapshotOut, snapshotText);
 const html = readFileSync(htmlPath, 'utf8');
-const embeddedPattern = /    const D = \{.*?\};\n    const esc=/s;
+const embeddedPattern = /    const D = \{.*?\};\r?\n    const esc=/s;
 if (!embeddedPattern.test(html)) throw new Error('CONTROL_TOWER_EMBEDDED_SNAPSHOT_MARKER_MISSING');
 const embedded = JSON.stringify(snapshot).replaceAll('<', '\\u003c');
 const renderedHtml = html.replace(embeddedPattern, `    const D = ${embedded};\n    const esc=`);

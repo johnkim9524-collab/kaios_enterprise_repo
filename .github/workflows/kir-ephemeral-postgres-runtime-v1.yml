@@ -1,0 +1,87 @@
+name: KIR Ephemeral PostgreSQL Runtime V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kir-ephemeral-postgres-runtime-v1.yml'
+      - 'scripts/staging/verify-ephemeral-postgres-runtime-v1.sh'
+      - 'tests/staging/ephemeral-postgres-runtime-contract-v1.test.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kir-ephemeral-postgres-runtime-v1.yml'
+      - 'scripts/staging/verify-ephemeral-postgres-runtime-v1.sh'
+      - 'tests/staging/ephemeral-postgres-runtime-contract-v1.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - run: node --test tests/staging/ephemeral-postgres-runtime-contract-v1.test.mjs
+
+  operational-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git show -s --format=%H HEAD)" = "$EXPECTED_SHA"
+      - name: Verify actual ephemeral PostgreSQL restart, persistence, and PITR recovery
+        run: bash scripts/staging/verify-ephemeral-postgres-runtime-v1.sh
+      - name: Retain exact-run operational receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kir-ephemeral-postgres-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/kir-ephemeral-postgres-runtime/
+          if-no-files-found: error
+          retention-days: 30
+
+  five-gate-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24.19.0'
+      - name: Execute and verify complete KIR five-gate regression bundle
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%H HEAD)" = "$EXPECTED_SHA"
+          OUT="$RUNNER_TEMP/kir-five-gate"
+          install -d -m 0700 "$OUT"
+          node scripts/kidults/runtime/run-kir-five-gate-control-suite-v1.mjs run \
+            --expected-sha "$EXPECTED_SHA" --output-dir "$OUT"
+          node scripts/kidults/runtime/run-kir-five-gate-control-suite-v1.mjs verify \
+            --expected-sha "$EXPECTED_SHA" --output-dir "$OUT"
+      - name: Retain exact-head regression evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kir-five-gate-regression-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kir-five-gate/
+          if-no-files-found: error
+          retention-days: 30

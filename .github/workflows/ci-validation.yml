@@ -138,6 +138,9 @@ jobs:
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
 
+      - name: Validate synthetic-only platform isolation and end-to-end coverage
+        run: npm run validate:synthetic-platform
+
       - name: Validate global SOLD source registry persistence controls
         run: |
           set -euo pipefail

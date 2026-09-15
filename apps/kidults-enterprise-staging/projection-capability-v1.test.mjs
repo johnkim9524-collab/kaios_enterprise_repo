@@ -46,6 +46,9 @@ test('approved Object Passport preserves canonical dossier, evidence, signals an
   assert.deepEqual(view.objects[0].actions,view.actions);
   assert.ok(view.evidence.length>=projection.evidence_summary.evidence_references.length);
   assert.ok(view.signals.length>0&&view.signals.every(signal=>signal.canonical_object_id===projection.payload.canonical_object_id));
+  assert.equal(view.decision_intelligence.decision,'READY');
+  assert.equal(view.decision_intelligence.action,'VIEW');
+  assert.match(view.decision_intelligence.confidence.explanation,/evidence .*coverage .*freshness .*rights .*consistency .*qualification/);
 });
 
 test('Object Passport action destinations fail closed before Portal release',()=>{

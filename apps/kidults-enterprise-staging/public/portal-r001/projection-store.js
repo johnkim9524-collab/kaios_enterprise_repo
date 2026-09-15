@@ -55,6 +55,8 @@ function exactObjectPassportView(view){
   if(JSON.stringify(object.actions)!==JSON.stringify(view.actions))return false;
   if(view.evidence.length===0||view.evidence.some(item=>item?.state!=='LIVE_APPROVED'||item?.canonical_object_id!==objectId||typeof item?.evidence_ref!=='string')||JSON.stringify(view.evidence.map(item=>item.evidence_ref))!==JSON.stringify(object.evidence_refs))return false;
   if(view.signals.some(item=>item?.state!=='LIVE_APPROVED'||item?.canonical_object_id!==objectId||!Array.isArray(item?.evidence_refs)))return false;
+  if(object.current_sold!==null&&(object.current_sold?.verified!==true||object.current_sold?.state!=='CURRENT_SOLD_VERIFIED'||
+    object.current_sold?.empirical!==true||object.current_sold?.synthetic!==false||object.current_sold?.market_authority!==true))return false;
   return true;
 }
 
@@ -70,6 +72,19 @@ function exactSignedPortalEnvelope(candidate){
     receipt?.payload_exposed===true&&receipt?.projection_id===view?.projection?.projection_id&&
     receipt?.assessment_id===view?.projection?.assessment_id&&['CLEARED','PARTIAL'].includes(receipt?.rights_state)&&receipt?.rights_state===view?.projection?.rights_state&&
     receipt?.freshness_state==='CURRENT'&&receipt?.production==='HOLD'&&receipt?.public==='HOLD'&&receipt?.g5==='HOLD';
+}
+
+export function exactSyntheticControlEnvelope(candidate){
+  const view=candidate?.portal_view;
+  const receipt=candidate?.consumption_receipt;
+  return candidate?.ok===true&&candidate?.control_class==='NON_PROMOTABLE_SYNTHETIC'&&candidate?.revalidate_after_ms===5000&&
+    view?.source==='SYNTHETIC_CONTROL_API'&&view?.projection?.state==='SYNTHETIC_CONTROL'&&view?.release?.state==='HOLD'&&
+    Array.isArray(view?.objects)&&view.objects.length===120&&view.objects.every(object=>object?.synthetic===true&&object?.environment==='SYNTHETIC'&&
+      object?.rights_state==='SYNTHETIC'&&object?.current_sold?.verified===false&&object?.current_sold?.state==='SYNTHETIC_SOLD_CONTROL'&&
+      object?.current_sold?.empirical===false&&object?.current_sold?.market_authority===false)&&
+    receipt?.decision==='SYNTHETIC_CONTROL_ACCEPTED'&&receipt?.surface==='PORTAL_RENDER'&&receipt?.purpose==='INTERNAL_SYNTHETIC_VALIDATION'&&
+    receipt?.record_count===120&&receipt?.production==='HOLD'&&receipt?.public==='HOLD'&&receipt?.g5==='HOLD'&&receipt?.promotion_eligible===false&&
+    receipt?.dataset_digest===view?.audit?.exact_pair_digest;
 }
 
 async function readControlFallback(controlUrl,signal){
@@ -109,6 +124,9 @@ export async function readPortalProjection({url='/api/v1/projection',controlUrl=
   catch{return Object.freeze(invalidProjection('PROJECTION_JSON_INVALID','PRIMARY_INVALID'))}
 
   if(exactSignedPortalEnvelope(candidate)){
+    return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
+  }
+  if(exactSyntheticControlEnvelope(candidate)){
     return Object.freeze({...candidate.portal_view,runtime_revalidate_after_ms:candidate.revalidate_after_ms});
   }
   if(candidate?.record_type==='kidults_proof_product_projection'){

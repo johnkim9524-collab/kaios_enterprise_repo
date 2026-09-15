@@ -1,0 +1,28 @@
+{
+  "id": "kidults-d-day-operations-readiness-v1",
+  "version": "1.0.0",
+  "scope": "CONTROL_SIMULATION_AND_OPERATIONAL_READINESS_ONLY",
+  "providers": ["PSA", "EBAY", "HERITAGE", "GOLDIN", "CLASSIC_COM", "BRING_A_TRAILER"],
+  "pipeline": ["PROVIDER", "SCHEMA", "RIGHTS", "EVIDENCE", "CANONICAL", "CURRENT_SOLD", "CONFIDENCE", "DECISION", "PORTAL"],
+  "disaster_scenarios": ["PROVIDER_OFFLINE", "NETWORK_PARTITION", "REPLAY", "DUPLICATE", "CLOCK_SKEW", "EVIDENCE_CORRUPTION", "RIGHTS_MISMATCH", "CANONICAL_MISMATCH", "PARTIAL_FAILURE", "ZERO_ADMISSION", "PORTAL_ISOLATION"],
+  "current_sold_qualification": ["FRESHNESS", "LIQUIDITY", "DUPLICATE", "REPLAY", "CANCELLATION", "RELIST", "SUPERSESSION", "CONFIDENCE", "QUALIFICATION"],
+  "observability_monitors": ["PROVIDER", "RIGHTS", "EVIDENCE", "CANONICAL", "CURRENT_SOLD", "CONFIDENCE", "PORTAL", "RUNTIME", "API", "TRACK_B", "QUALIFICATION", "REPLAY", "FRESHNESS", "REJECT_RATE", "RUNTIME_HEALTH"],
+  "playbook_flow": ["DETECTION", "ISOLATION", "RECOVERY", "VERIFICATION", "COMMUNICATION"],
+  "documents": [
+    "docs/operations/d-day/OPERATIONS_MANUAL.md",
+    "docs/operations/d-day/OPERATIONAL_RUNBOOK.md",
+    "docs/operations/d-day/RECOVERY_GUIDE.md",
+    "docs/operations/d-day/LAUNCH_GUIDE.md",
+    "docs/operations/d-day/PROVIDER_GUIDE.md",
+    "docs/operations/d-day/INCIDENT_GUIDE.md",
+    "docs/operations/d-day/SUPPORT_GUIDE.md"
+  ],
+  "freeze": {"engineering": "FROZEN_AFTER_MERGE", "portal": "FROZEN", "workspace": "FROZEN", "research": "FROZEN"},
+  "provider_calls": 0,
+  "credentials": 0,
+  "empirical_records": 0,
+  "promotion_eligible": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

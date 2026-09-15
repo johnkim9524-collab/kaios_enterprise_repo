@@ -1,11 +1,65 @@
 {
-  "id":"field-level-rights-release-manifest-v1",
-  "version":"1.0.0",
-  "status":"CONTRACT_READY_NO_LIVE_FIELDS_AUTHORIZED",
-  "default_disposition":"HOLD",
-  "purposes":["discover","collect","store","derive","display_internal","display_public"],
-  "required_per_field":["field_name","source_family","provenance_reference","rights_state_by_purpose","freshness_state","retention_rule","public_release_disposition"],
-  "rules":{"unknown_rights":"HOLD","missing_provenance":"HOLD","public_display_requires_explicit_allow":true,"provider_contract_does_not_override_field_rights":true},
-  "live_authorized_fields":[],
-  "production":"HOLD"
+  "id": "field-level-rights-release-manifest-v1",
+  "version": "1.0.0",
+  "status": "COMPLETE_PROVIDER_FIELD_INVENTORY_NO_LIVE_FIELDS_AUTHORIZED",
+  "default_disposition": "HOLD",
+  "purposes": ["discover", "collect", "store", "derive", "display_internal", "display_public"],
+  "required_per_field": ["field_name", "source_family", "provenance_reference", "rights_state_by_purpose", "freshness_state", "retention_rule", "public_release_disposition"],
+  "source_bindings": {
+    "provider_inventory": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+    "required_field_inventory": "coordination/kidults/registry/provider/records/provider-requirements-v1.json",
+    "communication_evidence": "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
+    "privacy_contract": "coordination/kidults/governance/privacy-retention-minimization-contract-v1.json"
+  },
+  "field_catalog": [
+    {"dimension":"sold-transaction-pricing","fields":["transaction_id","sold_price","currency","sold_at","venue","lot_id"],"freshness":"DAILY_INCREMENTAL","rights_requirement":"COMMERCIAL_LICENSE_REQUIRED"},
+    {"dimension":"auction-private-sale","fields":["event_id","venue","estimate_low","estimate_high","outcome","sale_type","event_at"],"freshness":"EVENT_DRIVEN","rights_requirement":"COMMERCIAL_LICENSE_REQUIRED"},
+    {"dimension":"provenance-event-history","fields":["object_id","event_type","event_at","actor","location","evidence_reference"],"freshness":"EVENT_DRIVEN","rights_requirement":"DEFENSIBLE_LICENSE_REQUIRED"},
+    {"dimension":"authentication-condition","fields":["object_id","assessment_type","grade","assessor","assessed_at","evidence_reference"],"freshness":"EVENT_DRIVEN","rights_requirement":"SPECIALIST_LICENSE_REQUIRED"}
+  ],
+  "provider_field_classification_defaults": {
+    "expansion": "EACH_PROVIDER_ID_X_EACH_UNIQUE_FIELD_IN_FIELD_CATALOG",
+    "source_family": "PROVIDER_ID",
+    "provenance_reference_template": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json#providers[provider_id=PROVIDER_ID]",
+    "rights_state_by_purpose": {"discover":"HOLD","collect":"HOLD","store":"HOLD","derive":"HOLD","display_internal":"HOLD","display_public":"HOLD"},
+    "freshness_state": "NOT_ADMITTED",
+    "public_release_disposition": "BLOCKED"
+  },
+  "provider_field_classifications": [
+    {"provider_id":"EBAY_MARKETPLACE_INSIGHTS","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"COMMERCIAL_INTELLIGENCE_RIGHTS_NOT_AUTHORIZED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED_UNTIL_WRITTEN_RIGHTS","release_status":"BLOCKED"},
+    {"provider_id":"PSA_PREMIUM","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"BOUNDED_PRIVATE_REFERENCE_AND_AUTHENTICATION_ONLY","retention_rule":"PRIVATE_BOUNDARY_ONLY_TERMS_PENDING","derived_result_policy":"PUBLIC_DERIVATION_PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"GEMRATE","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"WRITTEN_BOUNDED_PILOT_RIGHTS_WITH_POST_TERMINATION_DERIVED_HOLD","retention_rule":"PILOT_TERMS_AND_TERMINATION_BOUND","derived_result_policy":"POST_TERMINATION_HOLD","release_status":"BLOCKED"},
+    {"provider_id":"CLASSIC_COM","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"NEEDS_CLARIFICATION","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED_UNTIL_WRITTEN_RIGHTS","release_status":"BLOCKED"},
+    {"provider_id":"BONHAMS","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_WRITTEN_PERMISSION_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"BROAD_ARROW","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"CHRISTIES","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_LICENSE_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"GOODING_CHRISTIES","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_LICENSE_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"SOTHEBYS","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_LICENSE_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"BARRETT_JACKSON","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_LICENSE_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"COLLECTING_CARS","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"PUBLIC_WEB_NO_GO_WRITTEN_CONSENT_REQUIRED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"ICONIC_AUCTIONEERS","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"MECUM","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"CGC_CCG","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"WRITTEN_PARTIAL_RESPONSE_NEEDS_CLARIFICATION","retention_rule":"NO_ADMISSION_PENDING_TERMS","derived_result_policy":"PROHIBITED_UNTIL_WRITTEN_RIGHTS","release_status":"BLOCKED"},
+    {"provider_id":"CARDMARKET","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"SEPARATE_LICENSE_PATH_UNCONFIRMED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"CARD_LADDER","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"MARKET_MOVERS_SCI_ROUTE","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"},
+    {"provider_id":"HOBBYKOREA_PSA_PROVENANCE","field_scope":"ALL_PLATFORM_REQUIRED_FIELDS","rights_state":"UNKNOWN_FAIL_CLOSED","retention_rule":"NO_ADMISSION_NO_RETENTION","derived_result_policy":"PROHIBITED","release_status":"BLOCKED"}
+  ],
+  "rules": {
+    "unknown_rights": "HOLD",
+    "missing_provenance": "HOLD",
+    "public_display_requires_explicit_allow": true,
+    "provider_contract_does_not_override_field_rights": true,
+    "catalog_scope_expansion_requires_reclassification": true,
+    "released_field_requires_source_specific_written_evidence": true
+  },
+  "live_authorized_fields": [],
+  "summary": {"provider_count":18,"unique_required_field_count":21,"provider_field_classification_count":378,"released_field_count":0,"prohibited_or_blocked_field_count":378},
+  "public_release": "HOLD",
+  "production": "HOLD",
+  "g5": "HOLD",
+  "autonomous_effect": "Provider and required-field drift is rejected automatically without granting data access or release rights.",
+  "global_effect": "All currently registered provider lanes are inventoried; this does not claim global empirical source coverage.",
+  "irreplaceable_value_effect": "Provider-specific rights stay separate from KIDULTS-owned identity, provenance, and derived methodology.",
+  "transparency_effect": "Every registered provider and platform-required field has an explicit fail-closed disposition and source binding."
 }

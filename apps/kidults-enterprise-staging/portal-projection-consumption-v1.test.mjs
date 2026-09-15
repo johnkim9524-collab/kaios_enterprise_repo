@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {approvedObjectPassportFixture} from '../../scripts/kidults/portal/proof-product-test-fixtures-v1.mjs';
-import {authorizeProjection,toPortalView} from './projection-capability-v1.mjs';
+import {authorizeProjection,toPortalView,toSyntheticPortalControl} from './projection-capability-v1.mjs';
 import {objectIntelligenceModel} from './public/portal-r001/object-intelligence.js';
 import {readPortalProjection} from './public/portal-r001/projection-store.js';
 
@@ -67,6 +67,16 @@ test('public-display-approved Object Passport remains consumable when unrelated 
   assert.equal(portal.objects[0].rights_state,'PARTIAL');
 });
 
+test('verified Current SOLD reaches the exact signed object render contract and rejects empirical ambiguity',async()=>{
+  const projection=approvedObjectPassportFixture();
+  projection.payload.fields.market_observations.value=[{event_class:'CURRENT_SOLD_TRANSACTION',event_id:'fixture-current-sold-1',amount:12500,currency:'USD',event_at:'2026-08-22T09:00:00Z',empirical:true,synthetic:false,current_market_claim_eligible:true}];
+  const signed=signedEnvelope(projection);
+  const portal=await withFetchJson(signed.envelope,()=>readPortalProjection());
+  assert.deepEqual(portal.objects[0].current_sold,{verified:true,state:'CURRENT_SOLD_VERIFIED',display_value:'12500 USD',event_id:'fixture-current-sold-1',event_at:'2026-08-22T09:00:00Z',empirical:true,synthetic:false,market_authority:true});
+  projection.payload.fields.market_observations.value.push({...projection.payload.fields.market_observations.value[0],event_id:'fixture-current-sold-2'});
+  assert.throws(()=>signedEnvelope(projection),/CURRENT_SOLD_EVENT_AMBIGUOUS/);
+});
+
 test('unsigned raw approved Projection remains rejected in the browser path',async()=>{
   const projection=approvedObjectPassportFixture();
   const portal=await withFetchJson(projection,()=>readPortalProjection());
@@ -74,4 +84,19 @@ test('unsigned raw approved Projection remains rejected in the browser path',asy
   assert.equal(portal.audit.reason_category,'TRUSTED_CLOCK_REQUIRED');
   assert.equal(portal.objects.length,0);
   assert.equal(portal.actions.length,0);
+});
+
+test('browser store accepts only the exact non-promotable synthetic Current SOLD envelope',async()=>{
+  const control=JSON.parse((await import('node:fs')).readFileSync('../../coordination/kidults/synthetic/generated/synthetic-portal-projection-v1.json','utf8'));
+  const portalView=toSyntheticPortalControl(control);
+  const envelope={ok:true,control_class:'NON_PROMOTABLE_SYNTHETIC',revalidate_after_ms:5000,consumption_receipt:portalView.consumption_receipt,portal_view:portalView};
+  const portal=await withFetchJson(envelope,()=>readPortalProjection());
+  assert.equal(portal.projection.state,'SYNTHETIC_CONTROL');
+  assert.equal(portal.objects.length,120);
+  assert.equal(portal.objects[0].current_sold.state,'SYNTHETIC_SOLD_CONTROL');
+  const promoted=structuredClone(envelope);
+  promoted.portal_view.objects[0].current_sold.empirical=true;
+  const rejected=await withFetchJson(promoted,()=>readPortalProjection());
+  assert.equal(rejected.projection.state,'INVALID');
+  assert.equal(rejected.objects.length,0);
 });

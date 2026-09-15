@@ -1,0 +1,64 @@
+{
+  "id": "kidults-provider-portfolio-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "scope": "DERIVED_PROVIDER_ONBOARDING_READINESS_AND_OPERATIONS",
+  "authority": {
+    "provider_identity_and_current_state": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+    "rights": "coordination/kidults/governance/field-level-rights-release-manifest-v1.json",
+    "adapter_foundation": "coordination/kidults/synthetic/launch-cohort-provider-adapters-v1.json",
+    "communication": "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
+    "operational_model": "coordination/kidults/operations/provider-operations-capability-v1.json",
+    "onboarding_receipts": "coordination/kidults/operations/provider-onboarding-receipt-index-v1.json",
+    "portfolio_authoritative_for": ["ONBOARDING_READINESS", "GAP_REPORT", "EXECUTION_PRIORITY", "PROVIDER_PLAYBOOK"],
+    "duplicate_provider_registry_created": false
+  },
+  "golden_path": ["PROVIDER", "RIGHTS", "SCHEMA", "QUALIFICATION", "SIMULATION", "APPROVAL", "ACTIVATION", "MONITORING", "OPERATIONS"],
+  "required_portfolio_fields": ["current_state", "priority", "rights_status", "schema_status", "qualification_status", "activation_status", "last_contact", "next_action", "blockers", "risk", "owner"],
+  "required_playbook_sections": ["provider_overview", "contact_history", "rights_status", "schema_mapping", "qualification_checklist", "activation_checklist", "operational_checklist", "incident_handling", "rollback", "next_action"],
+  "gap_dimensions": ["MISSING_RIGHTS", "MISSING_SCHEMA", "MISSING_QUALIFICATION", "MISSING_RUNTIME", "MISSING_APPROVAL", "MISSING_MANIFEST", "MISSING_CREDENTIALS", "MISSING_EVIDENCE"],
+  "receipt_bundle_controls": {
+    "required_receipts": ["rights_receipt", "field_rights_receipt", "retention_receipt", "derived_results_receipt", "schema_receipt", "evidence_receipt", "confidence_receipt", "current_sold_receipt", "track_b_receipt", "qualification_receipt", "simulation_receipt", "approval_receipt", "runtime_receipt", "monitoring_receipt", "rollback_receipt", "activation_manifest_receipt", "credential_binding_receipt"],
+    "required_receipt_fields": ["provider_id", "state", "evidence_ref", "receipt_digest", "immutable"],
+    "credential_secret_material_must_be_absent": true,
+    "complete_bundle_yields": "READY_FOR_GOVERNED_ACTIVATION_NOT_ACTIVE"
+  },
+  "readiness_states": ["READY", "BLOCKED"],
+  "priority_model": {
+    "method": "DESCENDING_VERIFIED_READINESS_SIGNALS_THEN_PROVIDER_ID",
+    "signals": {
+      "CANONICAL_REGISTRY_RECORD": 40,
+      "OPERATING_STATE_BOUNDED": 35,
+      "OPERATING_STATE_CONDITIONAL": 25,
+      "OPERATING_STATE_HOLD": 10,
+      "WRITTEN_OR_BOUNDED_RIGHTS_PROGRESS": 20,
+      "SCHEMA_RESPONSE_VERIFIED": 20,
+      "ADAPTER_FOUNDATION": 15,
+      "SUBSTANTIVE_PROVIDER_RESPONSE": 10,
+      "CONTACT_EVIDENCE": 5,
+      "CLOSED_OR_RETIRED": -100
+    },
+    "tie_breaker": "PROVIDER_ID_ASCENDING",
+    "priority_zero_required": true
+  },
+  "playbook_controls": {
+    "same_golden_path_for_every_provider": true,
+    "provider_specific_workflow_forbidden": true,
+    "todo_tbd_placeholder_forbidden": true,
+    "incident_lifecycle_source": "coordination/kidults/operations/provider-operations-capability-v1.json#incident_lifecycle",
+    "rollback_action": "SUSPEND_PROVIDER_REVOKE_ADMISSION_AND_VERIFY_ZERO_PROVIDER_PROJECTION"
+  },
+  "authority_boundary": {
+    "provider_activation_authorized": false,
+    "provider_contact_authorized": false,
+    "credential_creation_authorized": false,
+    "provider_network_calls_authorized": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "autonomous_effect": "One deterministic build produces every provider record, playbook, exact gap and execution priority without manual reconciliation.",
+  "global_effect": "Every provider in the canonical registry or governed adapter inventory follows the same onboarding path without claiming empirical global coverage.",
+  "irreplaceable_value_effect": "Provider-specific inputs remain replaceable while portfolio priority, lineage, rights separation and playbooks remain KIDULTS-owned.",
+  "transparency_effect": "Every readiness state and priority signal is traceable to exact source evidence and a digest-verifiable projection."
+}

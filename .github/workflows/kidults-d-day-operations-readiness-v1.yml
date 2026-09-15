@@ -1,0 +1,73 @@
+name: KIDULTS D-Day Operations Readiness V1
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/operations/**'
+      - 'docs/operations/d-day/**'
+      - 'scripts/kidults/operations/**'
+      - 'tests/kidults/operations/**'
+      - '.github/workflows/kidults-d-day-operations-readiness-v1.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/operations/**'
+      - 'docs/operations/d-day/**'
+      - 'scripts/kidults/operations/**'
+      - 'tests/kidults/operations/**'
+      - '.github/workflows/kidults-d-day-operations-readiness-v1.yml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-operations-readiness:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - name: Verify exact checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: Validate operational readiness package
+        run: |
+          node --test tests/kidults/operations/d-day-operations-readiness-v1.test.mjs tests/kidults/operations/provider-operations-capability-v1.test.mjs
+          node scripts/kidults/operations/validate-d-day-operations-readiness-v1.mjs | tee "$RUNNER_TEMP/d-day-validation.json"
+          node scripts/kidults/operations/validate-provider-operations-capability-v1.mjs | tee "$RUNNER_TEMP/provider-operations-validation.json"
+          node scripts/kidults/operations/run-d-day-provider-simulation-v1.mjs > "$RUNNER_TEMP/provider-simulation.json"
+          node scripts/kidults/operations/build-d-day-observability-dashboard-v1.mjs > "$RUNNER_TEMP/operations-dashboard.json"
+          node scripts/kidults/operations/build-provider-operations-console-v1.mjs > "$RUNNER_TEMP/provider-operations-console.json"
+          node --test tests/kidults/operations/provider-portfolio-v1.test.mjs
+          node scripts/kidults/operations/validate-provider-portfolio-v1.mjs | tee "$RUNNER_TEMP/provider-portfolio-validation.json"
+          node scripts/kidults/operations/build-provider-portfolio-v1.mjs > "$RUNNER_TEMP/provider-portfolio.json"
+      - name: Preserve immutable provider operations evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: provider-operations-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/d-day-validation.json
+            ${{ runner.temp }}/provider-operations-validation.json
+            ${{ runner.temp }}/provider-simulation.json
+            ${{ runner.temp }}/operations-dashboard.json
+            ${{ runner.temp }}/provider-operations-console.json
+            ${{ runner.temp }}/provider-portfolio-validation.json
+            ${{ runner.temp }}/provider-portfolio.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Revalidate Current SOLD engine controls
+        run: |
+          node --test tests/kidults/market/current-sold-engine-v1.test.mjs tests/kidults/market/current-sold-atomic-admission-v1.test.mjs tests/kidults/market/current-sold-batch-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs
+          node scripts/kidults/intelligence/validate-owned-intelligence-core-v1.1.mjs
+          node scripts/kidults/intelligence/validate-owned-intelligence-core-redteam-v1.2.mjs

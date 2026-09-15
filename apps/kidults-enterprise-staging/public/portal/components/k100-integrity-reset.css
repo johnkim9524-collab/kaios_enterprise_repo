@@ -35,7 +35,7 @@ html[data-k100-integrity=v1] .k100-figure::after{
   letter-spacing:.08em;
   backdrop-filter:blur(7px)
 }
-html[data-k100-integrity=v1] .k100-figure img,
+html[data-k100-integrity=v1] .k100-card[data-k100-object-scale] .k100-figure img,
 html[data-k100-integrity=v1] .k100-card[data-k100-id="footwear-01"] .k100-figure img,
 html[data-k100-integrity=v1] .k100-card[data-k100-id="camera-editorial-01"] .k100-figure img,
 html[data-k100-integrity=v1] .k100-card[data-k100-id="toys-editorial-01"] .k100-figure img,

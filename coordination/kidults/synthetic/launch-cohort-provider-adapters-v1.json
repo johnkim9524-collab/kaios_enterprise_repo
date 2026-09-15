@@ -1,0 +1,78 @@
+{
+  "id": "kidults-spv-launch-cohort-provider-adapters-v1",
+  "version": "1.0.0",
+  "status": "FOUNDATION_VALIDATED_LIVE_ACTIVATION_HOLD",
+  "scope": "SCHEMA_AND_VALIDATION_INTERFACES_ONLY_NO_PROVIDER_DATA",
+  "activation_policy": {
+    "live_connections_allowed": false,
+    "credentials_allowed": false,
+    "provider_data_allowed": false,
+    "external_api_calls_allowed": false,
+    "rights_may_be_inferred": false
+  },
+  "adapters": [
+    {
+      "provider_id": "PSA",
+      "provider_class": "GRADING_EVIDENCE",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"cert_number":"certification_number","grade":"grade","spec_id":"provider_item_id","observed_at":"observed_at"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["CERTIFICATION_LOOKUP","GRADE_OBSERVATION","POPULATION_OPTIONAL"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    },
+    {
+      "provider_id": "EBAY",
+      "provider_class": "COLLECTOR_MARKET_EVENT",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"itemId":"source_event_id","endTime":"event_at","itemEndDate":"event_state","price":"price_amount","currency":"price_currency"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["ITEM_IDENTITY","LISTING_OBSERVATION","SOLD_EVENT_CANDIDATE"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    },
+    {
+      "provider_id": "HERITAGE",
+      "provider_class": "AUCTION_HOUSE_RESULT",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"lot_id":"source_event_id","auction_date":"event_at","status":"event_state","realized_price":"price_amount","currency":"price_currency"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["LOT_IDENTITY","AUCTION_RESULT","REALIZED_PRICE_CANDIDATE"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    },
+    {
+      "provider_id": "GOLDIN",
+      "provider_class": "AUCTION_HOUSE_RESULT",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"lot_id":"source_event_id","closed_at":"event_at","lot_status":"event_state","final_price":"price_amount","currency":"price_currency"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["LOT_IDENTITY","AUCTION_RESULT","REALIZED_PRICE_CANDIDATE"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    },
+    {
+      "provider_id": "CLASSIC_COM",
+      "provider_class": "COLLECTOR_MARKET_EVENT",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"listing_id":"source_event_id","sold_at":"event_at","status":"event_state","sold_price":"price_amount","currency":"price_currency"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["VEHICLE_IDENTITY","LISTING_LIFECYCLE","SOLD_EVENT_CANDIDATE"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    },
+    {
+      "provider_id": "BRING_A_TRAILER",
+      "provider_class": "COLLECTOR_MARKET_EVENT",
+      "activation_state": "FOUNDATION_ONLY_LIVE_ACTIVATION_HOLD",
+      "schema_mapper": {"source_schema_version":"UNBOUND","source_to_canonical":{"listing_id":"source_event_id","auction_end":"event_at","result":"event_state","winning_bid":"price_amount","currency":"price_currency"}},
+      "rights_receipt_slot": {"value":"NONE","required_for_live_activation":true},
+      "credential_slot": {"value":"NONE","secret_material_present":false,"required_for_live_activation":true},
+      "capability_manifest": {"capabilities":["VEHICLE_IDENTITY","AUCTION_LIFECYCLE","SOLD_EVENT_CANDIDATE"],"live_capabilities_verified":false},
+      "validation_interface": {"methods":["validate_schema","validate_rights_receipt","validate_credentials","validate_provenance","validate_activation_gate"],"unknown_behavior":"HOLD","invalid_behavior":"REJECT"}
+    }
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

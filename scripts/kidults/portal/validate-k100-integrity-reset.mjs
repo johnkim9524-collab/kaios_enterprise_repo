@@ -78,7 +78,7 @@ if (manifest?.display_policy?.unverified_visual_policy !== "WITHHOLD") errors.pu
 for (const marker of [
   "startK100IntegrityReset",
   "updateSliceStatus",
-  "--k100-object-scale",
+  'setAttribute("data-k100-object-scale"',
   "KIDULTS_K100_INTEGRITY",
   'version: "1.1.0"',
   'k100-integrity-reset.css?v=658'
@@ -94,6 +94,7 @@ for (const marker of [
   'data-k100-id="footwear-01"',
   'data-k100-id="time-01"',
   "transform:scale(1)!important",
+  "data-k100-object-scale",
   "@media(max-width:1240px)",
   "@media(max-width:760px)",
   "@media(max-width:390px)"
