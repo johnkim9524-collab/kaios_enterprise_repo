@@ -206,6 +206,70 @@ export function assertStableFinalReread(initial, final, options) {
   return {initial: before, final: after, stable_exact_head: true};
 }
 
+export function assertExactOwnerMergeDuringFinalReread(initial, merged, {
+  repository,
+  repositoryOwner,
+  expectedHeadSha,
+  expectedBaseSha,
+  noMergePolicy,
+  notBefore,
+  notAfter,
+} = {}) {
+  const before = assertPromotablePullRequest(initial, {
+    repository,
+    expectedHeadSha,
+    noMergePolicy,
+  });
+  if (!merged || typeof merged !== 'object') fail('FINAL_REREAD_MERGED_SNAPSHOT_REQUIRED');
+  if (!repositoryOwner) fail('FINAL_REREAD_REPOSITORY_OWNER_REQUIRED');
+  if (!SHA_PATTERN.test(expectedBaseSha || '')) fail('FINAL_REREAD_EXPECTED_BASE_SHA_REQUIRED');
+  if (merged.number !== initial.number || Number(merged.number) !== before.number) {
+    fail('FINAL_REREAD_PULL_REQUEST_NUMBER_CHANGED');
+  }
+  if (merged.base?.ref !== 'main' || merged.base?.sha !== expectedBaseSha) {
+    fail('FINAL_REREAD_MERGED_BASE_MISMATCH');
+  }
+  if (merged.head?.sha !== expectedHeadSha) fail('FINAL_REREAD_MERGED_HEAD_MISMATCH');
+  if (repository && merged.head?.repo?.full_name !== repository) {
+    fail('FINAL_REREAD_MERGED_HEAD_REPOSITORY_MISMATCH');
+  }
+  if (merged.state !== 'closed' || merged.merged !== true || merged.draft === true) {
+    fail('FINAL_REREAD_EXACT_MERGE_NOT_OBSERVED');
+  }
+  if (merged.merged_by?.login !== repositoryOwner) fail('FINAL_REREAD_MERGED_BY_NON_OWNER');
+  if (!SHA_PATTERN.test(merged.merge_commit_sha || '')) fail('FINAL_REREAD_MERGE_SHA_INVALID');
+  const policyWithoutTerminalState = {
+    ...(noMergePolicy || {}),
+    closed_pull_request_blocks: false,
+    merged_pull_request_blocks: false,
+  };
+  const semanticBlockers = noMergeBlockers(merged, policyWithoutTerminalState);
+  if (semanticBlockers.length) fail('FINAL_REREAD_NO_MERGE_BLOCKED', semanticBlockers.join(','));
+  const mergedAt = Date.parse(String(merged.merged_at || ''));
+  const lowerBound = Date.parse(String(notBefore || ''));
+  const upperBound = Date.parse(String(notAfter || ''));
+  if (!Number.isFinite(mergedAt) || !Number.isFinite(lowerBound) || !Number.isFinite(upperBound)) {
+    fail('FINAL_REREAD_MERGE_TIME_INVALID');
+  }
+  if (mergedAt < lowerBound || mergedAt > upperBound) fail('FINAL_REREAD_MERGE_OUTSIDE_AUTHORIZED_WINDOW');
+  return {
+    initial: before,
+    final: {
+      number: Number(merged.number),
+      head_sha: merged.head.sha,
+      base_ref: merged.base.ref,
+      base_sha: merged.base.sha,
+      state: merged.state,
+      merged: true,
+      merged_by: repositoryOwner,
+      merged_at: merged.merged_at,
+      merge_commit_sha: merged.merge_commit_sha,
+    },
+    stable_exact_head: true,
+    exact_owner_merge_observed_during_final_reread: true,
+  };
+}
+
 function scopeMatches(filename, rule) {
   return (rule.exact_paths || []).includes(filename)
     || (rule.prefixes || []).some(prefix => filename.startsWith(prefix));

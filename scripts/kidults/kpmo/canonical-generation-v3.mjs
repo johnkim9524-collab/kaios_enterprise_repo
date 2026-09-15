@@ -15,6 +15,7 @@ const OWNER='johnkim9524-collab';
 const APPROVAL_ISSUE=1713;
 const WRITE_ACTION='APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 const AUTHORIZATION_MAX_AGE_MS=30*60*1000;
+const OPEN_ISSUE_SNAPSHOT_ATTEMPTS=3;
 const die=(message)=>{throw new Error(message);};
 
 let receiptWrittenThisInvocation=false;
@@ -57,12 +58,17 @@ async function pages(url){
   die(`PAGINATION_BOUND:${url}`);
 }
 
-async function openIssues(){
+async function openIssuesAttempt(){
   const query=encodeURIComponent(`repo:${repo} is:issue is:open`);
   const out=[];
   let total=null;
   for(let page=1;page<=10;page+=1){
-    const value=await api(`https://api.github.com/search/issues?q=${query}&sort=updated&order=desc&per_page=100&page=${page}`);
+    // Canonical member comments update issue timestamps while a generation is
+    // staged. Ordering search pages by updated_at can therefore move records
+    // between pages as GitHub's search index catches up, producing duplicate or
+    // missing members even when the open-issue set itself did not change.
+    // created_at is immutable, so this ordering is stable under comment writes.
+    const value=await api(`https://api.github.com/search/issues?q=${query}&sort=created&order=asc&per_page=100&page=${page}`);
     if(value.incomplete_results!==false||!Number.isInteger(value.total_count)||value.total_count>1000||!Array.isArray(value.items))die('OPEN_ISSUE_SEARCH_INVALID');
     if(total===null)total=value.total_count;
     if(total!==value.total_count)die('OPEN_ISSUE_CARDINALITY_MOVED');
@@ -72,6 +78,18 @@ async function openIssues(){
   }
   if(out.length!==total||out.some((issue)=>issue.pull_request)||new Set(out.map((issue)=>issue.number)).size!==out.length)die('OPEN_ISSUE_SET_INVALID');
   return out;
+}
+
+async function openIssues(){
+  let lastError=null;
+  for(let attempt=1;attempt<=OPEN_ISSUE_SNAPSHOT_ATTEMPTS;attempt+=1){
+    try{return await openIssuesAttempt();}
+    catch(error){
+      lastError=error;
+      if(!['OPEN_ISSUE_CARDINALITY_MOVED','OPEN_ISSUE_SET_INVALID'].includes(error?.message)||attempt===OPEN_ISSUE_SNAPSHOT_ATTEMPTS)throw error;
+    }
+  }
+  throw lastError;
 }
 
 async function snapshot(){
@@ -257,6 +275,7 @@ function selfTest(){
     'comment.created_at!==comment.updated_at',
     'AUTHORIZATION_COMMENT_CARDINALITY'
   ])if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
+  if(!active.includes('sort=created&order=asc')||active.includes('sort=updated&order=desc'))die('SELF_TEST_OPEN_ISSUE_ORDER_NOT_IMMUTABLE');
   const publicHeaders=readHeadersFor(null);
   const authenticatedHeaders=readHeadersFor('self-test-token');
   if(Object.hasOwn(publicHeaders,'Authorization'))die('SELF_TEST_PUBLIC_READ_FALLBACK_AUTH_PRESENT');
