@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {assertConsumedWorkflowInactive} from './validate-cloudflare-consumed-workflow-v1.mjs';
 import path from 'node:path';
+import {WRANGLER_VERSION} from './security-dependency-lock-v1.mjs';
 
 const P = {
   auth: 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json',
@@ -213,9 +214,9 @@ const resolvedAssets = path.resolve(path.dirname(path.resolve(P.config)), config
 ok(resolvedAssets === path.resolve(P.portal), 'CONFIG_ASSET_RESOLUTION');
 ok(fs.existsSync(path.join(resolvedAssets, 'index.html')), 'PORTAL_INDEX');
 ok(fs.existsSync(path.join(resolvedAssets, 'workspace.html')), 'PORTAL_WORKSPACE');
-ok(packageJson.devDependencies?.wrangler === '4.127.1', 'PACKAGE_WRANGLER');
+ok(packageJson.devDependencies?.wrangler === WRANGLER_VERSION, 'PACKAGE_WRANGLER');
 ok(packageLock.lockfileVersion === 3, 'LOCKFILE_VERSION');
-ok(packageLock.packages?.['node_modules/wrangler']?.version === '4.127.1', 'LOCKED_WRANGLER');
+ok(packageLock.packages?.['node_modules/wrangler']?.version === WRANGLER_VERSION, 'LOCKED_WRANGLER');
 
 console.log(JSON.stringify({
   id: 'kidults-cloudflare-workers-shadow-v3-consumed-7003-validation-v3',
