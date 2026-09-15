@@ -6,7 +6,7 @@ const node = (name, version, dependencies = {}) => ({version, dependencies,
   resolved: `https://registry.npmjs.org/${name}/-/${name}-${version}.tgz`, integrity: `sha512-${'A'.repeat(86)}==`});
 const fixture = () => ({manifest: {packageManager: 'npm@11.17.0', devDependencies: {wrangler: WRANGLER_VERSION}},
   lock: {lockfileVersion: 3, packages: {
-    '': {devDependencies: {wrangler: WRANGLER_VERSION}},
+    '': {packageManager: 'npm@11.17.0', devDependencies: {wrangler: WRANGLER_VERSION}},
     'node_modules/wrangler': node('wrangler', WRANGLER_VERSION, {miniflare: '5.20260901.0-alpha'}),
     'node_modules/miniflare': node('miniflare', '5.20260901.0-alpha', {sharp: '0.35.4'}),
     'node_modules/sharp': node('sharp', '0.35.4'),
@@ -19,6 +19,7 @@ test('pure policy accepts a patched graph without changing its input', () => {
 });
 const mutations = [
   ['npm pin', x => x.manifest.packageManager = 'npm@latest'],
+  ['lock npm pin missing after regeneration', x => delete x.lock.packages[''].packageManager],
   ['manifest range', x => x.manifest.devDependencies.wrangler = '^4.131.2'],
   ['root pin', x => x.lock.packages[''].devDependencies.wrangler = '4.127.1'],
   ['installed pin', x => x.lock.packages['node_modules/wrangler'].version = '4.127.1'],

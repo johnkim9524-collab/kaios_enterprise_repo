@@ -26,6 +26,7 @@ export function validateDependencyLock(manifest, lock) {
   requireValue(manifest?.packageManager === 'npm@11.17.0', 'PINNED_NPM_REQUIRED');
   requireValue(lock?.lockfileVersion === 3 && lock.packages && !Array.isArray(lock.packages), 'LOCK_V3_REQUIRED');
   const packages = lock.packages, wrangler = packages['node_modules/wrangler'];
+  requireValue(packages['']?.packageManager === manifest.packageManager, 'LOCK_ROOT_NPM_PIN');
   requireValue(manifest.devDependencies?.wrangler === WRANGLER_VERSION, 'MANIFEST_WRANGLER_PIN');
   requireValue(packages['']?.devDependencies?.wrangler === WRANGLER_VERSION, 'LOCK_ROOT_WRANGLER_PIN');
   requireValue(wrangler?.version === WRANGLER_VERSION, 'LOCKED_WRANGLER_PIN');
