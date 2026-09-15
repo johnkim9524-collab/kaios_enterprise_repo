@@ -25,6 +25,7 @@ export const KIR_CORE_TEST_FILES=Object.freeze([
  'tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs',
  'tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs',
  'tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs',
+ 'tests/kidults/runtime/kir-module-boundaries-v1.test.mjs',
 ]);
 // These are fixed repository tests, never caller-selected commands or globs.
 export const GATES=Object.freeze([

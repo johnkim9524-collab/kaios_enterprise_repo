@@ -30,7 +30,7 @@ function bundle(fn){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'kir-five-con
 test('all five gates and every original KIR file are mandatory, unique and present',()=>{
  assert.deepEqual(GATES.map(g=>g.id),['CANONICAL','SEMANTIC','ATOMIC_NEGATIVE','STAGING_LEDGER','PRODUCTION_READINESS']);
  const files=GATES.flatMap(g=>g.tests);assert.equal(new Set(files).size,files.length);
- assert.equal(KIR_CORE_TEST_FILES.length,10);for(const f of KIR_CORE_TEST_FILES)assert.ok(files.includes(f),f);
+ assert.equal(KIR_CORE_TEST_FILES.length,11);for(const f of KIR_CORE_TEST_FILES)assert.ok(files.includes(f),f);
  for(const f of files)assert.ok(fs.statSync(f).isFile(),f);
  assert.ok(Object.isFrozen(GATES));assert.ok(GATES.every(g=>Object.isFrozen(g)&&Object.isFrozen(g.tests)));
 });
