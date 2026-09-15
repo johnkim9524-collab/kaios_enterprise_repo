@@ -154,9 +154,12 @@ jobs:
         run: |
           set -euo pipefail
           node --check scripts/kidults/runtime/kir-runtime-kernel-v1.mjs
+          for file in scripts/kidults/runtime/kir/*.mjs; do node --check "$file"; done
+          node --check scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs
           node --check scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node --check tests/kidults/runtime/kir-runtime-v1.test.mjs
           node --check tests/kidults/runtime/kir-integration-boundary-v1.test.mjs
+          node --check tests/kidults/runtime/kir-module-boundaries-v1.test.mjs
           node --check scripts/kidults/runtime/kir-current-sold-control-bridge-v1.mjs
           node --check tests/kidults/runtime/kir-current-sold-control-fixtures-v1.mjs
           node --check tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs
@@ -168,13 +171,14 @@ jobs:
           node --check tests/kidults/runtime/kir-readiness-control-probe-v1.mjs
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs --self-test
           node scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
+          node scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs
           node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate
 
       - name: Run KIR negative regression suite
         id: regression
         run: |
           set -euo pipefail
-          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs
+          node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs tests/kidults/runtime/kir-integration-boundary-v1.test.mjs tests/kidults/runtime/kir-current-sold-control-bridge-v1.test.mjs tests/kidults/runtime/kir-ledger-control-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-v1.test.mjs tests/kidults/market/current-sold-postgres-ledger-atomic-recompute-v1.test.mjs tests/kidults/runtime/kir-readiness-evidence-intake-v1.test.mjs tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs tests/kidults/runtime/kir-module-boundaries-v1.test.mjs
 
       - name: Run all five KIR integration control gates on one exact source
         id: five_gate_regression
