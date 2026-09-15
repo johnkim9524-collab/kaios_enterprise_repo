@@ -11,6 +11,9 @@ on:
       - 'services/kidults-control-plane/migrations/postgres/**'
       - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
       - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'coordination/kidults/kpmo/synthetic-market-twin-120-v1.json'
+      - 'scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh'
+      - 'tests/kidults/kpmo/synthetic-market-twin-120-resilience-v1.test.mjs'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
   push:
     branches:
@@ -25,6 +28,9 @@ on:
       - 'services/kidults-control-plane/migrations/postgres/**'
       - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
       - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'coordination/kidults/kpmo/synthetic-market-twin-120-v1.json'
+      - 'scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh'
+      - 'tests/kidults/kpmo/synthetic-market-twin-120-resilience-v1.test.mjs'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
 
 permissions:
@@ -96,6 +102,23 @@ jobs:
         with:
           name: kir-sql-boundary-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/kir-sql-boundary/receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Verify Current-SOLD rollback disconnect and restart resilience
+        id: current_sold_postgres_resilience
+        shell: bash
+        env:
+          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
+          CURRENT_SOLD_EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: bash scripts/kidults/staging/verify-current-sold-postgres-resilience-v1.sh
+
+      - name: Preserve Current-SOLD PostgreSQL resilience receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: current-sold-postgres-resilience-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/current-sold-postgres-resilience/receipt.json
           if-no-files-found: error
           retention-days: 30
 

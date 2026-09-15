@@ -535,8 +535,8 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:8869b1ae4782a74bc9ef80e6b29c7a51da4add666631db3abbbf213dc46a73e4",
-      "byte_count": 1183
+      "sha256": "sha256:2f623356658426f1b696617ba75065c9f842200fc9f6d45af2d4d465c24f030b",
+      "byte_count": 1501
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:35814d8dc70c45512138f7aeb4a6b8304c95a34e19d071628efb182360ecaabf"
+  "evidence_fingerprint": "sha256:a59f7c4965348597bf03952cb249f35a752914eeb7dfefb4044be0f215bd09a7"
 }
