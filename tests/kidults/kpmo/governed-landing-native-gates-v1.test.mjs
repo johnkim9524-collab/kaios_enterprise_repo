@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GateFailure,
+  assertExactOwnerMergeDuringFinalReread,
   assertPromotablePullRequest,
   assertStableFinalReread,
   resolveScopeRequirements,
@@ -24,8 +25,16 @@ const basePr = () => ({
   title: 'Correct ARL provenance',
   labels: [],
   updated_at: '2026-08-29T08:50:00Z',
-  base: {ref: 'main'},
+  base: {ref: 'main', sha: baseSha},
   head: {sha, repo: {full_name: repository}},
+});
+const mergedPr = () => ({
+  ...basePr(),
+  state: 'closed',
+  merged: true,
+  merged_by: {login: 'johnkim9524-collab'},
+  merged_at: '2026-09-01T01:30:10Z',
+  merge_commit_sha: 'c'.repeat(40),
 });
 const noMergePolicy = {
   closed_pull_request_blocks: true,
@@ -57,6 +66,42 @@ test('close/NO-MERGE race between initial and final read is rejected', () => {
 test('head replacement between initial and final read is rejected', () => {
   const final = basePr(); final.head.sha = 'b'.repeat(40);
   code(() => assertStableFinalReread(basePr(), final, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('exact owner merge during the final reread is accepted only inside the authorization window', () => {
+  const result = assertExactOwnerMergeDuringFinalReread(basePr(), mergedPr(), {
+    repository,
+    repositoryOwner: 'johnkim9524-collab',
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    noMergePolicy,
+    notBefore: '2026-09-01T01:30:00Z',
+    notAfter: '2026-09-01T01:31:00Z',
+  });
+  assert.equal(result.exact_owner_merge_observed_during_final_reread, true);
+  assert.equal(result.final.merge_commit_sha, 'c'.repeat(40));
+});
+
+test('final-reread merge tolerance rejects actor, identity, policy, and time drift', () => {
+  const mergeOptions = {
+    repository,
+    repositoryOwner: 'johnkim9524-collab',
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    noMergePolicy,
+    notBefore: '2026-09-01T01:30:00Z',
+    notAfter: '2026-09-01T01:31:00Z',
+  };
+  const nonOwner = mergedPr(); nonOwner.merged_by.login = 'automation-bot';
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), nonOwner, mergeOptions), 'FINAL_REREAD_MERGED_BY_NON_OWNER');
+  const wrongHead = mergedPr(); wrongHead.head.sha = 'd'.repeat(40);
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), wrongHead, mergeOptions), 'FINAL_REREAD_MERGED_HEAD_MISMATCH');
+  const wrongBase = mergedPr(); wrongBase.base.sha = 'e'.repeat(40);
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), wrongBase, mergeOptions), 'FINAL_REREAD_MERGED_BASE_MISMATCH');
+  const held = mergedPr(); held.labels = [{name: 'no-merge'}];
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), held, mergeOptions), 'FINAL_REREAD_NO_MERGE_BLOCKED');
+  const late = mergedPr(); late.merged_at = '2026-09-01T01:31:01Z';
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), late, mergeOptions), 'FINAL_REREAD_MERGE_OUTSIDE_AUTHORIZED_WINDOW');
 });
 
 test('deterministic LAND input does not substitute for live repository-owner actor', () => {
