@@ -4,15 +4,24 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const POLICY_FILE = 'coordination/kidults/runtime/kir-modular-architecture-v1.json';
-const INTERNAL_ROOT = 'scripts/kidults/runtime/kir';
+const POLICY_FILES = Object.freeze([
+  'coordination/kidults/runtime/kir-modular-architecture-v1.json',
+  'coordination/kidults/runtime/kir-control-bridge-modular-architecture-v1.json',
+]);
+const POLICY_ROOTS = Object.freeze({
+  'kidults-kir-modular-architecture-v1': 'scripts/kidults/runtime/kir',
+  'kidults-kir-control-bridge-modular-architecture-v1': 'scripts/kidults/runtime/kir-control',
+});
 const fail = code => { throw new Error(code); };
 const req = (value, code) => { if (!value) fail(code); };
 const stable = value => JSON.stringify([...value].sort());
 const importPattern = /\b(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
+const dynamicImportPattern = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+const requirePattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 function imports(source) {
-  return [...source.matchAll(importPattern)].map(match => match[1]);
+  return [importPattern, dynamicImportPattern, requirePattern]
+    .flatMap(pattern => [...source.matchAll(pattern)].map(match => match[1]));
 }
 
 function nonemptyLines(source) {
@@ -25,13 +34,16 @@ function resolveImport(sourceFile, specifier) {
 }
 
 export function validateKirModuleArchitecture({ policy, sources }) {
-  req(policy?.id === 'kidults-kir-modular-architecture-v1' && policy?.version === '1.0.0', 'KIR_ARCH_POLICY_ID');
+  const internalRoot = POLICY_ROOTS[policy?.id];
+  req(internalRoot && policy?.version === '1.0.0' && policy?.internal_root === internalRoot,
+    'KIR_ARCH_POLICY_ID');
   req(Array.isArray(policy.modules) && policy.modules.length > 1, 'KIR_ARCH_MODULES');
   const byId = new Map();
   const byFile = new Map();
   for (const module of policy.modules) {
     req(typeof module?.id === 'string' && module.id, 'KIR_ARCH_MODULE_ID');
-    req(typeof module?.file === 'string' && module.file.startsWith(`${INTERNAL_ROOT}/`), `KIR_ARCH_MODULE_FILE:${module.id}`);
+    req(typeof module?.file === 'string' && module.file.startsWith(`${internalRoot}/`),
+      `KIR_ARCH_MODULE_FILE:${module.id}`);
     req(!byId.has(module.id) && !byFile.has(module.file), `KIR_ARCH_MODULE_DUPLICATE:${module.id}`);
     req(Array.isArray(module.dependencies) && Array.isArray(module.external_imports), `KIR_ARCH_DEPENDENCY_SCHEMA:${module.id}`);
     req(Number.isSafeInteger(module.max_nonempty_lines) && module.max_nonempty_lines > 0, `KIR_ARCH_SIZE_LIMIT:${module.id}`);
@@ -42,7 +54,8 @@ export function validateKirModuleArchitecture({ policy, sources }) {
   for (const module of policy.modules) {
     const source = sources[module.file];
     req(nonemptyLines(source) <= module.max_nonempty_lines, `KIR_ARCH_MODULE_TOO_LARGE:${module.id}`);
-    req(!/\b(?:process\.|console\.|writeFileSync\s*\()/.test(source), `KIR_ARCH_MODULE_SIDE_EFFECT:${module.id}`);
+    req(!/\b(?:process\.|console\.|writeFileSync\s*\(|fetch\s*\()/.test(source),
+      `KIR_ARCH_MODULE_SIDE_EFFECT:${module.id}`);
     const actualInternal = [];
     const actualExternal = [];
     for (const specifier of imports(source)) {
@@ -81,10 +94,10 @@ export function validateKirModuleArchitecture({ policy, sources }) {
   req(stable(publicDependencies) === stable(policy.public_entrypoint_internal_dependencies), 'KIR_ARCH_ENTRYPOINT_DEPENDENCY_DRIFT');
 
   for (const [file, source] of Object.entries(sources)) {
-    if (file === policy.public_entrypoint || file.startsWith(`${INTERNAL_ROOT}/`)) continue;
+    if (file === policy.public_entrypoint || file.startsWith(`${internalRoot}/`)) continue;
     for (const specifier of imports(source)) {
       const resolved = resolveImport(file, specifier);
-      req(!resolved?.startsWith(`${INTERNAL_ROOT}/`), `KIR_ARCH_PRIVATE_IMPORT_BYPASS:${file}`);
+      req(!resolved?.startsWith(`${internalRoot}/`), `KIR_ARCH_PRIVATE_IMPORT_BYPASS:${file}`);
     }
   }
   const constraints = policy.constraints;
@@ -110,7 +123,15 @@ export function validateKirModuleArchitecture({ policy, sources }) {
 }
 
 export function loadKirModuleArchitecture() {
-  const policy = JSON.parse(fs.readFileSync(path.join(ROOT, POLICY_FILE), 'utf8'));
+  return loadArchitecturePolicy(POLICY_FILES[0]);
+}
+
+export function loadKirControlBridgeArchitecture() {
+  return loadArchitecturePolicy(POLICY_FILES[1]);
+}
+
+function loadArchitecturePolicy(policyFile) {
+  const policy = JSON.parse(fs.readFileSync(path.join(ROOT, policyFile), 'utf8'));
   const sources = {};
   for (const file of [policy.public_entrypoint, ...policy.modules.map(module => module.file)]) {
     sources[file] = fs.readFileSync(path.join(ROOT, file), 'utf8');
@@ -134,5 +155,18 @@ export function loadKirModuleArchitecture() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  process.stdout.write(`${JSON.stringify(validateKirModuleArchitecture(loadKirModuleArchitecture()), null, 2)}\n`);
+  const validations = [loadKirModuleArchitecture(), loadKirControlBridgeArchitecture()]
+    .map(validateKirModuleArchitecture);
+  process.stdout.write(`${JSON.stringify({
+    id: 'kidults-kir-module-boundary-suite-v1',
+    state: 'VERIFIED_PASS',
+    architecture_count: validations.length,
+    module_count: validations.reduce((total, validation) => total + validation.module_count, 0),
+    validations,
+    provider_authority: false,
+    database_authority: false,
+    production: 'HOLD',
+    public: 'HOLD',
+    g5: 'HOLD',
+  }, null, 2)}\n`);
 }

@@ -1,0 +1,54 @@
+{
+  "id": "kidults-kir-control-bridge-modular-architecture-v1",
+  "version": "1.0.0",
+  "internal_root": "scripts/kidults/runtime/kir-control",
+  "public_entrypoint": "scripts/kidults/runtime/kir-current-sold-control-bridge-v1.mjs",
+  "public_entrypoint_max_nonempty_lines": 20,
+  "public_entrypoint_internal_dependencies": ["executor"],
+  "modules": [
+    {
+      "id": "constants",
+      "file": "scripts/kidults/runtime/kir-control/constants-v1.mjs",
+      "dependencies": [],
+      "external_imports": [],
+      "max_nonempty_lines": 40
+    },
+    {
+      "id": "input",
+      "file": "scripts/kidults/runtime/kir-control/input-v1.mjs",
+      "dependencies": ["constants"],
+      "external_imports": ["scripts/kidults/market/current-sold-batch-v1.mjs"],
+      "max_nonempty_lines": 130
+    },
+    {
+      "id": "receipt",
+      "file": "scripts/kidults/runtime/kir-control/receipt-v1.mjs",
+      "dependencies": [],
+      "external_imports": [],
+      "max_nonempty_lines": 60
+    },
+    {
+      "id": "executor",
+      "file": "scripts/kidults/runtime/kir-control/executor-v1.mjs",
+      "dependencies": ["constants", "input", "receipt"],
+      "external_imports": [
+        "scripts/kidults/runtime/kir-runtime-kernel-v1.mjs",
+        "scripts/kidults/market/current-sold-atomic-batch-v1.mjs",
+        "scripts/kidults/market/current-sold-batch-v1.mjs",
+        "scripts/kidults/market/current-sold-evidence-v1.mjs"
+      ],
+      "max_nonempty_lines": 90
+    }
+  ],
+  "constraints": {
+    "dependency_cycles_allowed": false,
+    "internal_imports_outside_public_entrypoint_allowed": false,
+    "module_cli_or_process_side_effects_allowed": false,
+    "provider_calls_allowed": false,
+    "database_writes_allowed": false,
+    "deployment_allowed": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

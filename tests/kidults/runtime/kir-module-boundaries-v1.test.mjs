@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  loadKirControlBridgeArchitecture,
   loadKirModuleArchitecture,
   validateKirModuleArchitecture,
 } from '../../../scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs';
@@ -10,6 +11,10 @@ const clone = value => structuredClone(value);
 const baseline = loadKirModuleArchitecture();
 const fresh = () => ({ policy: clone(baseline.policy), sources: { ...baseline.sources } });
 const validate = loaded => validateKirModuleArchitecture(loaded || fresh());
+
+const bridgeBaseline = loadKirControlBridgeArchitecture();
+const freshBridge = () => ({ policy: clone(bridgeBaseline.policy), sources: { ...bridgeBaseline.sources } });
+const validateBridge = loaded => validateKirModuleArchitecture(loaded || freshBridge());
 
 test('KIR is composed through a bounded public entrypoint and acyclic private modules', () => {
   const result = validate();
@@ -25,6 +30,39 @@ test('KIR is composed through a bounded public entrypoint and acyclic private mo
     public: 'HOLD',
     g5: 'HOLD',
   });
+});
+
+test('Current-SOLD control integration is a bounded façade over four acyclic modules', () => {
+  const result = validateBridge();
+  assert.equal(result.state, 'VERIFIED_PASS');
+  assert.equal(result.module_count, 4);
+  assert.equal(result.provider_authority, false);
+  assert.equal(result.database_authority, false);
+  assert.equal(result.production, 'HOLD');
+});
+
+test('Current-SOLD private modules cannot be imported around the bridge façade', () => {
+  const privateSpecifier = '../../../scripts/kidults/runtime/kir-control/executor-v1.mjs';
+  const loaded = freshBridge();
+  loaded.sources['tests/kidults/runtime/kir-ledger-control-probe-v1.mjs'] +=
+    `\n${'im' + 'port'} '${privateSpecifier}';\n`;
+  assert.throws(() => validateBridge(loaded), /KIR_ARCH_PRIVATE_IMPORT_BYPASS/);
+
+  const dynamic = freshBridge();
+  dynamic.sources['tests/kidults/runtime/kir-ledger-control-probe-v1.mjs'] +=
+    `\nawait ${'im' + 'port'}('${privateSpecifier}');\n`;
+  assert.throws(() => validateBridge(dynamic), /KIR_ARCH_PRIVATE_IMPORT_BYPASS/);
+});
+
+test('Current-SOLD bridge dependency and authority drift fail closed', () => {
+  const dependency = freshBridge();
+  const receipt = dependency.policy.modules.find(module => module.id === 'receipt');
+  dependency.sources[receipt.file] += "\nimport './input-v1.mjs';\n";
+  assert.throws(() => validateBridge(dependency), /KIR_ARCH_DEPENDENCY_DRIFT:receipt/);
+
+  const authority = freshBridge();
+  authority.policy.constraints.provider_calls_allowed = true;
+  assert.throws(() => validateBridge(authority), /KIR_ARCH_AUTHORITY_POLICY/);
 });
 
 test('undeclared module coupling fails closed', () => {
@@ -53,6 +91,11 @@ test('module process side effects and size growth fail closed', () => {
   const snapshot = sideEffect.policy.modules.find(module => module.id === 'snapshot');
   sideEffect.sources[snapshot.file] += '\nprocess.exitCode = 0;\n';
   assert.throws(() => validate(sideEffect), /KIR_ARCH_MODULE_SIDE_EFFECT:snapshot/);
+
+  const networkEffect = freshBridge();
+  const executor = networkEffect.policy.modules.find(module => module.id === 'executor');
+  networkEffect.sources[executor.file] += "\nfetch('https://provider.invalid');\n";
+  assert.throws(() => validateBridge(networkEffect), /KIR_ARCH_MODULE_SIDE_EFFECT:executor/);
 
   const oversized = fresh();
   const constants = oversized.policy.modules.find(module => module.id === 'constants');

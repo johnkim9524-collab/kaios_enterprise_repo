@@ -1,6 +1,7 @@
 {
   "id": "kidults-kir-modular-architecture-v1",
   "version": "1.0.0",
+  "internal_root": "scripts/kidults/runtime/kir",
   "public_entrypoint": "scripts/kidults/runtime/kir-runtime-kernel-v1.mjs",
   "public_entrypoint_max_nonempty_lines": 50,
   "public_entrypoint_internal_dependencies": [

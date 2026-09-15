@@ -155,6 +155,7 @@ jobs:
           set -euo pipefail
           node --check scripts/kidults/runtime/kir-runtime-kernel-v1.mjs
           for file in scripts/kidults/runtime/kir/*.mjs; do node --check "$file"; done
+          for file in scripts/kidults/runtime/kir-control/*.mjs; do node --check "$file"; done
           node --check scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs
           node --check scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs
           node --check tests/kidults/runtime/kir-runtime-v1.test.mjs

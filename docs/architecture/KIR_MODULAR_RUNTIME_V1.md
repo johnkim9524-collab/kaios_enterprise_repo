@@ -22,6 +22,19 @@ private-module bypasses, CLI/process side effects inside domain modules, and unb
 The public entrypoint owns CLI I/O and backward-compatible exports. Private modules contain no CLI,
 provider call, database write, deployment, or release authority.
 
+The Current-SOLD control integration follows the same structure. Its stable
+`kir-current-sold-control-bridge-v1.mjs` façade delegates to four private modules:
+
+| Module | Responsibility |
+| --- | --- |
+| `constants` | Synthetic-only mode, identifiers and assertions |
+| `input` | Immutable JSON snapshot and provenance-bound input validation |
+| `executor` | KIR-to-atomic-engine orchestration and output integrity checks |
+| `receipt` | Non-authoritative, non-raw terminal control receipt |
+
+The previous bridge implementation mixed all four responsibilities in one file. It has been removed
+behind the unchanged public function so working callers and receipt semantics remain stable.
+
 ## Integration rule
 
 New capability is integrated through a contract and an adapter at a declared boundary. It must not
