@@ -20,7 +20,9 @@ function exercise(scenario,{readOnly=false,envOverrides={}}={}){
 import {MEMBERS,BASELINE,MS,ME,CS,CE,WRITER_WORKFLOW,marked,memberPayload,commitPayload,generationId} from ${JSON.stringify(library)};
 import {buildMaterialRegistry,materialRegistryDigest,sha256} from ${JSON.stringify(registry)};
 const scenario=process.env.SCENARIO,repo=${JSON.stringify(REPO)},main=${JSON.stringify(SHA)},run=900,at=new Date().toISOString();
-const issues=[{number:1,state:'open',title:'[P1] synthetic first defect',labels:['P1']},{number:2,state:'open',title:'[P1] synthetic second defect',labels:['P1']}];
+const issues=scenario==='pagination-comment-reorder'
+ ? Array.from({length:150},(_,index)=>({number:index+1,state:'open',title:'[P1] synthetic paginated defect '+(index+1),labels:['P1']}))
+ : [{number:1,state:'open',title:'[P1] synthetic first defect',labels:['P1']},{number:2,state:'open',title:'[P1] synthetic second defect',labels:['P1']}];
 function snapshot(items,sha=main){const records=buildMaterialRegistry(items);const x={repository:repo,protected_main_sha:sha,canonical_issue_numbers:MEMBERS,canonical_issue_count:25,active_baseline_defects:BASELINE.filter(n=>items.some(i=>i.number===n)),material_defect_count:records.length,material_defect_issue_numbers:records.map(x=>x.issue_number),material_defect_registry_sha256:materialRegistryDigest(records),material_defect_query_cardinality:{P0:0,P1:records.length},material_defects:records,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false,empirical_gate_effect:'NONE'};return {...x,truth_digest:sha256(x)};}
 const oldItems=scenario==='idempotent'?issues:issues.slice(0,1);
 const old=snapshot(oldItems,scenario==='main-advance'?'b'.repeat(40):main);
@@ -43,7 +45,7 @@ const oldBody=aggregate.body;let searchReads=0,approvalReads=0,postCount=0,lastA
 const approvalBody='CANONICAL_V3_AUTHORIZATION_ID: CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001\\nTARGET_MAIN_SHA: '+main+'\\nACTION: APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 globalThis.fetch=async(value,options={})=>{
  const u=new URL(value),method=options.method||'GET';
- fs.appendFileSync(process.env.TRACE,JSON.stringify({path:u.pathname,method})+'\\n');
+ fs.appendFileSync(process.env.TRACE,JSON.stringify({path:u.pathname,query:u.search,method})+'\\n');
  if(u.origin!=='https://api.github.com')throw Error('OFFLINE_UNEXPECTED_ORIGIN');
  const json=(x,status=200)=>Response.json(x,{status});
  if(method==='POST'){
@@ -60,7 +62,16 @@ globalThis.fetch=async(value,options={})=>{
   if(scenario==='prewrite-truth-drift'&&searchReads>=2)items=issues.concat({number:3,state:'open',title:'[P1] synthetic third defect',labels:['P1']});
   if(scenario==='precommit-truth-drift'&&postCount===25)items=issues.concat({number:3,state:'open',title:'[P1] changed before aggregate',labels:['P1']});
   if(scenario==='postwrite-truth-drift'&&postCount===26)items=issues.concat({number:3,state:'open',title:'[P1] changed after aggregate',labels:['P1']});
-  return json({incomplete_results:false,total_count:items.length,items});
+  const page=Number(u.searchParams.get('page')||1),perPage=Number(u.searchParams.get('per_page')||100);
+  let ordered=items;
+  // Model the incident: after 25 staged comments, an updated-desc search
+  // changes order between page reads as GitHub's search index catches up.
+  // The production query must use immutable created-asc ordering, for which
+  // the result remains stable and complete.
+  if(scenario==='pagination-comment-reorder'&&postCount===25&&u.searchParams.get('sort')==='updated'&&page>1){
+    ordered=[...items.slice(50),...items.slice(0,50)];
+  }
+  return json({incomplete_results:false,total_count:items.length,items:ordered.slice((page-1)*perPage,page*perPage)});
  }
  if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},status:'completed',conclusion:'success'});
  if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
@@ -98,6 +109,17 @@ process.on('exit',()=>fs.writeFileSync(process.env.FINAL_STATE,JSON.stringify({o
 function assertBounded(receipt){for(const k of ['production','public','g5'])assert.equal(receipt[k],'HOLD');assert.equal(receipt.promotion_eligible,false);}
 for(const scenario of ['same-main-refresh','main-advance'])test(`offline Canonical writer safely appends 25+1 after ${scenario}`,()=>{
  const {result,receipt,posts,final}=exercise(scenario);assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);assert.ok(final.priorAggregateUntouched);assertBounded(receipt);
+});
+test('immutable created-order pagination survives staged member-comment timestamp movement',()=>{
+ const {result,receipt,posts,calls}=exercise('pagination-comment-reorder');
+ assert.equal(result.status,0,result.stderr);
+ assert.equal(receipt.state,'VERIFIED_PASS');
+ assert.equal(receipt.writes,26);
+ assert.equal(posts.length,26);
+ const searches=calls.filter(call=>call.path==='/search/issues');
+ assert.ok(searches.length>=8);
+ assert.ok(searches.every(call=>call.query.includes('sort=created')&&call.query.includes('order=asc')));
+ assertBounded(receipt);
 });
 test('offline identical generation remains a verified no-write idempotent path',()=>{
  const {result,receipt,posts}=exercise('idempotent');assert.equal(result.status,0,result.stderr);assert.equal(receipt.mode,'IDEMPOTENT_EXISTING_GENERATION');assert.equal(posts.length,0);assertBounded(receipt);
