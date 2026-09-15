@@ -1,9 +1,9 @@
 {
   "id": "ih-group-provider-sourcing-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY",
   "effective_date": "2026-08-29",
-  "amended_at": "2026-09-01T00:00:00Z",
+  "amended_at": "2026-09-09T00:00:00Z",
   "canonical_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
   "mandatory_strategy_addenda": [
     "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md"
@@ -82,6 +82,57 @@
       "assignment-novation-and-change-of-control"
     ]
   },
+  "provider_outbound_pre_send_policy": {
+    "status": "MANDATORY_NON_BYPASS",
+    "scope": "EVERY_EXTERNAL_PROVIDER_EMAIL_DRAFT_FORWARD_REPLY_AND_SEND",
+    "required_order": [
+      "REFRESH_CURRENT_PROVIDER_AND_THREAD_EVIDENCE",
+      "PREPARE_DETAILED_RESPONSE_STRATEGY",
+      "KPMO_REVIEW_STRATEGY_AND_EXACT_EMAIL_PACKAGE",
+      "REPORT_STRATEGY_KPMO_VERDICT_RISKS_AND_EXACT_PACKAGE_TO_PROGRAM_OWNER_IN_KOREAN",
+      "RECORD_PROGRAM_OWNER_EXACT_CONTENT_SEND_APPROVAL",
+      "SEND_ONLY_APPROVED_PACKAGE",
+      "CAPTURE_GMAIL_SEND_EVIDENCE_AND_TRUTH_SYNC_REGISTRY"
+    ],
+    "kpmo_review_verdicts": [
+      "APPROVED_FOR_PROGRAM_OWNER_REVIEW",
+      "REVISE",
+      "DO_NOT_SEND",
+      "WAIT"
+    ],
+    "self_authored_candidate_requires_distinct_second_pass_adversarial_review": true,
+    "kpmo_review_is_send_authority": false,
+    "program_owner_approval_must_bind": [
+      "sender_identity",
+      "to_recipients",
+      "cc_recipients",
+      "bcc_recipients",
+      "thread_or_reply_target",
+      "subject",
+      "complete_body",
+      "attachments",
+      "links",
+      "deterministic_content_digest"
+    ],
+    "content_digest_specification": {
+      "algorithm": "SHA-256",
+      "encoding": "sha256:lowercase-hex",
+      "canonicalization": "RFC_8785_JSON",
+      "text_encoding": "UTF-8",
+      "line_endings": "CRLF_NORMALIZED_TO_LF",
+      "array_order": "PRESERVED",
+      "attachments_bind": [
+        "filename",
+        "media_type",
+        "byte_length",
+        "sha256"
+      ]
+    },
+    "post_approval_change_invalidates_approval": true,
+    "gmail_draft_creation_before_both_gates": "PROHIBITED",
+    "send_before_both_gates": "DO_NOT_DRAFT_OR_SEND",
+    "approval_scope": "EXACT_OUTBOUND_COMMUNICATION_ONLY_NO_OTHER_AUTHORITY"
+  },
   "vertical_posture": {
     "Intelligence Holdings": "open-authority-first; buy shared utility only after measured multi-product reuse",
     "KIDULTS": "collectible identity, authentication, provenance and lawful SOLD evidence",
@@ -112,6 +163,11 @@
     "never_offer_accept_or_recommend_phone_voice_or_video_call": true,
     "never_ask_program_owner_for_call_availability": true,
     "provider_refusal_to_write_material_terms_routes_to_hold_or_replace": true,
+    "kpmo_detailed_strategy_and_exact_email_review_required_before_external_provider_email": true,
+    "program_owner_korean_report_required_before_external_provider_email": true,
+    "program_owner_exact_content_send_approval_required": true,
+    "post_approval_content_or_routing_change_requires_fresh_review_and_approval": true,
+    "automatic_gmail_draft_or_send_before_approval_forbidden": true,
     "truth_sync_before_reporting": true,
     "report_dimensions": [
       "source-layer",

@@ -1,0 +1,48 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+const C=JSON.parse(fs.readFileSync('coordination/kidults/governance/provider-outbound-email-approval-receipt-contract-v1.json','utf8'));
+const eq=(a,b)=>JSON.stringify([...a].sort())===JSON.stringify([...b].sort());
+const exact=(v,k)=>v&&typeof v==='object'&&!Array.isArray(v)&&eq(Object.keys(v),k);
+function canon(v){if(v===null||typeof v==='boolean'||typeof v==='string')return JSON.stringify(v);if(typeof v==='number'){if(!Number.isFinite(v))throw Error('NON_FINITE');return JSON.stringify(v);}if(Array.isArray(v))return '['+v.map(canon).join(',')+']';if(typeof v==='object')return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canon(v[k])).join(',')+'}';throw Error('TYPE');}
+const hash=v=>'sha256:'+crypto.createHash('sha256').update(canon(v),'utf8').digest('hex');
+const tm=(v,code,e)=>{if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(v)){e.push(code);return NaN;}return Date.parse(v);};
+function validate(p,r,now=Date.now()){
+ const e=[],ps=C.package_schema,rs=C.receipt_schema,t=C.implementation_truth;
+ if(C.id!=='KIDULTS_PROVIDER_OUTBOUND_EMAIL_APPROVAL_RECEIPT_CONTRACT_V1'||C.status!=='MANDATORY_NON_BYPASS_CONTROL_ONLY')e.push('CONTRACT_INVALID');
+ if(t.approval_evidence_live_readback_implemented!==false||t.gmail_draft_or_send_path_receipt_consumer_implemented!==false||t.repository_validation_grants_send_authority!==false)e.push('IMPLEMENTATION_TRUTH_OVERCLAIM');
+ if(!exact(p,ps.required_top_level_fields))e.push('PACKAGE_KEYS_INVALID');
+ if(p?.schema_version!==ps.schema_version)e.push('PACKAGE_VERSION_INVALID');
+ for(const k of ['package_id','provider_id','sender_identity','thread_or_reply_target','subject','complete_body'])if(typeof p?.[k]!=='string'||!p[k].trim())e.push('PACKAGE_FIELD_INVALID:'+k);
+ for(const k of ps.recipient_arrays){const a=p?.[k];if(!Array.isArray(a)||a.some(x=>typeof x!=='string'||!x.trim())||new Set(a).size!==a.length)e.push('RECIPIENTS_INVALID:'+k);}
+ if(Array.isArray(p?.to)&&p.to.length===0)e.push('TO_REQUIRED');
+ if(!Array.isArray(p?.attachments))e.push('ATTACHMENTS_INVALID');else{const n=new Set();for(const a of p.attachments){if(!exact(a,ps.attachments_exact_fields))e.push('ATTACHMENT_KEYS_INVALID');if(typeof a?.filename!=='string'||!a.filename||n.has(a.filename))e.push('ATTACHMENT_FILENAME_INVALID');n.add(a?.filename);if(typeof a?.media_type!=='string'||!a.media_type)e.push('ATTACHMENT_MEDIA_INVALID');if(!Number.isSafeInteger(a?.byte_length)||a.byte_length<0)e.push('ATTACHMENT_LENGTH_INVALID');if(!/^sha256:[0-9a-f]{64}$/.test(a?.sha256||''))e.push('ATTACHMENT_DIGEST_INVALID');}}
+ if(!Array.isArray(p?.links)||p.links.some(x=>typeof x!=='string'||!/^https:\/\//.test(x))||new Set(p?.links||[]).size!==(p?.links||[]).length)e.push('LINKS_INVALID');
+ const d=hash(p);
+ if(!exact(r,rs.required_top_level_fields))e.push('RECEIPT_KEYS_INVALID');
+ if(r?.id!==rs.id||r?.version!==rs.version||r?.state!==rs.state)e.push('RECEIPT_IDENTITY_INVALID');
+ if(r?.repository!=='johnkim9524-collab/kaios_enterprise_repo'||!/^[0-9a-f]{40}$/.test(r?.source_sha||''))e.push('SOURCE_IDENTITY_INVALID');
+ if(r?.package_id!==p?.package_id||r?.provider_id!==p?.provider_id)e.push('SUBJECT_BINDING_MISMATCH');
+ if(r?.email_package_digest!==d)e.push('PACKAGE_DIGEST_MISMATCH');
+ const k=r?.kpmo_review,o=r?.program_owner_approval;
+ if(!exact(k,rs.kpmo_review_exact_fields))e.push('KPMO_KEYS_INVALID');
+ if(k?.reviewer_role!=='KPMO'||k?.verdict!==rs.required_kpmo_verdict)e.push('KPMO_REVIEW_INVALID');
+ if(!/^sha256:[0-9a-f]{64}$/.test(k?.strategy_digest||''))e.push('STRATEGY_DIGEST_INVALID');
+ if(k?.exact_email_package_digest!==d)e.push('KPMO_DIGEST_MISMATCH');
+ if(k?.distinct_second_pass_adversarial_review!==true)e.push('KPMO_SECOND_PASS_MISSING');
+ if(!exact(o,rs.program_owner_approval_exact_fields))e.push('OWNER_KEYS_INVALID');
+ if(o?.approver_role!=='PROGRAM_OWNER'||o?.decision!==rs.required_owner_decision)e.push('OWNER_APPROVAL_INVALID');
+ if(o?.approved_email_package_digest!==d)e.push('OWNER_DIGEST_MISMATCH');
+ if(!(new RegExp(rs.approval_evidence_ref_pattern)).test(o?.approval_evidence_ref||''))e.push('OWNER_EVIDENCE_REF_INVALID');
+ if(r?.post_approval_package_digest!==d)e.push('POST_APPROVAL_DIGEST_MISMATCH');
+ if(r?.post_approval_change_absent!==true)e.push('POST_APPROVAL_CHANGE_PRESENT');
+ if(r?.gmail_draft_created!==false)e.push('GMAIL_DRAFT_PRECREATED');
+ if(r?.gmail_message_sent!==false)e.push('GMAIL_PRESEND_STATE_INVALID');
+ const ts=[tm(r?.evidence_refreshed_at,'EVIDENCE_TIME_INVALID',e),tm(r?.strategy_prepared_at,'STRATEGY_TIME_INVALID',e),tm(k?.reviewed_at,'KPMO_TIME_INVALID',e),tm(o?.approved_at,'OWNER_TIME_INVALID',e),tm(r?.expires_at,'EXPIRY_INVALID',e)];
+ if(ts.every(Number.isFinite)){for(let i=1;i<ts.length;i++)if(!(ts[i]>ts[i-1]))e.push('TIMESTAMP_ORDER_INVALID');if(ts[4]-ts[3]>rs.maximum_approval_age_seconds*1000)e.push('APPROVAL_WINDOW_TOO_LONG');if(now>ts[4])e.push('APPROVAL_EXPIRED');}
+ if(!exact(r?.authority_boundaries,Object.keys(C.authority_boundaries)))e.push('BOUNDARY_KEYS_INVALID');else for(const [x,v] of Object.entries(C.authority_boundaries))if(r.authority_boundaries[x]!==v)e.push('BOUNDARY_DRIFT:'+x);
+ return {errors:e,digest:d};
+}
+const clone=v=>JSON.parse(JSON.stringify(v));
+function fixture(){const p={schema_version:'1.0.0',package_id:'control-001',provider_id:'control-provider',sender_identity:'sender@example.invalid',to:['provider@example.invalid'],cc:[],bcc:[],thread_or_reply_target:'control-thread',subject:'Control fixture',complete_body:'Control only. Do not send.',attachments:[],links:[]},d=hash(p);return {p,r:{id:C.receipt_schema.id,version:C.receipt_schema.version,state:C.receipt_schema.state,repository:'johnkim9524-collab/kaios_enterprise_repo',source_sha:'a'.repeat(40),package_id:p.package_id,provider_id:p.provider_id,email_package_digest:d,evidence_refreshed_at:'2026-09-09T00:00:00Z',strategy_prepared_at:'2026-09-09T00:05:00Z',kpmo_review:{reviewer_role:'KPMO',verdict:C.receipt_schema.required_kpmo_verdict,strategy_digest:'sha256:'+'b'.repeat(64),exact_email_package_digest:d,reviewed_at:'2026-09-09T00:10:00Z',distinct_second_pass_adversarial_review:true},program_owner_approval:{approver_role:'PROGRAM_OWNER',decision:C.receipt_schema.required_owner_decision,approved_email_package_digest:d,approved_at:'2026-09-09T00:15:00Z',approval_evidence_ref:'https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2189#issuecomment-1'},post_approval_package_digest:d,post_approval_change_absent:true,gmail_draft_created:false,gmail_message_sent:false,expires_at:'2026-09-09T01:15:00Z',authority_boundaries:{...C.authority_boundaries}}};}
+function selftest(){const b=fixture(),now=Date.parse('2026-09-09T00:20:00Z'),ok=validate(b.p,b.r,now);if(ok.errors.length)throw Error('PRISTINE:'+ok.errors);const cs=[['no_kpmo',(p,r)=>delete r.kpmo_review,'KPMO_KEYS_INVALID'],['no_owner',(p,r)=>delete r.program_owner_approval,'OWNER_KEYS_INVALID'],['body_mutation',p=>p.complete_body+='x','PACKAGE_DIGEST_MISMATCH'],['kpmo_digest',(p,r)=>r.kpmo_review.exact_email_package_digest='sha256:'+'0'.repeat(64),'KPMO_DIGEST_MISMATCH'],['owner_digest',(p,r)=>r.program_owner_approval.approved_email_package_digest='sha256:'+'0'.repeat(64),'OWNER_DIGEST_MISMATCH'],['post_digest',(p,r)=>r.post_approval_package_digest='sha256:'+'0'.repeat(64),'POST_APPROVAL_DIGEST_MISMATCH'],['second_pass',(p,r)=>r.kpmo_review.distinct_second_pass_adversarial_review=false,'KPMO_SECOND_PASS_MISSING'],['bad_evidence',(p,r)=>r.program_owner_approval.approval_evidence_ref='https://github.com/example','OWNER_EVIDENCE_REF_INVALID'],['order',(p,r)=>r.program_owner_approval.approved_at='2026-09-09T00:09:00Z','TIMESTAMP_ORDER_INVALID'],['expired',()=>{},'APPROVAL_EXPIRED',Date.parse('2026-09-09T02:00:00Z')],['changed',(p,r)=>r.post_approval_change_absent=false,'POST_APPROVAL_CHANGE_PRESENT'],['drafted',(p,r)=>r.gmail_draft_created=true,'GMAIL_DRAFT_PRECREATED'],['boundary',(p,r)=>r.authority_boundaries.production='ALLOW','BOUNDARY_DRIFT:production'],['extra',(p,r)=>r.extra=true,'RECEIPT_KEYS_INVALID'],['attachment',p=>p.attachments=[{filename:'x',media_type:'application/pdf',byte_length:1,sha256:'bad'}],'ATTACHMENT_DIGEST_INVALID']];for(const [n,mut,code,nw] of cs){const p=clone(b.p),r=clone(b.r);mut(p,r);const z=validate(p,r,nw??now);if(!z.errors.includes(code))throw Error('NEGATIVE:'+n+':'+z.errors);}console.log(JSON.stringify({id:'KIDULTS_PROVIDER_OUTBOUND_EMAIL_APPROVAL_RECEIPT_SELF_TEST_V1',state:'VERIFIED_PASS_CONTROL_ONLY',negative_tests_rejected:cs.length,approval_evidence_live_readback:'NOT_IMPLEMENTED',gmail_send_path_receipt_consumer:'NOT_IMPLEMENTED',send_authority:false,external_communication:'DO_NOT_DRAFT_OR_SEND',production:'HOLD',public:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'},null,2));}
+const a=process.argv.slice(2);if(!a.length||a.includes('--self-test'))selftest();else{const v=f=>{const i=a.indexOf(f);if(i<0||!a[i+1])throw Error('ARG:'+f);return a[i+1];},p=JSON.parse(fs.readFileSync(v('--package'),'utf8')),r=JSON.parse(fs.readFileSync(v('--receipt'),'utf8')),z=validate(p,r,a.includes('--now')?Date.parse(v('--now')):Date.now());if(z.errors.length){console.error(JSON.stringify({state:'VERIFIED_FAIL',errors:z.errors,send_authority:false},null,2));process.exit(1);}console.log(JSON.stringify({state:C.implementation_truth.successful_validation_state,package_digest:z.digest,approval_evidence_live_readback:'NOT_IMPLEMENTED',gmail_send_path_receipt_consumer:'NOT_IMPLEMENTED',send_authority:false,external_communication:'DO_NOT_DRAFT_OR_SEND'},null,2));}
