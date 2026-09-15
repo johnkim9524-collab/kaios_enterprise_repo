@@ -23,17 +23,26 @@ The public entrypoint owns CLI I/O and backward-compatible exports. Private modu
 provider call, database write, deployment, or release authority.
 
 The Current-SOLD control integration follows the same structure. Its stable
-`kir-current-sold-control-bridge-v1.mjs` façade delegates to four private modules:
+`kir-current-sold-control-bridge-v1.mjs` façade delegates to eight private modules:
 
 | Module | Responsibility |
 | --- | --- |
 | `constants` | Synthetic-only mode, identifiers and assertions |
 | `input` | Immutable JSON snapshot and provenance-bound input validation |
-| `executor` | KIR-to-atomic-engine orchestration and output integrity checks |
+| `ports` | Exact function-port contract used by the application executor |
+| `executor` | Port-only orchestration and output integrity checks |
 | `receipt` | Non-authoritative, non-raw terminal control receipt |
+| `kir-adapter` | KIR public façade adapter |
+| `current-sold-adapter` | Current-SOLD public engine and digest adapter |
+| `composition` | The only wiring root joining ports to adapters |
 
 The previous bridge implementation mixed all four responsibilities in one file. It has been removed
 behind the unchanged public function so working callers and receipt semantics remain stable.
+The executor has zero imports from KIR, Current-SOLD, Provider, database, Portal, or deployment code.
+All cross-domain dependencies are named adapters wired once at the composition root.
+Every module declares an exact Node builtin allowlist. Computed dynamic imports, CommonJS `require`,
+undeclared builtins, and direct or member-form network calls fail closed before boundary validation
+can report success.
 
 ## Integration rule
 

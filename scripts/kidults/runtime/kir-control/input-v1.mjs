@@ -1,4 +1,3 @@
-import { canonicalJsonDigest } from '../../market/current-sold-batch-v1.mjs';
 import { CONTROL_MODE, DIGEST, FIXTURE_PREFIX, req, requireRecord } from './constants-v1.mjs';
 
 export function jsonSnapshot(value) {
@@ -66,7 +65,8 @@ export function validateControlOptions(options) {
     && DIGEST.test(options.expectedReceiptRegistryDigest), 'KIR_BRIDGE_EXPECTED_DIGEST_REQUIRED');
 }
 
-export function snapshotAndValidatePayload(options, identity) {
+export function snapshotAndValidatePayload(options, identity, digestJson) {
+  req(typeof digestJson === 'function', 'KIR_BRIDGE_DIGEST_PORT_REQUIRED');
   const envelope = jsonSnapshot(options.envelope);
   const registry = jsonSnapshot(options.receiptRegistry);
   const now = new Date(options.now.getTime());
@@ -99,7 +99,7 @@ export function snapshotAndValidatePayload(options, identity) {
       'KIR_BRIDGE_RECEIPT_BINDING');
   }
   for (const receipt of registry.acquisitions) syntheticUrl(receipt.source_url);
-  req(canonicalJsonDigest(registry) === options.expectedReceiptRegistryDigest,
+  req(digestJson(registry) === options.expectedReceiptRegistryDigest,
     'KIR_BRIDGE_REGISTRY_DIGEST_MISMATCH');
   return { envelope, registry, now };
 }

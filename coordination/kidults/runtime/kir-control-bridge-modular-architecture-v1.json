@@ -4,40 +4,75 @@
   "internal_root": "scripts/kidults/runtime/kir-control",
   "public_entrypoint": "scripts/kidults/runtime/kir-current-sold-control-bridge-v1.mjs",
   "public_entrypoint_max_nonempty_lines": 20,
-  "public_entrypoint_internal_dependencies": ["executor"],
+  "public_entrypoint_internal_dependencies": ["composition"],
   "modules": [
     {
       "id": "constants",
       "file": "scripts/kidults/runtime/kir-control/constants-v1.mjs",
       "dependencies": [],
       "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 40
     },
     {
       "id": "input",
       "file": "scripts/kidults/runtime/kir-control/input-v1.mjs",
       "dependencies": ["constants"],
-      "external_imports": ["scripts/kidults/market/current-sold-batch-v1.mjs"],
+      "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 130
+    },
+    {
+      "id": "ports",
+      "file": "scripts/kidults/runtime/kir-control/ports-v1.mjs",
+      "dependencies": ["constants"],
+      "external_imports": [],
+      "builtin_imports": [],
+      "max_nonempty_lines": 30
     },
     {
       "id": "receipt",
       "file": "scripts/kidults/runtime/kir-control/receipt-v1.mjs",
       "dependencies": [],
       "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 60
     },
     {
       "id": "executor",
       "file": "scripts/kidults/runtime/kir-control/executor-v1.mjs",
-      "dependencies": ["constants", "input", "receipt"],
+      "dependencies": ["constants", "input", "receipt", "ports"],
+      "external_imports": [],
+      "builtin_imports": [],
+      "max_nonempty_lines": 90
+    },
+    {
+      "id": "kir-adapter",
+      "file": "scripts/kidults/runtime/kir-control/kir-adapter-v1.mjs",
+      "dependencies": [],
+      "external_imports": ["scripts/kidults/runtime/kir-runtime-kernel-v1.mjs"],
+      "builtin_imports": [],
+      "max_nonempty_lines": 20
+    },
+    {
+      "id": "current-sold-adapter",
+      "file": "scripts/kidults/runtime/kir-control/current-sold-adapter-v1.mjs",
+      "dependencies": [],
       "external_imports": [
-        "scripts/kidults/runtime/kir-runtime-kernel-v1.mjs",
         "scripts/kidults/market/current-sold-atomic-batch-v1.mjs",
         "scripts/kidults/market/current-sold-batch-v1.mjs",
         "scripts/kidults/market/current-sold-evidence-v1.mjs"
       ],
-      "max_nonempty_lines": 90
+      "builtin_imports": [],
+      "max_nonempty_lines": 20
+    },
+    {
+      "id": "composition",
+      "file": "scripts/kidults/runtime/kir-control/composition-v1.mjs",
+      "dependencies": ["current-sold-adapter", "executor", "kir-adapter"],
+      "external_imports": [],
+      "builtin_imports": [],
+      "max_nonempty_lines": 30
     }
   ],
   "constraints": {

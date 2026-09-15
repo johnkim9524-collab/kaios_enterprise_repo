@@ -15,6 +15,7 @@
       "file": "scripts/kidults/runtime/kir/constants-v1.mjs",
       "dependencies": [],
       "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 90
     },
     {
@@ -22,6 +23,7 @@
       "file": "scripts/kidults/runtime/kir/snapshot-v1.mjs",
       "dependencies": ["constants"],
       "external_imports": [],
+      "builtin_imports": ["node:fs", "node:crypto", "node:util"],
       "max_nonempty_lines": 80
     },
     {
@@ -29,6 +31,7 @@
       "file": "scripts/kidults/runtime/kir/graph-v1.mjs",
       "dependencies": ["constants"],
       "external_imports": ["scripts/kidults/runtime/validate-kir-readiness-structure-v1.mjs"],
+      "builtin_imports": [],
       "max_nonempty_lines": 140
     },
     {
@@ -36,6 +39,7 @@
       "file": "scripts/kidults/runtime/kir/state-machine-v1.mjs",
       "dependencies": ["constants", "graph"],
       "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 150
     },
     {
@@ -43,6 +47,7 @@
       "file": "scripts/kidults/runtime/kir/evaluator-v1.mjs",
       "dependencies": ["constants", "graph", "snapshot", "state-machine"],
       "external_imports": [],
+      "builtin_imports": [],
       "max_nonempty_lines": 180
     }
   ],

@@ -32,12 +32,14 @@ test('KIR is composed through a bounded public entrypoint and acyclic private mo
   });
 });
 
-test('Current-SOLD control integration is a bounded façade over four acyclic modules', () => {
+test('Current-SOLD control integration is a bounded façade over explicit ports and adapters', () => {
   const result = validateBridge();
   assert.equal(result.state, 'VERIFIED_PASS');
-  assert.equal(result.module_count, 4);
+  assert.equal(result.module_count, 8);
   assert.equal(result.provider_authority, false);
   assert.equal(result.database_authority, false);
+  assert.equal(result.port_contract, true);
+  assert.equal(result.adapter_isolation, true);
   assert.equal(result.production, 'HOLD');
 });
 
@@ -63,6 +65,31 @@ test('Current-SOLD bridge dependency and authority drift fail closed', () => {
   const authority = freshBridge();
   authority.policy.constraints.provider_calls_allowed = true;
   assert.throws(() => validateBridge(authority), /KIR_ARCH_AUTHORITY_POLICY/);
+});
+
+test('control executor cannot regain direct KIR or Current-SOLD dependencies', () => {
+  const loaded = freshBridge();
+  const executor = loaded.policy.modules.find(module => module.id === 'executor');
+  loaded.sources[executor.file] += "\nimport '../../market/current-sold-batch-v1.mjs';\n";
+  assert.throws(() => validateBridge(loaded), /KIR_ARCH_EXTERNAL_IMPORT_DRIFT:executor/);
+});
+
+test('bridge policy cannot authorize executor cross-domain coupling', () => {
+  const loaded = freshBridge();
+  const executor = loaded.policy.modules.find(module => module.id === 'executor');
+  executor.external_imports.push('scripts/kidults/market/current-sold-batch-v1.mjs');
+  loaded.sources[executor.file] += "\nimport '../../market/current-sold-batch-v1.mjs';\n";
+  assert.throws(() => validateBridge(loaded), /KIR_ARCH_PORT_CONTRACT/);
+});
+
+test('composition root and adapters cannot expand their declared domains', () => {
+  const composition = freshBridge();
+  composition.policy.modules.find(module => module.id === 'composition').dependencies = ['executor'];
+  assert.throws(() => validateBridge(composition), /KIR_ARCH_COMPOSITION_ROOT/);
+
+  const adapter = freshBridge();
+  adapter.policy.modules.find(module => module.id === 'current-sold-adapter').external_imports = [];
+  assert.throws(() => validateBridge(adapter), /KIR_ARCH_CURRENT_SOLD_ADAPTER_BOUNDARY/);
 });
 
 test('undeclared module coupling fails closed', () => {
@@ -101,6 +128,31 @@ test('module process side effects and size growth fail closed', () => {
   const constants = oversized.policy.modules.find(module => module.id === 'constants');
   constants.max_nonempty_lines = 1;
   assert.throws(() => validate(oversized), /KIR_ARCH_MODULE_TOO_LARGE:constants/);
+});
+
+test('computed imports and network-capable builtins fail closed', () => {
+  const computed = freshBridge();
+  const executor = computed.policy.modules.find(module => module.id === 'executor');
+  computed.sources[executor.file] += "\nconst target = './receipt-v1.mjs'; await import(target);\n";
+  assert.throws(() => validateBridge(computed), /KIR_ARCH_UNRESOLVED_IMPORT:executor/);
+
+  const builtin = freshBridge();
+  const adapter = builtin.policy.modules.find(module => module.id === 'current-sold-adapter');
+  builtin.sources[adapter.file] += "\nimport https from 'node:https';\n";
+  assert.throws(() => validateBridge(builtin), /KIR_ARCH_BUILTIN_IMPORT_DRIFT:current-sold-adapter/);
+});
+
+test('member-form network calls fail closed', () => {
+  for (const expression of [
+    "globalThis.fetch('https://provider.invalid')",
+    "globalThis['fetch']('https://provider.invalid')",
+    "self.fetch('https://provider.invalid')",
+  ]) {
+    const loaded = freshBridge();
+    const executor = loaded.policy.modules.find(module => module.id === 'executor');
+    loaded.sources[executor.file] += `\n${expression};\n`;
+    assert.throws(() => validateBridge(loaded), /KIR_ARCH_MODULE_SIDE_EFFECT:executor/);
+  }
 });
 
 test('HOLD or authority relaxation in architecture policy fails closed', () => {

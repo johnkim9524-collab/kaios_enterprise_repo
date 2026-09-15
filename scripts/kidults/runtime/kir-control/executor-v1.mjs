@@ -1,20 +1,18 @@
-import { loadKirRuntime, evaluateKirRuntime } from '../kir-runtime-kernel-v1.mjs';
-import { buildAtomicCurrentSoldBatchBundle } from '../../market/current-sold-atomic-batch-v1.mjs';
-import { canonicalJsonDigest } from '../../market/current-sold-batch-v1.mjs';
-import { currentSoldEvidenceDigest } from '../../market/current-sold-evidence-v1.mjs';
 import { FIXTURE_PREFIX, req } from './constants-v1.mjs';
 import { jsonSnapshot, snapshotAndValidatePayload, validateControlOptions } from './input-v1.mjs';
 import { buildControlReceipt } from './receipt-v1.mjs';
+import { validateControlPorts } from './ports-v1.mjs';
 
-export function executeKirCurrentSoldControl(options) {
+export function executeKirCurrentSoldControl(options, ports) {
+  validateControlPorts(ports);
   validateControlOptions(options);
   const identity = jsonSnapshot(options.identity);
   // Re-evaluate the exact on-disk KIR contract; detached receipts are not inputs.
-  const runtime = evaluateKirRuntime({ ...loadKirRuntime(), identity });
+  const runtime = ports.evaluateRuntime(identity);
   req(runtime.state === 'CONTROL_VALIDATED_EMPIRICAL_BLOCKED', 'KIR_BRIDGE_KIR_CONTROL_STATE');
-  const { envelope, registry, now } = snapshotAndValidatePayload(options, identity);
+  const { envelope, registry, now } = snapshotAndValidatePayload(options, identity, ports.digestJson);
   const run = `${FIXTURE_PREFIX}${identity.run_id}-${identity.run_attempt}`;
-  const bundle = buildAtomicCurrentSoldBatchBundle(envelope, registry, {
+  const bundle = ports.buildCurrentSoldBundle(envelope, registry, {
     now,
     expectedReceiptRegistryDigest: options.expectedReceiptRegistryDigest,
   });
@@ -22,9 +20,9 @@ export function executeKirCurrentSoldControl(options) {
     'KIR_BRIDGE_ENGINE_BINDING');
   req(bundle.receipt.receipt_registry_digest === options.expectedReceiptRegistryDigest,
     'KIR_BRIDGE_ENGINE_REGISTRY_DIGEST');
-  req(bundle.receipt.evidence_digest === currentSoldEvidenceDigest(bundle.evidence),
+  req(bundle.receipt.evidence_digest === ports.digestEvidence(bundle.evidence),
     'KIR_BRIDGE_EVIDENCE_DIGEST');
-  req(bundle.receipt.event_versions_digest === canonicalJsonDigest(bundle.event_versions),
+  req(bundle.receipt.event_versions_digest === ports.digestJson(bundle.event_versions),
     'KIR_BRIDGE_EVENT_DIGEST');
   const pass = bundle.admission.status === 'PASS';
   if (!pass) {
@@ -42,8 +40,8 @@ export function executeKirCurrentSoldControl(options) {
     registryDigest: options.expectedReceiptRegistryDigest,
     digests: {
       syntheticTestClock: now.toISOString(),
-      kirReceipt: canonicalJsonDigest(runtime),
-      bundleReceipt: canonicalJsonDigest(bundle.receipt),
+      kirReceipt: ports.digestJson(runtime),
+      bundleReceipt: ports.digestJson(bundle.receipt),
     },
   });
 }

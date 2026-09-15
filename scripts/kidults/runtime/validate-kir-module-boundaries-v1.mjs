@@ -18,6 +18,9 @@ const stable = value => JSON.stringify([...value].sort());
 const importPattern = /\b(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const dynamicImportPattern = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
 const requirePattern = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+const unresolvedDynamicImportPattern = /\bimport\s*\(/;
+const unresolvedRequirePattern = /\brequire\s*\(/;
+const networkCallPattern = /(?:\bfetch|(?:globalThis|window|self)\s*(?:\.\s*fetch|\[\s*['"]fetch['"]\s*\]))\s*\(/;
 
 function imports(source) {
   return [importPattern, dynamicImportPattern, requirePattern]
@@ -45,21 +48,51 @@ export function validateKirModuleArchitecture({ policy, sources }) {
     req(typeof module?.file === 'string' && module.file.startsWith(`${internalRoot}/`),
       `KIR_ARCH_MODULE_FILE:${module.id}`);
     req(!byId.has(module.id) && !byFile.has(module.file), `KIR_ARCH_MODULE_DUPLICATE:${module.id}`);
-    req(Array.isArray(module.dependencies) && Array.isArray(module.external_imports), `KIR_ARCH_DEPENDENCY_SCHEMA:${module.id}`);
+    req(Array.isArray(module.dependencies) && Array.isArray(module.external_imports)
+      && Array.isArray(module.builtin_imports), `KIR_ARCH_DEPENDENCY_SCHEMA:${module.id}`);
     req(Number.isSafeInteger(module.max_nonempty_lines) && module.max_nonempty_lines > 0, `KIR_ARCH_SIZE_LIMIT:${module.id}`);
     req(typeof sources[module.file] === 'string', `KIR_ARCH_SOURCE_MISSING:${module.id}`);
     byId.set(module.id, module);
     byFile.set(module.file, module);
   }
+  const bridgePolicy = policy.id === 'kidults-kir-control-bridge-modular-architecture-v1';
+  if (bridgePolicy) {
+    const executor = byId.get('executor');
+    const composition = byId.get('composition');
+    const kirAdapter = byId.get('kir-adapter');
+    const currentSoldAdapter = byId.get('current-sold-adapter');
+    req(executor && stable(executor.external_imports) === '[]' && executor.dependencies.includes('ports'),
+      'KIR_ARCH_PORT_CONTRACT');
+    req(composition && stable(composition.dependencies) === stable(['current-sold-adapter', 'executor', 'kir-adapter'])
+      && stable(composition.external_imports) === '[]', 'KIR_ARCH_COMPOSITION_ROOT');
+    req(kirAdapter && kirAdapter.dependencies.length === 0
+      && stable(kirAdapter.external_imports) === stable(['scripts/kidults/runtime/kir-runtime-kernel-v1.mjs']),
+    'KIR_ARCH_KIR_ADAPTER_BOUNDARY');
+    req(currentSoldAdapter && currentSoldAdapter.dependencies.length === 0
+      && currentSoldAdapter.external_imports.length === 3
+      && currentSoldAdapter.external_imports.every(file => file.startsWith('scripts/kidults/market/current-sold-')),
+    'KIR_ARCH_CURRENT_SOLD_ADAPTER_BOUNDARY');
+    for (const module of policy.modules) {
+      if (!['kir-adapter', 'current-sold-adapter'].includes(module.id)) {
+        req(module.external_imports.length === 0, `KIR_ARCH_CROSS_DOMAIN_IMPORT:${module.id}`);
+      }
+    }
+  }
   for (const module of policy.modules) {
     const source = sources[module.file];
     req(nonemptyLines(source) <= module.max_nonempty_lines, `KIR_ARCH_MODULE_TOO_LARGE:${module.id}`);
-    req(!/\b(?:process\.|console\.|writeFileSync\s*\(|fetch\s*\()/.test(source),
+    req(!/\b(?:process\.|console\.|writeFileSync\s*\()/.test(source) && !networkCallPattern.test(source),
       `KIR_ARCH_MODULE_SIDE_EFFECT:${module.id}`);
+    req(!unresolvedDynamicImportPattern.test(source) && !unresolvedRequirePattern.test(source),
+      `KIR_ARCH_UNRESOLVED_IMPORT:${module.id}`);
     const actualInternal = [];
     const actualExternal = [];
+    const actualBuiltins = [];
     for (const specifier of imports(source)) {
-      if (specifier.startsWith('node:')) continue;
+      if (specifier.startsWith('node:')) {
+        actualBuiltins.push(specifier);
+        continue;
+      }
       const resolved = resolveImport(module.file, specifier);
       const dependency = byFile.get(resolved);
       if (dependency) actualInternal.push(dependency.id);
@@ -68,6 +101,7 @@ export function validateKirModuleArchitecture({ policy, sources }) {
     }
     req(stable(actualInternal) === stable(module.dependencies), `KIR_ARCH_DEPENDENCY_DRIFT:${module.id}`);
     req(stable(actualExternal) === stable(module.external_imports), `KIR_ARCH_EXTERNAL_IMPORT_DRIFT:${module.id}`);
+    req(stable(actualBuiltins) === stable(module.builtin_imports), `KIR_ARCH_BUILTIN_IMPORT_DRIFT:${module.id}`);
   }
 
   const visiting = new Set();
@@ -116,6 +150,7 @@ export function validateKirModuleArchitecture({ policy, sources }) {
     private_import_bypass: false,
     provider_authority: false,
     database_authority: false,
+    ...(bridgePolicy ? { port_contract: true, adapter_isolation: true } : {}),
     production: 'HOLD',
     public: 'HOLD',
     g5: 'HOLD',

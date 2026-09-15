@@ -1,5 +1,5 @@
 // Stable Current-SOLD control façade. Validation and execution stay behind declared boundaries.
-import { executeKirCurrentSoldControl } from './kir-control/executor-v1.mjs';
+import { evaluateComposedKirCurrentSoldControl } from './kir-control/composition-v1.mjs';
 
 /**
  * Exercise the real atomic admission/evidence implementation with synthetic
@@ -7,5 +7,5 @@ import { executeKirCurrentSoldControl } from './kir-control/executor-v1.mjs';
  * ledger eligibility. It is not an activation or empirical-admission API.
  */
 export function evaluateKirCurrentSoldControl(options) {
-  return executeKirCurrentSoldControl(options);
+  return evaluateComposedKirCurrentSoldControl(options);
 }
