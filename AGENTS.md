@@ -4,7 +4,8 @@
 **Status:** MANDATORY / REPOSITORY-WIDE / FAIL-CLOSED  
 **Applies to:** every platform component, KPMO function, Track A–E team, AI agent, coding agent, orchestration agent, Red-Team agent, reviewer agent, scheduled workflow, and autonomous runtime acting on this repository.
 
-The authoritative platform constitution is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.  
+The supreme human-readable platform constitution is `CONSTITUTION.md`. Its Article 0, the KIDULTS Supreme Platform Philosophy, is the highest governing layer; every agent and every lower constitutional article inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles. If any agent instruction, local rule, workflow instruction, policy, or implementation conflicts with `CONSTITUTION.md`, the Constitution SHALL prevail. Every agent must surface the conflict and fail closed; no agent may silently ignore, weaken, reorder, or override a constitutional requirement.
+The authoritative machine implementation of the platform operating principles is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.
 The authoritative AI policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
 The authoritative AI machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.  
 The authoritative Agent JD and accountability registry is `coordination/kidults/registry/roles-and-responsibilities.json`.

@@ -70,17 +70,42 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
   if (receipt.native_status_evidence.length !== boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
 
+  let receiptNativeFloor = 0;
+  let exactStatusIdentity = true;
   for (const expected of boundNative) {
     const matches = receipt.native_status_evidence.filter(item => item?.context === expected.context);
     if (matches.length !== 1) fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_CARDINALITY:${expected.context}:${matches.length}`);
     const actual = matches[0];
     if (String(actual.state || '') !== expected.state
-      || String(actual.description || '') !== String(expected.description || '')
-      || String(actual.status_id ?? '') !== String(expected.status_id ?? '')
-      || String(actual.updated_at || '') !== String(expected.updated_at || '')) {
+      || String(actual.description || '') !== String(expected.description || '')) {
       fail(`LIFECYCLE_RECEIPT_NATIVE_STATUS_MISMATCH:${expected.context}`);
     }
+    if (!Number.isInteger(Number(actual.status_id)) || Number(actual.status_id) <= 0) {
+      fail(`LIFECYCLE_RECEIPT_NATIVE_STATUS_ID_INVALID:${expected.context}`);
+    }
+    if (!Number.isInteger(Number(expected.status_id)) || Number(expected.status_id) <= 0) {
+      fail(`LIFECYCLE_NATIVE_STATUS_ID_INVALID:${expected.context}`);
+    }
+    const actualUpdatedAt = actual.updated_at || actual.created_at;
+    const expectedUpdatedAt = expected.updated_at || expected.created_at;
+    const actualUpdatedTime = ms(actualUpdatedAt, `LIFECYCLE_RECEIPT_NATIVE_STATUS_TIME_INVALID:${expected.context}`);
+    const expectedUpdatedTime = ms(expectedUpdatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${expected.context}`);
+    if (expectedUpdatedTime < actualUpdatedTime) {
+      fail(`LIFECYCLE_NATIVE_STATUS_REGRESSED_BEHIND_RECEIPT:${expected.context}`);
+    }
+    // GitHub commit statuses are mutable context projections. A later workflow
+    // may republish the same landing-ready semantic state after the lifecycle
+    // receipt is sealed. Preserve the receipt identity as evidence, accept only
+    // a time-monotonic semantic alias, and continue to reject every state or
+    // description change fail-closed.
+    const sameStatusIdentity = String(actual.status_id) === String(expected.status_id);
+    if (sameStatusIdentity && String(actualUpdatedAt) !== String(expectedUpdatedAt)) {
+      fail(`LIFECYCLE_NATIVE_STATUS_IDENTITY_MUTATED:${expected.context}`);
+    }
+    exactStatusIdentity = exactStatusIdentity && sameStatusIdentity;
+    receiptNativeFloor = Math.max(receiptNativeFloor, actualUpdatedTime);
   }
+  return {receiptNativeFloor, exactStatusIdentity};
 }
 
 export function selectAtomicLandingLifecycleAuthority({
@@ -106,7 +131,6 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!Array.isArray(nativeStatuses) || nativeStatuses.length === 0) fail('LIFECYCLE_NATIVE_STATUS_SET_EMPTY');
 
   const seenContexts = new Set();
-  let nativeFloor = 0;
   const boundNative = nativeStatuses.map(status => {
     const context = String(status?.context || '');
     if (!context || seenContexts.has(context)) fail('LIFECYCLE_NATIVE_STATUS_CONTEXT_INVALID');
@@ -115,7 +139,7 @@ export function selectAtomicLandingLifecycleAuthority({
       fail(`LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY:${context}:${String(status?.state || 'missing')}`);
     }
     const updatedAt = status.updated_at || status.created_at;
-    nativeFloor = Math.max(nativeFloor, ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`));
+    ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`);
     return {
       context,
       state: String(status.state),
@@ -162,7 +186,7 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!DIGEST.test(String(artifact.digest || ''))) fail('LIFECYCLE_RECEIPT_DIGEST_INVALID');
 
   const receipt = receiptsByRunId?.[String(latest.id)];
-  validateReceiptContent(
+  const nativeBinding = validateReceiptContent(
     receipt,
     latest,
     prNumber,
@@ -174,7 +198,7 @@ export function selectAtomicLandingLifecycleAuthority({
     lastReadyEventActor,
   );
   const lifecycleEvaluatedTime = ms(receipt.lifecycle_evaluated_at, 'LIFECYCLE_RECEIPT_EVALUATED_AT_INVALID');
-  if (lifecycleEvaluatedTime < nativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
+  if (lifecycleEvaluatedTime < nativeBinding.receiptNativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
   if (lifecycleEvaluatedTime < readyEventTime) fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
 
   return {
@@ -196,6 +220,10 @@ export function selectAtomicLandingLifecycleAuthority({
     lifecycle_artifact_digest: artifact.digest,
     lifecycle_receipt_state: receipt.state,
     lifecycle_receipt_reason: receipt.reason,
+    native_status_binding_mode: nativeBinding.exactStatusIdentity
+      ? 'EXACT_STATUS_IDENTITY'
+      : 'SEMANTICALLY_EQUIVALENT_MONOTONIC_NATIVE_ALIAS',
+    lifecycle_receipt_native_status_evidence: receipt.native_status_evidence,
     native_status_evidence: boundNative,
   };
 }
