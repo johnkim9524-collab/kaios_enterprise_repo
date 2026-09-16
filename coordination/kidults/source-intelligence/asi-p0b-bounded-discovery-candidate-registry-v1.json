@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-p0b-bounded-discovery-candidate-registry-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
@@ -17,7 +17,10 @@
     "builder": "scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs",
     "validator": "scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs",
     "workflow": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
-    "human_readme": "docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md"
+    "human_readme": "docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md",
+    "source_fabric_producer_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "exact_artifact_restore": "scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs",
+    "shared_provider_budget_validator": "scripts/kidults/source-intelligence/validate-asi-p0b-shared-provider-budget-v1.mjs"
   },
   "registered_outputs": [
     "p0b-source-candidate-registry-v1.json",
@@ -28,9 +31,9 @@
   ],
   "execution_chain": [
     "P0_MISSION_TASK_QUEUE",
-    "FOUR_PUBLIC_METADATA_SCOPE_ROTATIONS",
-    "OPENALEX_AND_GDELT_LIVE_DISCOVERY",
-    "SOURCE_FABRIC_MERGE_AND_VALIDATION",
+    "EXACT_MAIN_SOURCE_FABRIC_ARTIFACT_RESTORE",
+    "DURABLE_PROVIDER_CIRCUIT_RESTORE",
+    "SOURCE_FABRIC_AND_CIRCUIT_VALIDATION",
     "CANONICAL_ENDPOINT_DEDUPLICATION",
     "SCOPE_EXACT_MISSION_BINDING",
     "EXPLICIT_REGION_AND_ORIGIN_GAPS",
@@ -51,7 +54,7 @@
     ]
   },
   "truth_boundary": {
-    "public_metadata_network_discovery_is_executed": true,
+    "public_metadata_network_discovery_is_executed": false,
     "source_candidates_are_observed": true,
     "target_site_body_collection_is_executed": false,
     "target_content_is_acquired": false,
@@ -62,6 +65,8 @@
     "evidence_is_admitted": false,
     "market_claim_is_created": false,
     "public_release": "HOLD",
-    "production": "HOLD"
+    "production": "HOLD",
+    "exact_main_shared_source_fabric_is_consumed": true,
+    "provider_requests_issued_by_p0b": 0
   }
 }

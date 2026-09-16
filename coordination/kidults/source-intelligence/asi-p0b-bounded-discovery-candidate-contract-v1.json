@@ -1,25 +1,26 @@
 {
   "id": "kidults-asi-p0b-bounded-discovery-candidate-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P0",
-  "platform_principles": ["AUTONOMOUS", "GLOBAL", "IRREPLACEABLE_VALUE", "TRANSPARENT"],
-  "mission": "Execute bounded public-metadata discovery for the current mission portfolio, convert observed endpoints into governed source candidates, bind candidates to mission lanes without overstating regional relevance or factual-origin independence, and emit exact empirical increments.",
+  "platform_principles": [
+    "AUTONOMOUS",
+    "GLOBAL",
+    "IRREPLACEABLE_VALUE",
+    "TRANSPARENT"
+  ],
+  "mission": "Consume the exact protected-main Source Fabric Scale artifact without issuing a second provider request budget, convert its observed endpoints into governed source candidates, bind candidates to mission lanes without overstating regional relevance or factual-origin independence, and emit exact lineage-bound increments.",
   "authoritative_inputs": {
     "p0_contract": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json",
     "p0_registry": "coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json",
     "preparation_contract": "coordination/kidults/source-intelligence/asi-intelligence-preparation-wave-v1.json",
-    "public_metadata_discovery": "scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs",
-    "public_metadata_discovery_validator": "scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs",
-    "rotation_merger": "scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs",
-    "source_fabric_validator": "scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs"
+    "source_fabric_producer_workflow": ".github/workflows/kidults-asi-source-fabric-scale-pi1.yml",
+    "exact_artifact_restore": "scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs",
+    "source_fabric_validator": "scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs",
+    "provider_circuit_validator": "scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs",
+    "shared_provider_budget_validator": "scripts/kidults/source-intelligence/validate-asi-p0b-shared-provider-budget-v1.mjs"
   },
-  "bounded_live_lanes": [
-    "OPENALEX_PUBLIC_METADATA",
-    "GDELT_PUBLIC_METADATA"
-  ],
-  "scope_rotation_count": 4,
   "candidate_input_requirements": [
     "ENDPOINT_URL",
     "DISCOVERY_PROVIDER",
@@ -66,7 +67,7 @@
     "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
   },
   "truth_boundary": {
-    "executes_bounded_public_metadata_network_discovery": true,
+    "executes_bounded_public_metadata_network_discovery": false,
     "observes_source_candidates": true,
     "crawls_target_site_bodies": false,
     "acquires_target_content": false,
@@ -75,9 +76,13 @@
     "proves_factual_origin_independence": false,
     "creates_market_claim": false,
     "public_release": "HOLD",
-    "production": "HOLD"
+    "production": "HOLD",
+    "consumes_exact_main_shared_source_fabric": true,
+    "provider_requests_issued_by_p0b": 0
   },
   "hard_boundaries": [
+    "P0B_CONSUMER_IS_NOT_PROVIDER_BUDGET_AUTHORITY",
+    "SHARED_SOURCE_FABRIC_OBSERVATION_IS_NOT_P0B_NETWORK_EXECUTION",
     "PUBLIC_METADATA_DISCOVERY_IS_NOT_TARGET_SITE_COLLECTION",
     "SOURCE_CANDIDATE_IS_NOT_EVIDENCE",
     "SCOPE_HINT_IS_NOT_PROVEN_RELEVANCE",
@@ -90,5 +95,10 @@
     "ATTENTION_NOT_DEMAND",
     "HISTORICAL_NOT_CURRENT",
     "MISSING_NOT_ZERO"
-  ]
+  ],
+  "upstream_bounded_live_lanes": [
+    "OPENALEX_PUBLIC_METADATA",
+    "GDELT_PUBLIC_METADATA"
+  ],
+  "upstream_scope_rotation_count": 4
 }

@@ -26,7 +26,7 @@ const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'
 
 assert(contract.id === 'kidults-asi-p0b-bounded-discovery-candidate-contract-v1', 'CONTRACT_ID');
 assert(registry.id === 'kidults-asi-p0b-bounded-discovery-candidate-registry-v1', 'REGISTRY_ID');
-assert(registry.version === '1.0.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
+assert(registry.version === '1.1.0' && registry.owner === 'KPMO' && registry.priority === 'P0', 'REGISTRY_METADATA');
 assert(JSON.stringify(contract.platform_principles) === JSON.stringify(principles), 'CONTRACT_PRINCIPLE_ORDER');
 assert(JSON.stringify(registry.platform_principles) === JSON.stringify(principles), 'REGISTRY_PRINCIPLE_ORDER');
 for (const [key, expected] of Object.entries({
@@ -48,7 +48,7 @@ assert(registry.next_stage?.id === 'P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISS
 
 for (const marker of [
   'workflow_dispatch:', 'schedule:', "cron: '37 * * * *'", 'push:', 'workflow_run:',
-  "'KIDULTS ASI P0 Mission Consumption v1'", 'Execute four governed public-metadata rotations',
+  "'KIDULTS ASI P0 Mission Consumption v1'", 'Restore exact-main shared Source Fabric provider state', 'Enforce shared provider-budget regression invariant',
   'Build P0B source candidate increment', 'Reject source-candidate-as-evidence mutation',
   'Reject region-hint-as-coverage mutation', 'Reject host-as-factual-origin mutation',
   'Reject target-content acquisition mutation', 'Emit fail-closed KPMO P0B discovery receipt'
@@ -68,12 +68,14 @@ for (const marker of [
 ]) assert(validator.includes(marker), `VALIDATOR_MARKER:${marker}`);
 for (const marker of [
   '# KIDULTS ASI P0B Bounded Discovery Candidates v1',
-  'OpenAlex public metadata discovery', 'GDELT public metadata discovery',
+  'Source Fabric Scale PI1', 'P0B issues zero provider requests',
   'Source Candidate ≠ Evidence', 'Distinct Host ≠ Distinct Factual Origin'
 ]) assert(doc.includes(marker), `DOC_MARKER:${marker}`);
 
 for (const [key, expected] of Object.entries({
-  public_metadata_network_discovery_is_executed: true,
+  public_metadata_network_discovery_is_executed: false,
+  exact_main_shared_source_fabric_is_consumed: true,
+  provider_requests_issued_by_p0b: 0,
   source_candidates_are_observed: true,
   target_site_body_collection_is_executed: false,
   target_content_is_acquired: false,
@@ -94,8 +96,9 @@ console.log(JSON.stringify({
   automatic_main_push: true,
   automatic_schedule: registry.automatic_activation.schedule,
   automatic_upstream_workflow: registry.automatic_activation.upstream_workflow,
-  bounded_live_lanes: contract.bounded_live_lanes.length,
-  scope_rotations: contract.scope_rotation_count,
+  p0b_provider_requests: contract.truth_boundary.provider_requests_issued_by_p0b,
+  upstream_bounded_live_lanes: contract.upstream_bounded_live_lanes.length,
+  upstream_scope_rotations: contract.upstream_scope_rotation_count,
   next_stage: registry.next_stage.id,
   public_release: 'HOLD',
   production: 'HOLD'
