@@ -60,6 +60,7 @@ on:
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
   push:
     branches: [main]
@@ -96,6 +97,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
 
 permissions:

@@ -1,6 +1,8 @@
 name: KPMO Canonical Generation V3 Apply
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       authorization_id:
@@ -18,7 +20,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kpmo-canonical-generation-v3-apply-${{ github.sha }}
+  group: kpmo-canonical-generation-v3-apply-${{ github.event_name }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -32,7 +34,7 @@ jobs:
           persist-credentials: false
       - name: Verify exact main checkout and bounded inputs
         env:
-          TARGET_MAIN_SHA: ${{ inputs.target_main_sha }}
+          TARGET_MAIN_SHA: ${{ github.event_name == 'push' && github.sha || inputs.target_main_sha }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = 'refs/heads/main'
@@ -52,9 +54,9 @@ jobs:
       - name: Apply authorized append-only 25-member generation plus aggregate commit
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          TARGET_MAIN_SHA: ${{ inputs.target_main_sha }}
+          TARGET_MAIN_SHA: ${{ github.event_name == 'push' && github.sha || inputs.target_main_sha }}
           CANONICAL_GENERATION_AUTHORIZATION_ID: ${{ inputs.authorization_id }}
-          CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: AUTHORIZED
+          CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || 'AUTHORIZED' }}
           CANONICAL_GENERATION_RECEIPT_PATH: ${{ runner.temp }}/canonical-generation-v3-receipt.json
         run: |
           set -euo pipefail

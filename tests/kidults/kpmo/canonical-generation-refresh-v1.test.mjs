@@ -74,7 +74,7 @@ globalThis.fetch=async(value,options={})=>{
   return json({incomplete_results:false,total_count:items.length,items:ordered.slice((page-1)*perPage,page*perPage)});
  }
  if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},status:'completed',conclusion:'success'});
- if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
+ if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:process.env.GITHUB_EVENT_NAME,path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
  if(u.pathname.endsWith('/issues/1713/comments')){
   approvalReads++;const time=new Date(Date.now()-(scenario==='stale-approval'?3600000:60000)).toISOString();
   const c={id:1200,user:{login:'johnkim9524-collab'},author_association:'OWNER',body:approvalBody,created_at:time,updated_at:time};
@@ -124,13 +124,18 @@ test('immutable created-order pagination survives staged member-comment timestam
 test('offline identical generation remains a verified no-write idempotent path',()=>{
  const {result,receipt,posts}=exercise('idempotent');assert.equal(result.status,0,result.stderr);assert.equal(receipt.mode,'IDEMPOTENT_EXISTING_GENERATION');assert.equal(posts.length,0);assertBounded(receipt);
 });
+test('natural exact protected-main push appends without a second Program Owner approval',()=>{
+ const {result,receipt,posts,final}=exercise('same-main-refresh',{envOverrides:{GITHUB_EVENT_NAME:'push',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_PUSH',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
+ assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);
+ assert.equal(receipt.authorization.authority_type,'PROTECTED_MAIN_PUSH');assert.equal(receipt.authorization.program_owner_approval_required,false);assert.equal(final.approvalReads,0);assertBounded(receipt);
+});
 test('read-only live validation never turns material drift into PASS or a write',()=>{
  const {result,receipt,posts}=exercise('same-main-refresh',{readOnly:true});assert.notEqual(result.status,0);assert.equal(posts.length,0);assert.equal(receipt.failure_class,'COMMIT_MISMATCH');assert.ok(receipt.mismatch_fields.includes('material_defect_count'));assertBounded(receipt);
 });
 for(const scenario of ['missing-member','member-digest','member-rehashed-drift','member-edited','aggregate-edited','spoofed-member','aggregate-policy','aggregate-repository','aggregate-count-shape','aggregate-run-shape','aggregate-version','stale-approval','app-approval','no-approval','duplicate-approval','prewrite-truth-drift','revoked-during-read'])test(`offline refresh blocks ${scenario} before any write`,()=>{
  const {result,receipt,posts}=exercise(scenario);assert.notEqual(result.status,0);assert.equal(receipt.state,'VERIFIED_FAIL');assert.equal(posts.length,0);assert.notEqual(receipt.failure_class,'BOOTSTRAP_NOT_RUN');assertBounded(receipt);
 });
-for(const [name,env] of [['rerun',{GITHUB_RUN_ATTEMPT:'2'}],['non-owner',{GITHUB_ACTOR:'other'}],['non-dispatch',{GITHUB_EVENT_NAME:'push'}],['no-explicit-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:''}],['stale-target',{TARGET_MAIN_SHA:'b'.repeat(40)}]])test(`offline refresh preserves ${name} rejection`,()=>{
+for(const [name,env] of [['rerun',{GITHUB_RUN_ATTEMPT:'2'}],['non-owner',{GITHUB_ACTOR:'other'}],['unsupported-event',{GITHUB_EVENT_NAME:'issues'}],['no-explicit-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:''}],['push-without-bounded-authority',{GITHUB_EVENT_NAME:'push',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED'}],['stale-target',{TARGET_MAIN_SHA:'b'.repeat(40)}]])test(`offline refresh preserves ${name} rejection`,()=>{
  const {result,receipt,posts}=exercise('same-main-refresh',{envOverrides:env});assert.notEqual(result.status,0);assert.equal(posts.length,0);assert.notEqual(receipt.failure_class,'BOOTSTRAP_NOT_RUN');assertBounded(receipt);
 });
 test('truth movement after members prevents aggregate commit and records 25 acknowledged writes',()=>{
