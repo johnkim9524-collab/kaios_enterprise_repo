@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   finalizeCoverageCanonicalLeader,
+  receiptDigest,
   resolveCoverageCanonicalGuard,
   sha256,
 } from './resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs';
@@ -182,6 +183,11 @@ assert.equal(alias.alias_receipt.canonical_upstream_binding_digest, leaderReceip
 assert.notEqual(alias.alias_receipt.current_upstream_binding_digest, alias.alias_receipt.canonical_upstream_binding_digest);
 assert.notEqual(alias.alias_receipt.current_upstream_workflow_run_id, alias.alias_receipt.canonical_upstream_workflow_run_id);
 assert.notEqual(alias.alias_receipt.current_upstream_artifact_id, alias.alias_receipt.canonical_upstream_artifact_id);
+const displayTitleApiInput = structuredClone(aliasInput);
+displayTitleApiInput.candidates[0].run.name = displayTitleApiInput.candidates[0].run.display_title;
+const displayTitleApiAlias = resolveCoverageCanonicalGuard(displayTitleApiInput);
+assert.equal(displayTitleApiAlias.fail_closed, false);
+assert.equal(displayTitleApiAlias.guard.state, 'DEDUPED_ALIAS');
 const observerInput = {
   observed_at: observedAt,
   repository: 'kidults/platform', audit_source_sha: aliasCoverageSha, coverage_canonical_source_sha: sourceSha,
@@ -242,6 +248,11 @@ expectFailClosed((input) => { input.candidates[0].receipt.canonical_input_digest
 expectFailClosed((input) => { input.candidates[0].receipt.coverage_manifest_digest = `sha256:${'e'.repeat(64)}`; }, 'receipt tamper');
 expectFailClosed((input) => { input.candidates[0].semantic_input_receipt_file_digest = `sha256:${'e'.repeat(64)}`; }, 'semantic receipt file tamper');
 expectFailClosed((input) => { input.candidates[0].semantic_input_receipt.material.source_sha = 'f'.repeat(40); }, 'semantic material tamper');
+expectFailClosed((input) => { input.candidates[0].run.name = 'forged coverage workflow'; }, 'unbound run name');
+expectFailClosed((input) => {
+  input.candidates[0].receipt.coverage_workflow_name = 'forged coverage workflow';
+  input.candidates[0].receipt.receipt_digest = receiptDigest(input.candidates[0].receipt);
+}, 'signed receipt workflow identity mismatch');
 expectFailClosed((input) => { input.readback.total_count = 2; input.readback.prior_success_count = 2; }, 'incomplete readback');
 expectFailClosed((input) => { input.candidates.push(structuredClone(input.candidates[0])); input.readback.total_count = 2; input.readback.returned_count = 2; input.readback.prior_success_count = 2; }, 'multiple leaders');
 expectFailClosed((input) => { input.candidates[0].run.id = 200; input.candidates[0].artifact.workflow_run.id = 200; input.candidates[0].receipt.canonical_workflow_run_id = 200; }, 'current run cannot be prior leader');
@@ -333,8 +344,8 @@ console.log(JSON.stringify({
   id: 'kidults-asi-requirement-adapter-coverage-canonical-guard-validation-v1',
   state: 'VERIFIED_PASS',
   leader_cases: 1,
-  alias_cases: 1,
-  negative_cases: 13,
+  alias_cases: 2,
+  negative_cases: 15,
   semantic_identity_positive_cases: 2,
   semantic_identity_negative_cases: 8,
   continuous_assurance_alias_observer_cases: 9,
