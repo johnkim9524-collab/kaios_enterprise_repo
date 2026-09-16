@@ -54,7 +54,7 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write
 
 concurrency:
   group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
@@ -164,3 +164,16 @@ jobs:
             ([.producers[].state]|all(.=="VERIFIED_PASS")) and
             ([.producers[].artifact_content_validated]|all(.==true))
           ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null
+
+      - name: Dispatch exact-main terminal Continuous Assurance
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$EXPECTED_MAIN_SHA"
+          gh workflow run kidults-platform-continuous-assurance-v1.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f profile=deep

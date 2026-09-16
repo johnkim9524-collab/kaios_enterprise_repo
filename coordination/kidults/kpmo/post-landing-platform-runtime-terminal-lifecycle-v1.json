@@ -1,0 +1,39 @@
+{
+  "id": "kidults-post-landing-platform-runtime-terminal-lifecycle-v1",
+  "version": "1.0.0",
+  "classification": "DEFECT_REMEDIATED",
+  "defect": "A protected-main merge invalidated the exact-main Canonical generation while the only Canonical writer path required a second Program Owner authorization.",
+  "governance_boundary": {
+    "program_owner_approvals_per_change": 1,
+    "approval": "EXACT_HEAD_ATOMIC_GOVERNED_LANDING",
+    "canonical_natural_refresh_requires_program_owner_approval": false,
+    "canonical_manual_recovery_requires_program_owner_approval": true
+  },
+  "terminal_sequence": [
+    "ATOMIC_GOVERNED_LANDING",
+    "PROTECTED_MAIN_PUSH",
+    "CANONICAL_V3_APPEND_ONLY_REFRESH",
+    "LIVE_CANONICAL_TRUTH",
+    "ANY_SITE_EXACT_MAIN_DISCOVERY",
+    "SHARDED_SOURCE_RESERVE",
+    "EXACT_MAIN_HEALTH_SENTINEL",
+    "CONTINUOUS_ASSURANCE",
+    "PLATFORM_RUNTIME_GREEN"
+  ],
+  "authority": {
+    "automatic_canonical_authority": "OWNER_EMITTED_PROTECTED_MAIN_PUSH_EXACT_SHA_FIRST_ATTEMPT",
+    "manual_recovery_authority": "FRESH_EXACT_MAIN_PROGRAM_OWNER_COMMENT",
+    "append_only": true,
+    "fail_closed": true,
+    "promotion_eligible": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "termination": {
+    "approval_loop_possible": false,
+    "canonical_refresh_creates_repository_commit": false,
+    "evidence_writes_create_protected_main_sha": false,
+    "sentinel_dispatches_terminal_continuous_assurance_only_after_verified_health": true
+  }
+}

@@ -14,6 +14,10 @@ on:
       - "coordination/kidults/**"
   push:
     branches: [ main ]
+  workflow_run:
+    workflows: ['KPMO Canonical Generation V3 Apply']
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -35,7 +39,7 @@ jobs:
       - name: Initialize fail-closed canonical-truth receipt
         shell: bash
         env:
-          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
@@ -75,11 +79,11 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
       - name: Verify exact source SHA
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
@@ -104,12 +108,12 @@ jobs:
         id: validate
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.event.workflow_run.head_sha || github.sha }}
           ALLOW_MAIN_ADVANCE_DURING_PR_VALIDATION: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
           CANONICAL_CORRECTION_PR_NUMBER: '1431'
           EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
-          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
         shell: bash
         run: |
@@ -131,7 +135,7 @@ jobs:
         if: always()
         env:
           VALIDATION_OUTCOME: ${{ steps.validate.outcome }}
-          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
           RECEIPT_EVENT: ${{ github.event_name }}
         shell: bash
         run: |
