@@ -56,6 +56,7 @@ const expectedClassByWorkflow = new Map([
   ['KIDULTS ASI State Department Camera Evidence v1', 'ASI_ADAPTER_EVIDENCE_CASCADE'],
   ['KIDULTS ASI Getty Historical Transaction Admission v1', 'ASI_ADAPTER_EVIDENCE_CASCADE'],
   ['KIDULTS ASI P0 Mission Consumption v1', 'ASI_SOURCE_ACQUISITION_CASCADE'],
+  ['KIDULTS ASI Mission Consumption v1', 'ASI_SOURCE_ACQUISITION_CASCADE'],
   ['KIDULTS ASI P0B Bounded Discovery Candidates v1', 'ASI_SOURCE_ACQUISITION_CASCADE'],
   ['KIDULTS ASI Autonomous Resolution Layer v1', 'ASI_SOURCE_ACQUISITION_CASCADE'],
   ['KIDULTS ASI Requirement-to-Adapter Coverage v1', 'ASI_REQUIREMENT_COVERAGE'],
@@ -66,7 +67,7 @@ const expectedClassByWorkflow = new Map([
 for (const entry of contract.workflow_run_class_allowlist) {
   assert(expectedClassByWorkflow.get(entry.workflow_name) === entry.upstream_class, `WORKFLOW_CLASS_REASSIGNMENT:${entry.workflow_name}`);
 }
-assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE').length === 4, 'SOURCE_CLASS_CARDINALITY');
+assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_SOURCE_ACQUISITION_CASCADE').length === 5, 'SOURCE_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'ASI_ADAPTER_EVIDENCE_CASCADE').length === 7, 'ADAPTER_CLASS_CARDINALITY');
 assert(contract.workflow_run_class_allowlist.filter((entry) => entry.upstream_class === 'KPMO_CONTROL_PLANE_VALIDATORS').length === 3, 'CONTROL_CLASS_CARDINALITY');
 

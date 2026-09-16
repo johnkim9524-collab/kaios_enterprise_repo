@@ -21,10 +21,25 @@ def validate_contract(text: str) -> None:
     assert ".github/workflows/kidults-atomic-governed-landing-v1.yml" in text
     assert ".workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv" in text
     assert '[[ "${run_event}" == "workflow_dispatch" ]] || return 1' in text
+    assert '"${api}/pulls/${PR_NUMBER}"' in text
+    assert 'STALE_TRIGGER_NO_MUTATION' in text
+    assert 'mutation_authorized:false' in text
+    live_head_guard = 'if [[ "${LIVE_PR_HEAD_SHA}" != "${EXACT_HEAD_SHA}" ]]; then'
+    assert text.count('LIVE_PR_HEAD_SHA="$(read_live_pr_head)"') >= 2
+    assert text.count(live_head_guard) >= 2
+
+    initial_live_readback = text.index('LIVE_PR_HEAD_SHA="$(read_live_pr_head)"')
+    cancellation_counters = text.index('cancelled=0')
+    assert initial_live_readback < cancellation_counters
 
     bridge_guard = text.index('if retain_generation_bridge "${run_event}" "${workflow_path}"; then')
     normal_cancel_call = text.index('/actions/runs/${run_id}/cancel', bridge_guard)
     assert bridge_guard < normal_cancel_call
+    live_head_race_guard = text.index(
+        'PR head advanced during supersession scan; refusing further Actions mutation',
+        bridge_guard,
+    )
+    assert bridge_guard < live_head_race_guard < normal_cancel_call
 
     same_head_guard = text.index('if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then')
     force_cancel_call = text.index('force_result="$(force_cancel_run "${run_id}")"')
@@ -97,3 +112,37 @@ def test_atomic_landing_generation_bridge_retention_is_required() -> None:
     except AssertionError:
         return
     raise AssertionError("Atomic Landing generation-bridge retention removal was not rejected")
+
+
+def test_live_pr_head_readback_is_required_before_any_cancellation() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    mutated = text.replace('"${api}/pulls/${PR_NUMBER}"', '"${api}/pulls/0"', 1)
+    try:
+        validate_contract(mutated)
+    except (AssertionError, ValueError):
+        return
+    raise AssertionError("live PR head readback removal was not rejected")
+
+
+def test_stale_trigger_no_mutation_guard_is_required() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    needle = 'if [[ "${LIVE_PR_HEAD_SHA}" != "${EXACT_HEAD_SHA}" ]]; then'
+    mutated = text.replace(needle, 'if false; then', 1)
+    try:
+        validate_contract(mutated)
+    except (AssertionError, ValueError):
+        return
+    raise AssertionError("stale-trigger no-mutation guard removal was not rejected")
+
+
+def test_mid_scan_pr_head_advance_guard_is_required() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    needle = 'if [[ "${LIVE_PR_HEAD_SHA}" != "${EXACT_HEAD_SHA}" ]]; then'
+    first = text.index(needle)
+    second = text.index(needle, first + len(needle))
+    mutated = text[:second] + 'if false; then' + text[second + len(needle):]
+    try:
+        validate_contract(mutated)
+    except (AssertionError, ValueError):
+        return
+    raise AssertionError("mid-scan PR-head advance guard removal was not rejected")
