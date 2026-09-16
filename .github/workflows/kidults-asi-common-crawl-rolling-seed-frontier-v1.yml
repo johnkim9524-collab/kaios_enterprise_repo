@@ -1,8 +1,10 @@
 name: KIDULTS ASI Common Crawl Rolling Seed Frontier v1
 
 on:
-  schedule:
-    - cron: '2 * * * *'
+  workflow_run:
+    workflows: ['KIDULTS ASI Self-Driving Control Loop v1']
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
   pull_request:
     paths:
@@ -27,19 +29,20 @@ concurrency:
 
 jobs:
   rolling-seed-frontier:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Verify exact source and syntax
         env:
-          EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_EXECUTION_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs
@@ -83,16 +86,24 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ github.sha }}
-          EXPECTED_BASE_SHA: ${{ github.sha }}
-          EXPECTED_HEAD_SHA: ${{ github.sha }}
-          EXPECTED_GENERATION_SHA: ${{ github.sha }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_GENERATION_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           TARGET_BRANCH: main
-          TRIGGER_EXPECTED: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
+          TRIGGER_EXPECTED: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}
+          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.repository.full_name || '' }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/frontier-input discovery-out
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
+            test -n "$UPSTREAM_RUN_ID"
+            MAIN_SHA="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+            test "$MAIN_SHA" = "$EXPECTED_SHA"
+          fi
           node scripts/kidults/source-intelligence/resolve-asi-exact-generation-orchestration-v1.mjs \
             --mode live \
             --receipt /tmp/asi-common-crawl-rolling-frontier-orchestration-v1.json \
@@ -105,10 +116,14 @@ jobs:
             --expected-base-sha "$EXPECTED_BASE_SHA" \
             --expected-head-sha "$EXPECTED_HEAD_SHA" \
             --expected-generation-sha "$EXPECTED_GENERATION_SHA" \
+            --expected-run-id "$UPSTREAM_RUN_ID" \
             --trigger-expected "$TRIGGER_EXPECTED" \
             --max-attempts 24 \
             --poll-milliseconds 10000
           RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/asi-common-crawl-rolling-frontier-orchestration-v1.json")).selected_run_id')
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ]; then
+            test "$RUN_ID" = "$UPSTREAM_RUN_ID"
+          fi
           ART_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/asi-common-crawl-rolling-frontier-orchestration-v1.json")).selected_artifact_id')
           ART_DIGEST=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/asi-common-crawl-rolling-frontier-orchestration-v1.json")).selected_artifact_digest')
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" > /tmp/frontier-input.zip
