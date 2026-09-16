@@ -1,12 +1,12 @@
 # KIDULTS Platform Constitution
 
-## Executive Constitution
+## Supreme Executive Directive
 
 **Version:** 3.0
 
 **Owner:** Program Owner
 
-**Authority:** Program Owner — KIDULTS Platform Executive Constitution
+**Authority:** Program Owner — KIDULTS Platform Supreme Executive Directive
 
 **Effective Date:** 2026-09-16
 
@@ -16,104 +16,94 @@
 
 This Constitution is the highest governing document of the KIDULTS Platform.
 
-It supersedes:
-
-- temporary instructions;
-- implementation habits;
-- repository conventions;
-- workflow conventions;
-- AI preferences;
-- engineering customs; and
-- local optimization.
+It supersedes temporary instructions, implementation habits, AI preferences, repository conventions, workflow customs, engineering practices, and local optimization.
 
 Every future implementation SHALL inherit this Constitution.
 
 ## Mission
 
-Build a platform that continues operating correctly, deterministically, securely, recoverably, maintainably, and transparently for decades.
+Build, operate and continuously evolve the KIDULTS Platform as a global evidence-based intelligence platform that remains correct, deterministic, recoverable, maintainable and trustworthy for decades.
 
-The platform shall outlive:
+The platform shall never depend upon:
 
-- its developers;
-- its AI;
-- its repository;
-- its workflows;
-- its infrastructure; and
-- its current architecture.
+- a particular engineer;
+- a particular AI;
+- a particular workflow;
+- a particular repository implementation; or
+- undocumented institutional memory.
 
-Correctness shall depend only upon architecture.
+Architecture shall outlive its creators.
 
-Never institutional memory.
+## Purpose
 
-## Platform Purpose
+The platform exists to generate:
 
-The platform exists to produce:
+- Lawful Intelligence;
+- Verifiable Intelligence;
+- Evidence-Based Intelligence;
+- Auditable Intelligence; and
+- Explainable Intelligence.
 
-- Lawful;
-- Evidence-Based;
-- Verifiable;
-- Auditable;
-- Reproducible;
-- Explainable; and
-- Global Intelligence.
+Every important result shall be reproducible.
 
-Nothing else.
-
-## Primary Law
+## Primary Principle
 
 Never optimize for today's completion.
 
 Always optimize for permanent operation.
 
-Temporary convenience shall never take precedence over long-term platform integrity.
+Short-term convenience shall never take precedence over long-term platform integrity.
 
-## Integrated Platform
+## Whole Platform Optimization
 
-The platform SHALL NEVER be optimized locally.
+The platform SHALL ALWAYS be optimized as one integrated system.
 
-Every decision SHALL optimize the entire platform.
+Never optimize only:
 
-Never individual modules, individual workflows, individual repositories, individual teams, or individual AI.
+- one module;
+- one runtime;
+- one workflow;
+- one repository;
+- one AI; or
+- one provider.
 
-Local optimization that weakens global integrity shall never be accepted.
+A local improvement that weakens global integrity shall never be accepted.
 
-## Architecture
+## Single Source of Truth
 
-Every operational domain SHALL expose ONE:
+Every operational domain SHALL expose exactly one:
 
 - Truth;
 - Registry;
 - Runtime;
 - Leader;
-- Receipt;
-- State; and
+- State;
+- Receipt; and
 - Authority.
 
-Duplicate Runtime forbidden.
+Duplicate Runtime is forbidden.
 
-Duplicate Registry forbidden.
+Duplicate Registry is forbidden.
 
-Duplicate Truth forbidden.
+Duplicate Truth is forbidden.
 
-Hidden State forbidden.
+Hidden State is forbidden.
 
-Implicit Authority forbidden.
+Implicit Authority is forbidden.
 
-## Engineering
+## Architecture
 
-Engineering exists to reduce operational complexity.
+Every accepted implementation SHALL:
 
-Every implementation SHALL:
-
+- reduce complexity;
 - reduce coupling;
 - reduce duplication;
-- reduce entropy;
+- reduce operational entropy;
 - increase determinism;
-- increase maintainability;
 - increase observability;
 - increase recoverability;
-- increase correctness; and
-- increase simplicity.
+- increase maintainability; and
+- increase correctness.
 
 Complexity is technical debt.
 
@@ -121,35 +111,35 @@ Complexity is technical debt.
 
 Every Runtime SHALL:
 
-- be deterministic;
-- be restart-safe;
-- be replay-safe;
-- be recoverable;
-- be replaceable; and
-- be independently testable.
+- produce deterministic output;
+- support restart;
+- support replay;
+- support recovery;
+- support replacement; and
+- support independent validation.
 
 No Runtime shall become a permanent dependency.
 
 ## Failure
 
-Unknown shall NEVER become PASS.
+Unknown SHALL NEVER become PASS.
 
-Unknown shall ALWAYS become HOLD.
+Unknown SHALL ALWAYS become HOLD.
 
-Every HOLD SHALL contain:
+Every HOLD SHALL include:
 
 - Root Cause;
 - Classification;
 - Receipt;
 - Recovery Path;
 - Owner; and
-- Expected Exit Condition.
+- Exit Condition.
 
 Nothing important shall fail silently.
 
 ## Recovery
 
-Recovery SHALL:
+Every failure SHALL progress through:
 
 ```text
 Detect
@@ -165,13 +155,15 @@ Verify
 Resume
 ```
 
+Whenever technically feasible, this sequence shall be automated.
+
 Recovery SHALL NEVER:
 
-- weaken validation;
+- weaken correctness;
 - weaken governance; or
-- weaken correctness.
+- weaken validation.
 
-Recovery SHALL permanently reduce future recovery cost.
+Recovery SHALL permanently reduce future recovery effort.
 
 ## Validation
 
@@ -183,29 +175,21 @@ Every important implementation SHALL pass:
 - Natural Validation; and
 - Operational Validation.
 
-CI is never sufficient.
+CI alone is NEVER sufficient.
 
-Merge is never sufficient.
+Merge alone is NEVER sufficient.
 
 Protected Main Natural Execution is the authoritative operational proof.
 
-## Regression
+## Evidence
 
-Every resolved defect SHALL permanently become:
+Evidence, Receipts, Artifacts, Digests, Ledgers, and Canonical Truth SHALL be Append Only.
 
-- Architecture;
-- Validation;
-- Governance;
-- Regression;
-- Documentation;
-- Automated Recovery; and
-- Operational Knowledge.
-
-The same defect SHALL NEVER require investigation twice.
+Historical evidence SHALL NEVER be rewritten.
 
 ## Observability
 
-Every important operation SHALL produce:
+Every important operation SHALL generate:
 
 - Receipt;
 - Artifact;
@@ -216,13 +200,18 @@ Every important operation SHALL produce:
 - Root Cause; and
 - Recovery Evidence.
 
-No important action shall be silent.
+Nothing important shall be silent.
 
-## Evidence
+## Security
 
-Evidence, Receipts, Artifacts, Digests, Ledgers, and Canonical Truth shall be Append Only.
+The platform SHALL operate under:
 
-History shall NEVER be rewritten.
+- Least Privilege;
+- Explicit Authority;
+- Immutable Audit;
+- No Hidden Execution;
+- No Silent Override; and
+- No Implicit Promotion.
 
 ## Data
 
@@ -230,16 +219,7 @@ Unknown remains Unknown.
 
 Derived data preserves Provenance.
 
-Evidence NEVER becomes Market Truth without explicit validation.
-
-## Security
-
-- Least Privilege.
-- Explicit Authority.
-- Immutable Audit.
-- No Hidden Execution.
-- No Silent Override.
-- No Implicit Promotion.
+Evidence SHALL NEVER become Market Truth without explicit validation.
 
 ## Governance
 
@@ -252,10 +232,25 @@ Every Governance Gate SHALL define:
 - Purpose;
 - Owner;
 - Recovery Path;
-- Timeout;
 - Escalation;
-- Exit Condition; and
-- Audit Receipt.
+- Timeout;
+- Audit Receipt; and
+- Exit Condition.
+
+## Engineering
+
+Engineering exists to reduce operational risk.
+
+Every implementation SHALL define:
+
+- Purpose;
+- Risk;
+- Rollback;
+- Recovery;
+- Validation; and
+- Long-Term Impact.
+
+Otherwise the implementation SHALL NOT exist.
 
 ## AI Execution Standard
 
@@ -283,9 +278,11 @@ AI SHALL NEVER:
 - bypass policy;
 - create hidden state;
 - optimize appearance over correctness; or
-- optimize convenience over integrity.
+- optimize convenience over platform integrity.
 
 When blocked, AI SHALL exhaust every technically valid recovery path within its authorized scope before requesting Program Owner intervention.
+
+Human approval SHALL be requested ONLY when authority, governance, legal requirements, or security boundaries explicitly require Program Owner action.
 
 AI SHALL clearly distinguish:
 
@@ -296,13 +293,37 @@ AI SHALL clearly distinguish:
 - Recommendation; and
 - Unknown.
 
-When uncertain, produce HOLD, never PASS.
+When uncertain, AI SHALL return HOLD, never PASS.
 
 Integrity is demonstrated through actions.
 
 Diligence is demonstrated through complete execution.
 
 Trust is earned through consistently correct behaviour, never through confident language.
+
+## Provider
+
+Providers are replaceable.
+
+Platform architecture is not.
+
+The platform SHALL NEVER become dependent on a single provider.
+
+Rights, Evidence, Validation, and Provenance always precede integration.
+
+## Regression
+
+Every resolved defect SHALL permanently become:
+
+- Architecture;
+- Validation;
+- Governance;
+- Regression Test;
+- Documentation;
+- Automated Recovery; and
+- Operational Knowledge.
+
+The same operational defect SHALL NEVER require investigation twice.
 
 ## Long-Term Operation
 
@@ -314,7 +335,7 @@ The platform SHALL continue operating correctly even if:
 - all workflows change; and
 - all infrastructure changes.
 
-Correctness SHALL depend only upon architecture.
+Correctness SHALL depend upon architecture, not institutional memory.
 
 ## Program Owner
 
@@ -323,16 +344,6 @@ The Program Owner defines intent.
 Architecture enforces correctness.
 
 No Engineer, AI, Workflow, Repository, Provider, Vendor, or Infrastructure shall become a single point of failure.
-
-## Provider
-
-Providers are interchangeable.
-
-Platform architecture is not.
-
-The platform SHALL NEVER become dependent on a single provider.
-
-Rights, Evidence, Validation, and Provenance always precede integration.
 
 ## Quality Gate
 
@@ -347,21 +358,22 @@ Every accepted implementation MUST leave the platform:
 
 than before.
 
-Otherwise, the implementation SHALL NOT be accepted.
+Otherwise the implementation SHALL NOT be accepted.
 
-## Permanent Law
+## Constitution Stability
 
-A defect that has once been resolved SHALL NEVER become an operational problem again.
+The Constitution SHALL remain:
 
-Every resolved defect SHALL permanently become:
+- small;
+- stable;
+- timeless; and
+- fundamental.
 
-- Architecture;
-- Validation;
-- Governance;
-- Regression;
-- Documentation;
-- Automated Recovery; and
-- Operational Knowledge.
+When recurring operational problems appear, improve architecture before expanding the Constitution.
+
+Architecture evolves.
+
+The Constitution changes only when fundamental principles evolve.
 
 ## Success
 
@@ -377,23 +389,41 @@ Success IS years of uninterrupted, deterministic, recoverable, auditable, mainta
 
 ## Final Law
 
-The platform SHALL become:
+Every accepted change SHALL leave the platform:
 
-- simpler after every change;
-- stronger after every recovery;
-- smarter after every validation; and
-- more reliable after every incident.
+- simpler;
+- stronger;
+- more deterministic;
+- more recoverable;
+- more observable; and
+- more maintainable
 
-Every change must improve the platform as a whole.
+than before.
 
-Not locally.
+The platform SHALL become stronger after every failure.
 
-Not temporarily.
+A resolved defect SHALL NEVER become an operational problem again.
 
-As one integrated system.
+Every resolved defect SHALL permanently become:
+
+- Architecture;
+- Governance;
+- Validation;
+- Regression;
+- Documentation;
+- Automated Recovery; and
+- Operational Knowledge.
+
+The platform shall never require heroic engineers.
+
+It shall require excellent architecture.
+
+Human excellence accelerates the platform.
+
+Architecture preserves the platform.
 
 ## Supremacy Clause
 
-Every AI, Engineer, Workflow, Repository, Provider, Automation, Runtime, Track, Service, Documentation, Governance Rule, and Implementation participating in the KIDULTS Platform SHALL obey this Constitution.
+Every AI, Engineer, Workflow, Runtime, Repository, Provider, Automation, Track, Service, Documentation, Governance Rule, and Implementation participating in the KIDULTS Platform SHALL obey this Constitution.
 
 If any lower-level instruction conflicts with this Constitution, THIS CONSTITUTION SHALL PREVAIL.
