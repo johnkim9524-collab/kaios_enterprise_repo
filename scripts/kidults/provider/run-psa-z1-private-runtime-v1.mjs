@@ -42,25 +42,68 @@ async function loadJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
 }
 
+const MAX_PSA_RESPONSE_BYTES = 1_048_576;
+
 async function fetchOfficialPayload({ token, cert, timeoutMs = 10_000 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let reader;
+  let response;
   try {
-    const response = await fetch(
-      `https://api.psacard.com/publicapi/cert/GetByCertNumber/${encodeURIComponent(cert)}`,
-      {
-        method: 'GET',
-        headers: { Authorization: `bearer ${token}`, Accept: 'application/json' },
-        signal: controller.signal,
-      },
-    );
-    const body = await response.text();
+    try {
+      response = await fetch(
+        `https://api.psacard.com/publicapi/cert/GetByCertNumber/${encodeURIComponent(cert)}`,
+        {
+          method: 'GET',
+          headers: { Authorization: `bearer ${token}`, Accept: 'application/json' },
+          redirect: 'error',
+          signal: controller.signal,
+        },
+      );
+    } catch {
+      // Never echo a transport error that may contain the cert URL or token.
+      throw new Error(controller.signal.aborted ? 'PSA_Z1_TIMEOUT' : 'PSA_Z1_TRANSPORT_FAILED');
+    }
     if (response.status !== 200) throw new Error(`PSA_Z1_HTTP_REJECTED:${response.status}`);
+    if (response.redirected === true) throw new Error('PSA_Z1_REDIRECT_FORBIDDEN');
+    const advertisedLength = response.headers.get('content-length');
+    if (advertisedLength !== null && (!/^\d+$/.test(advertisedLength) ||
+        !Number.isSafeInteger(Number(advertisedLength)) || Number(advertisedLength) > MAX_PSA_RESPONSE_BYTES)) {
+      throw new Error('PSA_Z1_RESPONSE_SIZE_LIMIT');
+    }
+    if (!response.body || typeof response.body.getReader !== 'function') throw new Error('PSA_Z1_RESPONSE_BODY_REQUIRED');
+    reader = response.body.getReader();
+    const chunks = [];
+    let total = 0;
+    while (true) {
+      let chunk;
+      try { chunk = await reader.read(); }
+      catch { throw new Error(controller.signal.aborted ? 'PSA_Z1_TIMEOUT' : 'PSA_Z1_RESPONSE_READ_FAILED'); }
+      if (chunk.done) break;
+      if (!(chunk.value instanceof Uint8Array)) throw new Error('PSA_Z1_RESPONSE_CHUNK_INVALID');
+      total += chunk.value.byteLength;
+      if (total > MAX_PSA_RESPONSE_BYTES) throw new Error('PSA_Z1_RESPONSE_SIZE_LIMIT');
+      chunks.push(Buffer.from(chunk.value));
+    }
+    if (advertisedLength !== null && !response.headers.get('content-encoding') &&
+        total !== Number(advertisedLength)) throw new Error('PSA_Z1_RESPONSE_LENGTH_MISMATCH');
+    const bytes = Buffer.concat(chunks, total);
     let payload;
-    try { payload = JSON.parse(body); } catch { throw new Error('PSA_Z1_INVALID_JSON'); }
-    return { payload, responseDigest: sha256(body), httpStatus: response.status };
+    try { payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); }
+    catch { throw new Error('PSA_Z1_INVALID_JSON'); }
+    // A transport success must refer to the exact known-cert input, not another record.
+    if (typeof payload?.PSACert?.CertNumber !== 'string' || payload.PSACert.CertNumber !== cert) {
+      throw new Error('PSA_Z1_RESPONSE_CERT_MISMATCH');
+    }
+    return { payload, responseDigest: sha256(bytes), httpStatus: response.status };
   } finally {
     clearTimeout(timer);
+    if (reader) {
+      try { await reader.cancel(); } catch { /* Preserve the primary failure. */ }
+      reader.releaseLock();
+    } else if (response?.body && !response.body.locked) {
+      try { await response.body.cancel(); } catch { /* Preserve the primary failure. */ }
+    }
   }
 }
 
@@ -100,7 +143,11 @@ async function main() {
     await writeFile(encryptedPath, `${JSON.stringify(record)}\n`, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
     encryptedRecordWritten = true;
 
-    const decrypted = decryptPrivatePsaRecord(record, key);
+    // Read the actual encrypted file: an in-memory decrypt is not storage readback.
+    const persistedRecord = await loadJson(encryptedPath);
+    if (stable(persistedRecord) !== stable(record)) throw new Error('PSA_Z1_PRIVATE_READBACK_MISMATCH');
+    const decrypted = decryptPrivatePsaRecord(persistedRecord, key);
+    if (sha256(stable(decrypted)) !== sha256(stable(payload))) throw new Error('PSA_Z1_PRIVATE_PAYLOAD_READBACK_MISMATCH');
     const normalized = psaPrivateEvaluationInternals.normalize(decrypted, fieldMap);
     const normalizedDigest = sha256(stable(normalized));
     const normalizedFieldNames = Object.keys(normalized).sort();
@@ -135,6 +182,8 @@ async function main() {
       runtime_key_generated_in_memory: true,
       runtime_key_persisted: false,
       private_record_written: true,
+      private_record_readback_verified: true,
+      response_cert_binding_verified: true,
       private_record_deleted: true,
       deletion_verified: deletionReceipt.deletion_verified,
       deletion_receipt_digest: sha256(stable(deletionReceipt)),

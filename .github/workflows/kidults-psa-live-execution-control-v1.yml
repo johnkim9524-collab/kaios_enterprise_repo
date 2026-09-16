@@ -15,6 +15,17 @@ on:
       - 'coordination/kidults/provider/psa-120-field-map-v1.json'
       - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+      - 'scripts/kidults/kpmo/read-stable-sentinel-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/sentinel-health-receipt-contract-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-core-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-modular-recovery-v1.test.mjs'
+      - 'tests/kidults/provider/psa-z1-private-runtime-regression-v1.test.mjs'
   push:
     branches: [main]
     paths:
@@ -30,6 +41,17 @@ on:
       - 'coordination/kidults/provider/psa-120-field-map-v1.json'
       - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
       - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+      - 'scripts/kidults/kpmo/read-stable-sentinel-snapshot-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/sentinel-health-receipt-contract-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-core-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs'
+      - 'services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-modular-recovery-v1.test.mjs'
+      - 'tests/kidults/provider/psa-z1-private-runtime-regression-v1.test.mjs'
 
 permissions:
   contents: read
@@ -62,3 +84,10 @@ jobs:
           node --test \
             services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs \
             services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs
+
+      - name: Regress integrated PSA Z1 and Sentinel recovery (offline only)
+        run: |
+          set -euo pipefail
+          node --experimental-vm-modules --test \
+            tests/kidults/kpmo/sentinel-modular-recovery-v1.test.mjs \
+            tests/kidults/provider/psa-z1-private-runtime-regression-v1.test.mjs
