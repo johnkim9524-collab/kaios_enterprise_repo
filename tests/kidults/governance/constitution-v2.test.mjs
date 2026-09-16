@@ -58,3 +58,10 @@ test("agent instructions enforce constitutional supremacy without silent overrid
   assert.ok(agents.includes("no agent may silently ignore, weaken, reorder, or override"));
   assert.ok(agents.includes("surface the conflict and fail closed"));
 });
+
+test("the Constitution has an explicit fail-closed validation scope", () => {
+  const policy = JSON.parse(read("coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json"));
+  const rules = policy.scope_rules.filter((rule) => rule.exact_paths?.includes("CONSTITUTION.md"));
+  assert.equal(policy.zero_coverage_policy, "FAIL_CLOSED");
+  assert.deepEqual(rules.map((rule) => rule.id), ["repository-root"]);
+});
