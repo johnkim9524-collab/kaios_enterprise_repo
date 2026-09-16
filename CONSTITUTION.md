@@ -1,10 +1,12 @@
-# KIDULTS Platform Constitution
+# KIDULTS Executive Constitution
 
-**Version:** 1.0.0
+## Master Execution Directive
+
+**Version:** 2.0
 
 **Owner:** Program Owner
 
-**Authority:** KIDULTS Executive Directive — Master Execution Order — FINAL
+**Authority:** Program Owner — KIDULTS Executive Constitution — Master Execution Directive
 
 **Effective Date:** 2026-09-16
 
@@ -12,52 +14,67 @@
 
 **Constitution Status:** ACTIVE / PERMANENT / REPOSITORY-WIDE / FAIL-CLOSED
 
-This Constitution is the single human-readable governing authority for KIDULTS architecture, operation, engineering, governance, validation, and AI execution. Machine contracts and detailed policies implement this Constitution and remain subordinate to it.
+This Constitution supersedes temporary instructions, AI preferences, implementation habits, repository conventions, workflow behavior, and local engineering decisions.
+
+Every future implementation shall inherit this Constitution.
 
 ## Mission
 
-Build, operate and continuously evolve KIDULTS into a platform that remains correct, deterministic, recoverable and maintainable for the next decade.
+Build, operate and continuously evolve the KIDULTS Platform as a permanent global intelligence platform capable of operating correctly, deterministically, securely and maintainably for decades.
 
 The platform shall never depend upon:
 
+- a specific person;
 - a specific engineer;
 - a specific AI;
 - a specific repository;
-- a temporary workflow; or
+- a specific workflow; or
 - undocumented knowledge.
 
-Every action shall improve long-term operation.
+Architecture shall outlive its creators.
+
+## Platform Purpose
+
+The platform exists to generate:
+
+- lawful;
+- verifiable;
+- auditable; and
+- evidence-based intelligence.
+
+Every important result must be reproducible.
+
+Every important decision must be explainable.
+
+## Primary Execution Principle
 
 Never optimize for today's completion.
 
-Always optimize for permanent correctness.
+Always optimize for permanent operation.
 
-## Primary Objective
+Short-term convenience shall never take precedence over long-term platform integrity.
 
-The platform shall continuously become:
+## Integrated Optimization
 
-- simpler;
-- stronger;
-- more deterministic;
-- more recoverable;
-- more observable; and
-- more maintainable.
+The platform SHALL NEVER be optimized locally.
 
-Every accepted change must improve at least one of these properties without degrading the others.
+The platform SHALL ALWAYS be optimized as one integrated system.
 
-## Execution Principles
+Every accepted change must simultaneously improve:
 
-Development exists to improve operation.
+- Architecture;
+- Operation;
+- Validation;
+- Recoverability;
+- Maintainability;
+- Observability;
+- Auditability;
+- Operational Simplicity; and
+- Long-term Stability.
 
-Operation has higher priority than development.
+A change that improves one component while degrading another shall not be accepted.
 
-Correctness has higher priority than speed.
-
-Evidence has higher priority than opinion.
-
-Architecture has higher priority than implementation.
-
-## Single Source of Truth
+## Core Architecture
 
 Every operational domain SHALL expose exactly one:
 
@@ -69,26 +86,30 @@ Every operational domain SHALL expose exactly one:
 - Receipt; and
 - Authority.
 
-Multiple truths are forbidden.
+Duplicate Runtime is forbidden.
 
-Hidden state is forbidden.
+Duplicate Registry is forbidden.
 
-Duplicate authority is forbidden.
+Duplicate Truth is forbidden.
 
-## Architecture
+Hidden State is forbidden.
 
-Every change SHALL:
+Implicit Authority is forbidden.
+
+## Simplicity
+
+Complexity is technical debt.
+
+Every accepted implementation SHALL:
 
 - reduce complexity;
 - reduce coupling;
 - reduce duplication;
 - reduce operational entropy;
 - increase determinism;
-- increase observability;
+- increase maintainability;
 - increase recoverability; and
-- increase maintainability.
-
-If it cannot satisfy these conditions, the change SHALL NOT be accepted.
+- increase observability.
 
 ## Runtime
 
@@ -101,7 +122,7 @@ Every runtime SHALL:
 - support independent validation; and
 - support replacement.
 
-No runtime SHALL become a permanent dependency.
+No runtime shall become a permanent dependency.
 
 ## Failure
 
@@ -109,22 +130,20 @@ Unknown SHALL NEVER become PASS.
 
 Unknown SHALL become HOLD.
 
-Every HOLD SHALL contain:
+Every HOLD SHALL include:
 
 - Root Cause;
 - Classification;
 - Receipt;
 - Recovery Path;
 - Owner; and
-- Exit Condition.
+- Expected Exit Condition.
 
-No hidden failure.
-
-No silent success.
+Nothing important shall fail silently.
 
 ## Recovery
 
-Every failure SHALL automatically progress through:
+Every failure SHALL progress through:
 
 ```text
 Detect
@@ -146,9 +165,11 @@ Recovery SHALL NEVER weaken validation.
 
 Recovery SHALL NEVER weaken governance.
 
+Recovery SHALL reduce future recovery effort.
+
 ## Validation
 
-Every important change SHALL pass:
+Every important platform change SHALL pass:
 
 - Static Validation;
 - Runtime Validation;
@@ -156,11 +177,11 @@ Every important change SHALL pass:
 - Natural Validation; and
 - Operational Validation.
 
-CI alone is NEVER sufficient.
+CI success alone is insufficient.
 
-Merge alone is NEVER sufficient.
+Merge success alone is insufficient.
 
-Protected Main natural execution is the authoritative proof.
+Protected Main natural execution is the authoritative operational proof.
 
 ## Governance
 
@@ -186,13 +207,20 @@ Evidence, Receipts, Artifacts, Digests, Ledgers, and Canonical Truth SHALL be ap
 
 Historical evidence SHALL NEVER be rewritten.
 
-## Data
+## Observability
 
-Unknown remains Unknown.
+Every important action SHALL generate:
 
-Derived data preserves Provenance.
+- Receipt;
+- Artifact;
+- Digest;
+- Ledger;
+- Trace;
+- Reason;
+- Root Cause; and
+- Recovery Evidence.
 
-Evidence SHALL NEVER become Market Truth without explicit validation.
+Nothing important shall be silent.
 
 ## Security
 
@@ -203,80 +231,128 @@ Evidence SHALL NEVER become Market Truth without explicit validation.
 - No Silent Override.
 - No Implicit Promotion.
 
-## Regression
+## Data
 
-Every repaired defect SHALL permanently become:
+Unknown remains Unknown.
 
-- Architecture;
-- Policy;
-- Validation;
-- Automated Regression;
-- Automated Recovery; and
-- Documentation.
+Derived data preserves Provenance.
 
-The same defect SHALL NEVER require investigation twice.
+Evidence SHALL NEVER become Market Truth without explicit validation.
 
-## AI Directive
+## Engineering
 
-AI SHALL:
+Engineering exists to reduce operational risk.
 
-- reduce operational risk;
-- reduce complexity;
-- increase maintainability;
-- increase observability; and
-- increase determinism.
+Every implementation SHALL optimize:
 
-AI SHALL NEVER:
+- Correctness;
+- Maintainability;
+- Recoverability;
+- Simplicity;
+- Determinism; and
+- Long-term Operation.
 
-- fabricate success;
-- fabricate completion;
-- fabricate evidence;
-- hide uncertainty;
-- weaken validation;
-- weaken governance;
-- create hidden state; or
-- bypass policy.
-
-When uncertain, produce HOLD, never PASS.
-
-## Development
-
-Development SHALL optimize:
-
-- correctness;
-- maintainability;
-- simplicity; and
-- recoverability.
-
-Every change SHALL include:
+Every implementation SHALL define:
 
 - Purpose;
 - Risk;
 - Rollback;
 - Recovery;
 - Validation; and
-- Long-term Impact.
+- Long-Term Impact.
 
-Otherwise, the change SHALL NOT exist.
+Otherwise, the implementation SHALL NOT exist.
+
+## AI Execution Standard
+
+AI is an engineering participant.
+
+AI exists to reduce operational risk, never increase it.
+
+AI SHALL execute every assigned task with:
+
+- Integrity;
+- Diligence;
+- Professional Care;
+- Technical Honesty;
+- Architectural Responsibility; and
+- Long-Term Thinking.
+
+AI SHALL NEVER:
+
+- avoid responsibility;
+- defer solvable work;
+- fabricate success;
+- fabricate completion;
+- fabricate evidence;
+- hide uncertainty;
+- hide technical debt;
+- weaken validation;
+- weaken governance;
+- bypass policy;
+- create hidden state;
+- optimize appearance over correctness; or
+- optimize convenience over integrity.
+
+AI SHALL actively seek:
+
+- Root Cause;
+- Permanent Resolution;
+- Regression Prevention;
+- Architectural Improvement;
+- Operational Simplicity; and
+- Long-Term Stability.
+
+When blocked, AI SHALL exhaust every technically valid recovery path within its authorized scope before requesting human intervention.
+
+Human approval SHALL be requested ONLY when authority, legal boundary, security boundary, repository governance, or Program Owner approval explicitly requires it.
+
+AI SHALL clearly distinguish:
+
+- Facts;
+- Evidence;
+- Inference;
+- Assumption;
+- Recommendation; and
+- Unknown
+
+without ambiguity.
+
+If uncertainty remains, AI SHALL produce HOLD, never PASS.
+
+Integrity is demonstrated through actions, not statements.
+
+Diligence is demonstrated through complete execution, not partial completion.
+
+Trust is earned through consistently correct behaviour, never through confident language.
+
+## Regression
+
+Every resolved defect SHALL permanently become:
+
+- Architecture;
+- Policy;
+- Validation;
+- Automated Regression;
+- Automated Recovery;
+- Documentation; and
+- Operational Knowledge.
+
+The same operational defect SHALL NEVER require investigation twice.
 
 ## Long-Term Operation
 
-The platform SHALL continue operating correctly even if:
-
-- every engineer changes;
-- every AI changes;
-- every repository changes; and
-- every workflow changes.
+The platform SHALL continue operating correctly even if all engineers, all AI, all repositories, all workflows, and all infrastructure are replaced.
 
 Correctness SHALL depend only upon architecture.
 
 ## Program Owner
 
-Program Owner defines intent.
+The Program Owner defines intent.
 
 Architecture enforces correctness.
 
-No person, AI, workflow, repository, vendor, or infrastructure component SHALL become a single point of failure.
+No engineer, AI, repository, workflow, provider, vendor, or infrastructure component shall become a single point of failure.
 
 ## Success
 
@@ -284,27 +360,28 @@ Success is NOT:
 
 - Green CI;
 - Green PR;
-- Green Merge; or
+- Green Merge;
+- Green Workflow; or
 - Successful Deployment.
 
-Success IS years of uninterrupted, correct, recoverable, auditable, deterministic operation.
+Success IS years of uninterrupted, deterministic, recoverable, auditable, maintainable, correct operation.
 
-## Mandatory Execution Rule
+## Mandatory Acceptance Rule
 
-Every accepted change MUST leave the platform:
+Every accepted implementation MUST leave the platform:
 
 - simpler;
 - stronger;
 - more deterministic;
-- more recoverable;
-- more observable; and
+- more observable;
+- more recoverable; and
 - more maintainable
 
 than before.
 
-Otherwise, the change SHALL NOT be accepted.
+Otherwise, the implementation SHALL NOT be accepted.
 
-## Permanent Rule
+## Permanent Law
 
 A defect that has once been resolved SHALL NEVER become an operational problem again.
 
@@ -318,8 +395,10 @@ Every resolved defect SHALL permanently become:
 - Automated Recovery; and
 - Operational Knowledge.
 
-## Final Execution Order
+The platform SHALL become stronger after every failure.
 
-Every AI, Engineer, Workflow, Repository, Automation, Provider, Track, Agent, Service, and Runtime operating within the KIDULTS Platform SHALL obey this Directive.
+## Final Law
 
-If any lower-level instruction conflicts with this Directive, THIS DIRECTIVE SHALL PREVAIL.
+Every AI, Engineer, Workflow, Runtime, Repository, Provider, Automation, Track, Service, and Future System participating in KIDULTS SHALL obey this Constitution.
+
+If any lower-level instruction conflicts with this Constitution, THIS CONSTITUTION SHALL PREVAIL.

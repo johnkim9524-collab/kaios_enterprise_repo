@@ -8,22 +8,26 @@ test("the permanent KIDULTS Constitution retains its authority and core controls
   const constitution = read("CONSTITUTION.md");
 
   for (const required of [
-    "**Version:** 1.0.0",
+    "**Version:** 2.0",
     "**Owner:** Program Owner",
-    "**Authority:** KIDULTS Executive Directive — Master Execution Order — FINAL",
+    "**Authority:** Program Owner — KIDULTS Executive Constitution — Master Execution Directive",
     "**Effective Date:** 2026-09-16",
     "**Revision Policy:**",
     "**Constitution Status:** ACTIVE / PERMANENT / REPOSITORY-WIDE / FAIL-CLOSED",
-    "## Single Source of Truth",
-    "Multiple truths are forbidden.",
-    "Hidden state is forbidden.",
-    "Duplicate authority is forbidden.",
+    "## Integrated Optimization",
+    "## Core Architecture",
+    "Duplicate Runtime is forbidden.",
+    "Duplicate Registry is forbidden.",
+    "Duplicate Truth is forbidden.",
+    "Hidden State is forbidden.",
+    "Implicit Authority is forbidden.",
     "Unknown SHALL become HOLD.",
     "Recovery SHALL NEVER weaken validation.",
-    "Protected Main natural execution is the authoritative proof.",
+    "Protected Main natural execution is the authoritative operational proof.",
     "Historical evidence SHALL NEVER be rewritten.",
-    "When uncertain, produce HOLD, never PASS.",
-    "THIS DIRECTIVE SHALL PREVAIL.",
+    "## Observability",
+    "If uncertainty remains, AI SHALL produce HOLD, never PASS.",
+    "THIS CONSTITUTION SHALL PREVAIL.",
   ]) {
     assert.ok(constitution.includes(required), `missing constitutional control: ${required}`);
   }
