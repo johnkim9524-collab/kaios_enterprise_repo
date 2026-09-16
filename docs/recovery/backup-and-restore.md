@@ -1,6 +1,6 @@
 # Backup and Restore
 
-Recovery operations are governed by the [KIDULTS Platform Constitution](../../CONSTITUTION.md). These procedures must preserve deterministic recovery, independent validation, append-only evidence, explicit authority, and fail-closed outcomes; uncertainty is `HOLD`, never `PASS`.
+Recovery operations inherit Article 0, the **KIDULTS Supreme Platform Philosophy**, as the highest governing layer of the [KIDULTS Platform Constitution](../../CONSTITUTION.md). Recovery must strengthen Autonomous, Global, Irreplaceable Value, and Transparent principles while preserving deterministic recovery, independent validation, append-only evidence, explicit authority, and fail-closed outcomes; uncertainty is `HOLD`, never `PASS`.
 
 ## Backup
 

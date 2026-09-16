@@ -2,7 +2,7 @@
 
 All Copilot-generated analysis, code, reviews, commits, PR descriptions, and status summaries must follow the repository-wide AI governance defined in:
 
-- `CONSTITUTION.md` (supreme governing authority; conflicts fail closed and the Constitution prevails)
+- `CONSTITUTION.md` (Article 0, the KIDULTS Supreme Platform Philosophy, is the highest governing layer and highest AI execution criterion; conflicts fail closed and the Constitution prevails)
 - `AGENTS.md`
 - `.github/AI_AGENT_OPERATING_RULES.md`
 - `coordination/kidults/governance/ai-agent-operating-rules-v1.json`

@@ -1,12 +1,12 @@
 # KIDULTS Platform Constitution
 
-## Supreme Executive Directive
+**Supreme Executive Directive**
 
-**Version:** 3.0
+**Version:** 4.0
 
 **Owner:** Program Owner
 
-**Authority:** Program Owner — KIDULTS Platform Supreme Executive Directive
+**Authority:** Program Owner — KIDULTS Supreme Platform Philosophy — Constitution V4 Foundation
 
 **Effective Date:** 2026-09-16
 
@@ -19,6 +19,128 @@ This Constitution is the highest governing document of the KIDULTS Platform.
 It supersedes temporary instructions, implementation habits, AI preferences, repository conventions, workflow customs, engineering practices, and local optimization.
 
 Every future implementation SHALL inherit this Constitution.
+
+## Article 0 — KIDULTS SUPREME PLATFORM PHILOSOPHY
+
+The KIDULTS Platform exists to become the world's most trusted Autonomous, Global, Irreplaceable Value, Transparent Intelligence Platform.
+
+Every architectural decision, engineering activity, workflow, runtime, registry, provider integration, validation, governance rule, AI action, and operational process shall strengthen these four foundational principles.
+
+### I. AUTONOMOUS
+
+Continuously increase the platform's ability to:
+
+- discover;
+- collect;
+- validate;
+- analyze;
+- reason;
+- recover;
+- improve; and
+- operate
+
+with the highest practical level of autonomy.
+
+Human judgment defines direction.
+
+The platform executes.
+
+Autonomy shall never weaken correctness, governance, security, or transparency.
+
+### II. GLOBAL
+
+Design for the world.
+
+Every architecture, workflow, runtime, provider, registry, validation, and intelligence model shall be globally scalable.
+
+Local optimization shall never reduce global capability.
+
+### III. IRREPLACEABLE VALUE
+
+Every accepted implementation shall increase the platform's long-term unique value.
+
+The platform shall pursue value that cannot easily be substituted, commoditized, or replicated.
+
+The objective is not more information, more traffic, or more features.
+
+The objective is greater long-term value.
+
+### IV. TRANSPARENT
+
+Every important decision shall be explainable.
+
+Every conclusion shall have evidence.
+
+Every important operation shall produce an auditable receipt.
+
+Transparency is the foundation of trust.
+
+### Supreme Operating Principle
+
+Every accepted change must simultaneously make the platform:
+
+- More Autonomous;
+- More Global;
+- More Valuable; and
+- More Transparent
+
+while also making it:
+
+- Simpler;
+- Stronger;
+- More Deterministic;
+- More Recoverable;
+- More Maintainable;
+- More Observable; and
+- More Auditable.
+
+If any implementation weakens one of the four foundational principles, it SHALL NOT be accepted.
+
+### Platform Hierarchy
+
+```text
+Platform Philosophy
+↓
+Executive Constitution
+↓
+Governance
+↓
+Architecture
+↓
+Engineering
+↓
+Runtime
+↓
+Validation
+↓
+Recovery
+↓
+Operations
+↓
+Provider Integration
+```
+
+Every lower layer SHALL inherit the layer above.
+
+Every existing and future article of this Constitution SHALL inherit the Platform Philosophy.
+
+### Final Principle
+
+Technology serves Philosophy.
+
+Architecture serves Technology.
+
+Engineering serves Architecture.
+
+Operations serve Engineering.
+
+Everything serves the Mission.
+
+### Quality Gate
+
+The Platform Philosophy SHALL become the highest review criterion, the highest architectural criterion, the highest governance criterion, the highest AI execution criterion, and the highest acceptance criterion.
+
+No implementation may bypass it.
 
 ## Mission
 

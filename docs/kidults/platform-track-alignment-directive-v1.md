@@ -1,6 +1,6 @@
 # KIDULTS Platform + Track A–E Alignment Directive v1
 
-Constitutional authority: [KIDULTS Platform Constitution](../../CONSTITUTION.md). This platform directive is a subordinate implementation and may not create duplicate authority or weaken the Constitution.
+Constitutional authority: Article 0, the **KIDULTS Supreme Platform Philosophy**, is the highest governing layer of the [KIDULTS Platform Constitution](../../CONSTITUTION.md). This platform directive and every Track inherit its Autonomous, Global, Irreplaceable Value, and Transparent principles and may not create duplicate authority or weaken the Constitution.
 
 Status: CANONICAL CANDIDATE
 Parent: #344 / #394

@@ -2,7 +2,7 @@
 
 ## Governing authority
 
-All development is governed by the [KIDULTS Platform Constitution](../CONSTITUTION.md). If this guide, a local convention, a tool instruction, or an implementation plan conflicts with the Constitution, the Constitution prevails and the conflict must be surfaced rather than silently resolved.
+All development is governed by the [KIDULTS Platform Constitution](../CONSTITUTION.md). Article 0, the **KIDULTS Supreme Platform Philosophy**, is its highest governing layer and highest acceptance criterion; every implementation must strengthen Autonomous, Global, Irreplaceable Value, and Transparent principles. If this guide, a local convention, a tool instruction, or an implementation plan conflicts with the Constitution, the Constitution prevails and the conflict must be surfaced rather than silently resolved.
 
 Every change must document its purpose, risk, rollback, recovery, validation, and long-term impact. Important changes require static, runtime, regression, natural, and operational validation; CI or merge alone is not completion evidence.
 
