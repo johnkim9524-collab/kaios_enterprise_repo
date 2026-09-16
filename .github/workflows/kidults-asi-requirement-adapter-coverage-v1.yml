@@ -293,8 +293,6 @@ jobs:
           SOURCE_SHA="$ARL_PRODUCER_HEAD_SHA"
           UPSTREAM_CLASS=ASI_AUTONOMOUS_RESOLUTION
           CANONICAL_RUN_KEY="${SOURCE_SHA}:${UPSTREAM_CLASS}"
-          CANONICAL_KEY_DIGEST=$(CANONICAL_RUN_KEY="$CANONICAL_RUN_KEY" node -e "const c=require('crypto');process.stdout.write(c.createHash('sha256').update(process.env.CANONICAL_RUN_KEY).digest('hex'))")
-          CANONICAL_ARTIFACT_NAME="kidults-asi-requirement-adapter-coverage-canonical-${CANONICAL_KEY_DIGEST}"
           CANONICAL_CONTRACT_DIGEST="sha256:$(sha256sum coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json | cut -d ' ' -f1)"
           UPSTREAM_BINDING_DIGEST="sha256:$(sha256sum /tmp/arl-input/autonomous-resolution-artifact-binding-v1.json | cut -d ' ' -f1)"
           node scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs \
@@ -307,6 +305,9 @@ jobs:
           CANONICAL_INPUT_DIGEST=$(jq -r '.canonical_input_digest' "$GUARD_DIR/coverage-semantic-input-receipt-v1.json")
           SEMANTIC_INPUT_RECEIPT_DIGEST="sha256:$(sha256sum "$GUARD_DIR/coverage-semantic-input-receipt-v1.json" | cut -d ' ' -f1)"
           [[ "$CANONICAL_INPUT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          CANONICAL_ARTIFACT_IDENTITY="${CANONICAL_RUN_KEY}:${CANONICAL_INPUT_DIGEST}"
+          CANONICAL_ARTIFACT_DIGEST=$(CANONICAL_ARTIFACT_IDENTITY="$CANONICAL_ARTIFACT_IDENTITY" node -e "const c=require('crypto');process.stdout.write(c.createHash('sha256').update(process.env.CANONICAL_ARTIFACT_IDENTITY).digest('hex'))")
+          CANONICAL_ARTIFACT_NAME="kidults-asi-requirement-adapter-coverage-canonical-${CANONICAL_ARTIFACT_DIGEST}"
           READBACK_STATE=BYPASS
           READBACK_TOTAL=0
           READBACK_RETURNED=0

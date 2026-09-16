@@ -102,7 +102,7 @@ function validateCurrent(raw) {
     ? `KIDULTS Coverage / source-${current.source_sha}`
     : `KIDULTS Coverage / manual-${current.run_id}`;
   if (current.coverage_run_display_title !== expectedDisplayTitle) fail('CURRENT_COVERAGE_RUN_DISPLAY_TITLE_INVALID');
-  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(current.canonical_run_key).slice(7)}`;
+  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${current.canonical_run_key}:${current.canonical_input_digest}`).slice(7)}`;
   return current;
 }
 

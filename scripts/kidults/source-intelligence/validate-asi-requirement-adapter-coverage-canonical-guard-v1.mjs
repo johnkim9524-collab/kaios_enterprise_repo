@@ -139,6 +139,7 @@ const leaderReceipt = finalizeCoverageCanonicalLeader({
   guard_receipt_digest: `sha256:${'9'.repeat(64)}`,
 });
 const artifactName = leaderSelection.guard.canonical_artifact_name;
+assert.equal(artifactName, `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${baseCurrent.canonical_run_key}:${baseCurrent.canonical_input_digest}`).slice(7)}`);
 const candidate = {
   run: {
     id: 100,
@@ -263,6 +264,19 @@ const trueSemanticDivergence = resolveCoverageCanonicalGuard({
 });
 assert.equal(trueSemanticDivergence.fail_closed, true);
 assert.equal(trueSemanticDivergence.guard.state, 'INPUT_DIVERGENCE_HOLD');
+
+const distinctSemanticGeneration = resolveCoverageCanonicalGuard({
+  ...emptyInput,
+  current: {
+    ...baseCurrent,
+    canonical_input_digest: semanticDivergentDigests[0],
+    semantic_input_receipt_digest: `sha256:${'f'.repeat(64)}`,
+  },
+  readback: { state: 'COMPLETE', total_count: 0, returned_count: 0, prior_success_count: 0, reason_codes: [] },
+  candidates: [],
+});
+assert.equal(distinctSemanticGeneration.execute_full_coverage, true);
+assert.notEqual(distinctSemanticGeneration.guard.canonical_artifact_name, artifactName);
 
 const manualCurrent = { ...baseCurrent, trigger_event: 'workflow_dispatch', coverage_run_display_title: 'KIDULTS Coverage / manual-200' };
 const manual = resolveCoverageCanonicalGuard({
