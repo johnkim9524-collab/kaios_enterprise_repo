@@ -1,14 +1,26 @@
 {
   "policy_id": "KIDULTS_PSA_CERT_VERIFICATION_CONNECTION_POLICY_V1",
+  "version": "1.1.0",
   "provider_id": "psa-public-api",
-  "state": "PREMIUM_API_CONNECTION_VERIFIED_PRIVATE_EVALUATION_CONTROLS_VERIFIED_RUNTIME_ACTIVATION_HOLD",
+  "state": "PREMIUM_API_CONNECTION_VERIFIED_BOUNDED_USE_CASE_ACCEPTED_ISOLATED_PROBE_PREPARED_RUNTIME_ACTIVATION_HOLD",
   "source_evidence": {
     "canonical_issue": 1251,
-    "provider_reply_interpretation": "BOUNDED_120_CASE_PRIVATE_INTERNAL_EVALUATION_RIGHTS_CONFIRMED",
+    "provider_reply_interpretation": "BOUNDED_120_CASE_PRIVATE_INTERNAL_EVALUATION_RIGHTS_AND_DOCUMENTED_CALL_USE_ACCEPTED_IN_CONTEXT",
     "source_message_immutability": "VERIFIED_BY_RFC_AND_GMAIL_IMMUTABLE_MESSAGE_IDS",
     "population_census_field_dictionary": "CERT_RESPONSE_FIELDS_EMPIRICALLY_OBSERVED_TOTAL_POPULATION_TOTAL_WITH_QUALIFIER_AND_POPULATION_HIGHER; FULL_GRADE_CENSUS_ENDPOINT_NOT_LIVE_PROBED",
     "acquisition_120_case_right": "CONFIRMED_FOR_BOUNDED_KNOWN_CERT_INTERNAL_EVALUATION_SUBJECT_TO_100_CALLS_PER_DAY_AND_NO_ENUMERATION",
     "derived_data_post_exit": "ALLOW_NON_RAW_NON_RECONSTRUCTIVE_DERIVED_RESULTS",
+    "latest_provider_access_confirmation": {
+      "gmail_message_id": "1a0a5e9bf646431a",
+      "thread_id": "1a0196deda4c61f3",
+      "sender": "collectors-apis@collectors.com",
+      "documented_calls_allowed_when_account_access_authorized": true,
+      "outlined_bounded_use_cases_accepted": true,
+      "daily_limit_confirmed_by_prior_provider_reply": 100,
+      "checklist_source_line_item_confirmation": "NOT_SEPARATELY_STATED",
+      "population_method_line_item_confirmation": "NOT_SEPARATELY_STATED",
+      "secret_material_recorded": false
+    },
     "rights_message_bindings": [
       {
         "gmail_message_id": "1a0345ff34f722e9",
@@ -17,6 +29,10 @@
       {
         "gmail_message_id": "1a0396dc3b4b7528",
         "rfc_message_id": "<CAKk4VAFbhtvg4Jt-XR9EWR7MbcbSBxx-5J0N_4Fnuhs+z-RQKg@mail.gmail.com>"
+      },
+      {
+        "gmail_message_id": "1a0a5e9bf646431a",
+        "rfc_message_id": "NOT_EXPOSED_IN_REPOSITORY_SECRET_SAFE_GMAIL_BINDING_ONLY"
       }
     ]
   },
@@ -79,6 +95,15 @@
     "RUN_ONE_KNOWN_CERT_SCHEMA_CANARY",
     "EMIT_SCHEMA_KEYS_RESPONSE_DIGEST_AND_SANITIZED_RECEIPT_ONLY"
   ],
+  "platform_correction_boundary": {
+    "evaluated_protected_main_sha": "eb09a9fc094814519a99d0a9719d5daf47117369",
+    "kir_modularization_pr_2223": "MERGED_CONTROL_PROOF_NOT_OPERATIONAL_ATTESTATION",
+    "coverage_semantic_generation_pr_2229": "MERGED_CONTROL_CORRECTION",
+    "security_dependency_pr_2225": "OPEN_DRAFT_UNMERGED",
+    "end_to_end_platform_empirical_proof": "HOLD",
+    "remote_postgresql_pitr_proof": "NOT_ESTABLISHED_FOR_PSA_CHAIN",
+    "production_public_g5": "HOLD"
+  },
   "operational_readiness": {
     "exact_field_map": "VERIFIED_OBSERVED_17_FIELD_SCHEMA_BOUND",
     "encrypted_private_store": "VERIFIED_LOCAL_AES_256_GCM_FILE_STORE",
@@ -88,7 +113,15 @@
     "quota_execution_plan": "PENDING_MINIMUM_TWO_DAYS",
     "independent_er_evidence_pairs": "NOT_ASSEMBLED",
     "acquisition_progress": "0_OF_120",
-    "track_b": "NOT_STARTED"
+    "track_b": "NOT_STARTED",
+    "current_maximum_executable_scope": "CONTROL_ONLY_EXACT_HEAD_PREFLIGHT_AND_EXISTING_SINGLE_SCHEMA_OBSERVATION",
+    "new_provider_call_gate": "REQUIRES_OPERATION_BOUND_ONE_SHOT_ACTIVATION_EXACT_MAIN_DISPATCH_AND_SECRET_BOUNDARY_READBACK"
   },
-  "latest_readiness_receipt": "coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json"
+  "latest_readiness_receipt": "coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json",
+  "next_allowed_actions": [
+    "RUN_EXACT_HEAD_CONTROL_VALIDATION_WITH_ZERO_PROVIDER_CALLS",
+    "SYNC_SECRET_SAFE_PROVIDER_RIGHTS_RECEIPT_TO_CANONICAL_ISSUES",
+    "PREPARE_OPERATION_BOUND_ISOLATED_Z1_ACTIVATION_RECEIPT",
+    "DO_NOT_CONNECT_PSA_PAYLOAD_TO_KIR_CURRENT_SOLD_POSTGRES_TRACK_B_OR_PORTAL_DURING_PLATFORM_CORRECTION"
+  ]
 }
