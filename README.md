@@ -2,6 +2,10 @@
 
 KAIOS is the production repository for the KIDULTS Autonomous Intelligence Operating System.
 
+## Governing constitution
+
+All architecture, engineering, operations, governance, validation, workflows, runtimes, and AI execution in this repository are governed by the [KIDULTS Platform Constitution](CONSTITUTION.md). Detailed policies and machine contracts implement that authority and may not weaken or override it.
+
 ## What it does
 
 KAIOS runs the KIDULTS platform through:

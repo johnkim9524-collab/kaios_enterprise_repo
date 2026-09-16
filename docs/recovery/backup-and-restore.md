@@ -1,5 +1,7 @@
 # Backup and Restore
 
+Recovery operations are governed by the [KIDULTS Platform Constitution](../../CONSTITUTION.md). These procedures must preserve deterministic recovery, independent validation, append-only evidence, explicit authority, and fail-closed outcomes; uncertainty is `HOLD`, never `PASS`.
+
 ## Backup
 
 Use the SQLite online backup API through:

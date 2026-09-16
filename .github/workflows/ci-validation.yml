@@ -86,6 +86,9 @@ jobs:
       - name: Enforce bounded PR impact routing
         run: node scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs
 
+      - name: Validate permanent platform constitution
+        run: node --test tests/kidults/governance/constitution-v1.test.mjs
+
       - name: Enforce dependency bootstrap locks
         run: |
           set -euo pipefail

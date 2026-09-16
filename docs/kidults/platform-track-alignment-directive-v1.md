@@ -1,5 +1,7 @@
 # KIDULTS Platform + Track A–E Alignment Directive v1
 
+Constitutional authority: [KIDULTS Platform Constitution](../../CONSTITUTION.md). This platform directive is a subordinate implementation and may not create duplicate authority or weaken the Constitution.
+
 Status: CANONICAL CANDIDATE
 Parent: #344 / #394
 Canonical source baseline: main @ c4d981b4d6fbbc7eb057f7c2735f6525e5feb8cf
