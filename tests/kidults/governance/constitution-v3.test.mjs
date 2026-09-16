@@ -4,29 +4,33 @@ import test from "node:test";
 
 const read = (path) => readFileSync(path, "utf8");
 
-test("the permanent KIDULTS Constitution retains its authority and core controls", () => {
+test("the permanent KIDULTS Constitution retains Version 3.0 authority and controls", () => {
   const constitution = read("CONSTITUTION.md");
 
   for (const required of [
-    "**Version:** 2.0",
+    "**Version:** 3.0",
     "**Owner:** Program Owner",
-    "**Authority:** Program Owner — KIDULTS Executive Constitution — Master Execution Directive",
+    "**Authority:** Program Owner — KIDULTS Platform Executive Constitution",
     "**Effective Date:** 2026-09-16",
     "**Revision Policy:**",
-    "**Constitution Status:** ACTIVE / PERMANENT / REPOSITORY-WIDE / FAIL-CLOSED",
-    "## Integrated Optimization",
-    "## Core Architecture",
-    "Duplicate Runtime is forbidden.",
-    "Duplicate Registry is forbidden.",
-    "Duplicate Truth is forbidden.",
-    "Hidden State is forbidden.",
-    "Implicit Authority is forbidden.",
-    "Unknown SHALL become HOLD.",
-    "Recovery SHALL NEVER weaken validation.",
-    "Protected Main natural execution is the authoritative operational proof.",
-    "Historical evidence SHALL NEVER be rewritten.",
-    "## Observability",
-    "If uncertainty remains, AI SHALL produce HOLD, never PASS.",
+    "**Constitution Status:** ACTIVE / HIGHEST GOVERNING DOCUMENT / PERMANENT / REPOSITORY-WIDE / FAIL-CLOSED",
+    "Every future implementation SHALL inherit this Constitution.",
+    "## Integrated Platform",
+    "Every decision SHALL optimize the entire platform.",
+    "## Architecture",
+    "Duplicate Runtime forbidden.",
+    "Duplicate Registry forbidden.",
+    "Duplicate Truth forbidden.",
+    "Hidden State forbidden.",
+    "Implicit Authority forbidden.",
+    "Unknown shall ALWAYS become HOLD.",
+    "Recovery SHALL permanently reduce future recovery cost.",
+    "Protected Main Natural Execution is the authoritative operational proof.",
+    "History shall NEVER be rewritten.",
+    "When uncertain, produce HOLD, never PASS.",
+    "## Provider",
+    "The platform SHALL NEVER become dependent on a single provider.",
+    "## Supremacy Clause",
     "THIS CONSTITUTION SHALL PREVAIL.",
   ]) {
     assert.ok(constitution.includes(required), `missing constitutional control: ${required}`);

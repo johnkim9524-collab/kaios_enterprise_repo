@@ -87,7 +87,7 @@ jobs:
         run: node scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs
 
       - name: Validate permanent platform constitution
-        run: node --test tests/kidults/governance/constitution-v2.test.mjs
+        run: node --test tests/kidults/governance/constitution-v3.test.mjs
 
       - name: Enforce dependency bootstrap locks
         run: |
