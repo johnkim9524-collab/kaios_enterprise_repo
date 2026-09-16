@@ -14,6 +14,23 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 export const REPOSITORY='johnkim9524-collab/kaios_enterprise_repo';
 export const MAX_ARCHIVE_BYTES=8*1024*1024;
 const DIGEST=/^sha256:[a-f0-9]{64}$/;
+export const COVERAGE_PUBLIC_RESULT_KEYS=[
+  'accountable_gap_records','acknowledgement_count','adapters_activated','claim_parser_not_implemented_requirements',
+  'context_only_requirements','dead_letter_queue_count','duplicate_requirements','duplicate_sdk_or_runtime_introduced',
+  'durable_consumer_implemented','evidence_admitted','family_count','first_admission_count',
+  'gap_record_to_work_unit_memberships','gap_records_with_generic_fallback','gap_records_with_idempotency_key',
+  'gap_records_with_sla','gap_work_units','gate1_remaining_hold','implemented_source_adapters',
+  'internal_unbound_execution_queue_count','legacy_v2_adapter_requirement_ids_synthesized','live_source_requests_executed',
+  'market_events_created','original_preflight_actions','projections_created','provider_contacts_executed',
+  'registered_source_profiles','replacement_missions_with_rights_clear_profiles','replacement_source_slots_filled',
+  'requirements_accounted_for','retry_count','rights_clear_gate','rights_clear_registered_profiles',
+  'rights_hold_registered_profiles','rights_passes_created','rights_preflight_queue_items',
+  'rights_schema_activation_hold_requirements','schema_bound_claim_parser_requirements','schema_bound_source_claim_work_units',
+  'silently_dropped_requirements','snapshot_candidates_created','software_implemented_requirements',
+  'source_discovery_or_schema_activation_hold_requirements','source_discovery_work_units',
+  'source_profile_discovery_requirements','terminal_preflight_actions','track_b_results_created',
+  'unique_rights_clear_profiles_selected','unresolved_preflight_actions',
+].sort();
 const req=(ok,code)=>{if(!ok)throw new Error(code);};
 export const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
 export const digest=bytes=>`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
@@ -211,7 +228,8 @@ function coverage(packet,run,sourceSha){
   // A canonical leader artifact intentionally contains no full output manifest.
   // Its raw KPMO payload and semantic material are still required and bound.
   const baseline=JSON.parse(fs.readFileSync(path.join(ROOT,'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'),'utf8')).expected_current_main_baseline;
-  for(const [key,value] of Object.entries(baseline))same(x.results[key],value,`COVERAGE_BASELINE:${key}`);
+  same(Object.keys(x.results||{}).sort(),COVERAGE_PUBLIC_RESULT_KEYS,'COVERAGE_PUBLIC_RESULT_KEYS');
+  for(const key of COVERAGE_PUBLIC_RESULT_KEYS.filter(key=>Object.hasOwn(baseline,key)))same(x.results[key],baseline[key],`COVERAGE_BASELINE:${key}`);
   req(x.results?.requirements_accounted_for===192,'COVERAGE_REQUIREMENT_CARDINALITY');
   return {...nativeBindings,state:'VERIFIED_PASS',semantic_scope:'COVERAGE_INTERNAL_CONTROL_EXTERNAL_ACTIVATION_HOLD',members:[m,l,s,...(manifest?[manifest]:[])],leader:v,inner_run_identity_present:true};
 }
