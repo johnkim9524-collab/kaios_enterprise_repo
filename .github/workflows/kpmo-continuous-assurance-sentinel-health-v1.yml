@@ -6,6 +6,10 @@ on:
     paths:
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs'
+      - 'scripts/kidults/kpmo/sentinel-health-receipt-contract-v1.mjs'
+      - 'tests/kidults/kpmo/sentinel-modular-recovery-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-observation-failure-contract-v1.test.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
@@ -83,6 +87,9 @@ jobs:
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
           node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
+          node --check scripts/kidults/kpmo/sentinel-health-receipt-contract-v1.mjs
+          node --check scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs
+          node --test --test-reporter=tap tests/kidults/kpmo/sentinel-modular-recovery-v1.test.mjs tests/kidults/kpmo/sentinel-observation-failure-contract-v1.test.mjs
 
   exact-main-health:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
