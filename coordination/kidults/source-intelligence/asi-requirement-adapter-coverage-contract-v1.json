@@ -71,7 +71,7 @@
     "canonical_guard": {
       "status": "ACTIVE_EPHEMERAL_ACTIONS_ARTIFACT_GUARD",
       "eligible_trigger": "SUCCESSFUL_WORKFLOW_RUN_ONLY",
-      "leader_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-{sha256(canonical_run_key)}",
+      "leader_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-{sha256(canonical_run_key:canonical_input_digest)}",
       "leader_artifact_retention_days": 90,
       "semantic_input_digest": "sha256(domain-separated canonical JSON of source SHA, upstream class, projection v1 stable ARL behavior outputs, full replacement queue, consumed manifest fields, Coverage contract/static inputs, implementation files, package.json, and npm-shrinkwrap.json)",
       "semantic_input_projection": {
