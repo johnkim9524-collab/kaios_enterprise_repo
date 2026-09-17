@@ -50,9 +50,11 @@ const governed = {id:'governed-production',environment:'production',url:'https:/
 if (!url.includes('/deployments')) process.stdout.write(JSON.stringify(project));
 else {
   const page = Number((url.match(/[?&]page=(\d+)/) || [,'1'])[1]);
-  const result = page === 1 ? [skipped] : [governed];
+  const earlierSkipped = Array.from({length:24}, (_, index) => ({...skipped,id:'skipped-preview-' + index,created_on:'2026-08-28T00:00:00Z'}));
+  const result = page === 1 ? [skipped,...earlierSkipped] : [governed];
   const totalPages = process.env.FORCE_OVERFLOW === '1' ? 101 : 2;
-  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:totalPages,total_pages:totalPages}}));
+  const totalCount = process.env.FORCE_OVERFLOW === '1' ? 2526 : 26;
+  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:result.length,total_count:totalCount,total_pages:totalPages}}));
 }
 `;
 fs.writeFileSync(path.join(fakeBin, 'curl'), fakeCurl, {mode:0o755});
@@ -75,7 +77,7 @@ assert.equal(run.status, 0, run.stderr || run.stdout);
 const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
 assert.equal(receipt.state, 'COMPLETE_VERIFIED');
 assert.equal(receipt.visible_preview_count, 0);
-assert.equal(receipt.skipped_preview_attempt_count, 1);
+assert.equal(receipt.skipped_preview_attempt_count, 25);
 assert.equal(receipt.latest_deployment_governed, true);
 assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
