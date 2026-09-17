@@ -214,6 +214,10 @@ test('terminal Handoff consumption is followed by exact merge-SHA push-suite con
   assert.match(workflow, /Verify exact landed implementation and retained handoff receipt/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$MERGE_SHA"/);
   assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
+  assert.match(workflow, /required_failure_count === 1/);
+  assert.match(workflow, /ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED/);
+  assert.match(workflow, /classified_assurance_hold_accepted_as_landing_evidence/);
+  assert.match(workflow, /promotion_eligible:false/);
 });
 
 test('post-merge suite policy binds core protected-main push controls and preserves RED as evidence', () => {
