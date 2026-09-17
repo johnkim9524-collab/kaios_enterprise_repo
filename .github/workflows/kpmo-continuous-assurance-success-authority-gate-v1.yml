@@ -63,7 +63,7 @@ jobs:
       UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
       UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
       UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-      GATE_DIR: ${{ runner.temp }}/kpmo-success-assurance-authority-gate
+      GATE_DIR: /tmp/kpmo-success-assurance-authority-gate
     steps:
       - name: Initialize durable fail-closed gate receipt
         shell: bash

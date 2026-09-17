@@ -51,7 +51,8 @@ if (!url.includes('/deployments')) process.stdout.write(JSON.stringify(project))
 else {
   const page = Number((url.match(/[?&]page=(\d+)/) || [,'1'])[1]);
   const result = page === 1 ? [skipped] : [governed];
-  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:2,total_pages:2}}));
+  const totalPages = process.env.FORCE_OVERFLOW === '1' ? 101 : 2;
+  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:totalPages,total_pages:totalPages}}));
 }
 `;
 fs.writeFileSync(path.join(fakeBin, 'curl'), fakeCurl, {mode:0o755});
@@ -80,6 +81,31 @@ assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
 assert.equal(receipt.settings_mutated, false);
 
+const overflowReceiptDir = path.join(temp, 'overflow-receipt');
+const overflowRun = spawnSync('bash', [files.readonly], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+    RECEIPT_DIR: overflowReceiptDir,
+    GITHUB_SHA: '1111111111111111111111111111111111111111',
+    FORCE_OVERFLOW: '1',
+  },
+});
+assert.equal(overflowRun.status, 68, overflowRun.stderr || overflowRun.stdout);
+const overflowReceipt = JSON.parse(fs.readFileSync(path.join(overflowReceiptDir, 'final.json')));
+assert.equal(overflowReceipt.state, 'BLOCKED_INVENTORY_BOUND_EXCEEDED');
+assert.equal(overflowReceipt.reason_code, 'CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED');
+assert.equal(overflowReceipt.cloudflare_api_called, true);
+assert.equal(overflowReceipt.deployment_inventory_complete, false);
+assert.equal(overflowReceipt.read_only, true);
+assert.equal(overflowReceipt.production, 'HOLD');
+
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
   result: 'PASS',
@@ -87,6 +113,7 @@ console.log(JSON.stringify({
   bounded_page_size_25: true,
   skipped_preview_not_materialized: true,
   latest_materialized_governed_selection: true,
+  bounded_inventory_failure_receipt: true,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',
