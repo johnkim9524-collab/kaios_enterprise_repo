@@ -1,11 +1,11 @@
-name: KIDULTS Atomic Landing Terminal Recovery 34918732361 V3
+name: KIDULTS Atomic Landing Terminal Recovery 34918732361 V4
 run-name: "KIDULTS Atomic Landing Recovery Run #34918732361 @ ${{ inputs.expected_current_main_sha }} / ${{ inputs.recovery_authorization_id }}"
 
 on:
   pull_request:
     branches: [main]
     paths:
-      - '.github/workflows/kidults-atomic-landing-terminal-recovery-34918732361-v3.yml'
+      - '.github/workflows/kidults-atomic-landing-terminal-recovery-34918732361-v4.yml'
       - 'scripts/kidults/kpmo/atomic-landing-terminal-recovery-34918732361-v1.mjs'
       - 'scripts/kidults/kpmo/validate-atomic-landing-terminal-recovery-34918732361-v1.mjs'
       - 'scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs'
