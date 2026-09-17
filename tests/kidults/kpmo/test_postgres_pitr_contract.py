@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ RESTORE_VERIFIER = ROOT / "scripts/staging/verify-postgres-target-time-restore.s
 TUNNEL_HELPER = ROOT / "scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh"
 SOURCE_WORKFLOW = ROOT / ".github/workflows/p0-remote-postgres-persistence-pitr.yml"
 RESTORE_WORKFLOW = ROOT / ".github/workflows/p0-postgres-target-time-restore-verification.yml"
+DIGITALOCEAN_AUDIT = ROOT / "scripts/operations/digitalocean_staging_readonly_audit.py"
 
 SOURCE_DSN = "postgresql://source-user:source-password@source.invalid:5432/kaios"
 RESTORE_DSN = "postgresql://restore-user:restore-password@restore.invalid:5432/kaios"
@@ -229,12 +231,55 @@ raise SystemExit(0)
 
 
 FAKE_SSH_TUNNEL = r"""#!/usr/bin/env python3
+import json
+import os
 import re
 import signal
 import socket
 import sys
 
 args = sys.argv[1:]
+if "-L" not in args:
+    sys.stdin.read()
+    state = os.environ.get("FAKE_NETWORK_STATE", "CONNECTED")
+    root = os.environ.get(
+        "FAKE_NETWORK_ROOT_CAUSE",
+        "NETWORK_PATH_REACHABLE" if state == "CONNECTED" else "DESTINATION_SPECIFIC_TIMEOUT",
+    )
+    result = "CONNECTED" if state == "CONNECTED" else state
+    print(json.dumps({
+        "id": "kidults-postgres-network-diagnostic-v1",
+        "mode": "READ_ONLY",
+        "endpoint_identity_digest": "sha256:" + "1" * 64,
+        "endpoint_label_class": "PUBLIC_LABEL",
+        "port": 25060,
+        "dns": {
+            "state": "RESOLVED",
+            "answer_count": 1,
+            "families": ["IPv4"],
+            "answer_classes": ["GLOBAL"],
+            "answer_digests": ["sha256:" + "2" * 64],
+        },
+        "tcp_25060": {
+            "state": state,
+            "attempts": [{
+                "family": "IPv4",
+                "address_class": "GLOBAL",
+                "address_digest": "sha256:" + "2" * 64,
+                "result": result,
+            }],
+        },
+        "routing": {
+            "ipv4_default_route_present": True,
+            "ipv6_default_route_present": False,
+            "digitalocean_control_plane_443": "CONNECTED",
+        },
+        "remote_mutation_performed": False,
+        "credential_value_emitted": False,
+        "root_cause_class": root,
+    }, separators=(",", ":"), sort_keys=True))
+    raise SystemExit(0)
+
 try:
     forward = args[args.index("-L") + 1]
 except (ValueError, IndexError):
@@ -269,6 +314,58 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
 def _write_executable(path: Path, source: str) -> None:
     path.write_text(textwrap.dedent(source), encoding="utf-8")
     path.chmod(0o755)
+
+
+def _load_digitalocean_audit_module():
+    spec = importlib.util.spec_from_file_location("digitalocean_staging_readonly_audit", DIGITALOCEAN_AUDIT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_digitalocean_postgres_inventory_is_secret_safe_and_correlatable(monkeypatch) -> None:
+    module = _load_digitalocean_audit_module()
+    raw_cluster_id = "raw-database-id-must-not-appear"
+    raw_public_host = "private-fixture-do-user-1.db.ondigitalocean.com"
+    raw_private_host = "private-private-fixture-do-user-1.db.ondigitalocean.com"
+    staging_public_ip = "198.51.100.10"
+    staging_private_ip = "10.0.0.8"
+
+    def fake_api_get(url: str, _token: str) -> dict:
+        if url.endswith("/firewall"):
+            return {"rules": [{"type": "ip_addr", "value": staging_public_ip}]}
+        return {
+            "databases": [{
+                "id": raw_cluster_id,
+                "engine": "pg",
+                "version": "16",
+                "status": "online",
+                "region": "sgp1",
+                "private_network_uuid": "private-network-id",
+                "connection": {"host": raw_public_host, "port": 25060},
+                "private_connection": {"host": raw_private_host, "port": 25060},
+            }]
+        }
+
+    monkeypatch.setattr(module, "api_get", fake_api_get)
+    inventory = module.postgres_database_inventory(
+        "token-not-emitted", "123", staging_public_ip, staging_private_ip, ["ih-staging"],
+    )
+    assert inventory["state"] == "READ"
+    assert inventory["postgres_cluster_count"] == 1
+    assert inventory["online_postgres_cluster_count"] == 1
+    cluster = inventory["clusters"][0]
+    assert cluster["public_endpoint_digest"] == module.digest(raw_public_host)
+    assert cluster["private_endpoint_digest"] == module.digest(raw_private_host)
+    assert cluster["trusted_sources"]["staging_source_admitted"] is True
+    assert cluster["trusted_sources"]["matched_rule_classes"] == ["STAGING_IP"]
+    serialized = json.dumps(inventory, sort_keys=True)
+    for secret_value in (
+        raw_cluster_id, raw_public_host, raw_private_host, staging_public_ip,
+        staging_private_ip, "token-not-emitted",
+    ):
+        assert secret_value not in serialized
 
 
 def _fake_environment(tmp_path: Path, *, mode: str, dsn: str) -> dict[str, str]:
@@ -669,8 +766,62 @@ def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
     assert receipt["event_name"] == "pull_request"
     assert receipt["run_id"] == 123456
     assert receipt["run_attempt"] == 2
+    assert receipt["network_diagnostic"]["mode"] == "READ_ONLY"
+    assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
+    assert receipt["network_diagnostic"]["remote_mutation_performed"] is False
     assert dsn not in result.stdout
     assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
+def test_tunnel_helper_classifies_destination_timeout_before_sql(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "must-not-run.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "FAKE_NETWORK_STATE": "TIMEOUT",
+        "FAKE_NETWORK_ROOT_CAUSE": "DESTINATION_SPECIFIC_TIMEOUT",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    diagnostic = receipt["network_diagnostic"]
+    assert receipt["failure_class"] == "POSTGRES_CONNECTION"
+    assert diagnostic["dns"]["state"] == "RESOLVED"
+    assert diagnostic["tcp_25060"]["state"] == "TIMEOUT"
+    assert diagnostic["root_cause_class"] == "DESTINATION_SPECIFIC_TIMEOUT"
+    assert diagnostic["routing"]["digitalocean_control_plane_443"] == "CONNECTED"
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
@@ -750,6 +901,8 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     assert receipt["destination_policy"] == (
         "DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT"
     )
+    assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
+    assert receipt["network_diagnostic"]["root_cause_class"] == "NETWORK_PATH_REACHABLE"
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
