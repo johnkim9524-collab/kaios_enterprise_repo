@@ -63,7 +63,20 @@ list_all_deployments() {
 }
 
 api_get "$API_ROOT" "$tmp_dir/project.json"
-list_all_deployments "$tmp_dir/deployments-all.json"
+if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
+  jq -n --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" \
+    --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" --argjson max_pages "$MAX_PAGES" '{
+      id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",
+      state:"BLOCKED_INVENTORY_BOUND_EXCEEDED",reason_code:"CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED",
+      exit_code:68,project:$project,expected_repository:$expected_repository,current_main_sha:$current_main_sha,
+      max_pages:$max_pages,cloudflare_api_called:true,settings_readback_complete:false,
+      deployment_inventory_complete:false,read_only:true,settings_mutated:false,
+      deployment_created:false,deployment_deleted:false,platform_environment:"STAGING",
+      public_release:"HOLD",production:"HOLD",g5:"HOLD"
+    }' > "$RECEIPT_DIR/final.json"
+  cat "$RECEIPT_DIR/final.json"
+  exit 68
+fi
 
 jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
   .success == true and .result.name == $project and .result.source.type == "github" and .result.production_branch == "main"
