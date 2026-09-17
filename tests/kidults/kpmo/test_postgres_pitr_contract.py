@@ -84,6 +84,9 @@ if not command:
 
 sql = " ".join(command.lower().split())
 
+if sql == "select 1":
+    emit("1")
+
 if "json_build_object" in sql and "pg_is_in_recovery" in sql:
     emit(json.dumps({
         "before_count": int(os.environ.get("FAKE_BEFORE_COUNT", "1")),
@@ -203,30 +206,6 @@ if "count(*)" in sql and "pitr_probe" in sql:
     emit("1")
 
 fail(f"fake psql received an unknown query: {command}")
-"""
-
-
-FAKE_PG_ISREADY = r"""#!/usr/bin/env python3
-import os
-import sys
-
-expected = os.environ.get("FAKE_EXPECT_DSN_ENV", "")
-argv = sys.argv[1:]
-dbname_values = []
-for index, argument in enumerate(argv):
-    if argument == "--dbname" and index + 1 < len(argv):
-        dbname_values.append(argv[index + 1])
-    elif argument == "-d" and index + 1 < len(argv):
-        dbname_values.append(argv[index + 1])
-    elif argument.startswith("--dbname="):
-        dbname_values.append(argument.split("=", 1)[1])
-if expected and os.environ.get("PGDATABASE") != expected:
-    print("fake pg_isready expected the DSN in PGDATABASE", file=sys.stderr)
-    raise SystemExit(97)
-if expected and (expected in argv or expected in dbname_values):
-    print("fake pg_isready received the DSN as a process argument", file=sys.stderr)
-    raise SystemExit(97)
-raise SystemExit(0)
 """
 
 
@@ -384,7 +363,6 @@ def _fake_environment(tmp_path: Path, *, mode: str, dsn: str) -> dict[str, str]:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     _write_executable(fake_bin / "psql", FAKE_PSQL)
-    _write_executable(fake_bin / "pg_isready", FAKE_PG_ISREADY)
     _write_executable(fake_bin / "sleep", "#!/usr/bin/env bash\nexit 0\n")
 
     environment = os.environ.copy()
@@ -735,7 +713,6 @@ def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
     fake_bin.mkdir()
     _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
     _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
-    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
     verifier = tmp_path / "failing-verifier.sh"
     _write_executable(verifier, "#!/usr/bin/env bash\nexit 70\n")
     key = tmp_path / "id_ed25519"
@@ -781,6 +758,7 @@ def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
     assert receipt["network_diagnostic"]["mode"] == "READ_ONLY"
     assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
     assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
+    assert receipt["network_diagnostic"]["libpq_readonly_probe"]["state"] == "PASS"
     assert receipt["network_diagnostic"]["remote_mutation_performed"] is False
     assert dsn not in result.stdout
     assert dsn not in result.stderr
@@ -789,12 +767,83 @@ def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
+def test_tunnel_helper_classifies_libpq_admission_failure_without_leak(
+    tmp_path: Path,
+) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(
+        fake_bin / "psql",
+        "#!/usr/bin/env bash\n"
+        "echo 'psql: error: connection to server at secret.db.ondigitalocean.com failed: no pg_hba.conf entry for host 192.0.2.10' >&2\n"
+        "exit 2\n",
+    )
+    verifier_marker = tmp_path / "verifier-ran"
+    verifier = tmp_path / "must-not-run.sh"
+    _write_executable(
+        verifier,
+        f"#!/usr/bin/env bash\nprintf ran > '{verifier_marker}'\nexit 99\n",
+    )
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = (
+        "postgresql://source-user:source-password@"
+        "source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    )
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    probe = receipt["network_diagnostic"]["libpq_readonly_probe"]
+    assert probe == {
+        "classification": "NO_PG_HBA_OR_TRUSTED_SOURCE_ADMISSION",
+        "credential_value_emitted": False,
+        "mutation_performed": False,
+        "return_code": 2,
+        "sql_statement_class": "READ_ONLY_CONSTANT_SELECT",
+        "state": "FAIL",
+    }
+    assert receipt["network_diagnostic"]["root_cause_class"] == (
+        "LIBPQ_NO_PG_HBA_OR_TRUSTED_SOURCE_ADMISSION"
+    )
+    assert not verifier_marker.exists()
+    for secret_value in (
+        dsn,
+        "source-password",
+        "source.db.ondigitalocean.com",
+        "secret.db.ondigitalocean.com",
+        "192.0.2.10",
+    ):
+        assert secret_value not in result.stdout
+        assert secret_value not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
 def test_tunnel_helper_classifies_destination_timeout_before_sql(tmp_path: Path) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
     _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
-    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
     verifier = tmp_path / "must-not-run.sh"
     _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
     key = tmp_path / "id_ed25519"
@@ -844,7 +893,6 @@ def test_tunnel_helper_classifies_postgres_protocol_timeout_before_sql(tmp_path:
     fake_bin.mkdir()
     _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
     _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
-    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
     verifier = tmp_path / "must-not-run.sh"
     _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
     key = tmp_path / "id_ed25519"
@@ -891,7 +939,6 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     fake_bin.mkdir()
     _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
     _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
-    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
 
     verifier = tmp_path / "non-executable-verifier.sh"
     verifier.write_text(
@@ -964,7 +1011,8 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     )
     assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
     assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
-    assert receipt["network_diagnostic"]["root_cause_class"] == "POSTGRES_PROTOCOL_REACHABLE"
+    assert receipt["network_diagnostic"]["libpq_readonly_probe"]["state"] == "PASS"
+    assert receipt["network_diagnostic"]["root_cause_class"] == "LIBPQ_READ_ONLY_QUERY_REACHABLE"
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
@@ -994,7 +1042,7 @@ def test_tunnel_helper_rejects_unapproved_destination_or_tls_mode(
 ) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
-    for command_name in ("ssh", "psql", "pg_isready"):
+    for command_name in ("ssh", "psql"):
         _write_executable(fake_bin / command_name, "#!/usr/bin/env bash\nexit 0\n")
     key = tmp_path / "id_ed25519"
     known_hosts = tmp_path / "known_hosts"

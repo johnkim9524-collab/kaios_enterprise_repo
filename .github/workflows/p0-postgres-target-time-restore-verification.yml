@@ -435,9 +435,7 @@ jobs:
           set -euo pipefail
           expected_client='16.15'
           psql_version="$(psql --version)"
-          pg_isready_version="$(pg_isready --version)"
           grep -Fq " $expected_client" <<<"$psql_version"
-          grep -Fq " $expected_client" <<<"$pg_isready_version"
 
       - name: Execute target-time restore verification through pinned SSH tunnel
         env:
