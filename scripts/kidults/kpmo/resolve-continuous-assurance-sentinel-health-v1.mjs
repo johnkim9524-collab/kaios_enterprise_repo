@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -7,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
 import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
+import {stableHealthJson as stable, sealHealthReceipt as sealReceipt, buildSentinelObservationFailure} from './sentinel-health-receipt-contract-v1.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
 const DIGEST=/^sha256:[0-9a-f]{64}$/;
@@ -18,15 +18,7 @@ const SPECS=[
   {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_run','workflow_dispatch','issues'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
 
-const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
-const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(typeof value==='string'?value:stable(value)).digest('hex')}`;
 const fail=(code)=>{throw new Error(code);};
-
-function sealReceipt(base){
-  const snapshot=JSON.parse(JSON.stringify(base));
-  if(stable(base)!==stable(snapshot))fail('SENTINEL_RECEIPT_NOT_JSON_STABLE');
-  return {...snapshot,receipt_digest:sha256(snapshot)};
-}
 
 const positiveInteger=value=>Number.isSafeInteger(value)&&value>0;
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
@@ -233,6 +225,7 @@ async function liveInput(){
   return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById};
 }
 
+
 function fakeRun(id,spec,sha,{status='completed',conclusion='success',event=spec.events[0],minute=id}={}){return {id,run_attempt:1,repository:{full_name:REPOSITORY},path:spec.path,head_branch:'main',head_sha:sha,event,status,conclusion,created_at:`2026-09-04T00:${String(minute%60).padStart(2,'0')}:00Z`};}
 function fakeArtifact(id,run,name){return {id,name,expired:false,digest:`sha256:${String(id).padStart(64,'0').slice(-64)}`,expires_at:'2026-12-01T00:00:00Z',workflow_run:{id:run.id,head_sha:run.head_sha}};}
 
@@ -254,7 +247,11 @@ async function main(){
   if(process.argv.includes('--self-test'))return selfTest();
   const out=outputPath();if(!out)fail('OUTPUT_REQUIRED');
   try{const result=evaluateHealth(await liveInput());fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
-  catch(error){const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state:'VERIFIED_FAIL',coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',repository:process.env.GITHUB_REPOSITORY||null,observer_run_id:process.env.GITHUB_RUN_ID||null,observer_run_attempt:process.env.GITHUB_RUN_ATTEMPT||null,semantic_content_verified:false,runtime_health_proven:false,source_sha:process.env.GITHUB_SHA||null,observed_at:new Date().toISOString(),failure_class:String(error?.message||error),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};const receipt=sealReceipt(base);if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}console.error(error);process.exitCode=1;}
+  catch(error){
+    const receipt=buildSentinelObservationFailure(error,process.env);
+    if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}
+    console.error(error);process.exitCode=1;
+  }
 }
 
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href;
