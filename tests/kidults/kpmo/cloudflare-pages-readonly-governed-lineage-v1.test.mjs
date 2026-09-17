@@ -59,8 +59,9 @@ const skipped = deployment({
   status:'idle'
 });
 const governed = deployment({id:'governed-target',message});
+const deployments = [skipped,governed];
 const response = url.includes('/deployments')
-  ? {success:true,result:[skipped,governed],result_info:{page:1,per_page:25,total_pages:1}}
+  ? {success:true,result:deployments,result_info:{page:1,per_page:25,count:deployments.length,total_count:deployments.length,total_pages:1}}
   : project;
 process.stdout.write(JSON.stringify(response));
 `;

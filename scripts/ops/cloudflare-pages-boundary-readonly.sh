@@ -42,33 +42,110 @@ API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+failure_state="VERIFIED_FAIL"
+failure_reason="CLOUDFLARE_READBACK_FAILED"
+failure_exit=67
+
+set_failure() {
+  failure_state="$1"
+  failure_reason="$2"
+  failure_exit="$3"
+}
+
 api_get() {
-  curl --fail-with-body --silent --show-error --retry 3 --retry-delay 1 --retry-all-errors \
+  if ! "${CURL_BIN:-curl}" --fail-with-body --silent --show-error --retry 3 --retry-delay 1 --retry-all-errors \
     --connect-timeout 10 --max-time 45 --request GET \
-    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" --header "Accept: application/json" "$1" > "$2"
+    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" --header "Accept: application/json" "$1" > "$2"; then
+    set_failure "BLOCKED_PROVIDER_READBACK_FAILED" "CLOUDFLARE_API_REQUEST_FAILED" 66
+    return 1
+  fi
+}
+
+validate_api_envelope() {
+  local input="$1"
+  if ! jq -e 'type == "object"' "$input" >/dev/null 2>&1; then
+    set_failure "VERIFIED_FAIL" "CLOUDFLARE_RESPONSE_MALFORMED_JSON" 67
+    return 1
+  fi
+  if ! jq -e '.success == true' "$input" >/dev/null; then
+    set_failure "BLOCKED_PROVIDER_READBACK_FAILED" "CLOUDFLARE_API_RESPONSE_UNSUCCESSFUL" 66
+    return 1
+  fi
 }
 
 list_all_deployments() {
-  local output="$1" page=1 total_pages=1 page_file
+  local output="$1" page=1 expected_total_pages= expected_total_count= page_file metadata result_count
   : > "$tmp_dir/deployments.ndjson"
-  while (( page <= total_pages )); do
-    (( page <= MAX_PAGES )) || return 68
+  while [[ -z "$expected_total_pages" || "$page" -le "$expected_total_pages" ]]; do
+    if (( page > MAX_PAGES )); then
+      set_failure "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68
+      return 1
+    fi
     page_file="$tmp_dir/deployments-page-${page}.json"
-    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
-    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
+    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 1
+    validate_api_envelope "$page_file" || return 1
+    if ! jq -e '.result | type == "array"' "$page_file" >/dev/null; then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_DEPLOYMENT_RESULT_INVALID" 67
+      return 1
+    fi
+    if ! metadata="$(jq -er '
+      .result_info as $info
+      | select($info | type == "object")
+      | [$info.page, $info.per_page, $info.count, $info.total_count, $info.total_pages]
+      | select(all(.[]; type == "number" and . >= 0 and floor == .))
+      | @tsv
+    ' "$page_file")"; then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_METADATA_INVALID" 67
+      return 1
+    fi
+    local response_page response_per_page response_count response_total_count response_total_pages
+    IFS=$'\t' read -r response_page response_per_page response_count response_total_count response_total_pages <<< "$metadata"
+    result_count="$(jq '.result | length' "$page_file")"
+    if (( response_page != page || response_per_page != PAGE_SIZE || response_count != result_count || response_total_pages < 1 )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_METADATA_MISMATCH" 67
+      return 1
+    fi
+    if [[ -z "$expected_total_pages" ]]; then
+      expected_total_pages="$response_total_pages"
+      expected_total_count="$response_total_count"
+      if (( expected_total_pages > MAX_PAGES )); then
+        set_failure "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68
+        return 1
+      fi
+    elif (( response_total_pages != expected_total_pages || response_total_count != expected_total_count )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_CHANGED_DURING_READBACK" 67
+      return 1
+    fi
+    if (( page < expected_total_pages && response_count != PAGE_SIZE )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_INCOMPLETE_PAGE" 67
+      return 1
+    fi
     jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson"
-    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
-    (( total_pages <= MAX_PAGES )) || return 68
     page=$((page + 1))
   done
   [[ -s "$tmp_dir/deployments.ndjson" ]] && jq -s '.' "$tmp_dir/deployments.ndjson" > "$output" || printf '[]\n' > "$output"
+  if ! jq -e --argjson expected_total_count "$expected_total_count" '
+    length == $expected_total_count
+    and all(.[]; (.id | type == "string" and length > 0))
+    and ((map(.id) | unique | length) == length)
+  ' "$output" >/dev/null; then
+    set_failure "VERIFIED_FAIL" "CLOUDFLARE_DEPLOYMENT_INVENTORY_INCONSISTENT" 67
+    return 1
+  fi
 }
 
-api_get "$API_ROOT" "$tmp_dir/project.json"
-jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
+if ! api_get "$API_ROOT" "$tmp_dir/project.json"; then
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
+fi
+if ! validate_api_envelope "$tmp_dir/project.json"; then
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
+fi
+if ! jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
   .success == true and .result.name == $project and .result.source.type == "github" and .result.production_branch == "main"
   and (((.result.source.config.owner // "") + "/" + (.result.source.config.repo_name // "")) == $expected_repository)
-' "$tmp_dir/project.json" >/dev/null
+' "$tmp_dir/project.json" >/dev/null; then
+  write_failure_receipt "VERIFIED_FAIL" "CLOUDFLARE_PROJECT_READBACK_MISMATCH" 67 true
+fi
 
 jq --arg expected_repository "$EXPECTED_REPOSITORY" '{
   project:.result.name,project_id:.result.id,production_branch:.result.production_branch,source_type:.result.source.type,
@@ -85,7 +162,7 @@ jq --arg expected_repository "$EXPECTED_REPOSITORY" '{
 }' "$tmp_dir/project.json" > "$RECEIPT_DIR/project-readback.json"
 
 if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
-  write_failure_receipt "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68 true
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
 fi
 
 jq '[.[] | {id,environment,url,aliases:(.aliases // []),created_on,is_skipped:(.is_skipped // false),skip_reason:(.skip_reason // null),
