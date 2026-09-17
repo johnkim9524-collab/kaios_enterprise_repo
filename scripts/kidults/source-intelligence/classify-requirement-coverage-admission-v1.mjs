@@ -22,10 +22,9 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   if (!SHA_RE.test(executionSha ?? '') || !SHA_RE.test(run.head_sha ?? '')) return {...base, reason: 'SHA_INVALID'};
   if (run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return {...base, reason: 'ARL_REPOSITORY_MISMATCH'};
   if (run.path !== ARL_PATH || run.head_branch !== 'main') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
-  if (run.status !== 'completed') return {...base, reason: 'ARL_NOT_TERMINAL'};
+  if (run.status !== 'completed' || run.conclusion !== 'success') return {...base, reason: 'ARL_NOT_SUCCESS'};
   if (run.head_sha !== executionSha) return {...base, reason: 'ARL_NOT_CURRENT_EXECUTION'};
   if (run.event === 'push') {
-    if (run.conclusion !== 'success') return {...base, reason: 'ARL_NOT_SUCCESS'};
     const title = run.display_title ?? run.name ?? '';
     if (title !== `KIDULTS ARL / recovery-${executionSha}` || classification != null) return {...base, reason: 'ARL_RECOVERY_IDENTITY_INVALID'};
     return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: 'ARL_PUSH_RECOVERY_NONAUTHORITATIVE', should_run: false};
@@ -39,11 +38,11 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   const match = /^KIDULTS ARL \/ p1-(\d+)$/.exec(title);
   if (!match || Number(match[1]) !== classification.producer_run_id) return {...base, reason: 'CLASSIFICATION_ARL_LINEAGE_MISMATCH'};
   if (classification.classification === 'CURRENT_MAIN_EXACT') {
-    if (run.conclusion !== 'success' || classification.state !== 'VERIFIED_PASS' || classification.reason !== 'CURRENT_MAIN_PRODUCER_BOUND' || classification.current_main_authority !== true || classification.producer_head_sha !== executionSha || classification.producer_head_branch !== 'main' || classification.producer_workflow_path !== P1_PATH || classification.producer_event !== 'workflow_run' || classification.producer_conclusion !== 'success') return {...base, reason: 'AUTHORITATIVE_CLASSIFICATION_INVALID'};
+    if (classification.state !== 'VERIFIED_PASS' || classification.reason !== 'CURRENT_MAIN_PRODUCER_BOUND' || classification.current_main_authority !== true || classification.producer_head_sha !== executionSha || classification.producer_head_branch !== 'main' || classification.producer_workflow_path !== P1_PATH || classification.producer_event !== 'workflow_run' || classification.producer_conclusion !== 'success') return {...base, reason: 'AUTHORITATIVE_CLASSIFICATION_INVALID'};
     return {...base, state: 'VERIFIED_PASS', admission: 'AUTHORITATIVE_REQUIRED', reason: 'CURRENT_MAIN_ARL_ARTIFACT_REQUIRED', should_run: true};
   }
   if (classification.classification === 'EXPECTED_NONAUTHORITATIVE_SKIP') {
-    if (run.conclusion !== 'failure' || classification.state !== 'VERIFIED_SKIP' || classification.current_main_authority !== false || !['PRODUCER_EVENT_MISMATCH', 'UPSTREAM_NON_SUCCESS', 'STALE_PRIOR_MAIN_TRIGGER'].includes(classification.reason)) return {...base, reason: 'EXPECTED_SKIP_CLASSIFICATION_INVALID'};
+    if (classification.state !== 'VERIFIED_SKIP' || classification.current_main_authority !== false || !['PRODUCER_EVENT_MISMATCH', 'UPSTREAM_NON_SUCCESS', 'STALE_PRIOR_MAIN_TRIGGER'].includes(classification.reason)) return {...base, reason: 'EXPECTED_SKIP_CLASSIFICATION_INVALID'};
     return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: classification.reason, should_run: false};
   }
   return {...base, reason: 'CLASSIFICATION_NOT_ADMISSIBLE'};
