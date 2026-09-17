@@ -102,7 +102,9 @@ const overflowReceipt = JSON.parse(fs.readFileSync(path.join(overflowReceiptDir,
 assert.equal(overflowReceipt.state, 'BLOCKED_INVENTORY_BOUND_EXCEEDED');
 assert.equal(overflowReceipt.reason_code, 'CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED');
 assert.equal(overflowReceipt.cloudflare_api_called, true);
+assert.equal(overflowReceipt.settings_readback_complete, true);
 assert.equal(overflowReceipt.deployment_inventory_complete, false);
+assert.equal(fs.existsSync(path.join(overflowReceiptDir, 'project-readback.json')), true);
 assert.equal(overflowReceipt.read_only, true);
 assert.equal(overflowReceipt.production, 'HOLD');
 

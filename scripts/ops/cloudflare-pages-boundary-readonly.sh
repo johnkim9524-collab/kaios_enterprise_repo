@@ -12,17 +12,19 @@ mkdir -p "$RECEIPT_DIR"
 
 write_failure_receipt() {
   local state="$1" reason_code="$2" exit_code="$3" api_called="${4:-false}"
-  local token_present=false account_id_present=false
+  local token_present=false account_id_present=false settings_readback_complete=false
   [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] && token_present=true
   [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] && account_id_present=true
+  [[ -f "$RECEIPT_DIR/project-readback.json" ]] && settings_readback_complete=true
   jq -n --arg state "$state" --arg reason_code "$reason_code" --arg project "$PROJECT_NAME" \
     --arg expected_repository "$EXPECTED_REPOSITORY" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
     --argjson exit_code "$exit_code" --argjson api_token_present "$token_present" \
-    --argjson account_id_present "$account_id_present" --argjson api_called "$api_called" '{
+    --argjson account_id_present "$account_id_present" --argjson api_called "$api_called" \
+    --argjson settings_readback_complete "$settings_readback_complete" '{
       id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:$state,reason_code:$reason_code,
       exit_code:$exit_code,project:$project,expected_repository:$expected_repository,current_main_sha:$current_main_sha,
       credential_presence:{api_token_present:$api_token_present,account_id_present:$account_id_present},
-      cloudflare_api_called:$api_called,settings_readback_complete:false,deployment_inventory_complete:false,
+      cloudflare_api_called:$api_called,settings_readback_complete:$settings_readback_complete,deployment_inventory_complete:false,
       read_only:true,settings_mutated:false,deployment_created:false,deployment_deleted:false,
       platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
     }' > "$RECEIPT_DIR/final.json"
@@ -63,10 +65,6 @@ list_all_deployments() {
 }
 
 api_get "$API_ROOT" "$tmp_dir/project.json"
-if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
-  write_failure_receipt "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68 true
-fi
-
 jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
   .success == true and .result.name == $project and .result.source.type == "github" and .result.production_branch == "main"
   and (((.result.source.config.owner // "") + "/" + (.result.source.config.repo_name // "")) == $expected_repository)
@@ -85,6 +83,10 @@ jq --arg expected_repository "$EXPECTED_REPOSITORY" '{
   preview_branch_rules_authoritative_only_when_custom:true,
   modified_on:.result.modified_on
 }' "$tmp_dir/project.json" > "$RECEIPT_DIR/project-readback.json"
+
+if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
+  write_failure_receipt "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68 true
+fi
 
 jq '[.[] | {id,environment,url,aliases:(.aliases // []),created_on,is_skipped:(.is_skipped // false),skip_reason:(.skip_reason // null),
   materialized:(((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0))),
