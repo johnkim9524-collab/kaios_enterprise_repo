@@ -9,6 +9,7 @@ const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-o
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
 function assertUnfilteredMainPush(requiredWorkflow, name) {
+  requiredWorkflow = requiredWorkflow.replace(/\r\n/g, '\n');
   const push = requiredWorkflow.match(/^  push:\n([\s\S]*?)(?=^  [a-z_]+:|^permissions:)/m);
   assert.ok(push, `${name} must declare a push trigger`);
   assert.match(push[1], /^    branches:/m, `${name} must bind push to main`);

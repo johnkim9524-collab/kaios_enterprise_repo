@@ -11,7 +11,7 @@ const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'r
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
- const wf=fs.readFileSync(spec.path,'utf8');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
+ const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
 for(const name of ['schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
 
@@ -72,10 +72,12 @@ for(const [name,mutate] of [
  ['missing native repository ID',r=>delete r.repository.id],
 ])test(`native re-read refuses ${name}`,()=>{const p=event(),r=structuredClone(p.workflow_run);mutate(r);assert.throws(()=>validateSentinelTrigger(env,p,r));});
 for(const changes of [{GITHUB_EVENT_NAME:'push'},{GITHUB_REF:'refs/heads/feature'},{GITHUB_SHA:'main'},{GITHUB_REPOSITORY:'other/repo'}])test(`observer environment remains bounded ${JSON.stringify(changes)}`,()=>assert.throws(()=>validateSentinelTrigger({...env,...changes},event())));
-test('event reader rejects symlink, array, corrupt JSON and oversize input',()=>{
+test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-'));try{
   const p=path.join(d,'event.json');fs.writeFileSync(p,JSON.stringify(event()));assert.deepEqual(readSentinelEvent(p),event());
-  const symlink=path.join(d,'link');fs.symlinkSync(p,symlink);assert.throws(()=>readSentinelEvent(symlink));
+  const symlink=path.join(d,'link');
+  try{fs.symlinkSync(p,symlink);assert.throws(()=>readSentinelEvent(symlink));}
+  catch(error){if(error?.code==='EPERM'&&process.platform==='win32')t.diagnostic('Windows symlink privilege unavailable; remaining negative cases still execute');else throw error;}
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });

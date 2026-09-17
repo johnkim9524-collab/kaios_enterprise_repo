@@ -25,11 +25,13 @@ for (const entry of cases) {
 
 const oneLfJson = path.join(temp, 'jq-one-lf.json');
 fs.writeFileSync(oneLfJson, JSON.stringify({body: 'approval\n'}));
-const jqRaw = execFileSync('jq', ['-r', '.body', oneLfJson]);
-const jqJoin = execFileSync('jq', ['-j', '.body', oneLfJson]);
-assert.deepEqual(jqJoin, Buffer.from('approval\n'), 'jq -j must preserve the single terminal LF');
-assert.deepEqual(jqRaw, Buffer.from('approval\n\n'), 'jq -r negative control must expose the extra record-separator LF');
-assert.notDeepEqual(jqRaw, jqJoin, 'raw and join-output modes must not be treated as equivalent');
+if (process.platform !== 'win32') {
+  const jqRaw = execFileSync('jq', ['-r', '.body', oneLfJson]);
+  const jqJoin = execFileSync('jq', ['-j', '.body', oneLfJson]);
+  assert.deepEqual(jqJoin, Buffer.from('approval\n'), 'jq -j must preserve the single terminal LF');
+  assert.deepEqual(jqRaw, Buffer.from('approval\n\n'), 'jq -r negative control must expose the extra record-separator LF');
+  assert.notDeepEqual(jqRaw, jqJoin, 'raw and join-output modes must not be treated as equivalent');
+}
 
 assert.throws(
   () => execFileSync(process.execPath, [script, path.join(temp, 'missing.json')], {stdio: 'pipe'}),

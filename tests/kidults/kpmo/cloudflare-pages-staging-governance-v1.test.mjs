@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+if (process.platform === 'win32') {
+  console.log(JSON.stringify({suite:'KIDULTS_CLOUDFLARE_PAGES_STAGING_GOVERNANCE_V1',state:'CAPABILITY_SKIP',reason:'POSIX_EXECUTABLE_FIXTURE_REQUIRED'}));
+  process.exit(0);
+}
+
 const repoRoot = process.cwd();
 const scripts = {
   readonly: path.join(repoRoot, 'scripts/ops/cloudflare-pages-boundary-readonly.sh'),

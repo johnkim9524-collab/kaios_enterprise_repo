@@ -426,9 +426,13 @@ for (const trigger of ['workflow_dispatch', 'schedule', 'push', 'workflow_run'])
   assert(hasTopLevelTrigger(reserveWorkflow, trigger), `RESERVE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
 }
 assert(reserveWorkflow.includes('KIDULTS ASI Global Any-Site Hourly Pooling v2'), 'RESERVE_MISSING_UPSTREAM_WORKFLOW');
-for (const trigger of ['workflow_dispatch', 'schedule', 'push']) {
-  assert(hasTopLevelTrigger(scaleWorkflow, trigger), `SCALE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
+for (const trigger of ['workflow_dispatch', 'pull_request']) {
+  assert(hasTopLevelTrigger(scaleWorkflow, trigger), `SCALE_MISSING_GOVERNED_TRIGGER:${trigger}`);
 }
+for (const trigger of ['schedule', 'push', 'workflow_run']) {
+  assert(!hasTopLevelTrigger(scaleWorkflow, trigger), `SCALE_AUTOMATIC_PROVIDER_TRIGGER_PRESENT:${trigger}`);
+}
+assert(/source-fabric-scale-pi1:\r?\n    if: github\.event_name == 'workflow_dispatch'/.test(scaleWorkflow), 'SCALE_PROVIDER_JOB_NOT_MANUAL_ONLY');
 
 const requiredAgentMarkers = [
   'Platform constitutional operating principles',

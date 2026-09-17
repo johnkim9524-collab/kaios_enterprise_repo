@@ -7,7 +7,7 @@ const targets = [
 
 const required = [
   "github.sha",
-  "  schedule:",
+  "  workflow_dispatch:",
   "EXACT_EXECUTION_GENERATION",
   "resolve-asi-exact-generation-orchestration-v1.mjs",
   "--mode live",
@@ -38,6 +38,7 @@ const required = [
 ];
 
 const forbidden = [
+  '  schedule:',
   '.workflow_runs[0].id',
   'branch-compatible Self-Driving',
   'github.event.pull_request.base.ref',
@@ -63,7 +64,7 @@ if (process.argv.includes('--self-test')) {
     text => text.replaceAll('--expected-generation-sha "$EXPECTED_GENERATION_SHA"', '--expected-generation-sha "$EXPECTED_BASE_SHA"'),
     text => text.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs'),
     text => text.replace('--trigger-expected "$TRIGGER_EXPECTED"', '--trigger-expected false'),
-    text => text.replace('  schedule:', '  push:'),
+    text => text.replace('  workflow_dispatch:', '  schedule:'),
     text => text.replace('--max-attempts 24', '--max-attempts 240'),
     text => text.replaceAll("if: github.event_name != 'pull_request'", 'if: always()'),
     text => text.replaceAll('--artifact-name kidults-asi-self-driving-cycle-v1', '--artifact-name unbound'),

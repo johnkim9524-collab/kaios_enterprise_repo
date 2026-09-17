@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   acquire-real-unlabeled-vinyl-corpus:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

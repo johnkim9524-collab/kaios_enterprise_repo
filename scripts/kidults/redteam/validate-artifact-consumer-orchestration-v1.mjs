@@ -33,6 +33,8 @@ const runHistory = read(files.runHistory);
 
 const independentTrigger = /^\s{2}(schedule|push):/m;
 const globalArtifactListing = '/actions/artifacts?per_page=';
+const hasP1DispatchAuthority = (text) => text.includes('actions: write') || text.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches');
+const hasHiddenP1RecoveryJob = (text) => text.includes('request-p1-recovery:');
 
 assert(!independentTrigger.test(requirement), 'REQUIREMENT_INDEPENDENT_TRIGGER_FORBIDDEN');
 assert(!/^\s{2}schedule:/m.test(steering), 'STEERING_SCHEDULE_TRIGGER_FORBIDDEN');
@@ -53,8 +55,9 @@ assert(!ownedGraph.includes(globalArtifactListing), 'OWNEDGRAPH_GLOBAL_ARTIFACT_
 assert(ownedGraph.includes('/actions/runs/${P1_RUN_ID}/artifacts'), 'OWNEDGRAPH_EXACT_RUN_ARTIFACT_QUERY_MISSING');
 assert(ownedGraph.includes('P1_SOURCE_SHA="$CURRENT_SHA"') && ownedGraph.includes('test "$P1_SOURCE_SHA" = "$CURRENT_SHA"'), 'OWNEDGRAPH_EXACT_GENERATION_BINDING_MISSING');
 assert(!ownedGraph.includes('git merge-base --is-ancestor "$P1_SOURCE_SHA" "$CURRENT_SHA"'), 'OWNEDGRAPH_ANCESTOR_GENERATION_FALLBACK_FORBIDDEN');
-const ownedGraphConcurrencyContract = "group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.run_id }}";
+const ownedGraphConcurrencyContract = "group: kidults-asi-owned-source-intelligence-graph-v2-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}";
 assert(ownedGraph.includes(ownedGraphConcurrencyContract), 'OWNEDGRAPH_EVENT_SCOPED_CONCURRENCY_MISSING');
+assert(!ownedGraph.includes('pull_request:'), 'OWNEDGRAPH_PR_ARTIFACT_POLLING_TRIGGER_PRESENT');
 const requirementConcurrencyContract = "group: kidults-asi-requirement-adapter-coverage-v1-${{ github.event_name == 'workflow_run' && format('{0}-{1}', github.event.workflow_run.head_sha, 'ASI_AUTONOMOUS_RESOLUTION') || github.run_id }}";
 assert(requirement.includes(requirementConcurrencyContract), 'REQUIREMENT_CANONICAL_SOURCE_CLASS_CONCURRENCY_MISSING');
 assert(requirement.includes('cancel-in-progress: false'), 'REQUIREMENT_CONCURRENCY_SERIALIZATION_MISSING');
@@ -95,8 +98,8 @@ assert(autonomousResolution.includes(autonomousResolutionPrStaticContract), 'AUT
 const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    needs: classify-p1-generation\n    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'";
 assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_SEPARATION_MISSING');
 assert(autonomousResolution.includes('classify-p1-generation:') && autonomousResolution.includes('classify-workflow-run-generation-v1.mjs') && autonomousResolution.includes('CURRENT_MAIN_SHA=$(gh api') && autonomousResolution.includes('kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}') && autonomousResolution.includes("steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'"), 'AUTONOMOUS_RESOLUTION_EXACT_GENERATION_CLASSIFIER_MISSING');
-assert(autonomousResolution.includes('actions: write') && autonomousResolution.includes('/kidults-asi-p1-source-preflight-v1.yml/dispatches'), 'AUTONOMOUS_RESOLUTION_SELF_HEALING_P1_DISPATCH_MISSING');
-assert(autonomousResolution.includes('request-p1-recovery:') && autonomousResolution.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'") && autonomousResolution.includes('downstream_consumable:false') && autonomousResolution.includes('canonical_artifact_published:false'), 'AUTONOMOUS_RESOLUTION_NONCONSUMABLE_RECOVERY_MISSING');
+assert(!hasP1DispatchAuthority(autonomousResolution), 'AUTONOMOUS_RESOLUTION_PROVIDER_DISPATCH_AUTHORITY_PRESENT');
+assert(!hasHiddenP1RecoveryJob(autonomousResolution), 'AUTONOMOUS_RESOLUTION_HIDDEN_RECOVERY_DISPATCH_PRESENT');
 assert(autonomousResolution.includes("group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}") && autonomousResolution.includes('cancel-in-progress: false'), 'AUTONOMOUS_RESOLUTION_SHARED_GENERATION_LEADER_MISSING');
 assert(runHistory.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE') && autonomousResolution.includes("artifact_role:'AUTHORITATIVE_CONSUMABLE'") && autonomousResolution.includes('authoritative_producer:true'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(autonomousResolution.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && autonomousResolution.includes('EXACT_MAIN_P1_ARTIFACT_NOT_AVAILABLE'), 'AUTONOMOUS_RESOLUTION_BOUNDED_P1_ARTIFACT_READBACK_MISSING');
@@ -137,7 +140,7 @@ const p1ConcurrencyContract = "group: kidults-asi-p1-source-preflight-v1-${{ git
 assert(p1.includes(p1ConcurrencyContract), 'P1_EVENT_SCOPED_CONCURRENCY_MISSING');
 assert(p1.includes('cancel-in-progress: true'), 'P1_CONCURRENCY_FAIL_CLOSED_MISSING');
 assert(autonomousResolution.includes("'scripts/kidults/source-intelligence/*requirement-adapter-coverage*.mjs'"), 'REQUIREMENT_PRODUCER_PATH_COVERAGE_MISSING');
-assert(read('.github/workflows/kidults-asi-p1-source-preflight-v1.yml').includes("'scripts/kidults/source-intelligence/*asi-owned-source-intelligence-graph*.mjs'"), 'OWNED_GRAPH_PRODUCER_PATH_COVERAGE_MISSING');
+assert(p1.includes('build-asi-p0b-bounded-discovery-candidates-v1.mjs') && p1.includes('validate-asi-p0b-bounded-discovery-candidates-v1.mjs'), 'P0B_PRODUCER_PATH_COVERAGE_MISSING');
 assert(read('.github/workflows/kidults-asi-p1-source-preflight-v1.yml').includes('/tmp/kidults-asi-p0b-bounded-discovery-candidates-v1'), 'OWNED_GRAPH_P0B_BUNDLE_PRODUCTION_MISSING');
 
 const mutations = [
@@ -191,10 +194,10 @@ const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
   "if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'",
 );
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');
-const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.replaceAll('actions: write', 'actions: read');
-assert(autonomousResolutionRecoveryPermissionMutation !== autonomousResolution && !autonomousResolutionRecoveryPermissionMutation.includes('actions: write'), 'AUTONOMOUS_RESOLUTION_RECOVERY_PERMISSION_MUTATION_NOT_DETECTED');
-const autonomousResolutionRecoveryConsumableMutation = autonomousResolution.replace("artifact_role:'RECOVERY_NON_CONSUMABLE'", "artifact_role:'AUTHORITATIVE_CONSUMABLE'");
-assert(autonomousResolutionRecoveryConsumableMutation !== autonomousResolution && !autonomousResolutionRecoveryConsumableMutation.includes("artifact_role:'RECOVERY_NON_CONSUMABLE'"), 'AUTONOMOUS_RESOLUTION_RECOVERY_CONSUMPTION_MUTATION_NOT_DETECTED');
+const autonomousResolutionRecoveryPermissionMutation = autonomousResolution.replace('actions: read', 'actions: write');
+assert(autonomousResolutionRecoveryPermissionMutation !== autonomousResolution && hasP1DispatchAuthority(autonomousResolutionRecoveryPermissionMutation), 'AUTONOMOUS_RESOLUTION_RECOVERY_PERMISSION_MUTATION_NOT_DETECTED');
+const autonomousResolutionRecoveryJobMutation = autonomousResolution.replace('\njobs:\n', '\njobs:\n  request-p1-recovery:\n');
+assert(autonomousResolutionRecoveryJobMutation !== autonomousResolution && hasHiddenP1RecoveryJob(autonomousResolutionRecoveryJobMutation), 'AUTONOMOUS_RESOLUTION_RECOVERY_JOB_MUTATION_NOT_DETECTED');
 const autonomousResolutionDuplicateMutation = runHistory.replace('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE', 'ARL_DUPLICATE_IGNORED');
 assert(autonomousResolutionDuplicateMutation !== runHistory && !autonomousResolutionDuplicateMutation.includes('ARL_AUTHORITATIVE_PRODUCER_DUPLICATE'), 'AUTONOMOUS_RESOLUTION_DUPLICATE_PRODUCER_MUTATION_NOT_DETECTED');
 const autonomousResolutionArtifactReadbackMutation = autonomousResolution.replace('for ARTIFACT_ATTEMPT in {1..12}; do', 'while true; do');

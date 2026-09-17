@@ -259,6 +259,7 @@ jobs:
       - name: Upload non-deployed SHADOW evidence
         # actions/upload-artifact v4.6.2
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-shadow-operating-evidence-v1
           path: /tmp/asi-shadow-operating-evidence-run-1.json

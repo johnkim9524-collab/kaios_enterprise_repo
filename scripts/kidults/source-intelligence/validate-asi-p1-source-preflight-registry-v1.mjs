@@ -61,6 +61,7 @@ for (const marker of [
   'Reject region-hint-to-coverage mutation', 'Reject Gate 1 HOLD-to-PASS mutation',
   'Reject admission-candidate-to-admitted-evidence mutation', 'Emit KPMO P1 source-preflight receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
+assert(!/^  (schedule|push|pull_request|workflow_run):/m.test(workflow), 'WORKFLOW_AUTOMATIC_PROVIDER_TRIGGER_FORBIDDEN');
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_MUTATION_BOUNDARY');
 
