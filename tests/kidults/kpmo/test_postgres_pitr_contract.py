@@ -242,9 +242,12 @@ args = sys.argv[1:]
 if "-L" not in args:
     sys.stdin.read()
     state = os.environ.get("FAKE_NETWORK_STATE", "CONNECTED")
+    protocol_state = os.environ.get("FAKE_PROTOCOL_STATE", "RESPONDED" if state == "CONNECTED" else "NOT_ATTEMPTED")
     root = os.environ.get(
         "FAKE_NETWORK_ROOT_CAUSE",
-        "NETWORK_PATH_REACHABLE" if state == "CONNECTED" else "DESTINATION_SPECIFIC_TIMEOUT",
+        ("POSTGRES_PROTOCOL_REACHABLE" if protocol_state == "RESPONDED"
+         else "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT" if state == "CONNECTED"
+         else "DESTINATION_SPECIFIC_TIMEOUT"),
     )
     result = "CONNECTED" if state == "CONNECTED" else state
     print(json.dumps({
@@ -268,6 +271,15 @@ if "-L" not in args:
                 "address_digest": "sha256:" + "2" * 64,
                 "result": result,
             }],
+        },
+        "postgres_ssl_request": {
+            "state": protocol_state,
+            "attempts": ([{
+                "family": "IPv4",
+                "address_class": "GLOBAL",
+                "address_digest": "sha256:" + "2" * 64,
+                "result": "SSL_SUPPORTED" if protocol_state == "RESPONDED" else protocol_state,
+            }] if state == "CONNECTED" else []),
         },
         "routing": {
             "ipv4_default_route_present": True,
@@ -768,6 +780,7 @@ def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
     assert receipt["run_attempt"] == 2
     assert receipt["network_diagnostic"]["mode"] == "READ_ONLY"
     assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
+    assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
     assert receipt["network_diagnostic"]["remote_mutation_performed"] is False
     assert dsn not in result.stdout
     assert dsn not in result.stderr
@@ -816,8 +829,56 @@ def test_tunnel_helper_classifies_destination_timeout_before_sql(tmp_path: Path)
     assert receipt["failure_class"] == "POSTGRES_CONNECTION"
     assert diagnostic["dns"]["state"] == "RESOLVED"
     assert diagnostic["tcp_25060"]["state"] == "TIMEOUT"
+    assert diagnostic["postgres_ssl_request"]["state"] == "NOT_ATTEMPTED"
     assert diagnostic["root_cause_class"] == "DESTINATION_SPECIFIC_TIMEOUT"
     assert diagnostic["routing"]["digitalocean_control_plane_443"] == "CONNECTED"
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
+def test_tunnel_helper_classifies_postgres_protocol_timeout_before_sql(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "must-not-run.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "FAKE_PROTOCOL_STATE": "TIMEOUT",
+        "FAKE_NETWORK_ROOT_CAUSE": "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    diagnostic = receipt["network_diagnostic"]
+    assert diagnostic["tcp_25060"]["state"] == "CONNECTED"
+    assert diagnostic["postgres_ssl_request"]["state"] == "TIMEOUT"
+    assert diagnostic["root_cause_class"] == "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT"
     assert dsn not in result.stdout
     assert dsn not in result.stderr
     assert "source.db.ondigitalocean.com" not in result.stdout
@@ -902,7 +963,8 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
         "DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT"
     )
     assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
-    assert receipt["network_diagnostic"]["root_cause_class"] == "NETWORK_PATH_REACHABLE"
+    assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
+    assert receipt["network_diagnostic"]["root_cause_class"] == "POSTGRES_PROTOCOL_REACHABLE"
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
