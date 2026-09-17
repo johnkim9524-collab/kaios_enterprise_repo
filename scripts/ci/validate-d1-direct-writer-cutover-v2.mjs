@@ -2,8 +2,9 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(new URL('../..', import.meta.url).pathname);
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SERVICE_ROOT = path.join(ROOT, 'services/kidults-autonomous-intelligence/src');
 const APPROVED_PROJECTOR_BOUNDARY = 'services/kidults-autonomous-intelligence/src/d1-projector-write-boundary.ts';
 const EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.tsx']);
