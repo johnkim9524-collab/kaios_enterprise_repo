@@ -181,7 +181,7 @@ jobs:
           POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '90'
         run: node scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs
 
-      - name: Fail closed on required post-merge workflow failures
+      - name: Fail closed on unclassified required post-merge workflow failures
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -192,7 +192,13 @@ jobs:
           if (receipt.post_merge_push_suite_consumed !== true || proof?.state !== 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE' || proof?.all_required_terminal !== true) {
             throw new Error('DIRECT_OWNER_POSTMERGE_SUITE_NOT_CONSUMED');
           }
-          if (proof.all_required_success !== true) {
+          const assurance = proof.required_workflows?.find(run =>
+            run.path === '.github/workflows/kidults-platform-continuous-assurance-v1.yml');
+          const classifiedAssuranceHold = proof.required_failure_count === 1 &&
+            assurance?.conclusion === 'failure' &&
+            proof.assurance_semantic_classification?.state === 'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED' &&
+            proof.assurance_semantic_classification?.producer_health_authority === false;
+          if (proof.all_required_success !== true && !classifiedAssuranceHold) {
             const failed = {
               ...receipt,
               state: 'VERIFIED_FAIL',
@@ -207,7 +213,13 @@ jobs:
             fs.chmodSync(receiptPath, 0o600);
             throw new Error('DIRECT_OWNER_POSTMERGE_REQUIRED_WORKFLOW_FAILURE');
           }
-          console.log(JSON.stringify({state:'VERIFIED_PASS', post_merge_push_suite_consumed:true, all_required_success:true}));
+          console.log(JSON.stringify({
+            state:'VERIFIED_PASS',
+            post_merge_push_suite_consumed:true,
+            all_required_success:proof.all_required_success === true,
+            classified_assurance_hold_accepted_as_landing_evidence:classifiedAssuranceHold,
+            promotion_eligible:false,
+          }));
           NODE
 
       - name: Upload bounded direct-owner handoff receipt
