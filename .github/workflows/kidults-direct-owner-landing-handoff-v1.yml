@@ -192,10 +192,9 @@ jobs:
           if (receipt.post_merge_push_suite_consumed !== true || proof?.state !== 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE' || proof?.all_required_terminal !== true) {
             throw new Error('DIRECT_OWNER_POSTMERGE_SUITE_NOT_CONSUMED');
           }
-          const assurance = proof.required_workflows?.find(run =>
-            run.path === '.github/workflows/kidults-platform-continuous-assurance-v1.yml');
           const classifiedAssuranceHold = proof.required_failure_count === 1 &&
-            assurance?.conclusion === 'failure' &&
+            proof.required_workflows?.some(run => run.path === '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+              && run.conclusion === 'failure') === true &&
             proof.assurance_semantic_classification?.state === 'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED' &&
             proof.assurance_semantic_classification?.producer_health_authority === false;
           if (proof.all_required_success !== true && !classifiedAssuranceHold) {
