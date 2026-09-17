@@ -208,6 +208,11 @@ test('terminal Handoff consumption is followed by exact merge-SHA push-suite con
   assert.ok(handoffIndex >= 0 && handoffIndex < consumeIndex && consumeIndex < uploadIndex);
   assert.match(workflow, /POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination\/kidults\/kpmo\/direct-owner-postmerge-push-suite-policy-v1\.json/);
   assert.match(workflow, /POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '90'/);
+  assert.match(workflow, /id: handoff/);
+  assert.match(workflow, /ref: \$\{\{ steps\.handoff\.outputs\.merge_sha \}\}/);
+  assert.match(workflow, /clean: false/);
+  assert.match(workflow, /Verify exact landed implementation and retained handoff receipt/);
+  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$MERGE_SHA"/);
   assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
 });
 
