@@ -363,7 +363,7 @@ test('all registered secret-bearing jobs reject unreadable, stale, and non-main 
   ];
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
-    const source = fs.readFileSync(lane.workflow, 'utf8');
+    const source = fs.readFileSync(lane.workflow, 'utf8').replace(/\r\n/g, '\n');
     for (const [id, before, after] of mutations) {
       const mutatedSource = replaceInLiveMainGuard(source, before, after);
       const failures = validateRequiredEnvironmentBindings(
@@ -388,14 +388,15 @@ test('all registered secret-bearing jobs reject secret scope and guard order mut
     const secretExpression = '$' + '{{ secrets.MUTATED_SCOPE_SECRET }}';
 
     const workflowScoped = source.replace(
-      '\njobs:\n',
-      `\nenv:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:\n`
+      /^jobs:\s*$/m,
+      `env:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:`
     );
     let failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, lane.workflow, workflowScoped),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('WORKFLOW_SCOPE_PROVIDER_SECRET:')));
+    assert.ok(failures.some((failure) => failure.startsWith('WORKFLOW_SCOPE_PROVIDER_SECRET:')),
+      `${lane.workflow} accepted workflow-scoped secret: ${failures.join(',')}`);
     rejected += 1;
 
     const jobScoped = injectJobScopeSecret(source, job.job);

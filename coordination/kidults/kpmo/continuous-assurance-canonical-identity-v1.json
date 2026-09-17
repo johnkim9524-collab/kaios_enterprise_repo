@@ -44,8 +44,7 @@
   },
   "expected_workflow_run_skip_paths": [
     ".github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml",
-    ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml",
-    ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml"
+    ".github/workflows/kidults-asi-p0-mission-consumption-v1.yml"
   ],
   "workflow_run_class_allowlist": [
     {

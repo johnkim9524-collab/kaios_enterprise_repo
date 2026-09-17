@@ -3,27 +3,27 @@ import test from 'node:test';
 import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot } from '../src/psa-private-evaluation-store.mjs';
-import { deleteExpiredPsaEvaluations } from '../src/psa-private-evaluation.mjs';
+import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot, deleteExpiredPsaEvaluations } from '../src/psa-cert-verification-adapter.mjs';
 
 const hash = char => `sha256:${char.repeat(64)}`;
+const syntheticCert = '9'.repeat(8);
 
 test('file store encrypts raw PSA payload and emits verified deletion audit', async () => {
   const root = await mkdtemp(join(tmpdir(), 'kidults-psa-private-'));
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 7), now: () => new Date('2026-08-28T00:00:00Z') });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895', CardGrade: '10' } },
+      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: syntheticCert, CardGrade: '10' } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const recordText = await readFile(join(root, handle.slice('psa-private-file:'.length)), 'utf8');
-    assert(!recordText.includes('08178895'));
+    assert(!recordText.includes(syntheticCert));
     assert(!recordText.includes('CardGrade'));
     const receipt = await deleteExpiredPsaEvaluations({ privateStore: store, now: '2026-09-27T00:00:00Z' });
     assert.equal(receipt.deleted_count, 1);
     const audit = await readFile(join(root, 'audit.jsonl'), 'utf8');
     assert(audit.includes('"deletion_verified":true'));
-    assert(!audit.includes('08178895'));
+    assert(!audit.includes(syntheticCert));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -47,7 +47,7 @@ test('file store rejects tampered deletion metadata and preserves the record', a
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 5) });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895' } },
+      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: syntheticCert } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const path = join(root, handle.slice('psa-private-file:'.length));
@@ -61,13 +61,20 @@ test('file store rejects tampered deletion metadata and preserves the record', a
   }
 });
 
-test('runtime root validation rejects a symlink into the forbidden repository tree', async () => {
+test('runtime root validation rejects a symlink into the forbidden repository tree', async t => {
   const base = await mkdtemp(join(tmpdir(), 'kidults-psa-private-root-'));
   try {
     const repository = join(base, 'repository');
     const link = join(base, 'private-link');
     await mkdir(repository);
-    await symlink(repository, link, 'dir');
+    try { await symlink(repository, link, 'dir'); }
+    catch (error) {
+      if (error?.code === 'EPERM' && process.platform === 'win32') {
+        t.skip('Windows symlink privilege unavailable');
+        return;
+      }
+      throw error;
+    }
     await assert.rejects(() => resolvePsaPrivateStoreRoot({ rootDir: link, forbiddenRoot: repository }), /ROOT_OVERLAP_FORBIDDEN/);
   } finally {
     await rm(base, { recursive: true, force: true });
@@ -79,7 +86,7 @@ test('late retention run deletes overdue raw data and records the deadline breac
   try {
     const store = createPsaPrivateFileStore({ rootDir: root, key: Buffer.alloc(32, 6) });
     const handle = await store.put({
-      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: '08178895' } },
+      providerId: 'psa-public-api', certReferenceDigest: hash('c'), payload: { PSACert: { CertNumber: syntheticCert } },
       acquiredAt: '2026-08-28T00:00:00Z', deleteBy: '2026-09-27T00:00:00Z', rawDigest: hash('d')
     });
     const path = join(root, handle.slice('psa-private-file:'.length));

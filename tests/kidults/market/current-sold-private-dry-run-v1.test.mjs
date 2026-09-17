@@ -109,7 +109,7 @@ test('private candidate evaluation time cannot be caller-backdated', () => {
   );
 });
 
-test('control receipt file is created exclusively with mode 0600', async () => {
+test('control receipt file is created exclusively with mode 0600', { skip: process.platform === 'win32' ? 'Windows does not expose enforceable POSIX mode bits' : false }, async () => {
   const input = valid();
   const registry = receiptRegistryFor(input);
   const receipt = buildCurrentSoldDryRunReceipt(batchEnvelope([input]), registry, {
@@ -128,7 +128,7 @@ test('control receipt file is created exclusively with mode 0600', async () => {
   );
 });
 
-test('private candidate input must remain inside a 0700 mount as an exact 0600 file', async () => {
+test('private candidate input must remain inside a 0700 mount as an exact 0600 file', { skip: process.platform === 'win32' ? 'Windows does not expose enforceable POSIX mode bits' : false }, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-private-root-'));
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-outside-'));
   const insideFile = path.join(root, 'input.json');
@@ -163,12 +163,20 @@ test('private candidate input must remain inside a 0700 mount as an exact 0600 f
   );
 });
 
-test('private candidate input rejects a symlinked parent escape', async () => {
+test('private candidate input rejects a symlinked parent escape', async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-private-link-root-'));
   const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-private-link-outside-'));
   const outsideFile = path.join(outside, 'input.json');
   fs.writeFileSync(outsideFile, '{}', { mode: 0o600 });
-  fs.symlinkSync(outside, path.join(root, 'escape'));
+  try {
+    fs.symlinkSync(outside, path.join(root, 'escape'));
+  } catch (error) {
+    if (error?.code === 'EPERM' && process.platform === 'win32') {
+      t.skip('Windows symlink privilege unavailable');
+      return;
+    }
+    throw error;
+  }
   await assert.rejects(
     () => validateCurrentSoldDryRunInputPath(path.join(root, 'escape', 'input.json'), {
       executionClass: 'EMPIRICAL_CANDIDATE_PRIVATE',
@@ -178,7 +186,7 @@ test('private candidate input rejects a symlinked parent escape', async () => {
   );
 });
 
-test('private candidate output requires an existing 0700 directory inside the private mount', async () => {
+test('private candidate output requires an existing 0700 directory inside the private mount', { skip: process.platform === 'win32' ? 'Windows does not expose enforceable POSIX mode bits' : false }, async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'current-sold-private-output-root-'));
   const receipts = path.join(root, 'receipts');
   fs.mkdirSync(receipts, { mode: 0o700 });

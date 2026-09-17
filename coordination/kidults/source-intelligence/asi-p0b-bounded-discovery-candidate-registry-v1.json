@@ -37,10 +37,11 @@
     "KPMO_RECEIPT_AND_ARTIFACT"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "37 * * * *",
-    "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "provider_execution_enabled": false,
+    "main_push": false,
+    "schedule": null,
+    "upstream_workflow": null,
+    "manual_dispatch_role": "EXPLICIT_AUTHORIZED_EXECUTION_ONLY"
   },
   "next_stage": {
     "id": "P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT",

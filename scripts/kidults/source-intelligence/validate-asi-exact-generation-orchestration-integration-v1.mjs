@@ -11,13 +11,6 @@ const workflows = [
 const resolver = 'scripts/kidults/source-intelligence/resolve-asi-exact-generation-orchestration-v1.mjs';
 const resolverTest = 'tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs';
 const frontierTest = 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs';
-const scheduleByWorkflow = new Map([
-  [workflows[0], "- cron: '5 * * * *'"],
-  [workflows[1], "- cron: '2 * * * *'"],
-  [workflows[2], "- cron: '9 * * * *'"],
-  [workflows[3], "- cron: '7 * * * *'"],
-]);
-
 function stepBlocks(text) {
   return text.split(/(?=^      - (?:name:|uses:))/m).filter((block) => /^      - (?:name:|uses:)/m.test(block));
 }
@@ -35,7 +28,7 @@ export function violations(text, workflow) {
     '--expected-generation-sha "$EXPECTED_GENERATION_SHA"',
     '--trigger-expected false',
     '--trigger-expected "$TRIGGER_EXPECTED"',
-    "TRIGGER_EXPECTED: ${{ github.event_name == 'schedule' && 'true' || 'false' }}",
+    "TRIGGER_EXPECTED: 'false'",
     '--max-attempts 24 \\',
     '--poll-milliseconds 10000',
     'VERIFIED_PASS_LOCAL_FIXTURE',
@@ -50,8 +43,9 @@ export function violations(text, workflow) {
     'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
   ];
   for (const marker of required) if (!text.includes(marker)) failures.push(`MISSING:${workflow}:${marker}`);
-  const schedule = scheduleByWorkflow.get(workflow);
-  if (!text.includes(schedule)) failures.push(`PRODUCER_SCHEDULE_MISSING:${workflow}:${schedule}`);
+  if (!/^  workflow_dispatch:\s*$/m.test(text)) failures.push(`MANUAL_TRIGGER_MISSING:${workflow}`);
+  if (!/^  pull_request:\s*$/m.test(text)) failures.push(`PR_VALIDATION_TRIGGER_MISSING:${workflow}`);
+  if (/^  (?:schedule|push|workflow_run):/m.test(text)) failures.push(`AUTOMATIC_PROVIDER_TRIGGER_PRESENT:${workflow}`);
   const blocks = stepBlocks(text);
   const fixture = blocks.find((block) => block.includes('Validate PR fixture orchestration without provider requests'));
   if (!fixture || !fixture.includes("if: github.event_name == 'pull_request'")) failures.push(`PR_FIXTURE_STEP_INVALID:${workflow}`);
@@ -117,7 +111,7 @@ if (process.argv.includes('--self-test')) {
     (text) => text.replaceAll(resolver, 'scripts/unbound-resolver.mjs'),
     (text) => text.replace('--mode pr-fixture', '--mode live'),
     (text) => text.replace('--trigger-expected false', '--trigger-expected "$TRIGGER_EXPECTED"'),
-    (text) => text.replace("- cron: '5 * * * *'", "- cron: '5 1 1 1 *'"),
+    (text) => text.replace('  workflow_dispatch:', "  schedule:\n    - cron: '5 * * * *'\n  workflow_dispatch:"),
     (text) => text.replace('--max-attempts 24', '--max-attempts 240'),
     (text) => text.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound'),
     (text) => text.replaceAll('--expected-base-sha "$EXPECTED_BASE_SHA"', '--expected-base-sha unbound'),

@@ -218,9 +218,10 @@ for(const marker of [
 ]){
   assert(meshWorkflow.includes(marker),`MESH_WORKFLOW_MISSING:${marker}`);
 }
-for(const marker of ['workflow_dispatch:','schedule:','push:']){
-  assert(scaleWorkflow.includes(marker),`SCALE_WORKFLOW_AUTONOMY:${marker}`);
-}
+assert(scaleWorkflow.includes('workflow_dispatch:'),'SCALE_WORKFLOW_EXPLICIT_AUTHORITY_TRIGGER_MISSING');
+assert(scaleWorkflow.includes('pull_request:'),'SCALE_WORKFLOW_VALIDATION_TRIGGER_MISSING');
+assert(!/^  (?:schedule|push|workflow_run):/m.test(scaleWorkflow),'SCALE_WORKFLOW_AUTOMATIC_PROVIDER_TRIGGER_PRESENT');
+assert(/source-fabric-scale-pi1:\r?\n    if: github\.event_name == 'workflow_dispatch'/.test(scaleWorkflow),'SCALE_WORKFLOW_PROVIDER_JOB_NOT_MANUAL_ONLY');
 for(const marker of ['autonomous_effect','global_effect','irreplaceable_value_effect','transparency_effect']){
   assert(scaleWorkflow.includes(marker),`SCALE_RECEIPT_MISSING:${marker}`);
 }

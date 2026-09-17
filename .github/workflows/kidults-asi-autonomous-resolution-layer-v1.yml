@@ -2,9 +2,6 @@ name: KIDULTS ASI Autonomous Resolution Layer v1
 run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || format('recovery-{0}', github.sha) }}
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '22 * * * *'
   push:
     branches: [main]
     paths:
@@ -128,64 +125,6 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-orchestration-run-history-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
-
-  request-p1-recovery:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    permissions:
-      contents: read
-      actions: write
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - name: Defer canonical publication to exact P1 workflow-run leader
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          test "$GITHUB_REF" = refs/heads/main
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs" \
-            > /tmp/p1-recovery-leadership-runs.json
-          ACTIVE_P1_RUN_ID=$(jq -r --arg sha "$GITHUB_SHA" \
-            '[.workflow_runs[] | select(.name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .head_branch=="main" and .head_sha==$sha and (.status=="queued" or .status=="in_progress" or .status=="waiting" or .status=="pending"))] | sort_by(.created_at) | reverse | .[0].id // empty' \
-            /tmp/p1-recovery-leadership-runs.json)
-          RECOVERY_DISPATCHED=false
-          if [ -z "$ACTIVE_P1_RUN_ID" ]; then
-            gh api --method POST -H 'Accept: application/vnd.github+json' \
-              -f ref=main \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/dispatches"
-            RECOVERY_DISPATCHED=true
-          fi
-          ACTIVE_P1_RUN_ID="$ACTIVE_P1_RUN_ID" RECOVERY_DISPATCHED="$RECOVERY_DISPATCHED" node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-recovery-v1.json
-          process.stdout.write(JSON.stringify({
-            id:'kidults-asi-autonomous-resolution-recovery-receipt-v1',
-            version:'1.0.0',
-            state:'DEFERRED_TO_WORKFLOW_RUN_PRODUCER',
-            source_sha:process.env.GITHUB_SHA,
-            recovery_request_run_id:Number(process.env.GITHUB_RUN_ID),
-            active_p1_run_id:process.env.ACTIVE_P1_RUN_ID?Number(process.env.ACTIVE_P1_RUN_ID):null,
-            recovery_dispatch_performed:process.env.RECOVERY_DISPATCHED==='true',
-            artifact_role:'RECOVERY_NON_CONSUMABLE',
-            authoritative_producer:false,
-            downstream_consumable:false,
-            canonical_artifact_published:false,
-            exact_generation_leader:'WORKFLOW_RUN_BOUND_TO_P1_RUN_ID',
-            production:'HOLD',public_release:'HOLD',g5:'HOLD'
-          },null,2)+'\n');
-          NODE
-          cat /tmp/kidults-asi-autonomous-resolution-recovery-v1.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: kidults-asi-autonomous-resolution-recovery-v1-${{ github.run_id }}
-          path: /tmp/kidults-asi-autonomous-resolution-recovery-v1.json
-          retention-days: 30
-          if-no-files-found: error
-
 
   classify-p1-generation:
     if: github.event_name == 'workflow_run'

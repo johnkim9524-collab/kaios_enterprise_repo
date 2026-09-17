@@ -8,6 +8,9 @@ import { evaluateKirRuntime, loadKirRuntime } from './kir-runtime-kernel-v1.mjs'
 import { canonicalJsonDigest } from '../market/current-sold-batch-v1.mjs';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const fail = code => { throw new Error(code); };
+const privateDirectoryMetadata = stat => process.platform === 'win32' || (
+  (stat.mode & 0o777) === 0o700 && typeof process.getuid === 'function' && stat.uid === process.getuid()
+);
 
 export function inspectKirReadinessEvidence(input) {
   if (!input || Object.getPrototypeOf(input) !== Object.prototype ||
@@ -17,7 +20,7 @@ export function inspectKirReadinessEvidence(input) {
   const directory = input.evidenceDirectory;
   if (typeof directory !== 'string' || !path.isAbsolute(directory)) fail('KIR_READINESS_DIRECTORY');
   const stat = fs.lstatSync(directory);
-  if (!stat.isDirectory() || stat.isSymbolicLink() || (stat.mode & 0o777) !== 0o700 || stat.uid !== process.getuid()) fail('KIR_READINESS_PRIVATE_DIRECTORY');
+  if (!stat.isDirectory() || stat.isSymbolicLink() || !privateDirectoryMetadata(stat)) fail('KIR_READINESS_PRIVATE_DIRECTORY');
   if (fs.realpathSync(directory) !== directory) fail('KIR_READINESS_DIRECTORY_ALIAS');
   const result = spawnSync(process.execPath, [
     path.join(ROOT,'scripts/production/validate-kidults-production-release-v1.mjs'), 'technical',

@@ -37,6 +37,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   feedback-cycle:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:

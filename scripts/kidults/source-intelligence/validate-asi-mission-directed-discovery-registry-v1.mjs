@@ -84,18 +84,15 @@ for (const [key, expected] of Object.entries({
   human_readme: files.doc
 })) assert(registry.registered_assets?.[key] === expected, `REGISTRY_PATH:${key}`);
 
-assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
-assert(registry.automatic_activation?.schedule === '37 * * * *', 'REGISTRY_SCHEDULE');
-assert(registry.automatic_activation?.upstream_workflows?.includes('KIDULTS ASI Mission Consumption v1'), 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.provider_execution_enabled === false, 'REGISTRY_PROVIDER_EXECUTION');
+assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH');
+assert(registry.automatic_activation?.schedule === null, 'REGISTRY_SCHEDULE');
+assert(registry.automatic_activation?.upstream_workflows?.length === 0, 'REGISTRY_UPSTREAM');
+assert(registry.automatic_activation?.manual_dispatch_role === 'EXPLICIT_AUTHORIZED_EXECUTION_ONLY', 'REGISTRY_MANUAL_ROLE');
 
 for (const marker of [
   'workflow_dispatch:',
-  'schedule:',
-  "cron: '37 * * * *'",
-  'push:',
-  'workflow_run:',
-  "'KIDULTS ASI Mission Consumption v1'",
+  "if: github.event_name == 'workflow_dispatch'",
   'Restore prior rolling discovery cursor',
   'Execute bounded live mission-directed discovery',
   'Primary discovery failed or produced no candidates; executing bounded fail-soft fallback.',
@@ -184,7 +181,8 @@ console.log(JSON.stringify({
   fail_soft_fallback_registered: true,
   rolling_batch_size: registry.rolling_state.batch_size,
   intent_count_at_activation: registry.rolling_state.intent_count_at_activation,
-  automatic_main_push: true,
+  provider_execution_enabled: false,
+  automatic_main_push: false,
   automatic_schedule: registry.automatic_activation.schedule,
   automatic_upstream_workflows: registry.automatic_activation.upstream_workflows.length,
   metadata_gate_chain_implemented: true,

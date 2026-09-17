@@ -1,5 +1,20 @@
 import { createHash } from 'node:crypto';
 
+export {
+  stagePsaPrivateEvaluation,
+  deleteExpiredPsaEvaluations,
+  psaPrivateEvaluationInternals,
+} from './psa-private-evaluation.mjs';
+export {
+  PSA_ALLOWED_PAYLOAD_FIELDS,
+  buildPrivatePsaRecord,
+  buildPrivatePsaRecordFromDigest,
+  decryptPrivatePsaRecord,
+  buildDeletionReceipt,
+  resolvePsaPrivateStoreRoot,
+  createPsaPrivateFileStore,
+} from './psa-private-evaluation-store.mjs';
+
 const MAX_PROBES = 3;
 const MAX_PROVIDER_CALLS = 3;
 const MAX_RETRIES_PER_CERT = 2;

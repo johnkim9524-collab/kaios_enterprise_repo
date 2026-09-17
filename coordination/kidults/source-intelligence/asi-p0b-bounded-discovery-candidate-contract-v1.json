@@ -60,10 +60,11 @@
     "empirical_increment_manifest": true
   },
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "37 * * * *",
-    "upstream_workflow": "KIDULTS ASI P0 Mission Consumption v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "provider_execution_enabled": false,
+    "main_push": false,
+    "schedule": null,
+    "upstream_workflow": null,
+    "manual_dispatch_role": "EXPLICIT_AUTHORIZED_EXECUTION_ONLY"
   },
   "truth_boundary": {
     "executes_bounded_public_metadata_network_discovery": true,

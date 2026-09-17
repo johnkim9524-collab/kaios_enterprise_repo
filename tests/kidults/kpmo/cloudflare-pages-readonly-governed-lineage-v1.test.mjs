@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+if (process.platform === 'win32') {
+  console.log(JSON.stringify({suite:'KIDULTS_CLOUDFLARE_PAGES_READONLY_GOVERNED_LINEAGE_V1',state:'CAPABILITY_SKIP',reason:'POSIX_EXECUTABLE_FIXTURE_REQUIRED'}));
+  process.exit(0);
+}
+
 const repoRoot = process.cwd();
 const script = path.join(repoRoot, 'scripts/ops/cloudflare-pages-boundary-readonly.sh');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cf-readonly-lineage-'));

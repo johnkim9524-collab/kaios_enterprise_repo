@@ -2,24 +2,6 @@ name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '37 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json'
-      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
-      - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
-      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
   pull_request:
     branches: [main]
     paths:
@@ -36,24 +18,19 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI P0 Mission Consumption v1'
-    branches: [main]
-    types: [completed]
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  # Distinct upstream completions and schedules must not share a cancellation namespace.
-  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  # Validation and explicitly authorized execution are isolated by run.
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
   bounded-discovery-candidates:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -194,18 +171,6 @@ jobs:
             echo 'Validator accepted unsupported market claim' >&2
             exit 1
           fi
-      - name: Reject manual-only activation mutation
-        run: |
-          set -euo pipefail
-          cp coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json /tmp/p0b-registry.json
-          node - <<'NODE'
-          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; then
-            echo 'Validator accepted manual-only P0B activation' >&2
-            exit 1
-          fi
-          mv /tmp/p0b-registry.json coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json
       - name: Revalidate pristine P0B execution
         run: |
           set -euo pipefail

@@ -9,6 +9,18 @@
     "evaluator",
     "snapshot"
   ],
+  "psa_recovery_authority": {
+    "provider_execution": "DISABLED",
+    "state_engine": "scripts/kidults/runtime/kir/state-machine-v1.mjs",
+    "runtime": "scripts/kidults/runtime/kir-runtime-kernel-v1.mjs",
+    "controller": "scripts/kidults/runtime/kir/evaluator-v1.mjs",
+    "receipt": "scripts/kidults/runtime/kir/evaluator-v1.mjs",
+    "truth": "scripts/kidults/runtime/kir/snapshot-v1.mjs",
+    "workflow": ".github/workflows/kidults-psa-live-execution-control-v1.yml",
+    "adapter": "services/kidults-control-plane/src/psa-cert-verification-adapter.mjs",
+    "projection_role": "READ_ONLY",
+    "automatic_provider_dispatch": false
+  },
   "modules": [
     {
       "id": "constants",

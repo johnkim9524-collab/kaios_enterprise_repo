@@ -167,3 +167,16 @@ test('HOLD or authority relaxation in architecture policy fails closed', () => {
     assert.throws(() => validate(loaded), /KIR_ARCH_(RELEASE_HOLD|AUTHORITY_POLICY)/);
   }
 });
+
+test('PSA cannot regain a duplicate runtime, state engine, adapter, or automatic dispatch', () => {
+  for (const mutate of [
+    policy => { policy.psa_recovery_authority.runtime = 'duplicate-runtime.mjs'; },
+    policy => { policy.psa_recovery_authority.state_engine = 'duplicate-state.mjs'; },
+    policy => { policy.psa_recovery_authority.adapter = 'duplicate-adapter.mjs'; },
+    policy => { policy.psa_recovery_authority.automatic_provider_dispatch = true; },
+  ]) {
+    const loaded = fresh();
+    mutate(loaded.policy);
+    assert.throws(() => validate(loaded), /KIR_ARCH_PSA_SINGLE_AUTHORITY_DRIFT/);
+  }
+});

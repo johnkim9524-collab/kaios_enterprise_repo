@@ -1,16 +1,6 @@
 name: KIDULTS Autonomous Getty Provenance Sale Sample
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/getty-provenance-sale-r1.json"
-      - "scripts/kidults/autonomous/collect-getty-provenance-sale-sample.mjs"
-      - "scripts/kidults/autonomous/validate-getty-provenance-sale-sample.mjs"
-      - ".github/workflows/kidults-autonomous-getty-sale-sample.yml"
-  schedule:
-    - cron: "40 23 * * 2,5"
   workflow_dispatch:
 
 permissions:
