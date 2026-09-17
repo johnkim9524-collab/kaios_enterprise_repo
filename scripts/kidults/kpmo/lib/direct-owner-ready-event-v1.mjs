@@ -37,7 +37,7 @@ const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner, lates
       entry.id < closeEntry.id
       && (entry.time > latestReady.time
         || (entry.time === latestReady.time && entry.id > latestReady.id))
-      && entry.createdAt === closeEntry.createdAt
+      && entry.time <= closeEntry.time
       && entry.item?.actor?.login === repositoryOwner
       && entry.item?.performed_via_github_app === null
       && SHA40.test(String(entry.item?.commit_id || '')));

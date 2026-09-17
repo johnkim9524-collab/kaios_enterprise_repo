@@ -134,6 +134,17 @@ const naturalMergedClose = selectLatestDirectOwnerReadyEvent({
 assert(naturalMergedClose.id === 710, 'NATURAL_MERGED_CLOSE_PRESERVES_READY_GENERATION');
 assert(naturalMergedClose.latest_invalidating_event === null, 'NATURAL_MERGED_CLOSE_NOT_INVALIDATING');
 
+const naturalMergedCloseWithGithubTimestampSkew = selectLatestDirectOwnerReadyEvent({
+  repositoryOwner: owner,
+  timeline: [
+    ready({id: 713, at: '2026-09-02T00:21:10Z'}),
+    merged({id: 714, at: '2026-09-02T00:21:11Z'}),
+    transition({id: 715, at: '2026-09-02T00:21:12Z', event: 'closed'}),
+  ],
+});
+assert(naturalMergedCloseWithGithubTimestampSkew.id === 713, 'NATURAL_MERGED_CLOSE_ALLOWS_ORDERED_TIMESTAMP_SKEW');
+assert(naturalMergedCloseWithGithubTimestampSkew.latest_invalidating_event === null, 'TIMESTAMP_SKEWED_MERGED_CLOSE_NOT_INVALIDATING');
+
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
   selectLatestDirectOwnerReadyEvent({
     repositoryOwner: owner,
@@ -165,8 +176,8 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     repositoryOwner: owner,
     timeline: [
       ready({id: 750, at: '2026-09-02T00:28:00Z'}),
-      merged({id: 751, at: '2026-09-02T00:29:00Z'}),
-      transition({id: 752, at: '2026-09-02T00:29:01Z', event: 'closed'}),
+      merged({id: 751, at: '2026-09-02T00:29:01Z'}),
+      transition({id: 752, at: '2026-09-02T00:29:00Z', event: 'closed'}),
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
