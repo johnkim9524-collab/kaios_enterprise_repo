@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const P = {
   policy: 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json',
@@ -118,6 +121,89 @@ req(readonly.includes('legacy_deployments_enabled_authoritative:false'), 'READON
 req(readonly.includes('preview_branch_rules_authoritative_only_when_custom:true'), 'READONLY_PREVIEW_RULE_SCOPE');
 req(readonly.includes('select(.environment == "preview" and .materialized == true)'), 'READONLY_MATERIALIZED_PREVIEW');
 req(readonly.includes('APPROVAL_BOUND_V1') && readonly.includes('LEGACY_GOVERNED_V1'), 'READONLY_GOVERNED_LINEAGE_FORMATS');
+const readonlyPaginationMarkers = [
+  'CLOUDFLARE_RESPONSE_MALFORMED_JSON',
+  'CLOUDFLARE_API_RESPONSE_UNSUCCESSFUL',
+  'CLOUDFLARE_PAGINATION_METADATA_INVALID',
+  'CLOUDFLARE_PAGINATION_CHANGED_DURING_READBACK',
+  'CLOUDFLARE_DEPLOYMENT_INVENTORY_INCONSISTENT'
+];
+const readonlyPaginationContract = (text) =>
+  readonlyPaginationMarkers.every((marker) => text.includes(marker))
+  && text.includes('set_failure "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68')
+  && (text.match(/"CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68/g) || []).length === 2;
+req(readonlyPaginationContract(readonly), 'READONLY_PAGINATION_CLASSIFICATION');
+for (const marker of readonlyPaginationMarkers) {
+  req(readonlyPaginationContract(readonly.replaceAll(marker, '')) === false, `MUTATION_FALSE_GREEN:${marker}`);
+}
+
+const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cloudflare-readonly-'));
+const fakeCurl = path.join(fixtureRoot, 'curl-fixture.mjs');
+fs.writeFileSync(fakeCurl, `#!/usr/bin/env node
+const scenario = process.env.FIXTURE_SCENARIO;
+const url = process.argv.find((value) => value.startsWith('https://')) || '';
+if (scenario === 'http_error') process.exit(22);
+if (!url.includes('/deployments?')) {
+  process.stdout.write(JSON.stringify({success:true,result:{id:'fixture-project',name:'kidults-workspace-staging',production_branch:'main',modified_on:'2026-01-01T00:00:00Z',source:{type:'github',config:{owner:'johnkim9524-collab',repo_name:'kaios_enterprise_repo',production_deployments_enabled:false,preview_deployment_setting:'none'}}}}));
+  process.exit(0);
+}
+if (scenario === 'malformed_json') process.stdout.write('{');
+else if (scenario === 'api_unsuccessful') process.stdout.write(JSON.stringify({success:false,errors:[{code:1000,message:'fixture'}]}));
+else if (scenario === 'missing_metadata') process.stdout.write(JSON.stringify({success:true,result:[]}));
+else if (scenario === 'invalid_page') process.stdout.write(JSON.stringify({success:true,result:[],result_info:{page:2,per_page:25,count:0,total_count:0,total_pages:1}}));
+else if (scenario === 'changed_pagination') {
+  const page = /[?&]page=2(?:&|$)/.test(url) ? 2 : 1;
+  const totalPages = page === 1 ? 2 : 3;
+  const result = Array.from({length:25}, (_, index) => ({id:'id-' + page + '-' + index}));
+  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:25,total_count:50,total_pages:totalPages}}));
+} else if (scenario === 'duplicate_ids') {
+  process.stdout.write(JSON.stringify({success:true,result:[{id:'duplicate'},{id:'duplicate'}],result_info:{page:1,per_page:25,count:2,total_count:2,total_pages:1}}));
+} else if (scenario === 'incomplete_page') {
+  process.stdout.write(JSON.stringify({success:true,result:[],result_info:{page:1,per_page:25,count:0,total_count:0,total_pages:2}}));
+} else if (scenario === 'inventory_bound') {
+  process.stdout.write(JSON.stringify({success:true,result:[],result_info:{page:1,per_page:25,count:0,total_count:0,total_pages:101}}));
+} else {
+  process.stdout.write(JSON.stringify({success:true,result:[],result_info:{page:1,per_page:25,count:0,total_count:0,total_pages:1}}));
+}
+`);
+fs.chmodSync(fakeCurl, 0o700);
+const normalized = (value) => value.replaceAll('\\\\', '/');
+const windowsGitBash = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Git', 'bin', 'bash.exe');
+const bashBin = process.env.KIDULTS_BASH_BIN || (process.platform === 'win32' && fs.existsSync(windowsGitBash) ? windowsGitBash : 'bash');
+const readonlyBehaviorCases = [
+  ['http_error', 66, 'CLOUDFLARE_API_REQUEST_FAILED'],
+  ['malformed_json', 67, 'CLOUDFLARE_RESPONSE_MALFORMED_JSON'],
+  ['api_unsuccessful', 66, 'CLOUDFLARE_API_RESPONSE_UNSUCCESSFUL'],
+  ['missing_metadata', 67, 'CLOUDFLARE_PAGINATION_METADATA_INVALID'],
+  ['invalid_page', 67, 'CLOUDFLARE_PAGINATION_METADATA_MISMATCH'],
+  ['changed_pagination', 67, 'CLOUDFLARE_PAGINATION_CHANGED_DURING_READBACK'],
+  ['duplicate_ids', 67, 'CLOUDFLARE_DEPLOYMENT_INVENTORY_INCONSISTENT'],
+  ['incomplete_page', 67, 'CLOUDFLARE_PAGINATION_INCOMPLETE_PAGE'],
+  ['inventory_bound', 68, 'CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED']
+];
+try {
+  for (const [scenario, expectedExit, expectedReason] of readonlyBehaviorCases) {
+    const receiptDir = path.join(fixtureRoot, scenario);
+    const result = spawnSync(bashBin, [P.readonlyScript], {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CLOUDFLARE_API_TOKEN: 'fixture-token-not-a-secret',
+        CLOUDFLARE_ACCOUNT_ID: 'fixture-account',
+        CURL_BIN: normalized(fakeCurl),
+        FIXTURE_SCENARIO: scenario,
+        RECEIPT_DIR: normalized(receiptDir)
+      }
+    });
+    let receipt = {};
+    try { receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json'), 'utf8')); } catch {}
+    req(result.status === expectedExit && receipt.exit_code === expectedExit && receipt.reason_code === expectedReason,
+      `READONLY_BEHAVIOR:${scenario}:${result.status ?? 'NO_STATUS'}:${receipt.reason_code ?? 'NO_RECEIPT'}:${(result.stderr || '').trim().slice(0, 120)}`);
+  }
+} finally {
+  fs.rmSync(fixtureRoot, { recursive: true, force: true });
+}
 req(cleanup.includes('select(.environment == "preview" and .materialized == true) | .id'), 'CLEANUP_PREVIEW_ONLY');
 req(cleanup.includes('test "$initial_production_ids" = "$final_production_ids"'), 'PRODUCTION_HISTORY_GUARD');
 req(!cleanup.includes('select(.environment == "production") | .id | @sh'), 'NO_PROD_DELETE');
