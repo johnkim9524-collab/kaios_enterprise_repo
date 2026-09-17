@@ -57,7 +57,7 @@ const deployment = ({id, environment='production', trigger='ad_hoc', sha='111111
   latest_stage: {status},
   deployment_trigger: {type: trigger, metadata: {branch: 'main', commit_hash: sha, commit_message: message}}
 });
-const list = (items) => ({success:true, result:items, result_info:{page:1,per_page:100,total_pages:1}});
+const list = (items) => ({success:true, result:items, result_info:{page:1,per_page:25,count:items.length,total_count:items.length,total_pages:1}});
 let response;
 if (scenario === 'readonly-pass') {
   response = url.includes('/deployments') ? list([deployment({id:'governed'})]) : project(false);
