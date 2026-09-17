@@ -2,8 +2,8 @@ import fs from 'node:fs';
 
 const assurancePath = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const truthPath = '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml';
-const assurance = fs.readFileSync(assurancePath, 'utf8');
-const truth = fs.readFileSync(truthPath, 'utf8');
+const assurance = fs.readFileSync(assurancePath, 'utf8').replace(/\r\n/g, '\n');
+const truth = fs.readFileSync(truthPath, 'utf8').replace(/\r\n/g, '\n');
 
 function count(source, needle) {
   return source.split(needle).length - 1;
