@@ -177,6 +177,7 @@ import hashlib
 import ipaddress
 import json
 import socket
+import struct
 import subprocess
 import sys
 
@@ -208,6 +209,36 @@ def connect_result(family, sockaddr, timeout=5):
     try:
         sock.connect(sockaddr)
         return 'CONNECTED'
+    except TimeoutError:
+        return 'TIMEOUT'
+    except ConnectionRefusedError:
+        return 'CONNECTION_REFUSED'
+    except OSError as error:
+        if error.errno in {errno.ENETUNREACH, errno.EHOSTUNREACH}:
+            return 'NO_ROUTE'
+        if error.errno == errno.ETIMEDOUT:
+            return 'TIMEOUT'
+        if error.errno == errno.ECONNREFUSED:
+            return 'CONNECTION_REFUSED'
+        return f'OS_ERROR_{error.errno if error.errno is not None else "UNKNOWN"}'
+    finally:
+        sock.close()
+
+
+def postgres_ssl_request_result(family, sockaddr, timeout=5):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect(sockaddr)
+        sock.sendall(struct.pack('!II', 8, 80877103))
+        response = sock.recv(1)
+        if response == b'S':
+            return 'SSL_SUPPORTED'
+        if response == b'N':
+            return 'SSL_NOT_SUPPORTED'
+        if response == b'':
+            return 'CONNECTION_CLOSED_WITHOUT_RESPONSE'
+        return 'UNEXPECTED_PROTOCOL_RESPONSE'
     except TimeoutError:
         return 'TIMEOUT'
     except ConnectionRefusedError:
@@ -257,6 +288,7 @@ diagnostic = {
     'port': port,
     'dns': {'state': 'UNKNOWN', 'answer_count': 0, 'families': [], 'answer_classes': [], 'answer_digests': []},
     'tcp_25060': {'state': 'UNKNOWN', 'attempts': []},
+    'postgres_ssl_request': {'state': 'NOT_ATTEMPTED', 'attempts': []},
     'routing': {
         'ipv4_default_route_present': route_present('-4'),
         'ipv6_default_route_present': route_present('-6'),
@@ -291,13 +323,22 @@ else:
         unique.append((family, address, sockaddr))
 
     attempts = []
+    protocol_attempts = []
     for family, address, sockaddr in unique:
-        attempts.append({
+        attempt = {
             'family': 'IPv4' if family == socket.AF_INET else 'IPv6',
             'address_class': address_class(address),
             'address_digest': digest(address),
             'result': connect_result(family, sockaddr),
-        })
+        }
+        attempts.append(attempt)
+        if attempt['result'] == 'CONNECTED':
+            protocol_attempts.append({
+                'family': attempt['family'],
+                'address_class': attempt['address_class'],
+                'address_digest': attempt['address_digest'],
+                'result': postgres_ssl_request_result(family, sockaddr),
+            })
     families = sorted({item['family'] for item in attempts})
     classes = sorted({item['address_class'] for item in attempts})
     diagnostic['dns'] = {
@@ -308,10 +349,24 @@ else:
         'answer_digests': sorted(item['address_digest'] for item in attempts),
     }
     diagnostic['tcp_25060']['attempts'] = attempts
+    diagnostic['postgres_ssl_request']['attempts'] = protocol_attempts
     results = {item['result'] for item in attempts}
     if 'CONNECTED' in results:
         state = 'CONNECTED'
-        root = 'NETWORK_PATH_REACHABLE'
+        protocol_results = {item['result'] for item in protocol_attempts}
+        if protocol_results & {'SSL_SUPPORTED', 'SSL_NOT_SUPPORTED'}:
+            protocol_state = 'RESPONDED'
+            root = 'POSTGRES_PROTOCOL_REACHABLE'
+        elif 'TIMEOUT' in protocol_results:
+            protocol_state = 'TIMEOUT'
+            root = 'POSTGRES_PROTOCOL_RESPONSE_TIMEOUT'
+        elif 'CONNECTION_CLOSED_WITHOUT_RESPONSE' in protocol_results:
+            protocol_state = 'CONNECTION_CLOSED_WITHOUT_RESPONSE'
+            root = 'POSTGRES_PROTOCOL_CONNECTION_CLOSED'
+        else:
+            protocol_state = 'OTHER_PROTOCOL_ERROR'
+            root = 'POSTGRES_PROTOCOL_UNCLASSIFIED_RESPONSE'
+        diagnostic['postgres_ssl_request']['state'] = protocol_state
     elif 'TIMEOUT' in results:
         state = 'TIMEOUT'
         root = ('DESTINATION_SPECIFIC_TIMEOUT' if
@@ -377,8 +432,14 @@ from pathlib import Path
 print(json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))['tcp_25060']['state'])
 PY
 )"
-if [[ "$network_tcp_state" != 'CONNECTED' ]]; then
-  echo "POSTGRES_CONNECTION: read-only network preflight classified ${network_tcp_state}" >&2
+network_protocol_state="$(python3 - "$network_diagnostic_path" <<'PY'
+import json, sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))['postgres_ssl_request']['state'])
+PY
+)"
+if [[ "$network_tcp_state" != 'CONNECTED' || "$network_protocol_state" != 'RESPONDED' ]]; then
+  echo "POSTGRES_CONNECTION: read-only preflight classified TCP=${network_tcp_state} PostgreSQL-protocol=${network_protocol_state}" >&2
   emit_failure_receipt 70
   exit 70
 fi
