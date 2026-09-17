@@ -52,7 +52,7 @@
     "context": "KIDULTS Governed Landing Authorization V1",
     "state": "failure",
     "description": "PULL_REQUEST_NO_MERGE_BLOCKED",
-    "target_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/34918732361",
+    "target_url": null,
     "created_at": "2026-09-15T01:49:27Z",
     "preceding_success_status_id": 54166089555
   },
