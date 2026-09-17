@@ -164,12 +164,10 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
   const conclusions = bindings.map(item => item.conclusion);
   if (audit.conclusion === 'failure') {
     const failedSteps = (audit.steps || []).filter(step => step?.status === 'completed' && step?.conclusion === 'failure');
-    const retainedHoldSteps = assuranceRetainedHoldSteps.map(name => {
+    const retainedHoldProofValid = assuranceRetainedHoldSteps.every(name => {
       const matches = (audit.steps || []).filter(step => step?.name === name);
-      return {name, matches};
+      return matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success';
     });
-    const retainedHoldProofValid = retainedHoldSteps.every(({matches}) =>
-      matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success');
     if (conclusions.every(value => value === 'skipped') &&
         failedSteps.length === 1 && failedSteps[0].name === assuranceAllowedHoldFailureStep &&
         retainedHoldProofValid) {
