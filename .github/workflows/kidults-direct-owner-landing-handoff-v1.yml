@@ -138,6 +138,7 @@ jobs:
           chmod 0600 out/direct-owner-landing-handoff-v1/receipt.json
 
       - name: Validate exact-head direct-owner handoff and open bounded merge window
+        id: handoff
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
@@ -150,7 +151,26 @@ jobs:
           HANDOFF_WINDOW_SECONDS: ${{ inputs.handoff_window_seconds }}
           LANDING_ACTOR: ${{ github.actor }}
           HANDOFF_RECEIPT_PATH: out/direct-owner-landing-handoff-v1/receipt.json
-        run: node scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs
+          MERGE_SHA=$(jq -r '.merge_commit_sha // empty' out/direct-owner-landing-handoff-v1/receipt.json)
+          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          printf 'merge_sha=%s\n' "$MERGE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout exact landed protected-main implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.handoff.outputs.merge_sha }}
+          persist-credentials: false
+          clean: false
+
+      - name: Verify exact landed implementation and retained handoff receipt
+        run: |
+          set -euo pipefail
+          MERGE_SHA=$(jq -r '.merge_commit_sha // empty' out/direct-owner-landing-handoff-v1/receipt.json)
+          test "$(git rev-parse HEAD)" = "$MERGE_SHA"
+          test "$(jq -r '.state' out/direct-owner-landing-handoff-v1/receipt.json)" = CONSUMED_BY_DIRECT_OWNER_MERGE
 
       - name: Consume exact merge-SHA protected-main push suite
         env:
