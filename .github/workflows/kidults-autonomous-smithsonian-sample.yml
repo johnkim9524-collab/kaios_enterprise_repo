@@ -1,16 +1,6 @@
 name: KIDULTS Autonomous Smithsonian Open Access Sample
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/smithsonian-open-access-r1.json"
-      - "scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs"
-      - "scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs"
-      - ".github/workflows/kidults-autonomous-smithsonian-sample.yml"
-  schedule:
-    - cron: "10 23 * * 2,5"
   workflow_dispatch:
 
 permissions:

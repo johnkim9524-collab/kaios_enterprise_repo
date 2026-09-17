@@ -86,6 +86,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   autonomous-shadow-cycle:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

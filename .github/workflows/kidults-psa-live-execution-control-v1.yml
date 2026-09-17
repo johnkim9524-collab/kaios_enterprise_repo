@@ -1,35 +1,30 @@
-name: KIDULTS PSA Live Execution Control
+name: KIDULTS PSA Control Contract
 
 on:
   pull_request:
+    branches: [main]
     paths:
-      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
-      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
-      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
-      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
-      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
-      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
-      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
-      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
-      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+      - 'coordination/kidults/provider/psa-*.json'
+      - 'coordination/kidults/source-intelligence/psa-*.json'
+      - 'services/kidults-control-plane/src/psa-*.mjs'
+      - 'services/kidults-control-plane/scripts/psa-*.test.mjs'
+      - 'scripts/kidults/provider/*psa*.mjs'
+      - 'scripts/kidults/source-intelligence/*psa*.mjs'
+      - 'scripts/kidults/runtime/**'
+      - 'tests/kidults/runtime/**'
   push:
     branches: [main]
     paths:
-      - '.github/workflows/kidults-psa-z1-post-merge-orchestrator-v1.yml'
-      - '.github/workflows/kidults-psa-z1-private-runtime-v1.yml'
       - '.github/workflows/kidults-psa-live-execution-control-v1.yml'
-      - 'scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs'
-      - 'scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs'
-      - 'coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json'
-      - 'coordination/kidults/provider/psa-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/provider-live-execution-raci-v1.json'
-      - 'coordination/kidults/provider/psa-activation-state-receipt-v1.json'
-      - 'coordination/kidults/provider/psa-120-field-map-v1.json'
-      - 'coordination/kidults/provider/psa-cert-verification-connection-policy-v1.json'
-      - 'services/kidults-control-plane/src/psa-private-evaluation*.mjs'
+      - 'coordination/kidults/provider/psa-*.json'
+      - 'coordination/kidults/source-intelligence/psa-*.json'
+      - 'services/kidults-control-plane/src/psa-*.mjs'
+      - 'services/kidults-control-plane/scripts/psa-*.test.mjs'
+      - 'scripts/kidults/provider/*psa*.mjs'
+      - 'scripts/kidults/source-intelligence/*psa*.mjs'
+      - 'scripts/kidults/runtime/**'
+      - 'tests/kidults/runtime/**'
 
 permissions:
   contents: read
@@ -37,28 +32,38 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24.19.0'
           package-manager-cache: false
-
-      - name: Validate PSA execution controls, orchestration, and secret registry
+      - name: Verify exact source and absence of provider execution authority
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
         run: |
           set -euo pipefail
-          node --check scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
-          node --check scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
-          node scripts/kidults/provider/validate-psa-live-execution-control-v1.mjs
-          node scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs --enforce-registry
-
-      - name: Regress private-store and private-evaluation contracts
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(find .github/workflows -maxdepth 1 -type f -iname '*psa*' | wc -l)" -eq 1
+          ! grep -E 'PSA_PUBLIC_API_TOKEN|GetByCertNumber|workflow_dispatch:' .github/workflows/kidults-psa-live-execution-control-v1.yml
+          ! test -e scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
+      - name: Validate PSA adapter and manifest boundaries
+        shell: bash
         run: |
           set -euo pipefail
-          node --test \
-            services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs \
-            services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs
+          node services/kidults-control-plane/scripts/validate-boundary-v1.mjs
+          node --test services/kidults-control-plane/scripts/psa-*.test.mjs
+          node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs
+          node scripts/kidults/provider/validate-psa-lawful-manifest-intake-v1.mjs
+          node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
+          node scripts/kidults/provider/validate-psa-120-admission-note-v1.mjs
+          node scripts/kidults/provider/validate-psa-120-admission-receipt-v1.mjs
+      - name: Validate authoritative KIR state and receipt boundaries
+        run: |
+          node scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs
+          node scripts/kidults/runtime/kir-runtime-kernel-v1.mjs --validate

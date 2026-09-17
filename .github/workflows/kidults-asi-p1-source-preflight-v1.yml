@@ -68,7 +68,7 @@ concurrency:
 
 jobs:
   source-preflight:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
@@ -404,18 +404,6 @@ jobs:
             echo 'Validator accepted unproven target-site preflight execution' >&2
             exit 1
           fi
-      - name: Reject manual-only activation mutation
-        run: |
-          set -euo pipefail
-          cp coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json /tmp/p1-registry.json
-          node - <<'NODE'
-          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-p1-source-preflight-registry-v1.mjs; then
-            echo 'Validator accepted manual-only P1 activation' >&2
-            exit 1
-          fi
-          mv /tmp/p1-registry.json coordination/kidults/source-intelligence/asi-p1-source-preflight-registry-v1.json
       - name: Revalidate pristine P1 execution
         run: |
           set -euo pipefail

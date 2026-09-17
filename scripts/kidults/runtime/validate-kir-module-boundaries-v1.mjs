@@ -135,6 +135,20 @@ export function validateKirModuleArchitecture({ policy, sources }) {
     }
   }
   const constraints = policy.constraints;
+  const psaAuthority = policy.psa_recovery_authority;
+  if (policy.id === 'kidults-kir-modular-architecture-v1') {
+    req(psaAuthority?.provider_execution === 'DISABLED'
+      && psaAuthority?.state_engine === 'scripts/kidults/runtime/kir/state-machine-v1.mjs'
+      && psaAuthority?.runtime === policy.public_entrypoint
+      && psaAuthority?.controller === 'scripts/kidults/runtime/kir/evaluator-v1.mjs'
+      && psaAuthority?.receipt === 'scripts/kidults/runtime/kir/evaluator-v1.mjs'
+      && psaAuthority?.truth === 'scripts/kidults/runtime/kir/snapshot-v1.mjs'
+      && psaAuthority?.workflow === '.github/workflows/kidults-psa-live-execution-control-v1.yml'
+      && psaAuthority?.adapter === 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs'
+      && psaAuthority?.projection_role === 'READ_ONLY'
+      && psaAuthority?.automatic_provider_dispatch === false,
+    'KIR_ARCH_PSA_SINGLE_AUTHORITY_DRIFT');
+  }
   req(constraints?.dependency_cycles_allowed === false, 'KIR_ARCH_CYCLE_POLICY');
   req(constraints?.internal_imports_outside_public_entrypoint_allowed === false, 'KIR_ARCH_PRIVATE_IMPORT_POLICY');
   req(constraints?.module_cli_or_process_side_effects_allowed === false, 'KIR_ARCH_SIDE_EFFECT_POLICY');

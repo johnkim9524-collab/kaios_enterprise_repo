@@ -40,6 +40,7 @@ concurrency:
 
 jobs:
   global-any-site-hourly-pool:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

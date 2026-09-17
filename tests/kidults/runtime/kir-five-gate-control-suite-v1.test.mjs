@@ -64,12 +64,15 @@ test('raw log change is detected without trusting the declared PASS',()=>bundle(
  fs.appendFileSync(path.join(dir,'CANONICAL.stdout.log'),'x');assert.throws(()=>verifyControlBundle(dir,sha),/LOG_DIGEST/);
 }));
 test('extra files are not silently omitted',()=>bundle(dir=>{fs.writeFileSync(path.join(dir,'unexpected.json'),'{}');assert.throws(()=>verifyControlBundle(dir,sha),/MEMBER_SET/);}));
-test('symlink and hard-linked members are rejected',()=>bundle(dir=>{
- const p=path.join(dir,'CANONICAL.stdout.log');fs.renameSync(p,p+'.orig');fs.symlinkSync(p+'.orig',p);assert.throws(()=>verifyControlBundle(dir,sha),/MEMBER_UNSAFE/);
+test('symlink and hard-linked members are rejected',t=>bundle(dir=>{
+ const p=path.join(dir,'CANONICAL.stdout.log');fs.renameSync(p,p+'.orig');
+ try{fs.symlinkSync(p+'.orig',p);}catch(error){if(error?.code==='EPERM'&&process.platform==='win32'){t.skip('Windows symlink privilege unavailable');return;}throw error;}
+ assert.throws(()=>verifyControlBundle(dir,sha),/MEMBER_UNSAFE/);
  fs.unlinkSync(p);fs.linkSync(p+'.orig',p);assert.throws(()=>verifyControlBundle(dir,sha),/MEMBER_UNSAFE/);
 }));
-test('wrong directory mode and reused output do not overwrite evidence',()=>bundle(dir=>{
- fs.chmodSync(dir,0o755);assert.throws(()=>verifyControlBundle(dir,sha),/PRIVATE_DIRECTORY/);fs.chmodSync(dir,0o700);
+test('wrong directory mode and reused output do not overwrite evidence',t=>bundle(dir=>{
+ if(process.platform!=='win32'){fs.chmodSync(dir,0o755);assert.throws(()=>verifyControlBundle(dir,sha),/PRIVATE_DIRECTORY/);fs.chmodSync(dir,0o700);}
+ else t.diagnostic('Windows fs.Stat does not expose enforceable POSIX directory mode bits');
  const before=fs.readFileSync(path.join(dir,'receipt.json'));
  const p=spawnSync(process.execPath,['scripts/kidults/runtime/run-kir-five-gate-control-suite-v1.mjs','run','--expected-sha',sha,'--output-dir',dir],{encoding:'utf8',timeout:5000});
  assert.equal(p.status,1);assert.deepEqual(fs.readFileSync(path.join(dir,'receipt.json')),before);

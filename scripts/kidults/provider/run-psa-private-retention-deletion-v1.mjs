@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
-import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot } from '../../../services/kidults-control-plane/src/psa-private-evaluation-store.mjs';
-import { deleteExpiredPsaEvaluations } from '../../../services/kidults-control-plane/src/psa-private-evaluation.mjs';
+import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot, deleteExpiredPsaEvaluations } from '../../../services/kidults-control-plane/src/psa-cert-verification-adapter.mjs';
 
 const rootInput = process.env.PSA_PRIVATE_STORE_ROOT;
 const keyInput = process.env.PSA_PRIVATE_STORE_KEY_B64;

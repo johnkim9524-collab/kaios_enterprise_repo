@@ -1,8 +1,6 @@
 name: KIDULTS ASI Common Crawl Gate Chain Binding v1
 
 on:
-  schedule:
-    - cron: '9 * * * *'
   workflow_dispatch:
   pull_request:
     paths:

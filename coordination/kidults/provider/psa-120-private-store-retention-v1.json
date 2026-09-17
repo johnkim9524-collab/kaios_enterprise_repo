@@ -23,7 +23,7 @@
   "implementation": {
     "store_module": "services/kidults-control-plane/src/psa-private-evaluation-store.mjs#createPsaPrivateFileStore",
     "deletion_runner": "scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs",
-    "automatic_trigger": "BLOCKED_PENDING_PERSISTENT_GOVERNED_RUNNER_AND_PRIVATE_STORE_MOUNT",
+    "automatic_trigger": "NONE_PROVIDER_EXECUTION_REMOVED",
     "activation_requirements": [
       "PSA_PRIVATE_STORE_ROOT_EXPLICIT_NON_REPOSITORY_PATH",
       "PSA_PRIVATE_STORE_KEY_B64_RUNTIME_SECRET_32_BYTES",
