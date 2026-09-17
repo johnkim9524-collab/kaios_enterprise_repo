@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,evaluateProducer,evaluateHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,evaluateProducer,evaluateHealth,selectProducerGeneration} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 
 // Synthetic API metadata. The payload is a native tracked control snapshot;
@@ -29,6 +29,15 @@ function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},source
 
 test('generation index: one exact native SHADOW control payload remains reachable',()=>{
  const result=evaluate([good]);assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.selected_run_id,10);assert.equal(result.artifact_content_validated,true);
+});
+test('generation index: Canonical V3 workflow_run supersedes the startup-race push failure',()=>{
+ const canonical=SPECS.find(candidate=>candidate.id==='CANONICAL_TRUTH');
+ assert.ok(canonical.events.includes('workflow_run'));
+ const base={run_attempt:1,repository:{full_name:REPOSITORY},path:canonical.path,head_branch:'main',head_sha:sourceSha,status:'completed'};
+ const pushFailure={...base,id:20,event:'push',conclusion:'failure',created_at:'2026-09-05T10:00:00Z'};
+ const regenerated={...base,id:21,event:'workflow_run',conclusion:'success',created_at:'2026-09-05T10:01:00Z'};
+ const selection=selectProducerGeneration([pushFailure,regenerated],canonical,sourceSha,observed);
+ assert.equal(selection.latest.id,21);
 });
 for(const [label,rows] of [
  ['duplicate newer pending attempt before old PASS',[run(10,{run_attempt:2,status:'in_progress',conclusion:null}),good]],
