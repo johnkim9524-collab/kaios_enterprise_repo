@@ -2,6 +2,7 @@
 
 import assert from 'node:assert/strict';
 import {classifyWorkflowRunGeneration} from './classify-workflow-run-generation-v1.mjs';
+import {classifyRequirementCoverageAdmission} from './classify-requirement-coverage-admission-v1.mjs';
 
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const expectedWorkflowPath='.github/workflows/kidults-asi-p1-source-preflight-v1.yml';
@@ -31,4 +32,14 @@ result=classify({}, {currentMainSha:'bad'}); assert.equal(result.reason,'CURRENT
 result=classify({}, {executionSha:'bad'}); assert.equal(result.reason,'EXECUTION_SHA_INVALID');
 result=classify({}, {executionSha:priorMainSha}); assert.equal(result.reason,'CURRENT_MAIN_ADVANCED_DURING_CLASSIFICATION');
 assert.equal(result.promotion_eligible,false); assert.equal(result.production,'HOLD');
-console.log(JSON.stringify({state:'VERIFIED_PASS',test:'workflow-run-generation-classification-v1',scheduled_producer_rejected:true,manual_producer_rejected:true}));
+
+const arlRun=(overrides={})=>({id:456,run_attempt:1,path:'.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',event:'workflow_run',status:'completed',conclusion:'failure',repository:{full_name:repository},head_repository:{full_name:repository},head_branch:'main',head_sha:currentMainSha,display_title:'KIDULTS ARL / p1-123',...overrides});
+const expectedSkip=classify({event:'schedule'});
+let admission=classifyRequirementCoverageAdmission({run:arlRun(),classification:expectedSkip,repository,executionSha:currentMainSha});
+assert.deepEqual([admission.state,admission.admission,admission.reason,admission.should_run],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','PRODUCER_EVENT_MISMATCH',false]);
+admission=classifyRequirementCoverageAdmission({run:arlRun({conclusion:'success'}),classification:expectedSkip,repository,executionSha:currentMainSha});
+assert.deepEqual([admission.state,admission.reason],['VERIFIED_FAIL','EXPECTED_SKIP_CLASSIFICATION_INVALID']);
+admission=classifyRequirementCoverageAdmission({run:arlRun({status:'in_progress',conclusion:null}),classification:expectedSkip,repository,executionSha:currentMainSha});
+assert.deepEqual([admission.state,admission.reason],['VERIFIED_FAIL','ARL_NOT_TERMINAL']);
+
+console.log(JSON.stringify({state:'VERIFIED_PASS',test:'workflow-run-generation-classification-v1',scheduled_producer_rejected:true,manual_producer_rejected:true,expected_red_skip_admitted:true,nonterminal_arl_rejected:true}));
