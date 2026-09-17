@@ -1,10 +1,6 @@
 name: KIDULTS Cloudflare Pages Boundary Readonly v1
 
 on:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +12,7 @@ concurrency:
 
 jobs:
   audit-pages-boundary:
-    if: github.ref == 'refs/heads/main'
+    if: ${{ false }} # P0 #1831: fresh exact-main Program Owner approval required before any provider-secret resolution
     environment: kidults-cloudflare-readonly
     runs-on: ubuntu-24.04
     timeout-minutes: 10
