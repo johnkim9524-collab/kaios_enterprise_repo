@@ -72,6 +72,8 @@ if not command:
     sql = sys.stdin.read().lower()
     if "pitr_probe" not in sql:
         fail(f"fake psql received an unknown mutation: {sql!r}")
+    if "select 1 / 0" in sql:
+        fail("division by zero", code=1)
     if "--output=/dev/null" not in args:
         print("CREATE TABLE")
         print("INSERT 0 1")
@@ -191,6 +193,9 @@ if "coalesce(max(marker_digest)" in sql and "pitr_probe" in sql:
 if "created_at <" in sql and "created_at >" in sql and "pitr_probe" in sql:
     emit(os.environ.get("FAKE_MARKER_BOUNDARY_ORDER", "t|t"))
 if "count(*)" in sql and "pitr_probe" in sql:
+    marker_args = [argument for argument in args if argument.startswith("--set=marker=")]
+    if marker_args and any("rollback-" in argument for argument in marker_args):
+        emit("0")
     if os.environ.get("FAKE_MODE") == "restore":
         emit(os.environ.get("FAKE_AFTER_COUNT", "0"))
     emit("1")
@@ -369,6 +374,13 @@ def test_source_verifier_emits_one_pure_json_receipt(tmp_path: Path) -> None:
     assert receipt["target_time_precision"] == "WHOLE_SECOND_UTC"
     assert receipt["marker_target_guard_seconds_minimum"] == 2
     assert receipt["marker_boundary_order_verified"] is True
+    assert receipt["transaction_rollback_verified"] is True
+    assert receipt["transaction_rollback_residual_rows"] == 0
+    assert receipt["failure_rollback_verified"] is True
+    assert receipt["failure_rollback_residual_rows"] == 0
+    assert receipt["independent_readback_verified"] is True
+    assert re.fullmatch(r"[a-f0-9]{64}", str(receipt["transaction_rollback_marker_digest"]))
+    assert re.fullmatch(r"[a-f0-9]{64}", str(receipt["failure_rollback_marker_digest"]))
     assert receipt["fixture_state"] == (
         "TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED"
     )
@@ -606,7 +618,60 @@ def test_tunnel_helper_runs_tracked_non_executable_verifiers_via_bash() -> None:
     source = TUNNEL_HELPER.read_text(encoding="utf-8")
     assert '[[ -f "$verifier" ]]' in source
     assert '[[ -x "$verifier" ]]' not in source
-    assert source.count('bash "$verifier" > "$runtime_root/verifier.json"') == 2
+    assert source.count('bash "$verifier" > "$runtime_root/verifier.json"') == 1
+
+
+def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "failing-verifier.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 70\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "GITHUB_REF": "refs/heads/codex/o1-postgres-verification-closure",
+        "GITHUB_SHA": "a" * 40,
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_RUN_ID": "123456",
+        "GITHUB_RUN_ATTEMPT": "2",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    assert receipt["status"] == "FAIL"
+    assert receipt["failure_class"] == "POSTGRES_CONNECTION"
+    assert receipt["verifier_exit_code"] == 70
+    assert receipt["pitr_proven"] is False
+    assert receipt["source_ref"] == "refs/heads/codex/o1-postgres-verification-closure"
+    assert receipt["source_sha"] == "a" * 40
+    assert receipt["event_name"] == "pull_request"
+    assert receipt["run_id"] == 123456
+    assert receipt["run_attempt"] == 2
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
 def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path) -> None:

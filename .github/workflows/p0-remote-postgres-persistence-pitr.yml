@@ -326,6 +326,13 @@ jobs:
               for key in ('archived_count_before','archived_count','failed_archive_count_before','failed_archive_count','archive_stats_reset','switched_wal','last_archived_wal'):
                   assert r[key] is None
           assert r['marker_boundary_order_verified'] is True
+          assert r['transaction_rollback_verified'] is True
+          assert r['transaction_rollback_residual_rows']==0
+          assert r['failure_rollback_verified'] is True
+          assert r['failure_rollback_residual_rows']==0
+          assert r['independent_readback_verified'] is True
+          for key in ('transaction_rollback_marker_digest','failure_rollback_marker_digest'):
+              assert re.fullmatch(r'[a-f0-9]{64}', r[key])
           assert re.fullmatch(r'sha256:[a-f0-9]{64}', r['connection_identity_digest'])
           assert r['tls_encryption_required'] is True
           assert isinstance(r['tls_ca_chain_verified'], bool)

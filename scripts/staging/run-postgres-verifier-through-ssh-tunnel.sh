@@ -193,15 +193,49 @@ done
 [[ "$tunnel_ready" == 'true' ]] || { echo 'SSH PostgreSQL tunnel did not become ready' >&2; exit 1; }
 
 case "$mode" in
-  source)
-    export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")"
-    bash "$verifier" > "$runtime_root/verifier.json"
-    ;;
-  restore)
-    export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")"
-    bash "$verifier" > "$runtime_root/verifier.json"
-    ;;
+  source) export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
+  restore) export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
 esac
+
+set +e
+bash "$verifier" > "$runtime_root/verifier.json"
+verifier_rc=$?
+set -e
+if (( verifier_rc != 0 )); then
+  python3 - "$mode" "$verifier_rc" <<'PY'
+import json
+import os
+import sys
+
+mode, exit_code_text = sys.argv[1:]
+exit_code = int(exit_code_text)
+failure_class = {
+    64: "VERIFIER_CONFIGURATION",
+    66: "VERIFIER_INPUT_MISSING",
+    69: "VERIFIER_DEPENDENCY_MISSING",
+    70: "POSTGRES_CONNECTION",
+}.get(exit_code, "VERIFIER_EXECUTION")
+print(json.dumps({
+    "status": "FAIL",
+    "environment": "STAGING",
+    "mode": mode,
+    "failure_class": failure_class,
+    "verifier_exit_code": exit_code,
+    "verifier_completed": False,
+    "source_ref": os.environ.get("GITHUB_REF") or None,
+    "source_sha": os.environ.get("GITHUB_SHA") or None,
+    "event_name": os.environ.get("GITHUB_EVENT_NAME") or None,
+    "run_id": int(os.environ["GITHUB_RUN_ID"]) if os.environ.get("GITHUB_RUN_ID", "").isdigit() else None,
+    "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]) if os.environ.get("GITHUB_RUN_ATTEMPT", "").isdigit() else None,
+    "production_touch": False,
+    "public_touch": False,
+    "g5_touch": False,
+    "credential_value_emitted_by_receipt": False,
+    "pitr_proven": False,
+}, separators=(",", ":"), sort_keys=True))
+PY
+  exit "$verifier_rc"
+fi
 
 python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" <<'PY'
 import json
