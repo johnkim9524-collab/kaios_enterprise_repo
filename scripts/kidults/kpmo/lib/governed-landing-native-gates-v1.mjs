@@ -294,7 +294,12 @@ export function resolveScopeRequirements(files, metadata, policy) {
   const changedFileCount = Number(metadata?.changed_files ?? files.length);
   if (files.length === 0) {
     if (commitCount !== 0 || changedFileCount !== 0) fail('ZERO_DIFF_METADATA_CONTRADICTION');
-    return {files: [], scopes: [], required_contexts: [...policy.technical_base_contexts].sort(), zero_diff: true};
+    return {
+      files: [],
+      scopes: [],
+      required_contexts: [...new Set(policy.technical_base_contexts || [])].sort(),
+      zero_diff: true,
+    };
   }
   if (changedFileCount !== files.length) fail('CHANGED_FILE_PAGINATION_INCOMPLETE', `${files.length}/${changedFileCount}`);
   const unmatched = [];
@@ -310,6 +315,11 @@ export function resolveScopeRequirements(files, metadata, policy) {
     }
     for (const match of matches) {
       matchedScopes.add(match.id);
+      for (const context of match.required_contexts || []) contexts.add(context);
+    }
+    const autonomousMatches = (policy.autonomous_verification_rules || [])
+      .filter(rule => scopeMatches(filename, rule));
+    for (const match of autonomousMatches) {
       for (const context of match.required_contexts || []) contexts.add(context);
     }
   }
