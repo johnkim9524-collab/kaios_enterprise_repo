@@ -17,7 +17,7 @@ for (const principle of requiredPrinciples) {
 }
 
 const byId = new Map((control.resilience_controls || []).map(item => [item.id, item]));
-for (const id of ['FACTUAL_ORIGIN_INDEPENDENCE','POISONED_OR_NONREPRESENTATIVE_MARKET_EVENT','RIGHTS_REVOCATION_TRANSITIVE_INVALIDATION','TEMPORAL_COHERENCE','PROVIDER_SCHEMA_SEMANTIC_DRIFT','DERIVED_CLAIM_DEPENDENCY_DAG','AUTONOMOUS_DECISION_EXPLAINABILITY']) requireValue(byId.has(id), `missing resilience control ${id}`);
+for (const id of ['FACTUAL_ORIGIN_INDEPENDENCE','POISONED_OR_NONREPRESENTATIVE_MARKET_EVENT','RIGHTS_REVOCATION_TRANSITIVE_INVALIDATION','TEMPORAL_COHERENCE','PROVIDER_SCHEMA_SEMANTIC_DRIFT','DERIVED_CLAIM_DEPENDENCY_DAG','AUTONOMOUS_DECISION_EXPLAINABILITY','OPERABILITY_FIRST_VERIFIED_NORMAL_OPERATION']) requireValue(byId.has(id), `missing resilience control ${id}`);
 
 const origin = byId.get('FACTUAL_ORIGIN_INDEPENDENCE');
 requireValue(origin.rules.includes('COMMERCIAL_SOURCE_OWNER_INDEPENDENCE_NE_FACTUAL_ORIGIN_INDEPENDENCE'), 'provider independence must not equal factual-origin independence');
@@ -45,6 +45,13 @@ requireValue(dag.rules.some(rule => rule.includes('DETERMINISTIC_RECOMPUTE_OR_HO
 const explain = byId.get('AUTONOMOUS_DECISION_EXPLAINABILITY');
 for (const item of ['WHY_THIS_TARGET','WHY_NOT_HIGHER_RANKED_ALTERNATIVES','WEIGHTED_UNKNOWN_DEBT','DECISION_IMPACT','EXPECTED_MARGINAL_INTELLIGENCE_GAIN','RIGHTS_FEASIBILITY','BLAST_RADIUS_STATE']) requireValue(explain.required_rationale.includes(item), `missing autonomous rationale field ${item}`);
 requireValue(explain.rules.some(rule => rule.includes('REPRODUCIBLE_RATIONALE')), 'autonomous decision rationale must be reproducible');
+
+const operability = byId.get('OPERABILITY_FIRST_VERIFIED_NORMAL_OPERATION');
+for (const proof of ['INTENDED_AUTHORIZED_OPERATIONAL_PATH_EXECUTES_END_TO_END','ROOT_CAUSE_REMOVED','FAILURE_ISOLATION_VERIFIED','ROLLBACK_VERIFIED','RECURRENCE_PREVENTION_VERIFIED','EXACT_HEAD_AND_TARGET_MAIN_EVIDENCE_REGENERATED']) requireValue(operability.completion_definition.includes(proof), `missing operability completion proof ${proof}`);
+requireValue(operability.rules.includes('GREEN_CHECKS_OR_IMPLEMENTATION_ALONE_DO_NOT_ESTABLISH_NORMAL_OPERATION'), 'green checks must not imply normal operation');
+requireValue(operability.rules.some(rule => rule.includes('MINIMAL_ARCHITECTURAL_COMPLEXITY')), 'operability-first remediation must minimize architecture complexity');
+requireValue(operability.rules.some(rule => rule.includes('EXTERNAL_AUTHORITY_GATE_BLOCKS_ONLY_THE_PROTECTED_ACTION')), 'external gate must not stop independent authorized remediation');
+requireValue(operability.fail_closed.includes('cannot claim COMPLETE_VERIFIED or normal operation'), 'operability-first control must fail closed');
 
 const hedgeById = new Map((hedge.hedges || []).map(item => [item.id, item]));
 for (const id of ['SILENT_PARTIAL_FAILURE','HUMAN_OVERRIDE_GOVERNANCE','ROLLBACK_EPOCH_INTEGRITY','MARKET_REGIME_BREAK','AUDIT_SURVIVABILITY','VENDOR_ECONOMIC_CAPTURE','METHODOLOGICAL_MONOCULTURE']) requireValue(hedgeById.has(id), `missing operational resilience hedge ${id}`);

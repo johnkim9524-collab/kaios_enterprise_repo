@@ -52,7 +52,7 @@ const requiredPlatformPrinciples = [
   'TRANSPARENT'
 ];
 assert(platform.id === 'kidults-operating-principles-and-resilience-controls-v1', 'PLATFORM_ID');
-assert(platform.version === '1.1.0', 'PLATFORM_VERSION');
+assert(platform.version === '1.2.0', 'PLATFORM_VERSION');
 assert(platform.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'PLATFORM_STATUS');
 assert(platform.owner === 'KPMO', 'PLATFORM_OWNER');
 assert(platform.precedence === 'HIGHEST_PLATFORM_OPERATING_PRINCIPLES', 'PLATFORM_PRECEDENCE');
