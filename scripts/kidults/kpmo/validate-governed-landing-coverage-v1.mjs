@@ -31,10 +31,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.7.0', 'POLICY_VERSION');
-  require(policy.status === 'PROGRAM_OWNER_APPROVED_INDEPENDENT_EXACT_HEAD_REVIEW', 'POLICY_STATUS');
-  require(policy.governance_mode === 'OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED', 'GOVERNANCE_MODE');
-  require(policy.decision_id === 'JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18', 'DECISION_ID');
+  require(policy.version === '1.8.0', 'POLICY_VERSION');
+  require(policy.status === 'PROGRAM_OWNER_APPROVED_AUTONOMOUS_EXACT_HEAD_VERIFICATION', 'POLICY_STATUS');
+  require(policy.governance_mode === 'AUTONOMOUS_MULTI_LANE_GOVERNED', 'GOVERNANCE_MODE');
+  require(policy.decision_id === 'JOHN-AUTONOMOUS-MULTI-LANE-REVIEW-2026-09-18', 'DECISION_ID');
   for (const prefix of requiredPrefixes) {
     require(prefixes.has(prefix), `POLICY_PREFIX_MISSING:${prefix}`);
     require(workflow.includes(`'${prefix}'`), `WORKFLOW_PREFIX_MISSING:${prefix}`);
@@ -62,14 +62,31 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
   const review = policy.review_policy || {};
-  require(review.minimum_non_author_approvals === 1, 'INDEPENDENT_APPROVAL_COUNT_MUST_BE_ONE');
+  require(review.minimum_non_author_approvals === 0, 'HUMAN_REVIEW_COUNT_MUST_BE_ZERO');
   require(review.self_review_counts === false, 'SELF_REVIEW_MUST_NOT_COUNT_AS_INDEPENDENT');
   require(review.solo_owner_author_must_match_repository_owner === true, 'OWNER_IDENTITY');
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
   require(review.ready_state_by_owner_is_authorization === false, 'OWNER_READY_MUST_NOT_BE_FINAL_AUTHORIZATION');
-  require(review.independent_exact_head_approval_required === true, 'INDEPENDENT_EXACT_HEAD_REVIEW_REQUIRED');
-  require(review.independent_review_root_issue === 1582, 'INDEPENDENT_REVIEW_ROOT_ISSUE');
+  require(review.independent_exact_head_approval_required === false, 'HUMAN_REVIEW_MUST_NOT_BE_REQUIRED');
+  require(review.human_review_mode === 'OPTIONAL_ADVISORY_EXACT_HEAD_ONLY', 'HUMAN_REVIEW_MODE');
+  require(review.independent_review_root_issue === 1582, 'REVIEW_ROOT_ISSUE');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
+
+  const autonomous = policy.autonomous_verification_policy || {};
+  require(autonomous.mode === 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD', 'AUTONOMOUS_MODE');
+  require(autonomous.required === true, 'AUTONOMOUS_REQUIRED');
+  require(autonomous.scope_aware_status_context === policy.scope_aware_required_status_context, 'AUTONOMOUS_SCOPE_CONTEXT');
+  require(autonomous.all_required_contexts_terminal_success === true, 'AUTONOMOUS_TERMINAL_SUCCESS');
+  require(autonomous.missing_context_fails_closed === true, 'AUTONOMOUS_MISSING_FAIL_CLOSED');
+  require(autonomous.ambiguous_latest_context_fails_closed === true, 'AUTONOMOUS_AMBIGUOUS_FAIL_CLOSED');
+  require(autonomous.owner_exact_head_approval_separate_required === true, 'AUTONOMOUS_OWNER_APPROVAL_SEPARATE');
+  require(autonomous.human_review_required === false, 'AUTONOMOUS_HUMAN_REVIEW_FALSE');
+  require(autonomous.internal_control_evidence_only === true, 'AUTONOMOUS_INTERNAL_CONTROL_ONLY');
+  require(autonomous.empirical_launch_authority === false, 'AUTONOMOUS_NO_EMPIRICAL_AUTHORITY');
+  require(autonomous.root_issue === 1582, 'AUTONOMOUS_ROOT_ISSUE');
+  for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container','full-value-chain-redteam']) {
+    require(autonomous.required_check_contexts?.includes(context), `AUTONOMOUS_CONTEXT_MISSING:${context}`);
+  }
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.exact_labels?.includes('no-merge'), 'NO_MERGE_LABEL_BLOCK_MISSING');
@@ -99,10 +116,11 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "pr.user?.login!==repository.owner?.login",
     "pr.head?.repo?.full_name!==repo",
     "readinessReceipt.actor!==repository.owner?.login",
-    "state:'AUTHORIZED_OWNER_WITH_INDEPENDENT_EXACT_HEAD_REVIEW'",
+    "state:'OWNER_READY_AUTONOMOUS_EXACT_HEAD_VERIFICATION_REQUIRED'",
     'required_approval_count:requiredApprovalCount',
-    'independent exact-head approval required',
-    'independent_exact_head_approvals',
+    'optional_human_exact_head_approvals',
+    'autonomous_multi_lane_verification_required:true',
+    "autonomous_scope_status_context:'KIDULTS Scope-Aware Authoritative Status V1'",
     'ruleset bypass actor detected',
     "pr.state !== 'open' || pr.merged === true",
     "['no-merge','do-not-merge','merge-hold']",
@@ -141,6 +159,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER',
     'POST_MERGE_TREE_SHA_MISMATCH',
     'POST_MERGE_PARENT_BINDING_MISMATCH',
+    'autonomousContexts',
+    'autonomous_exact_head_verification',
     "await publish('failure'",
   ]) require(atomicRunner.includes(marker), `ATOMIC_RUNNER_MARKER_MISSING:${marker}`);
   require(!atomicWorkflow.includes('contents: write'), 'ATOMIC_WORKFLOW_CONTENTS_WRITE_FORBIDDEN');
@@ -149,6 +169,9 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(aggregatePolicy.id === 'kidults-scope-aware-required-status-policy-v1', 'AGGREGATE_POLICY_ID');
   require(aggregatePolicy.zero_coverage_policy === 'FAIL_CLOSED', 'AGGREGATE_ZERO_COVERAGE_FAIL_CLOSE');
   require(aggregatePolicy.required_status_context === policy.scope_aware_required_status_context, 'AGGREGATE_CONTEXT_MISMATCH');
+  require(aggregatePolicy.autonomous_verification_contexts?.includes('full-value-chain-redteam'), 'AGGREGATE_REDTEAM_CONTEXT_MISSING');
+  require(aggregatePolicy.authority_boundary?.autonomous_multi_lane_exact_head_verification === true, 'AGGREGATE_AUTONOMOUS_BOUNDARY_MISSING');
+  require(aggregatePolicy.authority_boundary?.human_review_required === false, 'AGGREGATE_HUMAN_REVIEW_BOUNDARY_INVALID');
   for (const context of [policy.required_status_context, policy.scope_aware_required_status_context]) {
     require(policy.bypass_policy?.required_status_contexts?.includes(context), `NATIVE_REQUIRED_CONTEXT_POLICY_MISSING:${context}`);
     require(aggregatePolicy.native_required_status_contexts?.includes(context), `AGGREGATE_NATIVE_CONTEXT_MISSING:${context}`);
@@ -204,7 +227,7 @@ const mutations = [
   {
     id: 'NATIVE_ZERO_REVIEW_COUNT_GUARD_REMOVED',
     policy,
-    workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from custom independent-review status model');", ''),
+    workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from autonomous multi-lane status model');", ''),
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -298,6 +321,21 @@ const mutations = [
     aggregateWorkflow,
     aggregatePolicy,
     atomicRunner: atomicRunner.replace("throw new Error('POST_MERGE_TREE_SHA_MISMATCH')", "throw new Error('POST_MERGE_TREE_NOT_ENFORCED')"),
+    aggregateRunner,
+  },
+  {
+    id: 'AUTONOMOUS_REDTEAM_CONTEXT_REMOVED',
+    policy,
+    workflow,
+    preflight,
+    atomicWorkflow,
+    aggregateWorkflow,
+    aggregatePolicy: {
+      ...aggregatePolicy,
+      autonomous_verification_contexts: (aggregatePolicy.autonomous_verification_contexts || [])
+        .filter(context => context !== 'full-value-chain-redteam'),
+    },
+    atomicRunner,
     aggregateRunner,
   },
   {
