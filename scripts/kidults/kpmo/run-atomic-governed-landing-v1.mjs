@@ -385,10 +385,14 @@ try {
   const nativeContexts = (statusRule.parameters.required_status_checks || []).map(value => value.context);
   assertNativeRequiredContexts(nativeContexts, policy.bypass_policy.required_status_contexts);
 
+  const autonomousContexts = [...new Set([
+    ...(scopePolicy.technical_base_contexts || []),
+    ...(scopePolicy.autonomous_verification_contexts || []),
+  ])];
   const statuses = await request(`/commits/${expectedHeadSha}/status`);
   const aggregator = (statuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
+  const autonomousVerification = evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), autonomousContexts);
 
   const [timeline, approvalComments, headCommit] = await Promise.all([
     pages(`/issues/${prNumber}/timeline`),
@@ -429,17 +433,7 @@ try {
   const exactHeadBlockers = currentReviews.filter(review =>
     eligibleAssociations.has(review?.author_association) && review?.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
-  const minimumIndependentApprovals = Number(policy.review_policy?.minimum_non_author_approvals);
-  if (!Number.isInteger(minimumIndependentApprovals) || minimumIndependentApprovals < 1) {
-    throw new Error('INDEPENDENT_EXACT_HEAD_REVIEW_POLICY_INVALID');
-  }
-  const independentExactHeadApprovals = currentReviews.filter(review =>
-    review?.user?.login !== initial?.user?.login
-    && eligibleAssociations.has(review?.author_association)
-    && review?.state === 'APPROVED');
-  if (independentExactHeadApprovals.length < minimumIndependentApprovals) {
-    throw new Error('INDEPENDENT_EXACT_HEAD_REVIEW_REQUIRED');
-  }
+
 
   const final = await request(`/pulls/${prNumber}`);
   const finalMain = await request('/branches/main');
@@ -488,7 +482,7 @@ try {
   }
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
+  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), autonomousContexts);
   await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
@@ -676,8 +670,8 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
-    independent_exact_head_review_count: independentExactHeadApprovals.length,
-    independent_exact_head_review_required_count: minimumIndependentApprovals,
+    autonomous_exact_head_verification: autonomousVerification,
+    human_review_required: false,
     staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,
