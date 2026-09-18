@@ -23,7 +23,6 @@ const requireExactArray = (actual, expected, code) => {
 const EXACT_HEAD_APPROVAL_MARKER = 'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V2';
 const EXACT_HEAD_APPROVAL_SCOPE = 'ONE_ATOMIC_GOVERNED_LANDING_ONLY';
 const EXACT_HEAD_APPROVAL_OPERATION = 'MERGE_PROTECTED_MAIN';
-const AUTONOMOUS_REVIEW_MARKER = 'KIDULTS_AUTONOMOUS_REVIEW_V1';
 const exactTime = (value, code) => {
   const parsed = Date.parse(String(value || ''));
   if (!Number.isFinite(parsed)) fail(code);
@@ -68,66 +67,10 @@ export function assertAutonomousIndependentReview(comments, {
     || reviewPolicy?.status !== 'ACTIVE_MANDATORY_FAIL_CLOSED') {
     fail('AUTONOMOUS_REVIEW_BINDING_INVALID');
   }
-  const expectedFields = [
-    'implementer_agent_id', 'reviewer_agent_id', 'assigned_reviewer_agent_id',
-    'implementer_session_id', 'reviewer_session_id', 'exact_head_sha', 'reviewed_head_sha',
-    'required_domain', 'reviewer_domain', 'reviewer_role_id', 'bootstrap_state',
-    'bootstrap_consumed', 'bootstrap_receipt_digest', 'review_receipt_id', 'decision',
-    'diff_evidence', 'test_evidence', 'negative_control_evidence',
-  ];
-  const receipts = [];
-  for (const comment of comments) {
-    const body = String(comment?.body || '');
-    if (!body.startsWith(`${AUTONOMOUS_REVIEW_MARKER}\n`)) continue;
-    if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
-      fail('AUTONOMOUS_REVIEW_ATTESTER_INVALID');
-    }
-    if (comment?.performed_via_github_app != null) fail('AUTONOMOUS_REVIEW_APP_MEDIATED');
-    if (comment.updated_at !== comment.created_at) fail('AUTONOMOUS_REVIEW_COMMENT_EDITED');
-    let receipt;
-    try { receipt = JSON.parse(body.slice(AUTONOMOUS_REVIEW_MARKER.length + 1)); }
-    catch { fail('AUTONOMOUS_REVIEW_RECEIPT_JSON_INVALID'); }
-    requireExactArray(Object.keys(receipt).sort(), [...expectedFields].sort(), 'AUTONOMOUS_REVIEW_RECEIPT_FIELDS');
-    receipts.push({...receipt, github_comment_id: Number(comment.id), github_created_at: comment.created_at});
+  if (reviewPolicy?.identity_assurance_boundary?.protected_attestation_controller_status !== 'PROVISIONED_VERIFIED') {
+    fail('AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
   }
-  const receiptIds = new Set();
-  for (const receipt of receipts) {
-    if (!receipt.review_receipt_id || receiptIds.has(receipt.review_receipt_id)) fail('AUTONOMOUS_REVIEW_RECEIPT_REPLAY');
-    receiptIds.add(receipt.review_receipt_id);
-  }
-  const current = receipts.filter(receipt => receipt.exact_head_sha === headSha && receipt.reviewed_head_sha === headSha);
-  if (current.some(receipt => receipt.decision === 'REQUEST_CHANGES')) fail('AUTONOMOUS_REVIEW_CHANGES_REQUESTED');
-  const approvals = current.filter(receipt => receipt.decision === 'APPROVE');
-  if (approvals.length !== 1) fail('AUTONOMOUS_REVIEW_APPROVAL_CARDINALITY', String(approvals.length));
-  const approval = approvals[0];
-  for (const field of expectedFields) {
-    if (approval[field] === undefined || approval[field] === null || approval[field] === '') fail('AUTONOMOUS_REVIEW_FIELD_MISSING', field);
-  }
-  if (approval.implementer_agent_id === approval.reviewer_agent_id) fail('AUTONOMOUS_REVIEW_SELF_REVIEW');
-  if (approval.assigned_reviewer_agent_id !== approval.reviewer_agent_id) fail('AUTONOMOUS_REVIEW_WRONG_AGENT');
-  if (approval.implementer_session_id === approval.reviewer_session_id) fail('AUTONOMOUS_REVIEW_SESSION_NOT_INDEPENDENT');
-  if (approval.required_domain !== approval.reviewer_domain) fail('AUTONOMOUS_REVIEW_WRONG_DOMAIN');
-  if (!(reviewPolicy.registered_role_routing?.[approval.required_domain] || []).includes(approval.reviewer_role_id)) {
-    fail('AUTONOMOUS_REVIEW_ROLE_NOT_QUALIFIED');
-  }
-  if (approval.bootstrap_state !== 'BOOTSTRAP_VERIFIED' || approval.bootstrap_consumed !== true) {
-    fail('AUTONOMOUS_REVIEW_BOOTSTRAP_NOT_CONSUMED');
-  }
-  if (!/^hmac-sha256:[0-9a-f]{64}$/.test(approval.bootstrap_receipt_digest)) fail('AUTONOMOUS_REVIEW_BOOTSTRAP_DIGEST_INVALID');
-  for (const field of ['diff_evidence', 'test_evidence', 'negative_control_evidence']) {
-    if (!Array.isArray(approval[field]) || !approval[field].length) fail('AUTONOMOUS_REVIEW_EVIDENCE_MISSING', field);
-  }
-  return {
-    decision: approval.decision,
-    reviewer_agent_id: approval.reviewer_agent_id,
-    reviewer_role_id: approval.reviewer_role_id,
-    reviewer_session_id: approval.reviewer_session_id,
-    reviewed_head_sha: approval.reviewed_head_sha,
-    review_receipt_id: approval.review_receipt_id,
-    github_comment_id: approval.github_comment_id,
-    github_created_at: approval.github_created_at,
-    comment_body_digest: `sha256:${createHash('sha256').update(String(comments.find(value => Number(value.id) === approval.github_comment_id)?.body || '')).digest('hex')}`,
-  };
+  fail('AUTONOMOUS_REVIEW_CONTROLLER_VERIFIER_UNAVAILABLE');
 }
 
 export function selectLatestProgramOwnerReadyEvent(timeline, repositoryOwner) {

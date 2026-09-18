@@ -71,8 +71,13 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const autonomousReview = policy.autonomous_independent_review_policy || {};
   require(autonomousReview.required_for_governed_reversible_changes === true, 'AUTONOMOUS_REVIEW_REQUIRED');
   require(autonomousReview.github_native_approval_count_unchanged === true, 'AUTONOMOUS_REVIEW_NATIVE_COUNT_BOUNDARY');
-  require(autonomousReview.attestation_transport === 'EXISTING_PR_COMMENT', 'AUTONOMOUS_REVIEW_TRANSPORT');
-  require(autonomousReview.attesting_github_actor_must_equal_repository_owner === true, 'AUTONOMOUS_REVIEW_ATTESTER');
+  require(autonomousReview.attestation_transport === 'PROTECTED_AUTONOMOUS_TRUST_CONTROLLER', 'AUTONOMOUS_REVIEW_TRANSPORT');
+  require(autonomousReview.controller_status === 'NOT_PROVISIONED', 'AUTONOMOUS_REVIEW_CONTROLLER_STATUS');
+  require(autonomousReview.controller_role === 'PROVENANCE_VERIFIER_ONLY', 'AUTONOMOUS_REVIEW_CONTROLLER_ROLE');
+  require(autonomousReview.repository_comment_is_authoritative_provenance === false, 'AUTONOMOUS_REVIEW_COMMENT_AUTHORITY');
+  require(autonomousReview.repository_code_may_mint_independent_review === false, 'AUTONOMOUS_REVIEW_REPOSITORY_MINT');
+  require(autonomousReview.external_human_reviewer_required === false, 'AUTONOMOUS_REVIEW_HUMAN_SPOF');
+  require(autonomousReview.controller_may_act_as_reviewer_committee_or_personnel_authority === false, 'AUTONOMOUS_REVIEW_CONTROLLER_AUTHORITY');
   require(autonomousReview.implementer_and_reviewer_agent_ids_must_differ === true, 'AUTONOMOUS_REVIEW_SELF_REVIEW');
   require(autonomousReview.implementer_and_reviewer_sessions_must_differ === true, 'AUTONOMOUS_REVIEW_SESSION_SEPARATION');
   require(autonomousReview.reviewed_head_must_equal_current_exact_head === true, 'AUTONOMOUS_REVIEW_EXACT_HEAD');
@@ -83,6 +88,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(autonomousReview.receipt_replay_allowed === false, 'AUTONOMOUS_REVIEW_REPLAY');
   require(autonomousReview.agent_id_string_alone_establishes_independence === false, 'AUTONOMOUS_REVIEW_IDENTITY_INFLATION');
   require(autonomousReview.bootstrap_receipt_alone_grants_merge_or_promotion_authority === false, 'AUTONOMOUS_REVIEW_AUTHORITY_INFLATION');
+  require(autonomousReview.comment_only_attestation_must_fail_closed === true, 'AUTONOMOUS_REVIEW_COMMENT_FAIL_CLOSED');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.exact_labels?.includes('no-merge'), 'NO_MERGE_LABEL_BLOCK_MISSING');

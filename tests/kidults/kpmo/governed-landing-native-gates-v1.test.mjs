@@ -205,9 +205,12 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_NONCE_INVALID');
 });
 
-test('autonomous review is exact-head, identity/session separated, role-qualified, immutable, and replay-resistant', () => {
+test('repository comments cannot mint autonomous-review provenance while the protected controller is unprovisioned', () => {
   const reviewPolicy = {
     status: 'ACTIVE_MANDATORY_FAIL_CLOSED',
+    identity_assurance_boundary: {
+      protected_attestation_controller_status: 'NOT_PROVISIONED',
+    },
     registered_role_routing: {governance_independence_and_provenance: ['integration-conductor']},
   };
   const receipt = {
@@ -241,15 +244,25 @@ test('autonomous review is exact-head, identity/session separated, role-qualifie
     ...overrides,
   });
   const input = {repositoryOwner: 'johnkim9524-collab', headSha: sha, reviewPolicy};
-  assert.equal(assertAutonomousIndependentReview([comment(receipt)], input).decision, 'APPROVE');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_agent_id: 'AI-018', assigned_reviewer_agent_id: 'AI-018'})], input), 'AUTONOMOUS_REVIEW_SELF_REVIEW');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewed_head_sha: 'c'.repeat(40), exact_head_sha: 'c'.repeat(40)})], input), 'AUTONOMOUS_REVIEW_APPROVAL_CARDINALITY');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_agent_id: 'WRONG'})], input), 'AUTONOMOUS_REVIEW_WRONG_AGENT');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_domain: 'portal'})], input), 'AUTONOMOUS_REVIEW_WRONG_DOMAIN');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_role_id: 'track-c-portal-v502'})], input), 'AUTONOMOUS_REVIEW_ROLE_NOT_QUALIFIED');
-  code(() => assertAutonomousIndependentReview([comment(receipt), comment(receipt, {id: 100})], input), 'AUTONOMOUS_REVIEW_RECEIPT_REPLAY');
-  code(() => assertAutonomousIndependentReview([comment({...receipt, decision: 'REQUEST_CHANGES'})], input), 'AUTONOMOUS_REVIEW_CHANGES_REQUESTED');
-  code(() => assertAutonomousIndependentReview([comment(receipt, {updated_at: '2026-09-01T01:11:00Z'})], input), 'AUTONOMOUS_REVIEW_COMMENT_EDITED');
+  code(() => assertAutonomousIndependentReview([comment(receipt)], input), 'AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
+  code(() => assertAutonomousIndependentReview([], input), 'AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
+  code(() => assertAutonomousIndependentReview([comment({
+    ...receipt,
+    bootstrap_receipt_digest: `hmac-sha256:${'f'.repeat(64)}`,
+  })], input), 'AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
+  code(() => assertAutonomousIndependentReview([comment(receipt, {
+    user: {login: 'untrusted-actor'},
+    author_association: 'NONE',
+  })], input), 'AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
+  code(() => assertAutonomousIndependentReview([comment(receipt)], {
+    ...input,
+    reviewPolicy: {
+      ...reviewPolicy,
+      identity_assurance_boundary: {
+        protected_attestation_controller_status: 'PROVISIONED_VERIFIED',
+      },
+    },
+  }), 'AUTONOMOUS_REVIEW_CONTROLLER_VERIFIER_UNAVAILABLE');
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {

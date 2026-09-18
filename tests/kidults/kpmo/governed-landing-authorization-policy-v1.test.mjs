@@ -41,7 +41,6 @@ for (const version of ['1.4.0', '1.5.0', '2.0.0']) {
 
 for (const field of [
   'required_for_governed_reversible_changes',
-  'attesting_github_actor_must_equal_repository_owner',
   'implementer_and_reviewer_agent_ids_must_differ',
   'implementer_and_reviewer_sessions_must_differ',
   'assigned_reviewer_must_equal_reviewer',
@@ -63,11 +62,27 @@ for (const field of [
   });
 }
 
-for (const field of ['receipt_replay_allowed','agent_id_string_alone_establishes_independence','bootstrap_receipt_alone_grants_merge_or_promotion_authority']) {
+for (const field of [
+  'receipt_replay_allowed',
+  'agent_id_string_alone_establishes_independence',
+  'bootstrap_receipt_alone_grants_merge_or_promotion_authority',
+  'repository_comment_is_authoritative_provenance',
+  'repository_code_may_mint_independent_review',
+  'external_human_reviewer_required',
+  'controller_may_act_as_reviewer_committee_or_personnel_authority',
+]) {
   test(`enabled forbidden autonomous-review field ${field} fails closed`, () => {
     const policy = clonePolicy();
     policy.autonomous_independent_review_policy[field] = true;
     expectRejected(policy, `AUTONOMOUS_REVIEW_FIELD_INVALID:${field}`);
+  });
+}
+
+for (const field of ['controller_status', 'controller_role', 'comment_only_attestation_must_fail_closed']) {
+  test(`missing autonomous-review trust-boundary field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    delete policy.autonomous_independent_review_policy[field];
+    expectRejected(policy, `AUTONOMOUS_REVIEW_FIELD_MISSING:${field}`);
   });
 }
 

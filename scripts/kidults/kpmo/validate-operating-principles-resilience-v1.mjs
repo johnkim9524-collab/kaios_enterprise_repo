@@ -62,6 +62,8 @@ for (const invariant of [
   'REVIEW_MUST_BIND_SEPARATE_AGENT_ID_BOOTSTRAP_SESSION_AND_EXACT_HEAD',
   'REVIEW_MUST_EVALUATE_DIFF_TEST_EVIDENCE_AND_DOMAIN_SPECIFIC_NEGATIVE_CONTROLS',
   'REVIEW_AUTHORITY_MUST_BE_AUDITABLE_REPLAY_RESISTANT_EXACT_HEAD_BOUND_AND_INDEPENDENTLY_ATTRIBUTABLE',
+  'REPOSITORY_COMMENT_OR_OWNER_ASSERTION_CANNOT_ESTABLISH_REVIEWER_PROVENANCE',
+  'ATTESTATION_CONTROLLER_VERIFIES_PROVENANCE_ONLY_AND_CANNOT_ACT_AS_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY',
 ]) requireValue(independentReview?.invariants?.includes(invariant), `missing autonomous review invariant ${invariant}`);
 for (const gate of ['PRODUCTION','PUBLIC_RELEASE','G5','EXPANDED_CREDENTIAL_OR_PERMISSION','SECURITY_POLICY_WEAKENING','DESTRUCTIVE_OPERATION_OR_HISTORY_REWRITE','EXTERNAL_SPEND','LEGAL_OR_COMMERCIAL_COMMITMENT']) {
   requireValue(independentReview?.human_owner_gates?.includes(gate), `autonomous review must preserve Owner gate ${gate}`);
@@ -84,6 +86,12 @@ requireValue(independentReview?.identity_assurance_boundary?.repository_bootstra
 requireValue(independentReview?.identity_assurance_boundary?.separate_external_orchestrator_process_attestation_required === true, 'separate orchestrator process attestation required');
 requireValue(independentReview?.identity_assurance_boundary?.agent_id_string_alone_establishes_independence === false, 'agent id string must not establish independence');
 requireValue(independentReview?.identity_assurance_boundary?.bootstrap_receipt_alone_grants_merge_or_promotion_authority === false, 'bootstrap receipt must not grant merge or promotion authority');
+requireValue(independentReview?.identity_assurance_boundary?.repository_comment_is_authoritative_provenance === false, 'repository comment must not establish provenance');
+requireValue(independentReview?.identity_assurance_boundary?.repository_code_may_mint_independent_review === false, 'repository code must not mint its own independent review');
+requireValue(independentReview?.identity_assurance_boundary?.external_human_reviewer_required === false, 'external human reviewer must not be a normal-operation dependency');
+requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_status === 'NOT_PROVISIONED', 'protected attestation controller state must be explicit');
+requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_role === 'PROVENANCE_VERIFIER_ONLY', 'attestation controller must be provenance-only');
+requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_may_act_as_reviewer_committee_or_personnel_authority === false, 'attestation controller must not own reviewer or personnel decisions');
 
 const hedgeById = new Map((hedge.hedges || []).map(item => [item.id, item]));
 for (const id of ['SILENT_PARTIAL_FAILURE','HUMAN_OVERRIDE_GOVERNANCE','ROLLBACK_EPOCH_INTEGRITY','MARKET_REGIME_BREAK','AUDIT_SURVIVABILITY','VENDOR_ECONOMIC_CAPTURE','METHODOLOGICAL_MONOCULTURE']) requireValue(hedgeById.has(id), `missing operational resilience hedge ${id}`);
