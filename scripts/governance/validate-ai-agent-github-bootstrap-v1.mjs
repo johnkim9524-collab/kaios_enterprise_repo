@@ -786,7 +786,7 @@ const reportAfterGate = json(paths.reportAfterGate);
 const statusSchema = json(paths.statusSchema);
 const registry = json(paths.registry);
 const roles = json(paths.roles);
-assert(operating.version === '1.8.0', 'OPERATING_CONTRACT_VERSION');
+assert(operating.version === '1.9.0', 'OPERATING_CONTRACT_VERSION');
 assert(operating.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'OPERATING_INDEPENDENT_VERIFICATION');
 assert(operating.enforcement?.local_expected_sha_establishes_github_provenance === false, 'OPERATING_LOCAL_SHA_PROVENANCE');
 assert(remediation.version === '1.2.0', 'REMEDIATION_VERSION');
