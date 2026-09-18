@@ -74,7 +74,7 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/);
   assert.doesNotMatch(runner, /DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_REQUIRED/);
-  assert.match(runner, /autonomousContexts/);
+  assert.match(runner, /scopeRequirements/);
   assert.match(runner, /autonomous_exact_head_verification/);
   assert.match(runner, /human_review_required: false/);
   assert.match(runner, /evaluateAtomicLandingOneUseRunSet/);
@@ -83,19 +83,21 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_FINAL_SCOPE_STATUS_NOT_SUCCESS/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_DRIFT_AFTER_WINDOW/);
-  assert.match(runner, /evaluateRequiredCheckRuns\(runs, autonomousContexts\)/);
+  assert.match(runner, /evaluateRequiredCheckRuns\(runs, scopeRequirements\.required_contexts\)/);
   assert.match(runner, /await publish\('success', `Direct Owner UI merge authorized/);
   assert.match(runner, /await publish\('pending', 'Direct Owner handoff expired unconsumed; fresh authorization required'\)/);
   assert.match(runner, /await publish\('failure'/);
 });
 
-test('autonomous landing requires CI plus bounded full-value-chain Red-Team over the complete scope surface', () => {
+test('autonomous landing uses baseline CI and risk-routed Full Red-Team without trust-root trigger mutation', () => {
   assert.deepEqual(scopePolicy.technical_base_contexts, [
     'KAIOS Solo Owner Preflight',
     'Validate KAIOS Foundation',
     'Validate Production Container',
   ]);
-  assert.deepEqual(scopePolicy.autonomous_verification_contexts, ['full-value-chain-redteam']);
+  const redTeamRules = scopePolicy.autonomous_verification_rules || [];
+  assert.ok(redTeamRules.some(rule => (rule.required_contexts || []).includes('full-value-chain-redteam')));
+
   const normalized = redTeamWorkflow.replace(/\r\n/g, '\n');
   const pullRequest = normalized.match(/^  pull_request:\n([\s\S]*?)(?=^  push:|^  workflow_dispatch:)/m);
   assert.ok(pullRequest, 'full-value-chain Red-Team pull_request trigger is required');
@@ -104,14 +106,15 @@ test('autonomous landing requires CI plus bounded full-value-chain Red-Team over
   const listed = new Set(
     [...pullRequest[1].matchAll(/^      - ["']?(.+?)["']?$/gm)].map(match => match[1]),
   );
-  for (const rule of scopePolicy.scope_rules) {
+  for (const rule of redTeamRules) {
     for (const prefix of rule.prefixes || []) {
-      assert.ok(listed.has(`${prefix}**`), `Red-Team routing missing scope prefix ${prefix}`);
+      assert.ok(listed.has(`${prefix}**`), `Red-Team risk route missing trigger prefix ${prefix}`);
     }
     for (const exact of rule.exact_paths || []) {
-      assert.ok(listed.has(exact), `Red-Team routing missing exact scope path ${exact}`);
+      assert.ok(listed.has(exact), `Red-Team risk route missing exact trigger path ${exact}`);
     }
   }
+  assert.match(atomic, /scopeRequirements/);
   assert.match(atomic, /autonomous_exact_head_verification/);
   assert.match(atomic, /human_review_required: false/);
 });
