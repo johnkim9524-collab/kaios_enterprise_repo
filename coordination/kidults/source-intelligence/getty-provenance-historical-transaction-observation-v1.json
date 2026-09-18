@@ -1,7 +1,7 @@
 {
   "id": "kidults-getty-provenance-historical-transaction-observation-v1",
   "version": "1.0.0",
-  "state": "VERIFIED_PASS",
+  "state": "COMMITTED_REFERENCE_SNAPSHOT_REPLAY",
   "as_of": "2026-08-24T02:38:18Z",
   "platform_principles": [
     "AUTONOMOUS",
@@ -19,11 +19,13 @@
     "registered_top_16_source_profile": false
   },
   "capture": {
-    "mode": "BOUNDED_PUBLIC_REST_JSON_LD_EXACT_RECORDS",
+    "mode": "COMMITTED_SNAPSHOT_REPLAY_NO_ACQUISITION_RECEIPT",
     "authenticated": false,
     "credential_used": false,
     "paid_access": false,
-    "network_requests": 4
+    "network_requests": 0,
+    "machine_proven_acquisition_receipts": 0,
+    "acquisition_time_http_receipt": null
   },
   "rights": {
     "decision": "ALLOW",
@@ -62,18 +64,20 @@
     "evidence_class": "HISTORICAL_TRANSACTION_PROVENANCE",
     "amount_semantics": "DOCUMENTED_TRANSACTION_AMOUNT_NOT_HAMMER_OR_CURRENT_PRICE",
     "event_time_precision": "MONTH",
-    "historical_transaction": true,
+    "historical_transaction": false,
     "verified_current_sold_event": false,
     "current_price": false,
     "liquidity": false,
     "demand": false,
-    "generic_market_event": false
+    "generic_market_event": false,
+    "committed_reference_replay": true
   },
   "uncertainties": [
     "THE_SOURCE_RECORD_GIVES_A_MONTH_WINDOW_NOT_AN_EXACT_TRANSACTION_DAY",
     "THE_MONETARY_AMOUNT_IS_DOCUMENTED_BUT_NOT_LABELED_AS_HAMMER_OR_ALL_IN_REALIZED_PRICE",
     "THE_OBJECT_ETAG_WAS_NOT_RETAINED; THE_COMMITTED_RAW_PAYLOAD_DIGEST_IS_AUTHORITATIVE_FOR_REPLAY",
-    "ONE_HISTORICAL_RECORD_CANNOT_ESTABLISH_CURRENT_PRICE_DEMAND_OR_LIQUIDITY"
+    "ONE_HISTORICAL_RECORD_CANNOT_ESTABLISH_CURRENT_PRICE_DEMAND_OR_LIQUIDITY",
+    "ACQUISITION_TIME_HTTP_STATUS_HEADERS_TIMESTAMP_RAW_BYTES_AND_RUN_BOUND_RECEIPT_ARE_NOT_MACHINE_PROVEN"
   ],
   "public_release": "HOLD",
   "production": "HOLD",
