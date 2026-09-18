@@ -20,8 +20,10 @@ const prNumber = process.env.PR_NUMBER;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
+const landingRunId = process.env.GITHUB_RUN_ID;
 const outPath = process.env.LIFECYCLE_AUTHORITY_PATH || '/tmp/kpmo-atomic-landing/lifecycle-authority.json';
-if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '') || !authorizationId || !landingActor) {
+if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')
+  || !authorizationId || !landingActor || !/^\d+$/.test(landingRunId || '')) {
   throw new Error('ATOMIC_LIFECYCLE_PREFLIGHT_ENVIRONMENT_BINDING_INVALID');
 }
 const repositoryParts = repository.split('/');
@@ -79,7 +81,7 @@ const readArtifactReceipt = async artifact => {
 };
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-const [repositoryState, pr, mainBranch, combinedStatus, timeline, approvalComments, headCommit] = await Promise.all([
+const [repositoryState, pr, mainBranch, combinedStatus, timeline, approvalComments, headCommit, currentRun] = await Promise.all([
   request(''),
   request(`/pulls/${prNumber}`),
   request('/branches/main'),
@@ -87,6 +89,7 @@ const [repositoryState, pr, mainBranch, combinedStatus, timeline, approvalCommen
   pages(`/issues/${prNumber}/timeline`),
   pages(`/issues/${prNumber}/comments`),
   request(`/commits/${expectedHeadSha}`),
+  request(`/actions/runs/${landingRunId}`),
 ]);
 const repositoryOwner = repositoryState?.owner?.login;
 if (!repositoryOwner || repositoryOwner !== repositoryPathOwner) {
@@ -123,6 +126,7 @@ const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComment
   prCreatedAt: pr.created_at,
   headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
   latestReadyAt: latestReadiness.created_at,
+  landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
   evaluationTime: new Date().toISOString(),
 });
 
