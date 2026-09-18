@@ -297,20 +297,14 @@ export function resolveScopeRequirements(files, metadata, policy) {
     return {
       files: [],
       scopes: [],
-      required_contexts: [...new Set([
-        ...(policy.technical_base_contexts || []),
-        ...(policy.autonomous_verification_contexts || []),
-      ])].sort(),
+      required_contexts: [...new Set(policy.technical_base_contexts || [])].sort(),
       zero_diff: true,
     };
   }
   if (changedFileCount !== files.length) fail('CHANGED_FILE_PAGINATION_INCOMPLETE', `${files.length}/${changedFileCount}`);
   const unmatched = [];
   const matchedScopes = new Set();
-  const contexts = new Set([
-    ...(policy.technical_base_contexts || []),
-    ...(policy.autonomous_verification_contexts || []),
-  ]);
+  const contexts = new Set(policy.technical_base_contexts || []);
   for (const entry of files) {
     const filename = typeof entry === 'string' ? entry : entry?.filename;
     if (!filename) fail('PULL_REQUEST_FILENAME_INVALID');
@@ -321,6 +315,11 @@ export function resolveScopeRequirements(files, metadata, policy) {
     }
     for (const match of matches) {
       matchedScopes.add(match.id);
+      for (const context of match.required_contexts || []) contexts.add(context);
+    }
+    const autonomousMatches = (policy.autonomous_verification_rules || [])
+      .filter(rule => scopeMatches(filename, rule));
+    for (const match of autonomousMatches) {
       for (const context of match.required_contexts || []) contexts.add(context);
     }
   }
