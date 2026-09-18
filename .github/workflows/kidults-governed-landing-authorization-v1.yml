@@ -129,7 +129,7 @@ jobs:
           const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
           for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
           const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
-          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from custom independent-review status model');
+          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from autonomous multi-lane status model');
           if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
           if(protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval must remain disabled in solo-owner mode');
           if(!protectPr?.parameters?.required_review_thread_resolution) fail('Protect main review-thread resolution disabled');
