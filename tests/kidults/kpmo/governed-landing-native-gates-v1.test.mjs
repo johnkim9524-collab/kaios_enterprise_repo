@@ -439,6 +439,18 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
         }]},
     }},
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback, privateKey)], {
+    ...input, requireDurableConsumption: true, operationBinding,
+    reviewPolicy: {...reviewPolicy, identity_assurance_boundary: {
+      ...reviewPolicy.identity_assurance_boundary,
+      protected_attestation_trust: {...reviewPolicy.identity_assurance_boundary.protected_attestation_trust,
+        durable_store_trusted_signers: [{
+          signer_identity_and_version: storeSigner,
+          public_key_pem: publicKey.export({type: 'spki', format: 'pem'}).toString(),
+          revoked: false,
+        }]},
+    }},
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback), storeCommentFor({...durableReadback, consumption_id: 'durable-consumption-duplicate'})], {
     ...input, requireDurableConsumption: true, operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');

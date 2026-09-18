@@ -206,6 +206,7 @@ export function assertAutonomousIndependentReview(comments, {
       const storeSigner = storeSigners.find(value => value?.signer_identity_and_version === readback?.signer_identity_and_version);
       if (!storeSigner || storeSigner.revoked === true || envelope.signature_algorithm !== 'Ed25519'
           || readback?.signer_identity_and_version === approved.payload.signer_identity_and_version
+          || storeSigner.public_key_pem === signer.public_key_pem
           || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)
           || Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
           || readback.version !== 'kidults-protected-review-durable-readback-v1'
