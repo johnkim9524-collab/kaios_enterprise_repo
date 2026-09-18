@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.6.0';
+const EXPECTED_POLICY_VERSION = '1.7.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -42,6 +42,20 @@ const EXACT_NEGATIVE_CASES = Object.freeze([
   'APPROVAL_REPLAY',
 ]);
 
+const EXACT_REVIEW_POLICY = Object.freeze({
+  minimum_non_author_approvals: 1,
+  self_review_counts: false,
+  approval_must_bind_exact_head_sha: true,
+  stale_approval_counts: false,
+  changes_requested_on_exact_head_blocks: true,
+  solo_owner_author_must_match_repository_owner: true,
+  same_repository_head_required: true,
+  ready_state_by_owner_is_authorization: false,
+  optional_external_review_must_bind_exact_head: true,
+  independent_exact_head_approval_required: true,
+  independent_review_root_issue: 1582,
+});
+
 const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
   operation_specific_dispatch_required: true,
   event_emitting_transport_availability_before_consumption: true,
@@ -76,11 +90,13 @@ function requireExactArray(actual, expected, code) {
   }
 }
 
-export function assertGovernedLandingAuthorizationPolicyV160(policy) {
+export function assertGovernedLandingAuthorizationPolicyV170(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');
-  requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS_INVALID');
+  requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_INDEPENDENT_EXACT_HEAD_REVIEW', 'POLICY_STATUS_INVALID');
+  requireExact(policy.governance_mode === 'OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED', 'POLICY_GOVERNANCE_MODE_INVALID');
+  requireExact(policy.decision_id === 'JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18', 'POLICY_DECISION_ID_INVALID');
   requireExact(policy.owner === 'KPMO', 'POLICY_OWNER_INVALID');
 
   const generation = policy.approval_generation_policy;
@@ -94,6 +110,17 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
     'APPROVAL_GENERATION_ENFORCEMENT_POINTS');
   requireExactArray(generation.negative_cases_required, EXACT_NEGATIVE_CASES,
     'APPROVAL_GENERATION_NEGATIVE_CASES');
+
+  const review = policy.review_policy;
+  requireExact(review && typeof review === 'object' && !Array.isArray(review),
+    'REVIEW_POLICY_MISSING');
+  for (const [field, expected] of Object.entries(EXACT_REVIEW_POLICY)) {
+    requireExact(Object.hasOwn(review, field), `REVIEW_POLICY_FIELD_MISSING:${field}`);
+    requireExact(review[field] === expected, `REVIEW_POLICY_FIELD_INVALID:${field}`);
+  }
+  requireExactArray(review.eligible_reviewer_types, ['User'], 'REVIEW_ELIGIBLE_REVIEWER_TYPES');
+  requireExactArray(review.eligible_author_associations, ['OWNER', 'MEMBER', 'COLLABORATOR'],
+    'REVIEW_ELIGIBLE_AUTHOR_ASSOCIATIONS');
 
   const atomic = policy.atomic_landing_policy;
   requireExact(atomic && typeof atomic === 'object' && !Array.isArray(atomic),
@@ -118,5 +145,6 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
     generation_mode: generation.mode,
     generation_enforcement_points: [...generation.enforcement_points],
     replay_defense_exact: true,
+    independent_exact_head_review_required: true,
   };
 }
