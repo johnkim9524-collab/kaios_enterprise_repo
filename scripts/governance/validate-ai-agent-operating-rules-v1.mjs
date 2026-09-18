@@ -378,7 +378,7 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.9.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'ROLE_REGISTRY_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ROLE_REGISTRY_AI_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'ROLE_REGISTRY_KPMO_SCOPE');
