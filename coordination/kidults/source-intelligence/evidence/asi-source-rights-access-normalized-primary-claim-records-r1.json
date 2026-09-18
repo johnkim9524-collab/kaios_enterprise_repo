@@ -38,6 +38,20 @@
       "evidence_assertion_binding_fingerprint": "sha256:2206136cd7d3c136c8f2fbf5a8c34e1278808b14b78bac93b803647dd7243fc4"
     },
     {
+      "claim_record_id": "claim-record-wikidata-access-20260918",
+      "source_url": "https://www.wikidata.org/wiki/Wikidata:Data_access/en",
+      "document_version": "oldid:2497420703",
+      "claim_locator": "Access best practices",
+      "claim_text_mode": "NORMALIZED_PARAPHRASE",
+      "claim_text": "Programmatic access must identify the client, use compression, limit concurrency and honor 429 Retry-After responses.",
+      "recorded_at": "2026-09-18T03:25:46Z",
+      "reviewer": "KPMO / Codex",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "record_integrity_sha256": "sha256:52c8774f7daeb617d7728415ca5aa03f7fa0931a8e549442f58365f5b436de92",
+      "evidence_id": "ev-wikidata-access-20260918",
+      "evidence_assertion_binding_fingerprint": "sha256:1f16df102534999da3cb228c3297ab3bb1a452dca5d394d5f5a691543219cc79"
+    },
+    {
       "claim_record_id": "claim-record-datacite-license",
       "source_url": "https://support.datacite.org/docs/harvesting-datacite-doi-metadata",
       "document_version": "official-doc-as-observed-2026-08-19",
@@ -78,6 +92,34 @@
       "record_integrity_sha256": "sha256:8f5e1c376c4194e9d398553bc8ed7523c93b3be42707235188b9e54e7406faad",
       "evidence_id": "ev-datacite-rate",
       "evidence_assertion_binding_fingerprint": "sha256:909475692a5d924eaf93be76fd202e019750ab09df07c7ef4cf5fe9d6dd06fc8"
+    },
+    {
+      "claim_record_id": "claim-record-datacite-access-20260918",
+      "source_url": "https://support.datacite.org/docs/harvesting-datacite-doi-metadata",
+      "document_version": "official-doc-as-observed-2026-09-18",
+      "claim_locator": "Which DataCite APIs can I use to harvest metadata? / REST API service row",
+      "claim_text_mode": "NORMALIZED_PARAPHRASE",
+      "claim_text": "The harvesting guide lists the REST API as available to all users, including unidentified users, for metadata retrieval.",
+      "recorded_at": "2026-09-18T03:25:46Z",
+      "reviewer": "KPMO / Codex",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "record_integrity_sha256": "sha256:301876c0ae951fedb9c807feb21743232eed46ac57b02026411197fc13232416",
+      "evidence_id": "ev-datacite-access-20260918",
+      "evidence_assertion_binding_fingerprint": "sha256:66465ec8cf4b2f2a111e00b69000904f62fd6495ed927763f48e1e710e748003"
+    },
+    {
+      "claim_record_id": "claim-record-datacite-rate-20260918",
+      "source_url": "https://support.datacite.org/docs/rate-limit",
+      "document_version": "official-doc-as-observed-2026-09-18",
+      "claim_locator": "API rate limits / tier table",
+      "claim_text_mode": "NORMALIZED_PARAPHRASE",
+      "claim_text": "Unidentified API requests are limited to 500 per five minutes per IP; identified requests receive a higher tier of 1000 per five minutes per IP.",
+      "recorded_at": "2026-09-18T03:25:46Z",
+      "reviewer": "KPMO / Codex",
+      "source_content_capture_state": "PENDING_NOT_ARCHIVED",
+      "record_integrity_sha256": "sha256:b451b96ca478f0eb6d6fbafa330efb9a1c4b1d9eaa8d32450d22e2e97dc845f8",
+      "evidence_id": "ev-datacite-rate-20260918",
+      "evidence_assertion_binding_fingerprint": "sha256:4f9305bb0c05697f2f8396d64933fd512f00b2ff19ea157cd6b52bd3ae5c4e61"
     },
     {
       "claim_record_id": "claim-record-moma-license",

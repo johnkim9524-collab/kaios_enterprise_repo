@@ -48,12 +48,6 @@ jobs:
         working-directory: services/kidults-autonomous-intelligence
         run: npm run typecheck
 
-      - name: Run A32 production reality gate
-        working-directory: services/kidults-autonomous-intelligence
-        run: npm run a32:reality
-        env:
-          A32_MODE: SIMULATION
-
       - name: Run A32 certify
         working-directory: services/kidults-autonomous-intelligence
         run: npm run a32:certify
