@@ -531,6 +531,43 @@ const executableShellCommands = (runBody) => {
   return commands;
 };
 
+const shellCommandSegments = (command) => {
+  const segments = [];
+  let current = '';
+  let quote = null;
+  let escaped = false;
+  for (const character of command) {
+    if (escaped) {
+      current += character;
+      escaped = false;
+      continue;
+    }
+    if (character === '\\' && quote !== "'") {
+      current += character;
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      current += character;
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      continue;
+    }
+    if (character === ';' || character === '&' || character === '|') {
+      if (current.trim()) segments.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += character;
+  }
+  if (current.trim()) segments.push(current.trim());
+  return segments;
+};
+
 const commandStartsInvocation = (command, commandPattern) => new RegExp(
   `^(?:${commandPattern}|[A-Za-z_][A-Za-z0-9_]*=["']?\\$\\(\\s*${commandPattern})(?=\\s|$)`
 ).test(command);
@@ -587,14 +624,17 @@ const validateDispatchJob = (dispatch, workflows) => {
   }
   const gateCommands = job.steps.slice(0, taskIndex).flatMap((step, stepIndex) =>
     executableShellCommands(step.run).map((command, commandIndex) => ({ command, stepIndex, commandIndex })));
-  const preTaskShell = job.steps.slice(0, taskIndex).map(step => step.run ?? '').join('\n');
-  assert(!/(?:^|\n)\s*(?:(?:set\s+(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace)|(?:bash|sh|zsh)\s+-[A-Za-z]*x[A-Za-z]*)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/im.test(preTaskShell),
+  const commandSegments = gateCommands.flatMap(({command}) => shellCommandSegments(command))
+    .map(segment => segment
+      .replace(/^[({]\s*/, '')
+      .replace(/^(?:(?:command|builtin|exec|then|do|else|time)\s+|!\s*)+/i, ''));
+  assert(!commandSegments.some(segment => /^(?:(?:set\s+(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace)|(?:bash|sh|zsh)\s+-[A-Za-z]*x[A-Za-z]*)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/i.test(segment)),
     `DISPATCH_SHELL_TRACE_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
-  assert(!/(?:^|\n)\s*(?:(?:\/usr\/bin\/)?(?:env|printenv)(?:\s|$)|(?:export|declare)\s+-p(?:\s|$)|(?:Get-ChildItem|gci|dir)\s+Env:(?:\s|$)|\[Environment\]::GetEnvironmentVariables\s*\(\s*\)|set\s*$)/im.test(preTaskShell),
+  assert(!commandSegments.some(segment => /^(?:(?:\/(?:usr\/)?bin\/)?printenv(?:\s|$)|(?:\/(?:usr\/)?bin\/)?env\s*(?:$|[<>])|(?:export|declare)\s+-p(?:\s|$)|(?:Get-ChildItem|gci|dir)\s+Env:(?:\s|$)|\[Environment\]::GetEnvironmentVariables\s*\(\s*\)|set\s*$)/i.test(segment)),
     `DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
-  assert(!/(?:echo|printf|Write-(?:Output|Host)|console\.log)\b[^\n]*(?:KIDULTS_BOOTSTRAP_NONCE|BOOTSTRAP_NONCE)/i.test(preTaskShell),
+  assert(!commandSegments.some(segment => /^(?:(?:\/(?:usr\/)?bin\/)?(?:echo|printf)|Write-(?:Output|Host)|console\.log)\b.*(?:KIDULTS_BOOTSTRAP_NONCE|BOOTSTRAP_NONCE)/i.test(segment)),
     `DISPATCH_NONCE_ECHO_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
-  assert(!/(?:^|\s)--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|\s|$)/i.test(preTaskShell),
+  assert(!commandSegments.some(segment => /(?:^|\s)--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|\s|$)/i.test(segment)),
     `DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   const bootstrapPattern = String.raw`(?:node\s+${paths.entrypoint.replaceAll('/', '\\/')}|npm\s+run\s+agent:bootstrap(?:\s+--)?)(?=\s|$)`;
   const verifierPattern = String.raw`(?:node\s+${paths.verifier.replaceAll('/', '\\/')}|npm\s+run\s+verify:agent-bootstrap(?:\s+--)?)(?=\s|$)`;
@@ -859,17 +899,39 @@ const assertDispatchSecretMutationRejected = (injectedCommand, expectedPrefix) =
 };
 assertDispatchSecretMutationRejected('set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('set -xv', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -vx', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -euxo pipefail', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('bash -euxo pipefail bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('true; set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('echo "$KIDULTS_BOOTSTRAP_NONCE"', 'DISPATCH_NONCE_ECHO_FORBIDDEN:');
 for (const environmentDump of [
   'printenv KIDULTS_BOOTSTRAP_NONCE',
+  'true; printenv KIDULTS_BOOTSTRAP_NONCE',
+  'true && printenv KIDULTS_BOOTSTRAP_NONCE',
+  'if true; then printenv KIDULTS_BOOTSTRAP_NONCE; fi',
+  '(printenv KIDULTS_BOOTSTRAP_NONCE)',
+  'command printenv KIDULTS_BOOTSTRAP_NONCE',
+  'builtin printenv KIDULTS_BOOTSTRAP_NONCE',
+  'exec printenv KIDULTS_BOOTSTRAP_NONCE',
   'env',
+  '/bin/env',
+  '/bin/printenv KIDULTS_BOOTSTRAP_NONCE',
   'declare -p KIDULTS_BOOTSTRAP_NONCE',
   'export -p',
   'Get-ChildItem Env:',
   '[Environment]::GetEnvironmentVariables()',
 ]) assertDispatchSecretMutationRejected(environmentDump, 'DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:');
 assertDispatchSecretMutationRejected('node bootstrap.mjs --nonce forbidden', 'DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:');
+{
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const allowedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = allowedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const executableStep = job.steps.find((step, index) => index < taskIndex && typeof step.run === 'string');
+  executableStep.run = `env NODE_ENV=test node task.js\n${executableStep.run}`;
+  validateDispatchJob(dispatch, new Map([[dispatch.workflow, allowedJobs]]));
+}
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
   workflow: spoofWorkflowPath,
