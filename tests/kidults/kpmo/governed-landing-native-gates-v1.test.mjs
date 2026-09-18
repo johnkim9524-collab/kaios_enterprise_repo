@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {generateKeyPairSync, sign} from 'node:crypto';
+import {workflowReceiptLedgerInternals} from '../../../services/kidults-control-plane/src/workflow-receipt-ledger.mjs';
 import {
   GateFailure,
   assertExactOwnerMergeDuringFinalReread,
@@ -11,6 +13,7 @@ import {
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
   assertAutonomousIndependentReview,
+  requiredAutonomousReviewDomain,
   selectExactHeadProgramOwnerApproval,
   selectLatestProgramOwnerReadyEvent,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
@@ -18,6 +21,7 @@ import {
 const sha = 'a'.repeat(40);
 const baseSha = 'b'.repeat(40);
 const repository = 'johnkim9524-collab/kaios_enterprise_repo';
+const {canonicalJson} = workflowReceiptLedgerInternals;
 const basePr = () => ({
   number: 1580,
   state: 'open',
@@ -262,7 +266,113 @@ test('repository comments cannot mint autonomous-review provenance while the pro
         protected_attestation_controller_status: 'PROVISIONED_VERIFIED',
       },
     },
-  }), 'AUTONOMOUS_REVIEW_CONTROLLER_VERIFIER_UNAVAILABLE');
+  }), 'AUTONOMOUS_REVIEW_BINDING_INVALID');
+});
+
+test('protected signed autonomous review is exact-bound and fail-closed', () => {
+  const {publicKey, privateKey} = generateKeyPairSync('ed25519');
+  const signer = 'kpmo-provenance-controller-v1';
+  const requiredDomain = 'governance_independence_and_provenance';
+  const reviewPolicy = {
+    status: 'ACTIVE_MANDATORY_FAIL_CLOSED',
+    identity_assurance_boundary: {
+      protected_attestation_controller_status: 'PROVISIONED_VERIFIED',
+      protected_attestation_trust: {
+        signature_algorithm: 'Ed25519',
+        trusted_signers: [{
+          signer_identity_and_version: signer,
+          public_key_pem: publicKey.export({type: 'spki', format: 'pem'}).toString(),
+          revoked: false,
+        }],
+      },
+    },
+    registered_role_routing: {[requiredDomain]: ['integration-conductor']},
+  };
+  const payload = {
+    version: 'kidults-protected-autonomous-review-attestation-v1',
+    repository,
+    pull_request: 1580,
+    exact_base_sha: baseSha,
+    exact_head_sha: sha,
+    exact_head_tree_sha: 'c'.repeat(40),
+    implementer_agent_id: 'AI-018',
+    reviewer_agent_id: 'AI-REVIEWER-01',
+    assigned_reviewer_agent_id: 'AI-REVIEWER-01',
+    implementer_session_id: 'implementation-session',
+    reviewer_session_id: 'review-session',
+    reviewed_head_sha: sha,
+    required_domain: requiredDomain,
+    reviewer_domain: requiredDomain,
+    reviewer_role_id: 'integration-conductor',
+    implementer_bootstrap_consumption_proof_id: 'bootstrap-consumption-implementer',
+    reviewer_bootstrap_consumption_proof_id: 'bootstrap-consumption-reviewer',
+    evidence_manifest_digest: `sha256:${'1'.repeat(64)}`,
+    review_decision_digest: `sha256:${'2'.repeat(64)}`,
+    decision: 'APPROVE',
+    attestation_id: 'attestation-1580-a',
+    issued_at: '2026-09-01T01:00:00.000Z',
+    expires_at: '2026-09-01T01:30:00.000Z',
+    signer_identity_and_version: signer,
+    durable_consumption_id: 'durable-consumption-1580-a',
+    durable_consumption_state: 'CONSUMED_EXACTLY_ONCE',
+    revocation_epoch: 0,
+  };
+  const commentFor = (value, key = privateKey) => {
+    const signature = sign(null, Buffer.from(canonicalJson(value)), key).toString('base64');
+    const envelope = {payload: value, signature_algorithm: 'Ed25519', signature_base64: signature};
+    return {id: 91, body: `KIDULTS_PROTECTED_AUTONOMOUS_REVIEW_ATTESTATION_V1\n${Buffer.from(JSON.stringify(envelope)).toString('base64url')}`};
+  };
+  const input = {
+    repository,
+    prNumber: 1580,
+    repositoryOwner: 'johnkim9524-collab',
+    baseSha,
+    headSha: sha,
+    headTreeSha: 'c'.repeat(40),
+    requiredDomain,
+    evaluationTime: '2026-09-01T01:10:00.000Z',
+    reviewPolicy,
+  };
+  const accepted = assertAutonomousIndependentReview([commentFor(payload)], input);
+  assert.equal(accepted.state, 'PROTECTED_ATTESTATION_VERIFIED');
+  assert.equal(accepted.comment_transport_only, true);
+  assert.equal(accepted.repository_comment_is_authority, false);
+
+  const rejected = (mutate, expected = 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY') => {
+    const changed = mutate({...payload});
+    code(() => assertAutonomousIndependentReview([commentFor(changed)], input), expected);
+  };
+  rejected(value => ({...value, reviewer_agent_id: value.implementer_agent_id}));
+  rejected(value => ({...value, reviewed_head_sha: 'd'.repeat(40)}));
+  rejected(value => ({...value, exact_base_sha: 'd'.repeat(40)}));
+  rejected(value => ({...value, exact_head_tree_sha: 'd'.repeat(40)}));
+  rejected(value => ({...value, reviewer_domain: 'data_runtime_storage'}));
+  rejected(value => ({...value, reviewer_role_id: 'unknown-role'}));
+  rejected(value => ({...value, expires_at: '2026-09-01T01:05:00.000Z'}));
+  rejected(value => ({...value, durable_consumption_state: 'REPLAYED'}));
+  code(() => assertAutonomousIndependentReview([commentFor({...payload, decision: 'REQUEST_CHANGES'})], input), 'AUTONOMOUS_REVIEW_REQUEST_CHANGES');
+  code(() => assertAutonomousIndependentReview([commentFor(payload), commentFor({...payload, attestation_id: 'attestation-1580-b'})], input), 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+  const {privateKey: wrongKey} = generateKeyPairSync('ed25519');
+  code(() => assertAutonomousIndependentReview([commentFor(payload, wrongKey)], input), 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+  code(() => assertAutonomousIndependentReview([], input), 'AUTONOMOUS_REVIEW_ATTESTATION_MISSING');
+  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input,
+    reviewPolicy: {...reviewPolicy, identity_assurance_boundary: {
+      ...reviewPolicy.identity_assurance_boundary,
+      protected_attestation_trust: {...reviewPolicy.identity_assurance_boundary.protected_attestation_trust, trusted_signers: [{
+        ...reviewPolicy.identity_assurance_boundary.protected_attestation_trust.trusted_signers[0], revoked: true,
+      }]},
+    }},
+  }), 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+});
+
+test('autonomous review domain is recomputed from protected changed paths', () => {
+  assert.equal(requiredAutonomousReviewDomain(['coordination/kidults/kpmo/x.json']), 'governance_independence_and_provenance');
+  assert.equal(requiredAutonomousReviewDomain(['services/kidults-control-plane/src/x.mjs']), 'data_runtime_storage');
+  assert.equal(requiredAutonomousReviewDomain(['coordination/kidults/security/x.json']), 'security_credentials_tls_ssh');
+  assert.equal(requiredAutonomousReviewDomain(['scripts/kidults/portal/x.mjs']), 'portal');
+  assert.equal(requiredAutonomousReviewDomain(['coordination/kidults/provider/x.json']), 'provider_rights_evidence');
+  code(() => requiredAutonomousReviewDomain(['coordination/kidults/kpmo/x.json', 'services/kidults-control-plane/src/x.mjs']), 'AUTONOMOUS_REVIEW_MULTIPLE_DOMAINS_REQUIRED');
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {

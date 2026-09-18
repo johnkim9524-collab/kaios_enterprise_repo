@@ -1,8 +1,40 @@
-import {createHash} from 'node:crypto';
+import {createHash, verify} from 'node:crypto';
+import {workflowReceiptLedgerInternals} from '../../../../services/kidults-control-plane/src/workflow-receipt-ledger.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const NONCE_PATTERN = /^[0-9a-f]{32}$/;
 const MAX_APPROVAL_LIFETIME_MS = 60 * 60 * 1000;
+const AUTONOMOUS_REVIEW_MARKER = 'KIDULTS_PROTECTED_AUTONOMOUS_REVIEW_ATTESTATION_V1';
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{2,127}$/;
+const {canonicalJson} = workflowReceiptLedgerInternals;
+
+const verifyProtectedEd25519Payload = (payload, signatureBase64, trustedPublicKey) => {
+  try {
+    return verify(null, Buffer.from(canonicalJson(payload)), trustedPublicKey, Buffer.from(signatureBase64, 'base64'));
+  } catch {
+    return false;
+  }
+};
+
+export function requiredAutonomousReviewDomain(changedFilenames) {
+  if (!Array.isArray(changedFilenames) || !changedFilenames.length
+      || changedFilenames.some(value => typeof value !== 'string' || !value)) {
+    fail('AUTONOMOUS_REVIEW_CHANGED_PATHS_INVALID');
+  }
+  const domains = new Set();
+  for (const filename of changedFilenames) {
+    if (filename.startsWith('coordination/kidults/provider/')
+        || filename.startsWith('scripts/kidults/source-intelligence/')) domains.add('provider_rights_evidence');
+    else if (filename.startsWith('coordination/kidults/security/') || filename.startsWith('infra/')) domains.add('security_credentials_tls_ssh');
+    else if (filename.startsWith('scripts/kidults/portal/') || filename.startsWith('apps/portal/')) domains.add('portal');
+    else if (filename.startsWith('services/kidults-control-plane/')
+        || filename.startsWith('services/kidults-autonomous-intelligence/')) domains.add('data_runtime_storage');
+    else domains.add('governance_independence_and_provenance');
+  }
+  if (domains.size !== 1) fail('AUTONOMOUS_REVIEW_MULTIPLE_DOMAINS_REQUIRED', [...domains].sort().join(','));
+  return [...domains][0];
+}
 
 export class GateFailure extends Error {
   constructor(code, detail = '') {
@@ -58,8 +90,14 @@ function parseExactHeadApprovalBody(body) {
 }
 
 export function assertAutonomousIndependentReview(comments, {
+  repository,
+  prNumber,
   repositoryOwner,
+  baseSha,
   headSha,
+  headTreeSha,
+  requiredDomain,
+  evaluationTime = new Date().toISOString(),
   reviewPolicy,
 } = {}) {
   if (!Array.isArray(comments)) fail('AUTONOMOUS_REVIEW_COMMENT_SET_INVALID');
@@ -70,7 +108,91 @@ export function assertAutonomousIndependentReview(comments, {
   if (reviewPolicy?.identity_assurance_boundary?.protected_attestation_controller_status !== 'PROVISIONED_VERIFIED') {
     fail('AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
   }
-  fail('AUTONOMOUS_REVIEW_CONTROLLER_VERIFIER_UNAVAILABLE');
+  if (!repository || !/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repository)
+    || !Number.isSafeInteger(Number(prNumber)) || Number(prNumber) < 1
+    || !SHA_PATTERN.test(baseSha || '') || !SHA_PATTERN.test(headTreeSha || '')
+    || !ID_PATTERN.test(requiredDomain || '')) fail('AUTONOMOUS_REVIEW_BINDING_INVALID');
+  const trust = reviewPolicy.identity_assurance_boundary.protected_attestation_trust;
+  if (!trust || trust.signature_algorithm !== 'Ed25519'
+      || !Array.isArray(trust.trusted_signers) || !trust.trusted_signers.length) {
+    fail('AUTONOMOUS_REVIEW_CONTROLLER_TRUST_NOT_PROVISIONED');
+  }
+  const marked = comments.filter(comment => String(comment?.body || '').split(/\r?\n/)[0] === AUTONOMOUS_REVIEW_MARKER);
+  if (!marked.length) fail('AUTONOMOUS_REVIEW_ATTESTATION_MISSING');
+  const valid = [];
+  let requestChanges = false;
+  for (const comment of marked) {
+    const lines = String(comment.body).trim().split(/\r?\n/);
+    if (lines.length !== 2) continue;
+    let envelope;
+    try { envelope = JSON.parse(Buffer.from(lines[1], 'base64url').toString('utf8')); } catch { continue; }
+    if (!envelope || Object.keys(envelope).sort().join(',') !== ['payload', 'signature_algorithm', 'signature_base64'].sort().join(',')) continue;
+    const payload = envelope.payload;
+    const signer = trust.trusted_signers.find(value => value?.signer_identity_and_version === payload?.signer_identity_and_version);
+    if (!signer || signer.revoked === true || envelope.signature_algorithm !== 'Ed25519'
+        || !verifyProtectedEd25519Payload(payload, envelope.signature_base64, signer.public_key_pem)) continue;
+    const exactKeys = [
+      'version','repository','pull_request','exact_base_sha','exact_head_sha','exact_head_tree_sha',
+      'implementer_agent_id','reviewer_agent_id','assigned_reviewer_agent_id',
+      'implementer_session_id','reviewer_session_id','reviewed_head_sha','required_domain',
+      'reviewer_domain','reviewer_role_id','implementer_bootstrap_consumption_proof_id',
+      'reviewer_bootstrap_consumption_proof_id','evidence_manifest_digest','review_decision_digest',
+      'decision','attestation_id','issued_at','expires_at','signer_identity_and_version',
+      'durable_consumption_id','durable_consumption_state','revocation_epoch',
+    ];
+    if (!payload || Object.keys(payload).sort().join(',') !== exactKeys.sort().join(',')) continue;
+    if (payload.version !== 'kidults-protected-autonomous-review-attestation-v1'
+        || payload.repository !== repository || Number(payload.pull_request) !== Number(prNumber)
+        || payload.exact_base_sha !== baseSha || payload.exact_head_sha !== headSha
+        || payload.exact_head_tree_sha !== headTreeSha || payload.reviewed_head_sha !== headSha
+        || payload.required_domain !== requiredDomain || payload.reviewer_domain !== requiredDomain
+        || payload.assigned_reviewer_agent_id !== payload.reviewer_agent_id
+        || payload.implementer_agent_id === payload.reviewer_agent_id
+        || payload.implementer_session_id === payload.reviewer_session_id
+        || !ID_PATTERN.test(payload.implementer_agent_id || '') || !ID_PATTERN.test(payload.reviewer_agent_id || '')
+        || !ID_PATTERN.test(payload.implementer_session_id || '') || !ID_PATTERN.test(payload.reviewer_session_id || '')
+        || !ID_PATTERN.test(payload.reviewer_role_id || '')
+        || !ID_PATTERN.test(payload.implementer_bootstrap_consumption_proof_id || '')
+        || !ID_PATTERN.test(payload.reviewer_bootstrap_consumption_proof_id || '')
+        || !DIGEST_PATTERN.test(payload.evidence_manifest_digest || '')
+        || !DIGEST_PATTERN.test(payload.review_decision_digest || '')
+        || !ID_PATTERN.test(payload.attestation_id || '') || !ID_PATTERN.test(payload.durable_consumption_id || '')
+        || payload.durable_consumption_state !== 'CONSUMED_EXACTLY_ONCE'
+        || !Number.isSafeInteger(payload.revocation_epoch) || payload.revocation_epoch < 0
+        || !['APPROVE', 'REQUEST_CHANGES'].includes(payload.decision)) continue;
+    const allowedRoles = reviewPolicy.registered_role_routing?.[requiredDomain];
+    if (!Array.isArray(allowedRoles) || !allowedRoles.includes(payload.reviewer_role_id)) continue;
+    const issuedAt = Date.parse(payload.issued_at);
+    const expiresAt = Date.parse(payload.expires_at);
+    const evaluatedAt = Date.parse(evaluationTime);
+    if (![issuedAt, expiresAt, evaluatedAt].every(Number.isFinite)
+        || evaluatedAt < issuedAt || evaluatedAt > expiresAt
+        || expiresAt <= issuedAt || expiresAt - issuedAt > MAX_APPROVAL_LIFETIME_MS) continue;
+    if (payload.decision === 'REQUEST_CHANGES') requestChanges = true;
+    valid.push({payload, comment_id: Number(comment.id), signature_digest: `sha256:${createHash('sha256').update(envelope.signature_base64).digest('hex')}`});
+  }
+  if (requestChanges) fail('AUTONOMOUS_REVIEW_REQUEST_CHANGES');
+  const approvals = valid.filter(value => value.payload.decision === 'APPROVE');
+  if (approvals.length !== 1) fail('AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+  const approved = approvals[0];
+  return {
+    state: 'PROTECTED_ATTESTATION_VERIFIED',
+    attestation_id: approved.payload.attestation_id,
+    durable_consumption_id: approved.payload.durable_consumption_id,
+    exact_head_sha: approved.payload.exact_head_sha,
+    exact_head_tree_sha: approved.payload.exact_head_tree_sha,
+    required_domain: approved.payload.required_domain,
+    reviewer_agent_id: approved.payload.reviewer_agent_id,
+    reviewer_role_id: approved.payload.reviewer_role_id,
+    decision: approved.payload.decision,
+    evidence_manifest_digest: approved.payload.evidence_manifest_digest,
+    review_decision_digest: approved.payload.review_decision_digest,
+    signer_identity_and_version: approved.payload.signer_identity_and_version,
+    signature_digest: approved.signature_digest,
+    expires_at: approved.payload.expires_at,
+    comment_transport_only: true,
+    repository_comment_is_authority: false,
+  };
 }
 
 export function selectLatestProgramOwnerReadyEvent(timeline, repositoryOwner) {

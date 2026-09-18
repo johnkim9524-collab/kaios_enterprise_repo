@@ -6,6 +6,7 @@ import {
   assertLandingActorAndAuthorization,
   assertExactOwnerMergeDuringFinalReread,
   assertAutonomousIndependentReview,
+  requiredAutonomousReviewDomain,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
@@ -383,6 +384,7 @@ try {
   const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
   if (changedFilenames.length !== changedFileRecords.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
   const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);
+  const requiredReviewDomain = requiredAutonomousReviewDomain(changedFilenames);
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -427,8 +429,13 @@ try {
     evaluationTime: new Date().toISOString(),
   });
   const autonomousReview = assertAutonomousIndependentReview(approvalComments, {
+    repository,
+    prNumber,
     repositoryOwner,
+    baseSha: initial.base.sha,
     headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
     reviewPolicy: reviewPolicyAtHead,
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
@@ -513,8 +520,13 @@ try {
     evaluationTime: new Date().toISOString(),
   });
   const immediateAutonomousReview = assertAutonomousIndependentReview(immediateApprovalComments, {
+    repository,
+    prNumber,
     repositoryOwner,
+    baseSha: immediatePreMerge.base.sha,
     headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
     reviewPolicy: reviewPolicyAtHead,
   });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
@@ -588,8 +600,13 @@ try {
     evaluationTime: new Date().toISOString(),
   });
   const finalPreMergeAutonomousReview = assertAutonomousIndependentReview(finalPreMergeApprovalComments, {
+    repository,
+    prNumber,
     repositoryOwner,
+    baseSha: finalPreMerge.base.sha,
     headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
     reviewPolicy: reviewPolicyAtHead,
   });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {

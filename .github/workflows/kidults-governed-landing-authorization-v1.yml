@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {assertAutonomousIndependentReview} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          import {assertAutonomousIndependentReview,requiredAutonomousReviewDomain} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
           const token = process.env.GH_TOKEN;
@@ -174,7 +174,9 @@ jobs:
             const platform=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
             const reviewPolicy=platform.autonomous_independent_review;
             const comments=await pages(`/issues/${prNumber}/comments`);
-            const autonomousApproval=assertAutonomousIndependentReview(comments,{repositoryOwner:repository.owner?.login,headSha:pr.head.sha,reviewPolicy});
+            const headCommit=await api(`/commits/${pr.head.sha}`);
+            const requiredDomain=requiredAutonomousReviewDomain(files.map(value=>value.filename));
+            const autonomousApproval=assertAutonomousIndependentReview(comments,{repository:repo,prNumber:Number(prNumber),repositoryOwner:repository.owner?.login,baseSha:pr.base.sha,headSha:pr.head.sha,headTreeSha:headCommit?.commit?.tree?.sha,requiredDomain,reviewPolicy});
 
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
