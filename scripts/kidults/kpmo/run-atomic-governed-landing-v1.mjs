@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
   assertExactOwnerMergeDuringFinalReread,
+  assertAutonomousIndependentReview,
+  sameAutonomousReview,
+  requiredAutonomousReviewDomain,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
@@ -64,6 +68,7 @@ if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 const scopePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+const protectedPlatformPolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json', 'utf8'));
 const context = policy.required_status_context;
 const headers = {
   Authorization: `Bearer ${token}`,
@@ -366,11 +371,23 @@ try {
     prBaseSha: initial.base.sha,
     liveMainSha: initialMain.commit.sha,
   });
+  const protectedReviewPolicy = protectedPlatformPolicy.autonomous_independent_review;
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
   if (changedFilenames.length !== changedFileRecords.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
   const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);
+  const requiredReviewDomain = requiredAutonomousReviewDomain(changedFilenames);
+  const reviewOperationBinding = {
+    repository,
+    pull_request: Number(prNumber),
+    exact_base_sha: initial.base.sha,
+    exact_head_sha: expectedHeadSha,
+    exact_head_tree_sha: expectedHeadTreeSha,
+    landing_run_id: Number(landingRunId),
+    landing_run_attempt: Number(landingRunAttempt),
+    authorization_id_digest: `sha256:${createHash('sha256').update(authorizationId).digest('hex')}`,
+  };
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -413,6 +430,18 @@ try {
     landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
+  });
+  const autonomousReview = assertAutonomousIndependentReview(approvalComments, {
+    repository,
+    prNumber,
+    repositoryOwner,
+    baseSha: initial.base.sha,
+    headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
+    requireDurableConsumption: true,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
@@ -495,8 +524,23 @@ try {
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const immediateAutonomousReview = assertAutonomousIndependentReview(immediateApprovalComments, {
+    repository,
+    prNumber,
+    repositoryOwner,
+    baseSha: immediatePreMerge.base.sha,
+    headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
+    requireDurableConsumption: true,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
+  });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
     throw new Error('IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
+  }
+  if (!sameAutonomousReview(immediateAutonomousReview, autonomousReview)) {
+    throw new Error('IMMEDIATE_PREMERGE_AUTONOMOUS_REVIEW_DRIFT');
   }
   if (!sameReadyEvent(immediateReady, latestReady)) {
     throw new Error('IMMEDIATE_PREMERGE_READY_EVENT_DRIFT');
@@ -562,8 +606,23 @@ try {
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const finalPreMergeAutonomousReview = assertAutonomousIndependentReview(finalPreMergeApprovalComments, {
+    repository,
+    prNumber,
+    repositoryOwner,
+    baseSha: finalPreMerge.base.sha,
+    headSha: expectedHeadSha,
+    headTreeSha: expectedHeadTreeSha,
+    requiredDomain: requiredReviewDomain,
+    requireDurableConsumption: true,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
+  });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
     throw new Error('FINAL_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
+  }
+  if (!sameAutonomousReview(finalPreMergeAutonomousReview, immediateAutonomousReview)) {
+    throw new Error('FINAL_PREMERGE_AUTONOMOUS_REVIEW_DRIFT');
   }
   if (!sameReadyEvent(finalPreMergeReady, immediateReady)) {
     throw new Error('FINAL_PREMERGE_READY_EVENT_DRIFT');
@@ -653,6 +712,7 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
+    autonomous_independent_review: autonomousReview,
     staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,

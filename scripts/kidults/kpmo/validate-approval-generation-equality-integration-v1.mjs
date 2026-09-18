@@ -7,7 +7,7 @@ import {
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from './lib/approval-generation-equality-v1.mjs';
-import {assertGovernedLandingAuthorizationPolicyV160} from './lib/governed-landing-authorization-policy-v1.mjs';
+import {assertGovernedLandingAuthorizationPolicyV170} from './lib/governed-landing-authorization-policy-v1.mjs';
 
 const requireValue = (condition, code) => {
   if (!condition) throw new Error(`APPROVAL_GENERATION_INTEGRATION_FAIL:${code}`);
@@ -25,8 +25,8 @@ const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-eq
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-assertGovernedLandingAuthorizationPolicyV160(policy);
-requireValue(policy.version === '1.6.0', 'POLICY_VERSION');
+assertGovernedLandingAuthorizationPolicyV170(policy);
+requireValue(policy.version === '1.7.0', 'POLICY_VERSION');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
@@ -159,7 +159,7 @@ console.log(JSON.stringify({
   same_candidate_blob_different_main_rejected: true,
   stale_canonical_comment_rejected: true,
   terminal_records_non_authority: true,
-  policy_version_exact: '1.6.0',
+  policy_version_exact: '1.7.0',
   one_use_replay_defense_integrated: true,
   provider_credentials_resolved: false,
   external_requests: 0,

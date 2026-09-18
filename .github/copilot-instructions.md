@@ -18,7 +18,7 @@ The current repository inventory contains zero actual in-repository AI/model dis
 The orchestrator runs:
 
 ```bash
-export KIDULTS_BOOTSTRAP_NONCE='<unique-orchestrator-nonce-at-least-32-bytes>'
+# KIDULTS_BOOTSTRAP_NONCE is preloaded by the protected non-echoing launcher.
 npm run agent:bootstrap -- \
   --agent-id <agent-id> --agent-class <governed-class> \
   --task-id <task-id> --session-id <session-id> \

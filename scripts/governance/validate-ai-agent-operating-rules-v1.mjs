@@ -52,7 +52,7 @@ const requiredPlatformPrinciples = [
   'TRANSPARENT'
 ];
 assert(platform.id === 'kidults-operating-principles-and-resilience-controls-v1', 'PLATFORM_ID');
-assert(platform.version === '1.1.0', 'PLATFORM_VERSION');
+assert(platform.version === '1.2.0', 'PLATFORM_VERSION');
 assert(platform.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'PLATFORM_STATUS');
 assert(platform.owner === 'KPMO', 'PLATFORM_OWNER');
 assert(platform.precedence === 'HIGHEST_PLATFORM_OPERATING_PRINCIPLES', 'PLATFORM_PRECEDENCE');
@@ -67,6 +67,57 @@ assert(platform.autonomous_activation_rule?.manual_only_normal_activation_forbid
 for (const field of ['autonomous_effect','global_effect','irreplaceable_value_effect','transparency_effect']) {
   assert(platform.material_change_decision_test?.required_fields?.includes(field), `PLATFORM_EFFECT_FIELD:${field}`);
 }
+
+const operationalNormalcy = platform.operational_normalcy_first;
+assert(operationalNormalcy?.status === 'ACTIVE_MANDATORY', 'OPERATIONAL_NORMALCY_STATUS');
+assert(operationalNormalcy?.rules?.includes('ROUTINE_NORMAL_OPERATION_MUST_NOT_REQUIRE_A_PERSISTENT_MANUAL_SWITCH_OR_A_SECOND_HUMAN_COLLABORATOR'), 'OPERATIONAL_NORMALCY_HUMAN_SPOF');
+assert(operationalNormalcy?.rules?.includes('REAL_EXECUTION_READBACK_FAILURE_ISOLATION_AND_RECOVERY_EVIDENCE_ARE_REQUIRED_FOR_OPERATIONAL_ACCEPTANCE'), 'OPERATIONAL_NORMALCY_EVIDENCE');
+
+const autonomousReview = platform.autonomous_independent_review;
+assert(autonomousReview?.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'AUTONOMOUS_REVIEW_STATUS');
+const reviewInvariants = new Set(autonomousReview?.invariants || []);
+for (const invariant of [
+  'NO_AGENT_SHALL_APPROVE_ITS_OWN_MATERIAL_CHANGE',
+  'IMPLEMENTER_AGENT_ID_MUST_DIFFER_FROM_REVIEWER_AGENT_ID',
+  'REVIEWER_MUST_BE_DOMAIN_QUALIFIED_FOR_THE_MATERIAL_CHANGE',
+  'REVIEW_MUST_BIND_SEPARATE_AGENT_ID_BOOTSTRAP_SESSION_AND_EXACT_HEAD',
+  'REVIEW_MUST_EVALUATE_DIFF_TEST_EVIDENCE_AND_DOMAIN_SPECIFIC_NEGATIVE_CONTROLS',
+  'REVIEW_DECISION_MUST_BE_APPROVE_OR_REQUEST_CHANGES_AND_RUBBER_STAMP_APPROVAL_IS_FORBIDDEN',
+  'REVIEW_AUTHORITY_MUST_BE_AUDITABLE_REPLAY_RESISTANT_EXACT_HEAD_BOUND_AND_INDEPENDENTLY_ATTRIBUTABLE',
+  'REQUIRED_DOMAIN_MUST_BE_RECOMPUTED_FROM_PROTECTED_CHANGED_PATH_POLICY_NOT_TRUSTED_FROM_ATTESTATION',
+]) assert(reviewInvariants.has(invariant), `AUTONOMOUS_REVIEW_INVARIANT:${invariant}`);
+assert(autonomousReview?.domain_routing?.provider_rights_evidence === 'TRACK_Z_OR_EVIDENCE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_PROVIDER_ROUTING');
+assert(autonomousReview?.domain_routing?.security_credentials_tls_ssh === 'SECURITY_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_SECURITY_ROUTING');
+assert(autonomousReview?.domain_routing?.data_runtime_storage === 'DATA_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_DATA_ROUTING');
+assert(autonomousReview?.domain_routing?.governance_independence_and_provenance === 'KPMO', 'AUTONOMOUS_REVIEW_GOVERNANCE_ROUTING');
+assert(autonomousReview?.qualification_registry_path === files.roles, 'AUTONOMOUS_REVIEW_QUALIFICATION_REGISTRY');
+for (const [domain, roleIds] of Object.entries({
+  provider_rights_evidence: ['track-b-rankability', 'editorial-rights-reviewer'],
+  security_credentials_tls_ssh: ['qa-release-manager', 'incident-manager'],
+  data_runtime_storage: ['qa-release-manager', 'incident-manager'],
+  portal: ['track-c-portal-v502'],
+  governance_independence_and_provenance: ['integration-conductor'],
+})) {
+  assert(exactJson(autonomousReview?.registered_role_routing?.[domain], roleIds), `AUTONOMOUS_REVIEW_ROLE_ROUTING:${domain}`);
+  for (const roleId of roleIds) assert(roles.roles?.some((role) => role.role_id === roleId), `AUTONOMOUS_REVIEW_UNKNOWN_ROLE:${roleId}`);
+}
+const expectedReviewBindingFields = ['REPOSITORY','PULL_REQUEST','EXACT_BASE_SHA','EXACT_HEAD_SHA','EXACT_HEAD_TREE_SHA','IMPLEMENTER_AGENT_ID','REVIEWER_AGENT_ID','ASSIGNED_REVIEWER_AGENT_ID','IMPLEMENTER_SESSION_ID','REVIEWER_SESSION_ID','REVIEWED_HEAD_SHA','REQUIRED_DOMAIN','REVIEWER_DOMAIN','REVIEWER_ROLE_ID','IMPLEMENTER_BOOTSTRAP_CONSUMPTION_PROOF_ID','REVIEWER_BOOTSTRAP_CONSUMPTION_PROOF_ID','EVIDENCE_MANIFEST_DIGEST','REVIEW_DECISION_DIGEST','ATTESTATION_ID','ISSUED_AT','EXPIRES_AT','SIGNER_IDENTITY_AND_VERSION','SIGNATURE'];
+assert(exactJson(autonomousReview?.review_binding_required_fields, expectedReviewBindingFields), 'AUTONOMOUS_REVIEW_BINDING_FIELDS');
+const expectedReviewNegativeCases = ['SELF_REVIEW','STALE_HEAD','REVIEW_REPLAY','WRONG_REVIEWER_AGENT','WRONG_REVIEWER_DOMAIN','WRONG_BASE','WRONG_TREE','EXPIRED_ATTESTATION','REVOKED_SIGNER','UNSIGNED_ATTESTATION','REPOSITORY_FORGED_ATTESTATION'];
+assert(exactJson(autonomousReview?.negative_cases_required, expectedReviewNegativeCases), 'AUTONOMOUS_REVIEW_NEGATIVE_CASES');
+assert(autonomousReview?.identity_assurance_boundary?.repository_bootstrap_is_cryptographic_agent_identity === false, 'AUTONOMOUS_REVIEW_BOOTSTRAP_IDENTITY_INFLATION');
+assert(autonomousReview?.identity_assurance_boundary?.separate_external_orchestrator_process_attestation_required === true, 'AUTONOMOUS_REVIEW_EXTERNAL_PROCESS_ATTESTATION');
+assert(autonomousReview?.identity_assurance_boundary?.agent_id_string_alone_establishes_independence === false, 'AUTONOMOUS_REVIEW_AGENT_ID_INFLATION');
+assert(autonomousReview?.identity_assurance_boundary?.bootstrap_receipt_alone_grants_merge_or_promotion_authority === false, 'AUTONOMOUS_REVIEW_BOOTSTRAP_AUTHORITY_INFLATION');
+assert(autonomousReview?.identity_assurance_boundary?.repository_comment_is_authoritative_provenance === false, 'AUTONOMOUS_REVIEW_COMMENT_AUTHORITY');
+assert(autonomousReview?.identity_assurance_boundary?.repository_code_may_mint_independent_review === false, 'AUTONOMOUS_REVIEW_REPOSITORY_MINT');
+assert(autonomousReview?.identity_assurance_boundary?.protected_attestation_controller_status === 'NOT_PROVISIONED', 'AUTONOMOUS_REVIEW_CONTROLLER_STATE');
+assert(autonomousReview?.identity_assurance_boundary?.protected_attestation_controller_role === 'PROVENANCE_VERIFIER_ONLY', 'AUTONOMOUS_REVIEW_CONTROLLER_ROLE');
+assert(autonomousReview?.identity_assurance_boundary?.protected_durable_replay_and_revocation_store_required === true, 'AUTONOMOUS_REVIEW_DURABLE_REPLAY_STORE');
+for (const gate of ['PRODUCTION','PUBLIC_RELEASE','G5','EXPANDED_CREDENTIAL_OR_PERMISSION','SECURITY_POLICY_WEAKENING','DESTRUCTIVE_OPERATION_OR_HISTORY_REWRITE','EXTERNAL_SPEND','LEGAL_OR_COMMERCIAL_COMMITMENT']) {
+  assert(autonomousReview?.human_owner_gates?.includes(gate), `AUTONOMOUS_REVIEW_OWNER_GATE:${gate}`);
+}
+assert(typeof autonomousReview?.fail_closed === 'string' && autonomousReview.fail_closed.includes('BLOCKED'), 'AUTONOMOUS_REVIEW_FAIL_CLOSED');
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
 assert(contract.version === '1.8.0', 'CONTRACT_VERSION');
@@ -551,6 +602,10 @@ const report = {
   manual_only_normal_activation_forbidden: true,
   github_canonical_bootstrap_required: true,
   per_agent_bootstrap_receipt_required: true,
+  autonomous_independent_review_validated: true,
+  autonomous_review_negative_controls_contract_validated: expectedReviewNegativeCases,
+  autonomous_review_operational_verifier_state: 'BLOCKED_CONTROLLER_NOT_PROVISIONED',
+  human_owner_gates_preserved: autonomousReview.human_owner_gates,
   self_exemption_allowed: false,
   production: 'HOLD',
   public_release: 'HOLD'

@@ -47,6 +47,8 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {assertAutonomousIndependentReview,requiredAutonomousReviewDomain} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
           const token = process.env.GH_TOKEN;
@@ -169,6 +171,13 @@ jobs:
             if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');
             if(readinessReceipt.actor!==repository.owner?.login) fail('latest ready state was not authorized by Program Owner');
 
+            const platform=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
+            const reviewPolicy=platform.autonomous_independent_review;
+            const comments=await pages(`/issues/${prNumber}/comments`);
+            const headCommit=await api(`/commits/${pr.head.sha}`);
+            const requiredDomain=requiredAutonomousReviewDomain(files.map(value=>value.filename));
+            const autonomousApproval=assertAutonomousIndependentReview(comments,{repository:repo,prNumber:Number(prNumber),repositoryOwner:repository.owner?.login,baseSha:pr.base.sha,headSha:pr.head.sha,headTreeSha:headCommit?.commit?.tree?.sha,requiredDomain,reviewPolicy});
+
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
             for(const review of reviews){
@@ -199,6 +208,7 @@ jobs:
               governed_files:governedFiles,
               readiness:readinessReceipt,
               required_approval_count:0,
+              autonomous_independent_review:autonomousApproval,
               optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
               stale_review_excluded:true,
