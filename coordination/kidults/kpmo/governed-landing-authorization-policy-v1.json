@@ -1,7 +1,7 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
-  "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
+  "version": "1.7.0",
+  "status": "PROGRAM_OWNER_APPROVED_INDEPENDENT_EXACT_HEAD_REVIEW",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
@@ -65,7 +65,7 @@
     "root_issue": 1787
   },
   "review_policy": {
-    "minimum_non_author_approvals": 0,
+    "minimum_non_author_approvals": 1,
     "self_review_counts": false,
     "approval_must_bind_exact_head_sha": true,
     "stale_approval_counts": false,
@@ -81,8 +81,10 @@
     "changes_requested_on_exact_head_blocks": true,
     "solo_owner_author_must_match_repository_owner": true,
     "same_repository_head_required": true,
-    "ready_state_by_owner_is_authorization": true,
-    "optional_external_review_must_bind_exact_head": true
+    "ready_state_by_owner_is_authorization": false,
+    "optional_external_review_must_bind_exact_head": true,
+    "independent_exact_head_approval_required": true,
+    "independent_review_root_issue": 1582
   },
   "draft_policy": {
     "draft_is_promotable": false,
@@ -117,7 +119,6 @@
     "event_emitting_transport": "DIRECT_OWNER_GITHUB_UI",
     "event_emitting_transport_availability_before_consumption": true,
     "expected_base_sha_required": true,
-    "expected_head_sha_required": true,
     "expected_head_tree_sha_required": true,
     "postmerge_exact_main_tree_and_parent_binding_required": true,
     "postmerge_exact_merge_sha_push_suite_required": true,
@@ -152,6 +153,6 @@
     "solo_owner_governance_is_independent_review": false,
     "solo_owner_governance_is_production_approval": false
   },
-  "governance_mode": "SOLO_OWNER_GOVERNED",
-  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27"
+  "governance_mode": "OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED",
+  "decision_id": "JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18"
 }
