@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 
 const root = process.cwd();
 const files = {
@@ -26,6 +27,7 @@ const readText = (p) => fs.readFileSync(resolvePath(p), 'utf8');
 const readJson = (p) => JSON.parse(readText(p));
 const assert = (condition, message) => { if (!condition) fail(message); };
 const exactJson = (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected);
+const sha256Json = (value) => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasTopLevelTrigger = (text, trigger) => new RegExp(`^  ${escapeRegex(trigger)}:\\s*$`, 'm').test(text);
 
@@ -69,7 +71,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.8.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.9.0', 'CONTRACT_VERSION');
 assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
@@ -304,7 +306,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.8.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.9.0', 'REGISTRY_POLICY_VERSION');
 assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
@@ -378,7 +380,7 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.9.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'ROLE_REGISTRY_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ROLE_REGISTRY_AI_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'ROLE_REGISTRY_KPMO_SCOPE');
@@ -391,6 +393,116 @@ const programParticipant = roles.roles?.find((role) => role.role_id === 'program
 const integrationConductor = roles.roles?.find((role) => role.role_id === 'integration-conductor');
 assert(integrationConductor?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'KPMO_AGENT_JD_ACCOUNTABILITY');
 assert(integrationConductor?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'KPMO_AGENT_JD_SELF_EXEMPTION_FORBIDDEN');
+
+assert(roles.kpmo_qualification_and_lifecycle?.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'KPMO_QUALIFICATION_STATUS');
+assert(roles.kpmo_qualification_and_lifecycle?.selection_objective === 'SELECT_THE_HIGHEST_PERFORMING_CANDIDATE_AMONG_ALL_CANDIDATES_THAT_PASS_EVERY_MANDATORY_GATE', 'KPMO_HIGHEST_PERFORMER_SELECTION');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.p0_gate_failure_overrides_score === true, 'KPMO_P0_OVERRIDES_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.minimum_total_score === 92, 'KPMO_MIN_TOTAL_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.minimum_each_domain_percent === 85, 'KPMO_MIN_DOMAIN_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.reviewer_duties?.own_material_change_review_forbidden === true, 'KPMO_SELF_REVIEW_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.qualified_standby_required === true, 'KPMO_STANDBY_REQUIRED');
+assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.principle === 'NO_KPMO_SHALL_BECOME_A_SINGLE_POINT_OF_FAILURE', 'KPMO_NO_SPOF');
+assert(roles.kpmo_qualification_and_lifecycle?.emergency_quarantine?.atomic_sequence?.includes('DISABLE_NEW_DISPATCH'), 'KPMO_QUARANTINE_DISABLE_DISPATCH');
+assert(roles.kpmo_qualification_and_lifecycle?.emergency_quarantine?.self_reinstatement_forbidden === true, 'KPMO_SELF_REINSTATEMENT_FORBIDDEN');
+assert(contract.kpmo_qualification_lifecycle?.highest_performer_selection_required === true, 'CONTRACT_KPMO_HIGHEST_PERFORMER');
+assert(contract.kpmo_qualification_lifecycle?.kpmo_self_review_forbidden === true, 'CONTRACT_KPMO_SELF_REVIEW');
+assert(contract.kpmo_qualification_lifecycle?.immediate_p0_quarantine_required === true, 'CONTRACT_KPMO_P0_QUARANTINE');
+assert(contract.kpmo_qualification_lifecycle?.active_kpmo_must_have_qualified_standby === true, 'CONTRACT_KPMO_STANDBY');
+assert(registry.kpmo_qualification_lifecycle?.selection === 'HIGHEST_PERFORMER_AMONG_FULLY_QUALIFIED', 'REGISTRY_KPMO_SELECTION');
+assert(registry.kpmo_qualification_lifecycle?.confirmed_p0_atomic_quarantine === true, 'REGISTRY_KPMO_QUARANTINE');
+assert(integrationConductor?.must_not?.some((item) => item.includes('Review or approve its own material change')), 'KPMO_JD_SELF_REVIEW_FORBIDDEN');
+assert(policy.includes('## KPMO continuous qualification, review and removal'), 'POLICY_KPMO_QUALIFICATION_SECTION');
+assert(policy.includes('NO KPMO SHALL BECOME A SINGLE POINT OF FAILURE'), 'POLICY_KPMO_NO_SPOF');
+
+const kpmo = roles.kpmo_qualification_and_lifecycle;
+assert(sha256Json(kpmo) === '9155b377380b9c84689bc0aaf600680d3549058b480a52d4fec1602f3fbe88e8',
+  'KPMO_CANONICAL_LIFECYCLE_SEMANTIC_DIGEST');
+const expectedP0 = [
+  'ABSOLUTE_HONESTY', 'EVIDENCE_DISCIPLINE', 'AUTHORITY_BOUNDARY_DISCIPLINE',
+  'END_TO_END_OPERATIONAL_OWNERSHIP', 'ROOT_CAUSE_REMEDIATION',
+  'SECURITY_AND_SECRET_DISCIPLINE', 'INDEPENDENT_REVIEW_INTEGRITY',
+  'FAIL_CLOSED_JUDGMENT', 'RECOVERY_AND_FAILURE_ISOLATION', 'NO_SELF_REVIEW',
+  'NO_SELF_EXEMPTION', 'NO_FABRICATED_PROGRESS',
+];
+assert(exactJson(kpmo.qualification_gates?.p0_all_must_pass, expectedP0), 'KPMO_P0_EXACT_SET');
+assert(Object.values(kpmo.qualification_gates?.scored_domains || {}).reduce((sum, value) => sum + value, 0) === 100,
+  'KPMO_SCORE_TOTAL');
+assert(kpmo.activation_state === 'BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY', 'KPMO_ACTIVATION_FAIL_CLOSED');
+assert(kpmo.external_trust_authority_owned_here === false, 'KPMO_EXTERNAL_TRUST_NOT_DUPLICATED');
+assert(kpmo.external_trust_authority_ref === null
+  && kpmo.external_trust_authority_proposal?.pull_request === 2272
+  && kpmo.external_trust_authority_proposal?.required_state === 'MERGED_VERIFIED'
+  && !Object.hasOwn(platform, 'autonomous_independent_review'), 'KPMO_EXTERNAL_TRUST_PROPOSAL_NOT_YET_CANONICAL');
+assert(kpmo.current_authority_evidence?.external_trust_controller_status === 'NOT_PROVISIONED'
+  && kpmo.current_authority_evidence?.active_kpmo_identity === null
+  && kpmo.current_authority_evidence?.qualified_standby_identity === null
+  && kpmo.current_authority_evidence?.lifecycle_enforcement_status === 'NOT_ACTIVE',
+  'KPMO_CURRENT_AUTHORITY_EVIDENCE_FAIL_CLOSED');
+const kqac = kpmo.qualification_and_accountability_committee;
+assert(kqac?.short_name === 'KQAC' && kqac?.chair === 'PROGRAM_OWNER_JOHN'
+  && kqac?.popularity_vote_forbidden === true, 'KQAC_IDENTITY_AND_DECISION_MODEL');
+assert(kqac?.conflict_rules?.subject_kpmo_recused === true
+  && kqac?.conflict_rules?.material_change_implementer_recused_from_independent_review === true
+  && kqac?.conflict_rules?.reviewer_recused_from_adjudicating_own_prior_approval === true
+  && kqac?.conflict_rules?.directly_conflicted_track_agent_recused === true
+  && kqac?.conflict_rules?.qualified_replacement_required === true
+  && kqac?.conflict_rules?.chair_may_override_failed_technical_evidence === false, 'KQAC_CONFLICT_CONTROLS');
+assert(kqac?.minority_opinion_deletion_forbidden === true, 'KQAC_MINORITY_PRESERVATION');
+assert(kpmo.continuous_fitness?.lease_duration_may_be_arbitrarily_hardcoded === false, 'KPMO_LEASE_REEVALUATION');
+assert(kpmo.emergency_quarantine?.quarantine_is_containment_not_final_guilt === true
+  && kpmo.emergency_quarantine?.quarantine_is_final_removal === false
+  && kpmo.emergency_quarantine?.final_disposition_authority === 'PROGRAM_OWNER_AFTER_KQAC_ADJUDICATION'
+  && kpmo.emergency_quarantine?.atomic_sequence?.includes('REVOKE_REVIEW_AUTHORITY'), 'KPMO_QUARANTINE_ATOMICITY');
+assert(kpmo.lifecycle_states?.includes('COMMITTEE_QUALIFIED')
+  && kpmo.lifecycle_states?.includes('OWNER_APPOINTED_ACTIVE_PENDING_STANDBY')
+  && kpmo.standby_and_succession?.committee_qualified_is_appointed === false
+  && kpmo.standby_and_succession?.qualified_standby_is_automatically_active === false, 'KPMO_QUALIFICATION_APPOINTMENT_SEPARATION');
+assert(kpmo.standby_and_succession?.governance_pr_landing_requires_qualified_standby === false
+  && kpmo.standby_and_succession?.operational_acceptance_requires_qualified_standby === true, 'KPMO_STANDBY_NON_CIRCULARITY');
+assert(kqac?.committee_authorities?.includes('COMMITTEE_QUALIFY')
+  && !kqac?.committee_authorities?.includes('APPOINT')
+  && kqac?.program_owner_personnel_authorities?.includes('APPOINT_ACTIVE')
+  && kqac?.committee_finding_is_appointment === false
+  && kqac?.attestation_controller_has_committee_or_personnel_authority === false, 'KQAC_OWNER_AUTHORITY_SEPARATION');
+assert(kpmo.reinstatement?.permanently_retired_identity_reinstatement_allowed === false, 'KPMO_REINSTATEMENT_COMPLETE');
+assert(kpmo.external_attestation_bindings?.external_trust_root_required === true
+  && kpmo.external_attestation_bindings?.repository_code_alone_may_manufacture_active_status === false
+  && kpmo.external_attestation_bindings?.controller_role === 'PROVENANCE_VERIFIER_ONLY'
+  && kpmo.external_attestation_bindings?.controller_is_reviewer_committee_or_personnel_authority === false
+  && kpmo.external_attestation_bindings?.external_human_reviewer_required === false
+  && kpmo.external_attestation_bindings?.duplicate_material_review_attestation_schema_owned_here === false
+  && kpmo.external_attestation_bindings?.active_kpmo_may_write_own_active_or_quarantined_state === false
+  && kpmo.external_attestation_bindings?.valid_external_quarantine_may_be_overridden_by_repository_code === false, 'KPMO_EXTERNAL_ATTESTED_STATE');
+assert(kpmo.required_negative_controls_execution_state
+  === 'BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER', 'KPMO_NEGATIVE_CONTROLS_NOT_FALSELY_CLAIMED_EXECUTED');
+for (const control of [
+  'COMMITTEE_QUALIFIED_TREATED_AS_APPOINTED',
+  'EMERGENCY_QUARANTINE_TREATED_AS_FINAL_REMOVAL',
+  'ATTESTATION_CONTROLLER_EXERCISES_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY',
+]) assert(kpmo.required_negative_controls?.includes(control), `KPMO_NEGATIVE_CONTROL_MISSING:${control}`);
+assert(kpmo.control_authority_ownership?.duplicate_authority_allowed === false
+  && kpmo.control_authority_ownership?.cross_authority_integration_required_before_activation === true
+  && kpmo.control_authority_ownership?.review_independence_external_attestation_signature_expiry_replay_and_evidence_binding
+    === 'PENDING_PR_2272_PROTECTED_MAIN_AUTHORITY'
+  && kpmo.control_authority_ownership?.kpmo_qualification_performance_kqac_quarantine_removal_succession_and_reinstatement
+    === 'coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle', 'KPMO_SINGLE_AUTHORITY_OWNERSHIP');
+assert(kpmo.required_positive_canaries_execution_state
+  === 'BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER', 'KPMO_POSITIVE_CANARY_SET');
+assert(contract.kpmo_qualification_lifecycle?.kqac_required === true
+  && contract.kpmo_qualification_lifecycle?.chair_or_majority_may_override_failed_technical_evidence === false
+  && contract.kpmo_qualification_lifecycle?.repository_code_may_manufacture_active_or_standby_authority === false
+  && contract.kpmo_qualification_lifecycle?.activation_before_external_trust_root_and_distinct_hot_standby_verified === false, 'CONTRACT_KPMO_EXTERNAL_FAIL_CLOSED');
+assert(registry.kpmo_qualification_lifecycle?.duplicates_external_trust_authority === false
+  && registry.kpmo_qualification_lifecycle?.active_identity_self_writable_state_forbidden === true
+  && registry.kpmo_qualification_lifecycle?.external_trust_authority === null
+  && registry.kpmo_qualification_lifecycle?.external_trust_authority_proposal_pr === 2272
+  && registry.kpmo_qualification_lifecycle?.external_trust_authority_state === 'NOT_PROVISIONED'
+  && registry.kpmo_qualification_lifecycle?.negative_controls_and_positive_canaries_execution_state
+    === 'BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER'
+  && registry.kpmo_qualification_lifecycle?.current_activation_state === kpmo.activation_state, 'REGISTRY_KPMO_SINGLE_AUTHORITY_STATE');
+assert(policy.includes('KPMO Qualification & Accountability Committee (KQAC)')
+  && policy.includes('Repository code, the subject KPMO, an implementer, or a reviewer may not manufacture'), 'POLICY_KQAC_EXTERNAL_TRUST');
+
 assert(programParticipant?.core_responsibilities?.some((item) => item.includes('end-to-end ownership')), 'ROLE_JD_END_TO_END_OWNERSHIP');
 assert(programParticipant?.must_not?.some((item) => item.includes('transfer a core assigned duty or accountability to Codex')), 'ROLE_JD_CODEX_TRANSFER_FORBIDDEN');
 assert(programParticipant?.must_not?.some((item) => item.includes('unverified helper output as completed execution')), 'ROLE_JD_UNVERIFIED_HELPER_OUTPUT_FORBIDDEN');
@@ -462,7 +574,7 @@ const requiredAgentMarkers = [
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.8.0',
+  '**Version:** 1.9.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -534,7 +646,7 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.8.0',
+  version: '1.9.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
@@ -551,6 +663,8 @@ const report = {
   manual_only_normal_activation_forbidden: true,
   github_canonical_bootstrap_required: true,
   per_agent_bootstrap_receipt_required: true,
+  kpmo_lifecycle_semantic_digest: sha256Json(kpmo),
+  kpmo_activation_state: kpmo.activation_state,
   self_exemption_allowed: false,
   production: 'HOLD',
   public_release: 'HOLD'
