@@ -73,8 +73,9 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
 
   const autonomous = policy.autonomous_verification_policy || {};
-  require(autonomous.mode === 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD', 'AUTONOMOUS_MODE');
+  require(autonomous.mode === 'MACHINE_ENFORCED_RISK_ROUTED_MULTI_LANE_EXACT_HEAD', 'AUTONOMOUS_MODE');
   require(autonomous.required === true, 'AUTONOMOUS_REQUIRED');
+  require(autonomous.risk_routing_required === true, 'AUTONOMOUS_RISK_ROUTING_REQUIRED');
   require(autonomous.scope_aware_status_context === policy.scope_aware_required_status_context, 'AUTONOMOUS_SCOPE_CONTEXT');
   require(autonomous.all_required_contexts_terminal_success === true, 'AUTONOMOUS_TERMINAL_SUCCESS');
   require(autonomous.missing_context_fails_closed === true, 'AUTONOMOUS_MISSING_FAIL_CLOSED');
@@ -84,9 +85,11 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(autonomous.internal_control_evidence_only === true, 'AUTONOMOUS_INTERNAL_CONTROL_ONLY');
   require(autonomous.empirical_launch_authority === false, 'AUTONOMOUS_NO_EMPIRICAL_AUTHORITY');
   require(autonomous.root_issue === 1582, 'AUTONOMOUS_ROOT_ISSUE');
-  for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container','full-value-chain-redteam']) {
-    require(autonomous.required_check_contexts?.includes(context), `AUTONOMOUS_CONTEXT_MISSING:${context}`);
+  for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) {
+    require(autonomous.baseline_required_check_contexts?.includes(context), `AUTONOMOUS_BASELINE_CONTEXT_MISSING:${context}`);
   }
+  require(autonomous.risk_routed_check_contexts?.includes('full-value-chain-redteam'),
+    'AUTONOMOUS_RISK_CONTEXT_MISSING:full-value-chain-redteam');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.exact_labels?.includes('no-merge'), 'NO_MERGE_LABEL_BLOCK_MISSING');
@@ -159,7 +162,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER',
     'POST_MERGE_TREE_SHA_MISMATCH',
     'POST_MERGE_PARENT_BINDING_MISMATCH',
-    'autonomousContexts',
+    'scopeRequirements',
     'autonomous_exact_head_verification',
     "await publish('failure'",
   ]) require(atomicRunner.includes(marker), `ATOMIC_RUNNER_MARKER_MISSING:${marker}`);
@@ -169,8 +172,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(aggregatePolicy.id === 'kidults-scope-aware-required-status-policy-v1', 'AGGREGATE_POLICY_ID');
   require(aggregatePolicy.zero_coverage_policy === 'FAIL_CLOSED', 'AGGREGATE_ZERO_COVERAGE_FAIL_CLOSE');
   require(aggregatePolicy.required_status_context === policy.scope_aware_required_status_context, 'AGGREGATE_CONTEXT_MISMATCH');
-  require(aggregatePolicy.autonomous_verification_contexts?.includes('full-value-chain-redteam'), 'AGGREGATE_REDTEAM_CONTEXT_MISSING');
+  require((aggregatePolicy.autonomous_verification_rules || []).some(rule =>
+    (rule.required_contexts || []).includes('full-value-chain-redteam')), 'AGGREGATE_REDTEAM_RULE_MISSING');
   require(aggregatePolicy.authority_boundary?.autonomous_multi_lane_exact_head_verification === true, 'AGGREGATE_AUTONOMOUS_BOUNDARY_MISSING');
+  require(aggregatePolicy.authority_boundary?.autonomous_risk_routing === true, 'AGGREGATE_AUTONOMOUS_RISK_ROUTING_MISSING');
   require(aggregatePolicy.authority_boundary?.human_review_required === false, 'AGGREGATE_HUMAN_REVIEW_BOUNDARY_INVALID');
   for (const context of [policy.required_status_context, policy.scope_aware_required_status_context]) {
     require(policy.bypass_policy?.required_status_contexts?.includes(context), `NATIVE_REQUIRED_CONTEXT_POLICY_MISSING:${context}`);
@@ -332,8 +337,10 @@ const mutations = [
     aggregateWorkflow,
     aggregatePolicy: {
       ...aggregatePolicy,
-      autonomous_verification_contexts: (aggregatePolicy.autonomous_verification_contexts || [])
-        .filter(context => context !== 'full-value-chain-redteam'),
+      autonomous_verification_rules: (aggregatePolicy.autonomous_verification_rules || []).map(rule => ({
+        ...rule,
+        required_contexts: (rule.required_contexts || []).filter(context => context !== 'full-value-chain-redteam'),
+      })),
     },
     atomicRunner,
     aggregateRunner,
