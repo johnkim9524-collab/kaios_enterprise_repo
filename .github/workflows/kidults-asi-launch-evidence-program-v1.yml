@@ -15,6 +15,7 @@ on:
       - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
       - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-terminal-receipt-v1.mjs'
       - 'coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json'
       - 'scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs'
       - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
@@ -31,6 +32,7 @@ on:
       - 'coordination/kidults/internalization/runtime-boundary-p0-closure-receipt-v3.json'
       - 'coordination/kidults/registry/provider/records/provider-operating-state-v1.json'
       - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs'
+      - 'scripts/kidults/source-intelligence/validate-asi-launch-evidence-terminal-receipt-v1.mjs'
       - '.github/workflows/kidults-asi-launch-evidence-program-v1.yml'
   schedule:
     - cron: '37 * * * *'
@@ -54,9 +56,123 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Validate terminal-evidence workflow invariant
+        run: |
+          node scripts/kidults/source-intelligence/validate-asi-launch-evidence-terminal-receipt-v1.mjs --self-test
+          node scripts/kidults/source-intelligence/validate-asi-launch-evidence-terminal-receipt-v1.mjs
+      - name: Prepare terminal evidence directory
+        run: mkdir -p artifacts/asi-launch-evidence-terminal
       - name: Validate syntax
-        run: node --check scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
+        id: validate_syntax
+        shell: bash
+        run: |
+          set +e
+          node --check scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs > artifacts/asi-launch-evidence-terminal/validate-syntax.log 2>&1
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Validate stage truth and fail-closed negative paths
-        run: node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs
+        id: validate_stage_truth
+        shell: bash
+        run: |
+          set +e
+          node scripts/kidults/source-intelligence/validate-asi-launch-evidence-program-v1.mjs > artifacts/asi-launch-evidence-terminal/validate-stage-truth.log 2>&1
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
       - name: Validate scientific sample governance
-        run: node scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs
+        id: validate_sample_governance
+        shell: bash
+        run: |
+          set +e
+          node scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs > artifacts/asi-launch-evidence-terminal/validate-sample-governance.log 2>&1
+          rc=$?
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Emit fail-closed terminal receipt
+        id: emit_terminal_receipt
+        if: ${{ always() }}
+        shell: bash
+        env:
+          VALIDATE_SYNTAX_EXIT: ${{ steps.validate_syntax.outputs.exit_code }}
+          VALIDATE_STAGE_TRUTH_EXIT: ${{ steps.validate_stage_truth.outputs.exit_code }}
+          VALIDATE_SAMPLE_GOVERNANCE_EXIT: ${{ steps.validate_sample_governance.outputs.exit_code }}
+          RECEIPT_RUN_ID: ${{ github.run_id }}
+          RECEIPT_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RECEIPT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          RECEIPT_REF: ${{ github.head_ref || github.ref_name }}
+          RECEIPT_EVENT: ${{ github.event_name }}
+          RECEIPT_REPOSITORY: ${{ github.repository }}
+          RECEIPT_WORKFLOW: ${{ github.workflow }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/asi-launch-evidence-terminal
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+
+          const parseExit = (name) => {
+            const raw = process.env[name];
+            if (raw === undefined || raw === '') return 255;
+            const value = Number(raw);
+            return Number.isInteger(value) && value >= 0 && value <= 255 ? value : 255;
+          };
+          const validations = {
+            syntax: parseExit('VALIDATE_SYNTAX_EXIT'),
+            stage_truth: parseExit('VALIDATE_STAGE_TRUTH_EXIT'),
+            sample_governance: parseExit('VALIDATE_SAMPLE_GOVERNANCE_EXIT'),
+          };
+          const passed = Object.values(validations).every(value => value === 0);
+          const receipt = {
+            schema: 'kidults-asi-launch-evidence-terminal-receipt-v1',
+            repository: process.env.RECEIPT_REPOSITORY,
+            workflow: process.env.RECEIPT_WORKFLOW,
+            run_id: Number(process.env.RECEIPT_RUN_ID),
+            run_attempt: Number(process.env.RECEIPT_RUN_ATTEMPT),
+            source_sha: process.env.RECEIPT_SHA,
+            source_ref: process.env.RECEIPT_REF,
+            event_name: process.env.RECEIPT_EVENT,
+            state: passed ? 'VERIFIED_PASS' : 'VERIFIED_FAIL',
+            validations,
+            authority: 'CONTROL_ONLY',
+            evidence_admission: 'NONE',
+            empirical_authority: false,
+            provider_activation_authority: false,
+            promotion_eligible: false,
+            promotion_authority: false,
+            database_mutation_authority: false,
+            external_execution_authority: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD',
+          };
+          const canonical = JSON.stringify(receipt);
+          receipt.receipt_sha256 = `sha256:${crypto.createHash('sha256').update(canonical).digest('hex')}`;
+          fs.writeFileSync('artifacts/asi-launch-evidence-terminal/terminal-receipt-v1.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          console.log(JSON.stringify(receipt));
+          NODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: ${{ always() }}
+        with:
+          name: asi-launch-evidence-terminal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/asi-launch-evidence-terminal
+          if-no-files-found: error
+          retention-days: 30
+      - name: Reapply validation outcome after durable receipt
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'artifacts/asi-launch-evidence-terminal/terminal-receipt-v1.json';
+          if (!fs.existsSync(path)) throw new Error('TERMINAL_RECEIPT_MISSING');
+          const receipt = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (receipt.evidence_admission !== 'NONE' || receipt.promotion_eligible !== false || receipt.promotion_authority !== false || receipt.empirical_authority !== false || receipt.provider_activation_authority !== false || receipt.database_mutation_authority !== false || receipt.external_execution_authority !== false) {
+            throw new Error('TERMINAL_RECEIPT_AUTHORITY_DRIFT');
+          }
+          if (receipt.production !== 'HOLD' || receipt.public !== 'HOLD' || receipt.g5 !== 'HOLD') {
+            throw new Error('TERMINAL_RECEIPT_HOLD_DRIFT');
+          }
+          if (receipt.state !== 'VERIFIED_PASS') process.exit(1);
+          NODE
