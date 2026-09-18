@@ -11,24 +11,108 @@
   "technical_base_contexts": [
     "KAIOS Solo Owner Preflight",
     "Validate KAIOS Foundation",
-    "Validate Production Container"
+    "Validate Production Container",
+    "full-value-chain-redteam"
   ],
   "native_required_status_contexts": [
     "KIDULTS Governed Landing Authorization V1",
     "KIDULTS Scope-Aware Authoritative Status V1"
   ],
   "scope_rules": [
-    {"id":"github","prefixes":[".github/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"application","prefixes":["app/","apps/","packages/","public/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"control-plane","prefixes":["services/","infrastructure/","infra/","deploy/","release/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"governance-and-data","prefixes":["coordination/","contracts/","config/","data/","artifacts/","backups/","secrets/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"implementation-and-tests","prefixes":["scripts/","tests/","tooling/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"documentation","prefixes":["docs/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitignore","AGENTS.md","CONSTITUTION.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
+    {
+      "id": "github",
+      "prefixes": [
+        ".github/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "application",
+      "prefixes": [
+        "app/",
+        "apps/",
+        "packages/",
+        "public/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "control-plane",
+      "prefixes": [
+        "services/",
+        "infrastructure/",
+        "infra/",
+        "deploy/",
+        "release/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "governance-and-data",
+      "prefixes": [
+        "coordination/",
+        "contracts/",
+        "config/",
+        "data/",
+        "artifacts/",
+        "backups/",
+        "secrets/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "implementation-and-tests",
+      "prefixes": [
+        "scripts/",
+        "tests/",
+        "tooling/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "documentation",
+      "prefixes": [
+        "docs/"
+      ],
+      "exact_paths": [],
+      "required_contexts": []
+    },
+    {
+      "id": "repository-root",
+      "prefixes": [],
+      "exact_paths": [
+        ".dockerignore",
+        ".env.example",
+        ".gitignore",
+        "AGENTS.md",
+        "CONSTITUTION.md",
+        "Dockerfile",
+        "LICENSE",
+        "README.md",
+        "VERSION",
+        "docker-compose.yml",
+        "npm-shrinkwrap.json",
+        "package.json",
+        "pyproject.toml",
+        "requirements-ci.in",
+        "requirements-ci.lock.txt",
+        "requirements-runtime.in",
+        "requirements-runtime.lock.txt",
+        "requirements-security-assurance-pip-audit.lock.txt"
+      ],
+      "required_contexts": []
+    }
   ],
   "aggregation_policy": {
     "latest_completed_result_per_exact_context": true,
-    "success_conclusions": ["success"],
+    "success_conclusions": [
+      "success"
+    ],
     "pending_wait_is_bounded": true,
     "missing_context_fails": true,
     "cancelled_skipped_neutral_timed_out_fail": true,
@@ -42,6 +126,8 @@
     "draft_must_remain_non_promotable": true,
     "production": "HOLD",
     "public_release": "HOLD",
-    "g5": "HOLD"
+    "g5": "HOLD",
+    "autonomous_multi_lane_exact_head_verification": true,
+    "human_review_required": false
   }
 }
