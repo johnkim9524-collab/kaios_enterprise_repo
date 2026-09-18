@@ -11,6 +11,8 @@ on:
       - 'tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs'
       - 'tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs'
       - 'tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs'
+      - 'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'
+      - 'coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
       - 'scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs'
   workflow_dispatch:
@@ -48,6 +50,7 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/canonical-generation-v3.mjs --self-test
           node --test tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs
+          node --test tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs
           node scripts/kidults/kpmo/run-canonical-generation-v3-apply-v1.mjs --self-test
       - name: Prove bootstrap cannot reach issue-write authority
         run: |
@@ -78,18 +81,20 @@ jobs:
           const wrapper=fs.readFileSync(wrapperPath,'utf8');
           const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
           if(!trigger.startsWith('on:\n')) throw new Error('CANONICAL_V3_APPLY_TRIGGER_SECTION_INVALID');
-          for(const forbidden of [/^  pull_request:/m,/^  push:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
+          for(const forbidden of [/^  pull_request:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
             if(forbidden.test(trigger)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_TRIGGER:${forbidden}`);
           }
           if(/\$\{\{[^}]*secrets/i.test(s)) throw new Error('CANONICAL_V3_APPLY_SECRET_REFERENCE_FORBIDDEN');
           const requiredPatterns=[
             /^  workflow_dispatch:/m,
+            /^  push:\n    branches: \[main\]/m,
             /contents:\s*read/,
             /issues:\s*write/,
             /actions:\s*read/,
             /authorization_id:/,
             /target_main_sha:/,
-            /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:\s*AUTHORIZED/,
+            /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:.*'AUTHORIZED'/,
+            /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:.*PROTECTED_MAIN_PUSH/,
             /cancel-in-progress:\s*false/,
             /if:\s*always\(\)/,
             /COMMITTED_EVENTUAL_READBACK_RECOVERED/,
@@ -103,5 +108,5 @@ jobs:
           for(const required of [wrapperWriteCall,'POST_WRITE_READBACK_INVALID','COMMITTED_EVENTUAL_READBACK_RECOVERED','recovered_same_generation','RECOVERY_DELAYS_MS']) {
             if(!wrapper.includes(required)) throw new Error(`CANONICAL_V3_RECOVERY_CONTRACT_MISSING:${required}`);
           }
-          console.log('Canonical V3 one-shot apply + bounded eventual-readback recovery contract: PASS');
+          console.log('Canonical V3 protected-main automatic apply + one-shot recovery contract: PASS');
           NODE

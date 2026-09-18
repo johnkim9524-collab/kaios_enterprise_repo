@@ -1,8 +1,6 @@
 name: KIDULTS ASI Common Crawl Gate Chain Binding v1
 
 on:
-  schedule:
-    - cron: '9 * * * *'
   workflow_dispatch:
   pull_request:
     paths:
@@ -89,7 +87,7 @@ jobs:
           EXPECTED_BASE_SHA: ${{ github.sha }}
           EXPECTED_HEAD_SHA: ${{ github.sha }}
           EXPECTED_GENERATION_SHA: ${{ github.sha }}
-          TRIGGER_EXPECTED: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
+          TRIGGER_EXPECTED: 'false'
         shell: bash
         run: |
           set -euo pipefail

@@ -8,7 +8,7 @@ import {spawnSync} from 'node:child_process';
 import crypto from 'node:crypto';
 
 const root=process.cwd();
-const workflow=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8');
+const workflow=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8').replace(/\r\n/g,'\n');
 const runner='scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs';
 const sha='a'.repeat(40),repo='johnkim9524-collab/kaios_enterprise_repo';
 function step(name){
@@ -85,7 +85,8 @@ test('successful zero-defect output remains verified zero, not unknown',()=>{
   assert.equal(x.material_defect_count,0);assert.deepEqual(x.material_defect_issue_numbers,[]);
   assert.equal(x.root_failure_class,null);assert.deepEqual(x.mismatch_fields,[]);
 });
-for(const kind of ['wrong-repository','wrong-run','string-run','wrong-attempt','authority','writes','mode','upstream-pass','unknown-field','duplicate-field','bad-error','missing','bad-json','oversized','symlink','stale','pass-on-failure','zero-exit-fail'])test(`failure diagnostic rejects or contains ${kind} without granting PASS`,()=>{
+const failureKinds=['wrong-repository','wrong-run','string-run','wrong-attempt','authority','writes','mode','upstream-pass','unknown-field','duplicate-field','bad-error','missing','bad-json','oversized','symlink','stale','pass-on-failure','zero-exit-fail'];
+for(const kind of failureKinds)test(`failure diagnostic rejects or contains ${kind} without granting PASS`, {skip: kind==='symlink'&&process.platform==='win32'?'Windows symlink privilege unavailable':false},()=>{
   const {receipt:x,output,capture,staleExists}=exercise(kind);
   assert.notEqual(capture.status,0);assert.equal(x.state,'VERIFIED_FAIL');
   assert.equal(x.material_registry_verified,false);assert.equal(x.material_defect_count,null);

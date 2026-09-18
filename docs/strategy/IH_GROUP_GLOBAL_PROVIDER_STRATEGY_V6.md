@@ -1,6 +1,8 @@
 # Intelligence Holdings Group Global Provider Strategy v6
 
 **Effective date:** 2026-08-29  
+**Revision:** 2026-09-09 — mandatory KPMO pre-send review and exact Program Owner approval
+
 **Status:** Group sourcing baseline / decision framework  
 **Scope:** Intelligence Holdings, KIDULTS, Artfund, Capitaltimes, Muchmoney, Humanpool, Autobit, Kompare
 
@@ -198,6 +200,37 @@ Every agent working on providers must:
 5. preserve legal, spend, credential, production and communication gates;
 6. truth-sync material changes to the repository before reporting;
 7. report by source layer, brand/vertical and provider, with state, evidence date, owner, deadline, next action, cost exposure and blocker.
+
+### 9.1 Mandatory KPMO provider-email pre-send gate
+
+No external provider email may be drafted in Gmail, forwarded, replied to, or sent until the following sequence completes in order:
+
+```text
+current provider/thread evidence refresh
+  → detailed response strategy
+  → KPMO semantic and adversarial review
+  → Korean report to Program Owner with the strategy and exact email package
+  → Program Owner exact-content send approval
+  → send only the approved package
+  → post-send Gmail evidence receipt and registry truth-sync
+```
+
+The KPMO review dossier must identify:
+
+- provider, actual sender and apparent authority, current thread and latest human inbound;
+- business objective, requested outcome, why a reply is necessary now, and the no-reply alternative;
+- verified facts, provider claims, inferences, contradictions, unresolved questions, concessions and prohibited concessions;
+- `PAYMENT → ACCESS → INPUT → DATA → RIGHTS → PRODUCT` gate effect;
+- schema, field semantics, null/missingness, access method and activation, rate limit, retention/deletion, non-raw/non-reconstructive derived-result rights, image/media rights, renewal/cancellation/refund, and contracting/billing/tax entity requirements where applicable;
+- provider/source independence, replacement path, cost exposure, deadline, escalation and stop conditions;
+- external display name, exact legal contracting entity, sender account, recipients, CC/BCC, thread, subject, exact body and every attachment or link;
+- duplication check, thread-continuity check, written-email-only compliance, and legal/spend/credential/acquisition/Public/Production/G5 boundaries.
+
+KPMO must issue one of `APPROVED_FOR_PROGRAM_OWNER_REVIEW`, `REVISE`, `DO_NOT_SEND`, or `WAIT`. If KPMO also authored the candidate, it must perform and record a distinct second-pass adversarial review; authorship is not review evidence.
+
+The Program Owner report must include the detailed strategy, KPMO verdict, material risks and the exact provider-facing email package. A summary, excerpt, paraphrase, or approval of the general intent is insufficient. Program Owner approval must be bound to the exact sender, recipients, CC/BCC, thread/message reference, subject, body, attachments/links and deterministic content digest. The digest is `sha256:<lowercase-hex>` over RFC 8785 canonical JSON, using exact UTF-8 values with CRLF normalized to LF and attachment metadata plus each attachment's SHA-256 digest. Any later change to those fields invalidates approval and requires a fresh KPMO review and Program Owner approval.
+
+Without both a recorded KPMO review and exact Program Owner approval, the state is `DO_NOT_DRAFT_OR_SEND`. No agent, automation, KPMO function, urgent-response path, or provider request may bypass this gate. This gate authorizes only the exact outbound communication; it creates no authority for spend, contract, card registration, trial activation, credentials, data acquisition, Public, Production, or G5.
 
 ## 10. Immediate standing decisions
 

@@ -1,15 +1,6 @@
 name: KIDULTS Autonomous Fashion Cross-Source Evidence
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "scripts/kidults/autonomous/compare-fashion-authority-samples.mjs"
-      - "scripts/kidults/autonomous/validate-fashion-authority-cross-source.mjs"
-      - "scripts/kidults/autonomous/collect-met-open-access-sample.mjs"
-      - "scripts/kidults/autonomous/collect-vam-fashion-sample.mjs"
-      - ".github/workflows/kidults-autonomous-fashion-cross-source.yml"
   workflow_dispatch:
 
 permissions:

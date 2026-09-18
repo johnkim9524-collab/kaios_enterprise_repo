@@ -43,10 +43,11 @@
     "KPMO_RECEIPT_AND_ARTIFACT"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "52 * * * *",
-    "upstream_workflow": "KIDULTS ASI P0B Bounded Discovery Candidates v1",
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "provider_execution_enabled": false,
+    "main_push": false,
+    "schedule": null,
+    "upstream_workflow": null,
+    "manual_dispatch_role": "EXPLICIT_AUTHORIZED_EXECUTION_ONLY"
   },
   "next_stage": {
     "id": "P1B_BOUNDED_SOURCE_SAFETY_PREFLIGHT_EXECUTION",
@@ -71,4 +72,3 @@
     "production": "HOLD"
   }
 }
-

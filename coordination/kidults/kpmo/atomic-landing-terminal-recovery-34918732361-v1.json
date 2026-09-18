@@ -1,0 +1,101 @@
+{
+  "id": "kidults-atomic-landing-terminal-recovery-manifest-v1",
+  "version": "1.0.0",
+  "state": "PENDING_DISTINCT_CONTEXT_RECOVERY",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "source_issue": 2219,
+  "cause": "OWNER_MERGE_PRECEDED_EXPLICIT_TRANSPORT_WINDOW_DURING_FINAL_REREAD",
+  "predecessor_pull_request": {
+    "number": 2188,
+    "exact_base_sha": "69f9c45c8371c4439649de0f811f4c6a7b2149d6",
+    "exact_head_sha": "dcd47f3b6318be29c212381bafcd1c243b2d955c",
+    "exact_head_tree_sha": "89be69403fabeda031f159aa4762090bf0783581",
+    "merge_commit_sha": "3f1498220636c68d7d263daabaf002d88571d1b1",
+    "merged_at": "2026-09-15T01:49:17Z",
+    "merged_by": "johnkim9524-collab",
+    "changed_files": 12,
+    "current_sold_changed": false
+  },
+  "atomic_run": {
+    "id": 34918732361,
+    "attempt": 1,
+    "workflow_id": 345463226,
+    "event": "workflow_dispatch",
+    "actor": "johnkim9524-collab",
+    "expected_conclusion": "failure",
+    "authorization_id_sha256": "sha256:7abbbf2e535dfcd41fefbcb95d83bbd660fb2b73443ef7bffa659c363f3174bd"
+  },
+  "intent_artifact": {
+    "id": 10377735288,
+    "name": "kidults-atomic-governed-landing-intent-34918732361-1",
+    "digest": "sha256:eb83a23be74ec7d6ec76e7546ee66d73da50dc1fc977ea08dc586704ebb1e2a3",
+    "receipt_state": "NOT_ATTEMPTED",
+    "terminal_class": "PREMERGE_BINDING_STAGED"
+  },
+  "terminal_artifact": {
+    "id": 10377123013,
+    "name": "kidults-atomic-governed-landing-terminal-34918732361-1",
+    "digest": "sha256:2641d51679ce20b9bcb00fafebd8c1a077aaf0fce3527878364ddf2756382b0b",
+    "receipt_state": "VERIFIED_FAIL",
+    "terminal_class": "ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID"
+  },
+  "historical_terminal_status": {
+    "id": 54166094980,
+    "context": "KIDULTS Atomic Landing Terminal V2",
+    "state": "failure",
+    "description": "ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID",
+    "target_url": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/34918732361",
+    "created_at": "2026-09-15T01:49:21Z"
+  },
+  "historical_authorization_status": {
+    "id": 54166098664,
+    "context": "KIDULTS Governed Landing Authorization V1",
+    "state": "failure",
+    "description": "PULL_REQUEST_NO_MERGE_BLOCKED",
+    "target_url": null,
+    "created_at": "2026-09-15T01:49:27Z",
+    "preceding_success_status_id": 54166089555
+  },
+  "required_postmerge_runs": [
+    {
+      "id": 34918771821,
+      "name": "KIDULTS Internalization Foundation V1",
+      "head_sha": "3f1498220636c68d7d263daabaf002d88571d1b1",
+      "conclusion": "success"
+    },
+    {
+      "id": 34918771945,
+      "name": "CI Validation",
+      "head_sha": "3f1498220636c68d7d263daabaf002d88571d1b1",
+      "conclusion": "success"
+    }
+  ],
+  "recovery_status_context": "KIDULTS Atomic Landing Recovery V2",
+  "authorization_policy": {
+    "marker": "KIDULTS_ATOMIC_LANDING_TERMINAL_RECOVERY_EXACT_APPROVAL_V1",
+    "operation": "PUBLISH_DISTINCT_ATOMIC_LANDING_RECOVERY_STATUS",
+    "scope": "ONE_BOUND_TERMINAL_RECOVERY_ONLY",
+    "max_lifetime_seconds": 3600,
+    "first_dispatch_only": true,
+    "rerun_forbidden": true,
+    "prior_landing_authorization_reuse_forbidden": true,
+    "historical_status_contexts_immutable": true
+  },
+  "authority_boundaries": {
+    "merge_reexecution": false,
+    "provider_calls": 0,
+    "postgres_rows_written": 0,
+    "credentials_issued": false,
+    "contract_authority": false,
+    "payment_authority": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "platform_effects": {
+    "autonomous_effect": "Normal Atomic Landing accepts an exact owner merge observed inside the already-open authorization window and continues deterministic post-merge verification without manual rerun.",
+    "global_effect": "NO_CHANGE_INCIDENT_BOUND: no provider, geography, language, source, or global coverage claim is added.",
+    "irreplaceable_value_effect": "Preserves KIDULTS-owned one-use approval, exact merge lineage, immutable historical RED, and incident recovery evidence independent of any provider.",
+    "transparency_effect": "Binds the recovery to exact PR, run, artifacts, statuses, merge parents/tree, post-merge runs, current main, owner approval, and sealed receipts."
+  }
+}

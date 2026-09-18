@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.5.0', 'POLICY_VERSION');
+  require(policy.version === '1.6.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -51,6 +51,14 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.ancestor_reuse_allowed === false, 'APPROVAL_GENERATION_ANCESTRY');
   require(generation.same_candidate_blob_different_main_allowed === false, 'APPROVAL_GENERATION_SAME_BLOB');
   require(generation.stale_canonical_comment_allowed === false, 'APPROVAL_GENERATION_STALE_COMMENT');
+  require(generation.final_lifecycle_boundary_required === true, 'FINAL_LIFECYCLE_BOUNDARY_REQUIRED');
+  require(generation.approval_strictly_after_final_lifecycle_boundary === true, 'POST_BOUNDARY_APPROVAL_REQUIRED');
+  require(generation.later_lifecycle_mutation_invalidates_approval === true, 'LATER_LIFECYCLE_MUTATION_MUST_INVALIDATE');
+  require(generation.approval_must_precede_landing_attempt === true, 'PRE_ATTEMPT_APPROVAL_REQUIRED');
+  require(generation.single_governed_consumption_required === true, 'SINGLE_GOVERNED_CONSUMPTION_REQUIRED');
+  require(generation.pre_ready_approval_allowed === false, 'PRE_READY_APPROVAL_MUST_BE_FORBIDDEN');
+  require(generation.multiple_current_generation_approvals_allowed === false, 'MULTIPLE_CURRENT_APPROVALS_MUST_BE_FORBIDDEN');
+  require(generation.lifecycle_root_issue === 2028, 'APPROVAL_LIFECYCLE_ROOT_ISSUE');
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
   const review = policy.review_policy || {};
@@ -389,6 +397,12 @@ const receipt = {
     approval_ancestor_reuse_allowed: false,
     same_candidate_blob_different_main_allowed: false,
     stale_canonical_comment_allowed: false,
+    final_lifecycle_boundary_required: true,
+    approval_strictly_after_final_lifecycle_boundary: true,
+    later_lifecycle_mutation_invalidates_approval: true,
+    approval_must_precede_landing_attempt: true,
+    single_governed_consumption_required: true,
+    multiple_current_generation_approvals_allowed: false,
   },
   mutations: mutationResults,
   findings,

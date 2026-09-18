@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+if (process.platform === 'win32') {
+  console.log(JSON.stringify({suite:'KIDULTS_CLOUDFLARE_PAGES_STAGING_GOVERNANCE_V1',state:'CAPABILITY_SKIP',reason:'POSIX_EXECUTABLE_FIXTURE_REQUIRED'}));
+  process.exit(0);
+}
+
 const repoRoot = process.cwd();
 const scripts = {
   readonly: path.join(repoRoot, 'scripts/ops/cloudflare-pages-boundary-readonly.sh'),
@@ -52,7 +57,7 @@ const deployment = ({id, environment='production', trigger='ad_hoc', sha='111111
   latest_stage: {status},
   deployment_trigger: {type: trigger, metadata: {branch: 'main', commit_hash: sha, commit_message: message}}
 });
-const list = (items) => ({success:true, result:items, result_info:{page:1,per_page:100,total_pages:1}});
+const list = (items) => ({success:true, result:items, result_info:{page:1,per_page:25,count:items.length,total_count:items.length,total_pages:1}});
 let response;
 if (scenario === 'readonly-pass') {
   response = url.includes('/deployments') ? list([deployment({id:'governed'})]) : project(false);

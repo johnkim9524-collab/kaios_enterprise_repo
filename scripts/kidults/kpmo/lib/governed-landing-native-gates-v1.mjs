@@ -83,6 +83,7 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   prCreatedAt,
   headCommittedAt,
   latestReadyAt,
+  landingAttemptStartedAt,
   evaluationTime,
 } = {}) {
   if (!Array.isArray(comments)) fail('PROGRAM_OWNER_APPROVAL_COMMENT_SET_INVALID');
@@ -91,17 +92,24 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
     fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
   }
+  const finalLifecycleBoundaryAt = exactTime(
+    latestReadyAt,
+    'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID',
+  );
   const marked = comments
-    .map(comment => ({comment, fields: parseExactHeadApprovalBody(comment?.body)}))
-    .filter(item => item.fields)
-    .sort((a, b) => exactTime(b.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      - exactTime(a.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+    .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === EXACT_HEAD_APPROVAL_MARKER)
+    .sort((a, b) => exactTime(b.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      - exactTime(a.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-
-  // The newest structured approval is authoritative. An older exact approval may
-  // never mask a later stale-head, edited, app-mediated, or self-rebinding comment.
-  const {comment, fields} = marked[0];
+  const currentGeneration = marked.filter(comment => exactTime(
+    comment.created_at,
+    'PROGRAM_OWNER_APPROVAL_TIME_INVALID',
+  ) > finalLifecycleBoundaryAt);
+  if (!currentGeneration.length) fail('PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
+  if (currentGeneration.length !== 1) fail('PROGRAM_OWNER_MULTIPLE_CURRENT_GENERATION_APPROVALS');
+  const comment = currentGeneration[0];
+  const fields = parseExactHeadApprovalBody(comment?.body);
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
@@ -120,15 +128,17 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   const approvedAt = exactTime(comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID');
   const expiresAt = exactTime(fields.expires_at, 'PROGRAM_OWNER_APPROVAL_EXPIRY_INVALID');
   const evaluatedAt = exactTime(evaluationTime, 'PROGRAM_OWNER_APPROVAL_EVALUATION_TIME_INVALID');
+  const attemptStartedAt = exactTime(
+    landingAttemptStartedAt,
+    'PROGRAM_OWNER_LANDING_ATTEMPT_TIME_INVALID',
+  );
   if (approvedAt < exactTime(prCreatedAt, 'PROGRAM_OWNER_APPROVAL_PR_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_PR');
   }
   if (approvedAt < exactTime(headCommittedAt, 'PROGRAM_OWNER_APPROVAL_HEAD_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
   }
-  if (approvedAt > exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID')) {
-    fail('PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
-  }
+  if (approvedAt >= attemptStartedAt) fail('PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');
   }
@@ -153,6 +163,8 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     raw_authorization_persisted: false,
     raw_nonce_persisted: false,
     app_mediated: false,
+    final_lifecycle_boundary_at: latestReadyAt,
+    landing_attempt_started_at: landingAttemptStartedAt,
   };
 }
 
@@ -204,6 +216,70 @@ export function assertStableFinalReread(initial, final, options) {
   if (before.head_sha !== after.head_sha) fail('PULL_REQUEST_HEAD_CHANGED_DURING_AUTHORIZATION');
   if (before.base_ref !== after.base_ref) fail('PULL_REQUEST_BASE_CHANGED_DURING_AUTHORIZATION');
   return {initial: before, final: after, stable_exact_head: true};
+}
+
+export function assertExactOwnerMergeDuringFinalReread(initial, merged, {
+  repository,
+  repositoryOwner,
+  expectedHeadSha,
+  expectedBaseSha,
+  noMergePolicy,
+  notBefore,
+  notAfter,
+} = {}) {
+  const before = assertPromotablePullRequest(initial, {
+    repository,
+    expectedHeadSha,
+    noMergePolicy,
+  });
+  if (!merged || typeof merged !== 'object') fail('FINAL_REREAD_MERGED_SNAPSHOT_REQUIRED');
+  if (!repositoryOwner) fail('FINAL_REREAD_REPOSITORY_OWNER_REQUIRED');
+  if (!SHA_PATTERN.test(expectedBaseSha || '')) fail('FINAL_REREAD_EXPECTED_BASE_SHA_REQUIRED');
+  if (merged.number !== initial.number || Number(merged.number) !== before.number) {
+    fail('FINAL_REREAD_PULL_REQUEST_NUMBER_CHANGED');
+  }
+  if (merged.base?.ref !== 'main' || merged.base?.sha !== expectedBaseSha) {
+    fail('FINAL_REREAD_MERGED_BASE_MISMATCH');
+  }
+  if (merged.head?.sha !== expectedHeadSha) fail('FINAL_REREAD_MERGED_HEAD_MISMATCH');
+  if (repository && merged.head?.repo?.full_name !== repository) {
+    fail('FINAL_REREAD_MERGED_HEAD_REPOSITORY_MISMATCH');
+  }
+  if (merged.state !== 'closed' || merged.merged !== true || merged.draft === true) {
+    fail('FINAL_REREAD_EXACT_MERGE_NOT_OBSERVED');
+  }
+  if (merged.merged_by?.login !== repositoryOwner) fail('FINAL_REREAD_MERGED_BY_NON_OWNER');
+  if (!SHA_PATTERN.test(merged.merge_commit_sha || '')) fail('FINAL_REREAD_MERGE_SHA_INVALID');
+  const policyWithoutTerminalState = {
+    ...(noMergePolicy || {}),
+    closed_pull_request_blocks: false,
+    merged_pull_request_blocks: false,
+  };
+  const semanticBlockers = noMergeBlockers(merged, policyWithoutTerminalState);
+  if (semanticBlockers.length) fail('FINAL_REREAD_NO_MERGE_BLOCKED', semanticBlockers.join(','));
+  const mergedAt = Date.parse(String(merged.merged_at || ''));
+  const lowerBound = Date.parse(String(notBefore || ''));
+  const upperBound = Date.parse(String(notAfter || ''));
+  if (!Number.isFinite(mergedAt) || !Number.isFinite(lowerBound) || !Number.isFinite(upperBound)) {
+    fail('FINAL_REREAD_MERGE_TIME_INVALID');
+  }
+  if (mergedAt < lowerBound || mergedAt > upperBound) fail('FINAL_REREAD_MERGE_OUTSIDE_AUTHORIZED_WINDOW');
+  return {
+    initial: before,
+    final: {
+      number: Number(merged.number),
+      head_sha: merged.head.sha,
+      base_ref: merged.base.ref,
+      base_sha: merged.base.sha,
+      state: merged.state,
+      merged: true,
+      merged_by: repositoryOwner,
+      merged_at: merged.merged_at,
+      merge_commit_sha: merged.merge_commit_sha,
+    },
+    stable_exact_head: true,
+    exact_owner_merge_observed_during_final_reread: true,
+  };
 }
 
 function scopeMatches(filename, rule) {

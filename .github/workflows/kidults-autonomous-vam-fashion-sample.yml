@@ -1,17 +1,6 @@
 name: KIDULTS Autonomous V&A Fashion Sample
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/vam-fashion-collections-r1.json"
-      - "coordination/kidults/registry/trusted-source/records/trusted-source-fashion-accessories-r1.json"
-      - "scripts/kidults/autonomous/collect-vam-fashion-sample.mjs"
-      - "scripts/kidults/autonomous/validate-vam-fashion-sample.mjs"
-      - ".github/workflows/kidults-autonomous-vam-fashion-sample.yml"
-  schedule:
-    - cron: "45 22 * * *"
   workflow_dispatch:
 
 permissions:

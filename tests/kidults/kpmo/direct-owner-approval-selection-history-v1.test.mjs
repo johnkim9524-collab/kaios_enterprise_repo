@@ -111,7 +111,7 @@ test('historical malformed approval cannot poison a newer fresh valid generation
   const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
   const pr = {created_at: iso(-40)};
   const headCommit = {commit: {committer: {date: iso(-35)}}};
-  const readyEvent = {created_at: iso(-4)};
+  const readyEvent = {created_at: iso(-10)};
 
   const historicalMalformed = ownerComment({
     id: 100,
@@ -125,7 +125,14 @@ test('historical malformed approval cannot poison a newer fresh valid generation
     body: approvalBody({nonce: '22222222222222222222222222222222', expiresAt: iso(25)}),
   });
 
-  const selected = selectApproval([historicalMalformed, freshValid], 'johnkim9524-collab', pr, headCommit, readyEvent);
+  const selected = selectApproval(
+    [historicalMalformed, freshValid],
+    'johnkim9524-collab',
+    pr,
+    headCommit,
+    readyEvent,
+    {landingAttemptStartedAt: iso(-1)},
+  );
   assert.equal(selected.comment_id, 200);
 });
 
@@ -135,7 +142,7 @@ test('newest malformed marked approval still fails closed', () => {
   const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
   const pr = {created_at: iso(-40)};
   const headCommit = {commit: {committer: {date: iso(-35)}}};
-  const readyEvent = {created_at: iso(-1)};
+  const readyEvent = {created_at: iso(-15)};
 
   const olderValid = ownerComment({
     id: 200,
@@ -150,8 +157,54 @@ test('newest malformed marked approval still fails closed', () => {
   });
 
   assert.throws(
-    () => selectApproval([olderValid, newestMalformed], 'johnkim9524-collab', pr, headCommit, readyEvent),
-    /DIRECT_OWNER_HANDOFF_APPROVAL_SHAPE_INVALID/,
+    () => selectApproval(
+      [olderValid, newestMalformed],
+      'johnkim9524-collab',
+      pr,
+      headCommit,
+      readyEvent,
+      {landingAttemptStartedAt: iso(-1)},
+    ),
+    /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/,
+  );
+});
+
+test('pre-Ready, same-boundary, post-attempt, and competing approvals fail closed', () => {
+  const now = Date.parse('2026-09-05T05:00:00Z');
+  const {selectApproval} = loadProductionSelector(now);
+  const iso = offsetMinutes => new Date(now + offsetMinutes * 60_000).toISOString();
+  const pr = {created_at: iso(-40)};
+  const headCommit = {commit: {committer: {date: iso(-35)}}};
+  const readyEvent = {created_at: iso(-10)};
+  const approval = createdAt => ownerComment({
+    id: Math.abs(Date.parse(createdAt)),
+    createdAt,
+    body: approvalBody({nonce: '55555555555555555555555555555555', expiresAt: iso(25)}),
+  });
+  const options = {landingAttemptStartedAt: iso(-1)};
+
+  assert.throws(
+    () => selectApproval([approval(iso(-11))], 'johnkim9524-collab', pr, headCommit, readyEvent, options),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/,
+  );
+  assert.throws(
+    () => selectApproval([approval(iso(-10))], 'johnkim9524-collab', pr, headCommit, readyEvent, options),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/,
+  );
+  assert.throws(
+    () => selectApproval([approval(iso(0))], 'johnkim9524-collab', pr, headCommit, readyEvent, options),
+    /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/,
+  );
+  assert.throws(
+    () => selectApproval(
+      [approval(iso(-8)), approval(iso(-7))],
+      'johnkim9524-collab',
+      pr,
+      headCommit,
+      readyEvent,
+      options,
+    ),
+    /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/,
   );
 });
 

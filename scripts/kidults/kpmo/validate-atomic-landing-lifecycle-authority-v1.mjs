@@ -117,6 +117,28 @@ assert(authority.lifecycle_run_id === 200, 'POSITIVE_RUN_BINDING');
 assert(authority.lifecycle_artifact_digest === `sha256:${'a'.repeat(64)}`, 'POSITIVE_DIGEST_BINDING');
 assert(authority.exact_base_sha === base, 'POSITIVE_BASE_BINDING');
 assert(authority.lifecycle_receipt_reason === READY_GOVERNED_REASON, 'POSITIVE_PENDING_SEMANTICS');
+assert(authority.native_status_binding_mode === 'EXACT_STATUS_IDENTITY', 'POSITIVE_EXACT_STATUS_BINDING');
+
+const newerEquivalentStatuses = nativeStatuses.map(status => status.context === SCOPE_AWARE_CONTEXT
+  ? {
+      ...status,
+      id: 12,
+      created_at: '2026-09-01T13:30:00Z',
+      updated_at: '2026-09-01T13:30:00Z',
+    }
+  : status);
+const monotonicAlias = invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200)},
+  statuses: newerEquivalentStatuses,
+});
+assert(monotonicAlias.native_status_binding_mode === 'SEMANTICALLY_EQUIVALENT_MONOTONIC_NATIVE_ALIAS',
+  'MONOTONIC_SEMANTIC_ALIAS_NOT_RECOGNIZED');
+assert(monotonicAlias.lifecycle_receipt_native_status_evidence[0].status_id === 10,
+  'MONOTONIC_ALIAS_RECEIPT_PROVENANCE_NOT_PRESERVED');
+assert(monotonicAlias.native_status_evidence[0].status_id === 12,
+  'MONOTONIC_ALIAS_CURRENT_NATIVE_STATUS_NOT_PRESERVED');
 
 const rerunWithStaleMutableRunTimestamp = invoke({
   runs: [run(210, 'success', '2026-09-01T13:23:00Z')],
@@ -259,6 +281,30 @@ expectReject('LIFECYCLE_RECEIPT_NATIVE_STATUS_MISMATCH', () => invoke({
   receiptsByRunId: {'200': receipt(200, {
     native_status_evidence: receiptEvidence(nativeStatuses).map(status =>
       status.context === GOVERNED_LANDING_CONTEXT ? {...status, description: 'tampered'} : status),
+  })},
+}));
+expectReject('LIFECYCLE_NATIVE_STATUS_REGRESSED_BEHIND_RECEIPT', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200)},
+  statuses: nativeStatuses.map(status => status.context === SCOPE_AWARE_CONTEXT
+    ? {...status, id: 9, created_at: '2026-09-01T13:24:24Z', updated_at: '2026-09-01T13:24:24Z'}
+    : status),
+}));
+expectReject('LIFECYCLE_NATIVE_STATUS_IDENTITY_MUTATED', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200)},
+  statuses: nativeStatuses.map(status => status.context === SCOPE_AWARE_CONTEXT
+    ? {...status, updated_at: '2026-09-01T13:24:26Z'}
+    : status),
+}));
+expectReject('LIFECYCLE_RECEIPT_NATIVE_STATUS_ID_INVALID', () => invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {
+    native_status_evidence: receiptEvidence(nativeStatuses).map(status =>
+      status.context === SCOPE_AWARE_CONTEXT ? {...status, status_id: null} : status),
   })},
 }));
 expectReject('LIFECYCLE_RECEIPT_FINAL_REREAD_REQUIRED', () => invoke({

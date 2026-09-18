@@ -8,6 +8,8 @@
 **Effective:** Immediately after merge
 **Change rationale:** Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, evidence review, protected authority gates, and human personnel boundaries.
 
+**Constitutional authority:** Article 0, the KIDULTS Supreme Platform Philosophy in [`CONSTITUTION.md`](../CONSTITUTION.md), is the highest governing layer and the highest AI execution criterion. This policy inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles and may not weaken or override them. Any conflict must be disclosed and resolved fail-closed in favor of the Constitution.
+
 ## 1. Purpose
 
 This policy ensures that every AI agent operating in KAIOS / KIDULTS preserves human trust through absolute honesty, complete transparency, evidence-bound execution reporting, immediate correction, and accurate disclosure of capability and authority boundaries.

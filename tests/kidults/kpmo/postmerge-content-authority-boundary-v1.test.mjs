@@ -17,12 +17,20 @@ const steps=[
  'Validate exact Sharded Reserve upstream terminal binding',
  'Validate exact Canonical Truth upstream terminal binding',
 ];
-function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false}={}) {
+function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false, retainedHold=false, unexpectedFailure=false}={}) {
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'postmerge-boundary-'));
  const file=path.join(dir,'receipt.json');
  const runs=POLICY.required_workflows.map((x,i)=>({id:1000+i,run_attempt:1,path:x.path,name:x.name,head_sha:SHA,head_branch:'main',event:'push',status:'completed',conclusion:failRequired&&i===1?'failure':'success',created_at:'2026-09-05T00:00:01Z',updated_at:'2026-09-05T00:00:02Z'}));
  const assurance=runs.find(x=>x.path.includes('continuous-assurance'));
- const jobs=[{id:5000,run_id:assurance.id,run_attempt:1,head_sha:SHA,name:'audit',status:'completed',conclusion:'success',steps:steps.map((name,i)=>({name,number:i+1,status:'completed',conclusion:stepOutcome}))}];
+ const auditSteps=steps.map((name,i)=>({name,number:i+1,status:'completed',conclusion:stepOutcome}));
+ if(retainedHold) auditSteps.push(
+  {name:'Resolve bounded ephemeral canonical leader or alias',number:10,status:'completed',conclusion:'failure'},
+  {name:'Run audit and always retain receipt',number:11,status:'completed',conclusion:'success'},
+  {name:'Upload exact-run assurance packet',number:12,status:'completed',conclusion:'success'},
+  {name:'Preserve control result without promoting overall HOLD',number:13,status:'completed',conclusion:'success'},
+ );
+ if(unexpectedFailure) auditSteps.push({name:'Unexpected failed step',number:20,status:'completed',conclusion:'failure'});
+ const jobs=[{id:5000,run_id:assurance.id,run_attempt:1,head_sha:SHA,name:'audit',status:'completed',conclusion:retainedHold?'failure':'success',steps:auditSteps}];
  fs.writeFileSync(file,JSON.stringify({id:'kidults-direct-owner-landing-handoff-receipt-v1',state:'CONSUMED_BY_DIRECT_OWNER_MERGE',merge_commit_sha:SHA,merged_at:'2026-09-05T00:00:00Z',merged_by:'owner',direct_owner:'owner',production:'HOLD',public:'HOLD',g5:'HOLD'}));
  const harness=`
   const runs=${JSON.stringify(runs)}, jobs=${JSON.stringify(jobs)};let mains=0,indices=0;
@@ -67,4 +75,14 @@ test('required workflow failure remains evidence, never health or release permis
  const p=r.receipt.post_merge_push_suite;assert.equal(p.required_failure_count,1);
  assert.equal(p.terminal_failure_preserved_as_fail_closed_evidence,true);assert.equal(p.all_required_success,false);
  assert.equal(p.producer_health_authority,false);assert.equal(p.promotion_eligible,false);
+});
+test('fail-closed assurance HOLD with retained validated receipt is accepted only as landing evidence',()=>{
+ const {status,stderr,receipt}=execute({stepOutcome:'skipped',retainedHold:true});assert.equal(status,0,stderr);
+ const proof=receipt.post_merge_push_suite.assurance_semantic_classification;
+ assert.equal(proof.state,'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED');
+ assert.equal(proof.producer_health_authority,false);assert.equal(receipt.post_merge_push_suite.promotion_eligible,false);
+});
+test('unexpected assurance failure cannot masquerade as governed HOLD',()=>{
+ const r=execute({stepOutcome:'skipped',retainedHold:true,unexpectedFailure:true});assert.equal(r.status,1);
+ assert.equal(r.receipt.failure_code,'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID');
 });

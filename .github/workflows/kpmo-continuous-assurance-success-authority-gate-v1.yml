@@ -63,7 +63,7 @@ jobs:
       UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
       UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
       UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
-      GATE_DIR: ${{ runner.temp }}/kpmo-success-assurance-authority-gate
+      GATE_DIR: /tmp/kpmo-success-assurance-authority-gate
     steps:
       - name: Initialize durable fail-closed gate receipt
         shell: bash
@@ -175,7 +175,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kpmo-continuous-assurance-success-authority-gate-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
-          path: ${{ runner.temp }}/kpmo-success-assurance-authority-gate/
+          path: ${{ env.GATE_DIR }}/
           if-no-files-found: error
           retention-days: 90
 

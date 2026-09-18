@@ -7,6 +7,11 @@ on:
       - "scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs"
       - "requirements*.txt"
       - "package*.json"
+      - "**/package.json"
+      - "**/package-lock.json"
+      - "scripts/kidults/kpmo/security-dependency-lock-v1.mjs"
+      - "scripts/kidults/kpmo/validate-security-dependency-lock-v1.mjs"
+      - "tests/kidults/kpmo/security-dependency-lock-v1.test.mjs"
       - "Dockerfile"
       - "Dockerfile.*"
   workflow_dispatch:
@@ -90,6 +95,12 @@ jobs:
             raise SystemExit('HIGH_CONFIDENCE_SECRET_PATTERN_FOUND')
           print('High-confidence secret scan PASS')
           PY
+
+      - name: Reject vulnerable dependency graph regressions
+        run: |
+          test "$(npm --version)" = 11.17.0
+          node --test tests/kidults/kpmo/security-dependency-lock-v1.test.mjs
+          node scripts/kidults/kpmo/validate-security-dependency-lock-v1.mjs
 
       - name: Node dependency vulnerability audit
         shell: bash

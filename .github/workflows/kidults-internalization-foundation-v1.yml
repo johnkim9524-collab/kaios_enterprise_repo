@@ -5,27 +5,41 @@ on:
     branches: [main]
     paths:
       - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json'
       - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json'
       - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
       - 'coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
+      - 'scripts/kidults/provider/validate-provider-written-email-only-negotiation-policy-v1.mjs'
+      - 'coordination/kidults/governance/provider-outbound-email-approval-receipt-contract-v1.json'
+      - 'scripts/kidults/provider/validate-provider-outbound-email-approval-receipt-v1.mjs'
       - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - 'scripts/kidults/provider/validate-cgc-ccg-provider-response-intake-v1.mjs'
       - 'scripts/kidults/market/validate-alternate-current-sold-provider-preflight-v1.mjs'
+      - 'docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md'
+      - 'docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   push:
     branches: [main]
     paths:
       - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json'
       - 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json'
       - 'coordination/kidults/provider/cgc-ccg-provider-response-intake-v1.json'
       - 'coordination/kidults/market/provider-rights-decision-gate-v1.json'
       - 'coordination/kidults/market/alternate-current-sold-provider-preflight-v1.json'
       - 'scripts/kidults/internalization/**'
+      - 'scripts/kidults/provider/validate-provider-written-email-only-negotiation-policy-v1.mjs'
+      - 'coordination/kidults/governance/provider-outbound-email-approval-receipt-contract-v1.json'
+      - 'scripts/kidults/provider/validate-provider-outbound-email-approval-receipt-v1.mjs'
       - 'scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs'
       - 'scripts/kidults/provider/validate-cgc-ccg-provider-response-intake-v1.mjs'
       - 'scripts/kidults/market/validate-alternate-current-sold-provider-preflight-v1.mjs'
+      - 'docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md'
+      - 'docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md'
       - '.github/workflows/kidults-internalization-foundation-v1.yml'
   workflow_dispatch:
 
@@ -61,7 +75,7 @@ jobs:
         with:
           node-version: '24.19.0'
 
-      - name: Run 18-component internalization foundation
+      - name: Run 20-component internalization foundation
         run: node scripts/kidults/internalization/validate-internalization-foundation-v1.mjs
 
       - name: Reject rights fail-open mutation

@@ -14,6 +14,12 @@ const assuranceBindingSteps = [
   'Validate exact Sharded Reserve upstream terminal binding',
   'Validate exact Canonical Truth upstream terminal binding',
 ];
+const assuranceRetainedHoldSteps = [
+  'Run audit and always retain receipt',
+  'Upload exact-run assurance packet',
+  'Preserve control result without promoting overall HOLD',
+];
+const assuranceAllowedHoldFailureStep = 'Resolve bounded ephemeral canonical leader or alias';
 
 function codedError(code, details = null) {
   const error = new Error(code);
@@ -138,8 +144,8 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
     return {ok: false, reason: 'ASSURANCE_AUDIT_JOB_CARDINALITY_INVALID', audit_job_count: auditJobs.length};
   }
   const audit = auditJobs[0];
-  if (audit.status !== 'completed' || audit.conclusion !== 'success') {
-    return {ok: false, reason: 'ASSURANCE_AUDIT_JOB_NOT_SUCCESS', status: audit.status || null, conclusion: audit.conclusion || null};
+  if (audit.status !== 'completed' || !['success', 'failure'].includes(audit.conclusion)) {
+    return {ok: false, reason: 'ASSURANCE_AUDIT_JOB_NOT_TERMINAL_CLASSIFIABLE', status: audit.status || null, conclusion: audit.conclusion || null};
   }
 
   const bindings = [];
@@ -156,6 +162,37 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
   }
 
   const conclusions = bindings.map(item => item.conclusion);
+  if (audit.conclusion === 'failure') {
+    const failedSteps = (audit.steps || []).filter(step => step?.status === 'completed' && step?.conclusion === 'failure');
+    const retainedHoldProofValid = assuranceRetainedHoldSteps.every(name => {
+      const matches = (audit.steps || []).filter(step => step?.name === name);
+      return matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success';
+    });
+    if (conclusions.every(value => value === 'skipped') &&
+        failedSteps.length === 1 && failedSteps[0].name === assuranceAllowedHoldFailureStep &&
+        retainedHoldProofValid) {
+      return {
+        ok: true,
+        state: 'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED',
+        structural_run_accepted: true,
+        producer_health_authority: false,
+        exact_merge_sha: mergeSha,
+        run_id: Number(expectedRunId),
+        audit_job_id: Number(audit.id),
+        bindings,
+        retained_hold_steps: assuranceRetainedHoldSteps,
+        failed_step: assuranceAllowedHoldFailureStep,
+        required_separate_gate: 'KPMO_CONTINUOUS_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_SENTINEL_V1',
+      };
+    }
+    return {
+      ok: false,
+      reason: 'ASSURANCE_FAILED_JOB_NOT_GOVERNED_HOLD_SHAPE',
+      failed_steps: failedSteps.map(step => step.name),
+      retained_hold_proof_valid: retainedHoldProofValid,
+      bindings,
+    };
+  }
   if (conclusions.every(value => value === 'success')) {
     return {
       ok: true,
@@ -248,6 +285,20 @@ async function selfTest() {
   assert.equal(deferred.state, 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
   assert.equal(deferred.producer_health_authority, false);
 
+  const retainedHoldAudit = structuredClone(deferredAudit);
+  retainedHoldAudit.conclusion = 'failure';
+  retainedHoldAudit.steps.push(
+    {name: assuranceAllowedHoldFailureStep, number: 10, status: 'completed', conclusion: 'failure'},
+    ...assuranceRetainedHoldSteps.map((name, index) => ({name, number: 11 + index, status: 'completed', conclusion: 'success'})),
+  );
+  const retainedHold = classifyAssuranceSemantics([retainedHoldAudit], mergeSha, assuranceRunId);
+  assert.equal(retainedHold.ok, true);
+  assert.equal(retainedHold.state, 'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED');
+  assert.equal(retainedHold.producer_health_authority, false);
+  const unsafeFailedAudit = structuredClone(retainedHoldAudit);
+  unsafeFailedAudit.steps.push({name: 'Unexpected failed step', number: 20, status: 'completed', conclusion: 'failure'});
+  assert.equal(classifyAssuranceSemantics([unsafeFailedAudit], mergeSha, assuranceRunId).reason, 'ASSURANCE_FAILED_JOB_NOT_GOVERNED_HOLD_SHAPE');
+
   const mixedAudit = structuredClone(deferredAudit);
   mixedAudit.steps[0].conclusion = 'success';
   assert.equal(classifyAssuranceSemantics([mixedAudit], mergeSha, assuranceRunId).reason, 'ASSURANCE_BINDING_OUTCOMES_MIXED_OR_UNSAFE');
@@ -258,7 +309,7 @@ async function selfTest() {
   console.log(JSON.stringify({
     state: 'VERIFIED_PASS',
     contract: 'DIRECT_OWNER_POSTMERGE_PUSH_SUITE_CONSUMER_V1',
-    negative_mutations_rejected: 8,
+    negative_mutations_rejected: 9,
     terminal_failure_preserved_as_evidence: true,
     predecessor_head_proof_reuse_forbidden: true,
     assurance_semantic_classification_required: true,

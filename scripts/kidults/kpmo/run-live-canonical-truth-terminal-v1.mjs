@@ -33,7 +33,7 @@ function readDiagnostic(file){
 let dir;
 try{
   if(identity.repository!==REPOSITORY||!positive(identity.run_id)||!positive(identity.run_attempt)||
-    !/^[0-9a-f]{40}$/.test(identity.head_sha||'')||!['pull_request','push','workflow_dispatch'].includes(identity.event))throw new Error('CANONICAL_DIAGNOSTIC_IDENTITY_INVALID');
+    !/^[0-9a-f]{40}$/.test(identity.head_sha||'')||!['pull_request','push','workflow_run','workflow_dispatch'].includes(identity.event))throw new Error('CANONICAL_DIAGNOSTIC_IDENTITY_INVALID');
   dir=fs.mkdtempSync(path.join(process.env.RUNNER_TEMP||os.tmpdir(),'canonical-read-terminal-'));
   const receipt=path.join(dir,'producer-receipt.json');
   // Fixed read-only entrypoint, no --write, no user-supplied command or arguments.

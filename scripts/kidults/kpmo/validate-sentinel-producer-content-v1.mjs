@@ -14,6 +14,23 @@ const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..')
 export const REPOSITORY='johnkim9524-collab/kaios_enterprise_repo';
 export const MAX_ARCHIVE_BYTES=8*1024*1024;
 const DIGEST=/^sha256:[a-f0-9]{64}$/;
+export const COVERAGE_PUBLIC_RESULT_KEYS=[
+  'accountable_gap_records','acknowledgement_count','adapters_activated','claim_parser_not_implemented_requirements',
+  'context_only_requirements','dead_letter_queue_count','duplicate_requirements','duplicate_sdk_or_runtime_introduced',
+  'durable_consumer_implemented','evidence_admitted','family_count','first_admission_count',
+  'gap_record_to_work_unit_memberships','gap_records_with_generic_fallback','gap_records_with_idempotency_key',
+  'gap_records_with_sla','gap_work_units','gate1_remaining_hold','implemented_source_adapters',
+  'internal_unbound_execution_queue_count','legacy_v2_adapter_requirement_ids_synthesized','live_source_requests_executed',
+  'market_events_created','original_preflight_actions','projections_created','provider_contacts_executed',
+  'registered_source_profiles','replacement_missions_with_rights_clear_profiles','replacement_source_slots_filled',
+  'requirements_accounted_for','retry_count','rights_clear_gate','rights_clear_registered_profiles',
+  'rights_hold_registered_profiles','rights_passes_created','rights_preflight_queue_items',
+  'rights_schema_activation_hold_requirements','schema_bound_claim_parser_requirements','schema_bound_source_claim_work_units',
+  'silently_dropped_requirements','snapshot_candidates_created','software_implemented_requirements',
+  'source_discovery_or_schema_activation_hold_requirements','source_discovery_work_units',
+  'source_profile_discovery_requirements','terminal_preflight_actions','track_b_results_created',
+  'unique_rights_clear_profiles_selected','unresolved_preflight_actions',
+].sort();
 const req=(ok,code)=>{if(!ok)throw new Error(code);};
 export const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
 export const digest=bytes=>`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
@@ -211,7 +228,8 @@ function coverage(packet,run,sourceSha){
   // A canonical leader artifact intentionally contains no full output manifest.
   // Its raw KPMO payload and semantic material are still required and bound.
   const baseline=JSON.parse(fs.readFileSync(path.join(ROOT,'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'),'utf8')).expected_current_main_baseline;
-  for(const [key,value] of Object.entries(baseline))same(x.results[key],value,`COVERAGE_BASELINE:${key}`);
+  same(Object.keys(x.results||{}).sort(),COVERAGE_PUBLIC_RESULT_KEYS,'COVERAGE_PUBLIC_RESULT_KEYS');
+  for(const key of COVERAGE_PUBLIC_RESULT_KEYS.filter(key=>Object.hasOwn(baseline,key)))same(x.results[key],baseline[key],`COVERAGE_BASELINE:${key}`);
   req(x.results?.requirements_accounted_for===192,'COVERAGE_REQUIREMENT_CARDINALITY');
   return {...nativeBindings,state:'VERIFIED_PASS',semantic_scope:'COVERAGE_INTERNAL_CONTROL_EXTERNAL_ACTIVATION_HOLD',members:[m,l,s,...(manifest?[manifest]:[])],leader:v,inner_run_identity_present:true};
 }
@@ -219,8 +237,8 @@ export function validateProducerContent(spec,run,artifact,bytes,sourceSha,observ
   req(typeof sourceSha==='string'&&/^[0-9a-f]{40}$/.test(sourceSha),'CONTENT_SOURCE_SHA_INVALID');
   req(run.path===spec.path&&spec.events.includes(run.event),'CONTENT_WORKFLOW_PATH_EVENT');
   const names=spec.artifactForRun?[spec.artifactForRun(run)]:spec.artifacts;
-  const canonicalName=`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${sourceSha}:ASI_AUTONOMOUS_RESOLUTION`).slice(7)}`;
-  req(names.includes(artifact.name)||(spec.id==='REQUIREMENT'&&artifact.name===canonicalName),'CONTENT_ARTIFACT_NAME');
+  const coverageCanonicalName=/^kidults-asi-requirement-adapter-coverage-canonical-[a-f0-9]{64}$/;
+  req(names.includes(artifact.name)||(spec.id==='REQUIREMENT'&&coverageCanonicalName.test(artifact.name)),'CONTENT_ARTIFACT_NAME');
   checkTransport(run,artifact,sourceSha,observedAt);
   req(bytes.length===artifact.size_in_bytes,'ARCHIVE_SIZE_BINDING');
   const packet=readArchive(bytes,artifact.digest);
@@ -231,6 +249,9 @@ export function validateProducerContent(spec,run,artifact,bytes,sourceSha,observ
   else if(spec.id==='RESERVE')result=reserve(packet,run,sourceSha,artifact.name===spec.waitingArtifact);
   else if(spec.id==='REQUIREMENT')result=coverage(packet,run,sourceSha);
   else throw new Error('PRODUCER_CONTENT_SPEC_UNKNOWN');
+  if(spec.id==='REQUIREMENT'&&coverageCanonicalName.test(artifact.name))req(
+    artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${result.leader.canonical_run_key}:${result.leader.canonical_input_digest}`).slice(7)}`,
+    'COVERAGE_CANONICAL_ARTIFACT_NAME');
   for(const member of result.members){const x=member.value;if(x.observed_at)time(x.observed_at,observedAt);if(x.as_of)time(x.as_of,observedAt);}
   // Private member bytes are absent, not undefined: terminal digests must bind
   // the same JSON value that a downstream consumer actually reads from disk.
@@ -246,7 +267,7 @@ export function validateCoverageAliasClosure(aliasProof,leaderProof,run,artifact
   req(a.canonical_workflow_run_id===run.id&&a.canonical_workflow_run_attempt===run.run_attempt&&a.canonical_artifact_id===artifact.id&&a.canonical_artifact_name===artifact.name&&a.canonical_artifact_digest===artifact.digest,'COVERAGE_ALIAS_TARGET_BINDING');
   req(a.canonical_receipt_digest===l.receipt_digest&&a.canonical_coverage_run_head_sha===run.head_sha&&a.canonical_coverage_consumer_sha===run.head_sha,'COVERAGE_ALIAS_LEADER_BINDING');
   for(const key of ['source_sha','repository','canonical_run_key','canonical_input_digest','canonical_contract_digest','semantic_input_receipt_digest'])same(a[key],l[key],`COVERAGE_ALIAS_DIVERGENCE:${key}`);
-  req(artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(a.canonical_run_key).slice(7)}`,'COVERAGE_ALIAS_ARTIFACT_NAME');
+  req(artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${a.canonical_run_key}:${a.canonical_input_digest}`).slice(7)}`,'COVERAGE_ALIAS_ARTIFACT_NAME');
   const {alias,...publicAlias}=aliasProof;
   return {...publicAlias,state:'VERIFIED_PASS',failure_class:null,semantic_scope:'COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION',
     static_source_bindings_verified:true,verified_authoritative_input_count:leaderProof.verified_authoritative_input_count,verified_implementation_count:leaderProof.verified_implementation_count,upstream_payload_recomputed:false,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ RESTORE_VERIFIER = ROOT / "scripts/staging/verify-postgres-target-time-restore.s
 TUNNEL_HELPER = ROOT / "scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh"
 SOURCE_WORKFLOW = ROOT / ".github/workflows/p0-remote-postgres-persistence-pitr.yml"
 RESTORE_WORKFLOW = ROOT / ".github/workflows/p0-postgres-target-time-restore-verification.yml"
+DIGITALOCEAN_AUDIT = ROOT / "scripts/operations/digitalocean_staging_readonly_audit.py"
 
 SOURCE_DSN = "postgresql://source-user:source-password@source.invalid:5432/kaios"
 RESTORE_DSN = "postgresql://restore-user:restore-password@restore.invalid:5432/kaios"
@@ -72,6 +74,8 @@ if not command:
     sql = sys.stdin.read().lower()
     if "pitr_probe" not in sql:
         fail(f"fake psql received an unknown mutation: {sql!r}")
+    if "select 1 / 0" in sql:
+        fail("division by zero", code=1)
     if "--output=/dev/null" not in args:
         print("CREATE TABLE")
         print("INSERT 0 1")
@@ -191,6 +195,9 @@ if "coalesce(max(marker_digest)" in sql and "pitr_probe" in sql:
 if "created_at <" in sql and "created_at >" in sql and "pitr_probe" in sql:
     emit(os.environ.get("FAKE_MARKER_BOUNDARY_ORDER", "t|t"))
 if "count(*)" in sql and "pitr_probe" in sql:
+    marker_args = [argument for argument in args if argument.startswith("--set=marker=")]
+    if marker_args and any("rollback-" in argument for argument in marker_args):
+        emit("0")
     if os.environ.get("FAKE_MODE") == "restore":
         emit(os.environ.get("FAKE_AFTER_COUNT", "0"))
     emit("1")
@@ -224,12 +231,67 @@ raise SystemExit(0)
 
 
 FAKE_SSH_TUNNEL = r"""#!/usr/bin/env python3
+import json
+import os
 import re
 import signal
 import socket
 import sys
 
 args = sys.argv[1:]
+if "-L" not in args:
+    sys.stdin.read()
+    state = os.environ.get("FAKE_NETWORK_STATE", "CONNECTED")
+    protocol_state = os.environ.get("FAKE_PROTOCOL_STATE", "RESPONDED" if state == "CONNECTED" else "NOT_ATTEMPTED")
+    root = os.environ.get(
+        "FAKE_NETWORK_ROOT_CAUSE",
+        ("POSTGRES_PROTOCOL_REACHABLE" if protocol_state == "RESPONDED"
+         else "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT" if state == "CONNECTED"
+         else "DESTINATION_SPECIFIC_TIMEOUT"),
+    )
+    result = "CONNECTED" if state == "CONNECTED" else state
+    print(json.dumps({
+        "id": "kidults-postgres-network-diagnostic-v1",
+        "mode": "READ_ONLY",
+        "endpoint_identity_digest": "sha256:" + "1" * 64,
+        "endpoint_label_class": "PUBLIC_LABEL",
+        "port": 25060,
+        "dns": {
+            "state": "RESOLVED",
+            "answer_count": 1,
+            "families": ["IPv4"],
+            "answer_classes": ["GLOBAL"],
+            "answer_digests": ["sha256:" + "2" * 64],
+        },
+        "tcp_25060": {
+            "state": state,
+            "attempts": [{
+                "family": "IPv4",
+                "address_class": "GLOBAL",
+                "address_digest": "sha256:" + "2" * 64,
+                "result": result,
+            }],
+        },
+        "postgres_ssl_request": {
+            "state": protocol_state,
+            "attempts": ([{
+                "family": "IPv4",
+                "address_class": "GLOBAL",
+                "address_digest": "sha256:" + "2" * 64,
+                "result": "SSL_SUPPORTED" if protocol_state == "RESPONDED" else protocol_state,
+            }] if state == "CONNECTED" else []),
+        },
+        "routing": {
+            "ipv4_default_route_present": True,
+            "ipv6_default_route_present": False,
+            "digitalocean_control_plane_443": "CONNECTED",
+        },
+        "remote_mutation_performed": False,
+        "credential_value_emitted": False,
+        "root_cause_class": root,
+    }, separators=(",", ":"), sort_keys=True))
+    raise SystemExit(0)
+
 try:
     forward = args[args.index("-L") + 1]
 except (ValueError, IndexError):
@@ -264,6 +326,58 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
 def _write_executable(path: Path, source: str) -> None:
     path.write_text(textwrap.dedent(source), encoding="utf-8")
     path.chmod(0o755)
+
+
+def _load_digitalocean_audit_module():
+    spec = importlib.util.spec_from_file_location("digitalocean_staging_readonly_audit", DIGITALOCEAN_AUDIT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_digitalocean_postgres_inventory_is_secret_safe_and_correlatable(monkeypatch) -> None:
+    module = _load_digitalocean_audit_module()
+    raw_cluster_id = "raw-database-id-must-not-appear"
+    raw_public_host = "private-fixture-do-user-1.db.ondigitalocean.com"
+    raw_private_host = "private-private-fixture-do-user-1.db.ondigitalocean.com"
+    staging_public_ip = "198.51.100.10"
+    staging_private_ip = "10.0.0.8"
+
+    def fake_api_get(url: str, _token: str) -> dict:
+        if url.endswith("/firewall"):
+            return {"rules": [{"type": "ip_addr", "value": staging_public_ip}]}
+        return {
+            "databases": [{
+                "id": raw_cluster_id,
+                "engine": "pg",
+                "version": "16",
+                "status": "online",
+                "region": "sgp1",
+                "private_network_uuid": "private-network-id",
+                "connection": {"host": raw_public_host, "port": 25060},
+                "private_connection": {"host": raw_private_host, "port": 25060},
+            }]
+        }
+
+    monkeypatch.setattr(module, "api_get", fake_api_get)
+    inventory = module.postgres_database_inventory(
+        "token-not-emitted", "123", staging_public_ip, staging_private_ip, ["ih-staging"],
+    )
+    assert inventory["state"] == "READ"
+    assert inventory["postgres_cluster_count"] == 1
+    assert inventory["online_postgres_cluster_count"] == 1
+    cluster = inventory["clusters"][0]
+    assert cluster["public_endpoint_digest"] == module.digest(raw_public_host)
+    assert cluster["private_endpoint_digest"] == module.digest(raw_private_host)
+    assert cluster["trusted_sources"]["staging_source_admitted"] is True
+    assert cluster["trusted_sources"]["matched_rule_classes"] == ["STAGING_IP"]
+    serialized = json.dumps(inventory, sort_keys=True)
+    for secret_value in (
+        raw_cluster_id, raw_public_host, raw_private_host, staging_public_ip,
+        staging_private_ip, "token-not-emitted",
+    ):
+        assert secret_value not in serialized
 
 
 def _fake_environment(tmp_path: Path, *, mode: str, dsn: str) -> dict[str, str]:
@@ -369,6 +483,13 @@ def test_source_verifier_emits_one_pure_json_receipt(tmp_path: Path) -> None:
     assert receipt["target_time_precision"] == "WHOLE_SECOND_UTC"
     assert receipt["marker_target_guard_seconds_minimum"] == 2
     assert receipt["marker_boundary_order_verified"] is True
+    assert receipt["transaction_rollback_verified"] is True
+    assert receipt["transaction_rollback_residual_rows"] == 0
+    assert receipt["failure_rollback_verified"] is True
+    assert receipt["failure_rollback_residual_rows"] == 0
+    assert receipt["independent_readback_verified"] is True
+    assert re.fullmatch(r"[a-f0-9]{64}", str(receipt["transaction_rollback_marker_digest"]))
+    assert re.fullmatch(r"[a-f0-9]{64}", str(receipt["failure_rollback_marker_digest"]))
     assert receipt["fixture_state"] == (
         "TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED"
     )
@@ -531,6 +652,14 @@ def test_restore_verifier_rejects_invalid_restore_evidence(
 
 
 def _validate_source_workflow_contract(source: str) -> None:
+    assert "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED" not in source
+    assert re.search(r"^  workflow_dispatch:\s*$", source, flags=re.MULTILINE)
+    assert not re.search(r"^  push:\s*$", source, flags=re.MULTILINE)
+    assert "EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}" in source
+    assert "AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}" in source
+    assert "AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}" in source
+    assert "test \"$GITHUB_RUN_ATTEMPT\" = \"1\"" in source
+    assert "datetime.timedelta(minutes=60)" in source
     assert "WAITING_FOR_EXTERNAL_RESTORE" in source
     assert "KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN" not in source
     assert "verify-postgres-target-time-restore.sh" not in source
@@ -555,6 +684,12 @@ def _restore_verifier_invocation_block(source: str) -> str:
 
 
 def _validate_restore_workflow_contract(source: str) -> None:
+    assert "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED" not in source
+    assert "EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}" in source
+    assert "AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}" in source
+    assert "AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}" in source
+    assert "test \"$GITHUB_RUN_ATTEMPT\" = \"1\"" in source
+    assert "datetime.timedelta(minutes=60)" in source
     block = _restore_verifier_invocation_block(source)
     for variable, local_name, fixture_key in (
         (
@@ -606,7 +741,163 @@ def test_tunnel_helper_runs_tracked_non_executable_verifiers_via_bash() -> None:
     source = TUNNEL_HELPER.read_text(encoding="utf-8")
     assert '[[ -f "$verifier" ]]' in source
     assert '[[ -x "$verifier" ]]' not in source
-    assert source.count('bash "$verifier" > "$runtime_root/verifier.json"') == 2
+    assert source.count('bash "$verifier" > "$runtime_root/verifier.json"') == 1
+
+
+def test_tunnel_helper_emits_sanitized_failure_receipt(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "failing-verifier.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 70\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "GITHUB_REF": "refs/heads/codex/o1-postgres-verification-closure",
+        "GITHUB_SHA": "a" * 40,
+        "GITHUB_EVENT_NAME": "pull_request",
+        "GITHUB_RUN_ID": "123456",
+        "GITHUB_RUN_ATTEMPT": "2",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    assert receipt["status"] == "FAIL"
+    assert receipt["failure_class"] == "POSTGRES_CONNECTION"
+    assert receipt["verifier_exit_code"] == 70
+    assert receipt["pitr_proven"] is False
+    assert receipt["source_ref"] == "refs/heads/codex/o1-postgres-verification-closure"
+    assert receipt["source_sha"] == "a" * 40
+    assert receipt["event_name"] == "pull_request"
+    assert receipt["run_id"] == 123456
+    assert receipt["run_attempt"] == 2
+    assert receipt["network_diagnostic"]["mode"] == "READ_ONLY"
+    assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
+    assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
+    assert receipt["network_diagnostic"]["remote_mutation_performed"] is False
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
+def test_tunnel_helper_classifies_destination_timeout_before_sql(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "must-not-run.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "FAKE_NETWORK_STATE": "TIMEOUT",
+        "FAKE_NETWORK_ROOT_CAUSE": "DESTINATION_SPECIFIC_TIMEOUT",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    diagnostic = receipt["network_diagnostic"]
+    assert receipt["failure_class"] == "POSTGRES_CONNECTION"
+    assert diagnostic["dns"]["state"] == "RESOLVED"
+    assert diagnostic["tcp_25060"]["state"] == "TIMEOUT"
+    assert diagnostic["postgres_ssl_request"]["state"] == "NOT_ATTEMPTED"
+    assert diagnostic["root_cause_class"] == "DESTINATION_SPECIFIC_TIMEOUT"
+    assert diagnostic["routing"]["digitalocean_control_plane_443"] == "CONNECTED"
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
+def test_tunnel_helper_classifies_postgres_protocol_timeout_before_sql(tmp_path: Path) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
+    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "pg_isready", "#!/usr/bin/env bash\nexit 0\n")
+    verifier = tmp_path / "must-not-run.sh"
+    _write_executable(verifier, "#!/usr/bin/env bash\nexit 99\n")
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    key.write_text("fixture", encoding="utf-8")
+    known_hosts.write_text("fixture", encoding="utf-8")
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    dsn = "postgresql://source-user:source-password@source.db.ondigitalocean.com:25060/kaios?sslmode=require"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+        "RUNNER_TEMP": str(runner_temp),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": dsn,
+        "FAKE_PROTOCOL_STATE": "TIMEOUT",
+        "FAKE_NETWORK_ROOT_CAUSE": "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT",
+    })
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=environment,
+        text=True, capture_output=True, check=False, timeout=10,
+    )
+    assert result.returncode == 70
+    receipt = json.loads(result.stdout)
+    diagnostic = receipt["network_diagnostic"]
+    assert diagnostic["tcp_25060"]["state"] == "CONNECTED"
+    assert diagnostic["postgres_ssl_request"]["state"] == "TIMEOUT"
+    assert diagnostic["root_cause_class"] == "POSTGRES_PROTOCOL_RESPONSE_TIMEOUT"
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert "source.db.ondigitalocean.com" not in result.stdout
+    assert "source.db.ondigitalocean.com" not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
 def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path) -> None:
@@ -685,6 +976,9 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     assert receipt["destination_policy"] == (
         "DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT"
     )
+    assert receipt["network_diagnostic"]["tcp_25060"]["state"] == "CONNECTED"
+    assert receipt["network_diagnostic"]["postgres_ssl_request"]["state"] == "RESPONDED"
+    assert receipt["network_diagnostic"]["root_cause_class"] == "POSTGRES_PROTOCOL_REACHABLE"
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 

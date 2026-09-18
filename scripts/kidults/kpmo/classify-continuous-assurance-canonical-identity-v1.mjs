@@ -78,7 +78,6 @@ export function validateCanonicalIdentityContract(contract) {
   const exactExpectedSkipPaths = [
     '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml',
     '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml',
-    '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml',
   ];
   if (!Array.isArray(expectedSkipPaths) || stableJson([...expectedSkipPaths].sort()) !== stableJson(exactExpectedSkipPaths.sort())) {
     fail('EXPECTED_WORKFLOW_RUN_SKIP_PATHS_INVALID');

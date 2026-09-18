@@ -162,7 +162,33 @@ function getNestedValue(source, pathSegments) {
   return current ?? null;
 }
 
-function inferCertification(report) {
+export function isCertifiedControlledHalt(report) {
+  if (!report || typeof report !== 'object') return false;
+  const invariants = report.invariants && typeof report.invariants === 'object' ? Object.values(report.invariants) : [];
+  return (
+    report.stage === 'A25' &&
+    report.status === 'HALTED' &&
+    (report.state === 'HALTED' || report.finalState === 'HALTED') &&
+    report.failureClass === 'POLICY' &&
+    report.failureReason === 'no-eligible-targets-for-cycle' &&
+    report.activationEvidenceRef !== 'none' &&
+    typeof report.activationEvidenceRef === 'string' &&
+    report.activationEvidenceRef.length > 0 &&
+    Number(report.metrics?.halt_count) === 1 &&
+    Number(report.metrics?.failure_count) === 0 &&
+    Number(report.metrics?.remote_call_count) === 0 &&
+    Number(report.metrics?.records_mutated) === 0 &&
+    Array.isArray(report.targetResults) &&
+    report.targetResults.length === 0 &&
+    report.rollback?.required === false &&
+    report.rollback?.status === 'NOT_REQUIRED' &&
+    invariants.length > 0 &&
+    invariants.every((value) => value === true)
+  );
+}
+
+export function inferCertification(report) {
+  if (isCertifiedControlledHalt(report)) return true;
   const directCandidates = [
     report?.certification?.certificationPassed,
     report?.certificationPassed,
@@ -333,6 +359,7 @@ function discoverEvidence() {
     const latestCandidate = candidates.at(-1) ?? null;
     const latestPath = latestCandidate?.filePath ?? null;
     const report = latestCandidate?.report ?? null;
+    const controlledHaltCertified = isCertifiedControlledHalt(report);
     const certificationPassed = report ? inferCertification(report) : null;
     const scenarioStatus = report ? inferScenarioStatus(report) : { passed: 0, total: 0 };
     const invariantStatus = report ? inferInvariantStatus(report) : { passed: 0, total: 0, invariants: {} };
@@ -347,7 +374,14 @@ function discoverEvidence() {
       fileName,
       certificationPassed,
       certificationStatus:
-        certificationPassed === true ? 'CERTIFIED' : certificationPassed === false ? 'UNCERTIFIED' : 'UNKNOWN',
+        controlledHaltCertified
+          ? 'CONTROLLED_HALT_CERTIFIED'
+          : certificationPassed === true
+            ? 'CERTIFIED'
+            : certificationPassed === false
+              ? 'UNCERTIFIED'
+              : 'UNKNOWN',
+      controlledHaltCertified,
       generatedAt,
       policyVersion: report ? extractPolicyVersion(report) : null,
       upstreamEvidenceReferences: report ? extractUpstreamReferences(definition.stage, report) : [],

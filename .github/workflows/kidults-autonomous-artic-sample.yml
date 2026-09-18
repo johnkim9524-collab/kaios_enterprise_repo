@@ -1,16 +1,6 @@
 name: KIDULTS Autonomous Art Institute Design Sample
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/artic-design-open-access-r1.json"
-      - "scripts/kidults/autonomous/collect-artic-design-sample.mjs"
-      - "scripts/kidults/autonomous/validate-artic-design-sample.mjs"
-      - ".github/workflows/kidults-autonomous-artic-sample.yml"
-  schedule:
-    - cron: "25 23 * * 2,5"
   workflow_dispatch:
 
 permissions:

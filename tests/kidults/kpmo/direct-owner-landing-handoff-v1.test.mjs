@@ -9,6 +9,7 @@ const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-o
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
 function assertUnfilteredMainPush(requiredWorkflow, name) {
+  requiredWorkflow = requiredWorkflow.replace(/\r\n/g, '\n');
   const push = requiredWorkflow.match(/^  push:\n([\s\S]*?)(?=^  [a-z_]+:|^permissions:)/m);
   assert.ok(push, `${name} must declare a push trigger`);
   assert.match(push[1], /^    branches:/m, `${name} must bind push to main`);
@@ -67,7 +68,10 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT-PR-\$\{prNumber\}-\$\{expectedHeadSha\.slice\(0, 12\)\}/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EDITED/);
-  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/);
+  assert.match(runner, /evaluateAtomicLandingOneUseRunSet/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_RULESET_BYPASS_FORBIDDEN/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS/);
@@ -164,12 +168,13 @@ test('post-window merge classification revalidates approval, ready event, head a
 });
 
 test('post-window approval reconciliation does not require a second future handoff window', () => {
-  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{phase = 'pre_window'\} = \{\}\)/);
+  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{/);
+  assert.match(runner, /phase = 'pre_window'/);
   assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
   assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
-  assert.match(runner, /selectApproval\(afterComments, owner, after, afterHeadCommit, afterReady, \{phase: 'post_window'\}\)/);
+  assert.match(runner, /phase: 'post_window',\s+landingAttemptStartedAt/);
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const postPhaseIndex = runner.indexOf("{phase: 'post_window'}", sleepIndex);
+  const postPhaseIndex = runner.indexOf("phase: 'post_window'", sleepIndex);
   assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
 });
 
@@ -207,7 +212,16 @@ test('terminal Handoff consumption is followed by exact merge-SHA push-suite con
   assert.ok(handoffIndex >= 0 && handoffIndex < consumeIndex && consumeIndex < uploadIndex);
   assert.match(workflow, /POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination\/kidults\/kpmo\/direct-owner-postmerge-push-suite-policy-v1\.json/);
   assert.match(workflow, /POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '90'/);
+  assert.match(workflow, /id: handoff/);
+  assert.match(workflow, /ref: \$\{\{ steps\.handoff\.outputs\.merge_sha \}\}/);
+  assert.match(workflow, /clean: false/);
+  assert.match(workflow, /Verify exact landed implementation and retained handoff receipt/);
+  assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$MERGE_SHA"/);
   assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
+  assert.match(workflow, /required_failure_count === 1/);
+  assert.match(workflow, /ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED/);
+  assert.match(workflow, /classified_assurance_hold_accepted_as_landing_evidence/);
+  assert.match(workflow, /promotion_eligible:false/);
 });
 
 test('post-merge suite policy binds core protected-main push controls and preserves RED as evidence', () => {

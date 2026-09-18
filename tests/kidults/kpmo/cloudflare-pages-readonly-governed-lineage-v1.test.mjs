@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+if (process.platform === 'win32') {
+  console.log(JSON.stringify({suite:'KIDULTS_CLOUDFLARE_PAGES_READONLY_GOVERNED_LINEAGE_V1',state:'CAPABILITY_SKIP',reason:'POSIX_EXECUTABLE_FIXTURE_REQUIRED'}));
+  process.exit(0);
+}
+
 const repoRoot = process.cwd();
 const script = path.join(repoRoot, 'scripts/ops/cloudflare-pages-boundary-readonly.sh');
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-cf-readonly-lineage-'));
@@ -54,8 +59,9 @@ const skipped = deployment({
   status:'idle'
 });
 const governed = deployment({id:'governed-target',message});
+const deployments = [skipped,governed];
 const response = url.includes('/deployments')
-  ? {success:true,result:[skipped,governed],result_info:{page:1,per_page:25,total_pages:1}}
+  ? {success:true,result:deployments,result_info:{page:1,per_page:25,count:deployments.length,total_count:deployments.length,total_pages:1}}
   : project;
 process.stdout.write(JSON.stringify(response));
 `;

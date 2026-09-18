@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
+  assertExactOwnerMergeDuringFinalReread,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
@@ -334,7 +335,7 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     runAttempt: landingRunAttempt,
     expectedRunName,
   });
-  return {oneUse, receipt};
+  return {oneUse, receipt, currentRun};
 };
 
 let statusTouched = false;
@@ -409,6 +410,8 @@ try {
     prCreatedAt: initial.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: latestReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
@@ -427,19 +430,38 @@ try {
   }
   assertAtomicLandingMergeable(final, 'FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
+  const authorizationWindowOpenedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
+  const authorizationWindowDeadline = authorizationWindowOpenedAt.getTime() + transportWaitSeconds * 1000;
   await publish('success', 'Exact-head atomic landing authorized');
   const immediatePreMerge = await request(`/pulls/${prNumber}`);
   const immediateMain = await request('/branches/main');
   const immediateStatuses = await request(`/commits/${expectedHeadSha}/status`);
   const immediateTimeline = await pages(`/issues/${prNumber}/timeline`);
   const immediateApprovalComments = await pages(`/issues/${prNumber}/comments`);
-  assertStableFinalReread(initial, immediatePreMerge, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: policy.no_merge_policy,
-  });
-  if (immediatePreMerge.base?.sha !== immediateMain?.commit?.sha || immediateMain.commit.sha !== initialMain.commit.sha) {
-    throw new Error('IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT');
+  const immediateMergeObserved = immediatePreMerge?.merged === true;
+  if (immediateMergeObserved) {
+    assertExactOwnerMergeDuringFinalReread(initial, immediatePreMerge, {
+      repository,
+      repositoryOwner,
+      expectedHeadSha,
+      expectedBaseSha,
+      noMergePolicy: policy.no_merge_policy,
+      notBefore: authorizationWindowOpenedAt.toISOString(),
+      notAfter: new Date(authorizationWindowDeadline).toISOString(),
+    });
+    if (immediateMain?.commit?.sha !== immediatePreMerge.merge_commit_sha) {
+      throw new Error('IMMEDIATE_EXACT_OWNER_MERGE_MAIN_MISMATCH');
+    }
+  } else {
+    assertStableFinalReread(initial, immediatePreMerge, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: policy.no_merge_policy,
+    });
+    if (immediatePreMerge.base?.sha !== immediateMain?.commit?.sha
+      || immediateMain.commit.sha !== initialMain.commit.sha) {
+      throw new Error('IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT');
+    }
   }
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
@@ -448,7 +470,7 @@ try {
     files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: immediatePreMerge.base.sha,
-    liveMainSha: immediateMain.commit.sha,
+    liveMainSha: initialMain.commit.sha,
   });
 
   const immediateReady = selectLatestDirectOwnerReadyEvent({
@@ -469,6 +491,8 @@ try {
     prCreatedAt: immediatePreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: immediateReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
@@ -489,16 +513,32 @@ try {
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
   ]);
-  assertStableFinalReread(initial, finalPreMerge, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: policy.no_merge_policy,
-  });
-  if (finalPreMerge.base?.sha !== finalPreMergeMain?.commit?.sha
-    || finalPreMergeMain.commit.sha !== initialMain.commit.sha) {
-    throw new Error('FINAL_PREMERGE_LIVE_MAIN_DRIFT');
+  const finalMergeObserved = finalPreMerge?.merged === true;
+  if (finalMergeObserved) {
+    assertExactOwnerMergeDuringFinalReread(initial, finalPreMerge, {
+      repository,
+      repositoryOwner,
+      expectedHeadSha,
+      expectedBaseSha,
+      noMergePolicy: policy.no_merge_policy,
+      notBefore: authorizationWindowOpenedAt.toISOString(),
+      notAfter: new Date(authorizationWindowDeadline).toISOString(),
+    });
+    if (finalPreMergeMain?.commit?.sha !== finalPreMerge.merge_commit_sha) {
+      throw new Error('FINAL_EXACT_OWNER_MERGE_MAIN_MISMATCH');
+    }
+  } else {
+    assertStableFinalReread(initial, finalPreMerge, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: policy.no_merge_policy,
+    });
+    if (finalPreMerge.base?.sha !== finalPreMergeMain?.commit?.sha
+      || finalPreMergeMain.commit.sha !== initialMain.commit.sha) {
+      throw new Error('FINAL_PREMERGE_LIVE_MAIN_DRIFT');
+    }
+    assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
   }
-  assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const finalPreMergeReady = selectLatestDirectOwnerReadyEvent({
     timeline: finalPreMergeTimeline,
@@ -518,6 +558,8 @@ try {
     prCreatedAt: finalPreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: finalPreMergeReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
@@ -530,25 +572,35 @@ try {
     throw new Error('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
 
-  const transportWindowOpenedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
-  await publish('success', `Direct Owner event-emitting merge window open for ${transportWaitSeconds}s`);
-  const transportDeadline = Date.now() + transportWaitSeconds * 1000;
+  const transportWindowOpenedAt = finalMergeObserved
+    ? authorizationWindowOpenedAt
+    : new Date(Math.floor(Date.now() / 1000) * 1000);
+  const transportDeadline = finalMergeObserved
+    ? authorizationWindowDeadline
+    : Date.now() + transportWaitSeconds * 1000;
   let mergedPr = null;
   let postMergeMain = null;
-  while (Date.now() <= transportDeadline) {
-    [mergedPr, postMergeMain] = await Promise.all([
-      request(`/pulls/${prNumber}`),
-      request('/branches/main'),
-    ]);
-    if (mergedPr?.merged === true) break;
-    if (mergedPr?.state !== 'open' || mergedPr?.draft === true
-      || mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
-      throw new Error('ATOMIC_EVENT_TRANSPORT_PR_DRIFT_DURING_WINDOW');
+  if (finalMergeObserved) {
+    mergedPr = finalPreMerge;
+    postMergeMain = finalPreMergeMain;
+    await publish('success', 'Exact owner merge observed during final reread; validating post-merge binding');
+  } else {
+    await publish('success', `Direct Owner event-emitting merge window open for ${transportWaitSeconds}s`);
+    while (Date.now() <= transportDeadline) {
+      [mergedPr, postMergeMain] = await Promise.all([
+        request(`/pulls/${prNumber}`),
+        request('/branches/main'),
+      ]);
+      if (mergedPr?.merged === true) break;
+      if (mergedPr?.state !== 'open' || mergedPr?.draft === true
+        || mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
+        throw new Error('ATOMIC_EVENT_TRANSPORT_PR_DRIFT_DURING_WINDOW');
+      }
+      if (postMergeMain?.commit?.sha !== expectedBaseSha) {
+        throw new Error('ATOMIC_EVENT_TRANSPORT_MAIN_MOVED_WITHOUT_BOUND_MERGE');
+      }
+      await sleep(5000);
     }
-    if (postMergeMain?.commit?.sha !== expectedBaseSha) {
-      throw new Error('ATOMIC_EVENT_TRANSPORT_MAIN_MOVED_WITHOUT_BOUND_MERGE');
-    }
-    await sleep(5000);
   }
   if (mergedPr?.merged !== true) throw new Error('ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED');
   postMergeMain = await request('/branches/main');

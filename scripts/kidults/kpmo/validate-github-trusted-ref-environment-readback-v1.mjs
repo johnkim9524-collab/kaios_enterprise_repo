@@ -325,7 +325,7 @@ export function validateRepository(root = process.cwd()) {
   assert(testSource.includes('all registered secret-bearing jobs reject secret scope and guard order mutations'), 'PRIVILEGED_SECRET_LIFETIME_MUTATION_TEST_MISSING');
   assert(testSource.includes('actions read and GitHub token use stay exact to the registered Production artifact readback lane'), 'PRODUCTION_ACTIONS_READ_EXCEPTION_TEST_MISSING');
   assert(testSource.includes('activation receipt body and first-step ordering fail closed under mutation'), 'ACTIVATION_RECEIPT_MUTATION_TEST_MISSING');
-  assert(testSource.includes('trigger transformation and missing explicit activation guard fail closed'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
+  assert(testSource.includes('PostgreSQL activation is dispatch-only and exact-run one-shot'), 'TRIGGER_TRANSFORMATION_MUTATION_TEST_MISSING');
   assert(testSource.includes('external-proof mode rejects forged state, fixture scope, stale digest, stale SHA, and non-exclusive credentials'), 'EXTERNAL_PROOF_MUTATION_TEST_MISSING');
   assert(docs.includes('BLOCKED_EXTERNAL_CONTROL_PLANE_NOT_ESTABLISHED'), 'DOC_CURRENT_STATE');
   assert(docs.includes('#881'), 'DOC_PARENT_BOUNDARY');

@@ -4,7 +4,8 @@
 **Status:** MANDATORY / REPOSITORY-WIDE / FAIL-CLOSED  
 **Applies to:** every platform component, KPMO function, Track A–E team, AI agent, coding agent, orchestration agent, Red-Team agent, reviewer agent, scheduled workflow, and autonomous runtime acting on this repository.
 
-The authoritative platform constitution is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.  
+The supreme human-readable platform constitution is `CONSTITUTION.md`. Its Article 0, the KIDULTS Supreme Platform Philosophy, is the highest governing layer; every agent and every lower constitutional article inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles. If any agent instruction, local rule, workflow instruction, policy, or implementation conflicts with `CONSTITUTION.md`, the Constitution SHALL prevail. Every agent must surface the conflict and fail closed; no agent may silently ignore, weaken, reorder, or override a constitutional requirement.
+The authoritative machine implementation of the platform operating principles is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.
 The authoritative AI policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
 The authoritative AI machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.  
 The authoritative Agent JD and accountability registry is `coordination/kidults/registry/roles-and-responsibilities.json`.
@@ -13,7 +14,7 @@ The mandatory fix-first bootstrap is `coordination/kidults/governance/ai-agent-b
 The mandatory report-after-remediation gate is `coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json`.
 The mandatory group provider sourcing strategy is `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md` and its machine contract is `coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json`.
 
-Any agent analyzing, sourcing, contacting, contracting, integrating, monitoring, or reporting on a data provider must read both provider documents from the exact committed `HEAD` after passing bootstrap. It must also inspect current registry and communication evidence, avoid duplicate outreach, preserve legal/spend/credential/Production/external-communication gates, and report by source layer, brand/vertical, and provider. A previously sent message—including the eBay Developer Relations licensing inquiry—must not be resent without explicit authority.
+Any agent analyzing, sourcing, contacting, contracting, integrating, monitoring, or reporting on a data provider must read both provider documents from the exact committed `HEAD` after passing bootstrap. It must also inspect current registry and communication evidence, avoid duplicate outreach, preserve legal/spend/credential/Production/external-communication gates, and report by source layer, brand/vertical, and provider. A previously sent message—including the eBay Developer Relations licensing inquiry—must not be resent without explicit authority. Before any external provider email is drafted in Gmail or sent, KPMO must separately review the detailed response strategy and exact email package and report both to the Program Owner. Sending requires the Program Owner's explicit approval bound to the exact sender, recipients, thread, subject, body, attachments, and deterministic SHA-256 content digest; any post-approval change invalidates approval and requires a fresh review. Missing KPMO review or exact Program Owner approval fails closed as `DO_NOT_DRAFT_OR_SEND`.
 
 ## Mandatory GitHub-source bootstrap — verify before work
 

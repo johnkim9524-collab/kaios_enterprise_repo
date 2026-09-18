@@ -169,6 +169,281 @@ SSH=(
   -i "$KAIOS_STAGING_SSH_KEY_PATH"
 )
 
+network_diagnostic_path="$runtime_root/network-diagnostic.json"
+"${SSH[@]}" "$KAIOS_STAGING_SSH_USER@$KAIOS_STAGING_SSH_HOST" \
+  python3 - "$database_host" "$database_port" > "$network_diagnostic_path" <<'PY'
+import errno
+import hashlib
+import ipaddress
+import json
+import socket
+import struct
+import subprocess
+import sys
+
+host, port_text = sys.argv[1:]
+port = int(port_text)
+canonical_host = host.lower().rstrip('.')
+
+
+def digest(value):
+    return 'sha256:' + hashlib.sha256(value.encode()).hexdigest()
+
+
+def address_class(address):
+    parsed = ipaddress.ip_address(address)
+    if parsed.is_loopback:
+        return 'LOOPBACK'
+    if parsed.is_link_local:
+        return 'LINK_LOCAL'
+    if parsed.is_private:
+        return 'PRIVATE'
+    if parsed.is_global:
+        return 'GLOBAL'
+    return 'RESERVED_OR_UNSPECIFIED'
+
+
+def connect_result(family, sockaddr, timeout=5):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect(sockaddr)
+        return 'CONNECTED'
+    except TimeoutError:
+        return 'TIMEOUT'
+    except ConnectionRefusedError:
+        return 'CONNECTION_REFUSED'
+    except OSError as error:
+        if error.errno in {errno.ENETUNREACH, errno.EHOSTUNREACH}:
+            return 'NO_ROUTE'
+        if error.errno == errno.ETIMEDOUT:
+            return 'TIMEOUT'
+        if error.errno == errno.ECONNREFUSED:
+            return 'CONNECTION_REFUSED'
+        return f'OS_ERROR_{error.errno if error.errno is not None else "UNKNOWN"}'
+    finally:
+        sock.close()
+
+
+def postgres_ssl_request_result(family, sockaddr, timeout=5):
+    sock = socket.socket(family, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    try:
+        sock.connect(sockaddr)
+        sock.sendall(struct.pack('!II', 8, 80877103))
+        response = sock.recv(1)
+        if response == b'S':
+            return 'SSL_SUPPORTED'
+        if response == b'N':
+            return 'SSL_NOT_SUPPORTED'
+        if response == b'':
+            return 'CONNECTION_CLOSED_WITHOUT_RESPONSE'
+        return 'UNEXPECTED_PROTOCOL_RESPONSE'
+    except TimeoutError:
+        return 'TIMEOUT'
+    except ConnectionRefusedError:
+        return 'CONNECTION_REFUSED'
+    except OSError as error:
+        if error.errno in {errno.ENETUNREACH, errno.EHOSTUNREACH}:
+            return 'NO_ROUTE'
+        if error.errno == errno.ETIMEDOUT:
+            return 'TIMEOUT'
+        if error.errno == errno.ECONNREFUSED:
+            return 'CONNECTION_REFUSED'
+        return f'OS_ERROR_{error.errno if error.errno is not None else "UNKNOWN"}'
+    finally:
+        sock.close()
+
+
+def route_present(family_flag):
+    result = subprocess.run(
+        ['ip', family_flag, 'route', 'show', 'default'],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
+def control_plane_egress():
+    try:
+        with socket.create_connection(('api.digitalocean.com', 443), timeout=5):
+            return 'CONNECTED'
+    except TimeoutError:
+        return 'TIMEOUT'
+    except OSError as error:
+        if error.errno in {errno.ENETUNREACH, errno.EHOSTUNREACH}:
+            return 'NO_ROUTE'
+        if error.errno == errno.ECONNREFUSED:
+            return 'CONNECTION_REFUSED'
+        return f'OS_ERROR_{error.errno if error.errno is not None else "UNKNOWN"}'
+
+
+diagnostic = {
+    'id': 'kidults-postgres-network-diagnostic-v1',
+    'mode': 'READ_ONLY',
+    'endpoint_identity_digest': digest(canonical_host),
+    'endpoint_label_class': 'PRIVATE_LABEL' if canonical_host.startswith('private-') else 'PUBLIC_LABEL',
+    'port': port,
+    'dns': {'state': 'UNKNOWN', 'answer_count': 0, 'families': [], 'answer_classes': [], 'answer_digests': []},
+    'tcp_25060': {'state': 'UNKNOWN', 'attempts': []},
+    'postgres_ssl_request': {'state': 'NOT_ATTEMPTED', 'attempts': []},
+    'routing': {
+        'ipv4_default_route_present': route_present('-4'),
+        'ipv6_default_route_present': route_present('-6'),
+        'digitalocean_control_plane_443': control_plane_egress(),
+    },
+    'remote_mutation_performed': False,
+    'credential_value_emitted': False,
+}
+
+try:
+    answers = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+except socket.gaierror as error:
+    diagnostic['dns'] = {
+        'state': 'FAILED',
+        'failure_class': f'GAI_{error.errno if error.errno is not None else "UNKNOWN"}',
+        'answer_count': 0,
+        'families': [],
+        'answer_classes': [],
+        'answer_digests': [],
+    }
+    diagnostic['tcp_25060']['state'] = 'NOT_ATTEMPTED_DNS_FAILED'
+    diagnostic['root_cause_class'] = 'DNS_RESOLUTION_FAILURE'
+else:
+    unique = []
+    seen = set()
+    for family, _socktype, _protocol, _canonical, sockaddr in answers:
+        address = sockaddr[0]
+        key = (family, address)
+        if family not in {socket.AF_INET, socket.AF_INET6} or key in seen:
+            continue
+        seen.add(key)
+        unique.append((family, address, sockaddr))
+
+    attempts = []
+    protocol_attempts = []
+    for family, address, sockaddr in unique:
+        attempt = {
+            'family': 'IPv4' if family == socket.AF_INET else 'IPv6',
+            'address_class': address_class(address),
+            'address_digest': digest(address),
+            'result': connect_result(family, sockaddr),
+        }
+        attempts.append(attempt)
+        if attempt['result'] == 'CONNECTED':
+            protocol_attempts.append({
+                'family': attempt['family'],
+                'address_class': attempt['address_class'],
+                'address_digest': attempt['address_digest'],
+                'result': postgres_ssl_request_result(family, sockaddr),
+            })
+    families = sorted({item['family'] for item in attempts})
+    classes = sorted({item['address_class'] for item in attempts})
+    diagnostic['dns'] = {
+        'state': 'RESOLVED' if attempts else 'NO_USABLE_ADDRESSES',
+        'answer_count': len(attempts),
+        'families': families,
+        'answer_classes': classes,
+        'answer_digests': sorted(item['address_digest'] for item in attempts),
+    }
+    diagnostic['tcp_25060']['attempts'] = attempts
+    diagnostic['postgres_ssl_request']['attempts'] = protocol_attempts
+    results = {item['result'] for item in attempts}
+    if 'CONNECTED' in results:
+        state = 'CONNECTED'
+        protocol_results = {item['result'] for item in protocol_attempts}
+        if protocol_results & {'SSL_SUPPORTED', 'SSL_NOT_SUPPORTED'}:
+            protocol_state = 'RESPONDED'
+            root = 'POSTGRES_PROTOCOL_REACHABLE'
+        elif 'TIMEOUT' in protocol_results:
+            protocol_state = 'TIMEOUT'
+            root = 'POSTGRES_PROTOCOL_RESPONSE_TIMEOUT'
+        elif 'CONNECTION_CLOSED_WITHOUT_RESPONSE' in protocol_results:
+            protocol_state = 'CONNECTION_CLOSED_WITHOUT_RESPONSE'
+            root = 'POSTGRES_PROTOCOL_CONNECTION_CLOSED'
+        else:
+            protocol_state = 'OTHER_PROTOCOL_ERROR'
+            root = 'POSTGRES_PROTOCOL_UNCLASSIFIED_RESPONSE'
+        diagnostic['postgres_ssl_request']['state'] = protocol_state
+    elif 'TIMEOUT' in results:
+        state = 'TIMEOUT'
+        root = ('DESTINATION_SPECIFIC_TIMEOUT' if
+                diagnostic['routing']['digitalocean_control_plane_443'] == 'CONNECTED'
+                else 'GENERAL_EGRESS_OR_ROUTE_FAILURE')
+    elif results == {'CONNECTION_REFUSED'}:
+        state = 'CONNECTION_REFUSED'
+        root = 'DESTINATION_REACHABLE_SERVICE_NOT_ACCEPTING'
+    elif 'NO_ROUTE' in results:
+        state = 'NO_ROUTE'
+        root = 'ROUTING_FAILURE'
+    else:
+        state = 'OTHER_NETWORK_ERROR'
+        root = 'UNCLASSIFIED_NETWORK_ERROR'
+    diagnostic['tcp_25060']['state'] = state
+    diagnostic['root_cause_class'] = root
+
+print(json.dumps(diagnostic, separators=(',', ':'), sort_keys=True))
+PY
+
+emit_failure_receipt() {
+  local exit_code="$1"
+  python3 - "$mode" "$exit_code" "$network_diagnostic_path" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+mode, exit_code_text, diagnostic_path = sys.argv[1:]
+exit_code = int(exit_code_text)
+diagnostic = json.loads(Path(diagnostic_path).read_text(encoding='utf-8'))
+failure_class = {
+    64: "VERIFIER_CONFIGURATION",
+    66: "VERIFIER_INPUT_MISSING",
+    69: "VERIFIER_DEPENDENCY_MISSING",
+    70: "POSTGRES_CONNECTION",
+}.get(exit_code, "VERIFIER_EXECUTION")
+print(json.dumps({
+    "status": "FAIL",
+    "environment": "STAGING",
+    "mode": mode,
+    "failure_class": failure_class,
+    "verifier_exit_code": exit_code,
+    "verifier_completed": False,
+    "network_diagnostic": diagnostic,
+    "source_ref": os.environ.get("GITHUB_REF") or None,
+    "source_sha": os.environ.get("GITHUB_SHA") or None,
+    "event_name": os.environ.get("GITHUB_EVENT_NAME") or None,
+    "run_id": int(os.environ["GITHUB_RUN_ID"]) if os.environ.get("GITHUB_RUN_ID", "").isdigit() else None,
+    "run_attempt": int(os.environ["GITHUB_RUN_ATTEMPT"]) if os.environ.get("GITHUB_RUN_ATTEMPT", "").isdigit() else None,
+    "production_touch": False,
+    "public_touch": False,
+    "g5_touch": False,
+    "credential_value_emitted_by_receipt": False,
+    "pitr_proven": False,
+}, separators=(",", ":"), sort_keys=True))
+PY
+}
+
+network_tcp_state="$(python3 - "$network_diagnostic_path" <<'PY'
+import json, sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))['tcp_25060']['state'])
+PY
+)"
+network_protocol_state="$(python3 - "$network_diagnostic_path" <<'PY'
+import json, sys
+from pathlib import Path
+print(json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))['postgres_ssl_request']['state'])
+PY
+)"
+if [[ "$network_tcp_state" != 'CONNECTED' || "$network_protocol_state" != 'RESPONDED' ]]; then
+  echo "POSTGRES_CONNECTION: read-only preflight classified TCP=${network_tcp_state} PostgreSQL-protocol=${network_protocol_state}" >&2
+  emit_failure_receipt 70
+  exit 70
+fi
+
 "${SSH[@]}" -N -L "127.0.0.1:${local_port}:${forward_host}:${database_port}" \
   "$KAIOS_STAGING_SSH_USER@$KAIOS_STAGING_SSH_HOST" &
 tunnel_pid=$!
@@ -193,17 +468,20 @@ done
 [[ "$tunnel_ready" == 'true' ]] || { echo 'SSH PostgreSQL tunnel did not become ready' >&2; exit 1; }
 
 case "$mode" in
-  source)
-    export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")"
-    bash "$verifier" > "$runtime_root/verifier.json"
-    ;;
-  restore)
-    export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")"
-    bash "$verifier" > "$runtime_root/verifier.json"
-    ;;
+  source) export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
+  restore) export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
 esac
 
-python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" <<'PY'
+set +e
+bash "$verifier" > "$runtime_root/verifier.json"
+verifier_rc=$?
+set -e
+if (( verifier_rc != 0 )); then
+  emit_failure_receipt "$verifier_rc"
+  exit "$verifier_rc"
+fi
+
+python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" "$network_diagnostic_path" <<'PY'
 import json
 import re
 import sys
@@ -214,6 +492,7 @@ receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
 identity_digest = Path(sys.argv[2]).read_text(encoding='utf-8')
 tls_mode = Path(sys.argv[3]).read_text(encoding='utf-8')
 destination_policy = Path(sys.argv[4]).read_text(encoding='utf-8')
+network_diagnostic = json.loads(Path(sys.argv[5]).read_text(encoding='utf-8'))
 if not re.fullmatch(r'sha256:[a-f0-9]{64}', identity_digest):
     raise SystemExit('invalid connection identity digest')
 if receipt.get('status') != 'PASS' or receipt.get('environment') != 'STAGING':
@@ -223,5 +502,6 @@ receipt['tls_encryption_required'] = tls_mode in {'require', 'verify-ca', 'verif
 receipt['tls_ca_chain_verified'] = tls_mode in {'verify-ca', 'verify-full'}
 receipt['tls_hostname_verified'] = tls_mode == 'verify-full'
 receipt['destination_policy'] = destination_policy
+receipt['network_diagnostic'] = network_diagnostic
 print(json.dumps(receipt, separators=(',', ':'), sort_keys=True))
 PY

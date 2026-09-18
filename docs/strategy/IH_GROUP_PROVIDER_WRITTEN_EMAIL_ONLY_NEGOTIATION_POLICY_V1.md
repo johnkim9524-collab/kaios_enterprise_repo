@@ -2,6 +2,8 @@
 
 **Status:** Mandatory strategy addendum / non-bypass operating rule  
 **Effective date:** 2026-09-01  
+**Revision:** 2026-09-09 — KPMO strategy/content review and Program Owner exact-content approval
+
 **Applies to:** Intelligence Holdings, KIDULTS, Artfund, Capitaltimes, Muchmoney, Humanpool, Autobit, Kompare  
 **Incorporated baseline:** `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md`
 
@@ -111,6 +113,29 @@ program_owner_not_assigned_to_phone_voice_or_video_call = true
 ```
 
 Any false value yields `DO_NOT_SEND`.
+
+### 7.1 Mandatory KPMO review and Program Owner approval
+
+Written email is the only negotiation channel, but the use of email alone does not make an outbound message eligible. Before any external provider email is drafted in Gmail or sent, the following additional evidence must exist:
+
+```text
+current_provider_evidence_refreshed = true
+detailed_response_strategy_reviewed_by_kpmo = true
+exact_email_package_reviewed_by_kpmo = true
+kpmo_verdict = APPROVED_FOR_PROGRAM_OWNER_REVIEW
+program_owner_report_contains_strategy_and_exact_email_package = true
+exact_program_owner_send_approval_recorded = true
+approval_bound_to_sender_recipients_thread_subject_body_attachments_links_and_digest = true
+post_approval_change_absent = true
+```
+
+The detailed strategy must cover the objective, response necessity, verified facts and conflicts, unresolved questions, requested evidence, concessions and prohibited concessions, all Track Z money-to-usable-data gates, provider independence, alternative path, deadline, escalation/stop conditions, identity and contracting boundaries, and the effect of sending or not sending.
+
+The exact email package consists of sender identity, all recipients including CC/BCC, thread or reply target, subject, complete body, attachments, links and a deterministic content digest. The digest must be `sha256:<lowercase-hex>` over RFC 8785 canonical JSON, with exact UTF-8 values, CRLF normalized to LF, ordered recipient and link arrays, and attachment filename, media type, byte length and SHA-256 digest. KPMO must review the complete package, not an abstract intent or partial excerpt. If the author is also acting as KPMO, a distinct second-pass adversarial review record is mandatory.
+
+KPMO review does not authorize sending. The Program Owner must receive the detailed strategy, KPMO verdict, risks and exact package and must explicitly approve that exact package. Any later change to sender, recipients, thread, subject, body, attachments or links invalidates approval. The changed package must return to KPMO and the Program Owner.
+
+Missing review, incomplete reporting, generalized approval, stale evidence, or post-approval mutation yields `DO_NOT_DRAFT_OR_SEND`. No Gmail draft or outbound message may be created automatically while either approval is missing.
 
 All KPMO reports must distinguish:
 

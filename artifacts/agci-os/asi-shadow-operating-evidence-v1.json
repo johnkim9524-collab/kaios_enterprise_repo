@@ -230,28 +230,28 @@
     },
     "met_real_source_admission_workflow": {
       "path": ".github/workflows/kidults-asi-real-source-admission-r1.yml",
-      "sha256": "sha256:ed0a71255446f166e923fe0f831399c0ed88b948e7f14b078e0658ef79b12ad3",
-      "byte_count": 1827
+      "sha256": "sha256:36ee59e786f0ff36bd6178d33161317848643840f58bbbe8e2e2f18ff6ae2bb6",
+      "byte_count": 1876
     },
     "getty_historical_sale_workflow": {
       "path": ".github/workflows/kidults-asi-getty-historical-sale-r1.yml",
-      "sha256": "sha256:39538bf0c498d7237b313bab896fc64963f49fc5ae4a6bd0e2db3b1d1fed5dac",
-      "byte_count": 1864
+      "sha256": "sha256:f7276b19d399a763bde6fce7ef2f09f2f08057a91fbdec8c8e79a45aa536eb57",
+      "byte_count": 1913
     },
     "real_source_processor_bridge_workflow": {
       "path": ".github/workflows/kidults-asi-real-source-processor-bridge-r1.yml",
-      "sha256": "sha256:4cbc3823f4bcfae0331e27c86885b8b7bc5d1f2ba0cd9fc8214451308b496e31",
-      "byte_count": 2859
+      "sha256": "sha256:fa401bd3241beb3efcb9b2130a4820dde450c2ece8abedf65161284881a47d0a",
+      "byte_count": 2908
     },
     "real_source_queue_d1_injection_workflow": {
       "path": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
-      "sha256": "sha256:f44f8e995bfedbddf8c7dde77baec8e0642c9e6d5223e8f998c9f36d631accdc",
-      "byte_count": 5319
+      "sha256": "sha256:0dd702dfb9f45e7125ea07c3d0de406fa94d1c382377947927c2548d74f5939b",
+      "byte_count": 5368
     },
     "real_source_retry_dlq_quarantine_workflow": {
       "path": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
-      "sha256": "sha256:e61ded47c091b2ee15bac7c5f8859ed55d0b16866b4947719ed06f3100883f6d",
-      "byte_count": 5849
+      "sha256": "sha256:c09bb0f20f04d735a4c960bf69d73d9bc9a4016dcae817f1e5e495eb14fa8083",
+      "byte_count": 5898
     },
     "runtime_control_baseline_runner": {
       "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
@@ -350,8 +350,8 @@
     },
     "asi_runtime_core_validation_workflow": {
       "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
-      "sha256": "sha256:e3ceca59633210fa9c53a181471a5707f162dc0152e0b66daf0942d62b656421",
-      "byte_count": 8028
+      "sha256": "sha256:8d153ca109ca1641edd8b12c0fd8ea9017cf3b20152a969af26c0eb2b2c47f7a",
+      "byte_count": 8077
     },
     "runtime_control_baseline_workflow": {
       "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
@@ -375,13 +375,13 @@
     },
     "entity_resolution_real_dataset_workflow": {
       "path": ".github/workflows/kidults-er-real-dataset-r1.yml",
-      "sha256": "sha256:91fe463864c08c828a6afa4cca9ed80935f8e9eeb15dd17fb98302a29dd71d01",
-      "byte_count": 4792
+      "sha256": "sha256:7268d9a74ea56f131bd443dd4f655ff4970fa6e793f010e3e769251d7d980667",
+      "byte_count": 4841
     },
     "entity_resolution_getty_transaction_r2_workflow": {
       "path": ".github/workflows/kidults-er-getty-transaction-r2.yml",
-      "sha256": "sha256:4450e4b22056e13bd4a32be69b2ca85db463e20dfa4e947c93b7444232b87f57",
-      "byte_count": 3836
+      "sha256": "sha256:e0e20ecd64b03d0219b34da814337069c6fa58ea83db2b56a6be33e32d93d407",
+      "byte_count": 3885
     },
     "entity_resolution_canonical_design_r3_workflow": {
       "path": ".github/workflows/kidults-er-canonical-design-r3.yml",
@@ -390,18 +390,18 @@
     },
     "entity_resolution_real_holdout_r4_workflow": {
       "path": ".github/workflows/kidults-er-real-holdout-r4.yml",
-      "sha256": "sha256:ddd25289a12f7911a5cec8eb31d11ae67bb6797b5cd4586804d359e3c5feff3e",
-      "byte_count": 4284
+      "sha256": "sha256:536cbf0a3e712e929f9d51433d33c2ea57a238cd01952cda50e1c93563bec6e4",
+      "byte_count": 4333
     },
     "entity_resolution_cross_market_alias_r5_workflow": {
       "path": ".github/workflows/kidults-er-cross-market-alias-r5.yml",
-      "sha256": "sha256:e41dd8dee062996b56edc33150455c6034885c500a4690302ad5f948fa97736e",
-      "byte_count": 4431
+      "sha256": "sha256:b285bfd95cc9cebe81f794a0e7da45606395b6a97a55dad6a840a2316d4947f0",
+      "byte_count": 4480
     },
     "entity_resolution_ambiguous_review_r6_workflow": {
       "path": ".github/workflows/kidults-er-ambiguous-review-r6.yml",
-      "sha256": "sha256:e9ec0ae9f9249c2f8e5418113037ecec9524111d441e8be79ac51da244a7b14b",
-      "byte_count": 5505
+      "sha256": "sha256:0f4c836103bbdf742b7df58b193ac581e25cb09ef9aef4782c9734ff588a9e50",
+      "byte_count": 5554
     },
     "entity_resolution_approved_strata_workflow": {
       "path": ".github/workflows/kidults-er-approved-calibration-strata-v1.yml",
@@ -410,53 +410,53 @@
     },
     "entity_resolution_approved_strata_r7a_workflow": {
       "path": ".github/workflows/kidults-er-r7a-approved-strata-real.yml",
-      "sha256": "sha256:dea9d59039d0d7b6d106ee78f43e859c99278da617aa2aa7056f7d09947e53a7",
-      "byte_count": 5922
+      "sha256": "sha256:2c3eb3474b03ee123cc7f2e7d197461e4cc2e3a11c5e0ad90a30fc82038da494",
+      "byte_count": 5971
     },
     "entity_resolution_serialized_reference_r7b_workflow": {
       "path": ".github/workflows/kidults-er-r7b-serialized-reference-real.yml",
-      "sha256": "sha256:144a5edeb37721eb5a3baa841ef0d29064a2fdf99e592b87a9ba5cf3c73b4296",
-      "byte_count": 6533
+      "sha256": "sha256:b466ea222648ea31472b2febb488b2d65ec27f01e7c75762569ea1534d09416d",
+      "byte_count": 6582
     },
     "entity_resolution_variant_release_r7c_workflow": {
       "path": ".github/workflows/kidults-er-r7c-variant-release-real.yml",
-      "sha256": "sha256:05d848fa7479d27a582b6456bc4f5008c5f5ef9383fbefe27a82f42f894cf838",
-      "byte_count": 6631
+      "sha256": "sha256:43a6b9c8fea858adf3bc8844df8a18407c7bbd91e1e056a04530aa27e039cec2",
+      "byte_count": 6680
     },
     "entity_resolution_serialized_cross_authority_r7e_workflow": {
       "path": ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml",
-      "sha256": "sha256:e2d3137717fc49c141ebe48d95f404fcf094d80b9f2113a127645aa879bd45db",
-      "byte_count": 8286
+      "sha256": "sha256:036d8d5a826561788195d506543b398a00dc6b492ed2fea6a66e57a549a45411",
+      "byte_count": 8335
     },
     "entity_resolution_vehicle_minimums_r7f_workflow": {
       "path": ".github/workflows/kidults-er-r7f-vehicle-minimums.yml",
-      "sha256": "sha256:de243341d4d02048be86aacfaef6fc7de3d6bf03e904280d85c19cdbd8da38d9",
-      "byte_count": 8477
+      "sha256": "sha256:571a19e9ba0d1964da953c2929504f5f82ac0dd4b41b64906539dde0ff2a8a7b",
+      "byte_count": 8526
     },
     "entity_resolution_variant_minimums_r7g_workflow": {
       "path": ".github/workflows/kidults-er-r7g-variant-minimums.yml",
-      "sha256": "sha256:112f2500593a26c3ed7a4f9ae12e75bf39f8c35ee8401a8c34d95a3f241851eb",
-      "byte_count": 9533
+      "sha256": "sha256:f3000a815e1ef8d1fdffb3874eb9dd324670cfc9824e73f9a838512d9b03a2af",
+      "byte_count": 9582
     },
     "entity_resolution_pressing_minimums_r7h_workflow": {
       "path": ".github/workflows/kidults-er-r7h-pressing-minimums.yml",
-      "sha256": "sha256:fff4ddedc3bb6826682e3163aa7cc7c490e6fbeea40d80a99e5f95d70a8f7c16",
-      "byte_count": 10672
+      "sha256": "sha256:088040e210cb54bd4d11d638570dcf73b0792a2a691dd6ff90c8f14f917e8b96",
+      "byte_count": 10721
     },
     "entity_resolution_provenance_minimums_r7i_workflow": {
       "path": ".github/workflows/kidults-er-r7i-provenance-minimums.yml",
-      "sha256": "sha256:bb18fffca59a1240765458b0ab4713ee622c5cfa0ccba987c2b7568e0b8a81ee",
-      "byte_count": 11634
+      "sha256": "sha256:e23bc3e6a22eb2efb34390c66d7716b6cfd2c55a6f71b95174083f77c6f0ea26",
+      "byte_count": 11683
     },
     "entity_resolution_designer_maker_minimums_r7j_workflow": {
       "path": ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml",
-      "sha256": "sha256:dd76b1d43739d0584cbb5b11aa6f71e88ea10212e3f47d06c46f309ea85c782b",
-      "byte_count": 19966
+      "sha256": "sha256:3e82fe4a91371ec77a0298a9f65ad82a9b0a355452848126ff6b5cb3d6007bb7",
+      "byte_count": 20015
     },
     "entity_resolution_finalization_preflight_workflow": {
       "path": ".github/workflows/kidults-er-finalization-preflight-v1.yml",
-      "sha256": "sha256:be1acb1c659d69d55347958e2bd52c47eb7ba166ce00e3fdbd7abf11de00dd3f",
-      "byte_count": 10789
+      "sha256": "sha256:e39a76647ba335f6657c65ba15a80f11e5fef1e712b4602f5c4b39fe26b696e2",
+      "byte_count": 10838
     },
     "candidate_handoff_preflight_validator_r2": {
       "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
@@ -530,8 +530,8 @@
     },
     "shadow_evidence_workflow": {
       "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
-      "sha256": "sha256:8c0b52312a47c5583ae4f2edb50edfbeafe5e976be0ffeac51d4f7a5e76c424a",
-      "byte_count": 17099
+      "sha256": "sha256:87e51b70827d76058f6dd4857fb710d67c3c13398c1a2fb6ec054870c2c9ccbd",
+      "byte_count": 17120
     },
     "root_package_manifest": {
       "path": "package.json",
@@ -545,13 +545,13 @@
     },
     "autonomous_intelligence_package_manifest": {
       "path": "services/kidults-autonomous-intelligence/package.json",
-      "sha256": "sha256:deead5d94958233e097dc4f36e00988163d502721f17d3c95ebd34fe330ca5fe",
-      "byte_count": 11034
+      "sha256": "sha256:8b8ff4de719ddec18c886d4bf0269e320e8ded0c0421e4cf29b7d4569de59135",
+      "byte_count": 11237
     },
     "autonomous_intelligence_dependency_lock": {
       "path": "services/kidults-autonomous-intelligence/package-lock.json",
-      "sha256": "sha256:53c144749cb82be312f7017d626a4b270a1b2895a791c7ca0cf368c2816f68a3",
-      "byte_count": 50649
+      "sha256": "sha256:9af4969d6eeec2071cc600fcc69dce55ebe19aaee66115ecca42ed63dafbc630",
+      "byte_count": 38579
     }
   },
   "toolchain": {
@@ -571,8 +571,8 @@
       },
       "autonomous_intelligence_package_lock": {
         "path": "services/kidults-autonomous-intelligence/package-lock.json",
-        "sha256": "sha256:53c144749cb82be312f7017d626a4b270a1b2895a791c7ca0cf368c2816f68a3",
-        "byte_count": 50649
+        "sha256": "sha256:9af4969d6eeec2071cc600fcc69dce55ebe19aaee66115ecca42ed63dafbc630",
+        "byte_count": 38579
       }
     }
   },
@@ -1057,13 +1057,13 @@
       },
       "real_source_constructed_control_workflow_ref": {
         "path": ".github/workflows/kidults-er-real-dataset-r1.yml",
-        "sha256": "sha256:91fe463864c08c828a6afa4cca9ed80935f8e9eeb15dd17fb98302a29dd71d01",
-        "byte_count": 4792
+        "sha256": "sha256:7268d9a74ea56f131bd443dd4f655ff4970fa6e793f010e3e769251d7d980667",
+        "byte_count": 4841
       },
       "getty_transaction_r2_workflow_ref": {
         "path": ".github/workflows/kidults-er-getty-transaction-r2.yml",
-        "sha256": "sha256:4450e4b22056e13bd4a32be69b2ca85db463e20dfa4e947c93b7444232b87f57",
-        "byte_count": 3836
+        "sha256": "sha256:e0e20ecd64b03d0219b34da814337069c6fa58ea83db2b56a6be33e32d93d407",
+        "byte_count": 3885
       },
       "canonical_design_r3_workflow_ref": {
         "path": ".github/workflows/kidults-er-canonical-design-r3.yml",
@@ -1072,18 +1072,18 @@
       },
       "real_holdout_r4_workflow_ref": {
         "path": ".github/workflows/kidults-er-real-holdout-r4.yml",
-        "sha256": "sha256:ddd25289a12f7911a5cec8eb31d11ae67bb6797b5cd4586804d359e3c5feff3e",
-        "byte_count": 4284
+        "sha256": "sha256:536cbf0a3e712e929f9d51433d33c2ea57a238cd01952cda50e1c93563bec6e4",
+        "byte_count": 4333
       },
       "cross_market_alias_r5_workflow_ref": {
         "path": ".github/workflows/kidults-er-cross-market-alias-r5.yml",
-        "sha256": "sha256:e41dd8dee062996b56edc33150455c6034885c500a4690302ad5f948fa97736e",
-        "byte_count": 4431
+        "sha256": "sha256:b285bfd95cc9cebe81f794a0e7da45606395b6a97a55dad6a840a2316d4947f0",
+        "byte_count": 4480
       },
       "ambiguous_review_r6_workflow_ref": {
         "path": ".github/workflows/kidults-er-ambiguous-review-r6.yml",
-        "sha256": "sha256:e9ec0ae9f9249c2f8e5418113037ecec9524111d441e8be79ac51da244a7b14b",
-        "byte_count": 5505
+        "sha256": "sha256:0f4c836103bbdf742b7df58b193ac581e25cb09ef9aef4782c9734ff588a9e50",
+        "byte_count": 5554
       },
       "approved_calibration_strata_workflow_ref": {
         "path": ".github/workflows/kidults-er-approved-calibration-strata-v1.yml",
@@ -1092,53 +1092,53 @@
       },
       "approved_strata_r7a_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7a-approved-strata-real.yml",
-        "sha256": "sha256:dea9d59039d0d7b6d106ee78f43e859c99278da617aa2aa7056f7d09947e53a7",
-        "byte_count": 5922
+        "sha256": "sha256:2c3eb3474b03ee123cc7f2e7d197461e4cc2e3a11c5e0ad90a30fc82038da494",
+        "byte_count": 5971
       },
       "serialized_reference_r7b_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7b-serialized-reference-real.yml",
-        "sha256": "sha256:144a5edeb37721eb5a3baa841ef0d29064a2fdf99e592b87a9ba5cf3c73b4296",
-        "byte_count": 6533
+        "sha256": "sha256:b466ea222648ea31472b2febb488b2d65ec27f01e7c75762569ea1534d09416d",
+        "byte_count": 6582
       },
       "variant_release_r7c_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7c-variant-release-real.yml",
-        "sha256": "sha256:05d848fa7479d27a582b6456bc4f5008c5f5ef9383fbefe27a82f42f894cf838",
-        "byte_count": 6631
+        "sha256": "sha256:43a6b9c8fea858adf3bc8844df8a18407c7bbd91e1e056a04530aa27e039cec2",
+        "byte_count": 6680
       },
       "serialized_cross_authority_r7e_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml",
-        "sha256": "sha256:e2d3137717fc49c141ebe48d95f404fcf094d80b9f2113a127645aa879bd45db",
-        "byte_count": 8286
+        "sha256": "sha256:036d8d5a826561788195d506543b398a00dc6b492ed2fea6a66e57a549a45411",
+        "byte_count": 8335
       },
       "vehicle_minimums_r7f_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7f-vehicle-minimums.yml",
-        "sha256": "sha256:de243341d4d02048be86aacfaef6fc7de3d6bf03e904280d85c19cdbd8da38d9",
-        "byte_count": 8477
+        "sha256": "sha256:571a19e9ba0d1964da953c2929504f5f82ac0dd4b41b64906539dde0ff2a8a7b",
+        "byte_count": 8526
       },
       "variant_minimums_r7g_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7g-variant-minimums.yml",
-        "sha256": "sha256:112f2500593a26c3ed7a4f9ae12e75bf39f8c35ee8401a8c34d95a3f241851eb",
-        "byte_count": 9533
+        "sha256": "sha256:f3000a815e1ef8d1fdffb3874eb9dd324670cfc9824e73f9a838512d9b03a2af",
+        "byte_count": 9582
       },
       "pressing_minimums_r7h_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7h-pressing-minimums.yml",
-        "sha256": "sha256:fff4ddedc3bb6826682e3163aa7cc7c490e6fbeea40d80a99e5f95d70a8f7c16",
-        "byte_count": 10672
+        "sha256": "sha256:088040e210cb54bd4d11d638570dcf73b0792a2a691dd6ff90c8f14f917e8b96",
+        "byte_count": 10721
       },
       "provenance_minimums_r7i_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7i-provenance-minimums.yml",
-        "sha256": "sha256:bb18fffca59a1240765458b0ab4713ee622c5cfa0ccba987c2b7568e0b8a81ee",
-        "byte_count": 11634
+        "sha256": "sha256:e23bc3e6a22eb2efb34390c66d7716b6cfd2c55a6f71b95174083f77c6f0ea26",
+        "byte_count": 11683
       },
       "designer_maker_minimums_r7j_workflow_ref": {
         "path": ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml",
-        "sha256": "sha256:dd76b1d43739d0584cbb5b11aa6f71e88ea10212e3f47d06c46f309ea85c782b",
-        "byte_count": 19966
+        "sha256": "sha256:3e82fe4a91371ec77a0298a9f65ad82a9b0a355452848126ff6b5cb3d6007bb7",
+        "byte_count": 20015
       },
       "finalization_preflight_workflow_ref": {
         "path": ".github/workflows/kidults-er-finalization-preflight-v1.yml",
-        "sha256": "sha256:be1acb1c659d69d55347958e2bd52c47eb7ba166ce00e3fdbd7abf11de00dd3f",
-        "byte_count": 10789
+        "sha256": "sha256:e39a76647ba335f6657c65ba15a80f11e5fef1e712b4602f5c4b39fe26b696e2",
+        "byte_count": 10838
       },
       "synthetic_selftest_mechanics_present": true,
       "real_source_constructed_control_implementation_present": true,
@@ -1325,8 +1325,8 @@
       },
       "runtime_core_workflow_ref": {
         "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
-        "sha256": "sha256:e3ceca59633210fa9c53a181471a5707f162dc0152e0b66daf0942d62b656421",
-        "byte_count": 8028
+        "sha256": "sha256:8d153ca109ca1641edd8b12c0fd8ea9017cf3b20152a969af26c0eb2b2c47f7a",
+        "byte_count": 8077
       },
       "baseline_workflow_ref": {
         "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
@@ -1408,8 +1408,8 @@
         },
         "workflow_ref": {
           "path": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
-          "sha256": "sha256:f44f8e995bfedbddf8c7dde77baec8e0642c9e6d5223e8f998c9f36d631accdc",
-          "byte_count": 5319
+          "sha256": "sha256:0dd702dfb9f45e7125ea07c3d0de406fa94d1c382377947927c2548d74f5939b",
+          "byte_count": 5368
         },
         "sealed_execution_attestation_refs": []
       },
@@ -1431,8 +1431,8 @@
         },
         "workflow_ref": {
           "path": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
-          "sha256": "sha256:e61ded47c091b2ee15bac7c5f8859ed55d0b16866b4947719ed06f3100883f6d",
-          "byte_count": 5849
+          "sha256": "sha256:c09bb0f20f04d735a4c960bf69d73d9bc9a4016dcae817f1e5e495eb14fa8083",
+          "byte_count": 5898
         },
         "sealed_execution_attestation_refs": []
       },
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:35814d8dc70c45512138f7aeb4a6b8304c95a34e19d071628efb182360ecaabf"
+  "evidence_fingerprint": "sha256:f758a5e2ccfd7b0304fc1d23b4f39a53c6fa52b9f71b0cede2bc39e28652e232"
 }

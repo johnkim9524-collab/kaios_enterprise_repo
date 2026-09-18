@@ -102,7 +102,7 @@ function validateCurrent(raw) {
     ? `KIDULTS Coverage / source-${current.source_sha}`
     : `KIDULTS Coverage / manual-${current.run_id}`;
   if (current.coverage_run_display_title !== expectedDisplayTitle) fail('CURRENT_COVERAGE_RUN_DISPLAY_TITLE_INVALID');
-  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(current.canonical_run_key).slice(7)}`;
+  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${current.canonical_run_key}:${current.canonical_input_digest}`).slice(7)}`;
   return current;
 }
 
@@ -122,10 +122,11 @@ function validateLeaderCandidate(candidate, current, observedAt) {
   }
   const runId = Number(run?.id);
   const runAttempt = Number(run?.run_attempt);
+  const apiRunNameMatches = run?.name === WORKFLOW_NAME || run?.name === run?.display_title;
   push(Number.isSafeInteger(runId) && runId > 0, 'RUN_ID_INVALID');
   push(Number.isSafeInteger(runAttempt) && runAttempt > 0, 'RUN_ATTEMPT_INVALID');
   push(runId !== current.run_id, 'CURRENT_RUN_CANNOT_BE_PRIOR_LEADER');
-  push(run?.name === WORKFLOW_NAME, 'RUN_NAME_MISMATCH');
+  push(apiRunNameMatches, 'RUN_NAME_MISMATCH');
   push(run?.path === WORKFLOW_PATH, 'RUN_PATH_MISMATCH');
   push(run?.repository?.full_name === current.repository, 'RUN_REPOSITORY_MISMATCH');
   push(run?.head_branch === 'main', 'RUN_BRANCH_MISMATCH');
@@ -145,6 +146,8 @@ function validateLeaderCandidate(candidate, current, observedAt) {
   push(receipt?.version === '1.0.0', 'RECEIPT_VERSION_INVALID');
   push(receipt?.state === 'VERIFIED_PASS_EPHEMERAL_CANONICAL_LEADER', 'RECEIPT_STATE_INVALID');
   push(DIGEST.test(receipt?.receipt_digest || '') && receipt?.receipt_digest === receiptDigest(receipt || {}), 'RECEIPT_DIGEST_INVALID');
+  push(receipt?.coverage_workflow_name === WORKFLOW_NAME && receipt?.coverage_workflow_path === WORKFLOW_PATH &&
+    receipt?.coverage_repository === current.repository, 'RECEIPT_WORKFLOW_IDENTITY_MISMATCH');
   push(receipt?.repository === current.repository, 'RECEIPT_REPOSITORY_MISMATCH');
   push(receipt?.source_sha === current.source_sha && receipt?.upstream_class === UPSTREAM_CLASS, 'RECEIPT_SOURCE_CLASS_MISMATCH');
   push(receipt?.canonical_run_key === current.canonical_run_key, 'RECEIPT_CANONICAL_KEY_MISMATCH');

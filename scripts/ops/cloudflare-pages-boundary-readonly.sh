@@ -10,19 +10,21 @@ PAGE_SIZE="${PAGE_SIZE:-25}"
 
 mkdir -p "$RECEIPT_DIR"
 
-write_preflight_failure_receipt() {
-  local state="$1" reason_code="$2" exit_code="$3"
-  local token_present=false account_id_present=false
+write_failure_receipt() {
+  local state="$1" reason_code="$2" exit_code="$3" api_called="${4:-false}"
+  local token_present=false account_id_present=false settings_readback_complete=false
   [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]] && token_present=true
   [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] && account_id_present=true
+  [[ -f "$RECEIPT_DIR/project-readback.json" ]] && settings_readback_complete=true
   jq -n --arg state "$state" --arg reason_code "$reason_code" --arg project "$PROJECT_NAME" \
     --arg expected_repository "$EXPECTED_REPOSITORY" --arg current_main_sha "${GITHUB_SHA:-UNKNOWN}" \
     --argjson exit_code "$exit_code" --argjson api_token_present "$token_present" \
-    --argjson account_id_present "$account_id_present" '{
+    --argjson account_id_present "$account_id_present" --argjson api_called "$api_called" \
+    --argjson settings_readback_complete "$settings_readback_complete" '{
       id:"kidults-cloudflare-pages-boundary-readonly-receipt-v1",state:$state,reason_code:$reason_code,
       exit_code:$exit_code,project:$project,expected_repository:$expected_repository,current_main_sha:$current_main_sha,
       credential_presence:{api_token_present:$api_token_present,account_id_present:$account_id_present},
-      cloudflare_api_called:false,settings_readback_complete:false,deployment_inventory_complete:false,
+      cloudflare_api_called:$api_called,settings_readback_complete:$settings_readback_complete,deployment_inventory_complete:false,
       read_only:true,settings_mutated:false,deployment_created:false,deployment_deleted:false,
       platform_environment:"STAGING",public_release:"HOLD",production:"HOLD",g5:"HOLD"
     }' > "$RECEIPT_DIR/final.json"
@@ -30,45 +32,120 @@ write_preflight_failure_receipt() {
   exit "$exit_code"
 }
 
-[[ "$PROJECT_NAME" == "kidults-workspace-staging" ]] || write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "UNEXPECTED_PAGES_PROJECT" 64
-[[ "$EXPECTED_REPOSITORY" == "johnkim9524-collab/kaios_enterprise_repo" ]] || write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "UNEXPECTED_REPOSITORY" 64
-[[ "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] && (( MAX_PAGES <= 100 )) || write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "INVALID_MAX_PAGES" 64
-[[ "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] && (( PAGE_SIZE <= 25 )) || write_preflight_failure_receipt "REFUSED_INVALID_INPUT" "INVALID_PAGE_SIZE" 64
-[[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || write_preflight_failure_receipt "BLOCKED_CREDENTIALS_ABSENT" "CLOUDFLARE_READONLY_CREDENTIALS_ABSENT" 65
+[[ "$PROJECT_NAME" == "kidults-workspace-staging" ]] || write_failure_receipt "REFUSED_INVALID_INPUT" "UNEXPECTED_PAGES_PROJECT" 64
+[[ "$EXPECTED_REPOSITORY" == "johnkim9524-collab/kaios_enterprise_repo" ]] || write_failure_receipt "REFUSED_INVALID_INPUT" "UNEXPECTED_REPOSITORY" 64
+[[ "$MAX_PAGES" =~ ^[1-9][0-9]*$ ]] && (( MAX_PAGES <= 100 )) || write_failure_receipt "REFUSED_INVALID_INPUT" "INVALID_MAX_PAGES" 64
+[[ "$PAGE_SIZE" =~ ^[1-9][0-9]*$ ]] && (( PAGE_SIZE <= 25 )) || write_failure_receipt "REFUSED_INVALID_INPUT" "INVALID_PAGE_SIZE" 64
+[[ -n "${CLOUDFLARE_API_TOKEN:-}" && -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]] || write_failure_receipt "BLOCKED_CREDENTIALS_ABSENT" "CLOUDFLARE_READONLY_CREDENTIALS_ABSENT" 65
 
 API_ROOT="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT_NAME}"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+failure_state="VERIFIED_FAIL"
+failure_reason="CLOUDFLARE_READBACK_FAILED"
+failure_exit=67
+
+set_failure() {
+  failure_state="$1"
+  failure_reason="$2"
+  failure_exit="$3"
+}
+
 api_get() {
-  curl --fail-with-body --silent --show-error --retry 3 --retry-delay 1 --retry-all-errors \
+  if ! "${CURL_BIN:-curl}" --fail-with-body --silent --show-error --retry 3 --retry-delay 1 --retry-all-errors \
     --connect-timeout 10 --max-time 45 --request GET \
-    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" --header "Accept: application/json" "$1" > "$2"
+    --header "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" --header "Accept: application/json" "$1" > "$2"; then
+    set_failure "BLOCKED_PROVIDER_READBACK_FAILED" "CLOUDFLARE_API_REQUEST_FAILED" 66
+    return 1
+  fi
+}
+
+validate_api_envelope() {
+  local input="$1"
+  if ! jq -e 'type == "object"' "$input" >/dev/null 2>&1; then
+    set_failure "VERIFIED_FAIL" "CLOUDFLARE_RESPONSE_MALFORMED_JSON" 67
+    return 1
+  fi
+  if ! jq -e '.success == true' "$input" >/dev/null; then
+    set_failure "BLOCKED_PROVIDER_READBACK_FAILED" "CLOUDFLARE_API_RESPONSE_UNSUCCESSFUL" 66
+    return 1
+  fi
 }
 
 list_all_deployments() {
-  local output="$1" page=1 total_pages=1 page_file
+  local output="$1" page=1 expected_total_pages= expected_total_count= page_file metadata result_count
   : > "$tmp_dir/deployments.ndjson"
-  while (( page <= total_pages )); do
-    (( page <= MAX_PAGES )) || return 68
+  while [[ -z "$expected_total_pages" || "$page" -le "$expected_total_pages" ]]; do
+    if (( page > MAX_PAGES )); then
+      set_failure "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68
+      return 1
+    fi
     page_file="$tmp_dir/deployments-page-${page}.json"
-    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file"
-    jq -e '.success == true and (.result | type == "array")' "$page_file" >/dev/null
+    api_get "$API_ROOT/deployments?per_page=${PAGE_SIZE}&page=$page" "$page_file" || return 1
+    validate_api_envelope "$page_file" || return 1
+    if ! jq -e '.result | type == "array"' "$page_file" >/dev/null; then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_DEPLOYMENT_RESULT_INVALID" 67
+      return 1
+    fi
+    if ! metadata="$(jq -er '
+      .result_info as $info
+      | select($info | type == "object")
+      | [$info.page, $info.per_page, $info.count, $info.total_count, $info.total_pages]
+      | select(all(.[]; type == "number" and . >= 0 and floor == .))
+      | @tsv
+    ' "$page_file")"; then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_METADATA_INVALID" 67
+      return 1
+    fi
+    local response_page response_per_page response_count response_total_count response_total_pages
+    IFS=$'\t' read -r response_page response_per_page response_count response_total_count response_total_pages <<< "$metadata"
+    result_count="$(jq '.result | length' "$page_file")"
+    if (( response_page != page || response_per_page != PAGE_SIZE || response_count != result_count || response_total_pages < 1 )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_METADATA_MISMATCH" 67
+      return 1
+    fi
+    if [[ -z "$expected_total_pages" ]]; then
+      expected_total_pages="$response_total_pages"
+      expected_total_count="$response_total_count"
+      if (( expected_total_pages > MAX_PAGES )); then
+        set_failure "BLOCKED_INVENTORY_BOUND_EXCEEDED" "CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED" 68
+        return 1
+      fi
+    elif (( response_total_pages != expected_total_pages || response_total_count != expected_total_count )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_CHANGED_DURING_READBACK" 67
+      return 1
+    fi
+    if (( page < expected_total_pages && response_count != PAGE_SIZE )); then
+      set_failure "VERIFIED_FAIL" "CLOUDFLARE_PAGINATION_INCOMPLETE_PAGE" 67
+      return 1
+    fi
     jq -c '.result[]' "$page_file" >> "$tmp_dir/deployments.ndjson"
-    total_pages="$(jq -r '(.result_info.total_pages // 1) | if type == "number" and . >= 1 and floor == . then . else error("invalid total_pages") end' "$page_file")"
-    (( total_pages <= MAX_PAGES )) || return 68
     page=$((page + 1))
   done
   [[ -s "$tmp_dir/deployments.ndjson" ]] && jq -s '.' "$tmp_dir/deployments.ndjson" > "$output" || printf '[]\n' > "$output"
+  if ! jq -e --argjson expected_total_count "$expected_total_count" '
+    length == $expected_total_count
+    and all(.[]; (.id | type == "string" and length > 0))
+    and ((map(.id) | unique | length) == length)
+  ' "$output" >/dev/null; then
+    set_failure "VERIFIED_FAIL" "CLOUDFLARE_DEPLOYMENT_INVENTORY_INCONSISTENT" 67
+    return 1
+  fi
 }
 
-api_get "$API_ROOT" "$tmp_dir/project.json"
-list_all_deployments "$tmp_dir/deployments-all.json"
-
-jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
+if ! api_get "$API_ROOT" "$tmp_dir/project.json"; then
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
+fi
+if ! validate_api_envelope "$tmp_dir/project.json"; then
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
+fi
+if ! jq -e --arg project "$PROJECT_NAME" --arg expected_repository "$EXPECTED_REPOSITORY" '
   .success == true and .result.name == $project and .result.source.type == "github" and .result.production_branch == "main"
   and (((.result.source.config.owner // "") + "/" + (.result.source.config.repo_name // "")) == $expected_repository)
-' "$tmp_dir/project.json" >/dev/null
+' "$tmp_dir/project.json" >/dev/null; then
+  write_failure_receipt "VERIFIED_FAIL" "CLOUDFLARE_PROJECT_READBACK_MISMATCH" 67 true
+fi
 
 jq --arg expected_repository "$EXPECTED_REPOSITORY" '{
   project:.result.name,project_id:.result.id,production_branch:.result.production_branch,source_type:.result.source.type,
@@ -83,6 +160,10 @@ jq --arg expected_repository "$EXPECTED_REPOSITORY" '{
   preview_branch_rules_authoritative_only_when_custom:true,
   modified_on:.result.modified_on
 }' "$tmp_dir/project.json" > "$RECEIPT_DIR/project-readback.json"
+
+if ! list_all_deployments "$tmp_dir/deployments-all.json"; then
+  write_failure_receipt "$failure_state" "$failure_reason" "$failure_exit" true
+fi
 
 jq '[.[] | {id,environment,url,aliases:(.aliases // []),created_on,is_skipped:(.is_skipped // false),skip_reason:(.skip_reason // null),
   materialized:(((.is_skipped // false) != true) and ((.url // "") | (type == "string" and length > 0))),

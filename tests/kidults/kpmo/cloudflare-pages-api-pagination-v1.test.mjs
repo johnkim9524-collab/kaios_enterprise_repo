@@ -5,6 +5,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+if (process.platform === 'win32') {
+  console.log(JSON.stringify({suite:'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',state:'CAPABILITY_SKIP',reason:'POSIX_EXECUTABLE_FIXTURE_REQUIRED'}));
+  process.exit(0);
+}
+
 const repoRoot = process.cwd();
 const files = {
   readonly: 'scripts/ops/cloudflare-pages-boundary-readonly.sh',
@@ -45,8 +50,11 @@ const governed = {id:'governed-production',environment:'production',url:'https:/
 if (!url.includes('/deployments')) process.stdout.write(JSON.stringify(project));
 else {
   const page = Number((url.match(/[?&]page=(\d+)/) || [,'1'])[1]);
-  const result = page === 1 ? [skipped] : [governed];
-  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:1,total_count:2,total_pages:2}}));
+  const earlierSkipped = Array.from({length:24}, (_, index) => ({...skipped,id:'skipped-preview-' + index,created_on:'2026-08-28T00:00:00Z'}));
+  const result = page === 1 ? [skipped,...earlierSkipped] : [governed];
+  const totalPages = process.env.FORCE_OVERFLOW === '1' ? 101 : 2;
+  const totalCount = process.env.FORCE_OVERFLOW === '1' ? 2526 : 26;
+  process.stdout.write(JSON.stringify({success:true,result,result_info:{page,per_page:25,count:result.length,total_count:totalCount,total_pages:totalPages}}));
 }
 `;
 fs.writeFileSync(path.join(fakeBin, 'curl'), fakeCurl, {mode:0o755});
@@ -69,11 +77,38 @@ assert.equal(run.status, 0, run.stderr || run.stdout);
 const receipt = JSON.parse(fs.readFileSync(path.join(receiptDir, 'final.json')));
 assert.equal(receipt.state, 'COMPLETE_VERIFIED');
 assert.equal(receipt.visible_preview_count, 0);
-assert.equal(receipt.skipped_preview_attempt_count, 1);
+assert.equal(receipt.skipped_preview_attempt_count, 25);
 assert.equal(receipt.latest_deployment_governed, true);
 assert.equal(receipt.latest_attempt.id, 'skipped-preview');
 assert.equal(receipt.latest_deployment.id, 'governed-production');
 assert.equal(receipt.settings_mutated, false);
+
+const overflowReceiptDir = path.join(temp, 'overflow-receipt');
+const overflowRun = spawnSync('bash', [files.readonly], {
+  cwd: repoRoot,
+  encoding: 'utf8',
+  env: {
+    ...process.env,
+    PATH: `${fakeBin}:${process.env.PATH}`,
+    CLOUDFLARE_API_TOKEN: 'test-token-never-real',
+    CLOUDFLARE_ACCOUNT_ID: '235eaa51d04e7f4436a9faa507a04f9d',
+    CLOUDFLARE_PAGES_PROJECT_NAME: 'kidults-workspace-staging',
+    EXPECTED_REPOSITORY: 'johnkim9524-collab/kaios_enterprise_repo',
+    RECEIPT_DIR: overflowReceiptDir,
+    GITHUB_SHA: '1111111111111111111111111111111111111111',
+    FORCE_OVERFLOW: '1',
+  },
+});
+assert.equal(overflowRun.status, 68, overflowRun.stderr || overflowRun.stdout);
+const overflowReceipt = JSON.parse(fs.readFileSync(path.join(overflowReceiptDir, 'final.json')));
+assert.equal(overflowReceipt.state, 'BLOCKED_INVENTORY_BOUND_EXCEEDED');
+assert.equal(overflowReceipt.reason_code, 'CLOUDFLARE_DEPLOYMENT_INVENTORY_LIMIT_EXCEEDED');
+assert.equal(overflowReceipt.cloudflare_api_called, true);
+assert.equal(overflowReceipt.settings_readback_complete, true);
+assert.equal(overflowReceipt.deployment_inventory_complete, false);
+assert.equal(fs.existsSync(path.join(overflowReceiptDir, 'project-readback.json')), true);
+assert.equal(overflowReceipt.read_only, true);
+assert.equal(overflowReceipt.production, 'HOLD');
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_CLOUDFLARE_PAGES_API_PAGINATION_V1',
@@ -82,6 +117,7 @@ console.log(JSON.stringify({
   bounded_page_size_25: true,
   skipped_preview_not_materialized: true,
   latest_materialized_governed_selection: true,
+  bounded_inventory_failure_receipt: true,
   public_release: 'HOLD',
   production: 'HOLD',
   g5: 'HOLD',

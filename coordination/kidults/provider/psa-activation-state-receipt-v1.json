@@ -4,7 +4,7 @@
   "generated_at": "2026-08-30T09:03:16Z",
   "source_main_sha": "433008c87f630a92c8b7901c2a24ad0b641b699d",
   "implementation_branch": "codex/psa-z1-private-execution-v1-20260830",
-  "state": "READY_BUT_NOT_ACTIVATED",
+  "state": "HOLD_PROVIDER_EXECUTION_PATHS_REMOVED",
   "historical_schema_probe": {
     "state": "VERIFIED_PASS",
     "workflow_run_id": 33123384792,
@@ -23,27 +23,30 @@
     "product_pipeline_admitted": 0,
     "target": 120
   },
-  "internal_controls_on_branch": [
+  "historical_internal_controls": [
     "PSA_AND_ALL_PROVIDER_RACI_RESTORED",
-    "MAIN_ONLY_PRIVATE_Z1_WORKFLOW_ADDED",
+    "MAIN_ONLY_PRIVATE_Z1_WORKFLOW_REMOVED_BY_PLATFORM_RECOVERY",
     "EPHEMERAL_AES_256_GCM_PRIVATE_STORE_ADDED",
     "IN_MEMORY_RUNTIME_KEY_AND_ZEROIZATION_ADDED",
     "IMMEDIATE_RAW_RECORD_DELETION_AND_RECEIPT_ADDED",
     "SANITIZED_RECEIPT_ONLY_ARTIFACT_BOUNDARY_ADDED",
-    "STATIC_CONTROL_VALIDATOR_AND_REGRESSION_WORKFLOW_ADDED"
+    "STATIC_CONTROL_TESTS_RETAINED_UNDER_SINGLE_PSA_CONTROL_WORKFLOW"
   ],
   "activation_inputs": {
     "E1_valid_paid_token": "REQUIRED_AT_RUNTIME_UNVERIFIED_UNTIL_DISPATCH",
     "E2_120_unique_lawful_known_certs": "MISSING_0_OF_120",
     "E3_per_cert_provenance_and_purpose_rights": "MISSING_0_OF_120"
   },
-  "next_main_action": "AFTER_MERGE_DISPATCH_KIDULTS_PSA_Z1_PRIVATE_RUNTIME_AND_RECORD_VERIFIED_PASS_RECEIPT",
-  "next_after_z1": "ADMIT_E1_E2_E3_THEN_EXECUTE_90_PLUS_30",
+  "next_main_action": "KEEP_PROVIDER_EXECUTION_DISABLED_UNTIL_A_SEPARATELY_AUTHORIZED_MANUAL_PATH_IS_INTEGRATED_BEHIND_THE_KIR_CONTROLLER",
+  "next_after_z1": "NOT_APPLICABLE_Z1_RUNTIME_REMOVED",
   "blocked_claims": [
     "PSA_PRODUCT_DATA_CONNECTED",
     "PSA_120_ACQUISITION_STARTED",
     "PSA_PRODUCT_PIPELINE_ADMITTED"
   ],
+  "automatic_provider_dispatch": false,
+  "provider_runtime_present": false,
+  "authoritative_runtime": "scripts/kidults/runtime/kir-runtime-kernel-v1.mjs",
   "production": "HOLD",
   "public": "HOLD",
   "g5": "EXPLICIT_APPROVAL_REQUIRED"

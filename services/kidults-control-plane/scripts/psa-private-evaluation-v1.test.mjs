@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { stagePsaPrivateEvaluation, deleteExpiredPsaEvaluations } from '../src/psa-private-evaluation.mjs';
+import { stagePsaPrivateEvaluation, deleteExpiredPsaEvaluations } from '../src/psa-cert-verification-adapter.mjs';
 
 const hash = char => `sha256:${char.repeat(64)}`;
+const syntheticCert = '4'.repeat(8);
 const rights = {
   provider_id: 'psa-public-api', source_message_immutability: 'VERIFIED',
   collect: 'ALLOW', store_private: 'ALLOW', derive_internal_er_calibration: 'ALLOW',
@@ -32,17 +33,17 @@ function store() {
 test('private PSA evaluation persists only behind verified rights and approved field map', async () => {
   const privateStore = store();
   let admitted;
-  const raw = { cert: { number: '40413252', grade: '10' }, population: { total: 3 }, secretExtra: 'not-admitted' };
+  const raw = { cert: { number: syntheticCert, grade: '10' }, population: { total: 3 }, secretExtra: 'not-admitted' };
   const receipt = await stagePsaPrivateEvaluation({
     rawPayload: raw, certReferenceDigest: hash('c'), rightsReceipt: rights, fieldMap,
     privateStore, acquiredAt: '2026-08-27T00:00:00Z',
     admitNormalized: async input => { admitted = input; return { state: 'COMMITTED', commandId: 'command-1' }; },
   });
-  assert.deepEqual(admitted.normalized, { certification_number: '40413252', grade: '10', population_total: 3 });
+  assert.deepEqual(admitted.normalized, { certification_number: syntheticCert, grade: '10', population_total: 3 });
   assert.equal(receipt.delete_by, '2026-09-26T00:00:00.000Z');
   assert.equal(receipt.raw_payload_in_receipt, false);
   const serialized = JSON.stringify(receipt);
-  assert(!serialized.includes('40413252'));
+  assert(!serialized.includes(syntheticCert));
   assert(!serialized.includes('not-admitted'));
 });
 

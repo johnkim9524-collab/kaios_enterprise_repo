@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.5.0';
+const EXPECTED_POLICY_VERSION = '1.6.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -10,6 +10,14 @@ const EXACT_GENERATION_POLICY = Object.freeze({
   same_candidate_blob_different_main_allowed: false,
   stale_canonical_comment_allowed: false,
   terminal_records_are_non_authority: true,
+  final_lifecycle_boundary_required: true,
+  approval_strictly_after_final_lifecycle_boundary: true,
+  later_lifecycle_mutation_invalidates_approval: true,
+  approval_must_precede_landing_attempt: true,
+  single_governed_consumption_required: true,
+  pre_ready_approval_allowed: false,
+  multiple_current_generation_approvals_allowed: false,
+  lifecycle_root_issue: 2028,
   root_issue: 1787,
 });
 
@@ -26,6 +34,12 @@ const EXACT_NEGATIVE_CASES = Object.freeze([
   'MERGE_MAIN_REBOUND',
   'SAME_CANDIDATE_BLOB_DIFFERENT_MAIN',
   'STALE_CANONICAL_COMMENT',
+  'APPROVAL_BEFORE_FINAL_READY',
+  'APPROVAL_AT_FINAL_READY',
+  'LIFECYCLE_MUTATION_AFTER_APPROVAL',
+  'APPROVAL_AFTER_LANDING_ATTEMPT_START',
+  'MULTIPLE_CURRENT_GENERATION_APPROVALS',
+  'APPROVAL_REPLAY',
 ]);
 
 const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
@@ -62,7 +76,7 @@ function requireExactArray(actual, expected, code) {
   }
 }
 
-export function assertGovernedLandingAuthorizationPolicyV150(policy) {
+export function assertGovernedLandingAuthorizationPolicyV160(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');

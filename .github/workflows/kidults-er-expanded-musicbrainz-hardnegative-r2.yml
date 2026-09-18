@@ -15,6 +15,7 @@ permissions:
   contents: read
 jobs:
   measure-and-packetize-current-residual-hard-negatives:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
