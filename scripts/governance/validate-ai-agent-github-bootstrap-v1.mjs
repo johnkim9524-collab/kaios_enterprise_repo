@@ -568,6 +568,35 @@ const shellCommandSegments = (command) => {
   return segments;
 };
 
+const normalizeShellCommandSegment = (segment) => {
+  let command = segment.trim();
+  let previous = null;
+  while (command && command !== previous) {
+    previous = command;
+    command = command
+      .replace(/^[({]\s*/, '')
+      .replace(/^(?:(?:command|builtin|exec|then|do|else|time)\s+|!\s*)+/i, '')
+      .replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]+)\s+)+/, '');
+
+    const envMatch = command.match(/^(?:(?:\/[^\s/]+)*\/)?env(?=\s|$)/i);
+    if (!envMatch) break;
+    let remainder = command.slice(envMatch[0].length).trim();
+    while (remainder.startsWith('-')) {
+      const optionWithArgument = remainder.match(/^(?:-u|--unset)\s+\S+\s*/i);
+      if (optionWithArgument) {
+        remainder = remainder.slice(optionWithArgument[0].length);
+        continue;
+      }
+      const option = remainder.match(/^\S+\s*/);
+      if (!option) break;
+      remainder = remainder.slice(option[0].length);
+    }
+    remainder = remainder.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]+)\s+)+/, '');
+    command = remainder || 'env';
+  }
+  return command.replace(/^(?:(?:\/[^\s/]+)*\/)(?=(?:bash|sh|zsh|printenv|echo|printf)(?:\s|$))/i, '');
+};
+
 const commandStartsInvocation = (command, commandPattern) => new RegExp(
   `^(?:${commandPattern}|[A-Za-z_][A-Za-z0-9_]*=["']?\\$\\(\\s*${commandPattern})(?=\\s|$)`
 ).test(command);
@@ -625,10 +654,8 @@ const validateDispatchJob = (dispatch, workflows) => {
   const gateCommands = job.steps.slice(0, taskIndex).flatMap((step, stepIndex) =>
     executableShellCommands(step.run).map((command, commandIndex) => ({ command, stepIndex, commandIndex })));
   const commandSegments = gateCommands.flatMap(({command}) => shellCommandSegments(command))
-    .map(segment => segment
-      .replace(/^[({]\s*/, '')
-      .replace(/^(?:(?:command|builtin|exec|then|do|else|time)\s+|!\s*)+/i, ''));
-  assert(!commandSegments.some(segment => /^(?:(?:set\s+(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace)|(?:bash|sh|zsh)\s+-[A-Za-z]*x[A-Za-z]*)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/i.test(segment)),
+    .map(normalizeShellCommandSegment);
+  assert(!commandSegments.some(segment => /^(?:(?:set\b.*(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace))|(?:(?:bash|sh|zsh)\b.*\s(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace))|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/i.test(segment)),
     `DISPATCH_SHELL_TRACE_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   assert(!commandSegments.some(segment => /^(?:(?:\/(?:usr\/)?bin\/)?printenv(?:\s|$)|(?:\/(?:usr\/)?bin\/)?env\s*(?:$|[<>])|(?:export|declare)\s+-p(?:\s|$)|(?:Get-ChildItem|gci|dir)\s+Env:(?:\s|$)|\[Environment\]::GetEnvironmentVariables\s*\(\s*\)|set\s*$)/i.test(segment)),
     `DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
@@ -903,6 +930,11 @@ assertDispatchSecretMutationRejected('set -vx', 'DISPATCH_SHELL_TRACE_FORBIDDEN:
 assertDispatchSecretMutationRejected('set -euxo pipefail', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('bash -euxo pipefail bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('/bin/bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -o xtrace bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -o errexit -o xtrace', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('env bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('FOO=bar bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('true; set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('echo "$KIDULTS_BOOTSTRAP_NONCE"', 'DISPATCH_NONCE_ECHO_FORBIDDEN:');
 for (const environmentDump of [
@@ -914,6 +946,9 @@ for (const environmentDump of [
   'command printenv KIDULTS_BOOTSTRAP_NONCE',
   'builtin printenv KIDULTS_BOOTSTRAP_NONCE',
   'exec printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env FOO=bar printenv KIDULTS_BOOTSTRAP_NONCE',
+  'FOO=bar printenv KIDULTS_BOOTSTRAP_NONCE',
   'env',
   '/bin/env',
   '/bin/printenv KIDULTS_BOOTSTRAP_NONCE',
