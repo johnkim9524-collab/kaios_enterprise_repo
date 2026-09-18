@@ -677,6 +677,26 @@ const validateDispatchJob = (dispatch, workflows) => {
   const nonceIndex = gateCommands.findIndex(({ command }, index) => index <= bootstrapIndex
     && /^(?:export\s+)?KIDULTS_BOOTSTRAP_NONCE=/.test(command));
   assert(nonceIndex !== -1, `DISPATCH_NONCE_ASSIGNMENT_MISSING:${dispatch.workflow}:${dispatch.job}`);
+  assert(nonceIndex < bootstrapIndex, `DISPATCH_NONCE_ASSIGNMENT_ORDER_INVALID:${dispatch.workflow}:${dispatch.job}`);
+  const fixedNonceAmbientCommand = (index, command) => {
+    if (index === nonceIndex) {
+      return /^export KIDULTS_BOOTSTRAP_NONCE="\$\(openssl rand -base64 48 \| tr -d '\\n'\)"$/.test(command);
+    }
+    if (index === bootstrapIndex || index === verifierIndex || index === verificationAssertionIndex) {
+      return shellCommandSegments(command).length === 1;
+    }
+    return index === validatorIndex && isUnparameterizedFullValidator(command);
+  };
+  const safeNonceAmbientMetadataCommand = (command) =>
+    /^TASK_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}"$/.test(command)
+    || /^SESSION_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}-\$\{EXPECTED_SHA\}"$/.test(command)
+    || /^RECEIPT_PATH="\$\(node -e 'const x=JSON\.parse\(process\.argv\[1\]\); process\.stdout\.write\(x\.receipt_path\)' "\$BOOTSTRAP_RESULT"\)"$/.test(command)
+    || /^printf\s+'%s\\n'\s+"\$VERIFY_RESULT"(?:\s*(?:>\s*\S+|\|\s*tee\s+\S+))?$/.test(command);
+  for (let index = nonceIndex; index <= validatorIndex; index += 1) {
+    assert(fixedNonceAmbientCommand(index, gateCommands[index].command)
+      || safeNonceAmbientMetadataCommand(gateCommands[index].command),
+      `DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:${dispatch.workflow}:${dispatch.job}:${index}`);
+  }
   const bootstrapCommand = gateCommands[bootstrapIndex].command;
   const verifierCommand = gateCommands[verifierIndex].command;
   const verificationAssertionCommand = gateCommands[verificationAssertionIndex].command;
@@ -913,9 +933,15 @@ const assertDispatchSecretMutationRejected = (injectedCommand, expectedPrefix) =
   const mutatedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
   const job = mutatedJobs.get(dispatch.job);
   const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
-  const executableStep = job.steps.find((step, index) => index < taskIndex && typeof step.run === 'string');
+  const executableStep = job.steps.find((step, index) => index < taskIndex
+    && typeof step.run === 'string'
+    && step.run.includes('KIDULTS_BOOTSTRAP_NONCE='));
   assert(executableStep, 'DISPATCH_NEGATIVE_MUTATION_TARGET_MISSING');
-  executableStep.run = `${injectedCommand}\n${executableStep.run}`;
+  const lines = executableStep.run.split(/\r?\n/);
+  const nonceLineIndex = lines.findIndex(line => /^(?:\s*export\s+)?KIDULTS_BOOTSTRAP_NONCE=/.test(line));
+  assert(nonceLineIndex !== -1, 'DISPATCH_NEGATIVE_MUTATION_NONCE_TARGET_MISSING');
+  lines.splice(nonceLineIndex + 1, 0, injectedCommand);
+  executableStep.run = lines.join('\n');
   let rejected = false;
   try {
     validateDispatchJob(dispatch, new Map([[dispatch.workflow, mutatedJobs]]));
@@ -958,6 +984,15 @@ for (const environmentDump of [
   '[Environment]::GetEnvironmentVariables()',
 ]) assertDispatchSecretMutationRejected(environmentDump, 'DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:');
 assertDispatchSecretMutationRejected('node bootstrap.mjs --nonce forbidden', 'DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:');
+for (const nestedInterpreter of [
+  "env -S 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+  "env -S 'bash -x bootstrap.sh'",
+  "bash -c 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+  "sh -c 'set -x; true'",
+  "python3 -c 'import os; print(os.environ)'",
+  "node -e 'console.log(process.env.KIDULTS_BOOTSTRAP_NONCE)'",
+  "eval 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+]) assertDispatchSecretMutationRejected(nestedInterpreter, 'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:');
 {
   const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
   const allowedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
