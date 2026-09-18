@@ -71,6 +71,41 @@ const pages = async apiPath => {
   }
   fail('DIRECT_OWNER_HANDOFF_PAGINATION_BOUND_EXCEEDED');
 };
+const assertIndependentExactHeadReview = (reviews, pr) => {
+  const minimum = Number(policy.review_policy?.minimum_non_author_approvals);
+  if (!Number.isInteger(minimum) || minimum < 1) fail('DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_POLICY_INVALID');
+  const eligibleAssociations = new Set(policy.review_policy?.eligible_author_associations || []);
+  const latest = new Map();
+  for (const review of reviews || []) {
+    const login = review?.user?.login;
+    if (!login || review?.user?.type !== 'User' || review?.commit_id !== expectedHeadSha) continue;
+    const stamp = parseTime(review?.submitted_at, 'DIRECT_OWNER_HANDOFF_REVIEW_TIME_INVALID');
+    const prior = latest.get(login);
+    if (!prior || stamp >= prior.stamp) latest.set(login, {review, stamp});
+  }
+  const current = [...latest.values()].map(value => value.review);
+  const blockers = current.filter(review =>
+    eligibleAssociations.has(review?.author_association) && review?.state === 'CHANGES_REQUESTED');
+  if (blockers.length) fail('DIRECT_OWNER_HANDOFF_EXACT_HEAD_CHANGES_REQUESTED');
+  const approvals = current.filter(review =>
+    review?.user?.login !== pr?.user?.login
+    && eligibleAssociations.has(review?.author_association)
+    && review?.state === 'APPROVED');
+  if (approvals.length < minimum) fail('DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_REQUIRED');
+  return {
+    required_approval_count: minimum,
+    approval_count: approvals.length,
+    approvals: approvals
+      .map(review => ({
+        reviewer: review.user.login,
+        association: review.author_association,
+        submitted_at: review.submitted_at,
+        commit_id: review.commit_id,
+      }))
+      .sort((a, b) => a.reviewer.localeCompare(b.reviewer)),
+  };
+};
+
 const checkRuns = async sha => {
   const output = [];
   for (let page = 1; page <= 10; page += 1) {
@@ -226,12 +261,13 @@ try {
   await publish('pending', 'Direct Owner exact-head handoff validation in progress');
   statusTouched = true;
 
-  const [pr, main, files, timeline, comments, headCommit, statuses, runs, rulesets, currentRun] = await Promise.all([
+  const [pr, main, files, timeline, comments, reviews, headCommit, statuses, runs, rulesets, currentRun] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/pulls/${prNumber}/files`),
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
+    pages(`/pulls/${prNumber}/reviews`),
     request(`/commits/${expectedHeadSha}`),
     request(`/commits/${expectedHeadSha}/status`),
     checkRuns(expectedHeadSha),
@@ -265,6 +301,7 @@ try {
   const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
   const readyEvent = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner: owner});
   const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
+  const independentReview = assertIndependentExactHeadReview(reviews, pr);
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
   const protect = rulesets.find(value => value.name === 'Protect main' && value.enforcement === 'active');
@@ -288,9 +325,9 @@ try {
   if (aggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS');
   evaluateRequiredCheckRuns(runs, scopePolicy.technical_base_contexts);
 
-  const [finalPr, finalMain, finalTimeline, finalComments, finalHeadCommit] = await Promise.all([
+  const [finalPr, finalMain, finalTimeline, finalComments, finalReviews, finalHeadCommit] = await Promise.all([
     request(`/pulls/${prNumber}`), request('/branches/main'), pages(`/issues/${prNumber}/timeline`), pages(`/issues/${prNumber}/comments`),
-    request(`/commits/${expectedHeadSha}`),
+    pages(`/pulls/${prNumber}/reviews`), request(`/commits/${expectedHeadSha}`),
   ]);
   assertPromotablePullRequest(finalPr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
   if (finalHeadCommit?.sha !== expectedHeadSha || finalHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
@@ -301,6 +338,7 @@ try {
   if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
   const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady, {landingAttemptStartedAt});
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
+  assertIndependentExactHeadReview(finalReviews, finalPr);
 
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();
@@ -321,6 +359,7 @@ try {
     approval_comment_body_sha256: approval.comment_body_sha256,
     approval_nonce_sha256: approval.nonce_sha256,
     approval_expires_at: approval.expires_at,
+    independent_exact_head_review: independentReview,
     latest_ready_event_id: readyEvent.id,
     latest_ready_event_at: readyEvent.created_at,
     landing_workflow_run_id: Number(runId),
@@ -336,11 +375,12 @@ try {
   writeReceipt(receipt);
 
   await sleep(handoffWindowSeconds * 1000);
-  const [after, afterMain, afterTimeline, afterComments, afterHeadCommit] = await Promise.all([
+  const [after, afterMain, afterTimeline, afterComments, afterReviews, afterHeadCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
+    pages(`/pulls/${prNumber}/reviews`),
     request(`/commits/${expectedHeadSha}`),
   ]);
   if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
@@ -353,6 +393,7 @@ try {
     landingAttemptStartedAt,
   });
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  assertIndependentExactHeadReview(afterReviews, after);
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
