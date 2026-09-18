@@ -62,6 +62,7 @@ for (const invariant of [
   'REVIEW_MUST_BIND_SEPARATE_AGENT_ID_BOOTSTRAP_SESSION_AND_EXACT_HEAD',
   'REVIEW_MUST_EVALUATE_DIFF_TEST_EVIDENCE_AND_DOMAIN_SPECIFIC_NEGATIVE_CONTROLS',
   'REVIEW_AUTHORITY_MUST_BE_AUDITABLE_REPLAY_RESISTANT_EXACT_HEAD_BOUND_AND_INDEPENDENTLY_ATTRIBUTABLE',
+  'REQUIRED_DOMAIN_MUST_BE_RECOMPUTED_FROM_PROTECTED_CHANGED_PATH_POLICY_NOT_TRUSTED_FROM_ATTESTATION',
   'REPOSITORY_COMMENT_OR_OWNER_ASSERTION_CANNOT_ESTABLISH_REVIEWER_PROVENANCE',
   'ATTESTATION_CONTROLLER_VERIFIES_PROVENANCE_ONLY_AND_CANNOT_ACT_AS_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY',
 ]) requireValue(independentReview?.invariants?.includes(invariant), `missing autonomous review invariant ${invariant}`);
@@ -76,10 +77,10 @@ requireValue(independentReview?.qualification_registry_path === 'coordination/ki
 requireValue(independentReview?.registered_role_routing?.governance_independence_and_provenance?.includes('integration-conductor'), 'governance reviewer role binding missing');
 requireValue(independentReview?.registered_role_routing?.security_credentials_tls_ssh?.includes('qa-release-manager'), 'security reviewer role binding missing');
 requireValue(independentReview?.registered_role_routing?.portal?.includes('track-c-portal-v502'), 'portal reviewer role binding missing');
-for (const field of ['IMPLEMENTER_AGENT_ID','REVIEWER_AGENT_ID','ASSIGNED_REVIEWER_AGENT_ID','IMPLEMENTER_SESSION_ID','REVIEWER_SESSION_ID','EXACT_HEAD_SHA','REVIEWED_HEAD_SHA','REQUIRED_DOMAIN','REVIEWER_DOMAIN','REVIEWER_ROLE_ID','BOOTSTRAP_RECEIPT_DIGEST','REVIEW_RECEIPT_ID','DECISION','DIFF_EVIDENCE','TEST_EVIDENCE','NEGATIVE_CONTROL_EVIDENCE']) {
+for (const field of ['REPOSITORY','PULL_REQUEST','EXACT_BASE_SHA','EXACT_HEAD_SHA','EXACT_HEAD_TREE_SHA','IMPLEMENTER_AGENT_ID','REVIEWER_AGENT_ID','ASSIGNED_REVIEWER_AGENT_ID','IMPLEMENTER_SESSION_ID','REVIEWER_SESSION_ID','REVIEWED_HEAD_SHA','REQUIRED_DOMAIN','REVIEWER_DOMAIN','REVIEWER_ROLE_ID','IMPLEMENTER_BOOTSTRAP_CONSUMPTION_PROOF_ID','REVIEWER_BOOTSTRAP_CONSUMPTION_PROOF_ID','EVIDENCE_MANIFEST_DIGEST','REVIEW_DECISION_DIGEST','ATTESTATION_ID','ISSUED_AT','EXPIRES_AT','SIGNER_IDENTITY_AND_VERSION','SIGNATURE']) {
   requireValue(independentReview?.review_binding_required_fields?.includes(field), `review binding field missing ${field}`);
 }
-for (const negativeCase of ['SELF_REVIEW','STALE_HEAD','REVIEW_REPLAY','WRONG_REVIEWER_AGENT','WRONG_REVIEWER_DOMAIN']) {
+for (const negativeCase of ['SELF_REVIEW','STALE_HEAD','REVIEW_REPLAY','WRONG_REVIEWER_AGENT','WRONG_REVIEWER_DOMAIN','WRONG_BASE','WRONG_TREE','EXPIRED_ATTESTATION','REVOKED_SIGNER','UNSIGNED_ATTESTATION','REPOSITORY_FORGED_ATTESTATION']) {
   requireValue(independentReview?.negative_cases_required?.includes(negativeCase), `review negative case missing ${negativeCase}`);
 }
 requireValue(independentReview?.identity_assurance_boundary?.repository_bootstrap_is_cryptographic_agent_identity === false, 'bootstrap must not be inflated into cryptographic identity');
@@ -92,6 +93,7 @@ requireValue(independentReview?.identity_assurance_boundary?.external_human_revi
 requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_status === 'NOT_PROVISIONED', 'protected attestation controller state must be explicit');
 requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_role === 'PROVENANCE_VERIFIER_ONLY', 'attestation controller must be provenance-only');
 requireValue(independentReview?.identity_assurance_boundary?.protected_attestation_controller_may_act_as_reviewer_committee_or_personnel_authority === false, 'attestation controller must not own reviewer or personnel decisions');
+requireValue(independentReview?.identity_assurance_boundary?.protected_durable_replay_and_revocation_store_required === true, 'protected durable replay and revocation store is required');
 
 const hedgeById = new Map((hedge.hedges || []).map(item => [item.id, item]));
 for (const id of ['SILENT_PARTIAL_FAILURE','HUMAN_OVERRIDE_GOVERNANCE','ROLLBACK_EPOCH_INTEGRITY','MARKET_REGIME_BREAK','AUDIT_SURVIVABILITY','VENDOR_ECONOMIC_CAPTURE','METHODOLOGICAL_MONOCULTURE']) requireValue(hedgeById.has(id), `missing operational resilience hedge ${id}`);

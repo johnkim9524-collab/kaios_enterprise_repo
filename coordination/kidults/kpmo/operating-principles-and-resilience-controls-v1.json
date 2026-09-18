@@ -182,6 +182,7 @@
       "REVIEW_DECISION_MUST_BE_APPROVE_OR_REQUEST_CHANGES_AND_RUBBER_STAMP_APPROVAL_IS_FORBIDDEN",
       "KPMO_MUST_VERIFY_REVIEW_INDEPENDENCE_PROVENANCE_EVIDENCE_INTEGRITY_AND_GOVERNANCE",
       "REVIEW_AUTHORITY_MUST_BE_AUDITABLE_REPLAY_RESISTANT_EXACT_HEAD_BOUND_AND_INDEPENDENTLY_ATTRIBUTABLE",
+      "REQUIRED_DOMAIN_MUST_BE_RECOMPUTED_FROM_PROTECTED_CHANGED_PATH_POLICY_NOT_TRUSTED_FROM_ATTESTATION",
       "REPOSITORY_COMMENT_OR_OWNER_ASSERTION_CANNOT_ESTABLISH_REVIEWER_PROVENANCE",
       "ATTESTATION_CONTROLLER_VERIFIES_PROVENANCE_ONLY_AND_CANNOT_ACT_AS_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY"
     ],
@@ -214,8 +215,8 @@
       "portal": ["track-c-portal-v502"],
       "governance_independence_and_provenance": ["integration-conductor"]
     },
-    "review_binding_required_fields": ["IMPLEMENTER_AGENT_ID", "REVIEWER_AGENT_ID", "ASSIGNED_REVIEWER_AGENT_ID", "IMPLEMENTER_SESSION_ID", "REVIEWER_SESSION_ID", "EXACT_HEAD_SHA", "REVIEWED_HEAD_SHA", "REQUIRED_DOMAIN", "REVIEWER_DOMAIN", "REVIEWER_ROLE_ID", "BOOTSTRAP_RECEIPT_DIGEST", "REVIEW_RECEIPT_ID", "DECISION", "DIFF_EVIDENCE", "TEST_EVIDENCE", "NEGATIVE_CONTROL_EVIDENCE"],
-    "negative_cases_required": ["SELF_REVIEW", "STALE_HEAD", "REVIEW_REPLAY", "WRONG_REVIEWER_AGENT", "WRONG_REVIEWER_DOMAIN"],
+    "review_binding_required_fields": ["REPOSITORY", "PULL_REQUEST", "EXACT_BASE_SHA", "EXACT_HEAD_SHA", "EXACT_HEAD_TREE_SHA", "IMPLEMENTER_AGENT_ID", "REVIEWER_AGENT_ID", "ASSIGNED_REVIEWER_AGENT_ID", "IMPLEMENTER_SESSION_ID", "REVIEWER_SESSION_ID", "REVIEWED_HEAD_SHA", "REQUIRED_DOMAIN", "REVIEWER_DOMAIN", "REVIEWER_ROLE_ID", "IMPLEMENTER_BOOTSTRAP_CONSUMPTION_PROOF_ID", "REVIEWER_BOOTSTRAP_CONSUMPTION_PROOF_ID", "EVIDENCE_MANIFEST_DIGEST", "REVIEW_DECISION_DIGEST", "ATTESTATION_ID", "ISSUED_AT", "EXPIRES_AT", "SIGNER_IDENTITY_AND_VERSION", "SIGNATURE"],
+    "negative_cases_required": ["SELF_REVIEW", "STALE_HEAD", "REVIEW_REPLAY", "WRONG_REVIEWER_AGENT", "WRONG_REVIEWER_DOMAIN", "WRONG_BASE", "WRONG_TREE", "EXPIRED_ATTESTATION", "REVOKED_SIGNER", "UNSIGNED_ATTESTATION", "REPOSITORY_FORGED_ATTESTATION"],
     "identity_assurance_boundary": {
       "repository_bootstrap_is_cryptographic_agent_identity": false,
       "separate_external_orchestrator_process_attestation_required": true,
@@ -226,7 +227,8 @@
       "external_human_reviewer_required": false,
       "protected_attestation_controller_status": "NOT_PROVISIONED",
       "protected_attestation_controller_role": "PROVENANCE_VERIFIER_ONLY",
-      "protected_attestation_controller_may_act_as_reviewer_committee_or_personnel_authority": false
+      "protected_attestation_controller_may_act_as_reviewer_committee_or_personnel_authority": false,
+      "protected_durable_replay_and_revocation_store_required": true
     },
     "fail_closed": "If reviewer independence, qualification, exact-head binding, evidence, or provenance cannot be established, the review state is BLOCKED and cannot be promoted."
   }
