@@ -341,8 +341,8 @@ jobs:
           k.external_attestation_bindings.qualification_attestation_required_fields[0]='UNBOUND_SUBJECT';
           k.required_negative_controls[0]='ALLOW_SELF_REVIEW';
           k.required_positive_canaries.normal_autonomous_review='DOCUMENTATION_ONLY';
-          k.immediate_removal.atomic_sequence.splice(1,1);
-          k.immediate_removal.atomic_sequence.push('NO_OP');
+          const sequence=k.immediate_removal.atomic_sequence;
+          [sequence[2],sequence[3]]=[sequence[3],sequence[2]];
           fs.writeFileSync(p,JSON.stringify(x,null,2));
           NODE
           if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
