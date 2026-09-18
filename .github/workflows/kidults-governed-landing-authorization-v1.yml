@@ -37,7 +37,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: node scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs
 
-      - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
+      - name: Enforce exact-head Owner authorization, independent review, and ruleset monotonicity
         id: evaluate
         continue-on-error: true
         env:
@@ -129,7 +129,7 @@ jobs:
           const existingRequired=new Set((statusRule.parameters.required_status_checks||[]).map(x=>x.context));
           for(const required of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) if(!existingRequired.has(required)) fail(`existing required status missing: ${required}`);
           const protectPr=(protectDetail.rules||[]).find(x=>x.type==='pull_request');
-          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');
+          if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from custom independent-review status model');
           if(!protectPr?.parameters?.dismiss_stale_reviews_on_push) fail('Protect main stale-review dismissal disabled');
           if(protectPr?.parameters?.require_last_push_approval) fail('Protect main last-push approval must remain disabled in solo-owner mode');
           if(!protectPr?.parameters?.required_review_thread_resolution) fail('Protect main review-thread resolution disabled');
@@ -184,22 +184,24 @@ jobs:
             const eligible = [...latest.values()].filter(r=>eligibleAssociation.has(r.author_association));
             const blockers = eligible.filter(r=>r.state==='CHANGES_REQUESTED');
             if(blockers.length) fail(`exact-head changes requested by ${blockers.map(r=>r.user.login).join(',')}`);
-            const optionalApprovals = eligible.filter(r=>r.user.login!==pr.user.login && r.state==='APPROVED');
+            const independentApprovals = eligible.filter(r=>r.user.login!==pr.user.login && r.state==='APPROVED');
+            const requiredApprovalCount = 1;
+            if(independentApprovals.length < requiredApprovalCount) fail('independent exact-head approval required');
 
             const receipt = {
               id:'kidults-governed-landing-authorization-receipt-v1',
-              state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD',
+              state:'AUTHORIZED_OWNER_WITH_INDEPENDENT_EXACT_HEAD_REVIEW',
               repository:repo,
               pull_request:Number(prNumber),
               author:pr.user.login,
               program_owner:repository.owner.login,
-              governance_mode:'SOLO_OWNER_GOVERNED',
-              decision_id:'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
+              governance_mode:'OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED',
+              decision_id:'JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18',
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
               readiness:readinessReceipt,
-              required_approval_count:0,
-              optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
+              required_approval_count:requiredApprovalCount,
+              independent_exact_head_approvals:independentApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
               stale_review_excluded:true,
               ruleset_bypass_actor_count:0,
