@@ -7,10 +7,10 @@ on:
       - '.github/workflows/kpmo-canonical-latest-block-scope-v1.yml'
       - 'scripts/kidults/kpmo/validate-canonical-latest-block-scope-v1.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
-  push:
+  workflow_run:
+    workflows: ['KPMO Canonical Generation V3 Apply']
     branches: [main]
-  issues:
-    types: [opened, edited, reopened, closed]
+    types: [completed]
   schedule:
     - cron: '13 * * * *'
   workflow_dispatch:
@@ -20,7 +20,7 @@ permissions:
   issues: read
 
 concurrency:
-  group: kpmo-canonical-latest-block-${{ github.event_name }}-${{ github.event_name == 'issues' && github.event.issue.number || github.ref || github.run_id }}
+  group: kpmo-canonical-latest-block-${{ github.event_name }}-${{ github.event.workflow_run.head_sha || github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
