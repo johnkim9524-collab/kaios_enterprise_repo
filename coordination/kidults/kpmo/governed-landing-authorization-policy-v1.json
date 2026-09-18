@@ -159,14 +159,17 @@
   "governance_mode": "AUTONOMOUS_MULTI_LANE_GOVERNED",
   "decision_id": "JOHN-AUTONOMOUS-MULTI-LANE-REVIEW-2026-09-18",
   "autonomous_verification_policy": {
-    "mode": "MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD",
+    "mode": "MACHINE_ENFORCED_RISK_ROUTED_MULTI_LANE_EXACT_HEAD",
     "required": true,
-    "required_check_contexts": [
+    "baseline_required_check_contexts": [
       "KAIOS Solo Owner Preflight",
       "Validate KAIOS Foundation",
-      "Validate Production Container",
+      "Validate Production Container"
+    ],
+    "risk_routed_check_contexts": [
       "full-value-chain-redteam"
     ],
+    "risk_routing_required": true,
     "scope_aware_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
     "all_required_contexts_terminal_success": true,
     "missing_context_fails_closed": true,
