@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.6.0', 'POLICY_VERSION');
+  require(policy.version === '1.7.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -68,6 +68,21 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
   require(review.ready_state_by_owner_is_authorization === true, 'OWNER_READY_AUTHORIZATION');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
+  const autonomousReview = policy.autonomous_independent_review_policy || {};
+  require(autonomousReview.required_for_governed_reversible_changes === true, 'AUTONOMOUS_REVIEW_REQUIRED');
+  require(autonomousReview.github_native_approval_count_unchanged === true, 'AUTONOMOUS_REVIEW_NATIVE_COUNT_BOUNDARY');
+  require(autonomousReview.attestation_transport === 'EXISTING_PR_COMMENT', 'AUTONOMOUS_REVIEW_TRANSPORT');
+  require(autonomousReview.attesting_github_actor_must_equal_repository_owner === true, 'AUTONOMOUS_REVIEW_ATTESTER');
+  require(autonomousReview.implementer_and_reviewer_agent_ids_must_differ === true, 'AUTONOMOUS_REVIEW_SELF_REVIEW');
+  require(autonomousReview.implementer_and_reviewer_sessions_must_differ === true, 'AUTONOMOUS_REVIEW_SESSION_SEPARATION');
+  require(autonomousReview.reviewed_head_must_equal_current_exact_head === true, 'AUTONOMOUS_REVIEW_EXACT_HEAD');
+  require(autonomousReview.bootstrap_verified_and_consumed_required === true, 'AUTONOMOUS_REVIEW_BOOTSTRAP');
+  require(autonomousReview.reviewer_role_must_match_registered_domain_routing === true, 'AUTONOMOUS_REVIEW_DOMAIN');
+  require(autonomousReview.request_changes_on_exact_head_blocks === true, 'AUTONOMOUS_REVIEW_REQUEST_CHANGES');
+  require(autonomousReview.single_current_approve_receipt_required === true, 'AUTONOMOUS_REVIEW_SINGLE_APPROVE');
+  require(autonomousReview.receipt_replay_allowed === false, 'AUTONOMOUS_REVIEW_REPLAY');
+  require(autonomousReview.agent_id_string_alone_establishes_independence === false, 'AUTONOMOUS_REVIEW_IDENTITY_INFLATION');
+  require(autonomousReview.bootstrap_receipt_alone_grants_merge_or_promotion_authority === false, 'AUTONOMOUS_REVIEW_AUTHORITY_INFLATION');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.exact_labels?.includes('no-merge'), 'NO_MERGE_LABEL_BLOCK_MISSING');
@@ -106,6 +121,14 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "Ready; operation-specific atomic landing is required",
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
+    'KIDULTS_AUTONOMOUS_REVIEW_V1',
+    'autonomous review receipt replay detected',
+    'exactly one current autonomous review approval required',
+    'autonomous self-review rejected',
+    'wrong autonomous reviewer agent',
+    'wrong autonomous reviewer domain',
+    'autonomous reviewer role is not qualified for domain',
+    'autonomous reviewer bootstrap not consumed',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
 
   for (const marker of [

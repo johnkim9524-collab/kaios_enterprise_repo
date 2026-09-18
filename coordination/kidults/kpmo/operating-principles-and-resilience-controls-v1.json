@@ -204,6 +204,22 @@
       "data_runtime_storage": "DATA_OR_INFRASTRUCTURE_QUALIFIED_AGENT",
       "governance_independence_and_provenance": "KPMO"
     },
+    "qualification_registry_path": "coordination/kidults/registry/roles-and-responsibilities.json",
+    "registered_role_routing": {
+      "provider_rights_evidence": ["track-b-rankability", "editorial-rights-reviewer"],
+      "security_credentials_tls_ssh": ["qa-release-manager", "incident-manager"],
+      "data_runtime_storage": ["qa-release-manager", "incident-manager"],
+      "portal": ["track-c-portal-v502"],
+      "governance_independence_and_provenance": ["integration-conductor"]
+    },
+    "review_binding_required_fields": ["IMPLEMENTER_AGENT_ID", "REVIEWER_AGENT_ID", "ASSIGNED_REVIEWER_AGENT_ID", "IMPLEMENTER_SESSION_ID", "REVIEWER_SESSION_ID", "EXACT_HEAD_SHA", "REVIEWED_HEAD_SHA", "REQUIRED_DOMAIN", "REVIEWER_DOMAIN", "REVIEWER_ROLE_ID", "BOOTSTRAP_RECEIPT_DIGEST", "REVIEW_RECEIPT_ID", "DECISION", "DIFF_EVIDENCE", "TEST_EVIDENCE", "NEGATIVE_CONTROL_EVIDENCE"],
+    "negative_cases_required": ["SELF_REVIEW", "STALE_HEAD", "REVIEW_REPLAY", "WRONG_REVIEWER_AGENT", "WRONG_REVIEWER_DOMAIN"],
+    "identity_assurance_boundary": {
+      "repository_bootstrap_is_cryptographic_agent_identity": false,
+      "separate_external_orchestrator_process_attestation_required": true,
+      "agent_id_string_alone_establishes_independence": false,
+      "bootstrap_receipt_alone_grants_merge_or_promotion_authority": false
+    },
     "fail_closed": "If reviewer independence, qualification, exact-head binding, evidence, or provenance cannot be established, the review state is BLOCKED and cannot be promoted."
   }
 }

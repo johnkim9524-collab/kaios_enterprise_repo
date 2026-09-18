@@ -89,6 +89,24 @@ assert(autonomousReview?.domain_routing?.provider_rights_evidence === 'TRACK_Z_O
 assert(autonomousReview?.domain_routing?.security_credentials_tls_ssh === 'SECURITY_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_SECURITY_ROUTING');
 assert(autonomousReview?.domain_routing?.data_runtime_storage === 'DATA_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_DATA_ROUTING');
 assert(autonomousReview?.domain_routing?.governance_independence_and_provenance === 'KPMO', 'AUTONOMOUS_REVIEW_GOVERNANCE_ROUTING');
+assert(autonomousReview?.qualification_registry_path === files.roles, 'AUTONOMOUS_REVIEW_QUALIFICATION_REGISTRY');
+for (const [domain, roleIds] of Object.entries({
+  provider_rights_evidence: ['track-b-rankability', 'editorial-rights-reviewer'],
+  security_credentials_tls_ssh: ['qa-release-manager', 'incident-manager'],
+  data_runtime_storage: ['qa-release-manager', 'incident-manager'],
+  portal: ['track-c-portal-v502'],
+  governance_independence_and_provenance: ['integration-conductor'],
+})) {
+  assert(exactJson(autonomousReview?.registered_role_routing?.[domain], roleIds), `AUTONOMOUS_REVIEW_ROLE_ROUTING:${domain}`);
+  for (const roleId of roleIds) assert(roles.roles?.some((role) => role.role_id === roleId), `AUTONOMOUS_REVIEW_UNKNOWN_ROLE:${roleId}`);
+}
+const expectedReviewBindingFields = ['IMPLEMENTER_AGENT_ID','REVIEWER_AGENT_ID','ASSIGNED_REVIEWER_AGENT_ID','IMPLEMENTER_SESSION_ID','REVIEWER_SESSION_ID','EXACT_HEAD_SHA','REVIEWED_HEAD_SHA','REQUIRED_DOMAIN','REVIEWER_DOMAIN','REVIEWER_ROLE_ID','BOOTSTRAP_RECEIPT_DIGEST','REVIEW_RECEIPT_ID','DECISION','DIFF_EVIDENCE','TEST_EVIDENCE','NEGATIVE_CONTROL_EVIDENCE'];
+assert(exactJson(autonomousReview?.review_binding_required_fields, expectedReviewBindingFields), 'AUTONOMOUS_REVIEW_BINDING_FIELDS');
+assert(exactJson(autonomousReview?.negative_cases_required, ['SELF_REVIEW','STALE_HEAD','REVIEW_REPLAY','WRONG_REVIEWER_AGENT','WRONG_REVIEWER_DOMAIN']), 'AUTONOMOUS_REVIEW_NEGATIVE_CASES');
+assert(autonomousReview?.identity_assurance_boundary?.repository_bootstrap_is_cryptographic_agent_identity === false, 'AUTONOMOUS_REVIEW_BOOTSTRAP_IDENTITY_INFLATION');
+assert(autonomousReview?.identity_assurance_boundary?.separate_external_orchestrator_process_attestation_required === true, 'AUTONOMOUS_REVIEW_EXTERNAL_PROCESS_ATTESTATION');
+assert(autonomousReview?.identity_assurance_boundary?.agent_id_string_alone_establishes_independence === false, 'AUTONOMOUS_REVIEW_AGENT_ID_INFLATION');
+assert(autonomousReview?.identity_assurance_boundary?.bootstrap_receipt_alone_grants_merge_or_promotion_authority === false, 'AUTONOMOUS_REVIEW_BOOTSTRAP_AUTHORITY_INFLATION');
 for (const gate of ['PRODUCTION','PUBLIC_RELEASE','G5','EXPANDED_CREDENTIAL_OR_PERMISSION','SECURITY_POLICY_WEAKENING','DESTRUCTIVE_OPERATION_OR_HISTORY_REWRITE','EXTERNAL_SPEND','LEGAL_OR_COMMERCIAL_COMMITMENT']) {
   assert(autonomousReview?.human_owner_gates?.includes(gate), `AUTONOMOUS_REVIEW_OWNER_GATE:${gate}`);
 }
