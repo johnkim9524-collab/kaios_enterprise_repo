@@ -16,7 +16,7 @@ mode="${1:?usage: run-postgres-verifier-through-ssh-tunnel.sh source|restore}"
 [[ -f "$KAIOS_STAGING_SSH_KEY_PATH" ]] || { echo 'SSH key is missing' >&2; exit 66; }
 [[ -f "$KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH" ]] || { echo 'SSH known_hosts is missing' >&2; exit 66; }
 
-for command_name in python3 ssh psql pg_isready; do
+for command_name in python3 ssh psql; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
@@ -471,6 +471,84 @@ case "$mode" in
   source) export KAIOS_POSTGRES_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
   restore) export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
 esac
+
+case "$mode" in
+  source) probe_dsn="$KAIOS_POSTGRES_DSN" ;;
+  restore) probe_dsn="$KAIOS_POSTGRES_PITR_RESTORE_DSN" ;;
+esac
+set +e
+PGDATABASE="$probe_dsn" psql \
+  --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --command='SELECT 1' \
+  > "$runtime_root/libpq-probe.stdout" \
+  2> "$runtime_root/libpq-probe.stderr"
+libpq_probe_rc=$?
+set -e
+unset probe_dsn
+
+libpq_probe_classification="$(python3 - "$network_diagnostic_path" "$runtime_root/libpq-probe.stderr" "$libpq_probe_rc" <<'PY'
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
+diagnostic_path = Path(sys.argv[1])
+stderr_path = Path(sys.argv[2])
+return_code = int(sys.argv[3])
+diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8'))
+message = stderr_path.read_text(encoding='utf-8', errors='replace').lower()
+
+if return_code == 0:
+    classification = 'READ_ONLY_QUERY_PASS'
+    state = 'PASS'
+else:
+    state = 'FAIL'
+    classifiers = (
+        ('PASSWORD_AUTHENTICATION_REJECTED', r'password authentication failed|no password supplied'),
+        ('NO_PG_HBA_OR_TRUSTED_SOURCE_ADMISSION', r'no pg_hba\.conf entry|not in trusted sources|trusted source'),
+        ('DATABASE_NOT_FOUND', r'database [^\n]+ does not exist'),
+        ('ROLE_NOT_FOUND', r'role [^\n]+ does not exist'),
+        ('TLS_CERTIFICATE_VERIFICATION_FAILED', r'certificate verify failed|root certificate file|server certificate'),
+        ('TLS_OR_CONNECTION_EOF', r'unexpected eof|ssl syscall error|connection.*closed unexpectedly'),
+        ('CONNECTION_TIMEOUT', r'timeout expired|connection timed out'),
+        ('CONNECTION_REFUSED', r'connection refused'),
+        ('DNS_RESOLUTION_FAILED', r'could not translate host name|name or service not known|temporary failure in name resolution'),
+        ('SERVER_CAPACITY_REJECTED', r'too many connections|remaining connection slots are reserved'),
+    )
+    classification = next(
+        (name for name, pattern in classifiers if re.search(pattern, message)),
+        'UNCLASSIFIED_LIBPQ_FAILURE',
+    )
+
+diagnostic['libpq_readonly_probe'] = {
+    'state': state,
+    'classification': classification,
+    'return_code': return_code,
+    'sql_statement_class': 'READ_ONLY_CONSTANT_SELECT',
+    'mutation_performed': False,
+    'credential_value_emitted': False,
+}
+diagnostic['root_cause_class'] = (
+    'LIBPQ_READ_ONLY_QUERY_REACHABLE'
+    if return_code == 0
+    else f'LIBPQ_{classification}'
+)
+temporary_path = diagnostic_path.with_suffix('.tmp')
+temporary_path.write_text(
+    json.dumps(diagnostic, separators=(',', ':'), sort_keys=True),
+    encoding='utf-8',
+)
+os.replace(temporary_path, diagnostic_path)
+print(classification)
+PY
+)"
+
+if (( libpq_probe_rc != 0 )); then
+  echo "POSTGRES_CONNECTION: libpq read-only probe classified ${libpq_probe_classification}" >&2
+  emit_failure_receipt 70
+  exit 70
+fi
 
 set +e
 bash "$verifier" > "$runtime_root/verifier.json"
