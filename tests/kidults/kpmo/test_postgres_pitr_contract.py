@@ -652,6 +652,14 @@ def test_restore_verifier_rejects_invalid_restore_evidence(
 
 
 def _validate_source_workflow_contract(source: str) -> None:
+    assert "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED" not in source
+    assert re.search(r"^  workflow_dispatch:\s*$", source, flags=re.MULTILINE)
+    assert not re.search(r"^  push:\s*$", source, flags=re.MULTILINE)
+    assert "EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}" in source
+    assert "AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}" in source
+    assert "AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}" in source
+    assert "test \"$GITHUB_RUN_ATTEMPT\" = \"1\"" in source
+    assert "datetime.timedelta(minutes=60)" in source
     assert "WAITING_FOR_EXTERNAL_RESTORE" in source
     assert "KIDULTS_STAGING_POSTGRES_PITR_RESTORE_DSN" not in source
     assert "verify-postgres-target-time-restore.sh" not in source
@@ -676,6 +684,12 @@ def _restore_verifier_invocation_block(source: str) -> str:
 
 
 def _validate_restore_workflow_contract(source: str) -> None:
+    assert "KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED" not in source
+    assert "EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}" in source
+    assert "AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}" in source
+    assert "AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}" in source
+    assert "test \"$GITHUB_RUN_ATTEMPT\" = \"1\"" in source
+    assert "datetime.timedelta(minutes=60)" in source
     block = _restore_verifier_invocation_block(source)
     for variable, local_name, fixture_key in (
         (
