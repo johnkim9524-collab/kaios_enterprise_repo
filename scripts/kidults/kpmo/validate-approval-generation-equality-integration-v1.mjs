@@ -106,7 +106,7 @@ requireValue(liveValidator.includes('final_live_reread: true'), 'LIVE_VALIDATOR_
 
 requireValue(readinessWorkflow.includes('Enforce active approval-generation equality before readiness'), 'READINESS_STEP_NAME');
 requireValue(readinessWorkflow.includes('validate-approval-generation-equality-live-pr-v1.mjs'), 'READINESS_SCRIPT');
-requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs') < readinessWorkflow.indexOf('Enforce exact-head solo-owner authorization'), 'READINESS_ORDER');
+requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs') < readinessWorkflow.indexOf('Enforce exact-head Owner authorization, independent review, and ruleset monotonicity'), 'READINESS_ORDER');
 
 requireValue(isActiveApprovalRecord(terminalV1) === false, 'TERMINAL_V1_MUST_REMAIN_NON_AUTHORITY');
 
@@ -165,7 +165,7 @@ console.log(JSON.stringify({
   same_candidate_blob_different_main_rejected: true,
   stale_canonical_comment_rejected: true,
   terminal_records_non_authority: true,
-  policy_version_exact: '1.6.0',
+  policy_version_exact: '1.7.0',
   one_use_replay_defense_integrated: true,
   provider_credentials_resolved: false,
   external_requests: 0,
