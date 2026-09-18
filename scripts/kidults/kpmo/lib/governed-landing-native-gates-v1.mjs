@@ -210,22 +210,26 @@ export function assertAutonomousIndependentReview(comments, {
       if (!storeSigner || storeSigner.revoked === true || envelope.signature_algorithm !== 'Ed25519'
           || readback?.signer_identity_and_version === approved.payload.signer_identity_and_version
           || storeSigner.public_key_pem === controllerSigner?.public_key_pem
-          || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)
-          || Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
+          || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)) continue;
+      if (Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
           || readback.version !== 'kidults-protected-review-durable-readback-v1'
-          || readback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE'
-          || readback.state !== 'CONSUMED_EXACTLY_ONCE'
+          || readback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE') {
+        fail('AUTONOMOUS_REVIEW_DURABLE_SIGNED_READBACK_SCHEMA_INVALID');
+      }
+      if (readback.attestation_id !== approved.payload.attestation_id) continue;
+      if (readback.state !== 'CONSUMED_EXACTLY_ONCE'
           || readback.repository !== repository || Number(readback.pull_request) !== Number(prNumber)
           || readback.exact_base_sha !== baseSha || readback.exact_head_sha !== headSha
           || readback.exact_head_tree_sha !== headTreeSha
-          || readback.attestation_id !== approved.payload.attestation_id
           || readback.operation_binding_digest !== expectedOperationDigest
           || String(readback.landing_run_id) !== String(operationBinding.landing_run_id)
           || String(readback.landing_run_attempt) !== String(operationBinding.landing_run_attempt)
           || readback.current_revocation_epoch !== trust.current_revocation_epoch
           || readback.current_revocation_epoch < approved.payload.revocation_epoch
           || !ID_PATTERN.test(readback.consumption_id || '')
-          || !Number.isFinite(Date.parse(readback.consumed_at))) continue;
+          || !Number.isFinite(Date.parse(readback.consumed_at))) {
+        fail('AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
+      }
       matchedReadbacks.push({readback, signature_digest: `sha256:${createHash('sha256').update(envelope.signature_base64).digest('hex')}`});
     }
     if (matchedReadbacks.length !== 1) fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');

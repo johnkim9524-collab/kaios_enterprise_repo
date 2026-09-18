@@ -416,15 +416,15 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, landing_run_attempt: 2})], {
     ...input, requireDurableConsumption: true,
     operationBinding,
-  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  }), 'AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, current_revocation_epoch: 3})], {
     ...input, requireDurableConsumption: true,
     operationBinding,
-  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  }), 'AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, state: 'REPLAYED'})], {
     ...input, requireDurableConsumption: true,
     operationBinding,
-  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  }), 'AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
   const {privateKey: forgedStoreKey} = generateKeyPairSync('ed25519');
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback, forgedStoreKey)], {
     ...input, requireDurableConsumption: true, operationBinding,
@@ -454,6 +454,22 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback), storeCommentFor({...durableReadback, consumption_id: 'durable-consumption-duplicate'})], {
     ...input, requireDurableConsumption: true, operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  for (const [label, priorOperation] of [
+    ['run', {...operationBinding, landing_run_id: 699}],
+    ['attempt', {...operationBinding, landing_run_attempt: 2}],
+    ['authorization', {...operationBinding, authorization_id_digest: `sha256:${'7'.repeat(64)}`}],
+  ]) {
+    const priorReadback = {
+      ...durableReadback,
+      landing_run_id: priorOperation.landing_run_id,
+      landing_run_attempt: priorOperation.landing_run_attempt,
+      operation_binding_digest: `sha256:${createHash('sha256').update(canonicalJson(priorOperation)).digest('hex')}`,
+      consumption_id: `durable-consumption-prior-${label}`,
+    };
+    code(() => assertAutonomousIndependentReview([
+      commentFor(payload), storeCommentFor(priorReadback), storeCommentFor(durableReadback),
+    ], {...input, requireDurableConsumption: true, operationBinding}), 'AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
+  }
   assert.equal(sameAutonomousReview(consumed, consumed), true);
   for (const mutation of [
     {attestation_id: 'attestation-1580-replaced'},
