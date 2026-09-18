@@ -1,6 +1,9 @@
 name: KIDULTS Global Standard Preproduction Gate
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - 'coordination/kidults/kpmo/**'
@@ -27,9 +30,22 @@ jobs:
           node --check scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
           node --check scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
           node --check scripts/kidults/governance/validate-value-chain-completion-scorecard-v1.mjs
+          node --check scripts/kidults/governance/validate-value-chain-completion-scorecard-binding-regression-v1.mjs
       - name: Validate global-standard completion gate
         run: node scripts/kidults/governance/validate-global-standard-preproduction-gate-v1.mjs
       - name: Validate release assurance foundation
         run: node scripts/kidults/governance/validate-release-assurance-foundation-v1.mjs
       - name: Validate evidence-based completion scorecard
+        env:
+          KIDULTS_SCORECARD_RECEIPT_PATH: ${{ runner.temp }}/kidults-value-chain-scorecard-runtime-binding-receipt-v1.json
         run: node scripts/kidults/governance/validate-value-chain-completion-scorecard-v1.mjs
+      - name: Reject self-referential and stale scorecard bindings
+        run: node scripts/kidults/governance/validate-value-chain-completion-scorecard-binding-regression-v1.mjs
+      - name: Preserve scorecard runtime binding receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-value-chain-scorecard-runtime-binding-receipt-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-value-chain-scorecard-runtime-binding-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30
