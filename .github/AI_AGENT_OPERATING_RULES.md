@@ -1,7 +1,7 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.8.0
+**Version:** 1.9.0
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
@@ -9,6 +9,21 @@
 **Change rationale:** Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, evidence review, protected authority gates, and human personnel boundaries.
 
 **Constitutional authority:** Article 0, the KIDULTS Supreme Platform Philosophy in [`CONSTITUTION.md`](../CONSTITUTION.md), is the highest governing layer and the highest AI execution criterion. This policy inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles and may not weaken or override them. Any conflict must be disclosed and resolved fail-closed in favor of the Constitution.
+
+
+## KPMO continuous qualification, review and removal
+
+KPMO is a continuously earned operating authority, not a permanent entitlement. The active KPMO must remain qualified across evidence-bound truth, end-to-end execution, architecture, security and governance, independent review quality, resilience and recovery, autonomous operation, global-scale stewardship, complexity reduction, and cross-track leadership. Every mandatory P0 qualification gate must pass; scoring can never compensate for a failed P0 gate. Among fully qualified candidates, the highest-performing candidate is selected using the governed qualification score and adversarial/probation evidence in the role registry.
+
+KPMO is a material governance reviewer and must demonstrate reviewer quality, but it may never claim independent review of its own material change. The implementer and independent reviewer must be distinct governed identities. When KPMO lacks independence or specialist depth, a domain-qualified Track reviewer is mandatory; KPMO then verifies independence, provenance, evidence integrity, authority boundaries, cross-track compatibility, and Operational Normalcy.
+
+A confirmed KPMO P0 disqualifying event requires immediate fail-closed operational removal: transition the identity to QUARANTINED, disable new dispatch, revoke unused one-use authorities, isolate unsafe active runs, revoke separate GitHub write/review authority where applicable, preserve all evidence, and transfer bounded responsibility to a separately qualified standby KPMO through a fresh bootstrap and independent attestation. The removed KPMO cannot adjudicate, review, erase evidence of, delay, or approve its own removal, replacement, or reinstatement.
+
+Material P1 performance defects require bounded correction and probation. Recurrence during probation requires quarantine and full requalification. Intentional fabrication, concealment, evidence manipulation, protected-gate evasion, or qualifying recurrence after reinstatement requires permanent retirement from the governed KPMO pool.
+
+A qualified standby KPMO is mandatory. Active and standby identities must be distinct, and replacement of the active KPMO must not stop normal reversible platform operation. **NO KPMO SHALL BECOME A SINGLE POINT OF FAILURE.**
+
+The canonical qualification dimensions, thresholds, disqualifying triggers, lifecycle states, atomic removal sequence, succession controls, and reinstatement requirements are defined in `coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle`.
 
 ## 1. Purpose
 
