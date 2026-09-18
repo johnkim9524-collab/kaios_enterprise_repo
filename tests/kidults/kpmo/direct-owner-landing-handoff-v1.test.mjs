@@ -7,6 +7,8 @@ const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-ha
 const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
 const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
+const scopePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+const redTeamWorkflow = fs.readFileSync('.github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml', 'utf8');
 
 function assertUnfilteredMainPush(requiredWorkflow, name) {
   requiredWorkflow = requiredWorkflow.replace(/\r\n/g, '\n');
@@ -71,17 +73,37 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/);
-  assert.match(runner, /DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_REQUIRED/);
-  assert.match(runner, /DIRECT_OWNER_HANDOFF_EXACT_HEAD_CHANGES_REQUESTED/);
-  assert.match(runner, /pages\(\`\/pulls\/\$\{prNumber\}\/reviews\`\)/);
+  assert.doesNotMatch(runner, /DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_REQUIRED/);
+  assert.match(runner, /autonomousContexts/);
+  assert.match(runner, /autonomous_exact_head_verification/);
+  assert.match(runner, /human_review_required: false/);
   assert.match(runner, /evaluateAtomicLandingOneUseRunSet/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_RULESET_BYPASS_FORBIDDEN/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS/);
-  assert.match(runner, /evaluateRequiredCheckRuns\(runs, scopePolicy\.technical_base_contexts\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_FINAL_SCOPE_STATUS_NOT_SUCCESS/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_DRIFT_AFTER_WINDOW/);
+  assert.match(runner, /evaluateRequiredCheckRuns\(runs, autonomousContexts\)/);
   assert.match(runner, /await publish\('success', `Direct Owner UI merge authorized/);
   assert.match(runner, /await publish\('pending', 'Direct Owner handoff expired unconsumed; fresh authorization required'\)/);
   assert.match(runner, /await publish\('failure'/);
+});
+
+test('autonomous landing requires CI plus full-value-chain Red-Team for every PR', () => {
+  assert.deepEqual(scopePolicy.technical_base_contexts, [
+    'KAIOS Solo Owner Preflight',
+    'Validate KAIOS Foundation',
+    'Validate Production Container',
+  ]);
+  assert.deepEqual(scopePolicy.autonomous_verification_contexts, ['full-value-chain-redteam']);
+  const normalized = redTeamWorkflow.replace(/\r\n/g, '\n');
+  const pullRequest = normalized.match(/^  pull_request:\n([\s\S]*?)(?=^  push:|^  workflow_dispatch:)/m);
+  assert.ok(pullRequest, 'full-value-chain Red-Team pull_request trigger is required');
+  assert.match(pullRequest[1], /^    branches:/m);
+  assert.doesNotMatch(pullRequest[1], /^    paths:/m,
+    'autonomous Red-Team cannot be path-filtered because scope aggregation requires it for every PR');
+  assert.match(atomic, /autonomous_exact_head_verification/);
+  assert.match(atomic, /human_review_required: false/);
 });
 
 test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
