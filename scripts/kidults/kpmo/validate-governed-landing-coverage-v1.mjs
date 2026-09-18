@@ -31,10 +31,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.6.0', 'POLICY_VERSION');
-  require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
-  require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
-  require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
+  require(policy.version === '1.7.0', 'POLICY_VERSION');
+  require(policy.status === 'PROGRAM_OWNER_APPROVED_INDEPENDENT_EXACT_HEAD_REVIEW', 'POLICY_STATUS');
+  require(policy.governance_mode === 'OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED', 'GOVERNANCE_MODE');
+  require(policy.decision_id === 'JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18', 'DECISION_ID');
   for (const prefix of requiredPrefixes) {
     require(prefixes.has(prefix), `POLICY_PREFIX_MISSING:${prefix}`);
     require(workflow.includes(`'${prefix}'`), `WORKFLOW_PREFIX_MISSING:${prefix}`);
@@ -62,11 +62,13 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
   const review = policy.review_policy || {};
-  require(review.minimum_non_author_approvals === 0, 'APPROVAL_COUNT_NOT_ZERO');
+  require(review.minimum_non_author_approvals === 1, 'INDEPENDENT_APPROVAL_COUNT_MUST_BE_ONE');
   require(review.self_review_counts === false, 'SELF_REVIEW_MUST_NOT_COUNT_AS_INDEPENDENT');
   require(review.solo_owner_author_must_match_repository_owner === true, 'OWNER_IDENTITY');
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
-  require(review.ready_state_by_owner_is_authorization === true, 'OWNER_READY_AUTHORIZATION');
+  require(review.ready_state_by_owner_is_authorization === false, 'OWNER_READY_MUST_NOT_BE_FINAL_AUTHORIZATION');
+  require(review.independent_exact_head_approval_required === true, 'INDEPENDENT_EXACT_HEAD_REVIEW_REQUIRED');
+  require(review.independent_review_root_issue === 1582, 'INDEPENDENT_REVIEW_ROOT_ISSUE');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
@@ -97,8 +99,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "pr.user?.login!==repository.owner?.login",
     "pr.head?.repo?.full_name!==repo",
     "readinessReceipt.actor!==repository.owner?.login",
-    "state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD'",
-    'required_approval_count:0',
+    "state:'AUTHORIZED_OWNER_WITH_INDEPENDENT_EXACT_HEAD_REVIEW'",
+    'required_approval_count:requiredApprovalCount',
+    'independent exact-head approval required',
+    'independent_exact_head_approvals',
     'ruleset bypass actor detected',
     "pr.state !== 'open' || pr.merged === true",
     "['no-merge','do-not-merge','merge-hold']",
