@@ -7,7 +7,7 @@ import {
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from './lib/approval-generation-equality-v1.mjs';
-import {assertGovernedLandingAuthorizationPolicyV170} from './lib/governed-landing-authorization-policy-v1.mjs';
+import {assertGovernedLandingAuthorizationPolicyV180} from './lib/governed-landing-authorization-policy-v1.mjs';
 
 const requireValue = (condition, code) => {
   if (!condition) throw new Error(`APPROVAL_GENERATION_INTEGRATION_FAIL:${code}`);
@@ -25,14 +25,25 @@ const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-eq
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-assertGovernedLandingAuthorizationPolicyV170(policy);
-requireValue(policy.version === '1.7.0', 'POLICY_VERSION');
-requireValue(policy.review_policy?.minimum_non_author_approvals === 1, 'POLICY_INDEPENDENT_REVIEW_COUNT');
+assertGovernedLandingAuthorizationPolicyV180(policy);
+requireValue(policy.version === '1.8.0', 'POLICY_VERSION');
+requireValue(policy.review_policy?.minimum_non_author_approvals === 0, 'POLICY_HUMAN_REVIEW_COUNT');
 requireValue(policy.review_policy?.self_review_counts === false, 'POLICY_SELF_REVIEW_FORBIDDEN');
 requireValue(policy.review_policy?.approval_must_bind_exact_head_sha === true, 'POLICY_REVIEW_EXACT_HEAD');
 requireValue(policy.review_policy?.ready_state_by_owner_is_authorization === false, 'POLICY_READY_NOT_FINAL_AUTHORITY');
-requireValue(policy.review_policy?.independent_exact_head_approval_required === true, 'POLICY_INDEPENDENT_REVIEW_REQUIRED');
-requireValue(policy.review_policy?.independent_review_root_issue === 1582, 'POLICY_INDEPENDENT_REVIEW_ROOT');
+requireValue(policy.review_policy?.independent_exact_head_approval_required === false, 'POLICY_HUMAN_REVIEW_NOT_REQUIRED');
+requireValue(policy.review_policy?.human_review_mode === 'OPTIONAL_ADVISORY_EXACT_HEAD_ONLY', 'POLICY_HUMAN_REVIEW_MODE');
+requireValue(policy.review_policy?.independent_review_root_issue === 1582, 'POLICY_REVIEW_ROOT');
+const autonomous = policy.autonomous_verification_policy || {};
+requireValue(autonomous.mode === 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD', 'POLICY_AUTONOMOUS_MODE');
+requireValue(autonomous.required === true, 'POLICY_AUTONOMOUS_REQUIRED');
+requireValue(autonomous.human_review_required === false, 'POLICY_AUTONOMOUS_HUMAN_REVIEW_FALSE');
+requireValue(autonomous.owner_exact_head_approval_separate_required === true, 'POLICY_OWNER_APPROVAL_SEPARATE');
+requireValue(autonomous.internal_control_evidence_only === true, 'POLICY_INTERNAL_CONTROL_ONLY');
+requireValue(autonomous.empirical_launch_authority === false, 'POLICY_NO_EMPIRICAL_AUTHORITY');
+for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container','full-value-chain-redteam']) {
+  requireValue(autonomous.required_check_contexts?.includes(context), `POLICY_AUTONOMOUS_CONTEXT:${context}`);
+}
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
@@ -106,7 +117,7 @@ requireValue(liveValidator.includes('final_live_reread: true'), 'LIVE_VALIDATOR_
 
 requireValue(readinessWorkflow.includes('Enforce active approval-generation equality before readiness'), 'READINESS_STEP_NAME');
 requireValue(readinessWorkflow.includes('validate-approval-generation-equality-live-pr-v1.mjs'), 'READINESS_SCRIPT');
-requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs') < readinessWorkflow.indexOf('Enforce exact-head Owner authorization, independent review, and ruleset monotonicity'), 'READINESS_ORDER');
+requireValue(readinessWorkflow.indexOf('validate-approval-generation-equality-live-pr-v1.mjs') < readinessWorkflow.indexOf('Enforce exact-head Owner authorization, autonomous verification contract, and ruleset monotonicity'), 'READINESS_ORDER');
 
 requireValue(isActiveApprovalRecord(terminalV1) === false, 'TERMINAL_V1_MUST_REMAIN_NON_AUTHORITY');
 
@@ -165,7 +176,7 @@ console.log(JSON.stringify({
   same_candidate_blob_different_main_rejected: true,
   stale_canonical_comment_rejected: true,
   terminal_records_non_authority: true,
-  policy_version_exact: '1.7.0',
+  policy_version_exact: '1.8.0',
   one_use_replay_defense_integrated: true,
   provider_credentials_resolved: false,
   external_requests: 0,
