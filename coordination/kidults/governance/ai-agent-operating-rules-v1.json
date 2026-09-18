@@ -607,6 +607,17 @@
     "intentional_fabrication_concealment_evasion_or_post_reinstatement_recurrence_requires_permanent_retirement": true,
     "standby_takeover_requires_fresh_bootstrap_and_independent_attestation": true,
     "normal_reversible_operation_must_continue_during_kpmo_replacement": true,
-    "principle_no_kpmo_spof": true
+    "principle_no_kpmo_spof": true,
+    "kqac_required": true,
+    "conflicted_subject_implementer_and_reviewer_recusal_required": true,
+    "objective_p0_security_evidence_and_attestation_gates_precede_committee_findings": true,
+    "chair_or_majority_may_override_failed_technical_evidence": false,
+    "minority_findings_preserved": true,
+    "review_quality_bound_to_downstream_operational_outcomes": true,
+    "external_qualification_and_review_attestation_required": true,
+    "repository_code_may_manufacture_active_or_standby_authority": false,
+    "active_kpmo_may_mutate_own_quarantine_state": false,
+    "positive_appointment_failover_review_and_reinstatement_canaries_required": true,
+    "activation_before_external_trust_root_and_distinct_hot_standby_verified": false
   }
 }

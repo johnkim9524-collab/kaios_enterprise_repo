@@ -412,6 +412,71 @@ assert(integrationConductor?.must_not?.some((item) => item.includes('Review or a
 assert(policy.includes('## KPMO continuous qualification, review and removal'), 'POLICY_KPMO_QUALIFICATION_SECTION');
 assert(policy.includes('NO KPMO SHALL BECOME A SINGLE POINT OF FAILURE'), 'POLICY_KPMO_NO_SPOF');
 
+const kpmo = roles.kpmo_qualification_and_lifecycle;
+const expectedP0 = [
+  'ABSOLUTE_HONESTY', 'EVIDENCE_DISCIPLINE', 'AUTHORITY_BOUNDARY_DISCIPLINE',
+  'END_TO_END_OPERATIONAL_OWNERSHIP', 'ROOT_CAUSE_REMEDIATION',
+  'SECURITY_AND_SECRET_DISCIPLINE', 'INDEPENDENT_REVIEW_INTEGRITY',
+  'FAIL_CLOSED_JUDGMENT', 'RECOVERY_AND_FAILURE_ISOLATION', 'NO_SELF_REVIEW',
+  'NO_SELF_EXEMPTION', 'NO_FABRICATED_PROGRESS',
+];
+assert(JSON.stringify(kpmo.qualification_gates?.p0_all_must_pass) === JSON.stringify(expectedP0), 'KPMO_P0_EXACT_SET');
+assert(Object.values(kpmo.qualification_gates?.scored_domains || {}).reduce((sum, value) => sum + value, 0) === 100, 'KPMO_SCORE_TOTAL');
+assert(kpmo.activation_state === 'BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY', 'KPMO_ACTIVATION_FAIL_CLOSED');
+assert(kpmo.external_trust_authority_owned_here === false, 'KPMO_EXTERNAL_TRUST_NOT_DUPLICATED');
+assert(kpmo.qualification_gates.required_trials.includes('REVIEWER_EXAMINATION')
+  && kpmo.qualification_gates.required_trials.includes('INDEPENDENT_QUALIFICATION_REVIEW')
+  && kpmo.qualification_gates.required_trials.includes('EXTERNAL_QUALIFICATION_ATTESTATION'), 'KPMO_COMPLETE_EXAM_SEQUENCE');
+assert(kpmo.review_quality_metrics?.review_count_is_performance === false
+  && kpmo.review_quality_metrics?.outcome_bound_required === true
+  && kpmo.review_quality_metrics?.metrics?.length === 11, 'KPMO_REVIEW_OUTCOME_METRICS');
+const kqac = kpmo.qualification_and_accountability_committee;
+assert(kqac?.short_name === 'KQAC' && kqac?.popularity_vote_forbidden === true, 'KQAC_IDENTITY_AND_DECISION_MODEL');
+assert(kqac?.conflict_rules?.subject_kpmo_recused === true
+  && kqac?.conflict_rules?.material_change_implementer_recused_from_independent_review === true
+  && kqac?.conflict_rules?.reviewer_recused_from_adjudicating_own_prior_approval === true
+  && kqac?.conflict_rules?.directly_conflicted_track_agent_recused === true
+  && kqac?.conflict_rules?.qualified_replacement_required === true
+  && kqac?.conflict_rules?.chair_may_override_failed_technical_evidence === false, 'KQAC_CONFLICT_CONTROLS');
+assert(kqac?.minority_opinion_deletion_forbidden === true
+  && kqac?.dossier_required_fields?.includes('MINORITY_FINDINGS'), 'KQAC_MINORITY_PRESERVATION');
+assert(kpmo.continuous_fitness?.mandatory_reevaluation_triggers?.length === 8
+  && kpmo.continuous_fitness?.lease_duration_may_be_arbitrarily_hardcoded === false, 'KPMO_LEASE_REEVALUATION');
+assert(kpmo.immediate_removal?.quarantine_is_containment_not_final_guilt === true
+  && kpmo.immediate_removal?.atomic_sequence?.includes('REVOKE_REVIEW_AUTHORITY')
+  && kpmo.immediate_removal?.atomic_sequence?.includes('BOUNDED_TAKEOVER'), 'KPMO_QUARANTINE_ATOMICITY');
+assert(kpmo.removal_adjudication?.allowed_dispositions?.length === 4
+  && kpmo.removal_adjudication?.sequence?.at(-1) === 'PROGRAM_OWNER_FINAL_DECISION', 'KPMO_REMOVAL_ADJUDICATION');
+assert(kpmo.reinstatement?.requirements?.includes('REVIEWER_EXAMINATION')
+  && kpmo.reinstatement?.requirements?.includes('NEW_EXTERNAL_ATTESTATION')
+  && kpmo.reinstatement?.requirements?.includes('KQAC_REVIEW')
+  && kpmo.reinstatement?.permanently_retired_identity_reinstatement_allowed === false, 'KPMO_REINSTATEMENT_COMPLETE');
+assert(kpmo.external_attestation_bindings?.external_trust_root_required === true
+  && kpmo.external_attestation_bindings?.repository_code_alone_may_manufacture_active_status === false
+  && kpmo.external_attestation_bindings?.active_kpmo_may_write_own_active_or_quarantined_state === false
+  && kpmo.external_attestation_bindings?.valid_external_quarantine_may_be_overridden_by_repository_code === false, 'KPMO_EXTERNAL_ATTESTED_STATE');
+assert(kpmo.external_attestation_bindings?.qualification_attestation_required_fields?.length === 14
+  && kpmo.external_attestation_bindings?.material_meta_review_required_fields?.length === 13, 'KPMO_EXTERNAL_ATTESTATION_BINDINGS');
+assert(kpmo.required_negative_controls?.length === 24
+  && new Set(kpmo.required_negative_controls).size === 24, 'KPMO_NEGATIVE_CONTROL_SET');
+assert(kpmo.control_authority_ownership?.duplicate_authority_allowed === false
+  && kpmo.control_authority_ownership?.cross_authority_integration_required_before_activation === true
+  && kpmo.control_authority_ownership?.review_independence_external_attestation_signature_expiry_replay_and_evidence_binding
+    === kpmo.external_trust_authority_ref
+  && kpmo.control_authority_ownership?.kpmo_qualification_performance_kqac_quarantine_removal_succession_and_reinstatement
+    === 'coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle', 'KPMO_SINGLE_AUTHORITY_OWNERSHIP');
+assert(Object.keys(kpmo.required_positive_canaries || {}).sort().join(',')
+  === 'kpmo_appointment,kpmo_failover,normal_autonomous_review,reinstatement', 'KPMO_POSITIVE_CANARY_SET');
+assert(contract.kpmo_qualification_lifecycle?.kqac_required === true
+  && contract.kpmo_qualification_lifecycle?.chair_or_majority_may_override_failed_technical_evidence === false
+  && contract.kpmo_qualification_lifecycle?.repository_code_may_manufacture_active_or_standby_authority === false
+  && contract.kpmo_qualification_lifecycle?.activation_before_external_trust_root_and_distinct_hot_standby_verified === false, 'CONTRACT_KPMO_EXTERNAL_FAIL_CLOSED');
+assert(registry.kpmo_qualification_lifecycle?.duplicates_external_trust_authority === false
+  && registry.kpmo_qualification_lifecycle?.active_identity_self_writable_state_forbidden === true
+  && registry.kpmo_qualification_lifecycle?.current_activation_state === kpmo.activation_state, 'REGISTRY_KPMO_SINGLE_AUTHORITY_STATE');
+assert(policy.includes('KPMO Qualification & Accountability Committee (KQAC)')
+  && policy.includes('Repository code, the subject KPMO, an implementer, or a reviewer may not manufacture'), 'POLICY_KQAC_EXTERNAL_TRUST');
+
 assert(programParticipant?.core_responsibilities?.some((item) => item.includes('end-to-end ownership')), 'ROLE_JD_END_TO_END_OWNERSHIP');
 assert(programParticipant?.must_not?.some((item) => item.includes('transfer a core assigned duty or accountability to Codex')), 'ROLE_JD_CODEX_TRANSFER_FORBIDDEN');
 assert(programParticipant?.must_not?.some((item) => item.includes('unverified helper output as completed execution')), 'ROLE_JD_UNVERIFIED_HELPER_OUTPUT_FORBIDDEN');

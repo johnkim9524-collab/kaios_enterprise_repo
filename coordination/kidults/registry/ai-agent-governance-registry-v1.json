@@ -498,6 +498,13 @@
     "qualified_standby_required": true,
     "confirmed_p0_atomic_quarantine": true,
     "self_reinstatement_forbidden": true,
-    "normal_reversible_operation_continues_during_replacement": true
+    "normal_reversible_operation_continues_during_replacement": true,
+    "canonical_authority": "coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle",
+    "external_trust_authority": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+    "duplicates_external_trust_authority": false,
+    "kqac_conflict_and_minority_controls_required": true,
+    "external_attestation_required_for_qualification_review_takeover_and_reinstatement": true,
+    "active_identity_self_writable_state_forbidden": true,
+    "current_activation_state": "BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY"
   }
 }

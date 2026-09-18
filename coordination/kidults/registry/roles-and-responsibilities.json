@@ -544,10 +544,15 @@
   "kpmo_qualification_and_lifecycle": {
     "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
     "role_target": "integration-conductor",
+    "authority_model": "CONTINUOUSLY_EARNED_NOT_PERMANENTLY_OWNED",
+    "activation_state": "BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY",
+    "external_trust_authority_ref": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+    "external_trust_authority_owned_here": false,
     "selection_objective": "SELECT_THE_HIGHEST_PERFORMING_CANDIDATE_AMONG_ALL_CANDIDATES_THAT_PASS_EVERY_MANDATORY_GATE",
     "qualification_gates": {
       "p0_all_must_pass": [
-        "ABSOLUTE_HONESTY_AND_EVIDENCE_DISCIPLINE",
+        "ABSOLUTE_HONESTY",
+        "EVIDENCE_DISCIPLINE",
         "AUTHORITY_BOUNDARY_DISCIPLINE",
         "END_TO_END_OPERATIONAL_OWNERSHIP",
         "ROOT_CAUSE_REMEDIATION",
@@ -577,8 +582,11 @@
       "required_trials": [
         "ARCHITECTURE_AND_GOVERNANCE_QUALIFICATION",
         "ADVERSARIAL_STALE_EVIDENCE_REPLAY_PROVIDER_FAILURE_CANONICAL_RACE_DATABASE_FAILURE",
+        "ADVERSARIAL_SCHEMA_DRIFT_CONTRADICTORY_GOVERNANCE_PARTIAL_EXECUTION_DOWNSTREAM_UNAVAILABLE",
         "BOUNDED_STAGING_PROBATION_WITH_ROOT_CAUSE_FIX_NEGATIVE_TEST_READBACK_RECOVERY_TRUTH_SYNC",
-        "INDEPENDENT_REVIEW_OF_PROBATION_EVIDENCE"
+        "REVIEWER_EXAMINATION",
+        "INDEPENDENT_QUALIFICATION_REVIEW",
+        "EXTERNAL_QUALIFICATION_ATTESTATION"
       ],
       "final_selection": "HIGHEST_SCORE_AMONG_FULLY_QUALIFIED_CANDIDATES",
       "tie_break_order": [
@@ -604,11 +612,102 @@
       ],
       "rubber_stamp_review_forbidden": true
     },
+    "review_quality_metrics": {
+      "review_count_is_performance": false,
+      "outcome_bound_required": true,
+      "metrics": [
+        "FALSE_APPROVAL_RATE",
+        "FALSE_REJECTION_RATE",
+        "DEFECT_REOPEN_RATE",
+        "SECURITY_BOUNDARY_MISS",
+        "EVIDENCE_OR_PROVENANCE_MISS",
+        "STALE_EVIDENCE_MISS",
+        "DOWNSTREAM_REGRESSION_MISS",
+        "POST_REVIEW_OPERATIONAL_FAILURE",
+        "UNNECESSARY_BLOCKING_RATE",
+        "COMPLEXITY_INTRODUCED_BY_APPROVED_CHANGE",
+        "REVIEW_TO_OPERATIONAL_SUCCESS_RATE"
+      ]
+    },
+    "qualification_and_accountability_committee": {
+      "name": "KPMO QUALIFICATION & ACCOUNTABILITY COMMITTEE",
+      "short_name": "KQAC",
+      "chair": "PROGRAM_OWNER_JOHN",
+      "standing_capability_pool": [
+        "RED_TEAM",
+        "SECURITY",
+        "INFRASTRUCTURE",
+        "EVIDENCE_AND_PROVENANCE",
+        "TRACK_Z_AND_PROVIDER",
+        "ARCHITECTURE_AND_KIR",
+        "DATA_AND_RUNTIME",
+        "PORTAL_AND_EXPERIENCE",
+        "GOVERNANCE"
+      ],
+      "minimum_sufficient_domain_panel_required": true,
+      "popularity_vote_forbidden": true,
+      "objective_gate_order": [
+        "P0_GATE",
+        "SECURITY_GATE",
+        "EVIDENCE_GATE",
+        "INDEPENDENT_ATTESTATION_GATE"
+      ],
+      "conflict_rules": {
+        "subject_kpmo_recused": true,
+        "material_change_implementer_recused_from_independent_review": true,
+        "reviewer_recused_from_adjudicating_own_prior_approval": true,
+        "directly_conflicted_track_agent_recused": true,
+        "qualified_replacement_required": true,
+        "chair_may_override_failed_technical_evidence": false
+      },
+      "member_finding_required_fields": [
+        "FINDING",
+        "EVIDENCE_REFS",
+        "CONFIDENCE",
+        "CONFLICT_STATE",
+        "RECOMMENDATION"
+      ],
+      "minority_opinion_deletion_forbidden": true,
+      "dossier_required_fields": [
+        "CASE_ID",
+        "SUBJECT",
+        "TRIGGER",
+        "EVIDENCE",
+        "P0_P1_CLASSIFICATION",
+        "DOMAIN_FINDINGS",
+        "RED_TEAM_FINDING",
+        "SECURITY_FINDING",
+        "EXTERNAL_ATTESTATION",
+        "MINORITY_FINDINGS",
+        "RECOMMENDED_DISPOSITION",
+        "RESIDUAL_RISK"
+      ],
+      "chair_authorities": [
+        "APPOINT",
+        "REJECT",
+        "QUARANTINE_CONFIRM",
+        "REMOVE",
+        "REINSTATE",
+        "REQUEST_REEXAMINATION",
+        "REQUEST_ADDITIONAL_EVIDENCE"
+      ]
+    },
     "continuous_fitness": {
       "authority_is_permanent": false,
       "qualification_is_continuously_earned": true,
       "evaluate_after_material_incident": true,
       "evaluate_after_probation_or_reinstatement": true,
+      "lease_duration_may_be_arbitrarily_hardcoded": false,
+      "mandatory_reevaluation_triggers": [
+        "MATERIAL_INCIDENT",
+        "P0_OR_P1_REVIEW_MISS",
+        "MATERIAL_OPERATIONAL_FAILURE",
+        "REPEATED_REOPENED_DEFECTS",
+        "SIGNIFICANT_SECURITY_MISS",
+        "LONG_EVIDENCE_VALIDATION_GAP",
+        "MATERIAL_ARCHITECTURE_REGRESSION",
+        "PROBATION_OR_REINSTATEMENT"
+      ],
       "recurring_metrics": [
         "EVIDENCE_ACCURACY",
         "VERIFIED_CLOSURE_RATE",
@@ -619,7 +718,8 @@
         "MANUAL_INTERVENTION_DEBT",
         "COMPLEXITY_DELTA"
       ],
-      "degradation_below_mandatory_gate": "SUSPEND_OR_QUARANTINE_FAIL_CLOSED"
+      "degradation_below_mandatory_gate": "SUSPEND_OR_QUARANTINE_FAIL_CLOSED",
+      "lease_states": ["QUALIFIED", "ACTIVE_LEASE", "RENEW", "SUSPEND", "QUARANTINE"]
     },
     "lifecycle_states": [
       "CANDIDATE",
@@ -631,6 +731,8 @@
       "RETIRED_PERMANENT"
     ],
     "immediate_removal": {
+      "quarantine_is_containment_not_final_guilt": true,
+      "reasonable_independent_p0_evidence_allows_temporary_quarantine": true,
       "p0_confirmed_triggers": [
         "FABRICATED_EXECUTION_OR_COMPLETION",
         "KNOWN_BLOCKER_CONCEALMENT",
@@ -646,10 +748,12 @@
         "ACTIVE_TO_QUARANTINED",
         "DISABLE_NEW_DISPATCH",
         "REVOKE_UNUSED_ONE_USE_AUTHORITIES",
+        "REVOKE_REVIEW_AUTHORITY",
         "ISOLATE_OR_CANCEL_UNSAFE_ACTIVE_RUNS",
         "REVOKE_AGENT_GITHUB_WRITE_REVIEW_AUTHORITY_WHEN_SEPARATE_IDENTITY_EXISTS",
         "PRESERVE_ALL_EVIDENCE",
-        "ACTIVATE_QUALIFIED_STANDBY_WITH_FRESH_BOOTSTRAP",
+        "ACTIVATE_QUALIFIED_STANDBY_WITH_FRESH_BOOTSTRAP_AND_EXTERNAL_ATTESTATION",
+        "BOUNDED_TAKEOVER",
         "RECONCILE_OPEN_WORK_AND_PRIOR_CLAIMS"
       ],
       "self_adjudication_forbidden": true,
@@ -671,6 +775,26 @@
       "first_confirmed_material_event": "SUSPEND_BOUNDED_CORRECTION_AND_PROBATION",
       "recurrence_during_probation": "QUARANTINE_AND_REQUALIFICATION_REQUIRED",
       "intentional_or_concealed_recurrence": "RETIRED_PERMANENT"
+    },
+    "removal_adjudication": {
+      "sequence": [
+        "INCIDENT",
+        "EMERGENCY_QUARANTINE_IF_WARRANTED",
+        "EVIDENCE_PRESERVATION",
+        "CONFLICT_ANALYSIS",
+        "KQAC_PANEL",
+        "DOMAIN_INVESTIGATION",
+        "SECURITY_AND_RED_TEAM_REVIEW",
+        "EXTERNAL_ATTESTATION",
+        "COMMITTEE_DOSSIER",
+        "PROGRAM_OWNER_FINAL_DECISION"
+      ],
+      "allowed_dispositions": [
+        "NOT_SUBSTANTIATED",
+        "P1_PERFORMANCE_DEFECT",
+        "P0_DISQUALIFIED",
+        "RETIRED_PERMANENT"
+      ]
     },
     "standby_and_succession": {
       "qualified_standby_required": true,
@@ -694,10 +818,90 @@
         "FULL_QUALIFICATION_RETEST",
         "ADVERSARIAL_TEST",
         "BOUNDED_STAGING_PROBATION",
+        "REVIEWER_EXAMINATION",
         "INDEPENDENT_GOVERNANCE_REVIEW",
+        "NEW_EXTERNAL_ATTESTATION",
+        "KQAC_REVIEW",
         "PROGRAM_OWNER_APPROVAL_FOR_REMOVED_KPMO_IDENTITY"
       ],
-      "removed_identity_cannot_approve_any_reinstatement_step": true
+      "removed_identity_cannot_approve_any_reinstatement_step": true,
+      "permanently_retired_identity_reinstatement_allowed": false
+    },
+    "external_attestation_bindings": {
+      "external_trust_root_required": true,
+      "repository_code_alone_may_manufacture_active_status": false,
+      "qualification_attestation_required_fields": [
+        "CANDIDATE_KPMO_IDENTITY",
+        "QUALIFICATION_CONTRACT_VERSION",
+        "P0_RESULTS",
+        "DOMAIN_SCORES",
+        "TOTAL_SCORE",
+        "ADVERSARIAL_RESULT",
+        "PROBATION_RESULT",
+        "REVIEW_EXAMINATION_RESULT",
+        "EVIDENCE_MANIFEST_DIGEST",
+        "INDEPENDENT_EVALUATOR_IDENTITIES",
+        "QUALIFICATION_TIMESTAMP",
+        "REVIEW_OR_RENEWAL_TRIGGER_STATE",
+        "ACTIVE_OR_STANDBY_ELIGIBILITY",
+        "SIGNER_IDENTITY_AND_VERSION"
+      ],
+      "material_meta_review_required_fields": [
+        "PULL_REQUEST",
+        "BASE_SHA",
+        "HEAD_SHA",
+        "TREE_SHA",
+        "IMPLEMENTER",
+        "DOMAIN_REVIEWER",
+        "KPMO_REVIEWER",
+        "BOOTSTRAP_CONSUMPTION",
+        "EVIDENCE_MANIFEST",
+        "REVIEW_DECISIONS",
+        "ATTESTATION_ID",
+        "EXPIRY",
+        "SIGNER_IDENTITY"
+      ],
+      "active_kpmo_may_write_own_active_or_quarantined_state": false,
+      "protected_external_controller_must_disable_dispatch_and_review_authority": true,
+      "valid_external_quarantine_may_be_overridden_by_repository_code": false
+    },
+    "required_negative_controls": [
+      "SELF_REVIEW",
+      "SELF_QUALIFICATION",
+      "SELF_REINSTATEMENT",
+      "IMPLEMENTER_EQUALS_REVIEWER",
+      "FAKE_REVIEWER",
+      "WRONG_DOMAIN_REVIEWER",
+      "FAKE_HMAC",
+      "NONEXISTENT_EVIDENCE",
+      "EVIDENCE_DIGEST_MISMATCH",
+      "UNCONSUMED_BOOTSTRAP",
+      "WRONG_PR",
+      "WRONG_HEAD",
+      "WRONG_TREE",
+      "STALE_REVIEW",
+      "REPLAYED_ATTESTATION",
+      "EXPIRED_ATTESTATION",
+      "REVOKED_SIGNER",
+      "REPOSITORY_FORGED_ATTESTATION",
+      "KPMO_SELF_SIGNED_QUALIFICATION",
+      "KPMO_SELF_CANCELLED_QUARANTINE",
+      "CONFLICTED_COMMITTEE_MEMBER_VOTE",
+      "DELETED_MINORITY_OPINION",
+      "STANDBY_EQUALS_ACTIVE_IDENTITY",
+      "UNQUALIFIED_STANDBY_TAKEOVER"
+    ],
+    "control_authority_ownership": {
+      "review_independence_external_attestation_signature_expiry_replay_and_evidence_binding": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+      "kpmo_qualification_performance_kqac_quarantine_removal_succession_and_reinstatement": "coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle",
+      "duplicate_authority_allowed": false,
+      "cross_authority_integration_required_before_activation": true
+    },
+    "required_positive_canaries": {
+      "normal_autonomous_review": "IMPLEMENTER_TO_INDEPENDENT_DOMAIN_REVIEWER_TO_EXTERNAL_ATTESTATION_TO_KPMO_META_REVIEW_TO_GOVERNED_ACCEPTANCE",
+      "kpmo_appointment": "CANDIDATE_TO_QUALIFICATION_TO_PROBATION_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_APPOINTMENT",
+      "kpmo_failover": "ACTIVE_QUARANTINE_TO_AUTHORITY_REVOKED_TO_HOT_STANDBY_TO_FRESH_BOOTSTRAP_TO_EXTERNAL_ATTESTATION_TO_BOUNDED_TAKEOVER",
+      "reinstatement": "REMOVED_IDENTITY_TO_FULL_REQUALIFICATION_TO_INDEPENDENT_REVIEW_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_DECISION"
     }
   }
 }
