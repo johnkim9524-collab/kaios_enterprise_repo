@@ -14,7 +14,8 @@ const targets = [
   },
   {
     path: '.github/workflows/kidults-asi-autobalance-steering-overlay-live-v1.yml',
-    prefix: 'kidults-asi-autobalance-steering-overlay-live-'
+    prefix: 'kidults-asi-autobalance-steering-overlay-live-',
+    attempt_bound_terminalizer: true
   }
 ];
 
@@ -22,13 +23,22 @@ const fail = message => {
   throw new Error(message);
 };
 
-function validateText(text, label, prefix) {
-  const requiredGroup =
+function validateText(text, label, prefix, options = {}) {
+  const baseGroup =
     `group: ${prefix}\${{ github.event_name }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}`;
+  const requiredGroup = options.attempt_bound_terminalizer
+    ? `${baseGroup}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt || github.run_attempt }}`
+    : baseGroup;
+  const requiredCancellation = options.attempt_bound_terminalizer
+    ? "cancel-in-progress: \${{ github.event_name != 'workflow_run' }}"
+    : 'cancel-in-progress: true';
   if (!text.includes('workflow_run:')) fail(`${label}: workflow_run trigger missing`);
   if (!text.includes('types: [completed]')) fail(`${label}: workflow_run must remain completed-event based`);
   if (!text.includes(requiredGroup)) fail(`${label}: exact event/run-id concurrency group missing`);
-  if (!text.includes('cancel-in-progress: true')) fail(`${label}: cancellation policy missing`);
+  if (!text.includes(requiredCancellation)) fail(`${label}: cancellation policy missing`);
+  if (options.attempt_bound_terminalizer && text.includes('cancel-in-progress: true')) {
+    fail(`${label}: terminal receipt attempts must not cancel one another`);
+  }
   const successGuard =
     "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'";
   if (!text.includes(successGuard)) fail(`${label}: upstream success guard missing or weakened`);
@@ -70,7 +80,27 @@ function runSelfTests() {
     }
     if (!rejected) fail(`self-test mutation was not rejected: ${name}`);
   }
-  return mutations.length;
+  const terminalPristine = pristine
+    .replace(
+      `group: ${prefix}\${{ github.event_name }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}`,
+      `group: ${prefix}\${{ github.event_name }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt || github.run_attempt }}`
+    )
+    .replace('cancel-in-progress: true', "cancel-in-progress: \${{ github.event_name != 'workflow_run' }}");
+  validateText(terminalPristine, 'self/terminal-pristine', prefix, { attempt_bound_terminalizer: true });
+  const terminalMutations = [
+    ['remove-attempt-binding', terminalPristine.replace("-\${{ github.event_name == 'workflow_run' && github.event.workflow_run.run_attempt || github.run_attempt }}", '')],
+    ['restore-unconditional-cancel', terminalPristine.replace("cancel-in-progress: \${{ github.event_name != 'workflow_run' }}", 'cancel-in-progress: true')]
+  ];
+  for (const [name, mutated] of terminalMutations) {
+    let rejected = false;
+    try {
+      validateText(mutated, `self/${name}`, prefix, { attempt_bound_terminalizer: true });
+    } catch {
+      rejected = true;
+    }
+    if (!rejected) fail(`terminal self-test mutation was not rejected: ${name}`);
+  }
+  return mutations.length + terminalMutations.length;
 }
 
 const mutationCount = runSelfTests();
@@ -78,7 +108,9 @@ const results = [];
 for (const target of targets) {
   const full = path.join(root, target.path);
   const text = fs.readFileSync(full, 'utf8');
-  validateText(text, target.path, target.prefix);
+  validateText(text, target.path, target.prefix, {
+    attempt_bound_terminalizer: target.attempt_bound_terminalizer === true
+  });
   results.push({ path: target.path, state: 'PASS' });
 }
 console.log(JSON.stringify({
