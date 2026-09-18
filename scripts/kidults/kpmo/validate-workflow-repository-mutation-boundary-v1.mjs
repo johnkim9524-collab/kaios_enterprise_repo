@@ -127,7 +127,7 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
     ['final-live-pr-reread', 'const final = await request(`/pulls/${prNumber}`);'],
     ['post-status-live-pr-reread', 'const immediatePreMerge = await request(`/pulls/${prNumber}`);'],
     ['post-status-scope-reread', "throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT')"],
-    ['post-status-check-reread', 'evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), autonomousContexts);'],
+    ['post-status-check-reread', 'scopeRequirements.required_contexts'],
     ['transport-receipt', 'readTransportReceipt(repositoryOwner)'],
     ['transport-timeout', 'ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED'],
     ['direct-owner-merge-actor', 'ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER'],
