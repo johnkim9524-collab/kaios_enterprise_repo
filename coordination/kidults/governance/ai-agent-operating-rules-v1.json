@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, exact-evidence review, protected authority gates, and human personnel boundaries.",
+  "change_rationale": "Add continuously earned KPMO qualification, top-performer selection, reviewer independence, atomic quarantine, standby succession, bounded probation, and fail-closed reinstatement controls without weakening existing AI-019 accountability.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -499,7 +499,11 @@
       "BOOTSTRAP_NONCE_REPLAY",
       "AGENT_CLASS_NOT_GOVERNED",
       "PARENT_AGENT_ID_BINDING_MISMATCH"
-    ]
+    ],
+    "kpmo_continuous_qualification_required": true,
+    "kpmo_self_review_forbidden": true,
+    "kpmo_immediate_quarantine_on_confirmed_p0": true,
+    "qualified_standby_kpmo_required": true
   },
   "agent_accountability_enforcement": {
     "rule_id": "AI-019",
@@ -577,5 +581,32 @@
     "architecture_coverage_counts_as_empirical_global_proof": false,
     "authorized_internal_bottleneck_remediation_required": true,
     "scale_claim_requires_measured_evidence": true
+  },
+  "kpmo_qualification_lifecycle": {
+    "canonical_source": "coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle",
+    "highest_performer_selection_required": true,
+    "all_p0_qualification_gates_required": true,
+    "minimum_total_score": 92,
+    "minimum_each_domain_percent": 85,
+    "score_cannot_override_p0_failure": true,
+    "independent_probation_review_required": true,
+    "kpmo_material_reviewer_role": true,
+    "kpmo_self_review_forbidden": true,
+    "reviewer_identity_must_differ_from_implementer": true,
+    "domain_qualified_specialist_review_when_needed": true,
+    "authority_continuously_earned": true,
+    "active_kpmo_must_have_qualified_standby": true,
+    "immediate_p0_quarantine_required": true,
+    "quarantine_atomically_disables_new_dispatch": true,
+    "unused_one_use_authorities_revoked_on_quarantine": true,
+    "evidence_and_history_preserved_on_removal": true,
+    "removed_kpmo_self_adjudication_forbidden": true,
+    "removed_kpmo_self_reinstatement_forbidden": true,
+    "p1_first_material_event_requires_bounded_correction_and_probation": true,
+    "p1_recurrence_during_probation_requires_quarantine": true,
+    "intentional_fabrication_concealment_evasion_or_post_reinstatement_recurrence_requires_permanent_retirement": true,
+    "standby_takeover_requires_fresh_bootstrap_and_independent_attestation": true,
+    "normal_reversible_operation_must_continue_during_kpmo_replacement": true,
+    "principle_no_kpmo_spof": true
   }
 }
