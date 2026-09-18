@@ -134,6 +134,7 @@ for (const field of [
 for (const field of [
   'mode',
   'required',
+  'risk_routing_required',
   'scope_aware_status_context',
   'all_required_contexts_terminal_success',
   'missing_context_fails_closed',
@@ -158,19 +159,21 @@ for (const field of [
   });
 }
 
-test('autonomous check-context set is exact and fail-closed', () => {
-  const missing = clonePolicy();
-  missing.autonomous_verification_policy.required_check_contexts =
-    missing.autonomous_verification_policy.required_check_contexts.filter(
-      context => context !== 'full-value-chain-redteam',
-    );
-  expectRejected(missing, 'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS_CARDINALITY_INVALID');
+test('autonomous baseline and risk-routed context sets are exact and fail-closed', () => {
+  const missingBaseline = clonePolicy();
+  missingBaseline.autonomous_verification_policy.baseline_required_check_contexts =
+    missingBaseline.autonomous_verification_policy.baseline_required_check_contexts.slice(1);
+  expectRejected(missingBaseline, 'AUTONOMOUS_VERIFICATION_BASELINE_CONTEXTS_CARDINALITY_INVALID');
 
-  const reordered = clonePolicy();
-  reordered.autonomous_verification_policy.required_check_contexts = [
-    ...reordered.autonomous_verification_policy.required_check_contexts,
+  const reorderedBaseline = clonePolicy();
+  reorderedBaseline.autonomous_verification_policy.baseline_required_check_contexts = [
+    ...reorderedBaseline.autonomous_verification_policy.baseline_required_check_contexts,
   ].reverse();
-  expectRejected(reordered, 'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS_VALUE_INVALID');
+  expectRejected(reorderedBaseline, 'AUTONOMOUS_VERIFICATION_BASELINE_CONTEXTS_VALUE_INVALID');
+
+  const missingRisk = clonePolicy();
+  missingRisk.autonomous_verification_policy.risk_routed_check_contexts = [];
+  expectRejected(missingRisk, 'AUTONOMOUS_VERIFICATION_RISK_CONTEXTS_CARDINALITY_INVALID');
 });
 
 test('reviewer type and association allowlists are exact', () => {
