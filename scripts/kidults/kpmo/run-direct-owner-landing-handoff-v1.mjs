@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   assertPromotablePullRequest,
   evaluateRequiredCheckRuns,
+  resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {evaluateAtomicLandingOneUseRunSet} from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {selectLatestDirectOwnerReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
@@ -284,13 +285,10 @@ try {
     fail('DIRECT_OWNER_HANDOFF_PROTECT_MAIN_POLICY_DRIFT');
   }
 
-  const autonomousContexts = [...new Set([
-    ...(scopePolicy.technical_base_contexts || []),
-    ...(scopePolicy.autonomous_verification_contexts || []),
-  ])];
+  const scopeRequirements = resolveScopeRequirements(files, pr, scopePolicy);
   const aggregate = (statuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (aggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS');
-  const autonomousVerification = evaluateRequiredCheckRuns(runs, autonomousContexts);
+  const autonomousVerification = evaluateRequiredCheckRuns(runs, scopeRequirements.required_contexts);
 
   const [finalPr, finalMain, finalTimeline, finalComments, finalHeadCommit, finalStatuses, finalRuns] = await Promise.all([
     request(`/pulls/${prNumber}`), request('/branches/main'), pages(`/issues/${prNumber}/timeline`), pages(`/issues/${prNumber}/comments`),
@@ -307,7 +305,7 @@ try {
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
   const finalAggregate = (finalStatuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (finalAggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_FINAL_SCOPE_STATUS_NOT_SUCCESS');
-  evaluateRequiredCheckRuns(finalRuns, autonomousContexts);
+  evaluateRequiredCheckRuns(finalRuns, scopeRequirements.required_contexts);
 
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();
@@ -366,7 +364,7 @@ try {
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
   const afterAggregate = (afterStatuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (afterAggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_DRIFT_AFTER_WINDOW');
-  evaluateRequiredCheckRuns(afterRuns, autonomousContexts);
+  evaluateRequiredCheckRuns(afterRuns, scopeRequirements.required_contexts);
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
