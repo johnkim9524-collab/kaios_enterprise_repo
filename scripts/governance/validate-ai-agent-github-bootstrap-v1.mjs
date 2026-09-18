@@ -622,7 +622,7 @@ const isUnparameterizedFullValidator = (command) => {
   if (!prefix) return false;
   const tail = command.slice(prefix.length).trim();
   return tail === ''
-    || /^(?:>{1,2}\s*\S+|\|\s*tee\s+\S+)$/.test(tail);
+    || /^(?:>{1,2}\s*\/tmp\/[A-Za-z0-9._-]+|\|\s*tee\s+\/tmp\/[A-Za-z0-9._-]+)$/.test(tail);
 };
 
 const shellArgumentValue = (command, argument) => {
@@ -678,6 +678,13 @@ const validateDispatchJob = (dispatch, workflows) => {
     && /^(?:export\s+)?KIDULTS_BOOTSTRAP_NONCE=/.test(command));
   assert(nonceIndex !== -1, `DISPATCH_NONCE_ASSIGNMENT_MISSING:${dispatch.workflow}:${dispatch.job}`);
   assert(nonceIndex < bootstrapIndex, `DISPATCH_NONCE_ASSIGNMENT_ORDER_INVALID:${dispatch.workflow}:${dispatch.job}`);
+  const nonceStepIndex = gateCommands[nonceIndex].stepIndex;
+  assert([bootstrapIndex, verifierIndex, verificationAssertionIndex, validatorIndex]
+    .every(index => gateCommands[index].stepIndex === nonceStepIndex),
+  `DISPATCH_NONCE_BOUNDARY_CROSSES_STEP:${dispatch.workflow}:${dispatch.job}`);
+  const nonceStepLastCommandIndex = gateCommands.findLastIndex(({stepIndex}) => stepIndex === nonceStepIndex);
+  assert(validatorIndex === nonceStepLastCommandIndex,
+    `DISPATCH_VALIDATOR_NOT_FINAL_NONCE_AMBIENT_COMMAND:${dispatch.workflow}:${dispatch.job}`);
   const fixedNonceAmbientCommand = (index, command) => {
     if (index === nonceIndex) {
       return /^export KIDULTS_BOOTSTRAP_NONCE="\$\(openssl rand -base64 48 \| tr -d '\\n'\)"$/.test(command);
@@ -691,7 +698,7 @@ const validateDispatchJob = (dispatch, workflows) => {
     /^TASK_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}"$/.test(command)
     || /^SESSION_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}-\$\{EXPECTED_SHA\}"$/.test(command)
     || /^RECEIPT_PATH="\$\(node -e 'const x=JSON\.parse\(process\.argv\[1\]\); process\.stdout\.write\(x\.receipt_path\)' "\$BOOTSTRAP_RESULT"\)"$/.test(command)
-    || /^printf\s+'%s\\n'\s+"\$VERIFY_RESULT"(?:\s*(?:>\s*\S+|\|\s*tee\s+\S+))?$/.test(command);
+    || /^printf\s+'%s\\n'\s+"\$VERIFY_RESULT"(?:\s*(?:>\s*\/tmp\/[A-Za-z0-9._-]+|\|\s*tee\s+\/tmp\/[A-Za-z0-9._-]+))?$/.test(command);
   for (let index = nonceIndex; index <= validatorIndex; index += 1) {
     assert(fixedNonceAmbientCommand(index, gateCommands[index].command)
       || safeNonceAmbientMetadataCommand(gateCommands[index].command),
@@ -993,6 +1000,38 @@ for (const nestedInterpreter of [
   "node -e 'console.log(process.env.KIDULTS_BOOTSTRAP_NONCE)'",
   "eval 'printenv KIDULTS_BOOTSTRAP_NONCE'",
 ]) assertDispatchSecretMutationRejected(nestedInterpreter, 'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:');
+const assertDispatchBootstrapStepMutationRejected = (mutateRun, expectedPrefix) => {
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const mutatedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = mutatedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const bootstrapStep = job.steps.find((step, index) => index < taskIndex
+    && typeof step.run === 'string'
+    && step.run.includes('KIDULTS_BOOTSTRAP_NONCE='));
+  assert(bootstrapStep, 'DISPATCH_BOOTSTRAP_STEP_MUTATION_TARGET_MISSING');
+  bootstrapStep.run = mutateRun(bootstrapStep.run);
+  let rejected = false;
+  let actualFailure = 'NO_FAILURE';
+  try {
+    validateDispatchJob(dispatch, new Map([[dispatch.workflow, mutatedJobs]]));
+  } catch (error) {
+    actualFailure = error?.message ?? 'UNKNOWN_FAILURE';
+    rejected = error?.message?.startsWith(expectedPrefix) ?? false;
+  }
+  assert(rejected, `DISPATCH_BOOTSTRAP_STEP_MUTATION_NOT_REJECTED:${expectedPrefix}:${actualFailure}`);
+};
+assertDispatchBootstrapStepMutationRejected(
+  run => `${run}\nnode -e 'console.log(process.env.KIDULTS_BOOTSTRAP_NONCE)'`,
+  'DISPATCH_VALIDATOR_NOT_FINAL_NONCE_AMBIENT_COMMAND:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('/tmp/kpmo-ci-agent-bootstrap-static-validation-v1.json', '$(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE)'),
+  'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('/tmp/kpmo-ci-agent-bootstrap-verification-v1.json', '$(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE)'),
+  'DISPATCH_NONCE_ECHO_FORBIDDEN:',
+);
 {
   const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
   const allowedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
