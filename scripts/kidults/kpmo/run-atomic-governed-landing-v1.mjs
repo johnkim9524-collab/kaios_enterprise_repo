@@ -415,8 +415,31 @@ try {
     evaluationTime: new Date().toISOString(),
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
-  const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
+  const latestReviews = new Map();
+  for (const review of reviews) {
+    const login = review?.user?.login;
+    if (!login || review?.user?.type !== 'User' || review?.commit_id !== expectedHeadSha) continue;
+    const stamp = Date.parse(review?.submitted_at || '');
+    if (!Number.isFinite(stamp)) throw new Error('EXACT_HEAD_REVIEW_TIME_INVALID');
+    const prior = latestReviews.get(login);
+    if (!prior || stamp >= prior.stamp) latestReviews.set(login, {review, stamp});
+  }
+  const currentReviews = [...latestReviews.values()].map(value => value.review);
+  const eligibleAssociations = new Set(policy.review_policy?.eligible_author_associations || []);
+  const exactHeadBlockers = currentReviews.filter(review =>
+    eligibleAssociations.has(review?.author_association) && review?.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
+  const minimumIndependentApprovals = Number(policy.review_policy?.minimum_non_author_approvals);
+  if (!Number.isInteger(minimumIndependentApprovals) || minimumIndependentApprovals < 1) {
+    throw new Error('INDEPENDENT_EXACT_HEAD_REVIEW_POLICY_INVALID');
+  }
+  const independentExactHeadApprovals = currentReviews.filter(review =>
+    review?.user?.login !== initial?.user?.login
+    && eligibleAssociations.has(review?.author_association)
+    && review?.state === 'APPROVED');
+  if (independentExactHeadApprovals.length < minimumIndependentApprovals) {
+    throw new Error('INDEPENDENT_EXACT_HEAD_REVIEW_REQUIRED');
+  }
 
   const final = await request(`/pulls/${prNumber}`);
   const finalMain = await request('/branches/main');
@@ -653,6 +676,8 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
+    independent_exact_head_review_count: independentExactHeadApprovals.length,
+    independent_exact_head_review_required_count: minimumIndependentApprovals,
     staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,
