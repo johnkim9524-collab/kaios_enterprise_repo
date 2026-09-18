@@ -7,7 +7,7 @@ import {
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from './lib/approval-generation-equality-v1.mjs';
-import {assertGovernedLandingAuthorizationPolicyV150} from './lib/governed-landing-authorization-policy-v1.mjs';
+import {assertGovernedLandingAuthorizationPolicyV160} from './lib/governed-landing-authorization-policy-v1.mjs';
 
 const requireValue = (condition, code) => {
   if (!condition) throw new Error(`APPROVAL_GENERATION_INTEGRATION_FAIL:${code}`);
@@ -25,12 +25,20 @@ const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-eq
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-assertGovernedLandingAuthorizationPolicyV150(policy);
-requireValue(policy.version === '1.5.0', 'POLICY_VERSION');
+assertGovernedLandingAuthorizationPolicyV160(policy);
+requireValue(policy.version === '1.6.0', 'POLICY_VERSION');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
 requireValue(generation.issuance_main_must_equal_live_main_sha === true, 'POLICY_LIVE_MAIN');
+requireValue(generation.final_lifecycle_boundary_required === true, 'POLICY_FINAL_LIFECYCLE_BOUNDARY');
+requireValue(generation.approval_strictly_after_final_lifecycle_boundary === true, 'POLICY_POST_BOUNDARY_APPROVAL');
+requireValue(generation.later_lifecycle_mutation_invalidates_approval === true, 'POLICY_LATER_MUTATION_INVALIDATION');
+requireValue(generation.approval_must_precede_landing_attempt === true, 'POLICY_PRE_ATTEMPT_APPROVAL');
+requireValue(generation.single_governed_consumption_required === true, 'POLICY_SINGLE_CONSUMPTION');
+requireValue(generation.pre_ready_approval_allowed === false, 'POLICY_PRE_READY_FORBIDDEN');
+requireValue(generation.multiple_current_generation_approvals_allowed === false, 'POLICY_MULTIPLE_APPROVALS_FORBIDDEN');
+requireValue(generation.lifecycle_root_issue === 2028, 'POLICY_LIFECYCLE_ROOT_ISSUE');
 requireValue(generation.survives_main_drift === false, 'POLICY_DRIFT');
 requireValue(generation.ancestor_reuse_allowed === false, 'POLICY_ANCESTOR');
 requireValue(generation.same_candidate_blob_different_main_allowed === false, 'POLICY_BLOB');
@@ -151,7 +159,7 @@ console.log(JSON.stringify({
   same_candidate_blob_different_main_rejected: true,
   stale_canonical_comment_rejected: true,
   terminal_records_non_authority: true,
-  policy_version_exact: '1.5.0',
+  policy_version_exact: '1.6.0',
   one_use_replay_defense_integrated: true,
   provider_credentials_resolved: false,
   external_requests: 0,

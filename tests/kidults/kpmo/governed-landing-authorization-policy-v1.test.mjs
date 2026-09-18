@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import {
   GovernedLandingAuthorizationPolicyFailure,
-  assertGovernedLandingAuthorizationPolicyV150,
+  assertGovernedLandingAuthorizationPolicyV160,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-authorization-policy-v1.mjs';
 
 const policyPath = 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json';
@@ -16,22 +16,22 @@ function clonePolicy() {
 
 function expectRejected(policy, code) {
   assert.throws(
-    () => assertGovernedLandingAuthorizationPolicyV150(policy),
+    () => assertGovernedLandingAuthorizationPolicyV160(policy),
     error => error instanceof GovernedLandingAuthorizationPolicyFailure && error.code === code,
   );
 }
 
-test('committed authorization policy is the exact supported 1.5.0 contract', () => {
-  const result = assertGovernedLandingAuthorizationPolicyV150(clonePolicy());
+test('committed authorization policy is the exact supported 1.6.0 contract', () => {
+  const result = assertGovernedLandingAuthorizationPolicyV160(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.5.0',
+    policy_version: '1.6.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,
   });
 });
 
-for (const version of ['1.4.0', '1.6.0', '2.0.0']) {
+for (const version of ['1.4.0', '1.5.0', '2.0.0']) {
   test(`unsupported authorization policy version ${version} fails closed`, () => {
     const policy = clonePolicy();
     policy.version = version;
@@ -49,6 +49,14 @@ for (const field of [
   'same_candidate_blob_different_main_allowed',
   'stale_canonical_comment_allowed',
   'terminal_records_are_non_authority',
+  'final_lifecycle_boundary_required',
+  'approval_strictly_after_final_lifecycle_boundary',
+  'later_lifecycle_mutation_invalidates_approval',
+  'approval_must_precede_landing_attempt',
+  'single_governed_consumption_required',
+  'pre_ready_approval_allowed',
+  'multiple_current_generation_approvals_allowed',
+  'lifecycle_root_issue',
   'root_issue',
 ]) {
   test(`missing approval-generation field ${field} fails closed`, () => {
@@ -75,7 +83,7 @@ test('missing, reordered, and extended generation enforcement points fail closed
     policy.approval_generation_policy.enforcement_points = mutate(
       policy.approval_generation_policy.enforcement_points,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV150(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -88,7 +96,7 @@ test('missing or tampered negative-case contract fails closed', () => {
     policy.approval_generation_policy.negative_cases_required = mutate(
       policy.approval_generation_policy.negative_cases_required,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV150(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -129,7 +137,7 @@ test('transport, secret boundary, and atomicity claims cannot be weakened or gen
   ]) {
     const policy = clonePolicy();
     policy.atomic_landing_policy[field] = value;
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV150(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
