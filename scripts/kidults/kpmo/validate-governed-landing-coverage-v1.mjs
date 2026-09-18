@@ -202,9 +202,9 @@ const mutations = [
     aggregateRunner,
   },
   {
-    id: 'SOLO_APPROVAL_COUNT_GUARD_REMOVED',
+    id: 'NATIVE_ZERO_REVIEW_COUNT_GUARD_REMOVED',
     policy,
-    workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');", ''),
+    workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main native review count drifted from custom independent-review status model');", ''),
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
