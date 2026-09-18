@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import {
   GovernedLandingAuthorizationPolicyFailure,
-  assertGovernedLandingAuthorizationPolicyV160,
+  assertGovernedLandingAuthorizationPolicyV170,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-authorization-policy-v1.mjs';
 
 const policyPath = 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json';
@@ -16,15 +16,15 @@ function clonePolicy() {
 
 function expectRejected(policy, code) {
   assert.throws(
-    () => assertGovernedLandingAuthorizationPolicyV160(policy),
+    () => assertGovernedLandingAuthorizationPolicyV170(policy),
     error => error instanceof GovernedLandingAuthorizationPolicyFailure && error.code === code,
   );
 }
 
-test('committed authorization policy is the exact supported 1.6.0 contract', () => {
-  const result = assertGovernedLandingAuthorizationPolicyV160(clonePolicy());
+test('committed authorization policy is the exact supported 1.7.0 contract', () => {
+  const result = assertGovernedLandingAuthorizationPolicyV170(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.6.0',
+    policy_version: '1.7.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,
@@ -36,6 +36,38 @@ for (const version of ['1.4.0', '1.5.0', '2.0.0']) {
     const policy = clonePolicy();
     policy.version = version;
     expectRejected(policy, 'POLICY_VERSION_UNSUPPORTED');
+  });
+}
+
+for (const field of [
+  'required_for_governed_reversible_changes',
+  'attesting_github_actor_must_equal_repository_owner',
+  'implementer_and_reviewer_agent_ids_must_differ',
+  'implementer_and_reviewer_sessions_must_differ',
+  'assigned_reviewer_must_equal_reviewer',
+  'reviewed_head_must_equal_current_exact_head',
+  'bootstrap_verified_and_consumed_required',
+  'reviewer_role_must_match_registered_domain_routing',
+  'request_changes_on_exact_head_blocks',
+  'single_current_approve_receipt_required',
+]) {
+  test(`missing autonomous-review field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    delete policy.autonomous_independent_review_policy[field];
+    expectRejected(policy, `AUTONOMOUS_REVIEW_FIELD_MISSING:${field}`);
+  });
+  test(`disabled autonomous-review field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    policy.autonomous_independent_review_policy[field] = false;
+    expectRejected(policy, `AUTONOMOUS_REVIEW_FIELD_INVALID:${field}`);
+  });
+}
+
+for (const field of ['receipt_replay_allowed','agent_id_string_alone_establishes_independence','bootstrap_receipt_alone_grants_merge_or_promotion_authority']) {
+  test(`enabled forbidden autonomous-review field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    policy.autonomous_independent_review_policy[field] = true;
+    expectRejected(policy, `AUTONOMOUS_REVIEW_FIELD_INVALID:${field}`);
   });
 }
 
@@ -83,7 +115,7 @@ test('missing, reordered, and extended generation enforcement points fail closed
     policy.approval_generation_policy.enforcement_points = mutate(
       policy.approval_generation_policy.enforcement_points,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -96,7 +128,7 @@ test('missing or tampered negative-case contract fails closed', () => {
     policy.approval_generation_policy.negative_cases_required = mutate(
       policy.approval_generation_policy.negative_cases_required,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -137,7 +169,7 @@ test('transport, secret boundary, and atomicity claims cannot be weakened or gen
   ]) {
     const policy = clonePolicy();
     policy.atomic_landing_policy[field] = value;
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });

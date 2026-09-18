@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.6.0';
+const EXPECTED_POLICY_VERSION = '1.7.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -76,12 +76,38 @@ function requireExactArray(actual, expected, code) {
   }
 }
 
-export function assertGovernedLandingAuthorizationPolicyV160(policy) {
+export function assertGovernedLandingAuthorizationPolicyV170(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');
   requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS_INVALID');
   requireExact(policy.owner === 'KPMO', 'POLICY_OWNER_INVALID');
+
+  const review = policy.autonomous_independent_review_policy;
+  requireExact(review && typeof review === 'object' && !Array.isArray(review), 'AUTONOMOUS_REVIEW_POLICY_MISSING');
+  for (const [field, expected] of Object.entries({
+    required_for_governed_reversible_changes: true,
+    github_native_approval_count_unchanged: true,
+    attestation_transport: 'EXISTING_PR_COMMENT',
+    comment_marker: 'KIDULTS_AUTONOMOUS_REVIEW_V1',
+    attesting_github_actor_must_equal_repository_owner: true,
+    implementer_and_reviewer_agent_ids_must_differ: true,
+    implementer_and_reviewer_sessions_must_differ: true,
+    assigned_reviewer_must_equal_reviewer: true,
+    reviewed_head_must_equal_current_exact_head: true,
+    bootstrap_verified_and_consumed_required: true,
+    reviewer_role_must_match_registered_domain_routing: true,
+    diff_tests_evidence_and_negative_controls_required: true,
+    request_changes_on_exact_head_blocks: true,
+    single_current_approve_receipt_required: true,
+    receipt_replay_allowed: false,
+    agent_id_string_alone_establishes_independence: false,
+    bootstrap_receipt_alone_grants_merge_or_promotion_authority: false,
+  })) {
+    requireExact(Object.hasOwn(review, field), `AUTONOMOUS_REVIEW_FIELD_MISSING:${field}`);
+    requireExact(review[field] === expected, `AUTONOMOUS_REVIEW_FIELD_INVALID:${field}`);
+  }
+  requireExactArray(review.accepted_decisions, ['APPROVE', 'REQUEST_CHANGES'], 'AUTONOMOUS_REVIEW_DECISIONS');
 
   const generation = policy.approval_generation_policy;
   requireExact(generation && typeof generation === 'object' && !Array.isArray(generation),
