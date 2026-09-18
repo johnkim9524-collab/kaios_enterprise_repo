@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.7.0';
+const EXPECTED_POLICY_VERSION = '1.8.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -43,7 +43,7 @@ const EXACT_NEGATIVE_CASES = Object.freeze([
 ]);
 
 const EXACT_REVIEW_POLICY = Object.freeze({
-  minimum_non_author_approvals: 1,
+  minimum_non_author_approvals: 0,
   self_review_counts: false,
   approval_must_bind_exact_head_sha: true,
   stale_approval_counts: false,
@@ -52,9 +52,31 @@ const EXACT_REVIEW_POLICY = Object.freeze({
   same_repository_head_required: true,
   ready_state_by_owner_is_authorization: false,
   optional_external_review_must_bind_exact_head: true,
-  independent_exact_head_approval_required: true,
+  independent_exact_head_approval_required: false,
   independent_review_root_issue: 1582,
+  human_review_mode: 'OPTIONAL_ADVISORY_EXACT_HEAD_ONLY',
 });
+
+const EXACT_AUTONOMOUS_VERIFICATION_POLICY = Object.freeze({
+  mode: 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD',
+  required: true,
+  scope_aware_status_context: 'KIDULTS Scope-Aware Authoritative Status V1',
+  all_required_contexts_terminal_success: true,
+  missing_context_fails_closed: true,
+  ambiguous_latest_context_fails_closed: true,
+  owner_exact_head_approval_separate_required: true,
+  human_review_required: false,
+  internal_control_evidence_only: true,
+  empirical_launch_authority: false,
+  root_issue: 1582,
+});
+
+const EXACT_AUTONOMOUS_CHECK_CONTEXTS = Object.freeze([
+  'KAIOS Solo Owner Preflight',
+  'Validate KAIOS Foundation',
+  'Validate Production Container',
+  'full-value-chain-redteam',
+]);
 
 const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
   operation_specific_dispatch_required: true,
@@ -90,13 +112,13 @@ function requireExactArray(actual, expected, code) {
   }
 }
 
-export function assertGovernedLandingAuthorizationPolicyV170(policy) {
+export function assertGovernedLandingAuthorizationPolicyV180(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');
-  requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_INDEPENDENT_EXACT_HEAD_REVIEW', 'POLICY_STATUS_INVALID');
-  requireExact(policy.governance_mode === 'OWNER_GOVERNED_INDEPENDENT_REVIEW_REQUIRED', 'POLICY_GOVERNANCE_MODE_INVALID');
-  requireExact(policy.decision_id === 'JOHN-INDEPENDENT-EXACT-HEAD-REVIEW-1-2026-09-18', 'POLICY_DECISION_ID_INVALID');
+  requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_AUTONOMOUS_EXACT_HEAD_VERIFICATION', 'POLICY_STATUS_INVALID');
+  requireExact(policy.governance_mode === 'AUTONOMOUS_MULTI_LANE_GOVERNED', 'POLICY_GOVERNANCE_MODE_INVALID');
+  requireExact(policy.decision_id === 'JOHN-AUTONOMOUS-MULTI-LANE-REVIEW-2026-09-18', 'POLICY_DECISION_ID_INVALID');
   requireExact(policy.owner === 'KPMO', 'POLICY_OWNER_INVALID');
 
   const generation = policy.approval_generation_policy;
@@ -122,6 +144,16 @@ export function assertGovernedLandingAuthorizationPolicyV170(policy) {
   requireExactArray(review.eligible_author_associations, ['OWNER', 'MEMBER', 'COLLABORATOR'],
     'REVIEW_ELIGIBLE_AUTHOR_ASSOCIATIONS');
 
+  const autonomous = policy.autonomous_verification_policy;
+  requireExact(autonomous && typeof autonomous === 'object' && !Array.isArray(autonomous),
+    'AUTONOMOUS_VERIFICATION_POLICY_MISSING');
+  for (const [field, expected] of Object.entries(EXACT_AUTONOMOUS_VERIFICATION_POLICY)) {
+    requireExact(Object.hasOwn(autonomous, field), `AUTONOMOUS_VERIFICATION_FIELD_MISSING:${field}`);
+    requireExact(autonomous[field] === expected, `AUTONOMOUS_VERIFICATION_FIELD_INVALID:${field}`);
+  }
+  requireExactArray(autonomous.required_check_contexts, EXACT_AUTONOMOUS_CHECK_CONTEXTS,
+    'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS');
+
   const atomic = policy.atomic_landing_policy;
   requireExact(atomic && typeof atomic === 'object' && !Array.isArray(atomic),
     'ATOMIC_LANDING_POLICY_MISSING');
@@ -145,6 +177,6 @@ export function assertGovernedLandingAuthorizationPolicyV170(policy) {
     generation_mode: generation.mode,
     generation_enforcement_points: [...generation.enforcement_points],
     replay_defense_exact: true,
-    independent_exact_head_review_required: true,
+    autonomous_multi_lane_verification_required: true,
   };
 }
