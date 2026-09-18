@@ -8,6 +8,7 @@ import {
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
+  resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
   selectLatestDirectOwnerReadyEvent,
@@ -385,14 +386,14 @@ try {
   const nativeContexts = (statusRule.parameters.required_status_checks || []).map(value => value.context);
   assertNativeRequiredContexts(nativeContexts, policy.bypass_policy.required_status_contexts);
 
-  const autonomousContexts = [...new Set([
-    ...(scopePolicy.technical_base_contexts || []),
-    ...(scopePolicy.autonomous_verification_contexts || []),
-  ])];
+  const scopeRequirements = resolveScopeRequirements(changedFileRecords, initial, scopePolicy);
   const statuses = await request(`/commits/${expectedHeadSha}/status`);
   const aggregator = (statuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
-  const autonomousVerification = evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), autonomousContexts);
+  const autonomousVerification = evaluateRequiredCheckRuns(
+    await checkRuns(expectedHeadSha),
+    scopeRequirements.required_contexts,
+  );
 
   const [timeline, approvalComments, headCommit] = await Promise.all([
     pages(`/issues/${prNumber}/timeline`),
@@ -482,7 +483,10 @@ try {
   }
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), autonomousContexts);
+  evaluateRequiredCheckRuns(
+    await checkRuns(expectedHeadSha),
+    scopeRequirements.required_contexts,
+  );
   await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
