@@ -294,12 +294,23 @@ export function resolveScopeRequirements(files, metadata, policy) {
   const changedFileCount = Number(metadata?.changed_files ?? files.length);
   if (files.length === 0) {
     if (commitCount !== 0 || changedFileCount !== 0) fail('ZERO_DIFF_METADATA_CONTRADICTION');
-    return {files: [], scopes: [], required_contexts: [...policy.technical_base_contexts].sort(), zero_diff: true};
+    return {
+      files: [],
+      scopes: [],
+      required_contexts: [...new Set([
+        ...(policy.technical_base_contexts || []),
+        ...(policy.autonomous_verification_contexts || []),
+      ])].sort(),
+      zero_diff: true,
+    };
   }
   if (changedFileCount !== files.length) fail('CHANGED_FILE_PAGINATION_INCOMPLETE', `${files.length}/${changedFileCount}`);
   const unmatched = [];
   const matchedScopes = new Set();
-  const contexts = new Set(policy.technical_base_contexts || []);
+  const contexts = new Set([
+    ...(policy.technical_base_contexts || []),
+    ...(policy.autonomous_verification_contexts || []),
+  ]);
   for (const entry of files) {
     const filename = typeof entry === 'string' ? entry : entry?.filename;
     if (!filename) fail('PULL_REQUEST_FILENAME_INVALID');
