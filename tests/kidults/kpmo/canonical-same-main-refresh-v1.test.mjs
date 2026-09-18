@@ -106,6 +106,7 @@ for(const [index,[name,o]] of [['missing authority',{noAuthority:true}],['missin
 test('latest-block validation consumes canonical generation instead of racing push or issue fan-out',()=>{
  const workflow=fs.readFileSync('.github/workflows/kpmo-canonical-latest-block-scope-v1.yml','utf8');
  assert.match(workflow,/^  workflow_run:\r?\n    workflows: \['KPMO Canonical Generation V3 Apply'\]/m);
+ assert.doesNotMatch(workflow,/^  pull_request:/m);
  assert.doesNotMatch(workflow,/^  push:/m);
  assert.doesNotMatch(workflow,/\n  issues:\r?\n    types:/);
  assert.match(workflow,/github\.event\.workflow_run\.head_sha/);
