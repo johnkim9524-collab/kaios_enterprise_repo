@@ -17,6 +17,7 @@ const FULL_AUDIT_GUARD_STATES = new Set([
 ]);
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const FAILURE_REASON_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
@@ -54,6 +55,93 @@ function argumentValue(argv, name) {
 function appendEnvironment(values, env) {
   if (!env.GITHUB_ENV) return;
   fs.appendFileSync(env.GITHUB_ENV, `${Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\n')}\n`, 'utf8');
+}
+
+function atomicWriteJson(filePath, value) {
+  const target = path.resolve(filePath);
+  const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.tmp`);
+  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(temporary, target);
+}
+
+export function terminalFailureEnvironment(reason) {
+  if (!FAILURE_REASON_PATTERN.test(reason || '')) fail('ASSURANCE_TERMINAL_FAILURE_REASON_INVALID');
+  return {
+    KPMO_EXECUTE_FULL_AUDIT: 'false',
+    KPMO_ASSURANCE_TERMINAL_FAIL_CLOSED: 'true',
+    KPMO_ASSURANCE_TERMINAL_FAIL_REASON: reason,
+  };
+}
+
+export function terminalFailureReceipt(receipt, reason, env = process.env) {
+  if (!FAILURE_REASON_PATTERN.test(reason || '')) fail('ASSURANCE_TERMINAL_FAILURE_REASON_INVALID');
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('ASSURANCE_TERMINAL_RECEIPT_INVALID');
+  const { observed_at: _observedAt, receipt_digest: _receiptDigest, ...base } = structuredClone(receipt);
+  const checkId = `ASSURANCE_TERMINAL_${reason}`;
+  const checks = (Array.isArray(base.checks) ? base.checks : []).filter((check) => check?.id !== checkId);
+  checks.push({ id: checkId, required: true, state: 'VERIFIED_FAIL', failure_class: reason });
+  const payload = {
+    ...base,
+    states: {
+      ...(base.states || {}),
+      internal_control_state: 'VERIFIED_FAIL',
+      external_empirical_state: 'HOLD',
+      release_state: 'HOLD',
+      overall_state: 'RED',
+      promotion_eligible: false,
+    },
+    checks,
+    fatal_error_code: reason,
+    terminal_failure: {
+      state: 'VERIFIED_FAIL',
+      reason,
+      workflow_run_id: String(env.GITHUB_RUN_ID || 'UNKNOWN'),
+      workflow_run_attempt: String(env.GITHUB_RUN_ATTEMPT || '1'),
+      source_sha: String(env.KPMO_SOURCE_SHA || env.GITHUB_SHA || base.source?.expected_sha || 'UNAVAILABLE'),
+      promotion_eligible: false,
+      public: 'HOLD',
+      production: 'HOLD',
+      g5: 'HOLD',
+    },
+  };
+  return {
+    ...payload,
+    observed_at: new Date().toISOString(),
+    receipt_digest: sha256(stableJson(payload)),
+  };
+}
+
+export function writeTerminalFailurePacket(argv, env, reason) {
+  const auditOutput = argumentValue(argv, '--audit-output');
+  const remediationOutput = argumentValue(argv, '--remediation-output');
+  const current = readJson(auditOutput, 'ASSURANCE_TERMINAL_AUDIT_INPUT_INVALID');
+  const receipt = terminalFailureReceipt(current, reason, env);
+  const checkId = `ASSURANCE_TERMINAL_${reason}`;
+  atomicWriteJson(auditOutput, receipt);
+  atomicWriteJson(remediationOutput, {
+    schema_version: '1.0.0',
+    plan_type: 'KIDULTS_SAFE_REMEDIATION_PACKET',
+    source_sha: receipt.terminal_failure.source_sha,
+    source_receipt_digest: receipt.receipt_digest,
+    disposition: 'CIRCUIT_OPEN_MANUAL_HOLD',
+    failed_check_ids: [checkId],
+    integrity_findings: [reason],
+    persistent_fix_ids: [],
+    activation_eligible: false,
+    activation: { eligible: false },
+    direct_main_write: false,
+    auto_merge: false,
+    promotion_eligible: false,
+    public: 'HOLD',
+    production: 'HOLD',
+    g5: 'HOLD',
+  });
+  return true;
+}
+
+function containTerminalFailure(argv, env, reason) {
+  appendEnvironment(terminalFailureEnvironment(reason), env);
+  writeTerminalFailurePacket(argv, env, reason);
 }
 
 export function inlineProducerHealthRequired(env = process.env) {
@@ -98,7 +186,10 @@ function runChild(filePath, args, env) {
 
 export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
   const coreStatus = runChild(CORE_PATH, argv, env);
-  if (coreStatus !== 0) return coreStatus;
+  if (coreStatus !== 0) {
+    containTerminalFailure(argv, env, 'EPHEMERAL_GUARD_CORE_FAILED');
+    return coreStatus;
+  }
 
   const guardOutput = argumentValue(argv, '--output');
   const guard = readJson(guardOutput, 'INLINE_HEALTH_GATE_GUARD_RECEIPT_INVALID');
@@ -123,7 +214,10 @@ export function runGuardCli(argv = process.argv.slice(2), env = process.env) {
   const producerPass = receipt.state === 'VERIFIED_PASS' &&
     receipt.semantic_content_verified === true &&
     receipt.producers.every((producer) => producer?.state === 'VERIFIED_PASS' && producer?.artifact_transport_verified === true && producer?.artifact_content_validated === true);
-  if (healthStatus !== 0 || !producerPass) return healthStatus || 1;
+  if (healthStatus !== 0 || !producerPass) {
+    containTerminalFailure(argv, env, 'CORE_FOUR_PRODUCER_HEALTH_FAILED');
+    return healthStatus || 1;
+  }
   return 0;
 }
 
