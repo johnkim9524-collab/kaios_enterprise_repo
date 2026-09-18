@@ -1,5 +1,8 @@
 name: KIDULTS Direct Owner Landing Handoff V1
-run-name: "KIDULTS Direct Owner Handoff PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.handoff_authorization_id }}"
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('KIDULTS Direct Owner Handoff PR #{0} @ {1} / {2}', inputs.pull_request_number, inputs.expected_head_sha, inputs.handoff_authorization_id)
+      || format('KIDULTS Direct Owner Approval-Mutation Watch issue #{0} / {1}', github.event.issue.number, github.event.action) }}
 
 on:
   workflow_dispatch:
