@@ -11,8 +11,7 @@
   "technical_base_contexts": [
     "KAIOS Solo Owner Preflight",
     "Validate KAIOS Foundation",
-    "Validate Production Container",
-    "full-value-chain-redteam"
+    "Validate Production Container"
   ],
   "native_required_status_contexts": [
     "KIDULTS Governed Landing Authorization V1",
@@ -129,5 +128,8 @@
     "g5": "HOLD",
     "autonomous_multi_lane_exact_head_verification": true,
     "human_review_required": false
-  }
+  },
+  "autonomous_verification_contexts": [
+    "full-value-chain-redteam"
+  ]
 }
