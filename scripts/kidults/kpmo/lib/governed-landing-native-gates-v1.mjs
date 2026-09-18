@@ -185,9 +185,6 @@ export function assertAutonomousIndependentReview(comments, {
   const approved = approvals[0];
   let consumption = null;
   if (requireDurableConsumption) {
-    const controllerSigner = trust.trusted_signers.find(
-      value => value?.signer_identity_and_version === approved.payload.signer_identity_and_version,
-    );
     const expectedOperationDigest = `sha256:${createHash('sha256').update(canonicalJson(operationBinding)).digest('hex')}`;
     const exactReadbackKeys = [
       'version','store_authority','state','repository','pull_request','exact_base_sha','exact_head_sha',
@@ -197,6 +194,12 @@ export function assertAutonomousIndependentReview(comments, {
     const storeSigners = trust.durable_store_trusted_signers;
     if (!operationBinding || !Array.isArray(storeSigners) || !storeSigners.length) {
       fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+    }
+    const controllerSignerIdentities = new Set(trust.trusted_signers.map(value => value?.signer_identity_and_version));
+    const controllerPublicKeys = new Set(trust.trusted_signers.map(value => value?.public_key_pem));
+    if (storeSigners.some(value => controllerSignerIdentities.has(value?.signer_identity_and_version)
+        || controllerPublicKeys.has(value?.public_key_pem))) {
+      fail('AUTONOMOUS_REVIEW_DURABLE_TRUST_DOMAIN_OVERLAP');
     }
     const matchedReadbacks = [];
     for (const comment of comments.filter(value => String(value?.body || '').split(/\r?\n/)[0] === DURABLE_READBACK_MARKER)) {
@@ -208,8 +211,6 @@ export function assertAutonomousIndependentReview(comments, {
       const readback = envelope.payload;
       const storeSigner = storeSigners.find(value => value?.signer_identity_and_version === readback?.signer_identity_and_version);
       if (!storeSigner || storeSigner.revoked === true || envelope.signature_algorithm !== 'Ed25519'
-          || readback?.signer_identity_and_version === approved.payload.signer_identity_and_version
-          || storeSigner.public_key_pem === controllerSigner?.public_key_pem
           || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)) continue;
       if (Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
           || readback.version !== 'kidults-protected-review-durable-readback-v1'

@@ -450,7 +450,30 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
           revoked: false,
         }]},
     }},
-  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  }), 'AUTONOMOUS_REVIEW_DURABLE_TRUST_DOMAIN_OVERLAP');
+  const {publicKey: rotatedControllerPublicKey, privateKey: rotatedControllerPrivateKey} = generateKeyPairSync('ed25519');
+  code(() => assertAutonomousIndependentReview([
+    commentFor(payload), storeCommentFor(durableReadback, rotatedControllerPrivateKey),
+  ], {
+    ...input, requireDurableConsumption: true, operationBinding,
+    reviewPolicy: {...reviewPolicy, identity_assurance_boundary: {
+      ...reviewPolicy.identity_assurance_boundary,
+      protected_attestation_trust: {...reviewPolicy.identity_assurance_boundary.protected_attestation_trust,
+        trusted_signers: [
+          ...reviewPolicy.identity_assurance_boundary.protected_attestation_trust.trusted_signers,
+          {
+            signer_identity_and_version: 'kpmo-provenance-controller-v2',
+            public_key_pem: rotatedControllerPublicKey.export({type: 'spki', format: 'pem'}).toString(),
+            revoked: false,
+          },
+        ],
+        durable_store_trusted_signers: [{
+          signer_identity_and_version: storeSigner,
+          public_key_pem: rotatedControllerPublicKey.export({type: 'spki', format: 'pem'}).toString(),
+          revoked: false,
+        }]},
+    }},
+  }), 'AUTONOMOUS_REVIEW_DURABLE_TRUST_DOMAIN_OVERLAP');
   code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback), storeCommentFor({...durableReadback, consumption_id: 'durable-consumption-duplicate'})], {
     ...input, requireDurableConsumption: true, operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
