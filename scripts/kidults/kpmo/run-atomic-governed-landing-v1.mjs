@@ -47,7 +47,6 @@ const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
 const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
 const runnerTemp = process.env.RUNNER_TEMP;
 const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH;
-const autonomousReviewStoreReadbackPath = process.env.AUTONOMOUS_REVIEW_STORE_READBACK_PATH;
 const transportWaitSeconds = Number(process.env.ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS || '600');
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
@@ -133,12 +132,6 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
-const readProtectedDurableReadback = () => {
-  if (!autonomousReviewStoreReadbackPath) return null;
-  const stat = fs.lstatSync(autonomousReviewStoreReadbackPath);
-  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('AUTONOMOUS_REVIEW_STORE_READBACK_PATH_INVALID');
-  return JSON.parse(fs.readFileSync(autonomousReviewStoreReadbackPath, 'utf8'));
-};
 
 const currentSoldPathMatchers = [
   /^coordination\/kidults\/market\/current-sold-[^/]+\.json$/,
@@ -395,7 +388,6 @@ try {
     landing_run_attempt: Number(landingRunAttempt),
     authorization_id_digest: `sha256:${createHash('sha256').update(authorizationId).digest('hex')}`,
   };
-  const durableReviewReadback = readProtectedDurableReadback();
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -448,7 +440,6 @@ try {
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
     requireDurableConsumption: true,
-    durableReadback: durableReviewReadback,
     operationBinding: reviewOperationBinding,
     reviewPolicy: protectedReviewPolicy,
   });
@@ -542,7 +533,6 @@ try {
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
     requireDurableConsumption: true,
-    durableReadback: durableReviewReadback,
     operationBinding: reviewOperationBinding,
     reviewPolicy: protectedReviewPolicy,
   });
@@ -625,7 +615,6 @@ try {
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
     requireDurableConsumption: true,
-    durableReadback: durableReviewReadback,
     operationBinding: reviewOperationBinding,
     reviewPolicy: protectedReviewPolicy,
   });

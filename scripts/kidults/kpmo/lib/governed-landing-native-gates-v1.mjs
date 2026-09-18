@@ -5,6 +5,7 @@ const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const NONCE_PATTERN = /^[0-9a-f]{32}$/;
 const MAX_APPROVAL_LIFETIME_MS = 60 * 60 * 1000;
 const AUTONOMOUS_REVIEW_MARKER = 'KIDULTS_PROTECTED_AUTONOMOUS_REVIEW_ATTESTATION_V1';
+const DURABLE_READBACK_MARKER = 'KIDULTS_PROTECTED_REVIEW_DURABLE_READBACK_V1';
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{2,127}$/;
 const {canonicalJson} = workflowReceiptLedgerInternals;
@@ -103,7 +104,6 @@ export function assertAutonomousIndependentReview(comments, {
   requiredDomain,
   evaluationTime = new Date().toISOString(),
   requireDurableConsumption = false,
-  durableReadback = null,
   operationBinding = null,
   reviewPolicy,
 } = {}) {
@@ -189,31 +189,50 @@ export function assertAutonomousIndependentReview(comments, {
     const exactReadbackKeys = [
       'version','store_authority','state','repository','pull_request','exact_base_sha','exact_head_sha',
       'exact_head_tree_sha','attestation_id','operation_binding_digest','landing_run_id',
-      'landing_run_attempt','current_revocation_epoch','consumption_id','consumed_at',
+      'landing_run_attempt','current_revocation_epoch','consumption_id','consumed_at','signer_identity_and_version',
     ];
-    if (!durableReadback || !operationBinding
-        || Object.keys(durableReadback).sort().join(',') !== exactReadbackKeys.sort().join(',')
-        || durableReadback.version !== 'kidults-protected-review-durable-readback-v1'
-        || durableReadback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE'
-        || durableReadback.state !== 'CONSUMED_EXACTLY_ONCE'
-        || durableReadback.repository !== repository || Number(durableReadback.pull_request) !== Number(prNumber)
-        || durableReadback.exact_base_sha !== baseSha || durableReadback.exact_head_sha !== headSha
-        || durableReadback.exact_head_tree_sha !== headTreeSha
-        || durableReadback.attestation_id !== approved.payload.attestation_id
-        || durableReadback.operation_binding_digest !== expectedOperationDigest
-        || String(durableReadback.landing_run_id) !== String(operationBinding.landing_run_id)
-        || String(durableReadback.landing_run_attempt) !== String(operationBinding.landing_run_attempt)
-        || durableReadback.current_revocation_epoch !== trust.current_revocation_epoch
-        || durableReadback.current_revocation_epoch < approved.payload.revocation_epoch
-        || !ID_PATTERN.test(durableReadback.consumption_id || '')
-        || !Number.isFinite(Date.parse(durableReadback.consumed_at))) {
+    const storeSigners = trust.durable_store_trusted_signers;
+    if (!operationBinding || !Array.isArray(storeSigners) || !storeSigners.length) {
       fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
     }
+    const matchedReadbacks = [];
+    for (const comment of comments.filter(value => String(value?.body || '').split(/\r?\n/)[0] === DURABLE_READBACK_MARKER)) {
+      const lines = String(comment.body).trim().split(/\r?\n/);
+      if (lines.length !== 2) continue;
+      let envelope;
+      try { envelope = JSON.parse(Buffer.from(lines[1], 'base64url').toString('utf8')); } catch { continue; }
+      if (!envelope || Object.keys(envelope).sort().join(',') !== ['payload', 'signature_algorithm', 'signature_base64'].sort().join(',')) continue;
+      const readback = envelope.payload;
+      const storeSigner = storeSigners.find(value => value?.signer_identity_and_version === readback?.signer_identity_and_version);
+      if (!storeSigner || storeSigner.revoked === true || envelope.signature_algorithm !== 'Ed25519'
+          || readback?.signer_identity_and_version === approved.payload.signer_identity_and_version
+          || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)
+          || Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
+          || readback.version !== 'kidults-protected-review-durable-readback-v1'
+          || readback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE'
+          || readback.state !== 'CONSUMED_EXACTLY_ONCE'
+          || readback.repository !== repository || Number(readback.pull_request) !== Number(prNumber)
+          || readback.exact_base_sha !== baseSha || readback.exact_head_sha !== headSha
+          || readback.exact_head_tree_sha !== headTreeSha
+          || readback.attestation_id !== approved.payload.attestation_id
+          || readback.operation_binding_digest !== expectedOperationDigest
+          || String(readback.landing_run_id) !== String(operationBinding.landing_run_id)
+          || String(readback.landing_run_attempt) !== String(operationBinding.landing_run_attempt)
+          || readback.current_revocation_epoch !== trust.current_revocation_epoch
+          || readback.current_revocation_epoch < approved.payload.revocation_epoch
+          || !ID_PATTERN.test(readback.consumption_id || '')
+          || !Number.isFinite(Date.parse(readback.consumed_at))) continue;
+      matchedReadbacks.push({readback, signature_digest: `sha256:${createHash('sha256').update(envelope.signature_base64).digest('hex')}`});
+    }
+    if (matchedReadbacks.length !== 1) fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+    const durableReadback = matchedReadbacks[0].readback;
     consumption = {
       consumption_id: durableReadback.consumption_id,
       operation_binding_digest: expectedOperationDigest,
       current_revocation_epoch: durableReadback.current_revocation_epoch,
       consumed_at: durableReadback.consumed_at,
+      signer_identity_and_version: durableReadback.signer_identity_and_version,
+      signature_digest: matchedReadbacks[0].signature_digest,
     };
   }
   return {

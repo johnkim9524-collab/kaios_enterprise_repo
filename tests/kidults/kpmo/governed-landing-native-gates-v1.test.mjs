@@ -273,7 +273,9 @@ test('repository comments cannot mint autonomous-review provenance while the pro
 
 test('protected signed autonomous review is exact-bound and fail-closed', () => {
   const {publicKey, privateKey} = generateKeyPairSync('ed25519');
+  const {publicKey: storePublicKey, privateKey: storePrivateKey} = generateKeyPairSync('ed25519');
   const signer = 'kpmo-provenance-controller-v1';
+  const storeSigner = 'kpmo-durable-review-store-v1';
   const requiredDomain = 'governance_independence_and_provenance';
   const reviewPolicy = {
     status: 'ACTIVE_MANDATORY_FAIL_CLOSED',
@@ -285,6 +287,11 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
         trusted_signers: [{
           signer_identity_and_version: signer,
           public_key_pem: publicKey.export({type: 'spki', format: 'pem'}).toString(),
+          revoked: false,
+        }],
+        durable_store_trusted_signers: [{
+          signer_identity_and_version: storeSigner,
+          public_key_pem: storePublicKey.export({type: 'spki', format: 'pem'}).toString(),
           revoked: false,
         }],
       },
@@ -392,25 +399,48 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
     current_revocation_epoch: 4,
     consumption_id: 'durable-consumption-1580-a',
     consumed_at: '2026-09-01T01:09:00.000Z',
+    signer_identity_and_version: storeSigner,
   };
-  const consumed = assertAutonomousIndependentReview([commentFor(payload)], {
-    ...input, requireDurableConsumption: true, durableReadback, operationBinding,
+  const storeCommentFor = (value, key = storePrivateKey) => {
+    const signature = sign(null, Buffer.from(canonicalJson(value)), key).toString('base64');
+    const envelope = {payload: value, signature_algorithm: 'Ed25519', signature_base64: signature};
+    return {id: 92, body: `KIDULTS_PROTECTED_REVIEW_DURABLE_READBACK_V1\n${Buffer.from(JSON.stringify(envelope)).toString('base64url')}`};
+  };
+  const consumed = assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback)], {
+    ...input, requireDurableConsumption: true, operationBinding,
   });
   assert.equal(consumed.durable_consumption.consumption_id, 'durable-consumption-1580-a');
   code(() => assertAutonomousIndependentReview([commentFor(payload)], {
-    ...input, requireDurableConsumption: true, durableReadback: null, operationBinding,
+    ...input, requireDurableConsumption: true, operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
-  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, landing_run_attempt: 2})], {
     ...input, requireDurableConsumption: true,
-    durableReadback: {...durableReadback, landing_run_attempt: 2}, operationBinding,
+    operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
-  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, current_revocation_epoch: 3})], {
     ...input, requireDurableConsumption: true,
-    durableReadback: {...durableReadback, current_revocation_epoch: 3}, operationBinding,
+    operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
-  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor({...durableReadback, state: 'REPLAYED'})], {
     ...input, requireDurableConsumption: true,
-    durableReadback: {...durableReadback, state: 'REPLAYED'}, operationBinding,
+    operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  const {privateKey: forgedStoreKey} = generateKeyPairSync('ed25519');
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback, forgedStoreKey)], {
+    ...input, requireDurableConsumption: true, operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback)], {
+    ...input, requireDurableConsumption: true, operationBinding,
+    reviewPolicy: {...reviewPolicy, identity_assurance_boundary: {
+      ...reviewPolicy.identity_assurance_boundary,
+      protected_attestation_trust: {...reviewPolicy.identity_assurance_boundary.protected_attestation_trust,
+        durable_store_trusted_signers: [{
+          ...reviewPolicy.identity_assurance_boundary.protected_attestation_trust.durable_store_trusted_signers[0], revoked: true,
+        }]},
+    }},
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload), storeCommentFor(durableReadback), storeCommentFor({...durableReadback, consumption_id: 'durable-consumption-duplicate'})], {
+    ...input, requireDurableConsumption: true, operationBinding,
   }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
   assert.equal(sameAutonomousReview(consumed, consumed), true);
   for (const mutation of [
@@ -438,7 +468,7 @@ test('atomic landing trust is protected-main local policy, never candidate-head 
   assert.match(source, /protectedPlatformPolicy\.autonomous_independent_review/);
   assert.doesNotMatch(source, /reviewPolicyAtHead/);
   assert.match(source, /requireDurableConsumption:\s*true/);
-  assert.match(source, /AUTONOMOUS_REVIEW_STORE_READBACK_PATH/);
+  assert.doesNotMatch(source, /AUTONOMOUS_REVIEW_STORE_READBACK_PATH/);
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {
