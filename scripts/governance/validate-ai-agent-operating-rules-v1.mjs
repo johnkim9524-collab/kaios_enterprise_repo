@@ -52,7 +52,7 @@ const requiredPlatformPrinciples = [
   'TRANSPARENT'
 ];
 assert(platform.id === 'kidults-operating-principles-and-resilience-controls-v1', 'PLATFORM_ID');
-assert(platform.version === '1.1.0', 'PLATFORM_VERSION');
+assert(platform.version === '1.2.0', 'PLATFORM_VERSION');
 assert(platform.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'PLATFORM_STATUS');
 assert(platform.owner === 'KPMO', 'PLATFORM_OWNER');
 assert(platform.precedence === 'HIGHEST_PLATFORM_OPERATING_PRINCIPLES', 'PLATFORM_PRECEDENCE');
@@ -66,6 +66,66 @@ assert(platform.mandatory_inheritance?.self_exemption_allowed === false, 'PLATFO
 assert(platform.autonomous_activation_rule?.manual_only_normal_activation_forbidden === true, 'PLATFORM_MANUAL_ONLY_FORBIDDEN');
 for (const field of ['autonomous_effect','global_effect','irreplaceable_value_effect','transparency_effect']) {
   assert(platform.material_change_decision_test?.required_fields?.includes(field), `PLATFORM_EFFECT_FIELD:${field}`);
+}
+
+const operationalNormalcy = platform.operational_normalcy_first;
+assert(operationalNormalcy?.status === 'ACTIVE_MANDATORY', 'OPERATIONAL_NORMALCY_STATUS');
+assert(operationalNormalcy?.rules?.includes('ROUTINE_NORMAL_OPERATION_MUST_NOT_REQUIRE_A_PERSISTENT_MANUAL_SWITCH_OR_A_SECOND_HUMAN_COLLABORATOR'), 'OPERATIONAL_NORMALCY_HUMAN_SPOF');
+assert(operationalNormalcy?.rules?.includes('REAL_EXECUTION_READBACK_FAILURE_ISOLATION_AND_RECOVERY_EVIDENCE_ARE_REQUIRED_FOR_OPERATIONAL_ACCEPTANCE'), 'OPERATIONAL_NORMALCY_EVIDENCE');
+
+const autonomousReview = platform.autonomous_independent_review;
+assert(autonomousReview?.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'AUTONOMOUS_REVIEW_STATUS');
+const reviewInvariants = new Set(autonomousReview?.invariants || []);
+for (const invariant of [
+  'NO_AGENT_SHALL_APPROVE_ITS_OWN_MATERIAL_CHANGE',
+  'IMPLEMENTER_AGENT_ID_MUST_DIFFER_FROM_REVIEWER_AGENT_ID',
+  'REVIEWER_MUST_BE_DOMAIN_QUALIFIED_FOR_THE_MATERIAL_CHANGE',
+  'REVIEW_MUST_BIND_SEPARATE_AGENT_ID_BOOTSTRAP_SESSION_AND_EXACT_HEAD',
+  'REVIEW_MUST_EVALUATE_DIFF_TEST_EVIDENCE_AND_DOMAIN_SPECIFIC_NEGATIVE_CONTROLS',
+  'REVIEW_DECISION_MUST_BE_APPROVE_OR_REQUEST_CHANGES_AND_RUBBER_STAMP_APPROVAL_IS_FORBIDDEN',
+  'REVIEW_AUTHORITY_MUST_BE_AUDITABLE_REPLAY_RESISTANT_EXACT_HEAD_BOUND_AND_INDEPENDENTLY_ATTRIBUTABLE',
+]) assert(reviewInvariants.has(invariant), `AUTONOMOUS_REVIEW_INVARIANT:${invariant}`);
+assert(autonomousReview?.domain_routing?.provider_rights_evidence === 'TRACK_Z_OR_EVIDENCE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_PROVIDER_ROUTING');
+assert(autonomousReview?.domain_routing?.security_credentials_tls_ssh === 'SECURITY_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_SECURITY_ROUTING');
+assert(autonomousReview?.domain_routing?.data_runtime_storage === 'DATA_OR_INFRASTRUCTURE_QUALIFIED_AGENT', 'AUTONOMOUS_REVIEW_DATA_ROUTING');
+assert(autonomousReview?.domain_routing?.governance_independence_and_provenance === 'KPMO', 'AUTONOMOUS_REVIEW_GOVERNANCE_ROUTING');
+for (const gate of ['PRODUCTION','PUBLIC_RELEASE','G5','EXPANDED_CREDENTIAL_OR_PERMISSION','SECURITY_POLICY_WEAKENING','DESTRUCTIVE_OPERATION_OR_HISTORY_REWRITE','EXTERNAL_SPEND','LEGAL_OR_COMMERCIAL_COMMITMENT']) {
+  assert(autonomousReview?.human_owner_gates?.includes(gate), `AUTONOMOUS_REVIEW_OWNER_GATE:${gate}`);
+}
+assert(typeof autonomousReview?.fail_closed === 'string' && autonomousReview.fail_closed.includes('BLOCKED'), 'AUTONOMOUS_REVIEW_FAIL_CLOSED');
+
+const reviewIndependenceFindings = (review) => {
+  const findings = [];
+  if (!review.implementer_agent_id || review.implementer_agent_id === review.reviewer_agent_id) findings.push('SELF_REVIEW');
+  if (!review.assigned_reviewer_agent_id || review.assigned_reviewer_agent_id !== review.reviewer_agent_id) findings.push('WRONG_REVIEWER_AGENT');
+  if (!review.implementer_session_id || !review.reviewer_session_id || review.implementer_session_id === review.reviewer_session_id) findings.push('SESSION_NOT_INDEPENDENT');
+  if (!review.exact_head_sha || review.exact_head_sha !== review.reviewed_head_sha) findings.push('STALE_HEAD');
+  if (!review.required_domain || review.required_domain !== review.reviewer_domain) findings.push('WRONG_REVIEWER_DOMAIN');
+  if (!review.bootstrap_verified || !review.bootstrap_consumed) findings.push('BOOTSTRAP_NOT_CONSUMED');
+  if (!review.review_receipt_id || review.consumed_review_receipt_ids?.includes(review.review_receipt_id)) findings.push('REVIEW_REPLAY');
+  if (!['APPROVE', 'REQUEST_CHANGES'].includes(review.decision)) findings.push('INVALID_REVIEW_DECISION');
+  if (!review.diff_reviewed || !review.tests_reviewed || !review.evidence_reviewed || !review.negative_controls_reviewed) findings.push('INCOMPLETE_REVIEW_SCOPE');
+  return findings;
+};
+const validReviewFixture = {
+  implementer_agent_id: 'IMPLEMENTER', reviewer_agent_id: 'REVIEWER', assigned_reviewer_agent_id: 'REVIEWER',
+  implementer_session_id: 'implementer-session', reviewer_session_id: 'reviewer-session',
+  exact_head_sha: 'a'.repeat(40), reviewed_head_sha: 'a'.repeat(40),
+  required_domain: 'GOVERNANCE', reviewer_domain: 'GOVERNANCE',
+  bootstrap_verified: true, bootstrap_consumed: true,
+  review_receipt_id: 'review-receipt-1', consumed_review_receipt_ids: [], decision: 'APPROVE',
+  diff_reviewed: true, tests_reviewed: true, evidence_reviewed: true, negative_controls_reviewed: true,
+};
+assert(reviewIndependenceFindings(validReviewFixture).length === 0, 'AUTONOMOUS_REVIEW_VALID_FIXTURE_REJECTED');
+const reviewNegativeControls = [
+  ['SELF_REVIEW', {...validReviewFixture, reviewer_agent_id: 'IMPLEMENTER', assigned_reviewer_agent_id: 'IMPLEMENTER'}],
+  ['STALE_HEAD', {...validReviewFixture, reviewed_head_sha: 'b'.repeat(40)}],
+  ['REVIEW_REPLAY', {...validReviewFixture, consumed_review_receipt_ids: ['review-receipt-1']}],
+  ['WRONG_REVIEWER_AGENT', {...validReviewFixture, reviewer_agent_id: 'OTHER'}],
+  ['WRONG_REVIEWER_DOMAIN', {...validReviewFixture, reviewer_domain: 'PORTAL'}],
+];
+for (const [expectedFinding, fixture] of reviewNegativeControls) {
+  assert(reviewIndependenceFindings(fixture).includes(expectedFinding), `AUTONOMOUS_REVIEW_NEGATIVE_FALSE_GREEN:${expectedFinding}`);
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
@@ -551,6 +611,9 @@ const report = {
   manual_only_normal_activation_forbidden: true,
   github_canonical_bootstrap_required: true,
   per_agent_bootstrap_receipt_required: true,
+  autonomous_independent_review_validated: true,
+  autonomous_review_negative_controls_validated: reviewNegativeControls.map(([id]) => id),
+  human_owner_gates_preserved: autonomousReview.human_owner_gates,
   self_exemption_allowed: false,
   production: 'HOLD',
   public_release: 'HOLD'
