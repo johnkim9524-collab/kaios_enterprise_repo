@@ -197,12 +197,23 @@ function liveMainGuardContract(step) {
 }
 
 function activationReceiptContract(step, requiredVariable, triggerClasses) {
-  if (!step || step.name !== ACTIVATION_RECEIPT_STEP_NAME || !requiredVariable) return false;
-  const required = [
+  if (!step || step.name !== ACTIVATION_RECEIPT_STEP_NAME) return false;
+  const required = requiredVariable ? [
     `ACTIVATION_AUTHORIZED: \${{ vars.${requiredVariable} }}`,
     'set -euo pipefail',
     'test "$ACTIVATION_AUTHORIZED" = "true"',
     'test "$GITHUB_REF" = "refs/heads/main"'
+  ] : [
+    'EXACT_MAIN_SHA: ${{ inputs.exact_main_sha }}',
+    'AUTHORIZATION_NONCE: ${{ inputs.authorization_nonce }}',
+    'AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}',
+    'set -euo pipefail',
+    'test "$GITHUB_REF" = "refs/heads/main"',
+    'test "$GITHUB_EVENT_NAME" = "workflow_dispatch"',
+    'test "$GITHUB_RUN_ATTEMPT" = "1"',
+    'test "$EXACT_MAIN_SHA" = "$GITHUB_SHA"',
+    'AUTHORIZATION_NONCE" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+    'datetime.datetime.now(datetime.timezone.utc) < expiry'
   ];
   const eventPredicates = [...triggerClasses].sort().map(
     (trigger) => `"$GITHUB_EVENT_NAME" = "${trigger}"`
@@ -312,6 +323,7 @@ export function analyzeWorkflow(text, workflow = 'fixture.yml') {
         && providerSecretSteps.length > 0
         && JSON.stringify(uniqueSorted(providerSecretSteps.flatMap((step) => step.secret_names))) === JSON.stringify(secretNames),
       activation_guard_variables: activationGuardVariables,
+      upstream_one_shot_authorized_guard: block.includes("needs.activation-readiness-receipt.outputs.authorized == 'true'"),
       step_names: parsedSteps.steps.map((step) => step.name).filter(Boolean),
       activation_receipt: {
         count: activationReceiptSteps.length,
@@ -508,6 +520,15 @@ export function validateRequiredEnvironmentBindings(inventory, registry) {
         require(job.activation_receipt?.contract_valid === true, `ACTIVATION_RECEIPT_STEP_CONTRACT:${key}`);
         require(job.activation_receipt?.before_live_main_guard === true, `ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:${key}`);
         require(job.activation_receipt?.before_all_provider_secret_steps === true, `ACTIVATION_RECEIPT_BEFORE_PROVIDER_SECRET:${key}`);
+      }
+      if (expected.required_one_shot_authorization) {
+        require(job.activation_guard_variables.length === 0, `ONE_SHOT_STANDING_GUARD_PRESENT:${key}`);
+        require(job.upstream_one_shot_authorized_guard === true, `ONE_SHOT_UPSTREAM_GUARD_MISSING:${key}`);
+        require(job.activation_receipt?.count === 1, `ONE_SHOT_ACTIVATION_STEP_MISSING:${key}`);
+        require(job.activation_receipt?.step_index === 0, `ONE_SHOT_ACTIVATION_STEP_ORDER:${key}`);
+        require(job.activation_receipt?.contract_valid === true, `ONE_SHOT_ACTIVATION_STEP_CONTRACT:${key}`);
+        require(job.activation_receipt?.before_live_main_guard === true, `ONE_SHOT_ACTIVATION_BEFORE_LIVE_MAIN:${key}`);
+        require(job.activation_receipt?.before_all_provider_secret_steps === true, `ONE_SHOT_ACTIVATION_BEFORE_PROVIDER_SECRET:${key}`);
       }
       require(job.explicit_main_ref_guard, `EXACT_MAIN_GUARD_MISSING:${key}`);
       const requiredTokenPermissions = uniqueSorted(
