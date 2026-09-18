@@ -12,6 +12,10 @@ const aggregateRunnerPath = 'scripts/kidults/kpmo/run-scope-aware-authoritative-
 
 const requiredPrefixes = [
   '.github/',
+  'docs/architecture/',
+  'architecture/',
+  'src/trust/',
+  'tests/trust/',
   'services/kidults-control-plane/',
   'services/kidults-autonomous-intelligence/',
   'scripts/kidults/kpmo/',
@@ -37,8 +41,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
   for (const prefix of requiredPrefixes) {
     require(prefixes.has(prefix), `POLICY_PREFIX_MISSING:${prefix}`);
-    require(workflow.includes(`'${prefix}'`), `WORKFLOW_PREFIX_MISSING:${prefix}`);
   }
+  require(workflow.includes("const prefixes = policy.governed_path_prefixes;"), 'WORKFLOW_POLICY_PREFIX_SOURCE_MISSING');
+  require(workflow.includes("const exact = new Set(policy.governed_exact_paths);"), 'WORKFLOW_POLICY_EXACT_PATH_SOURCE_MISSING');
+  require(!workflow.includes('const prefixes = ['), 'WORKFLOW_DUPLICATED_PREFIX_TAXONOMY');
   require(!prefixes.has('coordination/kidults/providers/'), 'STALE_PROVIDER_PREFIX_POLICY');
   require(!workflow.includes("'coordination/kidults/providers/'"), 'STALE_PROVIDER_PREFIX_WORKFLOW');
 

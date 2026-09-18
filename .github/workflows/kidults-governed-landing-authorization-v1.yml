@@ -47,6 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
+          import fs from 'node:fs';
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
           const token = process.env.GH_TOKEN;
@@ -100,21 +101,9 @@ jobs:
             },null,2));
             process.exit(0);
           }
-          const prefixes = [
-            '.github/',
-            'services/kidults-control-plane/',
-            'services/kidults-autonomous-intelligence/',
-            'scripts/kidults/kpmo/',
-            'scripts/kidults/redteam/',
-            'scripts/kidults/portal/runtime/',
-            'coordination/kidults/kpmo/',
-            'coordination/kidults/audit/',
-            'coordination/kidults/security/',
-            'coordination/kidults/provider/',
-            'coordination/kidults/runtime/',
-            'infra/'
-          ];
-          const exact = new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
+          const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
+          const prefixes = policy.governed_path_prefixes;
+          const exact = new Set(policy.governed_exact_paths);
           const governedFiles = files.map(x=>x.filename).filter(name=>exact.has(name)||prefixes.some(prefix=>name.startsWith(prefix)));
 
           const rulesets = await api('/rulesets');
