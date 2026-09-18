@@ -127,9 +127,30 @@
     "public_release": "HOLD",
     "g5": "HOLD",
     "autonomous_multi_lane_exact_head_verification": true,
-    "human_review_required": false
+    "human_review_required": false,
+    "autonomous_risk_routing": true
   },
-  "autonomous_verification_contexts": [
-    "full-value-chain-redteam"
+  "autonomous_verification_rules": [
+    {
+      "id": "full-value-chain-redteam-risk-routed",
+      "prefixes": [
+        "scripts/kidults/",
+        "tests/kidults/",
+        "coordination/kidults/",
+        "apps/kidults-enterprise-staging/",
+        "services/kidults-autonomous-intelligence/"
+      ],
+      "exact_paths": [
+        ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
+        "Dockerfile",
+        "package.json",
+        "requirements-ci.lock.txt",
+        "requirements-runtime.lock.txt",
+        "requirements-security-assurance-pip-audit.lock.txt"
+      ],
+      "required_contexts": [
+        "full-value-chain-redteam"
+      ]
+    }
   ]
 }
