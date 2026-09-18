@@ -35,15 +35,18 @@ requireValue(policy.review_policy?.independent_exact_head_approval_required === 
 requireValue(policy.review_policy?.human_review_mode === 'OPTIONAL_ADVISORY_EXACT_HEAD_ONLY', 'POLICY_HUMAN_REVIEW_MODE');
 requireValue(policy.review_policy?.independent_review_root_issue === 1582, 'POLICY_REVIEW_ROOT');
 const autonomous = policy.autonomous_verification_policy || {};
-requireValue(autonomous.mode === 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD', 'POLICY_AUTONOMOUS_MODE');
+requireValue(autonomous.mode === 'MACHINE_ENFORCED_RISK_ROUTED_MULTI_LANE_EXACT_HEAD', 'POLICY_AUTONOMOUS_MODE');
 requireValue(autonomous.required === true, 'POLICY_AUTONOMOUS_REQUIRED');
+requireValue(autonomous.risk_routing_required === true, 'POLICY_AUTONOMOUS_RISK_ROUTING');
 requireValue(autonomous.human_review_required === false, 'POLICY_AUTONOMOUS_HUMAN_REVIEW_FALSE');
 requireValue(autonomous.owner_exact_head_approval_separate_required === true, 'POLICY_OWNER_APPROVAL_SEPARATE');
 requireValue(autonomous.internal_control_evidence_only === true, 'POLICY_INTERNAL_CONTROL_ONLY');
 requireValue(autonomous.empirical_launch_authority === false, 'POLICY_NO_EMPIRICAL_AUTHORITY');
-for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container','full-value-chain-redteam']) {
-  requireValue(autonomous.required_check_contexts?.includes(context), `POLICY_AUTONOMOUS_CONTEXT:${context}`);
+for (const context of ['KAIOS Solo Owner Preflight','Validate KAIOS Foundation','Validate Production Container']) {
+  requireValue(autonomous.baseline_required_check_contexts?.includes(context), `POLICY_AUTONOMOUS_BASELINE_CONTEXT:${context}`);
 }
+requireValue(autonomous.risk_routed_check_contexts?.includes('full-value-chain-redteam'),
+  'POLICY_AUTONOMOUS_RISK_CONTEXT:full-value-chain-redteam');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
