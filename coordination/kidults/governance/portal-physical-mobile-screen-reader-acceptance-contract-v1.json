@@ -1,0 +1,155 @@
+{
+  "id": "portal-physical-mobile-screen-reader-acceptance-contract-v1",
+  "version": "1.2.0",
+  "status": "ACTIVE_FAIL_CLOSED",
+  "scope": "GOVERNED_STAGING_SHARED_RESPONSIVE_PORTAL",
+  "references": {
+    "portal_canonical_issue": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/237",
+    "bfcache_truth_issue": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1505",
+    "cloudflare_boundary_issue": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1234",
+    "program_owner_decision_receipt": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/238#issuecomment-5465472511"
+  },
+  "source_binding": {
+    "live_protected_main_readback_required": true,
+    "governed_staging_deployment_readback_required": true,
+    "exact_sha_equality_required": true,
+    "deployment_id_required": true,
+    "https_required": true,
+    "hashed_read_only_parity_evidence_ref_required": true,
+    "mismatch_result": "HOLD"
+  },
+  "replay_protection": {
+    "receipt_instance_id_required": true,
+    "receipt_nonce_required": true,
+    "independent_read_only_replay_registry_required": true,
+    "maximum_receipt_lifetime_seconds": 86400,
+    "receipt_and_attestation_ids_must_be_unseen": true,
+    "missing_stale_or_replayed_result": "HOLD",
+    "validator_mutates_registry": false
+  },
+  "receipts": {
+    "physical_mobile": {
+      "evidence_class": "PHYSICAL_IPHONE_MOBILE_SAFARI_HUMAN_ACCEPTANCE",
+      "required_cycles": 30,
+      "required_operations": [
+        "navigation",
+        "native_background_foreground",
+        "history_traversal",
+        "truthful_bfcache_or_reload_classification",
+        "menu_restoration",
+        "focus_restoration",
+        "scroll_restoration",
+        "stale_value_prevention"
+      ],
+      "history_classification": {
+        "allowed_outcomes": [
+          "BFCACHE_RESTORED",
+          "HISTORY_RELOAD_NO_BFCACHE"
+        ],
+        "per_cycle_raw_lifecycle_record_required": true,
+        "validator_derives_outcome_from_raw_fields": true,
+        "all_cycles_classified_required": true,
+        "ambiguous_cycles_max": 0,
+        "bfcache_requires_pageshow_persisted_true": true,
+        "bfcache_requires_document_identity_preserved": true,
+        "reload_requires_pageshow_persisted_false": true,
+        "reload_requires_document_identity_replaced": true,
+        "synthetic_or_inferred_bfcache_eligible": false
+      },
+      "runtime_errors_max": 0,
+      "crashes_max": 0,
+      "failed_cycles_max": 0,
+      "stale_value_leaks_max": 0,
+      "physical_iphone_required": true,
+      "mobile_safari_required": true,
+      "simulator_or_emulation_eligible": false,
+      "human_reviewer_required": true,
+      "minimum_hashed_evidence_refs": 2,
+      "signed_human_attestation_required": true,
+      "cryptographic_machine_verification_required": true,
+      "self_asserted_signed_boolean_eligible": false
+    },
+    "screen_reader": {
+      "evidence_class": "PHYSICAL_IPHONE_VOICEOVER_HUMAN_ACCEPTANCE",
+      "technology": "VoiceOver",
+      "required_checks": [
+        "landmarks",
+        "name_role_value",
+        "focus_order",
+        "focus_restoration",
+        "menu_announcement",
+        "status_announcement",
+        "error_announcement"
+      ],
+      "same_physical_device_session_required": true,
+      "human_operated_required": true,
+      "minimum_hashed_evidence_refs": 2,
+      "signed_human_attestation_required": true,
+      "cryptographic_machine_verification_required": true,
+      "self_asserted_signed_boolean_eligible": false
+    }
+  },
+  "attestation_verifiers": {
+    "physical_mobile": {
+      "status": "NOT_PROVISIONED",
+      "verification_method": "ED25519_PINNED_PUBLIC_KEY",
+      "algorithm": "Ed25519",
+      "authority": null,
+      "environment": null,
+      "key_purpose": null,
+      "key_id": null,
+      "public_key_raw_base64url": null,
+      "public_key_sha256": null,
+      "revoked": null,
+      "provisioned_by": null,
+      "provisioned_at": null,
+      "provisioning_receipt_digest": null
+    },
+    "screen_reader": {
+      "status": "NOT_PROVISIONED",
+      "verification_method": "ED25519_PINNED_PUBLIC_KEY",
+      "algorithm": "Ed25519",
+      "authority": null,
+      "environment": null,
+      "key_purpose": null,
+      "key_id": null,
+      "public_key_raw_base64url": null,
+      "public_key_sha256": null,
+      "revoked": null,
+      "provisioned_by": null,
+      "provisioned_at": null,
+      "provisioning_receipt_digest": null
+    }
+  },
+  "signed_payload": {
+    "domain": "KIDULTS.PORTAL.PHYSICAL-MOBILE.VOICEOVER-ACCEPTANCE.V1",
+    "canonicalization": "KIDULTS_SORTED_JSON_V1",
+    "payload_hash": "SHA-256",
+    "signature_algorithm": "Ed25519",
+    "binds": [
+      "receipt_contract_and_replay_identity",
+      "exact_live_main_and_governed_staging_sha",
+      "deployment_identity_and_https_url",
+      "physical_device_browser_and_session_identity",
+      "truthful_history_classification_and_cycle_results",
+      "voiceover_human_review_results",
+      "evidence_uris_and_sha256_digests",
+      "reviewer_identity_timestamp_and_statement"
+    ],
+    "document_or_environment_supplied_verifier_key_allowed": false,
+    "independent_validator_pin_required": true,
+    "verifier_key_absent_result": "HOLD"
+  },
+  "automated_surrogates": {
+    "playwright_webkit": "NON_PHYSICAL_NON_AUTHORIZING",
+    "mobile_emulation": "NON_PHYSICAL_NON_AUTHORIZING",
+    "dom_or_axe_checks": "NOT_VOICEOVER_ACCEPTANCE"
+  },
+  "pending_rule": "UNEXECUTED_UNSIGNED_INCOMPLETE_STALE_REPLAYED_OR_UNVERIFIABLE_RECEIPT_IS_HOLD",
+  "authority": {
+    "promotion_authority": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
