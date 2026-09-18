@@ -58,8 +58,9 @@ const EXACT_REVIEW_POLICY = Object.freeze({
 });
 
 const EXACT_AUTONOMOUS_VERIFICATION_POLICY = Object.freeze({
-  mode: 'MACHINE_ENFORCED_MULTI_LANE_EXACT_HEAD',
+  mode: 'MACHINE_ENFORCED_RISK_ROUTED_MULTI_LANE_EXACT_HEAD',
   required: true,
+  risk_routing_required: true,
   scope_aware_status_context: 'KIDULTS Scope-Aware Authoritative Status V1',
   all_required_contexts_terminal_success: true,
   missing_context_fails_closed: true,
@@ -71,10 +72,13 @@ const EXACT_AUTONOMOUS_VERIFICATION_POLICY = Object.freeze({
   root_issue: 1582,
 });
 
-const EXACT_AUTONOMOUS_CHECK_CONTEXTS = Object.freeze([
+const EXACT_AUTONOMOUS_BASELINE_CONTEXTS = Object.freeze([
   'KAIOS Solo Owner Preflight',
   'Validate KAIOS Foundation',
   'Validate Production Container',
+]);
+
+const EXACT_AUTONOMOUS_RISK_CONTEXTS = Object.freeze([
   'full-value-chain-redteam',
 ]);
 
@@ -151,8 +155,10 @@ export function assertGovernedLandingAuthorizationPolicyV180(policy) {
     requireExact(Object.hasOwn(autonomous, field), `AUTONOMOUS_VERIFICATION_FIELD_MISSING:${field}`);
     requireExact(autonomous[field] === expected, `AUTONOMOUS_VERIFICATION_FIELD_INVALID:${field}`);
   }
-  requireExactArray(autonomous.required_check_contexts, EXACT_AUTONOMOUS_CHECK_CONTEXTS,
-    'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS');
+  requireExactArray(autonomous.baseline_required_check_contexts, EXACT_AUTONOMOUS_BASELINE_CONTEXTS,
+    'AUTONOMOUS_VERIFICATION_BASELINE_CONTEXTS');
+  requireExactArray(autonomous.risk_routed_check_contexts, EXACT_AUTONOMOUS_RISK_CONTEXTS,
+    'AUTONOMOUS_VERIFICATION_RISK_CONTEXTS');
 
   const atomic = policy.atomic_landing_policy;
   requireExact(atomic && typeof atomic === 'object' && !Array.isArray(atomic),
