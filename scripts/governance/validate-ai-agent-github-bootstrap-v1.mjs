@@ -801,6 +801,14 @@ assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_a
 assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'BOOTSTRAP_ROLE_JD_EVIDENCE_STANDARD');
 assert(roles.kpmo_qualification_and_lifecycle?.activation_state === 'BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY', 'BOOTSTRAP_KPMO_ACTIVATION_FAIL_CLOSED');
 assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_owned_here === false, 'BOOTSTRAP_KPMO_TRUST_AUTHORITY_NOT_DUPLICATED');
+assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_ref === null, 'BOOTSTRAP_KPMO_DANGLING_TRUST_AUTHORITY_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_proposal?.pull_request === 2272
+  && roles.kpmo_qualification_and_lifecycle?.external_trust_authority_proposal?.required_state === 'MERGED_VERIFIED',
+  'BOOTSTRAP_KPMO_EXTERNAL_TRUST_PROPOSAL_BOUND');
+assert(roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.external_trust_controller_status === 'NOT_PROVISIONED'
+  && roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.active_kpmo_identity === null
+  && roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.qualified_standby_identity === null,
+  'BOOTSTRAP_KPMO_CURRENT_AUTHORITY_FAIL_CLOSED');
 assert(roles.kpmo_qualification_and_lifecycle?.external_attestation_bindings?.repository_code_alone_may_manufacture_active_status === false, 'BOOTSTRAP_KPMO_REPOSITORY_SELF_ACTIVATION_FORBIDDEN');
 assert(roles.kpmo_qualification_and_lifecycle?.external_attestation_bindings?.active_kpmo_may_write_own_active_or_quarantined_state === false, 'BOOTSTRAP_KPMO_SELF_STATE_WRITE_FORBIDDEN');
 assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.active_and_standby_must_be_distinct_identities === true, 'BOOTSTRAP_KPMO_STANDBY_IDENTITY_SEPARATION');

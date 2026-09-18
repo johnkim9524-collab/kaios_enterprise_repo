@@ -546,7 +546,21 @@
     "role_target": "integration-conductor",
     "authority_model": "CONTINUOUSLY_EARNED_NOT_PERMANENTLY_OWNED",
     "activation_state": "BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY",
-    "external_trust_authority_ref": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+    "external_trust_authority_ref": null,
+    "external_trust_authority_proposal": {
+      "pull_request": 2272,
+      "required_state": "MERGED_VERIFIED",
+      "proposed_ref": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+      "activation_condition": "PROTECTED_MAIN_CONTAINS_AND_VALIDATOR_DEREFERENCES_PROPOSED_REF"
+    },
+    "current_authority_evidence": {
+      "external_trust_controller_status": "NOT_PROVISIONED",
+      "active_kpmo_identity": null,
+      "qualified_standby_identity": null,
+      "active_lease_receipt": null,
+      "kqac_dossier_ref": null,
+      "lifecycle_enforcement_status": "NOT_ACTIVE"
+    },
     "external_trust_authority_owned_here": false,
     "selection_objective": "SELECT_THE_HIGHEST_PERFORMING_CANDIDATE_AMONG_ALL_CANDIDATES_THAT_PASS_EVERY_MANDATORY_GATE",
     "qualification_gates": {
@@ -891,8 +905,9 @@
       "STANDBY_EQUALS_ACTIVE_IDENTITY",
       "UNQUALIFIED_STANDBY_TAKEOVER"
     ],
+    "required_negative_controls_execution_state": "BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER",
     "control_authority_ownership": {
-      "review_independence_external_attestation_signature_expiry_replay_and_evidence_binding": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
+      "review_independence_external_attestation_signature_expiry_replay_and_evidence_binding": "PENDING_PR_2272_PROTECTED_MAIN_AUTHORITY",
       "kpmo_qualification_performance_kqac_quarantine_removal_succession_and_reinstatement": "coordination/kidults/registry/roles-and-responsibilities.json#kpmo_qualification_and_lifecycle",
       "duplicate_authority_allowed": false,
       "cross_authority_integration_required_before_activation": true
@@ -902,6 +917,7 @@
       "kpmo_appointment": "CANDIDATE_TO_QUALIFICATION_TO_PROBATION_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_APPOINTMENT",
       "kpmo_failover": "ACTIVE_QUARANTINE_TO_AUTHORITY_REVOKED_TO_HOT_STANDBY_TO_FRESH_BOOTSTRAP_TO_EXTERNAL_ATTESTATION_TO_BOUNDED_TAKEOVER",
       "reinstatement": "REMOVED_IDENTITY_TO_FULL_REQUALIFICATION_TO_INDEPENDENT_REVIEW_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_DECISION"
-    }
+    },
+    "required_positive_canaries_execution_state": "BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER"
   }
 }

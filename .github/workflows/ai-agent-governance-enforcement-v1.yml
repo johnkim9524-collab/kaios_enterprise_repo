@@ -306,6 +306,50 @@ jobs:
             exit 1
           fi
           mv /tmp/kpmo-succession-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject dangling proposed KPMO trust authority mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-dangling-authority-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const k=x.kpmo_qualification_and_lifecycle;
+          k.external_trust_authority_ref=k.external_trust_authority_proposal.proposed_ref;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted a dangling KPMO external trust authority' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-dangling-authority-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject same-count KPMO semantic substitution mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-semantic-substitution-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const k=x.kpmo_qualification_and_lifecycle;
+          k.qualification_gates.scored_domains.architecture_and_systems=14;
+          k.qualification_gates.scored_domains.execution_and_verified_closure=16;
+          k.review_quality_metrics.metrics[0]='REVIEW_VOLUME';
+          k.continuous_fitness.mandatory_reevaluation_triggers[0]='MANUAL_ONLY';
+          k.external_attestation_bindings.qualification_attestation_required_fields[0]='UNBOUND_SUBJECT';
+          k.required_negative_controls[0]='ALLOW_SELF_REVIEW';
+          k.required_positive_canaries.normal_autonomous_review='DOCUMENTATION_ONLY';
+          k.immediate_removal.atomic_sequence.splice(1,1);
+          k.immediate_removal.atomic_sequence.push('NO_OP');
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted same-count semantic weakening' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-semantic-substitution-roles.json coordination/kidults/registry/roles-and-responsibilities.json
       - name: Reject missing fix-first bootstrap child contract
         shell: bash
         run: |
