@@ -148,8 +148,8 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
     user: {login: 'johnkim9524-collab'},
     author_association: 'OWNER',
     performed_via_github_app: null,
-    created_at: '2026-09-01T01:10:00Z',
-    updated_at: '2026-09-01T01:10:00Z',
+    created_at: '2026-09-01T01:25:00Z',
+    updated_at: '2026-09-01T01:25:00Z',
     ...overrides,
   });
   const input = {
@@ -162,6 +162,7 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
     prCreatedAt: '2026-09-01T00:00:00Z',
     headCommittedAt: '2026-09-01T01:00:00Z',
     latestReadyAt: '2026-09-01T01:20:00Z',
+    landingAttemptStartedAt: '2026-09-01T01:29:00Z',
     evaluationTime: '2026-09-01T01:30:00Z',
   };
   const selected = selectExactHeadProgramOwnerApproval([comment(1, sha)], input);
@@ -170,8 +171,8 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   assert.equal(selected.raw_authorization_persisted, false);
   assert.equal(selected.raw_nonce_persisted, false);
   code(() => selectExactHeadProgramOwnerApproval([], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha), comment(2, 'c'.repeat(40), {
-    created_at: '2026-09-01T01:11:00Z', updated_at: '2026-09-01T01:11:00Z',
+  code(() => selectExactHeadProgramOwnerApproval([comment(2, 'c'.repeat(40), {
+    created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z',
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     updated_at: '2026-09-01T01:12:00Z',
@@ -181,10 +182,17 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     created_at: '2026-09-01T00:59:00Z', updated_at: '2026-09-01T00:59:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
+  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
-    created_at: '2026-09-01T01:21:00Z', updated_at: '2026-09-01T01:21:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
+    created_at: '2026-09-01T01:20:00Z', updated_at: '2026-09-01T01:20:00Z',
+  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
+  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T01:29:00Z', updated_at: '2026-09-01T01:29:00Z',
+  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
+  code(() => selectExactHeadProgramOwnerApproval([
+    comment(1, sha),
+    comment(2, sha, {created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z'}),
+  ], input), 'PROGRAM_OWNER_MULTIPLE_CURRENT_GENERATION_APPROVALS');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     body: approvalBody(sha, {expiresAt: '2026-09-01T03:00:01Z'}),
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');

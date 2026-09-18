@@ -9,6 +9,7 @@ import {
 } from './consume-direct-owner-postmerge-push-suite-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
+const ASSURANCE_PATH = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const fail = (code, details = null) => {
   const error = new Error(code);
   error.code = code;
@@ -31,11 +32,17 @@ const writeReceipt = (receipt, receiptPath) => {
 };
 
 export function buildAtomicPostMergeReceipt({
-  repository, baseSha, headSha, headTreeSha, mergeSha, mergedAt, evaluation, failureCode = null,
+  repository, baseSha, headSha, headTreeSha, mergeSha, mergedAt, evaluation,
+  canonicalConvergence = null, failureCode = null,
 } = {}) {
   const allTerminal = evaluation?.ready === true;
   const allSuccess = allTerminal && evaluation?.all_required_success === true;
-  const state = !failureCode && allSuccess ? 'VERIFIED_PASS' : 'VERIFIED_FAIL';
+  const failures = (evaluation?.required || []).filter(run => run.conclusion === 'failure');
+  const canonicalConverged = canonicalConvergence?.state === 'VERIFIED_PASS';
+  const convergedStartup = allTerminal && canonicalConverged
+    && failures.length === 1 && failures[0].path === ASSURANCE_PATH;
+  const state = !failureCode && canonicalConverged && (allSuccess || convergedStartup)
+    ? 'VERIFIED_PASS' : 'VERIFIED_FAIL';
   return {
     id: 'kidults-atomic-postmerge-push-suite-receipt-v1', version: '1.0.0', state,
     failure_code: state === 'VERIFIED_FAIL'
@@ -48,6 +55,8 @@ export function buildAtomicPostMergeReceipt({
     all_required_terminal: allTerminal,
     all_required_success: allSuccess,
     required_workflows: evaluation?.required || [],
+    canonical_convergence: canonicalConvergence,
+    startup_race_preserved_as_evidence: convergedStartup,
     waiting: evaluation?.waiting || [],
     invalid: evaluation?.invalid || [],
     predecessor_head_proof_reused: false,
@@ -55,6 +64,45 @@ export function buildAtomicPostMergeReceipt({
     promotion_eligible: false,
     observed_at: new Date().toISOString(),
     production: 'HOLD', public: 'HOLD', g5: 'HOLD',
+  };
+}
+
+export function evaluateCanonicalConvergence(runs, policy, mergeSha, mergedAt) {
+  requireCondition(Array.isArray(runs), 'ATOMIC_POSTMERGE_CANONICAL_RUNS_INVALID');
+  requireCondition(SHA.test(mergeSha || ''), 'ATOMIC_POSTMERGE_CANONICAL_SHA_INVALID');
+  const config = policy?.canonical_convergence;
+  requireCondition(config?.exact_merge_sha_required === true
+    && config?.producer_before_consumer_required === true
+    && config?.terminal_success_required === true,
+  'ATOMIC_POSTMERGE_CANONICAL_POLICY_INVALID');
+  const mergedAtMs = Date.parse(mergedAt || '');
+  const select = expected => runs.filter(run => run?.head_sha === mergeSha
+    && run?.head_branch === 'main' && run?.path === expected.path
+    && run?.name === expected.name && run?.event === expected.event
+    && run?.status === 'completed' && run?.conclusion === 'success'
+    && Date.parse(run?.created_at || '') >= mergedAtMs);
+  const producers = select(config.producer);
+  const consumers = select(config.consumer);
+  if (producers.length !== 1 || consumers.length !== 1) {
+    return {state: 'WAITING', producer_success_count: producers.length,
+      consumer_success_count: consumers.length};
+  }
+  const producer = producers[0];
+  const consumer = consumers[0];
+  const producerCompleted = Date.parse(producer.updated_at || '');
+  const consumerCreated = Date.parse(consumer.created_at || '');
+  if (!Number.isFinite(producerCompleted) || !Number.isFinite(consumerCreated)
+      || consumerCreated < producerCompleted) {
+    return {state: 'VERIFIED_FAIL', failure_code: 'CANONICAL_CONSUMER_PRECEDES_PRODUCER',
+      producer_run_id: Number(producer.id), consumer_run_id: Number(consumer.id)};
+  }
+  return {
+    state: 'VERIFIED_PASS', exact_merge_sha: mergeSha,
+    producer_run_id: Number(producer.id), producer_event: producer.event,
+    producer_completed_at: producer.updated_at,
+    consumer_run_id: Number(consumer.id), consumer_event: consumer.event,
+    consumer_created_at: consumer.created_at,
+    failed_push_reinterpreted_as_success: false,
   };
 }
 
@@ -73,9 +121,32 @@ async function selfTest() {
     updated_at: '2026-09-06T00:00:02Z',
   }));
   const success = evaluatePostMergePushSuite(runs, policy, mergeSha, mergedAt);
+  const producer = {id: 3001, name: policy.canonical_convergence.producer.name,
+    path: policy.canonical_convergence.producer.path, head_sha: mergeSha, head_branch: 'main',
+    event: 'push', status: 'completed', conclusion: 'success',
+    created_at: '2026-09-06T00:00:01Z', updated_at: '2026-09-06T00:00:03Z'};
+  const consumer = {id: 3002, name: policy.canonical_convergence.consumer.name,
+    path: policy.canonical_convergence.consumer.path, head_sha: mergeSha, head_branch: 'main',
+    event: 'workflow_run', status: 'completed', conclusion: 'success',
+    created_at: '2026-09-06T00:00:04Z', updated_at: '2026-09-06T00:00:05Z'};
+  const convergence = evaluateCanonicalConvergence([...runs, producer, consumer], policy, mergeSha, mergedAt);
+  assert.equal(convergence.state, 'VERIFIED_PASS');
   const base = {repository: 'owner/repo', baseSha: 'a'.repeat(40), headSha: 'b'.repeat(40),
     headTreeSha: 'c'.repeat(40), mergeSha, mergedAt};
-  assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: success}).state, 'VERIFIED_PASS');
+  assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: success,
+    canonicalConvergence: convergence}).state, 'VERIFIED_PASS');
+  assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: success}).state, 'VERIFIED_FAIL');
+  const assuranceFailure = structuredClone(runs);
+  assuranceFailure.find(run => run.path === ASSURANCE_PATH).conclusion = 'failure';
+  const convergedFailure = evaluatePostMergePushSuite(assuranceFailure, policy, mergeSha, mergedAt);
+  assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: convergedFailure,
+    canonicalConvergence: convergence}).state, 'VERIFIED_PASS');
+  assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: convergedFailure,
+    canonicalConvergence: {state: 'WAITING'}}).state, 'VERIFIED_FAIL');
+  assert.equal(evaluateCanonicalConvergence([producer, {...consumer, head_sha: 'e'.repeat(40)}],
+    policy, mergeSha, mergedAt).state, 'WAITING');
+  assert.equal(evaluateCanonicalConvergence([producer, {...consumer,
+    created_at: '2026-09-06T00:00:02Z'}], policy, mergeSha, mergedAt).state, 'VERIFIED_FAIL');
   const failedRuns = structuredClone(runs);
   failedRuns[0].conclusion = 'failure';
   const failed = evaluatePostMergePushSuite(failedRuns, policy, mergeSha, mergedAt);
@@ -92,6 +163,7 @@ async function selfTest() {
     id: 'kidults-atomic-postmerge-push-suite-self-test-v1', state: 'VERIFIED_PASS',
     terminal_success_verified: true, terminal_failure_rejected: true,
     timeout_partial_execution_rejected: true, predecessor_reuse_rejected: true,
+    same_sha_canonical_convergence_required: true,
     production: 'HOLD', public: 'HOLD', g5: 'HOLD',
   }));
 }
@@ -126,11 +198,12 @@ async function main() {
     if (!response.ok) fail(`ATOMIC_POSTMERGE_GITHUB_API_${response.status}`);
     return payload;
   };
-  const readRuns = async () => {
+  const readRuns = async event => {
     const output = [];
     for (let page = 1; page <= policy.max_pages; page += 1) {
-      const query = new URLSearchParams({branch: 'main', event: 'push', head_sha: mergeSha,
+      const query = new URLSearchParams({branch: 'main', head_sha: mergeSha,
         per_page: '100', page: String(page)});
+      if (event) query.set('event', event);
       const payload = await request(`/actions/runs?${query}`);
       requireCondition(Array.isArray(payload?.workflow_runs), 'ATOMIC_POSTMERGE_RUN_LIST_INVALID');
       output.push(...payload.workflow_runs);
@@ -140,6 +213,7 @@ async function main() {
   };
 
   let evaluation = null;
+  let canonicalConvergence = null;
   try {
     const mergeCommit = await request(`/git/commits/${mergeSha}`);
     requireCondition(mergeCommit?.tree?.sha === headTreeSha, 'ATOMIC_POSTMERGE_TREE_MISMATCH');
@@ -150,20 +224,25 @@ async function main() {
     while (true) {
       const mainBranch = await request('/branches/main');
       requireCondition(mainBranch?.commit?.sha === mergeSha, 'ATOMIC_POSTMERGE_MAIN_SHA_MISMATCH');
-      evaluation = evaluatePostMergePushSuite(await readRuns(), policy, mergeSha, mergedAt);
+      evaluation = evaluatePostMergePushSuite(await readRuns('push'), policy, mergeSha, mergedAt);
+      canonicalConvergence = evaluateCanonicalConvergence(await readRuns(), policy, mergeSha, mergedAt);
       if (evaluation.invalid.length) fail('ATOMIC_POSTMERGE_PUSH_SUITE_INVALID', evaluation);
-      if (evaluation.ready) break;
+      if (canonicalConvergence.state === 'VERIFIED_FAIL') {
+        fail(canonicalConvergence.failure_code, canonicalConvergence);
+      }
+      if (evaluation.ready && canonicalConvergence.state === 'VERIFIED_PASS') break;
       if (Date.now() >= deadline) fail('ATOMIC_POSTMERGE_PUSH_SUITE_TIMEOUT', evaluation);
       await new Promise(resolve => setTimeout(resolve, policy.poll_interval_seconds * 1000));
     }
     const receipt = buildAtomicPostMergeReceipt({repository, baseSha, headSha, headTreeSha,
-      mergeSha, mergedAt, evaluation});
+      mergeSha, mergedAt, evaluation, canonicalConvergence});
     writeReceipt(receipt, receiptPath);
     if (receipt.state !== 'VERIFIED_PASS') fail(receipt.failure_code, evaluation);
     console.log(JSON.stringify(receipt));
   } catch (error) {
     const receipt = buildAtomicPostMergeReceipt({repository, baseSha, headSha, headTreeSha,
-      mergeSha, mergedAt, evaluation: error.details || evaluation, failureCode: error.code || error.message});
+      mergeSha, mergedAt, evaluation: error.details || evaluation, canonicalConvergence,
+      failureCode: error.code || error.message});
     try { writeReceipt(receipt, receiptPath); } catch {}
     throw error;
   }

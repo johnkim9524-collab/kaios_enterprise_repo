@@ -83,6 +83,7 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   prCreatedAt,
   headCommittedAt,
   latestReadyAt,
+  landingAttemptStartedAt,
   evaluationTime,
 } = {}) {
   if (!Array.isArray(comments)) fail('PROGRAM_OWNER_APPROVAL_COMMENT_SET_INVALID');
@@ -91,17 +92,24 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
     fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
   }
+  const finalLifecycleBoundaryAt = exactTime(
+    latestReadyAt,
+    'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID',
+  );
   const marked = comments
-    .map(comment => ({comment, fields: parseExactHeadApprovalBody(comment?.body)}))
-    .filter(item => item.fields)
-    .sort((a, b) => exactTime(b.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      - exactTime(a.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+    .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === EXACT_HEAD_APPROVAL_MARKER)
+    .sort((a, b) => exactTime(b.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      - exactTime(a.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-
-  // The newest structured approval is authoritative. An older exact approval may
-  // never mask a later stale-head, edited, app-mediated, or self-rebinding comment.
-  const {comment, fields} = marked[0];
+  const currentGeneration = marked.filter(comment => exactTime(
+    comment.created_at,
+    'PROGRAM_OWNER_APPROVAL_TIME_INVALID',
+  ) > finalLifecycleBoundaryAt);
+  if (!currentGeneration.length) fail('PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
+  if (currentGeneration.length !== 1) fail('PROGRAM_OWNER_MULTIPLE_CURRENT_GENERATION_APPROVALS');
+  const comment = currentGeneration[0];
+  const fields = parseExactHeadApprovalBody(comment?.body);
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
@@ -120,15 +128,17 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   const approvedAt = exactTime(comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID');
   const expiresAt = exactTime(fields.expires_at, 'PROGRAM_OWNER_APPROVAL_EXPIRY_INVALID');
   const evaluatedAt = exactTime(evaluationTime, 'PROGRAM_OWNER_APPROVAL_EVALUATION_TIME_INVALID');
+  const attemptStartedAt = exactTime(
+    landingAttemptStartedAt,
+    'PROGRAM_OWNER_LANDING_ATTEMPT_TIME_INVALID',
+  );
   if (approvedAt < exactTime(prCreatedAt, 'PROGRAM_OWNER_APPROVAL_PR_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_PR');
   }
   if (approvedAt < exactTime(headCommittedAt, 'PROGRAM_OWNER_APPROVAL_HEAD_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
   }
-  if (approvedAt > exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID')) {
-    fail('PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
-  }
+  if (approvedAt >= attemptStartedAt) fail('PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');
   }
@@ -153,6 +163,8 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     raw_authorization_persisted: false,
     raw_nonce_persisted: false,
     app_mediated: false,
+    final_lifecycle_boundary_at: latestReadyAt,
+    landing_attempt_started_at: landingAttemptStartedAt,
   };
 }
 

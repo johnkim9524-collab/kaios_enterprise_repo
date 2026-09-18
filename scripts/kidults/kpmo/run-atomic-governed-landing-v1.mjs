@@ -335,7 +335,7 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     runAttempt: landingRunAttempt,
     expectedRunName,
   });
-  return {oneUse, receipt};
+  return {oneUse, receipt, currentRun};
 };
 
 let statusTouched = false;
@@ -410,6 +410,8 @@ try {
     prCreatedAt: initial.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: latestReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
@@ -489,6 +491,8 @@ try {
     prCreatedAt: immediatePreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: immediateReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
@@ -554,6 +558,8 @@ try {
     prCreatedAt: finalPreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: finalPreMergeReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {

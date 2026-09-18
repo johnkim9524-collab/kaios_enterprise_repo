@@ -102,3 +102,12 @@ const corruptionCodes={repository:'REFRESH_NON_MATERIAL_DRIFT',hold:'REFRESH_NON
 for(const corrupt of Object.keys(corruptionCodes))test(`refresh rejects damaged prior ${corrupt} before writes`,()=>{const x=exercise({corrupt});assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,corruptionCodes[corrupt],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
 const boundaryCodes=['EXPLICIT_WRITE_AUTHORITY_MISSING','AUTHORIZATION_COMMENT_CARDINALITY:0','AUTHORIZATION_APP_MEDIATED_FORBIDDEN','WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED','AUTHORIZATION_BODY_MISMATCH','PRE_WRITE_TRUTH_MOVED','PRE_WRITE_TRUTH_MOVED','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID'];
 for(const [index,[name,o]] of [['missing authority',{noAuthority:true}],['missing Owner comment',{noApproval:true}],['App-mediated approval',{authApp:true}],['rerun',{retry:true}],['revoked approval during prior read',{revoked:true}],['main changed before first write',{mainDrift:true}],['truth changed before first write',{liveDrift:true}],['prior failed writer',{priorFailed:true}],['prior retried writer',{priorRetry:true}],['prior writer source drift',{priorWrongSource:true}]].entries())test(`same-main refresh preserves ${name} fail-closed boundary`,()=>{const x=exercise(o);assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,boundaryCodes[index],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
+
+test('latest-block validation consumes canonical generation instead of racing push or issue fan-out',()=>{
+ const workflow=fs.readFileSync('.github/workflows/kpmo-canonical-latest-block-scope-v1.yml','utf8');
+ assert.match(workflow,/^  workflow_run:\r?\n    workflows: \['KPMO Canonical Generation V3 Apply'\]/m);
+ assert.doesNotMatch(workflow,/^  pull_request:/m);
+ assert.doesNotMatch(workflow,/^  push:/m);
+ assert.doesNotMatch(workflow,/\n  issues:\r?\n    types:/);
+ assert.match(workflow,/github\.event\.workflow_run\.head_sha/);
+});

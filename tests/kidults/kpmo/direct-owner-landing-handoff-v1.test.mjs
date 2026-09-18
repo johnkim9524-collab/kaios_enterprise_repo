@@ -68,7 +68,10 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT-PR-\$\{prNumber\}-\$\{expectedHeadSha\.slice\(0, 12\)\}/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EDITED/);
-  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_MUST_PRECEDE_READY/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/);
+  assert.match(runner, /evaluateAtomicLandingOneUseRunSet/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_RULESET_BYPASS_FORBIDDEN/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS/);
@@ -165,12 +168,13 @@ test('post-window merge classification revalidates approval, ready event, head a
 });
 
 test('post-window approval reconciliation does not require a second future handoff window', () => {
-  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{phase = 'pre_window'\} = \{\}\)/);
+  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{/);
+  assert.match(runner, /phase = 'pre_window'/);
   assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
   assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
-  assert.match(runner, /selectApproval\(afterComments, owner, after, afterHeadCommit, afterReady, \{phase: 'post_window'\}\)/);
+  assert.match(runner, /phase: 'post_window',\s+landingAttemptStartedAt/);
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const postPhaseIndex = runner.indexOf("{phase: 'post_window'}", sleepIndex);
+  const postPhaseIndex = runner.indexOf("phase: 'post_window'", sleepIndex);
   assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
 });
 

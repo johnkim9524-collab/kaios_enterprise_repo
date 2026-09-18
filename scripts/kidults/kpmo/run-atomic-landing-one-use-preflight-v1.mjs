@@ -293,6 +293,7 @@ async function main() {
     prCreatedAt: pr.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: latestReady.created_at,
+    landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
 
