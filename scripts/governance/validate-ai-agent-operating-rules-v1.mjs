@@ -402,8 +402,8 @@ assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.minimum_each
 assert(roles.kpmo_qualification_and_lifecycle?.reviewer_duties?.own_material_change_review_forbidden === true, 'KPMO_SELF_REVIEW_FORBIDDEN');
 assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.qualified_standby_required === true, 'KPMO_STANDBY_REQUIRED');
 assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.principle === 'NO_KPMO_SHALL_BECOME_A_SINGLE_POINT_OF_FAILURE', 'KPMO_NO_SPOF');
-assert(roles.kpmo_qualification_and_lifecycle?.immediate_removal?.atomic_sequence?.includes('DISABLE_NEW_DISPATCH'), 'KPMO_REMOVAL_DISABLE_DISPATCH');
-assert(roles.kpmo_qualification_and_lifecycle?.immediate_removal?.self_reinstatement_forbidden === true, 'KPMO_SELF_REINSTATEMENT_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.emergency_quarantine?.atomic_sequence?.includes('DISABLE_NEW_DISPATCH'), 'KPMO_QUARANTINE_DISABLE_DISPATCH');
+assert(roles.kpmo_qualification_and_lifecycle?.emergency_quarantine?.self_reinstatement_forbidden === true, 'KPMO_SELF_REINSTATEMENT_FORBIDDEN');
 assert(contract.kpmo_qualification_lifecycle?.highest_performer_selection_required === true, 'CONTRACT_KPMO_HIGHEST_PERFORMER');
 assert(contract.kpmo_qualification_lifecycle?.kpmo_self_review_forbidden === true, 'CONTRACT_KPMO_SELF_REVIEW');
 assert(contract.kpmo_qualification_lifecycle?.immediate_p0_quarantine_required === true, 'CONTRACT_KPMO_P0_QUARANTINE');
@@ -415,7 +415,7 @@ assert(policy.includes('## KPMO continuous qualification, review and removal'), 
 assert(policy.includes('NO KPMO SHALL BECOME A SINGLE POINT OF FAILURE'), 'POLICY_KPMO_NO_SPOF');
 
 const kpmo = roles.kpmo_qualification_and_lifecycle;
-assert(sha256Json(kpmo) === 'accdbee0e13d5a9feb862f7e7461004c2e18bd734d6f3a6e592e39d6a1578d47',
+assert(sha256Json(kpmo) === '9155b377380b9c84689bc0aaf600680d3549058b480a52d4fec1602f3fbe88e8',
   'KPMO_CANONICAL_LIFECYCLE_SEMANTIC_DIGEST');
 const expectedP0 = [
   'ABSOLUTE_HONESTY', 'EVIDENCE_DISCIPLINE', 'AUTHORITY_BOUNDARY_DISCIPLINE',
@@ -449,15 +449,37 @@ assert(kqac?.conflict_rules?.subject_kpmo_recused === true
   && kqac?.conflict_rules?.chair_may_override_failed_technical_evidence === false, 'KQAC_CONFLICT_CONTROLS');
 assert(kqac?.minority_opinion_deletion_forbidden === true, 'KQAC_MINORITY_PRESERVATION');
 assert(kpmo.continuous_fitness?.lease_duration_may_be_arbitrarily_hardcoded === false, 'KPMO_LEASE_REEVALUATION');
-assert(kpmo.immediate_removal?.quarantine_is_containment_not_final_guilt === true
-  && kpmo.immediate_removal?.atomic_sequence?.includes('REVOKE_REVIEW_AUTHORITY'), 'KPMO_QUARANTINE_ATOMICITY');
+assert(kpmo.emergency_quarantine?.quarantine_is_containment_not_final_guilt === true
+  && kpmo.emergency_quarantine?.quarantine_is_final_removal === false
+  && kpmo.emergency_quarantine?.final_disposition_authority === 'PROGRAM_OWNER_AFTER_KQAC_ADJUDICATION'
+  && kpmo.emergency_quarantine?.atomic_sequence?.includes('REVOKE_REVIEW_AUTHORITY'), 'KPMO_QUARANTINE_ATOMICITY');
+assert(kpmo.lifecycle_states?.includes('COMMITTEE_QUALIFIED')
+  && kpmo.lifecycle_states?.includes('OWNER_APPOINTED_ACTIVE_PENDING_STANDBY')
+  && kpmo.standby_and_succession?.committee_qualified_is_appointed === false
+  && kpmo.standby_and_succession?.qualified_standby_is_automatically_active === false, 'KPMO_QUALIFICATION_APPOINTMENT_SEPARATION');
+assert(kpmo.standby_and_succession?.governance_pr_landing_requires_qualified_standby === false
+  && kpmo.standby_and_succession?.operational_acceptance_requires_qualified_standby === true, 'KPMO_STANDBY_NON_CIRCULARITY');
+assert(kqac?.committee_authorities?.includes('COMMITTEE_QUALIFY')
+  && !kqac?.committee_authorities?.includes('APPOINT')
+  && kqac?.program_owner_personnel_authorities?.includes('APPOINT_ACTIVE')
+  && kqac?.committee_finding_is_appointment === false
+  && kqac?.attestation_controller_has_committee_or_personnel_authority === false, 'KQAC_OWNER_AUTHORITY_SEPARATION');
 assert(kpmo.reinstatement?.permanently_retired_identity_reinstatement_allowed === false, 'KPMO_REINSTATEMENT_COMPLETE');
 assert(kpmo.external_attestation_bindings?.external_trust_root_required === true
   && kpmo.external_attestation_bindings?.repository_code_alone_may_manufacture_active_status === false
+  && kpmo.external_attestation_bindings?.controller_role === 'PROVENANCE_VERIFIER_ONLY'
+  && kpmo.external_attestation_bindings?.controller_is_reviewer_committee_or_personnel_authority === false
+  && kpmo.external_attestation_bindings?.external_human_reviewer_required === false
+  && kpmo.external_attestation_bindings?.duplicate_material_review_attestation_schema_owned_here === false
   && kpmo.external_attestation_bindings?.active_kpmo_may_write_own_active_or_quarantined_state === false
   && kpmo.external_attestation_bindings?.valid_external_quarantine_may_be_overridden_by_repository_code === false, 'KPMO_EXTERNAL_ATTESTED_STATE');
 assert(kpmo.required_negative_controls_execution_state
   === 'BLOCKED_PENDING_PR_2272_EXTERNAL_VERIFIER_AND_CONTROLLER', 'KPMO_NEGATIVE_CONTROLS_NOT_FALSELY_CLAIMED_EXECUTED');
+for (const control of [
+  'COMMITTEE_QUALIFIED_TREATED_AS_APPOINTED',
+  'EMERGENCY_QUARANTINE_TREATED_AS_FINAL_REMOVAL',
+  'ATTESTATION_CONTROLLER_EXERCISES_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY',
+]) assert(kpmo.required_negative_controls?.includes(control), `KPMO_NEGATIVE_CONTROL_MISSING:${control}`);
 assert(kpmo.control_authority_ownership?.duplicate_authority_allowed === false
   && kpmo.control_authority_ownership?.cross_authority_integration_required_before_activation === true
   && kpmo.control_authority_ownership?.review_independence_external_attestation_signature_expiry_replay_and_evidence_binding

@@ -602,7 +602,8 @@
         "INDEPENDENT_QUALIFICATION_REVIEW",
         "EXTERNAL_QUALIFICATION_ATTESTATION"
       ],
-      "final_selection": "HIGHEST_SCORE_AMONG_FULLY_QUALIFIED_CANDIDATES",
+      "committee_outcome": "COMMITTEE_QUALIFIED_OR_NOT_QUALIFIED_WITH_RECOMMENDATION_ONLY",
+      "program_owner_selection": "HIGHEST_SCORE_AMONG_COMMITTEE_QUALIFIED_CANDIDATES",
       "tie_break_order": [
         "ADVERSARIAL_RELIABILITY",
         "VERIFIED_CLOSURE_RATE",
@@ -696,15 +697,27 @@
         "RECOMMENDED_DISPOSITION",
         "RESIDUAL_RISK"
       ],
-      "chair_authorities": [
-        "APPOINT",
-        "REJECT",
-        "QUARANTINE_CONFIRM",
-        "REMOVE",
-        "REINSTATE",
+      "committee_authorities": [
+        "EVALUATE",
+        "COMMITTEE_QUALIFY",
+        "NOT_QUALIFY",
+        "RECOMMEND_APPOINTMENT",
+        "RECOMMEND_STANDBY_DESIGNATION",
+        "RECOMMEND_FINAL_DISPOSITION",
         "REQUEST_REEXAMINATION",
         "REQUEST_ADDITIONAL_EVIDENCE"
-      ]
+      ],
+      "program_owner_personnel_authorities": [
+        "APPOINT_ACTIVE",
+        "DESIGNATE_STANDBY",
+        "FINAL_REMOVE",
+        "PERMANENTLY_RETIRE",
+        "REINSTATE"
+      ],
+      "committee_finding_is_appointment": false,
+      "chair_role_does_not_convert_committee_recommendation_into_automatic_personnel_action": true,
+      "program_owner_may_override_failed_technical_evidence": false,
+      "attestation_controller_has_committee_or_personnel_authority": false
     },
     "continuous_fitness": {
       "authority_is_permanent": false,
@@ -737,6 +750,8 @@
     },
     "lifecycle_states": [
       "CANDIDATE",
+      "COMMITTEE_QUALIFIED",
+      "OWNER_APPOINTED_ACTIVE_PENDING_STANDBY",
       "QUALIFIED_STANDBY",
       "ACTIVE",
       "SUSPENDED",
@@ -744,10 +759,10 @@
       "REQUALIFICATION",
       "RETIRED_PERMANENT"
     ],
-    "immediate_removal": {
+    "emergency_quarantine": {
       "quarantine_is_containment_not_final_guilt": true,
       "reasonable_independent_p0_evidence_allows_temporary_quarantine": true,
-      "p0_confirmed_triggers": [
+      "sufficient_evidence_triggers": [
         "FABRICATED_EXECUTION_OR_COMPLETION",
         "KNOWN_BLOCKER_CONCEALMENT",
         "EVIDENCE_RECEIPT_APPROVAL_OR_REVIEW_MANIPULATION",
@@ -772,7 +787,9 @@
       ],
       "self_adjudication_forbidden": true,
       "self_reinstatement_forbidden": true,
-      "history_deletion_forbidden": true
+      "history_deletion_forbidden": true,
+      "quarantine_is_final_removal": false,
+      "final_disposition_authority": "PROGRAM_OWNER_AFTER_KQAC_ADJUDICATION"
     },
     "p1_performance_remediation": {
       "examples": [
@@ -812,6 +829,11 @@
     },
     "standby_and_succession": {
       "qualified_standby_required": true,
+      "governance_pr_landing_requires_qualified_standby": false,
+      "operational_acceptance_requires_qualified_standby": true,
+      "committee_qualified_pool_minimum": 2,
+      "committee_qualified_is_appointed": false,
+      "qualified_standby_is_automatically_active": false,
       "active_and_standby_must_be_distinct_identities": true,
       "standby_must_meet_same_mandatory_p0_gates": true,
       "takeover_requires": [
@@ -822,6 +844,14 @@
         "TRUTH_RECONCILIATION"
       ],
       "normal_reversible_operation_must_continue_during_kpmo_replacement": true,
+      "non_circular_activation_sequence": [
+        "DISTINCT_REVIEW_AGENTS_EVALUATION",
+        "KQAC_COMMITTEE_QUALIFIED_POOL",
+        "PROGRAM_OWNER_ACTIVE_APPOINTMENT_PENDING_STANDBY",
+        "PROGRAM_OWNER_STANDBY_DESIGNATION",
+        "PROVENANCE_CONTROLLER_VERIFICATION",
+        "ACTIVE_LEASE"
+      ],
       "principle": "NO_KPMO_SHALL_BECOME_A_SINGLE_POINT_OF_FAILURE"
     },
     "reinstatement": {
@@ -844,37 +874,21 @@
     "external_attestation_bindings": {
       "external_trust_root_required": true,
       "repository_code_alone_may_manufacture_active_status": false,
+      "controller_role": "PROVENANCE_VERIFIER_ONLY",
+      "controller_is_reviewer_committee_or_personnel_authority": false,
+      "external_human_reviewer_required": false,
+      "canonical_review_attestation_schema_ref": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json#autonomous_independent_review",
       "qualification_attestation_required_fields": [
         "CANDIDATE_KPMO_IDENTITY",
         "QUALIFICATION_CONTRACT_VERSION",
-        "P0_RESULTS",
-        "DOMAIN_SCORES",
-        "TOTAL_SCORE",
-        "ADVERSARIAL_RESULT",
-        "PROBATION_RESULT",
-        "REVIEW_EXAMINATION_RESULT",
         "EVIDENCE_MANIFEST_DIGEST",
-        "INDEPENDENT_EVALUATOR_IDENTITIES",
+        "COMMITTEE_FINDING_DIGEST",
+        "PROGRAM_OWNER_DECISION_DIGEST",
         "QUALIFICATION_TIMESTAMP",
         "REVIEW_OR_RENEWAL_TRIGGER_STATE",
-        "ACTIVE_OR_STANDBY_ELIGIBILITY",
         "SIGNER_IDENTITY_AND_VERSION"
       ],
-      "material_meta_review_required_fields": [
-        "PULL_REQUEST",
-        "BASE_SHA",
-        "HEAD_SHA",
-        "TREE_SHA",
-        "IMPLEMENTER",
-        "DOMAIN_REVIEWER",
-        "KPMO_REVIEWER",
-        "BOOTSTRAP_CONSUMPTION",
-        "EVIDENCE_MANIFEST",
-        "REVIEW_DECISIONS",
-        "ATTESTATION_ID",
-        "EXPIRY",
-        "SIGNER_IDENTITY"
-      ],
+      "duplicate_material_review_attestation_schema_owned_here": false,
       "active_kpmo_may_write_own_active_or_quarantined_state": false,
       "protected_external_controller_must_disable_dispatch_and_review_authority": true,
       "valid_external_quarantine_may_be_overridden_by_repository_code": false
@@ -902,6 +916,9 @@
       "KPMO_SELF_CANCELLED_QUARANTINE",
       "CONFLICTED_COMMITTEE_MEMBER_VOTE",
       "DELETED_MINORITY_OPINION",
+      "COMMITTEE_QUALIFIED_TREATED_AS_APPOINTED",
+      "EMERGENCY_QUARANTINE_TREATED_AS_FINAL_REMOVAL",
+      "ATTESTATION_CONTROLLER_EXERCISES_REVIEWER_COMMITTEE_OR_PERSONNEL_AUTHORITY",
       "STANDBY_EQUALS_ACTIVE_IDENTITY",
       "UNQUALIFIED_STANDBY_TAKEOVER"
     ],
@@ -914,7 +931,7 @@
     },
     "required_positive_canaries": {
       "normal_autonomous_review": "IMPLEMENTER_TO_INDEPENDENT_DOMAIN_REVIEWER_TO_EXTERNAL_ATTESTATION_TO_KPMO_META_REVIEW_TO_GOVERNED_ACCEPTANCE",
-      "kpmo_appointment": "CANDIDATE_TO_QUALIFICATION_TO_PROBATION_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_APPOINTMENT",
+      "kpmo_appointment": "CANDIDATE_TO_QUALIFICATION_TO_PROBATION_TO_KQAC_COMMITTEE_QUALIFIED_TO_OWNER_APPOINTMENT_TO_PROVENANCE_ATTESTATION",
       "kpmo_failover": "ACTIVE_QUARANTINE_TO_AUTHORITY_REVOKED_TO_HOT_STANDBY_TO_FRESH_BOOTSTRAP_TO_EXTERNAL_ATTESTATION_TO_BOUNDED_TAKEOVER",
       "reinstatement": "REMOVED_IDENTITY_TO_FULL_REQUALIFICATION_TO_INDEPENDENT_REVIEW_TO_EXTERNAL_ATTESTATION_TO_KQAC_TO_OWNER_DECISION"
     },
