@@ -7,7 +7,7 @@ import {
   assertRuntimeApprovalExactMain,
   isActiveApprovalRecord,
 } from './lib/approval-generation-equality-v1.mjs';
-import {assertGovernedLandingAuthorizationPolicyV160} from './lib/governed-landing-authorization-policy-v1.mjs';
+import {assertGovernedLandingAuthorizationPolicyV170} from './lib/governed-landing-authorization-policy-v1.mjs';
 
 const requireValue = (condition, code) => {
   if (!condition) throw new Error(`APPROVAL_GENERATION_INTEGRATION_FAIL:${code}`);
@@ -25,8 +25,14 @@ const liveValidator = read('scripts/kidults/kpmo/validate-approval-generation-eq
 const terminalV1 = JSON.parse(read('coordination/kidults/governance/cloudflare-credential-identity-preflight-authorization-20260901-v1.json'));
 
 const generation = policy.approval_generation_policy || {};
-assertGovernedLandingAuthorizationPolicyV160(policy);
-requireValue(policy.version === '1.6.0', 'POLICY_VERSION');
+assertGovernedLandingAuthorizationPolicyV170(policy);
+requireValue(policy.version === '1.7.0', 'POLICY_VERSION');
+requireValue(policy.review_policy?.minimum_non_author_approvals === 1, 'POLICY_INDEPENDENT_REVIEW_COUNT');
+requireValue(policy.review_policy?.self_review_counts === false, 'POLICY_SELF_REVIEW_FORBIDDEN');
+requireValue(policy.review_policy?.approval_must_bind_exact_head_sha === true, 'POLICY_REVIEW_EXACT_HEAD');
+requireValue(policy.review_policy?.ready_state_by_owner_is_authorization === false, 'POLICY_READY_NOT_FINAL_AUTHORITY');
+requireValue(policy.review_policy?.independent_exact_head_approval_required === true, 'POLICY_INDEPENDENT_REVIEW_REQUIRED');
+requireValue(policy.review_policy?.independent_review_root_issue === 1582, 'POLICY_INDEPENDENT_REVIEW_ROOT');
 requireValue(generation.mode === 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY', 'POLICY_MODE');
 requireValue(generation.active_record_exact_main_equality_required === true, 'POLICY_ACTIVE_RECORD');
 requireValue(generation.issuance_main_must_equal_pr_base_sha === true, 'POLICY_PR_BASE');
