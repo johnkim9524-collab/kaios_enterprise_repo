@@ -71,6 +71,9 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_INDEPENDENT_REVIEW_REQUIRED/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_EXACT_HEAD_CHANGES_REQUESTED/);
+  assert.match(runner, /pages\(\`\/pulls\/\$\{prNumber\}\/reviews\`\)/);
   assert.match(runner, /evaluateAtomicLandingOneUseRunSet/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_RULESET_BYPASS_FORBIDDEN/);
