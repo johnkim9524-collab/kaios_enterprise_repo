@@ -588,8 +588,10 @@ const validateDispatchJob = (dispatch, workflows) => {
   const gateCommands = job.steps.slice(0, taskIndex).flatMap((step, stepIndex) =>
     executableShellCommands(step.run).map((command, commandIndex) => ({ command, stepIndex, commandIndex })));
   const preTaskShell = job.steps.slice(0, taskIndex).map(step => step.run ?? '').join('\n');
-  assert(!/(?:^|\n)\s*(?:set\s+(?:-[^\n]*x|--xtrace|-o\s+xtrace)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/im.test(preTaskShell),
+  assert(!/(?:^|\n)\s*(?:(?:set\s+(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace)|(?:bash|sh|zsh)\s+-[A-Za-z]*x[A-Za-z]*)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/im.test(preTaskShell),
     `DISPATCH_SHELL_TRACE_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!/(?:^|\n)\s*(?:(?:\/usr\/bin\/)?(?:env|printenv)(?:\s|$)|(?:export|declare)\s+-p(?:\s|$)|(?:Get-ChildItem|gci|dir)\s+Env:(?:\s|$)|\[Environment\]::GetEnvironmentVariables\s*\(\s*\)|set\s*$)/im.test(preTaskShell),
+    `DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   assert(!/(?:echo|printf|Write-(?:Output|Host)|console\.log)\b[^\n]*(?:KIDULTS_BOOTSTRAP_NONCE|BOOTSTRAP_NONCE)/i.test(preTaskShell),
     `DISPATCH_NONCE_ECHO_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   assert(!/(?:^|\s)--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|\s|$)/i.test(preTaskShell),
@@ -856,7 +858,17 @@ const assertDispatchSecretMutationRejected = (injectedCommand, expectedPrefix) =
   assert(rejected, `DISPATCH_SECRET_MUTATION_NOT_REJECTED:${expectedPrefix}`);
 };
 assertDispatchSecretMutationRejected('set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -xv', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -euxo pipefail bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
 assertDispatchSecretMutationRejected('echo "$KIDULTS_BOOTSTRAP_NONCE"', 'DISPATCH_NONCE_ECHO_FORBIDDEN:');
+for (const environmentDump of [
+  'printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env',
+  'declare -p KIDULTS_BOOTSTRAP_NONCE',
+  'export -p',
+  'Get-ChildItem Env:',
+  '[Environment]::GetEnvironmentVariables()',
+]) assertDispatchSecretMutationRejected(environmentDump, 'DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:');
 assertDispatchSecretMutationRejected('node bootstrap.mjs --nonce forbidden', 'DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:');
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
