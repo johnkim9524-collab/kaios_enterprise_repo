@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import {
   GovernedLandingAuthorizationPolicyFailure,
-  assertGovernedLandingAuthorizationPolicyV170,
+  assertGovernedLandingAuthorizationPolicyV180,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-authorization-policy-v1.mjs';
 
 const policyPath = 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json';
@@ -16,23 +16,23 @@ function clonePolicy() {
 
 function expectRejected(policy, code) {
   assert.throws(
-    () => assertGovernedLandingAuthorizationPolicyV170(policy),
+    () => assertGovernedLandingAuthorizationPolicyV180(policy),
     error => error instanceof GovernedLandingAuthorizationPolicyFailure && error.code === code,
   );
 }
 
-test('committed authorization policy is the exact supported 1.7.0 contract', () => {
-  const result = assertGovernedLandingAuthorizationPolicyV170(clonePolicy());
+test('committed authorization policy is the exact supported 1.8.0 autonomous contract', () => {
+  const result = assertGovernedLandingAuthorizationPolicyV180(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.7.0',
+    policy_version: '1.8.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,
-    independent_exact_head_review_required: true,
+    autonomous_multi_lane_verification_required: true,
   });
 });
 
-for (const version of ['1.5.0', '1.6.0', '2.0.0']) {
+for (const version of ['1.6.0', '1.7.0', '2.0.0']) {
   test(`unsupported authorization policy version ${version} fails closed`, () => {
     const policy = clonePolicy();
     policy.version = version;
@@ -84,7 +84,7 @@ test('missing, reordered, and extended generation enforcement points fail closed
     policy.approval_generation_policy.enforcement_points = mutate(
       policy.approval_generation_policy.enforcement_points,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV180(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -97,7 +97,7 @@ test('missing or tampered negative-case contract fails closed', () => {
     policy.approval_generation_policy.negative_cases_required = mutate(
       policy.approval_generation_policy.negative_cases_required,
     );
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV180(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
@@ -115,6 +115,7 @@ for (const field of [
   'optional_external_review_must_bind_exact_head',
   'independent_exact_head_approval_required',
   'independent_review_root_issue',
+  'human_review_mode',
 ]) {
   test(`missing review-policy field ${field} fails closed`, () => {
     const policy = clonePolicy();
@@ -129,6 +130,48 @@ for (const field of [
     expectRejected(policy, `REVIEW_POLICY_FIELD_INVALID:${field}`);
   });
 }
+
+for (const field of [
+  'mode',
+  'required',
+  'scope_aware_status_context',
+  'all_required_contexts_terminal_success',
+  'missing_context_fails_closed',
+  'ambiguous_latest_context_fails_closed',
+  'owner_exact_head_approval_separate_required',
+  'human_review_required',
+  'internal_control_evidence_only',
+  'empirical_launch_authority',
+  'root_issue',
+]) {
+  test(`missing autonomous-verification field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    delete policy.autonomous_verification_policy[field];
+    expectRejected(policy, `AUTONOMOUS_VERIFICATION_FIELD_MISSING:${field}`);
+  });
+
+  test(`tampered autonomous-verification field ${field} fails closed`, () => {
+    const policy = clonePolicy();
+    const value = policy.autonomous_verification_policy[field];
+    policy.autonomous_verification_policy[field] = typeof value === 'boolean' ? !value : 'TAMPERED';
+    expectRejected(policy, `AUTONOMOUS_VERIFICATION_FIELD_INVALID:${field}`);
+  });
+}
+
+test('autonomous check-context set is exact and fail-closed', () => {
+  const missing = clonePolicy();
+  missing.autonomous_verification_policy.required_check_contexts =
+    missing.autonomous_verification_policy.required_check_contexts.filter(
+      context => context !== 'full-value-chain-redteam',
+    );
+  expectRejected(missing, 'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS_CARDINALITY_INVALID');
+
+  const reordered = clonePolicy();
+  reordered.autonomous_verification_policy.required_check_contexts = [
+    ...reordered.autonomous_verification_policy.required_check_contexts,
+  ].reverse();
+  expectRejected(reordered, 'AUTONOMOUS_VERIFICATION_CHECK_CONTEXTS_VALUE_INVALID');
+});
 
 test('reviewer type and association allowlists are exact', () => {
   const reviewerTypes = clonePolicy();
@@ -176,7 +219,7 @@ test('transport, secret boundary, and atomicity claims cannot be weakened or gen
   ]) {
     const policy = clonePolicy();
     policy.atomic_landing_policy[field] = value;
-    assert.throws(() => assertGovernedLandingAuthorizationPolicyV170(policy),
+    assert.throws(() => assertGovernedLandingAuthorizationPolicyV180(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
 });
