@@ -794,8 +794,8 @@ assert(remediation.independent_verification_and_one_time_consumption_required ==
 for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritance?.[agentClass] === true, `REMEDIATION_CLASS:${agentClass}`);
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
-assert(registry.version === '1.8.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(registry.version === '1.9.0', 'REGISTRY_VERSION');
+assert(roles.registry_version === '1.9.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'BOOTSTRAP_ROLE_JD_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'BOOTSTRAP_ROLE_JD_KPMO_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'BOOTSTRAP_ROLE_JD_EVIDENCE_STANDARD');
