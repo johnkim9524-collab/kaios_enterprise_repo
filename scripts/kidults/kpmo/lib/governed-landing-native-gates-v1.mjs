@@ -17,6 +17,10 @@ const verifyProtectedEd25519Payload = (payload, signatureBase64, trustedPublicKe
   }
 };
 
+export const sameAutonomousReview = (left, right) => {
+  try { return canonicalJson(left) === canonicalJson(right); } catch { return false; }
+};
+
 export function requiredAutonomousReviewDomain(changedFilenames) {
   if (!Array.isArray(changedFilenames) || !changedFilenames.length
       || changedFilenames.some(value => typeof value !== 'string' || !value)) {
@@ -98,6 +102,9 @@ export function assertAutonomousIndependentReview(comments, {
   headTreeSha,
   requiredDomain,
   evaluationTime = new Date().toISOString(),
+  requireDurableConsumption = false,
+  durableReadback = null,
+  operationBinding = null,
   reviewPolicy,
 } = {}) {
   if (!Array.isArray(comments)) fail('AUTONOMOUS_REVIEW_COMMENT_SET_INVALID');
@@ -114,6 +121,7 @@ export function assertAutonomousIndependentReview(comments, {
     || !ID_PATTERN.test(requiredDomain || '')) fail('AUTONOMOUS_REVIEW_BINDING_INVALID');
   const trust = reviewPolicy.identity_assurance_boundary.protected_attestation_trust;
   if (!trust || trust.signature_algorithm !== 'Ed25519'
+      || !Number.isSafeInteger(trust.current_revocation_epoch) || trust.current_revocation_epoch < 0
       || !Array.isArray(trust.trusted_signers) || !trust.trusted_signers.length) {
     fail('AUTONOMOUS_REVIEW_CONTROLLER_TRUST_NOT_PROVISIONED');
   }
@@ -138,7 +146,7 @@ export function assertAutonomousIndependentReview(comments, {
       'reviewer_domain','reviewer_role_id','implementer_bootstrap_consumption_proof_id',
       'reviewer_bootstrap_consumption_proof_id','evidence_manifest_digest','review_decision_digest',
       'decision','attestation_id','issued_at','expires_at','signer_identity_and_version',
-      'durable_consumption_id','durable_consumption_state','revocation_epoch',
+      'revocation_epoch',
     ];
     if (!payload || Object.keys(payload).sort().join(',') !== exactKeys.sort().join(',')) continue;
     if (payload.version !== 'kidults-protected-autonomous-review-attestation-v1'
@@ -156,9 +164,9 @@ export function assertAutonomousIndependentReview(comments, {
         || !ID_PATTERN.test(payload.reviewer_bootstrap_consumption_proof_id || '')
         || !DIGEST_PATTERN.test(payload.evidence_manifest_digest || '')
         || !DIGEST_PATTERN.test(payload.review_decision_digest || '')
-        || !ID_PATTERN.test(payload.attestation_id || '') || !ID_PATTERN.test(payload.durable_consumption_id || '')
-        || payload.durable_consumption_state !== 'CONSUMED_EXACTLY_ONCE'
-        || !Number.isSafeInteger(payload.revocation_epoch) || payload.revocation_epoch < 0
+        || !ID_PATTERN.test(payload.attestation_id || '')
+        || !Number.isSafeInteger(payload.revocation_epoch)
+        || payload.revocation_epoch !== trust.current_revocation_epoch
         || !['APPROVE', 'REQUEST_CHANGES'].includes(payload.decision)) continue;
     const allowedRoles = reviewPolicy.registered_role_routing?.[requiredDomain];
     if (!Array.isArray(allowedRoles) || !allowedRoles.includes(payload.reviewer_role_id)) continue;
@@ -175,21 +183,63 @@ export function assertAutonomousIndependentReview(comments, {
   const approvals = valid.filter(value => value.payload.decision === 'APPROVE');
   if (approvals.length !== 1) fail('AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
   const approved = approvals[0];
+  let consumption = null;
+  if (requireDurableConsumption) {
+    const expectedOperationDigest = `sha256:${createHash('sha256').update(canonicalJson(operationBinding)).digest('hex')}`;
+    const exactReadbackKeys = [
+      'version','store_authority','state','repository','pull_request','exact_base_sha','exact_head_sha',
+      'exact_head_tree_sha','attestation_id','operation_binding_digest','landing_run_id',
+      'landing_run_attempt','current_revocation_epoch','consumption_id','consumed_at',
+    ];
+    if (!durableReadback || !operationBinding
+        || Object.keys(durableReadback).sort().join(',') !== exactReadbackKeys.sort().join(',')
+        || durableReadback.version !== 'kidults-protected-review-durable-readback-v1'
+        || durableReadback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE'
+        || durableReadback.state !== 'CONSUMED_EXACTLY_ONCE'
+        || durableReadback.repository !== repository || Number(durableReadback.pull_request) !== Number(prNumber)
+        || durableReadback.exact_base_sha !== baseSha || durableReadback.exact_head_sha !== headSha
+        || durableReadback.exact_head_tree_sha !== headTreeSha
+        || durableReadback.attestation_id !== approved.payload.attestation_id
+        || durableReadback.operation_binding_digest !== expectedOperationDigest
+        || String(durableReadback.landing_run_id) !== String(operationBinding.landing_run_id)
+        || String(durableReadback.landing_run_attempt) !== String(operationBinding.landing_run_attempt)
+        || durableReadback.current_revocation_epoch !== trust.current_revocation_epoch
+        || durableReadback.current_revocation_epoch < approved.payload.revocation_epoch
+        || !ID_PATTERN.test(durableReadback.consumption_id || '')
+        || !Number.isFinite(Date.parse(durableReadback.consumed_at))) {
+      fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+    }
+    consumption = {
+      consumption_id: durableReadback.consumption_id,
+      operation_binding_digest: expectedOperationDigest,
+      current_revocation_epoch: durableReadback.current_revocation_epoch,
+      consumed_at: durableReadback.consumed_at,
+    };
+  }
   return {
     state: 'PROTECTED_ATTESTATION_VERIFIED',
+    comment_id: approved.comment_id,
     attestation_id: approved.payload.attestation_id,
-    durable_consumption_id: approved.payload.durable_consumption_id,
+    durable_consumption: consumption,
     exact_head_sha: approved.payload.exact_head_sha,
     exact_head_tree_sha: approved.payload.exact_head_tree_sha,
+    exact_base_sha: approved.payload.exact_base_sha,
     required_domain: approved.payload.required_domain,
+    implementer_agent_id: approved.payload.implementer_agent_id,
+    implementer_session_id: approved.payload.implementer_session_id,
+    reviewer_session_id: approved.payload.reviewer_session_id,
     reviewer_agent_id: approved.payload.reviewer_agent_id,
     reviewer_role_id: approved.payload.reviewer_role_id,
+    implementer_bootstrap_consumption_proof_id: approved.payload.implementer_bootstrap_consumption_proof_id,
+    reviewer_bootstrap_consumption_proof_id: approved.payload.reviewer_bootstrap_consumption_proof_id,
     decision: approved.payload.decision,
     evidence_manifest_digest: approved.payload.evidence_manifest_digest,
     review_decision_digest: approved.payload.review_decision_digest,
     signer_identity_and_version: approved.payload.signer_identity_and_version,
     signature_digest: approved.signature_digest,
+    issued_at: approved.payload.issued_at,
     expires_at: approved.payload.expires_at,
+    revocation_epoch: approved.payload.revocation_epoch,
     comment_transport_only: true,
     repository_comment_is_authority: false,
   };

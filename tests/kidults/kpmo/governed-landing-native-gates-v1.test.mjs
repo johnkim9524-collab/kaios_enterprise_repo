@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, sign} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {workflowReceiptLedgerInternals} from '../../../services/kidults-control-plane/src/workflow-receipt-ledger.mjs';
 import {
   GateFailure,
@@ -13,6 +14,7 @@ import {
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
   assertAutonomousIndependentReview,
+  sameAutonomousReview,
   requiredAutonomousReviewDomain,
   selectExactHeadProgramOwnerApproval,
   selectLatestProgramOwnerReadyEvent,
@@ -279,6 +281,7 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
       protected_attestation_controller_status: 'PROVISIONED_VERIFIED',
       protected_attestation_trust: {
         signature_algorithm: 'Ed25519',
+        current_revocation_epoch: 4,
         trusted_signers: [{
           signer_identity_and_version: signer,
           public_key_pem: publicKey.export({type: 'spki', format: 'pem'}).toString(),
@@ -313,9 +316,7 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
     issued_at: '2026-09-01T01:00:00.000Z',
     expires_at: '2026-09-01T01:30:00.000Z',
     signer_identity_and_version: signer,
-    durable_consumption_id: 'durable-consumption-1580-a',
-    durable_consumption_state: 'CONSUMED_EXACTLY_ONCE',
-    revocation_epoch: 0,
+    revocation_epoch: 4,
   };
   const commentFor = (value, key = privateKey) => {
     const signature = sign(null, Buffer.from(canonicalJson(value)), key).toString('base64');
@@ -349,7 +350,6 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
   rejected(value => ({...value, reviewer_domain: 'data_runtime_storage'}));
   rejected(value => ({...value, reviewer_role_id: 'unknown-role'}));
   rejected(value => ({...value, expires_at: '2026-09-01T01:05:00.000Z'}));
-  rejected(value => ({...value, durable_consumption_state: 'REPLAYED'}));
   code(() => assertAutonomousIndependentReview([commentFor({...payload, decision: 'REQUEST_CHANGES'})], input), 'AUTONOMOUS_REVIEW_REQUEST_CHANGES');
   code(() => assertAutonomousIndependentReview([commentFor(payload), commentFor({...payload, attestation_id: 'attestation-1580-b'})], input), 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
   const {privateKey: wrongKey} = generateKeyPairSync('ed25519');
@@ -364,6 +364,64 @@ test('protected signed autonomous review is exact-bound and fail-closed', () => 
       }]},
     }},
   }), 'AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+
+  const operationBinding = {
+    repository,
+    pull_request: 1580,
+    exact_base_sha: baseSha,
+    exact_head_sha: sha,
+    exact_head_tree_sha: 'c'.repeat(40),
+    landing_run_id: 700,
+    landing_run_attempt: 1,
+    authorization_id_digest: `sha256:${'3'.repeat(64)}`,
+  };
+  const operationBindingDigest = `sha256:${createHash('sha256').update(canonicalJson(operationBinding)).digest('hex')}`;
+  const durableReadback = {
+    version: 'kidults-protected-review-durable-readback-v1',
+    store_authority: 'PROTECTED_EXTERNAL_DURABLE_STORE',
+    state: 'CONSUMED_EXACTLY_ONCE',
+    repository,
+    pull_request: 1580,
+    exact_base_sha: baseSha,
+    exact_head_sha: sha,
+    exact_head_tree_sha: 'c'.repeat(40),
+    attestation_id: payload.attestation_id,
+    operation_binding_digest: operationBindingDigest,
+    landing_run_id: 700,
+    landing_run_attempt: 1,
+    current_revocation_epoch: 4,
+    consumption_id: 'durable-consumption-1580-a',
+    consumed_at: '2026-09-01T01:09:00.000Z',
+  };
+  const consumed = assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input, requireDurableConsumption: true, durableReadback, operationBinding,
+  });
+  assert.equal(consumed.durable_consumption.consumption_id, 'durable-consumption-1580-a');
+  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input, requireDurableConsumption: true, durableReadback: null, operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input, requireDurableConsumption: true,
+    durableReadback: {...durableReadback, landing_run_attempt: 2}, operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input, requireDurableConsumption: true,
+    durableReadback: {...durableReadback, current_revocation_epoch: 3}, operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  code(() => assertAutonomousIndependentReview([commentFor(payload)], {
+    ...input, requireDurableConsumption: true,
+    durableReadback: {...durableReadback, state: 'REPLAYED'}, operationBinding,
+  }), 'AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+  assert.equal(sameAutonomousReview(consumed, consumed), true);
+  for (const mutation of [
+    {attestation_id: 'attestation-1580-replaced'},
+    {reviewer_agent_id: 'AI-REVIEWER-02'},
+    {evidence_manifest_digest: `sha256:${'4'.repeat(64)}`},
+    {review_decision_digest: `sha256:${'5'.repeat(64)}`},
+    {signer_identity_and_version: 'replacement-signer-v1'},
+    {signature_digest: `sha256:${'6'.repeat(64)}`},
+    {durable_consumption: {...consumed.durable_consumption, consumption_id: 'replacement-consumption'}},
+  ]) assert.equal(sameAutonomousReview(consumed, {...consumed, ...mutation}), false);
 });
 
 test('autonomous review domain is recomputed from protected changed paths', () => {
@@ -373,6 +431,14 @@ test('autonomous review domain is recomputed from protected changed paths', () =
   assert.equal(requiredAutonomousReviewDomain(['scripts/kidults/portal/x.mjs']), 'portal');
   assert.equal(requiredAutonomousReviewDomain(['coordination/kidults/provider/x.json']), 'provider_rights_evidence');
   code(() => requiredAutonomousReviewDomain(['coordination/kidults/kpmo/x.json', 'services/kidults-control-plane/src/x.mjs']), 'AUTONOMOUS_REVIEW_MULTIPLE_DOMAINS_REQUIRED');
+});
+
+test('atomic landing trust is protected-main local policy, never candidate-head trust', () => {
+  const source = readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
+  assert.match(source, /protectedPlatformPolicy\.autonomous_independent_review/);
+  assert.doesNotMatch(source, /reviewPolicyAtHead/);
+  assert.match(source, /requireDurableConsumption:\s*true/);
+  assert.match(source, /AUTONOMOUS_REVIEW_STORE_READBACK_PATH/);
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {

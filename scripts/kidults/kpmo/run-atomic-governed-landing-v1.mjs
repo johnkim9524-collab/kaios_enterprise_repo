@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
   assertExactOwnerMergeDuringFinalReread,
   assertAutonomousIndependentReview,
+  sameAutonomousReview,
   requiredAutonomousReviewDomain,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
@@ -45,6 +47,7 @@ const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
 const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
 const runnerTemp = process.env.RUNNER_TEMP;
 const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH;
+const autonomousReviewStoreReadbackPath = process.env.AUTONOMOUS_REVIEW_STORE_READBACK_PATH;
 const transportWaitSeconds = Number(process.env.ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS || '600');
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
@@ -66,6 +69,7 @@ if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 const scopePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
+const protectedPlatformPolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json', 'utf8'));
 const context = policy.required_status_context;
 const headers = {
   Authorization: `Bearer ${token}`,
@@ -129,6 +133,12 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
+const readProtectedDurableReadback = () => {
+  if (!autonomousReviewStoreReadbackPath) return null;
+  const stat = fs.lstatSync(autonomousReviewStoreReadbackPath);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('AUTONOMOUS_REVIEW_STORE_READBACK_PATH_INVALID');
+  return JSON.parse(fs.readFileSync(autonomousReviewStoreReadbackPath, 'utf8'));
+};
 
 const currentSoldPathMatchers = [
   /^coordination\/kidults\/market\/current-sold-[^/]+\.json$/,
@@ -315,13 +325,6 @@ const sameApproval = (left, right) =>
   && left?.authorization_id_sha256 === right?.authorization_id_sha256
   && left?.expires_at === right?.expires_at;
 
-const sameAutonomousReview = (left, right) =>
-  left?.github_comment_id === right?.github_comment_id
-  && left?.comment_body_digest === right?.comment_body_digest
-  && left?.review_receipt_id === right?.review_receipt_id
-  && left?.reviewed_head_sha === right?.reviewed_head_sha
-  && left?.decision === right?.decision;
-
 const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
@@ -375,16 +378,24 @@ try {
     prBaseSha: initial.base.sha,
     liveMainSha: initialMain.commit.sha,
   });
-  const reviewPolicyAtHead = (await readJsonAtRef(
-    'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
-    expectedHeadSha,
-  )).autonomous_independent_review;
+  const protectedReviewPolicy = protectedPlatformPolicy.autonomous_independent_review;
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
   if (changedFilenames.length !== changedFileRecords.length) throw new Error('PULL_REQUEST_CHANGED_FILE_SHAPE_INVALID');
   const currentSoldChangedFiles = changedFilenames.filter(isCurrentSoldPath);
   const requiredReviewDomain = requiredAutonomousReviewDomain(changedFilenames);
+  const reviewOperationBinding = {
+    repository,
+    pull_request: Number(prNumber),
+    exact_base_sha: initial.base.sha,
+    exact_head_sha: expectedHeadSha,
+    exact_head_tree_sha: expectedHeadTreeSha,
+    landing_run_id: Number(landingRunId),
+    landing_run_attempt: Number(landingRunAttempt),
+    authorization_id_digest: `sha256:${createHash('sha256').update(authorizationId).digest('hex')}`,
+  };
+  const durableReviewReadback = readProtectedDurableReadback();
 
   const rulesets = await request('/rulesets');
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -436,7 +447,10 @@ try {
     headSha: expectedHeadSha,
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
-    reviewPolicy: reviewPolicyAtHead,
+    requireDurableConsumption: true,
+    durableReadback: durableReviewReadback,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
@@ -527,7 +541,10 @@ try {
     headSha: expectedHeadSha,
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
-    reviewPolicy: reviewPolicyAtHead,
+    requireDurableConsumption: true,
+    durableReadback: durableReviewReadback,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
   });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
     throw new Error('IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
@@ -607,7 +624,10 @@ try {
     headSha: expectedHeadSha,
     headTreeSha: expectedHeadTreeSha,
     requiredDomain: requiredReviewDomain,
-    reviewPolicy: reviewPolicyAtHead,
+    requireDurableConsumption: true,
+    durableReadback: durableReviewReadback,
+    operationBinding: reviewOperationBinding,
+    reviewPolicy: protectedReviewPolicy,
   });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
     throw new Error('FINAL_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
