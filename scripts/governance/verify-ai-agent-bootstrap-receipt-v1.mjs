@@ -131,6 +131,7 @@ const FAIL_CLOSED_CONDITIONS = Object.freeze([
   'REMOTE_REF_SHA_UNRESOLVED',
   'REMOTE_WORKING_REF_REQUIRED_FOR_DETACHED_HEAD',
   'REMOTE_WORKING_REF_SHA_MISMATCH',
+  'SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN',
   'ORCHESTRATOR_NONCE_REQUIRED_MIN_32_BYTES',
   'BOOTSTRAP_RECEIPT_ALREADY_EXISTS',
   'RECEIPT_FIELD_SET_MISMATCH',
@@ -307,6 +308,9 @@ const gitEnvironment = () => {
 };
 
 const parseArgs = (argv) => {
+  if (argv.some(arg => /^--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|$)/i.test(arg))) {
+    fail('SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN');
+  }
   const options = {
     receipt: null,
     agentId: null,
@@ -327,7 +331,7 @@ const parseArgs = (argv) => {
     else if (arg === '--parent-agent-id') options.parentAgentId = argv[++i];
     else if (arg === '--expected-sha') options.expectedSha = argv[++i];
     else if (arg === '--consume') options.consume = true;
-    else fail('UNKNOWN_ARGUMENT', arg);
+    else fail('UNKNOWN_ARGUMENT');
   }
   for (const [name, value] of [
     ['RECEIPT', options.receipt],

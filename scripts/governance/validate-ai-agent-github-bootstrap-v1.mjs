@@ -587,6 +587,13 @@ const validateDispatchJob = (dispatch, workflows) => {
   }
   const gateCommands = job.steps.slice(0, taskIndex).flatMap((step, stepIndex) =>
     executableShellCommands(step.run).map((command, commandIndex) => ({ command, stepIndex, commandIndex })));
+  const preTaskShell = job.steps.slice(0, taskIndex).map(step => step.run ?? '').join('\n');
+  assert(!/(?:^|\n)\s*(?:set\s+(?:-[^\n]*x|--xtrace|-o\s+xtrace)|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/im.test(preTaskShell),
+    `DISPATCH_SHELL_TRACE_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!/(?:echo|printf|Write-(?:Output|Host)|console\.log)\b[^\n]*(?:KIDULTS_BOOTSTRAP_NONCE|BOOTSTRAP_NONCE)/i.test(preTaskShell),
+    `DISPATCH_NONCE_ECHO_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!/(?:^|\s)--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|\s|$)/i.test(preTaskShell),
+    `DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   const bootstrapPattern = String.raw`(?:node\s+${paths.entrypoint.replaceAll('/', '\\/')}|npm\s+run\s+agent:bootstrap(?:\s+--)?)(?=\s|$)`;
   const verifierPattern = String.raw`(?:node\s+${paths.verifier.replaceAll('/', '\\/')}|npm\s+run\s+verify:agent-bootstrap(?:\s+--)?)(?=\s|$)`;
   const validatorPattern = String.raw`(?:node\s+${paths.validator.replaceAll('/', '\\/')}|npm\s+run\s+validate:agent-bootstrap(?:\s+--)?)(?=\s|$)`;
@@ -655,8 +662,13 @@ assert(contract.bootstrap_entrypoint?.path === paths.entrypoint, 'ENTRYPOINT_PAT
 assert(contract.bootstrap_entrypoint?.validator_path === paths.validator, 'VALIDATOR_PATH');
 assert(contract.bootstrap_entrypoint?.receipt_verifier_path === paths.verifier, 'VERIFIER_PATH');
 assert(contract.bootstrap_entrypoint?.package_command ===
-  `KIDULTS_BOOTSTRAP_NONCE=<orchestrator-nonce> npm run agent:bootstrap -- --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha>`,
+  `npm run agent:bootstrap -- --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha>`,
 'BOOTSTRAP_PACKAGE_COMMAND_EXPECTED_SHA_REQUIRED');
+assert(contract.bootstrap_entrypoint?.nonce_input_channel === 'PROTECTED_NON_ECHOING_ENVIRONMENT_KIDULTS_BOOTSTRAP_NONCE',
+  'BOOTSTRAP_PROTECTED_NON_ECHOING_NONCE_INPUT_REQUIRED');
+assert(contract.bootstrap_entrypoint?.verifier_package_command ===
+  `npm run verify:agent-bootstrap -- --receipt <controlled-receipt-path> --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha> --consume`,
+'VERIFIER_PACKAGE_COMMAND_NONCE_NOT_INLINE');
 assert(contract.trust_model?.required_documents_are_read_from_exact_head_git_blobs === true, 'COMMITTED_BLOB_TRUST_REQUIRED');
 assert(contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'AGENT_ROLE_JD_PRE_DISPATCH_TRUST_REQUIRED');
 assert(contract.trust_model?.local_expected_sha_is_binding_only_not_github_provenance === true, 'LOCAL_EXPECTED_SHA_NOT_PROVENANCE');
@@ -664,6 +676,8 @@ assert(contract.trust_model?.github_event_context_binding_is_not_cryptographic_o
 assert(contract.trust_model?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'CURRENT_GITHUB_STATE_REMOTE_REQUIRED');
 assert(contract.trust_model?.repository_bootstrap_is_not_a_cryptographic_agent_identity === true, 'BOOTSTRAP_NOT_AGENT_IDENTITY');
 assert(contract.trust_model?.external_orchestrator_must_supply_nonce_and_verify_then_consume_receipt === true, 'EXTERNAL_ORCHESTRATOR_NONCE_GATE');
+assert(contract.trust_model?.secret_like_cli_arguments_are_rejected_without_value_reflection === true, 'SECRET_LIKE_CLI_ARGUMENT_REJECTION_REQUIRED');
+assert(contract.trust_model?.dispatch_shell_trace_and_nonce_echo_are_forbidden === true, 'DISPATCH_NONCE_TRACE_AND_ECHO_FORBIDDEN');
 assert(contract.trust_model?.full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher === true, 'PINNED_BASE_LAUNCHER_REQUIRED');
 assert(contract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'CLEAN_CHECKOUT_ROOT_OF_TRUST_ESCALATION');
 assert(contract.trust_model?.target_revision_must_be_treated_as_data_by_the_root_launcher === true, 'TARGET_REVISION_MUST_BE_DATA');
@@ -825,6 +839,25 @@ const parsedWorkflows = new Map(workflowPaths.map((workflowPath) => {
   return [workflowPath, parseWorkflowJobs(workflowPath, fs.readFileSync(absolutePath, 'utf8'))];
 }));
 for (const dispatch of repositoryDefenseInDepthBootstrapJobs) validateDispatchJob(dispatch, parsedWorkflows);
+const assertDispatchSecretMutationRejected = (injectedCommand, expectedPrefix) => {
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const mutatedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = mutatedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const executableStep = job.steps.find((step, index) => index < taskIndex && typeof step.run === 'string');
+  assert(executableStep, 'DISPATCH_NEGATIVE_MUTATION_TARGET_MISSING');
+  executableStep.run = `${injectedCommand}\n${executableStep.run}`;
+  let rejected = false;
+  try {
+    validateDispatchJob(dispatch, new Map([[dispatch.workflow, mutatedJobs]]));
+  } catch (error) {
+    rejected = error?.message?.startsWith(expectedPrefix) ?? false;
+  }
+  assert(rejected, `DISPATCH_SECRET_MUTATION_NOT_REJECTED:${expectedPrefix}`);
+};
+assertDispatchSecretMutationRejected('set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('echo "$KIDULTS_BOOTSTRAP_NONCE"', 'DISPATCH_NONCE_ECHO_FORBIDDEN:');
+assertDispatchSecretMutationRejected('node bootstrap.mjs --nonce forbidden', 'DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:');
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
   workflow: spoofWorkflowPath,
@@ -902,7 +935,7 @@ const run = (script, args, env = baseEnv, cwd = root) => execFileSync(process.ex
   killSignal: 'SIGKILL'
 });
 const expectFailure = (script, args, expectedReason, env = baseEnv, cwd = root) => {
-  const label = `${script}:${args.join(' ')}`;
+  const label = `${script}:redacted-argv-count-${args.length}`;
   const result = spawnSync(process.execPath, [script, ...args], {
     cwd,
     env,
@@ -935,6 +968,14 @@ const bootstrapArgs = [
   '--session-id', bindings.sessionId,
   '--expected-sha', workingSha
 ];
+const cliSecret = crypto.randomBytes(32).toString('base64url');
+for (const script of [paths.entrypoint, paths.verifier]) {
+  for (const secretArgs of [['--nonce', cliSecret], [`--nonce=${cliSecret}`], [`--unknown=${cliSecret}`]]) {
+    const expected = secretArgs[0].startsWith('--unknown=') ? 'UNKNOWN_ARGUMENT' : 'SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN';
+    const output = expectFailure(script, secretArgs, expected);
+    assert(!output.includes(cliSecret), `SECRET_LIKE_CLI_VALUE_REFLECTED:${path.basename(script)}`);
+  }
+}
 expectFailure(paths.entrypoint, bootstrapArgs.slice(0, -2), 'EXPECTED_CHECKOUT_SHA_REQUIRED');
 const bootstrapResult = JSON.parse(run(paths.entrypoint, bootstrapArgs));
 assert(bootstrapResult.state === 'BOOTSTRAP_PREREQUISITES_SATISFIED', 'RUNTIME_BOOTSTRAP_STATE');
@@ -1407,6 +1448,8 @@ console.log(JSON.stringify({
   governed_agent_classes_validated: governedClasses.length,
   negative_controls_verified: [
     'EXPECTED_CHECKOUT_SHA_REQUIRED',
+    'SECRET_LIKE_CLI_ARGUMENT_REJECTION_WITHOUT_VALUE_REFLECTION',
+    'DISPATCH_SHELL_TRACE_AND_NONCE_ECHO_REJECTION',
     'LOCAL_EXPECTED_SHA_NOT_GITHUB_PROVENANCE',
     'RECEIPT_ALONE_DOES_NOT_OPEN_TASK_GATE',
     'NON_CONSUMING_AUDIT_STATE_DISTINCT_FROM_DISPATCH_VERIFICATION',
