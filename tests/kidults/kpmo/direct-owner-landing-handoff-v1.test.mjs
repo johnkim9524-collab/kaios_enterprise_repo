@@ -89,7 +89,7 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /await publish\('failure'/);
 });
 
-test('autonomous landing requires CI plus full-value-chain Red-Team for every PR', () => {
+test('autonomous landing requires CI plus bounded full-value-chain Red-Team over the complete scope surface', () => {
   assert.deepEqual(scopePolicy.technical_base_contexts, [
     'KAIOS Solo Owner Preflight',
     'Validate KAIOS Foundation',
@@ -100,8 +100,18 @@ test('autonomous landing requires CI plus full-value-chain Red-Team for every PR
   const pullRequest = normalized.match(/^  pull_request:\n([\s\S]*?)(?=^  push:|^  workflow_dispatch:)/m);
   assert.ok(pullRequest, 'full-value-chain Red-Team pull_request trigger is required');
   assert.match(pullRequest[1], /^    branches:/m);
-  assert.doesNotMatch(pullRequest[1], /^    paths:/m,
-    'autonomous Red-Team cannot be path-filtered because scope aggregation requires it for every PR');
+  assert.match(pullRequest[1], /^    paths:/m);
+  const listed = new Set(
+    [...pullRequest[1].matchAll(/^      - ["']?(.+?)["']?$/gm)].map(match => match[1]),
+  );
+  for (const rule of scopePolicy.scope_rules) {
+    for (const prefix of rule.prefixes || []) {
+      assert.ok(listed.has(`${prefix}**`), `Red-Team routing missing scope prefix ${prefix}`);
+    }
+    for (const exact of rule.exact_paths || []) {
+      assert.ok(listed.has(exact), `Red-Team routing missing exact scope path ${exact}`);
+    }
+  }
   assert.match(atomic, /autonomous_exact_head_verification/);
   assert.match(atomic, /human_review_required: false/);
 });
