@@ -10,6 +10,7 @@ import {
   assertSingleAuthoritativeProducer,
   authoritativeGenerationKey,
   assertLandingActorAndAuthorization,
+  assertAutonomousIndependentReview,
   selectExactHeadProgramOwnerApproval,
   selectLatestProgramOwnerReadyEvent,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
@@ -202,6 +203,53 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     body: approvalBody(sha, {nonce: 'not-a-valid-nonce'}),
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_NONCE_INVALID');
+});
+
+test('autonomous review is exact-head, identity/session separated, role-qualified, immutable, and replay-resistant', () => {
+  const reviewPolicy = {
+    status: 'ACTIVE_MANDATORY_FAIL_CLOSED',
+    registered_role_routing: {governance_independence_and_provenance: ['integration-conductor']},
+  };
+  const receipt = {
+    implementer_agent_id: 'AI-018',
+    reviewer_agent_id: 'AI-REVIEWER-01',
+    assigned_reviewer_agent_id: 'AI-REVIEWER-01',
+    implementer_session_id: 'implementation-session',
+    reviewer_session_id: 'review-session',
+    exact_head_sha: sha,
+    reviewed_head_sha: sha,
+    required_domain: 'governance_independence_and_provenance',
+    reviewer_domain: 'governance_independence_and_provenance',
+    reviewer_role_id: 'integration-conductor',
+    bootstrap_state: 'BOOTSTRAP_VERIFIED',
+    bootstrap_consumed: true,
+    bootstrap_receipt_digest: `hmac-sha256:${'1'.repeat(64)}`,
+    review_receipt_id: 'review-1580-a',
+    decision: 'APPROVE',
+    diff_evidence: ['diff'],
+    test_evidence: ['tests'],
+    negative_control_evidence: ['self-review', 'stale-head', 'replay', 'wrong-agent', 'wrong-domain'],
+  };
+  const comment = (value, overrides = {}) => ({
+    id: 99,
+    body: `KIDULTS_AUTONOMOUS_REVIEW_V1\n${JSON.stringify(value)}`,
+    user: {login: 'johnkim9524-collab'},
+    author_association: 'OWNER',
+    performed_via_github_app: null,
+    created_at: '2026-09-01T01:10:00Z',
+    updated_at: '2026-09-01T01:10:00Z',
+    ...overrides,
+  });
+  const input = {repositoryOwner: 'johnkim9524-collab', headSha: sha, reviewPolicy};
+  assert.equal(assertAutonomousIndependentReview([comment(receipt)], input).decision, 'APPROVE');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_agent_id: 'AI-018', assigned_reviewer_agent_id: 'AI-018'})], input), 'AUTONOMOUS_REVIEW_SELF_REVIEW');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewed_head_sha: 'c'.repeat(40), exact_head_sha: 'c'.repeat(40)})], input), 'AUTONOMOUS_REVIEW_APPROVAL_CARDINALITY');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_agent_id: 'WRONG'})], input), 'AUTONOMOUS_REVIEW_WRONG_AGENT');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_domain: 'portal'})], input), 'AUTONOMOUS_REVIEW_WRONG_DOMAIN');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, reviewer_role_id: 'track-c-portal-v502'})], input), 'AUTONOMOUS_REVIEW_ROLE_NOT_QUALIFIED');
+  code(() => assertAutonomousIndependentReview([comment(receipt), comment(receipt, {id: 100})], input), 'AUTONOMOUS_REVIEW_RECEIPT_REPLAY');
+  code(() => assertAutonomousIndependentReview([comment({...receipt, decision: 'REQUEST_CHANGES'})], input), 'AUTONOMOUS_REVIEW_CHANGES_REQUESTED');
+  code(() => assertAutonomousIndependentReview([comment(receipt, {updated_at: '2026-09-01T01:11:00Z'})], input), 'AUTONOMOUS_REVIEW_COMMENT_EDITED');
 });
 
 test('#1580 producer-event substitution cannot claim exact consumer trigger binding', () => {

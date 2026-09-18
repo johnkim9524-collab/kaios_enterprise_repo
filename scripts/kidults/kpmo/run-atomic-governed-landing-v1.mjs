@@ -5,6 +5,7 @@ import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
   assertExactOwnerMergeDuringFinalReread,
+  assertAutonomousIndependentReview,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
@@ -313,6 +314,13 @@ const sameApproval = (left, right) =>
   && left?.authorization_id_sha256 === right?.authorization_id_sha256
   && left?.expires_at === right?.expires_at;
 
+const sameAutonomousReview = (left, right) =>
+  left?.github_comment_id === right?.github_comment_id
+  && left?.comment_body_digest === right?.comment_body_digest
+  && left?.review_receipt_id === right?.review_receipt_id
+  && left?.reviewed_head_sha === right?.reviewed_head_sha
+  && left?.decision === right?.decision;
+
 const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
@@ -366,6 +374,10 @@ try {
     prBaseSha: initial.base.sha,
     liveMainSha: initialMain.commit.sha,
   });
+  const reviewPolicyAtHead = (await readJsonAtRef(
+    'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json',
+    expectedHeadSha,
+  )).autonomous_independent_review;
   assertAtomicLandingMergeable(initial, 'PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
   const changedFilenames = changedFileRecords.map(value => value?.filename).filter(value => typeof value === 'string');
@@ -413,6 +425,11 @@ try {
     landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
+  });
+  const autonomousReview = assertAutonomousIndependentReview(approvalComments, {
+    repositoryOwner,
+    headSha: expectedHeadSha,
+    reviewPolicy: reviewPolicyAtHead,
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
@@ -495,8 +512,16 @@ try {
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const immediateAutonomousReview = assertAutonomousIndependentReview(immediateApprovalComments, {
+    repositoryOwner,
+    headSha: expectedHeadSha,
+    reviewPolicy: reviewPolicyAtHead,
+  });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
     throw new Error('IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
+  }
+  if (!sameAutonomousReview(immediateAutonomousReview, autonomousReview)) {
+    throw new Error('IMMEDIATE_PREMERGE_AUTONOMOUS_REVIEW_DRIFT');
   }
   if (!sameReadyEvent(immediateReady, latestReady)) {
     throw new Error('IMMEDIATE_PREMERGE_READY_EVENT_DRIFT');
@@ -562,8 +587,16 @@ try {
       || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const finalPreMergeAutonomousReview = assertAutonomousIndependentReview(finalPreMergeApprovalComments, {
+    repositoryOwner,
+    headSha: expectedHeadSha,
+    reviewPolicy: reviewPolicyAtHead,
+  });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
     throw new Error('FINAL_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT');
+  }
+  if (!sameAutonomousReview(finalPreMergeAutonomousReview, immediateAutonomousReview)) {
+    throw new Error('FINAL_PREMERGE_AUTONOMOUS_REVIEW_DRIFT');
   }
   if (!sameReadyEvent(finalPreMergeReady, immediateReady)) {
     throw new Error('FINAL_PREMERGE_READY_EVENT_DRIFT');
@@ -653,6 +686,7 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
+    autonomous_independent_review: autonomousReview,
     staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,

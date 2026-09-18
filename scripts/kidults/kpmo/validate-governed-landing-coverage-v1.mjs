@@ -121,14 +121,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "Ready; operation-specific atomic landing is required",
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
-    'KIDULTS_AUTONOMOUS_REVIEW_V1',
-    'autonomous review receipt replay detected',
-    'exactly one current autonomous review approval required',
-    'autonomous self-review rejected',
-    'wrong autonomous reviewer agent',
-    'wrong autonomous reviewer domain',
-    'autonomous reviewer role is not qualified for domain',
-    'autonomous reviewer bootstrap not consumed',
+    'assertAutonomousIndependentReview',
+    'autonomous_independent_review:autonomousApproval',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
 
   for (const marker of [
@@ -156,6 +150,9 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'immediatePreMerge',
     'IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT',
     'IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT',
+    'assertAutonomousIndependentReview',
+    'IMMEDIATE_PREMERGE_AUTONOMOUS_REVIEW_DRIFT',
+    'FINAL_PREMERGE_AUTONOMOUS_REVIEW_DRIFT',
     'ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED',
     'ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER',
     'POST_MERGE_TREE_SHA_MISMATCH',

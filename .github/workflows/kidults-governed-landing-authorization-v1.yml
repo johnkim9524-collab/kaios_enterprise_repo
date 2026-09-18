@@ -48,6 +48,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
+          import {assertAutonomousIndependentReview} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const repo = process.env.GH_REPOSITORY;
           const prNumber = process.env.PR_NUMBER;
           const token = process.env.GH_TOKEN;
@@ -172,38 +173,8 @@ jobs:
 
             const platform=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
             const reviewPolicy=platform.autonomous_independent_review;
-            if(reviewPolicy?.status!=='ACTIVE_MANDATORY_FAIL_CLOSED') fail('autonomous independent review policy unavailable');
             const comments=await pages(`/issues/${prNumber}/comments`);
-            const marker='KIDULTS_AUTONOMOUS_REVIEW_V1';
-            const reviewReceipts=[];
-            for(const comment of comments){
-              if(comment.user?.login!==repository.owner?.login || !String(comment.body||'').startsWith(`${marker}\n`)) continue;
-              let receipt;
-              try{receipt=JSON.parse(String(comment.body).slice(marker.length+1));}catch{fail(`malformed autonomous review attestation comment ${comment.id}`);}
-              reviewReceipts.push({...receipt,github_comment_id:comment.id,github_created_at:comment.created_at});
-            }
-            const receiptIds=new Set();
-            for(const receipt of reviewReceipts){
-              if(!receipt.review_receipt_id || receiptIds.has(receipt.review_receipt_id)) fail('autonomous review receipt replay detected');
-              receiptIds.add(receipt.review_receipt_id);
-            }
-            const currentReviews=reviewReceipts.filter(r=>r.exact_head_sha===pr.head.sha && r.reviewed_head_sha===pr.head.sha);
-            const currentChangesRequested=currentReviews.filter(r=>r.decision==='REQUEST_CHANGES');
-            if(currentChangesRequested.length) fail('exact-head autonomous review requested changes');
-            const currentApprovals=currentReviews.filter(r=>r.decision==='APPROVE');
-            if(currentApprovals.length!==1) fail('exactly one current autonomous review approval required');
-            const autonomousApproval=currentApprovals[0];
-            const requiredFields=['implementer_agent_id','reviewer_agent_id','assigned_reviewer_agent_id','implementer_session_id','reviewer_session_id','exact_head_sha','reviewed_head_sha','required_domain','reviewer_domain','reviewer_role_id','bootstrap_receipt_digest','review_receipt_id','decision','diff_evidence','test_evidence','negative_control_evidence'];
-            for(const field of requiredFields) if(autonomousApproval[field]===undefined||autonomousApproval[field]===null||autonomousApproval[field]==='') fail(`autonomous review field missing: ${field}`);
-            if(autonomousApproval.implementer_agent_id===autonomousApproval.reviewer_agent_id) fail('autonomous self-review rejected');
-            if(autonomousApproval.assigned_reviewer_agent_id!==autonomousApproval.reviewer_agent_id) fail('wrong autonomous reviewer agent');
-            if(autonomousApproval.implementer_session_id===autonomousApproval.reviewer_session_id) fail('autonomous reviewer session is not independent');
-            if(autonomousApproval.required_domain!==autonomousApproval.reviewer_domain) fail('wrong autonomous reviewer domain');
-            const allowedRoles=reviewPolicy.registered_role_routing?.[autonomousApproval.required_domain]||[];
-            if(!allowedRoles.includes(autonomousApproval.reviewer_role_id)) fail('autonomous reviewer role is not qualified for domain');
-            if(autonomousApproval.bootstrap_state!=='BOOTSTRAP_VERIFIED'||autonomousApproval.bootstrap_consumed!==true) fail('autonomous reviewer bootstrap not consumed');
-            if(!/^hmac-sha256:[0-9a-f]{64}$/.test(autonomousApproval.bootstrap_receipt_digest)) fail('autonomous reviewer bootstrap digest invalid');
-            for(const field of ['diff_evidence','test_evidence','negative_control_evidence']) if(!Array.isArray(autonomousApproval[field])||!autonomousApproval[field].length) fail(`autonomous review evidence missing: ${field}`);
+            const autonomousApproval=assertAutonomousIndependentReview(comments,{repositoryOwner:repository.owner?.login,headSha:pr.head.sha,reviewPolicy});
 
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
@@ -235,15 +206,7 @@ jobs:
               governed_files:governedFiles,
               readiness:readinessReceipt,
               required_approval_count:0,
-              autonomous_independent_review:{
-                decision:autonomousApproval.decision,
-                reviewer_agent_id:autonomousApproval.reviewer_agent_id,
-                reviewer_role_id:autonomousApproval.reviewer_role_id,
-                reviewer_session_id:autonomousApproval.reviewer_session_id,
-                reviewed_head_sha:autonomousApproval.reviewed_head_sha,
-                review_receipt_id:autonomousApproval.review_receipt_id,
-                github_comment_id:autonomousApproval.github_comment_id
-              },
+              autonomous_independent_review:autonomousApproval,
               optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
               stale_review_excluded:true,
