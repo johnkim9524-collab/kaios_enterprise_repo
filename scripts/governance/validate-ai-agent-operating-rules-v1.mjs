@@ -69,7 +69,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.8.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.9.0', 'CONTRACT_VERSION');
 assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
@@ -304,7 +304,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.8.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '1.9.0', 'REGISTRY_POLICY_VERSION');
 assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
@@ -391,6 +391,27 @@ const programParticipant = roles.roles?.find((role) => role.role_id === 'program
 const integrationConductor = roles.roles?.find((role) => role.role_id === 'integration-conductor');
 assert(integrationConductor?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'KPMO_AGENT_JD_ACCOUNTABILITY');
 assert(integrationConductor?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'KPMO_AGENT_JD_SELF_EXEMPTION_FORBIDDEN');
+
+assert(roles.kpmo_qualification_and_lifecycle?.status === 'ACTIVE_MANDATORY_FAIL_CLOSED', 'KPMO_QUALIFICATION_STATUS');
+assert(roles.kpmo_qualification_and_lifecycle?.selection_objective === 'SELECT_THE_HIGHEST_PERFORMING_CANDIDATE_AMONG_ALL_CANDIDATES_THAT_PASS_EVERY_MANDATORY_GATE', 'KPMO_HIGHEST_PERFORMER_SELECTION');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.p0_gate_failure_overrides_score === true, 'KPMO_P0_OVERRIDES_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.minimum_total_score === 92, 'KPMO_MIN_TOTAL_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.qualification_gates?.minimum_each_domain_percent === 85, 'KPMO_MIN_DOMAIN_SCORE');
+assert(roles.kpmo_qualification_and_lifecycle?.reviewer_duties?.own_material_change_review_forbidden === true, 'KPMO_SELF_REVIEW_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.qualified_standby_required === true, 'KPMO_STANDBY_REQUIRED');
+assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.principle === 'NO_KPMO_SHALL_BECOME_A_SINGLE_POINT_OF_FAILURE', 'KPMO_NO_SPOF');
+assert(roles.kpmo_qualification_and_lifecycle?.immediate_removal?.atomic_sequence?.includes('DISABLE_NEW_DISPATCH'), 'KPMO_REMOVAL_DISABLE_DISPATCH');
+assert(roles.kpmo_qualification_and_lifecycle?.immediate_removal?.self_reinstatement_forbidden === true, 'KPMO_SELF_REINSTATEMENT_FORBIDDEN');
+assert(contract.kpmo_qualification_lifecycle?.highest_performer_selection_required === true, 'CONTRACT_KPMO_HIGHEST_PERFORMER');
+assert(contract.kpmo_qualification_lifecycle?.kpmo_self_review_forbidden === true, 'CONTRACT_KPMO_SELF_REVIEW');
+assert(contract.kpmo_qualification_lifecycle?.immediate_p0_quarantine_required === true, 'CONTRACT_KPMO_P0_QUARANTINE');
+assert(contract.kpmo_qualification_lifecycle?.active_kpmo_must_have_qualified_standby === true, 'CONTRACT_KPMO_STANDBY');
+assert(registry.kpmo_qualification_lifecycle?.selection === 'HIGHEST_PERFORMER_AMONG_FULLY_QUALIFIED', 'REGISTRY_KPMO_SELECTION');
+assert(registry.kpmo_qualification_lifecycle?.confirmed_p0_atomic_quarantine === true, 'REGISTRY_KPMO_QUARANTINE');
+assert(integrationConductor?.must_not?.some((item) => item.includes('Review or approve its own material change')), 'KPMO_JD_SELF_REVIEW_FORBIDDEN');
+assert(policy.includes('## KPMO continuous qualification, review and removal'), 'POLICY_KPMO_QUALIFICATION_SECTION');
+assert(policy.includes('NO KPMO SHALL BECOME A SINGLE POINT OF FAILURE'), 'POLICY_KPMO_NO_SPOF');
+
 assert(programParticipant?.core_responsibilities?.some((item) => item.includes('end-to-end ownership')), 'ROLE_JD_END_TO_END_OWNERSHIP');
 assert(programParticipant?.must_not?.some((item) => item.includes('transfer a core assigned duty or accountability to Codex')), 'ROLE_JD_CODEX_TRANSFER_FORBIDDEN');
 assert(programParticipant?.must_not?.some((item) => item.includes('unverified helper output as completed execution')), 'ROLE_JD_UNVERIFIED_HELPER_OUTPUT_FORBIDDEN');
@@ -462,7 +483,7 @@ const requiredAgentMarkers = [
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.8.0',
+  '**Version:** 1.9.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -534,7 +555,7 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.8.0',
+  version: '1.9.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
