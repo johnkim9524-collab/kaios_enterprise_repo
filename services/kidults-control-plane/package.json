@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "validate": "node scripts/validate-boundary-v1.mjs",
-    "test": "node --test scripts/*.test.mjs"
+    "test": "node --test scripts/*.test.mjs",
+    "projector:staging:once": "node scripts/run-staging-d1-projector-once-v1.mjs"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
   }
 }
