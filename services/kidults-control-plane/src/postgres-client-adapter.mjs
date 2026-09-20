@@ -1,5 +1,3 @@
-import pg from 'pg';
-
 const ROLE = 'kidults_control_projector';
 
 function required(value, name) {
@@ -9,11 +7,12 @@ function required(value, name) {
 
 export async function openGovernedProjectorClient({
   connectionString,
-  Client = pg.Client,
+  Client,
 }) {
   const dsn = required(connectionString, 'POSTGRES_DSN');
   if (!/^postgres(?:ql)?:\/\//i.test(dsn)) throw new Error('POSTGRES_DSN_INVALID');
-  const client = new Client({ connectionString: dsn });
+  const ClientConstructor = Client || (await import('pg')).default.Client;
+  const client = new ClientConstructor({ connectionString: dsn });
   await client.connect();
   try {
     await client.query(`SET ROLE ${ROLE}`);
