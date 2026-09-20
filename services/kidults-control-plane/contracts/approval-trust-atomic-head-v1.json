@@ -1,0 +1,47 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_TRUST_ATOMIC_HEAD_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_ATOMIC_CURRENT_HEAD_GATEWAY_READY_REMOTE_AND_REAL_KEYS_HOLD",
+  "scope": "APPEND_ONLY_CURRENT_HEAD_TOMBSTONE_AND_LOCKED_SINGLE_USE_CONSUMPTION",
+  "modules": [
+    {"id":"RUNTIME_FACADE","path":"src/common-control/approval-trust-runtime-v1.mjs"},
+    {"id":"CURRENT_HEAD_LEDGER","path":"src/common-control/approval-trust-current-head-v1.mjs"},
+    {"id":"ATOMIC_CONSUMPTION_GATEWAY","path":"src/common-control/approval-trust-atomic-gateway-v1.mjs"},
+    {"id":"PREPARED_APPROVAL_CONSUMPTION","path":"src/common-control/approval-consumption-v1.mjs"}
+  ],
+  "migration": "migrations/postgres/0010_approval_trust_current_heads.sql",
+  "controls": {
+    "append_only_current_head": true,
+    "revocation_tombstone": true,
+    "previous_head_digest_chain": true,
+    "publisher_consumer_shared_transaction_lock": "kidults.approval-trust-current-head.v1",
+    "current_head_read_and_nonce_insert_same_transaction": true,
+    "stale_rotated_or_revoked_registry_denied_before_consumption": true,
+    "non_atomic_gateway": "RETIRED_FAIL_CLOSED",
+    "runtime_consumption_entrypoint": "verifyAndConsumeCurrentApprovalTrust",
+    "exact_lifecycle_digest_pin_required": true,
+    "real_role_keys_registered": 0,
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "persistence_boundary": {
+    "database_role": "kidults_control_trust_current_head",
+    "writer_id": "kpmo-trust-current-head-writer-v1",
+    "database_privileges": ["SELECT", "INSERT"],
+    "approval_consumer_head_privilege": ["SELECT"],
+    "append_only": true,
+    "remote_postgresql": "HOLD",
+    "real_postgresql_concurrency": "NOT_VERIFIED"
+  },
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_REVOCATION_WINS_BEFORE_APPROVAL_CONSUMPTION",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_ATOMIC_TRUST_HEAD_FENCE",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_APPEND_ONLY_CURRENT_TRUST_LINEAGE",
+    "transparency_effect": "POSITIVE_CHAINED_ACTIVE_AND_TOMBSTONE_HEAD_RECEIPTS"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

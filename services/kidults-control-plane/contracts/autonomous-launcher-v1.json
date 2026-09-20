@@ -1,0 +1,362 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_LAUNCHER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_MINIMAL_PATH_READY_REMOTE_HOLD",
+  "runtime_module": "src/autonomous-control/launcher-v1.mjs",
+  "plane": "EXECUTION",
+  "purpose": "CONSUME_EXACT_CURRENT_TRUST_AUTHORITY_BEFORE_EXISTING_INVOCATION_ADMISSION",
+  "sequence": [
+    "RESOLVE_CURRENT_CONTAINMENT_FENCE_FROM_POSTGRESQL",
+    "VALIDATE_EXACT_REQUEST_AND_DECISION",
+    "BIND_APPROVAL_SUBJECT_TO_REQUEST_ID_AND_REQUEST_DIGEST",
+    "VERIFY_AND_CONSUME_CURRENT_TRUST_ATOMICALLY",
+    "CONSUME_EXISTING_INVOCATION_ADMISSION",
+    "RUN_EXISTING_BOUNDED_SHADOW_SUPERVISOR",
+    "EMIT_EXACT_BOUND_RECEIPT",
+    "VERIFY_OPERATIONAL_EVIDENCE_CHAIN"
+  ],
+  "reused_boundaries": {
+    "authority": "src/common-control/approval-trust-runtime-v1.mjs",
+    "admission": "src/autonomous-control/invocation-admission-v1.mjs",
+    "execution": "src/autonomous-control/shadow-supervisor-v1.mjs"
+  },
+  "authority_binding": {
+    "authority_class": "LOCAL_SYNTHETIC_SHADOW",
+    "subject_type": "SUPERVISOR_INVOCATION",
+    "subject_id": "INVOCATION_REQUEST_ID",
+    "subject_digest": "INVOCATION_REQUEST_DIGEST",
+    "single_use": true,
+    "current_trust_head_required": true
+  },
+  "new_persistence": true,
+  "new_policy_engine": false,
+  "new_controller_gate_or_registry": false,
+  "postgres_runtime_integration": {
+    "state": "SINGLE_CONNECTION_GOVERNED_LAUNCHER_CHAIN_READY_LIVE_CONNECTION_HOLD",
+    "runtime_function": "runPostgresAutonomousLauncher",
+    "shared_client_scope": [
+      "CONTAINMENT_FENCE",
+      "CURRENT_APPROVAL_TRUST",
+      "INVOCATION_ADMISSION",
+      "TASK_LEDGER",
+      "PROOF_LEDGER"
+    ],
+    "caller_client_override": "PROHIBITED",
+    "explicit_close": true,
+    "new_persistence": false,
+    "live_remote_connection": "NOT_VERIFIED_HOLD"
+  },
+  "protected_runtime_entry": {
+    "state": "SOURCE_BOUND_EXACT_MANIFEST_READY_EXTERNAL_PROTECTED_LAUNCHER_HOLD",
+    "runtime_function": "runProtectedPostgresAutonomousLauncher",
+    "manifest_creator": "createProtectedAutonomousLaunchManifest",
+    "manifest_verifier": "verifyProtectedAutonomousLaunchManifest",
+    "maximum_validity_ms": 300000,
+    "current_source_sha_required": true,
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "external_protected_launcher": "NOT_VERIFIED_HOLD",
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "bounded_credential_injection": {
+    "state": "POST_VALIDATION_SINGLE_RESOLUTION_READY_PROVIDER_INTEGRATION_HOLD",
+    "runtime_function": "runCredentialInjectedProtectedPostgresLauncher",
+    "manifest_contains_credential": false,
+    "resolution_order": "AFTER_MANIFEST_AND_SOURCE_SHA_VERIFICATION",
+    "maximum_resolutions_per_launch": 1,
+    "raw_provider_error_exposed": false,
+    "credential_material_in_result": false,
+    "evidence_receipt": "kidults-bounded-credential-injection-evidence-v1",
+    "evidence_verifier": "verifyBoundedCredentialInjectionEvidence",
+    "provider_integration": "NOT_VERIFIED_HOLD"
+  },
+  "durable_manifest_consumption": {
+    "state": "POSTGRESQL_APPEND_ONLY_SINGLE_USE_READY_REMOTE_HOLD",
+    "runtime_store": "src/autonomous-control/protected-launch-manifest-store-v1.mjs",
+    "migration": "migrations/postgres/0012_protected_launch_manifest_consumptions.sql",
+    "uniqueness": "MANIFEST_DIGEST_PRIMARY_KEY",
+    "consumption_order": "BEFORE_AUTHORITY_AND_INVOCATION_CONSUMPTION",
+    "exact_replay": "MANIFEST_ALREADY_CONSUMED_HOLD",
+    "append_only": true,
+    "remote_postgresql": "NOT_VERIFIED_HOLD"
+  },
+  "verification_trigger": {
+    "state": "REGISTERED_LOCAL_SYNTHETIC_ONLY",
+    "workflow": ".github/workflows/kidults-control-plane-autonomous-verification-v1.yml",
+    "events": ["PROTECTED_MAIN_PUSH", "DAILY_SCHEDULE"],
+    "credentials_persisted": false,
+    "external_egress_authority": false,
+    "remote_worker_activation": "HOLD"
+  },
+  "operational_trigger_readiness": {
+    "state": "FAIL_CLOSED_GATE_READY_REQUIREMENTS_HOLD",
+    "runtime_function": "assessAutonomousRuntimeTriggerReadiness",
+    "receipt_verifier": "verifyAutonomousRuntimeTriggerReadiness",
+    "required": [
+      "CURRENT_TRUST_HEAD_VERIFIED",
+      "REMOTE_POSTGRESQL_VERIFIED",
+      "SINGLE_USE_CONCURRENCY_VERIFIED",
+      "PROTECTED_LAUNCHER_VERIFIED",
+      "DURABLE_NONCE_STORE_VERIFIED",
+      "BOUNDED_CREDENTIAL_INJECTION_VERIFIED",
+      "CONTAINMENT_RECOVERY_VERIFIED"
+    ],
+    "all_requirements_mandatory": true,
+    "remote_postgresql_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "EXACT_SOURCE_SHA",
+        "EXACT_MIGRATION_DIGEST",
+        "FRESH_EPHEMERAL_DATABASE",
+        "ROLE_ISOLATION",
+        "SERVER_VERSION_RECORDED"
+      ],
+      "scope": "EPHEMERAL_REMOTE_POSTGRESQL_EVIDENCE_NOT_PRODUCTION_ACTIVATION",
+      "absent_receipt": "REMOTE_POSTGRESQL_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "current_trust_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "TRUST_REVOCATION_WINS_TWO_CLIENT_RACE",
+        "TRUST_CONSUMPTION_WINS_TWO_CLIENT_RACE",
+        "TRUST_CURRENT_HEADS_EXACTLY_FOUR",
+        "CRYPTOGRAPHIC_APPROVAL_CONSUMPTIONS_EXACTLY_ONE"
+      ],
+      "scope": "EPHEMERAL_IMPLEMENTATION_EVIDENCE_NOT_LIVE_OPERATIONAL_ACTIVATION",
+      "absent_receipt": "CURRENT_TRUST_HEAD_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "invocation_concurrency_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "INVOCATION_ADMISSION_LEAST_PRIVILEGE",
+        "TWO_CLIENT_CAS_SINGLE_WINNER",
+        "SNAPSHOTS_EXACTLY_TWO",
+        "TRANSITIONS_EXACTLY_ONE"
+      ],
+      "scope": "EPHEMERAL_IMPLEMENTATION_EVIDENCE_NOT_LIVE_OPERATIONAL_ACTIVATION",
+      "absent_receipt": "SINGLE_USE_CONCURRENCY_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "protected_launcher_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "PROTECTED_MANIFEST_LEAST_PRIVILEGE",
+        "PROTECTED_MANIFEST_TWO_CLIENT_SINGLE_WINNER",
+        "PROTECTED_MANIFEST_RESTART_REPLAY_HELD",
+        "PROTECTED_MANIFEST_APPEND_ONLY_MUTATION_DENIED",
+        "PROTECTED_MANIFEST_CONSUMPTIONS_EXACTLY_ONE"
+      ],
+      "scope": "EPHEMERAL_IMPLEMENTATION_EVIDENCE_EXTERNAL_PROTECTED_LAUNCHER_HOLD",
+      "absent_receipt": "PROTECTED_LAUNCHER_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "durable_nonce_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "PROTECTED_MANIFEST_LEAST_PRIVILEGE",
+        "PROTECTED_MANIFEST_TWO_CLIENT_SINGLE_WINNER",
+        "PROTECTED_MANIFEST_RESTART_REPLAY_HELD",
+        "PROTECTED_MANIFEST_APPEND_ONLY_MUTATION_DENIED",
+        "PROTECTED_MANIFEST_CONSUMPTIONS_EXACTLY_ONE"
+      ],
+      "absent_receipt": "DURABLE_NONCE_STORE_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "containment_recovery_evidence": {
+      "source": "VERIFIED_AUTONOMOUS_POSTGRES_EVIDENCE_RECEIPT_V1_2",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "CONTAINMENT_STOP_FENCE_BLOCKS",
+        "CONTAINMENT_RELEASE_FENCE_ALLOWS",
+        "CONTAINMENT_RELEASE_CHAIN_ENFORCED",
+        "CONTAINMENT_APPEND_ONLY_MUTATION_DENIED",
+        "CONTAINMENT_MONOTONIC_EVENT_ORDER",
+        "CONTAINMENT_FENCE_EVENTS_EXACTLY_TWO"
+      ],
+      "scope": "EPHEMERAL_IMPLEMENTATION_EVIDENCE_NOT_LIVE_OPERATIONAL_RECOVERY",
+      "absent_receipt": "CONTAINMENT_RECOVERY_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "credential_injection_evidence": {
+      "source": "VERIFIED_BOUNDED_CREDENTIAL_INJECTION_EVIDENCE_V1",
+      "derived_not_caller_asserted": true,
+      "required_checks": [
+        "EXACT_SOURCE_SHA_BINDING",
+        "MANIFEST_VERIFIED_BEFORE_RESOLUTION",
+        "RESOLUTION_COUNT_EXACTLY_ONE",
+        "CREDENTIAL_MATERIAL_NOT_RETAINED",
+        "RAW_PROVIDER_ERROR_NOT_EXPOSED"
+      ],
+      "scope": "LOCAL_IMPLEMENTATION_EVIDENCE_PROVIDER_INTEGRATION_HOLD",
+      "absent_receipt": "BOUNDED_CREDENTIAL_INJECTION_VERIFIED_BLOCKER",
+      "invalid_receipt": "FAIL_CLOSED"
+    },
+    "activation_authorized": false,
+    "automatic_trigger": "NOT_REGISTERED_HOLD"
+  },
+  "runtime_evidence_bundle": {
+    "state": "VERIFIED_EXACT_SOURCE_BOUND_BUNDLE_READY",
+    "assembler": "assembleAutonomousRuntimeEvidenceBundle",
+    "verifier": "verifyAutonomousRuntimeEvidenceBundle",
+    "binds": ["POSTGRES_EVIDENCE_RECEIPT", "BOUNDED_CREDENTIAL_INJECTION_EVIDENCE"],
+    "source_substitution": "FAIL_CLOSED",
+    "provider_integration": "NOT_VERIFIED_HOLD",
+    "activation_authorized": false
+  },
+  "shadow_trigger_dry_run": {
+    "state": "NON_MUTATING_SHADOW_DRY_RUN_READY",
+    "runtime_function": "runAutonomousRuntimeShadowTriggerDryRun",
+    "receipt_verifier": "verifyAutonomousRuntimeShadowTriggerDryRun",
+    "external_mutation": false,
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "shadow_soak_verdict": {
+    "state": "THREE_SAMPLE_ORDERED_SOAK_READY_REGISTRATION_HOLD",
+    "runtime_function": "evaluateAutonomousRuntimeShadowSoak",
+    "verdict_verifier": "verifyAutonomousRuntimeShadowSoakVerdict",
+    "minimum_samples": 3,
+    "same_evidence_bundle_required": true,
+    "strict_time_order_required": true,
+    "containment_recovery_required": true,
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "trigger_registration_package": {
+    "state": "EXACT_SOURCE_AND_SOAK_BOUND_EXTERNAL_REGISTRATION_REVIEW_HOLD",
+    "creator": "createAutonomousTriggerRegistrationPackage",
+    "verifier": "verifyAutonomousTriggerRegistrationPackage",
+    "external_receipt_verifier": "verifyExternalAutonomousTriggerRegistrationReceipt",
+    "registration_performed_by_creator": false,
+    "workflow_path": ".github/workflows/kidults-control-plane-autonomous-runtime-v1.yml",
+    "trigger_class": "SCHEDULE",
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "runtime_activation_gate": {
+    "state": "EXTERNAL_REGISTRATION_RECEIPT_REQUIRED_CANARY_ONLY",
+    "runtime_function": "assessAutonomousRuntimeActivationGate",
+    "receipt_verifier": "verifyAutonomousRuntimeActivationGate",
+    "missing_external_registration": "ACTIVATION_HOLD",
+    "verified_external_registration": "ELIGIBLE_FOR_GOVERNED_CANARY",
+    "production_activation_authorized": false,
+    "public_release_authorized": false,
+    "g5_authorized": false
+  },
+  "runtime_registration_workflow": {
+    "state": "GITHUB_API_READBACK_REQUIRED_EXTERNAL_REGISTRATION_HOLD",
+    "workflow": ".github/workflows/kidults-control-plane-autonomous-runtime-v1.yml",
+    "gate_runner": "scripts/protected-runtime-registration-gate-v1.mjs",
+    "receipt_verifier": "verifyProtectedRuntimeRegistrationReceipt",
+    "events": ["SCHEDULE", "WORKFLOW_DISPATCH"],
+    "schedule": "17 3 * * *",
+    "live_main_verified_before_evidence": true,
+    "github_run_api_readback_required": true,
+    "github_run_api_readback_binds": ["REPOSITORY", "RUN_ID", "RUN_ATTEMPT", "EVENT", "MAIN_SHA", "WORKFLOW_PATH"],
+    "manual_recovery_proves_automatic_trigger": false,
+    "ledger_admission_builder": "scripts/runtime-registration-ledger-admission-v1.mjs",
+    "ledger_admission_verifier": "verifyRuntimeRegistrationLedgerAdmission",
+    "ledger_writer": "kpmo-workflow-receipt-writer-v1",
+    "canary_eligibility_before_ledger_append": false,
+    "new_persistence": false,
+    "credential_resolution_performed": false,
+    "remote_connection_performed": false,
+    "missing_external_registration": "EXTERNAL_REGISTRATION_REQUIRED_HOLD",
+    "verified_external_registration": "GOVERNED_CANARY_ELIGIBLE_ACTIVATION_HOLD",
+    "activation_authorized": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "operational_evidence": {
+    "state": "PURE_EXACT_CHAIN_VERIFIER_READY",
+    "persisted": false,
+    "binds": [
+      "APPROVAL_VERIFICATION_AND_CONSUMPTION",
+      "INVOCATION_CONSUMPTION_AND_EXECUTION",
+      "SUPERVISOR_ORDERED_TICKS",
+      "TASK_CYCLE_AND_EXECUTION_RECEIPTS",
+      "LEASE_RECOVERY_RECEIPT_DIGEST"
+    ]
+  },
+  "operational_status_projection": {
+    "state": "LOCAL_SYNTHETIC_READ_ONLY_PROJECTION_READY",
+    "health_states": ["HEALTHY", "QUARANTINED", "FAIL_CLOSED"],
+    "authoritative": false,
+    "activation_authority": false,
+    "new_persistence": false
+  },
+  "control_tower_observation": {
+    "state": "READ_ONLY_OBSERVATION_ADAPTER_READY",
+    "surface": "CONTROL_TOWER_READ_ONLY_OBSERVATION",
+    "action": "OBSERVE_ONLY",
+    "authoritative": false,
+    "activation_authority": false,
+    "mutation_allowed": false,
+    "new_dashboard": false
+  },
+  "containment_recommendation": {
+    "state": "PURE_RECOMMENDATION_READY",
+    "outcomes": ["CONTINUE", "QUARANTINE", "STOP"],
+    "automatic_action_taken": false,
+    "authoritative": false,
+    "activation_authority": false,
+    "mutation_allowed": false,
+    "new_persistence": false
+  },
+  "containment_action_package": {
+    "state": "EXACT_PROTECTED_ACTION_HANDOFF_READY",
+    "created_for": ["QUARANTINE", "STOP"],
+    "continue_result": "NO_PACKAGE",
+    "authority_class": "PROTECTED_ACTION_PACKAGE",
+    "subject_type": "PROTECTED_ACTION_PACKAGE",
+    "operator_approval_required": true,
+    "automatic_action_taken": false,
+    "mutation_allowed": false,
+    "new_persistence": false
+  },
+  "containment_approval_consumption": {
+    "state": "ATOMIC_CURRENT_TRUST_CONSUMPTION_READY",
+    "required_roles": ["KPMO", "PROGRAM_OWNER"],
+    "single_use": true,
+    "current_trust_head_required": true,
+    "expired_or_substituted": "FAIL_CLOSED",
+    "automatic_action_taken": false,
+    "activation_authorized": false,
+    "mutation_allowed": false,
+    "new_persistence": false
+  },
+  "containment_execution_fence": {
+    "state": "APPEND_ONLY_POSTGRESQL_RECOVERED_PRE_INVOCATION_FENCE_READY",
+    "runtime_store": "src/autonomous-control/containment-fence-store-v1.mjs",
+    "migration": "migrations/postgres/0011_autonomous_containment_fence_events.sql",
+    "clear_state": "ALLOW_INVOCATION",
+    "quarantine_state": "CONTAINMENT_QUARANTINE_HOLD",
+    "stop_state": "CONTAINMENT_STOP_HOLD",
+    "checked_before_authority_consumption": true,
+    "caller_supplied_fence_trusted": false,
+    "append_only": true,
+    "current_event_order": "MONOTONIC_EVENT_SEQUENCE",
+    "approval_and_fence_atomic": true,
+    "release_state": "APPROVED_CONTAINMENT_RELEASED",
+    "release_required_roles": ["KPMO", "PROGRAM_OWNER"],
+    "release_requires_latest_active_fence": true,
+    "release_replay_or_stale": "ROLLBACK_AND_HOLD",
+    "automatic_action_taken": false,
+    "mutation_allowed": false,
+    "remote_postgresql": "HOLD"
+  },
+  "automatic_trigger": "NOT_REGISTERED_HOLD",
+  "remote_worker_activation": "HOLD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

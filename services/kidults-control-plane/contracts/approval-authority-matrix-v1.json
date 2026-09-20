@@ -1,0 +1,101 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_AUTHORITY_MATRIX_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SIGNATURE_VERIFIER_READY_TRUST_ROOTS_UNREGISTERED_HOLD",
+  "scope": "OFFLINE_EXACT_ENVELOPE_VERIFICATION_ONLY",
+  "runtime_module": "src/common-control/approval-envelope-v1.mjs",
+  "authority_classes": {
+    "LOCAL_SYNTHETIC_SHADOW": {
+      "subject_type": "SUPERVISOR_INVOCATION",
+      "required_roles": ["KPMO"],
+      "maximum_lifetime_seconds": 300,
+      "protected_capability_requests_allowed": false
+    },
+    "PROVIDER_PREFLIGHT_NO_FETCH": {
+      "subject_type": "PROVIDER_ACTION",
+      "required_roles": ["KPMO", "TRACK_A", "TRACK_Z"],
+      "maximum_lifetime_seconds": 3600,
+      "protected_capability_requests_allowed": false
+    },
+    "PROTECTED_ACTION_PACKAGE": {
+      "subject_type": "PROTECTED_ACTION_PACKAGE",
+      "required_roles": ["KPMO", "PROGRAM_OWNER"],
+      "maximum_lifetime_seconds": 900,
+      "protected_capability_requests_allowed": true
+    }
+  },
+  "trust_registry": {
+    "state": "CALLER_PINNED_PUBLIC_KEYS_ONLY_HOLD",
+    "expected_registry_digest_required": true,
+    "algorithm": "Ed25519",
+    "registered_repository_trust_roots": [],
+    "private_key_storage": "PROHIBITED",
+    "key_generation_or_signing": "NOT_IMPLEMENTED_HOLD",
+    "real_role_identity_binding": "NOT_REGISTERED_HOLD"
+  },
+  "verification_receipt": {
+    "state": "SIGNATURES_VERIFIED_AUTHORITY_NOT_ACTIVATED",
+    "exact_shape": true,
+    "self_digest": true,
+    "binds": [
+      "ENVELOPE_DIGEST",
+      "SUBJECT_DIGEST",
+      "NONCE_DIGEST",
+      "REQUESTED_CAPABILITIES_DIGEST",
+      "AUTHORITY_MATRIX_DIGEST",
+      "TRUST_REGISTRY_DIGEST",
+      "VERIFIED_ROLE_QUORUM",
+      "OBSERVED_TIME"
+    ],
+    "activation_authorized": false,
+    "provider_contact_executed": false,
+    "external_egress": false,
+    "credential_resolution": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "integration": {
+    "single_use_consumption_contract": "contracts/approval-consumption-ledger-v1.json",
+    "single_use_consumption_state": "LOCAL_APPEND_ONLY_CONSUMPTION_READY_TRUST_ROOTS_AND_WIRING_HOLD",
+    "trust_root_lifecycle_contract": "contracts/approval-trust-root-lifecycle-v1.json",
+    "trust_root_lifecycle_state": "LOCAL_SYNTHETIC_LIFECYCLE_READY_REAL_KEYS_AND_WIRING_HOLD",
+    "trust_registry_compiler_contract": "contracts/approval-trust-registry-compiler-v1.json",
+    "trust_registry_compiler_state": "LOCAL_SYNTHETIC_COMPILER_READY_EXPLICIT_CALLER_HANDOFF_ONLY",
+    "trust_handoff_gateway_contract": "contracts/approval-trust-handoff-control-bundle-v1.json",
+    "trust_handoff_gateway_state": "LOCAL_SYNTHETIC_EXACT_HANDOFF_FENCE_READY_NONATOMIC_GATEWAY_RETIRED",
+    "atomic_current_trust_contract": "contracts/approval-trust-atomic-head-v1.json",
+    "atomic_current_trust_state": "LOCAL_SYNTHETIC_ATOMIC_CURRENT_HEAD_GATEWAY_READY_REMOTE_AND_REAL_KEYS_HOLD",
+    "supervisor_invocation_wiring": "NOT_WIRED_HOLD",
+    "provider_preflight_wiring": "NOT_WIRED_HOLD",
+    "protected_action_wiring": "NOT_WIRED_HOLD",
+    "automatic_trigger": "NOT_REGISTERED_HOLD"
+  },
+  "invariants": [
+    "ENVELOPE_BINDS_AUTHORITY_SUBJECT_CAPABILITIES_TIME_NONCE_MATRIX_AND_TRUST_REGISTRY",
+    "EVERY_AUTHORITY_CLASS_REQUIRES_EXACT_ROLE_QUORUM_WITH_NO_EXTRA_SIGNERS",
+    "SIGNING_KEY_ROLE_MUST_MATCH_CALLER_PINNED_TRUST_REGISTRY_ROLE",
+    "MISSING_EXPIRED_FUTURE_TAMPERED_SUBSTITUTED_OR_UNTRUSTED_SIGNATURE_FAILS_CLOSED",
+    "PROVIDER_PREFLIGHT_REQUIRES_KPMO_TRACK_A_AND_TRACK_Z",
+    "PROTECTED_ACTION_PACKAGE_REQUIRES_KPMO_AND_PROGRAM_OWNER",
+    "VALID_SIGNATURES_PRODUCE_VERIFICATION_EVIDENCE_NOT_RUNTIME_AUTHORITY",
+    "NO_PRIVATE_KEYS_SIGNING_CAPABILITY_PROVIDER_NETWORK_OR_PROTECTED_ACTIVATION"
+  ],
+  "explicit_non_claims": [
+    "NO_REAL_KPMO_TRACK_A_TRACK_Z_OR_PROGRAM_OWNER_KEY_IS_REGISTERED",
+    "NO_SIGNATURE_IS_ISSUED_BY_THIS_MODULE",
+    "NO_NONCE_REPLAY_LEDGER_IS_EMBEDDED_IN_THIS_OFFLINE_VERIFIER",
+    "NO_SUPERVISOR_OR_PROVIDER_ACTION_CONSUMES_THIS_RECEIPT",
+    "NO_PROVIDER_CONTACT_FETCH_SPEND_CREDENTIAL_OR_EGRESS_IS_AUTHORIZED",
+    "NO_PRODUCTION_PUBLIC_OR_G5_AUTHORITY_IS_GRANTED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_EXACT_ROLE_QUORUM_AND_EXPIRY_BOUNDARY",
+    "global_effect": "POSITIVE_PROVIDER_PREFLIGHT_DUAL_TRACK_SEPARATION",
+    "irreplaceable_value_effect": "POSITIVE_SUBJECT_MATRIX_AND_TRUST_DIGEST_LINEAGE",
+    "transparency_effect": "POSITIVE_EXACT_SELF_DIGEST_VERIFICATION_RECEIPT"
+  },
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

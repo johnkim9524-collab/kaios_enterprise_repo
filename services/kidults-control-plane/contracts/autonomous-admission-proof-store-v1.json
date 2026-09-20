@@ -1,0 +1,35 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_ADMISSION_PROOF_STORE_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_APPEND_ONLY_PROOF_STORE_READY_REMOTE_ACTIVATION_HOLD",
+  "scope": "LOCAL_SYNTHETIC_SHADOW_ONLY",
+  "module": "src/autonomous-control/admission-proof-store-v1.mjs",
+  "migration": "migrations/postgres/0004_autonomous_admission_proofs.sql",
+  "authority": {
+    "writer_id": "kpmo-autonomous-admission-proof-writer-v1",
+    "database_role": "kidults_control_autonomous_admission",
+    "writer_privileges": ["SELECT", "INSERT"],
+    "task_role_privileges": ["SELECT"],
+    "update_delete_truncate": "DENIED"
+  },
+  "resolution": {
+    "key": ["TASK_ID", "ADMISSION_REQUEST_DIGEST"],
+    "expiry": "STRICTLY_FUTURE",
+    "selection": "LATEST_ISSUED_AT_THEN_PROOF_ID",
+    "current_control_state_revalidation": "REQUIRED_BY_WORKER_BEFORE_START"
+  },
+  "invariants": [
+    "ONLY_EXACT_SELF_DIGEST_BOUND_SYNTHETIC_SHADOW_DECISION_AND_MANIFEST",
+    "PROOF_BINDS_TASK_REQUEST_DECISION_MANIFEST_AND_CONTROL_REVISIONS",
+    "EXPIRED_PROOF_IS_NOT_RESOLVED",
+    "EXACT_REPLAY_IS_IDEMPOTENT_AND_CONFLICTING_REPLAY_ROLLS_BACK",
+    "PROOF_STORE_DOES_NOT_AUTHORIZE_EXECUTION_WITHOUT_CURRENT_PREFLIGHT",
+    "NO_EXTERNAL_EGRESS_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "remote_activation": "HOLD",
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

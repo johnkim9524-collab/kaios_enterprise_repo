@@ -103,6 +103,24 @@ function validate(overrides = new Map()) {
     findings.push(`control observer missing: ${observerContract.consumer}`);
   } else {
     if (observer.filePath !== observerContract.path) findings.push('control observer path mismatch');
+    if (observerContract.direct_schedule_allowed !== false || /^  schedule:/m.test(observer.text)) {
+      findings.push('control observer direct schedule must remain disabled');
+    }
+    const scheduledEntrypoint = observerContract.scheduled_entrypoint;
+    const entrypoint = scheduledEntrypoint && graph.byName.get(scheduledEntrypoint.workflow);
+    if (!entrypoint || entrypoint.filePath !== scheduledEntrypoint.path) {
+      findings.push('scheduled control entrypoint missing or path mismatch');
+    } else {
+      for (const marker of [
+        `cron: '${scheduledEntrypoint.cron}'`,
+        'Enforce fail-closed producer health after receipt retention',
+        '.state=="VERIFIED_PASS"',
+        '.semantic_content_verified==true',
+        `gh workflow run ${scheduledEntrypoint.dispatch_target}`,
+        `-f profile=${scheduledEntrypoint.dispatch_profile}`,
+      ]) if (!entrypoint.text.includes(marker)) findings.push(`scheduled control entrypoint marker missing: ${marker}`);
+      if (scheduledEntrypoint.requires_verified_producer_health !== true) findings.push('scheduled entrypoint health gate must be required');
+    }
     const actualProducers = new Set(observer.producers);
     for (const producer of expectedObserverProducers) {
       if (!actualProducers.has(producer)) findings.push(`control observer watch missing: ${producer}`);
@@ -220,6 +238,13 @@ const assuranceOriginal = fs.readFileSync(path.join(root, assurancePath), 'utf8'
 const writePermissionMutation = assuranceOriginal.replace('  actions: read', '  actions: write');
 if (validate(new Map([[assurancePath, writePermissionMutation]])).findings.length === 0) {
   fail('control observer write-permission mutation escaped');
+}
+const directScheduleMutation = assuranceOriginal.replace(
+  '  workflow_run:',
+  "  schedule:\n    - cron: '17,47 * * * *'\n  workflow_run:",
+);
+if (validate(new Map([[assurancePath, directScheduleMutation]])).findings.length === 0) {
+  fail('control observer direct-schedule mutation escaped');
 }
 const observerContract = contract.control_observer;
 const baseGraph = readGraph();

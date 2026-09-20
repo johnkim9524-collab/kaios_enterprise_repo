@@ -5,6 +5,12 @@
   "type": "module",
   "scripts": {
     "validate": "node scripts/validate-boundary-v1.mjs",
-    "test": "node --test scripts/*.test.mjs"
+    "test": "node --test scripts/*.test.mjs",
+    "verify:autonomous-postgres": "node scripts/autonomous-postgres-evidence-v1.mjs",
+    "verify:autonomous-postgres-receipt": "node scripts/verify-autonomous-postgres-evidence-v1.mjs",
+    "verify:autonomous-postgres-canary": "node scripts/run-autonomous-postgres-canary-v1.mjs"
+  },
+  "dependencies": {
+    "pg": "8.23.0"
   }
 }
