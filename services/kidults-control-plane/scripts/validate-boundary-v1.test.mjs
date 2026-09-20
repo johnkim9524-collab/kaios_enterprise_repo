@@ -34,6 +34,7 @@ test('current repository establishes PostgreSQL authority and inventories every 
     '0001_system_of_record.sql',
     '0002_workflow_run_receipts.sql',
     '0003_staging_projector_runtime_login.sql',
+    '0004_command_audit_chain_lock.sql',
   ]);
   assert.equal(receipt.workflow_receipt_ledger, 'IMPLEMENTED_NOT_REMOTE_VERIFIED');
   assert.equal(receipt.workflow_receipt_remote_persistence, 'HOLD');
@@ -99,7 +100,8 @@ test('PostgreSQL migrations are ordered, transactional and include the workflow 
   assert.deepEqual(loaded.files, [
     '0001_system_of_record.sql',
     '0002_workflow_run_receipts.sql',
-    '0003_staging_projector_runtime_login.sql'
+    '0003_staging_projector_runtime_login.sql',
+    '0004_command_audit_chain_lock.sql'
   ]);
   const missingReceiptTable = inspectPostgresSchema(loaded.sql.replace(
     'CREATE TABLE kidults_control.workflow_run_receipts',
