@@ -1,0 +1,15 @@
+{
+  "contractId": "kidults-durable-recovery-snapshot-v1",
+  "version": "1.0.0",
+  "state": "DURABLE_CHECKPOINT_WRITTEN",
+  "sourceBranch": "codex/common-control-foundation-v1",
+  "sourceHead": "472cc4138e9e77f25871575a296612171c096098",
+  "baseMainSha": "a28a55e44365a30946e253809d20065bee17cacb",
+  "changedFileCount": 125,
+  "storage": "GITHUB_INDEPENDENT_REMOTE_REF",
+  "automaticPromotion": false,
+  "production": "HOLD",
+  "publicRelease": "HOLD",
+  "g5": "HOLD",
+  "createdAt": "2026-09-20T05:08:24.117Z"
+}

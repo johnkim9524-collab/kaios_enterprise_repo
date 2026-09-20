@@ -1,0 +1,121 @@
+{
+  "contract_id": "KIDULTS_FIVE_PLANE_RUNTIME_AUTHORITY_V1",
+  "version": "1.0.0",
+  "state": "BASELINE_FROZEN_LOCAL_RUNTIME_ACTIVATION_HOLD",
+  "baseline": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "source_sha": "1c6576226989798b43e3c057e4d5c13fb8eee6b6",
+    "source_tree": "f10718336f2f4924b4336ccb2f5874d23eee668c",
+    "package": "@kaios/kidults-control-plane",
+    "package_version": "0.1.0",
+    "authority": "READ_ONLY_INVENTORY_NOT_ACTIVATION"
+  },
+  "plane_order": [
+    "EXECUTION",
+    "DECISION",
+    "TRUTH",
+    "EVIDENCE",
+    "OBSERVABILITY_AND_RECOVERY"
+  ],
+  "planes": {
+    "EXECUTION": {
+      "responsibility": "TASK_EXECUTION_AND_HANDOFF",
+      "forbidden": ["AUTHORITY_DECISION", "TRUTH_OVERRIDE"],
+      "modules": [
+        "src/autonomous-control/launcher-v1.mjs",
+        "src/autonomous-control/postgres-runtime-client-v1.mjs",
+        "src/autonomous-control/task-lifecycle-v1.mjs",
+        "src/autonomous-control/task-scheduler-v1.mjs",
+        "src/autonomous-control/task-worker-v1.mjs",
+        "src/autonomous-control/task-runner-v1.mjs",
+        "src/autonomous-control/synthetic-handler-registry-v1.mjs",
+        "src/psa-cert-verification-adapter.mjs",
+        "src/psa-private-evaluation.mjs"
+      ]
+    },
+    "DECISION": {
+      "responsibility": "DELEGATED_AUTHORITY_RISK_AND_INDEPENDENT_DECISION",
+      "forbidden": ["UNPROVEN_RUNTIME_SUCCESS_APPROVAL"],
+      "modules": [
+        "src/autonomous-control/invocation-admission-v1.mjs",
+        "src/common-control/admission-v1.mjs",
+        "src/common-control/approval-envelope-v1.mjs",
+        "src/common-control/approval-trust-atomic-gateway-v1.mjs",
+        "src/common-control/approval-trust-registry-compiler-v1.mjs",
+        "src/common-control/approval-trust-registry-fence-v1.mjs",
+        "src/common-control/approval-trust-registry-resolver-v1.mjs",
+        "src/common-control/approval-trust-runtime-v1.mjs",
+        "src/common-control/approval-trust-verification-gateway-v1.mjs",
+        "src/common-control/provider-rights-approval-evidence-v1.mjs",
+        "src/common-control/provider-rights-preflight-v1.mjs",
+        "src/common-control/shadow-broker-v1.mjs",
+        "src/enterprise-access.mjs"
+      ]
+    },
+    "TRUTH": {
+      "responsibility": "VERIFIED_RUNTIME_STATE_AND_RECONCILIATION_SOURCE",
+      "forbidden": ["AGENT_OR_REPORT_ONLY_STATE_CHANGE"],
+      "modules": [
+        "src/autonomous-control/containment-fence-store-v1.mjs",
+        "src/autonomous-control/protected-launch-manifest-store-v1.mjs",
+        "src/autonomous-control/task-ledger-v1.mjs",
+        "src/command-ledger.mjs",
+        "src/common-control/approval-trust-current-head-v1.mjs",
+        "src/common-control/approval-trust-registry-snapshot-v1.mjs",
+        "src/workflow-canonical-run-claims.mjs"
+      ]
+    },
+    "EVIDENCE": {
+      "responsibility": "PROVENANCE_RIGHTS_SIGNATURE_LINEAGE_AND_RECEIPTS",
+      "forbidden": ["UNVERIFIED_RIGHTS_RELEASE_PROMOTION"],
+      "modules": [
+        "src/autonomous-control/admission-proof-store-v1.mjs",
+        "src/common-control/approval-consumption-v1.mjs",
+        "src/common-control/approval-trust-root-lifecycle-v1.mjs",
+        "src/common-control/autonomous-postgres-evidence-receipt-v1.mjs",
+        "src/common-control/canonical-v1.mjs",
+        "src/observability-ledger.mjs",
+        "src/psa-private-evaluation-store.mjs",
+        "src/supply-chain-admission.mjs",
+        "src/workflow-receipt-ledger.mjs"
+      ]
+    },
+    "OBSERVABILITY_AND_RECOVERY": {
+      "responsibility": "DETECT_ISOLATE_RECOVER_AND_REVERIFY",
+      "forbidden": ["LOCAL_FAILURE_GLOBAL_HOLD_ESCALATION"],
+      "modules": [
+        "src/autonomous-control/control-tick-v1.mjs",
+        "src/autonomous-control/shadow-supervisor-v1.mjs",
+        "src/billing-ledger.mjs",
+        "src/d1-projector.mjs",
+        "src/outbox-delivery.mjs"
+      ]
+    }
+  },
+  "invariants": [
+    "I01_IMPLEMENTER_REVIEWER_SEPARATION",
+    "I02_PROVIDER_FAILURE_ISOLATION",
+    "I03_AGENT_EXIT_TASK_SURVIVAL",
+    "I04_RUNTIME_TRUTH_PRECEDENCE",
+    "I05_RIGHTS_REVOCATION_SCOPED_PROPAGATION",
+    "I06_AUTH_SIGNATURE_FAILURE_HARD_STOP",
+    "I07_COMPONENT_FAILURE_LOCALIZATION",
+    "I08_EXACT_INPUT_OUTPUT_EVIDENCE_BINDING",
+    "I09_TASK_LEASE_AND_CHECKPOINT",
+    "I10_ROLLBACK_OR_COMPENSATION_REQUIRED",
+    "I11_PROTECTED_BOUNDARY_EXPLICIT_AUTHORITY",
+    "I12_IDEMPOTENT_EVENT_REPLAY"
+  ],
+  "structure_limits": {
+    "plane_count": 5,
+    "unclassified_runtime_modules_allowed": 0,
+    "multi_owner_runtime_modules_allowed": 0,
+    "new_controller_gate_or_registry_allowed": false
+  },
+  "activation": {
+    "remote_runtime": "HOLD",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}

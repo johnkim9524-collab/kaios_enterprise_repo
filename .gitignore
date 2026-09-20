@@ -44,6 +44,7 @@ dist/
 node_modules/
 package-lock.json
 !services/kidults-autonomous-intelligence/package-lock.json
+!services/kidults-control-plane/package-lock.json
 services/kidults-autonomous-intelligence/src/worker-configuration.d.ts
 
 # KAIOS runtime-transient data

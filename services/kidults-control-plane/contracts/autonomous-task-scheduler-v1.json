@@ -1,0 +1,42 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_TASK_SCHEDULER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SCHEDULER_PRIMITIVE_READY_REMOTE_ACTIVATION_HOLD",
+  "scope": "LOCAL_SYNTHETIC_SHADOW_ONLY",
+  "module": "src/autonomous-control/task-scheduler-v1.mjs",
+  "authority": "POSTGRESQL_APPEND_ONLY_TASK_LEDGER_CAS",
+  "selection": {
+    "claim_order": ["PRIORITY_ASC", "AVAILABLE_AT_ASC", "TASK_ID_ASC"],
+    "recovery_order": ["LEASE_EXPIRES_AT_ASC", "TASK_ID_ASC"],
+    "candidate_batch_default": 8,
+    "candidate_batch_maximum": 16,
+    "row_locking": false,
+    "contention": "BOUNDED_SKIP_THEN_CONTENDED_RETRY"
+  },
+  "invariants": [
+    "ONLY_LATEST_TASK_REVISION_IS_ELIGIBLE",
+    "ONLY_SYNTHETIC_SHADOW_WORKFLOW_IS_ELIGIBLE",
+    "ONLY_SYNTHETIC_WORKER_NAMESPACE_CAN_CLAIM",
+    "FUTURE_TASK_CANNOT_BE_CLAIMED",
+    "ACTIVE_LEASE_CANNOT_BE_RECOVERED",
+    "EVERY_CLAIM_OR_RECOVERY_USES_APPEND_ONLY_CAS_TRANSITION",
+    "CAS_CONTENTION_NEVER_OVERWRITES_A_WINNER",
+    "ATTEMPT_EXHAUSTION_QUARANTINES",
+    "SCAN_IS_BOUNDED_TO_SIXTEEN_CANDIDATES",
+    "NO_NETWORK_CREDENTIAL_PROVIDER_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "explicit_non_claims": [
+    "NO_PERIODIC_OR_EVENT_TRIGGER_IS_REGISTERED",
+    "NO_REMOTE_POSTGRESQL_CONCURRENCY_IS_VERIFIED",
+    "NO_REMOTE_WORKER_IS_ACTIVATED",
+    "SCHEDULER_COMPONENT_DOES_NOT_EXECUTE_TASK_PAYLOADS",
+    "NO_PROVIDER_OR_EXTERNAL_SOURCE_IS_CALLED",
+    "NO_PRODUCTION_READINESS_IS_PROVEN"
+  ],
+  "external_egress": false,
+  "credential_resolution": false,
+  "remote_worker_activation": "HOLD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

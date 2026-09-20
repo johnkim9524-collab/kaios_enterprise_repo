@@ -1,0 +1,40 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_SINGLE_CYCLE_RUNNER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SINGLE_CYCLE_RUNNER_READY_REMOTE_ACTIVATION_HOLD",
+  "scope": "ONE_LOCAL_SYNTHETIC_SHADOW_TASK_PER_CALL",
+  "module": "src/autonomous-control/task-runner-v1.mjs",
+  "postgres_runtime_integration": {
+    "state": "SINGLE_CONNECTION_ADAPTER_WIRED_LIVE_CONNECTION_HOLD",
+    "client_contract": "contracts/autonomous-postgres-runtime-client-v1.json",
+    "task_and_proof_client_shared": true,
+    "caller_client_override": "PROHIBITED",
+    "explicit_close": true,
+    "primary_failure_preserved_on_close_failure": true
+  },
+  "order": ["CLAIM", "RESOLVE_UNEXPIRED_PROOF", "CURRENT_CONTROL_PREFLIGHT", "START", "EXECUTE", "FINALIZE"],
+  "fail_closed": {
+    "proof_unavailable": "LEASE_FENCED_BOUNDED_RETRY_OR_QUARANTINE",
+    "preflight_denied": "LEASE_FENCED_BOUNDED_RETRY_OR_QUARANTINE",
+    "post_start_infrastructure_failure": "LEASE_EXPIRY_RECOVERY",
+    "automatic_loop_or_trigger": false
+  },
+  "receipt": {
+    "exact_self_digest": true,
+    "binds": ["CLAIM_RECEIPT", "PROOF_DIGEST", "EXECUTION_OR_RELEASE_RECEIPT", "WORKER", "OBSERVED_TIME"]
+  },
+  "invariants": [
+    "AT_MOST_ONE_TASK_IS_CLAIMED_PER_CALL",
+    "HANDLER_CANNOT_START_WITHOUT_UNEXPIRED_PROOF_AND_CURRENT_PREFLIGHT",
+    "PROOF_FAILURE_NEVER_LEAVES_AN_INTENTIONALLY_ACTIVE_LEASE",
+    "ATTEMPT_EXHAUSTION_QUARANTINES",
+    "NO_TRIGGER_REMOTE_WORKER_PROVIDER_NETWORK_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "trigger": "NOT_REGISTERED_HOLD",
+  "remote_worker_activation": "HOLD",
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
