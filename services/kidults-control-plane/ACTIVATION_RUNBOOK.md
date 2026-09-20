@@ -18,7 +18,11 @@ after the ordered migrations and runtime persistence are verified in STAGING.
 2. Provision an approved ephemeral PostgreSQL STAGING instance with PITR and a
    separately encrypted backup target.
 3. Apply `migrations/postgres/0001_system_of_record.sql`, then
-   `migrations/postgres/0002_workflow_run_receipts.sql`, as a migration owner.
+   `migrations/postgres/0002_workflow_run_receipts.sql`,
+   `migrations/postgres/0003_autonomous_task_ledger.sql`,
+   `migrations/postgres/0004_autonomous_admission_proofs.sql`, and
+   `migrations/postgres/0005_autonomous_task_transition_pair.sql`, in that order
+   as a migration owner.
 4. Create separate LOGIN principals outside the repository and grant each
    exactly one NOLOGIN group role created by the migration. Store credentials
    only in the approved secret manager. The workflow-receipt LOGIN receives
@@ -82,6 +86,39 @@ Manual dispatch is break-glass only. Normal activation follows:
 
 `PR merge → protected-main push → automatic scale wave → immutable artifact → KPMO governed receipt`
 
+## Autonomous runtime registration gate
+
+`.github/workflows/kidults-control-plane-autonomous-runtime-v1.yml` declares the
+daily `17 3 * * *` registration check plus a recovery-only manual dispatch. It
+first verifies the live protected-main SHA, checks out that exact SHA without
+persisted credentials, reads back the current Actions run through the GitHub
+API, and then evaluates a source-bound registration package and optional
+external registration receipt through
+`scripts/protected-runtime-registration-gate-v1.mjs`.
+
+The workflow reads only non-secret repository variables:
+`KIDULTS_AUTONOMOUS_REGISTRATION_PACKAGE_B64` and
+`KIDULTS_AUTONOMOUS_REGISTRATION_RECEIPT_B64`. Missing external registration
+produces `EXTERNAL_REGISTRATION_REQUIRED_HOLD`. A valid external receipt can
+produce `GOVERNED_CANARY_ELIGIBLE_ACTIVATION_HOLD` only when the API readback
+binds the canonical repository, run ID and attempt, `schedule` event, exact
+protected-main SHA, and workflow path. A recovery-only `workflow_dispatch`
+produces `MANUAL_RECOVERY_OBSERVED_REGISTRATION_HOLD` and never proves the
+automatic trigger. The gate cannot resolve a
+credential, connect remotely, activate a worker, or promote Production, Public,
+or G5. Provider credentials and the remote canary remain a separate protected
+stage after external registration evidence is independently established.
+
+The same workflow materializes `ledger-admission.json` through
+`runtime-registration-ledger-admission-v1.mjs`. This admission binds the gate
+digest to the exact repository, run ID and attempt, event, main SHA, workflow,
+and bounded HOLD result expected by the existing immutable workflow receipt
+ledger. It does not write PostgreSQL or open canary eligibility by itself. Only
+`kpmo-workflow-receipt-writer-v1` may append it; exact readback from that existing
+ledger is required before the returned chain receipt can expose governed-canary
+eligibility. Manual recovery remains ineligible and Production/Public/G5 remain
+HOLD.
+
 ## Required negative mutations
 
 All must be rejected and must produce an attributable receipt where applicable.
@@ -98,6 +135,10 @@ All must be rejected and must produce an attributable receipt where applicable.
 - expired/insufficient rights and cardinality mismatch;
 - stale D1 event overwriting a newer read model;
 - concurrent projector claim, expired lease and poison-event quarantine;
+- autonomous noninitial task snapshot without its same-transaction transition;
+- task-role proof INSERT and proof-role task snapshot INSERT;
+- autonomous proof UPDATE, DELETE or TRUNCATE;
+- two autonomous task clients claiming the same task revision;
 - direct legacy ASI D1 write after cutover.
 - workflow receipt UPDATE, DELETE or TRUNCATE;
 - unregistered, suspended or wrong-role workflow receipt writer;

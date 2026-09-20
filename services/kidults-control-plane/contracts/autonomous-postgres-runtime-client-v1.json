@@ -1,0 +1,35 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_POSTGRES_RUNTIME_CLIENT_V1",
+  "version": "1.0.0",
+  "state": "RUNTIME_CLIENT_IMPLEMENTED_LIVE_CONNECTION_NOT_VERIFIED",
+  "module": "src/autonomous-control/postgres-runtime-client-v1.mjs",
+  "driver": "pg@8.23.0",
+  "connection_model": "ONE_CONNECTED_CLIENT_PRESERVES_TRANSACTION_SESSION",
+  "dsn_handling": "DECOMPOSED_NOT_LOGGED",
+  "tls": "CERTIFICATE_VERIFICATION_REQUIRED",
+  "timeouts": {
+    "minimum_ms": 1000,
+    "maximum_ms": 60000,
+    "connect_required": true,
+    "statement_required": true,
+    "query_required": true
+  },
+  "failure_surface": "BOUNDED_CODES_NO_DRIVER_OR_CREDENTIAL_MATERIAL",
+  "explicit_close": true,
+  "bounded_operation_lifecycle_helper": true,
+  "credential_adapter": {
+    "state": "PROVIDER_NEUTRAL_SINGLE_RESOLUTION_READY_EXTERNAL_PROVIDER_HOLD",
+    "factory": "createBoundedPostgresCredentialResolver",
+    "request_binding": ["SOURCE_SHA", "MANIFEST_DIGEST", "REQUEST_ID", "APPLICATION_NAME"],
+    "secret_name_stored_as_digest_only": true,
+    "maximum_resolutions": 1,
+    "raw_provider_error_exposed": false,
+    "external_provider_verified": false
+  },
+  "live_remote_connection": "NOT_VERIFIED_HOLD",
+  "single_use_concurrency": "NOT_VERIFIED_HOLD",
+  "automatic_trigger": "NOT_REGISTERED_HOLD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

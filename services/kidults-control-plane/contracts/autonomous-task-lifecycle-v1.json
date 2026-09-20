@@ -1,0 +1,59 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_TASK_LIFECYCLE_V1",
+  "version": "1.0.0",
+  "state": "VERIFIED_PASS_LOCAL_SCHEMA_RUNTIME_REMOTE_POSTGRESQL_HOLD",
+  "scope": "LOCAL_DETERMINISTIC_STATE_MACHINE_AND_APPEND_ONLY_LEDGER_ADAPTER",
+  "module": "src/autonomous-control/task-lifecycle-v1.mjs",
+  "ledger_module": "src/autonomous-control/task-ledger-v1.mjs",
+  "scheduler_contract": "contracts/autonomous-task-scheduler-v1.json",
+  "worker_contract": "contracts/autonomous-task-worker-v1.json",
+  "admission_proof_store_contract": "contracts/autonomous-admission-proof-store-v1.json",
+  "single_cycle_runner_contract": "contracts/autonomous-single-cycle-runner-v1.json",
+  "control_tick_contract": "contracts/autonomous-control-tick-v1.json",
+  "shadow_supervisor_contract": "contracts/autonomous-shadow-supervisor-v1.json",
+  "supervisor_invocation_admission_contract": "contracts/autonomous-supervisor-invocation-admission-v1.json",
+  "lease_checkpoint_reconciliation_contract": "contracts/autonomous-lease-checkpoint-reconciliation-v1.json",
+  "states": [
+    "PENDING",
+    "LEASED",
+    "RUNNING",
+    "RETRY_SCHEDULED",
+    "SUCCEEDED",
+    "FAILED",
+    "CANCELLED",
+    "QUARANTINED"
+  ],
+  "invariants": [
+    "EVERY_MUTATION_INCREMENTS_REVISION",
+    "EVERY_MUTATION_EMITS_DIGEST_BOUND_TRANSITION_RECEIPT",
+    "EVERY_NONINITIAL_SNAPSHOT_REQUIRES_SAME_TRANSACTION_TRANSITION_PAIR",
+    "LEASE_OWNER_AND_EPOCH_FENCE_EVERY_WORKER_MUTATION",
+    "EXPIRED_LEASE_CANNOT_COMPLETE_OR_CHECKPOINT",
+    "RETRY_CLEARS_LEASE_AND_PRESERVES_CHECKPOINT",
+    "LEASED_TASK_CAN_BE_FENCED_AND_RETURNED_BEFORE_START",
+    "ATTEMPT_EXHAUSTION_QUARANTINES",
+    "TERMINAL_TASKS_ARE_IMMUTABLE",
+    "TASK_BINDS_ADMISSION_REQUEST_DIGEST_NOT_PROVIDER_STATE",
+    "NO_NETWORK_DATABASE_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "persistence_boundary": {
+    "state": "LOCAL_SCHEMA_AND_RUNTIME_READY_REMOTE_POSTGRESQL_HOLD",
+    "authority": "POSTGRESQL_APPEND_ONLY_TASK_SNAPSHOT_AND_TRANSITION_LEDGER",
+    "writer_id": "kpmo-autonomous-task-writer-v1",
+    "database_role": "kidults_control_autonomous_task",
+    "database_privileges": ["SELECT", "INSERT"],
+    "compare_and_swap": "UNIQUE_TASK_ID_REVISION_INSERT_THEN_EXACT_READBACK",
+    "snapshot_transition_pair": "DATABASE_DEFERRED_CONSTRAINT_REQUIRED_FOR_EVERY_NONINITIAL_REVISION",
+    "d1_authority": false
+  },
+  "explicit_non_claims": [
+    "NO_PERIODIC_OR_EVENT_TRIGGER_IS_REGISTERED",
+    "NO_REMOTE_POSTGRESQL_PERSISTENCE_IS_VERIFIED",
+    "NO_REMOTE_WORKER_IS_ACTIVATED",
+    "NO_PROVIDER_OR_EXTERNAL_SOURCE_IS_CALLED",
+    "NO_PRODUCTION_READINESS_IS_PROVEN"
+  ],
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
