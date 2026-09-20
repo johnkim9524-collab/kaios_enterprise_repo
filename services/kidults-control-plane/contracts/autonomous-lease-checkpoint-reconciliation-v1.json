@@ -1,0 +1,38 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_LEASE_CHECKPOINT_RECONCILIATION_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_APPEND_ONLY_RECOVERY_CHAIN_VERIFIED_REMOTE_HOLD",
+  "plane_ownership": {
+    "execution": "src/autonomous-control/task-lifecycle-v1.mjs",
+    "truth": "src/autonomous-control/task-ledger-v1.mjs",
+    "observability_and_recovery": "src/autonomous-control/task-scheduler-v1.mjs"
+  },
+  "sequence": [
+    "LEASE_WITH_MONOTONIC_EPOCH",
+    "START_WITH_OWNER_AND_EPOCH_FENCE",
+    "CHECKPOINT_AS_APPEND_ONLY_TRANSITION",
+    "RECOVER_ONLY_EXPIRED_LATEST_SNAPSHOT",
+    "PRESERVE_CHECKPOINT_ACROSS_RETRY",
+    "RELEASE_OLD_OWNER_AND_INCREMENT_SUCCESSOR_EPOCH",
+    "REJECT_STALE_WORKER_MUTATION",
+    "COMMIT_TERMINAL_TRUTH"
+  ],
+  "truth_authority": "POSTGRESQL_LATEST_APPEND_ONLY_TASK_SNAPSHOT",
+  "reconciliation": {
+    "selection": "LATEST_REVISION_ONLY",
+    "expired_states": ["LEASED", "RUNNING"],
+    "recovery_transition": "RECOVER_EXPIRED_LEASE_OR_QUARANTINE_EXHAUSTED",
+    "checkpoint_preserved": true,
+    "stale_worker_fenced": true,
+    "bounded_candidate_scan": true
+  },
+  "new_runtime_module": false,
+  "new_persistence": false,
+  "new_policy_engine": false,
+  "new_controller_gate_or_registry": false,
+  "automatic_trigger": "NOT_REGISTERED_HOLD",
+  "remote_worker_activation": "HOLD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

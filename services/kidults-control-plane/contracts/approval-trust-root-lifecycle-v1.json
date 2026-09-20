@@ -1,0 +1,56 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_TRUST_ROOT_LIFECYCLE_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_LIFECYCLE_READY_REAL_KEYS_AND_WIRING_HOLD",
+  "scope": "PUBLIC_KEY_ONLY_LOCAL_SYNTHETIC_TEST",
+  "runtime_module": "src/common-control/approval-trust-root-lifecycle-v1.mjs",
+  "migration": "migrations/postgres/0008_approval_trust_root_lifecycle.sql",
+  "roles": ["KPMO", "PROGRAM_OWNER", "TRACK_A", "TRACK_Z"],
+  "algorithm": "Ed25519",
+  "states": ["CANDIDATE_HOLD", "ACTIVE_SYNTHETIC_ONLY", "SUPERSEDED", "REVOKED"],
+  "controls": {
+    "public_key_only": true,
+    "unique_key_id": true,
+    "unique_key_fingerprint": true,
+    "exact_role_binding": true,
+    "exact_predecessor_rotation": true,
+    "single_active_synthetic_key_per_role": true,
+    "revocation_priority": "TERMINAL_AND_IRREVERSIBLE",
+    "derived_state_from_append_only_events": true,
+    "verifier_wiring": "NOT_WIRED_HOLD",
+    "real_role_identity_binding": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "persistence_boundary": {
+    "database_role": "kidults_control_trust_root_lifecycle",
+    "writer_id": "kpmo-trust-root-lifecycle-writer-v1",
+    "database_privileges": ["SELECT", "INSERT"],
+    "tables": ["approval_trust_root_candidates", "approval_trust_root_lifecycle_events"],
+    "append_only": true,
+    "remote_postgresql": "HOLD",
+    "real_postgresql_concurrency": "NOT_VERIFIED"
+  },
+  "compiler_handoff": {
+    "contract": "contracts/approval-trust-registry-compiler-v1.json",
+    "state": "LOCAL_SYNTHETIC_COMPILER_READY_EXPLICIT_CALLER_HANDOFF_ONLY",
+    "automatic_verifier_wiring": "NOT_WIRED_HOLD"
+  },
+  "explicit_non_claims": [
+    "NO_REAL_KPMO_TRACK_A_TRACK_Z_OR_PROGRAM_OWNER_KEY_IS_REGISTERED",
+    "NO_PRIVATE_KEY_GENERATION_STORAGE_OR_SIGNING_IS_IMPLEMENTED",
+    "NO_LIFECYCLE_OUTPUT_IS_ACCEPTED_BY_THE_APPROVAL_VERIFIER",
+    "NO_PROVIDER_CONTACT_FETCH_SPEND_CREDENTIAL_OR_EGRESS_IS_AUTHORIZED",
+    "NO_PRODUCTION_PUBLIC_OR_G5_AUTHORITY_IS_GRANTED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_DETERMINISTIC_KEY_ROTATION_AND_REVOCATION_PRIMITIVE",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_ROLE_BASED_TRUST_BOUNDARY",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_KEY_LINEAGE_AND_PROVIDER_INDEPENDENCE",
+    "transparency_effect": "POSITIVE_APPEND_ONLY_CANDIDATE_ROTATION_AND_REVOCATION_EVIDENCE"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

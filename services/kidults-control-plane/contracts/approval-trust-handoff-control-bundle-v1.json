@@ -1,0 +1,47 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_TRUST_HANDOFF_CONTROL_BUNDLE_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_EXACT_HANDOFF_FENCE_READY_NONATOMIC_GATEWAY_RETIRED",
+  "scope": "EXACT_SNAPSHOT_RESOLUTION_AND_DETERMINISTIC_CURRENT_STATE_FENCE",
+  "modules": [
+    {"id":"SNAPSHOT_LEDGER","path":"src/common-control/approval-trust-registry-snapshot-v1.mjs"},
+    {"id":"EXACT_RESOLVER","path":"src/common-control/approval-trust-registry-resolver-v1.mjs"},
+    {"id":"CURRENT_STATE_FENCE","path":"src/common-control/approval-trust-registry-fence-v1.mjs"},
+    {"id":"RETIRED_NONATOMIC_GATEWAY","path":"src/common-control/approval-trust-verification-gateway-v1.mjs"}
+  ],
+  "migration": "migrations/postgres/0009_approval_trust_registry_snapshots.sql",
+  "controls": {
+    "append_only_snapshot": true,
+    "exact_registry_id_and_digest_resolution": true,
+    "externally_pinned_current_lifecycle_digest_required": true,
+    "stale_rotated_or_revoked_snapshot_denied": true,
+    "fence_before_signature_verification": true,
+    "fence_before_nonce_consumption": true,
+    "non_atomic_gateway": "RETIRED_FAIL_CLOSED",
+    "exact_replay": "IDEMPOTENT_SNAPSHOT_REPLAY",
+    "conflicting_replay": "ROLLBACK_AND_HOLD",
+    "real_role_keys_registered": 0,
+    "automatic_trigger": "NOT_REGISTERED_HOLD",
+    "activation_authorized": false
+  },
+  "persistence_boundary": {
+    "database_role": "kidults_control_trust_registry_snapshot",
+    "writer_id": "kpmo-trust-registry-snapshot-writer-v1",
+    "database_privileges": ["SELECT", "INSERT"],
+    "approval_consumer_snapshot_privilege": ["SELECT"],
+    "append_only": true,
+    "remote_postgresql": "HOLD",
+    "real_postgresql_concurrency": "NOT_VERIFIED"
+  },
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_CURRENT_TRUST_STATE_FENCED_SINGLE_USE_GATEWAY",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_MULTI_ROLE_SNAPSHOT_RESOLUTION",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_IMMUTABLE_TRUST_HANDOFF_LINEAGE",
+    "transparency_effect": "POSITIVE_EXACT_REGISTRY_HANDOFF_LIFECYCLE_AND_CONSUMPTION_CHAIN"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

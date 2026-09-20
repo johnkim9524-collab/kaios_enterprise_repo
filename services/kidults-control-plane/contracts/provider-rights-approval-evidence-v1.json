@@ -1,0 +1,24 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_RIGHTS_APPROVAL_EVIDENCE_V1",
+  "version": "1.0.0",
+  "state": "TRACK_AZ_KPMO_CONSUMED_APPROVAL_EVIDENCE_READY_NO_ACTIVATION",
+  "scope": "PROVIDER_PREFLIGHT_NO_FETCH_ONLY",
+  "module": "src/common-control/provider-rights-approval-evidence-v1.mjs",
+  "bindings": [
+    "EXACT_PROVIDER_RIGHTS_PREFLIGHT_ID_AND_DIGEST",
+    "EXACT_APPROVAL_ENVELOPE_AND_VERIFICATION_RECEIPT",
+    "EXACT_SINGLE_USE_APPROVAL_CONSUMPTION_RECEIPT",
+    "EXACT_TRUST_REGISTRY_DIGEST",
+    "KPMO_TRACK_A_TRACK_Z_ROLE_QUORUM"
+  ],
+  "eligible_preflight_verdict": "PREFLIGHT_ELIGIBLE_NO_FETCH",
+  "result_state": "VERIFIED_PROVIDER_PREFLIGHT_EVIDENCE_NO_ACTIVATION",
+  "runtime_provider_wiring": "NOT_WIRED_HOLD",
+  "activation_authorized": false,
+  "provider_contact_executed": false,
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

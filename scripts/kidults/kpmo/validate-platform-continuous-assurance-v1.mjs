@@ -64,7 +64,6 @@ if (!errors.length) {
   const policy = JSON.parse(fs.readFileSync(path.join(root, policyPath), 'utf8'));
 
   const requiredWorkflowMarkers = [
-    "cron: '17,47 * * * *'",
     'workflow_run:',
     'workflow_dispatch:',
     'pull_request:',
@@ -119,6 +118,7 @@ if (!errors.length) {
     'cancel-in-progress: false'
   ];
   for (const marker of requiredWorkflowMarkers) if (!activeWorkflow.includes(marker)) errors.push(`workflow marker missing: ${marker}`);
+  if (/^  schedule:/m.test(activeWorkflow)) errors.push('direct Assurance schedule must remain disabled; Sentinel is the scheduled entrypoint');
   if (!/- name: Run audit and always retain receipt\n\s+if: always\(\) && env\.KPMO_EXECUTE_FULL_AUDIT == 'true'/.test(activeWorkflow)) errors.push('full audit receipt step must run under always() only when the guard selects full audit');
   if (!/audit:\n[\s\S]*?concurrency:\n\s+group: \$\{\{ needs\.classify-canonical-identity\.outputs\.concurrency_group \}\}\n\s+cancel-in-progress: false/.test(activeWorkflow)) errors.push('canonical audit job concurrency binding missing');
   for (const forbidden of ['pull_request_target:', 'contents: write', 'permissions: write-all', 'git push', 'gh pr merge', 'cancel-in-progress: true', '-f head_sha=', "workflow_run.conclusion != 'success'", 'KPMO Trusted Merge Result Monotonicity V1', "github.event_name == 'workflow_run' && 'main'"]) {
@@ -147,6 +147,13 @@ if (!errors.length) {
 
   if (policy.activation_state !== 'ACTIVE_WHEN_ON_PROTECTED_MAIN') errors.push('activation contract must remain conditional on protected-main presence');
   if (policy.detector?.authority !== 'READ_ONLY') errors.push('detector must remain read-only');
+  if (policy.operating_mode !== '24X7_EVENT_DRIVEN_PLUS_HEALTH_GATED_30_MINUTE_WATCHDOG') errors.push('health-gated watchdog operating mode drift');
+  if (!policy.detector?.triggers?.includes('HEALTH_GATED_THIRTY_MINUTE_WATCHDOG_DISPATCH')) errors.push('health-gated watchdog trigger missing');
+  if (policy.detector?.triggers?.includes('THIRTY_MINUTE_WATCHDOG')) errors.push('ungated watchdog trigger forbidden');
+  if (policy.scheduled_authority_gate?.direct_assurance_schedule_allowed !== false ||
+      policy.scheduled_authority_gate?.scheduled_entrypoint !== 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1') {
+    errors.push('scheduled entrypoint boundary drift');
+  }
   if (policy.detector?.expected_gated_workflow_run_skip_policy !== 'CANONICAL_IDENTITY_CONTRACT_EXACT_PATH_ALLOWLIST_ONLY') errors.push('expected skip classification policy drift');
   if (policy.immediate_improvement?.direct_main_write !== false) errors.push('direct main write must be false');
   if (policy.immediate_improvement?.auto_merge !== false) errors.push('auto merge must be false');
@@ -263,7 +270,7 @@ console.log(JSON.stringify({
   result: 'PASS',
   activation_contract: 'ACTIVE_WHEN_ON_PROTECTED_MAIN',
   detector_authority: 'READ_ONLY',
-  cadence: 'EVENT_DRIVEN_PLUS_30_MINUTE_WATCHDOG',
+  cadence: 'EVENT_DRIVEN_PLUS_HEALTH_GATED_30_MINUTE_WATCHDOG',
   same_head_cancellation: 'FORBIDDEN',
   exact_sha_checkout: 'REQUIRED_FOR_ALL_EVENTS',
   ephemeral_self_healing: 'ALLOWLIST_ONLY',

@@ -1,0 +1,99 @@
+{
+  "contract_id": "KIDULTS_COMMON_CONTROL_FOUNDATION_V1",
+  "version": "1.0.0",
+  "state": "VERIFIED_PASS_LOCAL_CONTRACT_REMOTE_INTEGRATION_HOLD",
+  "scope": "LOCAL_SYNTHETIC_SHADOW_ONLY",
+  "modules": [
+    {
+      "id": "CANONICAL_PRIMITIVES",
+      "path": "src/common-control/canonical-v1.mjs",
+      "responsibility": "STRICT_JSON_SNAPSHOT_CANONICAL_DIGEST_AND_SELF_DIGEST_VERIFICATION"
+    },
+    {
+      "id": "ADMISSION_PORT",
+      "path": "src/common-control/admission-v1.mjs",
+      "responsibility": "DEFAULT_DENY_DECISION_AND_REVISION_BOUND_SHADOW_MANIFEST"
+    },
+    {
+      "id": "SHADOW_BROKER",
+      "path": "src/common-control/shadow-broker-v1.mjs",
+      "responsibility": "NO_EGRESS_MANIFEST_REVALIDATION_AND_EXECUTION_RECEIPT"
+    },
+    {
+      "id": "CRYPTOGRAPHIC_APPROVAL_ENVELOPE",
+      "path": "src/common-control/approval-envelope-v1.mjs",
+      "responsibility": "OFFLINE_ED25519_EXACT_ROLE_QUORUM_VERIFICATION_WITHOUT_AUTHORITY_ACTIVATION"
+    },
+    {
+      "id": "CRYPTOGRAPHIC_APPROVAL_CONSUMPTION",
+      "path": "src/common-control/approval-consumption-v1.mjs",
+      "responsibility": "APPEND_ONLY_ENVELOPE_AND_NONCE_SINGLE_USE_RECORDING_WITHOUT_AUTHORITY_ACTIVATION"
+    },
+    {
+      "id": "APPROVAL_TRUST_ROOT_LIFECYCLE",
+      "path": "src/common-control/approval-trust-root-lifecycle-v1.mjs",
+      "responsibility": "PUBLIC_KEY_ONLY_LOCAL_SYNTHETIC_ROTATION_AND_IRREVERSIBLE_REVOCATION_WITHOUT_VERIFIER_WIRING"
+    },
+    {
+      "id": "APPROVAL_TRUST_REGISTRY_COMPILER",
+      "path": "src/common-control/approval-trust-registry-compiler-v1.mjs",
+      "responsibility": "DETERMINISTIC_ACTIVE_SYNTHETIC_KEY_REGISTRY_AND_EXACT_CALLER_PINNED_HANDOFF_RECEIPT"
+    },
+    {
+      "id": "APPROVAL_TRUST_HANDOFF_CONTROL_BUNDLE",
+      "path": "src/common-control/approval-trust-registry-snapshot-v1.mjs",
+      "responsibility": "APPEND_ONLY_SNAPSHOT_EXACT_RESOLUTION_AND_DETERMINISTIC_CURRENT_STATE_FENCE"
+    },
+    {
+      "id": "APPROVAL_TRUST_ATOMIC_HEAD",
+      "path": "src/common-control/approval-trust-runtime-v1.mjs",
+      "responsibility": "APPEND_ONLY_CURRENT_HEAD_TOMBSTONE_AND_SHARED_LOCK_ATOMIC_SINGLE_USE_CONSUMPTION"
+    }
+  ],
+  "ownership": {
+    "task_runtime": "AUTONOMOUS_CONTROL_PLANE",
+    "admission_policy_implementation": "FUTURE_SERF_CONTROL_PLANE",
+    "receipt_authority": "KPMO_TRACK_D_APPEND_ONLY_LEDGER",
+    "provider_rights_state": "FUTURE_SERF_PROVIDER_REGISTRY"
+  },
+  "invariants": [
+    "ORCHESTRATOR_CANNOT_CALL_EXTERNAL_SOURCE_DIRECTLY",
+    "UNKNOWN_REQUEST_MODE_FAILS_CLOSED",
+    "ONLY_SYNTHETIC_SHADOW_CAN_RECEIVE_A_MANIFEST",
+    "MANIFEST_BINDS_REQUEST_DECISION_POLICY_REGISTRY_KILL_EPOCH_AND_ENDPOINT",
+    "BROKER_REVALIDATES_CURRENT_POLICY_REGISTRY_AND_KILL_STATE",
+    "RETRY_CANNOT_REUSE_CHANGED_OR_EXPIRED_AUTHORITY",
+    "BROKER_PERFORMS_NO_NETWORK_OR_CREDENTIAL_OPERATION",
+    "EVERY_ACCEPTED_SHADOW_ATTEMPT_EMITS_A_DIGEST_BOUND_RECEIPT",
+    "PRODUCTION_PUBLIC_G5_REMAIN_HOLD"
+  ],
+  "future_extension_ports": [
+    "SERF_DETERMINISTIC_DECISION_ENGINE",
+    "A_TECHNICAL_DATA_KEY",
+    "Z_PROVIDER_RIGHTS_COMMERCIAL_KEY",
+    "KPMO_VALIDATION_RECEIPT",
+    "SIGNED_ADMISSION_MANIFEST",
+    "CALLER_PINNED_APPROVAL_TRUST_REGISTRY",
+    "LIFECYCLE_DERIVED_SYNTHETIC_TRUST_REGISTRY_HANDOFF",
+    "ATOMIC_CURRENT_TRUST_HEAD_PUBLICATION_AND_CONSUMPTION",
+    "ACTIVATION_BOUND_REAL_TRUST_ROOT_PROVISIONING",
+    "SOURCE_FAMILY_PROVIDER_REGISTRY",
+    "CENTRAL_FETCH_ADAPTERS"
+  ],
+  "explicit_non_claims": [
+    "NO_PROVIDER_IS_VALIDATED",
+    "NO_EXTERNAL_SOURCE_IS_ACTIVATED",
+    "NO_REMOTE_LEDGER_IS_WRITTEN",
+    "NO_PRODUCTION_READINESS_IS_PROVEN",
+    "NO_PUBLIC_OR_G5_AUTHORITY_IS_GRANTED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_FAIL_CLOSED_ADMISSION_AND_RETRY_REVALIDATION_PRIMITIVES",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_REGION_AND_DATA_CLASS_BINDING",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_CONTRACT_DIGEST_LINEAGE_AND_SWITCHING_BOUNDARY",
+    "transparency_effect": "POSITIVE_REASON_CODE_AND_DIGEST_BOUND_DECISION_MANIFEST_RECEIPT_CHAIN"
+  },
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
