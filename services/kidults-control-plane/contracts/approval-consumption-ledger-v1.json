@@ -1,0 +1,62 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_CONSUMPTION_LEDGER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_APPEND_ONLY_CONSUMPTION_READY_TRUST_ROOTS_AND_WIRING_HOLD",
+  "scope": "OFFLINE_SIGNATURE_VERIFICATION_AND_SINGLE_USE_RECORDING_ONLY",
+  "runtime_module": "src/common-control/approval-consumption-v1.mjs",
+  "migration": "migrations/postgres/0007_cryptographic_approval_consumption.sql",
+  "consumption_boundary": {
+    "signature_verification_before_database": true,
+    "exact_expected_subject_required": true,
+    "unique_envelope_id": true,
+    "unique_envelope_digest": true,
+    "unique_nonce_digest": true,
+    "same_envelope_replay": "ALREADY_CONSUMED_HOLD",
+    "nonce_reuse_with_different_envelope": "REPLAY_CONFLICT_ROLLBACK",
+    "activation_authorized": false
+  },
+  "persistence_boundary": {
+    "database_role": "kidults_control_approval_consumer",
+    "writer_id": "kpmo-approval-consumption-writer-v1",
+    "database_privileges": ["SELECT", "INSERT"],
+    "table": "cryptographic_approval_consumptions",
+    "append_only": true,
+    "remote_postgresql": "HOLD",
+    "real_postgresql_concurrency": "NOT_VERIFIED"
+  },
+  "integration": {
+    "current_trust_gateway_contract": "contracts/approval-trust-atomic-head-v1.json",
+    "current_trust_gateway_state": "LOCAL_SYNTHETIC_ATOMIC_CURRENT_HEAD_GATEWAY_READY_REMOTE_AND_REAL_KEYS_HOLD",
+    "supervisor_invocation_wiring": "NOT_WIRED_HOLD",
+    "provider_preflight_wiring": "NOT_WIRED_HOLD",
+    "protected_action_wiring": "NOT_WIRED_HOLD",
+    "automatic_trigger": "NOT_REGISTERED_HOLD"
+  },
+  "invariants": [
+    "SIGNATURE_QUORUM_AND_EXPECTED_SUBJECT_VERIFY_BEFORE_DATABASE_ACCESS",
+    "ENVELOPE_ID_ENVELOPE_DIGEST_AND_NONCE_DIGEST_ARE_SINGLE_USE",
+    "EXACT_REPLAY_NEVER_EMITS_A_SECOND_CONSUMPTION_RECEIPT",
+    "NONCE_REUSE_ACROSS_DIFFERENT_ENVELOPES_ROLLS_BACK",
+    "CONSUMPTION_RECEIPT_BINDS_VERIFICATION_RECEIPT_SUBJECT_NONCE_CAPABILITIES_MATRIX_TRUST_AND_TIME",
+    "DATABASE_ROLE_HAS_SELECT_AND_INSERT_ONLY",
+    "VALID_CONSUMPTION_NEVER_ACTIVATES_RUNTIME_OR_PROTECTED_CAPABILITY"
+  ],
+  "explicit_non_claims": [
+    "NO_REAL_ROLE_TRUST_ROOT_IS_REGISTERED",
+    "NO_SUPERVISOR_PROVIDER_OR_PROTECTED_EXECUTOR_IS_WIRED",
+    "NO_REMOTE_POSTGRESQL_CONCURRENCY_IS_VERIFIED",
+    "NO_PROVIDER_CONTACT_FETCH_SPEND_CREDENTIAL_OR_EGRESS_IS_AUTHORIZED",
+    "NO_PRODUCTION_PUBLIC_OR_G5_AUTHORITY_IS_GRANTED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_REPLAY_SAFE_APPROVAL_CONSUMPTION_PRIMITIVE",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_AUTHORITY_CLASS_BOUNDARY",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_APPROVAL_NONCE_AND_SUBJECT_LINEAGE",
+    "transparency_effect": "POSITIVE_APPEND_ONLY_VERIFICATION_AND_CONSUMPTION_RECEIPTS"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
