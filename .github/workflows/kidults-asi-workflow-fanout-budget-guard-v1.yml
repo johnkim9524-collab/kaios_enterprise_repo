@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/kidults-asi-*.yml'
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'
       - 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'
   push:
@@ -14,6 +15,7 @@ on:
     paths:
       - '.github/workflows/kidults-asi-*.yml'
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+      - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'
       - 'scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'
 

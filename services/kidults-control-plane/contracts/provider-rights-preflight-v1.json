@@ -1,0 +1,26 @@
+{
+  "contract_id": "KIDULTS_PROVIDER_RIGHTS_PREFLIGHT_V1",
+  "version": "1.0.0",
+  "state": "READ_ONLY_TRACK_AZ_RIGHTS_PROJECTION_READY_EXECUTION_HOLD",
+  "scope": "CURRENT_SOLD_PRIVATE_EVALUATION_ONLY",
+  "module": "src/common-control/provider-rights-preflight-v1.mjs",
+  "canonical_input": "coordination/kidults/market/provider-rights-decision-gate-v1.json",
+  "projection": {
+    "PASS": "PREFLIGHT_ELIGIBLE_NO_FETCH",
+    "NO_GO": "DENY",
+    "NEEDS_CLARIFICATION": "HOLD"
+  },
+  "invariants": [
+    "FULL_RIGHTS_GATE_SNAPSHOT_DIGEST_BOUND",
+    "SOURCE_DECISION_PROJECTED_WITHOUT_REINTERPRETATION",
+    "PASS_NEVER_ACTIVATES_PROVIDER_WORK",
+    "UNKNOWN_PROVIDER_OR_ENABLED_SOURCE_ACTIVATION_FAILS_CLOSED",
+    "NO_NETWORK_CREDENTIAL_DATABASE_OR_NEW_SCHEDULER"
+  ],
+  "provider_contact": false,
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

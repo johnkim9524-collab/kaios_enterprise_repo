@@ -1,0 +1,53 @@
+name: KIDULTS Control Plane Autonomous Verification v1
+
+on:
+  pull_request:
+    paths:
+      - 'services/kidults-control-plane/**'
+      - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
+      - '.github/workflows/kidults-control-plane-autonomous-verification-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/kidults-control-plane/**'
+      - 'apps/kidults-enterprise-staging/executive-control-tower.test.mjs'
+      - '.github/workflows/kidults-control-plane-autonomous-verification-v1.yml'
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TZ: UTC
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+concurrency:
+  group: kidults-control-plane-autonomous-verification-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-local-synthetic-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository without credentials
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24.19.0
+
+      - name: Validate control-plane boundaries
+        run: npm --prefix services/kidults-control-plane run validate
+
+      - name: Exercise the complete local synthetic autonomous chain
+        run: npm --prefix services/kidults-control-plane test
+
+      - name: Verify read-only Control Tower projection
+        run: node --test apps/kidults-enterprise-staging/executive-control-tower.test.mjs
