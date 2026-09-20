@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-workflow-fanout-budget-v1",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
   "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt, while accounting for a strictly read-only terminal Assurance observer separately from execution fan-out.",
@@ -74,6 +74,15 @@
       "KPMO Live Canonical Issue Truth V1"
     ],
     "terminal_observer_only": true,
+    "direct_schedule_allowed": false,
+    "scheduled_entrypoint": {
+      "workflow": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+      "cron": "23,53 * * * *",
+      "dispatch_target": "kidults-platform-continuous-assurance-v1.yml",
+      "dispatch_profile": "deep",
+      "requires_verified_producer_health": true
+    },
     "repository_mutation_allowed": false,
     "canonical_success_guard": {
       "identity_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
@@ -122,7 +131,7 @@
     "public": "HOLD",
     "g5": "EXPLICIT_APPROVAL_REQUIRED"
   },
-  "autonomous_effect": "POSITIVE: removes redundant event cascades while retaining scheduled and change-driven verification.",
+  "autonomous_effect": "POSITIVE: routes the watchdog through one producer-health-gated scheduled entrypoint while retaining change-driven verification.",
   "global_effect": "POSITIVE: establishes a repository-wide bounded workflow_run topology.",
   "irreplaceable_value_effect": "POSITIVE: preserves exact upstream lineage only where a consumer actually depends on it.",
   "transparency_effect": "POSITIVE: publishes measurable graph, fan-out, depth, cycle and observability limits."

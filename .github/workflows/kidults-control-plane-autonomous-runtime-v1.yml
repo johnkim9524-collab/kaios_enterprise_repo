@@ -1,0 +1,88 @@
+name: KIDULTS Control Plane Autonomous Runtime Registration Gate
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-control-plane-autonomous-runtime-v1
+  cancel-in-progress: false
+
+jobs:
+  registration-gate:
+    name: Verify protected runtime registration without credentials
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify exact live main without resolving provider credentials
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          live_main_sha="$(
+            curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; s=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(s) if re.fullmatch(r"[0-9a-f]{40}",s) else sys.exit(65)'
+          )"
+          test "$live_main_sha" = "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/autonomous-runtime"
+          curl --fail-with-body --silent --show-error --connect-timeout 10 --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            > "$RUNNER_TEMP/autonomous-runtime/github-run-readback.json"
+
+      - name: Checkout exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify source and materialize non-secret registration evidence
+        shell: bash
+        env:
+          REGISTRATION_PACKAGE_B64: ${{ vars.KIDULTS_AUTONOMOUS_REGISTRATION_PACKAGE_B64 }}
+          REGISTRATION_RECEIPT_B64: ${{ vars.KIDULTS_AUTONOMOUS_REGISTRATION_RECEIPT_B64 }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -n "$REGISTRATION_PACKAGE_B64"
+          mkdir -p artifacts/autonomous-runtime "$RUNNER_TEMP/autonomous-runtime"
+          printf '%s' "$REGISTRATION_PACKAGE_B64" | base64 --decode > "$RUNNER_TEMP/autonomous-runtime/package.json"
+          receipt=NONE
+          if test -n "$REGISTRATION_RECEIPT_B64"; then
+            printf '%s' "$REGISTRATION_RECEIPT_B64" | base64 --decode > "$RUNNER_TEMP/autonomous-runtime/receipt.json"
+            receipt="$RUNNER_TEMP/autonomous-runtime/receipt.json"
+          fi
+          node services/kidults-control-plane/scripts/protected-runtime-registration-gate-v1.mjs \
+            --registration-package "$RUNNER_TEMP/autonomous-runtime/package.json" \
+            --registration-receipt "$receipt" \
+            --github-run-readback "$RUNNER_TEMP/autonomous-runtime/github-run-readback.json" \
+            --github-run-id "$GITHUB_RUN_ID" \
+            --github-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --github-event "$GITHUB_EVENT_NAME" \
+            --source-sha "$GITHUB_SHA" \
+            --assessed-at "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --output artifacts/autonomous-runtime/registration-gate.json
+          node services/kidults-control-plane/scripts/runtime-registration-ledger-admission-v1.mjs \
+            --registration-gate artifacts/autonomous-runtime/registration-gate.json \
+            --output artifacts/autonomous-runtime/ledger-admission.json
+
+      - name: Upload bounded registration gate evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: autonomous-runtime-registration-gate-${{ github.sha }}
+          path: artifacts/autonomous-runtime/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,34 @@
+name: Decade durability operations v1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/governance/**durability**'
+      - 'tests/governance/**durability**'
+      - 'coordination/kidults/governance/**durability**'
+      - '.github/workflows/decade-durability-operations-v1.yml'
+  schedule:
+    - cron: '17 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify durability control contracts
+        run: node --test tests/governance/*durability*.test.mjs
+      - name: Record fail-closed external boundary
+        run: |
+          echo 'AWS, offline media, key recovery, and Production transitions require external evidence.'
+          echo 'This workflow validates controls only and grants no write or promotion authority.'

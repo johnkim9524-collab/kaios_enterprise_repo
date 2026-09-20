@@ -1,0 +1,44 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_CONTROL_TICK_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_RECOVERY_FIRST_CONTROL_TICK_READY_REMOTE_ACTIVATION_HOLD",
+  "scope": "ONE_RECOVERY_OR_ONE_SYNTHETIC_TASK_PER_CALL",
+  "module": "src/autonomous-control/control-tick-v1.mjs",
+  "postgres_runtime_integration": {
+    "state": "RECOVERY_FIRST_SINGLE_CONNECTION_WIRED_LIVE_CONNECTION_HOLD",
+    "client_contract": "contracts/autonomous-postgres-runtime-client-v1.json",
+    "recovery_task_and_proof_client_shared": true,
+    "caller_client_override": "PROHIBITED",
+    "explicit_close": true
+  },
+  "order": [
+    "SCAN_ONE_EXPIRED_SYNTHETIC_LEASE",
+    "STOP_ON_RECOVERY_QUARANTINE_OR_CONTENTION",
+    "RUN_ONE_SYNTHETIC_CYCLE_ONLY_IF_RECOVERY_IDLE"
+  ],
+  "receipt": {
+    "exact_self_digest": true,
+    "separate_persistence": "NOT_IMPLEMENTED_REBUILDABLE_FROM_TRANSITION_LEDGER_AND_BOUND_RECEIPTS",
+    "binds": [
+      "RECOVERY_STATE_TASK_AND_TRANSITION_RECEIPT",
+      "OR_CYCLE_STATE_TASK_AND_CYCLE_RECEIPT",
+      "WORKER",
+      "OBSERVED_TIME"
+    ]
+  },
+  "invariants": [
+    "RECOVERY_SCAN_ALWAYS_PRECEDES_NEW_CLAIM",
+    "AT_MOST_ONE_MATERIAL_RECOVERY_OR_EXECUTION_ACTION_PER_CALL",
+    "RECOVERY_CONTENTION_BLOCKS_NEW_CLAIM",
+    "EXHAUSTED_RECOVERY_QUARANTINES",
+    "RECOVERY_AND_CYCLE_RECEIPTS_ARE_MUTUALLY_EXCLUSIVE",
+    "NO_LOOP_TIMER_TRIGGER_NETWORK_CREDENTIAL_PROVIDER_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "trigger": "NOT_REGISTERED_HOLD",
+  "remote_worker_activation": "HOLD",
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

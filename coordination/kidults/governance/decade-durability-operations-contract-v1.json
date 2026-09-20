@@ -1,0 +1,49 @@
+{
+  "id": "kidults-decade-durability-operations-contract-v1",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_NOT_ACTIVATED",
+  "objective": "OPERATE_AND_PROVE_TEN_YEAR_RECOVERABILITY_AS_ONE_FAIL_CLOSED_CONTROL_LOOP",
+  "capabilities": [
+    {"id": "CHECKPOINT_ORCHESTRATION", "required": true, "success_state": "VERIFIED"},
+    {"id": "RESTORE_DRILL", "required": true, "maximum_age_days": 93},
+    {"id": "IDENTITY_AND_KEY_RECOVERY", "required": true, "maximum_age_days": 366},
+    {"id": "DURABILITY_CLASSIFICATION", "required": true, "unclassified_state": "HOLD"},
+    {"id": "OBSERVABILITY_AND_ALERTING", "required": true, "maximum_status_age_hours": 26},
+    {"id": "OPERATING_DASHBOARD", "required": true, "source": "SIGNED_OR_READ_BACK_EVIDENCE_ONLY"},
+    {"id": "OPERATING_TRANSITION_GATE", "required": true, "automatic_promotion": false}
+  ],
+  "schedules": {
+    "checkpoint_trigger": "EVERY_MATERIAL_CHANGE",
+    "status_assessment": "DAILY",
+    "isolated_restore": "AT_MOST_93_DAYS",
+    "independent_full_restore": "AT_MOST_366_DAYS",
+    "key_rotation": "AT_MOST_366_DAYS",
+    "algorithm_migration_review": "AT_MOST_732_DAYS"
+  },
+  "identity_recovery": {
+    "required_evidence": ["ROOT_RECOVERY_PATH_TESTED", "IDENTITY_CENTER_RECOVERY_TESTED", "KMS_ACCESS_RECOVERY_TESTED", "SIGNING_KEY_RECOVERY_TESTED"],
+    "long_lived_access_keys_forbidden": true,
+    "break_glass_is_separate_and_audited": true
+  },
+  "classification": {
+    "required_classes": ["D10_IRREPLACEABLE", "D1_RECONSTRUCTIBLE", "D0_EPHEMERAL"],
+    "required_asset_fields": ["id", "durabilityClass", "rpo", "rto", "retention", "replication", "restoreTest", "failureDomains", "costOwner", "migrationPath"],
+    "critical_asset_kinds": ["SOURCE", "CONTROL_POLICY", "IDENTITY", "RIGHTS", "LINEAGE", "METHODOLOGY", "LEDGER", "EVIDENCE", "RECEIPT", "RECOVERY_METADATA"]
+  },
+  "alerts": {
+    "checkpoint_stale_hours": 26,
+    "restore_due_warning_days": 14,
+    "retention_due_warning_days": 365,
+    "unclassified_asset_severity": "CRITICAL",
+    "failed_control_severity": "CRITICAL"
+  },
+  "authority_boundary": {
+    "assessment_authorizes_replica_write": false,
+    "assessment_authorizes_production": false,
+    "assessment_authorizes_public_release": false,
+    "assessment_authorizes_g5": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  }
+}

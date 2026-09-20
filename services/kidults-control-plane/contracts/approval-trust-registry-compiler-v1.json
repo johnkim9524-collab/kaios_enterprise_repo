@@ -1,0 +1,54 @@
+{
+  "contract_id": "KIDULTS_APPROVAL_TRUST_REGISTRY_COMPILER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_COMPILER_READY_EXPLICIT_CALLER_HANDOFF_ONLY",
+  "scope": "DETERMINISTIC_ACTIVE_SYNTHETIC_PUBLIC_KEY_COMPILATION",
+  "runtime_module": "src/common-control/approval-trust-registry-compiler-v1.mjs",
+  "input_contract": "contracts/approval-trust-root-lifecycle-v1.json",
+  "output_registry_contract": "kidults-approval-trust-registry-v1",
+  "controls": {
+    "full_lifecycle_revalidation": true,
+    "active_synthetic_keys_only": true,
+    "maximum_one_active_key_per_role": true,
+    "deterministic_role_and_key_order": true,
+    "candidate_set_digest_bound": true,
+    "event_set_digest_bound": true,
+    "lifecycle_state_digest_bound": true,
+    "exact_registry_digest_pin_required": true,
+    "reproducible_handoff_required": true,
+    "revoked_or_superseded_key_emission": "PROHIBITED",
+    "private_key_capability": false,
+    "automatic_verifier_wiring": "NOT_WIRED_HOLD",
+    "activation_authorized": false
+  },
+  "handoff_receipt": {
+    "state": "SYNTHETIC_REGISTRY_COMPILED_CALLER_PIN_REQUIRED",
+    "exact_shape": true,
+    "self_digest": true,
+    "caller_must_supply_registry_and_exact_digest": true,
+    "verifier_wired": false
+  },
+  "snapshot_gateway": {
+    "contract": "contracts/approval-trust-handoff-control-bundle-v1.json",
+    "state": "LOCAL_SYNTHETIC_EXACT_HANDOFF_FENCE_READY_NONATOMIC_GATEWAY_RETIRED",
+    "automatic_trigger": "NOT_REGISTERED_HOLD"
+  },
+  "explicit_non_claims": [
+    "NO_REAL_ROLE_KEY_IS_REGISTERED_OR_COMPILED",
+    "NO_PRIVATE_KEY_GENERATION_STORAGE_OR_SIGNING_IS_IMPLEMENTED",
+    "NO_AUTOMATIC_VERIFIER_SUPERVISOR_PROVIDER_OR_EXECUTOR_CONNECTION_EXISTS",
+    "NO_PROVIDER_CONTACT_FETCH_SPEND_CREDENTIAL_OR_EGRESS_IS_AUTHORIZED",
+    "NO_PRODUCTION_PUBLIC_OR_G5_AUTHORITY_IS_GRANTED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_DETERMINISTIC_SYNTHETIC_TRUST_REGISTRY_COMPILATION",
+    "global_effect": "POSITIVE_PROVIDER_NEUTRAL_MULTI_ROLE_HANDOFF_FORMAT",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_REPRODUCIBLE_TRUST_LINEAGE",
+    "transparency_effect": "POSITIVE_CANDIDATE_EVENT_STATE_AND_REGISTRY_DIGEST_BINDING"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
