@@ -1,0 +1,90 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_SUPERVISOR_INVOCATION_ADMISSION_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_APPEND_ONLY_INVOCATION_ADMISSION_READY_AUTHENTICATED_APPROVAL_HOLD",
+  "scope": "LOCAL_SYNTHETIC_SHADOW_SUPERVISOR_ONLY",
+  "module": "src/autonomous-control/invocation-admission-v1.mjs",
+  "migration": "migrations/postgres/0006_autonomous_supervisor_invocation_admission.sql",
+  "request_binding": [
+    "COMMAND_ID",
+    "REQUESTER_ASSERTION",
+    "SYNTHETIC_WORKER_ID",
+    "TICK_AND_DURATION_BUDGETS",
+    "LEASE_TIMEOUT_RETRY_RECOVERY_AND_SCAN_BOUNDS",
+    "STATIC_HANDLER_REGISTRY_ID",
+    "CONTROL_STATE_DIGEST",
+    "REQUEST_AND_EXPIRY_TIME",
+    "LOCAL_SYNTHETIC_SCOPE"
+  ],
+  "approval_authority": {
+    "current": "CURRENT_TRUST_CRYPTOGRAPHIC_APPROVAL_AT_LAUNCHER",
+    "program_owner_authority": false,
+    "cryptographic_reviewer_authentication": "REQUIRED_AND_CONSUMED_AT_LAUNCHER",
+    "required_authority_class": "LOCAL_SYNTHETIC_SHADOW",
+    "required_subject_type": "SUPERVISOR_INVOCATION",
+    "required_reviewer_role": "KPMO",
+    "decision_subject_binding": "EXACT_REQUEST_ID_AND_DIGEST",
+    "remote_or_protected_action_authority": false
+  },
+  "single_use_consumption": {
+    "authority": "POSTGRESQL_UNIQUE_COMMAND_ID_INSERT_CAS",
+    "approved_decision_required": true,
+    "unexpired_request_required": true,
+    "exact_control_state_digest_required": true,
+    "consume_before_supervisor_execution": true,
+    "replay": "ALREADY_CONSUMED_HOLD",
+    "consumption_rollback_after_supervisor_failure": false
+  },
+  "execution_receipt": {
+    "exact_self_digest": true,
+    "binds": [
+      "COMMAND_ID",
+      "REQUEST_DIGEST",
+      "DECISION_DIGEST",
+      "CONSUMPTION_RECEIPT_DIGEST",
+      "SUPERVISOR_RECEIPT_DIGEST_AND_STATE",
+      "COMPLETION_TIME"
+    ],
+    "separate_persistence": "NOT_IMPLEMENTED_REBUILDABLE_FROM_CONSUMPTION_AND_SUPERVISOR_RECEIPTS"
+  },
+  "persistence_boundary": {
+    "state": "LOCAL_SCHEMA_AND_RUNTIME_READY_REMOTE_POSTGRESQL_HOLD",
+    "database_role": "kidults_control_autonomous_invocation",
+    "writer_id": "kpmo-autonomous-invocation-writer-v1",
+    "database_privileges": ["SELECT", "INSERT"],
+    "tables": [
+      "autonomous_supervisor_invocation_requests",
+      "autonomous_supervisor_invocation_decisions",
+      "autonomous_supervisor_invocation_consumptions"
+    ],
+    "append_only": true,
+    "separate_admission_and_task_clients": true
+  },
+  "invariants": [
+    "REQUEST_DECISION_AND_CONSUMPTION_HAVE_EXACT_SELF_DIGEST_SHAPES",
+    "DECISION_BINDS_EXACT_REQUEST_ID_AND_DIGEST",
+    "CONSUMPTION_BINDS_EXACT_REQUEST_DECISION_AND_CONTROL_DIGESTS",
+    "ONLY_ONE_CONSUMPTION_CAN_COMMIT_PER_COMMAND_ID",
+    "REJECTION_EXPIRY_CONTROL_CHANGE_OR_REPLAY_NEVER_INVOKES_SUPERVISOR",
+    "CONSUMPTION_COMMITS_BEFORE_SUPERVISOR_EXECUTION_AND_IS_NEVER_REOPENED",
+    "EXECUTION_RECEIPT_BINDS_CONSUMPTION_AND_SUPERVISOR_RECEIPTS",
+    "DECISION_DECLARED_AUTHORITY_MUST_MATCH_CURRENT_TRUST_VERIFICATION_AND_CONSUMPTION",
+    "LOCAL_SYNTHETIC_AUTHORITY_NEVER_CLAIMS_OWNER_OR_REMOTE_AUTHORITY",
+    "NO_DYNAMIC_HANDLER_NETWORK_CREDENTIAL_PROVIDER_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "APPROVED_BOUNDED_LOCAL_WORK_CAN_EXECUTE_WITHOUT_REPEATED_MANUAL_TICKING",
+    "global_effect": "NEUTRAL_NO_GLOBAL_SOURCE_OR_PROVIDER_AUTHORITY",
+    "irreplaceable_value_effect": "PROVIDER_INDEPENDENT_COMMAND_DECISION_AND_CONSUMPTION_LINEAGE",
+    "transparency_effect": "EXACT_BUDGET_CONTROL_EXPIRY_DECISION_AND_SINGLE_USE_EVIDENCE"
+  },
+  "remote_postgresql": "HOLD",
+  "real_postgresql_single_use_concurrency": "NOT_VERIFIED",
+  "authenticated_approval": "LOCAL_SYNTHETIC_ENFORCED_AT_LAUNCHER",
+  "automatic_trigger": "NOT_REGISTERED_HOLD",
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

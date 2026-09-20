@@ -1,0 +1,72 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_SHADOW_SUPERVISOR_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_BOUNDED_SHADOW_SUPERVISOR_READY_TRIGGER_HOLD",
+  "scope": "MAX_SIXTEEN_RECOVERY_FIRST_TICKS_PER_EXPLICIT_CALL",
+  "module": "src/autonomous-control/shadow-supervisor-v1.mjs",
+  "postgres_runtime_integration": {
+    "state": "BOUNDED_SUPERVISOR_SINGLE_CONNECTION_WIRED_LIVE_CONNECTION_HOLD",
+    "client_contract": "contracts/autonomous-postgres-runtime-client-v1.json",
+    "all_ticks_share_one_client": true,
+    "caller_client_override": "PROHIBITED",
+    "explicit_close": true
+  },
+  "budgets": {
+    "maximum_ticks": 16,
+    "maximum_duration_ms": 60000,
+    "maximum_recovery_events": 1,
+    "maximum_quarantine_events": 1,
+    "duration_enforcement": "PRE_TICK_DISPATCH_FENCE_PLUS_REMAINING_WORKER_TIMEOUT",
+    "in_flight_database_call_hard_preemption": "NOT_IMPLEMENTED_HOLD"
+  },
+  "continuation_policy": {
+    "continue_only_after": "CYCLE_EXECUTED",
+    "stop_after": [
+      "IDLE",
+      "RECOVERY",
+      "QUARANTINE",
+      "CONTENTION",
+      "RETRY_SCHEDULED",
+      "GLOBAL_KILL",
+      "CANCELLATION",
+      "DURATION_EXHAUSTION",
+      "UNEXPECTED_DEPENDENCY_FAILURE"
+    ]
+  },
+  "receipt": {
+    "exact_self_digest": true,
+    "ordered_tick_states_and_receipt_digests": true,
+    "raw_dependency_error_material": false,
+    "separate_persistence": "NOT_IMPLEMENTED_REBUILDABLE_FROM_BOUND_TICK_AND_TRANSITION_RECEIPTS"
+  },
+  "invariants": [
+    "SUPERVISOR_REQUIRES_EXPLICIT_CALL_AND_EXPLICIT_BUDGETS",
+    "NO_MORE_THAN_SIXTEEN_TICKS_PER_CALL",
+    "ONLY_SUCCESSFUL_EXECUTION_CAN_CONTINUE_TO_ANOTHER_TICK",
+    "RECOVERY_RETRY_QUARANTINE_OR_CONTENTION_STOPS_THE_RUN",
+    "GLOBAL_KILL_OR_CANCELLATION_STOPS_BEFORE_NEXT_DATABASE_ACCESS",
+    "REMAINING_DURATION_LIMITS_WORKER_TIMEOUT",
+    "UNEXPECTED_FAILURE_IS_REDUCED_TO_A_NON_SECRET_CLASS",
+    "NO_TIMER_CRON_EVENT_TRIGGER_NETWORK_CREDENTIAL_PROVIDER_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "scale_boundary": {
+    "throughput": "BOUNDED_TO_SIXTEEN_TICKS_NOT_MEASURED",
+    "horizontal_partitioning": "NOT_IMPLEMENTED_HOLD",
+    "backpressure": "STOP_ON_FIRST_NON_SUCCESS_STATE",
+    "failure_isolation": "ONE_EXPLICIT_LOCAL_SUPERVISOR_CALL",
+    "unit_economics": "NO_PROVIDER_OR_EXTERNAL_SPEND_PATH"
+  },
+  "constitutional_effects": {
+    "autonomous_effect": "BOUNDED_MULTI_TASK_PROGRESS_WITHOUT_UNBOUNDED_LOOP",
+    "global_effect": "NEUTRAL_NO_EMPIRICAL_GLOBAL_SOURCE_COVERAGE_CLAIM",
+    "irreplaceable_value_effect": "DURABLE_RECEIPT_CHAIN_AND_PROVIDER_INDEPENDENT_CONTROL",
+    "transparency_effect": "EXACT_STOP_REASON_BUDGET_COUNTS_AND_ORDERED_TICK_DIGESTS"
+  },
+  "trigger": "NOT_REGISTERED_HOLD",
+  "remote_worker_activation": "HOLD",
+  "external_egress": false,
+  "credential_resolution": false,
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}

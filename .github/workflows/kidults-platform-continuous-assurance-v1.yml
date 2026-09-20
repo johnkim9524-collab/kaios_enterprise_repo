@@ -10,8 +10,6 @@ on:
       - 'scripts/kidults/**'
       - 'services/kidults-autonomous-intelligence/**'
       - 'tooling/kidults-portal-r001-browser-qa/**'
-  schedule:
-    - cron: '17,47 * * * *'
   workflow_run:
     workflows:
       - 'KIDULTS ASI Snapshot Readiness Factory v2'

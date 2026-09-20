@@ -1,0 +1,73 @@
+{
+  "id": "kidults-decade-durability-contract-v1",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_NOT_ACTIVATED",
+  "objective": "PRESERVE_AND_PROVE_RECOVERABILITY_OF_GOVERNED_SOURCE_AND_CONTROL_EVIDENCE_FOR_AT_LEAST_TEN_YEARS_WITHOUT_SINGLE_PROVIDER_OR_SINGLE_ADMINISTRATIVE_DOMAIN_DEPENDENCY",
+  "architecture": {
+    "modules": ["SNAPSHOT", "REPLICATION", "VERIFICATION", "RESTORE_DRILL"],
+    "maximum_module_count": 4,
+    "source_of_truth": "CONTENT_ADDRESSED_GIT_TREE_PLUS_EXACT_SOURCE_SHA",
+    "github_role": "ONE_DURABLE_REPLICA_NOT_CANONICAL_BACKUP_COMPLETENESS_PROOF",
+    "automatic_promotion": false
+  },
+  "durability_policy": {
+    "minimum_verified_copies": 3,
+    "minimum_provider_failure_domains": 2,
+    "minimum_administrative_domains": 2,
+    "offsite_copy_required": true,
+    "worm_or_offline_copy_required": true,
+    "maximum_unverified_errors": 0,
+    "minimum_retention_years": 10,
+    "annual_generations_retained": 11,
+    "monthly_generations_retained": 13,
+    "daily_generations_retained": 35,
+    "source_rpo": "ONE_VERIFIED_DEVELOPMENT_BATCH",
+    "restore_rto_hours": 4
+  },
+  "replica_classes": [
+    {
+      "class": "GITHUB_PROTECTED_REF",
+      "required_controls": ["DELETE_DENY", "NON_FAST_FORWARD_DENY", "EXACT_TREE_READBACK"]
+    },
+    {
+      "class": "CROSS_PROVIDER_OBJECT_LOCK",
+      "required_controls": ["SEPARATE_PROVIDER", "SEPARATE_ADMIN_DOMAIN", "OBJECT_LOCK_COMPLIANCE_MODE", "RETENTION_LEGAL_HOLD_CAPABLE"]
+    },
+    {
+      "class": "OFFLINE_ENCRYPTED_COLD_COPY",
+      "required_controls": ["OFFLINE_OR_AIR_GAPPED", "SEPARATE_CUSTODIAN", "KEY_ESCROW_TESTED", "MEDIA_REFRESH_SCHEDULED"]
+    }
+  ],
+  "cryptographic_policy": {
+    "content_digest": "SHA-256",
+    "manifest_signature": "ED25519_OR_MANAGED_KMS_EQUIVALENT",
+    "signature_required": true,
+    "key_identifier_required": true,
+    "key_rotation_months": 12,
+    "algorithm_migration_review_months": 24,
+    "manifest_is_self_describing_and_versioned": true
+  },
+  "verification_policy": {
+    "every_write_requires_provider_readback": true,
+    "every_replica_digest_must_match": true,
+    "quarterly_isolated_restore_required": true,
+    "annual_independent_full_restore_required": true,
+    "restore_must_verify_source_sha_tree_and_tests": true,
+    "silent_success_without_receipt_forbidden": true
+  },
+  "authority_boundary": {
+    "replica_creation_authorizes_merge": false,
+    "replica_creation_authorizes_deployment": false,
+    "replica_creation_authorizes_release": false,
+    "destructive_recovery_requires_explicit_owner_authority": true,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD"
+  },
+  "activation_gate": {
+    "required_state": "DECADE_DURABILITY_VERIFIED",
+    "requires_all_replica_classes": true,
+    "requires_current_restore_drill": true,
+    "missing_or_stale_evidence_state": "HOLD"
+  }
+}

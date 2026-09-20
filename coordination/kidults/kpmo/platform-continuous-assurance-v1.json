@@ -1,16 +1,16 @@
 {
   "id": "kidults-platform-continuous-assurance-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "governing_owner": "KPMO",
   "activation_state": "ACTIVE_WHEN_ON_PROTECTED_MAIN",
-  "operating_mode": "24X7_EVENT_DRIVEN_PLUS_30_MINUTE_WATCHDOG",
+  "operating_mode": "24X7_EVENT_DRIVEN_PLUS_HEALTH_GATED_30_MINUTE_WATCHDOG",
   "detector": {
     "authority": "READ_ONLY",
     "triggers": [
       "PROTECTED_MAIN_PUSH",
       "PATH_BOUNDED_CONTROL_PR",
       "CRITICAL_WORKFLOW_COMPLETION",
-      "THIRTY_MINUTE_WATCHDOG",
+      "HEALTH_GATED_THIRTY_MINUTE_WATCHDOG_DISPATCH",
       "MANUAL_RECOVERY"
     ],
     "exact_source_sha_required": true,
@@ -57,6 +57,8 @@
     "fixed_leader_artifact_retention_days": 90
   },
   "scheduled_authority_gate": {
+    "direct_assurance_schedule_allowed": false,
+    "scheduled_entrypoint": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
     "raw_scheduled_assurance_success_authority": "NON_AUTHORIZING_OBSERVATION",
     "exact_sha_gate_required": true,
     "gate_workflow": "KPMO Continuous Assurance Scheduled Authority Gate V1",

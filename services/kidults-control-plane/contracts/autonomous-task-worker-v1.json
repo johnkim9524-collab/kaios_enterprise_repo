@@ -1,0 +1,90 @@
+{
+  "contract_id": "KIDULTS_AUTONOMOUS_TASK_WORKER_V1",
+  "version": "1.0.0",
+  "state": "LOCAL_SYNTHETIC_EXECUTION_ENVELOPE_READY_REMOTE_ACTIVATION_HOLD",
+  "scope": "LOCAL_SYNTHETIC_SHADOW_HANDLER_ONLY",
+  "modules": {
+    "worker": "src/autonomous-control/task-worker-v1.mjs",
+    "static_registry": "src/autonomous-control/synthetic-handler-registry-v1.mjs"
+  },
+  "preflight": {
+    "authority": "COMMON_CONTROL_SHADOW_BROKER_REVALIDATION",
+    "task_admission_digest_match_required": true,
+    "current_policy_registry_kill_state_required": true,
+    "expired_or_changed_authority": "DENY_BEFORE_START"
+  },
+  "handler_boundary": {
+    "registry": "STATIC_EXPLICIT_SYNTHETIC_WORKFLOW_MAP",
+    "maximum_handlers": 16,
+    "dynamic_import": false,
+    "untrusted_code_sandbox": false,
+    "trust_requirement": "HANDLER_SOURCE_MUST_BE_REPOSITORY_REGISTERED_REVIEWED_AND_VALIDATED",
+    "context_capabilities": ["ABORT_SIGNAL", "DIGEST_ONLY_CHECKPOINT"],
+    "network_credential_filesystem_process_capabilities": false
+  },
+  "execution": {
+    "order": ["PREFLIGHT", "START_PERSIST", "HANDLER", "CHECKPOINT_SERIALIZATION", "FINAL_TRANSITION"],
+    "timeout_maximum_ms": 60000,
+    "retry_delay_maximum_seconds": 86400,
+    "checkpoint_persistence_failure": "FAIL_CLOSED_WITHOUT_HANDLER_RESULT_FINALIZATION",
+    "handler_failure_detail_retention": "REASON_CODE_ONLY",
+    "attempt_exhaustion": "QUARANTINE"
+  },
+  "aggregate_receipt": {
+    "state": "SIGNED_BY_SELF_DIGEST_LOCAL_RETURN_VALUE",
+    "separate_persistence": "NOT_IMPLEMENTED_REBUILDABLE_FROM_DURABLE_TRANSITION_LEDGER",
+    "binds": [
+      "TASK_AND_FINAL_TASK_DIGEST",
+      "WORKER_AND_LEASE_EPOCH",
+      "HANDLER_ID",
+      "COMMON_CONTROL_PREFLIGHT_RECEIPT_DIGEST",
+      "ORDERED_TRANSITION_RECEIPT_DIGESTS",
+      "OUTCOME_AND_TIME_BOUNDARY"
+    ]
+  },
+  "scale_boundary": {
+    "coverage": "ONE_LOCAL_SYNTHETIC_SHADOW_WORKFLOW",
+    "throughput": "NOT_MEASURED",
+    "backpressure": "LEASE_PLUS_BOUNDED_SCHEDULER_CANDIDATE_SCAN",
+    "horizontal_partitioning": "TASK_ID_AND_REVISION_CAS_READY_NOT_REMOTE_PROVEN",
+    "failure_isolation": "PER_TASK_LEASE_EPOCH_RETRY_AND_QUARANTINE",
+    "rights_and_commercial_boundary": "COMMON_CONTROL_SYNTHETIC_PREFLIGHT_ONLY",
+    "data_quality_and_immutability": "DIGEST_ONLY_CHECKPOINT_AND_APPEND_ONLY_TRANSITIONS",
+    "unit_economics_and_provider_independence": "NOT_MEASURED_NO_PROVIDER_DEPENDENCY",
+    "slo_and_recovery": "NOT_MEASURED_EXPIRED_LEASE_RECOVERY_PRIMITIVE_AVAILABLE"
+  },
+  "invariants": [
+    "COMMON_CONTROL_PREFLIGHT_PASSES_BEFORE_START",
+    "START_TRANSITION_PERSISTS_BEFORE_HANDLER_INVOCATION",
+    "ONLY_SYNTHETIC_WORKER_AND_WORKFLOW_ARE_ELIGIBLE",
+    "CHECKPOINT_TRANSITIONS_ARE_SERIALIZED",
+    "ACCEPTED_CHECKPOINT_SETTLES_BEFORE_CANCELLATION_FINALIZATION",
+    "TIMEOUT_ABORTS_CONTEXT_AND_SCHEDULES_BOUNDED_RETRY",
+    "CANCELLATION_CLEARS_LEASE",
+    "ATTEMPT_EXHAUSTION_QUARANTINES",
+    "RAW_HANDLER_ERROR_IS_NOT_EMITTED_IN_RECEIPT",
+    "EXECUTION_RECEIPT_IS_EXACT_SELF_DIGEST_BOUND_AND_VERIFIABLE",
+    "NO_EXTERNAL_EGRESS_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_CAPABILITY"
+  ],
+  "explicit_non_claims": [
+    "NO_UNTRUSTED_HANDLER_SANDBOX_IS_IMPLEMENTED",
+    "NO_PERIODIC_OR_EVENT_TRIGGER_IS_REGISTERED",
+    "NO_REMOTE_POSTGRESQL_CONCURRENCY_IS_VERIFIED",
+    "NO_REMOTE_WORKER_IS_ACTIVATED",
+    "NO_PROVIDER_OR_EXTERNAL_SOURCE_IS_CALLED",
+    "NO_SEPARATE_AGGREGATE_EXECUTION_RECEIPT_LEDGER_IS_IMPLEMENTED",
+    "NO_PRODUCTION_READINESS_IS_PROVEN"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "POSITIVE_LOCAL_EXECUTION_RECOVERY_AND_CANCELLATION_PRIMITIVES",
+    "global_effect": "NEUTRAL_NOT_EMPIRICALLY_MEASURED_PROVIDER_AND_REGION_INDEPENDENT_BOUNDARY",
+    "irreplaceable_value_effect": "POSITIVE_OWNED_TASK_CHECKPOINT_AND_TRANSITION_LINEAGE",
+    "transparency_effect": "POSITIVE_PREFLIGHT_TRANSITION_AND_OUTCOME_DIGEST_CHAIN"
+  },
+  "external_egress": false,
+  "credential_resolution": false,
+  "remote_worker_activation": "HOLD",
+  "production": "HOLD",
+  "public_release": "HOLD",
+  "g5": "HOLD"
+}
