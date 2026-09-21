@@ -1,0 +1,158 @@
+{
+  "id": "kidults-autonomous-internal-landing-policy-v1",
+  "version": "1.1.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
+  "normal_path": "AUTONOMOUS",
+  "manual_owner_path": "RECOVERY_ONLY",
+  "delegated_operation": "INTERNAL_REVERSIBLE_LANDING",
+  "state_model": [
+    "SCOPE_GRANTED",
+    "KPMO_AUTHORIZED",
+    "TRACK_AUTHORIZED",
+    "INDEPENDENT_VERIFIED",
+    "LANDING_RESERVED",
+    "MERGED_EVENT_EMITTED",
+    "TARGET_REVALIDATED",
+    "RECEIPT_SEALED"
+  ],
+  "terminal_failure_states": [
+    "DENIED",
+    "EXPIRED",
+    "DRIFTED",
+    "QUARANTINED",
+    "MERGED_QUARANTINED",
+    "OWNER_HOLD"
+  ],
+  "approval_quorum": {
+    "minimum": 2,
+    "required_roles": ["ACCOUNTABLE_TRACK_AGENT", "KPMO"],
+    "distinct_stable_actor_ids_required": true,
+    "independent_verifier_distinct_from_approvers": true,
+    "self_approval_forbidden": true
+  },
+  "exact_binding_fields": [
+    "repository_id",
+    "repository",
+    "pull_request",
+    "base_sha",
+    "head_sha",
+    "head_tree_sha",
+    "scope_digest",
+    "test_evidence_digest",
+    "rollback_digest",
+    "authorization_generation",
+    "nonce_digest",
+    "issued_at",
+    "expires_at"
+  ],
+  "eligible_all_required": [
+    "REPOSITORY_INTERNAL",
+    "REVERSIBLE",
+    "ROLLBACK_BOUND",
+    "NO_EXTERNAL_SIDE_EFFECT",
+    "NO_OWNER_RESERVED_PATH",
+    "REQUIRED_CHECKS_GREEN",
+    "HEAD_TREE_SCOPE_STABLE",
+    "TRACK_AND_KPMO_QUORUM",
+    "INDEPENDENT_VERIFIER_PASS",
+    "DURABLE_NONCE_RESERVATION_PASS"
+  ],
+  "owner_reserved_actions": [
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "EXTERNAL_COMMUNICATION",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "LEGAL_POLICY_EXCEPTION",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "CREDENTIAL_OR_PERMISSION_EXPANSION",
+    "SECRET_CREATE_READ_ROTATE_EXPORT",
+    "TRUST_ROOT_OR_RULESET_WEAKENING",
+    "DESTRUCTIVE_DATA_OPERATION",
+    "PROTECTED_PROMOTION_OR_RELEASE"
+  ],
+  "owner_reserved_path_prefixes": [
+    ".github/workflows/",
+    "coordination/kidults/governance/",
+    "scripts/kidults/kpmo/",
+    "secrets/",
+    "production/",
+    "public/",
+    "g5/"
+  ],
+  "automatic_triggers": [
+    "repository_dispatch:kidults.track.authorization.v1",
+    "repository_dispatch:kidults.kpmo.authorization.v1",
+    "repository_dispatch:kidults.independent.verification.v1"
+  ],
+  "manual_trigger": "RECOVERY_ONLY_NEW_AUTHORIZATION_GENERATION_REQUIRED",
+  "actor_binding": {
+    "required": [
+      "actor_login",
+      "actor_id",
+      "actor_type",
+      "app_id",
+      "installation_id",
+      "workflow_ref",
+      "workflow_sha",
+      "repository_id"
+    ],
+    "login_only_authority_forbidden": true,
+    "separation_key": "GITHUB_ACTOR_ID",
+    "runtime_allowlist_source": "KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON",
+    "unknown_actor": "QUARANTINE"
+  },
+  "durable_single_use": {
+    "backend": "AWS_DYNAMODB_CONDITIONAL_WRITE",
+    "table_variable": "KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE",
+    "role_arn_variable": "KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN",
+    "region": "ap-northeast-2",
+    "transition": "UNUSED_TO_RESERVED_TO_CONSUMED",
+    "github_artifact_alone_is_sufficient": false,
+    "rerun_reuses_authority": false,
+    "maximum_ttl_seconds": 3600
+  },
+  "merge": {
+    "method": "merge",
+    "expected_head_sha_required": true,
+    "force_push_forbidden": true,
+    "admin_bypass_forbidden": true,
+    "update_branch_forbidden": true,
+    "live_main_tree_parent_revalidation_required": true,
+    "explicit_completion_event": "kidults.internal_landing.completed.v1",
+    "postmerge_exact_sha_checks_required": true,
+    "postmerge_validation_timeout_seconds": 420
+  },
+  "evidence_resolution": {
+    "test_evidence_object_required": true,
+    "rollback_plan_object_required": true,
+    "canonical_json_digest_recomputed": true
+  },
+  "failure_recovery": {
+    "automatic_downstream_quarantine": true,
+    "automatic_revert_pr_required_after_postmerge_failure": true,
+    "force_reset_forbidden": true,
+    "revert_conflict_state": "OWNER_HOLD",
+    "agent_violation_state": "AGENT_QUARANTINED",
+    "replacement_requires_fresh_bootstrap_and_generation": true
+  },
+  "evidence": {
+    "terminal_receipt_required": true,
+    "digest_chain_required": true,
+    "aws_object_lock_copy_required": true,
+    "aws_object_lock_mode": "COMPLIANCE",
+    "retention_years": 10,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "usb_copy_a": "PENDING_PHYSICAL_MEDIA"
+  },
+  "principles": {
+    "autonomous_effect": "Eligible reversible internal landing runs from governed agent events without routine Owner orchestration.",
+    "global_effect": "One repository-wide authority model applies to every Track and internal workflow.",
+    "irreplaceable_value_effect": "Authorization, rollback and evidence knowledge remain platform-owned and replayable.",
+    "transparency_effect": "Every transition binds exact Git objects, actor identities, evidence digests and immutable receipts."
+  }
+}

@@ -1,4 +1,5 @@
 name: KIDULTS Direct Owner Landing Handoff V1
+# RECOVERY_ONLY: owner handoff is not a normal-operation merge path.
 run-name: "KIDULTS Direct Owner Handoff PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.handoff_authorization_id }}"
 
 on:

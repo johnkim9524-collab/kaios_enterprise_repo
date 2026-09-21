@@ -1,7 +1,7 @@
 {
   "id": "AI-020",
   "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "KPMO_PLATFORM_GOVERNANCE",
   "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
@@ -43,6 +43,16 @@
     "DESTRUCTIVE_DATA_OPERATION", "PROTECTED_PROMOTION_OR_RELEASE"
   ],
   "unknown_or_conflict": "FAIL_CLOSED_OWNER_REQUIRED",
+  "normal_activation": {
+    "manual_owner_orchestration_for_eligible_work": "FORBIDDEN",
+    "automatic_event_contract": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+    "workflow": ".github/workflows/kidults-autonomous-internal-landing-v1.yml",
+    "manual_dispatch": "RECOVERY_ONLY",
+    "legacy_direct_owner_landing": "RECOVERY_ONLY_UNTIL_RETIREMENT",
+    "durable_single_use_backend_required": true,
+    "independent_verifier_required": true,
+    "agent_violation_requires_quarantine_and_fresh_replacement": true
+  },
   "holds": {"production":"HOLD","public":"HOLD","g5":"HOLD"},
   "principles": {
     "autonomous_effect":"Removes routine Owner orchestration for eligible work.",

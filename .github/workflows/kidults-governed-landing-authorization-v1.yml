@@ -1,4 +1,6 @@
 name: KIDULTS Governed Landing Authorization V1
+# COMPATIBILITY_STATUS_ONLY: autonomous agent quorum is the normal authority;
+# legacy owner authorization remains available only for recovery.
 
 on:
   pull_request_target:
