@@ -1,7 +1,7 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
-  "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
+  "version": "1.8.0",
+  "status": "PROGRAM_OWNER_APPROVED_AUTONOMOUS_EXACT_HEAD_VERIFICATION",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
@@ -81,8 +81,11 @@
     "changes_requested_on_exact_head_blocks": true,
     "solo_owner_author_must_match_repository_owner": true,
     "same_repository_head_required": true,
-    "ready_state_by_owner_is_authorization": true,
-    "optional_external_review_must_bind_exact_head": true
+    "ready_state_by_owner_is_authorization": false,
+    "optional_external_review_must_bind_exact_head": true,
+    "independent_exact_head_approval_required": false,
+    "independent_review_root_issue": 1582,
+    "human_review_mode": "OPTIONAL_ADVISORY_EXACT_HEAD_ONLY"
   },
   "draft_policy": {
     "draft_is_promotable": false,
@@ -117,7 +120,6 @@
     "event_emitting_transport": "DIRECT_OWNER_GITHUB_UI",
     "event_emitting_transport_availability_before_consumption": true,
     "expected_base_sha_required": true,
-    "expected_head_sha_required": true,
     "expected_head_tree_sha_required": true,
     "postmerge_exact_main_tree_and_parent_binding_required": true,
     "postmerge_exact_merge_sha_push_suite_required": true,
@@ -150,8 +152,32 @@
     "public_release": "HOLD",
     "g5": "HOLD",
     "solo_owner_governance_is_independent_review": false,
-    "solo_owner_governance_is_production_approval": false
+    "solo_owner_governance_is_production_approval": false,
+    "autonomous_multi_lane_verification_is_internal_control_evidence": true,
+    "autonomous_multi_lane_verification_is_empirical_launch_evidence": false
   },
-  "governance_mode": "SOLO_OWNER_GOVERNED",
-  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27"
+  "governance_mode": "AUTONOMOUS_MULTI_LANE_GOVERNED",
+  "decision_id": "JOHN-AUTONOMOUS-MULTI-LANE-REVIEW-2026-09-18",
+  "autonomous_verification_policy": {
+    "mode": "MACHINE_ENFORCED_RISK_ROUTED_MULTI_LANE_EXACT_HEAD",
+    "required": true,
+    "baseline_required_check_contexts": [
+      "KAIOS Solo Owner Preflight",
+      "Validate KAIOS Foundation",
+      "Validate Production Container"
+    ],
+    "risk_routed_check_contexts": [
+      "full-value-chain-redteam"
+    ],
+    "risk_routing_required": true,
+    "scope_aware_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
+    "all_required_contexts_terminal_success": true,
+    "missing_context_fails_closed": true,
+    "ambiguous_latest_context_fails_closed": true,
+    "owner_exact_head_approval_separate_required": true,
+    "human_review_required": false,
+    "internal_control_evidence_only": true,
+    "empirical_launch_authority": false,
+    "root_issue": 1582
+  }
 }

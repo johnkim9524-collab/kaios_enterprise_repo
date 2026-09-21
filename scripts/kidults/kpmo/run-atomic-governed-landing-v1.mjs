@@ -8,6 +8,7 @@ import {
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
+  resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
   selectLatestDirectOwnerReadyEvent,
@@ -385,10 +386,14 @@ try {
   const nativeContexts = (statusRule.parameters.required_status_checks || []).map(value => value.context);
   assertNativeRequiredContexts(nativeContexts, policy.bypass_policy.required_status_contexts);
 
+  const scopeRequirements = resolveScopeRequirements(changedFileRecords, initial, scopePolicy);
   const statuses = await request(`/commits/${expectedHeadSha}/status`);
   const aggregator = (statuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
+  const autonomousVerification = evaluateRequiredCheckRuns(
+    await checkRuns(expectedHeadSha),
+    scopeRequirements.required_contexts,
+  );
 
   const [timeline, approvalComments, headCommit] = await Promise.all([
     pages(`/issues/${prNumber}/timeline`),
@@ -415,8 +420,21 @@ try {
     evaluationTime: new Date().toISOString(),
   });
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
-  const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
+  const latestReviews = new Map();
+  for (const review of reviews) {
+    const login = review?.user?.login;
+    if (!login || review?.user?.type !== 'User' || review?.commit_id !== expectedHeadSha) continue;
+    const stamp = Date.parse(review?.submitted_at || '');
+    if (!Number.isFinite(stamp)) throw new Error('EXACT_HEAD_REVIEW_TIME_INVALID');
+    const prior = latestReviews.get(login);
+    if (!prior || stamp >= prior.stamp) latestReviews.set(login, {review, stamp});
+  }
+  const currentReviews = [...latestReviews.values()].map(value => value.review);
+  const eligibleAssociations = new Set(policy.review_policy?.eligible_author_associations || []);
+  const exactHeadBlockers = currentReviews.filter(review =>
+    eligibleAssociations.has(review?.author_association) && review?.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
+
 
   const final = await request(`/pulls/${prNumber}`);
   const finalMain = await request('/branches/main');
@@ -465,7 +483,10 @@ try {
   }
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
-  evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
+  evaluateRequiredCheckRuns(
+    await checkRuns(expectedHeadSha),
+    scopeRequirements.required_contexts,
+  );
   await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
@@ -661,6 +682,8 @@ try {
     target_branch: 'main',
     operation_authorization_id: authorizationId,
     program_owner_exact_head_approval: programOwnerApproval,
+    autonomous_exact_head_verification: autonomousVerification,
+    human_review_required: false,
     staged_lifecycle_authority: lifecycleAuthority,
     authorization_consumption: authorizationConsumption.receipt,
     landing_actor: landingActor,

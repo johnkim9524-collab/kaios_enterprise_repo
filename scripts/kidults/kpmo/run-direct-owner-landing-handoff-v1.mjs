@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   assertPromotablePullRequest,
   evaluateRequiredCheckRuns,
+  resolveScopeRequirements,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {evaluateAtomicLandingOneUseRunSet} from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {selectLatestDirectOwnerReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
@@ -284,13 +285,14 @@ try {
     fail('DIRECT_OWNER_HANDOFF_PROTECT_MAIN_POLICY_DRIFT');
   }
 
+  const scopeRequirements = resolveScopeRequirements(files, pr, scopePolicy);
   const aggregate = (statuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (aggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_NOT_SUCCESS');
-  evaluateRequiredCheckRuns(runs, scopePolicy.technical_base_contexts);
+  const autonomousVerification = evaluateRequiredCheckRuns(runs, scopeRequirements.required_contexts);
 
-  const [finalPr, finalMain, finalTimeline, finalComments, finalHeadCommit] = await Promise.all([
+  const [finalPr, finalMain, finalTimeline, finalComments, finalHeadCommit, finalStatuses, finalRuns] = await Promise.all([
     request(`/pulls/${prNumber}`), request('/branches/main'), pages(`/issues/${prNumber}/timeline`), pages(`/issues/${prNumber}/comments`),
-    request(`/commits/${expectedHeadSha}`),
+    request(`/commits/${expectedHeadSha}`), request(`/commits/${expectedHeadSha}/status`), checkRuns(expectedHeadSha),
   ]);
   assertPromotablePullRequest(finalPr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
   if (finalHeadCommit?.sha !== expectedHeadSha || finalHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
@@ -301,6 +303,9 @@ try {
   if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
   const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady, {landingAttemptStartedAt});
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
+  const finalAggregate = (finalStatuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
+  if (finalAggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_FINAL_SCOPE_STATUS_NOT_SUCCESS');
+  evaluateRequiredCheckRuns(finalRuns, scopeRequirements.required_contexts);
 
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();
@@ -321,6 +326,8 @@ try {
     approval_comment_body_sha256: approval.comment_body_sha256,
     approval_nonce_sha256: approval.nonce_sha256,
     approval_expires_at: approval.expires_at,
+    autonomous_exact_head_verification: autonomousVerification,
+    human_review_required: false,
     latest_ready_event_id: readyEvent.id,
     latest_ready_event_at: readyEvent.created_at,
     landing_workflow_run_id: Number(runId),
@@ -336,12 +343,14 @@ try {
   writeReceipt(receipt);
 
   await sleep(handoffWindowSeconds * 1000);
-  const [after, afterMain, afterTimeline, afterComments, afterHeadCommit] = await Promise.all([
+  const [after, afterMain, afterTimeline, afterComments, afterHeadCommit, afterStatuses, afterRuns] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
     request(`/commits/${expectedHeadSha}`),
+    request(`/commits/${expectedHeadSha}/status`),
+    checkRuns(expectedHeadSha),
   ]);
   if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
@@ -353,6 +362,9 @@ try {
     landingAttemptStartedAt,
   });
   if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  const afterAggregate = (afterStatuses?.statuses || []).find(value => value.context === scopePolicy.required_status_context);
+  if (afterAggregate?.state !== 'success') fail('DIRECT_OWNER_HANDOFF_SCOPE_STATUS_DRIFT_AFTER_WINDOW');
+  evaluateRequiredCheckRuns(afterRuns, scopeRequirements.required_contexts);
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
