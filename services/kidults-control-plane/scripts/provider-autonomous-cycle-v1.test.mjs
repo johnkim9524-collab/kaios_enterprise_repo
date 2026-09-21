@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import { evaluateProviderAutonomousCycle } from '../src/provider-autonomous-cycle.mjs';
 
@@ -108,4 +109,39 @@ test('short retention and unregistered provider fail closed', () => {
     () => evaluate({ providerId: 'UNKNOWN' }),
     /PROVIDER_NOT_REGISTERED/
   );
+});
+
+test('AWS object proof remains usable while USB Copy A stays fail closed', () => {
+  const evidence = JSON.parse(fs.readFileSync(
+    new URL('../../../coordination/kidults/evidence/aws-offline-durability-receipt-2026-09-21-v1.json', import.meta.url),
+    'utf8',
+  ));
+  assert.equal(evidence.status, 'AWS_OBJECT_RESTORE_VERIFIED_OFFLINE_COPY_PENDING');
+  assert.equal(evidence.restore_drill.status, 'COMPLETE_VERIFIED');
+  assert.equal(evidence.restore_drill.source_sha256, evidence.restore_drill.restored_sha256);
+  assert.equal(evidence.object_lock.mode, 'COMPLIANCE');
+  assert.equal(evidence.object_lock.delete_attempt_return_code, 254);
+  assert.equal(evidence.offline_copy.restore_verification, 'PENDING_PHYSICAL_MEDIA');
+  assert.deepEqual(evidence.required_live_evidence, ['USB_COPY_A_RESTORE_SHA256_MATCH']);
+});
+
+test('provider-control AWS receipt binds isolation, reservation, and immutable read-back evidence', () => {
+  const evidence = JSON.parse(fs.readFileSync(
+    new URL('../../../coordination/kidults/evidence/provider-control-aws-staging-receipt-2026-09-21-v1.json', import.meta.url),
+    'utf8',
+  ));
+  assert.equal(evidence.status, 'COMPLETE_VERIFIED');
+  assert.equal(evidence.environment, 'STAGING');
+  assert.equal(evidence.isolation.real_to_synthetic, 'DENIED');
+  assert.equal(evidence.isolation.synthetic_to_real, 'DENIED');
+  assert.equal(evidence.atomic_reservation.reserved, 120);
+  assert.equal(evidence.atomic_reservation.limit, 120);
+  assert.equal(evidence.atomic_reservation.overflow_return_code, 254);
+  assert.equal(evidence.immutable_evidence.source_sha256, evidence.immutable_evidence.restored_sha256);
+  assert.equal(evidence.immutable_evidence.object_lock_mode, 'COMPLIANCE');
+  assert.equal(evidence.immutable_evidence.delete_attempt_return_code, 254);
+  assert.equal(evidence.holds.production, 'HOLD');
+  assert.equal(evidence.holds.public, 'HOLD');
+  assert.equal(evidence.holds.g5, 'HOLD');
+  assert.equal(evidence.holds.usb_copy_a, 'PENDING_PHYSICAL_MEDIA');
 });
