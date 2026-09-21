@@ -1,0 +1,16 @@
+{
+    "id":  "kidults-atomic-terminal-green-recovery-evidence-v1",
+    "version":  "1.0.0",
+    "source_atomic_run_id":  35569383095,
+    "source_pull_request":  2279,
+    "source_merge_sha":  "a8563e98b92c952ee382f225446757419d28f052",
+    "source_exact_head_sha":  "1260c79c77bba32966807ad9f08e21cdaf82f8c2",
+    "source_tree_sha":  "7c0571abc309688117ca0579ffdbb8741903cfc5",
+    "observed_current_sold_tests":  68,
+    "observed_current_sold_pass":  68,
+    "observed_current_sold_fail":  0,
+    "recovery_reason":  "TRUSTED_VALIDATOR_BOOTSTRAP_TRANSITION",
+    "production":  "HOLD",
+    "public":  "HOLD",
+    "g5":  "HOLD"
+}
