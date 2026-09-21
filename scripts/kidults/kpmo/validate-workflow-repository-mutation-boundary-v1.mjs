@@ -224,9 +224,9 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
     'KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON',
   ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
-  require(!/^\\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
-  require((workflow.match(/^\\s*contents:\\s*write\\s*$/gmi) || []).length === 1, 'single-contents-write');
-  require(!/^\\s*permissions:\\s*write-all\\s*$/mi.test(workflow), 'write-all-forbidden');
+  require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
+  require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
+  require(!/^\s*permissions:\s*write-all\s*$/mi.test(workflow), 'write-all-forbidden');
   require(!activeLines(workflow).some(containsDirectGitPush), 'direct-git-push-forbidden');
   require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
   for (const fragment of [
