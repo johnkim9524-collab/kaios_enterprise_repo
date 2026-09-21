@@ -597,6 +597,14 @@ try {
         throw new Error('ATOMIC_EVENT_TRANSPORT_PR_DRIFT_DURING_WINDOW');
       }
       if (postMergeMain?.commit?.sha !== expectedBaseSha) {
+        // GitHub can expose main before the PR REST projection reports merged=true.
+        // Retry only this exact bound PR for a short consistency window.
+        for (let visibilityAttempt = 1; visibilityAttempt <= 10; visibilityAttempt += 1) {
+          await sleep(1000);
+          mergedPr = await request(`/pulls/${prNumber}`);
+          if (mergedPr?.merged === true) break;
+        }
+        if (mergedPr?.merged === true) break;
         throw new Error('ATOMIC_EVENT_TRANSPORT_MAIN_MOVED_WITHOUT_BOUND_MERGE');
       }
       await sleep(5000);
