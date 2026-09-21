@@ -1,11 +1,18 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
-  "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
+  "version": "1.7.0",
+  "status": "LEGACY_RECOVERY_ONLY",
   "owner": "KPMO",
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
   "scope_aware_required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
+  "normal_operation": {
+    "mode": "AUTONOMOUS_AGENT_QUORUM",
+    "policy": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+    "workflow": ".github/workflows/kidults-autonomous-internal-landing-v1.yml",
+    "manual_owner_orchestration_allowed": false,
+    "legacy_solo_owner_workflows": "RECOVERY_ONLY"
+  },
   "governed_path_prefixes": [
     ".github/",
     "services/kidults-control-plane/",
@@ -152,6 +159,6 @@
     "solo_owner_governance_is_independent_review": false,
     "solo_owner_governance_is_production_approval": false
   },
-  "governance_mode": "SOLO_OWNER_GOVERNED",
+  "governance_mode": "AUTONOMOUS_AGENT_GOVERNED_WITH_OWNER_RECOVERY",
   "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27"
 }
