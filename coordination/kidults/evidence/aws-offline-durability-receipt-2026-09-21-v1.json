@@ -1,24 +1,33 @@
 {
   "id": "KIDULTS_AWS_OFFLINE_DURABILITY_RECEIPT_2026_09_21_V1",
   "schema_version": "1.0.0",
-  "status": "VERIFIED",
+  "status": "BLOCKED_UNVERIFIED",
   "environment": "STAGING",
   "verified_at": "2026-09-21T03:07:00Z",
   "aws_region": "ap-northeast-2",
   "kms_key_alias": "alias/kidults-durable-store",
-  "kms_signature_valid": true,
+  "kms_signature_valid": false,
   "object_lock": {
-    "mode": "COMPLIANCE",
-    "retention_until": "2036-09-20T12:05:04Z"
+    "mode": "UNVERIFIED",
+    "retention_until": null
   },
   "manifest_sha256": "0fe1ffa1434fc6ec81a788d2c01b872132e256b887560e4c675043e091dff695",
   "receipt_sha256": "08dbb2c437a9036f18d56b359e87a145481e60f3fe92adada2a4904286c6e0b8",
   "offline_copy": {
     "copy_id": "COPY_A",
     "encryption": "BITLOCKER",
-    "restore_verification": "PASS",
+    "restore_verification": "UNVERIFIED",
     "custody": "SAFELY_STORED"
   },
+  "truth_boundary": "Historical claim quarantined on 2026-09-21: no live AWS caller identity, bucket ARN, object version ID, retention API response, KMS verification response, or independently reproducible restore receipt was committed. Re-verification requires exact live AWS evidence.",
+  "required_live_evidence": [
+    "AWS_CALLER_IDENTITY",
+    "BUCKET_ARN_AND_ACCOUNT_BINDING",
+    "OBJECT_VERSION_ID",
+    "OBJECT_RETENTION_API_RESPONSE",
+    "KMS_VERIFY_API_RESPONSE",
+    "RESTORED_BYTES_SHA256_MATCH"
+  ],
   "holds": {
     "production": "HOLD",
     "public": "HOLD",
