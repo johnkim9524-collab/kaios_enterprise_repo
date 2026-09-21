@@ -356,6 +356,12 @@ The identity remains quarantined until KPMO explicitly approves reinstatement af
 
 Legitimate blockers remain protected and must be reported precisely: missing tool or permission, human-only action, safety or security concern, legal or contractual decision, external spend, credentials, Production, Public, G5, or another explicit authority gate. The agent must continue every separable authorized workstream and state the exact unblock condition.
 
+## 16.3 Delegated autonomous internal authority
+
+`AI-020 / DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY` authorizes necessary repository-internal, reversible, rollback-bound work without routine Program Owner approval only when a distinct accountable Track agent and KPMO independently approve an exact-bound, expiring, single-use receipt and all required checks are GREEN. Eligible work includes implementation, fixes, refactoring, tests, documentation, registry truth-sync, staging/shadow/canary, reversible recovery, PR Ready, and internal reversible governed landing.
+
+Production, Public, G5, external communications, spend, contracts, legal exceptions, irreversible security changes, secrets, credential or permission expansion, trust-root or ruleset weakening, destructive data actions, and protected promotion or release remain Program Owner reserved. Unknown, conflicting, stale, replayed, or scope-drifted authority fails closed. Decision authority is delegated; accountability is not.
+
 ## 17. Global leading platform scale stewardship
 
 KIDULTS must be designed and operated as a global leading platform across the entire value chain. Boutique, single-market, local-only, manually sustained, or single-provider assumptions are prohibited as an unstated production model.

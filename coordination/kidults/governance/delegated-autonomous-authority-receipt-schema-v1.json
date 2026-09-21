@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.com/schemas/delegated-autonomous-authority-receipt-v1.json",
+  "title": "KIDULTS delegated autonomous internal authority receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id","version","state","authorization_id","repository","base_sha","head_sha","head_tree_sha","scope_digest","action","track_approval","kpmo_approval","tests","rollback","issued_at","expires_at","nonce_digest","production","public","g5"],
+  "properties": {
+    "id":{"const":"kidults-delegated-autonomous-authority-receipt-v1"},"version":{"const":"1.0.0"},"state":{"const":"AUTHORIZED"},
+    "authorization_id":{"type":"string","pattern":"^DAIA-[0-9]+-[0-9a-f]{12}$"},
+    "repository":{"type":"string","pattern":"^[^/]+/[^/]+$"},
+    "base_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"head_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"},"head_tree_sha":{"type":"string","pattern":"^[0-9a-f]{40}$"},
+    "scope_digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},"action":{"type":"string"},
+    "track_approval":{"$ref":"#/$defs/approval"},"kpmo_approval":{"$ref":"#/$defs/approval"},
+    "tests":{"type":"array","minItems":1,"items":{"type":"string","minLength":1}},
+    "rollback":{"type":"object","additionalProperties":false,"required":["strategy","verified"],"properties":{"strategy":{"type":"string","minLength":1},"verified":{"const":true}}},
+    "issued_at":{"type":"string","format":"date-time"},"expires_at":{"type":"string","format":"date-time"},
+    "nonce_digest":{"type":"string","pattern":"^sha256:[0-9a-f]{64}$"},
+    "production":{"const":"HOLD"},"public":{"const":"HOLD"},"g5":{"const":"HOLD"}
+  },
+  "$defs":{"approval":{"type":"object","additionalProperties":false,"required":["agent_id","role","decision","approved_at"],"properties":{"agent_id":{"type":"string","minLength":1},"role":{"enum":["ACCOUNTABLE_TRACK_AGENT","KPMO"]},"decision":{"const":"APPROVE"},"approved_at":{"type":"string","format":"date-time"}}}}
+}

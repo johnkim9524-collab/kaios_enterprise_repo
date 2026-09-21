@@ -1,0 +1,34 @@
+name: KIDULTS Delegated Autonomous Internal Authority V1
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - '.github/AI_AGENT_OPERATING_RULES.md'
+      - 'coordination/kidults/governance/delegated-autonomous-**'
+      - 'docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md'
+      - 'scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs'
+      - 'tests/governance/delegated-autonomous-internal-authority-v1.test.mjs'
+      - 'package.json'
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: delegated-autonomous-authority-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run validate:delegated-autonomous-authority
+      - run: npm run test:delegated-autonomous-authority
