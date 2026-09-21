@@ -1,0 +1,70 @@
+{
+  "id": "KIDULTS_PROVIDER_CONTROL_AWS_STAGING_RECEIPT_2026_09_21_V1",
+  "schema_version": "1.0.0",
+  "status": "COMPLETE_VERIFIED",
+  "environment": "STAGING",
+  "verified_at": "2026-09-21T11:38:21Z",
+  "evidence_source": "PROGRAM_OWNER_CLOUDSHELL_TRANSCRIPT",
+  "aws": {
+    "account_id": "528314240275",
+    "region": "ap-northeast-2",
+    "caller_role_arn": "arn:aws:sts::528314240275:assumed-role/AWSReservedSSO_KIDULTS-Provisioning-Admin_b9864e815cd7866b/john-admin",
+    "evidence_bucket": "kidults-decade-durability-528314240275-apne2",
+    "evidence_kms_key_arn": "arn:aws:kms:ap-northeast-2:528314240275:key/87ffbc69-c8e3-45d9-b00b-1cf2785fcca9",
+    "provider_sqs_kms_key_arn": "arn:aws:kms:ap-northeast-2:528314240275:key/8351e529-d564-48ae-b112-d29294abf295"
+  },
+  "isolation": {
+    "real_role_arn": "arn:aws:iam::528314240275:role/kidults-provider-staging-real-role",
+    "synthetic_role_arn": "arn:aws:iam::528314240275:role/kidults-provider-staging-synthetic-role",
+    "real_queue": "kidults-provider-staging-real",
+    "real_dlq": "kidults-provider-staging-real-dlq",
+    "synthetic_queue": "kidults-provider-staging-synthetic",
+    "synthetic_dlq": "kidults-provider-staging-synthetic-dlq",
+    "verification_run_id": "20260921T113657Z-3d10d861",
+    "real_own_lane": "PASS",
+    "synthetic_own_lane": "PASS",
+    "real_to_synthetic": "DENIED",
+    "real_to_synthetic_return_code": 254,
+    "synthetic_to_real": "DENIED",
+    "synthetic_to_real_return_code": 254,
+    "real_readback_sha256": "ecb73d413ecba1a456f8bec33225fa9b2a2e2ff76b82b35f7ab13aa2e3c6d675",
+    "synthetic_readback_sha256": "7fd2799c34599469d28bf29f1629c77ecdc43a7b9349da36461983e0fe6d17fb"
+  },
+  "atomic_reservation": {
+    "run_id": "20260921T113821Z-aa91fe0b",
+    "table": "kidults-provider-staging-pilot-ledger",
+    "pilot_id": "provider-control-120-v1",
+    "reserved": 120,
+    "limit": 120,
+    "overflow_attempt": 1,
+    "overflow_return_code": 254,
+    "ledger_sha256": "43dc81e1e383e94d8bd797bf8317a918bc5b8d6fa4d5f2c1d8efd69e104b61e5"
+  },
+  "immutable_evidence": {
+    "object_key": "provider-control/20260921T113821Z-aa91fe0b/atomic-reservation-receipt.json",
+    "version_id": "8_yY_Fdo_YRV_gkOJ5aMXySjSDBY_7U8",
+    "source_sha256": "435b71aebe48355ce6d6b01e25bbca53fdadeecd450facd58b9bce97f05dedcd",
+    "restored_sha256": "435b71aebe48355ce6d6b01e25bbca53fdadeecd450facd58b9bce97f05dedcd",
+    "hash_match": true,
+    "server_side_encryption": "aws:kms",
+    "object_lock_mode": "COMPLIANCE",
+    "retain_until": "2036-09-21T11:38:21Z",
+    "delete_attempt_return_code": 254
+  },
+  "durability_signature_reference": {
+    "scope": "EARLIER_DURABILITY_MANIFEST_NOT_THIS_PROVIDER_RECEIPT",
+    "manifest_sha256": "0fe1ffa1434fc6ec81a788d2c01b872132e256b887560e4c675043e091dff695",
+    "algorithm": "ED25519_SHA_512",
+    "public_key_der_b64": "MCowBQYDK2VwAyEA+qbrofoegdFxjOTPL+7awgYSHTdevV6oHyyZyh54hQM=",
+    "signature_b64": "jURIc2WtJg5MdAGHvKZWphmjLYTtqehbSpbaSz0kwkhw833HMT9nnfQDn1yljxYAIbvoEcAGaEXjeQFGI7gNBw==",
+    "aws_kms_verify": true,
+    "independent_openssl_verify": true
+  },
+  "truth_boundary": "This receipt records the Program Owner's CloudShell transcript and screenshot evidence. It does not claim an independent API read by the committing agent. The Ed25519 signature is a reference to the earlier durability manifest and is not represented as a signature over this provider-control receipt.",
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "usb_copy_a": "PENDING_PHYSICAL_MEDIA"
+  }
+}
