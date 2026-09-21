@@ -8,6 +8,8 @@ on:
       - 'docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md'
       - 'scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs'
       - 'tests/governance/delegated-autonomous-internal-authority-v1.test.mjs'
+      - 'scripts/governance/run-first-autonomous-normal-cycle-v1.mjs'
+      - 'tests/governance/first-autonomous-normal-cycle-v1.test.mjs'
       - 'package.json'
   push:
     branches: [main]
@@ -32,3 +34,4 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run validate:delegated-autonomous-authority
       - run: npm run test:delegated-autonomous-authority
+      - run: npm run test:first-autonomous-cycle
