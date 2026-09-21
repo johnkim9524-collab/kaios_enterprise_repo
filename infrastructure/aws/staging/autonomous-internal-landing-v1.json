@@ -1,0 +1,143 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "KIDULTS STAGING durable single-use ledger and GitHub OIDC role for autonomous internal landing.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "GitHubRepository": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    }
+  },
+  "Resources": {
+    "AutonomousLedgerKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "KIDULTS STAGING autonomous landing ledger key",
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": { "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" } },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "STAGING" },
+          { "Key": "System", "Value": "AutonomousInternalLanding" },
+          { "Key": "Production", "Value": "HOLD" },
+          { "Key": "Public", "Value": "HOLD" },
+          { "Key": "G5", "Value": "HOLD" }
+        ]
+      }
+    },
+    "AutonomousLedgerKeyAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/kidults-autonomous-landing-staging",
+        "TargetKeyId": { "Ref": "AutonomousLedgerKey" }
+      }
+    },
+    "AutonomousLandingLedger": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "kidults-autonomous-landing-staging-ledger",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [
+          { "AttributeName": "pk", "AttributeType": "S" },
+          { "AttributeName": "sk", "AttributeType": "S" }
+        ],
+        "KeySchema": [
+          { "AttributeName": "pk", "KeyType": "HASH" },
+          { "AttributeName": "sk", "KeyType": "RANGE" }
+        ],
+        "PointInTimeRecoverySpecification": { "PointInTimeRecoveryEnabled": true },
+        "SSESpecification": {
+          "SSEEnabled": true,
+          "SSEType": "KMS",
+          "KMSMasterKeyId": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] }
+        },
+        "Tags": [
+          { "Key": "Environment", "Value": "STAGING" },
+          { "Key": "System", "Value": "AutonomousInternalLanding" },
+          { "Key": "Production", "Value": "HOLD" },
+          { "Key": "Public", "Value": "HOLD" },
+          { "Key": "G5", "Value": "HOLD" }
+        ]
+      }
+    },
+    "AutonomousLandingRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-landing-staging-role",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Federated": { "Ref": "GitHubOidcProviderArn" } },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                },
+                "StringLike": {
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:ref:refs/heads/main"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-ledger-single-use",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["dynamodb:DescribeTable", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem"],
+                  "Resource": { "Fn::GetAtt": ["AutonomousLandingLedger", "Arn"] }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey"],
+                  "Resource": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:ViaService": { "Fn::Sub": "dynamodb.${AWS::Region}.amazonaws.com" },
+                      "kms:EncryptionContext:aws:dynamodb:tableName": { "Ref": "AutonomousLandingLedger" }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          { "Key": "Environment", "Value": "STAGING" },
+          { "Key": "System", "Value": "AutonomousInternalLanding" },
+          { "Key": "Production", "Value": "HOLD" },
+          { "Key": "Public", "Value": "HOLD" },
+          { "Key": "G5", "Value": "HOLD" }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "AutonomousLandingRoleArn": { "Value": { "Fn::GetAtt": ["AutonomousLandingRole", "Arn"] } },
+    "AutonomousLandingLedgerTable": { "Value": { "Ref": "AutonomousLandingLedger" } },
+    "AutonomousLandingLedgerKeyArn": { "Value": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] } }
+  }
+}
