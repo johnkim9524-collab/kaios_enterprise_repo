@@ -1,0 +1,27 @@
+{
+  "id": "KIDULTS_AWS_OFFLINE_DURABILITY_RECEIPT_2026_09_21_V1",
+  "schema_version": "1.0.0",
+  "status": "VERIFIED",
+  "environment": "STAGING",
+  "verified_at": "2026-09-21T03:07:00Z",
+  "aws_region": "ap-northeast-2",
+  "kms_key_alias": "alias/kidults-durable-store",
+  "kms_signature_valid": true,
+  "object_lock": {
+    "mode": "COMPLIANCE",
+    "retention_until": "2036-09-20T12:05:04Z"
+  },
+  "manifest_sha256": "0fe1ffa1434fc6ec81a788d2c01b872132e256b887560e4c675043e091dff695",
+  "receipt_sha256": "08dbb2c437a9036f18d56b359e87a145481e60f3fe92adada2a4904286c6e0b8",
+  "offline_copy": {
+    "copy_id": "COPY_A",
+    "encryption": "BITLOCKER",
+    "restore_verification": "PASS",
+    "custody": "SAFELY_STORED"
+  },
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}
