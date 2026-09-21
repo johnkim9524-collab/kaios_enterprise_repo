@@ -259,7 +259,7 @@ function tapTests(stdout) {
   }).filter(Boolean);
 }
 
-function executeSuite(suite) {
+function executeSuite(suite, rightsValidationClock) {
   const [runtime, ...argumentsList] = suite.command.split(" ");
   if (runtime !== "node") throw new Error(`${suite.suite_id}:UNSUPPORTED_RUNTIME`);
   const result = spawnSync(process.execPath, argumentsList, {
@@ -269,7 +269,8 @@ function executeSuite(suite) {
       TZ: "UTC",
       LANG: "C.UTF-8",
       LC_ALL: "C.UTF-8",
-      KAIOS_ASI_TEST_CLOCK: "2025-01-15T12:00:00.000Z"
+      KAIOS_ASI_TEST_CLOCK: "2025-01-15T12:00:00.000Z",
+      KIDULTS_ASI_RIGHTS_VALIDATION_NOW: rightsValidationClock
     },
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024
@@ -695,7 +696,15 @@ export async function buildAsiShadowOperatingEvidence() {
   const readinessOutputs = readinessModule.buildScopeSourcePoolReadiness(readinessModule.loadScopeSourcePoolInputs());
   const readiness = readinessOutputs["run-manifest.json"];
 
-  const requiredSuites = contract.required_test_suites.map(executeSuite);
+  const rightsReview = optionalCurrentState(contract, "rights_access_review");
+  const purposeEligibility = optionalCurrentState(contract, "purpose_eligibility");
+  const rightsValidationClock = purposeEligibility.value?.generated_at;
+  if (purposeEligibility.present && !Number.isFinite(Date.parse(rightsValidationClock))) {
+    throw new Error("PURPOSE_ELIGIBILITY_GENERATED_AT_INVALID_FOR_DETERMINISTIC_RIGHTS_VALIDATION");
+  }
+
+  const requiredSuites = contract.required_test_suites.map(suite =>
+    executeSuite(suite, rightsValidationClock));
   const candidateHandoffBlockedSelftest = executeCandidateHandoffBlockedSelftest(
     candidateHandoffBlockedSelftestR2,
     requiredCanonicalCodeInputs.candidate_handoff_preflight_validator_r2
@@ -711,7 +720,7 @@ export async function buildAsiShadowOperatingEvidence() {
         test_names: []
       };
     }
-    return executeSuite(suite);
+    return executeSuite(suite, rightsValidationClock);
   });
   const suites = [...requiredSuites, ...optionalSuites];
   const suiteById = Object.fromEntries(suites.map(suite => [suite.suite_id, suite]));
@@ -731,8 +740,6 @@ export async function buildAsiShadowOperatingEvidence() {
     }
   }
 
-  const rightsReview = optionalCurrentState(contract, "rights_access_review");
-  const purposeEligibility = optionalCurrentState(contract, "purpose_eligibility");
   let purposeEligibilityRebuildMatches = false;
   if (purposeEligibility.present) {
     const rightsInputs = rightsCompilerModule.loadSourceRightsReviewInputs();
