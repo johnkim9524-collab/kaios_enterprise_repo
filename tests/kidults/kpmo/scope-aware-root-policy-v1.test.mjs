@@ -11,3 +11,12 @@ test("the planned root Constitution has exactly one fail-closed validation scope
   assert.equal(policy.zero_coverage_policy, "FAIL_CLOSED");
   assert.deepEqual(matches.map((rule) => rule.id), ["repository-root"]);
 });
+
+test("committed evidence receipts are covered by the governance scope", () => {
+  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  const matches = policy.scope_rules.filter((rule) =>
+    rule.prefixes?.some((prefix) => "evidence/staging-operations/receipt.json".startsWith(prefix)),
+  );
+
+  assert.deepEqual(matches.map((rule) => rule.id), ["governance-and-data"]);
+});
