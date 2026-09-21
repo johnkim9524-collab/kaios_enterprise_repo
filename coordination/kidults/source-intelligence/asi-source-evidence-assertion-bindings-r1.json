@@ -39,6 +39,26 @@
       }
     },
     {
+      "evidence_id": "ev-wikidata-access-20260918",
+      "subject_review_id": "review-frontier-wikidata-r1",
+      "subject_canonical_host": "wikidata.org",
+      "subject_operator": "Wikimedia Foundation",
+      "polarity": "ALLOW_SUPPORT",
+      "supported_purposes": ["DISCOVERY_METADATA_INDEX"],
+      "supported_output_classes": ["INTERNAL_DISCOVERY_LOCATOR_METADATA"],
+      "supported_assertions": ["ACCESS_AVAILABLE", "CREDENTIAL_READY", "ROBOTS_OR_NON_CRAWL_PATH_EXPLICIT", "RATE_LIMIT_OR_STATIC_DATASET_EXPLICIT", "ACCESS_POLICY_EXACTLY_EVIDENCE_BOUND"],
+      "supported_input_fields": [],
+      "supported_excluded_material": [],
+      "supported_access": {
+        "method": "DOCUMENTED_QUERY_OR_DUMP",
+        "state": "AVAILABLE",
+        "credential_state": "NOT_REQUIRED",
+        "robots_state": "ALLOW_WITH_PUBLISHED_ETIQUETTE",
+        "rate_limit_state": "EXPLICIT",
+        "rate_limit_policy": "IDENTIFY_USER_AGENT_USE_COMPRESSION_LIMIT_CONCURRENCY_AND_HONOR_429_RETRY_AFTER"
+      }
+    },
+    {
       "evidence_id": "ev-datacite-license",
       "subject_review_id": "review-frontier-datacite-r1",
       "subject_canonical_host": "api.datacite.org",
@@ -70,6 +90,40 @@
     },
     {
       "evidence_id": "ev-datacite-rate",
+      "subject_review_id": "review-frontier-datacite-r1",
+      "subject_canonical_host": "api.datacite.org",
+      "subject_operator": "DataCite e.V.",
+      "polarity": "ALLOW_SUPPORT",
+      "supported_purposes": ["DISCOVERY_METADATA_INDEX"],
+      "supported_output_classes": ["INTERNAL_DISCOVERY_LOCATOR_METADATA"],
+      "supported_assertions": ["RATE_LIMIT_OR_STATIC_DATASET_EXPLICIT", "ACCESS_POLICY_EXACTLY_EVIDENCE_BOUND"],
+      "supported_input_fields": [],
+      "supported_excluded_material": [],
+      "supported_access": {
+        "rate_limit_state": "EXPLICIT",
+        "rate_limit_policy": "IDENTIFIED_CLIENT_MAX_1000_REQUESTS_PER_5_MINUTES_HONOR_429_WITH_BACKOFF"
+      }
+    },
+    {
+      "evidence_id": "ev-datacite-access-20260918",
+      "subject_review_id": "review-frontier-datacite-r1",
+      "subject_canonical_host": "api.datacite.org",
+      "subject_operator": "DataCite e.V.",
+      "polarity": "ALLOW_SUPPORT",
+      "supported_purposes": ["DISCOVERY_METADATA_INDEX"],
+      "supported_output_classes": ["INTERNAL_DISCOVERY_LOCATOR_METADATA"],
+      "supported_assertions": ["ACCESS_AVAILABLE", "CREDENTIAL_READY", "ROBOTS_OR_NON_CRAWL_PATH_EXPLICIT", "ACCESS_POLICY_EXACTLY_EVIDENCE_BOUND"],
+      "supported_input_fields": [],
+      "supported_excluded_material": [],
+      "supported_access": {
+        "method": "DOCUMENTED_PUBLIC_REST_API",
+        "state": "AVAILABLE",
+        "credential_state": "NOT_REQUIRED",
+        "robots_state": "NOT_APPLICABLE_DOCUMENTED_API"
+      }
+    },
+    {
+      "evidence_id": "ev-datacite-rate-20260918",
       "subject_review_id": "review-frontier-datacite-r1",
       "subject_canonical_host": "api.datacite.org",
       "subject_operator": "DataCite e.V.",

@@ -14,6 +14,10 @@ const runner = fs.readFileSync(
   path.join(appRoot, 'scripts', 'run-a13-b16-autonomous-operations.mjs'),
   'utf8'
 );
+const workflow = fs.readFileSync(
+  path.resolve('.github/workflows/kidults-autonomous-operations.yml'),
+  'utf8'
+);
 
 test('A13-B16 remains staging-only and production-safe', () => {
   assert.equal(contract.release, 'A13-B16');
@@ -91,4 +95,39 @@ test('A13-B16 UI keeps production blocked and exposes no credentials', () => {
   assert.match(html, /data-operations-production>Blocked/);
   assert.doesNotMatch(html, /KIDULTS_[A-Z_]+_API_KEY/);
   assert.doesNotMatch(js, /process\.env/);
+});
+
+test('A13-B16 always retains exact-generation terminal evidence before reapplying failures', () => {
+  const operations = workflow.indexOf('- name: Run autonomous operations');
+  const regression = workflow.indexOf('- name: Run Kidults regression suite');
+  const receipt = workflow.indexOf('- name: Emit fail-closed terminal receipt');
+  const upload = workflow.indexOf('- name: Upload terminal audit evidence');
+  const reapply = workflow.indexOf('- name: Reapply fail-closed outcome');
+
+  assert.ok(operations >= 0);
+  assert.ok(operations < regression && regression < receipt && receipt < upload && upload < reapply);
+  assert.match(workflow.slice(regression, receipt), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(workflow.slice(receipt, upload), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(workflow.slice(upload, reapply), /if: \$\{\{ always\(\) \}\}/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /a13-b16-autonomous-operations-certification\.test\.mjs/);
+  assert.match(workflow, /actions\/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f/);
+  assert.match(workflow, /if-no-files-found: error/);
+  assert.match(workflow, /github\.event\.pull_request\.head\.sha \|\| github\.sha/);
+  assert.match(workflow, /github\.head_ref \|\| github\.ref_name/);
+
+  for (const boundary of [
+    "evidence_admission: 'NONE'",
+    'empirical_authority: false',
+    'promotion_eligible: false',
+    'promotion_authority: false',
+    'provider_activation_authority: false',
+    'database_mutation_authority: false',
+    'external_execution_authority: false',
+    "production: 'HOLD'",
+    "public: 'HOLD'",
+    "g5: 'HOLD'",
+  ]) {
+    assert.match(workflow, new RegExp(boundary));
+  }
 });

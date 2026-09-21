@@ -936,11 +936,11 @@ export function assertCompiledSourceRightsReview(output, inputs = loadSourceRigh
   assert(output.summary.reviewed_real_target_source_count === 11, "Compiled target-source count drifted.");
   assert(output.summary.reviewed_frontier_channel_count === 2, "Compiled frontier-channel count drifted.");
   assert(output.summary.reviewed_purpose_package_count === 14, "Compiled purpose-package count drifted.");
-  assert(output.summary.evidence_claim_count === 18 && output.summary.normalized_claim_record_integrity_verified_count === 16 && output.summary.pending_normalized_claim_record_count === 2,
+  assert(output.summary.evidence_claim_count === 21 && output.summary.normalized_claim_record_integrity_verified_count === 19 && output.summary.pending_normalized_claim_record_count === 2,
     "Normalized claim record integrity counts drifted.");
   assert(output.summary.normalized_claim_record_integrity_state === "PASS_PACKAGE_CLAIM_RECORDS_VERIFIED_REVIEW_SLICE_PARTIAL",
     "Normalized claim record integrity state drifted.");
-  assert(output.summary.source_content_capture_complete_count === 0 && output.summary.source_content_capture_pending_count === 18 &&
+  assert(output.summary.source_content_capture_complete_count === 0 && output.summary.source_content_capture_pending_count === 21 &&
     output.summary.source_content_reproducibility_state === "PENDING_NOT_ARCHIVED",
   "Source-content capture/reproducibility boundary regressed.");
   assert(output.summary.independent_legal_review_complete === false && output.summary.independent_legal_review_state === "NOT_COMPLETED",

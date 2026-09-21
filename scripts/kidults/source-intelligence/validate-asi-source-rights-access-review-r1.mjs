@@ -172,7 +172,7 @@ assert.equal(first.decision_semantics.pass_package_claim_record_integrity_state,
   "ALL_PASS_NORMALIZED_CLAIM_RECORDS_INTEGRITY_VERIFIED");
 assert.equal(first.decision_semantics.source_content_reproducibility_state, "PENDING_NOT_ARCHIVED");
 assert.equal(first.summary.source_content_capture_complete_count, 0);
-assert.equal(first.summary.source_content_capture_pending_count, 18);
+assert.equal(first.summary.source_content_capture_pending_count, 21);
 assert(passPackages.every(({ pkg }) =>
   pkg.evidence_claim_record_refs.length > 0 && pkg.evidence_claim_record_refs.length === pkg.evidence_claim_record_integrity_digests.length
 ), "Every PASS package must have normalized claim record refs and matching integrity digests");
@@ -274,7 +274,7 @@ negativeControls.push("runtime-clock-expiry-invalidates-as-of-pass");
 
 const futureSnapshotOutput = structuredClone(first);
 futureSnapshotOutput.generated_at = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureSnapshotOutput, "2026-08-19T12:00:00Z"),
+assert.throws(() => assertRuntimeFreshness(futureSnapshotOutput, "2026-09-18T12:00:00Z"),
   /Compiled review snapshot is after the runtime validation clock/,
   "Runtime clock must reject a future compiled review snapshot");
 negativeControls.push("runtime-clock-rejects-future-review-snapshot");
@@ -284,7 +284,7 @@ const futureEvidencePackage = futureEvidenceOutput.review_observations
   .flatMap(source => source.purpose_packages)
   .find(pkg => pkg.decision === "PASS");
 futureEvidencePackage.evidence_observed_at_max = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-08-19T12:00:00Z"),
+assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-09-18T12:00:00Z"),
   /PASS evidence observation is after the runtime validation clock/,
   "Runtime clock must reject a future PASS evidence observation");
 negativeControls.push("runtime-clock-rejects-future-evidence-observation");

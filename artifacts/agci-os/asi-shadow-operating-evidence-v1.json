@@ -122,13 +122,13 @@
       "path": "coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json",
       "id": "kidults-asi-source-rights-access-review-r1",
       "version": "1.0.0",
-      "fingerprint": "sha256:2131f851ee95663a3ab67a20262942ea89e83c837830dffae31e08726474f4e0"
+      "fingerprint": "sha256:c56c0b3e81e22df331778c5e66df75b9bc3da795ff7f4ac2f44df703a68b34c7"
     },
     "purpose_eligibility": {
       "path": "coordination/kidults/source-intelligence/asi-source-pool-purpose-eligibility-r1.json",
       "id": "kidults-asi-source-pool-purpose-eligibility-r1",
       "version": "1.0.0",
-      "fingerprint": "sha256:6e0dbd9d621e8355e3275799a76851127c355e79464bf032911822313701e01e"
+      "fingerprint": "sha256:35fc60f5c23c1272bfc41882aecac24398e6ac2874d52d3ac4e0f0b0a7d02372"
     }
   },
   "canonical_code_input_semantics": "HASHED_IMPLEMENTATION_PROVENANCE_NOT_EXECUTION_ATTESTATION",
@@ -485,12 +485,12 @@
     },
     "rights_access_review_compiler": {
       "path": "scripts/kidults/source-intelligence/compile-asi-source-rights-access-review-r1.mjs",
-      "sha256": "sha256:df7d27051699d63e1345cd8c77bfce1261dab408173d9a2f1f1bf07d6de4c388",
+      "sha256": "sha256:1b4297a19ff9599d6ae33c7458d57a278434978472c73dc8bd02bf71b1603409",
       "byte_count": 76470
     },
     "rights_access_review_validator": {
       "path": "scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs",
-      "sha256": "sha256:ed3a6b4a03415422f9127421b8a9a89ff04ec6095b5d4fb20e46247e4076a774",
+      "sha256": "sha256:01cf3c155ee6d230a18b67941e047dfb79f785d0f6c89809e95602aaf58e937e",
       "byte_count": 30179
     },
     "global_pool_bootstrap_compiler": {
@@ -545,8 +545,8 @@
     },
     "autonomous_intelligence_package_manifest": {
       "path": "services/kidults-autonomous-intelligence/package.json",
-      "sha256": "sha256:8b8ff4de719ddec18c886d4bf0269e320e8ded0c0421e4cf29b7d4569de59135",
-      "byte_count": 11237
+      "sha256": "sha256:3d8449ee05b49caf596f2ca4eb6545efa197eaefb8ecb034ad2862095b7fbf0d",
+      "byte_count": 11257
     },
     "autonomous_intelligence_dependency_lock": {
       "path": "services/kidults-autonomous-intelligence/package-lock.json",
@@ -582,17 +582,17 @@
       "input_fingerprints": {
         "bootstrap_capture": "sha256:9e55bd2489554ee69e02ca1a1bb5cfc023725411ad72457e9ce581ae342a59af",
         "event_schema": "sha256:51b27133f126cbcf4cff1457ee998b0998342c73e8de73cf52774da88a8c3f1d",
-        "evidence_assertion_bindings": "sha256:0e901e4cfe0ef83ebf584a5fbf4baa2a9ff4fc02e28eeb259bc8fa44a60ce26a",
+        "evidence_assertion_bindings": "sha256:51aa6077df2636c7df9bdfc934d05329581fe719a2dc87ddebbc3ba3cac9d2d6",
         "frontier_contract": "sha256:eaab31179a05588a28517e92fd4a4000e50d1082a5d306d68f5b1449187fdaa8",
-        "normalized_primary_claim_records": "sha256:7b70a4e2bbb959354374bac46856a088217622562078029a79ffafacf2943bc7",
+        "normalized_primary_claim_records": "sha256:1d6aa61bb419c3fec0fdac080e3ff7293cf64df6823a6888644331bcdbe4693d",
         "purpose_policy": "sha256:0054f0db62af4999b03ea3c38697735327fe59ec28b8d31b146f73e1e19285d3",
         "review_contract": "sha256:ac92866d840b7f9b7a97422434ce2547d8e62685f77f311cc0f78888392b4828",
-        "review_data": "sha256:2131f851ee95663a3ab67a20262942ea89e83c837830dffae31e08726474f4e0",
+        "review_data": "sha256:c56c0b3e81e22df331778c5e66df75b9bc3da795ff7f4ac2f44df703a68b34c7",
         "scope_pool_readiness": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f",
         "scope_registry": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
         "source_admission_methodology": "sha256:f913638d32b3a4cf3b81f35bea7c3720d9c5d0599f134f305acc474f70f6ee55"
       },
-      "eligibility_fingerprint": "sha256:f5880dfb237731fef6f1718bca95d847e7a18ced15db2115f909f720ed6726a1"
+      "eligibility_fingerprint": "sha256:6b65d9a1999611b33ab21d733c1258d8606f1716c418d0cca5b2e61c20dabd4a"
     },
     "global_pool_bootstrap_capture": {
       "id": "kidults-global-pool-r1-bootstrap-capture-v1",
@@ -1487,11 +1487,11 @@
     "purpose_policy_preflight_pass_source_count": 3,
     "purpose_policy_preflight_pass_frontier_channel_count": 2,
     "purpose_policy_preflight_pass_target_source_count": 1,
-    "evidence_claim_count": 18,
-    "normalized_claim_record_integrity_verified_count": 16,
+    "evidence_claim_count": 21,
+    "normalized_claim_record_integrity_verified_count": 19,
     "pending_normalized_claim_record_count": 2,
     "source_content_capture_complete_count": 0,
-    "source_content_capture_pending_count": 18,
+    "source_content_capture_pending_count": 21,
     "runtime_admission_events_emitted": 0,
     "runtime_admission_materialized_binding_count": 0,
     "canonical_region_language_coverage_credit": 0,
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:f758a5e2ccfd7b0304fc1d23b4f39a53c6fa52b9f71b0cede2bc39e28652e232"
+  "evidence_fingerprint": "sha256:d1e52fc94da2612464461fcdc9fed02329be5dcdb6ba8b133b6cf30edc6a861a"
 }
