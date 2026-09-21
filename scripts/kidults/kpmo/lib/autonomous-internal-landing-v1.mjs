@@ -40,7 +40,7 @@ export function validateActor(actor, registry, expectedRole) {
   if (candidate.actor_login !== actor.actor_login || candidate.actor_type !== actor.actor_type) {
     fail('AUTONOMOUS_ACTOR_IDENTITY_DRIFT');
   }
-  return {role: expectedRole, stable_id: `${actor.actor_id}:${actor.app_id}:${actor.installation_id}`};
+  return {role: expectedRole, stable_id: String(actor.actor_id)};
 }
 
 export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
@@ -54,6 +54,18 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   }
   for (const field of ['scope_digest','test_evidence_digest','rollback_digest','nonce_digest']) if (!DIGEST.test(String(envelope[field]))) {
     fail('AUTONOMOUS_DIGEST_INVALID', field);
+  }
+  if (!envelope.test_evidence || typeof envelope.test_evidence !== 'object' || Array.isArray(envelope.test_evidence)) {
+    fail('AUTONOMOUS_TEST_EVIDENCE_OBJECT_REQUIRED');
+  }
+  if (!envelope.rollback_plan || typeof envelope.rollback_plan !== 'object' || Array.isArray(envelope.rollback_plan)) {
+    fail('AUTONOMOUS_ROLLBACK_PLAN_OBJECT_REQUIRED');
+  }
+  if (sha256(canonicalJson(envelope.test_evidence)) !== envelope.test_evidence_digest) {
+    fail('AUTONOMOUS_TEST_EVIDENCE_DIGEST_MISMATCH');
+  }
+  if (sha256(canonicalJson(envelope.rollback_plan)) !== envelope.rollback_digest) {
+    fail('AUTONOMOUS_ROLLBACK_DIGEST_MISMATCH');
   }
   if (envelope.operation !== policy.delegated_operation) fail('AUTONOMOUS_OPERATION_NOT_DELEGATED');
   if (envelope.production !== 'HOLD' || envelope.public !== 'HOLD' || envelope.g5 !== 'HOLD') fail('AUTONOMOUS_HOLD_WEAKENED');

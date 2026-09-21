@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -74,8 +74,9 @@
     "PROTECTED_PROMOTION_OR_RELEASE"
   ],
   "owner_reserved_path_prefixes": [
-    ".github/workflows/production-",
-    "coordination/kidults/governance/trust-roots/",
+    ".github/workflows/",
+    "coordination/kidults/governance/",
+    "scripts/kidults/kpmo/",
     "secrets/",
     "production/",
     "public/",
@@ -99,6 +100,7 @@
       "repository_id"
     ],
     "login_only_authority_forbidden": true,
+    "separation_key": "GITHUB_ACTOR_ID",
     "runtime_allowlist_source": "KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON",
     "unknown_actor": "QUARANTINE"
   },
@@ -119,7 +121,14 @@
     "admin_bypass_forbidden": true,
     "update_branch_forbidden": true,
     "live_main_tree_parent_revalidation_required": true,
-    "explicit_completion_event": "kidults.internal_landing.completed.v1"
+    "explicit_completion_event": "kidults.internal_landing.completed.v1",
+    "postmerge_exact_sha_checks_required": true,
+    "postmerge_validation_timeout_seconds": 420
+  },
+  "evidence_resolution": {
+    "test_evidence_object_required": true,
+    "rollback_plan_object_required": true,
+    "canonical_json_digest_recomputed": true
   },
   "failure_recovery": {
     "automatic_downstream_quarantine": true,

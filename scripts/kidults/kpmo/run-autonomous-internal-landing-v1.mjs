@@ -91,6 +91,24 @@ const publishLandingStatus = async (state, description) => {
   })});
   statusTouched=true;
 };
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+const waitForExactMergeShaValidation = async mergeSha => {
+  const timeoutSeconds=Number(policy.merge.postmerge_validation_timeout_seconds||420);
+  const deadline=Date.now()+timeoutSeconds*1000;
+  while (Date.now()<deadline) {
+    const checks=await api(`/commits/${mergeSha}/check-runs?filter=latest&per_page=100`);
+    const runs=(checks.check_runs||[]).filter(value=>value.name!=='KIDULTS Autonomous Internal Landing V1');
+    const hasNaturalGeneration=runs.some(value=>value.head_sha===mergeSha);
+    const pending=runs.some(value=>value.status!=='completed');
+    const failed=runs.some(value=>value.status==='completed'&&!['success','neutral','skipped'].includes(value.conclusion));
+    if (failed) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_CHECK_FAILED');
+    if (hasNaturalGeneration&&runs.length>0&&!pending) {
+      return {state:'VERIFIED_PASS',merge_sha:mergeSha,check_run_ids:runs.map(value=>value.id).sort((a,b)=>a-b)};
+    }
+    await sleep(5000);
+  }
+  throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_CHECK_TIMEOUT');
+};
 const openAutomaticRollback = async failureCode => {
   const liveMain=await api('/branches/main');
   if (!mergePerformed||!mergeSha||liveMain.commit?.sha!==mergeSha) {
@@ -155,12 +173,13 @@ try {
   mergeSha=merge.sha;
   const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
   if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
+  const postmerge=await waitForExactMergeShaValidation(merge.sha);
   awsJson(['dynamodb','update-item','--region','ap-northeast-2','--table-name',ledgerTable,
     '--key',JSON.stringify({pk:{S:`RESERVE#${envelope.authorization_generation}`},sk:{S:`NONCE#${envelope.nonce_digest}`}}),
     '--update-expression','SET #s = :consumed, merge_sha = :merge','--condition-expression','#s = :reserved',
     '--expression-attribute-names',JSON.stringify({'#s':'state'}),'--expression-attribute-values',JSON.stringify({':reserved':{S:'RESERVED'},':consumed':{S:'CONSUMED'},':merge':{S:merge.sha}}),'--output','json']);
   const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
-    merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge:{state:'VERIFIED_PASS'}});
+    merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
   await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest}})});
   writeReceipt(terminal);
   console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,production:'HOLD',public:'HOLD',g5:'HOLD'}));
