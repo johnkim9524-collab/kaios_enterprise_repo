@@ -248,6 +248,108 @@ jobs:
             exit 1
           fi
           mv /tmp/accountability-contract.json coordination/kidults/governance/ai-agent-operating-rules-v1.json
+      - name: Reject repository-manufactured KPMO activation mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-self-activation-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.kpmo_qualification_and_lifecycle.external_attestation_bindings.repository_code_alone_may_manufacture_active_status=true;
+          x.kpmo_qualification_and_lifecycle.activation_state='ACTIVE';
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted repository-manufactured KPMO activation' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-self-activation-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject conflicted KQAC override and minority deletion mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-conflict-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const q=x.kpmo_qualification_and_lifecycle.qualification_and_accountability_committee;
+          q.conflict_rules.subject_kpmo_recused=false;
+          q.conflict_rules.chair_may_override_failed_technical_evidence=true;
+          q.minority_opinion_deletion_forbidden=false;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted conflicted KQAC override or minority deletion' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-conflict-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject KPMO self-quarantine cancellation and standby weakening mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-succession-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const k=x.kpmo_qualification_and_lifecycle;
+          k.external_attestation_bindings.active_kpmo_may_write_own_active_or_quarantined_state=true;
+          k.standby_and_succession.active_and_standby_must_be_distinct_identities=false;
+          k.standby_and_succession.standby_must_meet_same_mandatory_p0_gates=false;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted self-quarantine cancellation or weakened standby' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-succession-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject dangling proposed KPMO trust authority mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-dangling-authority-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const k=x.kpmo_qualification_and_lifecycle;
+          k.external_trust_authority_ref=k.external_trust_authority_proposal.proposed_ref;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted a dangling KPMO external trust authority' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-dangling-authority-roles.json coordination/kidults/registry/roles-and-responsibilities.json
+      - name: Reject same-count KPMO semantic substitution mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/registry/roles-and-responsibilities.json /tmp/kpmo-semantic-substitution-roles.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/registry/roles-and-responsibilities.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          const k=x.kpmo_qualification_and_lifecycle;
+          k.qualification_gates.scored_domains.architecture_and_systems=14;
+          k.qualification_gates.scored_domains.execution_and_verified_closure=16;
+          k.review_quality_metrics.metrics[0]='REVIEW_VOLUME';
+          k.continuous_fitness.mandatory_reevaluation_triggers[0]='MANUAL_ONLY';
+          k.external_attestation_bindings.qualification_attestation_required_fields[0]='UNBOUND_SUBJECT';
+          k.required_negative_controls[0]='ALLOW_SELF_REVIEW';
+          k.required_positive_canaries.normal_autonomous_review='DOCUMENTATION_ONLY';
+          const sequence=k.emergency_quarantine.atomic_sequence;
+          [sequence[2],sequence[3]]=[sequence[3],sequence[2]];
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted same-count semantic weakening' >&2
+            exit 1
+          fi
+          mv /tmp/kpmo-semantic-substitution-roles.json coordination/kidults/registry/roles-and-responsibilities.json
       - name: Reject missing fix-first bootstrap child contract
         shell: bash
         run: |

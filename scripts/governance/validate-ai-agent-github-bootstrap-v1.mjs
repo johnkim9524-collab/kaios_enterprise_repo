@@ -786,7 +786,7 @@ const reportAfterGate = json(paths.reportAfterGate);
 const statusSchema = json(paths.statusSchema);
 const registry = json(paths.registry);
 const roles = json(paths.roles);
-assert(operating.version === '1.8.0', 'OPERATING_CONTRACT_VERSION');
+assert(operating.version === '1.9.0', 'OPERATING_CONTRACT_VERSION');
 assert(operating.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'OPERATING_INDEPENDENT_VERIFICATION');
 assert(operating.enforcement?.local_expected_sha_establishes_github_provenance === false, 'OPERATING_LOCAL_SHA_PROVENANCE');
 assert(remediation.version === '1.2.0', 'REMEDIATION_VERSION');
@@ -794,11 +794,24 @@ assert(remediation.independent_verification_and_one_time_consumption_required ==
 for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritance?.[agentClass] === true, `REMEDIATION_CLASS:${agentClass}`);
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
-assert(registry.version === '1.8.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(registry.version === '1.9.0', 'REGISTRY_VERSION');
+assert(roles.registry_version === '1.9.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'BOOTSTRAP_ROLE_JD_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'BOOTSTRAP_ROLE_JD_KPMO_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'BOOTSTRAP_ROLE_JD_EVIDENCE_STANDARD');
+assert(roles.kpmo_qualification_and_lifecycle?.activation_state === 'BLOCKED_PENDING_EXTERNAL_TRUST_ROOT_AND_QUALIFIED_STANDBY', 'BOOTSTRAP_KPMO_ACTIVATION_FAIL_CLOSED');
+assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_owned_here === false, 'BOOTSTRAP_KPMO_TRUST_AUTHORITY_NOT_DUPLICATED');
+assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_ref === null, 'BOOTSTRAP_KPMO_DANGLING_TRUST_AUTHORITY_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.external_trust_authority_proposal?.pull_request === 2272
+  && roles.kpmo_qualification_and_lifecycle?.external_trust_authority_proposal?.required_state === 'MERGED_VERIFIED',
+  'BOOTSTRAP_KPMO_EXTERNAL_TRUST_PROPOSAL_BOUND');
+assert(roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.external_trust_controller_status === 'NOT_PROVISIONED'
+  && roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.active_kpmo_identity === null
+  && roles.kpmo_qualification_and_lifecycle?.current_authority_evidence?.qualified_standby_identity === null,
+  'BOOTSTRAP_KPMO_CURRENT_AUTHORITY_FAIL_CLOSED');
+assert(roles.kpmo_qualification_and_lifecycle?.external_attestation_bindings?.repository_code_alone_may_manufacture_active_status === false, 'BOOTSTRAP_KPMO_REPOSITORY_SELF_ACTIVATION_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.external_attestation_bindings?.active_kpmo_may_write_own_active_or_quarantined_state === false, 'BOOTSTRAP_KPMO_SELF_STATE_WRITE_FORBIDDEN');
+assert(roles.kpmo_qualification_and_lifecycle?.standby_and_succession?.active_and_standby_must_be_distinct_identities === true, 'BOOTSTRAP_KPMO_STANDBY_IDENTITY_SEPARATION');
 const kpmoRole = roles.roles?.find((role) => role.role_id === 'integration-conductor');
 assert(kpmoRole?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'BOOTSTRAP_KPMO_ROLE_ACCOUNTABILITY');
 assert(kpmoRole?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'BOOTSTRAP_KPMO_ROLE_SELF_EXEMPTION');
