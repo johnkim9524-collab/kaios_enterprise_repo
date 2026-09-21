@@ -224,10 +224,10 @@ export function evaluateRunSet(runs, {
   assert(dispatchedAt >= exactTime(approval.comment_created_at, 'RECOVERY_APPROVAL_TIME_INVALID')
     && dispatchedAt <= exactTime(approval.expires_at, 'RECOVERY_APPROVAL_EXPIRY_INVALID'),
   'RECOVERY_DISPATCH_OUTSIDE_APPROVAL_WINDOW');
-  const prefix = `KIDULTS Atomic Landing Recovery Run #${INCIDENT_RUN_ID} @ `;
+  const exactRunName = expectedRunName;
   const incident = runs.filter(value => Number(value?.workflow_id) === Number(currentWorkflowId)
     && value?.event === 'workflow_dispatch' && value?.head_branch === 'main'
-    && String(value?.display_title || '').startsWith(prefix));
+    && String(value?.display_title || '') === exactRunName);
   assert(incident.length === 1 && Number(incident[0].id) === Number(currentRunId),
     'RECOVERY_PRIOR_INCIDENT_ATTEMPT_EXISTS');
   return {run_id: Number(currentRunId), run_attempt: 1, workflow_id: Number(currentWorkflowId),
