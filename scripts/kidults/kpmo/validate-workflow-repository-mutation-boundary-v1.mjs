@@ -7,6 +7,8 @@ const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-land
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
+const AUTONOMOUS_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-autonomous-internal-landing-v1.yml');
+const AUTONOMOUS_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs');
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -202,6 +204,50 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
   return [...new Set(findings)];
 }
 
+function constrainedAutonomousLandingViolations(workflow, runner) {
+  const findings = [];
+  const require = (condition, id) => { if (!condition) findings.push(`autonomous-landing-${id}`); };
+  for (const fragment of [
+    'repository_dispatch:',
+    'kidults.track.authorization.v1',
+    'kidults.kpmo.authorization.v1',
+    'kidults.independent.verification.v1',
+    'group: kidults-autonomous-internal-landing-v1-main',
+    'cancel-in-progress: false',
+    'id-token: write',
+    'checks: read',
+    'contents: write',
+    'pull-requests: write',
+    'statuses: write',
+    'persist-credentials: false',
+    'KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN',
+    'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
+    'KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON',
+  ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  require(!/^\\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
+  require((workflow.match(/^\\s*contents:\\s*write\\s*$/gmi) || []).length === 1, 'single-contents-write');
+  require(!/^\\s*permissions:\\s*write-all\\s*$/mi.test(workflow), 'write-all-forbidden');
+  require(!activeLines(workflow).some(containsDirectGitPush), 'direct-git-push-forbidden');
+  require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
+  for (const fragment of [
+    "eventName !== 'repository_dispatch'",
+    "runAttempt !== '1'",
+    'validateActor(envelope.actor,registry,role)',
+    'AUTONOMOUS_EVENT_SENDER_ID_MISMATCH',
+    'AUTONOMOUS_PR_DRIFT',
+    'AUTONOMOUS_TREE_DRIFT',
+    'AUTONOMOUS_LIVE_SCOPE_DRIFT',
+    'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',
+    "'--condition-expression','attribute_not_exists(pk) AND attribute_not_exists(sk)'",
+    "method:'PUT'",
+    'merge_method',
+    'AUTONOMOUS_POSTMERGE_BINDING_FAILED',
+    'openAutomaticRollback',
+    "state:'QUARANTINED'",
+  ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
+  return [...new Set(findings)];
+}
+
 const mutationCases = [
   ['permissions:\n  contents: write', 'contents-write'],
   ['permissions: write-all', 'permissions-write-all'],
@@ -234,6 +280,13 @@ for (const file of files) {
     const terminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
     const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler);
     violations = [...new Set([...violations, ...exceptionViolations])];
+  }
+  if (path.resolve(file) === AUTONOMOUS_LANDING_WORKFLOW) {
+    const runner = fs.readFileSync(AUTONOMOUS_LANDING_RUNNER, 'utf8');
+    violations = [
+      ...violations.filter(value => value !== 'contents-write'),
+      ...constrainedAutonomousLandingViolations(workflow, runner),
+    ];
   }
   if (violations.length) findings.push({ file: path.relative('.', file), violations });
 }
