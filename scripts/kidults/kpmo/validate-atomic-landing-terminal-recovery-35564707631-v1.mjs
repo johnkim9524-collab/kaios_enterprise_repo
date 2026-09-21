@@ -43,8 +43,7 @@ const approvalBody = ({head = currentMainSha, digest = manifestDigest, nonce = '
   `operation=${APPROVAL_OPERATION}`,
   `recovery_context=${RECOVERY_CONTEXT}`,
   `authorization_id=${authorizationId}`,
-  
-once=${nonce}`,
+  `nonce=${nonce}`,
   `expires_at=${expiresAt}`,
   `scope=${APPROVAL_SCOPE}`,
   'approval_rebind=FORBIDDEN',
