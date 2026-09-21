@@ -50,8 +50,36 @@ const TRUST = Object.freeze({
     'SCHEDULED_AGENT_AUTOMATIONS',
     'EXTERNAL_MODEL_AGENTS'
   ],
+  agentClassRoleMap: {
+    KPMO: 'integration-conductor',
+    TRACK_A: 'track-a-120-score',
+    TRACK_B: 'track-b-rankability',
+    TRACK_C: 'track-c-portal-v502',
+    TRACK_D: 'snapshot-publisher',
+    TRACK_E: 'qa-release-manager',
+    RED_TEAM: 'incident-manager',
+    REVIEW_AGENTS: 'editorial-rights-reviewer',
+    TEST_AGENTS: 'qa-release-manager',
+    RELEASE_AGENTS: 'qa-release-manager',
+    DOCUMENTATION_AGENTS: 'documentation-sync',
+    EVIDENCE_AGENTS: 'registry-custodian',
+    GRAPH_AGENTS: 'registry-custodian',
+    RUNTIME_AGENTS: 'program-participant',
+    ASI: 'program-participant',
+    CODING_AGENTS: 'program-participant',
+    DISCOVERY_AGENTS: 'program-participant',
+    PROVIDER_AGENTS: 'program-participant',
+    SCHEDULED_AGENT_AUTOMATIONS: 'program-participant',
+    EXTERNAL_MODEL_AGENTS: 'program-participant'
+  },
   requiredDocuments: [
     ['coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json', 'GITHUB_SOURCE_BOOTSTRAP_TRUST_ANCHOR'],
+    ['coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json', 'CONSTITUTIONAL_READINESS_AND_ROLE_ACCEPTANCE_GATE'],
+    ['CONSTITUTION.md', 'HUMAN_READABLE_SUPREME_CONSTITUTION'],
+    ['docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md', 'AGENT_CONSTITUTIONAL_CHARTER'],
+    ['coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md', 'AUTONOMOUS_OS_VISION_AND_ARCHITECTURE'],
+    ['coordination/kidults/kpmo/autonomous-intelligence-behavior-control-v1.json', 'AUTONOMOUS_INTELLIGENCE_BEHAVIOR'],
+    ['coordination/kidults/governance/autonomous-global-irreplaceable-value-gate-v1.json', 'AUTONOMOUS_GLOBAL_IRREPLACEABLE_VALUE_GATE'],
     ['package.json', 'BOOTSTRAP_PACKAGE_COMMAND'],
     ['AGENTS.md', 'ROOT_REPOSITORY_INSTRUCTIONS'],
     ['.github/AI_AGENT_OPERATING_RULES.md', 'HUMAN_READABLE_AI_POLICY'],
@@ -83,9 +111,9 @@ const TRUST = Object.freeze({
     'parent_agent_id', 'nonce_sha256', 'issued_at', 'expires_at', 'ttl_seconds',
     'canonical_repository', 'origin', 'authority_ref', 'local_authority_sha', 'working_ref',
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
-    'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
+    'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.4.0',
+  receiptVersion: '1.5.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -639,7 +667,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.4.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.5.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -661,12 +689,17 @@ const verifyContract = (contract) => {
     [contract.task_dispatch_gate?.external_expected_sha_required === true, 'CONTRACT_EXPECTED_SHA_REQUIRED'],
     [contract.task_dispatch_gate?.expected_sha_must_equal_working_sha === true, 'CONTRACT_EXPECTED_SHA_EQUALITY'],
     [contract.task_dispatch_gate?.expected_sha_match_state_must_be_true === true, 'CONTRACT_EXPECTED_SHA_MATCH_STATE'],
+    [contract.task_dispatch_gate?.constitutional_readiness_binding_required === true, 'CONTRACT_READINESS_REQUIRED'],
+    [contract.task_dispatch_gate?.constitutional_readiness_must_be_independently_verified === true, 'CONTRACT_READINESS_VERIFICATION_REQUIRED'],
     [contract.task_dispatch_gate?.missing_invalid_expired_or_replayed_behavior === 'REJECT_TASK_DISPATCH', 'CONTRACT_FAIL_CLOSED_DISPATCH'],
     [stableStringify(contract.bootstrap_authority) === stableStringify(BOOTSTRAP_AUTHORITY), 'CONTRACT_BOOTSTRAP_AUTHORITY'],
     [stableStringify(contract.receipt_authority_boundary) === stableStringify(RECEIPT_AUTHORITY_BOUNDARY), 'CONTRACT_RECEIPT_AUTHORITY_BOUNDARY'],
     [stableStringify(contract.fail_closed_conditions) === stableStringify(FAIL_CLOSED_CONDITIONS), 'CONTRACT_FAIL_CLOSED_CONDITIONS'],
     [stableStringify(contract.worktree_baseline_policy) === stableStringify(WORKTREE_BASELINE_POLICY), 'CONTRACT_WORKTREE_BASELINE_POLICY'],
     [contract.trust_model?.required_documents_are_read_from_exact_head_git_blobs === true, 'CONTRACT_COMMITTED_BLOB_TRUST'],
+    [contract.trust_model?.agent_class_must_resolve_to_one_registered_role === true, 'CONTRACT_ROLE_RESOLUTION'],
+    [contract.trust_model?.readiness_receipt_must_bind_manifest_role_registry_role_mission_domains_jd_fields_task_session_nonce_and_sha === true, 'CONTRACT_READINESS_BINDING'],
+    [contract.trust_model?.parent_attestation_may_replace_child_attestation === false, 'CONTRACT_NO_PARENT_ATTESTATION_SUBSTITUTION'],
     [contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'CONTRACT_AGENT_ROLE_JD_TRUST'],
     [contract.trust_model?.local_expected_sha_is_binding_only_not_github_provenance === true, 'CONTRACT_EXPECTED_SHA_PROVENANCE'],
     [contract.trust_model?.github_event_context_binding_is_not_cryptographic_or_current_state_proof === true, 'CONTRACT_GITHUB_CONTEXT_LIMIT'],
@@ -913,6 +946,20 @@ if (stableStringify(worktreeState) !== stableStringify(initialWorktreeState)) {
 }
 if (options.requireClean) assertCleanWorktreeState(root, worktreeState);
 
+const rolesBlob = committedBlob(root, workingSha, 'coordination/kidults/registry/roles-and-responsibilities.json');
+let roleRegistry;
+try {
+  roleRegistry = JSON.parse(rolesBlob.body.toString('utf8'));
+} catch {
+  fail('COMMITTED_ROLE_REGISTRY_INVALID_JSON');
+}
+const boundRoleId = TRUST.agentClassRoleMap[options.agentClass];
+const boundRole = roleRegistry.roles?.find((role) => role.role_id === boundRoleId);
+if (!boundRole) fail('BOUND_ROLE_NOT_FOUND', boundRoleId ?? options.agentClass);
+const readinessDocument = loadedDocuments.find((document) => document.path === 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json');
+if (!readinessDocument) fail('CONSTITUTIONAL_READINESS_MANIFEST_NOT_LOADED');
+const acceptedDomains = ['VISION_AND_GOALS', 'OPERATING_PRINCIPLES', 'AI_GOVERNANCE', 'JD_AND_ROLE', 'WORKING_ATTITUDE'];
+
 const issuedAt = new Date();
 const expiresAt = new Date(issuedAt.getTime() + options.ttlSeconds * 1000);
 const receiptWithoutDigest = {
@@ -962,6 +1009,19 @@ const receiptWithoutDigest = {
   trusted_git: trustedGitEvidence(),
   committed_documents: loadedDocuments,
   bootstrap_artifacts: bootstrapArtifacts,
+  constitutional_readiness: {
+    manifest_path: readinessDocument.path,
+    manifest_sha256: readinessDocument.sha256,
+    role_registry_path: 'coordination/kidults/registry/roles-and-responsibilities.json',
+    role_registry_sha256: rolesBlob.sha256,
+    bound_role_id: boundRole.role_id,
+    bound_role_mission: boundRole.mission,
+    accepted_domains: acceptedDomains,
+    role_jd_fields_accepted: ['mission', 'core_responsibilities', 'required_deliverables', 'decision_authority', 'must_not', 'success_measures', 'reporting_cadence'],
+    acceptance_mechanism: 'SUCCESSFUL_EXPLICIT_BOOTSTRAP_INVOCATION',
+    acceptance_bound_to_agent_task_session_nonce_and_sha: true,
+    parent_acceptance_substitution_allowed: false
+  },
   dispatch_gate: {
     bootstrap_prerequisites_satisfied: true,
     independent_verification_required: true,

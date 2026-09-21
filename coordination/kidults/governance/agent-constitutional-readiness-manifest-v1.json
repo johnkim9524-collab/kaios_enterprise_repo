@@ -1,0 +1,144 @@
+{
+  "id": "kidults-agent-constitutional-readiness-manifest-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "effective_after": "MERGE_TO_MAIN",
+  "owner": "KPMO",
+  "scope": "KPMO_TRACK_AGENTS_AND_ALL_AI_AGENT_DISPATCH",
+  "purpose": "Prove that each bound agent session loaded and accepted the exact GitHub constitutional corpus and its assigned JD before any development or operations work.",
+  "constitutional_authority": {
+    "path": "CONSTITUTION.md",
+    "precedence": "HIGHEST_GOVERNING_DOCUMENT",
+    "conflict_behavior": "CONSTITUTION_PREVAILS"
+  },
+  "required_reading_domains": [
+    {
+      "domain": "VISION_AND_GOALS",
+      "documents": [
+        "CONSTITUTION.md",
+        "docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md",
+        "coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md"
+      ],
+      "required_topics": [
+        "Article 0",
+        "Mission",
+        "Purpose",
+        "Success",
+        "AGCI-OS official product",
+        "autonomous operating loop",
+        "quality targets",
+        "human gates"
+      ]
+    },
+    {
+      "domain": "OPERATING_PRINCIPLES",
+      "documents": [
+        "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
+        "coordination/kidults/kpmo/autonomous-intelligence-behavior-control-v1.json",
+        "coordination/kidults/governance/autonomous-global-irreplaceable-value-gate-v1.json"
+      ],
+      "required_topics": [
+        "AUTONOMOUS",
+        "GLOBAL",
+        "IRREPLACEABLE_VALUE",
+        "TRANSPARENT",
+        "verified intelligence surface",
+        "unknown debt",
+        "source independence",
+        "recovery and learning"
+      ]
+    },
+    {
+      "domain": "AI_GOVERNANCE",
+      "documents": [
+        ".github/AI_AGENT_OPERATING_RULES.md",
+        "coordination/kidults/governance/ai-agent-operating-rules-v1.json"
+      ],
+      "required_topics": [
+        "fail closed",
+        "evidence",
+        "authority boundaries",
+        "AI-019",
+        "AI-020"
+      ]
+    },
+    {
+      "domain": "JD_AND_ROLE",
+      "documents": [
+        "coordination/kidults/registry/roles-and-responsibilities.json"
+      ],
+      "required_topics": [
+        "mission",
+        "core_responsibilities",
+        "required_deliverables",
+        "decision_authority",
+        "must_not",
+        "success_measures",
+        "reporting_cadence"
+      ]
+    },
+    {
+      "domain": "WORKING_ATTITUDE",
+      "documents": [
+        "CONSTITUTION.md",
+        "docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md",
+        ".github/AI_AGENT_OPERATING_RULES.md"
+      ],
+      "required_topics": [
+        "absolute honesty",
+        "evidence before claims",
+        "finish authorized reversible work",
+        "fix first",
+        "report last",
+        "no accountability evasion"
+      ]
+    }
+  ],
+  "pre_dispatch_attestation": {
+    "exact_head_documents_loaded": true,
+    "assigned_role_resolved_from_registry": true,
+    "role_mission_authority_limits_outputs_and_cadence_accepted": true,
+    "all_reading_domains_acknowledged": true,
+    "attestation_is_bound_to_agent_task_session_nonce_and_sha": true,
+    "parent_attestation_may_replace_child_attestation": false,
+    "self_attestation_without_independent_receipt_verification_is_sufficient": false
+  },
+  "enforcement": {
+    "missing_or_invalid_attestation": "DISPATCH_DENIED",
+    "work_started_before_verified_consumption": "OUTPUT_REJECTED_AND_AGENT_QUARANTINED",
+    "material_or_repeated_violation": "REMOVE_FROM_ACTIVE_TASK_DISABLE_NEW_DISPATCH_AND_REPLACE_AGENT",
+    "replacement_requires": [
+      "NEW_OR_REINSTATED_ACCOUNTABLE_IDENTITY",
+      "FRESH_EXACT_HEAD_BOOTSTRAP",
+      "JD_REACCEPTANCE",
+      "INDEPENDENT_RECEIPT_VERIFICATION",
+      "REGRESSION_AND_NEGATIVE_TESTS"
+    ],
+    "removed_agent_may_self_adjudicate_or_select_replacement": false,
+    "kpmo_self_exemption_allowed": false,
+    "history_or_evidence_deletion_allowed": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD",
+    "owner_only_gates_preserved": true
+  },
+  "machine_enforceability_boundary": {
+    "can_prove": [
+      "EXACT_DOCUMENT_BYTES_LOADED",
+      "BOUND_ROLE_RESOLVED",
+      "EXPLICIT_ACCEPTANCE_RECORDED",
+      "RECEIPT_VERIFIED_AND_CONSUMED"
+    ],
+    "cannot_prove": [
+      "HUMAN_LIKE_COMPREHENSION",
+      "FUTURE_GOOD_FAITH"
+    ],
+    "compensating_controls": [
+      "FAIL_CLOSED_DISPATCH",
+      "AUDITABLE_RECEIPT",
+      "OUTPUT_REJECTION",
+      "QUARANTINE",
+      "REPLACEMENT"
+    ]
+  }
+}

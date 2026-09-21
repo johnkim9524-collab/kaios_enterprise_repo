@@ -165,6 +165,7 @@
       "trusted_git",
       "committed_documents",
       "bootstrap_artifacts",
+      "constitutional_readiness",
       "dispatch_gate",
       "authority_boundary",
       "receipt_digest"
