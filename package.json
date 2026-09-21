@@ -9,6 +9,8 @@
     "validate:agent-bootstrap": "node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs",
     "validate:delegated-autonomous-authority": "node scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs",
     "validate:autonomous-landing-aws-template": "node scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
+    "run:staging-shadow-cycle": "node scripts/kidults/staging-operations/run-shadow-vertical-cycle-v1.mjs",
+    "test:staging-operations": "TEST_GIT_SHA=$(git rev-parse HEAD) TEST_GIT_REF=$(git symbolic-ref HEAD) node --test tests/kidults/staging-operations/*.test.mjs",
     "test:delegated-autonomous-authority": "node --test tests/governance/delegated-autonomous-internal-authority-v1.test.mjs",
     "consume:delegated-autonomous-authority": "node scripts/governance/consume-delegated-autonomous-internal-authority-v1.mjs",
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
