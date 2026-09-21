@@ -1406,6 +1406,9 @@ try {
   };
   expectSignedReceiptTamper((candidate) => { candidate.unexpected_top_level = true; }, 'RECEIPT_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { delete candidate.dispatch_gate; }, 'RECEIPT_FIELD_SET_MISMATCH');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.bound_role_id = 'program-owner'; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.accepted_domains = ['VISION_AND_GOALS']; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.parent_acceptance_substitution_allowed = true; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
   expectSignedReceiptTamper((candidate) => { candidate.authority_boundary.unexpected = false; }, 'AUTHORITY_BOUNDARY_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { candidate.authority_boundary.production = 'OPEN'; }, 'AUTHORITY_BOUNDARY_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { candidate.authority_boundary.production = isolatedNonce; }, 'RAW_NONCE_PRESENT_IN_RECEIPT');
@@ -1476,6 +1479,7 @@ console.log(JSON.stringify({
     'VERIFIER_ORIGIN_REJECTION',
     'DETACHED_HEAD_REMOTE_ATTESTATION_REJECTION',
     'EXACT_RECEIPT_FIELD_SET_REJECTION',
+    'CONSTITUTIONAL_ROLE_DOMAIN_AND_PARENT_SUBSTITUTION_TAMPER_REJECTION',
     'EXACT_AUTHORITY_BOUNDARY_REJECTION',
     'RAW_NONCE_PERSISTENCE_REJECTION',
     'TRUSTED_GIT_EVIDENCE_TAMPER_REJECTION',
