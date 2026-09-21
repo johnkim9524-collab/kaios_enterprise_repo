@@ -8,6 +8,7 @@ The supreme human-readable platform constitution is `CONSTITUTION.md`. Its Artic
 The authoritative machine implementation of the platform operating principles is `coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json`.
 The authoritative AI policy is `.github/AI_AGENT_OPERATING_RULES.md`.  
 The authoritative AI machine contract is `coordination/kidults/governance/ai-agent-operating-rules-v1.json`.  
+The mandatory delegated internal authority is `AI-020 / DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY`, defined by `docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md` and `coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json`; eligible reversible internal work requires distinct accountable Track-agent and KPMO approvals, while Production/Public/G5 and every Owner-reserved gate remain fail-closed.
 The authoritative Agent JD and accountability registry is `coordination/kidults/registry/roles-and-responsibilities.json`.
 The mandatory GitHub-source bootstrap contract is `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`.
 The mandatory fix-first bootstrap is `coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json`.
@@ -162,6 +163,10 @@ Every material status report must contain, in prose or a governed receipt:
 - `transparency_effect`
 
 If minimum evidence for a claimed state is missing, do not use that state; select the applicable governed state—`PLANNED`, `IMPLEMENTED_NOT_VERIFIED`, `BLOCKED`, `HOLD`, or `UNKNOWN`—and provide that state's required evidence.
+
+## Delegated autonomous internal authority
+
+Necessary repository-internal, reversible, rollback-bound, non-Production/non-Public/non-G5 development and operations SHALL proceed without routine Program Owner approval only under `AI-020`: distinct accountable Track-agent and KPMO approvals must bind the exact base SHA, head SHA, head tree, scope digest, tests, rollback, expiry, and single-use receipt. This decision delegation does not transfer accountability. Any external side effect, unknown classification, Owner-reserved action, drift, replay, missing evidence, or HOLD change fails closed and requires exact Program Owner authority.
 
 ## Autonomous execution rule
 

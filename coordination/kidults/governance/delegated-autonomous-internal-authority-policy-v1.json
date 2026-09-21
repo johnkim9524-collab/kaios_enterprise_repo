@@ -1,0 +1,53 @@
+{
+  "id": "AI-020",
+  "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "authority": "KPMO_PLATFORM_GOVERNANCE",
+  "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
+  "accountability_transfer": false,
+  "approval_quorum": {
+    "minimum": 2,
+    "roles": ["ACCOUNTABLE_TRACK_AGENT", "KPMO"],
+    "distinct_identities_required": true,
+    "self_approval_forbidden": true
+  },
+  "binding": {
+    "repository_required": true,
+    "base_sha_required": true,
+    "head_sha_required": true,
+    "head_tree_sha_required": true,
+    "scope_digest_required": true,
+    "test_evidence_required": true,
+    "rollback_plan_required": true,
+    "expiry_required": true,
+    "single_consumption_required": true,
+    "drift_invalidates": true
+  },
+  "delegated_actions": [
+    "INTERNAL_DESIGN", "CODE_IMPLEMENTATION", "BUG_FIX", "REFACTOR",
+    "TEST_AND_VALIDATION", "DOCUMENTATION", "REGISTRY_TRUTH_SYNC",
+    "INTERNAL_CI_RERUN", "STAGING_SHADOW_CANARY", "REVERSIBLE_RECOVERY",
+    "PULL_REQUEST_READY", "INTERNAL_REVERSIBLE_LANDING"
+  ],
+  "eligibility_all_required": [
+    "REPOSITORY_INTERNAL", "REVERSIBLE", "ROLLBACK_BOUND",
+    "NO_EXTERNAL_SIDE_EFFECT", "NO_OWNER_RESERVED_GATE",
+    "REQUIRED_CHECKS_GREEN", "EVIDENCE_RECEIPT_REQUIRED"
+  ],
+  "owner_reserved_actions": [
+    "PRODUCTION", "PUBLIC", "G5", "EXTERNAL_COMMUNICATION",
+    "EXTERNAL_SPEND", "CONTRACTUAL_COMMITMENT", "LEGAL_POLICY_EXCEPTION",
+    "IRREVERSIBLE_SECURITY_CHANGE", "CREDENTIAL_OR_PERMISSION_EXPANSION",
+    "SECRET_CREATE_READ_ROTATE_EXPORT", "TRUST_ROOT_OR_RULESET_WEAKENING",
+    "DESTRUCTIVE_DATA_OPERATION", "PROTECTED_PROMOTION_OR_RELEASE"
+  ],
+  "unknown_or_conflict": "FAIL_CLOSED_OWNER_REQUIRED",
+  "holds": {"production":"HOLD","public":"HOLD","g5":"HOLD"},
+  "principles": {
+    "autonomous_effect":"Removes routine Owner orchestration for eligible work.",
+    "global_effect":"Applies repository-wide across all Tracks.",
+    "irreplaceable_value_effect":"Keeps decisions, evidence and rollback knowledge platform-owned.",
+    "transparency_effect":"Requires exact-bound, auditable, single-use receipts."
+  }
+}
