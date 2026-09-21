@@ -7,6 +7,13 @@ const registry = readJson('coordination/kidults/registry/provider/records/provid
 const evidence = readJson('coordination/kidults/evidence/aws-offline-durability-receipt-2026-09-21-v1.json');
 const exactHeadSha = process.env.EXACT_HEAD_SHA || '6f38700fa439ea381777e4474e41c1478fda9b4a';
 
+if (evidence.status !== 'VERIFIED') {
+  throw new Error('AWS_DURABILITY_EVIDENCE_UNVERIFIED');
+}
+if (!Array.isArray(evidence.required_live_evidence) || evidence.required_live_evidence.length !== 0) {
+  throw new Error('AWS_LIVE_EVIDENCE_CLOSURE_MISSING');
+}
+
 const result = evaluateProviderAutonomousCycle({
   registry,
   providerId: 'PSA_PREMIUM',
