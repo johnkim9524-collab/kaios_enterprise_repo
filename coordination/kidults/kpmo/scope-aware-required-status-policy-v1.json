@@ -1,15 +1,10 @@
 {
   "id": "kidults-scope-aware-required-status-policy-v1",
-  "version": "1.1.0",
-  "status": "AUTONOMOUS_NORMAL_OPERATION_BOUND",
+  "version": "1.0.0",
+  "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
   "draft_development_status_context": "KIDULTS Draft Development Validation V1",
-  "landing_authority": {
-    "normal": "AUTONOMOUS_AGENT_QUORUM",
-    "normal_policy": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
-    "manual_owner": "RECOVERY_ONLY"
-  },
   "exact_head_required": true,
   "zero_diff_policy": "PASS_ONLY_WHEN_PULL_REQUEST_METADATA_COUNTS_ARE_BOTH_ZERO",
   "zero_coverage_policy": "FAIL_CLOSED",
