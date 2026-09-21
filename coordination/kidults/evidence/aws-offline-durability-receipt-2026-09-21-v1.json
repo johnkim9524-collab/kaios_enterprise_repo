@@ -1,32 +1,60 @@
 {
   "id": "KIDULTS_AWS_OFFLINE_DURABILITY_RECEIPT_2026_09_21_V1",
   "schema_version": "1.0.0",
-  "status": "BLOCKED_UNVERIFIED",
+  "status": "AWS_OBJECT_RESTORE_VERIFIED_OFFLINE_COPY_PENDING",
   "environment": "STAGING",
-  "verified_at": "2026-09-21T03:07:00Z",
+  "verified_at": "2026-09-21T10:48:52Z",
   "aws_region": "ap-northeast-2",
-  "kms_key_alias": "alias/kidults-durable-store",
-  "kms_signature_valid": false,
+  "aws_account_id": "528314240275",
+  "aws_caller_arn": "arn:aws:sts::528314240275:assumed-role/AWSReservedSSO_KIDULTS-Provisioning-Admin_b9864e815cd7866b/john-admin",
+  "bucket": "kidults-decade-durability-528314240275-apne2",
+  "kms_key_alias": "alias/kidults-decade-durability",
+  "kms_key_arn": "arn:aws:kms:ap-northeast-2:528314240275:key/87ffbc69-c8e3-45d9-b00b-1cf2785fcca9",
+  "kms_encryption_verified": true,
+  "kms_signature_valid": true,
+  "kms_signature": {
+    "schema": "kidults.offline-kms-receipt.v1",
+    "signed_at_utc": "2026-09-21T03:07:08Z",
+    "key_alias": "alias/kidults-durable-store",
+    "key_arn": "arn:aws:kms:ap-northeast-2:528314240275:key/6efed99a-63ba-4f8d-8a96-17db9c97e860",
+    "algorithm": "ED25519_SHA_512",
+    "message_type": "RAW",
+    "signed_message_encoding": "ASCII_HEX_SHA256",
+    "signature_b64": "jURIc2WtJg5MdAGHvKZWphmjLYTtqehbSpbaSz0kwkhw833HMT9nnfQDn1yljxYAIbvoEcAGaEXjeQFGI7gNBw==",
+    "public_key_der_b64": "MCowBQYDK2VwAyEA+qbrofoegdFxjOTPL+7awgYSHTdevV6oHyyZyh54hQM=",
+    "aws_kms_verify": true,
+    "independent_openssl_verify": true
+  },
   "object_lock": {
-    "mode": "UNVERIFIED",
-    "retention_until": null
+    "mode": "COMPLIANCE",
+    "retention_until": "2036-09-21T10:48:52.180000+00:00",
+    "delete_attempt_return_code": 254,
+    "delete_attempt_result": "ACCESS_DENIED_OBJECT_LOCK"
+  },
+  "restore_drill": {
+    "authorization_id": "AWS-IMMUTABLE-RESTORE-20260921-01",
+    "run_id": "20260921T104851Z-0a553c2f",
+    "object_key": "restore-drill/20260921T104851Z-0a553c2f/immutable-restore-receipt.json",
+    "version_id": "hCOeImjL41Y93VZtN.2O_gsU.zQU12pb",
+    "source_sha256": "39ff67f3dfe70351c177e7a295676323cc9daa750d9851b531d0b0f91ca0515d",
+    "restored_sha256": "39ff67f3dfe70351c177e7a295676323cc9daa750d9851b531d0b0f91ca0515d",
+    "hash_match": true,
+    "server_side_encryption": "aws:kms",
+    "status": "COMPLETE_VERIFIED",
+    "evidence_source": "PROGRAM_OWNER_CLOUDSHELL_TRANSCRIPT"
   },
   "manifest_sha256": "0fe1ffa1434fc6ec81a788d2c01b872132e256b887560e4c675043e091dff695",
-  "receipt_sha256": "08dbb2c437a9036f18d56b359e87a145481e60f3fe92adada2a4904286c6e0b8",
+  "receipt_sha256": "39ff67f3dfe70351c177e7a295676323cc9daa750d9851b531d0b0f91ca0515d",
   "offline_copy": {
     "copy_id": "COPY_A",
     "encryption": "BITLOCKER",
-    "restore_verification": "UNVERIFIED",
+    "restore_verification": "PENDING_PHYSICAL_MEDIA",
     "custody": "SAFELY_STORED"
   },
-  "truth_boundary": "Historical claim quarantined on 2026-09-21: no live AWS caller identity, bucket ARN, object version ID, retention API response, KMS verification response, or independently reproducible restore receipt was committed. Re-verification requires exact live AWS evidence.",
+  "truth_boundary": "Program Owner CloudShell evidence verifies one exact-version AWS S3 restore, byte equality, SSE-KMS encryption, COMPLIANCE retention, and deletion denial. The attached Ed25519 receipt independently verifies the manifest digest signature. USB Copy A is not presently connected, so its restore remains PENDING_PHYSICAL_MEDIA. Full offline-durability certification remains fail-closed until the USB restore and machine-readable AWS transcript proofs exist.",
   "required_live_evidence": [
-    "AWS_CALLER_IDENTITY",
-    "BUCKET_ARN_AND_ACCOUNT_BINDING",
-    "OBJECT_VERSION_ID",
-    "OBJECT_RETENTION_API_RESPONSE",
-    "KMS_VERIFY_API_RESPONSE",
-    "RESTORED_BYTES_SHA256_MATCH"
+    "USB_COPY_A_RESTORE_SHA256_MATCH",
+    "INDEPENDENT_MACHINE_READABLE_AWS_TRANSCRIPT"
   ],
   "holds": {
     "production": "HOLD",

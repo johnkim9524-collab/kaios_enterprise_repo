@@ -112,15 +112,28 @@ test('short retention and unregistered provider fail closed', () => {
   );
 });
 
-test('committed AWS durability claim remains quarantined until live proof exists', () => {
+test('AWS object restore and KMS signature proofs are bound while offline copy remains fail closed', () => {
   const evidence = JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/evidence/aws-offline-durability-receipt-2026-09-21-v1.json', import.meta.url), 'utf8'));
-  assert.equal(evidence.status, 'BLOCKED_UNVERIFIED');
-  assert.equal(evidence.kms_signature_valid, false);
-  assert.equal(evidence.object_lock.mode, 'UNVERIFIED');
-  assert.equal(evidence.object_lock.retention_until, null);
-  assert.equal(evidence.offline_copy.restore_verification, 'UNVERIFIED');
-  assert.ok(evidence.required_live_evidence.includes('OBJECT_VERSION_ID'));
-  assert.ok(evidence.required_live_evidence.includes('RESTORED_BYTES_SHA256_MATCH'));
+  assert.equal(evidence.status, 'AWS_OBJECT_RESTORE_VERIFIED_OFFLINE_COPY_PENDING');
+  assert.equal(evidence.aws_account_id, '528314240275');
+  assert.equal(evidence.bucket, 'kidults-decade-durability-528314240275-apne2');
+  assert.equal(evidence.kms_encryption_verified, true);
+  assert.equal(evidence.kms_signature_valid, true);
+  assert.equal(evidence.kms_signature.algorithm, 'ED25519_SHA_512');
+  assert.equal(evidence.kms_signature.aws_kms_verify, true);
+  assert.equal(evidence.kms_signature.independent_openssl_verify, true);
+  assert.equal(evidence.object_lock.mode, 'COMPLIANCE');
+  assert.equal(evidence.object_lock.retention_until, '2036-09-21T10:48:52.180000+00:00');
+  assert.equal(evidence.object_lock.delete_attempt_return_code, 254);
+  assert.equal(evidence.restore_drill.version_id, 'hCOeImjL41Y93VZtN.2O_gsU.zQU12pb');
+  assert.equal(evidence.restore_drill.source_sha256, evidence.restore_drill.restored_sha256);
+  assert.equal(evidence.restore_drill.hash_match, true);
+  assert.equal(evidence.restore_drill.status, 'COMPLETE_VERIFIED');
+  assert.equal(evidence.offline_copy.restore_verification, 'PENDING_PHYSICAL_MEDIA');
+  assert.deepEqual(evidence.required_live_evidence, [
+    'USB_COPY_A_RESTORE_SHA256_MATCH',
+    'INDEPENDENT_MACHINE_READABLE_AWS_TRANSCRIPT',
+  ]);
   const certification = spawnSync(process.execPath, ['scripts/certify-provider-autonomous-cycle-v1.mjs'], {
     cwd: new URL('..', import.meta.url), encoding: 'utf8',
   });

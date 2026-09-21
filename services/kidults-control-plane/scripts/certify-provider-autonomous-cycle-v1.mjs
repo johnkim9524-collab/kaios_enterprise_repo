@@ -10,7 +10,7 @@ const exactHeadSha = process.env.EXACT_HEAD_SHA || '6f38700fa439ea381777e4474e41
 if (evidence.status !== 'VERIFIED') {
   throw new Error('AWS_DURABILITY_EVIDENCE_UNVERIFIED');
 }
-if (!Array.isArray(evidence.required_live_evidence) || evidence.required_live_evidence.length < 6) {
+if (!Array.isArray(evidence.required_live_evidence) || evidence.required_live_evidence.length !== 0) {
   throw new Error('AWS_LIVE_EVIDENCE_CLOSURE_MISSING');
 }
 
