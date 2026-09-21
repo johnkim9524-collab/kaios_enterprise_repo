@@ -462,8 +462,8 @@ export function assertEvidenceReceipt(receipt, authority, {artifactId, artifactN
     && receipt?.recovery_status_before?.prior_status_count === 0,
   'RECOVERY_EVIDENCE_STATUS_BOUNDARY_INVALID');
   assert(receipt?.exact_merge?.sha === authority.manifest.predecessor_pull_request.merge_commit_sha
-    && receipt?.changed_file_classification?.count === 12
-    && receipt?.changed_file_classification?.current_sold_changed === false
+    && receipt?.changed_file_classification?.count === authority.manifest.predecessor_pull_request.changed_files
+    && receipt?.changed_file_classification?.current_sold_changed === authority.manifest.predecessor_pull_request.current_sold_changed
     && receipt?.postmerge_runs?.length === 2,
   'RECOVERY_EVIDENCE_PROOF_INVALID');
   assert(receipt?.status_write_authority === false && receipt?.status_write_performed === false
