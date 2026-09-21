@@ -212,7 +212,7 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'kidults.track.authorization.v1',
     'kidults.kpmo.authorization.v1',
     'kidults.independent.verification.v1',
-    'group: kidults-autonomous-internal-landing-v1-main',
+    'group: kidults-autonomous-internal-landing-main',
     'cancel-in-progress: false',
     'id-token: write',
     'checks: read',
