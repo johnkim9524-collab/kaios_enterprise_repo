@@ -10,6 +10,7 @@
     "validate:delegated-autonomous-authority": "node scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs",
     "test:delegated-autonomous-authority": "node --test tests/governance/delegated-autonomous-internal-authority-v1.test.mjs",
     "consume:delegated-autonomous-authority": "node scripts/governance/consume-delegated-autonomous-internal-authority-v1.mjs",
+    "test:first-autonomous-cycle": "node --test tests/governance/first-autonomous-normal-cycle-v1.test.mjs",
     "validate:market-event": "node scripts/kidults/poc/validate-market-event-schema-v1.mjs",
     "validate:control-plane": "npm --prefix services/kidults-control-plane run validate && npm --prefix services/kidults-control-plane test",
     "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",
