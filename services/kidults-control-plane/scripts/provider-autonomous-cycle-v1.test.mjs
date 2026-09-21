@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { evaluateProviderAutonomousCycle } from '../src/provider-autonomous-cycle.mjs';
+import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 const exactHeadSha = '6f38700fa439ea381777e4474e41c1478fda9b4a';
 const evaluatedAt = '2026-09-21T03:30:00.000Z';
@@ -108,4 +110,20 @@ test('short retention and unregistered provider fail closed', () => {
     () => evaluate({ providerId: 'UNKNOWN' }),
     /PROVIDER_NOT_REGISTERED/
   );
+});
+
+test('committed AWS durability claim remains quarantined until live proof exists', () => {
+  const evidence = JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/evidence/aws-offline-durability-receipt-2026-09-21-v1.json', import.meta.url), 'utf8'));
+  assert.equal(evidence.status, 'BLOCKED_UNVERIFIED');
+  assert.equal(evidence.kms_signature_valid, false);
+  assert.equal(evidence.object_lock.mode, 'UNVERIFIED');
+  assert.equal(evidence.object_lock.retention_until, null);
+  assert.equal(evidence.offline_copy.restore_verification, 'UNVERIFIED');
+  assert.ok(evidence.required_live_evidence.includes('OBJECT_VERSION_ID'));
+  assert.ok(evidence.required_live_evidence.includes('RESTORED_BYTES_SHA256_MATCH'));
+  const certification = spawnSync(process.execPath, ['scripts/certify-provider-autonomous-cycle-v1.mjs'], {
+    cwd: new URL('..', import.meta.url), encoding: 'utf8',
+  });
+  assert.notEqual(certification.status, 0);
+  assert.match(certification.stderr, /AWS_DURABILITY_EVIDENCE_UNVERIFIED/);
 });
