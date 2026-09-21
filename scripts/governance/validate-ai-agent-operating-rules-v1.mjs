@@ -9,6 +9,12 @@ const files = {
   copilot: '.github/copilot-instructions.md',
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
   githubBootstrapContract: 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json',
+  readiness: 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json',
+  constitution: 'CONSTITUTION.md',
+  charter: 'docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md',
+  agci: 'coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md',
+  behavior: 'coordination/kidults/kpmo/autonomous-intelligence-behavior-control-v1.json',
+  valueGate: 'coordination/kidults/governance/autonomous-global-irreplaceable-value-gate-v1.json',
   githubBootstrapEntrypoint: 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs',
   githubBootstrapValidator: 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs',
   githubBootstrapVerifier: 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs',
@@ -38,6 +44,12 @@ const policy = readText(files.policy);
 const copilot = readText(files.copilot);
 const contract = readJson(files.contract);
 const githubBootstrapContract = readJson(files.githubBootstrapContract);
+const readiness = readJson(files.readiness);
+const constitution = readText(files.constitution);
+const charter = readText(files.charter);
+const agci = readText(files.agci);
+const behavior = readJson(files.behavior);
+const valueGate = readJson(files.valueGate);
 const platform = readJson(files.platform);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
@@ -102,7 +114,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.4.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.5.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
@@ -378,7 +390,31 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.1.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.2.0', 'ROLE_REGISTRY_VERSION');
+assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1', 'READINESS_ID');
+assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
+assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');
+assert(readiness.pre_dispatch_attestation?.assigned_role_resolved_from_registry === true, 'READINESS_ROLE_RESOLUTION');
+assert(readiness.pre_dispatch_attestation?.all_reading_domains_acknowledged === true, 'READINESS_ACKNOWLEDGEMENT');
+assert(readiness.pre_dispatch_attestation?.self_attestation_without_independent_receipt_verification_is_sufficient === false, 'READINESS_SELF_ATTESTATION');
+assert(readiness.enforcement?.missing_or_invalid_attestation === 'DISPATCH_DENIED', 'READINESS_DISPATCH_DENIAL');
+assert(readiness.enforcement?.material_or_repeated_violation === 'REMOVE_FROM_ACTIVE_TASK_DISABLE_NEW_DISPATCH_AND_REPLACE_AGENT', 'READINESS_REPLACEMENT');
+assert(readiness.enforcement?.kpmo_self_exemption_allowed === false, 'READINESS_KPMO_SELF_EXEMPTION');
+assert(readiness.enforcement?.production === 'HOLD' && readiness.enforcement?.public_release === 'HOLD' && readiness.enforcement?.g5 === 'HOLD', 'READINESS_HOLDS');
+assert(constitution.includes('## Pre-Work Constitutional Readiness'), 'CONSTITUTION_READINESS_ARTICLE');
+assert(charter.includes('## 4. Autonomous intelligence conduct'), 'CHARTER_AUTONOMOUS_CONDUCT');
+assert(charter.includes('## 5. Role covenant'), 'CHARTER_ROLE_COVENANT');
+assert(charter.includes('## 6. Working attitude'), 'CHARTER_WORKING_ATTITUDE');
+assert(charter.includes('## 9. Fail-closed enforcement and replacement'), 'CHARTER_REPLACEMENT');
+assert(agci.includes('Autonomous Global Collectibles Intelligence Operating System'), 'AGCI_OFFICIAL_PRODUCT');
+assert(agci.includes('## 4. Autonomous Operating Loop'), 'AGCI_OPERATING_LOOP');
+assert(behavior.primary_kpi?.id === 'VERIFIED_INTELLIGENCE_SURFACE', 'AUTONOMOUS_BEHAVIOR_PRIMARY_KPI');
+assert(behavior.production === 'HOLD' && behavior.public === 'HOLD', 'AUTONOMOUS_BEHAVIOR_HOLDS');
+assert(valueGate.regression_policy?.any_fail === 'P0_CORRECTIVE_ACTION', 'VALUE_GATE_CORRECTIVE_ACTION');
+assert(valueGate.production === 'HOLD', 'VALUE_GATE_PRODUCTION_HOLD');
+assert(roles.constitutional_readiness?.manifest === files.readiness, 'ROLE_READINESS_MANIFEST');
+assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true, 'ROLE_READINESS_PREWORK');
+assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'ROLE_READINESS_REPLACEMENT');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'ROLE_REGISTRY_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ROLE_REGISTRY_AI_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'ROLE_REGISTRY_KPMO_SCOPE');

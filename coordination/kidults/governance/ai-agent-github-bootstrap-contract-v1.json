@@ -1,7 +1,7 @@
 {
   "id": "kidults-ai-agent-github-bootstrap-contract-v1",
-  "version": "1.4.0",
-  "change_rationale": "Bind the KPMO-inclusive AI-019 accountability and non-delegation rule plus the Agent JD registry into the exact committed pre-dispatch trust closure while preserving external exact-SHA binding, receipt integrity, worktree continuity, and protected authority boundaries.",
+  "version": "1.5.0",
+  "change_rationale": "Bind constitutional readiness covering vision and goals, operating principles, AI governance, assigned JD and role, and working attitude into the exact committed pre-dispatch trust closure; deny dispatch and require quarantine or replacement when readiness is absent or materially violated.",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -23,6 +23,12 @@
   "trust_model": {
     "contract_is_first_document": true,
     "required_documents_are_read_from_exact_head_git_blobs": true,
+    "constitutional_readiness_manifest_is_mandatory": true,
+    "assigned_role_must_be_resolved_and_accepted_before_dispatch": true,
+    "agent_class_must_resolve_to_one_registered_role": true,
+    "readiness_receipt_must_bind_manifest_role_registry_role_mission_domains_jd_fields_task_session_nonce_and_sha": true,
+    "parent_attestation_may_replace_child_attestation": false,
+    "missing_or_invalid_readiness_denies_dispatch": true,
     "agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document": true,
     "worktree_copies_of_trust_files_must_match_exact_head": true,
     "symlinks_and_non_regular_trust_files_are_rejected": true,
@@ -64,61 +70,91 @@
     },
     {
       "order": 2,
+      "path": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
+      "purpose": "CONSTITUTIONAL_READINESS_AND_ROLE_ACCEPTANCE_GATE"
+    },
+    {
+      "order": 3,
+      "path": "CONSTITUTION.md",
+      "purpose": "HUMAN_READABLE_SUPREME_CONSTITUTION"
+    },
+    {
+      "order": 4,
+      "path": "docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md",
+      "purpose": "AGENT_CONSTITUTIONAL_CHARTER"
+    },
+    {
+      "order": 5,
+      "path": "coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md",
+      "purpose": "AUTONOMOUS_OS_VISION_AND_ARCHITECTURE"
+    },
+    {
+      "order": 6,
+      "path": "coordination/kidults/kpmo/autonomous-intelligence-behavior-control-v1.json",
+      "purpose": "AUTONOMOUS_INTELLIGENCE_BEHAVIOR"
+    },
+    {
+      "order": 7,
+      "path": "coordination/kidults/governance/autonomous-global-irreplaceable-value-gate-v1.json",
+      "purpose": "AUTONOMOUS_GLOBAL_IRREPLACEABLE_VALUE_GATE"
+    },
+    {
+      "order": 8,
       "path": "package.json",
       "purpose": "BOOTSTRAP_PACKAGE_COMMAND"
     },
     {
-      "order": 3,
+      "order": 9,
       "path": "AGENTS.md",
       "purpose": "ROOT_REPOSITORY_INSTRUCTIONS"
     },
     {
-      "order": 4,
+      "order": 10,
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "purpose": "HUMAN_READABLE_AI_POLICY"
     },
     {
-      "order": 5,
+      "order": 11,
       "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
       "purpose": "PLATFORM_CONSTITUTION"
     },
     {
-      "order": 6,
+      "order": 12,
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "purpose": "AI_MACHINE_CONTRACT"
     },
     {
-      "order": 7,
+      "order": 13,
       "path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
       "purpose": "FIX_FIRST_BOOTSTRAP_SEQUENCE"
     },
     {
-      "order": 8,
+      "order": 14,
       "path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
       "purpose": "REPORT_AFTER_REMEDIATION_GATE"
     },
     {
-      "order": 9,
+      "order": 15,
       "path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
       "purpose": "CANONICAL_STATUS_RECEIPT_SCHEMA"
     },
     {
-      "order": 10,
+      "order": 16,
       "path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
       "purpose": "GOVERNANCE_SYSTEM_OF_RECORD"
     },
     {
-      "order": 11,
+      "order": 17,
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "purpose": "AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY"
     },
     {
-      "order": 12,
+      "order": 18,
       "path": "coordination/kidults/bootstrap/README.md",
       "purpose": "TRACK_AND_ROLE_STARTUP_ROUTER"
     },
     {
-      "order": 13,
+      "order": 19,
       "path": ".github/copilot-instructions.md",
       "purpose": "GITHUB_AGENT_ADAPTER"
     }
@@ -228,6 +264,7 @@
     "trusted_git",
     "committed_documents",
     "bootstrap_artifacts",
+    "constitutional_readiness",
     "dispatch_gate",
     "authority_boundary",
     "receipt_digest"
@@ -245,6 +282,8 @@
     "expected_sha_must_equal_working_sha": true,
     "expected_sha_match_state_must_be_true": true,
     "verified_result_must_bind_same_agent_task_session_nonce_and_sha": true,
+    "constitutional_readiness_binding_required": true,
+    "constitutional_readiness_must_be_independently_verified": true,
     "missing_invalid_expired_or_replayed_behavior": "REJECT_TASK_DISPATCH"
   },
   "inheritance": {

@@ -30,6 +30,12 @@ This policy applies to all AI-driven activity in the repository, including:
 
 All child-agent rules inherit this policy. A local instruction may be stricter but may not weaken it.
 
+### 2.0 Constitutional readiness before any work
+
+Every KPMO, Track agent, child agent, reviewer, operator, and dispatcher must read and accept `docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md` and satisfy `coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json` before task analysis or execution. The exact committed `HEAD` reading set is mandatory: platform vision and goals; operating principles; AI governance; the assigned JD and role; and working attitude. The bound agent must explicitly accept its role mission, authority limits, outputs, prohibitions, success measures, and reporting cadence. Prior-session, parent, cached, chat-only, or unverified acknowledgement is not transferable.
+
+If readiness is missing, stale, incomplete, role-mismatched, or unconsumed, dispatch is denied and any resulting output is rejected. A confirmed material or repeated violation requires immediate task removal, dispatch disablement, evidence preservation, and replacement through a newly bootstrapped accountable identity. No removed identity may self-adjudicate or approve its replacement, and KPMO may not self-exempt. Machine checks prove loading, binding, acceptance, and receipt consumption—not human-like comprehension.
+
 ### 2.1 GitHub canonical source bootstrap
 
 Before task analysis or execution, every AI or model agent instance and every automation or workflow that dispatches one must pass the registered GitHub bootstrap entrypoint and independent receipt verifier. The pre-dispatch trust closure includes `coordination/kidults/registry/roles-and-responsibilities.json`, so the assigned Agent JD and KPMO-inclusive `AI-019` accountability rule must be loaded from the exact committed `HEAD` blob before dispatch. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents. The controlling contract is `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`.
