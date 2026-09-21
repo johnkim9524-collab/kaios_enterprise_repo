@@ -274,7 +274,8 @@ negativeControls.push("runtime-clock-expiry-invalidates-as-of-pass");
 
 const futureSnapshotOutput = structuredClone(first);
 futureSnapshotOutput.generated_at = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureSnapshotOutput, "2026-08-19T12:00:00Z"),
+const validationClockAfterSnapshot = new Date(Date.parse(first.generated_at) + (12 * 60 * 60 * 1000)).toISOString();
+assert.throws(() => assertRuntimeFreshness(futureSnapshotOutput, validationClockAfterSnapshot),
   /Compiled review snapshot is after the runtime validation clock/,
   "Runtime clock must reject a future compiled review snapshot");
 negativeControls.push("runtime-clock-rejects-future-review-snapshot");
@@ -284,7 +285,7 @@ const futureEvidencePackage = futureEvidenceOutput.review_observations
   .flatMap(source => source.purpose_packages)
   .find(pkg => pkg.decision === "PASS");
 futureEvidencePackage.evidence_observed_at_max = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-08-19T12:00:00Z"),
+assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, validationClockAfterSnapshot),
   /PASS evidence observation is after the runtime validation clock/,
   "Runtime clock must reject a future PASS evidence observation");
 negativeControls.push("runtime-clock-rejects-future-evidence-observation");
