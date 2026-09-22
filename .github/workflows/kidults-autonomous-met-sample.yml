@@ -2,6 +2,8 @@ name: KIDULTS Autonomous Met Open Access Sample
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '30 22 * * *'
 
 permissions:
   contents: read

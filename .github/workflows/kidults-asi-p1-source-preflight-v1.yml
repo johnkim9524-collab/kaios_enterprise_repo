@@ -2,6 +2,13 @@ name: KIDULTS ASI P1 Source Preflight v1
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '52 * * * *'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'
+    branches: [main]
+    types: [completed]
 
 permissions:
   contents: read
@@ -15,7 +22,7 @@ concurrency:
 
 jobs:
   source-preflight:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
