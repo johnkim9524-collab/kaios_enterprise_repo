@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,evaluateProducer,evaluateHealth,selectProducerGeneration} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 
 // Synthetic API metadata. The payload is a native tracked control snapshot;
@@ -140,4 +140,86 @@ test('offline actual CLI with one verified producer and three missing remains HO
 test('offline actual CLI consumes complete bounded pagination without losing prior RED history',()=>{
  const {receipt}=offlineCli('valid-paginated');assert.equal(receipt.state,'VERIFIED_HOLD');
  const producer=receipt.producers.find(x=>x.id==='SHADOW');assert.equal(producer.state,'VERIFIED_PASS');assert.equal(producer.superseded_red_run_ids.length,100);
+});
+
+const canonicalSpec=SPECS.find(candidate=>candidate.id==='CANONICAL_TRUTH');
+function canonicalRun(id,{event='workflow_run',status='completed',conclusion='success',created='2026-09-05T10:01:00Z',sha=sourceSha,attempt=1}={}){
+ return {id,run_attempt:attempt,repository:{full_name:REPOSITORY},path:canonicalSpec.path,head_branch:'main',head_sha:sha,event,status,conclusion,created_at:created,run_started_at:created};
+}
+function generationRun(id,{event='push',status='completed',conclusion='success',created='2026-09-05T10:00:00Z',sha=sourceSha,attempt=1}={}){
+ return {id,run_attempt:attempt,repository:{full_name:REPOSITORY},path:CANONICAL_GENERATION_SPEC.path,head_branch:'main',head_sha:sha,event,status,conclusion,created_at:created,run_started_at:created};
+}
+
+test('canonical convergence: push Truth failure waits while exact generation is running',()=>{
+ const truth=[canonicalRun(20,{event:'push',conclusion:'failure',created:'2026-09-05T10:00:00Z'})];
+ const generation=[generationRun(30,{status:'in_progress',conclusion:null})];
+ const x=classifyCanonicalConvergence(generation,truth,sourceSha,observed);
+ assert.equal(x.state,'VERIFIED_HOLD');assert.equal(x.failure_class,'WAITING_FOR_CANONICAL_GENERATION');
+});
+test('canonical convergence: successful generation waits for its workflow_run consumer',()=>{
+ const x=classifyCanonicalConvergence([generationRun(30)],[],sourceSha,observed);
+ assert.equal(x.state,'VERIFIED_HOLD');assert.equal(x.failure_class,'WAITING_FOR_CANONICAL_CONSUMER');
+});
+test('canonical convergence: exact generation then workflow_run Truth becomes content-validation ready',()=>{
+ const truth=[
+  canonicalRun(20,{event:'push',conclusion:'failure',created:'2026-09-05T10:00:00Z'}),
+  canonicalRun(31),
+  canonicalRun(40,{event:'workflow_dispatch',created:'2026-09-05T10:02:00Z'}),
+ ];
+ const x=classifyCanonicalConvergence([generationRun(30)],truth,sourceSha,observed);
+ assert.equal(x.state,'READY_FOR_CONTENT_VALIDATION');assert.equal(x.generation.id,30);assert.equal(x.consumer.id,31);
+ assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[20,31]);
+});
+
+test('canonical convergence: terminal generation failure is preserved as fail-closed',()=>{
+ const x=classifyCanonicalConvergence([generationRun(30,{conclusion:'failure'})],[],sourceSha,observed);
+ assert.equal(x.state,'VERIFIED_FAIL');assert.equal(x.failure_class,'CANONICAL_GENERATION_FAILURE');
+});
+test('canonical convergence: exact content lineage rejects wrong run, attempt, or SHA binding',()=>{
+ const gen=generationRun(30);
+ const good=`kpmo-canonical-v3-${sourceSha.slice(0,12)}-30-1`;
+ assert.equal(validateCanonicalGenerationLineage(good,gen,sourceSha),true);
+ for(const bad of [
+  `kpmo-canonical-v3-${sourceSha.slice(0,12)}-29-1`,
+  `kpmo-canonical-v3-${sourceSha.slice(0,12)}-30-2`,
+  `kpmo-canonical-v3-${'b'.repeat(12)}-30-1`,
+ ])assert.throws(()=>validateCanonicalGenerationLineage(bad,gen,sourceSha),/CANONICAL_GENERATION_LINEAGE_MISMATCH/);
+});
+test('canonical convergence: unrelated later Truth success cannot substitute for workflow_run consumer',()=>{
+ const truth=[
+  canonicalRun(20,{event:'push',conclusion:'failure',created:'2026-09-05T10:00:00Z'}),
+  canonicalRun(40,{event:'workflow_dispatch',conclusion:'success',created:'2026-09-05T10:02:00Z'}),
+ ];
+ const x=classifyCanonicalConvergence([generationRun(30)],truth,sourceSha,observed);
+ assert.equal(x.state,'VERIFIED_HOLD');assert.equal(x.failure_class,'WAITING_FOR_CANONICAL_CONSUMER');
+});
+
+test('canonical convergence: bounded wait times out instead of hanging or promoting an older result',async()=>{
+ let clock=Date.parse('2026-09-05T10:00:00Z');
+ const generation=[generationRun(30,{status:'in_progress',conclusion:null})];
+ const truth=[canonicalRun(20,{event:'push',conclusion:'failure',created:'2026-09-05T10:00:00Z'})];
+ const loadRuns=async(_repo,spec)=>spec.id==='CANONICAL_GENERATION'?generation:truth;
+ await assert.rejects(
+  waitForCanonicalConvergence(REPOSITORY,sourceSha,'SYNTHETIC_NEVER_TRANSMITTED',{
+   maxWaitMs:50,pollMs:1,loadRuns,now:()=>clock,sleep:async()=>{clock+=51;},
+  }),
+  /CANONICAL_CONVERGENCE_TIMEOUT/,
+ );
+});
+
+test('canonical convergence: PR 2290 natural race fixture selects the converged consumer, never the startup failure',()=>{
+ const incidentSha='820a226abd28c662f211c87dc9e48f350f6bbe03';
+ const generation=[generationRun(35668619197,{sha:incidentSha,created:'2026-09-21T23:40:18Z'})];
+ const truth=[
+  canonicalRun(35668619160,{sha:incidentSha,event:'push',conclusion:'failure',created:'2026-09-21T23:40:18Z'}),
+  canonicalRun(35668695381,{sha:incidentSha,event:'workflow_run',created:'2026-09-21T23:41:18Z'}),
+ ];
+ const x=classifyCanonicalConvergence(generation,truth,incidentSha,'2026-09-21T23:42:00Z');
+ assert.equal(x.state,'READY_FOR_CONTENT_VALIDATION');assert.equal(x.generation.id,35668619197);assert.equal(x.consumer.id,35668695381);
+ assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[35668619160,35668695381]);
+});
+test('canonical convergence: runtime wait budget stays bound to the post-merge policy',()=>{
+ const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'));
+ assert.equal(CANONICAL_CONVERGENCE_MAX_WAIT_MS,policy.max_wait_seconds*1000);
+ assert.equal(CANONICAL_CONVERGENCE_POLL_MS,policy.poll_interval_seconds*1000);
 });
