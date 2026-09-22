@@ -1,0 +1,190 @@
+TAP version 13
+# Subtest: exact 12-field event contract accepts a fully bound terminal event
+ok 1 - exact 12-field event contract accepts a fully bound terminal event
+  ---
+  duration_ms: 1.665603
+  type: 'test'
+  ...
+# Subtest: event contract rejects missing evidence, extra fields and invalid holds-by-omission claims
+ok 2 - event contract rejects missing evidence, extra fields and invalid holds-by-omission claims
+  ---
+  duration_ms: 0.503289
+  type: 'test'
+  ...
+# Subtest: normal autonomous tick records exactly one verified terminal evidence binding
+ok 3 - normal autonomous tick records exactly one verified terminal evidence binding
+  ---
+  duration_ms: 3.902313
+  type: 'test'
+  ...
+# Subtest: duplicate concurrent lease is suppressed
+ok 4 - duplicate concurrent lease is suppressed
+  ---
+  duration_ms: 0.353946
+  type: 'test'
+  ...
+# Subtest: expired worker lease is recovered on the next tick
+ok 5 - expired worker lease is recovered on the next tick
+  ---
+  duration_ms: 0.539098
+  type: 'test'
+  ...
+# Subtest: provider timeout retries are bounded and end in quarantine
+ok 6 - provider timeout retries are bounded and end in quarantine
+  ---
+  duration_ms: 0.38911
+  type: 'test'
+  ...
+# Subtest: upload failure never records success and remains evidence pending
+ok 7 - upload failure never records success and remains evidence pending
+  ---
+  duration_ms: 0.536454
+  type: 'test'
+  ...
+# Subtest: signature failure never records success
+ok 8 - signature failure never records success
+  ---
+  duration_ms: 0.689242
+  type: 'test'
+  ...
+# Subtest: readback corruption never records success
+ok 9 - readback corruption never records success
+  ---
+  duration_ms: 0.584886
+  type: 'test'
+  ...
+# Subtest: stale worker cannot transition after lease generation is reacquired
+ok 10 - stale worker cannot transition after lease generation is reacquired
+  ---
+  duration_ms: 0.745266
+  type: 'test'
+  ...
+# Subtest: git bundle automation exact-binds ref, signs, uploads and verifies readback
+ok 11 - git bundle automation exact-binds ref, signs, uploads and verifies readback
+  ---
+  duration_ms: 536.718826
+  type: 'test'
+  ...
+# Subtest: git bundle automation fails before creation on protected SHA drift
+ok 12 - git bundle automation fails before creation on protected SHA drift
+  ---
+  duration_ms: 27.359756
+  type: 'test'
+  ...
+# Subtest: schema preserves history and requires explicit legacy migration
+ok 13 - schema preserves history and requires explicit legacy migration
+  ---
+  duration_ms: 0.725914
+  type: 'test'
+  ...
+# Subtest: acquisition uses server clock and exact TTL, never caller time
+ok 14 - acquisition uses server clock and exact TTL, never caller time
+  ---
+  duration_ms: 0.947179
+  type: 'test'
+  ...
+# Subtest: stale or expired transition rejects empty admission in one statement
+ok 15 - stale or expired transition rejects empty admission in one statement
+  ---
+  duration_ms: 0.466804
+  type: 'test'
+  ...
+# Subtest: atomic SQL failure propagates without cross-connection transaction commands
+ok 16 - atomic SQL failure propagates without cross-connection transaction commands
+  ---
+  duration_ms: 0.221393
+  type: 'test'
+  ...
+# Subtest: release checks exact fencing token and never extends expiry
+ok 17 - release checks exact fencing token and never extends expiry
+  ---
+  duration_ms: 0.159942
+  type: 'test'
+  ...
+# Subtest: invalid generation rejects before SQL
+ok 18 - invalid generation rejects before SQL
+  ---
+  duration_ms: 0.92365
+  type: 'test'
+  ...
+# Subtest: invalid transition state cannot mutate the ledger
+ok 19 - invalid transition state cannot mutate the ledger
+  ---
+  duration_ms: 0.193776
+  type: 'test'
+  ...
+# Subtest: invalid TTL rejects before SQL
+ok 20 - invalid TTL rejects before SQL
+  ---
+  duration_ms: 0.16015
+  type: 'test'
+  ...
+# Subtest: valid dual-key rights request is admitted only to shadow
+ok 21 - valid dual-key rights request is admitted only to shadow
+  ---
+  duration_ms: 1.117992
+  type: 'test'
+  ...
+# Subtest: one-sided approval is denied
+ok 22 - one-sided approval is denied
+  ---
+  duration_ms: 0.143186
+  type: 'test'
+  ...
+# Subtest: same actor cannot satisfy A/Z separation
+ok 23 - same actor cannot satisfy A/Z separation
+  ---
+  duration_ms: 0.129119
+  type: 'test'
+  ...
+# Subtest: expired rights are quarantined
+ok 24 - expired rights are quarantined
+  ---
+  duration_ms: 0.139413
+  type: 'test'
+  ...
+# Subtest: approval consumption is single-use
+ok 25 - approval consumption is single-use
+  ---
+  duration_ms: 0.139965
+  type: 'test'
+  ...
+# Subtest: provider kill switch produces zero broker fetches
+ok 26 - provider kill switch produces zero broker fetches
+  ---
+  duration_ms: 0.185391
+  type: 'test'
+  ...
+# Subtest: Production, Public or G5 boundary weakening is denied
+ok 27 - Production, Public or G5 boundary weakening is denied
+  ---
+  duration_ms: 0.1638
+  type: 'test'
+  ...
+# Subtest: broker uses deterministic fixture without external network
+ok 28 - broker uses deterministic fixture without external network
+  ---
+  duration_ms: 0.156118
+  type: 'test'
+  ...
+# Subtest: broker rejects caller-controlled network configuration and direct-network arguments
+ok 29 - broker rejects caller-controlled network configuration and direct-network arguments
+  ---
+  duration_ms: 0.36337
+  type: 'test'
+  ...
+# Subtest: literal ALLOW_SHADOW strings cannot drive the broker
+ok 30 - literal ALLOW_SHADOW strings cannot drive the broker
+  ---
+  duration_ms: 0.182911
+  type: 'test'
+  ...
+1..30
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2328.620365

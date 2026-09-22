@@ -1,0 +1,81 @@
+{
+  "id": "kpmo-2289-local-linux-postgres-canary-v1",
+  "observed_at": "2026-09-22T08:57:47.584Z",
+  "candidate_commit": "06d2515ecc7e0ecefd5fd96a7df9c01990c3ed98",
+  "base_commit": "4193569f0229cced6da89eb6214f0ab413361a45",
+  "engine": "PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "node": "v24.21.0",
+  "test_count": 13,
+  "passed": 13,
+  "failed": 0,
+  "findings": [
+    {
+      "name": "eight_workers_one_lease",
+      "state": "PASS"
+    },
+    {
+      "name": "repeated_retry_states_append",
+      "state": "PASS"
+    },
+    {
+      "name": "expired_worker_rejected_without_reacquisition",
+      "state": "PASS"
+    },
+    {
+      "name": "caller_future_clock_cannot_steal_lease",
+      "state": "PASS"
+    },
+    {
+      "name": "stale_generation_and_release_rejected",
+      "state": "PASS"
+    },
+    {
+      "name": "concurrent_terminal_writes_have_one_winner",
+      "state": "PASS"
+    },
+    {
+      "name": "expiry_rechecked_after_lock_wait",
+      "state": "PASS"
+    },
+    {
+      "name": "terminal_append_failure_rolls_back_lease_mutation",
+      "state": "PASS"
+    },
+    {
+      "name": "runtime_real_postgres_two_retries_then_terminal",
+      "state": "PASS"
+    },
+    {
+      "name": "ledger_failure_does_not_repeat_successful_fetch",
+      "state": "PASS"
+    },
+    {
+      "name": "abrupt_worker_exit_then_recovery_preserves_fencing",
+      "state": "PASS"
+    },
+    {
+      "name": "legacy_schema_requires_explicit_migration_without_data_loss",
+      "state": "PASS"
+    },
+    {
+      "name": "three_postgres_runtime_cycles_have_readback_receipts",
+      "state": "PASS"
+    }
+  ],
+  "digests": {
+    "../../../scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs": "9e8ea7f1b92176720405cd5b688da24b77599742d34371dd5d036d602e5c1282",
+    "../../../scripts/kidults/staging-operations/lib/autonomous-runtime-v1.mjs": "84cf3554a2c324a34d7a272da30ceec89868bbfea65a5036dd57c4cd28b9304b",
+    "./postgres-live-canary-v1.mjs": "09ae395afd7b697f1443ac251b677cc35b350da0934000139dab1a1000215dec",
+    "./postgres-live-deps/npm-shrinkwrap.json": "b117681843f0589299588d58aaa8452333c9e0aaa5ddc6927583083ae309dc41"
+  },
+  "postgres": "REAL_ISOLATED_LINUX_DATABASE",
+  "approval_authority": "TEST_STUB_NOT_VERIFIED",
+  "durability": "LOCAL_MOCK_IMMUTABLE_STORE_NOT_AWS",
+  "aws_live_executed": false,
+  "external_provider_requests": 0,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "state": "VERIFIED_PASS_LOCAL_POSTGRES_ONLY",
+  "receipt_digest": "d733806b72a3d8391d067b96520867a101f30eabe058ff1ea81563af185daa2c"
+}
