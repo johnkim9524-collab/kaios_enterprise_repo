@@ -3,13 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { canonical, sha256 } from './canonical-v1.mjs';
 
-export const buildGitBundleManifest = ({ repositoryRoot, ref, expectedSha, outputDirectory, signer, verifier, immutableStore }) => {
-  const actualSha = execFileSync('/usr/bin/git', ['-C', repositoryRoot, 'rev-parse', ref], { encoding: 'utf8' }).trim();
+export const buildGitBundleManifest = ({ repositoryRoot, ref, expectedSha, outputDirectory, signer, verifier, immutableStore, gitExecutable = process.env.KIDULTS_GIT_EXECUTABLE || 'git' }) => {
+  const actualSha = execFileSync(gitExecutable, ['-C', repositoryRoot, 'rev-parse', ref], { encoding: 'utf8' }).trim();
   if (actualSha !== expectedSha) throw new Error('PROTECTED_MAIN_SHA_MISMATCH');
   fs.mkdirSync(outputDirectory, { recursive: true });
   const bundlePath = path.join(outputDirectory, 'repository.bundle');
-  execFileSync('/usr/bin/git', ['-C', repositoryRoot, 'bundle', 'create', bundlePath, ref]);
-  execFileSync('/usr/bin/git', ['bundle', 'verify', bundlePath], { stdio: ['ignore', 'ignore', 'pipe'] });
+  execFileSync(gitExecutable, ['-C', repositoryRoot, 'bundle', 'create', bundlePath, ref]);
+  execFileSync(gitExecutable, ['bundle', 'verify', bundlePath], { stdio: ['ignore', 'ignore', 'pipe'] });
   const bundle = fs.readFileSync(bundlePath);
   const manifest = {
     format: 'kidults-git-bundle-manifest-v1', ref, protected_sha: actualSha,
