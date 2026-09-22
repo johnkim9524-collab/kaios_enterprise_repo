@@ -1,5 +1,3 @@
-[Reading 229 lines from start (total: 229 lines, 0 remaining)]
-
 name: KIDULTS Autonomous Independent Verification V1
 run-name: "KIDULTS Autonomous Independent Verification V1 ${{ github.event.action }}"
 
@@ -227,5 +225,3 @@ jobs:
           echo 'PRODUCTION=HOLD'
           echo 'PUBLIC=HOLD'
           echo 'G5=HOLD'
-
-[executed on device: DESKTOP-TA3GFEP (3d20d44d-d529-46b0-b796-9a006b6f49bd)]
