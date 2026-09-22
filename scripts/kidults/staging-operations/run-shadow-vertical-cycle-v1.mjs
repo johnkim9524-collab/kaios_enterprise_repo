@@ -26,8 +26,11 @@ const ledger = new MemoryTransitionLedger();
 const store = new MockImmutableStore();
 const keys = deterministicFixtureEd25519();
 const results = [];
+const brokers = [];
 for (let index = 1; index <= 3; index += 1) {
   const taskId = `shadow-cycle-${index}`;
+  const broker = new ShadowFetchBroker({ fixture: { record_id: `fixture-${index}`, synthetic: true } });
+  brokers.push(broker);
   const runtime = new AutonomousRuntime({
     now: () => nowMs + index,
     ledger,
@@ -35,7 +38,7 @@ for (let index = 1; index <= 3; index += 1) {
       now: () => nowMs + index,
       providers: [{ provider_id: 'fixture-open-metadata', kill_switch: false }],
     }),
-    broker: new ShadowFetchBroker({ fixture: { record_id: `fixture-${index}`, synthetic: true } }),
+    broker,
     durability: new AwsDurabilityBoundary({ store, ...keys, mainSha }),
   });
   results.push(runtime.tick(request(taskId)));
@@ -50,7 +53,7 @@ const receipt = {
   consecutive_complete_verified: results.filter(result => result.state === 'COMPLETE_VERIFIED').length,
   ledger_transition_count: ledger.transitions.length,
   ledger_evidence_one_to_one: results.every(result => ledger.rows(result.task_id).filter(row => row.state === 'COMPLETE_VERIFIED').length === 1),
-  external_provider_requests: 0,
+  external_provider_requests: brokers.reduce((sum, broker) => sum + broker.externalCalls, 0),
   postgres_adapter: 'NOT_EXECUTED_LOCAL_MEMORY_CONTRACT_ONLY',
   aws_adapter: 'NOT_EXECUTED_LOCAL_ED25519_AND_IMMUTABLE_STORE_CONTRACT_ONLY',
   production: 'HOLD', public: 'HOLD', g5: 'HOLD', usb: 'PENDING_PHYSICAL_MEDIA',

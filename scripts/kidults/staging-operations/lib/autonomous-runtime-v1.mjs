@@ -49,7 +49,7 @@ export class AutonomousRuntime {
     let brokered;
     for (let attempt = 1; attempt <= this.maximumAttempts; attempt += 1) {
       try {
-        brokered = this.broker.fetch({ decision: verdict.decision });
+        brokered = this.broker.fetch({ decision: verdict });
         this.ledger.transition(request.task_id, 'BROKERED_SHADOW', { attempt, mode: brokered.mode });
         break;
       } catch (error) {
@@ -74,16 +74,17 @@ export class AutonomousRuntime {
       lease_id: lease.lease_id,
       attempt: this.broker.calls,
       fixture: brokered.fixture,
+      external_provider_requests: this.broker.externalCalls,
       state: 'EVIDENCE_PENDING',
     };
     const durable = this.durability.seal(evidence);
     this.ledger.transition(request.task_id, durable.verified ? 'COMPLETE_VERIFIED' : 'EVIDENCE_PENDING', durable);
     if (!durable.verified) this.ledger.release(request.task_id);
-    return { ...durable, task_id: request.task_id, state: durable.verified ? 'COMPLETE_VERIFIED' : 'EVIDENCE_PENDING' };
+    return { ...durable, task_id: request.task_id, external_provider_requests: this.broker.externalCalls, state: durable.verified ? 'COMPLETE_VERIFIED' : 'EVIDENCE_PENDING' };
   }
 
   #terminal(request, lease, verdict, state) {
     this.ledger.transition(request.task_id, state, verdict);
-    return { task_id: request.task_id, lease_id: lease.lease_id, state, reason: verdict.reason };
+    return { task_id: request.task_id, lease_id: lease.lease_id, external_provider_requests: this.broker.externalCalls, state, reason: verdict.reason };
   }
 }

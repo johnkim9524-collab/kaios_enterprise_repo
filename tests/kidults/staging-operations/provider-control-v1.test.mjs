@@ -58,10 +58,27 @@ test('Production, Public or G5 boundary weakening is denied', () => {
 });
 
 test('broker uses deterministic fixture without external network', () => {
-  let networkCalls = 0;
-  const broker = new ShadowFetchBroker({ fixture: { id: 'fixture' }, network: () => { networkCalls += 1; } });
-  const result = broker.fetch({ decision: 'ALLOW_SHADOW' });
+  const verdict = control([{ provider_id: 'fixture-open-metadata', kill_switch: false }]).decide(request());
+  const broker = new ShadowFetchBroker({ fixture: { id: 'fixture' } });
+  const result = broker.fetch({ decision: verdict });
   assert.equal(result.external_requests, 0);
-  assert.equal(networkCalls, 0);
+  assert.equal(broker.externalCalls, 0);
+});
+
+test('broker rejects caller-controlled network configuration and direct-network arguments', () => {
+  assert.throws(
+    () => new ShadowFetchBroker({ fixture: { id: 'fixture' }, network: () => {} }),
+    /BROKER_EXTERNAL_NETWORK_CONFIGURATION_FORBIDDEN/,
+  );
+  const verdict = control([{ provider_id: 'fixture-open-metadata', kill_switch: false }]).decide(request({ task_id: 'direct-network-negative' }));
+  const broker = new ShadowFetchBroker({ fixture: { id: 'fixture' } });
+  assert.throws(() => broker.fetch({ decision: verdict, directNetwork: true }), /BROKER_EXTERNAL_NETWORK_ARGUMENT_FORBIDDEN/);
+  assert.equal(broker.externalCalls, 0);
+});
+
+test('literal ALLOW_SHADOW strings cannot drive the broker', () => {
+  const broker = new ShadowFetchBroker({ fixture: { id: 'fixture' } });
+  assert.throws(() => broker.fetch({ decision: 'ALLOW_SHADOW' }), /BROKER_DECISION_NOT_ALLOWED/);
+  assert.equal(broker.calls, 0);
   assert.equal(broker.externalCalls, 0);
 });

@@ -39,22 +39,25 @@ export class ProviderControl {
 }
 
 export class ShadowFetchBroker {
-  constructor({ fixture, failAttempts = 0, network = () => { throw new Error('BROKER_EXTERNAL_NETWORK_FORBIDDEN'); } }) {
+  constructor(options = {}) {
+    if ('network' in options || 'directNetwork' in options) throw new Error('BROKER_EXTERNAL_NETWORK_CONFIGURATION_FORBIDDEN');
+    const { fixture, failAttempts = 0 } = options;
     this.fixture = structuredClone(fixture);
     this.failAttempts = failAttempts;
-    this.network = network;
     this.calls = 0;
     this.externalCalls = 0;
   }
 
-  fetch({ decision, directNetwork = false }) {
-    if (decision !== 'ALLOW_SHADOW') throw new Error('BROKER_DECISION_NOT_ALLOWED');
-    if (directNetwork) {
-      this.externalCalls += 1;
-      this.network();
+  fetch(input = {}) {
+    if ('directNetwork' in input || 'network' in input || 'url' in input) {
+      throw new Error('BROKER_EXTERNAL_NETWORK_ARGUMENT_FORBIDDEN');
+    }
+    const { decision } = input;
+    if (!decision || decision.decision !== 'ALLOW_SHADOW' || typeof decision.decision_id !== 'string') {
+      throw new Error('BROKER_DECISION_NOT_ALLOWED');
     }
     this.calls += 1;
     if (this.calls <= this.failAttempts) throw new Error('PROVIDER_TIMEOUT');
-    return { mode: 'SHADOW_NO_FETCH', external_requests: 0, fixture: structuredClone(this.fixture) };
+    return { mode: 'SHADOW_NO_FETCH', external_requests: this.externalCalls, fixture: structuredClone(this.fixture) };
   }
 }
