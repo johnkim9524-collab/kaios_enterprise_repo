@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -26,10 +26,17 @@
   ],
   "approval_quorum": {
     "minimum": 2,
-    "required_roles": ["ACCOUNTABLE_TRACK_AGENT", "KPMO"],
-    "distinct_stable_actor_ids_required": true,
+    "required_roles": [
+      "ACCOUNTABLE_TRACK_AGENT",
+      "KPMO"
+    ],
     "independent_verifier_distinct_from_approvers": true,
-    "self_approval_forbidden": true
+    "self_approval_forbidden": true,
+    "identity_model": "ROLE_SCOPED_OIDC_KMS_WORKLOAD_V2_FINALIZER_SPLIT",
+    "distinct_stable_workload_ids_required": true,
+    "distinct_signing_keys_required": true,
+    "approval_workloads_may_finalize": false,
+    "finalizer_distinct_from_approvers": true
   },
   "exact_binding_fields": [
     "repository_id",
@@ -88,28 +95,14 @@
     "repository_dispatch:kidults.independent.verification.v1"
   ],
   "manual_trigger": "RECOVERY_ONLY_NEW_AUTHORIZATION_GENERATION_REQUIRED",
-  "actor_binding": {
-    "required": [
-      "actor_login",
-      "actor_id",
-      "actor_type",
-      "app_id",
-      "installation_id",
-      "workflow_ref",
-      "workflow_sha",
-      "repository_id"
-    ],
-    "login_only_authority_forbidden": true,
-    "separation_key": "GITHUB_ACTOR_ID",
-    "runtime_allowlist_source": "KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON",
-    "unknown_actor": "QUARANTINE"
-  },
   "durable_single_use": {
     "backend": "AWS_DYNAMODB_CONDITIONAL_WRITE",
     "table_variable": "KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE",
-    "role_arn_variable": "KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN",
+    "workload_role_arn_variable": "KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN",
+    "signing_key_arn_variable": "KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN",
     "region": "ap-northeast-2",
     "transition": "UNUSED_TO_RESERVED_TO_CONSUMED",
+    "reservation_and_consume_require_finalizer_kms_signature": true,
     "github_artifact_alone_is_sufficient": false,
     "rerun_reuses_authority": false,
     "maximum_ttl_seconds": 3600
@@ -153,6 +146,43 @@
     "autonomous_effect": "Eligible reversible internal landing runs from governed agent events without routine Owner orchestration.",
     "global_effect": "One repository-wide authority model applies to every Track and internal workflow.",
     "irreplaceable_value_effect": "Authorization, rollback and evidence knowledge remain platform-owned and replayable.",
-    "transparency_effect": "Every transition binds exact Git objects, actor identities, evidence digests and immutable receipts."
+    "transparency_effect": "Every transition binds exact Git objects, role-scoped OIDC workload identity, KMS signing key, evidence digests and immutable receipts."
+  },
+  "workload_identity": {
+    "required": [
+      "workload_id",
+      "environment",
+      "workflow_ref",
+      "workflow_sha",
+      "repository_id",
+      "signing_key_arn"
+    ],
+    "separation_key": "WORKLOAD_ID_AND_KMS_SIGNING_KEY",
+    "runtime_allowlist_source": "KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON",
+    "role_signature_required": true,
+    "signature_algorithm": "ECDSA_SHA_256",
+    "oidc_trust_conditions_required": [
+      "sub",
+      "repository_id",
+      "workflow",
+      "ref",
+      "environment"
+    ],
+    "github_sender_id_is_authority": false,
+    "caller_supplied_workload_identity_allowed": false,
+    "unknown_workload": "QUARANTINE",
+    "approval_roles": [
+      "ACCOUNTABLE_TRACK_AGENT",
+      "KPMO",
+      "INDEPENDENT_VERIFIER"
+    ],
+    "finalizer": {
+      "role": "FINALIZER",
+      "environment": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "distinct_workload_id_required": true,
+      "distinct_signing_key_required": true,
+      "only_stage_allowed_github_write": true,
+      "approval_stage_github_write_forbidden": true
+    }
   }
 }

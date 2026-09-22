@@ -220,22 +220,45 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'pull-requests: write',
     'statuses: write',
     'persist-credentials: false',
-    'environment: KIDULTS-AUTONOMOUS-STAGING',
-    'KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN',
+    'ref: ${{ github.sha }}',
+    'Verify exact workload checkout',
+    'KIDULTS-AUTONOMOUS-TRACK',
+    'KIDULTS-AUTONOMOUS-KPMO',
+    'KIDULTS-AUTONOMOUS-VERIFIER',
+    'KIDULTS-AUTONOMOUS-FINALIZER',
+    'record-role-approval:',
+    'finalize-if-quorum:',
+    'KIDULTS_AUTONOMOUS_MODE: APPROVAL',
+    'KIDULTS_AUTONOMOUS_MODE: FINALIZE',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN',
+    'KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_ID',
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
-    'KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON',
   ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
   require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
   require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
+  const approvalSection = workflow.split('  finalize-if-quorum:')[0] || '';
+  const finalizerSection = (workflow.split('  finalize-if-quorum:')[1] || '').split('  owner-reserved-boundary:')[0] || '';
+  require(!/^\s*contents:\s*write\s*$/mi.test(approvalSection), 'approval-stage-github-write-forbidden');
+  require(/^\s*contents:\s*write\s*$/mi.test(finalizerSection), 'finalizer-github-write-required');
   require(!/^\s*permissions:\s*write-all\s*$/mi.test(workflow), 'write-all-forbidden');
   require(!activeLines(workflow).some(containsDirectGitPush), 'direct-git-push-forbidden');
   require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
   for (const fragment of [
     "eventName !== 'repository_dispatch'",
     "runAttempt !== '1'",
-    'validateActor(envelope.actor,registry,role)',
-    'AUTONOMOUS_EVENT_SENDER_ID_MISMATCH',
+    "mode === 'APPROVAL'",
+    "mode === 'FINALIZE'",
+    'validateWorkload(runtimeWorkload,registry,runtimeRole)',
+    'AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN',
+    'AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',
+    'KIDULTS_AUTONOMOUS_WORKFLOW_REF',
+    'KIDULTS_AUTONOMOUS_REPOSITORY_ID',
+    'invokeFinalizerWriter',
+    "'kms','sign'",
+    "'--message-type','DIGEST'",
     'AUTONOMOUS_PR_DRIFT',
     'AUTONOMOUS_TREE_DRIFT',
     'AUTONOMOUS_LIVE_SCOPE_DRIFT',
@@ -250,6 +273,10 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'openAutomaticRollback',
     "state:'QUARANTINED'",
   ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
+  require(!workflow.includes('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'), 'legacy-actor-registry-forbidden');
+  require(runner.indexOf('await validateLiveCandidate();') < runner.indexOf('putApproval();'), 'approval-before-live-validation-forbidden');
+  require((runner.match(/await validateLiveCandidate\(\);/g) || []).length >= 2, 'live-revalidation-required-before-merge');
+  require(!runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'), 'sender-id-authority-forbidden');
   require(!runner.includes("'dynamodb','put-item'"), 'runner-direct-dynamodb-put-forbidden');
   require(!runner.includes("'dynamodb','update-item'"), 'runner-direct-dynamodb-update-forbidden');
   return [...new Set(findings)];

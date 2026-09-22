@@ -11,10 +11,55 @@
       "Default": "johnkim9524-collab/kaios_enterprise_repo",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
     },
-    "GitHubEnvironment": {
+    "GitHubRepositoryId": {
       "Type": "String",
-      "Default": "KIDULTS-AUTONOMOUS-STAGING",
+      "Default": "1281328888",
+      "AllowedPattern": "^[0-9]{1,20}$"
+    },
+    "GitHubWorkflowName": {
+      "Type": "String",
+      "Default": "KIDULTS Autonomous Internal Landing V1",
+      "AllowedPattern": "^[A-Za-z0-9 _.-]{1,128}$"
+    },
+    "TrackEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-TRACK",
       "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "KpmoEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-KPMO",
+      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "VerifierEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-VERIFIER",
+      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "FinalizerEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "TrackWorkloadId": {
+      "Type": "String",
+      "Default": "kidults-accountable-track-agent-v1",
+      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "KpmoWorkloadId": {
+      "Type": "String",
+      "Default": "kidults-kpmo-v1",
+      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "VerifierWorkloadId": {
+      "Type": "String",
+      "Default": "kidults-independent-verifier-v1",
+      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "FinalizerWorkloadId": {
+      "Type": "String",
+      "Default": "kidults-finalizer-v1",
+      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
     }
   },
   "Resources": {
@@ -134,95 +179,6 @@
         ]
       }
     },
-    "AutonomousLandingRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "RoleName": "kidults-autonomous-landing-staging-role",
-        "MaxSessionDuration": 3600,
-        "AssumeRolePolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Principal": {
-                "Federated": {
-                  "Ref": "GitHubOidcProviderArn"
-                }
-              },
-              "Action": "sts:AssumeRoleWithWebIdentity",
-              "Condition": {
-                "StringEquals": {
-                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-                },
-                "StringLike": {
-                  "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}"
-                  }
-                }
-              }
-            }
-          ]
-        },
-        "Policies": [
-          {
-            "PolicyName": "kidults-autonomous-ledger-single-use",
-            "PolicyDocument": {
-              "Version": "2012-10-17",
-              "Statement": [
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "dynamodb:DescribeTable",
-                    "dynamodb:GetItem",
-                    "dynamodb:Query"
-                  ],
-                  "Resource": {
-                    "Fn::GetAtt": [
-                      "AutonomousLandingLedger",
-                      "Arn"
-                    ]
-                  }
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "lambda:InvokeFunction"
-                  ],
-                  "Resource": {
-                    "Fn::GetAtt": [
-                      "AutonomousLedgerWriterFunction",
-                      "Arn"
-                    ]
-                  }
-                }
-              ]
-            }
-          }
-        ],
-        "Tags": [
-          {
-            "Key": "Environment",
-            "Value": "STAGING"
-          },
-          {
-            "Key": "System",
-            "Value": "AutonomousInternalLanding"
-          },
-          {
-            "Key": "Production",
-            "Value": "HOLD"
-          },
-          {
-            "Key": "Public",
-            "Value": "HOLD"
-          },
-          {
-            "Key": "G5",
-            "Value": "HOLD"
-          }
-        ]
-      }
-    },
     "AutonomousLedgerWriterRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -257,6 +213,38 @@
                       "Arn"
                     ]
                   }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Verify"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "TrackApprovalSigningKey",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "KpmoApprovalSigningKey",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "VerifierApprovalSigningKey",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "FinalizerSigningKey",
+                        "Arn"
+                      ]
+                    }
+                  ]
                 }
               ]
             }
@@ -307,12 +295,638 @@
             },
             "GITHUB_REPOSITORY": {
               "Ref": "GitHubRepository"
+            },
+            "TRACK_SIGNING_KEY_ARN": {
+              "Fn::GetAtt": [
+                "TrackApprovalSigningKey",
+                "Arn"
+              ]
+            },
+            "KPMO_SIGNING_KEY_ARN": {
+              "Fn::GetAtt": [
+                "KpmoApprovalSigningKey",
+                "Arn"
+              ]
+            },
+            "VERIFIER_SIGNING_KEY_ARN": {
+              "Fn::GetAtt": [
+                "VerifierApprovalSigningKey",
+                "Arn"
+              ]
+            },
+            "TRACK_ENVIRONMENT": {
+              "Ref": "TrackEnvironment"
+            },
+            "KPMO_ENVIRONMENT": {
+              "Ref": "KpmoEnvironment"
+            },
+            "VERIFIER_ENVIRONMENT": {
+              "Ref": "VerifierEnvironment"
+            },
+            "TRACK_WORKLOAD_ID": {
+              "Ref": "TrackWorkloadId"
+            },
+            "KPMO_WORKLOAD_ID": {
+              "Ref": "KpmoWorkloadId"
+            },
+            "VERIFIER_WORKLOAD_ID": {
+              "Ref": "VerifierWorkloadId"
+            },
+            "FINALIZER_WORKLOAD_ID": {
+              "Ref": "FinalizerWorkloadId"
+            },
+            "FINALIZER_SIGNING_KEY_ARN": {
+              "Fn::GetAtt": [
+                "FinalizerSigningKey",
+                "Arn"
+              ]
+            },
+            "FINALIZER_ENVIRONMENT": {
+              "Ref": "FinalizerEnvironment"
             }
           }
         },
         "Code": {
-          "ZipFile": "import base64\nimport hashlib\nimport json\nimport os\nimport re\nfrom datetime import datetime, timezone\nimport boto3\n\nddb = boto3.client('dynamodb')\nTABLE = os.environ['LEDGER_TABLE']\nREPOSITORY = os.environ['GITHUB_REPOSITORY']\nROLES = {'ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'}\nSHA = re.compile(r'^[0-9a-f]{40}$')\nDIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')\nGENERATION = re.compile(r'^[A-Za-z0-9._:-]{1,160}$')\nRUN_ID = re.compile(r'^[1-9][0-9]{0,19}$')\n\ndef required(event, name):\n    value = event.get(name)\n    if value is None or value == '':\n        raise ValueError('FIELD_REQUIRED:' + name)\n    return str(value)\n\ndef canonical(value):\n    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)\n\ndef digest(value):\n    return 'sha256:' + hashlib.sha256(value.encode('utf-8')).hexdigest()\n\ndef validate_generation(value):\n    if not GENERATION.fullmatch(value):\n        raise ValueError('GENERATION_INVALID')\n    return value\n\ndef validate_digest(value, code):\n    if not DIGEST.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_sha(value, code):\n    if not SHA.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_run_id(value):\n    if not RUN_ID.fullmatch(value):\n        raise ValueError('RUN_ID_INVALID')\n    return value\n\ndef put_unique(item):\n    ddb.put_item(\n        TableName=TABLE,\n        Item=item,\n        ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)'\n    )\n\ndef handler(event, context):\n    if not isinstance(event, dict):\n        raise ValueError('EVENT_INVALID')\n    action = required(event, 'action')\n    generation = validate_generation(required(event, 'authorization_generation'))\n    if action == 'CREATE_APPROVAL':\n        role = required(event, 'role')\n        if role not in ROLES:\n            raise ValueError('ROLE_FORBIDDEN')\n        raw = base64.b64decode(required(event, 'envelope_b64'), validate=True).decode('utf-8')\n        envelope = json.loads(raw)\n        if not isinstance(envelope, dict):\n            raise ValueError('ENVELOPE_INVALID')\n        if str(envelope.get('authorization_generation', '')) != generation:\n            raise ValueError('ENVELOPE_GENERATION_MISMATCH')\n        if str(envelope.get('repository', '')) != REPOSITORY:\n            raise ValueError('ENVELOPE_REPOSITORY_MISMATCH')\n        supplied_digest = validate_digest(required(event, 'envelope_digest'), 'ENVELOPE_DIGEST_INVALID')\n        if digest(canonical(envelope)) != supplied_digest:\n            raise ValueError('ENVELOPE_DIGEST_MISMATCH')\n        expires_at = str(envelope.get('expires_at', ''))\n        try:\n            expires_epoch = int(datetime.fromisoformat(expires_at.replace('Z','+00:00')).astimezone(timezone.utc).timestamp())\n        except Exception as error:\n            raise ValueError('ENVELOPE_EXPIRY_INVALID') from error\n        if str(expires_epoch) != required(event, 'expires_at_epoch'):\n            raise ValueError('ENVELOPE_EXPIRY_MISMATCH')\n        pk = 'AUTH#' + generation\n        sk = 'ROLE#' + role\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk},\n            'envelope': {'S': required(event, 'envelope_b64')},\n            'envelope_digest': {'S': supplied_digest},\n            'expires_at_epoch': {'N': str(expires_epoch)}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CREATE_RESERVATION':\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CONSUME_RESERVATION':\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        merge_sha = validate_sha(required(event, 'merge_sha'), 'MERGE_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        result = ddb.update_item(\n            TableName=TABLE,\n            Key={'pk': {'S': pk}, 'sk': {'S': sk}},\n            UpdateExpression='SET #s = :consumed, merge_sha = :merge',\n            ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head',\n            ExpressionAttributeNames={'#s': 'state'},\n            ExpressionAttributeValues={\n                ':reserved': {'S': 'RESERVED'}, ':consumed': {'S': 'CONSUMED'},\n                ':merge': {'S': merge_sha}, ':run': {'S': run_id}, ':head': {'S': head_sha}\n            },\n            ReturnValues='ALL_NEW'\n        )\n        attrs = result.get('Attributes', {})\n        if attrs.get('state', {}).get('S') != 'CONSUMED' or attrs.get('merge_sha', {}).get('S') != merge_sha:\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    raise ValueError('ACTION_FORBIDDEN')\n"
+          "ZipFile": "import base64\nimport hashlib\nimport json\nimport os\nimport re\nfrom datetime import datetime, timezone\nimport boto3\n\nddb = boto3.client('dynamodb')\nkms = boto3.client('kms')\nTABLE = os.environ['LEDGER_TABLE']\nREPOSITORY = os.environ['GITHUB_REPOSITORY']\nROLE_KEYS = {\n    'ACCOUNTABLE_TRACK_AGENT': os.environ['TRACK_SIGNING_KEY_ARN'],\n    'KPMO': os.environ['KPMO_SIGNING_KEY_ARN'],\n    'INDEPENDENT_VERIFIER': os.environ['VERIFIER_SIGNING_KEY_ARN'],\n}\nROLE_ENVIRONMENTS = {\n    'ACCOUNTABLE_TRACK_AGENT': os.environ['TRACK_ENVIRONMENT'],\n    'KPMO': os.environ['KPMO_ENVIRONMENT'],\n    'INDEPENDENT_VERIFIER': os.environ['VERIFIER_ENVIRONMENT'],\n}\nROLE_WORKLOAD_IDS = {\n    'ACCOUNTABLE_TRACK_AGENT': os.environ['TRACK_WORKLOAD_ID'],\n    'KPMO': os.environ['KPMO_WORKLOAD_ID'],\n    'INDEPENDENT_VERIFIER': os.environ['VERIFIER_WORKLOAD_ID'],\n}\nFINALIZER_SIGNING_KEY = os.environ['FINALIZER_SIGNING_KEY_ARN']\nFINALIZER_ENVIRONMENT = os.environ['FINALIZER_ENVIRONMENT']\nFINALIZER_WORKLOAD_ID = os.environ['FINALIZER_WORKLOAD_ID']\nSHA = re.compile(r'^[0-9a-f]{40}$')\nDIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')\nGENERATION = re.compile(r'^[A-Za-z0-9._:-]{1,160}$')\nRUN_ID = re.compile(r'^[1-9][0-9]{0,19}$')\n\ndef required(event, name):\n    value = event.get(name)\n    if value is None or value == '':\n        raise ValueError('FIELD_REQUIRED:' + name)\n    return str(value)\n\ndef canonical(value):\n    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)\n\ndef digest(value):\n    return 'sha256:' + hashlib.sha256(value.encode('utf-8')).hexdigest()\n\ndef validate_generation(value):\n    if not GENERATION.fullmatch(value):\n        raise ValueError('GENERATION_INVALID')\n    return value\n\ndef validate_digest(value, code):\n    if not DIGEST.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_sha(value, code):\n    if not SHA.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_run_id(value):\n    if not RUN_ID.fullmatch(value):\n        raise ValueError('RUN_ID_INVALID')\n    return value\n\ndef put_unique(item):\n    ddb.put_item(\n        TableName=TABLE,\n        Item=item,\n        ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)'\n    )\n\ndef verify_approval_signature(event, role, envelope):\n    expected_key = ROLE_KEYS.get(role)\n    expected_environment = ROLE_ENVIRONMENTS.get(role)\n    expected_workload_id = ROLE_WORKLOAD_IDS.get(role)\n    if not expected_key or not expected_environment or not expected_workload_id:\n        raise ValueError('ROLE_FORBIDDEN')\n    supplied_key = required(event, 'signing_key_arn')\n    if supplied_key != expected_key:\n        raise ValueError('SIGNING_KEY_ROLE_MISMATCH')\n    workload = envelope.get('workload')\n    if not isinstance(workload, dict):\n        raise ValueError('WORKLOAD_INVALID')\n    if str(workload.get('signing_key_arn', '')) != expected_key:\n        raise ValueError('WORKLOAD_SIGNING_KEY_MISMATCH')\n    if str(workload.get('environment', '')) != expected_environment:\n        raise ValueError('WORKLOAD_ENVIRONMENT_MISMATCH')\n    workload_id = required(event, 'workload_id')\n    if workload_id != expected_workload_id or str(workload.get('workload_id', '')) != expected_workload_id:\n        raise ValueError('WORKLOAD_ID_MISMATCH')\n    try:\n        signature = base64.b64decode(required(event, 'signature_b64'), validate=True)\n    except Exception as error:\n        raise ValueError('SIGNATURE_ENCODING_INVALID') from error\n    verified = kms.verify(\n        KeyId=expected_key,\n        Message=hashlib.sha256(canonical(envelope).encode('utf-8')).digest(),\n        MessageType='DIGEST',\n        Signature=signature,\n        SigningAlgorithm='ECDSA_SHA_256',\n    )\n    if verified.get('SignatureValid') is not True:\n        raise ValueError('APPROVAL_SIGNATURE_INVALID')\n    return workload_id, expected_key\n\ndef verify_finalizer_signature(event):\n    if required(event, 'signing_key_arn') != FINALIZER_SIGNING_KEY:\n        raise ValueError('FINALIZER_SIGNING_KEY_MISMATCH')\n    if required(event, 'finalizer_environment') != FINALIZER_ENVIRONMENT:\n        raise ValueError('FINALIZER_ENVIRONMENT_MISMATCH')\n    if required(event, 'finalizer_workload_id') != FINALIZER_WORKLOAD_ID:\n        raise ValueError('FINALIZER_WORKLOAD_ID_MISMATCH')\n    core = {\n        'action': required(event, 'action'),\n        'authorization_generation': required(event, 'authorization_generation'),\n        'nonce_digest': required(event, 'nonce_digest'),\n        'run_id': required(event, 'run_id'),\n        'head_sha': required(event, 'head_sha'),\n        'finalizer_workload_id': FINALIZER_WORKLOAD_ID,\n        'finalizer_environment': FINALIZER_ENVIRONMENT,\n        'signing_key_arn': FINALIZER_SIGNING_KEY,\n    }\n    if core['action'] == 'CONSUME_RESERVATION':\n        core['merge_sha'] = required(event, 'merge_sha')\n    try:\n        signature = base64.b64decode(required(event, 'signature_b64'), validate=True)\n    except Exception as error:\n        raise ValueError('FINALIZER_SIGNATURE_ENCODING_INVALID') from error\n    verified = kms.verify(\n        KeyId=FINALIZER_SIGNING_KEY,\n        Message=hashlib.sha256(canonical(core).encode('utf-8')).digest(),\n        MessageType='DIGEST',\n        Signature=signature,\n        SigningAlgorithm='ECDSA_SHA_256',\n    )\n    if verified.get('SignatureValid') is not True:\n        raise ValueError('FINALIZER_SIGNATURE_INVALID')\n    return core\n\ndef handler(event, context):\n    if not isinstance(event, dict):\n        raise ValueError('EVENT_INVALID')\n    action = required(event, 'action')\n    generation = validate_generation(required(event, 'authorization_generation'))\n    if action == 'CREATE_APPROVAL':\n        role = required(event, 'role')\n        if role not in ROLE_KEYS:\n            raise ValueError('ROLE_FORBIDDEN')\n        raw = base64.b64decode(required(event, 'envelope_b64'), validate=True).decode('utf-8')\n        envelope = json.loads(raw)\n        if not isinstance(envelope, dict):\n            raise ValueError('ENVELOPE_INVALID')\n        if str(envelope.get('authorization_generation', '')) != generation:\n            raise ValueError('ENVELOPE_GENERATION_MISMATCH')\n        if str(envelope.get('repository', '')) != REPOSITORY:\n            raise ValueError('ENVELOPE_REPOSITORY_MISMATCH')\n        supplied_digest = validate_digest(required(event, 'envelope_digest'), 'ENVELOPE_DIGEST_INVALID')\n        if digest(canonical(envelope)) != supplied_digest:\n            raise ValueError('ENVELOPE_DIGEST_MISMATCH')\n        workload_id, signing_key = verify_approval_signature(event, role, envelope)\n        expires_at = str(envelope.get('expires_at', ''))\n        try:\n            expires_epoch = int(datetime.fromisoformat(expires_at.replace('Z','+00:00')).astimezone(timezone.utc).timestamp())\n        except Exception as error:\n            raise ValueError('ENVELOPE_EXPIRY_INVALID') from error\n        if str(expires_epoch) != required(event, 'expires_at_epoch'):\n            raise ValueError('ENVELOPE_EXPIRY_MISMATCH')\n        pk = 'AUTH#' + generation\n        sk = 'ROLE#' + role\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk},\n            'envelope': {'S': required(event, 'envelope_b64')},\n            'envelope_digest': {'S': supplied_digest},\n            'workload_id': {'S': workload_id},\n            'signing_key_arn': {'S': signing_key},\n            'expires_at_epoch': {'N': str(expires_epoch)}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CREATE_RESERVATION':\n        verify_finalizer_signature(event)\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CONSUME_RESERVATION':\n        verify_finalizer_signature(event)\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        merge_sha = validate_sha(required(event, 'merge_sha'), 'MERGE_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        result = ddb.update_item(\n            TableName=TABLE,\n            Key={'pk': {'S': pk}, 'sk': {'S': sk}},\n            UpdateExpression='SET #s = :consumed, merge_sha = :merge',\n            ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head',\n            ExpressionAttributeNames={'#s': 'state'},\n            ExpressionAttributeValues={\n                ':reserved': {'S': 'RESERVED'}, ':consumed': {'S': 'CONSUMED'},\n                ':merge': {'S': merge_sha}, ':run': {'S': run_id}, ':head': {'S': head_sha}\n            },\n            ReturnValues='ALL_NEW'\n        )\n        attrs = result.get('Attributes', {})\n        if attrs.get('state', {}).get('S') != 'CONSUMED' or attrs.get('merge_sha', {}).get('S') != merge_sha:\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    raise ValueError('ACTION_FORBIDDEN')\n"
         },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "TrackApprovalSigningKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key",
+        "KeySpec": "ECC_NIST_P256",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "TrackApprovalRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-track-staging-role",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${TrackEnvironment}"
+                  },
+                  "token.actions.githubusercontent.com:repository_id": {
+                    "Ref": "GitHubRepositoryId"
+                  },
+                  "token.actions.githubusercontent.com:workflow": {
+                    "Ref": "GitHubWorkflowName"
+                  },
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": {
+                    "Ref": "TrackEnvironment"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-track-approval",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerWriterFunction",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "TrackApprovalSigningKey",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "KpmoApprovalSigningKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "KIDULTS STAGING KPMO approval signing key",
+        "KeySpec": "ECC_NIST_P256",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "KpmoApprovalRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-kpmo-staging-role",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}"
+                  },
+                  "token.actions.githubusercontent.com:repository_id": {
+                    "Ref": "GitHubRepositoryId"
+                  },
+                  "token.actions.githubusercontent.com:workflow": {
+                    "Ref": "GitHubWorkflowName"
+                  },
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": {
+                    "Ref": "KpmoEnvironment"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-kpmo-approval",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerWriterFunction",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "KpmoApprovalSigningKey",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "VerifierApprovalSigningKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key",
+        "KeySpec": "ECC_NIST_P256",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "VerifierApprovalRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-verifier-staging-role",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${VerifierEnvironment}"
+                  },
+                  "token.actions.githubusercontent.com:repository_id": {
+                    "Ref": "GitHubRepositoryId"
+                  },
+                  "token.actions.githubusercontent.com:workflow": {
+                    "Ref": "GitHubWorkflowName"
+                  },
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": {
+                    "Ref": "VerifierEnvironment"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-verifier-approval",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerWriterFunction",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "VerifierApprovalSigningKey",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "FinalizerSigningKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "Description": "KIDULTS STAGING FINALIZER signing key",
+        "KeySpec": "ECC_NIST_P256",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "FinalizerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-finalizer-staging-role",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}"
+                  },
+                  "token.actions.githubusercontent.com:repository_id": {
+                    "Ref": "GitHubRepositoryId"
+                  },
+                  "token.actions.githubusercontent.com:workflow": {
+                    "Ref": "GitHubWorkflowName"
+                  },
+                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                  "token.actions.githubusercontent.com:environment": {
+                    "Ref": "FinalizerEnvironment"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-finalizer",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:DescribeTable",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerWriterFunction",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "FinalizerSigningKey",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
         "Tags": [
           {
             "Key": "Environment",
@@ -339,14 +953,6 @@
     }
   },
   "Outputs": {
-    "AutonomousLandingRoleArn": {
-      "Value": {
-        "Fn::GetAtt": [
-          "AutonomousLandingRole",
-          "Arn"
-        ]
-      }
-    },
     "AutonomousLandingLedgerTable": {
       "Value": {
         "Ref": "AutonomousLandingLedger"
@@ -363,6 +969,70 @@
     "AutonomousLedgerWriterFunction": {
       "Value": {
         "Ref": "AutonomousLedgerWriterFunction"
+      }
+    },
+    "TrackApprovalRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "TrackApprovalRole",
+          "Arn"
+        ]
+      }
+    },
+    "TrackApprovalSigningKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "TrackApprovalSigningKey",
+          "Arn"
+        ]
+      }
+    },
+    "KpmoApprovalRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "KpmoApprovalRole",
+          "Arn"
+        ]
+      }
+    },
+    "KpmoApprovalSigningKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "KpmoApprovalSigningKey",
+          "Arn"
+        ]
+      }
+    },
+    "VerifierApprovalRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "VerifierApprovalRole",
+          "Arn"
+        ]
+      }
+    },
+    "VerifierApprovalSigningKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "VerifierApprovalSigningKey",
+          "Arn"
+        ]
+      }
+    },
+    "FinalizerRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "FinalizerRole",
+          "Arn"
+        ]
+      }
+    },
+    "FinalizerSigningKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "FinalizerSigningKey",
+          "Arn"
+        ]
       }
     }
   }

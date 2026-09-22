@@ -6,7 +6,7 @@ import {
   AutonomousLandingError,
   canonicalJson,
   sha256,
-  validateActor,
+  validateWorkload,
   validateEnvelope,
   validateQuorum,
   buildTerminalReceipt,
@@ -24,9 +24,16 @@ const eventName = required('GITHUB_EVENT_NAME');
 const runAttempt = required('GITHUB_RUN_ATTEMPT');
 const ledgerTable = required('KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE');
 const ledgerWriterFunction = required('KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION');
+const signingKeyArn = required('KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN');
+const workloadEnvironment = required('KIDULTS_AUTONOMOUS_ENVIRONMENT');
+const workloadId = required('KIDULTS_AUTONOMOUS_WORKLOAD_ID');
+const workflowRef = required('KIDULTS_AUTONOMOUS_WORKFLOW_REF');
+const repositoryId = required('KIDULTS_AUTONOMOUS_REPOSITORY_ID');
+const mode = required('KIDULTS_AUTONOMOUS_MODE');
+if (!['APPROVAL','FINALIZE'].includes(mode)) throw new AutonomousLandingError('AUTONOMOUS_MODE_INVALID');
 const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomous-internal-landing-v1/receipt.json';
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'));
+const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON'));
 const event = JSON.parse(fs.readFileSync(eventPath,'utf8'));
 if (runAttempt !== '1') throw new AutonomousLandingError('AUTONOMOUS_RERUN_FORBIDDEN');
 if (eventName !== 'repository_dispatch') throw new AutonomousLandingError('AUTONOMOUS_NORMAL_EVENT_REQUIRED');
@@ -36,12 +43,27 @@ const eventRole = new Map([
   ['kidults.kpmo.authorization.v1','KPMO'],
   ['kidults.independent.verification.v1','INDEPENDENT_VERIFIER'],
 ]);
-const role = eventRole.get(event.action);
-if (!role) throw new AutonomousLandingError('AUTONOMOUS_EVENT_NOT_ALLOWED');
-const envelope = validateEnvelope(event.client_payload?.envelope,{policy});
-validateActor(envelope.actor,registry,role);
-if (String(event.sender?.id) !== String(envelope.actor.actor_id)) throw new AutonomousLandingError('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH');
-if (envelope.repository !== repository) throw new AutonomousLandingError('AUTONOMOUS_REPOSITORY_MISMATCH');
+const approvalRole = eventRole.get(event.action);
+if (!approvalRole) throw new AutonomousLandingError('AUTONOMOUS_EVENT_NOT_ALLOWED');
+if (event.client_payload?.envelope?.workload !== undefined) throw new AutonomousLandingError('AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN');
+let envelope = validateEnvelope(event.client_payload?.envelope,{policy});
+const runtimeWorkload = {
+  workload_id:workloadId,
+  environment:workloadEnvironment,
+  workflow_ref:workflowRef,
+  workflow_sha:required('GITHUB_SHA'),
+  repository_id:repositoryId,
+  signing_key_arn:signingKeyArn,
+};
+const runtimeRole = mode === 'APPROVAL' ? approvalRole : 'FINALIZER';
+validateWorkload(runtimeWorkload,registry,runtimeRole);
+if (mode === 'FINALIZE' && workloadEnvironment !== 'KIDULTS-AUTONOMOUS-FINALIZER') {
+  throw new AutonomousLandingError('AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH');
+}
+if (envelope.repository !== repository || String(envelope.repository_id) !== repositoryId) {
+  throw new AutonomousLandingError('AUTONOMOUS_REPOSITORY_MISMATCH');
+}
+if (mode === 'APPROVAL') envelope = {...envelope,workload:runtimeWorkload};
 
 const api = async (endpoint, options={}) => {
   const response = await fetch(`https://api.github.com/repos/${repository}${endpoint}`,{
@@ -54,6 +76,7 @@ const api = async (endpoint, options={}) => {
   return payload;
 };
 const awsJson = args => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}));
+const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
 let ledgerWriterInvocation = 0;
 const invokeLedgerWriter = payload => {
   const runnerTemp = required('RUNNER_TEMP');
@@ -75,19 +98,53 @@ const invokeLedgerWriter = payload => {
     try { fs.unlinkSync(outputPath); } catch {}
   }
 };
+const kmsSignCanonical = (value, failureCode) => {
+  const runnerTemp = required('RUNNER_TEMP');
+  const digestPath = path.join(runnerTemp, `kidults-autonomous-signing-digest-${process.pid}-${Date.now()}.bin`);
+  try {
+    const payload = canonicalJson(value);
+    fs.writeFileSync(digestPath,Buffer.from(sha256(payload).slice(7),'hex'),{mode:0o600});
+    const signatureB64 = awsText([
+      'kms','sign','--region','ap-northeast-2','--key-id',signingKeyArn,
+      '--message',`fileb://${digestPath}`,'--message-type','DIGEST',
+      '--signing-algorithm','ECDSA_SHA_256','--query','Signature','--output','text',
+    ]);
+    if (!/^[A-Za-z0-9+/=]+$/.test(signatureB64)) throw new AutonomousLandingError(failureCode);
+    return signatureB64;
+  } finally {
+    try { fs.unlinkSync(digestPath); } catch {}
+  }
+};
 const putApproval = () => {
+  const envelopeJson = canonicalJson(envelope);
   try {
     invokeLedgerWriter({
       action:'CREATE_APPROVAL',
       authorization_generation:envelope.authorization_generation,
-      role,
-      envelope_b64:Buffer.from(canonicalJson(envelope)).toString('base64'),
-      envelope_digest:sha256(canonicalJson(envelope)),
+      role:approvalRole,
+      workload_id:envelope.workload.workload_id,
+      signing_key_arn:signingKeyArn,
+      signature_b64:kmsSignCanonical(envelope,'AUTONOMOUS_APPROVAL_SIGNATURE_INVALID'),
+      envelope_b64:Buffer.from(envelopeJson).toString('base64'),
+      envelope_digest:sha256(envelopeJson),
       expires_at_epoch:String(Math.floor(Date.parse(envelope.expires_at)/1000)),
     });
   } catch (error) {
-    throw new AutonomousLandingError('AUTONOMOUS_APPROVAL_DUPLICATE_OR_LEDGER_FAILURE',role);
+    if (error instanceof AutonomousLandingError) throw error;
+    throw new AutonomousLandingError('AUTONOMOUS_APPROVAL_DUPLICATE_OR_LEDGER_FAILURE',approvalRole);
   }
+};
+const invokeFinalizerWriter = payload => {
+  const signedPayload = {
+    ...payload,
+    finalizer_workload_id:runtimeWorkload.workload_id,
+    finalizer_environment:runtimeWorkload.environment,
+    signing_key_arn:signingKeyArn,
+  };
+  return invokeLedgerWriter({
+    ...signedPayload,
+    signature_b64:kmsSignCanonical(signedPayload,'AUTONOMOUS_FINALIZER_SIGNATURE_INVALID'),
+  });
 };
 const readApprovals = () => {
   const response=awsJson(['dynamodb','query','--region','ap-northeast-2','--table-name',ledgerTable,
@@ -155,16 +212,7 @@ const openAutomaticRollback = async failureCode => {
   return {state:'ROLLBACK_PR_OPENED',pull_request:rollbackPr.number,url:rollbackPr.html_url,rollback_sha:rollback.sha};
 };
 
-try {
-  putApproval();
-  const approvals=readApprovals();
-  const missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
-  if (missing.length) {
-    writeReceipt({id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'AWAITING_QUORUM',
-      authorization_generation:envelope.authorization_generation,received_role:role,missing_roles:missing,production:'HOLD',public:'HOLD',g5:'HOLD'});
-    process.exit(0);
-  }
-  const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
+const validateLiveCandidate = async () => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
   if (pr.state!=='open'||pr.draft===true||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
@@ -185,35 +233,75 @@ try {
   if (authoritativeStatuses.some(value=>value.state!=='success')||authoritativeChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
     throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN');
   }
-  await publishLandingStatus('pending','AI-020 quorum verified; reserving durable single-use authority');
-  invokeLedgerWriter({
-    action:'CREATE_RESERVATION',
-    authorization_generation:envelope.authorization_generation,
-    nonce_digest:envelope.nonce_digest,
-    run_id:required('GITHUB_RUN_ID'),
-    head_sha:envelope.head_sha,
-  });
-  await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
-  const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
-  if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
-  mergePerformed=true;
-  mergeSha=merge.sha;
-  const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
-  if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
-  const postmerge=await waitForExactMergeShaValidation(merge.sha);
-  invokeLedgerWriter({
-    action:'CONSUME_RESERVATION',
-    authorization_generation:envelope.authorization_generation,
-    nonce_digest:envelope.nonce_digest,
-    run_id:required('GITHUB_RUN_ID'),
-    head_sha:envelope.head_sha,
-    merge_sha:merge.sha,
-  });
-  const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
-    merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
-  await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest}})});
-  writeReceipt(terminal);
-  console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+  return {pr,commit,files};
+};
+
+try {
+  if (mode === 'APPROVAL') {
+    await validateLiveCandidate();
+    putApproval();
+    const approvalReceipt = {
+      id:'kidults-autonomous-internal-landing-approval-receipt-v1',
+      version:'1.0.0',
+      state:'APPROVAL_RECORDED',
+      authorization_generation:envelope.authorization_generation,
+      received_role:approvalRole,
+      workload_id:runtimeWorkload.workload_id,
+      signing_key_arn:runtimeWorkload.signing_key_arn,
+      production:'HOLD',public:'HOLD',g5:'HOLD',
+    };
+    writeReceipt(approvalReceipt);
+    console.log(JSON.stringify(approvalReceipt));
+  } else {
+    const approvals=readApprovals();
+    const missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    if (missing.length) {
+      const waiting = {
+        id:'kidults-autonomous-internal-landing-terminal-receipt-v1',
+        version:'1.0.0',
+        state:'AWAITING_QUORUM',
+        authorization_generation:envelope.authorization_generation,
+        finalizer_workload_id:runtimeWorkload.workload_id,
+        missing_roles:missing,
+        production:'HOLD',public:'HOLD',g5:'HOLD',
+      };
+      writeReceipt(waiting);
+      console.log(JSON.stringify(waiting));
+    } else {
+      const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
+      envelope=approvals.KPMO;
+      await validateLiveCandidate();
+      await publishLandingStatus('pending','AI-020 quorum verified; reserving durable single-use authority');
+      invokeFinalizerWriter({
+        action:'CREATE_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+      });
+      await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
+      const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
+      if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
+      mergePerformed=true;
+      mergeSha=merge.sha;
+      const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
+      if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
+      const postmerge=await waitForExactMergeShaValidation(merge.sha);
+      invokeFinalizerWriter({
+        action:'CONSUME_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+        merge_sha:merge.sha,
+      });
+      const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
+        merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
+      await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest}})});
+      writeReceipt(terminal);
+      console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+    }
+  }
 } catch (error) {
   if (statusTouched) {
     try { await publishLandingStatus('failure',error.code||error.message||'autonomous landing failed'); } catch {}
