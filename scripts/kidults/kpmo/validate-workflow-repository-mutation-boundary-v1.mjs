@@ -220,8 +220,10 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'pull-requests: write',
     'statuses: write',
     'persist-credentials: false',
+    'environment: KIDULTS-AUTONOMOUS-STAGING',
     'KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN',
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
+    'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
     'KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON',
   ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
   require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
@@ -238,13 +240,18 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'AUTONOMOUS_TREE_DRIFT',
     'AUTONOMOUS_LIVE_SCOPE_DRIFT',
     'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',
-    "'--condition-expression','attribute_not_exists(pk) AND attribute_not_exists(sk)'",
+    "'lambda','invoke'",
+    "action:'CREATE_APPROVAL'",
+    "action:'CREATE_RESERVATION'",
+    "action:'CONSUME_RESERVATION'",
     "method:'PUT'",
     'merge_method',
     'AUTONOMOUS_POSTMERGE_BINDING_FAILED',
     'openAutomaticRollback',
     "state:'QUARANTINED'",
   ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
+  require(!runner.includes("'dynamodb','put-item'"), 'runner-direct-dynamodb-put-forbidden');
+  require(!runner.includes("'dynamodb','update-item'"), 'runner-direct-dynamodb-update-forbidden');
   return [...new Set(findings)];
 }
 

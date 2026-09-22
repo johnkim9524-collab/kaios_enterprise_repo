@@ -485,7 +485,7 @@
     },
     "rights_access_review_compiler": {
       "path": "scripts/kidults/source-intelligence/compile-asi-source-rights-access-review-r1.mjs",
-      "sha256": "sha256:df7d27051699d63e1345cd8c77bfce1261dab408173d9a2f1f1bf07d6de4c388",
+      "sha256": "sha256:baae8a383ff547616195e489373693dd54356289f2f54ecbd3e0c22fcc4fb563",
       "byte_count": 76470
     },
     "rights_access_review_validator": {
@@ -520,8 +520,8 @@
     },
     "shadow_evidence_builder": {
       "path": "scripts/kidults/source-intelligence/build-asi-shadow-operating-evidence-v1.mjs",
-      "sha256": "sha256:450bbb0459018ddfac2d036d703e8add489f2cd06adafd76a4f63f547150c9a1",
-      "byte_count": 131237
+      "sha256": "sha256:f6459d906dc89ac44763c29c2dae63384f096820f8f9a8328383146e5d423d54",
+      "byte_count": 131659
     },
     "shadow_evidence_validator": {
       "path": "scripts/kidults/source-intelligence/validate-asi-shadow-operating-evidence-v1.mjs",
@@ -535,8 +535,8 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:7f58793ed874a27f0ab40acb81e5c1ff87de4add334e648c9f4911e741e916cd",
-      "byte_count": 1568
+      "sha256": "sha256:128f7c75560f5f4f98f7373efffc4219b1e6758aa1e1d579de4090823fc4e7c1",
+      "byte_count": 1962
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:30a411775a724c36d0f2acc5dbebbbee61674cd354acc93a6d6a55f9abd1f09a"
+  "evidence_fingerprint": "sha256:8f83f19b82d7ace52d2490261b79fb3d79daf15902afb166bb85c879e9cf8140"
 }
