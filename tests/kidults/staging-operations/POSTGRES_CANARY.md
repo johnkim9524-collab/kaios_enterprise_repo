@@ -6,7 +6,7 @@
 
 - PostgreSQL: `postgres@sha256:639ab7ceb90e13123085b741fb31ef493fba25463002f6da665352e7b534b652`
 - Node: `node@sha256:22553920add6fb1fd909104346924cd30b4b3ac76ca2980f3b8dba8ede3cf945`
-- PostgreSQL 클라이언트: `postgres-live-deps/package-lock.json`으로 고정한다.
+- PostgreSQL 클라이언트: `postgres-live-deps/npm-shrinkwrap.json`으로 고정한다.
 - DB 이름: `kpmo_canary`, 호스트 별칭: `postgres`. 공개 포트 없이 별도 `--internal` Docker 네트워크를 사용한다.
 - DB 데이터는 시험 전용 `tmpfs`에 둔다. 실제 자격증명·DSN·AWS 환경을 전달하지 않는다.
 

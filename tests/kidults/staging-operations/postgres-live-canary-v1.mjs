@@ -139,7 +139,7 @@ await check('three_postgres_runtime_cycles_have_readback_receipts', async () => 
 const digests = Object.fromEntries([
   '../../../scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs',
   '../../../scripts/kidults/staging-operations/lib/autonomous-runtime-v1.mjs',
-  './postgres-live-canary-v1.mjs', './postgres-live-deps/package-lock.json',
+  './postgres-live-canary-v1.mjs', './postgres-live-deps/npm-shrinkwrap.json',
 ].map(file => [file, createHash('sha256').update(fs.readFileSync(new URL(file, import.meta.url))).digest('hex')]));
 const receipt = {
   id: 'kpmo-2289-local-linux-postgres-canary-v1',

@@ -21,7 +21,7 @@ New-Item -ItemType Directory -Path $evidence,"$packet/scripts/kidults/staging-op
 try {
   Copy-Item "$root/scripts/kidults/staging-operations/lib/*.mjs" "$packet/scripts/kidults/staging-operations/lib/"
   Copy-Item "$root/tests/kidults/staging-operations/*.test.mjs","$root/tests/kidults/staging-operations/postgres-live-canary-v1.mjs" "$packet/tests/kidults/staging-operations/"
-  Copy-Item "$root/tests/kidults/staging-operations/postgres-live-deps/package*.json" "$packet/tests/kidults/staging-operations/postgres-live-deps/"
+  Copy-Item "$root/tests/kidults/staging-operations/postgres-live-deps/package.json","$root/tests/kidults/staging-operations/postgres-live-deps/npm-shrinkwrap.json" "$packet/tests/kidults/staging-operations/postgres-live-deps/"
   Copy-Item "$root/coordination/kidults/staging-operations/autonomous-provider-event-v1.schema.json" "$packet/coordination/kidults/staging-operations/"
   Copy-Item "$root/package.json","$root/npm-shrinkwrap.json" $packet
   $mount="type=bind,source=$packet,target=/suite"
