@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
+import {REPOSITORY, MAX_ARCHIVE_BYTES, readArchive, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
 import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
@@ -17,6 +17,10 @@ const SPECS=[
   {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
   {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_run','workflow_dispatch','issues'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
+const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');
+const CANONICAL_GENERATION_SPEC={id:'CANONICAL_GENERATION',workflow:'kpmo-canonical-generation-v3-apply.yml',path:'.github/workflows/kpmo-canonical-generation-v3-apply.yml',events:['push']};
+const CANONICAL_CONVERGENCE_MAX_WAIT_MS=90_000;
+const CANONICAL_CONVERGENCE_POLL_MS=5_000;
 
 const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
 const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(typeof value==='string'?value:stable(value)).digest('hex')}`;
@@ -66,6 +70,68 @@ function generationSignature(run){
   return stable(run?[run.id,run.run_attempt,run.repository?.full_name,run.path,
     run.head_branch,run.head_sha,run.event,run.created_at,run.run_started_at??null,
     run.status,run.conclusion]:null);
+}
+
+export function classifyCanonicalConvergence(generationRuns,truthRuns,sourceSha,observedAt){
+  let generationCandidates,truthCandidates;
+  try{
+    ({candidates:generationCandidates}=selectProducerGeneration(generationRuns,CANONICAL_GENERATION_SPEC,sourceSha,observedAt));
+    ({candidates:truthCandidates}=selectProducerGeneration(truthRuns,CANONICAL_TRUTH_SPEC,sourceSha,observedAt));
+  }catch(error){
+    return {state:'VERIFIED_FAIL',failure_class:error.message,generation:null,consumer:null,truth_candidates:[]};
+  }
+  if(!generationCandidates.length)return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_GENERATION',generation:null,consumer:null,truth_candidates:truthCandidates};
+  const generation=generationCandidates.at(-1);
+  if(generation.status!=='completed')return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_GENERATION',generation,consumer:null,truth_candidates:truthCandidates};
+  if(!TERMINAL.has(generation.conclusion))return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_GENERATION_TERMINAL_UNKNOWN_${generation.conclusion||'NULL'}`,generation,consumer:null,truth_candidates:truthCandidates};
+  if(generation.conclusion!=='success')return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_GENERATION_${String(generation.conclusion).toUpperCase()}`,generation,consumer:null,truth_candidates:truthCandidates};
+  const consumers=truthCandidates.filter((run)=>run.event==='workflow_run'&&Date.parse(run.created_at)>=Date.parse(generation.created_at));
+  if(!consumers.length)return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_CONSUMER',generation,consumer:null,truth_candidates:truthCandidates};
+  const consumer=consumers.at(-1);
+  if(consumer.status!=='completed')return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_CONSUMER',generation,consumer,truth_candidates:truthCandidates};
+  if(!TERMINAL.has(consumer.conclusion))return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_CONSUMER_TERMINAL_UNKNOWN_${consumer.conclusion||'NULL'}`,generation,consumer,truth_candidates:truthCandidates};
+  if(consumer.conclusion!=='success')return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_CONSUMER_${String(consumer.conclusion).toUpperCase()}`,generation,consumer,truth_candidates:truthCandidates};
+  const evaluationTruthRuns=truthCandidates.filter((run)=>run.event==='push'||run.id===consumer.id);
+  return {state:'READY_FOR_CONTENT_VALIDATION',failure_class:null,generation,consumer,truth_candidates:truthCandidates,evaluation_truth_runs:evaluationTruthRuns};
+}
+
+function canonicalGenerationIdFromArchive(bytes,artifactDigest){
+  const packet=readArchive(bytes,artifactDigest);
+  const entries=packet.members.filter((member)=>path.posix.basename(member.name)==='canonical-truth-validation-output-v1.json');
+  if(entries.length!==1)fail('CANONICAL_GENERATION_LINEAGE_MEMBER_CARDINALITY');
+  let payload;
+  try{payload=JSON.parse(entries[0].text);}catch{fail('CANONICAL_GENERATION_LINEAGE_JSON_INVALID');}
+  if(typeof payload?.generation_id!=='string')fail('CANONICAL_GENERATION_LINEAGE_ID_MISSING');
+  return payload.generation_id;
+}
+
+export function validateCanonicalGenerationLineage(generationId,generationRun,sourceSha){
+  if(!generationRun||generationRun.status!=='completed'||generationRun.conclusion!=='success')fail('CANONICAL_GENERATION_LINEAGE_SOURCE_INVALID');
+  const expected=`kpmo-canonical-v3-${sourceSha.slice(0,12)}-${generationRun.id}-${generationRun.run_attempt}`;
+  if(generationId!==expected)fail('CANONICAL_GENERATION_LINEAGE_MISMATCH');
+  return true;
+}
+
+const pause=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
+
+export async function waitForCanonicalConvergence(repo,sourceSha,token,{
+  maxWaitMs=CANONICAL_CONVERGENCE_MAX_WAIT_MS,
+  pollMs=CANONICAL_CONVERGENCE_POLL_MS,
+  loadRuns=workflowRuns,
+  now=()=>Date.now(),
+  sleep=pause,
+}={}){
+  const started=now();
+  for(;;){
+    const observedAt=new Date(now()).toISOString();
+    const generationRuns=await loadRuns(repo,CANONICAL_GENERATION_SPEC,sourceSha,token);
+    const truthRuns=await loadRuns(repo,CANONICAL_TRUTH_SPEC,sourceSha,token);
+    const classification=classifyCanonicalConvergence(generationRuns,truthRuns,sourceSha,observedAt);
+    if(classification.state==='READY_FOR_CONTENT_VALIDATION')return {...classification,generationRuns,truthRuns};
+    if(classification.state==='VERIFIED_FAIL')fail(classification.failure_class);
+    if(now()-started>=maxWaitMs)fail('CANONICAL_CONVERGENCE_TIMEOUT');
+    await sleep(pollMs);
+  }
 }
 
 function exactArtifact(spec,run,artifacts,observedAt,archivesById={},relatedById={},sourceSha=run.head_sha){
@@ -192,10 +258,17 @@ async function liveInput(){
   // Event payload is an assertion; re-read the named native producer before use.
   if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
+  const canonicalConvergence=process.env.GITHUB_EVENT_NAME==='push'
+    ? await waitForCanonicalConvergence(repo,sourceSha,token)
+    : null;
   const runs={},artifactsByRun={},archivesById={},relatedById={};
   for(const spec of SPECS){
-    runs[spec.id]=await workflowRuns(repo,spec,sourceSha,token);
-    const run=latestApplicable(runs[spec.id],spec,sourceSha);
+    runs[spec.id]=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
+      ? canonicalConvergence.evaluation_truth_runs
+      : await workflowRuns(repo,spec,sourceSha,token);
+    const run=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
+      ? canonicalConvergence.consumer
+      : latestApplicable(runs[spec.id],spec,sourceSha);
     if(!run||run.status!=='completed'||run.conclusion!=='success')continue;
     const value=await api(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`,token);
     if(!Array.isArray(value?.artifacts)||value.total_count!==value.artifacts.length)fail('ARTIFACT_INDEX_TRUNCATED');
@@ -204,6 +277,11 @@ async function liveInput(){
     const selected=value.artifacts.filter(a=>expected.includes(a.name));
     if(selected.length!==1)continue;
     const artifact=selected[0];archivesById[artifact.id]=await downloadArtifact(repo,artifact,token);
+    if(spec.id==='CANONICAL_TRUTH'&&canonicalConvergence){
+      validateProducerContent(spec,run,artifact,archivesById[artifact.id],sourceSha,new Date().toISOString());
+      const generationId=canonicalGenerationIdFromArchive(archivesById[artifact.id],artifact.digest);
+      validateCanonicalGenerationLineage(generationId,canonicalConvergence.generation,sourceSha);
+    }
     // Resolve at most one same-source alias target, never recursive/latest fallback.
     if(spec.id==='REQUIREMENT'){
       const content=validateProducerContent(spec,run,artifact,archivesById[artifact.id],sourceSha,new Date().toISOString());
@@ -218,6 +296,17 @@ async function liveInput(){
   }
   // Fail rather than publish an older green if main, run selection or attempt moved.
   for(const spec of SPECS){
+    if(spec.id==='CANONICAL_TRUTH'&&canonicalConvergence){
+      const generationRunsAfter=await workflowRuns(repo,CANONICAL_GENERATION_SPEC,sourceSha,token);
+      const truthRunsAfter=await workflowRuns(repo,CANONICAL_TRUTH_SPEC,sourceSha,token);
+      const after=classifyCanonicalConvergence(generationRunsAfter,truthRunsAfter,sourceSha,new Date().toISOString());
+      if(after.state!=='READY_FOR_CONTENT_VALIDATION'||
+         generationSignature(canonicalConvergence.generation)!==generationSignature(after.generation)||
+         generationSignature(canonicalConvergence.consumer)!==generationSignature(after.consumer)){
+        fail('CANONICAL_CONVERGENCE_CHANGED_DURING_READ');
+      }
+      continue;
+    }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
     const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
     if(generationSignature(before)!==generationSignature(after))fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
@@ -259,4 +348,4 @@ async function main(){
 
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href;
 if(direct)await main();
-export {SPECS};
+export {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS};
