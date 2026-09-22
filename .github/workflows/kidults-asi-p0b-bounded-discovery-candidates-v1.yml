@@ -2,6 +2,13 @@ name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI P0 Mission Consumption v1'
+    branches: [main]
+    types: [completed]
   pull_request:
     branches: [main]
     paths:
@@ -16,6 +23,7 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
 
@@ -24,13 +32,13 @@ permissions:
   actions: read
 
 concurrency:
-  # Validation and explicitly authorized execution are isolated by run.
-  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}
+  # Distinct upstream completions and schedules must not share a cancellation namespace.
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   bounded-discovery-candidates:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -51,7 +59,8 @@ jobs:
             scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
             scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
             scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
-            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; do
+            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
+            scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs; do
             node --check "$file"
           done
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json','utf8'))"
@@ -61,6 +70,8 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
             | tee /tmp/kidults-asi-p0b-registry-validation-v1.json
+          node scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs \
+            | tee /tmp/kidults-autonomous-workflow-activation-estate-v1.json
       - name: Rebuild current P0 mission task queue
         run: |
           set -euo pipefail
