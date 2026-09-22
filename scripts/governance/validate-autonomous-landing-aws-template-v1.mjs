@@ -23,6 +23,11 @@ assert.equal(table.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled, 
 assert.equal(table.SSESpecification.SSEType, 'KMS');
 assert.equal(ledgerKey.EnableKeyRotation, true);
 assert.equal(template.Parameters.FinalizerEnvironment.Default, 'KIDULTS-AUTONOMOUS-FINALIZER');
+const workflowRefPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
+for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef']) {
+  assert.equal(template.Parameters[parameter].AllowedPattern, workflowRefPattern);
+  assert.match(template.Parameters[parameter].Default, new RegExp(workflowRefPattern));
+}
 assert.equal(oidc.state, 'OWNER_GATE_REQUIRED');
 assert.deepEqual(oidc.desired.include_claim_keys, ['repo','context','workflow_ref']);
 assert.equal(oidc.aws_contract.custom_claim_condition_keys_forbidden, true);

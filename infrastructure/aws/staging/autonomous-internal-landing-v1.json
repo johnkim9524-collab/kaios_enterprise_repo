@@ -54,17 +54,17 @@
     "TrackWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
     },
     "KpmoWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
     },
     "VerifierWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
     }
   },
   "Resources": {
