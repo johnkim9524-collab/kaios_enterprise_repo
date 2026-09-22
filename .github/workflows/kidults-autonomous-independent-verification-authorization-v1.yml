@@ -1,0 +1,231 @@
+[Reading 229 lines from start (total: 229 lines, 0 remaining)]
+
+name: KIDULTS Autonomous Independent Verification V1
+run-name: "KIDULTS Autonomous Independent Verification V1 ${{ github.event.action }}"
+
+on:
+  repository_dispatch:
+    types:
+      - kidults.independent.verification.v1
+
+concurrency:
+  group: kidults-autonomous-independent-verification-${{ github.event.client_payload.envelope.authorization_generation || github.run_id }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  record-role-approval:
+    name: Record exact role-scoped autonomous approval
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-VERIFIER
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      checks: read
+      contents: read
+      id-token: write
+      issues: read
+      pull-requests: read
+      statuses: read
+    steps:
+      - name: Checkout protected main policy only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact workload checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Verify autonomous policy implementation
+        run: node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs
+
+      - name: Deny unconfigured autonomous authority
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+          SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          WORKLOAD_REGISTRY: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          test -n "$SIGNING_KEY_ARN"
+          test -n "$WORKLOAD_ID"
+          test -n "$LEDGER_TABLE"
+          test -n "$WRITER_FUNCTION"
+          test -n "$WORKLOAD_REGISTRY"
+          test "$AWS_ROLE_ARN" != "UNCONFIGURED"
+          test "$SIGNING_KEY_ARN" != "UNCONFIGURED"
+          test "$WRITER_FUNCTION" != "UNCONFIGURED"
+
+      - name: Acquire short-lived AWS credentials through GitHub OIDC
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          OIDC_JSON=$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          test -n "$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity \
+            --role-arn "$AWS_ROLE_ARN" \
+            --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" \
+            --web-identity-token "$OIDC_TOKEN" \
+            --duration-seconds 900 \
+            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+            --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          test -n "$AWS_ACCESS_KEY_ID"
+          {
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+            echo "AWS_REGION=ap-northeast-2"
+          } >> "$GITHUB_ENV"
+
+      - name: Preserve owner-reserved HOLD boundary
+        run: |
+          set -euo pipefail
+          test "${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}" = HOLD
+          test "${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}" = HOLD
+          test "${{ vars.KIDULTS_G5_STATE || 'HOLD' }}" = HOLD
+
+      - name: Record role-scoped approval only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KIDULTS_AUTONOMOUS_MODE: APPROVAL
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
+          KIDULTS_AUTONOMOUS_ENVIRONMENT: KIDULTS-AUTONOMOUS-VERIFIER
+          KIDULTS_AUTONOMOUS_WORKFLOW_REF: ${{ github.workflow_ref }}
+          KIDULTS_AUTONOMOUS_REPOSITORY_ID: ${{ github.repository_id }}
+          AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/approval-receipt.json
+        run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
+
+      - name: Upload role approval receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-autonomous-internal-landing-approval-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/autonomous-internal-landing-v1/approval-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+  finalize-if-quorum:
+    name: Finalize exact internal landing only after durable quorum
+    needs: record-role-approval
+    if: needs.record-role-approval.result == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-FINALIZER
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      checks: read
+      contents: write
+      id-token: write
+      issues: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Checkout protected main policy only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact finalizer checkout
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Verify autonomous policy implementation
+        run: node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs
+
+      - name: Deny unconfigured finalizer authority
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+          SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          WORKLOAD_REGISTRY: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          test -n "$SIGNING_KEY_ARN"
+          test -n "$WORKLOAD_ID"
+          test -n "$LEDGER_TABLE"
+          test -n "$WRITER_FUNCTION"
+          test -n "$WORKLOAD_REGISTRY"
+          test "$AWS_ROLE_ARN" != "UNCONFIGURED"
+          test "$SIGNING_KEY_ARN" != "UNCONFIGURED"
+          test "$WRITER_FUNCTION" != "UNCONFIGURED"
+
+      - name: Acquire finalizer AWS credentials through GitHub OIDC
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          OIDC_JSON=$(curl --fail --silent --show-error             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          test -n "$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity             --role-arn "$AWS_ROLE_ARN"             --role-session-name "kidults-autonomous-finalizer-${GITHUB_RUN_ID}"             --web-identity-token "$OIDC_TOKEN"             --duration-seconds 900             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'             --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          test -n "$AWS_ACCESS_KEY_ID"
+          {
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+            echo "AWS_REGION=ap-northeast-2"
+          } >> "$GITHUB_ENV"
+
+      - name: Preserve owner-reserved HOLD boundary
+        run: |
+          set -euo pipefail
+          test "${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}" = HOLD
+          test "${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}" = HOLD
+          test "${{ vars.KIDULTS_G5_STATE || 'HOLD' }}" = HOLD
+
+      - name: Finalize only after durable Track KPMO Verifier quorum
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KIDULTS_AUTONOMOUS_MODE: FINALIZE
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
+          KIDULTS_AUTONOMOUS_ENVIRONMENT: KIDULTS-AUTONOMOUS-FINALIZER
+          KIDULTS_AUTONOMOUS_WORKFLOW_REF: ${{ github.workflow_ref }}
+          KIDULTS_AUTONOMOUS_REPOSITORY_ID: ${{ github.repository_id }}
+          AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/receipt.json
+        run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
+
+      - name: Upload finalizer receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-autonomous-internal-landing-finalizer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/autonomous-internal-landing-v1/receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+  owner-reserved-boundary:
+    name: Production Public G5 remain Owner HOLD
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Assert non-promotion boundary
+        run: |
+          set -euo pipefail
+          echo 'AUTONOMOUS_INTERNAL_ONLY=true'
+          echo 'PRODUCTION=HOLD'
+          echo 'PUBLIC=HOLD'
+          echo 'G5=HOLD'
+
+[executed on device: DESKTOP-TA3GFEP (3d20d44d-d529-46b0-b796-9a006b6f49bd)]

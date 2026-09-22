@@ -11,16 +11,6 @@
       "Default": "johnkim9524-collab/kaios_enterprise_repo",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
     },
-    "GitHubRepositoryId": {
-      "Type": "String",
-      "Default": "1281328888",
-      "AllowedPattern": "^[0-9]{1,20}$"
-    },
-    "GitHubWorkflowName": {
-      "Type": "String",
-      "Default": "KIDULTS Autonomous Internal Landing V1",
-      "AllowedPattern": "^[A-Za-z0-9 _.-]{1,128}$"
-    },
     "TrackEnvironment": {
       "Type": "String",
       "Default": "KIDULTS-AUTONOMOUS-TRACK",
@@ -60,6 +50,21 @@
       "Type": "String",
       "Default": "kidults-finalizer-v1",
       "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+    },
+    "TrackWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
+    },
+    "KpmoWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
+    },
+    "VerifierWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\\\.github/workflows/[A-Za-z0-9_.-]+\\\\.ya?ml@refs/heads/main$"
     }
   },
   "Resources": {
@@ -439,17 +444,7 @@
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                   "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${TrackEnvironment}"
-                  },
-                  "token.actions.githubusercontent.com:repository_id": {
-                    "Ref": "GitHubRepositoryId"
-                  },
-                  "token.actions.githubusercontent.com:workflow": {
-                    "Ref": "GitHubWorkflowName"
-                  },
-                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                  "token.actions.githubusercontent.com:environment": {
-                    "Ref": "TrackEnvironment"
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${TrackEnvironment}:workflow_ref:${TrackWorkflowRef}"
                   }
                 }
               }
@@ -580,17 +575,7 @@
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                   "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}"
-                  },
-                  "token.actions.githubusercontent.com:repository_id": {
-                    "Ref": "GitHubRepositoryId"
-                  },
-                  "token.actions.githubusercontent.com:workflow": {
-                    "Ref": "GitHubWorkflowName"
-                  },
-                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                  "token.actions.githubusercontent.com:environment": {
-                    "Ref": "KpmoEnvironment"
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
                   }
                 }
               }
@@ -721,17 +706,7 @@
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                   "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${VerifierEnvironment}"
-                  },
-                  "token.actions.githubusercontent.com:repository_id": {
-                    "Ref": "GitHubRepositoryId"
-                  },
-                  "token.actions.githubusercontent.com:workflow": {
-                    "Ref": "GitHubWorkflowName"
-                  },
-                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                  "token.actions.githubusercontent.com:environment": {
-                    "Ref": "VerifierEnvironment"
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${VerifierEnvironment}:workflow_ref:${VerifierWorkflowRef}"
                   }
                 }
               }
@@ -861,19 +836,17 @@
               "Condition": {
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                  "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}"
-                  },
-                  "token.actions.githubusercontent.com:repository_id": {
-                    "Ref": "GitHubRepositoryId"
-                  },
-                  "token.actions.githubusercontent.com:workflow": {
-                    "Ref": "GitHubWorkflowName"
-                  },
-                  "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                  "token.actions.githubusercontent.com:environment": {
-                    "Ref": "FinalizerEnvironment"
-                  }
+                  "token.actions.githubusercontent.com:sub": [
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${TrackWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${VerifierWorkflowRef}"
+                    }
+                  ]
                 }
               }
             }

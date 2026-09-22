@@ -5,16 +5,31 @@ import {canonicalJson, sha256, validateWorkload, validateEnvelope, validateQuoru
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const sha = char => char.repeat(40);
-const roleSlug = role => role.toLowerCase().replaceAll('_','-');
-const workload = (role, id) => ({
-  workload_id:`kidults-${roleSlug(role)}-v1`,
-  environment:`KIDULTS-AUTONOMOUS-${roleSlug(role).toUpperCase()}`,
-  workflow_ref:`johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-internal-landing-v1.yml@refs/heads/main`,
-  workflow_sha:sha('f'),
-  repository_id:'1281328888',
-  signing_key_arn:`arn:aws:kms:ap-northeast-2:111122223333:key/00000000-0000-0000-0000-00000000000${id}`,
-});
-const registry = {workloads:[['ACCOUNTABLE_TRACK_AGENT',1],['KPMO',2],['INDEPENDENT_VERIFIER',3],['FINALIZER',4]].map(([role,id])=>({role,...workload(role,id)}))};
+const workloadSpec = {
+  ACCOUNTABLE_TRACK_AGENT: { id:'kidults-accountable-track-agent-v1', environment:'KIDULTS-AUTONOMOUS-TRACK', workflow:'kidults-autonomous-track-authorization-v1.yml' },
+  KPMO: { id:'kidults-kpmo-v1', environment:'KIDULTS-AUTONOMOUS-KPMO', workflow:'kidults-autonomous-kpmo-authorization-v1.yml' },
+  INDEPENDENT_VERIFIER: { id:'kidults-independent-verifier-v1', environment:'KIDULTS-AUTONOMOUS-VERIFIER', workflow:'kidults-autonomous-independent-verification-authorization-v1.yml' },
+  FINALIZER: { id:'kidults-finalizer-v1', environment:'KIDULTS-AUTONOMOUS-FINALIZER', workflow:'kidults-autonomous-track-authorization-v1.yml' },
+};
+const workload = (role, id, workflowOverride = null) => {
+  const spec = workloadSpec[role];
+  return {
+    workload_id:spec.id,
+    environment:spec.environment,
+    workflow_ref:`johnkim9524-collab/kaios_enterprise_repo/.github/workflows/${workflowOverride || spec.workflow}@refs/heads/main`,
+    workflow_sha:sha('f'),
+    repository_id:'1281328888',
+    signing_key_arn:`arn:aws:kms:ap-northeast-2:111122223333:key/00000000-0000-0000-0000-00000000000${id}`,
+  };
+};
+const registry = {workloads:[
+  ['ACCOUNTABLE_TRACK_AGENT',1,null],
+  ['KPMO',2,null],
+  ['INDEPENDENT_VERIFIER',3,null],
+  ['FINALIZER',4,'kidults-autonomous-track-authorization-v1.yml'],
+  ['FINALIZER',4,'kidults-autonomous-kpmo-authorization-v1.yml'],
+  ['FINALIZER',4,'kidults-autonomous-independent-verification-authorization-v1.yml'],
+].map(([role,id,wf])=>({role,...workload(role,id,wf)}))};
 const paths = ['src/internal-a.js','tests/internal-a.test.js'];
 const testEvidence = {suite:'internal-unit',result:'PASS',artifact_digest:sha256('artifact')};
 const rollbackPlan = {strategy:'REVERT_MERGE_COMMIT',verified:true};
@@ -58,9 +73,13 @@ const sharedWorkload={...kpmo,workload:{...kpmo.workload,workload_id:track.workl
 assert.throws(()=>validateQuorum({track,kpmo:sharedWorkload,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedWorkload.workload}]},policy,now}));
 const sharedSigningKey={...kpmo,workload:{...kpmo.workload,signing_key_arn:track.workload.signing_key_arn}};
 assert.throws(()=>validateQuorum({track,kpmo:sharedSigningKey,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedSigningKey.workload}]},policy,now}));
+const sharedWorkflowRef={...kpmo,workload:{...kpmo.workload,workflow_ref:track.workload.workflow_ref}};
+assert.throws(()=>validateQuorum({track,kpmo:sharedWorkflowRef,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedWorkflowRef.workload}]},policy,now}));
+const sharedEnvironment={...kpmo,workload:{...kpmo.workload,environment:track.workload.environment}};
+assert.throws(()=>validateQuorum({track,kpmo:sharedEnvironment,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedEnvironment.workload}]},policy,now}));
 assert.throws(()=>validateQuorum({track,kpmo,verifier:{...verifier,verification_state:'FAILED'},registry,policy,now}));
 assert.throws(()=>buildTerminalReceipt({quorum,reservation:{state:'RESERVED',conditional_write:true},merge:{},postmerge:{}}));
 assert.throws(()=>validateWorkload({...workload('FINALIZER',4),signing_key_arn:track.workload.signing_key_arn},registry,'FINALIZER'));
 assert.equal(policy.approval_quorum.approval_workloads_may_finalize,false);
 assert.equal(policy.workload_identity.finalizer.only_stage_allowed_github_write,true);
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:14,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:16,production:'HOLD',public:'HOLD',g5:'HOLD'}));

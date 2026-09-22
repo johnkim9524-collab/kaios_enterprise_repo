@@ -146,7 +146,7 @@
     "autonomous_effect": "Eligible reversible internal landing runs from governed agent events without routine Owner orchestration.",
     "global_effect": "One repository-wide authority model applies to every Track and internal workflow.",
     "irreplaceable_value_effect": "Authorization, rollback and evidence knowledge remain platform-owned and replayable.",
-    "transparency_effect": "Every transition binds exact Git objects, role-scoped OIDC workload identity, KMS signing key, evidence digests and immutable receipts."
+    "transparency_effect": "Every transition binds exact Git objects, role-scoped GitHub OIDC subject identity, KMS signing key, evidence digests and immutable receipts."
   },
   "workload_identity": {
     "required": [
@@ -162,11 +162,8 @@
     "role_signature_required": true,
     "signature_algorithm": "ECDSA_SHA_256",
     "oidc_trust_conditions_required": [
-      "sub",
-      "repository_id",
-      "workflow",
-      "ref",
-      "environment"
+      "aud",
+      "sub"
     ],
     "github_sender_id_is_authority": false,
     "caller_supplied_workload_identity_allowed": false,
@@ -183,6 +180,18 @@
       "distinct_signing_key_required": true,
       "only_stage_allowed_github_write": true,
       "approval_stage_github_write_forbidden": true
+    },
+    "oidc_subject_customization": {
+      "required": true,
+      "repository_setting_path": "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
+      "include_claim_keys": [
+        "repo",
+        "context",
+        "workflow_ref"
+      ],
+      "aws_custom_claim_condition_keys_forbidden": true,
+      "role_workflow_ref_must_be_distinct": true,
+      "finalizer_may_trust_only_role_workflow_refs": true
     }
   }
 }

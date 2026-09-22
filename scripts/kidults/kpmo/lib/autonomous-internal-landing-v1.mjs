@@ -104,6 +104,8 @@ export function validateQuorum({track, kpmo, verifier, registry, policy, now = D
   ];
   if (new Set(identities.map(value => value.stable_id)).size !== identities.length) fail('AUTONOMOUS_WORKLOAD_SEPARATION_FAILED');
   if (new Set(identities.map(value => value.signing_key_arn)).size !== identities.length) fail('AUTONOMOUS_SIGNING_KEY_SEPARATION_FAILED');
+  if (new Set(envelopes.map(value => value.workload?.workflow_ref)).size !== identities.length) fail('AUTONOMOUS_WORKFLOW_REF_SEPARATION_FAILED');
+  if (new Set(envelopes.map(value => value.workload?.environment)).size !== identities.length) fail('AUTONOMOUS_ENVIRONMENT_SEPARATION_FAILED');
   if (verifier.verification_state !== 'VERIFIED_PASS') fail('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASS');
   return {
     state: 'INDEPENDENT_VERIFIED',

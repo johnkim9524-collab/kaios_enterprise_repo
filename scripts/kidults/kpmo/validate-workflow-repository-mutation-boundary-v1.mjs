@@ -7,7 +7,11 @@ const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-land
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
-const AUTONOMOUS_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-autonomous-internal-landing-v1.yml');
+const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
+  [path.resolve(ROOT, 'kidults-autonomous-track-authorization-v1.yml'), { event: 'kidults.track.authorization.v1', environment: 'KIDULTS-AUTONOMOUS-TRACK' }],
+  [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), { event: 'kidults.kpmo.authorization.v1', environment: 'KIDULTS-AUTONOMOUS-KPMO' }],
+  [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), { event: 'kidults.independent.verification.v1', environment: 'KIDULTS-AUTONOMOUS-VERIFIER' }],
+]);
 const AUTONOMOUS_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs');
 
 function walk(dir) {
@@ -204,15 +208,13 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
   return [...new Set(findings)];
 }
 
-function constrainedAutonomousLandingViolations(workflow, runner) {
+function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(`autonomous-landing-${id}`); };
   for (const fragment of [
     'repository_dispatch:',
-    'kidults.track.authorization.v1',
-    'kidults.kpmo.authorization.v1',
-    'kidults.independent.verification.v1',
-    'group: kidults-autonomous-internal-landing-main',
+    expected.event,
+    'group: kidults-autonomous-',
     'cancel-in-progress: false',
     'id-token: write',
     'checks: read',
@@ -222,9 +224,7 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'persist-credentials: false',
     'ref: ${{ github.sha }}',
     'Verify exact workload checkout',
-    'KIDULTS-AUTONOMOUS-TRACK',
-    'KIDULTS-AUTONOMOUS-KPMO',
-    'KIDULTS-AUTONOMOUS-VERIFIER',
+    expected.environment,
     'KIDULTS-AUTONOMOUS-FINALIZER',
     'record-role-approval:',
     'finalize-if-quorum:',
@@ -237,6 +237,9 @@ function constrainedAutonomousLandingViolations(workflow, runner) {
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
     'KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON',
   ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  for (const other of ['kidults.track.authorization.v1','kidults.kpmo.authorization.v1','kidults.independent.verification.v1']) {
+    if (other !== expected.event) require(!workflow.includes(`      - ${other}`), `cross-role-event-forbidden:${other}`);
+  }
   require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch|workflow_run):/mi.test(workflow), 'event-boundary');
   require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
   const approvalSection = workflow.split('  finalize-if-quorum:')[0] || '';
@@ -315,11 +318,12 @@ for (const file of files) {
     const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler);
     violations = [...new Set([...violations, ...exceptionViolations])];
   }
-  if (path.resolve(file) === AUTONOMOUS_LANDING_WORKFLOW) {
+  const autonomousSpec = AUTONOMOUS_LANDING_WORKFLOWS.get(path.resolve(file));
+  if (autonomousSpec) {
     const runner = fs.readFileSync(AUTONOMOUS_LANDING_RUNNER, 'utf8');
     violations = [
       ...violations.filter(value => value !== 'contents-write'),
-      ...constrainedAutonomousLandingViolations(workflow, runner),
+      ...constrainedAutonomousLandingViolations(workflow, runner, autonomousSpec),
     ];
   }
   if (violations.length) findings.push({ file: path.relative('.', file), violations });

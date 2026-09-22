@@ -1,15 +1,15 @@
-name: KIDULTS Autonomous Internal Landing V1
-run-name: "Autonomous internal landing ${{ github.event.action }}"
+[Reading 229 lines from start (total: 229 lines, 0 remaining)]
+
+name: KIDULTS Autonomous KPMO Authorization V1
+run-name: "KIDULTS Autonomous KPMO Authorization V1 ${{ github.event.action }}"
 
 on:
   repository_dispatch:
     types:
-      - kidults.track.authorization.v1
       - kidults.kpmo.authorization.v1
-      - kidults.independent.verification.v1
 
 concurrency:
-  group: kidults-autonomous-internal-landing-main
+  group: kidults-autonomous-kpmo-${{ github.event.client_payload.envelope.authorization_generation || github.run_id }}
   cancel-in-progress: false
 
 permissions: {}
@@ -19,7 +19,7 @@ jobs:
     name: Record exact role-scoped autonomous approval
     if: github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
-    environment: ${{ github.event.action == 'kidults.track.authorization.v1' && 'KIDULTS-AUTONOMOUS-TRACK' || github.event.action == 'kidults.kpmo.authorization.v1' && 'KIDULTS-AUTONOMOUS-KPMO' || 'KIDULTS-AUTONOMOUS-VERIFIER' }}
+    environment: KIDULTS-AUTONOMOUS-KPMO
     timeout-minutes: 10
     permissions:
       actions: read
@@ -104,7 +104,7 @@ jobs:
           KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
           KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
           KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
-          KIDULTS_AUTONOMOUS_ENVIRONMENT: ${{ github.event.action == 'kidults.track.authorization.v1' && 'KIDULTS-AUTONOMOUS-TRACK' || github.event.action == 'kidults.kpmo.authorization.v1' && 'KIDULTS-AUTONOMOUS-KPMO' || 'KIDULTS-AUTONOMOUS-VERIFIER' }}
+          KIDULTS_AUTONOMOUS_ENVIRONMENT: KIDULTS-AUTONOMOUS-KPMO
           KIDULTS_AUTONOMOUS_WORKFLOW_REF: ${{ github.workflow_ref }}
           KIDULTS_AUTONOMOUS_REPOSITORY_ID: ${{ github.repository_id }}
           AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/approval-receipt.json
@@ -227,3 +227,5 @@ jobs:
           echo 'PRODUCTION=HOLD'
           echo 'PUBLIC=HOLD'
           echo 'G5=HOLD'
+
+[executed on device: DESKTOP-TA3GFEP (3d20d44d-d529-46b0-b796-9a006b6f49bd)]
