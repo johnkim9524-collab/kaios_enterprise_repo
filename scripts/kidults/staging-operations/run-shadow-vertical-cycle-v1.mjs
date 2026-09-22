@@ -41,7 +41,7 @@ for (let index = 1; index <= 3; index += 1) {
     broker,
     durability: new AwsDurabilityBoundary({ store, ...keys, mainSha }),
   });
-  results.push(runtime.tick(request(taskId)));
+  results.push(await runtime.tick(request(taskId)));
 }
 
 const receipt = {

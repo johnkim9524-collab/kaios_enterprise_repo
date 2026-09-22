@@ -27,21 +27,21 @@ const build = ({ ledger = new MemoryTransitionLedger(), broker = new ShadowFetch
   }) };
 };
 
-test('normal autonomous tick records exactly one verified terminal evidence binding', () => {
+test('normal autonomous tick records exactly one verified terminal evidence binding', async () => {
   const { ledger, runtime } = build();
-  const result = runtime.tick(request('normal-1'));
+  const result = await runtime.tick(request('normal-1'));
   assert.equal(result.state, 'COMPLETE_VERIFIED');
   assert.equal(ledger.rows('normal-1').filter(row => row.state === 'COMPLETE_VERIFIED').length, 1);
   assert.match(result.receipt_digest, /^sha256:[a-f0-9]{64}$/);
 });
 
-test('duplicate concurrent lease is suppressed', () => {
+test('duplicate concurrent lease is suppressed', async () => {
   const { ledger, runtime } = build();
   assert.ok(ledger.acquire('duplicate-1', nowMs, 1000));
-  assert.equal(runtime.tick(request('duplicate-1')).state, 'DUPLICATE_SUPPRESSED');
+  assert.equal((await runtime.tick(request('duplicate-1'))).state, 'DUPLICATE_SUPPRESSED');
 });
 
-test('expired worker lease is recovered on the next tick', () => {
+test('expired worker lease is recovered on the next tick', async () => {
   let clock = nowMs;
   const ledger = new MemoryTransitionLedger();
   assert.ok(ledger.acquire('recover-1', clock, 1000));
@@ -53,38 +53,48 @@ test('expired worker lease is recovered on the next tick', () => {
     broker: new ShadowFetchBroker({ fixture: { synthetic: true } }),
     durability: new AwsDurabilityBoundary({ store: new MockImmutableStore(), ...keys, mainSha }),
   });
-  assert.equal(runtime.tick(request('recover-1')).state, 'COMPLETE_VERIFIED');
+  assert.equal((await runtime.tick(request('recover-1'))).state, 'COMPLETE_VERIFIED');
 });
 
-test('provider timeout retries are bounded and end in quarantine', () => {
+test('provider timeout retries are bounded and end in quarantine', async () => {
   const broker = new ShadowFetchBroker({ fixture: {}, failAttempts: 3 });
   const { ledger, runtime } = build({ broker });
-  const result = runtime.tick(request('timeout-1'));
+  const result = await runtime.tick(request('timeout-1'));
   assert.equal(result.state, 'QUARANTINED');
   assert.equal(result.attempt, 3);
   assert.equal(ledger.rows('timeout-1').filter(row => row.state === 'RETRY_WAIT').length, 2);
 });
 
-test('upload failure never records success and remains evidence pending', () => {
+test('upload failure never records success and remains evidence pending', async () => {
   const keys = ephemeralEd25519();
   const durability = new AwsDurabilityBoundary({ store: new MockImmutableStore({ failUpload: true }), ...keys, mainSha });
   const { ledger, runtime } = build({ durability });
-  assert.equal(runtime.tick(request('upload-fail')).state, 'EVIDENCE_PENDING');
+  assert.equal((await runtime.tick(request('upload-fail'))).state, 'EVIDENCE_PENDING');
   assert.equal(ledger.rows('upload-fail').some(row => row.state === 'COMPLETE_VERIFIED'), false);
 });
 
-test('signature failure never records success', () => {
+test('signature failure never records success', async () => {
   const keys = ephemeralEd25519();
   const durability = new AwsDurabilityBoundary({ store: new MockImmutableStore(), ...keys, mainSha, failSign: true });
   const { runtime } = build({ durability });
-  const result = runtime.tick(request('sign-fail'));
+  const result = await runtime.tick(request('sign-fail'));
   assert.equal(result.state, 'EVIDENCE_PENDING');
   assert.equal(result.reason, 'KMS_SIGN_FAILED');
 });
 
-test('readback corruption never records success', () => {
+test('readback corruption never records success', async () => {
   const keys = ephemeralEd25519();
   const durability = new AwsDurabilityBoundary({ store: new MockImmutableStore({ corruptReadback: true }), ...keys, mainSha });
   const { runtime } = build({ durability });
-  assert.equal(runtime.tick(request('readback-fail')).reason, 'READBACK_DIGEST_MISMATCH');
+  assert.equal((await runtime.tick(request('readback-fail'))).reason, 'READBACK_DIGEST_MISMATCH');
+});
+
+
+test('stale worker cannot transition after lease generation is reacquired', async () => {
+  const ledger = new MemoryTransitionLedger();
+  const first = ledger.acquire('fence-1', nowMs, 10);
+  const second = ledger.acquire('fence-1', nowMs + 11, 10);
+  assert.equal(second.generation, first.generation + 1);
+  assert.throws(() => ledger.transition('fence-1', first, 'COMPLETE_VERIFIED', {}), /STALE_LEASE_FENCE/);
+  assert.equal(ledger.transition('fence-1', second, 'COMPLETE_VERIFIED', {}).lease_generation, second.generation);
 });
