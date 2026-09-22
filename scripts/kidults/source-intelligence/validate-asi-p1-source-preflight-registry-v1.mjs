@@ -44,16 +44,17 @@ for (const [key, expected] of Object.entries({
 })) assert(registry.registered_assets?.[key] === expected, `REGISTRY_PATH:${key}`);
 assert(registry.registered_outputs?.length === 8, 'REGISTRY_OUTPUT_COUNT');
 assert(registry.execution_chain?.length === 9, 'REGISTRY_EXECUTION_CHAIN');
-assert(registry.automatic_activation?.provider_execution_enabled === false, 'REGISTRY_PROVIDER_EXECUTION');
+assert(registry.automatic_activation?.provider_execution_enabled === true, 'REGISTRY_PROVIDER_EXECUTION');
 assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH');
-assert(registry.automatic_activation?.schedule === null, 'REGISTRY_SCHEDULE');
-assert(registry.automatic_activation?.upstream_workflow === null, 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'EXPLICIT_AUTHORIZED_EXECUTION_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.schedule === '52 * * * *', 'REGISTRY_SCHEDULE');
+assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P0B Bounded Discovery Candidates v1', 'REGISTRY_UPSTREAM');
+assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.next_stage?.id === 'P1B_BOUNDED_SOURCE_SAFETY_PREFLIGHT_EXECUTION', 'REGISTRY_NEXT_STAGE');
 assert(registry.next_stage?.required_actions?.length === 7, 'REGISTRY_NEXT_ACTIONS');
 
 for (const marker of [
-  'workflow_dispatch:', "if: github.event_name == 'workflow_dispatch'",
+  'workflow_dispatch:', 'schedule:', "cron: '52 * * * *'", 'workflow_run:', "'KIDULTS ASI P0B Bounded Discovery Candidates v1'",
+  "if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'",
   'Rebuild current P0B source candidates',
   'Build P1 classification qualification and Gate 1 outputs',
   'Run all P1 tasks through actual ASI runtime alignment preflight',
@@ -61,7 +62,7 @@ for (const marker of [
   'Reject region-hint-to-coverage mutation', 'Reject Gate 1 HOLD-to-PASS mutation',
   'Reject admission-candidate-to-admitted-evidence mutation', 'Emit KPMO P1 source-preflight receipt'
 ]) assert(workflow.includes(marker), `WORKFLOW_MARKER:${marker}`);
-assert(!/^  (schedule|push|pull_request|workflow_run):/m.test(workflow), 'WORKFLOW_AUTOMATIC_PROVIDER_TRIGGER_FORBIDDEN');
+assert(!/^  (push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUNDED_AUTOMATIC_PROVIDER_TRIGGER_FORBIDDEN');
 assert(workflow.includes('contents: read') && !workflow.includes('contents: write'), 'WORKFLOW_CONTENTS_BOUNDARY');
 assert(workflow.includes('persist-credentials: false') && !workflow.includes('git push'), 'WORKFLOW_MUTATION_BOUNDARY');
 
@@ -105,7 +106,7 @@ console.log(JSON.stringify({
   classification_fleets: contract.classification_fleets.length,
   qualification_fleets: contract.qualification_fleets.length,
   preflight_action_types: contract.preflight_actions.length,
-  provider_execution_enabled: false,
+  provider_execution_enabled: true,
   automatic_main_push: false,
   automatic_schedule: registry.automatic_activation.schedule,
   automatic_upstream_workflow: registry.automatic_activation.upstream_workflow,

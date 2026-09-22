@@ -78,10 +78,10 @@ const eventConsumerControls = [
   }
 ];
 
-const manualProviderControls = [{
+const autonomousProviderControls = [{
   label: 'P0B Bounded Discovery Candidates',
   text: p0bWorkflow,
-  expected: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}",
+  expected: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}",
   unsafe: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.ref }}"
 }];
 
@@ -104,16 +104,16 @@ function validateEventConsumer(control) {
   return findings;
 }
 
-function validateManualProvider(control) {
+function validateAutonomousProvider(control) {
   const findings = [];
-  if (!/^  workflow_dispatch:\s*$/m.test(control.text)) findings.push(`${control.label} explicit authority trigger missing`);
+  if (!/^  workflow_dispatch:\s*$/m.test(control.text)) findings.push(`${control.label} recovery trigger missing`);
   if (!/^  pull_request:\s*$/m.test(control.text)) findings.push(`${control.label} validation trigger missing`);
-  if (/^  (?:schedule|push|workflow_run):/m.test(control.text)) findings.push(`${control.label} automatic provider trigger present`);
+  if (!/^  schedule:\s*$/m.test(control.text)) findings.push(`${control.label} liveness schedule missing`);
+  if (!/^  workflow_run:\s*$/m.test(control.text)) findings.push(`${control.label} upstream trigger missing`);
   if (!control.text.includes(control.expected)) findings.push(`${control.label} concurrency is not isolated by explicit run id`);
   if (control.text.includes(control.unsafe)) findings.push(`${control.label} unsafe ref-only concurrency remains`);
-  if (!control.text.includes("bounded-discovery-candidates:\n    if: github.event_name == 'workflow_dispatch'")
-      && !control.text.includes("bounded-discovery-candidates:\r\n    if: github.event_name == 'workflow_dispatch'")) {
-    findings.push(`${control.label} provider job is not manual-only`);
+  if (!control.text.includes("github.event.workflow_run.conclusion == 'success'")) {
+    findings.push(`${control.label} upstream success guard missing`);
   }
   return findings;
 }
@@ -153,12 +153,12 @@ for (const control of eventConsumerControls) {
   const mutated = { ...control, text: control.text.replace(control.expected, control.unsafe) };
   if (validateEventConsumer(mutated).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);
 }
-for (const control of manualProviderControls) {
-  errors.push(...validateManualProvider(control));
-  const mutatedTrigger = { ...control, text: control.text.replace('  workflow_dispatch:', "  schedule:\n    - cron: '37 * * * *'\n  workflow_dispatch:") };
-  if (validateManualProvider(mutatedTrigger).length === 0) errors.push(`${control.label} automatic trigger mutation escaped`);
+for (const control of autonomousProviderControls) {
+  errors.push(...validateAutonomousProvider(control));
+  const mutatedTrigger = { ...control, text: control.text.replace("  schedule:\n    - cron: '37 * * * *'\n", '') };
+  if (validateAutonomousProvider(mutatedTrigger).length === 0) errors.push(`${control.label} missing automatic trigger mutation escaped`);
   const mutatedConcurrency = { ...control, text: control.text.replace(control.expected, control.unsafe) };
-  if (validateManualProvider(mutatedConcurrency).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);
+  if (validateAutonomousProvider(mutatedConcurrency).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);
 }
 
 for (const marker of [
@@ -185,8 +185,8 @@ console.log(JSON.stringify({
   cancellation_or_failure_must_surface: true,
   static_validators_detached_from_workflow_run: staticProducerControls.map((control) => control.label),
   exact_run_consumers_preserved: eventConsumerControls.map((control) => control.label),
-  manual_provider_workflows_preserved: manualProviderControls.map((control) => control.label),
+  autonomous_provider_workflows_preserved: autonomousProviderControls.map((control) => control.label),
   production: 'HOLD',
   public: 'HOLD',
-  g5: 'EXPLICIT_APPROVAL_REQUIRED'
+  g5: 'HOLD'
 }, null, 2));

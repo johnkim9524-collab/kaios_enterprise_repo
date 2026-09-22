@@ -40,15 +40,17 @@ for (const [key, expected] of Object.entries({
 })) assert(registry.registered_assets?.[key] === expected, `REGISTRY_PATH:${key}`);
 assert(registry.registered_outputs?.length === 5, 'REGISTRY_OUTPUT_COUNT');
 assert(registry.execution_chain?.length === 8, 'REGISTRY_EXECUTION_CHAIN');
-assert(registry.automatic_activation?.provider_execution_enabled === false, 'REGISTRY_PROVIDER_EXECUTION');
+assert(registry.automatic_activation?.provider_execution_enabled === true, 'REGISTRY_PROVIDER_EXECUTION');
 assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH');
-assert(registry.automatic_activation?.schedule === null, 'REGISTRY_SCHEDULE');
-assert(registry.automatic_activation?.upstream_workflow === null, 'REGISTRY_UPSTREAM');
-assert(registry.automatic_activation?.manual_dispatch_role === 'EXPLICIT_AUTHORIZED_EXECUTION_ONLY', 'REGISTRY_MANUAL_ROLE');
+assert(registry.automatic_activation?.schedule === '37 * * * *', 'REGISTRY_SCHEDULE');
+assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P0 Mission Consumption v1', 'REGISTRY_UPSTREAM');
+assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.next_stage?.id === 'P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT', 'REGISTRY_NEXT_STAGE');
 
 for (const marker of [
-  'workflow_dispatch:', "if: github.event_name == 'workflow_dispatch'",
+  'workflow_dispatch:', 'schedule:', "cron: '37 * * * *'", 'workflow_run:',
+  "'KIDULTS ASI P0 Mission Consumption v1'",
+  "if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')",
   'Execute four governed public-metadata rotations',
   'Build P0B source candidate increment', 'Reject source-candidate-as-evidence mutation',
   'Reject region-hint-as-coverage mutation', 'Reject host-as-factual-origin mutation',
@@ -92,7 +94,7 @@ console.log(JSON.stringify({
   id: 'kidults-asi-p0b-bounded-discovery-registry-validation-v1',
   version: '1.0.0',
   state: 'VERIFIED_PASS',
-  provider_execution_enabled: false,
+  provider_execution_enabled: true,
   automatic_main_push: false,
   automatic_schedule: registry.automatic_activation.schedule,
   automatic_upstream_workflow: registry.automatic_activation.upstream_workflow,
