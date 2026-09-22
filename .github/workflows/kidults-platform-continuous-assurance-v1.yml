@@ -511,7 +511,7 @@ jobs:
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_WORK_DIR/canonical-artifact-index.json")
             for ARTIFACT_ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ARTIFACT_ROW")
-              EXPIRED=$(jq -r '.expired // true' <<<"$ARTIFACT_ROW")
+              EXPIRED=$(jq -r 'if type == "object" then (.expired != false) else true end' <<<"$ARTIFACT_ROW")
               CANDIDATE_FILE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
               if [ "$EXPIRED" = true ]; then
                 jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
