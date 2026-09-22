@@ -22,7 +22,7 @@ const request = taskId => ({
   environment: 'STAGING', production: 'HOLD', public: 'HOLD', g5: 'HOLD',
 });
 
-const ledger = new MemoryTransitionLedger();
+const ledger = new MemoryTransitionLedger({ now: () => nowMs });
 const store = new MockImmutableStore();
 const keys = deterministicFixtureEd25519();
 const results = [];

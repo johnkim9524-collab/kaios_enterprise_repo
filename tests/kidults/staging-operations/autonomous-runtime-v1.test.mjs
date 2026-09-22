@@ -17,7 +17,7 @@ const request = taskId => ({
   approval_a: approval('TRACK_A', taskId, `a-${taskId}`), approval_z: approval('TRACK_Z', taskId, `z-${taskId}`),
   environment: 'STAGING', production: 'HOLD', public: 'HOLD', g5: 'HOLD',
 });
-const build = ({ ledger = new MemoryTransitionLedger(), broker = new ShadowFetchBroker({ fixture: { synthetic: true } }), durability } = {}) => {
+const build = ({ ledger = new MemoryTransitionLedger({ now: () => nowMs }), broker = new ShadowFetchBroker({ fixture: { synthetic: true } }), durability } = {}) => {
   const keys = ephemeralEd25519();
   return { ledger, runtime: new AutonomousRuntime({
     now: () => nowMs, ledger,
@@ -43,7 +43,7 @@ test('duplicate concurrent lease is suppressed', async () => {
 
 test('expired worker lease is recovered on the next tick', async () => {
   let clock = nowMs;
-  const ledger = new MemoryTransitionLedger();
+  const ledger = new MemoryTransitionLedger({ now: () => clock });
   assert.ok(ledger.acquire('recover-1', clock, 1000));
   clock += 1001;
   const keys = ephemeralEd25519();
@@ -91,7 +91,7 @@ test('readback corruption never records success', async () => {
 
 
 test('stale worker cannot transition after lease generation is reacquired', async () => {
-  const ledger = new MemoryTransitionLedger();
+  const ledger = new MemoryTransitionLedger({ now: () => nowMs });
   const first = ledger.acquire('fence-1', nowMs, 10);
   const second = ledger.acquire('fence-1', nowMs + 11, 10);
   assert.equal(second.generation, first.generation + 1);

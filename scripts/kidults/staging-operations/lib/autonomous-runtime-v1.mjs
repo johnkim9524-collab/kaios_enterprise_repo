@@ -3,7 +3,8 @@ import { idFrom } from './canonical-v1.mjs';
 const terminal = new Set(['COMPLETE_VERIFIED', 'DENIED', 'QUARANTINED']);
 
 export class MemoryTransitionLedger {
-  constructor() {
+  constructor({ now = Date.now } = {}) {
+    this.now = now;
     this.transitions = [];
     this.activeLeases = new Map();
     this.leaseGenerations = new Map();
@@ -31,6 +32,7 @@ export class MemoryTransitionLedger {
     if (!current || current.lease_id !== lease?.lease_id || current.generation !== lease?.generation) {
       throw new Error('STALE_LEASE_FENCE');
     }
+    if (!Number.isFinite(this.now()) || current.expires_at_ms <= this.now()) throw new Error('EXPIRED_LEASE_FENCE');
     const row = {
       sequence: this.transitions.length + 1,
       task_id: taskId,
@@ -58,6 +60,7 @@ export class MemoryTransitionLedger {
 
 export class AutonomousRuntime {
   constructor({ now, ledger, providerControl, broker, durability, leaseTtlMs = 1000, maximumAttempts = 3 }) {
+    if (!Number.isSafeInteger(maximumAttempts) || maximumAttempts < 1 || maximumAttempts > 100) throw new Error('INVALID_RETRY_BUDGET');
     Object.assign(this, { now, ledger, providerControl, broker, durability, leaseTtlMs, maximumAttempts });
   }
 
@@ -70,12 +73,13 @@ export class AutonomousRuntime {
     if (verdict.decision === 'DENY') return this.#terminal(request, lease, verdict, 'DENIED');
     if (verdict.decision === 'QUARANTINE') return this.#terminal(request, lease, verdict, 'QUARANTINED');
 
+    if (verdict.decision !== 'ALLOW_SHADOW') return this.#terminal(request, lease, { reason: 'UNKNOWN_PROVIDER_DECISION' }, 'DENIED');
     let brokered;
+    let executedAttempts = 0;
     for (let attempt = 1; attempt <= this.maximumAttempts; attempt += 1) {
+      executedAttempts = attempt;
       try {
         brokered = await this.broker.fetch({ decision: verdict });
-        await this.ledger.transition(request.task_id, lease, 'BROKERED_SHADOW', { attempt, mode: brokered.mode });
-        break;
       } catch (error) {
         const state = attempt === this.maximumAttempts ? 'QUARANTINED' : 'RETRY_WAIT';
         await this.ledger.transition(request.task_id, lease, state, { attempt, error: error.message });
@@ -90,7 +94,11 @@ export class AutonomousRuntime {
             attempt,
           };
         }
+        continue;
       }
+      // A ledger failure is not a provider timeout: never repeat a successful fetch.
+      await this.ledger.transition(request.task_id, lease, 'BROKERED_SHADOW', { attempt, mode: brokered.mode });
+      break;
     }
 
     const evidence = {
@@ -103,7 +111,7 @@ export class AutonomousRuntime {
       decision: verdict.decision,
       lease_id: lease.lease_id,
       lease_generation: lease.generation,
-      attempt: this.broker.calls,
+      attempt: executedAttempts,
       fixture: brokered.fixture,
       external_provider_requests: this.broker.externalCalls,
       state: 'EVIDENCE_PENDING',
