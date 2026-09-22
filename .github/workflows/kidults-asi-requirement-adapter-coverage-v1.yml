@@ -335,7 +335,7 @@ jobs:
             for ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ROW")
               CANDIDATE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
-              if [ "$(jq -r '.expired // true' <<<"$ROW")" = true ]; then
+              if [ "$(jq -r 'if type == "object" then (.expired != false) else true end' <<<"$ROW")" = true ]; then
                 jq -n --argjson artifact "$ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE"
                 continue
               fi
