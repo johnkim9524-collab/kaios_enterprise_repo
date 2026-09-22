@@ -19,6 +19,7 @@ jobs:
     name: Validate delegated authority and reserve landing
     if: github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-STAGING
     timeout-minutes: 10
     permissions:
       actions: read
@@ -42,13 +43,16 @@ jobs:
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_ROLE_ARN }}
           LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
           ACTOR_REGISTRY: ${{ vars.KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON }}
         run: |
           set -euo pipefail
           test -n "$AWS_ROLE_ARN"
           test -n "$LEDGER_TABLE"
+          test -n "$WRITER_FUNCTION"
           test -n "$ACTOR_REGISTRY"
           test "$AWS_ROLE_ARN" != "UNCONFIGURED"
+          test "$WRITER_FUNCTION" != "UNCONFIGURED"
 
       - name: Acquire short-lived AWS credentials through GitHub OIDC
         env:
@@ -87,6 +91,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
           KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON: ${{ vars.KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON }}
           AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/receipt.json
         run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs

@@ -10,6 +10,11 @@
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "GitHubEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-STAGING",
+      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
     }
   },
   "Resources": {
@@ -24,18 +29,37 @@
             {
               "Sid": "EnableAccountAdministration",
               "Effect": "Allow",
-              "Principal": { "AWS": { "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root" } },
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
               "Action": "kms:*",
               "Resource": "*"
             }
           ]
         },
         "Tags": [
-          { "Key": "Environment", "Value": "STAGING" },
-          { "Key": "System", "Value": "AutonomousInternalLanding" },
-          { "Key": "Production", "Value": "HOLD" },
-          { "Key": "Public", "Value": "HOLD" },
-          { "Key": "G5", "Value": "HOLD" }
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
         ]
       }
     },
@@ -43,7 +67,9 @@
       "Type": "AWS::KMS::Alias",
       "Properties": {
         "AliasName": "alias/kidults-autonomous-landing-staging",
-        "TargetKeyId": { "Ref": "AutonomousLedgerKey" }
+        "TargetKeyId": {
+          "Ref": "AutonomousLedgerKey"
+        }
       }
     },
     "AutonomousLandingLedger": {
@@ -52,25 +78,59 @@
         "TableName": "kidults-autonomous-landing-staging-ledger",
         "BillingMode": "PAY_PER_REQUEST",
         "AttributeDefinitions": [
-          { "AttributeName": "pk", "AttributeType": "S" },
-          { "AttributeName": "sk", "AttributeType": "S" }
+          {
+            "AttributeName": "pk",
+            "AttributeType": "S"
+          },
+          {
+            "AttributeName": "sk",
+            "AttributeType": "S"
+          }
         ],
         "KeySchema": [
-          { "AttributeName": "pk", "KeyType": "HASH" },
-          { "AttributeName": "sk", "KeyType": "RANGE" }
+          {
+            "AttributeName": "pk",
+            "KeyType": "HASH"
+          },
+          {
+            "AttributeName": "sk",
+            "KeyType": "RANGE"
+          }
         ],
-        "PointInTimeRecoverySpecification": { "PointInTimeRecoveryEnabled": true },
+        "PointInTimeRecoverySpecification": {
+          "PointInTimeRecoveryEnabled": true
+        },
         "SSESpecification": {
           "SSEEnabled": true,
           "SSEType": "KMS",
-          "KMSMasterKeyId": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] }
+          "KMSMasterKeyId": {
+            "Fn::GetAtt": [
+              "AutonomousLedgerKey",
+              "Arn"
+            ]
+          }
         },
         "Tags": [
-          { "Key": "Environment", "Value": "STAGING" },
-          { "Key": "System", "Value": "AutonomousInternalLanding" },
-          { "Key": "Production", "Value": "HOLD" },
-          { "Key": "Public", "Value": "HOLD" },
-          { "Key": "G5", "Value": "HOLD" }
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
         ]
       }
     },
@@ -84,7 +144,11 @@
           "Statement": [
             {
               "Effect": "Allow",
-              "Principal": { "Federated": { "Ref": "GitHubOidcProviderArn" } },
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Condition": {
                 "StringEquals": {
@@ -92,7 +156,7 @@
                 },
                 "StringLike": {
                   "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:ref:refs/heads/main"
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}"
                   }
                 }
               }
@@ -107,18 +171,28 @@
               "Statement": [
                 {
                   "Effect": "Allow",
-                  "Action": ["dynamodb:DescribeTable", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem"],
-                  "Resource": { "Fn::GetAtt": ["AutonomousLandingLedger", "Arn"] }
+                  "Action": [
+                    "dynamodb:DescribeTable",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  }
                 },
                 {
                   "Effect": "Allow",
-                  "Action": ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey"],
-                  "Resource": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] },
-                  "Condition": {
-                    "StringEquals": {
-                      "kms:ViaService": { "Fn::Sub": "dynamodb.${AWS::Region}.amazonaws.com" },
-                      "kms:EncryptionContext:aws:dynamodb:tableName": { "Ref": "AutonomousLandingLedger" }
-                    }
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerWriterFunction",
+                      "Arn"
+                    ]
                   }
                 }
               ]
@@ -126,18 +200,170 @@
           }
         ],
         "Tags": [
-          { "Key": "Environment", "Value": "STAGING" },
-          { "Key": "System", "Value": "AutonomousInternalLanding" },
-          { "Key": "Production", "Value": "HOLD" },
-          { "Key": "Public", "Value": "HOLD" },
-          { "Key": "G5", "Value": "HOLD" }
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "AutonomousLedgerWriterRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-ledger-writer-staging-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-autonomous-ledger-conditional-writes",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "AutonomousLedgerWriterFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "kidults-autonomous-ledger-writer-staging",
+        "Runtime": "python3.12",
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "AutonomousLedgerWriterRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 10,
+        "MemorySize": 128,
+        "Environment": {
+          "Variables": {
+            "LEDGER_TABLE": {
+              "Ref": "AutonomousLandingLedger"
+            },
+            "GITHUB_REPOSITORY": {
+              "Ref": "GitHubRepository"
+            }
+          }
+        },
+        "Code": {
+          "ZipFile": "import base64\nimport hashlib\nimport json\nimport os\nimport re\nfrom datetime import datetime, timezone\nimport boto3\n\nddb = boto3.client('dynamodb')\nTABLE = os.environ['LEDGER_TABLE']\nREPOSITORY = os.environ['GITHUB_REPOSITORY']\nROLES = {'ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'}\nSHA = re.compile(r'^[0-9a-f]{40}$')\nDIGEST = re.compile(r'^sha256:[0-9a-f]{64}$')\nGENERATION = re.compile(r'^[A-Za-z0-9._:-]{1,160}$')\nRUN_ID = re.compile(r'^[1-9][0-9]{0,19}$')\n\ndef required(event, name):\n    value = event.get(name)\n    if value is None or value == '':\n        raise ValueError('FIELD_REQUIRED:' + name)\n    return str(value)\n\ndef canonical(value):\n    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)\n\ndef digest(value):\n    return 'sha256:' + hashlib.sha256(value.encode('utf-8')).hexdigest()\n\ndef validate_generation(value):\n    if not GENERATION.fullmatch(value):\n        raise ValueError('GENERATION_INVALID')\n    return value\n\ndef validate_digest(value, code):\n    if not DIGEST.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_sha(value, code):\n    if not SHA.fullmatch(value):\n        raise ValueError(code)\n    return value\n\ndef validate_run_id(value):\n    if not RUN_ID.fullmatch(value):\n        raise ValueError('RUN_ID_INVALID')\n    return value\n\ndef put_unique(item):\n    ddb.put_item(\n        TableName=TABLE,\n        Item=item,\n        ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)'\n    )\n\ndef handler(event, context):\n    if not isinstance(event, dict):\n        raise ValueError('EVENT_INVALID')\n    action = required(event, 'action')\n    generation = validate_generation(required(event, 'authorization_generation'))\n    if action == 'CREATE_APPROVAL':\n        role = required(event, 'role')\n        if role not in ROLES:\n            raise ValueError('ROLE_FORBIDDEN')\n        raw = base64.b64decode(required(event, 'envelope_b64'), validate=True).decode('utf-8')\n        envelope = json.loads(raw)\n        if not isinstance(envelope, dict):\n            raise ValueError('ENVELOPE_INVALID')\n        if str(envelope.get('authorization_generation', '')) != generation:\n            raise ValueError('ENVELOPE_GENERATION_MISMATCH')\n        if str(envelope.get('repository', '')) != REPOSITORY:\n            raise ValueError('ENVELOPE_REPOSITORY_MISMATCH')\n        supplied_digest = validate_digest(required(event, 'envelope_digest'), 'ENVELOPE_DIGEST_INVALID')\n        if digest(canonical(envelope)) != supplied_digest:\n            raise ValueError('ENVELOPE_DIGEST_MISMATCH')\n        expires_at = str(envelope.get('expires_at', ''))\n        try:\n            expires_epoch = int(datetime.fromisoformat(expires_at.replace('Z','+00:00')).astimezone(timezone.utc).timestamp())\n        except Exception as error:\n            raise ValueError('ENVELOPE_EXPIRY_INVALID') from error\n        if str(expires_epoch) != required(event, 'expires_at_epoch'):\n            raise ValueError('ENVELOPE_EXPIRY_MISMATCH')\n        pk = 'AUTH#' + generation\n        sk = 'ROLE#' + role\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk},\n            'envelope': {'S': required(event, 'envelope_b64')},\n            'envelope_digest': {'S': supplied_digest},\n            'expires_at_epoch': {'N': str(expires_epoch)}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CREATE_RESERVATION':\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    if action == 'CONSUME_RESERVATION':\n        nonce = validate_digest(required(event, 'nonce_digest'), 'NONCE_DIGEST_INVALID')\n        run_id = validate_run_id(required(event, 'run_id'))\n        head_sha = validate_sha(required(event, 'head_sha'), 'HEAD_SHA_INVALID')\n        merge_sha = validate_sha(required(event, 'merge_sha'), 'MERGE_SHA_INVALID')\n        pk = 'RESERVE#' + generation\n        sk = 'NONCE#' + nonce\n        result = ddb.update_item(\n            TableName=TABLE,\n            Key={'pk': {'S': pk}, 'sk': {'S': sk}},\n            UpdateExpression='SET #s = :consumed, merge_sha = :merge',\n            ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head',\n            ExpressionAttributeNames={'#s': 'state'},\n            ExpressionAttributeValues={\n                ':reserved': {'S': 'RESERVED'}, ':consumed': {'S': 'CONSUMED'},\n                ':merge': {'S': merge_sha}, ':run': {'S': run_id}, ':head': {'S': head_sha}\n            },\n            ReturnValues='ALL_NEW'\n        )\n        attrs = result.get('Attributes', {})\n        if attrs.get('state', {}).get('S') != 'CONSUMED' or attrs.get('merge_sha', {}).get('S') != merge_sha:\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n    raise ValueError('ACTION_FORBIDDEN')\n"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
         ]
       }
     }
   },
   "Outputs": {
-    "AutonomousLandingRoleArn": { "Value": { "Fn::GetAtt": ["AutonomousLandingRole", "Arn"] } },
-    "AutonomousLandingLedgerTable": { "Value": { "Ref": "AutonomousLandingLedger" } },
-    "AutonomousLandingLedgerKeyArn": { "Value": { "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"] } }
+    "AutonomousLandingRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AutonomousLandingRole",
+          "Arn"
+        ]
+      }
+    },
+    "AutonomousLandingLedgerTable": {
+      "Value": {
+        "Ref": "AutonomousLandingLedger"
+      }
+    },
+    "AutonomousLandingLedgerKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AutonomousLedgerKey",
+          "Arn"
+        ]
+      }
+    },
+    "AutonomousLedgerWriterFunction": {
+      "Value": {
+        "Ref": "AutonomousLedgerWriterFunction"
+      }
+    }
   }
 }

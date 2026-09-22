@@ -23,6 +23,7 @@ const eventPath = required('GITHUB_EVENT_PATH');
 const eventName = required('GITHUB_EVENT_NAME');
 const runAttempt = required('GITHUB_RUN_ATTEMPT');
 const ledgerTable = required('KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE');
+const ledgerWriterFunction = required('KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION');
 const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomous-internal-landing-v1/receipt.json';
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'));
@@ -53,15 +54,37 @@ const api = async (endpoint, options={}) => {
   return payload;
 };
 const awsJson = args => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}));
-const putApproval = () => {
-  const item={
-    pk:{S:`AUTH#${envelope.authorization_generation}`},sk:{S:`ROLE#${role}`},
-    envelope:{S:Buffer.from(canonicalJson(envelope)).toString('base64')},
-    envelope_digest:{S:sha256(canonicalJson(envelope))},expires_at_epoch:{N:String(Math.floor(Date.parse(envelope.expires_at)/1000))},
-  };
+let ledgerWriterInvocation = 0;
+const invokeLedgerWriter = payload => {
+  const runnerTemp = required('RUNNER_TEMP');
+  const outputPath = path.join(runnerTemp, `kidults-ledger-writer-${process.pid}-${++ledgerWriterInvocation}.json`);
   try {
-    awsJson(['dynamodb','put-item','--region','ap-northeast-2','--table-name',ledgerTable,'--item',JSON.stringify(item),
-      '--condition-expression','attribute_not_exists(pk) AND attribute_not_exists(sk)','--return-consumed-capacity','NONE','--output','json']);
+    const metadata = awsJson([
+      'lambda','invoke','--region','ap-northeast-2','--function-name',ledgerWriterFunction,
+      '--cli-binary-format','raw-in-base64-out','--payload',JSON.stringify(payload),
+      '--output','json',outputPath,
+    ]);
+    if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_LEDGER_WRITER_FUNCTION_ERROR',metadata.FunctionError);
+    const response = JSON.parse(fs.readFileSync(outputPath,'utf8'));
+    if (response?.ok !== true) throw new AutonomousLandingError('AUTONOMOUS_LEDGER_WRITER_REJECTED',payload.action);
+    return response;
+  } catch (error) {
+    if (error instanceof AutonomousLandingError) throw error;
+    throw new AutonomousLandingError('AUTONOMOUS_LEDGER_WRITER_FAILURE',payload.action);
+  } finally {
+    try { fs.unlinkSync(outputPath); } catch {}
+  }
+};
+const putApproval = () => {
+  try {
+    invokeLedgerWriter({
+      action:'CREATE_APPROVAL',
+      authorization_generation:envelope.authorization_generation,
+      role,
+      envelope_b64:Buffer.from(canonicalJson(envelope)).toString('base64'),
+      envelope_digest:sha256(canonicalJson(envelope)),
+      expires_at_epoch:String(Math.floor(Date.parse(envelope.expires_at)/1000)),
+    });
   } catch (error) {
     throw new AutonomousLandingError('AUTONOMOUS_APPROVAL_DUPLICATE_OR_LEDGER_FAILURE',role);
   }
@@ -163,9 +186,13 @@ try {
     throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN');
   }
   await publishLandingStatus('pending','AI-020 quorum verified; reserving durable single-use authority');
-  const reservationItem={pk:{S:`RESERVE#${envelope.authorization_generation}`},sk:{S:`NONCE#${envelope.nonce_digest}`},state:{S:'RESERVED'},run_id:{S:required('GITHUB_RUN_ID')},head_sha:{S:envelope.head_sha}};
-  awsJson(['dynamodb','put-item','--region','ap-northeast-2','--table-name',ledgerTable,'--item',JSON.stringify(reservationItem),
-    '--condition-expression','attribute_not_exists(pk) AND attribute_not_exists(sk)','--return-consumed-capacity','NONE','--output','json']);
+  invokeLedgerWriter({
+    action:'CREATE_RESERVATION',
+    authorization_generation:envelope.authorization_generation,
+    nonce_digest:envelope.nonce_digest,
+    run_id:required('GITHUB_RUN_ID'),
+    head_sha:envelope.head_sha,
+  });
   await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
   const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
   if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
@@ -174,10 +201,14 @@ try {
   const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
   if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
   const postmerge=await waitForExactMergeShaValidation(merge.sha);
-  awsJson(['dynamodb','update-item','--region','ap-northeast-2','--table-name',ledgerTable,
-    '--key',JSON.stringify({pk:{S:`RESERVE#${envelope.authorization_generation}`},sk:{S:`NONCE#${envelope.nonce_digest}`}}),
-    '--update-expression','SET #s = :consumed, merge_sha = :merge','--condition-expression','#s = :reserved',
-    '--expression-attribute-names',JSON.stringify({'#s':'state'}),'--expression-attribute-values',JSON.stringify({':reserved':{S:'RESERVED'},':consumed':{S:'CONSUMED'},':merge':{S:merge.sha}}),'--output','json']);
+  invokeLedgerWriter({
+    action:'CONSUME_RESERVATION',
+    authorization_generation:envelope.authorization_generation,
+    nonce_digest:envelope.nonce_digest,
+    run_id:required('GITHUB_RUN_ID'),
+    head_sha:envelope.head_sha,
+    merge_sha:merge.sha,
+  });
   const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
     merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
   await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest}})});
