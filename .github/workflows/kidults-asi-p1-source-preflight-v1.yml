@@ -214,10 +214,14 @@ jobs:
             coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json \
             > /tmp/kidults-asi-p0-mission-consumption-validation-v1.json
           mkdir -p /tmp/p1-rotations
+          rm -f /tmp/p1-provider-circuit.json
           for R in 0 1 2 3; do
-            ASI_SCOPE_ROTATION="$R" ASI_PROVIDER_CIRCUIT=/tmp/p1-no-prior-circuit.json \
+            ASI_SCOPE_ROTATION="$R" \
+              ASI_PROVIDER_CIRCUIT=/tmp/p1-provider-circuit.json \
+              ASI_PROVIDER_CIRCUIT_WRITEBACK=1 \
               node scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p1-rotations/r${R}.json"
-            node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs "/tmp/p1-rotations/r${R}.json"
+            node scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs \
+              "/tmp/p1-rotations/r${R}.json" --allow-provider-unavailability
           done
           node scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs \
             /tmp/p1-rotations/r0.json /tmp/p1-rotations/r1.json /tmp/p1-rotations/r2.json /tmp/p1-rotations/r3.json \
