@@ -57,9 +57,12 @@ function appendEnvironment(values, env) {
 }
 
 export function inlineProducerHealthRequired(env = process.env) {
+  // A protected-main push starts before workflow_run-only producers can exist, and
+  // validation-only push producers intentionally publish no terminal artifact.
+  // Their exact terminal bindings are observed by observe-core-producer-content.
   return env.GITHUB_WORKFLOW === ASSURANCE_WORKFLOW &&
     env.GITHUB_REF === 'refs/heads/main' &&
-    ['push', 'schedule', 'workflow_dispatch', 'workflow_run'].includes(env.GITHUB_EVENT_NAME || '');
+    ['schedule', 'workflow_dispatch', 'workflow_run'].includes(env.GITHUB_EVENT_NAME || '');
 }
 
 export function guardRequiresProducerHealth(guard) {
