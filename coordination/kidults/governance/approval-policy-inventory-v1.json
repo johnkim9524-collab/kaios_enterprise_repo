@@ -1,0 +1,23 @@
+{
+  "id": "kidults-approval-policy-inventory-v1",
+  "version": "1.0.0",
+  "status": "REPOSITORY_WIDE_CANONICAL_ROUTING",
+  "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+  "audit": {
+    "baseline_sha": "c7d798bb5f699540c99e90a77d2531ec3668e00e",
+    "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
+    "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+    "approval_related_files_reviewed": 636,
+    "manifest_sha256": "sha256:e29f170afc3bed6d2806dfcc020452ddf0d64f298e5c71b1ac3f8f56f89f52f4",
+    "canonical_execution_authorization_policies": 3,
+    "classification": "Execution authorization is centralized; domain adjudication remains local."
+  },
+  "policies": [
+    {"policy": "AI-020", "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json", "route": "INTERNAL_REVERSIBLE_OR_STAGING_BOUNDED", "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"},
+    {"policy": "AUTONOMOUS_INTERNAL_LANDING", "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json", "route": "INTERNAL_REVERSIBLE", "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"},
+    {"policy": "GOVERNED_LANDING_AUTHORIZATION", "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json", "route": "OWNER_RESERVED_OR_RECOVERY_ONLY", "human_reapproval": "REQUIRED_PER_EXACT_ACTION"}
+  ],
+  "domain_human_reviews": {"affected": false, "reason": "Entity resolution, legal, rights, financial, safety and external-publication reviews are domain decisions, not repeated landing authorization."},
+  "unknown_policy": "FAIL_CLOSED_OWNER_REQUIRED",
+  "holds": {"production": "HOLD", "public": "HOLD", "g5": "HOLD", "psa_external_call": "HOLD"}
+}

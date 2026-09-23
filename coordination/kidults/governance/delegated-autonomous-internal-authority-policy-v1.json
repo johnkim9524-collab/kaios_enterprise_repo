@@ -1,11 +1,12 @@
 {
   "id": "AI-020",
   "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "KPMO_PLATFORM_GOVERNANCE",
   "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
   "accountability_transfer": false,
+  "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
   "approval_quorum": {
     "minimum": 2,
     "roles": [
@@ -28,7 +29,12 @@
     "rollback_plan_required": true,
     "expiry_required": true,
     "single_consumption_required": true,
-    "drift_invalidates": true
+    "drift_invalidates": true,
+    "same_tree_bounded_recovery_allowed": true,
+    "maximum_attempts": 3,
+    "maximum_lifetime_seconds": 7200,
+    "pre_mutation_failure_consumes_authority": false,
+    "consumption_point": "FIRST_EXTERNAL_OR_REPOSITORY_MUTATION"
   },
   "delegated_actions": [
     "INTERNAL_DESIGN",
@@ -71,6 +77,9 @@
   "unknown_or_conflict": "FAIL_CLOSED_OWNER_REQUIRED",
   "normal_activation": {
     "manual_owner_orchestration_for_eligible_work": "FORBIDDEN",
+    "canonical_policy_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "draft_ready_rebind_for_valid_envelope": "AUTOMATIC",
+    "empty_same_tree_recovery_commit": "ALLOWED_NON_FORCE_ONLY",
     "automatic_event_contract": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
     "manual_dispatch": "RECOVERY_ONLY",
     "legacy_direct_owner_landing": "RECOVERY_ONLY_UNTIL_RETIREMENT",

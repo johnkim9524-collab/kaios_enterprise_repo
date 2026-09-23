@@ -251,7 +251,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
   for (const fragment of [
     "eventName !== 'repository_dispatch'",
-    "runAttempt !== '1'",
+    'AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED',
+    'policy.bounded_recovery?.maximum_attempts',
     "mode === 'APPROVAL'",
     "mode === 'FINALIZE'",
     'validateWorkload(runtimeWorkload,registry,runtimeRole)',
@@ -278,7 +279,7 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
   require(!workflow.includes('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'), 'legacy-actor-registry-forbidden');
   require(runner.indexOf('await validateLiveCandidate();') < runner.indexOf('putApproval();'), 'approval-before-live-validation-forbidden');
-  require((runner.match(/await validateLiveCandidate\(\);/g) || []).length >= 2, 'live-revalidation-required-before-merge');
+  require((runner.match(/await validateLiveCandidate\([^;]*\);/g) || []).length >= 2, 'live-revalidation-required-before-merge');
   require(!runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'), 'sender-id-authority-forbidden');
   require(!runner.includes("'dynamodb','put-item'"), 'runner-direct-dynamodb-put-forbidden');
   require(!runner.includes("'dynamodb','update-item'"), 'runner-direct-dynamodb-update-forbidden');

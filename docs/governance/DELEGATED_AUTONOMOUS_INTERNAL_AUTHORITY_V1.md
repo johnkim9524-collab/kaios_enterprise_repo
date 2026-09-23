@@ -16,15 +16,25 @@ Implementation, defect correction, refactoring, tests, validation, documentation
 
 The accountable Track, KPMO, and independent-verifier approvals are represented by distinct role-scoped GitHub OIDC workload identities with distinct workflow refs and KMS signing keys. All decisions bind the exact repository, base SHA, head SHA, head tree, scope digest, test evidence, verified rollback plan, expiry, and one-use nonce. Self-approval, workload reuse across roles, signing-key reuse, replay, stale evidence, drift, missing checks, or scope expansion fails closed.
 
+The independent verifier is a separated machine workload and evidence gate, not a required human reviewer. No routine non-Owner or third-party human review is introduced by this policy.
+
 ## Program Owner reserved gates
 
 Program Owner approval remains mandatory for Production, Public, G5, external communication, spend, contracts, legal exceptions, irreversible security changes, credential or permission expansion, secret creation/read/rotation/export, trust-root or ruleset weakening, destructive data operations, and protected promotion or release.
 
 ## Operating sequence
 
-Detect → classify → implement → regression and negative tests → independent Track review → KPMO review → exact-head revalidation → one-use governed landing → target-main revalidation → registry/evidence truth-sync → report.
+Detect → classify once → implement → regression and negative tests → Track/KPMO machine quorum → workload-independent verification → bounded governed landing → target-main revalidation → registry/evidence truth-sync → report.
 
 Unknown or conflicting classification is `FAIL_CLOSED_OWNER_REQUIRED`. Production, Public, and G5 remain `HOLD` unless the Program Owner separately authorizes the exact gated action.
+
+## Repository-wide approval envelope
+
+`autonomous-approval-policy-envelope-v1.json` is the canonical router for approval-bearing work. It classifies work once as `INTERNAL_REVERSIBLE`, `STAGING_BOUNDED`, `OWNER_RESERVED`, or `UNKNOWN`. Eligible internal and bounded STAGING work must not repeatedly request Owner approval while its exact base, tree, scope, risk class, evidence, rollback and expiry remain valid.
+
+An eligible envelope permits at most three attempts in two hours. A pre-mutation validation or dispatch failure does not consume the authority. Draft-to-Ready rebinding and a non-force empty recovery commit are automated only when the tree, scope, risk class, evidence and rollback digests remain identical. Every head generation is receipted. Any tree, scope, base, risk, evidence or Owner-boundary change invalidates the envelope and fails closed.
+
+The exact-head Owner-comment landing policy remains available only for Owner-reserved actions and explicit recovery. Routing eligible internal work into that path is a policy violation because it recreates routine human orchestration.
 
 ## Normal activation and legacy recovery
 

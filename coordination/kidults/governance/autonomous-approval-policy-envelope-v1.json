@@ -1,0 +1,61 @@
+{
+  "id": "kidults-autonomous-approval-policy-envelope-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
+  "purpose": "Route every approval-bearing operation once, remove routine Owner reapproval, and preserve explicit Owner boundaries.",
+  "classification_order": ["OWNER_RESERVED", "STAGING_BOUNDED", "INTERNAL_REVERSIBLE", "UNKNOWN"],
+  "classes": {
+    "INTERNAL_REVERSIBLE": {
+      "routine_owner_approval": "FORBIDDEN",
+      "authority": "TRACK_KPMO_MACHINE_QUORUM",
+      "maximum_attempts": 3,
+      "maximum_lifetime_seconds": 7200,
+      "same_tree_recovery": "ALLOWED",
+      "empty_recovery_commit": "ALLOWED_NON_FORCE_ONLY",
+      "draft_ready_rebind": "AUTOMATIC",
+      "consumption_point": "FIRST_EXTERNAL_OR_REPOSITORY_MUTATION",
+      "pre_mutation_failure_consumes_authority": false
+    },
+    "STAGING_BOUNDED": {
+      "routine_owner_approval": "FORBIDDEN",
+      "authority": "TRACK_KPMO_MACHINE_QUORUM",
+      "executor": "kidults-autonomous-staging-bounded-executor-v1",
+      "executor_scope": "ALLOWLISTED_ASSURANCE_WORKFLOWS_ONLY",
+      "maximum_attempts": 3,
+      "maximum_lifetime_seconds": 7200,
+      "same_tree_recovery": "ALLOWED",
+      "empty_recovery_commit": "ALLOWED_NON_FORCE_ONLY",
+      "draft_ready_rebind": "AUTOMATIC",
+      "consumption_point": "FIRST_STAGING_MUTATION",
+      "pre_mutation_failure_consumes_authority": false,
+      "required_constraints": ["PROTECTED_MAIN_EXACT_SHA", "STAGING_ONLY", "NO_PERMISSION_EXPANSION", "NO_SECRET_ACCESS_EXPANSION", "NO_EXTERNAL_COMMUNICATION", "ROLLBACK_BOUND", "IMMUTABLE_RECEIPT"]
+    },
+    "OWNER_RESERVED": {
+      "routine_owner_approval": "REQUIRED_PER_EXACT_ACTION",
+      "authority": "PROGRAM_OWNER",
+      "same_tree_recovery": "FRESH_OWNER_APPROVAL_REQUIRED",
+      "consumption_point": "LANDING_OR_EXTERNAL_EFFECT_ATTEMPT",
+      "pre_mutation_failure_consumes_authority": true
+    },
+    "UNKNOWN": {"decision": "FAIL_CLOSED_OWNER_REQUIRED"}
+  },
+  "binding": {
+    "envelope_id_required": true,
+    "repository_required": true,
+    "base_sha_required": true,
+    "head_tree_sha_required": true,
+    "scope_digest_required": true,
+    "risk_class_required": true,
+    "test_evidence_digest_required": true,
+    "rollback_digest_required": true,
+    "issued_at_required": true,
+    "expires_at_required": true,
+    "attempt_counter_required": true,
+    "head_sha_generations_recorded": true,
+    "force_push_forbidden": true
+  },
+  "invalidation": ["HEAD_TREE_CHANGED", "SCOPE_DIGEST_CHANGED", "RISK_CLASS_CHANGED", "BASE_SHA_CHANGED", "ROLLBACK_DIGEST_CHANGED", "TEST_EVIDENCE_DIGEST_CHANGED", "ATTEMPT_LIMIT_EXCEEDED", "EXPIRED", "OWNER_RESERVED_BOUNDARY_CROSSED"],
+  "owner_reserved_actions": ["PRODUCTION", "PUBLIC", "G5", "EXTERNAL_COMMUNICATION", "EXTERNAL_SPEND", "CONTRACTUAL_COMMITMENT", "LEGAL_POLICY_EXCEPTION", "IRREVERSIBLE_SECURITY_CHANGE", "CREDENTIAL_OR_PERMISSION_EXPANSION", "SECRET_CREATE_READ_ROTATE_EXPORT", "TRUST_ROOT_OR_RULESET_WEAKENING", "DESTRUCTIVE_DATA_OPERATION", "PROTECTED_PROMOTION_OR_RELEASE"],
+  "holds": {"production": "HOLD", "public": "HOLD", "g5": "HOLD", "psa_external_call": "HOLD"}
+}

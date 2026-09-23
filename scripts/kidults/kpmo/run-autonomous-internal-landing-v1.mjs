@@ -8,7 +8,10 @@ import {
   sha256,
   validateWorkload,
   validateEnvelope,
+  deriveApprovalDecision,
   validateQuorum,
+  validateRecoveryGeneration,
+  validateDraftReadyRebind,
   buildTerminalReceipt,
 } from './lib/autonomous-internal-landing-v1.mjs';
 
@@ -35,7 +38,11 @@ const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomo
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON'));
 const event = JSON.parse(fs.readFileSync(eventPath,'utf8'));
-if (runAttempt !== '1') throw new AutonomousLandingError('AUTONOMOUS_RERUN_FORBIDDEN');
+const attemptNumber = Number(runAttempt);
+const maximumAttempts = Number(policy.bounded_recovery?.maximum_attempts || 1);
+if (!Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > maximumAttempts) {
+  throw new AutonomousLandingError('AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED');
+}
 if (eventName !== 'repository_dispatch') throw new AutonomousLandingError('AUTONOMOUS_NORMAL_EVENT_REQUIRED');
 
 const eventRole = new Map([
@@ -74,6 +81,18 @@ const api = async (endpoint, options={}) => {
   const payload = response.status===204 ? null : await response.json().catch(()=>null);
   if (!response.ok) throw new AutonomousLandingError(`AUTONOMOUS_GITHUB_API_${response.status}`,endpoint);
   return payload;
+};
+const graphql = async (query, variables) => {
+  const response = await fetch('https://api.github.com/graphql',{
+    method:'POST',redirect:'error',
+    headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'kidults-autonomous-internal-landing-v1'},
+    body:JSON.stringify({query,variables}),
+  });
+  const payload=await response.json().catch(()=>null);
+  if (!response.ok || !payload || (Array.isArray(payload.errors)&&payload.errors.length)) {
+    throw new AutonomousLandingError(`AUTONOMOUS_GITHUB_GRAPHQL_${response.status}`,'markPullRequestReadyForReview');
+  }
+  return payload.data;
 };
 const awsJson = args => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}));
 const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
@@ -149,6 +168,16 @@ const invokeFinalizerWriter = payload => {
 const readApprovals = () => {
   const response=awsJson(['dynamodb','query','--region','ap-northeast-2','--table-name',ledgerTable,
     '--key-condition-expression','pk = :pk','--expression-attribute-values',JSON.stringify({':pk':{S:`AUTH#${envelope.authorization_generation}`}}),'--consistent-read','--output','json']);
+  const values={};
+  for (const item of response.Items||[]) {
+    const itemRole=String(item.sk?.S||'').replace(/^ROLE#/,'');
+    if (item.envelope?.S) values[itemRole]=JSON.parse(Buffer.from(item.envelope.S,'base64').toString('utf8'));
+  }
+  return values;
+};
+const readGenerationApprovals = generation => {
+  const response=awsJson(['dynamodb','query','--region','ap-northeast-2','--table-name',ledgerTable,
+    '--key-condition-expression','pk = :pk','--expression-attribute-values',JSON.stringify({':pk':{S:`AUTH#${generation}`}}),'--consistent-read','--output','json']);
   const values={};
   for (const item of response.Items||[]) {
     const itemRole=String(item.sk?.S||'').replace(/^ROLE#/,'');
@@ -266,9 +295,9 @@ const openAutomaticRollback = async failureCode => {
   return {state:'ROLLBACK_PR_OPENED',pull_request:rollbackPr.number,url:rollbackPr.html_url,rollback_sha:rollback.sha};
 };
 
-const validateLiveCandidate = async () => {
+const validateLiveCandidate = async ({allowDraft=false}={}) => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
-  if (pr.state!=='open'||pr.draft===true||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
+  if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
   const files=await api(`/pulls/${envelope.pull_request}/files?per_page=100`);
@@ -287,12 +316,37 @@ const validateLiveCandidate = async () => {
   if (authoritativeStatuses.some(value=>value.state!=='success')||authoritativeChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
     throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN');
   }
-  return {pr,commit,files};
+  return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks};
+};
+const waitForReadyCandidate = async () => {
+  const timeoutSeconds=Number(policy.bounded_recovery?.draft_ready_validation_timeout_seconds||420);
+  const deadline=Date.now()+timeoutSeconds*1000;
+  while (Date.now()<deadline) {
+    try { return await validateLiveCandidate(); }
+    catch (error) {
+      if (!(error instanceof AutonomousLandingError)||!['AUTONOMOUS_REQUIRED_STATUS_MISSING','AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN'].includes(error.code)) throw error;
+    }
+    await sleep(5000);
+  }
+  throw new AutonomousLandingError('AUTONOMOUS_DRAFT_READY_CHECK_TIMEOUT');
+};
+const rebindDraftReady = async before => {
+  if (before.draft!==true) return {state:'ALREADY_READY',head_sha:envelope.head_sha};
+  if (!envelope.recovery) throw new AutonomousLandingError('AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED');
+  await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id});
+  const after=await api(`/pulls/${envelope.pull_request}`);
+  return validateDraftReadyRebind({before,after,envelope,policy});
 };
 
 try {
   if (mode === 'APPROVAL') {
-    await validateLiveCandidate();
+    const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+    envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks});
+    if (envelope.recovery) {
+      const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);
+      const prior=priorApprovals.KPMO || priorApprovals.ACCOUNTABLE_TRACK_AGENT || priorApprovals.INDEPENDENT_VERIFIER;
+      validateRecoveryGeneration({prior,current:envelope,history:Object.values(priorApprovals).map(value=>({authorization_generation:value.authorization_generation,state:value.ledger_state||'APPROVAL_RECORDED'})),policy});
+    }
     putApproval();
     const approvalReceipt = {
       id:'kidults-autonomous-internal-landing-approval-receipt-v1',
@@ -324,8 +378,7 @@ try {
     } else {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
-      await validateLiveCandidate();
-      await publishLandingStatus('pending','AI-020 quorum verified; reserving durable single-use authority');
+      const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
@@ -333,6 +386,9 @@ try {
         run_id:required('GITHUB_RUN_ID'),
         head_sha:envelope.head_sha,
       });
+      await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
+      const lifecycle=await rebindDraftReady(candidate.pr);
+      await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
       const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
       if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
@@ -349,7 +405,7 @@ try {
         head_sha:envelope.head_sha,
         merge_sha:merge.sha,
       });
-      const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
+      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
         merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
       const immutableCopy=sealImmutableReceipt(terminal);
       const sealedTerminal={...terminal,immutable_copy:immutableCopy};
