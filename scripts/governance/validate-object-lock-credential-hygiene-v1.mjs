@@ -13,12 +13,13 @@ assert.ok(!/set\s+-[^\n]*x/.test(step), 'credential step must never enable shell
 assert.ok(step.includes('echo "::add-mask::$OIDC_TOKEN"'), 'OIDC token must be masked immediately after acquisition');
 
 for (const name of ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']) {
-  const nonEmpty = step.indexOf(`test -n "$${${name}}"`);
-  const mask = step.indexOf(`echo "::add-mask::$${${name}}"`);
-  const exportToEnv = step.indexOf(`echo "${name}=$${${name}}"`);
-  assert.ok(nonEmpty >= 0, `${name} must be validated`);
-  assert.ok(mask > nonEmpty, `${name} must be masked after validation`);
-  assert.ok(exportToEnv > mask, `${name} must be masked before GITHUB_ENV export`);
+  const shellRef = '$' + name;
+  const nonEmpty = step.indexOf('test -n "' + shellRef + '"');
+  const mask = step.indexOf('echo "::add-mask::' + shellRef + '"');
+  const exportToEnv = step.indexOf('echo "' + name + '=' + shellRef + '"');
+  assert.ok(nonEmpty >= 0, name + ' must be validated');
+  assert.ok(mask > nonEmpty, name + ' must be masked after validation');
+  assert.ok(exportToEnv > mask, name + ' must be masked before GITHUB_ENV export');
 }
 
 const envWrite = step.indexOf('} >> "$GITHUB_ENV"');
