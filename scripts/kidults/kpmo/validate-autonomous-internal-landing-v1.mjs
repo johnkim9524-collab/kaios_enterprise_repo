@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {canonicalJson, sha256, validateWorkload, validateEnvelope, validateQuorum, buildTerminalReceipt} from './lib/autonomous-internal-landing-v1.mjs';
+import {canonicalJson, sha256, validateWorkload, validateEnvelope, deriveApprovalDecision, validateQuorum, validateRecoveryGeneration, validateDraftReadyRebind, buildTerminalReceipt} from './lib/autonomous-internal-landing-v1.mjs';
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const sha = char => char.repeat(40);
@@ -41,9 +41,10 @@ const base = {
   nonce_digest:sha256('nonce'),issued_at:'2026-09-21T12:00:00Z',expires_at:'2026-09-21T12:30:00Z',
   operation:'INTERNAL_REVERSIBLE_LANDING',changed_paths:paths,production:'HOLD',public:'HOLD',g5:'HOLD'
 };
-const track={...base,workload:workload('ACCOUNTABLE_TRACK_AGENT',1)};
-const kpmo={...base,workload:workload('KPMO',2)};
-const verifier={...base,workload:workload('INDEPENDENT_VERIFIER',3),verification_state:'VERIFIED_PASS'};
+const liveEvidence={statuses:[{context:'KIDULTS Required',state:'success'}],checks:[{name:'unit',status:'completed',conclusion:'success'}]};
+const track=deriveApprovalDecision({envelope:{...base,workload:workload('ACCOUNTABLE_TRACK_AGENT',1)},role:'ACCOUNTABLE_TRACK_AGENT',...liveEvidence});
+const kpmo=deriveApprovalDecision({envelope:{...base,workload:workload('KPMO',2)},role:'KPMO',...liveEvidence});
+const verifier=deriveApprovalDecision({envelope:{...base,workload:workload('INDEPENDENT_VERIFIER',3)},role:'INDEPENDENT_VERIFIER',...liveEvidence});
 const now=Date.parse('2026-09-21T12:10:00Z');
 assert.equal(validateEnvelope(track,{policy,now}).operation,'INTERNAL_REVERSIBLE_LANDING');
 const quorum=validateQuorum({track,kpmo,verifier,registry,policy,now});
@@ -78,6 +79,9 @@ assert.throws(()=>validateQuorum({track,kpmo:sharedWorkflowRef,verifier,registry
 const sharedEnvironment={...kpmo,workload:{...kpmo.workload,environment:track.workload.environment}};
 assert.throws(()=>validateQuorum({track,kpmo:sharedEnvironment,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedEnvironment.workload}]},policy,now}));
 assert.throws(()=>validateQuorum({track,kpmo,verifier:{...verifier,verification_state:'FAILED'},registry,policy,now}));
+assert.throws(()=>validateQuorum({track:{...track,decision:{...track.decision,state:'CALLER_PASS'}},kpmo,verifier,registry,policy,now}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{context:'required',state:'failure'}],checks:[]}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'FINALIZER',...liveEvidence}));
 assert.throws(()=>buildTerminalReceipt({quorum,reservation:{state:'RESERVED',conditional_write:true},merge:{},postmerge:{}}));
 assert.throws(()=>validateWorkload({...workload('FINALIZER',4),signing_key_arn:track.workload.signing_key_arn},registry,'FINALIZER'));
 assert.equal(policy.approval_quorum.approval_workloads_may_finalize,false);
@@ -85,4 +89,33 @@ assert.equal(policy.workload_identity.finalizer.only_stage_allowed_github_write,
 assert.equal(policy.bounded_recovery.maximum_attempts,3);
 assert.equal(policy.bounded_recovery.pre_reservation_failure_consumes_authority,false);
 assert.equal(policy.durable_single_use.maximum_ttl_seconds,7200);
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:7,negative:16,bounded_attempts:3,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+const prior={...base,authorization_generation:'gen-1',head_sha:sha('b')};
+const recovery={...base,authorization_generation:'gen-2',head_sha:sha('e'),recovery:{attempt:2,prior_authorization_generation:'gen-1',prior_head_sha:sha('b'),prior_terminal_state:'PRE_MUTATION_FAILED'}};
+assert.equal(validateRecoveryGeneration({prior,current:recovery,policy,now}).state,'RECOVERY_GENERATION_VERIFIED');
+for (const mutation of [
+  value=>value.recovery.attempt=4,
+  value=>value.head_tree_sha=sha('f'),
+  value=>value.scope_digest=sha256('changed'),
+  value=>value.recovery.prior_terminal_state='CONSUMED',
+]) {
+  const candidate=structuredClone(recovery); mutation(candidate);
+  assert.throws(()=>validateRecoveryGeneration({prior,current:candidate,policy,now}));
+}
+assert.throws(()=>validateRecoveryGeneration({prior,current:recovery,history:[{authorization_generation:'gen-2',state:'APPROVAL_RECORDED'}],policy,now}));
+assert.throws(()=>validateRecoveryGeneration({prior,current:recovery,history:[{authorization_generation:'gen-1',state:'RESERVED'}],policy,now}));
+const draftPr={number:42,node_id:'PR_node_42',state:'open',merged:false,draft:true,head:{sha:recovery.head_sha},base:{sha:recovery.base_sha}};
+const readyPr={...draftPr,draft:false};
+const lifecycle=validateDraftReadyRebind({before:draftPr,after:readyPr,envelope:recovery,policy});
+assert.equal(lifecycle.state,'DRAFT_READY_REBOUND');
+assert.equal(lifecycle.authorization_generation,'gen-2');
+for (const [before,after,envelope] of [
+  [draftPr,{...readyPr,head:{sha:sha('9')}},recovery],
+  [draftPr,{...readyPr,base:{sha:sha('9')}},recovery],
+  [draftPr,{...readyPr,node_id:'PR_node_other'},recovery],
+  [{...draftPr,draft:false},readyPr,recovery],
+  [draftPr,{...readyPr,draft:true},recovery],
+  [draftPr,readyPr,{...recovery,recovery:undefined}],
+]) assert.throws(()=>validateDraftReadyRebind({before,after,envelope,policy}));
+const lifecycleReceipt=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true},merge:{merge_sha:sha('d'),main_sha:sha('d'),head_sha:sha('b'),tree_sha:sha('c')},postmerge:{state:'VERIFIED_PASS'}});
+assert.equal(lifecycleReceipt.lifecycle.state,'DRAFT_READY_REBOUND');
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:13,negative:31,bounded_attempts:3,decisions:'LIVE_DERIVED',draft_ready_rebind:'AUTOMATIC_AFTER_RESERVATION',production:'HOLD',public:'HOLD',g5:'HOLD'}));
