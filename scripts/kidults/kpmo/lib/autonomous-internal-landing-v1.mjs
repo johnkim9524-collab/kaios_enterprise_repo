@@ -38,14 +38,14 @@ export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,m
   fail('AUTONOMOUS_PAGINATION_LIMIT_EXCEEDED');
 };
 
-export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes}) => {
+export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
   if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const livePaths=files.map(value=>value?.filename);
   if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
   const ordered=[...livePaths].sort();
   const expected=[...expectedPaths].sort();
   if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');
-  if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail('AUTONOMOUS_LIVE_SCOPE_DRIFT');
+  if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail(scopeDriftCode);
   for (const prefix of ownerReservedPathPrefixes||[]) {
     if (ordered.some(value=>value.startsWith(prefix))) fail('AUTONOMOUS_OWNER_RESERVED_PATH',prefix);
   }
