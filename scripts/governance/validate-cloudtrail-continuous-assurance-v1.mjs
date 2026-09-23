@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const templatePath = 'infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json';
 const workflowPath = '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml';
+const eventAssurancePath = 'scripts/governance/run-cloudtrail-event-assurance-v1.sh';
 
 const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
 const resources = template.Resources || {};
@@ -50,8 +51,14 @@ assert.equal(trail.Properties.EventSelectors[0].ReadWriteType, 'All');
 assert.equal(trail.Properties.EventSelectors[0].DataResources.length, 1);
 assert.equal(trail.Properties.EventSelectors[0].DataResources[0].Type, 'AWS::S3::Object');
 assert.deepEqual(
-  trail.Properties.EventSelectors[0].DataResources[0].Values[0],
-  { 'Fn::Sub': '${ReceiptBucketArn}/' },
+  trail.Properties.EventSelectors[0].DataResources[0].Values,
+  [
+    { 'Fn::Sub': '${ReceiptBucketArn}/' },
+    {
+      'Fn::Sub':
+        'arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/',
+    },
+  ],
 );
 
 const logGroup = resources.CloudTrailLogGroup;
@@ -93,6 +100,9 @@ for (const action of [
   'cloudtrail:DescribeTrails',
   'cloudtrail:GetEventSelectors',
   'cloudtrail:GetTrailStatus',
+  'logs:StartQuery',
+  'logs:GetQueryResults',
+  'logs:StopQuery',
   'cloudformation:DetectStackDrift',
   'cloudwatch:DescribeAlarms',
   'iam:GetRole',
@@ -109,6 +119,7 @@ for (const key of ['ProductionState', 'PublicState', 'G5State']) {
 }
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
+const eventAssurance = fs.readFileSync(eventAssurancePath, 'utf8');
 for (const marker of [
   'permissions: {}',
   'id-token: write',
@@ -117,15 +128,12 @@ for (const marker of [
   'kidults-staging-continuous-assurance',
   'get-event-selectors',
   'get-trail-status',
-  'EnableLogFileValidation',
+  'LogFileValidationEnabled',
   'IsMultiRegionTrail',
   'IncludeManagementEvents',
   'AWS::S3::Object',
   'detect-stack-drift',
-  'POSITIVE_CANARY=PASS',
-  'NEGATIVE_CANARY=PASS',
-  'COMPLIANCE',
-  'TERMINAL_RECEIPT=PASS',
+  'run-cloudtrail-event-assurance-v1.sh',
   'Production',
   'Public',
   'G5',
@@ -136,17 +144,45 @@ assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
 
+for (const marker of [
+  'aws logs start-query',
+  'aws logs get-query-results',
+  'LOG_QUERY_${label}_DUPLICATE',
+  'LOG_QUERY_${label}_NOT_OBSERVED',
+  'ASSURANCE_SESSION_NAME',
+  'positive_s3',
+  'positive_kms',
+  'negative_forbidden_prefix',
+  'negative_wrong_bucket',
+  'negative_wrong_key',
+  'negative_wrong_region',
+  'negative_wrong_role',
+  'CLOUDTRAIL_EXACT_EVENT_BINDING=PASS',
+  'POSITIVE_CANARY=PASS',
+  'NEGATIVE_CANARY=PASS',
+  'COMPLIANCE',
+  'TERMINAL_RECEIPT=PASS',
+  'OBJECT_LOCK_COMPLIANCE_VERIFIED',
+]) {
+  assert.ok(
+    eventAssurance.includes(marker),
+    `EVENT_ASSURANCE_MARKER_REQUIRED:${marker}`,
+  );
+}
+assert.equal(eventAssurance.includes('cloudtrail lookup-events'), false);
+
 console.log(
   JSON.stringify({
     state: 'VERIFIED_PASS',
     template: templatePath,
     workflow: workflowPath,
-    identity_model: 'ROLE_SCOPED_CUSTOM_SUB_CLOUDTRAIL_OBJECT_LOCK_V1',
+    identity_model: 'ROLE_SCOPED_CUSTOM_SUB_CLOUDTRAIL_OBJECT_LOCK_V2',
     trail: 'MULTI_REGION_MANAGEMENT_AND_SCOPED_S3_DATA_EVENTS',
     retention: 'OBJECT_LOCK_COMPLIANCE_10_YEARS',
     alerts: 2,
     exact_sha: 'REQUIRED',
     negative_canary: 'NON_MUTATING_FAIL_CLOSED',
+    event_observation: 'CLOUDWATCH_LOGS_EXACTLY_ONCE_BOUND',
     production: 'HOLD',
     public: 'HOLD',
     g5: 'HOLD',

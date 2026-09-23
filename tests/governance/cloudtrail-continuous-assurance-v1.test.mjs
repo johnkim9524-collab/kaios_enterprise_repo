@@ -5,6 +5,7 @@ import test from 'node:test';
 
 const templatePath = 'infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json';
 const workflowPath = '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml';
+const eventAssurancePath = 'scripts/governance/run-cloudtrail-event-assurance-v1.sh';
 
 test('CloudTrail assurance validator passes the canonical contract', () => {
   const result = spawnSync(
@@ -27,7 +28,13 @@ test('S3 data events are scoped to the existing immutable receipt bucket', () =>
   assert.deepEqual(selector.DataResources, [
     {
       Type: 'AWS::S3::Object',
-      Values: [{ 'Fn::Sub': '${ReceiptBucketArn}/' }],
+      Values: [
+        { 'Fn::Sub': '${ReceiptBucketArn}/' },
+        {
+          'Fn::Sub':
+            'arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/',
+        },
+      ],
     },
   ]);
 
@@ -44,12 +51,44 @@ test('S3 data events are scoped to the existing immutable receipt bucket', () =>
 
 test('workflow negative canary is non-mutating and HOLD preserving', () => {
   const workflow = fs.readFileSync(workflowPath, 'utf8');
-  assert.match(workflow, /receipts\/cloudtrail-assurance-forbidden/);
-  assert.match(workflow, /NEGATIVE_CANARY=PASS/);
+  const eventAssurance = fs.readFileSync(eventAssurancePath, 'utf8');
+  assert.match(eventAssurance, /receipts\/cloudtrail-assurance-forbidden/);
+  assert.match(eventAssurance, /NEGATIVE_CANARY=PASS/);
   assert.doesNotMatch(workflow, /aws cloudtrail (stop-logging|delete-trail|put-event-selectors)/);
   assert.match(workflow, /Production=HOLD/);
   assert.match(workflow, /Public=HOLD/);
   assert.match(workflow, /G5=HOLD/);
+});
+
+test('event consumer binds exact run identity and rejects missing or duplicate evidence', () => {
+  const script = fs.readFileSync(eventAssurancePath, 'utf8');
+  assert.match(script, /aws logs start-query/);
+  assert.match(script, /aws logs get-query-results/);
+  assert.match(script, /LOG_QUERY_\$\{label\}_DUPLICATE/);
+  assert.match(script, /LOG_QUERY_\$\{label\}_NOT_OBSERVED/);
+  assert.match(script, /EXPECTED_MAIN_SHA/);
+  assert.match(script, /GITHUB_RUN_ID/);
+  assert.match(script, /ASSURANCE_SESSION_NAME/);
+  assert.match(script, /userIdentity\.sessionContext\.sessionIssuer\.arn/);
+  assert.match(script, /recipientAccountId/);
+});
+
+test('positive and every negative boundary require CloudTrail event evidence', () => {
+  const script = fs.readFileSync(eventAssurancePath, 'utf8');
+  for (const label of [
+    'positive_s3',
+    'positive_kms',
+    'negative_forbidden_prefix',
+    'negative_wrong_bucket',
+    'negative_wrong_key',
+    'negative_wrong_region',
+    'negative_wrong_role',
+  ]) {
+    assert.match(script, new RegExp(`query_one_event ${label}`));
+  }
+  assert.match(script, /DENIED_AND_OBSERVED_EXACTLY_ONCE/);
+  assert.match(script, /CLOUDTRAIL_EXACT_EVENT_BINDING=PASS/);
+  assert.doesNotMatch(script, /cloudtrail lookup-events/);
 });
 
 test('log storage is retained and immutable for ten years', () => {
@@ -66,3 +105,4 @@ test('log storage is retained and immutable for ten years', () => {
     10,
   );
 });
+

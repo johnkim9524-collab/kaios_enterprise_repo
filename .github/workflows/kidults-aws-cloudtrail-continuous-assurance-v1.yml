@@ -8,6 +8,7 @@ on:
     paths:
       - infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json
       - scripts/governance/validate-cloudtrail-continuous-assurance-v1.mjs
+      - scripts/governance/run-cloudtrail-event-assurance-v1.sh
       - .github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml
   workflow_dispatch:
     inputs:
@@ -99,6 +100,7 @@ jobs:
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
             echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
             echo "AWS_REGION=ap-northeast-2"
+            echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
           } >> "$GITHUB_ENV"
           unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 
@@ -120,7 +122,7 @@ jobs:
           jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
 
           POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-cloudtrail-assurance-readback-and-receipt --query 'PolicyDocument' --output json)
-          for action in cloudtrail:DescribeTrails cloudtrail:GetEventSelectors cloudtrail:GetTrailStatus cloudformation:DetectStackDrift s3:PutObject kms:GenerateDataKey; do
+          for action in cloudtrail:DescribeTrails cloudtrail:GetEventSelectors cloudtrail:GetTrailStatus cloudformation:DetectStackDrift logs:StartQuery logs:GetQueryResults logs:StopQuery s3:PutObject kms:GenerateDataKey; do
             jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null
           done
           echo 'FINALIZER_IAM_OIDC_READBACK=PASS'
@@ -142,6 +144,10 @@ jobs:
           test "$(jq -r '.EventSelectors[0].IncludeManagementEvents' <<<"$SELECTORS")" = true
           test "$(jq -r '.EventSelectors[0].ReadWriteType' <<<"$SELECTORS")" = All
           jq -e --arg arn "arn:aws:s3:::${RECEIPT_BUCKET}/" '
+            [.EventSelectors[].DataResources[] | select(.Type == "AWS::S3::Object") | .Values[]] |
+            index($arn) != null
+          ' <<<"$SELECTORS" >/dev/null
+          jq -e --arg arn "arn:aws:s3:::kidults-cloudtrail-negative-boundary-staging-528314240275/" '
             [.EventSelectors[].DataResources[] | select(.Type == "AWS::S3::Object") | .Values[]] |
             index($arn) != null
           ' <<<"$SELECTORS" >/dev/null
@@ -167,7 +173,8 @@ jobs:
           done
           test "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC
           test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
-          test "$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)" = CREATE_COMPLETE
+          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
+          test "$STACK_STATUS" = CREATE_COMPLETE -o "$STACK_STATUS" = UPDATE_COMPLETE
           echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
 
       - name: Execute positive and negative assurance canary
@@ -175,42 +182,10 @@ jobs:
           EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
           RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
           RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
+          CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
         run: |
           set -euo pipefail
-          mkdir -p out/cloudtrail-continuous-assurance-v1
-          RETAIN_UNTIL=$(date -u -d '+10 years' '+%Y-%m-%dT%H:%M:%SZ')
-          PREFIX="receipts/cloudtrail-assurance/${EXPECTED_MAIN_SHA}/${GITHUB_RUN_ID}"
-          PROBE_KEY="${PREFIX}/probe.json"
-          TERMINAL_KEY="${PREFIX}/terminal.json"
-
-          jq -n             --arg exact_sha "$EXPECTED_MAIN_SHA"             --arg run_id "$GITHUB_RUN_ID"             --arg created_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"             '{id:"kidults-cloudtrail-assurance-probe-v1",exact_sha:$exact_sha,run_id:$run_id,created_at:$created_at,production:"HOLD",public:"HOLD",g5:"HOLD"}'             > out/cloudtrail-continuous-assurance-v1/probe.json
-
-          PUT=$(aws s3api put-object             --bucket "$RECEIPT_BUCKET"             --key "$PROBE_KEY"             --body out/cloudtrail-continuous-assurance-v1/probe.json             --checksum-algorithm SHA256             --server-side-encryption aws:kms             --ssekms-key-id "$RECEIPT_KEY_ARN"             --object-lock-mode COMPLIANCE             --object-lock-retain-until-date "$RETAIN_UNTIL"             --metadata "exact-head-sha=$EXPECTED_MAIN_SHA,cloudtrail-assurance=positive"             --output json)
-          VERSION_ID=$(jq -er '.VersionId' <<<"$PUT")
-          HEAD=$(aws s3api head-object --bucket "$RECEIPT_BUCKET" --key "$PROBE_KEY" --version-id "$VERSION_ID" --checksum-mode ENABLED --output json)
-          test "$(jq -r '.ObjectLockMode' <<<"$HEAD")" = COMPLIANCE
-          test "$(jq -r '.SSEKMSKeyId' <<<"$HEAD")" = "$RECEIPT_KEY_ARN"
-          test "$(jq -r '.Metadata["exact-head-sha"]' <<<"$HEAD")" = "$EXPECTED_MAIN_SHA"
-          test "$(jq -r '.ChecksumSHA256 | length > 0' <<<"$HEAD")" = true
-          echo 'POSITIVE_CANARY=PASS'
-
-          set +e
-          FORBIDDEN_ERROR=$(aws s3api put-object             --bucket "$RECEIPT_BUCKET"             --key "receipts/cloudtrail-assurance-forbidden/${GITHUB_RUN_ID}.json"             --body out/cloudtrail-continuous-assurance-v1/probe.json             --checksum-algorithm SHA256             --server-side-encryption aws:kms             --ssekms-key-id "$RECEIPT_KEY_ARN" 2>&1)
-          FORBIDDEN_EXIT=$?
-          set -e
-          test "$FORBIDDEN_EXIT" -ne 0
-          grep -Eq 'AccessDenied|UnauthorizedOperation' <<<"$FORBIDDEN_ERROR"
-          echo 'NEGATIVE_CANARY=PASS'
-
-          jq -n             --arg exact_sha "$EXPECTED_MAIN_SHA"             --arg run_id "$GITHUB_RUN_ID"             --arg probe_key "$PROBE_KEY"             --arg probe_version_id "$VERSION_ID"             --arg checksum_sha256 "$(jq -r '.ChecksumSHA256' <<<"$HEAD")"             --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$HEAD")"             '{id:"kidults-cloudtrail-continuous-assurance-terminal-v1",version:"1.0.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,continuous_assurance:{environment_binding:"PASS",finalizer_iam_oidc_readback:"PASS",cloudtrail_selector_readback:"PASS",cloudtrail_alert_readback:"PASS",cloudformation_drift:"IN_SYNC"},positive_canary:"PASS",negative_canary:"PASS",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}'             > out/cloudtrail-continuous-assurance-v1/terminal-receipt.json
-
-          TERMINAL_PUT=$(aws s3api put-object             --bucket "$RECEIPT_BUCKET"             --key "$TERMINAL_KEY"             --body out/cloudtrail-continuous-assurance-v1/terminal-receipt.json             --checksum-algorithm SHA256             --server-side-encryption aws:kms             --ssekms-key-id "$RECEIPT_KEY_ARN"             --object-lock-mode COMPLIANCE             --object-lock-retain-until-date "$RETAIN_UNTIL"             --metadata "exact-head-sha=$EXPECTED_MAIN_SHA,terminal-receipt=pass"             --output json)
-          TERMINAL_VERSION_ID=$(jq -er '.VersionId' <<<"$TERMINAL_PUT")
-          TERMINAL_HEAD=$(aws s3api head-object --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" --checksum-mode ENABLED --output json)
-          test "$(jq -r '.ObjectLockMode' <<<"$TERMINAL_HEAD")" = COMPLIANCE
-
-          jq             --arg bucket "$RECEIPT_BUCKET"             --arg key "$TERMINAL_KEY"             --arg version_id "$TERMINAL_VERSION_ID"             --arg checksum_sha256 "$(jq -r '.ChecksumSHA256' <<<"$TERMINAL_HEAD")"             --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$TERMINAL_HEAD")"             '. + {immutable_copy:{state:"OBJECT_LOCK_COMPLIANCE_VERIFIED",bucket:$bucket,key:$key,version_id:$version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until}}'             out/cloudtrail-continuous-assurance-v1/terminal-receipt.json             > out/cloudtrail-continuous-assurance-v1/terminal-envelope.json
-          echo 'TERMINAL_RECEIPT=PASS'
+          bash scripts/governance/run-cloudtrail-event-assurance-v1.sh
 
       - name: Seal fail-closed immutable terminal receipt
         if: failure()
@@ -239,3 +214,4 @@ jobs:
           path: out/cloudtrail-continuous-assurance-v1/
           if-no-files-found: error
           retention-days: 90
+

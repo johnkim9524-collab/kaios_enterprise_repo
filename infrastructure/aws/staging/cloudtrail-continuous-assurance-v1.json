@@ -289,6 +289,9 @@
                 "Values": [
                   {
                     "Fn::Sub": "${ReceiptBucketArn}/"
+                  },
+                  {
+                    "Fn::Sub": "arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/"
                   }
                 ]
               }
@@ -479,6 +482,9 @@
                     "iam:GetRole",
                     "iam:GetRolePolicy",
                     "logs:DescribeLogGroups",
+                    "logs:StartQuery",
+                    "logs:GetQueryResults",
+                    "logs:StopQuery",
                     "s3:GetBucketObjectLockConfiguration",
                     "s3:GetBucketPublicAccessBlock",
                     "s3:GetBucketVersioning"
@@ -573,3 +579,4 @@
     }
   }
 }
+
