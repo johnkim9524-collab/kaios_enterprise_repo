@@ -1,16 +1,21 @@
-name: KIDULTS Autonomous Object Lock Canary V1
-run-name: "KIDULTS Object Lock Canary ${{ inputs.expected_main_sha }}"
+name: KIDULTS Autonomous Object Lock Continuous Assurance V1
+run-name: "KIDULTS Object Lock Assurance ${{ inputs.expected_main_sha || github.sha }}"
 
 on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
     inputs:
       expected_main_sha:
-        description: Exact protected main SHA to bind
-        required: true
+        description: Exact protected main SHA to bind; defaults to the triggering main SHA
+        required: false
         type: string
 
 concurrency:
-  group: kidults-object-lock-canary-${{ inputs.expected_main_sha }}
+  group: kidults-object-lock-assurance-${{ inputs.expected_main_sha || github.sha }}
   cancel-in-progress: false
 
 permissions: {}
@@ -33,15 +38,18 @@ jobs:
 
       - name: Bind exact main and HOLD boundary
         env:
-          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE }}
+          PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE }}
+          G5_STATE: ${{ vars.KIDULTS_G5_STATE }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
-          test "${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}" = HOLD
-          test "${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}" = HOLD
-          test "${{ vars.KIDULTS_G5_STATE || 'HOLD' }}" = HOLD
+          test "$PRODUCTION_STATE" = HOLD
+          test "$PUBLIC_STATE" = HOLD
+          test "$G5_STATE" = HOLD
           echo 'PRODUCTION=HOLD'
           echo 'PUBLIC=HOLD'
           echo 'G5=HOLD'
@@ -49,16 +57,26 @@ jobs:
       - name: Deny unconfigured FINALIZER authority
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+          WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          WORKLOAD_REGISTRY_JSON: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON }}
+          LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
+          LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
           RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
           RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
         run: |
           set -euo pipefail
-          test -n "$AWS_ROLE_ARN"
+          test "$AWS_ROLE_ARN" = "arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role"
+          test "$WORKLOAD_ID" = "kidults-finalizer-v1"
+          test "$LEDGER_TABLE" = "kidults-autonomous-landing-staging-ledger"
+          test "$LEDGER_WRITER_FUNCTION" = "kidults-autonomous-ledger-writer-staging"
+          test -n "$WORKLOAD_REGISTRY_JSON"
+          test -n "$SIGNING_KEY_ARN"
           test -n "$RECEIPT_BUCKET"
           test -n "$RECEIPT_KEY_ARN"
-          test "$AWS_ROLE_ARN" != UNCONFIGURED
-          test "$RECEIPT_BUCKET" != UNCONFIGURED
-          test "$RECEIPT_KEY_ARN" != UNCONFIGURED
+          grep -Fq "kidults-finalizer-v1" <<<"$WORKLOAD_REGISTRY_JSON"
+          grep -Fq "KIDULTS-AUTONOMOUS-FINALIZER" <<<"$WORKLOAD_REGISTRY_JSON"
+          echo 'ENVIRONMENT_BINDING_READBACK=PASS'
 
       - name: Acquire FINALIZER credentials through exact GitHub OIDC subject
         env:
@@ -86,9 +104,49 @@ jobs:
             echo "AWS_REGION=ap-northeast-2"
           } >> "$GITHUB_ENV"
 
+      - name: Read back FINALIZER IAM OIDC and CloudFormation drift
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          ROLE_NAME="${AWS_ROLE_ARN##*/}"
+          EXPECTED_SUB="repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-FINALIZER:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main"
+          CALLER=$(aws sts get-caller-identity --output json)
+          test "$(jq -r '.Account' <<<"$CALLER")" = "528314240275"
+          grep -Fq "assumed-role/${ROLE_NAME}/" <<<"$(jq -r '.Arn' <<<"$CALLER")"
+
+          TRUST=$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.AssumeRolePolicyDocument' --output json)
+          test "$(jq -r '.Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"]' <<<"$TRUST")" = "sts.amazonaws.com"
+          jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
+
+          POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-autonomous-finalizer --query 'PolicyDocument' --output json)
+          for action in s3:GetObjectVersion s3:GetObjectVersionAttributes cloudformation:DetectStackDrift cloudformation:DescribeStackDriftDetectionStatus cloudformation:DescribeStacks iam:GetRole iam:GetRolePolicy; do
+            jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null
+          done
+          echo 'FINALIZER_IAM_OIDC_READBACK=PASS'
+
+          DRIFT_ID=$(aws cloudformation detect-stack-drift \
+            --stack-name kidults-autonomous-internal-landing-staging-v1 \
+            --query StackDriftDetectionId \
+            --output text)
+          for attempt in $(seq 1 36); do
+            DRIFT=$(aws cloudformation describe-stack-drift-detection-status \
+              --stack-drift-detection-id "$DRIFT_ID" \
+              --output json)
+            STATUS=$(jq -r '.DetectionStatus' <<<"$DRIFT")
+            test "$STATUS" != DETECTION_FAILED
+            if [ "$STATUS" = DETECTION_COMPLETE ]; then break; fi
+            test "$attempt" -lt 36
+            sleep 5
+          done
+          test "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC
+          test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
+          test "$(aws cloudformation describe-stacks --stack-name kidults-autonomous-internal-landing-staging-v1 --query 'Stacks[0].StackStatus' --output text)" = UPDATE_COMPLETE
+          echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+
       - name: Execute positive and negative Object Lock canary
         env:
-          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha }}
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
           RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
           RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
         run: |
@@ -157,7 +215,7 @@ jobs:
             --arg probe_version_id "$VERSION_ID" \
             --arg checksum_sha256 "$(jq -r '.ChecksumSHA256' <<<"$HEAD")" \
             --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$HEAD")" \
-            '{id:"kidults-autonomous-object-lock-canary-terminal-receipt-v1",version:"1.0.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,positive_canary:"PASS",negative_canary:"PASS",object_lock_mode:"COMPLIANCE",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
+            '{id:"kidults-autonomous-object-lock-canary-terminal-receipt-v1",version:"1.1.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,continuous_assurance:{environment_binding:"PASS",finalizer_iam_oidc_readback:"PASS",cloudformation_drift:"IN_SYNC"},positive_canary:"PASS",negative_canary:"PASS",object_lock_mode:"COMPLIANCE",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
             > out/autonomous-object-lock-canary-v1/terminal-receipt.json
 
           TERMINAL_PUT=$(aws s3api put-object \
@@ -193,10 +251,45 @@ jobs:
           echo 'OBJECT_LOCK_COMPLIANCE_VERIFIED=PASS'
           echo 'TERMINAL_RECEIPT=PASS'
 
+      - name: Seal fail-closed immutable terminal receipt
+        if: failure()
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/autonomous-object-lock-canary-v1
+          test -n "${AWS_ACCESS_KEY_ID:-}"
+          RETAIN_UNTIL=$(date -u -d '+10 years' '+%Y-%m-%dT%H:%M:%SZ')
+          FAILURE_KEY="receipts/canary/${EXPECTED_MAIN_SHA}/${GITHUB_RUN_ID}/terminal-fail.json"
+          jq -n \
+            --arg exact_sha "$EXPECTED_MAIN_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg failed_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            '{id:"kidults-autonomous-object-lock-canary-terminal-receipt-v1",version:"1.1.0",state:"VERIFIED_FAIL",exact_sha:$exact_sha,run_id:$run_id,failed_at:$failed_at,reason:"CONTINUOUS_ASSURANCE_STEP_FAILED",production:"HOLD",public:"HOLD",g5:"HOLD"}' \
+            > out/autonomous-object-lock-canary-v1/terminal-fail-receipt.json
+          FAILURE_PUT=$(aws s3api put-object \
+            --bucket "$RECEIPT_BUCKET" \
+            --key "$FAILURE_KEY" \
+            --body out/autonomous-object-lock-canary-v1/terminal-fail-receipt.json \
+            --checksum-algorithm SHA256 \
+            --server-side-encryption aws:kms \
+            --ssekms-key-id "$RECEIPT_KEY_ARN" \
+            --object-lock-mode COMPLIANCE \
+            --object-lock-retain-until-date "$RETAIN_UNTIL" \
+            --metadata "exact-head-sha=$EXPECTED_MAIN_SHA,terminal-receipt=fail" \
+            --output json)
+          FAILURE_VERSION_ID=$(jq -er '.VersionId' <<<"$FAILURE_PUT")
+          FAILURE_HEAD=$(aws s3api head-object --bucket "$RECEIPT_BUCKET" --key "$FAILURE_KEY" --version-id "$FAILURE_VERSION_ID" --checksum-mode ENABLED --output json)
+          test "$(jq -r '.ObjectLockMode' <<<"$FAILURE_HEAD")" = COMPLIANCE
+          echo 'FAIL_CLOSED_TERMINAL_RECEIPT=SEALED'
+
       - name: Upload exact-SHA terminal evidence
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: kidults-object-lock-canary-${{ inputs.expected_main_sha }}-${{ github.run_id }}
+          name: kidults-object-lock-assurance-${{ inputs.expected_main_sha || github.sha }}-${{ github.run_id }}
           path: out/autonomous-object-lock-canary-v1/
           if-no-files-found: error
           retention-days: 90
