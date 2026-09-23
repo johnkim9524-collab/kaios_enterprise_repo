@@ -2475,8 +2475,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "866dde1a3b2406fc82cefb494ca70fb1ffc73030",
-      "sha256": "sha256:f583f8806023a4fd6a83826ff1864fd13c18c83834a0aa590790ab55f25f4a62"
+      "git_blob": "3ff2cb9f8c91a098f74929a90e5d2afed42e7fa2",
+      "sha256": "sha256:1dfacc7fcc6a3809dad8365372c3a9cfe1739e9babdda052ad49ac671a672bc5"
     },
     {
       "path": "scripts/kidults/market/atomic-terminal-recovery-finalization-v1-policy.mjs",
@@ -3829,5 +3829,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:386878cce67c1ba73bee8e2fb6feba1472e2d7e8c4a1d1748ec42cc702990262"
+  "manifest_sha256": "sha256:e29f170afc3bed6d2806dfcc020452ddf0d64f298e5c71b1ac3f8f56f89f52f4"
 }
