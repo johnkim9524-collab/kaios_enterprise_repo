@@ -933,6 +933,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "cloudformation:DetectStackDrift",
+                    "cloudformation:DetectStackResourceDrift",
                     "cloudformation:DescribeStacks"
                   ],
                   "Resource": {
