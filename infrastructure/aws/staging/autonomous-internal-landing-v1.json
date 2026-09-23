@@ -883,7 +883,8 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "lambda:InvokeFunction"
+                    "lambda:InvokeFunction",
+                    "lambda:GetFunction"
                   ],
                   "Resource": {
                     "Fn::GetAtt": [
@@ -923,11 +924,53 @@
                   "Effect": "Allow",
                   "Action": [
                     "iam:GetRole",
-                    "iam:GetRolePolicy"
+                    "iam:GetRolePolicy",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListRolePolicies"
                   ],
-                  "Resource": {
-                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-finalizer-staging-role"
-                  }
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-finalizer-staging-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-track-staging-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-kpmo-staging-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-verifier-staging-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-ledger-writer-staging-role"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:DescribeKey"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"]
+                    },
+                    {
+                      "Fn::GetAtt": ["TrackApprovalSigningKey", "Arn"]
+                    },
+                    {
+                      "Fn::GetAtt": ["KpmoApprovalSigningKey", "Arn"]
+                    },
+                    {
+                      "Fn::GetAtt": ["VerifierApprovalSigningKey", "Arn"]
+                    },
+                    {
+                      "Fn::GetAtt": ["FinalizerSigningKey", "Arn"]
+                    },
+                    {
+                      "Fn::GetAtt": ["AutonomousReceiptKey", "Arn"]
+                    }
+                  ]
                 },
                 {
                   "Effect": "Allow",
