@@ -106,7 +106,7 @@ assert(autonomousResolution.includes('for ARTIFACT_ATTEMPT in {1..12}; do') && a
 assert(autonomousResolution.includes('--expected-digest "$P1_DIGEST"') && autonomousResolution.includes('--required-basename p1-preflight-action-queue-v1.json') && autonomousResolution.indexOf('--expected-digest "$P1_DIGEST"') < autonomousResolution.indexOf('unzip -q -o /tmp/p1.zip'), 'AUTONOMOUS_RESOLUTION_P1_SAFE_ZIP_PRE_EXTRACTION_MISSING');
 assert(supersession.includes('for attempt in 1 2 3; do'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_RETRY_MISSING');
 assert(supersession.includes('"\${code}" == "429" || "\${code}" =~ ^5[0-9][0-9]'), 'EXACT_HEAD_SUPERSESSION_TRANSIENT_CLASSIFICATION_MISSING');
-assert(supersession.includes('for readback_attempt in $(seq 1 8); do'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
+assert(supersession.includes('local max_attempts="${2:-8}"') && supersession.includes('[[ "${max_attempts}" -le 30 ]]') && supersession.includes('for readback_attempt in $(seq 1 "${max_attempts}"); do') && supersession.includes('read_run_terminal "${run_id}" 12') && supersession.includes('read_run_terminal "${run_id}" 30'), 'EXACT_HEAD_SUPERSESSION_BOUNDED_TERMINAL_READBACK_MISSING');
 assert(supersession.includes('if [[ "${latest_conclusion}" == "cancelled" ]]'), 'EXACT_HEAD_SUPERSESSION_CANCELLED_CONCLUSION_PROOF_MISSING');
 assert(supersession.includes('Cancellation not terminally confirmed for run'), 'EXACT_HEAD_SUPERSESSION_FAIL_CLOSED_MISSING');
 assert(!supersession.includes('if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'), 'EXACT_HEAD_SUPERSESSION_ACCEPTED_AS_TERMINAL_FORBIDDEN');

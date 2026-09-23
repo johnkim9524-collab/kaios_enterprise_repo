@@ -12,7 +12,10 @@ def validate_contract(text: str) -> None:
     assert 'force_cancelled=0' in text
     assert 'force_cancel_attempts:$force_cancel_attempts' in text
     assert 'force_cancelled:$force_cancelled' in text
-    assert text.count('readback_result="$(read_run_terminal "${run_id}")"') >= 2
+    assert 'local max_attempts="${2:-8}"' in text
+    assert '[[ "${max_attempts}" -le 30 ]]' in text
+    assert 'readback_result="$(read_run_terminal "${run_id}" 12)"' in text
+    assert 'readback_result="$(read_run_terminal "${run_id}" 30)"' in text
     assert 'if [[ "${latest_conclusion}" == "cancelled" ]]' in text
     assert 'Cancellation not terminally confirmed for run' in text
     assert 'same_head_runs_cancelled:0' in text
@@ -50,7 +53,7 @@ def test_force_cancel_fallback_is_required() -> None:
 
 def test_force_cancel_requires_terminal_readback() -> None:
     text = WORKFLOW_PATH.read_text(encoding="utf-8")
-    needle = 'readback_result="$(read_run_terminal "${run_id}")"'
+    needle = 'readback_result="$(read_run_terminal "${run_id}" 30)"'
     mutated = text.replace(needle, 'readback_result="{\\"status\\":\\"in_progress\\",\\"conclusion\\":\\"\\",\\"attempts\\":0}"', 1)
     try:
         validate_contract(mutated)

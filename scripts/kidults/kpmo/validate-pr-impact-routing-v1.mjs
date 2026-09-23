@@ -56,6 +56,12 @@ function supersessionViolations(source) {
   if (source.includes('/actions/runs?branch=${HEAD_BRANCH}')) {
     problems.push('RAW_BRANCH_QUERY_INTERPOLATION');
   }
+  if (!source.includes('local max_attempts="${2:-8}"') ||
+      !source.includes('[[ "${max_attempts}" -le 30 ]]') ||
+      !source.includes('read_run_terminal "${run_id}" 12') ||
+      !source.includes('read_run_terminal "${run_id}" 30')) {
+    problems.push('TERMINAL_READBACK_RACE_BOUND_MISSING');
+  }
   return problems;
 }
 
@@ -167,6 +173,8 @@ if (files.includes(supersessionWorkflow)) {
     (text) => text.replace('  pull_request_target:\n    branches: [main]\n    types:', '  pull_request_target:\n    types:'), violations);
   assertSupersessionMutationRejected('REMOVE_RUNTIME_FORK_REJECTION', source,
     (text) => text.replace('            [[ "${HEAD_REPOSITORY}" == "${REPOSITORY}" ]] || { echo "Refusing Actions write for fork PR" >&2; exit 1; }\n', ''), violations);
+  assertSupersessionMutationRejected('REMOVE_TERMINAL_READBACK_RACE_BOUND', source,
+    (text) => text.replace('read_run_terminal "${run_id}" 30', 'read_run_terminal "${run_id}"'), violations);
 }
 
 if (files.includes(lifecycleWorkflow)) {
@@ -199,7 +207,7 @@ const receipt = {
     fork_pr_actions_write: 'DENIED_BY_JOB_GUARD',
     pull_request_target_base: 'main',
     branch_query_encoding: 'DATA_URLENCODE',
-    mutation_cases: 5
+    mutation_cases: 6
   },
   pr_lifecycle_trust_boundary: {
     authorization: 'READ_ONLY_CLASSIFICATION',
