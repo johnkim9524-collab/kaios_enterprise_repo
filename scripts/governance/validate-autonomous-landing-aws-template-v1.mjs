@@ -96,7 +96,7 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
 
 const canaryWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-object-lock-canary-v1.yml','utf8');
 assert.equal(template.Parameters.CanaryWorkflowRef.Default, 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main');
-for (const marker of ['workflow_dispatch:','environment: KIDULTS-AUTONOMOUS-FINALIZER','OBJECT_LOCK_COMPLIANCE_VERIFIED','POSITIVE_CANARY','NEGATIVE_CANARY','TERMINAL_RECEIPT','PRODUCTION=HOLD','PUBLIC=HOLD','G5=HOLD']) assert.ok(canaryWorkflow.includes(marker), marker);
+for (const marker of ['push:','schedule:','workflow_dispatch:','environment: KIDULTS-AUTONOMOUS-FINALIZER','ENVIRONMENT_BINDING_READBACK=PASS','FINALIZER_IAM_OIDC_READBACK=PASS','CLOUDFORMATION_DRIFT=IN_SYNC','OBJECT_LOCK_COMPLIANCE_VERIFIED','POSITIVE_CANARY','NEGATIVE_CANARY','TERMINAL_RECEIPT','VERIFIED_FAIL','FAIL_CLOSED_TERMINAL_RECEIPT=SEALED','PRODUCTION=HOLD','PUBLIC=HOLD','G5=HOLD']) assert.ok(canaryWorkflow.includes(marker), marker);
 finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${CanaryWorkflowRef}'}`});
 
 const finalizer = resources.FinalizerRole.Properties;
@@ -105,9 +105,18 @@ assert.deepEqual(Object.keys(finalizerCondition).sort(), ['token.actions.githubu
 assert.equal(finalizerCondition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
 assert.deepEqual(finalizerCondition['token.actions.githubusercontent.com:sub'], finalizerSubs);
 const finalizerActions = finalizer.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectVersion','s3:GetObjectVersionAttributes','s3:GetObjectRetention','s3:PutObjectRetention','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
+for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectVersion','s3:GetObjectVersionAttributes','s3:GetObjectRetention','s3:PutObjectRetention','iam:GetRole','iam:GetRolePolicy','cloudformation:DetectStackDrift','cloudformation:DescribeStacks','cloudformation:DescribeStackDriftDetectionStatus','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
 assert.equal(finalizerActions.includes('dynamodb:PutItem'), false);
 assert.equal(finalizerActions.includes('dynamodb:UpdateItem'), false);
+const finalizerStatements = finalizer.Policies[0].PolicyDocument.Statement;
+const iamReadback = finalizerStatements.find(value => (value.Action || []).includes('iam:GetRole'));
+assert.deepEqual(iamReadback.Action, ['iam:GetRole','iam:GetRolePolicy']);
+assert.deepEqual(iamReadback.Resource, {'Fn::Sub':'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-finalizer-staging-role'});
+const driftReadback = finalizerStatements.find(value => (value.Action || []).includes('cloudformation:DetectStackDrift'));
+assert.deepEqual(driftReadback.Action, ['cloudformation:DetectStackDrift','cloudformation:DescribeStacks']);
+assert.deepEqual(driftReadback.Resource, {'Fn::Sub':'arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/kidults-autonomous-internal-landing-staging-v1/*'});
+const driftStatus = finalizerStatements.find(value => (value.Action || []).includes('cloudformation:DescribeStackDriftDetectionStatus'));
+assert.equal(driftStatus.Resource, '*');
 
 const writerActions = writerRole.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
 for (const action of ['dynamodb:PutItem','dynamodb:UpdateItem','kms:Verify']) assert.ok(writerActions.includes(action));
@@ -120,4 +129,4 @@ for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZ
 assert.equal(runner.includes("dynamodb','put-item"), false);
 assert.equal(runner.includes("dynamodb','update-item"), false);
 
-console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_OBJECT_LOCK_CANARY_V5',approval_workloads:3,finalizer_workloads:2,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_OBJECT_LOCK_CONTINUOUS_ASSURANCE_V6',approval_workloads:3,finalizer_workloads:2,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));

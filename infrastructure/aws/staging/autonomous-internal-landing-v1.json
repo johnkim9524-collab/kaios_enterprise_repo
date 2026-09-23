@@ -922,6 +922,33 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "iam:GetRole",
+                    "iam:GetRolePolicy"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-finalizer-staging-role"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DetectStackDrift",
+                    "cloudformation:DescribeStacks"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/kidults-autonomous-internal-landing-staging-v1/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudformation:DescribeStackDriftDetectionStatus"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:Encrypt",
                     "kms:Decrypt",
                     "kms:GenerateDataKey"
