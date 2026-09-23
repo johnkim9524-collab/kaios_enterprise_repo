@@ -105,7 +105,7 @@ assert.deepEqual(Object.keys(finalizerCondition).sort(), ['token.actions.githubu
 assert.equal(finalizerCondition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
 assert.deepEqual(finalizerCondition['token.actions.githubusercontent.com:sub'], finalizerSubs);
 const finalizerActions = finalizer.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectRetention','s3:PutObjectRetention','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
+for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectVersion','s3:GetObjectVersionAttributes','s3:GetObjectRetention','s3:PutObjectRetention','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
 assert.equal(finalizerActions.includes('dynamodb:PutItem'), false);
 assert.equal(finalizerActions.includes('dynamodb:UpdateItem'), false);
 
