@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
+import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
+import {collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
 test("repository-wide approval envelope is internally consistent", () => {
@@ -29,6 +31,31 @@ test("approval inventory is a complete digest-bound Git-object manifest", () => 
   assert.equal(inventory.audit.manifest_sha256,manifest.manifest_sha256);
   assert.ok(manifest.files.every(value=>value.path&&value.classification&&value.git_blob&&value.sha256));
   assert.equal(new Set(manifest.files.map(value=>value.path)).size,manifest.files.length);
+  const execution=manifest.files.filter(value=>value.classification==="EXECUTION_AUTHORIZATION_CONTROL");
+  assert.equal(execution.length,inventory.audit.routing_coverage.execution_authorization_controls);
+  assert.ok(execution.every(value=>value.authorization_routing?.coverage));
+});
+test("routing coverage rejects omission, stale exemption, and a consumer without an envelope reference", () => {
+  const fail=code=>{throw new Error(code)};
+  const base={path:".github/workflows/example.yml",classification:"EXECUTION_AUTHORIZATION_CONTROL"};
+  assert.throws(()=>validateAuthorizationRoutingCoverage({files:[base],readSource:()=>"",fail}),/EXECUTION_CONTROL_ROUTE_MISSING/);
+  assert.throws(()=>validateAuthorizationRoutingCoverage({files:[{...base,authorization_routing:{route:"INTERNAL_REVERSIBLE",coverage:{mode:"EXEMPTION",reason_code:"STALE"}}}],readSource:()=>"",fail}),/EXECUTION_CONTROL_EXEMPTION_INVALID/);
+  const fake={...base,authorization_routing:{route:"CANONICAL_ENVELOPE",coverage:{mode:"CONSUMER",consumer:base.path,source_reference:"kidults-autonomous-approval-policy-envelope-v1"}}};
+  assert.throws(()=>validateAuthorizationRoutingCoverage({files:[fake],readSource:()=>"no canonical import",fail}),/EXECUTION_CONTROL_CONSUMER_NOT_REFERENCING_ENVELOPE/);
+  assert.equal(routeAuthorizationControl("tests/example.test.mjs","owner approval").route,"NON_EXECUTING_REFERENCE");
+});
+test("live PR files paginate to exhaustion and reject an Owner-reserved path at position 101", async () => {
+  const ordinary=Array.from({length:100},(_,index)=>({filename:`src/generated-${String(index).padStart(3,"0")}.mjs`}));
+  const reserved={filename:"production/release.yml"};
+  const requested=[];
+  const files=await collectPaginatedApiValues({request:async endpoint=>{
+    requested.push(endpoint);
+    return endpoint.endsWith("page=1")?ordinary:[reserved];
+  },endpoint:"/pulls/2314/files"});
+  assert.equal(files.length,101);
+  assert.deepEqual(requested,["/pulls/2314/files?per_page=100&page=1","/pulls/2314/files?per_page=100&page=2"]);
+  const paths=files.map(value=>value.filename).sort();
+  assert.throws(()=>validateLiveChangedPaths({files,expectedPaths:paths,expectedScopeDigest:sha256(paths.join("\n")),ownerReservedPathPrefixes:["production/"]}),/AUTONOMOUS_OWNER_RESERVED_PATH/);
 });
 test("draft ready recovery is reserved, rebound, revalidated, then merged", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");

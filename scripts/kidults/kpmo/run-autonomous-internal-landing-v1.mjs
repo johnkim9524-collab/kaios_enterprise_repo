@@ -13,6 +13,8 @@ import {
   validateRecoveryGeneration,
   validateDraftReadyRebind,
   buildTerminalReceipt,
+  collectPaginatedApiValues,
+  validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
 
 const required = name => {
@@ -300,11 +302,8 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
-  const files=await api(`/pulls/${envelope.pull_request}/files?per_page=100`);
-  if (!Array.isArray(files)||files.length!==envelope.changed_paths.length) throw new AutonomousLandingError('AUTONOMOUS_CHANGED_FILE_COUNT_DRIFT');
-  const liveScope=sha256(files.map(value=>value.filename).sort().join('\n'));
-  if (liveScope!==envelope.scope_digest) throw new AutonomousLandingError('AUTONOMOUS_LIVE_SCOPE_DRIFT');
-  for (const prefix of policy.owner_reserved_path_prefixes) if (files.some(value=>value.filename.startsWith(prefix))) throw new AutonomousLandingError('AUTONOMOUS_OWNER_RESERVED_PATH',prefix);
+  const files=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
+  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,ownerReservedPathPrefixes:policy.owner_reserved_path_prefixes,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const [status,checks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     api(`/commits/${envelope.head_sha}/check-runs?filter=latest&per_page=100`),

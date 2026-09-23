@@ -23,6 +23,35 @@ const canonicalize = value => {
 export const canonicalJson = value => JSON.stringify(canonicalize(value));
 export const sha256 = value => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 
+export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,maxPages=100}) => {
+  if (typeof request !== 'function' || !endpoint || !Number.isInteger(pageSize) || pageSize < 1 || !Number.isInteger(maxPages) || maxPages < 1) {
+    fail('AUTONOMOUS_PAGINATION_ARGUMENT_INVALID');
+  }
+  const values=[];
+  for (let page=1; page<=maxPages; page+=1) {
+    const separator=endpoint.includes('?') ? '&' : '?';
+    const batch=await request(`${endpoint}${separator}per_page=${pageSize}&page=${page}`);
+    if (!Array.isArray(batch)) fail('AUTONOMOUS_PAGINATION_RESPONSE_INVALID');
+    values.push(...batch);
+    if (batch.length < pageSize) return values;
+  }
+  fail('AUTONOMOUS_PAGINATION_LIMIT_EXCEEDED');
+};
+
+export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
+  if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const livePaths=files.map(value=>value?.filename);
+  if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+  const ordered=[...livePaths].sort();
+  const expected=[...expectedPaths].sort();
+  if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');
+  if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail(scopeDriftCode);
+  for (const prefix of ownerReservedPathPrefixes||[]) {
+    if (ordered.some(value=>value.startsWith(prefix))) fail('AUTONOMOUS_OWNER_RESERVED_PATH',prefix);
+  }
+  return ordered;
+};
+
 export function validateWorkload(workload, registry, expectedRole) {
   if (!ROLE.has(expectedRole)) fail('AUTONOMOUS_ROLE_INVALID');
   const fields = ['workload_id','environment','workflow_ref','workflow_sha','repository_id','signing_key_arn'];
