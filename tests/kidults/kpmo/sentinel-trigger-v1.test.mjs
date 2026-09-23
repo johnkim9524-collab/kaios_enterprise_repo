@@ -15,10 +15,10 @@ for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact sa
 });
 for(const name of ['schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
 
-test('inline Assurance health gate accepts exact protected-main push context',()=>{
+test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
  assert.equal(validateSentinelTrigger(inline),null);
- assert.equal(inlineProducerHealthRequired(inline),true);
+ assert.equal(inlineProducerHealthRequired(inline),false);
 });
 
 test('inline Assurance health gate accepts exact same-main non-core workflow_run after remote re-read',()=>{
