@@ -1,0 +1,48 @@
+{
+  "id": "kidults-autonomous-staging-bounded-executor-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "risk_class": "STAGING_BOUNDED",
+  "execution_model": "ALLOWLISTED_EXACT_SHA_WORKFLOW",
+  "arbitrary_command_execution": false,
+  "operations": [
+    {
+      "operation": "OBJECT_LOCK_CONTINUOUS_ASSURANCE",
+      "workflow": ".github/workflows/kidults-autonomous-object-lock-canary-v1.yml",
+      "environment": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "exact_main_sha_input": "expected_main_sha",
+      "immutable_terminal_receipt": true
+    },
+    {
+      "operation": "CLOUDTRAIL_CONTINUOUS_ASSURANCE",
+      "workflow": ".github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml",
+      "environment": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "exact_main_sha_input": "expected_main_sha",
+      "immutable_terminal_receipt": true
+    }
+  ],
+  "required_constraints": [
+    "PROTECTED_MAIN_EXACT_SHA",
+    "STAGING_ONLY",
+    "NO_PERMISSION_EXPANSION",
+    "NO_SECRET_ACCESS_EXPANSION",
+    "NO_EXTERNAL_COMMUNICATION",
+    "OIDC_SHORT_LIVED_CREDENTIALS",
+    "POSITIVE_NEGATIVE_CANARY",
+    "IMMUTABLE_OBJECT_LOCK_RECEIPT"
+  ],
+  "forbidden_operations": [
+    "ARBITRARY_AWS_COMMAND",
+    "CLOUDFORMATION_IAM_PERMISSION_EXPANSION",
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "PSA_EXTERNAL_CALL"
+  ],
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "psa_external_call": "HOLD"
+  }
+}

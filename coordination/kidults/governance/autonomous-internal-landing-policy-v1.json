@@ -104,6 +104,7 @@
     "empty_commit_must_be_non_force": true,
     "head_sha_generations_must_be_receipted": true,
     "draft_ready_rebind": "AUTOMATIC",
+    "draft_ready_validation_timeout_seconds": 420,
     "pre_reservation_failure_consumes_authority": false,
     "reservation_occurs_immediately_before_first_mutation": true
   },
@@ -131,6 +132,8 @@
     "postmerge_validation_timeout_seconds": 420
   },
   "evidence_resolution": {
+    "approval_decisions_must_be_derived_from_live_github_state": true,
+    "caller_supplied_pass_conclusions_are_authoritative": false,
     "test_evidence_object_required": true,
     "rollback_plan_object_required": true,
     "canonical_json_digest_recomputed": true

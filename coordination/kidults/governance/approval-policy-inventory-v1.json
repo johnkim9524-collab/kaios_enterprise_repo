@@ -5,8 +5,10 @@
   "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
   "audit": {
     "baseline_sha": "c7d798bb5f699540c99e90a77d2531ec3668e00e",
-    "method": "FULL_TRACKED_FILE_CONTENT_SCAN",
-    "approval_related_files_reviewed": 1352,
+    "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
+    "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+    "approval_related_files_reviewed": 636,
+    "manifest_sha256": "sha256:386878cce67c1ba73bee8e2fb6feba1472e2d7e8c4a1d1748ec42cc702990262",
     "canonical_execution_authorization_policies": 3,
     "classification": "Execution authorization is centralized; domain adjudication remains local."
   },

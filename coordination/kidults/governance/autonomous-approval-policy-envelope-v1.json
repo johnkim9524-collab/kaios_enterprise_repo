@@ -20,6 +20,8 @@
     "STAGING_BOUNDED": {
       "routine_owner_approval": "FORBIDDEN",
       "authority": "TRACK_KPMO_MACHINE_QUORUM",
+      "executor": "kidults-autonomous-staging-bounded-executor-v1",
+      "executor_scope": "ALLOWLISTED_ASSURANCE_WORKFLOWS_ONLY",
       "maximum_attempts": 3,
       "maximum_lifetime_seconds": 7200,
       "same_tree_recovery": "ALLOWED",
@@ -27,7 +29,7 @@
       "draft_ready_rebind": "AUTOMATIC",
       "consumption_point": "FIRST_STAGING_MUTATION",
       "pre_mutation_failure_consumes_authority": false,
-      "required_constraints": ["STAGING_ONLY", "NO_PERMISSION_EXPANSION", "NO_SECRET_ACCESS_EXPANSION", "NO_EXTERNAL_COMMUNICATION", "ROLLBACK_BOUND", "IMMUTABLE_RECEIPT"]
+      "required_constraints": ["PROTECTED_MAIN_EXACT_SHA", "STAGING_ONLY", "NO_PERMISSION_EXPANSION", "NO_SECRET_ACCESS_EXPANSION", "NO_EXTERNAL_COMMUNICATION", "ROLLBACK_BOUND", "IMMUTABLE_RECEIPT"]
     },
     "OWNER_RESERVED": {
       "routine_owner_approval": "REQUIRED_PER_EXACT_ACTION",
