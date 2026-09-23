@@ -1,0 +1,217 @@
+name: KIDULTS AWS CloudTrail Continuous Assurance V1
+run-name: "KIDULTS CloudTrail Assurance ${{ inputs.expected_main_sha || github.sha }}"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json
+      - scripts/governance/validate-cloudtrail-continuous-assurance-v1.mjs
+      - scripts/governance/run-cloudtrail-event-assurance-v1.sh
+      - .github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml
+  workflow_dispatch:
+    inputs:
+      expected_main_sha:
+        description: Exact protected main SHA to bind; defaults to the triggering main SHA
+        required: false
+        type: string
+
+concurrency:
+  group: kidults-cloudtrail-assurance-${{ inputs.expected_main_sha || github.sha }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  cloudtrail-continuous-assurance:
+    name: Verify scoped CloudTrail and immutable receipt
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-FINALIZER
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate fail-closed CloudTrail contract
+        run: |
+          set -euo pipefail
+          mkdir -p out/cloudtrail-continuous-assurance-v1
+          node scripts/governance/validate-cloudtrail-continuous-assurance-v1.mjs
+
+      - name: Bind exact main and owner HOLD boundary
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE }}
+          PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE }}
+          G5_STATE: ${{ vars.KIDULTS_G5_STATE }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          test "$PRODUCTION_STATE" = HOLD
+          test "$PUBLIC_STATE" = HOLD
+          test "$G5_STATE" = HOLD
+          echo 'EXACT_MAIN_BINDING=PASS'
+          echo 'Production=HOLD'
+          echo 'Public=HOLD'
+          echo 'G5=HOLD'
+
+      - name: Deny unconfigured assurance authority
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_ROLE_ARN }}
+          RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
+          CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
+        run: |
+          set -euo pipefail
+          test "$AWS_ROLE_ARN" = "arn:aws:iam::528314240275:role/kidults-cloudtrail-assurance-staging-role"
+          test -n "$RECEIPT_BUCKET"
+          test -n "$RECEIPT_KEY_ARN"
+          test "$CLOUDTRAIL_STACK" = "kidults-cloudtrail-continuous-assurance-staging-v1"
+          echo 'ENVIRONMENT_BINDING_READBACK=PASS'
+
+      - name: Acquire short-lived assurance credentials through GitHub OIDC
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          OIDC_JSON=$(curl --fail --silent --show-error             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          test -n "$OIDC_TOKEN"
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity             --role-arn "$AWS_ROLE_ARN"             --role-session-name "kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"             --web-identity-token "$OIDC_TOKEN"             --duration-seconds 900             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'             --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          test -n "$AWS_ACCESS_KEY_ID"
+          test -n "$AWS_SECRET_ACCESS_KEY"
+          test -n "$AWS_SESSION_TOKEN"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          {
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+            echo "AWS_REGION=ap-northeast-2"
+            echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
+          } >> "$GITHUB_ENV"
+          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+
+      - name: Read back FINALIZER IAM OIDC CloudTrail and alarms
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_ROLE_ARN }}
+          RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+        run: |
+          set -euo pipefail
+          ROLE_NAME="${AWS_ROLE_ARN##*/}"
+          EXPECTED_SUB="repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-FINALIZER:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml@refs/heads/main"
+
+          CALLER=$(aws sts get-caller-identity --output json)
+          test "$(jq -r '.Account' <<<"$CALLER")" = "528314240275"
+          grep -Fq "assumed-role/${ROLE_NAME}/" <<<"$(jq -r '.Arn' <<<"$CALLER")"
+
+          TRUST=$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.AssumeRolePolicyDocument' --output json)
+          test "$(jq -r '.Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"]' <<<"$TRUST")" = "sts.amazonaws.com"
+          jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
+
+          POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-cloudtrail-assurance-readback-and-receipt --query 'PolicyDocument' --output json)
+          for action in cloudtrail:DescribeTrails cloudtrail:GetEventSelectors cloudtrail:GetTrailStatus cloudformation:DetectStackDrift logs:StartQuery logs:GetQueryResults logs:StopQuery s3:PutObject kms:GenerateDataKey; do
+            jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null
+          done
+          echo 'FINALIZER_IAM_OIDC_READBACK=PASS'
+
+          TRAIL=$(aws cloudtrail describe-trails --trail-name-list kidults-staging-continuous-assurance --include-shadow-trails --output json)
+          test "$(jq -r '.trailList | length' <<<"$TRAIL")" = 1
+          test "$(jq -r '.trailList[0].Name' <<<"$TRAIL")" = kidults-staging-continuous-assurance
+          test "$(jq -r '.trailList[0].IsMultiRegionTrail' <<<"$TRAIL")" = true
+          test "$(jq -r '.trailList[0].IncludeGlobalServiceEvents' <<<"$TRAIL")" = true
+          test "$(jq -r '.trailList[0].LogFileValidationEnabled' <<<"$TRAIL")" = true
+
+          STATUS=$(aws cloudtrail get-trail-status --name kidults-staging-continuous-assurance --output json)
+          test "$(jq -r '.IsLogging' <<<"$STATUS")" = true
+          test "$(jq -r '.LatestDeliveryError // ""' <<<"$STATUS")" = ""
+          test "$(jq -r '.LatestNotificationError // ""' <<<"$STATUS")" = ""
+
+          SELECTORS=$(aws cloudtrail get-event-selectors --trail-name kidults-staging-continuous-assurance --output json)
+          test "$(jq -r '.EventSelectors | length' <<<"$SELECTORS")" = 1
+          test "$(jq -r '.EventSelectors[0].IncludeManagementEvents' <<<"$SELECTORS")" = true
+          test "$(jq -r '.EventSelectors[0].ReadWriteType' <<<"$SELECTORS")" = All
+          jq -e --arg arn "arn:aws:s3:::${RECEIPT_BUCKET}/" '
+            [.EventSelectors[].DataResources[] | select(.Type == "AWS::S3::Object") | .Values[]] |
+            index($arn) != null
+          ' <<<"$SELECTORS" >/dev/null
+          jq -e --arg arn "arn:aws:s3:::kidults-cloudtrail-negative-boundary-staging-528314240275/" '
+            [.EventSelectors[].DataResources[] | select(.Type == "AWS::S3::Object") | .Values[]] |
+            index($arn) != null
+          ' <<<"$SELECTORS" >/dev/null
+          echo 'CLOUDTRAIL_SELECTOR_READBACK=PASS'
+
+          ALARMS=$(aws cloudwatch describe-alarms --alarm-name-prefix kidults-staging-cloudtrail- --output json)
+          test "$(jq '[.MetricAlarms[] | select(.ActionsEnabled == true and (.AlarmActions | length > 0))] | length >= 2' <<<"$ALARMS")" = true
+          echo 'CLOUDTRAIL_ALERT_READBACK=PASS'
+
+      - name: Read back CloudFormation drift
+        env:
+          CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
+        run: |
+          set -euo pipefail
+          DRIFT_ID=$(aws cloudformation detect-stack-drift             --stack-name "$CLOUDTRAIL_STACK"             --query StackDriftDetectionId             --output text)
+          for attempt in $(seq 1 60); do
+            DRIFT=$(aws cloudformation describe-stack-drift-detection-status               --stack-drift-detection-id "$DRIFT_ID"               --output json)
+            STATUS=$(jq -r '.DetectionStatus' <<<"$DRIFT")
+            test "$STATUS" != DETECTION_FAILED
+            if [ "$STATUS" = DETECTION_COMPLETE ]; then break; fi
+            test "$attempt" -lt 60
+            sleep 5
+          done
+          test "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC
+          test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
+          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
+          test "$STACK_STATUS" = CREATE_COMPLETE -o "$STACK_STATUS" = UPDATE_COMPLETE
+          echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+
+      - name: Execute positive and negative assurance canary
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
+          CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
+        run: |
+          set -euo pipefail
+          bash scripts/governance/run-cloudtrail-event-assurance-v1.sh
+
+      - name: Seal fail-closed immutable terminal receipt
+        if: failure()
+        env:
+          EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/cloudtrail-continuous-assurance-v1
+          if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo '{"state":"VERIFIED_FAIL","reason":"ASSURANCE_FAILED_BEFORE_OIDC"}' > out/cloudtrail-continuous-assurance-v1/terminal-fail-receipt.json
+            exit 0
+          fi
+          RETAIN_UNTIL=$(date -u -d '+10 years' '+%Y-%m-%dT%H:%M:%SZ')
+          FAILURE_KEY="receipts/cloudtrail-assurance/${EXPECTED_MAIN_SHA}/${GITHUB_RUN_ID}/terminal-fail.json"
+          jq -n             --arg exact_sha "$EXPECTED_MAIN_SHA"             --arg run_id "$GITHUB_RUN_ID"             --arg failed_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"             '{id:"kidults-cloudtrail-continuous-assurance-terminal-v1",version:"1.0.0",state:"VERIFIED_FAIL",exact_sha:$exact_sha,run_id:$run_id,failed_at:$failed_at,reason:"CONTINUOUS_ASSURANCE_STEP_FAILED",production:"HOLD",public:"HOLD",g5:"HOLD"}'             > out/cloudtrail-continuous-assurance-v1/terminal-fail-receipt.json
+          aws s3api put-object             --bucket "$RECEIPT_BUCKET"             --key "$FAILURE_KEY"             --body out/cloudtrail-continuous-assurance-v1/terminal-fail-receipt.json             --checksum-algorithm SHA256             --server-side-encryption aws:kms             --ssekms-key-id "$RECEIPT_KEY_ARN"             --object-lock-mode COMPLIANCE             --object-lock-retain-until-date "$RETAIN_UNTIL"             --metadata "exact-head-sha=$EXPECTED_MAIN_SHA,terminal-receipt=fail"             --output json >/dev/null
+          echo 'FAIL_CLOSED_TERMINAL_RECEIPT=SEALED'
+
+      - name: Upload exact-SHA terminal evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-cloudtrail-assurance-${{ inputs.expected_main_sha || github.sha }}-${{ github.run_id }}
+          path: out/cloudtrail-continuous-assurance-v1/
+          if-no-files-found: error
+          retention-days: 90
+
