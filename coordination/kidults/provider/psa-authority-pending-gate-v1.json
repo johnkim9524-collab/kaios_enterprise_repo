@@ -1,0 +1,134 @@
+{
+  "id": "KIDULTS_PSA_AUTHORITY_PENDING_GATE_V1",
+  "version": "1.0.0",
+  "as_of": "2026-09-23T07:00:00Z",
+  "scope": "PSA Public API positive canary input authority and dormant execution readiness",
+  "state": "AUTHORITY_PENDING_NO_EXECUTION",
+  "historical_truth": {
+    "schema_connection_evidence_exists": true,
+    "historical_receipt": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+    "historical_provider_calls": 1,
+    "historical_raw_payload_retained": false,
+    "current_runtime_path": "REMOVED",
+    "historical_evidence_does_not_authorize_new_execution": true
+  },
+  "current_decision": {
+    "decision_id": "TRACK_Z_PSA_AUTHORIZED_TEST_INPUT_WAIT_2026_09_23",
+    "decision_authority": "PROGRAM_OWNER_ACCEPTED_TRACK_Z_RECOMMENDATION",
+    "provider_reply_state": "AWAITING_SUBSTANTIVE_WRITTEN_RESPONSE",
+    "positive_canary": "HOLD",
+    "negative_canary": "HOLD",
+    "terminal_receipt": "NOT_ELIGIBLE",
+    "provider_network_calls_authorized": false
+  },
+  "reserved_candidate": {
+    "candidate_id": "PSA_PUBLIC_CERT_CANDIDATE_V1",
+    "cert_reference_digest": "sha256:ffe6a095b7f9d1cd9617239828e281a096ed193c3ad4b7d08d5fc937390d3250",
+    "source_class": "PUBLIC_PSA_CERT_VERIFICATION_PAGE",
+    "ownership_assertion": "NONE",
+    "api_execution_authority": "PENDING_PROVIDER_RESPONSE",
+    "api_executed_under_this_decision": false,
+    "raw_cert_value_in_repository": false,
+    "empirical_admissible": false,
+    "promotion_eligible": false
+  },
+  "execution_gate": {
+    "required_states": {
+      "authorized_fixture_state": "PASS",
+      "runtime_token_binding_state": "PASS",
+      "retention_policy_state": "PASS",
+      "rate_budget_state": "PASS",
+      "owner_scope_state": "PASS"
+    },
+    "current_states": {
+      "authorized_fixture_state": "PENDING_PROVIDER_RESPONSE",
+      "runtime_token_binding_state": "NOT_EVALUATED_NO_EXECUTION",
+      "retention_policy_state": "PASS_STATIC_CONTROL_ONLY",
+      "rate_budget_state": "PASS_STATIC_CONTROL_ONLY",
+      "owner_scope_state": "PASS_HOLD_BOUNDARY"
+    },
+    "decision": "DENY",
+    "default": "DENY",
+    "unknown_or_missing": "DENY",
+    "self_asserted_or_chat_only_authority": "DENY",
+    "outbound_request_alone_grants_execution_authority": false
+  },
+  "provider_response_routes": [
+    {
+      "response_class": "OFFICIAL_TEST_CERT_NUMBER",
+      "action": "REQUIRE_IMMUTABLE_RESPONSE_EVIDENCE_THEN_BIND_PROVIDER_NUMBER_AS_PRIMARY"
+    },
+    {
+      "response_class": "SANDBOX_OR_FIXTURE",
+      "action": "REQUIRE_IMMUTABLE_RESPONSE_EVIDENCE_THEN_USE_SEPARATE_SANDBOX_CANARY"
+    },
+    {
+      "response_class": "PUBLIC_CERT_USE_EXPLICITLY_ALLOWED",
+      "action": "REQUIRE_IMMUTABLE_RESPONSE_EVIDENCE_THEN_PROMOTE_RESERVED_CANDIDATE"
+    },
+    {
+      "response_class": "OWNER_HELD_CERT_ONLY",
+      "action": "REJECT_RESERVED_CANDIDATE_AND_KEEP_EXECUTION_HOLD"
+    },
+    {
+      "response_class": "AMBIGUOUS_OR_PARTIAL",
+      "action": "REQUEST_CLARIFICATION_AND_KEEP_EXECUTION_HOLD"
+    },
+    {
+      "response_class": "NO_RESPONSE",
+      "action": "KEEP_EXECUTION_HOLD_NO_UNAUTHORIZED_BYPASS"
+    }
+  ],
+  "dormant_canary_contract": {
+    "implementation_state": "STATIC_CONTRACT_ONLY",
+    "network_capable_runtime_present": false,
+    "activation_requires_separate_exact_authority": true,
+    "secret_value_may_be_logged": false,
+    "raw_response_publication": "PROHIBITED",
+    "raw_response_retention_days_max": 30,
+    "daily_provider_limit": 100,
+    "internal_daily_ceiling": 90,
+    "positive_semantics": [
+      "HTTP_200",
+      "IS_VALID_REQUEST_TRUE",
+      "SERVER_MESSAGE_REQUEST_SUCCESSFUL",
+      "EXPECTED_CORE_FIELDS_MATCH"
+    ],
+    "negative_semantics": [
+      "VALID_FORMAT_NO_DATA_FOUND",
+      "INVALID_FORMAT_REJECTED",
+      "RATE_LIMIT_429_FAILS_CLOSED",
+      "TIMEOUT_FAILS_CLOSED",
+      "PROVIDER_5XX_FAILS_CLOSED"
+    ],
+    "terminal_receipt_fields": [
+      "EXACT_MAIN_SHA",
+      "AUTHORITY_EVIDENCE_DIGEST",
+      "REQUEST_DIGEST",
+      "RESPONSE_DIGEST",
+      "OBSERVED_AT",
+      "HTTP_STATUS",
+      "SCHEMA_VERDICT",
+      "RETENTION_DELETE_AT",
+      "QUOTA_BEFORE_AFTER",
+      "POSITIVE_CANARY",
+      "NEGATIVE_CANARY",
+      "PRODUCTION_PUBLIC_G5"
+    ]
+  },
+  "authority_boundary": {
+    "provider_call_this_change": 0,
+    "external_message_this_change": 0,
+    "credential_read_this_change": false,
+    "new_spend": "NONE",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "constitution_effects": {
+    "autonomous_effect": "POSITIVE_MACHINE_ENFORCED_DENY_UNTIL_PROVIDER_AUTHORITY_IS_EVIDENCE_BOUND",
+    "global_effect": "NEUTRAL_SINGLE_PROVIDER_CANARY_IS_NOT_GLOBAL_COVERAGE",
+    "irreplaceable_value_effect": "POSITIVE_PROVIDER_REPLACEABLE_DIGEST_AND_RECEIPT_BOUNDARY",
+    "transparency_effect": "POSITIVE_HISTORICAL_CONNECTION_CURRENT_HOLD_AND_UNBLOCK_CONDITION_ARE_DISTINCT"
+  }
+}
