@@ -119,10 +119,29 @@ jobs:
           test "$(jq -r '.Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"]' <<<"$TRUST")" = "sts.amazonaws.com"
           jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
 
-          POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-autonomous-finalizer --query 'PolicyDocument' --output json)
-          for action in s3:GetObjectVersion s3:GetObjectVersionAttributes cloudformation:DetectStackDrift cloudformation:DetectStackResourceDrift cloudformation:DescribeStackDriftDetectionStatus cloudformation:DescribeStacks iam:GetRole iam:GetRolePolicy iam:ListAttachedRolePolicies iam:ListRolePolicies kms:DescribeKey lambda:GetFunction; do
-            jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null
+          REQUIRED_ACTIONS=(
+            s3:GetObjectVersion s3:GetObjectVersionAttributes
+            s3:GetBucketObjectLockConfiguration s3:GetBucketPublicAccessBlock
+            s3:GetBucketOwnershipControls s3:GetEncryptionConfiguration
+            s3:GetBucketVersioning s3:GetBucketTagging
+            dynamodb:DescribeContinuousBackups dynamodb:ListTagsOfResource
+            cloudformation:DetectStackDrift cloudformation:DetectStackResourceDrift
+            cloudformation:DescribeStackDriftDetectionStatus cloudformation:DescribeStacks
+            iam:GetRole iam:GetRolePolicy iam:ListAttachedRolePolicies iam:ListRolePolicies
+            kms:DescribeKey kms:GetKeyPolicy kms:GetKeyRotationStatus kms:ListResourceTags
+            lambda:GetFunction
+          )
+          for convergence_attempt in $(seq 1 60); do
+            POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-autonomous-finalizer --query 'PolicyDocument' --output json)
+            POLICY_READY=true
+            for action in "${REQUIRED_ACTIONS[@]}"; do
+              jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null || POLICY_READY=false
+            done
+            if [ "$POLICY_READY" = true ]; then break; fi
+            test "$convergence_attempt" -lt 60
+            sleep 10
           done
+          echo 'STAGING_DEPLOYMENT_CONVERGENCE=PASS'
           echo 'FINALIZER_IAM_OIDC_READBACK=PASS'
 
           DRIFT_ID=$(aws cloudformation detect-stack-drift \
