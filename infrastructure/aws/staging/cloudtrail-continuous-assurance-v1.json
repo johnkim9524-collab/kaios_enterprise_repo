@@ -1,0 +1,575 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "KIDULTS STAGING CloudTrail Continuous Assurance for immutable autonomous receipts.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "GitHubRepository": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "AssuranceEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+    },
+    "AssuranceWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml@refs/heads/main",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+    },
+    "ReceiptBucketArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:s3:::[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    },
+    "ReceiptKeyArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key/[0-9a-f-]{36}$"
+    },
+    "AlertEmail": {
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    }
+  },
+  "Conditions": {
+    "HasAlertEmail": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "AlertEmail"
+            },
+            ""
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "CloudTrailLogBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              },
+              "BucketKeyEnabled": true
+            }
+          ]
+        },
+        "ObjectLockEnabled": true,
+        "ObjectLockConfiguration": {
+          "ObjectLockEnabled": "Enabled",
+          "Rule": {
+            "DefaultRetention": {
+              "Mode": "COMPLIANCE",
+              "Years": 10
+            }
+          }
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "CloudTrailContinuousAssurance"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "CloudTrailLogBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "CloudTrailLogBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "CloudTrailLogBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${CloudTrailLogBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            },
+            {
+              "Sid": "CloudTrailAclCheck",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:GetBucketAcl",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "CloudTrailLogBucket",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/kidults-staging-continuous-assurance"
+                  }
+                }
+              }
+            },
+            {
+              "Sid": "CloudTrailWrite",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+              },
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${CloudTrailLogBucket.Arn}/AWSLogs/${AWS::AccountId}/*"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "s3:x-amz-acl": "bucket-owner-full-control",
+                  "aws:SourceArn": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cloudtrail:${AWS::Region}:${AWS::AccountId}:trail/kidults-staging-continuous-assurance"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CloudTrailLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "LogGroupName": "/aws/cloudtrail/kidults-staging-continuous-assurance",
+        "RetentionInDays": 3653,
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "CloudTrailCloudWatchRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-cloudtrail-cloudwatch-staging-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "cloudtrail.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-cloudtrail-log-delivery",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "StagingAssuranceTrail": {
+      "Type": "AWS::CloudTrail::Trail",
+      "DependsOn": [
+        "CloudTrailLogBucketPolicy",
+        "CloudTrailCloudWatchRole"
+      ],
+      "Properties": {
+        "TrailName": "kidults-staging-continuous-assurance",
+        "S3BucketName": {
+          "Ref": "CloudTrailLogBucket"
+        },
+        "CloudWatchLogsLogGroupArn": {
+          "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+        },
+        "CloudWatchLogsRoleArn": {
+          "Fn::GetAtt": [
+            "CloudTrailCloudWatchRole",
+            "Arn"
+          ]
+        },
+        "EnableLogFileValidation": true,
+        "IncludeGlobalServiceEvents": true,
+        "IsLogging": true,
+        "IsMultiRegionTrail": true,
+        "EventSelectors": [
+          {
+            "IncludeManagementEvents": true,
+            "ReadWriteType": "All",
+            "DataResources": [
+              {
+                "Type": "AWS::S3::Object",
+                "Values": [
+                  {
+                    "Fn::Sub": "${ReceiptBucketArn}/"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "CloudTrailContinuousAssurance"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "CloudTrailMutationMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "CloudTrailLogGroup"
+        },
+        "FilterName": "kidults-cloudtrail-control-plane-mutation",
+        "FilterPattern": "{ ($.eventSource = cloudtrail.amazonaws.com) && (($.eventName = StopLogging) || ($.eventName = DeleteTrail) || ($.eventName = PutEventSelectors) || ($.eventName = UpdateTrail)) }",
+        "MetricTransformations": [
+          {
+            "MetricNamespace": "KIDULTS/STAGING/CloudTrail",
+            "MetricName": "UnauthorizedControlPlaneMutation",
+            "MetricValue": "1",
+            "DefaultValue": 0
+          }
+        ]
+      }
+    },
+    "CloudTrailDeliveryErrorMetricFilter": {
+      "Type": "AWS::Logs::MetricFilter",
+      "Properties": {
+        "LogGroupName": {
+          "Ref": "CloudTrailLogGroup"
+        },
+        "FilterName": "kidults-cloudtrail-delivery-error",
+        "FilterPattern": "{ ($.errorCode = *) && (($.eventSource = cloudtrail.amazonaws.com) || ($.eventSource = s3.amazonaws.com)) }",
+        "MetricTransformations": [
+          {
+            "MetricNamespace": "KIDULTS/STAGING/CloudTrail",
+            "MetricName": "DeliveryOrAccessError",
+            "MetricValue": "1",
+            "DefaultValue": 0
+          }
+        ]
+      }
+    },
+    "AssuranceAlertTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "kidults-staging-cloudtrail-assurance-alerts",
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "AssuranceAlertSubscription": {
+      "Type": "AWS::SNS::Subscription",
+      "Condition": "HasAlertEmail",
+      "Properties": {
+        "Protocol": "email",
+        "Endpoint": {
+          "Ref": "AlertEmail"
+        },
+        "TopicArn": {
+          "Ref": "AssuranceAlertTopic"
+        }
+      }
+    },
+    "CloudTrailMutationAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": "kidults-staging-cloudtrail-control-plane-mutation",
+        "AlarmDescription": "Fail-closed alert for CloudTrail stop, delete, selector or trail mutation.",
+        "Namespace": "KIDULTS/STAGING/CloudTrail",
+        "MetricName": "UnauthorizedControlPlaneMutation",
+        "Statistic": "Sum",
+        "Period": 60,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "AssuranceAlertTopic"
+          }
+        ]
+      }
+    },
+    "CloudTrailDeliveryAlarm": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmName": "kidults-staging-cloudtrail-delivery-or-access-error",
+        "AlarmDescription": "Alert for CloudTrail or protected S3 access errors.",
+        "Namespace": "KIDULTS/STAGING/CloudTrail",
+        "MetricName": "DeliveryOrAccessError",
+        "Statistic": "Sum",
+        "Period": 300,
+        "EvaluationPeriods": 1,
+        "Threshold": 1,
+        "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+        "TreatMissingData": "notBreaching",
+        "AlarmActions": [
+          {
+            "Ref": "AssuranceAlertTopic"
+          }
+        ]
+      }
+    },
+    "CloudTrailAssuranceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-cloudtrail-assurance-staging-role",
+        "MaxSessionDuration": 900,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${AssuranceEnvironment}:workflow_ref:${AssuranceWorkflowRef}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "kidults-cloudtrail-assurance-readback-and-receipt",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudtrail:DescribeTrails",
+                    "cloudtrail:GetEventSelectors",
+                    "cloudtrail:GetTrailStatus",
+                    "cloudtrail:LookupEvents",
+                    "cloudformation:DetectStackDrift",
+                    "cloudformation:DescribeStackDriftDetectionStatus",
+                    "cloudformation:DescribeStacks",
+                    "cloudwatch:DescribeAlarms",
+                    "iam:GetRole",
+                    "iam:GetRolePolicy",
+                    "logs:DescribeLogGroups",
+                    "s3:GetBucketObjectLockConfiguration",
+                    "s3:GetBucketPublicAccessBlock",
+                    "s3:GetBucketVersioning"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "s3:GetObjectVersionAttributes"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${ReceiptBucketArn}/receipts/cloudtrail-assurance/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:DescribeKey",
+                    "kms:Encrypt",
+                    "kms:GenerateDataKey"
+                  ],
+                  "Resource": {
+                    "Ref": "ReceiptKeyArn"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "CloudTrailAssuranceRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "CloudTrailAssuranceRole",
+          "Arn"
+        ]
+      }
+    },
+    "CloudTrailLogBucket": {
+      "Value": {
+        "Ref": "CloudTrailLogBucket"
+      }
+    },
+    "CloudTrailName": {
+      "Value": {
+        "Ref": "StagingAssuranceTrail"
+      }
+    },
+    "CloudTrailLogGroupName": {
+      "Value": {
+        "Ref": "CloudTrailLogGroup"
+      }
+    },
+    "CloudTrailAlertTopicArn": {
+      "Value": {
+        "Ref": "AssuranceAlertTopic"
+      }
+    },
+    "ProductionState": {
+      "Value": "HOLD"
+    },
+    "PublicState": {
+      "Value": "HOLD"
+    },
+    "G5State": {
+      "Value": "HOLD"
+    }
+  }
+}
