@@ -36,6 +36,9 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Reject unsafe FINALIZER credential handling
+        run: node scripts/governance/validate-object-lock-credential-hygiene-v1.mjs
+
       - name: Bind exact main and HOLD boundary
         env:
           EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
@@ -88,6 +91,7 @@ jobs:
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
           test -n "$OIDC_TOKEN"
+          echo "::add-mask::$OIDC_TOKEN"
           CREDS=$(aws sts assume-role-with-web-identity \
             --role-arn "$AWS_ROLE_ARN" \
             --role-session-name "kidults-object-lock-canary-${GITHUB_RUN_ID}" \
@@ -97,12 +101,18 @@ jobs:
             --output text)
           read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
           test -n "$AWS_ACCESS_KEY_ID"
+          test -n "$AWS_SECRET_ACCESS_KEY"
+          test -n "$AWS_SESSION_TOKEN"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
           {
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
             echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
             echo "AWS_REGION=ap-northeast-2"
           } >> "$GITHUB_ENV"
+          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 
       - name: Read back FINALIZER IAM OIDC and CloudFormation drift
         env:
@@ -118,7 +128,6 @@ jobs:
           TRUST=$(aws iam get-role --role-name "$ROLE_NAME" --query 'Role.AssumeRolePolicyDocument' --output json)
           test "$(jq -r '.Statement[0].Condition.StringEquals["token.actions.githubusercontent.com:aud"]' <<<"$TRUST")" = "sts.amazonaws.com"
           jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
-
           REQUIRED_ACTIONS=(
             s3:GetObjectVersion s3:GetObjectVersionAttributes
             s3:GetBucketObjectLockConfiguration s3:GetBucketPublicAccessBlock
@@ -237,8 +246,7 @@ jobs:
             '{id:"kidults-autonomous-object-lock-canary-terminal-receipt-v1",version:"1.1.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,continuous_assurance:{environment_binding:"PASS",finalizer_iam_oidc_readback:"PASS",cloudformation_drift:"IN_SYNC"},positive_canary:"PASS",negative_canary:"PASS",object_lock_mode:"COMPLIANCE",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
             > out/autonomous-object-lock-canary-v1/terminal-receipt.json
 
-          TERMINAL_PUT=$(aws s3api put-object \
-            --bucket "$RECEIPT_BUCKET" \
+          TERMINAL_PUT=$(aws s3api put-object \            --bucket "$RECEIPT_BUCKET" \
             --key "$TERMINAL_KEY" \
             --body out/autonomous-object-lock-canary-v1/terminal-receipt.json \
             --checksum-algorithm SHA256 \
