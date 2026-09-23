@@ -35,7 +35,11 @@ const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomo
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON'));
 const event = JSON.parse(fs.readFileSync(eventPath,'utf8'));
-if (runAttempt !== '1') throw new AutonomousLandingError('AUTONOMOUS_RERUN_FORBIDDEN');
+const attemptNumber = Number(runAttempt);
+const maximumAttempts = Number(policy.bounded_recovery?.maximum_attempts || 1);
+if (!Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > maximumAttempts) {
+  throw new AutonomousLandingError('AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED');
+}
 if (eventName !== 'repository_dispatch') throw new AutonomousLandingError('AUTONOMOUS_NORMAL_EVENT_REQUIRED');
 
 const eventRole = new Map([

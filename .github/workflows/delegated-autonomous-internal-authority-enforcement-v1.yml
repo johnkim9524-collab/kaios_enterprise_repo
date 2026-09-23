@@ -5,8 +5,16 @@ on:
       - 'AGENTS.md'
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - 'coordination/kidults/governance/delegated-autonomous-**'
+      - 'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'
+      - 'coordination/kidults/governance/approval-policy-inventory-v1.json'
+      - 'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'
+      - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
       - 'docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md'
       - 'scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs'
+      - 'scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs'
+      - 'scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs'
+      - 'tests/governance/autonomous-approval-policy-envelope-v1.test.mjs'
       - 'tests/governance/delegated-autonomous-internal-authority-v1.test.mjs'
       - 'package.json'
   push:
@@ -29,6 +37,9 @@ jobs:
         with:
           node-version: 24.19.0
           package-manager-cache: false
-      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run validate:delegated-autonomous-authority
       - run: npm run test:delegated-autonomous-authority
+      - run: npm run validate:autonomous-approval-envelope
+      - run: npm run test:autonomous-approval-envelope
+      - run: node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs

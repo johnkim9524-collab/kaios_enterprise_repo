@@ -1,0 +1,30 @@
+import fs from "node:fs";
+import path from "node:path";
+const root = process.cwd();
+const read = relative => JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
+const fail = code => { throw new Error(code); };
+const envelope = read("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json");
+const inventory = read("coordination/kidults/governance/approval-policy-inventory-v1.json");
+const delegated = read("coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json");
+const autonomous = read("coordination/kidults/governance/autonomous-internal-landing-policy-v1.json");
+const owner = read("coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json");
+const runtime = fs.readFileSync(path.join(root, "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs"), "utf8");
+if (envelope.status !== "MANDATORY_FAIL_CLOSED") fail("ENVELOPE_NOT_FAIL_CLOSED");
+if (inventory.canonical_envelope !== "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json") fail("CANONICAL_ENVELOPE_MISMATCH");
+if (inventory.audit?.method !== "FULL_TRACKED_FILE_CONTENT_SCAN" || inventory.audit?.canonical_execution_authorization_policies !== inventory.policies.length) fail("INVENTORY_AUDIT_INVALID");
+for (const name of ["INTERNAL_REVERSIBLE", "STAGING_BOUNDED"]) {
+  const rule = envelope.classes[name];
+  if (rule.routine_owner_approval !== "FORBIDDEN") fail(`${name}_ROUTINE_OWNER_APPROVAL_NOT_FORBIDDEN`);
+  if (rule.maximum_attempts < 1 || rule.maximum_attempts > 3) fail(`${name}_ATTEMPT_BOUND_INVALID`);
+  if (rule.maximum_lifetime_seconds > 7200) fail(`${name}_TTL_TOO_LONG`);
+  if (rule.pre_mutation_failure_consumes_authority !== false) fail(`${name}_PRE_MUTATION_FAILURE_BURNS_AUTHORITY`);
+}
+if (envelope.classes.OWNER_RESERVED.routine_owner_approval !== "REQUIRED_PER_EXACT_ACTION") fail("OWNER_BOUNDARY_WEAKENED");
+if (envelope.classes.UNKNOWN.decision !== "FAIL_CLOSED_OWNER_REQUIRED") fail("UNKNOWN_NOT_FAIL_CLOSED");
+for (const field of ["HEAD_TREE_CHANGED", "SCOPE_DIGEST_CHANGED", "RISK_CLASS_CHANGED", "OWNER_RESERVED_BOUNDARY_CROSSED"]) if (!envelope.invalidation.includes(field)) fail(`INVALIDATION_MISSING:${field}`);
+for (const action of delegated.owner_reserved_actions) if (!envelope.owner_reserved_actions.includes(action)) fail(`OWNER_RESERVED_ACTION_MISSING:${action}`);
+for (const policy of [delegated, autonomous]) if (policy.approval_policy_envelope !== envelope.id) fail(`ENVELOPE_BINDING_MISSING:${policy.id}`);
+if (owner.routing?.eligible_internal_reversible !== envelope.id || owner.routing?.normal_owner_exact_head_path !== "OWNER_RESERVED_OR_RECOVERY_ONLY") fail("LEGACY_ROUTING_NOT_ISOLATED");
+if (!runtime.includes("AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED") || runtime.includes("AUTONOMOUS_RERUN_FORBIDDEN")) fail("BOUNDED_RUNTIME_RETRY_NOT_ENFORCED");
+for (const holds of [envelope.holds, inventory.holds]) if (Object.values(holds).some(value => value !== "HOLD")) fail("HOLD_WEAKENED");
+console.log(JSON.stringify({id:envelope.id,state:"VERIFIED_PASS",policy_count:inventory.policies.length,internal_owner_reapproval:"FORBIDDEN_WHILE_ENVELOPE_VALID",owner_reserved:"REQUIRED_PER_EXACT_ACTION",production:"HOLD",public:"HOLD",g5:"HOLD",psa_external_call:"HOLD"}));

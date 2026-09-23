@@ -1,8 +1,14 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
+  "routing": {
+    "eligible_internal_reversible": "kidults-autonomous-approval-policy-envelope-v1",
+    "normal_owner_exact_head_path": "OWNER_RESERVED_OR_RECOVERY_ONLY",
+    "routine_owner_reapproval_for_delegated_work": "FORBIDDEN",
+    "unknown_or_conflicting_classification": "FAIL_CLOSED_OWNER_REQUIRED"
+  },
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
   "scope_aware_required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",

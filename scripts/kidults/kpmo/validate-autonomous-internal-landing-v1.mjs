@@ -82,4 +82,7 @@ assert.throws(()=>buildTerminalReceipt({quorum,reservation:{state:'RESERVED',con
 assert.throws(()=>validateWorkload({...workload('FINALIZER',4),signing_key_arn:track.workload.signing_key_arn},registry,'FINALIZER'));
 assert.equal(policy.approval_quorum.approval_workloads_may_finalize,false);
 assert.equal(policy.workload_identity.finalizer.only_stage_allowed_github_write,true);
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:16,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+assert.equal(policy.bounded_recovery.maximum_attempts,3);
+assert.equal(policy.bounded_recovery.pre_reservation_failure_consumes_authority,false);
+assert.equal(policy.durable_single_use.maximum_ttl_seconds,7200);
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:7,negative:16,bounded_attempts:3,production:'HOLD',public:'HOLD',g5:'HOLD'}));
