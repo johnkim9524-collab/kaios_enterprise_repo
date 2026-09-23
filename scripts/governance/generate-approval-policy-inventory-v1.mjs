@@ -2,6 +2,7 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import fs from "node:fs";
+import {routeAuthorizationControl} from "./lib/approval-policy-routing-v1.mjs";
 
 const root = process.cwd();
 const revision = process.argv[2] || "HEAD";
@@ -20,7 +21,9 @@ const classify = file => {
 };
 const files = paths.map(file => {
   const bytes = execFileSync("git", ["show", `${revision}:${file}`], {cwd:root, maxBuffer:64*1024*1024});
-  return {path:file, classification:classify(file), git_blob:git(["rev-parse", `${revision}:${file}`]).trim(), sha256:sha256(bytes)};
+  const classification=classify(file);
+  return {path:file, classification, git_blob:git(["rev-parse", `${revision}:${file}`]).trim(), sha256:sha256(bytes),
+    ...(classification==="EXECUTION_AUTHORIZATION_CONTROL"?{authorization_routing:routeAuthorizationControl(file,bytes.toString("utf8"))}:{})};
 });
 const payload = {
   id:"kidults-approval-policy-file-manifest-v1", version:"1.0.0", revision,

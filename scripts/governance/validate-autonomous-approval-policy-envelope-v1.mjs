@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
+import {validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
 const root = process.cwd();
 const read = relative => JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
 const fail = code => { throw new Error(code); };
@@ -29,6 +30,14 @@ for (const entry of manifest.files) {
   const blob=execFileSync("git",["rev-parse",`HEAD:${entry.path}`],{cwd:root,encoding:"utf8"}).trim();
   if (entry.git_blob!==blob || entry.sha256!==sha256(bytes)) fail(`INVENTORY_MANIFEST_FILE_DRIFT:${entry.path}`);
 }
+const routeCoverage=validateAuthorizationRoutingCoverage({
+  files:manifest.files,
+  readSource:entryPath=>execFileSync("git",["show",`HEAD:${entryPath}`],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024}),
+  fail,
+});
+const routeAudit=inventory.audit?.routing_coverage;
+if (!routeAudit||routeAudit.execution_authorization_controls!==routeCoverage.execution_authorization_controls||routeAudit.consumers!==routeCoverage.consumers||routeAudit.exemptions!==routeCoverage.exemptions) fail("INVENTORY_ROUTING_COVERAGE_COUNT_INVALID");
+if (JSON.stringify(routeAudit.route_counts)!==JSON.stringify(routeCoverage.route_counts)) fail("INVENTORY_ROUTING_COVERAGE_ROUTES_INVALID");
 for (const name of ["INTERNAL_REVERSIBLE", "STAGING_BOUNDED"]) {
   const rule = envelope.classes[name];
   if (rule.routine_owner_approval !== "FORBIDDEN") fail(`${name}_ROUTINE_OWNER_APPROVAL_NOT_FORBIDDEN`);
