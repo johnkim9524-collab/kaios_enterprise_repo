@@ -96,7 +96,7 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
 
 const canaryWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-object-lock-canary-v1.yml','utf8');
 assert.equal(template.Parameters.CanaryWorkflowRef.Default, 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main');
-for (const marker of ['push:','schedule:','workflow_dispatch:','environment: KIDULTS-AUTONOMOUS-FINALIZER','ENVIRONMENT_BINDING_READBACK=PASS','FINALIZER_IAM_OIDC_READBACK=PASS','CLOUDFORMATION_DRIFT=IN_SYNC','OBJECT_LOCK_COMPLIANCE_VERIFIED','POSITIVE_CANARY','NEGATIVE_CANARY','TERMINAL_RECEIPT','VERIFIED_FAIL','FAIL_CLOSED_TERMINAL_RECEIPT=SEALED','PRODUCTION=HOLD','PUBLIC=HOLD','G5=HOLD']) assert.ok(canaryWorkflow.includes(marker), marker);
+for (const marker of ['push:','schedule:','workflow_dispatch:','environment: KIDULTS-AUTONOMOUS-FINALIZER','ENVIRONMENT_BINDING_READBACK=PASS','STAGING_DEPLOYMENT_CONVERGENCE=PASS','FINALIZER_IAM_OIDC_READBACK=PASS','CLOUDFORMATION_DRIFT=IN_SYNC','OBJECT_LOCK_COMPLIANCE_VERIFIED','POSITIVE_CANARY','NEGATIVE_CANARY','TERMINAL_RECEIPT','VERIFIED_FAIL','FAIL_CLOSED_TERMINAL_RECEIPT=SEALED','PRODUCTION=HOLD','PUBLIC=HOLD','G5=HOLD']) assert.ok(canaryWorkflow.includes(marker), marker);
 finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${CanaryWorkflowRef}'}`});
 
 const finalizer = resources.FinalizerRole.Properties;
