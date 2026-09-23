@@ -986,6 +986,11 @@ export function assertCompiledSourceRightsReview(output, inputs = loadSourceRigh
       `${pkg.package_id}: normalized claim record time is after the compiled review snapshot.`);
     }
   }
+  const nonPassPackageIds = new Set(output.review_observations.flatMap(source =>
+    source.purpose_packages.filter(pkg => pkg.decision !== "PASS").map(pkg => pkg.package_id)
+  ));
+  assert(output.purpose_eligibility_bindings.every(binding => !nonPassPackageIds.has(binding.package_id)),
+    "HOLD or REJECT package emitted a policy-preflight PASS binding.");
   for (const binding of output.purpose_eligibility_bindings) {
     const { binding_hash: ignored, ...unsignedBinding } = binding;
     assert(binding.binding_hash === fingerprint(unsignedBinding), `${binding.binding_id}: binding integrity digest mismatch.`);
@@ -1057,11 +1062,6 @@ export function assertCompiledSourceRightsReview(output, inputs = loadSourceRigh
     if (binding.context_only) assert(contextAllowedRoles.has(binding.source_role) && !marketRoles.has(binding.source_role),
       `${binding.binding_id}: context source entered a market role.`);
   }
-  const nonPassPackageIds = new Set(output.review_observations.flatMap(source =>
-    source.purpose_packages.filter(pkg => pkg.decision !== "PASS").map(pkg => pkg.package_id)
-  ));
-  assert(output.purpose_eligibility_bindings.every(binding => !nonPassPackageIds.has(binding.package_id)),
-    "HOLD or REJECT package emitted a policy-preflight PASS binding.");
   assert(output.decision_boundaries.hold_or_reject_admission_events_emitted === 0, "HOLD or REJECT event count must remain zero.");
   assert(output.decision_boundaries.runtime_admission_events_emitted === 0 &&
     output.decision_boundaries.policy_preflight_bindings_are_runtime_events === false,

@@ -1,6 +1,6 @@
 name: KIDULTS Atomic Governed Landing V1
 # RECOVERY_ONLY: normal internal reversible landing is delegated to
-# kidults-autonomous-internal-landing-v1.yml under AI-020.
+# the role-scoped Track / KPMO / Independent Verifier autonomous workflows under AI-020.
 run-name: "KIDULTS Atomic Landing PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.landing_authorization_id }}"
 
 on:

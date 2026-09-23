@@ -14,7 +14,7 @@ Implementation, defect correction, refactoring, tests, validation, documentation
 
 ## Required quorum and binding
 
-The accountable Track agent and KPMO must be distinct identities. Both decisions bind the exact repository, base SHA, head SHA, head tree, scope digest, test evidence, verified rollback plan, expiry, and one-use nonce. Self-approval, replay, stale evidence, drift, missing checks, or scope expansion fails closed.
+The accountable Track, KPMO, and independent-verifier approvals are represented by distinct role-scoped GitHub OIDC workload identities with distinct workflow refs and KMS signing keys. All decisions bind the exact repository, base SHA, head SHA, head tree, scope digest, test evidence, verified rollback plan, expiry, and one-use nonce. Self-approval, workload reuse across roles, signing-key reuse, replay, stale evidence, drift, missing checks, or scope expansion fails closed.
 
 ## Program Owner reserved gates
 
@@ -28,8 +28,8 @@ Unknown or conflicting classification is `FAIL_CLOSED_OWNER_REQUIRED`. Productio
 
 ## Normal activation and legacy recovery
 
-Eligible internal landing uses `.github/workflows/kidults-autonomous-internal-landing-v1.yml` as the normal path. Track, KPMO and independent-verifier events bind one exact Git tuple; the AWS durable ledger conditionally reserves and consumes the authorization generation before the privileged landing step may merge. Manual `Run workflow`, natural-language Owner comments and direct Owner merge clicks are recovery mechanisms, not normal orchestration.
+Eligible internal landing uses three role-specific workflows as the normal path: `.github/workflows/kidults-autonomous-track-authorization-v1.yml`, `.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml`, and `.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml`. Each role signs the same exact Git tuple through its own OIDC-bound AWS role and KMS key. The AWS durable ledger records the three approvals, and the finalizer may reserve and consume the one-use authorization only after quorum. Manual `Run workflow`, natural-language Owner comments and direct Owner merge clicks are recovery mechanisms, not normal orchestration.
 
-The legacy Atomic Governed Landing and Direct Owner Handoff remain available only until the autonomous path has a configured actor registry, OIDC role, durable ledger table, immutable receipt sink and one successful live STAGING canary. They must never be interpreted as permission to change Production, Public or G5 HOLDs.
+The GitHub repository OIDC subject must be customized to include `repo`, `context`, and `workflow_ref`; AWS trust policies accept only `aud` and this customized `sub`. The legacy Atomic Governed Landing and Direct Owner Handoff remain available only until the role-scoped workload registry, customized OIDC subject, AWS roles/KMS keys, durable ledger, immutable receipt sink, and one successful live STAGING canary are verified. They must never be interpreted as permission to change Production, Public or G5 HOLDs.
 
 An agent identity that violates scope, replays authority, omits evidence or abandons an executable duty is quarantined. Every unused authorization for that identity is revoked. A replacement must complete a fresh constitutional bootstrap and reproduce the work under a new authorization generation; the removed identity cannot approve its replacement.
