@@ -105,7 +105,7 @@ assert.deepEqual(Object.keys(finalizerCondition).sort(), ['token.actions.githubu
 assert.equal(finalizerCondition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
 assert.deepEqual(finalizerCondition['token.actions.githubusercontent.com:sub'], finalizerSubs);
 const finalizerActions = finalizer.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectVersion','s3:GetObjectVersionAttributes','s3:GetObjectRetention','s3:PutObjectRetention','iam:GetRole','iam:GetRolePolicy','cloudformation:DetectStackDrift','cloudformation:DescribeStacks','cloudformation:DescribeStackDriftDetectionStatus','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
+for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectVersion','s3:GetObjectVersionAttributes','s3:GetObjectRetention','s3:PutObjectRetention','iam:GetRole','iam:GetRolePolicy','cloudformation:DetectStackDrift','cloudformation:DetectStackResourceDrift','cloudformation:DescribeStacks','cloudformation:DescribeStackDriftDetectionStatus','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
 assert.equal(finalizerActions.includes('dynamodb:PutItem'), false);
 assert.equal(finalizerActions.includes('dynamodb:UpdateItem'), false);
 const finalizerStatements = finalizer.Policies[0].PolicyDocument.Statement;
@@ -113,7 +113,7 @@ const iamReadback = finalizerStatements.find(value => (value.Action || []).inclu
 assert.deepEqual(iamReadback.Action, ['iam:GetRole','iam:GetRolePolicy']);
 assert.deepEqual(iamReadback.Resource, {'Fn::Sub':'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/kidults-autonomous-finalizer-staging-role'});
 const driftReadback = finalizerStatements.find(value => (value.Action || []).includes('cloudformation:DetectStackDrift'));
-assert.deepEqual(driftReadback.Action, ['cloudformation:DetectStackDrift','cloudformation:DescribeStacks']);
+assert.deepEqual(driftReadback.Action, ['cloudformation:DetectStackDrift','cloudformation:DetectStackResourceDrift','cloudformation:DescribeStacks']);
 assert.deepEqual(driftReadback.Resource, {'Fn::Sub':'arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/kidults-autonomous-internal-landing-staging-v1/*'});
 const driftStatus = finalizerStatements.find(value => (value.Action || []).includes('cloudformation:DescribeStackDriftDetectionStatus'));
 assert.equal(driftStatus.Resource, '*');

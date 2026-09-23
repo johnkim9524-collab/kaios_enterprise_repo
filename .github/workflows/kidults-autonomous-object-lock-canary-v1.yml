@@ -120,7 +120,7 @@ jobs:
           jq -e --arg sub "$EXPECTED_SUB" '[.Statement[].Condition.StringEquals["token.actions.githubusercontent.com:sub"]] | flatten | index($sub) != null' <<<"$TRUST" >/dev/null
 
           POLICY=$(aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name kidults-autonomous-finalizer --query 'PolicyDocument' --output json)
-          for action in s3:GetObjectVersion s3:GetObjectVersionAttributes cloudformation:DetectStackDrift cloudformation:DescribeStackDriftDetectionStatus cloudformation:DescribeStacks iam:GetRole iam:GetRolePolicy; do
+          for action in s3:GetObjectVersion s3:GetObjectVersionAttributes cloudformation:DetectStackDrift cloudformation:DetectStackResourceDrift cloudformation:DescribeStackDriftDetectionStatus cloudformation:DescribeStacks iam:GetRole iam:GetRolePolicy; do
             jq -e --arg action "$action" '[.Statement[].Action] | flatten | index($action) != null' <<<"$POLICY" >/dev/null
           done
           echo 'FINALIZER_IAM_OIDC_READBACK=PASS'
