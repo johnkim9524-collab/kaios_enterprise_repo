@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           test "$(find .github/workflows -maxdepth 1 -type f -iname '*psa*' | wc -l)" -eq 1
-          ! grep -E 'PSA_PUBLIC_API_TOKEN|GetByCertNumber|workflow_dispatch:' .github/workflows/kidults-psa-live-execution-control-v1.yml
+          ! grep -E 'PSA_PUBLIC_API_TO[K]EN|GetByCertNum[b]er|workflow_dispatc[h]:' .github/workflows/kidults-psa-live-execution-control-v1.yml
           ! test -e scripts/kidults/provider/run-psa-z1-private-runtime-v1.mjs
       - name: Validate PSA adapter and manifest boundaries
         shell: bash
@@ -60,6 +60,7 @@ jobs:
           node --test services/kidults-control-plane/scripts/psa-*.test.mjs
           node scripts/kidults/provider/validate-psa-manifest-provenance-contract-v1.mjs
           node scripts/kidults/provider/validate-psa-lawful-manifest-intake-v1.mjs
+          node scripts/kidults/provider/validate-psa-authority-pending-gate-v1.mjs
           node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
           node scripts/kidults/provider/validate-psa-120-admission-note-v1.mjs
           node scripts/kidults/provider/validate-psa-120-admission-receipt-v1.mjs
