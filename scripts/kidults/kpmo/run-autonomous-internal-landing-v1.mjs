@@ -161,6 +161,60 @@ const writeReceipt = receipt => {
   fs.writeFileSync(receiptPath,`${JSON.stringify(receipt,null,2)}\n`,{encoding:'utf8',mode:0o600});
   fs.chmodSync(receiptPath,0o600);
 };
+const sealImmutableReceipt = receipt => {
+  if (mode !== 'FINALIZE') throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_FINALIZER_ONLY');
+  const bucket = required('KIDULTS_AUTONOMOUS_RECEIPT_BUCKET');
+  const receiptKeyArn = required('KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN');
+  const envelope = {
+    id:'kidults-autonomous-internal-landing-immutable-envelope-v1',
+    version:'1.0.0',
+    receipt,
+    receipt_sha256:sha256(canonicalJson(receipt)),
+    production:'HOLD',public:'HOLD',g5:'HOLD',
+  };
+  const bytes = Buffer.from(`${JSON.stringify(envelope,null,2)}\n`,'utf8');
+  const checksumSha256 = Buffer.from(sha256(bytes).slice(7),'hex').toString('base64');
+  const retainUntil = new Date();
+  retainUntil.setUTCFullYear(retainUntil.getUTCFullYear()+10);
+  const objectKey = `receipts/${envelope.receipt.authorization_generation}/${envelope.receipt.merge?.merge_sha || 'terminal'}/${envelope.receipt_sha256.slice(7)}.json`;
+  const tempPath = path.join(required('RUNNER_TEMP'),`kidults-immutable-receipt-${process.pid}-${Date.now()}.json`);
+  try {
+    fs.writeFileSync(tempPath,bytes,{mode:0o600});
+    const put = awsJson([
+      's3api','put-object','--region','ap-northeast-2','--bucket',bucket,'--key',objectKey,
+      '--body',tempPath,'--content-type','application/json',
+      '--server-side-encryption','aws:kms','--ssekms-key-id',receiptKeyArn,
+      '--checksum-algorithm','SHA256','--checksum-sha256',checksumSha256,
+      '--object-lock-mode','COMPLIANCE','--object-lock-retain-until-date',retainUntil.toISOString(),
+      '--metadata',`receipt-sha256=${envelope.receipt_sha256.slice(7)},exact-head-sha=${envelope.receipt.binding?.head_sha || ''}`,
+      '--output','json',
+    ]);
+    if (!put.VersionId) throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_VERSION_MISSING');
+    const head = awsJson([
+      's3api','head-object','--region','ap-northeast-2','--bucket',bucket,'--key',objectKey,
+      '--version-id',put.VersionId,'--checksum-mode','ENABLED','--output','json',
+    ]);
+    if (head.ObjectLockMode !== 'COMPLIANCE') throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_MODE_INVALID');
+    if (Date.parse(head.ObjectLockRetainUntilDate) < retainUntil.getTime()-1000) throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_RETENTION_INVALID');
+    if (head.ServerSideEncryption !== 'aws:kms' || head.SSEKMSKeyId !== receiptKeyArn) throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_ENCRYPTION_INVALID');
+    if (head.ChecksumSHA256 !== checksumSha256) throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_CHECKSUM_INVALID');
+    return {
+      state:'OBJECT_LOCK_COMPLIANCE_VERIFIED',
+      bucket,
+      key:objectKey,
+      version_id:put.VersionId,
+      checksum_sha256:checksumSha256,
+      receipt_sha256:envelope.receipt_sha256,
+      kms_key_arn:receiptKeyArn,
+      retain_until:head.ObjectLockRetainUntilDate,
+    };
+  } catch (error) {
+    if (error instanceof AutonomousLandingError) throw error;
+    throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_RECEIPT_WRITE_FAILED');
+  } finally {
+    try { fs.unlinkSync(tempPath); } catch {}
+  }
+};
 let statusTouched=false;
 let mergePerformed=false;
 let mergeSha=null;
@@ -297,9 +351,11 @@ try {
       });
       const terminal=buildTerminalReceipt({quorum,reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
         merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
-      await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest}})});
-      writeReceipt(terminal);
-      console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+      const immutableCopy=sealImmutableReceipt(terminal);
+      const sealedTerminal={...terminal,immutable_copy:immutableCopy};
+      await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,immutable_receipt_version_id:immutableCopy.version_id}})});
+      writeReceipt(sealedTerminal);
+      console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,immutable_copy:immutableCopy,production:'HOLD',public:'HOLD',g5:'HOLD'}));
     }
   }
 } catch (error) {

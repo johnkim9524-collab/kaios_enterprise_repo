@@ -201,6 +201,8 @@ jobs:
           KIDULTS_AUTONOMOUS_ENVIRONMENT: KIDULTS-AUTONOMOUS-FINALIZER
           KIDULTS_AUTONOMOUS_WORKFLOW_REF: ${{ github.workflow_ref }}
           KIDULTS_AUTONOMOUS_REPOSITORY_ID: ${{ github.repository_id }}
+          KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
           AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/receipt.json
         run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
 

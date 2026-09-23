@@ -9,6 +9,9 @@ const table = resources.AutonomousLandingLedger.Properties;
 const ledgerKey = resources.AutonomousLedgerKey.Properties;
 const writerRole = resources.AutonomousLedgerWriterRole.Properties;
 const writerFunction = resources.AutonomousLedgerWriterFunction.Properties;
+const receiptKey = resources.AutonomousReceiptKey;
+const receiptBucket = resources.AutonomousReceiptBucket;
+const receiptBucketPolicy = resources.AutonomousReceiptBucketPolicy.Properties.PolicyDocument;
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 
 const approvals = [
@@ -22,6 +25,23 @@ assert.equal(table.BillingMode, 'PAY_PER_REQUEST');
 assert.equal(table.PointInTimeRecoverySpecification.PointInTimeRecoveryEnabled, true);
 assert.equal(table.SSESpecification.SSEType, 'KMS');
 assert.equal(ledgerKey.EnableKeyRotation, true);
+assert.equal(receiptKey.DeletionPolicy, 'Retain');
+assert.equal(receiptKey.UpdateReplacePolicy, 'Retain');
+assert.equal(receiptKey.Properties.EnableKeyRotation, true);
+assert.equal(receiptBucket.DeletionPolicy, 'Retain');
+assert.equal(receiptBucket.UpdateReplacePolicy, 'Retain');
+assert.equal(receiptBucket.Properties.ObjectLockEnabled, true);
+assert.equal(receiptBucket.Properties.ObjectLockConfiguration.ObjectLockEnabled, 'Enabled');
+assert.deepEqual(receiptBucket.Properties.ObjectLockConfiguration.Rule.DefaultRetention, {Mode:'COMPLIANCE',Years:10});
+assert.equal(receiptBucket.Properties.VersioningConfiguration.Status, 'Enabled');
+assert.deepEqual(receiptBucket.Properties.PublicAccessBlockConfiguration, {
+  BlockPublicAcls:true,BlockPublicPolicy:true,IgnorePublicAcls:true,RestrictPublicBuckets:true,
+});
+assert.equal(receiptBucket.Properties.OwnershipControls.Rules[0].ObjectOwnership, 'BucketOwnerEnforced');
+assert.equal(receiptBucket.Properties.BucketEncryption.ServerSideEncryptionConfiguration[0].ServerSideEncryptionByDefault.SSEAlgorithm, 'aws:kms');
+for (const sid of ['DenyInsecureTransport','DenyUnencryptedReceiptWrites','DenyWrongReceiptKey']) {
+  assert.ok(receiptBucketPolicy.Statement.some(value=>value.Sid===sid), sid);
+}
 assert.equal(template.Parameters.FinalizerEnvironment.Default, 'KIDULTS-AUTONOMOUS-FINALIZER');
 const workflowRefPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
 for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef']) {
@@ -57,6 +77,8 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   for (const other of approvals.map(value=>value[6]).filter(value=>value!==eventName)) assert.equal(workflow.includes(`      - ${other}`), false);
   assert.ok(workflow.includes(`environment: ${template.Parameters[environmentParameter].Default}`));
   assert.ok(workflow.includes('environment: KIDULTS-AUTONOMOUS-FINALIZER'));
+  assert.ok(workflow.includes('KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}'));
+  assert.ok(workflow.includes('KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}'));
   const approvalSection = workflow.split('  finalize-if-quorum:')[0];
   assert.match(approvalSection, /contents: read/);
   assert.doesNotMatch(approvalSection, /contents: write/);
@@ -78,7 +100,7 @@ assert.deepEqual(Object.keys(finalizerCondition).sort(), ['token.actions.githubu
 assert.equal(finalizerCondition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
 assert.deepEqual(finalizerCondition['token.actions.githubusercontent.com:sub'], finalizerSubs);
 const finalizerActions = finalizer.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign']) assert.ok(finalizerActions.includes(action));
+for (const action of ['dynamodb:DescribeTable','dynamodb:GetItem','dynamodb:Query','lambda:InvokeFunction','kms:Sign','s3:PutObject','s3:GetObject','s3:GetObjectAttributes','s3:GetObjectRetention','s3:PutObjectRetention','kms:Encrypt','kms:Decrypt','kms:GenerateDataKey']) assert.ok(finalizerActions.includes(action));
 assert.equal(finalizerActions.includes('dynamodb:PutItem'), false);
 assert.equal(finalizerActions.includes('dynamodb:UpdateItem'), false);
 
@@ -89,8 +111,8 @@ assert.equal(writerFunction.Runtime, 'python3.12');
 const code = writerFunction.Code.ZipFile;
 for (const marker of ['CREATE_APPROVAL','CREATE_RESERVATION','CONSUME_RESERVATION','verify_approval_signature','verify_finalizer_signature','FINALIZER_SIGNATURE_INVALID','APPROVAL_SIGNATURE_INVALID']) assert.ok(code.includes(marker), marker);
 
-for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',"mode === 'APPROVAL'","mode === 'FINALIZE'",'invokeFinalizerWriter','KIDULTS_AUTONOMOUS_WORKFLOW_REF']) assert.ok(runner.includes(marker), marker);
+for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',"mode === 'APPROVAL'","mode === 'FINALIZE'",'invokeFinalizerWriter','KIDULTS_AUTONOMOUS_WORKFLOW_REF','sealImmutableReceipt','OBJECT_LOCK_COMPLIANCE_VERIFIED','KIDULTS_AUTONOMOUS_RECEIPT_BUCKET','KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN','--object-lock-mode','COMPLIANCE','--checksum-sha256']) assert.ok(runner.includes(marker), marker);
 assert.equal(runner.includes("dynamodb','put-item"), false);
 assert.equal(runner.includes("dynamodb','update-item"), false);
 
-console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_V3',approval_workloads:3,finalizer_workloads:1,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_OBJECT_LOCK_V4',approval_workloads:3,finalizer_workloads:1,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));

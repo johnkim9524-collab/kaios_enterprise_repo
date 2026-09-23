@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING durable single-use ledger and GitHub OIDC role for autonomous internal landing.",
+  "Description": "KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -895,6 +895,33 @@
                       "Arn"
                     ]
                   }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:GetObjectAttributes",
+                    "s3:GetObjectRetention",
+                    "s3:PutObjectRetention"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "${AutonomousReceiptBucket.Arn}/receipts/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Encrypt",
+                    "kms:Decrypt",
+                    "kms:GenerateDataKey"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousReceiptKey",
+                      "Arn"
+                    ]
+                  }
                 }
               ]
             }
@@ -922,6 +949,201 @@
             "Value": "HOLD"
           }
         ]
+      }
+    },
+    "AutonomousReceiptKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "KIDULTS STAGING immutable autonomous landing receipt key",
+        "EnableKeyRotation": true,
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "AutonomousReceiptKeyAlias": {
+      "Type": "AWS::KMS::Alias",
+      "Properties": {
+        "AliasName": "alias/kidults-autonomous-receipts-staging",
+        "TargetKeyId": {
+          "Ref": "AutonomousReceiptKey"
+        }
+      }
+    },
+    "AutonomousReceiptBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "BucketKeyEnabled": true,
+              "ServerSideEncryptionByDefault": {
+                "KMSMasterKeyID": {
+                  "Fn::GetAtt": [
+                    "AutonomousReceiptKey",
+                    "Arn"
+                  ]
+                },
+                "SSEAlgorithm": "aws:kms"
+              }
+            }
+          ]
+        },
+        "ObjectLockEnabled": true,
+        "ObjectLockConfiguration": {
+          "ObjectLockEnabled": "Enabled",
+          "Rule": {
+            "DefaultRetention": {
+              "Mode": "COMPLIANCE",
+              "Years": 10
+            }
+          }
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "AutonomousInternalLanding"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "AutonomousReceiptBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "AutonomousReceiptBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "AutonomousReceiptBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${AutonomousReceiptBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            },
+            {
+              "Sid": "DenyUnencryptedReceiptWrites",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${AutonomousReceiptBucket.Arn}/receipts/*"
+              },
+              "Condition": {
+                "StringNotEquals": {
+                  "s3:x-amz-server-side-encryption": "aws:kms"
+                }
+              }
+            },
+            {
+              "Sid": "DenyWrongReceiptKey",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${AutonomousReceiptBucket.Arn}/receipts/*"
+              },
+              "Condition": {
+                "StringNotEquals": {
+                  "s3:x-amz-server-side-encryption-aws-kms-key-id": {
+                    "Fn::GetAtt": [
+                      "AutonomousReceiptKey",
+                      "Arn"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     }
   },
@@ -1004,6 +1226,19 @@
       "Value": {
         "Fn::GetAtt": [
           "FinalizerSigningKey",
+          "Arn"
+        ]
+      }
+    },
+    "AutonomousReceiptBucket": {
+      "Value": {
+        "Ref": "AutonomousReceiptBucket"
+      }
+    },
+    "AutonomousReceiptKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "AutonomousReceiptKey",
           "Arn"
         ]
       }
