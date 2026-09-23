@@ -8,7 +8,7 @@
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 636,
-    "manifest_sha256": "sha256:386878cce67c1ba73bee8e2fb6feba1472e2d7e8c4a1d1748ec42cc702990262",
+    "manifest_sha256": "sha256:e29f170afc3bed6d2806dfcc020452ddf0d64f298e5c71b1ac3f8f56f89f52f4",
     "canonical_execution_authorization_policies": 3,
     "classification": "Execution authorization is centralized; domain adjudication remains local."
   },
