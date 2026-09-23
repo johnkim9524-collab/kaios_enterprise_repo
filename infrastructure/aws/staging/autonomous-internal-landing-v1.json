@@ -949,7 +949,34 @@
                 {
                   "Effect": "Allow",
                   "Action": [
-                    "kms:DescribeKey"
+                    "s3:GetBucketObjectLockConfiguration",
+                    "s3:GetBucketPublicAccessBlock",
+                    "s3:GetBucketOwnershipControls",
+                    "s3:GetEncryptionConfiguration",
+                    "s3:GetBucketVersioning",
+                    "s3:GetBucketTagging"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": ["AutonomousReceiptBucket", "Arn"]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:DescribeContinuousBackups",
+                    "dynamodb:ListTagsOfResource"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": ["AutonomousLandingLedger", "Arn"]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:DescribeKey",
+                    "kms:GetKeyPolicy",
+                    "kms:GetKeyRotationStatus",
+                    "kms:ListResourceTags"
                   ],
                   "Resource": [
                     {
