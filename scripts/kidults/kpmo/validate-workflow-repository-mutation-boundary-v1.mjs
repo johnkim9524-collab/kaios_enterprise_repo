@@ -251,7 +251,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
   for (const fragment of [
     "eventName !== 'repository_dispatch'",
-    "runAttempt !== '1'",
+    'AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED',
+    'policy.bounded_recovery?.maximum_attempts',
     "mode === 'APPROVAL'",
     "mode === 'FINALIZE'",
     'validateWorkload(runtimeWorkload,registry,runtimeRole)',
