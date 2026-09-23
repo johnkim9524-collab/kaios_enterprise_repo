@@ -74,11 +74,16 @@ jobs:
 
           read_run_terminal() {
             local target_run_id="$1"
+            local max_attempts="${2:-8}"
             local readback_code=""
             local latest_status=""
             local latest_conclusion=""
             local attempts=0
-            for readback_attempt in $(seq 1 8); do
+            [[ "${max_attempts}" =~ ^[1-9][0-9]*$ ]] && [[ "${max_attempts}" -le 30 ]] || {
+              echo "Invalid terminal read-back bound ${max_attempts}" >&2
+              return 1
+            }
+            for readback_attempt in $(seq 1 "${max_attempts}"); do
               attempts="${readback_attempt}"
               readback_code="$(curl --silent --show-error --output /tmp/run-readback.json --write-out '%{http_code}' \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -177,7 +182,7 @@ jobs:
               done
 
               if [[ "${code}" == "202" || "${code}" == "409" || "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
-                readback_result="$(read_run_terminal "${run_id}")"
+                readback_result="$(read_run_terminal "${run_id}" 12)"
                 latest_status="$(jq -r '.status' <<<"${readback_result}")"
                 latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
                 readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
@@ -198,7 +203,7 @@ jobs:
                 force_cancel_attempts=$((force_cancel_attempts + force_attempts))
 
                 if [[ "${force_code}" == "202" || "${force_code}" == "409" || "${force_code}" == "429" || "${force_code}" =~ ^5[0-9][0-9]$ ]]; then
-                  readback_result="$(read_run_terminal "${run_id}")"
+                  readback_result="$(read_run_terminal "${run_id}" 30)"
                   latest_status="$(jq -r '.status' <<<"${readback_result}")"
                   latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
                   readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
