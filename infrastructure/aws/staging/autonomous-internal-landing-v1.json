@@ -65,6 +65,11 @@
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+    },
+    "CanaryWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main",
+      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
     }
   },
   "Resources": {
@@ -845,6 +850,9 @@
                     },
                     {
                       "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${VerifierWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${CanaryWorkflowRef}"
                     }
                   ]
                 }

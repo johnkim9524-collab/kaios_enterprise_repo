@@ -44,7 +44,7 @@ for (const sid of ['DenyInsecureTransport','DenyUnencryptedReceiptWrites','DenyW
 }
 assert.equal(template.Parameters.FinalizerEnvironment.Default, 'KIDULTS-AUTONOMOUS-FINALIZER');
 const workflowRefPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
-for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef']) {
+for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef','CanaryWorkflowRef']) {
   assert.equal(template.Parameters[parameter].AllowedPattern, workflowRefPattern);
   assert.match(template.Parameters[parameter].Default, new RegExp(workflowRefPattern));
 }
@@ -94,6 +94,11 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   assert.deepEqual(sign.Resource, {'Fn::GetAtt':[signingKeyResource,'Arn']});
 }
 
+const canaryWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-object-lock-canary-v1.yml','utf8');
+assert.equal(template.Parameters.CanaryWorkflowRef.Default, 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main');
+for (const marker of ['workflow_dispatch:','environment: KIDULTS-AUTONOMOUS-FINALIZER','OBJECT_LOCK_COMPLIANCE_VERIFIED','POSITIVE_CANARY','NEGATIVE_CANARY','TERMINAL_RECEIPT','PRODUCTION=HOLD','PUBLIC=HOLD','G5=HOLD']) assert.ok(canaryWorkflow.includes(marker), marker);
+finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${CanaryWorkflowRef}'}`});
+
 const finalizer = resources.FinalizerRole.Properties;
 const finalizerCondition = finalizer.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
 assert.deepEqual(Object.keys(finalizerCondition).sort(), ['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
@@ -115,4 +120,4 @@ for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZ
 assert.equal(runner.includes("dynamodb','put-item"), false);
 assert.equal(runner.includes("dynamodb','update-item"), false);
 
-console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_OBJECT_LOCK_V4',approval_workloads:3,finalizer_workloads:1,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',template:file,identity_model:'ROLE_SCOPED_CUSTOM_SUB_KMS_WORKLOAD_OBJECT_LOCK_CANARY_V5',approval_workloads:3,finalizer_workloads:2,aws_condition_keys:['aud','sub'],github_oidc_subject_customization:'OWNER_GATE_REQUIRED',production:'HOLD',public:'HOLD',g5:'HOLD'}));
