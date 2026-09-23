@@ -1,16 +1,29 @@
 {
   "id": "kidults-approval-policy-inventory-v1",
   "version": "1.0.0",
-  "status": "REPOSITORY_WIDE_CANONICAL_ROUTING",
+  "status": "REPOSITORY_WIDE_ROUTING_COVERAGE_ENFORCED",
   "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
   "audit": {
-    "baseline_sha": "c7d798bb5f699540c99e90a77d2531ec3668e00e",
+    "baseline_sha": "8f4007a0725f58512f545649f5b78e4ef1312c17",
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
-    "approval_related_files_reviewed": 636,
-    "manifest_sha256": "sha256:e29f170afc3bed6d2806dfcc020452ddf0d64f298e5c71b1ac3f8f56f89f52f4",
+    "approval_related_files_reviewed": 637,
+    "manifest_sha256": "sha256:9b9aad51ca7719c631deca28e3636866150d926d19c0c9d96cbc9566345171e3",
     "canonical_execution_authorization_policies": 3,
-    "classification": "Execution authorization is centralized; domain adjudication remains local."
+    "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
+    "routing_coverage": {
+      "execution_authorization_controls": 151,
+      "consumers": 8,
+      "exemptions": 143,
+      "route_counts": {
+        "CANONICAL_ENVELOPE": 8,
+        "DOMAIN_ADJUDICATION": 33,
+        "INTERNAL_REVERSIBLE": 44,
+        "NON_EXECUTING_REFERENCE": 44,
+        "OWNER_RESERVED": 10,
+        "STAGING_BOUNDED": 12
+      }
+    }
   },
   "policies": [
     {"policy": "AI-020", "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json", "route": "INTERNAL_REVERSIBLE_OR_STAGING_BOUNDED", "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"},
