@@ -246,7 +246,8 @@ jobs:
             '{id:"kidults-autonomous-object-lock-canary-terminal-receipt-v1",version:"1.1.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,continuous_assurance:{environment_binding:"PASS",finalizer_iam_oidc_readback:"PASS",cloudformation_drift:"IN_SYNC"},positive_canary:"PASS",negative_canary:"PASS",object_lock_mode:"COMPLIANCE",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
             > out/autonomous-object-lock-canary-v1/terminal-receipt.json
 
-          TERMINAL_PUT=$(aws s3api put-object \            --bucket "$RECEIPT_BUCKET" \
+          TERMINAL_PUT=$(aws s3api put-object \
+            --bucket "$RECEIPT_BUCKET" \
             --key "$TERMINAL_KEY" \
             --body out/autonomous-object-lock-canary-v1/terminal-receipt.json \
             --checksum-algorithm SHA256 \
