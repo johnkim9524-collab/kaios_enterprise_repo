@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -31,7 +31,9 @@
       "ACCOUNTABLE_TRACK_AGENT",
       "KPMO"
     ],
-    "independent_verifier_distinct_from_approvers": true,
+    "manual_independent_review_required": false,
+    "automated_machine_verifier_required": true,
+    "machine_verifier_distinct_from_approvers": true,
     "self_approval_forbidden": true,
     "identity_model": "ROLE_SCOPED_OIDC_KMS_WORKLOAD_V2_FINALIZER_SPLIT",
     "distinct_stable_workload_ids_required": true,
@@ -59,11 +61,11 @@
     "REVERSIBLE",
     "ROLLBACK_BOUND",
     "NO_EXTERNAL_SIDE_EFFECT",
-    "NO_OWNER_RESERVED_PATH",
+    "NO_OWNER_RESERVED_ACTION",
     "REQUIRED_CHECKS_GREEN",
     "HEAD_TREE_SCOPE_STABLE",
     "TRACK_AND_KPMO_QUORUM",
-    "INDEPENDENT_VERIFIER_PASS",
+    "AUTOMATED_MACHINE_VERIFIER_PASS",
     "DURABLE_NONCE_RESERVATION_PASS"
   ],
   "owner_reserved_actions": [
@@ -82,14 +84,43 @@
     "PROTECTED_PROMOTION_OR_RELEASE"
   ],
   "owner_reserved_path_prefixes": [
-    ".github/workflows/",
-    "coordination/kidults/governance/",
-    "scripts/kidults/kpmo/",
     "secrets/",
     "production/",
     "public/",
     "g5/"
   ],
+  "owner_reserved_exact_paths": [
+    "CONSTITUTION.md",
+    "AGENTS.md",
+    ".github/AI_AGENT_OPERATING_RULES.md",
+    "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+    "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
+    "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+    "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
+    "coordination/kidults/governance/autonomous-workload-identity-registry-v1.json"
+  ],
+  "delegated_internal_path_prefixes": [
+    ".github/workflows/",
+    "coordination/kidults/governance/",
+    "coordination/kidults/kpmo/",
+    "scripts/kidults/kpmo/"
+  ],
+  "owner_reserved_added_patch_patterns": [
+    "environment:[ ]*(production|public|g5)",
+    "uses:[ ]*aws-actions/configure-aws-credentials",
+    "id-token:[ ]*write",
+    "secrets\\.",
+    "permissions:[ ]*(write-all|admin)",
+    "--admin-bypass",
+    "force:[ ]*true"
+  ],
+  "scope_classification": {
+    "path_alone_makes_internal_work_owner_reserved": false,
+    "governance_or_workflow_strengthening_is_delegable": true,
+    "owner_reserved_decision_basis": "EXACT_PATH_OR_ADDED_EFFECT_MARKER",
+    "unknown_or_unavailable_patch": "FAIL_CLOSED_OWNER_REQUIRED"
+  },
   "delegated_internal_exact_path_exceptions": [
     ".github/workflows/kpmo-canonical-generation-v3-apply.yml",
     ".github/workflows/kpmo-canonical-generation-v3.yml",
@@ -197,6 +228,9 @@
       "KPMO",
       "INDEPENDENT_VERIFIER"
     ],
+    "legacy_role_semantics": {
+      "INDEPENDENT_VERIFIER": "AUTOMATED_MACHINE_VERIFIER_NOT_HUMAN_REVIEW"
+    },
     "finalizer": {
       "role": "FINALIZER",
       "environment": "KIDULTS-AUTONOMOUS-FINALIZER",

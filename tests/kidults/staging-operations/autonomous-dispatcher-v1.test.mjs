@@ -9,7 +9,11 @@ const e=classifyCandidate(input);assert.equal(e.authorization_generation,'pr-42-
 const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
 deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
 deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
-deny({files:[{filename:'.github/workflows/x.yml'}]},'DISPATCH_OWNER_RESERVED_PATH');
+const safeWorkflowPatch='@@ -1 +1,2 @@\n name: x\n+concurrency: internal-safe';
+assert.deepEqual(classifyCandidate({...input,files:[{filename:'.github/workflows/x.yml',patch:safeWorkflowPatch}]}).changed_paths,['.github/workflows/x.yml']);
+deny({files:[{filename:'.github/workflows/x.yml'}]},'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN');
+deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]},'DISPATCH_OWNER_RESERVED_ACTION');
+deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]},'DISPATCH_OWNER_RESERVED_ACTION');
 const canonicalFiles=[
   {filename:'.github/workflows/kpmo-canonical-generation-v3.yml'},
   {filename:'.github/workflows/kpmo-canonical-generation-v3-apply.yml'},
@@ -18,7 +22,7 @@ const canonicalFiles=[
   {filename:'coordination/kidults/governance/approval-policy-inventory-v1.json'},
 ];
 assert.equal(classifyCandidate({...input,files:canonicalFiles}).changed_paths.length,5);
-deny({files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json'}]},'DISPATCH_OWNER_RESERVED_PATH');
+deny({files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',patch:'@@ -1 +1 @@'}]},'DISPATCH_OWNER_RESERVED_ACTION');
 deny({checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
 deny({requiredChecks:[{context:'unit',integration_id:7},{context:'slow-required',integration_id:7}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
 deny({requiredChecks:[{context:'unit',integration_id:8}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
@@ -44,3 +48,10 @@ assert.match(dispatcherWorkflow,/for event[\s\S]*KIDULTS_PR_NUMBER="\$pr_number"
 const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 assert.match(finalizerSource,/const eventToken=await acquireEventToken\(\);\s*await validateLiveCandidate\([^;]+;\s*invokeFinalizerWriter\(\{\s*action:'CREATE_RESERVATION'/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+
+assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{\{ inputs\.change_set_name \}\}"/);
+assert.doesNotMatch(deployWorkflow,/expected_authorization_id=[^\n]*GITHUB_RUN_ID/);
+
+assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
+assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
+assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);

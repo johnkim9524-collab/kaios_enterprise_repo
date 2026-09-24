@@ -1,20 +1,15 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import {canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
 
 export function assertDelegatedPathScope(changedPaths,policy){
-  const exceptions=new Set(policy.delegated_internal_exact_path_exceptions||[]);
-  for(const path of changedPaths){
-    for(const prefix of policy.owner_reserved_path_prefixes||[]){
-      if(path.startsWith(prefix)&&!exceptions.has(path)) fail('DISPATCH_OWNER_RESERVED_PATH',path);
-    }
-  }
-  return [...changedPaths];
+  try { return assertAutonomousFileScope({files:changedPaths,policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'}); }
+  catch(error){ if(error?.code) throw new DispatcherError(error.code,error.message.split(':').slice(1).join(':')); throw error; }
 }
 
 export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date()}) {
@@ -23,7 +18,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
-  assertDelegatedPathScope(changedPaths,policy);
+  assertDelegatedPathScope(files,policy);
   const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);

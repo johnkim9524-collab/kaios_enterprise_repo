@@ -23,6 +23,28 @@ const canonicalize = value => {
 export const canonicalJson = value => JSON.stringify(canonicalize(value));
 export const sha256 = value => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 
+export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
+  if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const exceptions=new Set(policy.delegated_internal_exact_path_exceptions||[]);
+  const exactReserved=new Set(policy.owner_reserved_exact_paths||[]);
+  const prefixes=policy.owner_reserved_path_prefixes||[];
+  const delegatedPrefixes=policy.delegated_internal_path_prefixes||[];
+  const addedPatterns=(policy.owner_reserved_added_patch_patterns||[]).map(value=>new RegExp(value,'i'));
+  for (const file of files) {
+    const filename=typeof file==='string'?file:file?.filename;
+    if (typeof filename!=='string'||!filename||filename.startsWith('/')||filename.includes('..')) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+    if (exceptions.has(filename)) continue;
+    if (exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix))) fail(errorCode,filename);
+    if (!delegatedPrefixes.some(prefix=>filename.startsWith(prefix))) continue;
+    const patch=typeof file==='object'?file.patch:null;
+    if (typeof patch!=='string'||!patch) fail('AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN',filename);
+    const additions=patch.split('\n').filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
+    const matched=addedPatterns.find(pattern=>pattern.test(additions));
+    if (matched) fail(errorCode,`${filename}:${matched.source}`);
+  }
+  return files.map(value=>typeof value==='string'?value:value.filename).sort();
+};
+
 export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,maxPages=100}) => {
   if (typeof request !== 'function' || !endpoint || !Number.isInteger(pageSize) || pageSize < 1 || !Number.isInteger(maxPages) || maxPages < 1) {
     fail('AUTONOMOUS_PAGINATION_ARGUMENT_INVALID');
@@ -38,7 +60,7 @@ export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,m
   fail('AUTONOMOUS_PAGINATION_LIMIT_EXCEEDED');
 };
 
-export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes,delegatedInternalExactPathExceptions,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
+export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,policy,ownerReservedPathPrefixes,delegatedInternalExactPathExceptions,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
   if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const livePaths=files.map(value=>value?.filename);
   if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
@@ -46,10 +68,13 @@ export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDiges
   const expected=[...expectedPaths].sort();
   if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');
   if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail(scopeDriftCode);
-  const exceptions=new Set(delegatedInternalExactPathExceptions||[]);
-  for (const prefix of ownerReservedPathPrefixes||[]) {
-    const reserved=ordered.find(value=>value.startsWith(prefix)&&!exceptions.has(value));
-    if (reserved) fail('AUTONOMOUS_OWNER_RESERVED_PATH',reserved);
+  if (policy) assertAutonomousFileScope({files,policy});
+  else {
+    const exceptions=new Set(delegatedInternalExactPathExceptions||[]);
+    for (const prefix of ownerReservedPathPrefixes||[]) {
+      const reserved=ordered.find(value=>value.startsWith(prefix)&&!exceptions.has(value));
+      if (reserved) fail('AUTONOMOUS_OWNER_RESERVED_PATH',reserved);
+    }
   }
   return ordered;
 };
@@ -145,9 +170,12 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
     fail('AUTONOMOUS_SCOPE_PATH_INVALID');
   }
   const exceptions = new Set(policy.delegated_internal_exact_path_exceptions || []);
-  for (const prefix of policy.owner_reserved_path_prefixes || []) {
-    const reserved = paths.find(path => path.startsWith(prefix) && !exceptions.has(path));
-    if (reserved) fail('AUTONOMOUS_OWNER_RESERVED_PATH', reserved);
+  const exactReserved = new Set(policy.owner_reserved_exact_paths || []);
+  for (const path of paths) {
+    if (exceptions.has(path)) continue;
+    if (exactReserved.has(path) || (policy.owner_reserved_path_prefixes || []).some(prefix=>path.startsWith(prefix))) {
+      fail('AUTONOMOUS_OWNER_RESERVED_ACTION', path);
+    }
   }
   const expectedScope = sha256([...paths].sort().join('\n'));
   if (expectedScope !== envelope.scope_digest) fail('AUTONOMOUS_SCOPE_DIGEST_MISMATCH');

@@ -47,12 +47,18 @@ jobs:
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
 
       - name: Discover exact eligible PR bindings
+        id: discover
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}
-        run: node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+          eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
+          echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
 
       - name: Acquire broker invocation credentials through GitHub OIDC
+        if: steps.discover.outputs.eligible_count != '0'
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
         run: |
@@ -70,6 +76,7 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Mint exact short-lived token and emit all three role events
+        if: steps.discover.outputs.eligible_count != '0'
         env:
           BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
           GITHUB_TOKEN: ${{ github.token }}

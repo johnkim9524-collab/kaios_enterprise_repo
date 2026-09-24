@@ -1,7 +1,7 @@
 {
   "id": "AI-020",
   "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "KPMO_PLATFORM_GOVERNANCE",
   "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
@@ -84,7 +84,9 @@
     "manual_dispatch": "RECOVERY_ONLY",
     "legacy_direct_owner_landing": "RECOVERY_ONLY_UNTIL_RETIREMENT",
     "durable_single_use_backend_required": true,
-    "independent_verifier_required": true,
+    "manual_independent_review_required": false,
+    "automated_machine_verification_required": true,
+    "automated_machine_verifier_must_be_distinct_from_approvers": true,
     "agent_violation_requires_quarantine_and_fresh_replacement": true,
     "workflows": [
       ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
