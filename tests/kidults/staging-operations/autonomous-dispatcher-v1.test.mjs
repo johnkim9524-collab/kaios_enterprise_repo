@@ -10,16 +10,28 @@ const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}
 deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
 deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
 deny({files:[{filename:'.github/workflows/x.yml'}]},'DISPATCH_OWNER_RESERVED_PATH');
+const canonicalFiles=[
+  {filename:'.github/workflows/kpmo-canonical-generation-v3.yml'},
+  {filename:'.github/workflows/kpmo-canonical-generation-v3-apply.yml'},
+  {filename:'scripts/kidults/kpmo/canonical-generation-v3.mjs'},
+  {filename:'coordination/kidults/governance/approval-policy-file-manifest-v1.json'},
+  {filename:'coordination/kidults/governance/approval-policy-inventory-v1.json'},
+];
+assert.equal(classifyCandidate({...input,files:canonicalFiles}).changed_paths.length,5);
+deny({files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json'}]},'DISPATCH_OWNER_RESERVED_PATH');
 deny({checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
 deny({requiredContexts:['unit','slow-required']},'DISPATCH_REQUIRED_CONTEXT_MISSING');
 deny({checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'success'},{id:102,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'success'}]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
 deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
 deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:1,negative:8}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:2,negative:9}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
 assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
 assert.doesNotMatch(deployWorkflow,/\n  push:/);
+assert.match(dispatcherWorkflow,/pull_request_target:/);
+assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
+assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| inputs\.pull_request/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));

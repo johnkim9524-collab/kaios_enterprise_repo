@@ -2,6 +2,9 @@ name: KIDULTS Autonomous Dispatcher V1
 run-name: KIDULTS Autonomous Dispatcher V1 ${{ github.event_name }}
 
 on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
@@ -46,7 +49,7 @@ jobs:
       - name: Discover exact eligible PR bindings
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}
+          KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}
         run: node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
 
       - name: Acquire broker invocation credentials through GitHub OIDC

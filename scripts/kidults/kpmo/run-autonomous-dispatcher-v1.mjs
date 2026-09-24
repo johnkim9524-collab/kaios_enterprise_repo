@@ -7,13 +7,23 @@ export class DispatcherError extends Error { constructor(code,detail=''){ super(
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
 
+export function assertDelegatedPathScope(changedPaths,policy){
+  const exceptions=new Set(policy.delegated_internal_exact_path_exceptions||[]);
+  for(const path of changedPaths){
+    for(const prefix of policy.owner_reserved_path_prefixes||[]){
+      if(path.startsWith(prefix)&&!exceptions.has(path)) fail('DISPATCH_OWNER_RESERVED_PATH',path);
+    }
+  }
+  return [...changedPaths];
+}
+
 export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredContexts=[],policy,now=new Date()}) {
   if (!pr || pr.state!=='open' || pr.merged===true || pr.draft!==false) fail('DISPATCH_PR_NOT_READY');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
-  for (const prefix of policy.owner_reserved_path_prefixes||[]) if (changedPaths.some(x=>x.startsWith(prefix))) fail('DISPATCH_OWNER_RESERVED_PATH',prefix);
+  assertDelegatedPathScope(changedPaths,policy);
   const required=[...new Set(requiredContexts.map(String))].sort();
   if (!required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);

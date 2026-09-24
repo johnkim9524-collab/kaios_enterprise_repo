@@ -73,8 +73,8 @@ globalThis.fetch=async(value,options={})=>{
   }
   return json({incomplete_results:false,total_count:items.length,items:ordered.slice((page-1)*perPage,page*perPage)});
  }
- if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},status:'completed',conclusion:'success'});
- if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:process.env.GITHUB_EVENT_NAME,path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
+ if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:scenario==='schedule-prior'?'schedule':'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:scenario==='schedule-prior'?'scheduled-maintainer':'johnkim9524-collab'},triggering_actor:{login:scenario==='schedule-prior'?'scheduled-maintainer':'johnkim9524-collab'},status:'completed',conclusion:'success'});
+ if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:process.env.GITHUB_EVENT_NAME,path:WRITER_WORKFLOW,actor:{login:process.env.GITHUB_ACTOR},triggering_actor:{login:scenario==='schedule-actor-drift'?'different':process.env.GITHUB_ACTOR},run_started_at:new Date(Date.now()-30000).toISOString()});
  if(u.pathname.endsWith('/issues/1713/comments')){
   approvalReads++;const time=new Date(Date.now()-(scenario==='stale-approval'?3600000:60000)).toISOString();
   const c={id:1200,user:{login:'johnkim9524-collab'},author_association:'OWNER',body:approvalBody,created_at:time,updated_at:time};
@@ -128,6 +128,25 @@ test('natural exact protected-main push appends without a second Program Owner a
  const {result,receipt,posts,final}=exercise('same-main-refresh',{envOverrides:{GITHUB_EVENT_NAME:'push',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_PUSH',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
  assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);
  assert.equal(receipt.authorization.authority_type,'PROTECTED_MAIN_PUSH');assert.equal(receipt.authorization.program_owner_approval_required,false);assert.equal(final.approvalReads,0);assertBounded(receipt);
+});
+test('protected-main schedule refreshes stale issue truth without a new Owner comment',()=>{
+ const {result,receipt,posts,final}=exercise('schedule-prior',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
+ assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);
+ assert.equal(receipt.authorization.authority_type,'PROTECTED_MAIN_SCHEDULE');assert.equal(final.approvalReads,0);assertBounded(receipt);
+});
+for(const [name,overrides] of [
+ ['wrong-cron',{CANONICAL_GENERATION_SCHEDULE_CRON:'* * * * *'}],
+ ['wrong-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED'}],
+ ['rerun',{GITHUB_RUN_ATTEMPT:'2'}],
+ ['wrong-ref',{GITHUB_REF:'refs/heads/other'}],
+ ['wrong-main',{TARGET_MAIN_SHA:'b'.repeat(40)}]
+])test(`schedule rejects ${name} without writes`,()=>{
+ const {result,posts}=exercise('schedule-prior',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *',...overrides}});
+ assert.notEqual(result.status,0);assert.equal(posts.length,0);
+});
+test('schedule rejects run actor drift without writes',()=>{
+ const {result,posts}=exercise('schedule-actor-drift',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *'}});
+ assert.notEqual(result.status,0);assert.equal(posts.length,0);
 });
 test('read-only live validation never turns material drift into PASS or a write',()=>{
  const {result,receipt,posts}=exercise('same-main-refresh',{readOnly:true});assert.notEqual(result.status,0);assert.equal(posts.length,0);assert.equal(receipt.failure_class,'COMMIT_MISMATCH');assert.ok(receipt.mismatch_fields.includes('material_defect_count'));assertBounded(receipt);

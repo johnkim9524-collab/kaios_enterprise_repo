@@ -89,6 +89,15 @@ assert.equal(policy.workload_identity.finalizer.only_stage_allowed_github_write,
 assert.equal(policy.bounded_recovery.maximum_attempts,3);
 assert.equal(policy.bounded_recovery.pre_reservation_failure_consumes_authority,false);
 assert.equal(policy.durable_single_use.maximum_ttl_seconds,7200);
+const canonicalEnvelope={...base,changed_paths:[
+  '.github/workflows/kpmo-canonical-generation-v3.yml',
+  'scripts/kidults/kpmo/canonical-generation-v3.mjs',
+]};
+canonicalEnvelope.scope_digest=sha256([...canonicalEnvelope.changed_paths].sort().join('\n'));
+assert.equal(validateEnvelope(canonicalEnvelope,{policy,now}).changed_paths.length,2);
+const trustRootEnvelope={...canonicalEnvelope,changed_paths:['coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json']};
+trustRootEnvelope.scope_digest=sha256(trustRootEnvelope.changed_paths.join('\n'));
+assert.throws(()=>validateEnvelope(trustRootEnvelope,{policy,now}));
 const prior={...base,authorization_generation:'gen-1',head_sha:sha('b')};
 const recovery={...base,authorization_generation:'gen-2',head_sha:sha('e'),recovery:{attempt:2,prior_authorization_generation:'gen-1',prior_head_sha:sha('b'),prior_terminal_state:'PRE_MUTATION_FAILED'}};
 assert.equal(validateRecoveryGeneration({prior,current:recovery,policy,now}).state,'RECOVERY_GENERATION_VERIFIED');
