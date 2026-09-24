@@ -108,17 +108,24 @@
   ],
   "owner_reserved_added_patch_patterns": [
     "environment:[ ]*(production|public|g5)",
+    "^[ \\t]*environment:",
+    "^[ \\t]*(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events):[ ]*write",
     "uses:[ ]*aws-actions/configure-aws-credentials",
     "id-token:[ ]*write",
     "secrets\\.",
     "permissions:[ ]*(write-all|admin)",
+    "^[ \\t]*on:[ \\t]*$",
+    "^[ \\t]*(workflow_dispatch|repository_dispatch|schedule|push|pull_request_target):",
+    "^[ \\t]*(run|uses):.*(curl|wget|gh api|aws |gcloud |az |terraform|kubectl|http://|https://)",
     "--admin-bypass",
     "force:[ ]*true"
   ],
   "scope_classification": {
     "path_alone_makes_internal_work_owner_reserved": false,
     "governance_or_workflow_strengthening_is_delegable": true,
-    "owner_reserved_decision_basis": "EXACT_PATH_OR_ADDED_EFFECT_MARKER",
+    "owner_reserved_decision_basis": "EXACT_PATH_OR_CAPABILITY_EXPANSION_OR_MATERIAL_DELETION",
+    "material_deletion": "FAIL_CLOSED_OWNER_REQUIRED",
+    "exact_path_exceptions_require_effect_classification": true,
     "unknown_or_unavailable_patch": "FAIL_CLOSED_OWNER_REQUIRED"
   },
   "delegated_internal_exact_path_exceptions": [
