@@ -16,6 +16,8 @@ on:
         description: Exact protected main SHA to bind; defaults to the triggering main SHA
         required: false
         type: string
+  schedule:
+    - cron: '17 3 * * *'
 
 concurrency:
   group: kidults-cloudtrail-assurance-${{ inputs.expected_main_sha || github.sha }}
@@ -48,6 +50,7 @@ jobs:
       - name: Bind exact main and owner HOLD boundary
         env:
           EXPECTED_MAIN_SHA: ${{ inputs.expected_main_sha || github.sha }}
+          READ_TOKEN: ${{ github.token }}
           PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE }}
           PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE }}
           G5_STATE: ${{ vars.KIDULTS_G5_STATE }}
@@ -56,6 +59,12 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_SHA" = "$EXPECTED_MAIN_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          LIVE_MAIN_SHA=$(curl --fail --silent --show-error --retry 3 \
+            -H "Authorization: Bearer $READ_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" \
+            | jq -er '.object.sha')
+          test "$LIVE_MAIN_SHA" = "$EXPECTED_MAIN_SHA"
           test "$PRODUCTION_STATE" = HOLD
           test "$PUBLIC_STATE" = HOLD
           test "$G5_STATE" = HOLD
@@ -214,4 +223,3 @@ jobs:
           path: out/cloudtrail-continuous-assurance-v1/
           if-no-files-found: error
           retention-days: 90
-
