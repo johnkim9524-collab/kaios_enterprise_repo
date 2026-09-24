@@ -173,26 +173,26 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   code(() => selectExactHeadProgramOwnerApproval([], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
   code(() => selectExactHeadProgramOwnerApproval([comment(2, 'c'.repeat(40), {
     created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z',
-  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     updated_at: '2026-09-01T01:12:00Z',
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     performed_via_github_app: {id: 1144995, slug: 'chatgpt-codex-connector'},
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED');
-  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
-    created_at: '2026-09-01T00:59:00Z', updated_at: '2026-09-01T00:59:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
-  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
+  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T01:10:00Z', updated_at: '2026-09-01T01:10:00Z',
+  })], input).exact_head_sha, sha);
+  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha, {
     created_at: '2026-09-01T01:20:00Z', updated_at: '2026-09-01T01:20:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
+  })], input).exact_head_sha, sha);
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     created_at: '2026-09-01T01:29:00Z', updated_at: '2026-09-01T01:29:00Z',
   })], input), 'PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
-  code(() => selectExactHeadProgramOwnerApproval([
+  assert.equal(selectExactHeadProgramOwnerApproval([
     comment(1, sha),
     comment(2, sha, {created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z'}),
-  ], input), 'PROGRAM_OWNER_MULTIPLE_CURRENT_GENERATION_APPROVALS');
+  ], input).comment_id, 2);
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     body: approvalBody(sha, {expiresAt: '2026-09-01T03:00:01Z'}),
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');

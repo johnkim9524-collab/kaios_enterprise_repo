@@ -16,6 +16,8 @@ const AUTHORIZATION_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const MAX_WORKFLOW_RUN_PAGES = 10;
 const EXPECTED_EVENT = 'workflow_dispatch';
 const EXPECTED_BRANCH = 'main';
+const MAX_BOUNDED_ATTEMPTS = 3;
+const BOUNDED_RETRY_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 function fail(code, detail = '') {
   const error = new Error(detail ? `${code}:${detail}` : code);
@@ -86,12 +88,26 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
   assert(current?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
   assert(Number(current?.run_attempt) === 1, 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
 
-  if (matches.length > 1) {
+  const prior = matches.filter(run => Number(run?.id) !== Number(currentRunId));
+  if (prior.some(run => run?.status !== 'completed' || run?.conclusion === 'success')) {
     fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(matches.length));
+  }
+  if (matches.length > MAX_BOUNDED_ATTEMPTS) {
+    fail('ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED', String(matches.length));
+  }
+  const currentCreatedAt = Date.parse(String(current?.created_at || ''));
+  const priorCreatedAt = prior.map(run => Date.parse(String(run?.created_at || '')));
+  assert(Number.isFinite(currentCreatedAt) && priorCreatedAt.every(Number.isFinite),
+    'ATOMIC_LANDING_RETRY_TIME_INVALID');
+  if (priorCreatedAt.some(createdAt => currentCreatedAt - createdAt > BOUNDED_RETRY_WINDOW_MS
+    || createdAt > currentCreatedAt)) {
+    fail('ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
   }
 
   return {
     matching_run_count: 1,
+    bounded_attempt_ordinal: matches.length,
+    prior_non_success_attempt_count: prior.length,
     matching_run_id: Number(current.id),
     matching_run_attempt: Number(current.run_attempt),
     matching_run_status: current.status || null,
@@ -319,6 +335,10 @@ async function main() {
     landing_workflow_run_id: Number(runId),
     landing_workflow_run_attempt: Number(runAttempt),
     matching_run_count: oneUse.matching_run_count,
+    bounded_attempt_ordinal: oneUse.bounded_attempt_ordinal,
+    prior_non_success_attempt_count: oneUse.prior_non_success_attempt_count,
+    bounded_retry_limit: MAX_BOUNDED_ATTEMPTS,
+    bounded_retry_window_seconds: BOUNDED_RETRY_WINDOW_MS / 1000,
     dispatch_actor: dispatchAuthority.dispatch_actor,
     triggering_actor: dispatchAuthority.triggering_actor,
     authorization_id_sha256: sha256(authorizationId),

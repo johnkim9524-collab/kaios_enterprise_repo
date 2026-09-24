@@ -36,6 +36,8 @@ An eligible envelope permits at most three attempts in two hours. A pre-mutation
 
 The exact-head Owner-comment landing policy remains available only for Owner-reserved actions and explicit recovery. Routing eligible internal work into that path is a policy violation because it recreates routine human orchestration.
 
+Within that recovery path, one valid exact repository/base/head authorization remains valid across Draft-to-Ready lifecycle reclassification and duplicate comments are reduced to the latest valid exact-tuple record. A completed non-success dispatch may be retried without a new Owner approval, but only for the unchanged tuple, only within two hours of the first attempt, and for no more than three total dispatches. A successful, active, stale-window, tuple-drifted, or fourth dispatch fails closed; a changed base or head always requires a fresh authorization.
+
 ## Normal activation and legacy recovery
 
 Eligible internal landing uses three role-specific workflows as the normal path: `.github/workflows/kidults-autonomous-track-authorization-v1.yml`, `.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml`, and `.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml`. Each role signs the same exact Git tuple through its own OIDC-bound AWS role and KMS key. The AWS durable ledger records the three approvals, and the finalizer may reserve and consume the one-use authorization only after quorum. Manual `Run workflow`, natural-language Owner comments and direct Owner merge clicks are recovery mechanisms, not normal orchestration.
