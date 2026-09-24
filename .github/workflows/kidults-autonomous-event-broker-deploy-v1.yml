@@ -52,7 +52,7 @@ jobs:
           [[ "${{ inputs.change_set_name }}" =~ ^kidults-broker-[0-9a-f]{12}-[0-9]+$ ]]
           expected_authorization_id="DEPLOY-STAGING-BROKER-${GITHUB_SHA:0:12}-${{ inputs.change_set_name }}"
           test "${{ inputs.authorization_id }}" = "$expected_authorization_id"
-          test "${{ inputs.authorization_id }}" != *"-${GITHUB_RUN_ID}"
+          [[ "${{ inputs.authorization_id }}" != *"-${GITHUB_RUN_ID}" ]]
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
           jq -e '.Resources.BrokerFunction and .Resources.EventBrokerInvokerRole' infrastructure/aws/staging/autonomous-event-token-broker-v1.json >/dev/null
 
