@@ -25,6 +25,26 @@
     "GitHubRepository": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo"
+    },
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "FinalizerEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-FINALIZER"
+    },
+    "TrackWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main"
+    },
+    "KpmoWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main"
+    },
+    "VerifierWorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main"
     }
   },
   "Resources": {
@@ -103,32 +123,62 @@
         }
       }
     },
-    "FinalizerBrokerInvoke": {
-      "Type": "AWS::IAM::Policy",
+    "EventBrokerInvokerRole": {
+      "Type": "AWS::IAM::Role",
       "Properties": {
-        "PolicyName": "kidults-autonomous-event-token-broker-invoke",
-        "Roles": [
-          {
-            "Ref": "FinalizerRoleName"
-          }
-        ],
-        "PolicyDocument": {
+        "RoleName": "kidults-autonomous-event-broker-invoker-staging-role",
+        "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
             {
               "Effect": "Allow",
-              "Action": [
-                "lambda:InvokeFunction"
-              ],
-              "Resource": {
-                "Fn::GetAtt": [
-                  "BrokerFunction",
-                  "Arn"
-                ]
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": [
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${TrackWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${FinalizerEnvironment}:workflow_ref:${VerifierWorkflowRef}"
+                    }
+                  ]
+                }
               }
             }
           ]
-        }
+        },
+        "Policies": [
+          {
+            "PolicyName": "invoke-exact-event-broker",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "BrokerFunction",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
       }
     }
   },
@@ -142,6 +192,14 @@
       "Value": {
         "Fn::GetAtt": [
           "BrokerFunction",
+          "Arn"
+        ]
+      }
+    },
+    "EventBrokerInvokerRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "EventBrokerInvokerRole",
           "Arn"
         ]
       }
