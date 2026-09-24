@@ -26,6 +26,7 @@ const run = (overrides = {}) => ({
   head_branch: 'main',
   head_sha: baseSha,
   display_title: expectedRunName,
+  created_at: '2026-09-23T12:00:00Z',
   status: 'in_progress',
   conclusion: null,
   actor: {login: repositoryOwner},
@@ -65,9 +66,10 @@ test('first exact matching dispatch is uniquely admitted', () => {
   });
   assert.equal(result.matching_run_count, 1);
   assert.equal(result.matching_run_id, runId);
+  assert.equal(result.bounded_attempt_ordinal, 1);
 });
 
-test('rerun attempt and every prior matching run conclusion fail closed', () => {
+test('rerun attempts are forbidden while bounded fresh dispatch retries are admitted', () => {
   code(() => evaluateAtomicLandingOneUseRunSet([run({run_attempt: 2})], {
     currentRunId: runId,
     currentRunAttempt: 2,
@@ -76,25 +78,35 @@ test('rerun attempt and every prior matching run conclusion fail closed', () => 
     protectedMainShaAtDispatch: baseSha,
   }), 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
 
-  for (const conclusion of ['failure', 'cancelled', 'timed_out', 'success', null]) {
+  for (const conclusion of ['failure', 'cancelled', 'timed_out']) {
     const prior = run({
       id: 99,
       status: conclusion === null ? 'in_progress' : 'completed',
       conclusion,
+      created_at: '2026-09-23T11:00:00Z',
     });
-    code(() => evaluateAtomicLandingOneUseRunSet([prior, run()], {
+    const result = evaluateAtomicLandingOneUseRunSet([prior, run()], {
       currentRunId: runId,
       currentRunAttempt: 1,
       workflowId,
       expectedRunName,
       protectedMainShaAtDispatch: baseSha,
-    }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
+    });
+    assert.equal(result.bounded_attempt_ordinal, 2);
   }
+  for (const prior of [
+    run({id: 98, status: 'completed', conclusion: 'success', created_at: '2026-09-23T11:00:00Z'}),
+    run({id: 99, status: 'in_progress', conclusion: null, created_at: '2026-09-23T11:00:00Z'}),
+  ]) code(() => evaluateAtomicLandingOneUseRunSet([prior, run()], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
 });
 
-test('second distinct run is rejected even when the first never reached merge', () => {
-  code(() => evaluateAtomicLandingOneUseRunSet([
-    run({id: 90, status: 'completed', conclusion: 'failure'}),
+test('failed pre-mutation attempts allow at most three dispatches in two hours', () => {
+  const result = evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:30:00Z'}),
     run(),
   ], {
     currentRunId: runId,
@@ -102,7 +114,24 @@ test('second distinct run is rejected even when the first never reached merge', 
     workflowId,
     expectedRunName,
     protectedMainShaAtDispatch: baseSha,
-  }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
+  });
+  assert.equal(result.bounded_attempt_ordinal, 3);
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 89, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:15:00Z'}),
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:30:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED');
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T09:59:59Z'}),
+    run(),
+  ], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
 });
 
 test('same tuple is consumed across protected-main generations while cross-PR runs do not substitute', () => {

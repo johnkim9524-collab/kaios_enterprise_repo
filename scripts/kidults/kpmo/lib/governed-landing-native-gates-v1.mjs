@@ -92,24 +92,33 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
     fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
   }
-  const finalLifecycleBoundaryAt = exactTime(
-    latestReadyAt,
-    'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID',
-  );
+  exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID');
   const marked = comments
     .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === EXACT_HEAD_APPROVAL_MARKER)
     .sort((a, b) => exactTime(b.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
       - exactTime(a.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
       || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-  const currentGeneration = marked.filter(comment => exactTime(
-    comment.created_at,
-    'PROGRAM_OWNER_APPROVAL_TIME_INVALID',
-  ) > finalLifecycleBoundaryAt);
-  if (!currentGeneration.length) fail('PROGRAM_OWNER_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
-  if (currentGeneration.length !== 1) fail('PROGRAM_OWNER_MULTIPLE_CURRENT_GENERATION_APPROVALS');
-  const comment = currentGeneration[0];
-  const fields = parseExactHeadApprovalBody(comment?.body);
+  const candidates = marked.flatMap(comment => {
+    try {
+      const fields = parseExactHeadApprovalBody(comment?.body);
+      return fields?.repository === repository
+        && fields?.pull_request === String(prNumber)
+        && fields?.exact_head_sha === headSha
+        && fields?.exact_base_sha === baseSha
+        && fields?.authorization_id === authorizationId
+        ? [{comment, fields}]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  if (!candidates.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
+  const eligible = candidates.filter(({comment}) => comment?.user?.login === repositoryOwner
+    && comment?.author_association === 'OWNER'
+    && comment?.performed_via_github_app == null
+    && comment?.updated_at === comment?.created_at);
+  const {comment, fields} = eligible[0] || candidates[0];
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
