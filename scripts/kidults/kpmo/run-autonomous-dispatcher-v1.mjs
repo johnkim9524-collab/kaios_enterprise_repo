@@ -17,22 +17,25 @@ export function assertDelegatedPathScope(changedPaths,policy){
   return [...changedPaths];
 }
 
-export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredContexts=[],policy,now=new Date()}) {
+export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date()}) {
   if (!pr || pr.state!=='open' || pr.merged===true || pr.draft!==false) fail('DISPATCH_PR_NOT_READY');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
   assertDelegatedPathScope(changedPaths,policy);
-  const required=[...new Set(requiredContexts.map(String))].sort();
+  const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
+    .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
+    .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
+  if(new Set(required.map(value=>`${value.context}:${value.integration_id}`)).size!==required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_AMBIGUOUS');
   if (!required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
-  const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id)})).sort((a,b)=>a.name.localeCompare(b.name)||a.id-b.id);
+  const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),app_id:Number(x.app?.id||x.app_id||0),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id)})).sort((a,b)=>a.name.localeCompare(b.name)||a.app_id-b.app_id||a.id-b.id);
   if (!cleanStatuses.length&&!cleanChecks.length) fail('DISPATCH_EVIDENCE_MISSING');
   if (cleanStatuses.some(x=>x.state!=='success')||cleanChecks.some(x=>x.status!=='completed'||x.conclusion!=='success')) fail('DISPATCH_CHECKS_NOT_GREEN');
-  const boundRequired=required.map(context=>{
-    const matches=cleanChecks.filter(x=>x.name===context&&x.head_sha===pr.head.sha&&Number.isSafeInteger(x.id)&&x.id>0);
-    if (matches.length!==1) fail(matches.length?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':'DISPATCH_REQUIRED_CONTEXT_MISSING',context);
+  const boundRequired=required.map(binding=>{
+    const matches=cleanChecks.filter(x=>x.name===binding.context&&(!binding.integration_id||x.app_id===binding.integration_id)&&x.head_sha===pr.head.sha&&Number.isSafeInteger(x.id)&&x.id>0);
+    if (matches.length!==1) fail(matches.length?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':'DISPATCH_REQUIRED_CONTEXT_MISSING',binding.context);
     return matches[0];
   });
   const testEvidence={source:'GITHUB_LIVE_PROTECTED_MAIN_REQUIRED_CHECKS',result:'PASS',required_contexts:required,required_check_runs:boundRequired,statuses:cleanStatuses,checks:cleanChecks};
@@ -51,6 +54,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 
 async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
+async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 
 export async function discover({repository,token,prNumber,policy}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
@@ -61,13 +65,13 @@ export async function discover({repository,token,prNumber,policy}){
   if((soloDetail.bypass_actors||[]).length) fail('DISPATCH_RULESET_BYPASS_FORBIDDEN');
   const statusRule=(soloDetail.rules||[]).find(x=>x.type==='required_status_checks');
   if(!statusRule?.parameters?.strict_required_status_checks_policy) fail('DISPATCH_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
-  const requiredContexts=(statusRule.parameters.required_status_checks||[]).map(x=>x.context);
-  if(!requiredContexts.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
+  const requiredChecks=(statusRule.parameters.required_status_checks||[]).map(x=>({context:x.context,integration_id:Number(x.integration_id||0)}));
+  if(!requiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
   for(const pr of prs){try{
-    const [commit,files,status,checkData]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),api(`/repos/${repository}/commits/${pr.head.sha}/check-runs?per_page=100`,token)]);
-    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks:checkData.check_runs||[],requiredContexts,policy})});
+    const [commit,files,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
   }catch(error){if(!(error instanceof DispatcherError))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }

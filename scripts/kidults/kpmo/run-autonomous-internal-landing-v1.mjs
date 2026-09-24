@@ -354,6 +354,28 @@ const openAutomaticRollback = async failureCode => {
   })});
   return {state:'ROLLBACK_PR_OPENED',pull_request:rollbackPr.number,url:rollbackPr.html_url,rollback_sha:rollback.sha};
 };
+const collectCheckRuns = async sha => {
+  const values=[];
+  for(let page=1;page<=30;page++){
+    const payload=await api(`/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`);
+    const batch=payload?.check_runs;
+    if(!Array.isArray(batch)) throw new AutonomousLandingError('AUTONOMOUS_CHECK_PAGINATION_INVALID');
+    values.push(...batch);
+    if(batch.length<100) return values;
+  }
+  throw new AutonomousLandingError('AUTONOMOUS_CHECK_PAGINATION_LIMIT');
+};
+const liveRequiredChecks = async () => {
+  const rulesets=await api('/rulesets');
+  const solo=(rulesets||[]).find(value=>value.name==='KAIOS Solo Owner Preflight'&&value.enforcement==='active');
+  if(!solo) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_RULESET_MISSING');
+  const detail=await api(`/rulesets/${solo.id}`);
+  if((detail.bypass_actors||[]).length) throw new AutonomousLandingError('AUTONOMOUS_RULESET_BYPASS_FORBIDDEN');
+  const rule=(detail.rules||[]).find(value=>value.type==='required_status_checks');
+  if(!rule?.parameters?.strict_required_status_checks_policy) throw new AutonomousLandingError('AUTONOMOUS_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
+  return (rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
+    .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
+};
 
 const validateLiveCandidate = async ({allowDraft=false}={}) => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
@@ -362,17 +384,27 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
   const files=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
   validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,ownerReservedPathPrefixes:policy.owner_reserved_path_prefixes,delegatedInternalExactPathExceptions:policy.delegated_internal_exact_path_exceptions,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
-  const [status,checks]=await Promise.all([
+  const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
-    api(`/commits/${envelope.head_sha}/check-runs?filter=latest&per_page=100`),
+    collectCheckRuns(envelope.head_sha),
+    liveRequiredChecks(),
   ]);
   const landingContexts=new Set(['KIDULTS Governed Landing Authorization V1','KIDULTS Atomic Landing Terminal V2','KIDULTS Autonomous Internal Landing V1']);
   const authoritativeStatuses=(status.statuses||[]).filter(value=>!landingContexts.has(value.context));
-  const authoritativeChecks=(checks.check_runs||[]).filter(value=>!landingContexts.has(value.name));
+  const authoritativeChecks=checks.filter(value=>!landingContexts.has(value.name));
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
-  if (authoritativeStatuses.some(value=>value.state!=='success')||authoritativeChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
-    throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN');
-  }
+  const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
+    .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
+  if(canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
+  const bound=requiredChecks.map(binding=>{
+    const matches=authoritativeChecks.filter(value=>value.name===binding.context&&(!binding.integration_id||Number(value.app?.id||0)===binding.integration_id)&&value.head_sha===envelope.head_sha);
+    if(matches.length!==1) throw new AutonomousLandingError(matches.length?'AUTONOMOUS_REQUIRED_CHECK_AMBIGUOUS':'AUTONOMOUS_REQUIRED_STATUS_MISSING',binding.context);
+    const check=matches[0];
+    if(check.status!=='completed'||check.conclusion!=='success') throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',binding.context);
+    return check;
+  });
+  const dispatched=envelope.test_evidence?.required_check_runs||[];
+  if(bound.some((value,index)=>Number(value.id)!==Number(dispatched[index]?.id)||Number(value.app?.id||0)!==Number(dispatched[index]?.app_id||0))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks};
 };
 const waitForReadyCandidate = async () => {

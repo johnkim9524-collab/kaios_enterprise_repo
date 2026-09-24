@@ -72,6 +72,7 @@ jobs:
       - name: Mint exact short-lived token and emit all three role events
         env:
           BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           test -n "$BROKER_FUNCTION"
@@ -81,6 +82,12 @@ jobs:
             token=$(jq -er '.token' <<<"$response")
             test "$(jq -r '.ok' <<<"$response")" = true
             unset response
+            pr_number=$(jq -r '.pull_request' <<<"$envelope")
+            KIDULTS_PR_NUMBER="$pr_number" node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+            live=$(jq -cer --argjson pr "$pr_number" '.[] | select(.state=="ELIGIBLE" and .envelope.pull_request==$pr) | .envelope' out/autonomous-dispatcher-v1/results.json)
+            stable_filter='{repository,repository_id,pull_request,base_sha,head_sha,head_tree_sha,scope_digest,changed_paths,test_evidence:{required_contexts:.test_evidence.required_contexts,required_check_runs:.test_evidence.required_check_runs}}'
+            test "$(jq -Sc "$stable_filter" <<<"$live")" = "$(jq -Sc "$stable_filter" <<<"$envelope")"
+            envelope="$live"
             for event in kidults.track.authorization.v1 kidults.kpmo.authorization.v1 kidults.independent.verification.v1; do
               body=$(jq -cn --arg event_type "$event" --argjson envelope "$envelope" '{event_type:$event_type,client_payload:{envelope:$envelope}}')
               curl --fail --silent --show-error -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" -d "$body"

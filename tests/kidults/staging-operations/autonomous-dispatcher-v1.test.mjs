@@ -4,7 +4,7 @@ import {classifyCandidate,DispatcherError} from '../../../scripts/kidults/kpmo/r
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
-const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'success',external_id:'unit-101'}],requiredContexts:['unit'],policy,now:new Date('2026-09-24T12:00:00Z')};
+const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,now:new Date('2026-09-24T12:00:00Z')};
 const e=classifyCandidate(input);assert.equal(e.authorization_generation,'pr-42-bbbbbbbbbbbbbbbbbbbb');assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
 deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
@@ -20,11 +20,12 @@ const canonicalFiles=[
 assert.equal(classifyCandidate({...input,files:canonicalFiles}).changed_paths.length,5);
 deny({files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json'}]},'DISPATCH_OWNER_RESERVED_PATH');
 deny({checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
-deny({requiredContexts:['unit','slow-required']},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-deny({checks:[{id:101,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'success'},{id:102,name:'unit',head_sha:sha('b'),status:'completed',conclusion:'success'}]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
+deny({requiredChecks:[{context:'unit',integration_id:7},{context:'slow-required',integration_id:7}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
+deny({requiredChecks:[{context:'unit',integration_id:8}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
+deny({checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},{id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'}]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
 deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
 deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:2,negative:9}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:2,negative:10}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
@@ -34,4 +35,5 @@ assert.doesNotMatch(deployWorkflow,/\n  push:/);
 assert.match(dispatcherWorkflow,/pull_request_target:/);
 assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
 assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));

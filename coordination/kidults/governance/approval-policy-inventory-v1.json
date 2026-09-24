@@ -8,7 +8,7 @@
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 644,
-    "manifest_sha256": "sha256:4ec6205a86d0651edb08561a9562f2dc5366397d0a8c56dd2785883360d7ab86",
+    "manifest_sha256": "sha256:36b540f16b0f1f3efe549da08705ec88d2332989fbec3cd06c3ab8f8987261cf",
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
