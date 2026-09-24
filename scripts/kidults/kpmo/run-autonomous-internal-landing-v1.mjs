@@ -142,7 +142,8 @@ const acquireEventToken = async () => {
       '--cli-binary-format','raw-in-base64-out',
       '--payload',JSON.stringify({action:'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
-        authorization_generation:envelope.authorization_generation}),
+        authorization_generation:envelope.authorization_generation,
+        allow_draft_recovery:Boolean(envelope.recovery)}),
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');

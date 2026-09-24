@@ -24,7 +24,7 @@ test('template embeds reviewed source and limits secret and invoke scopes',()=>{
   assert.equal(JSON.stringify(template).includes('FinalizerBrokerInvoke'),false);
 });
 const stamp=Date.parse('2026-09-24T00:00:00Z');
-function setup({prHead=head, mainBase=base, permission='write', repositories=[{id:123,full_name:repo}]}={}) {
+function setup({prHead=head, mainBase=base, draft=false, permission='write', repositories=[{id:123,full_name:repo}]}={}) {
   const calls=[];
   const request=async (url,options) => {
     calls.push({url,method:options.method||'GET'});
@@ -34,7 +34,7 @@ function setup({prHead=head, mainBase=base, permission='write', repositories=[{i
       assert.deepEqual(body,{repository_ids:[123],permissions:{contents:'write',pull_requests:'write'}});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{contents:permission,pull_requests:'write'},repository_selection:'selected',repositories};
-    } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft:false,merged:false,
+    } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
       head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:base}};
     else if(url.endsWith('/branches/main')) value={commit:{sha:mainBase}};
     else throw Error('unexpected request');
@@ -46,6 +46,16 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   const {handler,calls}=setup(); const result=await handler(event);
   assert.equal(result.ok,true);assert.equal(result.token_type,'GITHUB_APP_INSTALLATION');
   assert.equal(calls.length,3);
+});
+test('allows exact draft only for an explicitly declared recovery before reservation',async()=>{
+  await assert.rejects(setup({draft:true}).handler(event),/DENIED/);
+  const result=await setup({draft:true}).handler({...event,allow_draft_recovery:true});
+  assert.equal(result.ok,true);
+});
+test('rejects malformed draft recovery declaration',async()=>{
+  const {handler,calls}=setup({draft:true});
+  await assert.rejects(handler({...event,allow_draft_recovery:'true'}),/DENIED/);
+  assert.equal(calls.length,0);
 });
 test('rejects wrong repository before mint',async()=>{
   const {handler,calls}=setup();await assert.rejects(handler({...event,repository_id:'999'}),/DENIED/);
