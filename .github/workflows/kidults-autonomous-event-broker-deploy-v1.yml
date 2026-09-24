@@ -2,12 +2,25 @@ name: KIDULTS Autonomous Event Broker Deploy V1
 run-name: KIDULTS Autonomous Event Broker Deploy V1 ${{ github.sha }}
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs
-      - infrastructure/aws/staging/autonomous-event-token-broker-v1.json
   workflow_dispatch:
+    inputs:
+      main_sha:
+        description: Exact protected-main SHA authorized for this deployment
+        required: true
+        type: string
+      stack_name:
+        description: Exact STAGING stack name
+        required: true
+        default: kidults-autonomous-event-token-broker-staging
+        type: string
+      change_set_name:
+        description: Exact one-use CloudFormation change-set name
+        required: true
+        type: string
+      authorization_id:
+        description: Exact single-use DEPLOY_STAGING_BROKER authorization ID
+        required: true
+        type: string
 
 concurrency:
   group: kidults-autonomous-event-broker-staging-deploy
@@ -17,7 +30,7 @@ permissions: {}
 
 jobs:
   deploy-and-deny-canary:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor == github.repository_owner && github.sha == inputs.main_sha
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-BROKER-DEPLOYER
     timeout-minutes: 15
@@ -34,6 +47,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "${{ inputs.main_sha }}"
+          test "${{ inputs.stack_name }}" = kidults-autonomous-event-token-broker-staging
+          [[ "${{ inputs.change_set_name }}" =~ ^kidults-broker-[0-9a-f]{12}-[0-9]+$ ]]
+          test "${{ inputs.authorization_id }}" = "DEPLOY-STAGING-BROKER-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
           jq -e '.Resources.BrokerFunction and .Resources.EventBrokerInvokerRole' infrastructure/aws/staging/autonomous-event-token-broker-v1.json >/dev/null
 
@@ -63,21 +80,25 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$GITHUB_APP_ID" && test -n "$GITHUB_INSTALLATION_ID" && test -n "$GITHUB_PRIVATE_KEY_SECRET_ARN" && test -n "$GITHUB_OIDC_PROVIDER_ARN"
-          aws cloudformation deploy \
-            --stack-name kidults-autonomous-event-token-broker-staging \
-            --template-file infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
+          aws cloudformation create-change-set \
+            --stack-name "${{ inputs.stack_name }}" \
+            --change-set-name "${{ inputs.change_set_name }}" \
+            --change-set-type UPDATE \
+            --template-body file://infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
             --capabilities CAPABILITY_NAMED_IAM \
-            --no-fail-on-empty-changeset \
-            --parameter-overrides GitHubAppId="$GITHUB_APP_ID" GitHubInstallationId="$GITHUB_INSTALLATION_ID" GitHubPrivateKeySecretArn="$GITHUB_PRIVATE_KEY_SECRET_ARN" GitHubRepositoryId="$GITHUB_REPOSITORY_ID" GitHubRepository="$GITHUB_REPOSITORY" GitHubOidcProviderArn="$GITHUB_OIDC_PROVIDER_ARN"
+            --parameters ParameterKey=GitHubAppId,ParameterValue="$GITHUB_APP_ID" ParameterKey=GitHubInstallationId,ParameterValue="$GITHUB_INSTALLATION_ID" ParameterKey=GitHubPrivateKeySecretArn,ParameterValue="$GITHUB_PRIVATE_KEY_SECRET_ARN" ParameterKey=GitHubRepositoryId,ParameterValue="$GITHUB_REPOSITORY_ID" ParameterKey=GitHubRepository,ParameterValue="$GITHUB_REPOSITORY" ParameterKey=GitHubOidcProviderArn,ParameterValue="$GITHUB_OIDC_PROVIDER_ARN" >/dev/null
+          aws cloudformation wait change-set-create-complete --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
+          aws cloudformation execute-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
+          aws cloudformation wait stack-update-complete --stack-name "${{ inputs.stack_name }}"
 
       - name: Run fail-closed negative canary and seal deployment evidence
         run: |
           set -euo pipefail
           mkdir -p out/autonomous-event-broker-deploy-v1
-          function_name=$(aws cloudformation describe-stacks --stack-name kidults-autonomous-event-token-broker-staging --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
+          function_name=$(aws cloudformation describe-stacks --stack-name "${{ inputs.stack_name }}" --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
           aws lambda invoke --function-name "$function_name" --cli-binary-format raw-in-base64-out --payload '{"action":"DENY_CANARY"}' /tmp/deny.json >/tmp/invoke.json || true
           test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED
-          jq -n --arg stack kidults-autonomous-event-token-broker-staging --arg function "$function_name" --arg sha "$GITHUB_SHA" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",stack:$stack,function:$function,workflow_sha:$sha,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
+          jq -n --arg stack "${{ inputs.stack_name }}" --arg change_set "${{ inputs.change_set_name }}" --arg authorization_id "${{ inputs.authorization_id }}" --arg function "$function_name" --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",operation:"DEPLOY_STAGING_BROKER",stack:$stack,change_set:$change_set,authorization_id:$authorization_id,function:$function,workflow_sha:$sha,run_id:$run_id,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
