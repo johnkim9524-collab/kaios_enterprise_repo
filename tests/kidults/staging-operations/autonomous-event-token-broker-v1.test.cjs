@@ -15,8 +15,13 @@ test('template embeds reviewed source and limits secret and invoke scopes',()=>{
     fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs','utf8'));
   const secret=template.Resources.BrokerRole.Properties.Policies[0].PolicyDocument.Statement;
   assert.deepEqual(secret,[{Effect:'Allow',Action:['secretsmanager:GetSecretValue'],Resource:{Ref:'GitHubPrivateKeySecretArn'}}]);
-  const invoke=template.Resources.FinalizerBrokerInvoke.Properties.PolicyDocument.Statement;
+  const invoker=template.Resources.EventBrokerInvokerRole.Properties;
+  const invoke=invoker.Policies[0].PolicyDocument.Statement;
   assert.deepEqual(invoke,[{Effect:'Allow',Action:['lambda:InvokeFunction'],Resource:{'Fn::GetAtt':['BrokerFunction','Arn']}}]);
+  const subjects=invoker.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub'];
+  assert.equal(subjects.length,3);
+  assert.equal(subjects.some(x=>JSON.stringify(x).includes('CanaryWorkflowRef')),false);
+  assert.equal(JSON.stringify(template).includes('FinalizerBrokerInvoke'),false);
 });
 const stamp=Date.parse('2026-09-24T00:00:00Z');
 function setup({prHead=head, mainBase=base, permission='write', repositories=[{id:123,full_name:repo}]}={}) {
