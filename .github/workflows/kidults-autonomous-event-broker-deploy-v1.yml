@@ -1,0 +1,87 @@
+name: KIDULTS Autonomous Event Broker Deploy V1
+run-name: KIDULTS Autonomous Event Broker Deploy V1 ${{ github.sha }}
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs
+      - infrastructure/aws/staging/autonomous-event-token-broker-v1.json
+  workflow_dispatch:
+
+concurrency:
+  group: kidults-autonomous-event-broker-staging-deploy
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  deploy-and-deny-canary:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-BROKER-DEPLOYER
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate reviewed broker source and tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+          jq -e '.Resources.BrokerFunction and .Resources.EventBrokerInvokerRole' infrastructure/aws/staging/autonomous-event-token-broker-v1.json >/dev/null
+
+      - name: Acquire STAGING deployment credentials through GitHub OIDC
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_BROKER_DEPLOY_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-broker-deploy-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          {
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+            echo "AWS_REGION=ap-northeast-2"
+          } >> "$GITHUB_ENV"
+
+      - name: Deploy exact STAGING broker stack without console
+        env:
+          GITHUB_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          GITHUB_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
+          GITHUB_PRIVATE_KEY_SECRET_ARN: ${{ vars.KIDULTS_GITHUB_PRIVATE_KEY_SECRET_ARN }}
+          GITHUB_OIDC_PROVIDER_ARN: ${{ vars.KIDULTS_GITHUB_OIDC_PROVIDER_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "$GITHUB_APP_ID" && test -n "$GITHUB_INSTALLATION_ID" && test -n "$GITHUB_PRIVATE_KEY_SECRET_ARN" && test -n "$GITHUB_OIDC_PROVIDER_ARN"
+          aws cloudformation deploy \
+            --stack-name kidults-autonomous-event-token-broker-staging \
+            --template-file infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides GitHubAppId="$GITHUB_APP_ID" GitHubInstallationId="$GITHUB_INSTALLATION_ID" GitHubPrivateKeySecretArn="$GITHUB_PRIVATE_KEY_SECRET_ARN" GitHubRepositoryId="$GITHUB_REPOSITORY_ID" GitHubRepository="$GITHUB_REPOSITORY" GitHubOidcProviderArn="$GITHUB_OIDC_PROVIDER_ARN"
+
+      - name: Run fail-closed negative canary and seal deployment evidence
+        run: |
+          set -euo pipefail
+          mkdir -p out/autonomous-event-broker-deploy-v1
+          function_name=$(aws cloudformation describe-stacks --stack-name kidults-autonomous-event-token-broker-staging --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
+          aws lambda invoke --function-name "$function_name" --cli-binary-format raw-in-base64-out --payload '{"action":"DENY_CANARY"}' /tmp/deny.json >/tmp/invoke.json || true
+          test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED
+          jq -n --arg stack kidults-autonomous-event-token-broker-staging --arg function "$function_name" --arg sha "$GITHUB_SHA" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",stack:$stack,function:$function,workflow_sha:$sha,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-autonomous-event-broker-deploy-${{ github.run_id }}
+          path: out/autonomous-event-broker-deploy-v1/receipt.json
+          if-no-files-found: error
+          retention-days: 90

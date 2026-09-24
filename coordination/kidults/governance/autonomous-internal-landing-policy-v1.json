@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -91,6 +91,7 @@
     "g5/"
   ],
   "automatic_triggers": [
+    "schedule:kidults-autonomous-dispatcher-v1",
     "repository_dispatch:kidults.track.authorization.v1",
     "repository_dispatch:kidults.kpmo.authorization.v1",
     "repository_dispatch:kidults.independent.verification.v1"

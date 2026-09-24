@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {classifyCandidate,DispatcherError} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
+const sha=c=>c.repeat(40);
+const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
+const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{name:'unit',status:'completed',conclusion:'success'}],policy,now:new Date('2026-09-24T12:00:00Z')};
+const e=classifyCandidate(input);assert.equal(e.authorization_generation,'pr-42-bbbbbbbbbbbbbbbbbbbb');assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
+const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
+deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
+deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
+deny({files:[{filename:'.github/workflows/x.yml'}]},'DISPATCH_OWNER_RESERVED_PATH');
+deny({checks:[{name:'unit',status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
+deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
+deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:1,negative:6}));

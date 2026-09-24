@@ -1,0 +1,94 @@
+name: KIDULTS Autonomous Dispatcher V1
+run-name: KIDULTS Autonomous Dispatcher V1 ${{ github.event_name }}
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Optional exact PR number; blank scans every open PR
+        required: false
+        type: string
+
+concurrency:
+  group: kidults-autonomous-dispatcher
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  dispatch-eligible-internal-prs:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-DISPATCHER
+    timeout-minutes: 10
+    permissions:
+      checks: read
+      contents: read
+      id-token: write
+      pull-requests: read
+      statuses: read
+    steps:
+      - name: Checkout protected main dispatcher only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify dispatcher and broker controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
+          node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+
+      - name: Discover exact eligible PR bindings
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}
+        run: node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+
+      - name: Acquire broker invocation credentials through GitHub OIDC
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          {
+            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
+            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
+            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
+            echo "AWS_REGION=ap-northeast-2"
+          } >> "$GITHUB_ENV"
+
+      - name: Mint exact short-lived token and emit all three role events
+        env:
+          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+        run: |
+          set -euo pipefail
+          test -n "$BROKER_FUNCTION"
+          jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json | while IFS= read -r envelope; do
+            request=$(jq -c '{action:"MINT_INSTALLATION_TOKEN",repository,repository_id,pull_request,base_sha,head_sha,authorization_generation}' <<<"$envelope")
+            aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /tmp/broker-response.json >/dev/null
+            token=$(jq -er '.token' /tmp/broker-response.json)
+            test "$(jq -r '.ok' /tmp/broker-response.json)" = true
+            for event in kidults.track.authorization.v1 kidults.kpmo.authorization.v1 kidults.independent.verification.v1; do
+              body=$(jq -cn --arg event_type "$event" --argjson envelope "$envelope" '{event_type:$event_type,client_payload:{envelope:$envelope}}')
+              curl --fail --silent --show-error -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" -d "$body"
+            done
+            unset token
+            rm -f /tmp/broker-response.json
+          done
+
+      - name: Upload bounded scan evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-autonomous-dispatcher-${{ github.run_id }}
+          path: out/autonomous-dispatcher-v1/results.json
+          if-no-files-found: error
+          retention-days: 90

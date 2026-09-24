@@ -36,6 +36,9 @@ const workflowRef = required('KIDULTS_AUTONOMOUS_WORKFLOW_REF');
 const repositoryId = required('KIDULTS_AUTONOMOUS_REPOSITORY_ID');
 const mode = required('KIDULTS_AUTONOMOUS_MODE');
 if (!['APPROVAL','FINALIZE'].includes(mode)) throw new AutonomousLandingError('AUTONOMOUS_MODE_INVALID');
+// The default Actions token does not emit downstream push workflows on merge.
+// Only the finalizer may request a short-lived installation token from its
+// separately governed AWS broker, before reserving one-use merge authority.
 const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomous-internal-landing-v1/receipt.json';
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON'));
@@ -96,7 +99,7 @@ const graphql = async (query, variables) => {
   }
   return payload.data;
 };
-const awsJson = args => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}));
+const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env,stdio:['ignore','pipe','pipe']}));
 const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
 let ledgerWriterInvocation = 0;
 const invokeLedgerWriter = payload => {
@@ -117,6 +120,61 @@ const invokeLedgerWriter = payload => {
     throw new AutonomousLandingError('AUTONOMOUS_LEDGER_WRITER_FAILURE',payload.action);
   } finally {
     try { fs.unlinkSync(outputPath); } catch {}
+  }
+};
+const acquireEventToken = async () => {
+  const broker = required('KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION');
+  const brokerRole = required('KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN');
+  const privateDir = fs.mkdtempSync(path.join(required('RUNNER_TEMP'),'kidults-event-broker-'));
+  const outputPath = path.join(privateDir,'response.json');
+  const identityPath = path.join(privateDir,'identity.jwt');
+  try {
+    const fd=fs.openSync(outputPath,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);
+    const outputIdentity=fs.fstatSync(fd);
+    fs.closeSync(fd);
+    if (!outputIdentity.isFile() || (outputIdentity.mode&0o777)!==0o600) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_FILE_UNSAFE');
+    const identityResponse=await fetch(`${required('ACTIONS_ID_TOKEN_REQUEST_URL')}&audience=sts.amazonaws.com`,{
+      headers:{Authorization:`Bearer ${required('ACTIONS_ID_TOKEN_REQUEST_TOKEN')}`},redirect:'error',signal:AbortSignal.timeout(10000)});
+    if (!identityResponse.ok) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_UNAVAILABLE');
+    const identity=(await identityResponse.json()).value;
+    if(typeof identity!=='string'||identity.length<100) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_INVALID');
+    fs.writeFileSync(identityPath,identity,{flag:'wx',mode:0o600});
+    const isolatedEnv={...process.env,AWS_ROLE_ARN:brokerRole,AWS_WEB_IDENTITY_TOKEN_FILE:identityPath,
+      AWS_ROLE_SESSION_NAME:`kidults-event-broker-${required('GITHUB_RUN_ID')}`};
+    for(const name of ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','AWS_SESSION_TOKEN','AWS_PROFILE']) delete isolatedEnv[name];
+    const metadata = awsJson([
+      'lambda','invoke','--region','ap-northeast-2','--function-name',broker,
+      '--cli-binary-format','raw-in-base64-out',
+      '--payload',JSON.stringify({action:'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
+        pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
+        authorization_generation:envelope.authorization_generation,
+        allow_draft_recovery:Boolean(envelope.recovery)}),
+      '--output','json',outputPath,
+    ],isolatedEnv);
+    if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
+    const actualOutput=fs.lstatSync(outputPath);
+    if (!actualOutput.isFile() || actualOutput.isSymbolicLink() || actualOutput.ino!==outputIdentity.ino
+      || actualOutput.dev!==outputIdentity.dev || (actualOutput.mode&0o777)!==0o600)
+      throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_FILE_UNSAFE');
+    const responseBytes=fs.readFileSync(outputPath,'utf8');
+    fs.unlinkSync(outputPath);
+    const response=JSON.parse(responseBytes);
+    const expiresAt=Date.parse(response.expires_at);
+    if (response.ok!==true || response.token_type!=='GITHUB_APP_INSTALLATION'
+      || response.repository!==repository || String(response.repository_id)!==repositoryId
+      || !Array.isArray(response.permissions)
+      || !['contents:write','pull_requests:write','metadata:read'].every(x=>response.permissions.includes(x))
+      || typeof response.token!=='string' || response.token.length<20 || response.token===token
+      || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000)
+      throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_INVALID');
+    return response.token;
+  } catch(error) {
+    if (error instanceof AutonomousLandingError) throw error;
+    throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_UNAVAILABLE');
+  } finally {
+    try {fs.unlinkSync(outputPath);} catch {}
+    try {fs.unlinkSync(identityPath);} catch {}
+    try {fs.rmdirSync(privateDir);} catch {}
   }
 };
 const kmsSignCanonical = (value, failureCode) => {
@@ -378,6 +436,7 @@ try {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+      const eventToken=await acquireEventToken();
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
@@ -389,7 +448,7 @@ try {
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
-      const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
+      const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${eventToken}`},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
       if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
       mergePerformed=true;
       mergeSha=merge.sha;
@@ -408,7 +467,7 @@ try {
         merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
       const immutableCopy=sealImmutableReceipt(terminal);
       const sealedTerminal={...terminal,immutable_copy:immutableCopy};
-      await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,immutable_receipt_version_id:immutableCopy.version_id}})});
+      await api('/dispatches',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${eventToken}`},body:JSON.stringify({event_type:policy.merge.explicit_completion_event,client_payload:{pull_request:Number(envelope.pull_request),merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,immutable_receipt_version_id:immutableCopy.version_id}})});
       writeReceipt(sealedTerminal);
       console.log(JSON.stringify({state:terminal.state,merge_sha:merge.sha,receipt_digest:terminal.receipt_digest,immutable_copy:immutableCopy,production:'HOLD',public:'HOLD',g5:'HOLD'}));
     }
