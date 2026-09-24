@@ -4,11 +4,11 @@
   "status": "REPOSITORY_WIDE_ROUTING_COVERAGE_ENFORCED",
   "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
   "audit": {
-    "baseline_sha": "5a77bec946a831059118ee19f3205f3a1268bb1f",
+    "baseline_sha": "HEAD",
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 644,
-    "manifest_sha256": "sha256:5a64fed0d526cc2dbe991107fea952c05adb65488549b7f1f623bdea9cc60217",
+    "manifest_sha256": "sha256:4ec6205a86d0651edb08561a9562f2dc5366397d0a8c56dd2785883360d7ab86",
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
@@ -26,11 +26,34 @@
     }
   },
   "policies": [
-    {"policy": "AI-020", "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json", "route": "INTERNAL_REVERSIBLE_OR_STAGING_BOUNDED", "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"},
-    {"policy": "AUTONOMOUS_INTERNAL_LANDING", "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json", "route": "INTERNAL_REVERSIBLE", "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"},
-    {"policy": "GOVERNED_LANDING_AUTHORIZATION", "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json", "route": "OWNER_RESERVED_OR_RECOVERY_ONLY", "human_reapproval": "REQUIRED_PER_EXACT_ACTION"}
+    {
+      "policy": "AI-020",
+      "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
+      "route": "INTERNAL_REVERSIBLE_OR_STAGING_BOUNDED",
+      "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"
+    },
+    {
+      "policy": "AUTONOMOUS_INTERNAL_LANDING",
+      "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+      "route": "INTERNAL_REVERSIBLE",
+      "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"
+    },
+    {
+      "policy": "GOVERNED_LANDING_AUTHORIZATION",
+      "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+      "route": "OWNER_RESERVED_OR_RECOVERY_ONLY",
+      "human_reapproval": "REQUIRED_PER_EXACT_ACTION"
+    }
   ],
-  "domain_human_reviews": {"affected": false, "reason": "Entity resolution, legal, rights, financial, safety and external-publication reviews are domain decisions, not repeated landing authorization."},
+  "domain_human_reviews": {
+    "affected": false,
+    "reason": "Entity resolution, legal, rights, financial, safety and external-publication reviews are domain decisions, not repeated landing authorization."
+  },
   "unknown_policy": "FAIL_CLOSED_OWNER_REQUIRED",
-  "holds": {"production": "HOLD", "public": "HOLD", "g5": "HOLD", "psa_external_call": "HOLD"}
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "psa_external_call": "HOLD"
+  }
 }
