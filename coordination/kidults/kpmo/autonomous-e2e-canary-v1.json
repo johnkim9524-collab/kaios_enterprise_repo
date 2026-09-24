@@ -1,0 +1,38 @@
+{
+  "id": "kidults-autonomous-e2e-canary-v1",
+  "version": "1.0.0",
+  "state": "BOUNDED_INTERNAL_CANARY",
+  "purpose": "Exercise the protected autonomous internal landing path from exact candidate discovery through distinct role verification, durable single-use reservation, governed landing, terminal receipt, and protected-main readback.",
+  "scope": "REPOSITORY_INTERNAL_REVERSIBLE_CONTROL_ONLY",
+  "expected_path": [
+    "EXACT_CANDIDATE_DISCOVERY",
+    "TRACK_ROLE_EVENT",
+    "KPMO_ROLE_EVENT",
+    "INDEPENDENT_MACHINE_VERIFICATION",
+    "DURABLE_SINGLE_USE_RESERVATION",
+    "GOVERNED_LANDING",
+    "TERMINAL_RECEIPT",
+    "PROTECTED_MAIN_READBACK"
+  ],
+  "success_criteria": {
+    "exact_base_head_tree_bound": true,
+    "distinct_role_evidence_required": true,
+    "single_use_reservation_required": true,
+    "terminal_receipt_required": true,
+    "protected_main_readback_required": true
+  },
+  "rollback": {
+    "strategy": "REVERT_MERGE_COMMIT",
+    "data_migration": false,
+    "external_side_effect": false
+  },
+  "authority_boundary": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "external_communication": "HOLD",
+    "external_spend": "HOLD",
+    "credential_or_permission_expansion": false,
+    "destructive_operation": false
+  }
+}
