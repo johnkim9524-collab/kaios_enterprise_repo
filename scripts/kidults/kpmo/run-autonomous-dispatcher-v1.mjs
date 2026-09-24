@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
+import {evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
@@ -19,6 +20,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
   assertDelegatedPathScope(files,policy);
+  evaluateSemanticCapabilityDelta({files,policy});
   const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
@@ -53,6 +55,20 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
+const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
+async function immutableContent(repository,path,ref,token){
+  const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
+  if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
+  return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
+}
+async function attachImmutableContents({repository,baseSha,headSha,files,token}){
+  return Promise.all(files.map(async file=>{
+    if(file.status==='removed'||file.status==='renamed') fail('DISPATCH_OWNER_RESERVED_ACTION',`${file.filename}:${file.status.toUpperCase()}`);
+    const head_content=await immutableContent(repository,file.filename,headSha,token);
+    const base_content=file.status==='added'?'':await immutableContent(repository,file.filename,baseSha,token);
+    return {...file,base_content,head_content};
+  }));
+}
 
 export async function discover({repository,token,prNumber,policy}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
@@ -68,7 +84,8 @@ export async function discover({repository,token,prNumber,policy}){
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
   for(const pr of prs){try{
-    const [commit,files,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
   }catch(error){if(!(error instanceof DispatcherError))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
