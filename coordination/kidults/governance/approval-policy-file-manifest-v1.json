@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 637
+    "file_count": 640
   },
   "files": [
     {
@@ -2647,6 +2647,18 @@
       "sha256": "sha256:22176da34111ea85dedee14219df2bc05439ccf1ee02d5bf9ae5d99e7b289c03"
     },
     {
+      "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "a369dc907bc86784bf979e3544c81d6745828b0c",
+      "sha256": "sha256:b74b262776feec94b3af6c6f622ebab864af68d23726939db38e8fe790e71b71"
+    },
+    {
+      "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "6f5eada19b5829f26accef0b7b7b5e491dc0e704",
+      "sha256": "sha256:43914a5c8f0b9d4c385f0f4986f11275a24bb2b30685ad74315afa11d283e912"
+    },
+    {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "a016b5fe93dc998b7e4a44a38790d2bfc8f859c1",
@@ -4852,6 +4864,12 @@
       "sha256": "sha256:d6309b2538bc58ba6d450f7a26969a86ceed70cb81203a591a07dd5e8ef65054"
     },
     {
+      "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "0879bbe860129dbd676248dafea6cc3d4e347120",
+      "sha256": "sha256:281ee03f80ffa97b56245f781523ad166f782fd548b3afcabb298d11d706abd9"
+    },
+    {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "0c5280fea0b288222e302f5456a955896e1286e4",
@@ -4900,5 +4918,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a731ec519eef0cbcec610dd088332821efe27dfd8754348ea211ab96a82dd566"
+  "manifest_sha256": "sha256:826fcb22a2aad8f0bbcff046421257933403f1b12238e516d31e158fe2ad4d02"
 }
