@@ -93,12 +93,27 @@ concurrency:
 
 jobs:
   verify-bounded-camera-evidence:
+    # #1834 containment: only PR control proof may execute until acquisition provenance is corrected.
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Enforce job-level committed-reference containment
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='.github/workflows/kidults-asi-state-department-camera-evidence-v1.yml';
+          const y=fs.readFileSync(p,'utf8');
+          const triggers=y.slice(y.indexOf('\non:\n'),y.indexOf('\npermissions:'));
+          for(const marker of ['schedule:','push:','pull_request:']) if(!triggers.includes(marker)) throw new Error(`GOVERNED_TRIGGER_MISSING:${marker}`);
+          if(!/verify-bounded-camera-evidence:\n    #[^\n]*\n    if: \$\{\{ github\.event_name == 'pull_request' \}\}/.test(y)) throw new Error('REFERENCE_REPLAY_JOB_NOT_PR_CONTROL_ONLY');
+          if(!/Emit terminal committed-reference containment receipt[\s\S]*if: always\(\)/.test(y)) throw new Error('TERMINAL_CONTAINMENT_RECEIPT_MISSING');
+          if(!/uses: actions\/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        if: always\(\)/.test(y)) throw new Error('ALWAYS_UPLOAD_INVARIANT_MISSING');
+          NODE
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
@@ -403,9 +418,41 @@ jobs:
           const validate=ajv.compile(schema);
           if(!validate(receipt)) throw new Error(`KPMO_RECEIPT_SCHEMA:${ajv.errorsText(validate.errors)}`);
           NODE
+      - name: Emit terminal committed-reference containment receipt
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const sourceSha=event.pull_request?.head?.sha || process.env.GITHUB_SHA;
+          fs.writeFileSync('/tmp/state-department-camera-reference-containment-terminal-v1.json',JSON.stringify({
+            id:'kidults-state-department-camera-reference-containment-terminal-v1',
+            version:'1.0.0',
+            issue:1834,
+            repository:process.env.GITHUB_REPOSITORY,
+            source_sha:sourceSha,
+            event_sha:process.env.GITHUB_SHA,
+            run_id:Number(process.env.GITHUB_RUN_ID),
+            run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+            event_name:process.env.GITHUB_EVENT_NAME,
+            job_status:process.env.JOB_STATUS,
+            classification:'COMMITTED_OFFICIAL_SOURCE_REFERENCE_REPLAY_CONTROL_ONLY',
+            authoritative_external_acquisition_receipts:0,
+            authoritative_live_source_snapshots:0,
+            promotable_empirical_evidence_admitted:0,
+            promotable_market_events_created:0,
+            promotable:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
+          },null,2)+'\n');
+          NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
-          name: kidults-asi-state-department-camera-evidence-v1
+          name: kidults-asi-state-department-camera-evidence-v1-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/state-department-online-auction-adapter-test-v1.json
             /tmp/kidults-state-department-camera-evidence-run-1
@@ -414,5 +461,6 @@ jobs:
             /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
             /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
             /tmp/state-department-camera-evidence-report-after-remediation-validation-v1.json
+            /tmp/state-department-camera-reference-containment-terminal-v1.json
           retention-days: 90
           if-no-files-found: error
