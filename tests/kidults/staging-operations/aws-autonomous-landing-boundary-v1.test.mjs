@@ -32,11 +32,14 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
   assert.equal(refs.size,3);
 });
 
-test('finalizer trusts only the three role workflow refs and has no direct ledger writes', () => {
+test('finalizer trusts the three role workflows and the isolated canary, with no direct ledger writes', () => {
   const role=template.Resources.FinalizerRole.Properties;
   const condition=role.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
   assert.deepEqual(Object.keys(condition).sort(),['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
-  assert.equal(condition['token.actions.githubusercontent.com:sub'].length,3);
+  assert.deepEqual(condition['token.actions.githubusercontent.com:sub'],[
+    ...roles.map(([, , workflowRef])=>({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${' + workflowRef + '}'}`})),
+    {'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${CanaryWorkflowRef}'}`},
+  ]);
   const actions=role.Policies[0].PolicyDocument.Statement.flatMap(v=>v.Action||[]);
   for(const action of ['dynamodb:Query','lambda:InvokeFunction','kms:Sign']) assert.ok(actions.includes(action));
   assert.equal(actions.includes('dynamodb:PutItem'),false);
