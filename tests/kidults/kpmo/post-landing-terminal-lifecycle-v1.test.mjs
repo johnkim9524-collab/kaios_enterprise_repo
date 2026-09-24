@@ -28,9 +28,11 @@ test('one Program Owner landing approval has a finite automatic terminal path', 
 
 test('natural Canonical refresh is exact-main, first-attempt, append-only and separate from manual recovery', () => {
   assert.match(apply, /^  push:\n    branches: \[main\]/m);
+  assert.match(apply, /^  schedule:\n    - cron: '13,43 \* \* \* \*'/m);
   assert.match(apply, /issues:\s*write/);
   assert.match(apply, /github\.event_name == 'push'.*PROTECTED_MAIN_PUSH/);
-  assert.match(writer, /\['workflow_dispatch','push'\]\.includes\(event\)/);
+  assert.match(writer, /\['workflow_dispatch','push','schedule'\]\.includes\(event\)/);
+  assert.match(writer, /authority_type:'PROTECTED_MAIN_SCHEDULE'/);
   assert.match(writer, /attempt!==1/);
   assert.match(writer, /authority_type:'PROTECTED_MAIN_PUSH'/);
   assert.match(writer, /authority_type:'PROGRAM_OWNER_MANUAL_RECOVERY'/);
