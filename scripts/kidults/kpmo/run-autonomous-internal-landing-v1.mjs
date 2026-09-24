@@ -125,15 +125,20 @@ const invokeLedgerWriter = payload => {
 const acquireEventToken = async () => {
   const broker = required('KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION');
   const brokerRole = required('KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN');
-  const outputPath = path.join(required('RUNNER_TEMP'),`kidults-event-token-${process.pid}-${Date.now()}.json`);
-  const identityPath = path.join(required('RUNNER_TEMP'),`kidults-event-identity-${process.pid}-${Date.now()}.jwt`);
+  const privateDir = fs.mkdtempSync(path.join(required('RUNNER_TEMP'),'kidults-event-broker-'));
+  const outputPath = path.join(privateDir,'response.json');
+  const identityPath = path.join(privateDir,'identity.jwt');
   try {
+    const fd=fs.openSync(outputPath,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);
+    const outputIdentity=fs.fstatSync(fd);
+    fs.closeSync(fd);
+    if (!outputIdentity.isFile() || (outputIdentity.mode&0o777)!==0o600) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_FILE_UNSAFE');
     const identityResponse=await fetch(`${required('ACTIONS_ID_TOKEN_REQUEST_URL')}&audience=sts.amazonaws.com`,{
       headers:{Authorization:`Bearer ${required('ACTIONS_ID_TOKEN_REQUEST_TOKEN')}`},redirect:'error',signal:AbortSignal.timeout(10000)});
     if (!identityResponse.ok) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_UNAVAILABLE');
     const identity=(await identityResponse.json()).value;
     if(typeof identity!=='string'||identity.length<100) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_INVALID');
-    fs.writeFileSync(identityPath,identity,{mode:0o600});
+    fs.writeFileSync(identityPath,identity,{flag:'wx',mode:0o600});
     const isolatedEnv={...process.env,AWS_ROLE_ARN:brokerRole,AWS_WEB_IDENTITY_TOKEN_FILE:identityPath,
       AWS_ROLE_SESSION_NAME:`kidults-event-broker-${required('GITHUB_RUN_ID')}`};
     for(const name of ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','AWS_SESSION_TOKEN','AWS_PROFILE']) delete isolatedEnv[name];
@@ -147,7 +152,13 @@ const acquireEventToken = async () => {
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
-    const response=JSON.parse(fs.readFileSync(outputPath,'utf8'));
+    const actualOutput=fs.lstatSync(outputPath);
+    if (!actualOutput.isFile() || actualOutput.isSymbolicLink() || actualOutput.ino!==outputIdentity.ino
+      || actualOutput.dev!==outputIdentity.dev || (actualOutput.mode&0o777)!==0o600)
+      throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_FILE_UNSAFE');
+    const responseBytes=fs.readFileSync(outputPath,'utf8');
+    fs.unlinkSync(outputPath);
+    const response=JSON.parse(responseBytes);
     const expiresAt=Date.parse(response.expires_at);
     if (response.ok!==true || response.token_type!=='GITHUB_APP_INSTALLATION'
       || response.repository!==repository || String(response.repository_id)!==repositoryId
@@ -163,6 +174,7 @@ const acquireEventToken = async () => {
   } finally {
     try {fs.unlinkSync(outputPath);} catch {}
     try {fs.unlinkSync(identityPath);} catch {}
+    try {fs.rmdirSync(privateDir);} catch {}
   }
 };
 const kmsSignCanonical = (value, failureCode) => {

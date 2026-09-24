@@ -2649,14 +2649,14 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "87f395b733818e59c372c00e1fa0d1de33e24708",
-      "sha256": "sha256:ea61341f10b2c8407297255eff0191daa0cf7faf131ce4e0aed42a5402b0f27a"
+      "git_blob": "b3d209e6dfafd41021e6fb6e491dc0d5a1f1c6b8",
+      "sha256": "sha256:e229be532c42504b80b046560772223458c8316ef0637fad2f09891df6c3cba6"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1ce8ab62a75797612ee1dae1a047ae97b5656d20",
-      "sha256": "sha256:b7cf94be7ae4ff69d85818e4ac3fd9086a4240ffc19ab56d7073549a9d238953"
+      "git_blob": "6058eb2ce25acb399fdd8c2522ee53acb916c366",
+      "sha256": "sha256:3a68ab16e0c92df06401a2d09e52e759ae5a2a33b6f66c3d6f93226b13147a66"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -3159,8 +3159,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c1c888814503eed41a885c46229fdd5e9ac753ce",
-      "sha256": "sha256:5f2d28b480afc60da423919c021cefbc9ef9d17a28a80d00d31e4615b4bc8f04",
+      "git_blob": "55a376f42b6f27fab6e602c3b0a3513a7a95f75c",
+      "sha256": "sha256:3e13beb14cf284ba42831169e35c4728fb57ba2454a0c8d2340cba99642bfe77",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4866,8 +4866,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ee70e24f20964184cd97212578f7ca849016299b",
-      "sha256": "sha256:a5793464219fd41bac798e8c60d388b1d5d1442d9b64e1b5d11c2680d7525dc8"
+      "git_blob": "5dcf8e339493682ee9015b21c128e63531f6fa59",
+      "sha256": "sha256:935e66754bd83bbe58a1a067003ad1a93bbfd0cd1b0a96489524a49731cc9861"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
@@ -4918,5 +4918,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7bd811662ec330c53a2e46d50c861d1a694ee53f315f22a3fa1e8582ae8f9aff"
+  "manifest_sha256": "sha256:43b06f9ade3703eceaae36838ea77447eaf46818861d10b85abb5d07c0cf45a3"
 }

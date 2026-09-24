@@ -30,27 +30,34 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       if (!response.ok) fail();
       return response.json();
     };
-    const minted=await api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
+    const mint = permissions => api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions:{contents:'write',pull_requests:'write'}}),
+      body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions}),
     });
-    if (typeof minted.token!=='string' || minted.token.length<20
-      || !Number.isFinite(Date.parse(minted.expires_at)) || Date.parse(minted.expires_at)<now()+15*60*1000
-      || minted.permissions?.contents!=='write' || minted.permissions?.pull_requests!=='write'
-      || ![undefined,'read'].includes(minted.permissions?.metadata)
-      || Object.keys(minted.permissions).some(x=>!['contents','pull_requests','metadata'].includes(x))
-      || minted.repository_selection!=='selected' || minted.repositories?.length!==1
-      || Number(minted.repositories[0]?.id)!==Number(config.repositoryId)
-      || minted.repositories[0]?.full_name!==repository) fail();
+    const validScope = (minted, permissions) => typeof minted.token==='string' && minted.token.length>=20
+      && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
+      && minted.permissions?.contents===permissions.contents
+      && minted.permissions?.pull_requests===permissions.pull_requests
+      && [undefined,'read'].includes(minted.permissions?.metadata)
+      && Object.keys(minted.permissions).every(x=>['contents','pull_requests','metadata'].includes(x))
+      && minted.repository_selection==='selected' && minted.repositories?.length===1
+      && Number(minted.repositories[0]?.id)===Number(config.repositoryId)
+      && minted.repositories[0]?.full_name===repository;
+    const readPermissions={contents:'read',pull_requests:'read'};
+    const readonly=await mint(readPermissions);
+    if (!validScope(readonly,readPermissions)) fail();
     const [pr,main]=await Promise.all([
-      api(`/repos/${repository}/pulls/${pull_request}`,minted.token),
-      api(`/repos/${repository}/branches/main`,minted.token),
+      api(`/repos/${repository}/pulls/${pull_request}`,readonly.token),
+      api(`/repos/${repository}/branches/main`,readonly.token),
     ]);
     if (pr.number!==Number(pull_request) || pr.state!=='open'
       || (pr.draft!==false && !(allow_draft_recovery===true && pr.draft===true))
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || main.commit?.sha!==base_sha) fail();
+    const writePermissions={contents:'write',pull_requests:'write'};
+    const minted=await mint(writePermissions);
+    if (!validScope(minted,writePermissions)) fail();
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
       permissions:['contents:write','pull_requests:write','metadata:read'],expires_at:minted.expires_at,token:minted.token};
   };
