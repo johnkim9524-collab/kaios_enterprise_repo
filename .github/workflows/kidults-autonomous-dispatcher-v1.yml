@@ -22,7 +22,7 @@ permissions: {}
 
 jobs:
   dispatch-eligible-internal-prs:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-DISPATCHER
     timeout-minutes: 10

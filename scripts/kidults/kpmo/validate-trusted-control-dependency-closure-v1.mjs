@@ -52,8 +52,8 @@ const repositoryDependencyRefs = (text, currentPath) => {
   const semantic = new Set();
   for (const match of text.matchAll(/['"](scripts\/[A-Za-z0-9_./-]+\.(?:mjs|js|cjs|py|sh))['"]/g)) executable.add(match[1]);
   const relativePatterns = [
-    /\bfrom\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
-    /\bimport\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/g,
+    /^\s*import\s+[^\n;]*?\sfrom\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/gm,
+    /^\s*import\s+['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]/gm,
     /\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]\s*\)/g,
     /\brequire\s*\(\s*['"](\.{1,2}\/[^'"]+\.(?:mjs|js|cjs))['"]\s*\)/g
   ];
