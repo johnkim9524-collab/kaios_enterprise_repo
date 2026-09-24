@@ -99,7 +99,7 @@ const graphql = async (query, variables) => {
   }
   return payload.data;
 };
-const awsJson = args => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}));
+const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env,stdio:['ignore','pipe','pipe']}));
 const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
 let ledgerWriterInvocation = 0;
 const invokeLedgerWriter = payload => {
@@ -122,10 +122,21 @@ const invokeLedgerWriter = payload => {
     try { fs.unlinkSync(outputPath); } catch {}
   }
 };
-const acquireEventToken = () => {
+const acquireEventToken = async () => {
   const broker = required('KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION');
+  const brokerRole = required('KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN');
   const outputPath = path.join(required('RUNNER_TEMP'),`kidults-event-token-${process.pid}-${Date.now()}.json`);
+  const identityPath = path.join(required('RUNNER_TEMP'),`kidults-event-identity-${process.pid}-${Date.now()}.jwt`);
   try {
+    const identityResponse=await fetch(`${required('ACTIONS_ID_TOKEN_REQUEST_URL')}&audience=sts.amazonaws.com`,{
+      headers:{Authorization:`Bearer ${required('ACTIONS_ID_TOKEN_REQUEST_TOKEN')}`},redirect:'error',signal:AbortSignal.timeout(10000)});
+    if (!identityResponse.ok) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_UNAVAILABLE');
+    const identity=(await identityResponse.json()).value;
+    if(typeof identity!=='string'||identity.length<100) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_INVALID');
+    fs.writeFileSync(identityPath,identity,{mode:0o600});
+    const isolatedEnv={...process.env,AWS_ROLE_ARN:brokerRole,AWS_WEB_IDENTITY_TOKEN_FILE:identityPath,
+      AWS_ROLE_SESSION_NAME:`kidults-event-broker-${required('GITHUB_RUN_ID')}`};
+    for(const name of ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','AWS_SESSION_TOKEN','AWS_PROFILE']) delete isolatedEnv[name];
     const metadata = awsJson([
       'lambda','invoke','--region','ap-northeast-2','--function-name',broker,
       '--cli-binary-format','raw-in-base64-out',
@@ -133,7 +144,7 @@ const acquireEventToken = () => {
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
         authorization_generation:envelope.authorization_generation}),
       '--output','json',outputPath,
-    ]);
+    ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
     const response=JSON.parse(fs.readFileSync(outputPath,'utf8'));
     const expiresAt=Date.parse(response.expires_at);
@@ -150,6 +161,7 @@ const acquireEventToken = () => {
     throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_UNAVAILABLE');
   } finally {
     try {fs.unlinkSync(outputPath);} catch {}
+    try {fs.unlinkSync(identityPath);} catch {}
   }
 };
 const kmsSignCanonical = (value, failureCode) => {
@@ -411,7 +423,7 @@ try {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
-      const eventToken=acquireEventToken();
+      const eventToken=await acquireEventToken();
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
