@@ -4884,8 +4884,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c266000e3b44e9ecd8b7c245bb74e29a09e075f9",
-      "sha256": "sha256:030eb2f709d1018caf6691c8010235298dcd5cccf1c8edfe6be34456d4b428c8"
+      "git_blob": "10d64a8ce1676500f78e9d75ae32ffb0f6cd5e4f",
+      "sha256": "sha256:391ad19e20968407cef519cf4d22513b68010efcb22e3211b631ebf067f7b398"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -4918,5 +4918,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:42637602cfe8323ebba5d23fe64e352291d4d8acffac333798ab7719c5a19842"
+  "manifest_sha256": "sha256:7bd811662ec330c53a2e46d50c861d1a694ee53f315f22a3fa1e8582ae8f9aff"
 }
