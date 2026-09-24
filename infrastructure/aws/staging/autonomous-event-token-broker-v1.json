@@ -1,0 +1,150 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "STAGING-only short-lived GitHub App event token broker; requires separately supplied App private key in Secrets Manager.",
+  "Parameters": {
+    "GitHubAppId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]+$"
+    },
+    "GitHubInstallationId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]+$"
+    },
+    "GitHubPrivateKeySecretArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:secretsmanager:ap-northeast-2:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$"
+    },
+    "GitHubRepositoryId": {
+      "Type": "String",
+      "AllowedPattern": "^[0-9]+$"
+    },
+    "FinalizerRoleName": {
+      "Type": "String",
+      "Default": "kidults-autonomous-finalizer-staging-role"
+    },
+    "GitHubRepository": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo"
+    }
+  },
+  "Resources": {
+    "BrokerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-event-broker-staging-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "read-exact-app-key",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "secretsmanager:GetSecretValue"
+                  ],
+                  "Resource": {
+                    "Ref": "GitHubPrivateKeySecretArn"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "BrokerFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "kidults-autonomous-event-token-broker-staging",
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "BrokerRole",
+            "Arn"
+          ]
+        },
+        "Timeout": 30,
+        "MemorySize": 128,
+        "Code": {
+          "ZipFile": "'use strict';\nconst {createSign} = require('node:crypto');\n\nconst fail = () => { throw new Error('EVENT_TOKEN_BROKER_DENIED'); };\nconst sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);\nconst b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');\n\nfunction createHandler({getPrivateKey, request, config, now = () => Date.now()}) {\n  return async event => {\n    const {repository, repository_id, pull_request, base_sha, head_sha, authorization_generation} = event || {};\n    if (event?.action !== 'MINT_INSTALLATION_TOKEN'\n      || repository !== config.repository || String(repository_id) !== String(config.repositoryId)\n      || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1\n      || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha\n      || typeof authorization_generation !== 'string'\n      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();\n    const issued = Math.floor(now()/1000);\n    const key = await getPrivateKey();\n    if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail();\n    const unsigned = `${b64url({alg:'RS256',typ:'JWT'})}.${b64url({iat:issued-30,exp:issued+540,iss:String(config.appId)})}`;\n    const signer=createSign('RSA-SHA256'); signer.update(unsigned); signer.end();\n    const jwt=`${unsigned}.${signer.sign(key).toString('base64url')}`;\n    const api = async (endpoint, bearer, options={}) => {\n      const response=await request(`https://api.github.com${endpoint}`,{\n        ...options,redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${bearer}`,\n          'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-event-broker-v1',...(options.headers||{})},\n      });\n      if (!response.ok) fail();\n      return response.json();\n    };\n    const minted=await api(`/app/installations/${config.installationId}/access_tokens`,jwt,{\n      method:'POST',headers:{'Content-Type':'application/json'},\n      body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions:{contents:'write',pull_requests:'write'}}),\n    });\n    if (typeof minted.token!=='string' || minted.token.length<20\n      || !Number.isFinite(Date.parse(minted.expires_at)) || Date.parse(minted.expires_at)<now()+15*60*1000\n      || minted.permissions?.contents!=='write' || minted.permissions?.pull_requests!=='write'\n      || ![undefined,'read'].includes(minted.permissions?.metadata)\n      || Object.keys(minted.permissions).some(x=>!['contents','pull_requests','metadata'].includes(x))\n      || minted.repository_selection!=='selected' || minted.repositories?.length!==1\n      || Number(minted.repositories[0]?.id)!==Number(config.repositoryId)\n      || minted.repositories[0]?.full_name!==repository) fail();\n    const [pr,main]=await Promise.all([\n      api(`/repos/${repository}/pulls/${pull_request}`,minted.token),\n      api(`/repos/${repository}/branches/main`,minted.token),\n    ]);\n    if (pr.number!==Number(pull_request) || pr.state!=='open' || pr.draft!==false\n      || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha\n      || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository\n      || main.commit?.sha!==base_sha) fail();\n    return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),\n      permissions:['contents:write','pull_requests:write','metadata:read'],expires_at:minted.expires_at,token:minted.token};\n  };\n}\n\nexports.createHandler=createHandler;\nexports.handler=async event => {\n  const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');\n  const client=new SecretsManagerClient({region:process.env.AWS_REGION});\n  const getPrivateKey=async () => {\n    const value=await client.send(new GetSecretValueCommand({SecretId:process.env.GITHUB_APP_PRIVATE_KEY_SECRET_ARN}));\n    return value.SecretString;\n  };\n  return createHandler({getPrivateKey,config:{repository:process.env.GITHUB_REPOSITORY,\n    repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.GITHUB_APP_ID,\n    installationId:process.env.GITHUB_APP_INSTALLATION_ID},\n    request:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)})})(event);\n};\n"
+        },
+        "Environment": {
+          "Variables": {
+            "GITHUB_APP_PRIVATE_KEY_SECRET_ARN": {
+              "Ref": "GitHubPrivateKeySecretArn"
+            },
+            "GITHUB_APP_ID": {
+              "Ref": "GitHubAppId"
+            },
+            "GITHUB_APP_INSTALLATION_ID": {
+              "Ref": "GitHubInstallationId"
+            },
+            "GITHUB_REPOSITORY_ID": {
+              "Ref": "GitHubRepositoryId"
+            },
+            "GITHUB_REPOSITORY": {
+              "Ref": "GitHubRepository"
+            }
+          }
+        }
+      }
+    },
+    "FinalizerBrokerInvoke": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "kidults-autonomous-event-token-broker-invoke",
+        "Roles": [
+          {
+            "Ref": "FinalizerRoleName"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "lambda:InvokeFunction"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "BrokerFunction",
+                  "Arn"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BrokerFunctionName": {
+      "Value": {
+        "Ref": "BrokerFunction"
+      }
+    },
+    "BrokerFunctionArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "BrokerFunction",
+          "Arn"
+        ]
+      }
+    }
+  }
+}
