@@ -4,6 +4,7 @@ on:
     paths:
       - 'AGENTS.md'
       - '.github/AI_AGENT_OPERATING_RULES.md'
+      - '.github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml'
       - 'coordination/kidults/governance/delegated-autonomous-**'
       - 'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'
       - 'coordination/kidults/governance/approval-policy-inventory-v1.json'
@@ -12,10 +13,15 @@ on:
       - 'docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md'
       - 'scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs'
       - 'scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs'
+      - 'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs'
       - 'scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'
       - 'scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs'
       - 'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs'
       - 'tests/governance/autonomous-approval-policy-envelope-v1.test.mjs'
+      - 'tests/governance/autonomous-policy-alignment-v1.test.mjs'
       - 'tests/governance/delegated-autonomous-internal-authority-v1.test.mjs'
       - 'package.json'
   push:
@@ -43,4 +49,6 @@ jobs:
       - run: npm run test:delegated-autonomous-authority
       - run: npm run validate:autonomous-approval-envelope
       - run: npm run test:autonomous-approval-envelope
+      - name: Exercise semantic capability fail-closed canary
+        run: node --test tests/governance/autonomous-policy-alignment-v1.test.mjs
       - run: node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs
