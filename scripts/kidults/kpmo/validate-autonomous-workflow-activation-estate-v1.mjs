@@ -71,7 +71,12 @@ assert(!triggers(p1Mutation).includes('workflow_run'), 'P1_UPSTREAM_MUTATION_NOT
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_AUTONOMOUS_WORKFLOW_ACTIVATION_ESTATE_V1',
-  result: 'VERIFIED_PASS',
+  result: 'WIRING_VERIFIED',
+  verified_scope: 'STATIC_TRIGGER_WIRING_ONLY',
+  natural_scheduled_run_verified: false,
+  external_provider_collaboration_verified: false,
+  autonomous_end_to_end_complete: false,
+  promotion_eligible: false,
   workflow_count: files.length,
   autonomous_required_count: autonomousRequired.size,
   protected_manual_count: protectedManual.size,
