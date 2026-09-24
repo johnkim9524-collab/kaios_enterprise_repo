@@ -543,9 +543,77 @@ const executableShellCommands = (runBody) => {
   return commands;
 };
 
+const shellCommandSegments = (command) => {
+  const segments = [];
+  let current = '';
+  let quote = null;
+  let escaped = false;
+  for (const character of command) {
+    if (escaped) {
+      current += character;
+      escaped = false;
+      continue;
+    }
+    if (character === '\\' && quote !== "'") {
+      current += character;
+      escaped = true;
+      continue;
+    }
+    if (quote) {
+      current += character;
+      if (character === quote) quote = null;
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      current += character;
+      continue;
+    }
+    if (character === ';' || character === '&' || character === '|') {
+      if (current.trim()) segments.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += character;
+  }
+  if (current.trim()) segments.push(current.trim());
+  return segments;
+};
+
+const normalizeShellCommandSegment = (segment) => {
+  let command = segment.trim();
+  let previous = null;
+  while (command && command !== previous) {
+    previous = command;
+    command = command
+      .replace(/^[({]\s*/, '')
+      .replace(/^(?:(?:command|builtin|exec|then|do|else|time)\s+|!\s*)+/i, '')
+      .replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]+)\s+)+/, '');
+
+    const envMatch = command.match(/^(?:(?:\/[^\s/]+)*\/)?env(?=\s|$)/i);
+    if (!envMatch) break;
+    let remainder = command.slice(envMatch[0].length).trim();
+    while (remainder.startsWith('-')) {
+      const optionWithArgument = remainder.match(/^(?:-u|--unset)\s+\S+\s*/i);
+      if (optionWithArgument) {
+        remainder = remainder.slice(optionWithArgument[0].length);
+        continue;
+      }
+      const option = remainder.match(/^\S+\s*/);
+      if (!option) break;
+      remainder = remainder.slice(option[0].length);
+    }
+    remainder = remainder.replace(/^(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]+)\s+)+/, '');
+    command = remainder || 'env';
+  }
+  return command.replace(/^(?:(?:\/[^\s/]+)*\/)(?=(?:bash|sh|zsh|printenv|echo|printf)(?:\s|$))/i, '');
+};
+
 const commandStartsInvocation = (command, commandPattern) => new RegExp(
   `^(?:${commandPattern}|[A-Za-z_][A-Za-z0-9_]*=["']?\\$\\(\\s*${commandPattern})(?=\\s|$)`
 ).test(command);
+
+const regexEscape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const isConsumingVerificationAssertion = (command) => {
   if (!commandStartsInvocation(command, String.raw`node\s+(?:-e|--eval)`)) return false;
@@ -568,7 +636,7 @@ const isUnparameterizedFullValidator = (command) => {
   if (!prefix) return false;
   const tail = command.slice(prefix.length).trim();
   return tail === ''
-    || /^(?:>{1,2}\s*\S+|\|\s*tee\s+\S+)$/.test(tail);
+    || /^(?:>{1,2}\s*\/tmp\/[A-Za-z0-9._-]+|\|\s*tee\s+\/tmp\/[A-Za-z0-9._-]+)$/.test(tail);
 };
 
 const shellArgumentValue = (command, argument) => {
@@ -599,6 +667,16 @@ const validateDispatchJob = (dispatch, workflows) => {
   }
   const gateCommands = job.steps.slice(0, taskIndex).flatMap((step, stepIndex) =>
     executableShellCommands(step.run).map((command, commandIndex) => ({ command, stepIndex, commandIndex })));
+  const commandSegments = gateCommands.flatMap(({command}) => shellCommandSegments(command))
+    .map(normalizeShellCommandSegment);
+  assert(!commandSegments.some(segment => /^(?:(?:set\b.*(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace))|(?:(?:bash|sh|zsh)\b.*\s(?:-[A-Za-z]*x[A-Za-z]*|--xtrace|-o\s+xtrace))|Set-PSDebug\s+-Trace\s+(?:1|2))(?=\s|$)/i.test(segment)),
+    `DISPATCH_SHELL_TRACE_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!commandSegments.some(segment => /^(?:(?:\/(?:usr\/)?bin\/)?printenv(?:\s|$)|(?:\/(?:usr\/)?bin\/)?env\s*(?:$|[<>])|(?:export|declare)\s+-p(?:\s|$)|(?:Get-ChildItem|gci|dir)\s+Env:(?:\s|$)|\[Environment\]::GetEnvironmentVariables\s*\(\s*\)|set\s*$)/i.test(segment)),
+    `DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!commandSegments.some(segment => /^(?:(?:\/(?:usr\/)?bin\/)?(?:echo|printf)|Write-(?:Output|Host)|console\.log)\b.*(?:KIDULTS_BOOTSTRAP_NONCE|BOOTSTRAP_NONCE)/i.test(segment)),
+    `DISPATCH_NONCE_ECHO_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
+  assert(!commandSegments.some(segment => /(?:^|\s)--(?:nonce|bootstrap-nonce|orchestrator-nonce|secret|token|password)(?:=|\s|$)/i.test(segment)),
+    `DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:${dispatch.workflow}:${dispatch.job}`);
   const bootstrapPattern = String.raw`(?:node\s+${paths.entrypoint.replaceAll('/', '\\/')}|npm\s+run\s+agent:bootstrap(?:\s+--)?)(?=\s|$)`;
   const verifierPattern = String.raw`(?:node\s+${paths.verifier.replaceAll('/', '\\/')}|npm\s+run\s+verify:agent-bootstrap(?:\s+--)?)(?=\s|$)`;
   const validatorPattern = String.raw`(?:node\s+${paths.validator.replaceAll('/', '\\/')}|npm\s+run\s+validate:agent-bootstrap(?:\s+--)?)(?=\s|$)`;
@@ -613,6 +691,47 @@ const validateDispatchJob = (dispatch, workflows) => {
   const nonceIndex = gateCommands.findIndex(({ command }, index) => index <= bootstrapIndex
     && /^(?:export\s+)?KIDULTS_BOOTSTRAP_NONCE=/.test(command));
   assert(nonceIndex !== -1, `DISPATCH_NONCE_ASSIGNMENT_MISSING:${dispatch.workflow}:${dispatch.job}`);
+  assert(nonceIndex < bootstrapIndex, `DISPATCH_NONCE_ASSIGNMENT_ORDER_INVALID:${dispatch.workflow}:${dispatch.job}`);
+  const nonceStepIndex = gateCommands[nonceIndex].stepIndex;
+  assert([bootstrapIndex, verifierIndex, verificationAssertionIndex, validatorIndex]
+    .every(index => gateCommands[index].stepIndex === nonceStepIndex),
+  `DISPATCH_NONCE_BOUNDARY_CROSSES_STEP:${dispatch.workflow}:${dispatch.job}`);
+  const nonceStepLastCommandIndex = gateCommands.findLastIndex(({stepIndex}) => stepIndex === nonceStepIndex);
+  assert(validatorIndex === nonceStepLastCommandIndex,
+    `DISPATCH_VALIDATOR_NOT_FINAL_NONCE_AMBIENT_COMMAND:${dispatch.workflow}:${dispatch.job}`);
+  const safePreNonceCommand = (command) => command === 'set -euo pipefail'
+    || /^(?:node(?:\s+--(?:check|test))?|python3\s+-m\s+py_compile)\s+[A-Za-z0-9_./-]+(?:\s+[A-Za-z0-9_./-]+)*(?:\s+--self-test)?$/.test(command)
+    || /^env\s+[A-Z_][A-Z0-9_]*=[A-Za-z0-9._-]+\s+node\s+[A-Za-z0-9_./-]+$/.test(command);
+  for (let index = gateCommands.findIndex(({stepIndex}) => stepIndex === nonceStepIndex); index < nonceIndex; index += 1) {
+    assert(safePreNonceCommand(gateCommands[index].command),
+      `DISPATCH_PRE_NONCE_STATEFUL_COMMAND_FORBIDDEN:${dispatch.workflow}:${dispatch.job}:${index}`);
+  }
+  const bootstrapCapturePattern = new RegExp(
+    `^[A-Za-z_][A-Za-z0-9_]*="\\$\\(node\\s+${regexEscape(paths.entrypoint)}\\s+--require-clean\\s+--agent-id\\s+[A-Za-z0-9_-]+\\s+--agent-class\\s+${regexEscape(dispatch.agent_class)}\\s+--task-id\\s+"\\$TASK_ID"\\s+--session-id\\s+"\\$SESSION_ID"\\s+--expected-sha\\s+"\\$EXPECTED_SHA"\\s*\\)"$`,
+  );
+  const verifierCapturePattern = new RegExp(
+    `^[A-Za-z_][A-Za-z0-9_]*="\\$\\(node\\s+${regexEscape(paths.verifier)}\\s+--receipt\\s+"\\$RECEIPT_PATH"\\s+--agent-id\\s+[A-Za-z0-9_-]+\\s+--agent-class\\s+${regexEscape(dispatch.agent_class)}\\s+--task-id\\s+"\\$TASK_ID"\\s+--session-id\\s+"\\$SESSION_ID"\\s+--expected-sha\\s+"\\$EXPECTED_SHA"\\s+--consume\\s*\\)"$`,
+  );
+  const exactVerificationAssertion = 'node -e \'const x=JSON.parse(process.argv[1]); if(x.state!=="BOOTSTRAP_VERIFIED"||x.consumed!==true||x.task_dispatch_allowed_for_bound_task_session!==true||x.working_sha!==process.env.EXPECTED_SHA) throw new Error("BOOTSTRAP_VERIFICATION_RESULT_INVALID")\' "$VERIFY_RESULT"';
+  const fixedNonceAmbientCommand = (index, command) => {
+    if (index === nonceIndex) {
+      return /^export KIDULTS_BOOTSTRAP_NONCE="\$\(openssl rand -base64 48 \| tr -d '\\n'\)"$/.test(command);
+    }
+    if (index === bootstrapIndex) return bootstrapCapturePattern.test(command);
+    if (index === verifierIndex) return verifierCapturePattern.test(command);
+    if (index === verificationAssertionIndex) return command === exactVerificationAssertion;
+    return index === validatorIndex && isUnparameterizedFullValidator(command);
+  };
+  const safeNonceAmbientMetadataCommand = (command) =>
+    /^TASK_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}"$/.test(command)
+    || /^SESSION_ID="[A-Za-z0-9-]+-\$\{GITHUB_RUN_ID\}-\$\{GITHUB_RUN_ATTEMPT\}-\$\{EXPECTED_SHA\}"$/.test(command)
+    || /^RECEIPT_PATH="\$\(node -e 'const x=JSON\.parse\(process\.argv\[1\]\); process\.stdout\.write\(x\.receipt_path\)' "\$BOOTSTRAP_RESULT"\)"$/.test(command)
+    || /^printf\s+'%s\\n'\s+"\$VERIFY_RESULT"(?:\s*(?:>\s*\/tmp\/[A-Za-z0-9._-]+|\|\s*tee\s+\/tmp\/[A-Za-z0-9._-]+))?$/.test(command);
+  for (let index = nonceIndex; index <= validatorIndex; index += 1) {
+    assert(fixedNonceAmbientCommand(index, gateCommands[index].command)
+      || safeNonceAmbientMetadataCommand(gateCommands[index].command),
+      `DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:${dispatch.workflow}:${dispatch.job}:${index}`);
+  }
   const bootstrapCommand = gateCommands[bootstrapIndex].command;
   const verifierCommand = gateCommands[verifierIndex].command;
   const verificationAssertionCommand = gateCommands[verificationAssertionIndex].command;
@@ -667,8 +786,13 @@ assert(contract.bootstrap_entrypoint?.path === paths.entrypoint, 'ENTRYPOINT_PAT
 assert(contract.bootstrap_entrypoint?.validator_path === paths.validator, 'VALIDATOR_PATH');
 assert(contract.bootstrap_entrypoint?.receipt_verifier_path === paths.verifier, 'VERIFIER_PATH');
 assert(contract.bootstrap_entrypoint?.package_command ===
-  `KIDULTS_BOOTSTRAP_NONCE=<orchestrator-nonce> npm run agent:bootstrap -- --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha>`,
+  `npm run agent:bootstrap -- --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha>`,
 'BOOTSTRAP_PACKAGE_COMMAND_EXPECTED_SHA_REQUIRED');
+assert(contract.bootstrap_entrypoint?.nonce_input_channel === 'PROTECTED_NON_ECHOING_ENVIRONMENT_KIDULTS_BOOTSTRAP_NONCE',
+  'BOOTSTRAP_PROTECTED_NON_ECHOING_NONCE_INPUT_REQUIRED');
+assert(contract.bootstrap_entrypoint?.verifier_package_command ===
+  `npm run verify:agent-bootstrap -- --receipt <controlled-receipt-path> --agent-id <agent-id> --agent-class <class> --task-id <task-id> --session-id <session-id> --expected-sha <sha> --consume`,
+'VERIFIER_PACKAGE_COMMAND_NONCE_NOT_INLINE');
 assert(contract.trust_model?.required_documents_are_read_from_exact_head_git_blobs === true, 'COMMITTED_BLOB_TRUST_REQUIRED');
 assert(contract.trust_model?.agent_class_must_resolve_to_one_registered_role === true, 'ROLE_RESOLUTION_REQUIRED');
 assert(contract.trust_model?.readiness_receipt_must_bind_manifest_role_registry_role_mission_domains_jd_fields_task_session_nonce_and_sha === true, 'READINESS_RECEIPT_BINDING_REQUIRED');
@@ -679,6 +803,8 @@ assert(contract.trust_model?.github_event_context_binding_is_not_cryptographic_o
 assert(contract.trust_model?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'CURRENT_GITHUB_STATE_REMOTE_REQUIRED');
 assert(contract.trust_model?.repository_bootstrap_is_not_a_cryptographic_agent_identity === true, 'BOOTSTRAP_NOT_AGENT_IDENTITY');
 assert(contract.trust_model?.external_orchestrator_must_supply_nonce_and_verify_then_consume_receipt === true, 'EXTERNAL_ORCHESTRATOR_NONCE_GATE');
+assert(contract.trust_model?.secret_like_cli_arguments_are_rejected_without_value_reflection === true, 'SECRET_LIKE_CLI_ARGUMENT_REJECTION_REQUIRED');
+assert(contract.trust_model?.dispatch_shell_trace_and_nonce_echo_are_forbidden === true, 'DISPATCH_NONCE_TRACE_AND_ECHO_FORBIDDEN');
 assert(contract.trust_model?.full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher === true, 'PINNED_BASE_LAUNCHER_REQUIRED');
 assert(contract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'CLEAN_CHECKOUT_ROOT_OF_TRUST_ESCALATION');
 assert(contract.trust_model?.target_revision_must_be_treated_as_data_by_the_root_launcher === true, 'TARGET_REVISION_MUST_BE_DATA');
@@ -858,6 +984,130 @@ const parsedWorkflows = new Map(workflowPaths.map((workflowPath) => {
   return [workflowPath, parseWorkflowJobs(workflowPath, fs.readFileSync(absolutePath, 'utf8'))];
 }));
 for (const dispatch of repositoryDefenseInDepthBootstrapJobs) validateDispatchJob(dispatch, parsedWorkflows);
+const assertDispatchSecretMutationRejected = (injectedCommand, expectedPrefix) => {
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const mutatedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = mutatedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const executableStep = job.steps.find((step, index) => index < taskIndex
+    && typeof step.run === 'string'
+    && step.run.includes('KIDULTS_BOOTSTRAP_NONCE='));
+  assert(executableStep, 'DISPATCH_NEGATIVE_MUTATION_TARGET_MISSING');
+  const lines = executableStep.run.split(/\r?\n/);
+  const nonceLineIndex = lines.findIndex(line => /^(?:\s*export\s+)?KIDULTS_BOOTSTRAP_NONCE=/.test(line));
+  assert(nonceLineIndex !== -1, 'DISPATCH_NEGATIVE_MUTATION_NONCE_TARGET_MISSING');
+  lines.splice(nonceLineIndex + 1, 0, injectedCommand);
+  executableStep.run = lines.join('\n');
+  let rejected = false;
+  try {
+    validateDispatchJob(dispatch, new Map([[dispatch.workflow, mutatedJobs]]));
+  } catch (error) {
+    rejected = error?.message?.startsWith(expectedPrefix) ?? false;
+  }
+  assert(rejected, `DISPATCH_SECRET_MUTATION_NOT_REJECTED:${expectedPrefix}`);
+};
+assertDispatchSecretMutationRejected('set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -xv', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -vx', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -euxo pipefail', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -euxo pipefail bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('/bin/bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('bash -o xtrace bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('set -o errexit -o xtrace', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('env bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('FOO=bar bash -x bootstrap.sh', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('true; set -x', 'DISPATCH_SHELL_TRACE_FORBIDDEN:');
+assertDispatchSecretMutationRejected('echo "$KIDULTS_BOOTSTRAP_NONCE"', 'DISPATCH_NONCE_ECHO_FORBIDDEN:');
+for (const environmentDump of [
+  'printenv KIDULTS_BOOTSTRAP_NONCE',
+  'true; printenv KIDULTS_BOOTSTRAP_NONCE',
+  'true && printenv KIDULTS_BOOTSTRAP_NONCE',
+  'if true; then printenv KIDULTS_BOOTSTRAP_NONCE; fi',
+  '(printenv KIDULTS_BOOTSTRAP_NONCE)',
+  'command printenv KIDULTS_BOOTSTRAP_NONCE',
+  'builtin printenv KIDULTS_BOOTSTRAP_NONCE',
+  'exec printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env FOO=bar printenv KIDULTS_BOOTSTRAP_NONCE',
+  'FOO=bar printenv KIDULTS_BOOTSTRAP_NONCE',
+  'env',
+  '/bin/env',
+  '/bin/printenv KIDULTS_BOOTSTRAP_NONCE',
+  'declare -p KIDULTS_BOOTSTRAP_NONCE',
+  'export -p',
+  'Get-ChildItem Env:',
+  '[Environment]::GetEnvironmentVariables()',
+]) assertDispatchSecretMutationRejected(environmentDump, 'DISPATCH_ENVIRONMENT_DUMP_FORBIDDEN:');
+assertDispatchSecretMutationRejected('node bootstrap.mjs --nonce forbidden', 'DISPATCH_SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN:');
+for (const nestedInterpreter of [
+  "env -S 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+  "env -S 'bash -x bootstrap.sh'",
+  "bash -c 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+  "sh -c 'set -x; true'",
+  "python3 -c 'import os; print(os.environ)'",
+  "node -e 'console.log(process.env.KIDULTS_BOOTSTRAP_NONCE)'",
+  "eval 'printenv KIDULTS_BOOTSTRAP_NONCE'",
+]) assertDispatchSecretMutationRejected(nestedInterpreter, 'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:');
+const assertDispatchBootstrapStepMutationRejected = (mutateRun, expectedPrefix) => {
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const mutatedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = mutatedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const bootstrapStep = job.steps.find((step, index) => index < taskIndex
+    && typeof step.run === 'string'
+    && step.run.includes('KIDULTS_BOOTSTRAP_NONCE='));
+  assert(bootstrapStep, 'DISPATCH_BOOTSTRAP_STEP_MUTATION_TARGET_MISSING');
+  bootstrapStep.run = mutateRun(bootstrapStep.run);
+  let rejected = false;
+  let actualFailure = 'NO_FAILURE';
+  try {
+    validateDispatchJob(dispatch, new Map([[dispatch.workflow, mutatedJobs]]));
+  } catch (error) {
+    actualFailure = error?.message ?? 'UNKNOWN_FAILURE';
+    rejected = error?.message?.startsWith(expectedPrefix) ?? false;
+  }
+  assert(rejected, `DISPATCH_BOOTSTRAP_STEP_MUTATION_NOT_REJECTED:${expectedPrefix}:${actualFailure}`);
+};
+assertDispatchBootstrapStepMutationRejected(
+  run => `${run}\nnode -e 'console.log(process.env.KIDULTS_BOOTSTRAP_NONCE)'`,
+  'DISPATCH_VALIDATOR_NOT_FINAL_NONCE_AMBIENT_COMMAND:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('/tmp/kpmo-ci-agent-bootstrap-static-validation-v1.json', '$(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE)'),
+  'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('/tmp/kpmo-ci-agent-bootstrap-verification-v1.json', '$(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE)'),
+  'DISPATCH_NONCE_ECHO_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('--expected-sha "$EXPECTED_SHA")"', '--expected-sha "$EXPECTED_SHA" $(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE>/tmp/leak))"'),
+  'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace(/--consume\s+\\\r?\n\s+\)"/,
+    '--consume $(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE>/tmp/leak) \\\n            )"'),
+  'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace('"$VERIFY_RESULT"\n', '"$VERIFY_RESULT" $(printenv${IFS}KIDULTS_BOOTSTRAP_NONCE>/tmp/leak)\n'),
+  'DISPATCH_NONCE_AMBIENT_COMMAND_FORBIDDEN:',
+);
+assertDispatchBootstrapStepMutationRejected(
+  run => run.replace(/(^\s*export KIDULTS_BOOTSTRAP_NONCE=.*$)/m,
+    "trap 'printenv KIDULTS_BOOTSTRAP_NONCE >/tmp/leak' DEBUG\n$1"),
+  'DISPATCH_PRE_NONCE_STATEFUL_COMMAND_FORBIDDEN:',
+);
+{
+  const dispatch = repositoryDefenseInDepthBootstrapJobs[0];
+  const allowedJobs = structuredClone(parsedWorkflows.get(dispatch.workflow));
+  const job = allowedJobs.get(dispatch.job);
+  const taskIndex = job.steps.findIndex(step => step.name === dispatch.first_task_step);
+  const executableStep = job.steps.find((step, index) => index < taskIndex && typeof step.run === 'string');
+  executableStep.run = `env NODE_ENV=test node task.js\n${executableStep.run}`;
+  validateDispatchJob(dispatch, new Map([[dispatch.workflow, allowedJobs]]));
+}
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
   workflow: spoofWorkflowPath,
@@ -935,7 +1185,7 @@ const run = (script, args, env = baseEnv, cwd = root) => execFileSync(process.ex
   killSignal: 'SIGKILL'
 });
 const expectFailure = (script, args, expectedReason, env = baseEnv, cwd = root) => {
-  const label = `${script}:${args.join(' ')}`;
+  const label = `${script}:redacted-argv-count-${args.length}`;
   const result = spawnSync(process.execPath, [script, ...args], {
     cwd,
     env,
@@ -968,6 +1218,14 @@ const bootstrapArgs = [
   '--session-id', bindings.sessionId,
   '--expected-sha', workingSha
 ];
+const cliSecret = crypto.randomBytes(32).toString('base64url');
+for (const script of [paths.entrypoint, paths.verifier]) {
+  for (const secretArgs of [['--nonce', cliSecret], [`--nonce=${cliSecret}`], [`--unknown=${cliSecret}`]]) {
+    const expected = secretArgs[0].startsWith('--unknown=') ? 'UNKNOWN_ARGUMENT' : 'SECRET_LIKE_CLI_ARGUMENT_FORBIDDEN';
+    const output = expectFailure(script, secretArgs, expected);
+    assert(!output.includes(cliSecret), `SECRET_LIKE_CLI_VALUE_REFLECTED:${path.basename(script)}`);
+  }
+}
 expectFailure(paths.entrypoint, bootstrapArgs.slice(0, -2), 'EXPECTED_CHECKOUT_SHA_REQUIRED');
 const bootstrapResult = JSON.parse(run(paths.entrypoint, bootstrapArgs));
 assert(bootstrapResult.state === 'BOOTSTRAP_PREREQUISITES_SATISFIED', 'RUNTIME_BOOTSTRAP_STATE');
@@ -1448,6 +1706,8 @@ console.log(JSON.stringify({
   governed_agent_classes_validated: governedClasses.length,
   negative_controls_verified: [
     'EXPECTED_CHECKOUT_SHA_REQUIRED',
+    'SECRET_LIKE_CLI_ARGUMENT_REJECTION_WITHOUT_VALUE_REFLECTION',
+    'DISPATCH_SHELL_TRACE_AND_NONCE_ECHO_REJECTION',
     'LOCAL_EXPECTED_SHA_NOT_GITHUB_PROVENANCE',
     'RECEIPT_ALONE_DOES_NOT_OPEN_TASK_GATE',
     'NON_CONSUMING_AUDIT_STATE_DISTINCT_FROM_DISPATCH_VERIFICATION',

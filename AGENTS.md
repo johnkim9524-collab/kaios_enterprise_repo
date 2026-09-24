@@ -29,8 +29,10 @@ Every AI or model agent instance, including each child, reviewer, and runtime ag
 
 The current repository inventory contains zero actual in-repository AI/model dispatch jobs. The nine registered workflow jobs are deterministic defense-in-depth bootstrap integrations only; they prove the gate mechanics but do not prove external agent-launcher enforcement. Every external Copilot, Codex, ChatGPT, model, child-agent, or scheduled-agent dispatcher must enforce the equivalent gate through a protected launcher before activation.
 
+The protected launcher must inject `KIDULTS_BOOTSTRAP_NONCE` through a non-echoing environment/input channel. Never pass a nonce or other secret-like material as a CLI argument, inline command assignment, traced shell command, debug echo, log field, artifact, or receipt. Bootstrap and verifier entrypoints reject secret-like CLI flags without reflecting their values; registered dispatch validation rejects shell tracing and nonce echo before task execution.
+
 ```bash
-export KIDULTS_BOOTSTRAP_NONCE='<unique-orchestrator-nonce-at-least-32-bytes>'
+# KIDULTS_BOOTSTRAP_NONCE is preloaded by the protected non-echoing launcher.
 npm run agent:bootstrap -- \
   --agent-id <agent-id> --agent-class <governed-class> \
   --task-id <task-id> --session-id <session-id> \

@@ -1,8 +1,45 @@
-import {createHash} from 'node:crypto';
+import {createHash, verify} from 'node:crypto';
+import {workflowReceiptLedgerInternals} from '../../../../services/kidults-control-plane/src/workflow-receipt-ledger.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const NONCE_PATTERN = /^[0-9a-f]{32}$/;
 const MAX_APPROVAL_LIFETIME_MS = 60 * 60 * 1000;
+const AUTONOMOUS_REVIEW_MARKER = 'KIDULTS_PROTECTED_AUTONOMOUS_REVIEW_ATTESTATION_V1';
+const DURABLE_READBACK_MARKER = 'KIDULTS_PROTECTED_REVIEW_DURABLE_READBACK_V1';
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{2,127}$/;
+const {canonicalJson} = workflowReceiptLedgerInternals;
+
+const verifyProtectedEd25519Payload = (payload, signatureBase64, trustedPublicKey) => {
+  try {
+    return verify(null, Buffer.from(canonicalJson(payload)), trustedPublicKey, Buffer.from(signatureBase64, 'base64'));
+  } catch {
+    return false;
+  }
+};
+
+export const sameAutonomousReview = (left, right) => {
+  try { return canonicalJson(left) === canonicalJson(right); } catch { return false; }
+};
+
+export function requiredAutonomousReviewDomain(changedFilenames) {
+  if (!Array.isArray(changedFilenames) || !changedFilenames.length
+      || changedFilenames.some(value => typeof value !== 'string' || !value)) {
+    fail('AUTONOMOUS_REVIEW_CHANGED_PATHS_INVALID');
+  }
+  const domains = new Set();
+  for (const filename of changedFilenames) {
+    if (filename.startsWith('coordination/kidults/provider/')
+        || filename.startsWith('scripts/kidults/source-intelligence/')) domains.add('provider_rights_evidence');
+    else if (filename.startsWith('coordination/kidults/security/') || filename.startsWith('infra/')) domains.add('security_credentials_tls_ssh');
+    else if (filename.startsWith('scripts/kidults/portal/') || filename.startsWith('apps/portal/')) domains.add('portal');
+    else if (filename.startsWith('services/kidults-control-plane/')
+        || filename.startsWith('services/kidults-autonomous-intelligence/')) domains.add('data_runtime_storage');
+    else domains.add('governance_independence_and_provenance');
+  }
+  if (domains.size !== 1) fail('AUTONOMOUS_REVIEW_MULTIPLE_DOMAINS_REQUIRED', [...domains].sort().join(','));
+  return [...domains][0];
+}
 
 export class GateFailure extends Error {
   constructor(code, detail = '') {
@@ -15,6 +52,10 @@ export class GateFailure extends Error {
 
 const fail = (code, detail = '') => { throw new GateFailure(code, detail); };
 const normalized = value => String(value ?? '').trim().toLowerCase();
+const requireExactArray = (actual, expected, code) => {
+  if (!Array.isArray(actual) || actual.length !== expected.length
+    || actual.some((value, index) => value !== expected[index])) fail(code);
+};
 
 const EXACT_HEAD_APPROVAL_MARKER = 'KIDULTS_ATOMIC_LANDING_EXACT_HEAD_APPROVAL_V2';
 const EXACT_HEAD_APPROVAL_SCOPE = 'ONE_ATOMIC_GOVERNED_LANDING_ONLY';
@@ -51,6 +92,185 @@ function parseExactHeadApprovalBody(body) {
   }
   if (Object.keys(values).length !== expectedKeys.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_FIELD_SET_INVALID');
   return values;
+}
+
+export function assertAutonomousIndependentReview(comments, {
+  repository,
+  prNumber,
+  repositoryOwner,
+  baseSha,
+  headSha,
+  headTreeSha,
+  requiredDomain,
+  evaluationTime = new Date().toISOString(),
+  requireDurableConsumption = false,
+  operationBinding = null,
+  reviewPolicy,
+} = {}) {
+  if (!Array.isArray(comments)) fail('AUTONOMOUS_REVIEW_COMMENT_SET_INVALID');
+  if (!repositoryOwner || !SHA_PATTERN.test(headSha || '')
+    || reviewPolicy?.status !== 'ACTIVE_MANDATORY_FAIL_CLOSED') {
+    fail('AUTONOMOUS_REVIEW_BINDING_INVALID');
+  }
+  if (reviewPolicy?.identity_assurance_boundary?.protected_attestation_controller_status !== 'PROVISIONED_VERIFIED') {
+    fail('AUTONOMOUS_REVIEW_CONTROLLER_NOT_PROVISIONED');
+  }
+  if (!repository || !/^[-A-Za-z0-9_.]+\/[-A-Za-z0-9_.]+$/.test(repository)
+    || !Number.isSafeInteger(Number(prNumber)) || Number(prNumber) < 1
+    || !SHA_PATTERN.test(baseSha || '') || !SHA_PATTERN.test(headTreeSha || '')
+    || !ID_PATTERN.test(requiredDomain || '')) fail('AUTONOMOUS_REVIEW_BINDING_INVALID');
+  const trust = reviewPolicy.identity_assurance_boundary.protected_attestation_trust;
+  if (!trust || trust.signature_algorithm !== 'Ed25519'
+      || !Number.isSafeInteger(trust.current_revocation_epoch) || trust.current_revocation_epoch < 0
+      || !Array.isArray(trust.trusted_signers) || !trust.trusted_signers.length) {
+    fail('AUTONOMOUS_REVIEW_CONTROLLER_TRUST_NOT_PROVISIONED');
+  }
+  const marked = comments.filter(comment => String(comment?.body || '').split(/\r?\n/)[0] === AUTONOMOUS_REVIEW_MARKER);
+  if (!marked.length) fail('AUTONOMOUS_REVIEW_ATTESTATION_MISSING');
+  const valid = [];
+  let requestChanges = false;
+  for (const comment of marked) {
+    const lines = String(comment.body).trim().split(/\r?\n/);
+    if (lines.length !== 2) continue;
+    let envelope;
+    try { envelope = JSON.parse(Buffer.from(lines[1], 'base64url').toString('utf8')); } catch { continue; }
+    if (!envelope || Object.keys(envelope).sort().join(',') !== ['payload', 'signature_algorithm', 'signature_base64'].sort().join(',')) continue;
+    const payload = envelope.payload;
+    const signer = trust.trusted_signers.find(value => value?.signer_identity_and_version === payload?.signer_identity_and_version);
+    if (!signer || signer.revoked === true || envelope.signature_algorithm !== 'Ed25519'
+        || !verifyProtectedEd25519Payload(payload, envelope.signature_base64, signer.public_key_pem)) continue;
+    const exactKeys = [
+      'version','repository','pull_request','exact_base_sha','exact_head_sha','exact_head_tree_sha',
+      'implementer_agent_id','reviewer_agent_id','assigned_reviewer_agent_id',
+      'implementer_session_id','reviewer_session_id','reviewed_head_sha','required_domain',
+      'reviewer_domain','reviewer_role_id','implementer_bootstrap_consumption_proof_id',
+      'reviewer_bootstrap_consumption_proof_id','evidence_manifest_digest','review_decision_digest',
+      'decision','attestation_id','issued_at','expires_at','signer_identity_and_version',
+      'revocation_epoch',
+    ];
+    if (!payload || Object.keys(payload).sort().join(',') !== exactKeys.sort().join(',')) continue;
+    if (payload.version !== 'kidults-protected-autonomous-review-attestation-v1'
+        || payload.repository !== repository || Number(payload.pull_request) !== Number(prNumber)
+        || payload.exact_base_sha !== baseSha || payload.exact_head_sha !== headSha
+        || payload.exact_head_tree_sha !== headTreeSha || payload.reviewed_head_sha !== headSha
+        || payload.required_domain !== requiredDomain || payload.reviewer_domain !== requiredDomain
+        || payload.assigned_reviewer_agent_id !== payload.reviewer_agent_id
+        || payload.implementer_agent_id === payload.reviewer_agent_id
+        || payload.implementer_session_id === payload.reviewer_session_id
+        || !ID_PATTERN.test(payload.implementer_agent_id || '') || !ID_PATTERN.test(payload.reviewer_agent_id || '')
+        || !ID_PATTERN.test(payload.implementer_session_id || '') || !ID_PATTERN.test(payload.reviewer_session_id || '')
+        || !ID_PATTERN.test(payload.reviewer_role_id || '')
+        || !ID_PATTERN.test(payload.implementer_bootstrap_consumption_proof_id || '')
+        || !ID_PATTERN.test(payload.reviewer_bootstrap_consumption_proof_id || '')
+        || !DIGEST_PATTERN.test(payload.evidence_manifest_digest || '')
+        || !DIGEST_PATTERN.test(payload.review_decision_digest || '')
+        || !ID_PATTERN.test(payload.attestation_id || '')
+        || !Number.isSafeInteger(payload.revocation_epoch)
+        || payload.revocation_epoch !== trust.current_revocation_epoch
+        || !['APPROVE', 'REQUEST_CHANGES'].includes(payload.decision)) continue;
+    const allowedRoles = reviewPolicy.registered_role_routing?.[requiredDomain];
+    if (!Array.isArray(allowedRoles) || !allowedRoles.includes(payload.reviewer_role_id)) continue;
+    const issuedAt = Date.parse(payload.issued_at);
+    const expiresAt = Date.parse(payload.expires_at);
+    const evaluatedAt = Date.parse(evaluationTime);
+    if (![issuedAt, expiresAt, evaluatedAt].every(Number.isFinite)
+        || evaluatedAt < issuedAt || evaluatedAt > expiresAt
+        || expiresAt <= issuedAt || expiresAt - issuedAt > MAX_APPROVAL_LIFETIME_MS) continue;
+    if (payload.decision === 'REQUEST_CHANGES') requestChanges = true;
+    valid.push({payload, comment_id: Number(comment.id), signature_digest: `sha256:${createHash('sha256').update(envelope.signature_base64).digest('hex')}`});
+  }
+  if (requestChanges) fail('AUTONOMOUS_REVIEW_REQUEST_CHANGES');
+  const approvals = valid.filter(value => value.payload.decision === 'APPROVE');
+  if (approvals.length !== 1) fail('AUTONOMOUS_REVIEW_CURRENT_APPROVAL_CARDINALITY');
+  const approved = approvals[0];
+  let consumption = null;
+  if (requireDurableConsumption) {
+    const expectedOperationDigest = `sha256:${createHash('sha256').update(canonicalJson(operationBinding)).digest('hex')}`;
+    const exactReadbackKeys = [
+      'version','store_authority','state','repository','pull_request','exact_base_sha','exact_head_sha',
+      'exact_head_tree_sha','attestation_id','operation_binding_digest','landing_run_id',
+      'landing_run_attempt','current_revocation_epoch','consumption_id','consumed_at','signer_identity_and_version',
+    ];
+    const storeSigners = trust.durable_store_trusted_signers;
+    if (!operationBinding || !Array.isArray(storeSigners) || !storeSigners.length) {
+      fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+    }
+    const controllerSignerIdentities = new Set(trust.trusted_signers.map(value => value?.signer_identity_and_version));
+    const controllerPublicKeys = new Set(trust.trusted_signers.map(value => value?.public_key_pem));
+    if (storeSigners.some(value => controllerSignerIdentities.has(value?.signer_identity_and_version)
+        || controllerPublicKeys.has(value?.public_key_pem))) {
+      fail('AUTONOMOUS_REVIEW_DURABLE_TRUST_DOMAIN_OVERLAP');
+    }
+    const matchedReadbacks = [];
+    for (const comment of comments.filter(value => String(value?.body || '').split(/\r?\n/)[0] === DURABLE_READBACK_MARKER)) {
+      const lines = String(comment.body).trim().split(/\r?\n/);
+      if (lines.length !== 2) continue;
+      let envelope;
+      try { envelope = JSON.parse(Buffer.from(lines[1], 'base64url').toString('utf8')); } catch { continue; }
+      if (!envelope || Object.keys(envelope).sort().join(',') !== ['payload', 'signature_algorithm', 'signature_base64'].sort().join(',')) continue;
+      const readback = envelope.payload;
+      const storeSigner = storeSigners.find(value => value?.signer_identity_and_version === readback?.signer_identity_and_version);
+      if (!storeSigner || storeSigner.revoked === true || envelope.signature_algorithm !== 'Ed25519'
+          || !verifyProtectedEd25519Payload(readback, envelope.signature_base64, storeSigner.public_key_pem)) continue;
+      if (Object.keys(readback).sort().join(',') !== exactReadbackKeys.sort().join(',')
+          || readback.version !== 'kidults-protected-review-durable-readback-v1'
+          || readback.store_authority !== 'PROTECTED_EXTERNAL_DURABLE_STORE') {
+        fail('AUTONOMOUS_REVIEW_DURABLE_SIGNED_READBACK_SCHEMA_INVALID');
+      }
+      if (readback.attestation_id !== approved.payload.attestation_id) continue;
+      if (readback.state !== 'CONSUMED_EXACTLY_ONCE'
+          || readback.repository !== repository || Number(readback.pull_request) !== Number(prNumber)
+          || readback.exact_base_sha !== baseSha || readback.exact_head_sha !== headSha
+          || readback.exact_head_tree_sha !== headTreeSha
+          || readback.operation_binding_digest !== expectedOperationDigest
+          || String(readback.landing_run_id) !== String(operationBinding.landing_run_id)
+          || String(readback.landing_run_attempt) !== String(operationBinding.landing_run_attempt)
+          || readback.current_revocation_epoch !== trust.current_revocation_epoch
+          || readback.current_revocation_epoch < approved.payload.revocation_epoch
+          || !ID_PATTERN.test(readback.consumption_id || '')
+          || !Number.isFinite(Date.parse(readback.consumed_at))) {
+        fail('AUTONOMOUS_REVIEW_DURABLE_REPLAY_OR_BINDING_CONFLICT');
+      }
+      matchedReadbacks.push({readback, signature_digest: `sha256:${createHash('sha256').update(envelope.signature_base64).digest('hex')}`});
+    }
+    if (matchedReadbacks.length !== 1) fail('AUTONOMOUS_REVIEW_DURABLE_READBACK_INVALID');
+    const durableReadback = matchedReadbacks[0].readback;
+    consumption = {
+      consumption_id: durableReadback.consumption_id,
+      operation_binding_digest: expectedOperationDigest,
+      current_revocation_epoch: durableReadback.current_revocation_epoch,
+      consumed_at: durableReadback.consumed_at,
+      signer_identity_and_version: durableReadback.signer_identity_and_version,
+      signature_digest: matchedReadbacks[0].signature_digest,
+    };
+  }
+  return {
+    state: 'PROTECTED_ATTESTATION_VERIFIED',
+    comment_id: approved.comment_id,
+    attestation_id: approved.payload.attestation_id,
+    durable_consumption: consumption,
+    exact_head_sha: approved.payload.exact_head_sha,
+    exact_head_tree_sha: approved.payload.exact_head_tree_sha,
+    exact_base_sha: approved.payload.exact_base_sha,
+    required_domain: approved.payload.required_domain,
+    implementer_agent_id: approved.payload.implementer_agent_id,
+    implementer_session_id: approved.payload.implementer_session_id,
+    reviewer_session_id: approved.payload.reviewer_session_id,
+    reviewer_agent_id: approved.payload.reviewer_agent_id,
+    reviewer_role_id: approved.payload.reviewer_role_id,
+    implementer_bootstrap_consumption_proof_id: approved.payload.implementer_bootstrap_consumption_proof_id,
+    reviewer_bootstrap_consumption_proof_id: approved.payload.reviewer_bootstrap_consumption_proof_id,
+    decision: approved.payload.decision,
+    evidence_manifest_digest: approved.payload.evidence_manifest_digest,
+    review_decision_digest: approved.payload.review_decision_digest,
+    signer_identity_and_version: approved.payload.signer_identity_and_version,
+    signature_digest: approved.signature_digest,
+    issued_at: approved.payload.issued_at,
+    expires_at: approved.payload.expires_at,
+    revocation_epoch: approved.payload.revocation_epoch,
+    comment_transport_only: true,
+    repository_comment_is_authority: false,
+  };
 }
 
 export function selectLatestProgramOwnerReadyEvent(timeline, repositoryOwner) {
