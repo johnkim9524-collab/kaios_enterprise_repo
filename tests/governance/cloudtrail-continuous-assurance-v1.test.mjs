@@ -60,6 +60,17 @@ test('workflow negative canary is non-mutating and HOLD preserving', () => {
   assert.match(workflow, /G5=HOLD/);
 });
 
+test('scheduled assurance binds live protected main before AWS credentials', () => {
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  assert.match(workflow, /schedule:\s*\n\s*- cron: '17 3 \* \* \*'/);
+  assert.match(workflow, /git\/ref\/heads\/main/);
+  assert.match(workflow, /test "\$LIVE_MAIN_SHA" = "\$EXPECTED_MAIN_SHA"/);
+  assert.ok(
+    workflow.indexOf('test "$LIVE_MAIN_SHA" = "$EXPECTED_MAIN_SHA"') <
+      workflow.indexOf('Acquire short-lived assurance credentials'),
+  );
+});
+
 test('event consumer binds exact run identity and rejects missing or duplicate evidence', () => {
   const script = fs.readFileSync(eventAssurancePath, 'utf8');
   assert.match(script, /aws logs start-query/);
@@ -105,4 +116,3 @@ test('log storage is retained and immutable for ten years', () => {
     10,
   );
 });
-
