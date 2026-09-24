@@ -36,6 +36,12 @@ const workflowRef = required('KIDULTS_AUTONOMOUS_WORKFLOW_REF');
 const repositoryId = required('KIDULTS_AUTONOMOUS_REPOSITORY_ID');
 const mode = required('KIDULTS_AUTONOMOUS_MODE');
 if (!['APPROVAL','FINALIZE'].includes(mode)) throw new AutonomousLandingError('AUTONOMOUS_MODE_INVALID');
+// A merge performed with the workflow's default token suppresses downstream
+// push workflows. Reject it before reserving one-use authority or mutating main.
+if (mode === 'FINALIZE') {
+  const workflowToken = required('GITHUB_WORKFLOW_TOKEN');
+  if (token === workflowToken) throw new AutonomousLandingError('AUTONOMOUS_EVENT_EMITTING_TOKEN_REQUIRED');
+}
 const receiptPath = process.env.AUTONOMOUS_LANDING_RECEIPT_PATH || 'out/autonomous-internal-landing-v1/receipt.json';
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const registry = JSON.parse(required('KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON'));
