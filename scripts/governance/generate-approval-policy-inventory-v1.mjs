@@ -8,7 +8,8 @@ const root = process.cwd();
 const revision = process.argv[2] || "HEAD";
 const output = process.argv[3] || "coordination/kidults/governance/approval-policy-file-manifest-v1.json";
 const manifestPath = "coordination/kidults/governance/approval-policy-file-manifest-v1.json";
-const exclusions = [manifestPath,"coordination/kidults/governance/approval-policy-inventory-v1.json"];
+const inventoryPath = "coordination/kidults/governance/approval-policy-inventory-v1.json";
+const exclusions = [manifestPath,inventoryPath];
 const pattern = String.raw`(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)`;
 const git = args => execFileSync("git", args, {cwd:root, encoding:"utf8", maxBuffer:64*1024*1024});
 const sha256 = value => `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -31,4 +32,22 @@ const payload = {
 };
 payload.manifest_sha256 = sha256(JSON.stringify(files));
 fs.writeFileSync(output, `${JSON.stringify(payload,null,2)}\n`);
+if (output === manifestPath && fs.existsSync(inventoryPath)) {
+  const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
+  inventory.audit.baseline_sha = revision;
+  inventory.audit.approval_related_files_reviewed = files.length;
+  inventory.audit.manifest_sha256 = payload.manifest_sha256;
+  const routeCounts = files.reduce((counts, file) => {
+    const route = file.authorization_routing?.route;
+    if (route) counts[route] = (counts[route] || 0) + 1;
+    return counts;
+  }, {});
+  const controls = files.filter(file => file.classification === "EXECUTION_AUTHORIZATION_CONTROL");
+  inventory.audit.canonical_execution_authorization_policies = inventory.policies.length;
+  inventory.audit.routing_coverage.execution_authorization_controls = controls.length;
+  inventory.audit.routing_coverage.consumers = routeCounts.CANONICAL_ENVELOPE || 0;
+  inventory.audit.routing_coverage.exemptions = controls.length - (routeCounts.CANONICAL_ENVELOPE || 0);
+  inventory.audit.routing_coverage.route_counts = Object.fromEntries(Object.entries(routeCounts).sort());
+  fs.writeFileSync(inventoryPath, `${JSON.stringify(inventory,null,2)}\n`);
+}
 console.log(JSON.stringify({state:"VERIFIED_PASS",output,file_count:files.length,manifest_sha256:payload.manifest_sha256}));

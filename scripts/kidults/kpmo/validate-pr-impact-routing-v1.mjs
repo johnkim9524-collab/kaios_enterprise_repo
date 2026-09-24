@@ -5,14 +5,38 @@ import path from 'node:path';
 const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
+const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
 const allowedUnbounded = new Set([
   'ci-validation.yml',
+  autonomousDispatcherWorkflow,
   'kidults-governed-landing-authorization-v1.yml',
   'kidults-scope-aware-authoritative-status-v1.yml',
   lifecycleWorkflow,
   supersessionWorkflow,
   'solo-owner-preflight.yml'
 ]);
+
+function autonomousDispatcherViolations(source) {
+  const problems = [];
+  const jobsIndex = source.indexOf('\njobs:');
+  const workflowScope = jobsIndex >= 0 ? source.slice(0, jobsIndex) : source;
+  if (!/pull_request_target:\s*\n\s{4}branches:\s*\[main\]/.test(source)) {
+    problems.push('DISPATCHER_TARGET_NOT_RESTRICTED_TO_MAIN');
+  }
+  if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) {
+    problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
+  }
+  if (!source.includes("github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository")) {
+    problems.push('DISPATCHER_SAME_REPOSITORY_GUARD_MISSING');
+  }
+  if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) {
+    problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
+  }
+  if (!source.includes('KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}')) {
+    problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
+  }
+  return problems;
+}
 
 function eventBlock(source) {
   const lines = source.split(/\r?\n/);
@@ -195,6 +219,24 @@ if (files.includes(lifecycleWorkflow)) {
     (text) => text.replace('      - name: Reapply fail-closed lifecycle verdict', '      - name: Removed lifecycle verdict step'), violations);
 }
 
+if (files.includes(autonomousDispatcherWorkflow)) {
+  const source = fs.readFileSync(path.join(workflowDir, autonomousDispatcherWorkflow), 'utf8');
+  for (const kind of autonomousDispatcherViolations(source)) {
+    violations.push({ file: autonomousDispatcherWorkflow, kind });
+  }
+  const mutations = [
+    source.replace('    branches: [main]\n', ''),
+    source.replace(" && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository)", ''),
+    source.replace('          persist-credentials: false', '          persist-credentials: true'),
+    source.replace('KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}', 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
+  ];
+  for (const [index, mutated] of mutations.entries()) {
+    if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
+      violations.push({ file: autonomousDispatcherWorkflow, kind: `DISPATCHER_TRUST_SELF_TEST_FALSE_GREEN:${index + 1}` });
+    }
+  }
+}
+
 const receipt = {
   id: 'kpmo-pr-impact-routing-v1',
   state: violations.length ? 'VERIFIED_FAIL' : 'VERIFIED_PASS',
@@ -214,6 +256,13 @@ const receipt = {
     pull_request_target_base: 'main',
     source_checkout: 'TRUSTED_BASE_ONLY',
     mutation_cases: 5
+  },
+  autonomous_dispatcher_trust_boundary: {
+    fork_pr_dispatch: 'DENIED_BY_JOB_GUARD',
+    pull_request_target_base: 'main',
+    source_checkout: 'TRUSTED_BASE_ONLY',
+    exact_pr_binding: true,
+    mutation_cases: 4
   },
   violations
 };

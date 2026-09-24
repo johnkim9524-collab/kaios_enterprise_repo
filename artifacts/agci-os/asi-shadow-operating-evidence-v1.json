@@ -255,8 +255,8 @@
     },
     "runtime_control_baseline_runner": {
       "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
-      "sha256": "sha256:50ebd8c41f146b5a4e6c7bac6675e887d72e10a49de11c3bb5b8b7560bb4b6ad",
-      "byte_count": 5084
+      "sha256": "sha256:317ea44eaf5d48d1f6c1e77173496ee0b53a3ec735b8e62adce2fefb20a5f7da",
+      "byte_count": 5036
     },
     "entity_resolution_benchmark_runner": {
       "path": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
@@ -535,8 +535,8 @@
     },
     "root_package_manifest": {
       "path": "package.json",
-      "sha256": "sha256:128f7c75560f5f4f98f7373efffc4219b1e6758aa1e1d579de4090823fc4e7c1",
-      "byte_count": 1962
+      "sha256": "sha256:40672e76e917619035cbebcc986e160e516f31d1b17b5a6c501e44dd36173f8d",
+      "byte_count": 2450
     },
     "root_dependency_lock": {
       "path": "npm-shrinkwrap.json",
@@ -1320,8 +1320,8 @@
       "runtime_core_fingerprint": "sha256:e6403da65d8c8deae089e04e19272ebefa41dbfd2aa55792c5e9a6279fa67d2f",
       "baseline_runner_ref": {
         "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
-        "sha256": "sha256:50ebd8c41f146b5a4e6c7bac6675e887d72e10a49de11c3bb5b8b7560bb4b6ad",
-        "byte_count": 5084
+        "sha256": "sha256:317ea44eaf5d48d1f6c1e77173496ee0b53a3ec735b8e62adce2fefb20a5f7da",
+        "byte_count": 5036
       },
       "runtime_core_workflow_ref": {
         "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:8f83f19b82d7ace52d2490261b79fb3d79daf15902afb166bb85c879e9cf8140"
+  "evidence_fingerprint": "sha256:cf83935a250c2bb9f43be8edd6687d59cfde549a5c9135ec5cc9fcb2f39743e6"
 }

@@ -31,7 +31,8 @@ function validate(assuranceSource, truthSource) {
   require(/- name: Emit exact canonical-truth receipt\n\s+if: always\(\)/.test(truthSource), 'TRUTH_RECEIPT_EMIT_ALWAYS_MISSING');
   require(/- name: Upload exact canonical-truth receipt\n\s+if: always\(\)/.test(truthSource), 'TRUTH_RECEIPT_UPLOAD_ALWAYS_MISSING');
   require(truthSource.includes("receipt_id: 'kpmo-live-canonical-issue-truth-receipt-v1'"), 'TRUTH_RECEIPT_ID_MISSING');
-  require(truthSource.includes("state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'"), 'TRUTH_RECEIPT_STATE_DERIVATION_MISSING');
+  require(truthSource.includes("state: bootstrapTransition ? 'IMPLEMENTED_NOT_VERIFIED' : outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'"), 'TRUTH_RECEIPT_STATE_DERIVATION_MISSING');
+  require(truthSource.includes("const bootstrapTransition = outcome === 'success' && validation?.state === 'IMPLEMENTED_NOT_VERIFIED'"), 'TRUTH_BOOTSTRAP_STATE_GUARD_MISSING');
   require(truthSource.includes('kpmo-live-canonical-issue-truth-v1-${{ github.run_id }}'), 'TRUTH_ARTIFACT_RUN_BINDING_MISSING');
   require(truthSource.includes('promotion_eligible: false'), 'TRUTH_PROMOTION_HOLD_MISSING');
   require(truthSource.includes("production: 'HOLD'") && truthSource.includes("public: 'HOLD'"), 'TRUTH_RELEASE_HOLD_MISSING');
@@ -52,7 +53,8 @@ const mutations = [
   ['relaxed artifact cardinality', assurance.replace('test "$TRUTH_ARTIFACT_COUNT" -eq 1', 'test "$TRUTH_ARTIFACT_COUNT" -ge 0'), truth],
   ['removed receipt outcome', assurance.replace('and .validation_outcome==$outcome', 'and true'), truth],
   ['removed failure propagation', assurance.replace('if [ "$EXPECTED_TRUTH_STATE" != VERIFIED_PASS ]; then', 'if false; then'), truth],
-  ['hard-coded PASS receipt', assurance, truth.replace("state: outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'", "state: 'VERIFIED_PASS'")],
+  ['hard-coded PASS receipt', assurance, truth.replace("state: bootstrapTransition ? 'IMPLEMENTED_NOT_VERIFIED' : outcome === 'success' ? 'VERIFIED_PASS' : 'VERIFIED_FAIL'", "state: 'VERIFIED_PASS'")],
+  ['bootstrap state guard removal', assurance, truth.replace("const bootstrapTransition = outcome === 'success' && validation?.state === 'IMPLEMENTED_NOT_VERIFIED'", "const bootstrapTransition = outcome === 'success'")],
   ['receipt upload not always', assurance, truth.replace('      - name: Upload exact canonical-truth receipt\n        if: always()', '      - name: Upload exact canonical-truth receipt')]
 ];
 

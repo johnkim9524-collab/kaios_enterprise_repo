@@ -38,7 +38,7 @@ export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,m
   fail('AUTONOMOUS_PAGINATION_LIMIT_EXCEEDED');
 };
 
-export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
+export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,ownerReservedPathPrefixes,delegatedInternalExactPathExceptions,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
   if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const livePaths=files.map(value=>value?.filename);
   if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
@@ -46,8 +46,10 @@ export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDiges
   const expected=[...expectedPaths].sort();
   if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');
   if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail(scopeDriftCode);
+  const exceptions=new Set(delegatedInternalExactPathExceptions||[]);
   for (const prefix of ownerReservedPathPrefixes||[]) {
-    if (ordered.some(value=>value.startsWith(prefix))) fail('AUTONOMOUS_OWNER_RESERVED_PATH',prefix);
+    const reserved=ordered.find(value=>value.startsWith(prefix)&&!exceptions.has(value));
+    if (reserved) fail('AUTONOMOUS_OWNER_RESERVED_PATH',reserved);
   }
   return ordered;
 };
@@ -142,8 +144,10 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   if (!Array.isArray(paths) || !paths.length || paths.some(path => typeof path !== 'string' || path.startsWith('/') || path.includes('..'))) {
     fail('AUTONOMOUS_SCOPE_PATH_INVALID');
   }
+  const exceptions = new Set(policy.delegated_internal_exact_path_exceptions || []);
   for (const prefix of policy.owner_reserved_path_prefixes || []) {
-    if (paths.some(path => path.startsWith(prefix))) fail('AUTONOMOUS_OWNER_RESERVED_PATH', prefix);
+    const reserved = paths.find(path => path.startsWith(prefix) && !exceptions.has(path));
+    if (reserved) fail('AUTONOMOUS_OWNER_RESERVED_PATH', reserved);
   }
   const expectedScope = sha256([...paths].sort().join('\n'));
   if (expectedScope !== envelope.scope_digest) fail('AUTONOMOUS_SCOPE_DIGEST_MISMATCH');

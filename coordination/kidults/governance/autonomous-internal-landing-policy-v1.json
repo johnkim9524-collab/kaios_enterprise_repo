@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -90,7 +90,16 @@
     "public/",
     "g5/"
   ],
+  "delegated_internal_exact_path_exceptions": [
+    ".github/workflows/kpmo-canonical-generation-v3-apply.yml",
+    ".github/workflows/kpmo-canonical-generation-v3.yml",
+    "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+    "coordination/kidults/governance/approval-policy-inventory-v1.json",
+    "scripts/kidults/kpmo/canonical-generation-v3.mjs"
+  ],
   "automatic_triggers": [
+    "pull_request_target:opened|synchronize|reopened|ready_for_review",
+    "schedule:kidults-autonomous-dispatcher-v1",
     "repository_dispatch:kidults.track.authorization.v1",
     "repository_dispatch:kidults.kpmo.authorization.v1",
     "repository_dispatch:kidults.independent.verification.v1"

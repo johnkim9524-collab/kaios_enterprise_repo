@@ -1,10 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { statSync, writeFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
-import { resolve } from 'node:path';
 
 const repo = process.cwd();
-const service = resolve(repo, 'services/kidults-autonomous-intelligence');
 const output = process.argv[2] || '/tmp/kidults-runtime-control-baseline-r1.json';
 const paths = {
   met:'/tmp/met-real-source-admission-r1.json',
@@ -26,8 +24,8 @@ const measurements=[];
 measurements.push(run('met_live_retrieval', process.execPath, ['scripts/kidults/source-intelligence/run-met-real-source-admission-r1.mjs',paths.met]));
 measurements.push(run('getty_live_retrieval', process.execPath, ['scripts/kidults/source-intelligence/run-getty-historical-sale-r1.mjs',paths.getty]));
 measurements.push(run('admission_metadata_bridge', process.execPath, ['scripts/kidults/source-intelligence/build-real-source-processor-bridge-r1.mjs',paths.met,paths.getty,paths.bridge]));
-measurements.push(run('local_queue_d1_compatible_harness', process.execPath, ['scripts/asi-real-source-queue-injection-r1.mjs',paths.bridge,paths.queue], service));
-measurements.push(run('local_synthetic_retry_dlq_rights_hold', process.execPath, ['scripts/asi-real-source-retry-dlq-quarantine-r1.mjs',paths.bridge,paths.failure], service));
+measurements.push(run('local_queue_d1_compatible_harness', process.execPath, ['services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs',paths.bridge,paths.queue]));
+measurements.push(run('local_synthetic_retry_dlq_rights_hold', process.execPath, ['services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs',paths.bridge,paths.failure]));
 
 const sizeBytes = Object.fromEntries(Object.entries(paths).map(([k,p])=>[k,statSync(p).size]));
 const totalElapsed = measurements.reduce((s,x)=>s+x.elapsed_ms,0);
