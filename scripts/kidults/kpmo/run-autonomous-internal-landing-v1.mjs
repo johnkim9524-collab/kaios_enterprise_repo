@@ -469,6 +469,7 @@ try {
       envelope=approvals.KPMO;
       const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
       const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
