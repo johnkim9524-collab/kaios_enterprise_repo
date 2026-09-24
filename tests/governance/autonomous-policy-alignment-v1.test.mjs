@@ -43,3 +43,32 @@ test('missing patch for governed workflow or governance code fails closed',()=>{
   }
 });
 
+test('capability expansion and material deletion fail closed before dispatch',()=>{
+  const filename='.github/workflows/internal-recovery.yml';
+  for(const line of [
+    '+permissions:\n+  contents: write',
+    '+permissions:\n+  pull-requests: write',
+    '+on:\n+  workflow_dispatch:',
+    '+run: curl https://example.invalid',
+    '+uses: aws-actions/configure-aws-credentials@v5',
+  ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:`@@ -1 +1,2 @@\n name: recovery\n${line}`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+
+  for(const removed of [
+    '-environment: protected-staging',
+    '-if: github.ref == refs/heads/main',
+    '-run: node scripts/validate-authority.mjs',
+    '-permissions: read-all',
+  ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:`@@ -1,2 +1 @@\n${removed}\n name: recovery`}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+});
+
+test('exact exceptions are classified and cannot weaken routing coverage',()=>{
+  const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1,2 @@\n {\n+  "verification_evidence": "monotonic-hardening"'}],policy:landing}),[filename]);
+});
+
+test('comment-only deletion and monotonic hardening remain autonomous',()=>{
+  const filename='scripts/kidults/kpmo/internal-recovery.mjs';
+  const patch='@@ -1,2 +1,2 @@\n-// stale comment\n+// corrected comment\n+export const failClosed = true;';
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch}],policy:landing}),[filename]);
+});

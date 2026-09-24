@@ -29,16 +29,20 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   const exactReserved=new Set(policy.owner_reserved_exact_paths||[]);
   const prefixes=policy.owner_reserved_path_prefixes||[];
   const delegatedPrefixes=policy.delegated_internal_path_prefixes||[];
-  const addedPatterns=(policy.owner_reserved_added_patch_patterns||[]).map(value=>new RegExp(value,'i'));
+  const addedPatterns=(policy.owner_reserved_added_patch_patterns||[]).map(value=>new RegExp(value,'im'));
   for (const file of files) {
     const filename=typeof file==='string'?file:file?.filename;
     if (typeof filename!=='string'||!filename||filename.startsWith('/')||filename.includes('..')) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
-    if (exceptions.has(filename)) continue;
     if (exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix))) fail(errorCode,filename);
-    if (!delegatedPrefixes.some(prefix=>filename.startsWith(prefix))) continue;
+    const delegated=delegatedPrefixes.some(prefix=>filename.startsWith(prefix));
+    if (!delegated && !exceptions.has(filename)) continue;
     const patch=typeof file==='object'?file.patch:null;
     if (typeof patch!=='string'||!patch) fail('AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN',filename);
-    const additions=patch.split('\n').filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
+    const lines=patch.split('\n');
+    const additions=lines.filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
+    const removals=lines.filter(line=>line.startsWith('-')&&!line.startsWith('---')).map(line=>line.slice(1));
+    const materialRemoval=removals.find(line=>line.trim()&&!/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line));
+    if (materialRemoval) fail(errorCode,`${filename}:MATERIAL_DELETION_REQUIRES_OWNER`);
     const matched=addedPatterns.find(pattern=>pattern.test(additions));
     if (matched) fail(errorCode,`${filename}:${matched.source}`);
   }

@@ -1295,8 +1295,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4c3f9afa86bb0f9c839d2c5e5f9e0ee9fa58a152",
-      "sha256": "sha256:7ec5c721cbd7d6c55e0c4b78a3fa4ca7de952d24ae13aa148a70649d957cf33e",
+      "git_blob": "5e8f19395112cdb61e178f378274ffe2a4cbb200",
+      "sha256": "sha256:c9cb0cc5e8d1eb4c8d04a4e7ba95aa775db5aa7444eb6a86707de38561762909",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3087,8 +3087,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3bbb9448f54e9ad04d18253c78f31799780c0553",
-      "sha256": "sha256:975d6d39469f62ebb7b78e08262b35ac922af34804578466327ab4be6603c884",
+      "git_blob": "8a23b776080d59649f824b5d1c0ce782e33173de",
+      "sha256": "sha256:a7c3e57b53972859e47aecc3af89ba793bd46e470beb0cce80a4bdbdb7982746",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -4724,8 +4724,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e156aead939f419b8e39acaa2d636e3e86acb832",
-      "sha256": "sha256:e5db65aaaaeef420b04caf608eb7aafbb4b7b7fea2f37f5489ae8767201d0c0f",
+      "git_blob": "1bf42b58eb1b4dc5352240fe2970202e1690d5a6",
+      "sha256": "sha256:b4f4d21f6cb8bbbe3a87be6856403cd672959ee66bc9d2729d76d0ef385c1ad3",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -4982,5 +4982,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9d2b06f410b8ccd8a47ad5d0919a1617ac5939ab47a7fc179eb1f8696c775550"
+  "manifest_sha256": "sha256:fa99d310635a650a443d8c50683edeb27ad667c607fbdb814143e6619f61d0bb"
 }
