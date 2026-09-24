@@ -114,7 +114,11 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     }
   });
   if (!candidates.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-  const {comment, fields} = candidates[0];
+  const eligible = candidates.filter(({comment}) => comment?.user?.login === repositoryOwner
+    && comment?.author_association === 'OWNER'
+    && comment?.performed_via_github_app == null
+    && comment?.updated_at === comment?.created_at);
+  const {comment, fields} = eligible[0] || candidates[0];
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
