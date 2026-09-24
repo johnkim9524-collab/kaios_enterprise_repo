@@ -63,7 +63,7 @@ process.exit(1);
       fs.mkdirSync(path.join(dir,'tests/kidults/kpmo'),{recursive:true});
       fs.writeFileSync(path.join(dir,'.github/workflows/kpmo-canonical-generation-v3-apply.yml'),"schedule:\n    - cron: '13,43 * * * *'\nCANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}\n");
       fs.writeFileSync(path.join(dir,'scripts/kidults/kpmo/canonical-generation-v3.mjs'),"!['workflow_dispatch','push','schedule'].includes(event) authority_type:'PROTECTED_MAIN_SCHEDULE' CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'\n");
-      fs.writeFileSync(path.join(dir,'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'),"'CANONICAL_GENERATION_V3_APPLY'\n");
+      fs.writeFileSync(path.join(dir,'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'),"'CANONICAL_V3_APPEND_ONLY_REFRESH'\n");
     }
     const env={PATH:process.env.PATH,HOME:dir,RUNNER_TEMP:temp,GITHUB_REPOSITORY:repo,GITHUB_RUN_ID:'9001',GITHUB_RUN_ATTEMPT:'1',RECEIPT_HEAD_SHA:sha,RECEIPT_EVENT:event,GITHUB_EVENT_NAME:event,GITHUB_TOKEN:'SYNTHETIC_ONLY',EXPECTED_PROTECTED_MAIN_SHA:sha,CANONICAL_BOOTSTRAP_TRANSITION_VERIFIED:bootstrap?'true':'false',TEST_CASE:kind};
     const invoke=(body,extra={})=>spawnSync('bash',['-c',body],{cwd:dir,env:{...env,...extra},encoding:'utf8',timeout:10000});
