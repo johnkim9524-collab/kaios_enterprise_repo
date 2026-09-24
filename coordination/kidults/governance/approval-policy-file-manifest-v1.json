@@ -27,8 +27,8 @@
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f0dce1335c6a2096139c96d0acc3a5ae60b9bfd9",
-      "sha256": "sha256:ecbd16d3130adbd8f4a7a4950b911cf35a09edd3eee292b23e4faa08d5a5ec13",
+      "git_blob": "9333d7e31af5b5e1edd97c55686366572aa68cdd",
+      "sha256": "sha256:20e6ebc933af51b52978b55be960442cbaa1be16485c4c4a1df40261dd782975",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -4982,5 +4982,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:53a167527d9597a4be1e7de0c3e79d2f622c33cb9e854351104f5256eb22d4d7"
+  "manifest_sha256": "sha256:dde47303c6012f811c3f50386eb7155368b32fa95081e5ae5f27a2386d4fa058"
 }
