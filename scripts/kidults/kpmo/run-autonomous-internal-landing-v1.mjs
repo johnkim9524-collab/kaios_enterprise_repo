@@ -16,6 +16,7 @@ import {
   collectPaginatedApiValues,
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -87,6 +88,19 @@ const api = async (endpoint, options={}) => {
   if (!response.ok) throw new AutonomousLandingError(`AUTONOMOUS_GITHUB_API_${response.status}`,endpoint);
   return payload;
 };
+const encodePath=value=>value.split('/').map(encodeURIComponent).join('/');
+const immutableContent=async (filename,ref) => {
+  const payload=await api(`/contents/${encodePath(filename)}?ref=${ref}`);
+  if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_BLOB_INVALID',filename);
+  return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
+};
+const attachImmutableContents=async files=>Promise.all(files.map(async file=>{
+  if(file.status==='removed'||file.status==='renamed') throw new AutonomousLandingError('AUTONOMOUS_OWNER_RESERVED_ACTION',`${file.filename}:${String(file.status).toUpperCase()}`);
+  return {...file,
+    base_content:file.status==='added'?'':await immutableContent(file.filename,envelope.base_sha),
+    head_content:await immutableContent(file.filename,envelope.head_sha),
+  };
+}));
 const graphql = async (query, variables) => {
   const response = await fetch('https://api.github.com/graphql',{
     method:'POST',redirect:'error',
@@ -382,7 +396,8 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
-  const files=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
+  const fileRecords=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
+  const files=await attachImmutableContents(fileRecords);
   validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,policy,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
@@ -430,6 +445,7 @@ const rebindDraftReady = async before => {
 try {
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyCapabilityDelta({files:candidate.files,policy});
     envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks});
     if (envelope.recovery) {
       const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);

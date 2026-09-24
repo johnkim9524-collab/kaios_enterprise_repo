@@ -204,6 +204,20 @@
     "g5": "HOLD",
     "usb_copy_a": "PENDING_PHYSICAL_MEDIA"
   },
+  "semantic_capability_delta": {
+    "immutable_base_head_contents_required": true,
+    "patch_only_classification_forbidden": true,
+    "deleted_or_renamed_governed_file": "FAIL_CLOSED_OWNER_REQUIRED",
+    "unknown_yaml_or_json_syntax": "FAIL_CLOSED_OWNER_REQUIRED",
+    "guard_removal_or_relaxation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "granular_write_permission_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
+    "trigger_environment_secret_oidc_network_provider_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
+    "exact_path_exception_policy": "SCHEMA_MONOTONIC_ADDITION_ONLY",
+    "primary_classifier": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
+    "independent_recomputation": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
+    "independent_implementation_required": true,
+    "classification_before_credential_acquisition_or_dispatch": true
+  },
   "principles": {
     "autonomous_effect": "Eligible reversible internal landing runs from governed agent events without routine Owner orchestration.",
     "global_effect": "One repository-wide authority model applies to every Track and internal workflow.",

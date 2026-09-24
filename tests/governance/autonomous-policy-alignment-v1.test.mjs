@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import test from 'node:test';
 
 import {assertAutonomousFileScope} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
@@ -71,4 +73,49 @@ test('comment-only deletion and monotonic hardening remain autonomous',()=>{
   const filename='scripts/kidults/kpmo/internal-recovery.mjs';
   const patch='@@ -1,2 +1,2 @@\n-// stale comment\n+// corrected comment\n+export const failClosed = true;';
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch}],policy:landing}),[filename]);
+});
+
+const workflow=(extra='')=>`name: internal\non:\n  pull_request:\npermissions:\n  contents: read\njobs:\n  validate:\n    if: github.ref == 'refs/heads/main'\n    runs-on: ubuntu-24.04\n    steps:\n      - name: Validate\n        run: node scripts/validate.mjs\n${extra}`;
+const semanticFile=(head,overrides={})=>({filename:'.github/workflows/internal.yml',status:'modified',base_content:workflow(),head_content:head,...overrides});
+
+test('immutable before and after blobs are mandatory',()=>{
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename:'.github/workflows/internal.yml'}],policy:landing}),/CAPABILITY_IMMUTABLE_BLOBS_REQUIRED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename:'.github/workflows/internal.yml'}],policy:landing}),/INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED/);
+});
+
+test('semantic classifier rejects every P1 negative capability mutation',()=>{
+  const mutations=[
+    workflow().replace('contents: read','contents: write'),
+    workflow().replace("    if: github.ref == 'refs/heads/main'\n",''),
+    workflow().replace('  pull_request:','  pull_request:\n  workflow_dispatch:'),
+    workflow('      - name: Network\n        run: curl https://example.invalid\n'),
+    workflow('      - name: Provider\n        uses: aws-actions/configure-aws-credentials@v5\n'),
+    workflow('    environment: protected-staging\n'),
+    workflow('    secrets:\n      TOKEN: ${{ secrets.ADMIN }}\n'),
+  ];
+  for(const [index,head] of mutations.entries()) {
+    assert.throws(()=>evaluateSemanticCapabilityDelta({files:[semanticFile(head)],policy:landing}),/CAPABILITY_/);
+    assert.throws(()=>independentlyVerifyCapabilityDelta({files:[semanticFile(head)],policy:landing}),/INDEPENDENT_/,`mutation ${index}`);
+  }
+});
+
+test('unknown YAML indirection and unavailable blobs fail closed',()=>{
+  for(const head of [workflow('\npermissions: &privileged\n  contents: write\n'),workflow('\npermissions:\n  <<: *privileged\n')]) {
+    assert.throws(()=>evaluateSemanticCapabilityDelta({files:[semanticFile(head)],policy:landing}),/CAPABILITY_YAML_UNSUPPORTED_SYNTAX/);
+  }
+});
+
+test('exact exception policy weakening fails while monotonic evidence addition passes',()=>{
+  const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const base=JSON.stringify({authorization_routing:{route:'CANONICAL_ENVELOPE'},evidence:['a']});
+  const weakened=JSON.stringify({authorization_routing:{route:'NON_EXECUTING_REFERENCE'},evidence:['a']});
+  const strengthened=JSON.stringify({authorization_routing:{route:'CANONICAL_ENVELOPE'},evidence:['a'],verification_evidence:'monotonic-hardening'});
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content:base,head_content:weakened}],policy:landing}),/CAPABILITY_EXISTING_VALUE_CHANGED/);
+  assert.equal(evaluateSemanticCapabilityDelta({files:[{filename,base_content:base,head_content:strengthened}],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+});
+
+test('safe monotonic workflow hardening passes both independent models',()=>{
+  const file=semanticFile(workflow('    timeout-minutes: 10\n'));
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
