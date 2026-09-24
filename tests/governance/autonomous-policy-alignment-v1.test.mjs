@@ -99,6 +99,19 @@ test('semantic classifier rejects every P1 negative capability mutation',()=>{
   }
 });
 
+test('ordered workflow steps cannot hide risky capabilities behind later safe steps',()=>{
+  const safeStep='      - name: Safe after risk\n        run: node scripts/validate.mjs\n';
+  const riskyStep='      - name: Network\n        run: curl https://example.invalid\n';
+  const cases=[
+    workflow(`${riskyStep}${safeStep}`),
+    workflow(`${safeStep}${riskyStep}${safeStep}`),
+  ];
+  for(const [index,head] of cases.entries()) {
+    assert.throws(()=>evaluateSemanticCapabilityDelta({files:[semanticFile(head)],policy:landing}),/CAPABILITY_EXPANSION/,`primary ordered mutation ${index}`);
+    assert.throws(()=>independentlyVerifyCapabilityDelta({files:[semanticFile(head)],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/,`independent ordered mutation ${index}`);
+  }
+});
+
 test('unknown YAML indirection and unavailable blobs fail closed',()=>{
   for(const head of [workflow('\npermissions: &privileged\n  contents: write\n'),workflow('\npermissions:\n  <<: *privileged\n')]) {
     assert.throws(()=>evaluateSemanticCapabilityDelta({files:[semanticFile(head)],policy:landing}),/CAPABILITY_YAML_UNSUPPORTED_SYNTAX/);
