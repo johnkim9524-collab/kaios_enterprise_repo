@@ -47,3 +47,7 @@ for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization
 
 assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{\{ inputs\.change_set_name \}\}"/);
 assert.doesNotMatch(deployWorkflow,/authorization_id[^\n]*GITHUB_RUN_ID/);
+
+assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
+assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
+assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);
