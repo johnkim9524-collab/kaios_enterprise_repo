@@ -1,12 +1,13 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "routing": {
     "eligible_internal_reversible": "kidults-autonomous-approval-policy-envelope-v1",
     "normal_owner_exact_head_path": "OWNER_RESERVED_OR_RECOVERY_ONLY",
     "routine_owner_reapproval_for_delegated_work": "FORBIDDEN",
+    "internal_reversible_workflow_and_governance_strengthening": "AI_020_AUTONOMOUS",
     "unknown_or_conflicting_classification": "FAIL_CLOSED_OWNER_REQUIRED"
   },
   "issue": 1281,
@@ -71,6 +72,8 @@
     "root_issue": 1787
   },
   "review_policy": {
+    "manual_independent_review_required_for_ai_020_eligible_work": false,
+    "automated_machine_verification_required_for_ai_020_eligible_work": true,
     "minimum_non_author_approvals": 0,
     "self_review_counts": false,
     "approval_must_bind_exact_head_sha": true,

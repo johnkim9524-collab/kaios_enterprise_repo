@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
-import {collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
+import {assertAutonomousFileScope,collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
 test("repository-wide approval envelope is internally consistent", () => {
@@ -56,6 +56,9 @@ test("live PR files paginate to exhaustion and reject an Owner-reserved path at 
   assert.deepEqual(requested,["/pulls/2314/files?per_page=100&page=1","/pulls/2314/files?per_page=100&page=2"]);
   const paths=files.map(value=>value.filename).sort();
   assert.throws(()=>validateLiveChangedPaths({files,expectedPaths:paths,expectedScopeDigest:sha256(paths.join("\n")),ownerReservedPathPrefixes:["production/"]}),/AUTONOMOUS_OWNER_RESERVED_PATH/);
+  const autonomousPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename:'.github/workflows/internal.yml',patch:'@@ -1 +1,2 @@\n name: internal\n+concurrency: safe'}],policy:autonomousPolicy}),['.github/workflows/internal.yml']);
+  assert.throws(()=>assertAutonomousFileScope({files:[{filename:'.github/workflows/internal.yml',patch:'@@ -1 +1,2 @@\n name: internal\n+permissions: write-all'}],policy:autonomousPolicy}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
 });
 test("draft ready recovery is reserved, rebound, revalidated, then merged", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");

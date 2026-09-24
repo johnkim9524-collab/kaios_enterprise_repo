@@ -383,7 +383,7 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   const commit=await api(`/git/commits/${envelope.head_sha}`);
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
   const files=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
-  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,ownerReservedPathPrefixes:policy.owner_reserved_path_prefixes,delegatedInternalExactPathExceptions:policy.delegated_internal_exact_path_exceptions,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
+  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,policy,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     collectCheckRuns(envelope.head_sha),

@@ -11,6 +11,9 @@ if(policy.id!=="AI-020"||policy.accountability_transfer!==false) fail("POLICY_ID
 if(policy.approval_quorum.minimum!==2||!policy.approval_quorum.distinct_identities_required||!policy.approval_quorum.self_approval_forbidden) fail("QUORUM_INVALID");
 if(Object.values(policy.holds).some(v=>v!=="HOLD")) fail("HOLD_WEAKENED");
 if(!policy.delegated_actions.includes("INTERNAL_REVERSIBLE_LANDING")) fail("LANDING_DELEGATION_MISSING");
+if(policy.normal_activation.manual_owner_orchestration_for_eligible_work!=="FORBIDDEN") fail("ROUTINE_OWNER_ORCHESTRATION_NOT_FORBIDDEN");
+if(policy.normal_activation.manual_independent_review_required!==false) fail("MANUAL_INDEPENDENT_REVIEW_NOT_DISABLED");
+if(policy.normal_activation.automated_machine_verification_required!==true) fail("MACHINE_VERIFICATION_NOT_REQUIRED");
 if(policy.unknown_or_conflict!=="FAIL_CLOSED_OWNER_REQUIRED") fail("UNKNOWN_NOT_FAIL_CLOSED");
 const arg=process.argv.find(v=>v.startsWith("--receipt="));
 if(arg){

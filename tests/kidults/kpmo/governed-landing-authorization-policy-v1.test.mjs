@@ -21,17 +21,17 @@ function expectRejected(policy, code) {
   );
 }
 
-test('committed authorization policy is the exact supported 1.6.0 contract', () => {
+test('committed authorization policy is the exact supported 1.7.0 contract', () => {
   const result = assertGovernedLandingAuthorizationPolicyV160(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.6.0',
+    policy_version: '1.7.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,
   });
 });
 
-for (const version of ['1.4.0', '1.5.0', '2.0.0']) {
+for (const version of ['1.4.0', '1.6.0', '2.0.0']) {
   test(`unsupported authorization policy version ${version} fails closed`, () => {
     const policy = clonePolicy();
     policy.version = version;
