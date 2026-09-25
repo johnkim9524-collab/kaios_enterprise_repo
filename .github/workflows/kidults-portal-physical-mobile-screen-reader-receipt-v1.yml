@@ -1,0 +1,89 @@
+name: KIDULTS Physical Mobile and VoiceOver Receipt Contract V1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/governance/portal-physical-mobile-screen-reader-acceptance-contract-v1.json'
+      - 'coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json'
+      - 'scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs'
+      - 'tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs'
+      - '.github/workflows/kidults-portal-physical-mobile-screen-reader-receipt-v1.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/governance/portal-physical-mobile-screen-reader-acceptance-contract-v1.json'
+      - 'coordination/kidults/portal/portal-physical-mobile-screen-reader-acceptance-receipt-v1.json'
+      - 'scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs'
+      - 'tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs'
+      - '.github/workflows/kidults-portal-physical-mobile-screen-reader-receipt-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-portal-physical-receipt-${{ github.event.pull_request.number || github.ref }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  validate-contract:
+    name: Contract Valid / Physical and VoiceOver Acceptance May Remain HOLD
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+
+      - name: Verify exact checkout and live protected-main base
+        id: source
+        env:
+          EXPECTED_CHECKOUT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          checkout_sha="$(git rev-parse HEAD)"
+          test "$checkout_sha" = "$EXPECTED_CHECKOUT_SHA"
+          live_main_sha="$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/main | awk '{print $1}')"
+          test "$live_main_sha" = "$EXPECTED_BASE_SHA"
+          test "${#live_main_sha}" -eq 40
+          echo "live_main_sha=$live_main_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Initialize terminal assessment receipt
+        env:
+          LIVE_MAIN_SHA: ${{ steps.source.outputs.live_main_sha }}
+        run: |
+          mkdir -p /tmp/kidults-portal-physical-receipt
+          printf '{"contractState":"NOT_RUN","acceptance":"HOLD","expectedCurrentMainSha":"%s","promotionAuthority":"NONE","public":"HOLD","production":"HOLD","g5":"HOLD"}\n' "$LIVE_MAIN_SHA" \
+            > /tmp/kidults-portal-physical-receipt/assessment.json
+
+      - name: Validate schema and negative matrix
+        run: |
+          node --check scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs
+          node tests/kidults/kpmo/portal-physical-mobile-screen-reader-acceptance-v1.test.mjs
+
+      - name: Assess committed blank HOLD receipt
+        if: always()
+        env:
+          LIVE_MAIN_SHA: ${{ steps.source.outputs.live_main_sha }}
+        run: |
+          node scripts/kidults/portal/validate-physical-mobile-screen-reader-acceptance-v1.mjs \
+            --expected-current-main-sha "$LIVE_MAIN_SHA" \
+            --evaluation-time "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > /tmp/kidults-portal-physical-receipt/assessment.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: kidults-portal-physical-mobile-voiceover-contract-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-portal-physical-receipt/assessment.json
+          if-no-files-found: error
+          retention-days: 30
