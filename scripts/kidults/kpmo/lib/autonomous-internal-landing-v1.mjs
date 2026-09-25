@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {evaluateSemanticCapabilityDelta} from './semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from './independent-capability-verifier-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -73,6 +74,7 @@ export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDiges
   if (policy) {
     assertAutonomousFileScope({files,policy});
     evaluateSemanticCapabilityDelta({files,policy});
+    independentlyVerifyCapabilityDelta({files,policy});
   }
   else {
     const exceptions=new Set(delegatedInternalExactPathExceptions||[]);
