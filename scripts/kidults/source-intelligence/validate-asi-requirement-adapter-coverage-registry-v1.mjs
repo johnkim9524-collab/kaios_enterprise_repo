@@ -46,7 +46,8 @@ const documentation = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
 assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'CONTRACT_ID_VERSION');
-assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.3.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.4.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(same(artifactBindingSchema.properties?.workflow_event?.enum, ['workflow_run', 'workflow_dispatch']) && artifactBindingSchema.properties?.exact_triggering_run_bound?.const === true, 'ARTIFACT_BINDING_SCHEMA_EVENT_STRICTNESS');
 assert(artifactBindingSchema.properties?.production_authorized?.const === false && !Object.hasOwn(artifactBindingSchema.properties || {}, 'production_eligible'), 'ARTIFACT_BINDING_SCHEMA_PRODUCTION_AUTHORITY');
 assert(artifactBindingSchema.properties?.upstream_class?.const === 'ASI_AUTONOMOUS_RESOLUTION' && artifactBindingSchema.required?.includes('canonical_run_key'), 'ARTIFACT_BINDING_SCHEMA_CANONICAL_RUN_IDENTITY');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'CONTRACT_STATUS');
