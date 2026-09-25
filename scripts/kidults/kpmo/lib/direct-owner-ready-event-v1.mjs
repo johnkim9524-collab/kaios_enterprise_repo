@@ -45,7 +45,7 @@ const isBoundNaturalMergedClose = ({timeline, closeEntry, repositoryOwner, lates
   return matchingMergedEvents.length === 1;
 };
 
-export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = {}) {
+export function selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest} = {}) {
   if (!Array.isArray(timeline)) fail('LIFECYCLE_READY_TIMELINE_INVALID');
   if (typeof repositoryOwner !== 'string' || repositoryOwner.length === 0) {
     fail('LIFECYCLE_REPOSITORY_OWNER_INVALID');
@@ -56,10 +56,28 @@ export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = 
     .map(normalizeLifecycleEvent)
     .sort((left, right) => left.time - right.time || left.id - right.id);
 
-  const latestReady = lifecycleEvents
+  let latestReady = lifecycleEvents
     .filter(entry => READY_EVENTS.has(entry.item?.event))
     .at(-1);
-  if (!latestReady || latestReady.item?.event !== 'ready_for_review') {
+  if (!latestReady && lifecycleEvents.length === 0) {
+    const id = Number(pullRequest?.id);
+    const actor = String(pullRequest?.user?.login || '');
+    const createdAt = String(pullRequest?.created_at || '');
+    if (pullRequest?.draft === false && Number.isSafeInteger(id) && id > 0 && actor) {
+      latestReady = {
+        id,
+        createdAt,
+        time: eventTime(createdAt),
+        item: {
+          event: 'created_ready_or_never_drafted',
+          actor: {login: actor},
+          performed_via_github_app: null,
+        },
+        synthetic: true,
+      };
+    }
+  }
+  if (!latestReady || !['ready_for_review', 'created_ready_or_never_drafted'].includes(latestReady.item?.event)) {
     fail('LIFECYCLE_LATEST_READY_EVENT_REQUIRED');
   }
 
@@ -75,22 +93,21 @@ export function selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner} = 
   }
 
   const actor = String(latestReady.item?.actor?.login || '');
-  if (actor !== repositoryOwner) {
-    fail('LIFECYCLE_READY_EVENT_ACTOR_NOT_REPOSITORY_OWNER');
-  }
-  if (latestReady.item?.performed_via_github_app !== null) {
-    fail('LIFECYCLE_READY_EVENT_APP_MEDIATED');
-  }
+  if (!actor) fail('LIFECYCLE_READY_EVENT_ACTOR_INVALID');
+  const performedVia = latestReady.item?.performed_via_github_app ?? null;
 
   const latestInvalidatingEvent = invalidatingEvents.at(-1);
 
   return Object.freeze({
     id: latestReady.id,
-    event: 'ready_for_review',
+    event: latestReady.item.event,
     created_at: latestReady.createdAt,
     actor,
-    performed_via_github_app: null,
-    direct_repository_owner: true,
+    performed_via_github_app: performedVia,
+    direct_repository_owner: actor === repositoryOwner && performedVia === null,
+    authority: 'LIFECYCLE_ONLY',
+    grants_authorization: false,
+    synthetic_lifecycle_boundary: latestReady.synthetic === true,
     latest_invalidating_event: latestInvalidatingEvent
       ? Object.freeze({
           id: latestInvalidatingEvent.id,

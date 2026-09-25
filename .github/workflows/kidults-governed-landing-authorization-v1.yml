@@ -169,7 +169,8 @@ jobs:
 
             if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');
             if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');
-            if(readinessReceipt.actor!==repository.owner?.login) fail('latest ready state was not authorized by Program Owner');
+            // Ready is lifecycle state only. It may be emitted by the autonomous
+            // finalizer and never grants landing authority by itself.
 
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
@@ -190,7 +191,7 @@ jobs:
 
             const receipt = {
               id:'kidults-governed-landing-authorization-receipt-v1',
-              state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD',
+              state:'LIFECYCLE_READY_SOLO_OWNER_SCOPE_VERIFIED',
               repository:repo,
               pull_request:Number(prNumber),
               author:pr.user.login,
@@ -200,6 +201,8 @@ jobs:
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
               readiness:readinessReceipt,
+              ready_state_is_lifecycle_only:true,
+              landing_authorization_created:false,
               required_approval_count:0,
               optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
@@ -249,14 +252,14 @@ jobs:
             if(final.draft===true){
               if(final.state!=='open'||final.merged===true||final.head?.sha!==head||final.head?.repo?.full_name!==repo||final.base?.ref!=='main')throw new Error('DRAFT_DEVELOPMENT_FINAL_REREAD_INVALID');
               if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
-              await status('pending','Draft is non-promotable; Ready authorization required');
+              await status('pending','Draft is non-promotable; automated Ready transition pending');
               await status('success','Draft development controls verified; landing remains blocked',scopePolicy.draft_development_status_context);
               console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'DRAFT_DEVELOPMENT_VERIFIED_NON_PROMOTABLE',pull_request:Number(number),exact_head_sha:head,landing_authorization_created:false,promotion_eligible:false,final_live_reread:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
               process.exit(0);
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
             if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
-            await status('pending','Ready; operation-specific atomic landing is required');
+            await status('pending','Ready lifecycle verified; operation-specific landing authority required');
             console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'READY_PENDING_ATOMIC_LANDING',pull_request:Number(number),exact_head_sha:head,final_live_reread:true,ordinary_readiness_published_success:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
           } catch(error) {
             failure=error;

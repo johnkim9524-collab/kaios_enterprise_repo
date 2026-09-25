@@ -90,7 +90,8 @@
     "changes_requested_on_exact_head_blocks": true,
     "solo_owner_author_must_match_repository_owner": true,
     "same_repository_head_required": true,
-    "ready_state_by_owner_is_authorization": true,
+    "ready_state_by_owner_is_authorization": false,
+    "ready_state_is_lifecycle_only": true,
     "optional_external_review_must_bind_exact_head": true
   },
   "draft_policy": {

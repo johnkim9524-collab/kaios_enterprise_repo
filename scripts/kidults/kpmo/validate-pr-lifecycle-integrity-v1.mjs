@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+  selectLatestLifecycleReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
+
+import {
   assertFullApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
 import {
@@ -11,9 +15,6 @@ import {
   SCOPE_AWARE_CONTEXT,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
-import {
-  selectLatestDirectOwnerReadyEvent,
-} from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
 
@@ -222,9 +223,10 @@ async function main() {
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/issues/${prNumber}/timeline`),
     ]);
-    const latestReadiness = selectLatestDirectOwnerReadyEvent({
+    const latestReadiness = selectLatestLifecycleReadyEvent({
       timeline,
       repositoryOwner,
+      pullRequest: prInitial,
     });
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
@@ -260,10 +262,14 @@ async function main() {
       event_name: process.env.GITHUB_EVENT_NAME || null,
       lifecycle_evaluated_at: lifecycleEvaluatedAt,
       latest_ready_event_id: latestReadiness.id,
+      latest_ready_event_type: latestReadiness.event,
       latest_ready_event_at: latestReadiness.created_at,
       latest_ready_event_actor: latestReadiness.actor,
       latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
       latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
+      latest_ready_event_synthetic_lifecycle_boundary: latestReadiness.synthetic_lifecycle_boundary,
+      readiness_authority: 'LIFECYCLE_ONLY',
+      ready_state_grants_authorization: false,
       approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,

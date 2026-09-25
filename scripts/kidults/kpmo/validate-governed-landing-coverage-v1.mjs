@@ -66,7 +66,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(review.self_review_counts === false, 'SELF_REVIEW_MUST_NOT_COUNT_AS_INDEPENDENT');
   require(review.solo_owner_author_must_match_repository_owner === true, 'OWNER_IDENTITY');
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
-  require(review.ready_state_by_owner_is_authorization === true, 'OWNER_READY_AUTHORIZATION');
+  require(review.ready_state_by_owner_is_authorization === false, 'READY_MUST_NOT_GRANT_AUTHORIZATION');
+  require(review.ready_state_is_lifecycle_only === true, 'READY_LIFECYCLE_ONLY_REQUIRED');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
@@ -96,14 +97,15 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'require_extra_approval_for_unattributed_changes',
     "pr.user?.login!==repository.owner?.login",
     "pr.head?.repo?.full_name!==repo",
-    "readinessReceipt.actor!==repository.owner?.login",
-    "state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD'",
+    "state:'LIFECYCLE_READY_SOLO_OWNER_SCOPE_VERIFIED'",
+    'ready_state_is_lifecycle_only:true',
+    'landing_authorization_created:false',
     'required_approval_count:0',
     'ruleset bypass actor detected',
     "pr.state !== 'open' || pr.merged === true",
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
-    "Ready; operation-specific atomic landing is required",
+    "Ready lifecycle verified; operation-specific landing authority required",
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
@@ -170,7 +172,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(preflight.includes("independent_human_review: 'OPTIONAL_NOT_REQUIRED_BY_SOLO_OWNER_RULESET'"), 'SOLO_REVIEW_MODE');
   require(preflight.includes('technical_preflight_is_merge_authorization: false'), 'TECHNICAL_AUTHORITY_BOUNDARY');
   require(preflight.includes('exact_head_approval_required: false'), 'EXACT_HEAD_REVIEW_MUST_BE_OPTIONAL');
-  require(preflight.includes("merge_authorization: 'PROGRAM_OWNER_READY_AND_MERGE_DECISION_REQUIRED'"), 'PROGRAM_OWNER_AUTHORIZATION');
+  require(preflight.includes("merge_authorization: 'OWNER_RESERVED_EXACT_ACTION_ONLY'"), 'PROGRAM_OWNER_AUTHORIZATION');
 
   return findings;
 }
@@ -325,7 +327,7 @@ const mutations = [
     aggregateRunner,
   },
   {
-    id: 'APPROVAL_READY_GATE_REMOVED',
+    id: 'APPROVAL_GENERATION_EQUALITY_GATE_REMOVED',
     policy,
     workflow: workflow.replace('Enforce active approval-generation equality before readiness', 'Approval generation check removed'),
     preflight,
@@ -371,7 +373,8 @@ const receipt = {
     required_approvals: 0,
     author_must_be_repository_owner: true,
     canonical_repository_head: true,
-    program_owner_ready_state: true,
+    ready_state_is_lifecycle_only: true,
+    ready_state_grants_authorization: false,
     exact_head_changes_requested_blocks: true,
     stale_review_rejected: true,
     review_threads_resolved: true,
