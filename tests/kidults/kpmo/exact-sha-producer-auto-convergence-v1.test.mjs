@@ -45,3 +45,8 @@ test('workflow starts roots on protected-main push and retains terminal HOLD bou
   assert.match(workflow,/run-exact-sha-producer-auto-convergence-v1\.mjs/);
   for(const marker of ['promotion_eligible==false','public=="HOLD"','production=="HOLD"','g5=="HOLD"'])assert.ok(workflow.includes(marker));
 });
+
+test('root dispatches target authoritative producers without relying on token-suppressed workflow_run recursion',()=>{
+  assert.equal(ROOTS.find((root)=>root.id==='REQUIREMENT').workflow,'kidults-asi-requirement-adapter-coverage-v1.yml');
+  assert.equal(ROOTS.find((root)=>root.id==='RESERVE').workflow,'kidults-asi-sharded-source-reserve-v1.yml');
+});
