@@ -251,8 +251,8 @@ assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND
 assert(!workflow.includes('/actions/artifacts?per_page='), 'WORKFLOW_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(workflow.includes('/actions/runs/${RUN_ID}/artifacts?per_page=100'), 'WORKFLOW_EXACT_RUN_ARTIFACT_BINDING');
 assert(workflow.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'WORKFLOW_CONSUMER_EVENT_BINDING_MISSING');
-assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
-assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
+assert(workflow.includes('exact_triggering_run_bound:true'), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
+assert(workflow.includes("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
 assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');

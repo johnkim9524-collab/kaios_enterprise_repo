@@ -12,6 +12,8 @@ const ROOTS=[
   {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'},
   {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'},
 ];
+const P1_ROOT={id:'P1',workflow:'kidults-asi-p1-source-preflight-v1.yml',path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml'};
+const ARL_ROOT={id:'ARL',workflow:'kidults-asi-autonomous-resolution-layer-v1.yml',path:'.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml'};
 const ROOT_BY_PRODUCER=new Map(ROOTS.map((root)=>[root.id,root]));
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
 const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
@@ -66,19 +68,35 @@ async function rootRuns(root,token){
   return payload.workflow_runs;
 }
 
-async function dispatchRoot(root,token){
-  await githubApi(`actions/workflows/${root.workflow}/dispatches`,token,{method:'POST',body:{ref:'main'}});
+async function dispatchRoot(root,token,inputs={}){
+  const body={ref:'main'};
+  if(Object.keys(inputs).length)body.inputs=inputs;
+  await githubApi(`actions/workflows/${root.workflow}/dispatches`,token,{method:'POST',body});
 }
 
-export async function ensureRoot(root,{sourceSha,token,force=false,maxDispatches=2,apiRuns=rootRuns,dispatch=dispatchRoot}={}){
+export async function ensureRoot(root,{sourceSha,token,force=false,maxDispatches=2,inputs={},apiRuns=rootRuns,dispatch=dispatchRoot}={}){
   const runs=await apiRuns(root,token);
   const exact=runs.filter((run)=>run?.head_sha===sourceSha&&run?.event==='workflow_dispatch'&&run?.path===root.path);
   const latest=selectRootGeneration(runs,root,sourceSha);
   const successfulOrActive=latest&&(latest.status!=='completed'||latest.conclusion==='success');
   if(successfulOrActive&&!force)return {action:'SKIPPED_EXISTING',run_id:latest.id};
   if(exact.length>=maxDispatches)fail(`${root.id}_ROOT_RETRY_EXHAUSTED`);
-  await dispatch(root,token);
+  await dispatch(root,token,inputs);
   return {action:force?'DISPATCHED_RECOVERY':'DISPATCHED',run_id:null};
+}
+
+export async function waitForSuccessfulRoot(root,{sourceSha,token,deadline,pollMs,apiRuns=rootRuns,wait=sleep}={}){
+  for(;;){
+    const runs=await apiRuns(root,token);
+    const latest=selectRootGeneration(runs,root,sourceSha);
+    if(latest?.status==='completed'){
+      if(latest.conclusion==='success')return latest;
+      const exact=runs.filter((run)=>run?.head_sha===sourceSha&&run?.event==='workflow_dispatch'&&run?.path===root.path);
+      if(exact.length>=2)fail(`${root.id}_ROOT_FAILED_${latest.conclusion||'UNKNOWN'}`);
+    }
+    if(Date.now()>=deadline)fail(`${root.id}_ROOT_TIMEOUT`);
+    await wait(pollMs);
+  }
 }
 
 function runHealthResolver(outputPath,sourceSha,token){
@@ -103,10 +121,20 @@ export async function converge({repository,sourceSha,token,output,healthOutput,m
   const branch=await githubApi('branches/main',token);
   if(branch?.commit?.sha!==sourceSha)fail('MAIN_SHA_MOVED_BEFORE_CONVERGENCE');
   const roots=[];
-  for(const root of ROOTS)roots.push({id:root.id,...await ensureRoot(root,{sourceSha,token})});
+  const started=Date.now();
+  const deadline=started+maxWaitMs;
+  for(const root of ROOTS.filter((candidate)=>candidate.id!=='REQUIREMENT')){
+    roots.push({id:root.id,...await ensureRoot(root,{sourceSha,token})});
+  }
+  const p1Start=await ensureRoot(P1_ROOT,{sourceSha,token});
+  const p1Run=await waitForSuccessfulRoot(P1_ROOT,{sourceSha,token,deadline,pollMs});
+  const arlStart=await ensureRoot(ARL_ROOT,{sourceSha,token,inputs:{p1_run_id:String(p1Run.id)}});
+  const arlRun=await waitForSuccessfulRoot(ARL_ROOT,{sourceSha,token,deadline,pollMs});
+  const requirement=ROOT_BY_PRODUCER.get('REQUIREMENT');
+  roots.push({id:requirement.id,...await ensureRoot(requirement,{sourceSha,token})});
+  const producerChain={p1:{...p1Start,run_id:p1Run.id},arl:{...arlStart,run_id:arlRun.id,p1_run_id:p1Run.id}};
   const recovery=new Set();
   const observations=[];
-  const started=Date.now();
   for(;;){
     const current=await githubApi('branches/main',token);
     if(current?.commit?.sha!==sourceSha)fail('MAIN_SHA_MOVED_DURING_CONVERGENCE');
@@ -114,7 +142,7 @@ export async function converge({repository,sourceSha,token,output,healthOutput,m
     const classification=classifyHealthReceipt(health,sourceSha);
     observations.push({at:new Date().toISOString(),state:health.state,failed:classification.failed,waiting:classification.waiting});
     if(classification.state==='PASS'){
-      const receipt={receipt_id:'kpmo-exact-sha-producer-auto-convergence-v1',version:'1.0.0',state:'VERIFIED_PASS',repository,source_sha:sourceSha,roots,recovery_dispatches:[...recovery],observation_count:observations.length,last_observation:observations.at(-1),producer_health_receipt_digest:health.receipt_digest,promotion_eligible:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+      const receipt={receipt_id:'kpmo-exact-sha-producer-auto-convergence-v1',version:'1.1.0',state:'VERIFIED_PASS',repository,source_sha:sourceSha,roots,producer_chain:producerChain,recovery_dispatches:[...recovery],observation_count:observations.length,last_observation:observations.at(-1),producer_health_receipt_digest:health.receipt_digest,promotion_eligible:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
       writeReceipt(output,receipt);return receipt;
     }
     if(classification.state==='FAIL'){
@@ -143,4 +171,4 @@ async function main(){
 
 if(import.meta.url===pathToFileURL(process.argv[1]||'').href)main().catch((error)=>{console.error(error);process.exitCode=1;});
 
-export {ROOTS, REPOSITORY};
+export {ROOTS, P1_ROOT, ARL_ROOT, REPOSITORY};

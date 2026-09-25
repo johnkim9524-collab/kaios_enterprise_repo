@@ -49,6 +49,13 @@ test('historical native dynamic ARL shape passes exact complete history',()=>{
  const result=historical();assert.equal(result.state,'VERIFIED_PASS_BOUNDED_COMPLETE');assert.equal(result.current_run_in_complete_query,true);
  assert.equal(result.production,'HOLD');
 });
+test('exact-input workflow_dispatch ARL passes only with an explicit matching event contract',()=>{
+ const run=arl({event:'workflow_dispatch'});
+ const result=history({...options,event:'workflow_dispatch',pages:[{total_count:1,workflow_runs:[run]}]});
+ assert.equal(result.workflow_event,'workflow_dispatch');
+ const consumed=producer({run,receipt:arlReceipt(),sourceSha:source,event:'workflow_dispatch'});
+ assert.equal(consumed.workflow_event,'workflow_dispatch');
+});
 for(const [label,change] of [['wrong name',{name:'other'}],['wrong path',{path:coveragePath}],['prior SHA',{head_sha:'b'.repeat(40)}],
  ['manual event',{event:'workflow_dispatch'}],['branch mismatch',{head_branch:'feature'}],['missing current run',{id:34013158293}],
  ['different P1 title',{name:'KIDULTS ARL / p1-1',display_title:'KIDULTS ARL / p1-1'}]])
@@ -99,7 +106,7 @@ const workflow=fs.readFileSync(arlPath,'utf8');
 const jqCommand=workflow.match(/CURRENT_ARL_CREATED_AT=\$\((jq[\s\S]*?\/tmp\/arl-current-run\.json)\)/)?.[1];
 assert.ok(jqCommand,'native ARL jq guard must be present');
 function arlGuard(run){return tempRun(run,file=>requireBashJq(spawnSync('bash',['-c',`command -v jq >/dev/null 2>&1 || exit 125\n${jqCommand.replace('/tmp/arl-current-run.json',JSON.stringify(shellPath(file)))}`],{
- encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,P1_RUN_ID:String(p1)}})));}
+ encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,GITHUB_EVENT_NAME:'workflow_run',P1_RUN_ID:String(p1)}})));}
 test('real workflow jq regression: old static-name predicate rejects native fixture; corrected exact predicate succeeds',()=>{
  tempRun(arl(),file=>assert.equal(requireSpawn(spawnSync('jq',['-er',`select(.name==${JSON.stringify(arlName)}) | .created_at`,file])).status,4));
  const r=arlGuard(arl());assert.equal(r.status,0,r.stderr);assert.equal(r.stdout.trim(),'2026-09-06T05:06:36Z');

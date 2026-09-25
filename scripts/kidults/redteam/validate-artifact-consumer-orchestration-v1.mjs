@@ -76,8 +76,8 @@ assert(requirement.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDAT
 assert(requirement.includes('classify-requirement-coverage-admission-v1.mjs') && requirement.includes('kidults-asi-arl-p1-generation-classification-v1-${process.env.EVENT_ARL_RUN_ID}-${process.env.EVENT_ARL_RUN_ATTEMPT}') && coverageAdmission.includes("admission: 'EXPECTED_NONAUTHORITATIVE_SKIP'") && coverageAdmission.includes("admission: 'AUTHORITATIVE_REQUIRED'"), 'REQUIREMENT_ARL_CLASSIFICATION_ADMISSION_MISSING');
 assert(requirement.includes('EVENT_ARL_RUN_ID') && requirement.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_BINDING_MISSING');
 assert(requirement.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MISSING');
-assert(requirement.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'REQUIREMENT_EXACT_TRIGGER_CONSUMER_SEMANTICS_MISSING');
-assert(requirement.includes("authoritative_producer_event:run.event==='workflow_run'"), 'REQUIREMENT_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
+assert(requirement.includes('exact_triggering_run_bound:true'), 'REQUIREMENT_EXACT_TRIGGER_CONSUMER_SEMANTICS_MISSING');
+assert(requirement.includes("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)"), 'REQUIREMENT_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(requirement.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && requirement.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'REQUIREMENT_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(requirement.includes("run.event!=='push'") && requirement.includes("artifactProducingEvents.has(run.event)"), 'REQUIREMENT_FALLBACK_ARTIFACT_EVENT_FILTER_MISSING');
 assert(requirement.includes('AUTONOMOUS_RESOLUTION_ARTIFACT_NOT_AVAILABLE:${RUN_ID}'), 'REQUIREMENT_ARTIFACT_EVENTUAL_CONSISTENCY_FAIL_CLOSE_MISSING');
@@ -95,8 +95,9 @@ assert(snapshot.includes(snapshotConcurrencyContract), 'SNAPSHOT_EVENT_SCOPED_CO
 assert(snapshot.includes('cancel-in-progress: true'), 'SNAPSHOT_CONCURRENCY_FAIL_CLOSED_MISSING');
 const autonomousResolutionPrStaticContract = "validate-autonomous-resolution-contract:\n    if: github.event_name == 'pull_request' || github.event_name == 'push'";
 assert(autonomousResolution.includes(autonomousResolutionPrStaticContract), 'AUTONOMOUS_RESOLUTION_PR_STATIC_LANE_MISSING');
-const autonomousResolutionArtifactConsumerContract = "resolve-current-p1-actions:\n    needs: classify-p1-generation\n    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'";
+const autonomousResolutionArtifactConsumerContract = "always() && (github.event_name == 'workflow_dispatch' ||\n      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&\n      needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'";
 assert(autonomousResolution.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_SEPARATION_MISSING');
+assert(autonomousResolution.includes('EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED') && autonomousResolution.includes('.event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha'), 'AUTONOMOUS_RESOLUTION_DIRECT_P1_BINDING_MISSING');
 assert(autonomousResolution.includes('classify-p1-generation:') && autonomousResolution.includes('classify-workflow-run-generation-v1.mjs') && autonomousResolution.includes('CURRENT_MAIN_SHA=$(gh api') && autonomousResolution.includes('kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}') && autonomousResolution.includes("steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'"), 'AUTONOMOUS_RESOLUTION_EXACT_GENERATION_CLASSIFIER_MISSING');
 assert(!hasP1DispatchAuthority(autonomousResolution), 'AUTONOMOUS_RESOLUTION_PROVIDER_DISPATCH_AUTHORITY_PRESENT');
 assert(!hasHiddenP1RecoveryJob(autonomousResolution), 'AUTONOMOUS_RESOLUTION_HIDDEN_RECOVERY_DISPATCH_PRESENT');
@@ -181,16 +182,16 @@ const requirementProducerEventMutation = requirement.replaceAll(requirementProdu
 assert(requirementProducerEventMutation !== requirement && !requirementProducerEventMutation.includes(requirementProducerEventGuard), 'REQUIREMENT_VALIDATION_ONLY_PUSH_MUTATION_NOT_DETECTED');
 const requirementExactTriggerMutation = requirement.replace(requirementExactTriggerLine, '\n            RUN_ID=""\n');
 assert(requirementExactTriggerMutation !== requirement && !requirementExactTriggerMutation.includes(requirementExactTriggerLine), 'REQUIREMENT_EXACT_TRIGGER_RUN_MUTATION_NOT_DETECTED');
-const requirementConsumerEventBindingMutation = requirement.replace("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'", "exact_triggering_run_bound:run.event==='workflow_run'");
-assert(requirementConsumerEventBindingMutation !== requirement && !requirementConsumerEventBindingMutation.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MUTATION_NOT_DETECTED');
-const requirementProducerAuthorityMutation = requirement.replace("authoritative_producer_event:run.event==='workflow_run'", 'authoritative_producer_event:true');
-assert(requirementProducerAuthorityMutation !== requirement && !requirementProducerAuthorityMutation.includes("authoritative_producer_event:run.event==='workflow_run'"), 'REQUIREMENT_PRODUCER_AUTHORITY_MUTATION_NOT_DETECTED');
+const requirementConsumerEventBindingMutation = requirement.replace('exact_triggering_run_bound:true', 'exact_triggering_run_bound:false');
+assert(requirementConsumerEventBindingMutation !== requirement && !requirementConsumerEventBindingMutation.includes('exact_triggering_run_bound:true'), 'REQUIREMENT_CONSUMER_EVENT_BINDING_MUTATION_NOT_DETECTED');
+const requirementProducerAuthorityMutation = requirement.replace("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)", 'authoritative_producer_event:true');
+assert(requirementProducerAuthorityMutation !== requirement && !requirementProducerAuthorityMutation.includes("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)"), 'REQUIREMENT_PRODUCER_AUTHORITY_MUTATION_NOT_DETECTED');
 const requirementProducerCardinalityMutation = requirement.replace('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1', 'test -n "$AUTHORITATIVE_PRODUCER_CARDINALITY"');
 assert(requirementProducerCardinalityMutation !== requirement && !requirementProducerCardinalityMutation.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'REQUIREMENT_PRODUCER_CARDINALITY_MUTATION_NOT_DETECTED');
 const snapshotConcurrencyMutation = snapshot.replace('github.event.workflow_run.id', 'github.ref');
 assert(snapshotConcurrencyMutation !== snapshot && !snapshotConcurrencyMutation.includes(snapshotConcurrencyContract), 'SNAPSHOT_CONCURRENCY_NAMESPACE_MUTATION_NOT_DETECTED');
 const autonomousResolutionPrConsumerMutation = autonomousResolution.replace(
-  "if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
+  autonomousResolutionArtifactConsumerContract,
   "if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_run'",
 );
 assert(autonomousResolutionPrConsumerMutation !== autonomousResolution && !autonomousResolutionPrConsumerMutation.includes(autonomousResolutionArtifactConsumerContract), 'AUTONOMOUS_RESOLUTION_PR_ARTIFACT_CONSUMER_MUTATION_NOT_DETECTED');

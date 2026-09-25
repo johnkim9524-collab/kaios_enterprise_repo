@@ -13,7 +13,9 @@ const runHistoryPath = 'scripts/kidults/source-intelligence/resolve-asi-orchestr
 function failuresFor(workflowSource, builderSource, runHistorySource) {
   const failures = [];
   const required = [
-    "run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || format('recovery-{0}', github.sha) }}",
+    "run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || github.event_name == 'workflow_dispatch' && format('p1-{0}', inputs.p1_run_id) || format('recovery-{0}', github.sha) }}",
+    'p1_run_id:',
+    'description: Exact successful protected-main P1 workflow_dispatch run ID',
     "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}",
     'cancel-in-progress: false',
     'classify-p1-generation:',
@@ -22,9 +24,13 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     "steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'",
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
     'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error',
-    "resolve-current-p1-actions:\n    needs: classify-p1-generation\n    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
-    'UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
-    'UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}',
+    "if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'",
+    "always() && (github.event_name == 'workflow_dispatch' ||",
+    "needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
+    "UPSTREAM_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.p1_run_id || github.event.workflow_run.id }}",
+    "UPSTREAM_HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}",
+    'EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED',
+    '.event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha',
     "test \"$UPSTREAM_PATH\" = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'",
     '/actions/runs/${P1_RUN_ID}',
     '/actions/runs/${P1_RUN_ID}/artifacts?per_page=100',
@@ -37,7 +43,7 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA',
     'artifact_digest:process.env.P1_DIGEST',
     'exact_generation_bound:true',
-    "exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'",
+    "exact_triggering_run_bound:['workflow_run','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME)",
     'validation_only:process.env.P1_VALIDATION_ONLY',
     'promotion_authority:false',
     'artifact_cardinality:1',
@@ -95,7 +101,7 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
   for (const marker of forbidden) {
     if (workflowSource.includes(marker)) failures.push(`forbidden provenance marker: ${marker}`);
   }
-  if (/^  (workflow_dispatch|schedule):/m.test(workflowSource)) failures.push('forbidden automatic provider recovery trigger');
+  if (/^  schedule:/m.test(workflowSource)) failures.push('forbidden automatic provider recovery trigger');
   if (builderSource.includes('KIDULTS_ARL_RUNTIME_LINEAGE_MODE')) {
     failures.push('forbidden runtime-lineage bypass marker: KIDULTS_ARL_RUNTIME_LINEAGE_MODE');
   }
@@ -118,7 +124,9 @@ const workflowMutations = [
   ["test \"$UPSTREAM_PATH\" = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'", 'test -n "$UPSTREAM_PATH"', 'producer workflow identity'],
   ["github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha", 'github.sha', 'workflow_run generation leadership'],
   ['artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA', 'true', 'artifact source SHA binding'],
-  ["resolve-current-p1-actions:\n    needs: classify-p1-generation\n    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'", "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch'", 'canonical producer event boundary'],
+  ["always() && (github.event_name == 'workflow_dispatch' ||", "always() && (github.event_name == 'push' ||", 'canonical producer event boundary'],
+  ['EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED', 'UNVERIFIED_P1_WORKFLOW_DISPATCH_INPUT', 'direct P1 input provenance'],
+  ['.event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha', '.head_branch=="main" and .head_sha==$sha', 'direct P1 event binding'],
   ['--expected-digest "$P1_DIGEST"', '--expected-digest "sha256:unbound"', 'pre-extraction archive digest binding'],
   ['--required-basename p1-preflight-action-queue-v1.json', '--required-basename unbound.json', 'pre-extraction required-file cardinality'],
   ["needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'", "needs.classify-p1-generation.outputs.classification != 'INVALID_TRIGGER'", 'current-main classifier authority gate'],
@@ -217,11 +225,11 @@ console.log(JSON.stringify({
   exact_artifact_cardinality: true,
   producer_workflow_path_bound: true,
   recovery_artifact_non_consumable: true,
-  canonical_producer_event: 'workflow_run',
+  canonical_producer_events: ['workflow_run', 'workflow_dispatch_exact_p1_input'],
   exact_generation_leader_serialized: true,
   duplicate_authoritative_producer_rejected: true,
   transitive_p0b_to_p1_to_arl_runtime_lineage: true,
-  manual_schedule_push_p1_artifacts_rejected: true,
+  unbound_manual_schedule_push_p1_artifacts_rejected: true,
   ancestor_fallback: false,
   validation_only_non_promotable: true,
   public_release: 'HOLD',
