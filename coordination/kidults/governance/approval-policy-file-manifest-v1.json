@@ -4710,8 +4710,8 @@
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c9eb4b9eb03960a6593baa779feaba28c5311d13",
-      "sha256": "sha256:c02979f697dcea2bb307e243185dab17b0989a391887ba65c4638cae0ca22bbd",
+      "git_blob": "da40e94dade6f77b6c81ce6c03c024f3d134cbee",
+      "sha256": "sha256:a7cdc9ed0aedaecc70cb813b95e501a43eaf4963815cdea020e3c62ada5c0b9f",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -4982,5 +4982,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ef8af849ff6cd790aa5dc9a1718c448e110b65c8c39d4d5df12d5a48f76216f3"
+  "manifest_sha256": "sha256:5b621ffafc52a45eca8b121cdb629fb163521c039216114672646a35ddbf2d83"
 }
