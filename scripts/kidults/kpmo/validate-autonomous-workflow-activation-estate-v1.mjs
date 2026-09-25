@@ -11,6 +11,7 @@ const protectedManual = new Set([
   'digitalocean-staging-readonly-audit.yml',
   'kidults-agci-os-candidate-r2-preflight.yml',
   'kidults-atomic-governed-landing-v1.yml',
+  'kidults-autonomous-event-broker-deploy-v1.yml',
   'kidults-autonomous-smithsonian-sample.yml',
   'kidults-cloudflare-pages-boundary-readonly-v1.yml',
   'kidults-cloudflare-pages-emergency-control-v1.yml',
