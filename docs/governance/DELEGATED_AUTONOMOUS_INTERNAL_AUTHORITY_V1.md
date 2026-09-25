@@ -18,6 +18,8 @@ The accountable Track, KPMO, and independent-verifier approvals are represented 
 
 The independent verifier is a separated machine workload and evidence gate, not a required human reviewer. No routine non-Owner or third-party human review is introduced by this policy.
 
+Security-sensitive internal PRs may use a separate, non-landing machine preflight while Draft. Its verifier must be sourced from protected main, bind the exact candidate head and base, run adversarial negative cases independently of candidate tests, and publish only a success/failure check and bounded evidence. This preflight must have no write token, cloud identity, production secret, role approval, Ready transition, or merge operation. A failure or missing run holds the affected PR. A successful preflight supplies evidence to, but never substitutes for, the existing distinct OIDC/KMS workload quorum or an Owner-reserved decision. Human review is not required by this preflight.
+
 ## Program Owner reserved gates
 
 Program Owner approval remains mandatory for Production, Public, G5, external communication, spend, contracts, legal exceptions, irreversible security changes, credential or permission expansion, secret creation/read/rotation/export, trust-root or ruleset weakening, destructive data operations, and protected promotion or release.
