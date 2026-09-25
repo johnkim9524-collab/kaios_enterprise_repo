@@ -87,6 +87,12 @@
     "manual_independent_review_required": false,
     "automated_machine_verification_required": true,
     "automated_machine_verifier_must_be_distinct_from_approvers": true,
+    "draft_machine_preflight_may_run_without_landing": true,
+    "draft_machine_preflight_must_use_protected_main_verifier": true,
+    "draft_machine_preflight_must_bind_exact_base_and_head": true,
+    "draft_machine_preflight_has_no_write_token_cloud_identity_or_secrets": true,
+    "draft_machine_preflight_must_not_approve_ready_or_merge": true,
+    "draft_machine_preflight_does_not_replace_landing_quorum": true,
     "agent_violation_requires_quarantine_and_fresh_replacement": true,
     "workflows": [
       ".github/workflows/kidults-autonomous-track-authorization-v1.yml",

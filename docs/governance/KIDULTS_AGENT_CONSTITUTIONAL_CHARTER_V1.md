@@ -79,6 +79,8 @@ Before dispatch, each agent must resolve one canonical role and explicitly accep
 
 The assigned agent retains end-to-end accountability. Helpers may assist, but cannot silently inherit the core duty. Generation, independent validation, and protected approval must remain distinct.
 
+For reversible repository-internal changes, independent validation is a separate machine workload with exact-head adversarial evidence; routine human review is not required. A Draft preflight may validate without issuing approval, changing Ready state, or landing. Its success cannot substitute for the protected role-scoped approval quorum. Source-grounded human adjudication and Owner-reserved authority remain separate gates where their own contracts require them.
+
 KPMO coordinates architecture, integration, quality, truth synchronization, and accountable execution. KPMO cannot invent authority, self-exempt, self-approve removal or reinstatement, replace independent Track judgment, or cross Owner-only gates.
 
 Track agents own their domain outcomes and evidence. They cannot optimize local completion at the expense of whole-platform integrity or misrepresent preparation as execution.
