@@ -4919,8 +4919,8 @@
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "413c47430a606076821352e500d7e7cb4ae06edf",
-      "sha256": "sha256:4fdb78566c60558bb592ca3aba1f5fce6329dad98a95d50aa291f34a2c6e0bf2"
+      "git_blob": "d3edc3145bda6a0674e94d632d6abec6aab21853",
+      "sha256": "sha256:69f0cd6d6646dd53608ff55d92f831148fb742d39a3d26a81f939320de94fe72"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -4937,8 +4937,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c2dae06661801289d66da2380b60c3f9e6921025",
-      "sha256": "sha256:0c5585b04c01fa024c1aa8182d0b40abc72ff4a1aaa1115ef5e4defc8bd5fd80"
+      "git_blob": "a513917d6ae7a21ee5620c67da2a341434abd5bd",
+      "sha256": "sha256:791ce5285ccdd9cf9d15c72092c478e39d03f43786882364fe66d225442eb2ab"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -4995,5 +4995,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:218012c2151ca2a851f803d97e03c64e39b97eb4d0f240b73eebbebeaf116287"
+  "manifest_sha256": "sha256:68aaa4bc68321a803fc9de044a4e703f3a0bcd928ae9b6e089d4907257ae5d12"
 }
