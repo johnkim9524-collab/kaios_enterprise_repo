@@ -67,7 +67,7 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
-  if(['schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;
