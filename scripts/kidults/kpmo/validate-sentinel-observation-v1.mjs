@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {readSentinelEvent} from './validate-sentinel-trigger-v1.mjs';
+import {isUnevaluatedSentinelFailure} from './sentinel-health-receipt-contract-v1.mjs';
 
 const stable=x=>Array.isArray(x)?`[${x.map(stable).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${stable(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>`sha256:${crypto.createHash('sha256').update(stable(x)).digest('hex')}`;
@@ -37,7 +38,13 @@ export function validateSentinelObservation(r,env){
     const failures=r.producers.filter(p=>p.state==='VERIFIED_FAIL').map(p=>p.id);
     const waiting=r.producers.filter(p=>p.state==='VERIFIED_HOLD').map(p=>p.id);
     assert.deepEqual(r.failed_producers,failures);assert.deepEqual(r.waiting_producers,waiting);
-    assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length?'VERIFIED_HOLD':'VERIFIED_PASS');
+    // A resolver failure must remain FAIL even when every producer was unevaluated.
+    // Reject incomplete or downgraded observer-error shapes; ordinary producer
+    // aggregation keeps its existing strict rule.
+    const observerFailureMarked=Object.hasOwn(r,'failure_class')||
+      r.producers.some(p=>p.failure_class==='OBSERVATION_FAILED_NOT_EVALUATED');
+    if(observerFailureMarked)assert.ok(isUnevaluatedSentinelFailure(r),'SENTINEL_OBSERVATION_FAILURE_SHAPE');
+    else assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length?'VERIFIED_HOLD':'VERIFIED_PASS');
     if(r.state==='VERIFIED_PASS')assert.ok(r.producers.every(p=>p.artifact_content_validated===true));
   }else{
     assert.equal(r.state,'VERIFIED_FAIL');assert.equal(typeof r.failure_class,'string');assert.ok(r.failure_class.length>0);

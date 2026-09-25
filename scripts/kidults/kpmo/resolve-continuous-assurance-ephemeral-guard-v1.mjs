@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { validateHealthReceipt } from './sentinel-health-receipt-contract-v1.mjs';
 
 export * from './resolve-continuous-assurance-ephemeral-guard-core-v1.mjs';
 
@@ -15,21 +15,6 @@ const FULL_AUDIT_GUARD_STATES = new Set([
   'EPHEMERAL_CANONICAL_LEADER_SELECTED',
   'FULL_AUDIT_BYPASS_NON_ALIASABLE',
 ]);
-const SHA_PATTERN = /^[a-f0-9]{40}$/;
-const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
-
-function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-  if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`).join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function sha256(value) {
-  return `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
-}
-
 function fail(code, detail = '') {
   throw new Error(detail ? `${code}:${detail}` : code);
 }
@@ -67,26 +52,6 @@ export function inlineProducerHealthRequired(env = process.env) {
 
 export function guardRequiresProducerHealth(guard) {
   return Boolean(guard && FULL_AUDIT_GUARD_STATES.has(guard.state));
-}
-
-function validateHealthReceipt(receipt, env) {
-  const sourceSha = env.KPMO_SOURCE_SHA || env.GITHUB_SHA || '';
-  if (!SHA_PATTERN.test(sourceSha)) fail('INLINE_HEALTH_GATE_SOURCE_SHA_INVALID');
-  if (env.GITHUB_SHA !== sourceSha) fail('INLINE_HEALTH_GATE_SOURCE_SHA_DIVERGENCE');
-  if (receipt?.receipt_id !== 'kpmo-continuous-assurance-sentinel-health-v1') fail('INLINE_HEALTH_GATE_RECEIPT_ID');
-  if (receipt?.coverage_scope !== 'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM') fail('INLINE_HEALTH_GATE_SCOPE');
-  if (receipt?.repository !== env.GITHUB_REPOSITORY || receipt?.source_sha !== sourceSha) fail('INLINE_HEALTH_GATE_SOURCE_BINDING');
-  if (Number(receipt?.observer_run_id) !== Number(env.GITHUB_RUN_ID) || Number(receipt?.observer_run_attempt) !== Number(env.GITHUB_RUN_ATTEMPT)) fail('INLINE_HEALTH_GATE_OBSERVER_BINDING');
-  if (!DIGEST_PATTERN.test(receipt?.receipt_digest || '')) fail('INLINE_HEALTH_GATE_DIGEST_FORMAT');
-  const unsigned = structuredClone(receipt);
-  delete unsigned.receipt_digest;
-  if (receipt.receipt_digest !== sha256(stableJson(unsigned))) fail('INLINE_HEALTH_GATE_DIGEST_MISMATCH');
-  if (receipt?.whole_platform_authority !== false || receipt?.promotion_eligible !== false || receipt?.provider_authority !== false || receipt?.database_authority !== false) fail('INLINE_HEALTH_GATE_AUTHORITY_BOUNDARY');
-  if (receipt?.public !== 'HOLD' || receipt?.production !== 'HOLD' || receipt?.g5 !== 'HOLD') fail('INLINE_HEALTH_GATE_HOLD_BOUNDARY');
-  if (!Array.isArray(receipt?.producers) || receipt.producers.length !== 4) fail('INLINE_HEALTH_GATE_PRODUCER_CARDINALITY');
-  const ids = receipt.producers.map((producer) => producer?.id).sort();
-  if (ids.join(',') !== 'CANONICAL_TRUTH,REQUIREMENT,RESERVE,SHADOW') fail('INLINE_HEALTH_GATE_PRODUCER_SET');
-  return sourceSha;
 }
 
 function runChild(filePath, args, env) {
