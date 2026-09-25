@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "0cfa3a9c5783c97b373533d555a114a1b09c62c5",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3633,8 +3633,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e1ced65916ce5aabf569268d1e4d57f595d990d9",
-      "sha256": "sha256:626822087992232a8de7e8af83bebb09b2723e339554d637f6398d219e553892",
+      "git_blob": "fd04757c7a3a6b14e73627054e93fd9aab7d12f7",
+      "sha256": "sha256:38f5f405c57bfa675acf015e67b2ca73b5ee37fe20bdabc6659d270e5513f131",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5086,5 +5086,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:71e8f7f2baa8b8912873453fa884009e95f42d015ee12d43f9d2b65572273110"
+  "manifest_sha256": "sha256:618528b42dc04afb172ae83d6dcc02e5e542b00f4d8aa4c6cdd7114d1bafae23"
 }
