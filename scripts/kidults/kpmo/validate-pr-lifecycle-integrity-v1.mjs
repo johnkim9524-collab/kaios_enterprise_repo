@@ -75,6 +75,23 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   assert(required.length > 0, 'NATIVE_REQUIRED_CONTEXT_SET_EMPTY');
   const latest = latestByContext(statuses);
   const evidence = required.map(context => latest.get(context) || {context, state: 'missing', description: null});
+  const landing = evidence.find(item => item.context === GOVERNED_LANDING_CONTEXT);
+  const scope = evidence.find(item => item.context === SCOPE_AWARE_CONTEXT);
+  // The normal Ready status is a control result, never an atomic landing grant.
+  // Keep the atomic-only READY_GOVERNED contract below unchanged.
+  if (landing?.state === 'pending'
+    && landing.description === 'Ready lifecycle verified; operation-specific landing authority required'
+    && landing.creator === 'github-actions[bot]'
+    && scope?.state === 'success') {
+    return {
+      ...common,
+      state: 'READY_VERIFIED_NON_PROMOTABLE',
+      reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+      native_status_evidence: evidence,
+      manual_merge_authority: false,
+      atomic_landing_only: false,
+    };
+  }
   const incomplete = evidence.filter(item => !isAtomicLandingNativeStatusReady(item));
   if (incomplete.length) {
     return {
@@ -135,6 +152,41 @@ function runSelfTest() {
     expectedHeadSha: head,
     expectedBaseSha: base,
   }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_GENERIC_SUCCESS_NOT_OPERATION_SIGNAL');
+  const verifiedPending = classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [{
+      ...landingPending('Ready lifecycle verified; operation-specific landing authority required'),
+      creator: {login: 'github-actions[bot]'},
+    }, success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  });
+  assert(verifiedPending.state === 'READY_VERIFIED_NON_PROMOTABLE'
+    && verifiedPending.reason === 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING'
+    && verifiedPending.promotion_eligible === false
+    && verifiedPending.manual_merge_authority === false
+    && verifiedPending.atomic_landing_only === false, 'SELFTEST_NORMAL_PENDING_CONTROL_ONLY');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [landingPending('Ready lifecycle verified; operation-specific landing authority required'), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_UNTRUSTED_PENDING_REJECTED');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [{
+      ...landingPending('Ready lifecycle verified; operation-specific landing authority required'),
+      creator: {login: 'github-actions[bot]'},
+    }, {...success(SCOPE_AWARE_CONTEXT), state: 'pending'}],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_SCOPE_PENDING_REJECTED');
   assert(classifyLifecycle({
     pr,
     liveMainSha: '3'.repeat(40),
