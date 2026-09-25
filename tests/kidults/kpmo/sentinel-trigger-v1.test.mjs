@@ -13,7 +13,7 @@ for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact sa
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
-for(const name of ['schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
+for(const name of ['push','schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
 
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
@@ -71,7 +71,7 @@ for(const [name,mutate] of [
  ['changed conclusion',r=>r.conclusion='failure'],['different head repository ID',r=>r.head_repository.id=99],
  ['missing native repository ID',r=>delete r.repository.id],
 ])test(`native re-read refuses ${name}`,()=>{const p=event(),r=structuredClone(p.workflow_run);mutate(r);assert.throws(()=>validateSentinelTrigger(env,p,r));});
-for(const changes of [{GITHUB_EVENT_NAME:'push'},{GITHUB_REF:'refs/heads/feature'},{GITHUB_SHA:'main'},{GITHUB_REPOSITORY:'other/repo'}])test(`observer environment remains bounded ${JSON.stringify(changes)}`,()=>assert.throws(()=>validateSentinelTrigger({...env,...changes},event())));
+for(const changes of [{GITHUB_EVENT_NAME:'pull_request'},{GITHUB_REF:'refs/heads/feature'},{GITHUB_SHA:'main'},{GITHUB_REPOSITORY:'other/repo'}])test(`observer environment remains bounded ${JSON.stringify(changes)}`,()=>assert.throws(()=>validateSentinelTrigger({...env,...changes},event())));
 test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-'));try{
   const p=path.join(d,'event.json');fs.writeFileSync(p,JSON.stringify(event()));assert.deepEqual(readSentinelEvent(p),event());
