@@ -405,9 +405,8 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
     collectCheckRuns(envelope.head_sha),
     liveRequiredChecks(),
   ]);
-  const landingContexts=new Set(['KIDULTS Governed Landing Authorization V1','KIDULTS Atomic Landing Terminal V2','KIDULTS Autonomous Internal Landing V1']);
-  const authoritativeStatuses=(status.statuses||[]).filter(value=>!landingContexts.has(value.context));
-  const authoritativeChecks=checks.filter(value=>!landingContexts.has(value.name));
+  const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
+  const authoritativeChecks=checks;
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
   const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
