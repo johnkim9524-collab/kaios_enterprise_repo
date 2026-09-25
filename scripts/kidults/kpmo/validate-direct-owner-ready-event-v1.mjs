@@ -112,6 +112,26 @@ const createdReady = selectLatestLifecycleReadyEvent({
 assert(createdReady.event === 'created_ready_or_never_drafted', 'CREATED_READY_EVENT_INVALID');
 assert(createdReady.synthetic_lifecycle_boundary === true, 'CREATED_READY_BOUNDARY_NOT_MARKED');
 assert(createdReady.grants_authorization === false, 'CREATED_READY_MUST_NOT_AUTHORIZE');
+const createdReadyNaturalMergedClose = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [
+    merged({id: 503, at: '2026-09-02T00:08:04Z'}),
+    transition({id: 504, at: '2026-09-02T00:08:04Z', event: 'closed'}),
+  ],
+  pullRequest: {
+    id: 501,
+    draft: false,
+    merged: true,
+    created_at: '2026-09-02T00:08:01Z',
+    user: {login: owner},
+  },
+});
+assert(createdReadyNaturalMergedClose.event === 'created_ready_or_never_drafted',
+  'CREATED_READY_MERGED_CLOSE_BOUNDARY_INVALID');
+assert(createdReadyNaturalMergedClose.synthetic_lifecycle_boundary === true,
+  'CREATED_READY_MERGED_CLOSE_NOT_SYNTHETIC');
+assert(createdReadyNaturalMergedClose.latest_invalidating_event === null,
+  'CREATED_READY_NATURAL_MERGED_CLOSE_INVALIDATED');
 expectReject('LIFECYCLE_LATEST_READY_EVENT_REQUIRED', () =>
   selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
