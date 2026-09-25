@@ -5,8 +5,17 @@ const integrationId = value => {
   return match ? Number(match[1]) : 0;
 };
 
+const landingContexts = new Set([
+  'KIDULTS Governed Landing Authorization V1',
+  'KIDULTS Atomic Landing Terminal V2',
+  'KIDULTS Autonomous Internal Landing V1',
+]);
+
 export function bindRequiredGateEvidence({required, checks, statuses, headSha, fail}) {
-  return required.map(binding => {
+  // Landing authorization is the output of this quorum, so it cannot be a
+  // prerequisite for starting the quorum. The full required set remains bound
+  // in the envelope and enforced by the protected branch ruleset.
+  return required.filter(binding => !landingContexts.has(binding.context)).map(binding => {
     const matchingChecks = checks.filter(value => value.name === binding.context &&
       (!binding.integration_id || integrationId(value) === binding.integration_id) &&
       value.head_sha === headSha);
