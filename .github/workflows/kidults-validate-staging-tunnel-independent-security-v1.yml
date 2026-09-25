@@ -10,7 +10,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/kidults-staging-tunnel-independent-security-v1.yml
+      - .github/workflows/kidults-validate-staging-tunnel-independent-security-v1.yml
       - scripts/kidults/kpmo/verify-staging-tunnel-independent-v1.py
   workflow_dispatch:
 
