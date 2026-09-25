@@ -1,8 +1,8 @@
 {
   "id": "kidults-post-landing-platform-runtime-terminal-lifecycle-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "classification": "DEFECT_REMEDIATED",
-  "defect": "A protected-main merge invalidated the exact-main Canonical generation while the only Canonical writer path required a second Program Owner authorization.",
+  "defect": "The exact-main health sentinel observed Producer state but did not activate the SHADOW, REQUIREMENT, and RESERVE root chains, so a protected-main landing could remain VERIFIED_HOLD until unrelated schedules or manual dispatches happened to create exact-SHA artifacts.",
   "governance_boundary": {
     "program_owner_approvals_per_change": 1,
     "approval": "EXACT_HEAD_ATOMIC_GOVERNED_LANDING",
@@ -14,6 +14,9 @@
     "PROTECTED_MAIN_PUSH",
     "CANONICAL_V3_APPEND_ONLY_REFRESH",
     "LIVE_CANONICAL_TRUTH",
+    "EXACT_SHA_PRODUCER_ROOT_CONVERGENCE",
+    "SHADOW_OPERATING_EVIDENCE",
+    "P0B_P1_ARL_REQUIREMENT_COVERAGE",
     "ANY_SITE_EXACT_MAIN_DISCOVERY",
     "SHARDED_SOURCE_RESERVE",
     "EXACT_MAIN_HEALTH_SENTINEL",
@@ -34,6 +37,11 @@
     "approval_loop_possible": false,
     "canonical_refresh_creates_repository_commit": false,
     "evidence_writes_create_protected_main_sha": false,
+    "exact_sha_producer_roots_start_on_protected_main_push": true,
+    "existing_successful_or_active_root_is_reused": true,
+    "failed_root_retry_limit": 1,
+    "convergence_timeout_seconds": 2700,
+    "main_sha_drift_fails_closed": true,
     "sentinel_dispatches_terminal_continuous_assurance_only_after_verified_health": true
   }
 }
