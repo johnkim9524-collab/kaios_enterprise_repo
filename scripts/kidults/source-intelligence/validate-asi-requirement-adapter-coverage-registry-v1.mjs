@@ -27,7 +27,9 @@ const files = {
 };
 const fail = (message) => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
-const read = (file) => fs.readFileSync(file, 'utf8');
+// Git checkouts may use CRLF on Windows. Normalize before any line-oriented
+// workflow parsing so validation semantics are identical on every runner OS.
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const json = (file) => JSON.parse(read(file));
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 for (const [name, file] of Object.entries(files)) assert(fs.existsSync(file), `REGISTERED_ASSET_MISSING:${name}:${file}`);
@@ -260,7 +262,12 @@ assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISM
 assert(workflow.includes('--event "$(jq -r .event /tmp/arl-run.json)"'), 'WORKFLOW_ARL_EVENT_SHELL_PARSE_SAFE');
 const arlEventLine = workflow.split('\n').find((line) => line.trimStart().startsWith('--event '));
 assert(Boolean(arlEventLine), 'WORKFLOW_ARL_EVENT_LINE_MISSING');
-const arlEventShell = spawnSync('bash', ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+const gitForWindowsBash = `${process.env.ProgramFiles || 'C:\\Program Files'}\\Git\\bin\\bash.exe`;
+const bashExecutable = process.platform === 'win32' && fs.existsSync(gitForWindowsBash)
+  ? gitForWindowsBash
+  : 'bash';
+const arlEventShell = spawnSync(bashExecutable, ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+assert(!arlEventShell.error, `WORKFLOW_ARL_EVENT_SHELL_UNAVAILABLE:${arlEventShell.error?.code || 'UNKNOWN'}`);
 assert(arlEventShell.status === 0, 'WORKFLOW_ARL_EVENT_SHELL_SYNTAX');
 assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');
 for (const pin of [

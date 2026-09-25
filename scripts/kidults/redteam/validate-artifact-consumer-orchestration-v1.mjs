@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const fail = (message) => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
-const read = (path) => fs.readFileSync(path, 'utf8');
+const read = (path) => fs.readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
 
 const files = {
   requirement: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
