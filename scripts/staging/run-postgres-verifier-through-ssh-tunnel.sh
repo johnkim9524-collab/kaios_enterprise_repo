@@ -97,6 +97,13 @@ if not canonical_host.endswith('.db.ondigitalocean.com') or remote_port != 25060
     raise SystemExit('PostgreSQL destination is outside the approved DigitalOcean STAGING boundary')
 
 original_query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+allowed_query_keys = {'sslmode'}
+unsupported_query_keys = sorted({
+    key.lower() for key, _value in original_query
+    if key.lower() not in allowed_query_keys
+})
+if unsupported_query_keys:
+    raise SystemExit('PostgreSQL URI query contains unsupported connection parameter')
 ssl_modes = [value.lower() for key, value in original_query if key.lower() == 'sslmode']
 if len(ssl_modes) != 1 or ssl_modes[0] not in {'require', 'verify-ca', 'verify-full'}:
     raise SystemExit('PostgreSQL URI must require TLS with one approved sslmode')
@@ -107,12 +114,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
     local_port = listener.getsockname()[1]
 
 query = [
-    (key, value)
-    for key, value in original_query
-    if key.lower() not in {'host', 'hostaddr', 'port', 'connect_timeout', 'sslmode'}
+    ('sslmode', ssl_mode),
+    ('connect_timeout', '10'),
 ]
-query.append(('sslmode', ssl_mode))
-query.append(('connect_timeout', '10'))
 
 # Use libpq's keyword/value format for the tunneled connection.  Keeping the
 # certificate/DNS identity in `host` while binding the socket explicitly with
