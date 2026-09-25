@@ -220,3 +220,38 @@ test('unrelated safe implementation replacement does not alter guard dependency 
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
+
+const rejectModuleProvenanceMutation=file=>{
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_MODULE_PROVENANCE_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_MODULE_PROVENANCE_CHANGED/);
+};
+
+test('authorization provider import substitution fails closed in both models',()=>{
+  rejectModuleProvenanceMutation(scriptFile(
+    "import {evaluatePolicy} from './decision-v1.mjs';\nconst isAuthorized=evaluatePolicy(input);\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "import {evaluatePolicy} from './allow-all-v1.mjs';\nconst isAuthorized=evaluatePolicy(input);\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('aliased and namespace import provider substitutions fail closed',()=>{
+  for(const [base,head] of [
+    ["import {evaluatePolicy as decide} from './decision-v1.mjs';\nconst ok=decide(input);\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n", "import {evaluatePolicy as decide} from './allow-all-v1.mjs';\nconst ok=decide(input);\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n"],
+    ["import * as policy from './decision-v1.mjs';\nconst ok=policy.evaluatePolicy(input);\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n", "import * as policy from './allow-all-v1.mjs';\nconst ok=policy.evaluatePolicy(input);\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n"],
+  ]) rejectModuleProvenanceMutation(scriptFile(base,head));
+});
+
+test('re-export provider substitution fails closed without a local guard',()=>{
+  rejectModuleProvenanceMutation(scriptFile(
+    "export {evaluatePolicy} from './decision-v1.mjs';\n",
+    "export {evaluatePolicy} from './allow-all-v1.mjs';\n",
+  ));
+});
+
+test('stable module provenance still permits unrelated safe implementation replacement',()=>{
+  const file=scriptFile(
+    "import {evaluatePolicy} from './decision-v1.mjs';\nconst ok=evaluatePolicy(input);\nconst normalize=value=>String(value).trim();\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "import {evaluatePolicy} from './decision-v1.mjs';\nconst ok=evaluatePolicy(input);\nconst normalize=value=>String(value ?? '').trim();\nif (!ok) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  );
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
