@@ -8,7 +8,7 @@ import {
   selectExactHeadProgramOwnerApproval,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
@@ -298,7 +298,7 @@ async function main() {
   assert(exactBaseSha === currentRun.head_sha, 'ATOMIC_ONE_USE_PR_BASE_DISPATCH_MAIN_DRIFT');
   assert(liveMainSha === currentRun.head_sha, 'ATOMIC_ONE_USE_LIVE_MAIN_DRIFT');
 
-  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const latestReady = selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest: pr});
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
     repositoryOwner,

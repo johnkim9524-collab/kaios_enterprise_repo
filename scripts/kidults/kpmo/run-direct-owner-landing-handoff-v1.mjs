@@ -7,7 +7,7 @@ import {
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {evaluateAtomicLandingOneUseRunSet} from './run-atomic-landing-one-use-preflight-v1.mjs';
-import {selectLatestDirectOwnerReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
+import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -263,7 +263,7 @@ try {
     protectedMainShaAtDispatch: expectedBaseSha,
   });
   const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
-  const readyEvent = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner: owner});
+  const readyEvent = selectLatestLifecycleReadyEvent({timeline, repositoryOwner: owner, pullRequest: pr});
   const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
@@ -297,8 +297,8 @@ try {
     fail('DIRECT_OWNER_HANDOFF_FINAL_HEAD_TREE_DRIFT');
   }
   if (finalPr.base?.sha !== expectedBaseSha || finalMain?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_FINAL_BASE_DRIFT');
-  const finalReady = selectLatestDirectOwnerReadyEvent({timeline: finalTimeline, repositoryOwner: owner});
-  if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
+  const finalReady = selectLatestLifecycleReadyEvent({timeline: finalTimeline, repositoryOwner: owner, pullRequest: finalPr});
+  if (finalReady.id !== readyEvent.id || finalReady.event !== readyEvent.event || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
   const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady, {landingAttemptStartedAt});
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
 
@@ -346,8 +346,8 @@ try {
   if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
   }
-  const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
-  if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
+  const afterReady = selectLatestLifecycleReadyEvent({timeline: afterTimeline, repositoryOwner: owner, pullRequest: after});
+  if (afterReady.id !== readyEvent.id || afterReady.event !== readyEvent.event || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
   const afterApproval = selectApproval(afterComments, owner, after, afterHeadCommit, afterReady, {
     phase: 'post_window',
     landingAttemptStartedAt,

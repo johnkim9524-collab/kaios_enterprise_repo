@@ -834,3 +834,12 @@ jobs:
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \
             --input /tmp/kir-coverage-assurance-dispatch-request-v1.json
+
+          # A Coverage continuation proves the exact Requirement artifact, but
+          # it is not itself the CORE FOUR terminal. Start a fresh Reserve
+          # generation on protected main so its workflow_run Assurance emits
+          # the authoritative CORE FOUR health receipt without a manual retry.
+          jq -n --arg ref main '{ref:$ref}' > /tmp/kir-core-four-terminal-reserve-dispatch-v1.json
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches" \
+            --input /tmp/kir-core-four-terminal-reserve-dispatch-v1.json

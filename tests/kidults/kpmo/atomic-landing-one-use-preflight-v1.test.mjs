@@ -270,11 +270,11 @@ test('workflow validates transport and lifecycle before one-use consumption and 
   assert.match(workflow, /Reconcile durable atomic landing terminal receipt\n        if: always\(\)/);
 });
 
-test('runner rechecks one-use consumption and explicit Ready authority immediately before merge', () => {
+test('runner rechecks one-use consumption and lifecycle-only Ready boundary immediately before merge', () => {
   const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
   const gates = fs.readFileSync('scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs', 'utf8');
   const oneUse = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs', 'utf8');
-  assert.match(runner, /selectLatestDirectOwnerReadyEvent/);
+  assert.match(runner, /selectLatestLifecycleReadyEvent/);
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
   assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha, repositoryOwner\)/);

@@ -90,11 +90,15 @@
     "changes_requested_on_exact_head_blocks": true,
     "solo_owner_author_must_match_repository_owner": true,
     "same_repository_head_required": true,
-    "ready_state_by_owner_is_authorization": true,
+    "ready_state_by_owner_is_authorization": false,
+    "ready_state_is_lifecycle_only": true,
     "optional_external_review_must_bind_exact_head": true
   },
   "draft_policy": {
     "draft_is_promotable": false,
+    "eligible_draft_to_ready_transition": "AUTOMATED_AFTER_EXACT_HEAD_GOVERNANCE_PREFLIGHT",
+    "ready_transition_requires_human_approval": false,
+    "automated_transition_grants_landing_authority": false,
     "ready_state_must_be_observable": true,
     "ready_actor_and_time_must_be_receipted": true
   },
