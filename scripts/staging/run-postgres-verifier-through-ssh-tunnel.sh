@@ -106,9 +106,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
     listener.bind(('127.0.0.1', 0))
     local_port = listener.getsockname()[1]
 
-userinfo, separator, _ = parts.netloc.rpartition('@')
-host_label = f'[{host}]' if ':' in host else host
-netloc = f'{userinfo}@{host_label}:{local_port}' if separator else f'{host_label}:{local_port}'
 query = [
     (key, value)
     for key, value in original_query
@@ -117,13 +114,29 @@ query = [
 query.append(('sslmode', ssl_mode))
 query.append(('hostaddr', '127.0.0.1'))
 query.append(('connect_timeout', '10'))
-tunneled = urllib.parse.urlunsplit((
-    parts.scheme,
-    netloc,
-    parts.path,
-    urllib.parse.urlencode(query),
-    ''
-))
+
+# Use libpq's keyword/value format for the tunneled connection.  Keeping the
+# certificate/DNS identity in `host` while binding the socket explicitly with
+# `hostaddr` is supported by libpq and avoids relying on URI-authority plus
+# query-parameter precedence.  Values are single-quoted and escaped so the
+# credential is never passed as a process argument or interpreted by a shell.
+def conninfo_value(value):
+    return "'" + str(value).replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+connection_values = [
+    ('host', host),
+    ('hostaddr', '127.0.0.1'),
+    ('port', str(local_port)),
+    ('dbname', urllib.parse.unquote(parts.path.lstrip('/'))),
+]
+if parts.username is not None:
+    connection_values.append(('user', urllib.parse.unquote(parts.username)))
+if parts.password is not None:
+    connection_values.append(('password', urllib.parse.unquote(parts.password)))
+connection_values.extend(query)
+tunneled = ' '.join(
+    f'{key}={conninfo_value(value)}' for key, value in connection_values
+)
 
 values = {
     'database_host': host,
