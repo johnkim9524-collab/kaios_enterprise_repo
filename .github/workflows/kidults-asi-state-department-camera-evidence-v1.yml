@@ -286,6 +286,7 @@ jobs:
           grep -q 'OBSERVATION_RIGHTS_REVIEW_EXPIRED' /tmp/expired-camera-error
           test ! -e /tmp/expired-camera-evidence/state-department-camera-evidence-manifest-v1.json
       - name: Reject contract claim-ceiling promotion
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           cp coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json /tmp/state-department-camera-contract-pristine.json
@@ -307,6 +308,7 @@ jobs:
           fi
           mv /tmp/state-department-camera-contract-pristine.json coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json
       - name: Reject claim allowlist expansion
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           cp coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json /tmp/bad-state-department-camera-allowlist.json
@@ -365,6 +367,26 @@ jobs:
           git diff --exit-code
           test ! -e /tmp/kidults-state-department-camera-evidence-run-1/state-department-camera-evidence-manifest-v1.json
           test ! -e /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
+          node - <<'NODE' >/tmp/state-department-camera-rights-hold-v1.json
+          const fs=require('fs');
+          const observation=JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json','utf8'));
+          const hold={
+            id:'kidults-state-department-camera-rights-hold-v1',
+            version:'1.0.0',
+            state:'RIGHTS_REVIEW_EXPIRED_HOLD',
+            source_id:observation.source.source_id,
+            observation_as_of:observation.as_of,
+            review_due_at:observation.rights.review_due_at,
+            checked_at:new Date().toISOString(),
+            evidence_package_generated:false,
+            positive_kpmo_receipt_generated:false,
+            unblock_condition:'Fresh lawful rights evidence must be reviewed and exact observation/contract digests revalidated.',
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
+          };
+          process.stdout.write(`${JSON.stringify(hold,null,2)}\n`);
+          NODE
           echo 'RIGHTS_REVIEW_EXPIRED: no current evidence package or positive receipt; Production/Public/G5 HOLD'
       - name: Emit and validate governed KPMO receipt
         if: steps.rights.outputs.fresh == 'true'
@@ -456,5 +478,6 @@ jobs:
             /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
             /tmp/state-department-camera-evidence-kpmo-receipt-validation-v1.json
             /tmp/state-department-camera-evidence-report-after-remediation-validation-v1.json
+            /tmp/state-department-camera-rights-hold-v1.json
           retention-days: 90
           if-no-files-found: error
