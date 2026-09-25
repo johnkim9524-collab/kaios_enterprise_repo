@@ -2,6 +2,15 @@ name: KIDULTS Delegated Autonomous Internal Authority V1
 on:
   pull_request:
     paths:
+      # The canonical approval inventory hashes every approval-bearing control.
+      # Run this gate for the complete scanned control surface so an unrelated
+      # workflow change cannot merge with a stale manifest.
+      - '.github/workflows/**'
+      - 'coordination/kidults/**'
+      - 'docs/governance/**'
+      - 'scripts/governance/**'
+      - 'scripts/kidults/kpmo/**'
+      - 'tests/governance/**'
       - 'AGENTS.md'
       - '.github/AI_AGENT_OPERATING_RULES.md'
       - '.github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml'

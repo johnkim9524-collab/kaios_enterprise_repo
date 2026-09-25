@@ -27,8 +27,8 @@
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9333d7e31af5b5e1edd97c55686366572aa68cdd",
-      "sha256": "sha256:20e6ebc933af51b52978b55be960442cbaa1be16485c4c4a1df40261dd782975",
+      "git_blob": "efee8b7bb20370945f13fdce7f7006447c619602",
+      "sha256": "sha256:801dac43b5bc50e48bbd98c3a145b64d3f0d32aa370c8472bdc0f6255a3aae1b",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -522,8 +522,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0db19b48c4df4a17b1fcd81472b710f72bc6cf15",
-      "sha256": "sha256:60c92186af1ca3a567c47e1751cbe810105eb34a90545b700a3ae6dd62cb4284",
+      "git_blob": "e6bdb44fcd15c5bd20f733271187c160fb316740",
+      "sha256": "sha256:8c889f52a225fc55931bba37bd9cc75e93d4fa29bd966309f9695808d3d8ec21",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4919,8 +4919,8 @@
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "413c47430a606076821352e500d7e7cb4ae06edf",
-      "sha256": "sha256:4fdb78566c60558bb592ca3aba1f5fce6329dad98a95d50aa291f34a2c6e0bf2"
+      "git_blob": "d3edc3145bda6a0674e94d632d6abec6aab21853",
+      "sha256": "sha256:69f0cd6d6646dd53608ff55d92f831148fb742d39a3d26a81f939320de94fe72"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -4995,5 +4995,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:218012c2151ca2a851f803d97e03c64e39b97eb4d0f240b73eebbebeaf116287"
+  "manifest_sha256": "sha256:86c6ca8b89c352d37898b7eda565bad5d6a560a29b1b879d1ca5d2476c0101e2"
 }
