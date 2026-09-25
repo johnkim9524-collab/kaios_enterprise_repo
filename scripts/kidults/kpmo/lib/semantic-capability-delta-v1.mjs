@@ -18,11 +18,22 @@ const flattenJson=(value,path='',out=new Map())=>{
 
 const yamlModel=source=>{
   if(typeof source!=='string') fail('CAPABILITY_SOURCE_MISSING');
-  if(/\t/.test(source)||/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:|:\s*[>|]\s*$/m.test(source)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
   const stack=[]; const values=new Map(); const sequenceIndexes=new Map();
   const joined=parts=>parts.reduce((path,part)=>part.startsWith('[')?`${path}${part}`:path?`${path}.${part}`:part,'');
-  for(const [index,raw] of source.split('\n').entries()) {
+  const lines=source.split('\n'); let block=null;
+  const flushBlock=()=>{ if(block){ values.set(block.path,`${block.marker}\n${block.lines.join('\n')}`); block=null; } };
+  for(const [index,raw] of lines.entries()) {
+    if(block) {
+      const indent=(raw.match(/^ */)?.[0].length)||0;
+      if(!raw.trim()||indent>block.indent) {
+        block.lines.push(raw.trim()?raw.slice(block.indent+1):'');
+        continue;
+      }
+      flushBlock();
+    }
     if(!raw.trim()||isComment(raw)||raw.trim()==='---') continue;
+    const indentation=raw.match(/^[ \t]*/)?.[0]||'';
+    if(indentation.includes('\t')||/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:/.test(raw)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
     const match=raw.match(/^( *)(?:(-)\s+)?([^:#][^:]*):(?:\s*(.*))?$/);
     if(!match) {
       if(/^\s*-\s+[^:]+$/.test(raw)) { values.set(`list:${index}`,raw.trim()); continue; }
@@ -31,6 +42,7 @@ const yamlModel=source=>{
     const indent=match[1].length; if(indent%2) fail('CAPABILITY_YAML_INDENT_UNKNOWN',String(index+1));
     const sequenceItem=match[2]==='-';
     const key=match[3].trim().replace(/^['"]|['"]$/g,''); const value=(match[4]??'').trim();
+    const blockScalar=/^[>|](?:[1-9][+-]?|[+-][1-9]?)?(?:\s+#.*)?$/.test(value);
     while(stack.length&&stack.at(-1).indent>=indent) stack.pop();
     if(sequenceItem) {
       const parent=joined(stack.map(x=>x.key));
@@ -40,12 +52,15 @@ const yamlModel=source=>{
       const itemKey=`[${itemIndex}]`;
       const path=joined([...stack.map(x=>x.key),itemKey,key]); values.set(path,value||'{}');
       stack.push({indent,key:itemKey});
-      if(!value) stack.push({indent,key});
+      if(blockScalar) block={indent,path,marker:value,lines:[]};
+      else if(!value) stack.push({indent,key});
     } else {
       const path=joined([...stack.map(x=>x.key),key]); values.set(path,value||'{}');
-      if(!value) stack.push({indent,key});
+      if(blockScalar) block={indent,path,marker:value,lines:[]};
+      else if(!value) stack.push({indent,key});
     }
   }
+  flushBlock();
   return values;
 };
 

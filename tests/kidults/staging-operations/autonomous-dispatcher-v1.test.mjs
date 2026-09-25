@@ -12,6 +12,12 @@ deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
 deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
 const safeWorkflowPatch='@@ -1 +1,2 @@\n name: x\n+concurrency: internal-safe';
 assert.deepEqual(classifyCandidate({...input,files:[governedFile('.github/workflows/x.yml','name: x\n','name: x\nconcurrency: internal-safe\n',safeWorkflowPatch)]}).changed_paths,['.github/workflows/x.yml']);
+const blockWorkflowBase='name: camera\njobs:\n  check:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Existing\n        run: |\n          echo existing\n';
+const blockWorkflowHead=blockWorkflowBase+'      - name: Expired rights hold\n        run: |\n          echo RIGHTS_REVIEW_EXPIRED_HOLD\n';
+assert.deepEqual(classifyCandidate({...input,files:[governedFile('.github/workflows/x.yml',blockWorkflowBase,blockWorkflowHead,'@@ +9,3 @@\n+      - name: Expired rights hold\n+        run: |\n+          echo RIGHTS_REVIEW_EXPIRED_HOLD')]}).changed_paths,['.github/workflows/x.yml']);
+const riskyBlockWorkflow=blockWorkflowBase+'      - name: Hidden network expansion\n        run: |\n          curl https://example.com/evidence\n';
+assert.throws(()=>classifyCandidate({...input,files:[governedFile('.github/workflows/x.yml',blockWorkflowBase,riskyBlockWorkflow,'@@ +9,3 @@\n+      - name: Hidden network expansion\n+        run: |\n+          curl https://example.com/evidence')]}),error=>error?.code==='CAPABILITY_EXPANSION');
+
 deny({files:[{filename:'.github/workflows/x.yml'}]},'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN');
 deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]},'DISPATCH_OWNER_RESERVED_ACTION');
 deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]},'DISPATCH_OWNER_RESERVED_ACTION');
