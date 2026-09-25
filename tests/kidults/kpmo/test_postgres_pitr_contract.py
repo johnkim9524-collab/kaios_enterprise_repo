@@ -1051,7 +1051,6 @@ def test_tunnel_helper_rejects_unapproved_destination_or_tls_mode(
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
-
 @pytest.mark.parametrize("mode", ["source", "restore"])
 @pytest.mark.parametrize("collision_key", ["user", "password", "dbname"])
 def test_tunnel_helper_rejects_query_identity_overrides_before_external_execution(
