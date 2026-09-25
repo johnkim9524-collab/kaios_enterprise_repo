@@ -68,6 +68,9 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
   require(review.ready_state_by_owner_is_authorization === false, 'READY_MUST_NOT_GRANT_AUTHORIZATION');
   require(review.ready_state_is_lifecycle_only === true, 'READY_LIFECYCLE_ONLY_REQUIRED');
+  require(policy.draft_policy?.eligible_draft_to_ready_transition === 'AUTOMATED_AFTER_EXACT_HEAD_GOVERNANCE_PREFLIGHT'
+    && policy.draft_policy?.ready_transition_requires_human_approval === false
+    && policy.draft_policy?.automated_transition_grants_landing_authority === false, 'AUTOMATED_DRAFT_READY_POLICY_INVALID');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
@@ -106,6 +109,11 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready lifecycle verified; operation-specific landing authority required",
+    'pull-requests: write',
+    'markPullRequestReadyForReview',
+    "state:'LIFECYCLE_READY_AUTOMATED'",
+    'ready_state_grants_authorization:false',
+    'AUTOMATED_DRAFT_READY_READBACK_INVALID',
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);

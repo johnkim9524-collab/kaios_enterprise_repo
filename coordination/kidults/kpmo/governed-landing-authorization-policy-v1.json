@@ -96,6 +96,9 @@
   },
   "draft_policy": {
     "draft_is_promotable": false,
+    "eligible_draft_to_ready_transition": "AUTOMATED_AFTER_EXACT_HEAD_GOVERNANCE_PREFLIGHT",
+    "ready_transition_requires_human_approval": false,
+    "automated_transition_grants_landing_authority": false,
     "ready_state_must_be_observable": true,
     "ready_actor_and_time_must_be_receipted": true
   },

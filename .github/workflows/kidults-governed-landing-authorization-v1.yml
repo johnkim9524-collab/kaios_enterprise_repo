@@ -11,7 +11,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
   issues: read
   statuses: write
 
@@ -244,6 +244,7 @@ jobs:
           const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
           const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
           const api=async(path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error'});if(!r.ok)throw new Error(`GITHUB_API_${r.status}:${path}`);return r.json();};
+          const graphql=async(query,variables)=>{const r=await fetch('https://api.github.com/graphql',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({query,variables}),redirect:'error'});if(!r.ok)throw new Error(`GITHUB_GRAPHQL_${r.status}`);const body=await r.json();if(body.errors?.length)throw new Error(`GITHUB_GRAPHQL_ERROR:${body.errors[0].type||'UNKNOWN'}`);return body.data;};
           const scopePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
           const status=async(state,description,context=policy.required_status_context)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context,description})});
           let failure=null;
@@ -254,7 +255,12 @@ jobs:
               if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
               await status('pending','Draft is non-promotable; automated Ready transition pending');
               await status('success','Draft development controls verified; landing remains blocked',scopePolicy.draft_development_status_context);
-              console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'DRAFT_DEVELOPMENT_VERIFIED_NON_PROMOTABLE',pull_request:Number(number),exact_head_sha:head,landing_authorization_created:false,promotion_eligible:false,final_live_reread:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
+              if(!final.node_id)throw new Error('DRAFT_READY_NODE_ID_MISSING');
+              await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefName}}}',{pullRequestId:final.node_id});
+              const ready=await api(`/pulls/${number}`);
+              if(ready.node_id!==final.node_id||ready.state!=='open'||ready.merged===true||ready.draft!==false||ready.head?.sha!==head||ready.base?.ref!=='main')throw new Error('AUTOMATED_DRAFT_READY_READBACK_INVALID');
+              await status('pending','Ready lifecycle automated; operation-specific landing authority required');
+              console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'LIFECYCLE_READY_AUTOMATED',pull_request:Number(number),exact_head_sha:head,ready_state_is_lifecycle_only:true,ready_state_grants_authorization:false,landing_authorization_created:false,promotion_eligible:false,final_live_reread:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
               process.exit(0);
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});

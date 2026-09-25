@@ -20,11 +20,14 @@ test('Draft technical validation has a separate non-authority status', () => {
   assert.match(scopeWorkflow, /Publish exact-head aggregate status/);
 });
 
-test('Draft itself is not a technical failure but landing stays pending', () => {
+test('eligible Draft is validated then autonomously promoted without landing authority', () => {
   assert.match(landingWorkflow, /DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE/);
-  assert.match(landingWorkflow, /DRAFT_DEVELOPMENT_VERIFIED_NON_PROMOTABLE/);
   assert.match(landingWorkflow, /await status\('pending','Draft is non-promotable; automated Ready transition pending'\)/);
   assert.match(landingWorkflow, /landing_authorization_created:false/);
+  assert.match(landingWorkflow, /markPullRequestReadyForReview/);
+  assert.match(landingWorkflow, /AUTOMATED_DRAFT_READY_READBACK_INVALID/);
+  assert.match(landingWorkflow, /state:'LIFECYCLE_READY_AUTOMATED'/);
+  assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
   assert.doesNotMatch(landingWorkflow, /if \(pr\.draft\) fail\('governed PR is Draft'\)/);
 });
 

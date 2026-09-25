@@ -470,8 +470,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e0a1547d4e6e04da969e47103328500740ee9c13",
-      "sha256": "sha256:828ef94f7f6353285168623210cb2e0a0aec863aaa0942b738b445d23b5dde17",
+      "git_blob": "4d25a6e25c1a08f4681736c244c56cf3c0a8065d",
+      "sha256": "sha256:1e8f8bd7e2b2795e8b6fc034ed7a5747fde9fbb0e11f1fc3c3b0d68789c0f26b",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -1793,8 +1793,8 @@
     {
       "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ac6ceb74bcc06c26896e0100a29dc076e6c380b6",
-      "sha256": "sha256:026901f1b5d5c437de3099d91b797486d7d78543a673f2f428b2c63a543708b6",
+      "git_blob": "79716451e8447c32c7cb8b5067d88cd2ec2a7cde",
+      "sha256": "sha256:9c04ee25c3f6028130d7db340aa3e97c0d48ef25cadf593185d2aa58b52caeef",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3542,8 +3542,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ce3cd353de2ae034ab304104cd49c012d362e4bd",
-      "sha256": "sha256:a24b729782aeab1a32c5b09882a40ccabb8db91d5300de392ab94f5fa7dac988",
+      "git_blob": "a49ed79d21e421dacef547792533398337b1d52d",
+      "sha256": "sha256:30855221a0a3f4bd513f6c9fce13bfdf5328257ab4f169bc262b546bb4eeb718",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -4936,8 +4936,8 @@
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "370f029ce89875e1181a9bbd7da7250fbac4eb92",
-      "sha256": "sha256:baff9400486312af949371a9380f1593b4e42e4a5f763495eb701ffbfd985433"
+      "git_blob": "5100d161bdba20bf83989efaee77333d56ca6319",
+      "sha256": "sha256:521ad6eda4b459ad7fd44b79c5bca030c345de1eef3a7081ea80fefec208e19f"
     },
     {
       "path": "tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs",
@@ -5060,5 +5060,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:645e629a6850a83093db324e0955ea32d2b6f30035c98acad215763f6c92ad65"
+  "manifest_sha256": "sha256:505255f40acace221c6bd9bb5bcc5f304fedcc5cb2e0f2854f7b561d11e5af8d"
 }
