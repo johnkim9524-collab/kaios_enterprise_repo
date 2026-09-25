@@ -1833,8 +1833,8 @@
     {
       "path": "coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "58f5bc1a203c32195edd2c733576dd17f1372d41",
-      "sha256": "sha256:6656f0fd96478d7b3e4eb4c2de76548ff69ca23575d76b633a3788afac289f8c",
+      "git_blob": "3df1710a898dffc3106cfb3df800d96c4571e014",
+      "sha256": "sha256:af9b8182c28366470aed3c9b4ce6a6591ca386867cd4a78e21dc9a4bae1e8e12",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -4992,8 +4992,8 @@
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1fb4f101ddd63acedbed0912fb591815cd5bbd2f",
-      "sha256": "sha256:3487b4fb8dd91948477d3d4c23b8a0333214a5b77d745710a5a35e2b822a8849"
+      "git_blob": "c8a519366152af41fe9d0f4f74136ad353609afd",
+      "sha256": "sha256:cce43fa7d34cb11609a8784dad490734f58737c5b881263a1d42e3ee955fef6d"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
@@ -5086,5 +5086,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ea328a8042ba88963bb382042a9d0904944f512353c4a1af7d97d4050fc2d4f4"
+  "manifest_sha256": "sha256:a55c628171a66020e2ac3a1eb81555568fdd9a9ba7bec00def15e1d46b0c81e8"
 }

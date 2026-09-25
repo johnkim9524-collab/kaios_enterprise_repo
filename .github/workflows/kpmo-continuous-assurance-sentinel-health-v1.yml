@@ -1,11 +1,14 @@
 name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
@@ -22,6 +25,9 @@ on:
       - 'tests/kidults/kpmo/sentinel-observation-v1.test.mjs'
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
+      - 'tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs'
+      - 'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'
+      - 'coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json'
       - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
       - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
       - 'scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs'
@@ -82,12 +88,12 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
 
   exact-main-health:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 55
     steps:
       - name: Initialize durable non-authorizing sentinel failure receipt
         shell: bash
@@ -125,6 +131,23 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Run exact-SHA producer auto-convergence
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs \
+            "$RUNNER_TEMP/kpmo-exact-sha-producer-auto-convergence-v1.json" \
+            "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
+      - name: Upload exact-SHA producer convergence receipt
+        if: github.event_name == 'push' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-exact-sha-producer-auto-convergence-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kpmo-exact-sha-producer-auto-convergence-v1.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Resolve latest applicable exact-SHA producer health
         id: resolve
         continue-on-error: true

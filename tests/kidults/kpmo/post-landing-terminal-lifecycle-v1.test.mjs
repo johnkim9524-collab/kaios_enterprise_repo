@@ -21,7 +21,8 @@ test('one Program Owner landing approval has a finite automatic terminal path', 
   assert.equal(contract.termination.approval_loop_possible, false);
   assert.deepEqual(contract.terminal_sequence, [
     'ATOMIC_GOVERNED_LANDING', 'PROTECTED_MAIN_PUSH', 'CANONICAL_V3_APPEND_ONLY_REFRESH',
-    'LIVE_CANONICAL_TRUTH', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
+    'LIVE_CANONICAL_TRUTH', 'EXACT_SHA_PRODUCER_ROOT_CONVERGENCE', 'SHADOW_OPERATING_EVIDENCE',
+    'P0B_P1_ARL_REQUIREMENT_COVERAGE', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
     'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'PLATFORM_RUNTIME_GREEN',
   ]);
 });
@@ -49,6 +50,9 @@ test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assuran
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
   assert.match(assurance, /- 'KPMO Live Canonical Issue Truth V1'/);
   assert.match(sentinel, /actions:\s*write/);
+  assert.match(sentinel, /^  push:\n    branches: \[main\]/m);
+  assert.match(sentinel, /Run exact-SHA producer auto-convergence/);
+  assert.match(sentinel, /run-exact-sha-producer-auto-convergence-v1\.mjs/);
   assert.match(sentinel, /Dispatch exact-main terminal Continuous Assurance/);
   assert.match(sentinel, /gh workflow run kidults-platform-continuous-assurance-v1\.yml/);
   assert.match(sentinel, /branches\/main.*--jq '\.commit\.sha'/);
@@ -61,4 +65,8 @@ test('automatic closure preserves the protected HOLD boundary', () => {
   assert.equal(contract.authority.production, 'HOLD');
   assert.equal(contract.authority.public, 'HOLD');
   assert.equal(contract.authority.g5, 'HOLD');
+  assert.equal(contract.termination.exact_sha_producer_roots_start_on_protected_main_push, true);
+  assert.equal(contract.termination.existing_successful_or_active_root_is_reused, true);
+  assert.equal(contract.termination.failed_root_retry_limit, 1);
+  assert.equal(contract.termination.main_sha_drift_fails_closed, true);
 });
