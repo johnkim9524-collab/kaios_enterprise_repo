@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
-const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
-const landedLifecycleVerifier = fs.readFileSync('scripts/kidults/kpmo/verify-direct-owner-postmerge-lifecycle-v1.mjs', 'utf8');
-const landedLifecycleLibrary = fs.readFileSync('scripts/kidults/kpmo/lib/direct-owner-postmerge-lifecycle-v1.mjs', 'utf8');
-const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
-const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
+const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
+const runner = text('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs');
+const landedLifecycleVerifier = text('scripts/kidults/kpmo/verify-direct-owner-postmerge-lifecycle-v1.mjs');
+const landedLifecycleLibrary = text('scripts/kidults/kpmo/lib/direct-owner-postmerge-lifecycle-v1.mjs');
+const atomic = text('.github/workflows/kidults-atomic-governed-landing-v1.yml');
+const postMergeConsumer = text('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
 function assertUnfilteredMainPush(requiredWorkflow, name) {
@@ -252,13 +253,13 @@ test('post-merge suite policy binds core protected-main push controls and preser
 
 test('every required post-merge workflow is guaranteed to run on every main push', () => {
   for (const {path: workflowPath, name} of postMergePolicy.required_workflows) {
-    assertUnfilteredMainPush(fs.readFileSync(workflowPath, 'utf8'), name);
+    assertUnfilteredMainPush(text(workflowPath), name);
   }
 });
 
 test('a path-filtered required main-push workflow is rejected', () => {
   const workflowPath = '.github/workflows/kidults-p0-control-plane-closure-v1.yml';
-  const requiredWorkflow = fs.readFileSync(workflowPath, 'utf8');
+  const requiredWorkflow = text(workflowPath);
   const weakened = requiredWorkflow.replace('    branches: [main]\n',
     "    branches: [main]\n    paths:\n      - 'scripts/kidults/**'\n");
   assert.throws(() => assertUnfilteredMainPush(weakened, 'synthetic weakened P0'), /cannot be path-filtered/);
