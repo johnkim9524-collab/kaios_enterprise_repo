@@ -140,6 +140,8 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(covSource.includes('dispatch-kir-coverage-assurance:'));
  assert.ok(covSource.includes('kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}'));
  assert.ok(covSource.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
+ assert.ok(covSource.includes('/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches'));
+ assert.ok(covSource.includes('kir-core-four-terminal-reserve-dispatch-v1.json'));
  assert.ok(assurance.includes("inputs.coverage_run_id != '' && 'workflow_run' || github.event_name"));
  assert.ok(assurance.includes('Reject partial forwarded Coverage continuation inputs'));
  assert.ok(assurance.includes('PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN'));
