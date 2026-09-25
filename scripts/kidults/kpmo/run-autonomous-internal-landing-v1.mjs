@@ -17,6 +17,7 @@ import {
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
+import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -411,15 +412,12 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
-  const bound=requiredChecks.map(binding=>{
-    const matches=authoritativeChecks.filter(value=>value.name===binding.context&&(!binding.integration_id||Number(value.app?.id||0)===binding.integration_id)&&value.head_sha===envelope.head_sha);
-    if(matches.length!==1) throw new AutonomousLandingError(matches.length?'AUTONOMOUS_REQUIRED_CHECK_AMBIGUOUS':'AUTONOMOUS_REQUIRED_STATUS_MISSING',binding.context);
-    const check=matches[0];
-    if(check.status!=='completed'||check.conclusion!=='success') throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',binding.context);
-    return check;
-  });
+  const bound=bindRequiredGateEvidence({required:requiredChecks,checks:authoritativeChecks,statuses:authoritativeStatuses,headSha:envelope.head_sha,
+    fail:(code,context)=>{throw new AutonomousLandingError(code==='REQUIRED_CONTEXT_MISSING'?'AUTONOMOUS_REQUIRED_STATUS_MISSING':
+      code==='REQUIRED_CONTEXT_AMBIGUOUS'?'AUTONOMOUS_REQUIRED_CHECK_AMBIGUOUS':
+      code==='REQUIRED_STATUS_NOT_GREEN'?'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN':`AUTONOMOUS_${code}`,context);}});
   const dispatched=envelope.test_evidence?.required_check_runs||[];
-  if(bound.some((value,index)=>Number(value.id)!==Number(dispatched[index]?.id)||Number(value.app?.id||0)!==Number(dispatched[index]?.app_id||0))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
+  if(bound.length!==dispatched.length || bound.some((value,index)=>value.kind!==dispatched[index]?.kind || value.id!==Number(dispatched[index]?.id) || value.app_id!==Number(dispatched[index]?.app_id))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks};
 };
 const waitForReadyCandidate = async () => {

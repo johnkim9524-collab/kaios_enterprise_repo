@@ -35,6 +35,21 @@ deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOS
 deny({requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:201,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'IMPLEMENTED_NOT_VERIFIED'}}]},'DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
 const canonicalVerified=classifyCandidate({...input,requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:202,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'VERIFIED_PASS'}}]});
 assert.equal(canonicalVerified.test_evidence.required_check_runs[0].id,202);
+const statusBound=classifyCandidate({...input,requiredChecks:[
+  {context:'unit',integration_id:7},
+  {context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7},
+  {context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b')},
+    {id:302,context:'KIDULTS Governed Landing Authorization V1',state:'pending',sha:sha('b')} ]});
+assert.deepEqual(statusBound.test_evidence.required_check_runs.map(x=>x.kind),['status','check']);
+assert.equal(statusBound.test_evidence.required_check_runs[0].id,301);
+assert.deepEqual(statusBound.test_evidence.required_contexts.map(x=>x.context),[
+  'KIDULTS Governed Landing Authorization V1','KIDULTS Scope-Aware Authoritative Status V1','unit']);
+assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8'),/bindRequiredGateEvidence\(\{required:requiredChecks/);
+deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'pending',sha:sha('b')}]},'DISPATCH_CHECKS_NOT_GREEN');
+deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('c')}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
 console.log(JSON.stringify({state:'VERIFIED_PASS',positive:3,negative:11}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
