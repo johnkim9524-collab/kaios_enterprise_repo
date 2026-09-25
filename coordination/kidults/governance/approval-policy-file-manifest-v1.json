@@ -704,8 +704,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e59d00492278580c1d069a946ed76baf668d805a",
-      "sha256": "sha256:a8b24359ed3313562d6d9c166e2524ee5a9049fdd9a4fc52c7964f9df2d3cd2d"
+      "git_blob": "05a921ded33d5ae067a942c59114b81d7368adb7",
+      "sha256": "sha256:0d256449e4478387d26ad0210d2fbf82c6257a83b5b7009b62976f96b5007c79"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1465,8 +1465,8 @@
     {
       "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4a1aef9f5c1c531a8f16e7d9bf6b2528cf46d7dc",
-      "sha256": "sha256:9144e8f6ed88feecf46d365fb55e80e4bd534a212c0dca75ee9a9d899b1816f3",
+      "git_blob": "e80342c1c792e110959d55cdd6f3b50e1f55a672",
+      "sha256": "sha256:145ddce8813aa19dde9fdf7e38e9cf2c94975f527570cbc264620d983cd66cdc",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -2354,8 +2354,8 @@
     {
       "path": "docs/governance/DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "25aecec5ff64122e9e4a6e47eb023b39953c0931",
-      "sha256": "sha256:3fc3639267c546439af848dab0c77577d44c6a83c0002c0d7026548a040a8522",
+      "git_blob": "b1af9591d7df3f5c0e11899ec28baf6c1b7aca0b",
+      "sha256": "sha256:534ff09bf58ed0629758c29d9253f9139d88096332990a1418b5bf640b20f5a1",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2367,8 +2367,8 @@
     {
       "path": "docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3c974a6feea3e39b482d875416fbb54e9f5fe879",
-      "sha256": "sha256:aaf6a018eb381e28282e4a04a3b7ccd5f0016bc45532b397a004d56c0429a40e",
+      "git_blob": "bf6ac243f1760a3174356991e093bda4b18d7deb",
+      "sha256": "sha256:fe2e206bb7d5f4da2ad32ba6cfd012f468decc62046a506d1d842a92fed3d07f",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -4995,5 +4995,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3613a356f71ff6d147ef9363b5be58b8df2ab8d17fc6b9041a92302ae0d2d74b"
+  "manifest_sha256": "sha256:218012c2151ca2a851f803d97e03c64e39b97eb4d0f240b73eebbebeaf116287"
 }
