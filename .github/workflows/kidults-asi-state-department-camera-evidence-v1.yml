@@ -128,6 +128,18 @@ jobs:
       - name: Typecheck exact adapter and service bindings
         working-directory: services/kidults-autonomous-intelligence
         run: npm run typecheck
+      - name: Classify live rights review boundary
+        id: rights
+        run: |
+          node --input-type=module - <<'NODE'
+          import fs from 'node:fs';
+          const observation = JSON.parse(fs.readFileSync('coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json', 'utf8'));
+          const due = Date.parse(observation.rights.review_due_at);
+          if (!Number.isFinite(due)) throw new Error('RIGHTS_REVIEW_DUE_AT_INVALID');
+          const fresh = due > Date.now();
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `fresh=${fresh}\n`);
+          console.log(fresh ? 'RIGHTS_REVIEW_CURRENT: bounded evidence checks enabled' : 'RIGHTS_REVIEW_EXPIRED: evidence generation held');
+          NODE
       - name: Run exact-digest adapter replay and mutation proof
         working-directory: services/kidults-autonomous-intelligence
         run: |
@@ -135,6 +147,7 @@ jobs:
           node scripts/asi-state-department-online-auction-test.mjs \
             | tee /tmp/state-department-online-auction-adapter-test-v1.json
       - name: Build bounded Evidence package twice
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           for RUN in 1 2; do
@@ -148,6 +161,7 @@ jobs:
             /tmp/kidults-state-department-camera-evidence-run-1 \
             /tmp/kidults-state-department-camera-evidence-run-2
       - name: Validate bounded Evidence and market-event reference
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-state-department-camera-evidence-v1.mjs \
@@ -157,6 +171,7 @@ jobs:
             /tmp/state-department-online-auction-adapter-test-v1.json \
             | tee /tmp/state-department-camera-evidence-validation-v1.json
       - name: Reject generic admission of reference-only event
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           node scripts/kidults/intelligence/validate-provider-independent-layers-v1.mjs
@@ -174,6 +189,7 @@ jobs:
           }
           NODE
       - name: Reject verified-sold and hammer-price promotion
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           cp -a /tmp/kidults-state-department-camera-evidence-run-1 /tmp/bad-state-department-camera-promotion
@@ -201,6 +217,7 @@ jobs:
             exit 1
           fi
       - name: Reject each protected output gate promotion
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           for GATE in PUBLIC PRODUCTION G5; do
@@ -254,6 +271,20 @@ jobs:
             echo 'Adapter accepted a rights-withdrawn observation' >&2
             exit 1
           fi
+      - name: Verify expired rights block live evidence generation
+        if: steps.rights.outputs.fresh == 'false'
+        run: |
+          set -euo pipefail
+          if node scripts/kidults/source-intelligence/build-asi-state-department-camera-evidence-v1.mjs \
+            coordination/kidults/source-intelligence/state-department-camera-auction-observation-v1.json \
+            coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
+            /tmp/state-department-online-auction-adapter-test-v1.json \
+            /tmp/expired-camera-evidence 2>/tmp/expired-camera-error; then
+            echo 'Expired rights produced evidence' >&2
+            exit 1
+          fi
+          grep -q 'OBSERVATION_RIGHTS_REVIEW_EXPIRED' /tmp/expired-camera-error
+          test ! -e /tmp/expired-camera-evidence/state-department-camera-evidence-manifest-v1.json
       - name: Reject contract claim-ceiling promotion
         run: |
           set -euo pipefail
@@ -295,6 +326,7 @@ jobs:
             exit 1
           fi
       - name: Reject top-16 activation inheritance
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           cp coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json /tmp/source-adapter-wave4-registry-pristine.json
@@ -316,6 +348,7 @@ jobs:
           fi
           mv /tmp/source-adapter-wave4-registry-pristine.json coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json
       - name: Revalidate pristine repository and outputs
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           git diff --exit-code
@@ -325,7 +358,16 @@ jobs:
             coordination/kidults/source-intelligence/asi-state-department-camera-evidence-contract-v1.json \
             /tmp/state-department-online-auction-adapter-test-v1.json \
             > /tmp/state-department-camera-evidence-final-validation-v1.json
+      - name: Assert expired observation stays held
+        if: steps.rights.outputs.fresh == 'false'
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+          test ! -e /tmp/kidults-state-department-camera-evidence-run-1/state-department-camera-evidence-manifest-v1.json
+          test ! -e /tmp/state-department-camera-evidence-kpmo-receipt-v1.json
+          echo 'RIGHTS_REVIEW_EXPIRED: no current evidence package or positive receipt; Production/Public/G5 HOLD'
       - name: Emit and validate governed KPMO receipt
+        if: steps.rights.outputs.fresh == 'true'
         run: |
           set -euo pipefail
           node - <<'NODE' >/tmp/state-department-camera-evidence-kpmo-receipt-v1.json
