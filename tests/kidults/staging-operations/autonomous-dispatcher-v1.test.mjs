@@ -35,7 +35,33 @@ deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOS
 deny({requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:201,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'IMPLEMENTED_NOT_VERIFIED'}}]},'DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
 const canonicalVerified=classifyCandidate({...input,requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:202,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'VERIFIED_PASS'}}]});
 assert.equal(canonicalVerified.test_evidence.required_check_runs[0].id,202);
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:3,negative:11}));
+const githubActionsAvatar='https://avatars.githubusercontent.com/in/7?v=4';
+deny({requiredChecks:[
+  {context:'unit',integration_id:7},
+  {context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7},
+  {context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:githubActionsAvatar},
+    {id:302,context:'KIDULTS Governed Landing Authorization V1',state:'pending',sha:sha('b'),avatar_url:githubActionsAvatar}]},
+  'DISPATCH_CHECKS_NOT_GREEN');
+const statusBound=classifyCandidate({...input,requiredChecks:[
+  {context:'unit',integration_id:7},
+  {context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7},
+  {context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:githubActionsAvatar},
+    {id:302,context:'KIDULTS Governed Landing Authorization V1',state:'success',sha:sha('b'),avatar_url:githubActionsAvatar}]});
+assert.deepEqual(statusBound.test_evidence.required_check_runs.map(x=>x.kind),['status','status','check']);
+assert.deepEqual(statusBound.test_evidence.required_check_runs.map(x=>x.id),[302,301,101]);
+assert.equal(classifyCandidate({...input,requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:githubActionsAvatar}]}).test_evidence.required_check_runs[0].id,301);
+assert.deepEqual(statusBound.test_evidence.required_contexts.map(x=>x.context),[
+  'KIDULTS Governed Landing Authorization V1','KIDULTS Scope-Aware Authoritative Status V1','unit']);
+assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8'),/bindRequiredGateEvidence\(\{required:requiredChecks/);
+deny({requiredChecks:[{context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],statuses:[]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
+deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('c'),avatar_url:githubActionsAvatar}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
+deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
+  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:'https://avatars.githubusercontent.com/in/8?v=4'}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:13}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');

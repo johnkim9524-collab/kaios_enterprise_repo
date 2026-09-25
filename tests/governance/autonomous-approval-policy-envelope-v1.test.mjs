@@ -75,9 +75,12 @@ test("draft ready recovery is reserved, rebound, revalidated, then merged", () =
   assert.match(source,/if \(!envelope\.recovery\) throw new AutonomousLandingError\('AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED'\)/);
   assert.match(source,/validateDraftReadyRebind\(\{before,after,envelope,policy\}\)/);
 });
-test("finalizer revalidates paginated exact required checks and App identity", () => {
+test("finalizer revalidates paginated checks and shared status identity", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");
-  for(const marker of ["check-runs?filter=all&per_page=100&page=","AUTONOMOUS_REQUIRED_SET_DRIFT","AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT","value.app?.id"]) assert.ok(source.includes(marker),marker);
+  const binding=fs.readFileSync("scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs","utf8");
+  for(const marker of ["check-runs?filter=all&per_page=100&page=","AUTONOMOUS_REQUIRED_SET_DRIFT","AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT","bindRequiredGateEvidence"]) assert.ok(source.includes(marker),marker);
+  for(const marker of ["value.app?.id","value.sha === headSha","status.state !== 'success'"]) assert.ok(binding.includes(marker),marker);
+  assert.ok(!binding.includes("landingContexts"),"required landing contexts must not be filtered from protected-main evidence");
 });
 test("approval roles derive decisions before durable signing", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");
