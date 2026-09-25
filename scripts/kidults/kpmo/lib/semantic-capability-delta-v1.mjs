@@ -19,19 +19,32 @@ const flattenJson=(value,path='',out=new Map())=>{
 const yamlModel=source=>{
   if(typeof source!=='string') fail('CAPABILITY_SOURCE_MISSING');
   if(/\t/.test(source)||/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:|:\s*[>|]\s*$/m.test(source)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
-  const stack=[]; const values=new Map();
+  const stack=[]; const values=new Map(); const sequenceIndexes=new Map();
+  const joined=parts=>parts.reduce((path,part)=>part.startsWith('[')?`${path}${part}`:path?`${path}.${part}`:part,'');
   for(const [index,raw] of source.split('\n').entries()) {
     if(!raw.trim()||isComment(raw)||raw.trim()==='---') continue;
-    const match=raw.match(/^( *)(?:- )?([^:#][^:]*):(?:\s*(.*))?$/);
+    const match=raw.match(/^( *)(?:(-)\s+)?([^:#][^:]*):(?:\s*(.*))?$/);
     if(!match) {
       if(/^\s*-\s+[^:]+$/.test(raw)) { values.set(`list:${index}`,raw.trim()); continue; }
       fail('CAPABILITY_YAML_UNCLASSIFIED',String(index+1));
     }
     const indent=match[1].length; if(indent%2) fail('CAPABILITY_YAML_INDENT_UNKNOWN',String(index+1));
-    const key=match[2].trim().replace(/^['"]|['"]$/g,''); const value=(match[3]??'').trim();
+    const sequenceItem=match[2]==='-';
+    const key=match[3].trim().replace(/^['"]|['"]$/g,''); const value=(match[4]??'').trim();
     while(stack.length&&stack.at(-1).indent>=indent) stack.pop();
-    const path=[...stack.map(x=>x.key),key].join('.'); values.set(path,value||'{}');
-    if(!value) stack.push({indent,key});
+    if(sequenceItem) {
+      const parent=joined(stack.map(x=>x.key));
+      const counterKey=`${indent}:${parent}`;
+      const itemIndex=sequenceIndexes.get(counterKey)||0;
+      sequenceIndexes.set(counterKey,itemIndex+1);
+      const itemKey=`[${itemIndex}]`;
+      const path=joined([...stack.map(x=>x.key),itemKey,key]); values.set(path,value||'{}');
+      stack.push({indent,key:itemKey});
+      if(!value) stack.push({indent,key});
+    } else {
+      const path=joined([...stack.map(x=>x.key),key]); values.set(path,value||'{}');
+      if(!value) stack.push({indent,key});
+    }
   }
   return values;
 };

@@ -29,10 +29,10 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
   const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),app_id:Number(x.app?.id||x.app_id||0),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id),semantic_evidence:[x.output?.title,x.output?.summary,x.output?.text].filter(Boolean).join('\n')})).sort((a,b)=>a.name.localeCompare(b.name)||a.app_id-b.app_id||a.id-b.id);
   if (!cleanStatuses.length&&!cleanChecks.length) fail('DISPATCH_EVIDENCE_MISSING');
-  if (cleanStatuses.some(x=>x.state!=='success')||cleanChecks.some(x=>x.status!=='completed'||x.conclusion!=='success')) fail('DISPATCH_CHECKS_NOT_GREEN');
   const boundRequired=required.map(binding=>{
     const matches=cleanChecks.filter(x=>x.name===binding.context&&(!binding.integration_id||x.app_id===binding.integration_id)&&x.head_sha===pr.head.sha&&Number.isSafeInteger(x.id)&&x.id>0);
     if (matches.length!==1) fail(matches.length?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':'DISPATCH_REQUIRED_CONTEXT_MISSING',binding.context);
+    if(matches[0].status!=='completed'||matches[0].conclusion!=='success') fail('DISPATCH_CHECKS_NOT_GREEN',binding.context);
     if(binding.context==='KPMO Live Canonical Issue Truth V1'){
       if(/IMPLEMENTED_NOT_VERIFIED/.test(matches[0].semantic_evidence)||!/\bVERIFIED_PASS\b/.test(matches[0].semantic_evidence)) fail('DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
     }
