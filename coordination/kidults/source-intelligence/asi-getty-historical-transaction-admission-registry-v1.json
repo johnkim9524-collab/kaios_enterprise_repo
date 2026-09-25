@@ -1,7 +1,7 @@
 {
   "id": "kidults-asi-getty-historical-transaction-admission-registry-v1",
   "version": "1.0.0",
-  "status": "VERIFIED_PASS",
+  "status": "CONTROL_REPLAY_HOLD",
   "owner": "KPMO",
   "priority": "P0",
   "platform_principles": [
@@ -28,11 +28,11 @@
   "implementation_state": {
     "getty_source_profiles_registered": 1,
     "getty_source_adapters_implemented": 1,
-    "getty_source_adapters_activated_historical_only": 1,
-    "immutable_live_source_snapshots_verified": 2,
+    "getty_source_adapters_activated_historical_only": 0,
+    "immutable_live_source_snapshots_verified": 0,
     "purpose_specific_rights_verified_sources": 1,
-    "historical_transaction_evidence_admitted": 1,
-    "historical_transaction_events_created": 1,
+    "historical_transaction_evidence_admitted": 0,
+    "historical_transaction_events_created": 0,
     "generic_market_events_admitted": 0,
     "verified_current_sold_events_created": 0,
     "top16_source_profiles": 16,
@@ -40,7 +40,10 @@
     "top16_source_adapters_activated": 0,
     "top16_evidence_admitted": 0,
     "current_prices_created": 0,
-    "liquidity_measures_created": 0
+    "liquidity_measures_created": 0,
+    "getty_reference_replay_adapters_implemented": 1,
+    "committed_reference_snapshots_verified": 2,
+    "machine_proven_acquisition_receipts": 0
   },
   "automatic_execution": {
     "workflow_dispatch": true,
@@ -54,12 +57,12 @@
   },
   "effects": {
     "autonomous_effect": "POSITIVE",
-    "global_effect": "POSITIVE_BOUNDED_HISTORICAL_COVERAGE_ONLY",
+    "global_effect": "CONTROL_ONLY_COMMITTED_REFERENCE_REPLAY",
     "irreplaceable_value_effect": "POSITIVE",
     "transparency_effect": "POSITIVE",
     "evidence": {
-      "autonomous": "Exact-digest replay, rights binding, admission, mutation rejection and scheduled rebuild are owned by KIDULTS.",
-      "global": "Getty linked open data adds one rights-clear historical transaction path; one United Kingdom pound-denominated 1938 record is not global market coverage.",
+      "autonomous": "Exact-digest parsing and mutation rejection are owned by KIDULTS; no acquisition-time retrieval is claimed.",
+      "global": "Getty linked open data supplies two committed reference snapshots only; no machine-proven acquisition receipt or empirical admission exists.",
       "irreplaceable_value": "KIDULTS owns the claim ceiling, evidence admission, time-precision and current-signal isolation logic.",
       "transparent": "Historical evidence, current market event, Top16 activation, price, liquidity, Public, Production and G5 states are reported independently."
     }
@@ -84,6 +87,11 @@
     "track_b_input_created": false,
     "public_release": "HOLD",
     "production": "HOLD",
-    "g5": "HOLD"
+    "g5": "HOLD",
+    "committed_reference_replay": true,
+    "machine_proven_acquisition_receipts": 0,
+    "historical_transaction_evidence_admitted": 0,
+    "historical_transaction_events_created": 0,
+    "promotable": false
   }
 }
