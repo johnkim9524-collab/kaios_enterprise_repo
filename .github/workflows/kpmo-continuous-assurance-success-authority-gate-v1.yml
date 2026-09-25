@@ -125,14 +125,40 @@ jobs:
           test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
           echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
 
-      - name: Resolve exact-SHA core-four producer health
-        id: resolve
-        continue-on-error: true
+      - name: Restore exact upstream Assurance producer-health receipt
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
-          --output "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" \
+            > "$GATE_DIR/upstream-artifacts.json"
+          ARTIFACT_COUNT=$(jq --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            "$GATE_DIR/upstream-artifacts.json")
+          test "$ARTIFACT_COUNT" -eq 1
+          ARTIFACT_ID=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+            "$GATE_DIR/upstream-artifacts.json")
+          ARTIFACT_DIGEST=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
+            "$GATE_DIR/upstream-artifacts.json")
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > "$GATE_DIR/upstream-health.zip"
+          python3 scripts/kidults/kpmo/read-sentinel-artifact-v1.py "$ARTIFACT_DIGEST" \
+            < "$GATE_DIR/upstream-health.zip" > "$GATE_DIR/upstream-health-packet.json"
+          jq -e \
+            '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")] | length==1' \
+            "$GATE_DIR/upstream-health-packet.json" >/dev/null
+          jq -r \
+            '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")][0].text' \
+            "$GATE_DIR/upstream-health-packet.json" \
+            > "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
 
       - name: Seal exact successful Assurance authority-gate receipt
         if: always()
