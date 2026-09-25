@@ -247,7 +247,7 @@ jobs:
             --run /tmp/arl-run.json \
             --receipt /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
             --source-sha "$TARGET_SOURCE_SHA" --head-branch "$EXPECTED_HEAD_BRANCH" \
-            --event "$(node -p \"JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).event\")" \
+            --event "$(jq -r .event /tmp/arl-run.json)" \
             --output /tmp/coverage-exact-upstream-producer-receipt-v1.json
           AUTHORITATIVE_PRODUCER_CARDINALITY=$(jq -r '.authoritative_producer_cardinality' /tmp/coverage-exact-upstream-producer-receipt-v1.json)
           test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1

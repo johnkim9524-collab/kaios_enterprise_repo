@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import {
   AUTHORITATIVE_INPUT_FILE_KEYS,
   MANIFEST_ALLOWLIST,
@@ -255,6 +256,11 @@ assert(workflow.includes('exact_triggering_run_bound:true'), 'WORKFLOW_EXACT_TRI
 assert(workflow.includes("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
+assert(workflow.includes('--event "$(jq -r .event /tmp/arl-run.json)"'), 'WORKFLOW_ARL_EVENT_SHELL_PARSE_SAFE');
+const arlEventLine = workflow.split('\n').find((line) => line.trimStart().startsWith('--event '));
+assert(Boolean(arlEventLine), 'WORKFLOW_ARL_EVENT_LINE_MISSING');
+const arlEventShell = spawnSync('bash', ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+assert(arlEventShell.status === 0, 'WORKFLOW_ARL_EVENT_SHELL_SYNTAX');
 assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
