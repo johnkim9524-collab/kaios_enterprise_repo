@@ -914,15 +914,16 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
             #!/usr/bin/env bash
             set -euo pipefail
             python3 - <<'PY'
-            import json, os, urllib.parse
-            parts=urllib.parse.urlsplit(os.environ['KAIOS_POSTGRES_DSN'])
-            query=urllib.parse.parse_qs(parts.query)
-            assert parts.hostname == 'source.db.ondigitalocean.com'
-            assert parts.port != 25060
-            assert query['hostaddr'] == ['127.0.0.1']
-            assert query['sslmode'] == ['verify-full']
-            assert query['connect_timeout'] == ['10']
-            assert 'host' not in query and 'port' not in query
+            import json, os, shlex
+            values=dict(token.split('=',1) for token in shlex.split(os.environ['KAIOS_POSTGRES_DSN']))
+            assert values['host'] == 'source.db.ondigitalocean.com'
+            assert values['hostaddr'] == '127.0.0.1'
+            assert values['port'] != '25060'
+            assert values['dbname'] == 'kaios'
+            assert values['user'] == 'source-user'
+            assert values['password'] == 'source-password'
+            assert values['sslmode'] == 'verify-full'
+            assert values['connect_timeout'] == '10'
             print(json.dumps({'status':'PASS','environment':'STAGING','production_touch':False}))
             PY
             """
