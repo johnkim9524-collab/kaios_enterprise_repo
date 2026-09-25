@@ -3126,8 +3126,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5f9f51e1f94221518d0d3d0bf7ba07ccd89947e5",
-      "sha256": "sha256:80e17f7ada75be0152d5f7c59a0c9e46d19ba11d16ca6d4ae23c3f3b0b5f7397",
+      "git_blob": "ed768fd7ea0492964f12080429c3211a0bbd75ae",
+      "sha256": "sha256:2e449e06b86b18831a4a149257f34f3494b7319c0982922d13f852cbc2378bc1",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -4937,8 +4937,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c2dae06661801289d66da2380b60c3f9e6921025",
-      "sha256": "sha256:0c5585b04c01fa024c1aa8182d0b40abc72ff4a1aaa1115ef5e4defc8bd5fd80"
+      "git_blob": "8f245916a02724616502879654a1fac8aaf4021d",
+      "sha256": "sha256:c86202b2e5badae6106655deede1882f34d745071e3fe03b76047658d854022b"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -4995,5 +4995,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3613a356f71ff6d147ef9363b5be58b8df2ab8d17fc6b9041a92302ae0d2d74b"
+  "manifest_sha256": "sha256:0816cc04c8caa1c7c79f894805db541fe61668953357bf5eff8d9daa37b5a677"
 }
