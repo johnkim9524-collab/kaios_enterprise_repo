@@ -15,7 +15,10 @@ const requiredWorkflowTokens = [
   'ref: ${{ github.event.workflow_run.head_sha }}',
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
-  'resolve-continuous-assurance-sentinel-health-v1.mjs',
+  'Restore exact upstream Assurance producer-health receipt',
+  'actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100',
+  'read-sentinel-artifact-v1.py',
+  'kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}',
   'if: always()',
   'kpmo-continuous-assurance-success-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
@@ -35,6 +38,9 @@ if (workflow.includes("github.event.workflow_run.event == 'schedule'")) {
 }
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
+}
+if (workflow.includes('node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs\n          --output "$GATE_DIR')) {
+  fail('SUCCESS_AUTHORITY_GATE_MUST_CONSUME_UPSTREAM_HEALTH_RECEIPT');
 }
 
 const gate = policy.successful_assurance_authority_gate;
