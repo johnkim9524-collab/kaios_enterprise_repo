@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import {assertAutonomousFileScope} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 
@@ -154,4 +154,22 @@ test('fail-closed guard replacement remains Owner-reserved',()=>{
   };
   assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_REMOVED/);
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
+});
+
+
+test('live scope validation enforces the independent verifier, not only the primary model',()=>{
+  const filename='scripts/kidults/kpmo/internal-normalizer.mjs';
+  const file={
+    filename,
+    patch:'@@ -1 +1 @@\n-if (value) return "a";\n+if (value) return "b";',
+    base_content:'if (value) return "a";\n',
+    head_content:'if (value) return "b";\n',
+  };
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.throws(()=>validateLiveChangedPaths({
+    files:[file],
+    expectedPaths:[filename],
+    expectedScopeDigest:sha256(filename),
+    policy:landing,
+  }),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
 });
