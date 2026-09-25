@@ -47,6 +47,38 @@ const matchingToken=(tokens,start,open,close,filename)=>{
 const tokenText=tokens=>tokens.join(' ');
 const identifiers=tokens=>new Set(tokens.filter(token=>jsIdentifier.test(token)&&!jsKeywords.has(token)));
 
+// Static module provenance is part of the authorization dependency boundary.
+// Keep this parser token-based so comments and string contents cannot masquerade
+// as import/export declarations. Any provider or re-export source substitution
+// is fail-closed, even when the local guard expression remains byte-stable.
+const scriptModuleProvenance=(source,filename)=>{
+  const tokens=tokenizeScript(source,filename);const statements=[];
+  for(let index=0;index<tokens.length;index+=1){
+    if(tokens[index]!=='import'&&tokens[index]!=='export')continue;
+    let end=index;let round=0,square=0,curly=0;
+    for(;end<tokens.length;end+=1){
+      const token=tokens[end];
+      if(token==='(')round+=1;else if(token===')')round-=1;
+      else if(token==='[')square+=1;else if(token===']')square-=1;
+      else if(token==='{')curly+=1;else if(token==='}')curly-=1;
+      if(token===';'&&round===0&&square===0&&curly===0)break;
+    }
+    const statement=tokens.slice(index,Math.min(end+1,tokens.length));
+    const hasStaticSource=statement[0]==='import'
+      ? statement.some(token=>token==='from')||/^['"`]/.test(statement[1]||'')
+      : statement.some(token=>token==='from');
+    if(hasStaticSource)statements.push(tokenText(statement));
+    index=end;
+  }
+  return statements.sort();
+};
+
+const assertScriptModuleProvenance=(before,after,filename)=>{
+  if(JSON.stringify(scriptModuleProvenance(before,filename))!==JSON.stringify(scriptModuleProvenance(after,filename))) {
+    fail('CAPABILITY_MODULE_PROVENANCE_CHANGED',filename);
+  }
+};
+
 const scriptBindingGraph=(source,filename)=>{
   const tokens=tokenizeScript(source,filename);const bindings=new Map();
   const add=(name,node)=>{const existing=bindings.get(name)||[];existing.push(node);bindings.set(name,existing)};
@@ -172,6 +204,7 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
     else if(filename.endsWith('.json')) assertJsonMonotonic(file.base_content,file.head_content,filename);
     else {
+      assertScriptModuleProvenance(file.base_content,file.head_content,filename);
       assertScriptGuardDependencies(file.base_content,file.head_content,filename);
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));

@@ -9,6 +9,30 @@ const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
 const normalizedScript=value=>String(value).replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim();
 
+// Independently reconstruct static import/re-export provenance from source
+// spans. This intentionally does not share the primary token parser. Provider
+// substitution is authorization-relevant even if local bindings and guards do
+// not change.
+const independentModuleProvenance=(source,filename)=>{
+  const found=[];const pattern=/(^|[;\n])\s*(import|export)\b/gm;let match;
+  while((match=pattern.exec(source))){
+    const start=match.index+match[1].length;const end=statementEnd(source,start,filename);
+    const statement=source.slice(start,end+1);const normalized=normalizedScript(statement);
+    const hasStaticSource=match[2]==='import'
+      ? /\bfrom\s*['"`]|^import\s*['"`]/.test(normalized)
+      : /\bfrom\s*['"`]/.test(normalized);
+    if(hasStaticSource)found.push(normalized);
+    pattern.lastIndex=Math.max(pattern.lastIndex,end+1);
+  }
+  return found.sort();
+};
+
+const verifyModuleProvenance=(before,after,filename)=>{
+  if(JSON.stringify(independentModuleProvenance(before,filename))!==JSON.stringify(independentModuleProvenance(after,filename))) {
+    deny('INDEPENDENT_MODULE_PROVENANCE_CHANGED',filename);
+  }
+};
+
 // Independent structural recomputation. Unlike the primary token graph, this
 // walks balanced source spans and reconstructs predicate bindings directly
 // from immutable source text. Unsupported or ambiguous balance fails closed.
@@ -75,7 +99,10 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
-    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
+    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) {
+      verifyModuleProvenance(file.base_content,file.head_content,file.filename);
+      verifyGuardDependencies(file.base_content,file.head_content,file.filename);
+    }
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
     for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
