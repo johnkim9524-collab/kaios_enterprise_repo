@@ -400,6 +400,8 @@ jobs:
           echo "p1_run_id=$P1_RUN_ID p1_artifact_id=$P1_ID source_sha=$P1_SOURCE_SHA consumer_sha=$CURRENT_SHA exact_generation=true validation_only=$VALIDATION_ONLY"
       - name: Build autonomous resolution layer twice
         id: producer_build
+        env:
+          ARL_P1_UPSTREAM_RUN_PATH: /tmp/p1-run.json
         run: |
           set -euo pipefail
           for RUN in 1 2; do

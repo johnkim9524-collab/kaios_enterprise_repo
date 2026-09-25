@@ -49,6 +49,25 @@ assert.equal(validateP1RuntimeLineageSnapshot({
   eventName: 'workflow_run', eventPayload, receipt: authoritativeReceipt, expectedSourceSha: sha
 }).state, 'COMPLETE_VERIFIED');
 
+const dispatchUpstreamRun = {
+  ...eventPayload.workflow_run,
+  event: 'workflow_dispatch'
+};
+const dispatchEventPayload = { inputs: { p1_run_id: '202' } };
+const dispatchReceipt = {
+  ...authoritativeReceipt,
+  trigger_event: 'workflow_dispatch',
+  p0b_input_mode: 'REBUILT_LOCAL_CONTROL',
+  p0b_origin_run_id: null
+};
+assert.equal(validateP1RuntimeLineageSnapshot({
+  eventName: 'workflow_dispatch',
+  eventPayload: dispatchEventPayload,
+  receipt: dispatchReceipt,
+  expectedSourceSha: sha,
+  verifiedUpstreamRun: dispatchUpstreamRun
+}).state, 'COMPLETE_VERIFIED');
+
 const rejected = [
   ['manual-p1-run', {...eventPayload, workflow_run: {...eventPayload.workflow_run, event: 'workflow_dispatch'}}, receipt],
   ['scheduled-p1-run', {...eventPayload, workflow_run: {...eventPayload.workflow_run, event: 'schedule'}}, receipt],
@@ -73,6 +92,23 @@ for (const [name, mutatedEvent, mutatedReceipt] of rejected) {
   );
 }
 
+for (const [name, mutatedEvent, mutatedReceipt, mutatedRun] of [
+  ['dispatch-run-id-mismatch', {inputs: {p1_run_id: '203'}}, dispatchReceipt, dispatchUpstreamRun],
+  ['dispatch-upstream-event-mismatch', dispatchEventPayload, dispatchReceipt, {...dispatchUpstreamRun, event: 'workflow_run'}],
+  ['dispatch-receipt-trigger-mismatch', dispatchEventPayload, {...dispatchReceipt, trigger_event: 'workflow_run'}, dispatchUpstreamRun],
+  ['dispatch-p0b-mode-mismatch', dispatchEventPayload, {...dispatchReceipt, p0b_input_mode: 'EXACT_TRIGGERING_WORKFLOW_RUN'}, dispatchUpstreamRun],
+  ['dispatch-p0b-origin-spoof', dispatchEventPayload, {...dispatchReceipt, p0b_origin_run_id: 101}, dispatchUpstreamRun],
+  ['dispatch-head-mismatch', dispatchEventPayload, dispatchReceipt, {...dispatchUpstreamRun, head_sha: 'b'.repeat(40)}]
+]) {
+  assert.throws(() => validateP1RuntimeLineageSnapshot({
+    eventName: 'workflow_dispatch',
+    eventPayload: mutatedEvent,
+    receipt: mutatedReceipt,
+    expectedSourceSha: sha,
+    verifiedUpstreamRun: mutatedRun
+  }), P1RuntimeLineageValidationError, name);
+}
+
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'asi-p1-runtime-lineage-'));
 try {
   const expanded = path.join(temp, 'expanded', 'nested');
@@ -85,6 +121,18 @@ try {
     eventPath,
     expandedRoot: path.join(temp, 'expanded'),
     expectedSourceSha: sha
+  }).state, 'COMPLETE_VERIFIED');
+  const dispatchEventPath = path.join(temp, 'dispatch-event.json');
+  const dispatchRunPath = path.join(temp, 'dispatch-run.json');
+  fs.writeFileSync(dispatchEventPath, JSON.stringify(dispatchEventPayload));
+  fs.writeFileSync(dispatchRunPath, JSON.stringify(dispatchUpstreamRun));
+  fs.writeFileSync(path.join(expanded, 'kidults-asi-p1-source-preflight-receipt-v1.json'), JSON.stringify(dispatchReceipt));
+  assert.equal(validateP1RuntimeLineageFromEnvironment({
+    eventName: 'workflow_dispatch',
+    eventPath: dispatchEventPath,
+    expandedRoot: path.join(temp, 'expanded'),
+    expectedSourceSha: sha,
+    upstreamRunPath: dispatchRunPath
   }).state, 'COMPLETE_VERIFIED');
   fs.writeFileSync(path.join(temp, 'expanded', 'kidults-asi-p1-source-preflight-receipt-v1.json'), JSON.stringify(receipt));
   assert.throws(() => validateP1RuntimeLineageFromEnvironment({
