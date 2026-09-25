@@ -119,10 +119,8 @@ function parseApproval(body) {
 }
 
 function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
-  phase = 'pre_window',
   landingAttemptStartedAt,
 } = {}) {
-  if (!['pre_window', 'post_window'].includes(phase)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PHASE_INVALID');
   const finalLifecycleBoundaryAt = parseTime(
     readyEvent?.created_at,
     'DIRECT_OWNER_HANDOFF_READY_TIME_INVALID',
@@ -166,8 +164,8 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   if (approvedAt >= attemptStartedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_WINDOW_INVALID');
   if (now < approvedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_YET_VALID');
-  if (phase === 'pre_window' && now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
-  if (phase === 'pre_window' && expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
+  if (now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
+  if (expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
 
   return {
     comment_id: Number(comment.id),
@@ -180,6 +178,22 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
     final_lifecycle_boundary_at: readyEvent.created_at,
     landing_attempt_started_at: landingAttemptStartedAt,
   };
+}
+
+function assertApprovalCommentUnchanged(comments, repositoryOwner, approval) {
+  const comment = comments.find(value => Number(value?.id) === approval.comment_id);
+  if (!comment) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DELETED_AFTER_WINDOW');
+  if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_DRIFT_AFTER_WINDOW');
+  }
+  if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_TRANSPORT_DRIFT_AFTER_WINDOW');
+  }
+  if (comment.updated_at !== comment.created_at || comment.created_at !== approval.comment_created_at) {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_TIME_DRIFT_AFTER_WINDOW');
+  }
+  const bodySha256 = `sha256:${crypto.createHash('sha256').update(String(comment.body || '')).digest('hex')}`;
+  if (bodySha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_BODY_DRIFT_AFTER_WINDOW');
 }
 
 function writeReceipt(receipt) {
@@ -318,10 +332,12 @@ try {
     purpose,
     authorization_id_sha256: approval.authorization_id_sha256,
     approval_comment_id: approval.comment_id,
+    approval_comment_created_at: approval.comment_created_at,
     approval_comment_body_sha256: approval.comment_body_sha256,
     approval_nonce_sha256: approval.nonce_sha256,
     approval_expires_at: approval.expires_at,
     latest_ready_event_id: readyEvent.id,
+    latest_ready_event: readyEvent.event,
     latest_ready_event_at: readyEvent.created_at,
     landing_workflow_run_id: Number(runId),
     landing_workflow_run_attempt: runAttempt,
@@ -346,13 +362,13 @@ try {
   if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
   }
-  const afterReady = selectLatestLifecycleReadyEvent({timeline: afterTimeline, repositoryOwner: owner, pullRequest: after});
-  if (afterReady.id !== readyEvent.id || afterReady.event !== readyEvent.event || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
-  const afterApproval = selectApproval(afterComments, owner, after, afterHeadCommit, afterReady, {
-    phase: 'post_window',
-    landingAttemptStartedAt,
-  });
-  if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  // The pre-merge trusted implementation owns immutable transport, SHA, tree,
+  // parent, actor, time-window, and approval-comment checks.  It deliberately
+  // does not reinterpret the post-merge lifecycle: a PR may be correcting that
+  // interpreter, so doing so here would execute stale pre-merge semantics and
+  // create a self-hosting deadlock.  Exact landed-main performs the semantic
+  // lifecycle verification in the next workflow step.
+  assertApprovalCommentUnchanged(afterComments, owner, approval);
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');

@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 
 const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
+const landedLifecycleVerifier = fs.readFileSync('scripts/kidults/kpmo/verify-direct-owner-postmerge-lifecycle-v1.mjs', 'utf8');
+const landedLifecycleLibrary = fs.readFileSync('scripts/kidults/kpmo/lib/direct-owner-postmerge-lifecycle-v1.mjs', 'utf8');
 const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
 const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
@@ -156,26 +158,30 @@ test('dispatch actor is verified before any governed status mutation', () => {
   assert.ok(actorGuard >= 0 && actorGuard < firstPublish);
 });
 
-test('post-window merge classification revalidates approval, ready event, head and current main', () => {
+test('post-window trusted-base classification preserves transport facts and landed main revalidates lifecycle semantics', () => {
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const approvalRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
-  const readyRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
+  const approvalRecheck = runner.indexOf('assertApprovalCommentUnchanged(afterComments, owner, approval)');
   const headRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
   const mainRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
   assert.ok(sleepIndex >= 0);
   const treeRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
-  for (const index of [approvalRecheck, readyRecheck, treeRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+  for (const index of [approvalRecheck, treeRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+  assert.doesNotMatch(runner.slice(sleepIndex), /selectLatestLifecycleReadyEvent/,
+    'stale pre-merge implementation must not reinterpret the post-merge lifecycle');
+  assert.match(workflow, /Verify post-merge lifecycle with exact landed implementation/);
+  assert.match(workflow, /node scripts\/kidults\/kpmo\/verify-direct-owner-postmerge-lifecycle-v1\.mjs/);
+  assert.match(landedLifecycleVerifier, /verifyDirectOwnerPostmergeLifecycle/);
+  assert.match(landedLifecycleLibrary, /selectLatestLifecycleReadyEvent/);
+  assert.match(landedLifecycleLibrary, /DIRECT_OWNER_POSTMERGE_READY_BOUNDARY_DRIFT/);
 });
 
-test('post-window approval reconciliation does not require a second future handoff window', () => {
-  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{/);
-  assert.match(runner, /phase = 'pre_window'/);
-  assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
-  assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
-  assert.match(runner, /phase: 'post_window',\s+landingAttemptStartedAt/);
+test('post-window approval reconciliation is immutable and does not reinterpret authorization', () => {
+  assert.match(runner, /function assertApprovalCommentUnchanged\(comments, repositoryOwner, approval\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_DELETED_AFTER_WINDOW/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_BODY_DRIFT_AFTER_WINDOW/);
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const postPhaseIndex = runner.indexOf("phase: 'post_window'", sleepIndex);
-  assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
+  const immutableRecheck = runner.indexOf('assertApprovalCommentUnchanged(afterComments, owner, approval)', sleepIndex);
+  assert.ok(immutableRecheck > sleepIndex);
 });
 
 test('head tree is explicit in input, structured approval, receipt, preflight and window readbacks', () => {
@@ -216,6 +222,7 @@ test('terminal Handoff consumption is followed by exact merge-SHA push-suite con
   assert.match(workflow, /ref: \$\{\{ steps\.handoff\.outputs\.merge_sha \}\}/);
   assert.match(workflow, /clean: false/);
   assert.match(workflow, /Verify exact landed implementation and retained handoff receipt/);
+  assert.match(workflow, /Verify post-merge lifecycle with exact landed implementation/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$MERGE_SHA"/);
   assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
   assert.match(workflow, /required_failure_count === 1/);
