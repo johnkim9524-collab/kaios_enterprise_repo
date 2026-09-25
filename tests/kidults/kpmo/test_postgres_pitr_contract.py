@@ -924,6 +924,8 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
             assert values['password'] == 'source-password'
             assert values['sslmode'] == 'verify-full'
             assert values['connect_timeout'] == '10'
+            for key in ('host','hostaddr','port','dbname','user','password','sslmode','connect_timeout'):
+                assert os.environ['KAIOS_POSTGRES_DSN'].count(f'{key}=') == 1
             print(json.dumps({'status':'PASS','environment':'STAGING','production_touch':False}))
             PY
             """
