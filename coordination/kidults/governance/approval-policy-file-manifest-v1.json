@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 647
+    "file_count": 646
   },
   "files": [
     {
@@ -3124,19 +3124,6 @@
       }
     },
     {
-      "path": "scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ed768fd7ea0492964f12080429c3211a0bbd75ae",
-      "sha256": "sha256:2e449e06b86b18831a4a149257f34f3494b7319c0982922d13f852cbc2378bc1",
-      "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
-        }
-      }
-    },
-    {
       "path": "scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "95cb201c561a0d08078920a7824a0e4d1f5d75e5",
@@ -4995,5 +4982,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:0816cc04c8caa1c7c79f894805db541fe61668953357bf5eff8d9daa37b5a677"
+  "manifest_sha256": "sha256:ef8af849ff6cd790aa5dc9a1718c448e110b65c8c39d4d5df12d5a48f76216f3"
 }
