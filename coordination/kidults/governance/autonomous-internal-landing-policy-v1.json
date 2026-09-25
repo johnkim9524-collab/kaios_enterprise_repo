@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -211,6 +211,9 @@
     "modified_line_replacement": "AUTONOMOUS_WHEN_PRIMARY_AND_INDEPENDENT_CAPABILITY_VERIFIERS_PASS",
     "unknown_yaml_or_json_syntax": "FAIL_CLOSED_OWNER_REQUIRED",
     "guard_removal_or_relaxation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "script_guard_dependency_binding": "PRIMARY_STRUCTURAL_TOKEN_GRAPH_AND_INDEPENDENT_BALANCED_SOURCE_GRAPH_REQUIRED",
+    "predicate_constant_helper_alias_or_indirection_mutation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "mixed_safe_and_guard_dependency_mutation": "FAIL_CLOSED_OWNER_REQUIRED",
     "granular_write_permission_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
     "trigger_environment_secret_oidc_network_provider_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
     "exact_path_exception_policy": "SCHEMA_MONOTONIC_ADDITION_ONLY",

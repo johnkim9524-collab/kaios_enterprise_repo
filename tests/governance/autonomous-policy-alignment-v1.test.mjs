@@ -152,8 +152,8 @@ test('fail-closed guard replacement remains Owner-reserved',()=>{
     base_content:'if (!authorized) throw new Error("AUTHORIZATION_REQUIRED");\n',
     head_content:'export const normalize = value => String(value).trim();\n',
   };
-  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_REMOVED/);
-  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_(?:GUARD_REMOVED|GUARD_DEPENDENCY_CHANGED)/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY_CHANGED|GUARD_DEPENDENCY_CHANGED)/);
 });
 
 
@@ -172,4 +172,51 @@ test('live scope validation enforces the independent verifier, not only the prim
     expectedScopeDigest:sha256(filename),
     policy:landing,
   }),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
+});
+
+const scriptFile=(base,head)=>({
+  filename:'scripts/kidults/kpmo/internal-authorization.mjs',
+  base_content:base,
+  head_content:head,
+});
+const rejectGuardDependencyMutation=file=>{
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_GUARD_DEPENDENCY_CHANGED/);
+};
+
+test('guard predicate constants cannot bypass either semantic verifier',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = true;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('guard helper return changes and aliases remain dependency-bound',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "function evaluatePolicy(value) { return value.authorized; }\nconst decision = evaluatePolicy(input);\nconst isAuthorized = decision;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "function evaluatePolicy(value) { return true; }\nconst decision = evaluatePolicy(input);\nconst isAuthorized = decision;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('multi-line guard dependencies cannot be weakened through indirection',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const policyDecision = evaluatePolicy(input);\nconst isAuthorized = policyDecision.allowed;\nif (\n  !isAuthorized\n) {\n  throw new Error('AUTHORIZATION_REQUIRED');\n}\n",
+    "const policyDecision = {allowed: true};\nconst isAuthorized = policyDecision.allowed;\nif (\n  !isAuthorized\n) {\n  throw new Error('AUTHORIZATION_REQUIRED');\n}\n",
+  ));
+});
+
+test('mixed safe and risky replacements still reject the risky guard mutation',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nconst label = 'old';\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = true;\nconst label = 'new';\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('unrelated safe implementation replacement does not alter guard dependency graph',()=>{
+  const file=scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nconst normalize = value => String(value).trim();\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = evaluatePolicy(input);\nconst normalize = value => String(value ?? '').trim();\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  );
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });

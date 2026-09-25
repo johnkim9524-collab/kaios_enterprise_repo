@@ -9,6 +9,91 @@ const isComment=line=>/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line);
 const riskyValue=/\b(secrets\.|vars\.|id-token|curl\b|wget\b|gh\s+api\b|aws\s|gcloud\s|az\s|terraform\b|kubectl\b|https?:\/\/|configure-aws-credentials|--admin-bypass|force\s*:\s*true)\b/i;
 const writeKey=/^(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events)$/;
 const failClosedGuard=/\b(fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|permission|authorization|credential|secret|production|public|g5)\b/i;
+const jsIdentifier=/^[A-Za-z_$][\w$]*$/;
+const jsKeywords=new Set(['if','else','return','throw','new','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this','class','extends','switch','case','break','continue','try','catch','finally']);
+const hardStopTokens=new Set(['throw','fail','deny','assert','forbid','quarantine']);
+
+// This is intentionally a small, fail-closed structural parser rather than a
+// line classifier. It builds the guard predicate -> binding definition graph
+// needed for immutable base/head comparison without executing target code.
+const tokenizeScript=(source,filename)=>{
+  const tokens=[];
+  for(let index=0;index<source.length;){
+    const char=source[index];
+    if(/\s/.test(char)){index+=1;continue}
+    if(char==='/'&&source[index+1]==='/'){index=source.indexOf('\n',index+2);if(index<0)break;continue}
+    if(char==='/'&&source[index+1]==='*'){const end=source.indexOf('*/',index+2);if(end<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:comment`);index=end+2;continue}
+    if(char==='"'||char==="'"||char==='`'){
+      const quote=char;let end=index+1;let escaped=false;
+      for(;end<source.length;end+=1){const next=source[end];if(escaped){escaped=false;continue}if(next==='\\'){escaped=true;continue}if(next===quote){end+=1;break}}
+      if(end>source.length||source[end-1]!==quote)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:string`);
+      tokens.push(source.slice(index,end));index=end;continue;
+    }
+    const identifier=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
+    if(identifier){tokens.push(identifier);index+=identifier.length;continue}
+    const number=source.slice(index).match(/^(?:0[xob][0-9a-f]+|\d+(?:\.\d+)?)/i)?.[0];
+    if(number){tokens.push(number);index+=number.length;continue}
+    const operator=['===','!==','>>>','**=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','/=','%=','**'].find(value=>source.startsWith(value,index));
+    tokens.push(operator||char);index+=(operator||char).length;
+  }
+  return tokens;
+};
+
+const matchingToken=(tokens,start,open,close,filename)=>{
+  let depth=0;
+  for(let index=start;index<tokens.length;index+=1){if(tokens[index]===open)depth+=1;else if(tokens[index]===close&&--depth===0)return index}
+  fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${open}`);
+};
+const tokenText=tokens=>tokens.join(' ');
+const identifiers=tokens=>new Set(tokens.filter(token=>jsIdentifier.test(token)&&!jsKeywords.has(token)));
+
+const scriptBindingGraph=(source,filename)=>{
+  const tokens=tokenizeScript(source,filename);const bindings=new Map();
+  const add=(name,node)=>{const existing=bindings.get(name)||[];existing.push(node);bindings.set(name,existing)};
+  for(let index=0;index<tokens.length;index+=1){
+    if(tokens[index]==='function'&&jsIdentifier.test(tokens[index+1]||'')){
+      const name=tokens[index+1];const brace=tokens.indexOf('{',index+2);
+      if(brace<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${name}`);
+      const end=matchingToken(tokens,brace,'{','}',filename);add(name,tokens.slice(index,end+1));index=end;continue;
+    }
+    if(['const','let','var'].includes(tokens[index])&&jsIdentifier.test(tokens[index+1]||'')){
+      const name=tokens[index+1];if(tokens[index+2]!=='=')continue;
+      let end=index+3;let round=0,square=0,curly=0;
+      for(;end<tokens.length;end+=1){const token=tokens[end];if(token==='(')round+=1;else if(token===')')round-=1;else if(token==='[')square+=1;else if(token===']')square-=1;else if(token==='{')curly+=1;else if(token==='}')curly-=1;if(token===';'&&round===0&&square===0&&curly===0)break}
+      add(name,tokens.slice(index,end+1));index=end;continue;
+    }
+    if(jsIdentifier.test(tokens[index])&&tokens[index+1]==='='&&tokens[index-1]!=='.'){
+      const name=tokens[index];let end=index+2;let round=0,square=0,curly=0;
+      for(;end<tokens.length;end+=1){const token=tokens[end];if(token==='(')round+=1;else if(token===')')round-=1;else if(token==='[')square+=1;else if(token===']')square-=1;else if(token==='{')curly+=1;else if(token==='}')curly-=1;if(token===';'&&round===0&&square===0&&curly===0)break}
+      add(name,tokens.slice(index,end+1));index=end;
+    }
+  }
+  const guards=[];
+  for(let index=0;index<tokens.length;index+=1){
+    if(tokens[index]!=='if'||tokens[index+1]!=='(')continue;
+    const conditionEnd=matchingToken(tokens,index+1,'(',')',filename);const condition=tokens.slice(index+2,conditionEnd);
+    const statementStart=conditionEnd+1;let statementEnd=statementStart;
+    if(tokens[statementStart]==='{')statementEnd=matchingToken(tokens,statementStart,'{','}',filename);
+    else while(statementEnd<tokens.length&&tokens[statementEnd]!==';')statementEnd+=1;
+    const action=tokens.slice(statementStart,Math.min(statementEnd+1,tokens.length));
+    if(!action.some(token=>hardStopTokens.has(token)))continue;
+    const roots=[...identifiers(condition)];const visited=new Set();const dependency=[];
+    const visit=name=>{
+      if(visited.has(name))return;visited.add(name);
+      const nodes=bindings.get(name)||[];
+      dependency.push([name,nodes.map(tokenText).sort()]);
+      for(const node of nodes)for(const nested of identifiers(node))if(nested!==name)visit(nested);
+    };
+    roots.forEach(visit);
+    guards.push({condition:tokenText(condition),action:tokenText(action),dependency:dependency.sort(([a],[b])=>a.localeCompare(b))});
+  }
+  return guards.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+};
+
+const assertScriptGuardDependencies=(before,after,filename)=>{
+  const left=scriptBindingGraph(before,filename);const right=scriptBindingGraph(after,filename);
+  if(JSON.stringify(left)!==JSON.stringify(right))fail('CAPABILITY_GUARD_DEPENDENCY_CHANGED',filename);
+};
 
 const flattenJson=(value,path='',out=new Map())=>{
   if(value===null||typeof value!=='object') { out.set(path,JSON.stringify(value)); return out; }
@@ -87,6 +172,7 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
     else if(filename.endsWith('.json')) assertJsonMonotonic(file.base_content,file.head_content,filename);
     else {
+      assertScriptGuardDependencies(file.base_content,file.head_content,filename);
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));
       const removedGuard=before.find(line=>!after.has(line)&&failClosedGuard.test(line));
