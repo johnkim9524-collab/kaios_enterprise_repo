@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
-import {assertAutonomousFileScope} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 
@@ -45,7 +45,7 @@ test('missing patch for governed workflow or governance code fails closed',()=>{
   }
 });
 
-test('capability expansion and material deletion fail closed before dispatch',()=>{
+test('capability expansion fails before dispatch while replacements reach semantic verification',()=>{
   const filename='.github/workflows/internal-recovery.yml';
   for(const line of [
     '+permissions:\n+  contents: write',
@@ -60,12 +60,15 @@ test('capability expansion and material deletion fail closed before dispatch',()
     '-if: github.ref == refs/heads/main',
     '-run: node scripts/validate-authority.mjs',
     '-permissions: read-all',
-  ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:`@@ -1,2 +1 @@\n${removed}\n name: recovery`}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+  ]) assert.deepEqual(
+    assertAutonomousFileScope({files:[{filename,patch:`@@ -1,2 +1 @@\n${removed}\n name: recovery`}],policy:landing}),
+    [filename],
+  );
 });
 
 test('exact exceptions are classified and cannot weaken routing coverage',()=>{
   const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
-  assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),[filename]);
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1,2 @@\n {\n+  "verification_evidence": "monotonic-hardening"'}],policy:landing}),[filename]);
 });
 
@@ -129,6 +132,91 @@ test('exact exception policy weakening fails while monotonic evidence addition p
 
 test('safe monotonic workflow hardening passes both independent models',()=>{
   const file=semanticFile(workflow('    timeout-minutes: 10\n'));
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('safe internal implementation replacement is autonomous in both independent models',()=>{
+  const file={
+    filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
+    base_content:'export const normalize = value => String(value).trim();\n',
+    head_content:'export const normalize = value => String(value ?? "").trim();\n',
+  };
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('fail-closed guard replacement remains Owner-reserved',()=>{
+  const file={
+    filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
+    base_content:'if (!authorized) throw new Error("AUTHORIZATION_REQUIRED");\n',
+    head_content:'export const normalize = value => String(value).trim();\n',
+  };
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_(?:GUARD_REMOVED|GUARD_DEPENDENCY_CHANGED)/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY_CHANGED|GUARD_DEPENDENCY_CHANGED)/);
+});
+
+
+test('live scope validation enforces the independent verifier, not only the primary model',()=>{
+  const filename='scripts/kidults/kpmo/internal-normalizer.mjs';
+  const file={
+    filename,
+    patch:'@@ -1 +1 @@\n-if (value) return "a";\n+if (value) return "b";',
+    base_content:'if (value) return "a";\n',
+    head_content:'if (value) return "b";\n',
+  };
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.throws(()=>validateLiveChangedPaths({
+    files:[file],
+    expectedPaths:[filename],
+    expectedScopeDigest:sha256(filename),
+    policy:landing,
+  }),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
+});
+
+const scriptFile=(base,head)=>({
+  filename:'scripts/kidults/kpmo/internal-authorization.mjs',
+  base_content:base,
+  head_content:head,
+});
+const rejectGuardDependencyMutation=file=>{
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_GUARD_DEPENDENCY_CHANGED/);
+};
+
+test('guard predicate constants cannot bypass either semantic verifier',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = true;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('guard helper return changes and aliases remain dependency-bound',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "function evaluatePolicy(value) { return value.authorized; }\nconst decision = evaluatePolicy(input);\nconst isAuthorized = decision;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "function evaluatePolicy(value) { return true; }\nconst decision = evaluatePolicy(input);\nconst isAuthorized = decision;\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('multi-line guard dependencies cannot be weakened through indirection',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const policyDecision = evaluatePolicy(input);\nconst isAuthorized = policyDecision.allowed;\nif (\n  !isAuthorized\n) {\n  throw new Error('AUTHORIZATION_REQUIRED');\n}\n",
+    "const policyDecision = {allowed: true};\nconst isAuthorized = policyDecision.allowed;\nif (\n  !isAuthorized\n) {\n  throw new Error('AUTHORIZATION_REQUIRED');\n}\n",
+  ));
+});
+
+test('mixed safe and risky replacements still reject the risky guard mutation',()=>{
+  rejectGuardDependencyMutation(scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nconst label = 'old';\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = true;\nconst label = 'new';\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  ));
+});
+
+test('unrelated safe implementation replacement does not alter guard dependency graph',()=>{
+  const file=scriptFile(
+    "const isAuthorized = evaluatePolicy(input);\nconst normalize = value => String(value).trim();\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+    "const isAuthorized = evaluatePolicy(input);\nconst normalize = value => String(value ?? '').trim();\nif (!isAuthorized) throw new Error('AUTHORIZATION_REQUIRED');\n",
+  );
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
