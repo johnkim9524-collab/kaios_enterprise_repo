@@ -27,7 +27,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(new Set(required.map(value=>`${value.context}:${value.integration_id}`)).size!==required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_AMBIGUOUS');
   if (!required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
-  const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
+  const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||pr.head.sha),app_id:Number(x.app?.id||x.app_id||String(x.avatar_url||'').match(/^https:\/\/avatars\.githubusercontent\.com\/in\/(\d+)(?:\?|$)/)?.[1]||0),avatar_url:String(x.avatar_url||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
   const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),app_id:Number(x.app?.id||x.app_id||0),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id),semantic_evidence:[x.output?.title,x.output?.summary,x.output?.text].filter(Boolean).join('\n')})).sort((a,b)=>a.name.localeCompare(b.name)||a.app_id-b.app_id||a.id-b.id);
   if (!cleanStatuses.length&&!cleanChecks.length) fail('DISPATCH_EVIDENCE_MISSING');
   const boundRequired=bindRequiredGateEvidence({required,checks:cleanChecks,statuses:cleanStatuses,headSha:pr.head.sha,
