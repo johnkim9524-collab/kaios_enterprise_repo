@@ -959,7 +959,7 @@ jobs:
               python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
                 --archive /tmp/reserve-observer.zip --expected-digest "$RESERVE_ARTIFACT_DIGEST" \
                 --receipt /tmp/reserve-observer-archive-validation-v1.json \
-                --max-compressed-bytes 4194304 --max-entries 32 \
+                --max-compressed-bytes 4194304 --max-entries 258 \
                 --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608 \
                 --max-compression-ratio 100
               unzip -q -o /tmp/reserve-observer.zip -d /tmp/reserve-observer

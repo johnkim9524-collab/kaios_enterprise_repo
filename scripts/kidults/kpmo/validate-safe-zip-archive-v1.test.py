@@ -76,6 +76,37 @@ def main() -> int:
             "ARCHIVE_REQUIRED_BASENAME_CARDINALITY",
         )
 
+        reserve_boundary = root / "reserve-boundary.zip"
+        make_zip(
+            reserve_boundary,
+            [(f"reserve/shards/{index:02x}.ndjson", b"") for index in range(256)]
+            + [
+                ("reserve/asi-sharded-source-reserve-manifest-v1.json", b"{}\n"),
+                ("asi-sharded-source-reserve-activation-receipt-v1.json", b"{}\n"),
+            ],
+        )
+        reserve_accepted = invoke(
+            reserve_boundary,
+            overrides={"max-entries": "258"},
+        )
+        if reserve_accepted.returncode != 0:
+            raise AssertionError(reserve_accepted.stderr)
+
+        reserve_overflow = root / "reserve-overflow.zip"
+        make_zip(
+            reserve_overflow,
+            [(f"reserve/shards/{index:02x}.ndjson", b"") for index in range(256)]
+            + [
+                ("reserve/asi-sharded-source-reserve-manifest-v1.json", b"{}\n"),
+                ("asi-sharded-source-reserve-activation-receipt-v1.json", b"{}\n"),
+                ("unexpected.json", b"{}\n"),
+            ],
+        )
+        assert_rejected(
+            invoke(reserve_overflow, overrides={"max-entries": "258"}),
+            "ARCHIVE_ENTRY_COUNT_LIMIT:259",
+        )
+
         duplicate_basename = root / "duplicate-basename.zip"
         make_zip(duplicate_basename, [("one/receipt.json", b"{}"), ("two/receipt.json", b"{}")])
         assert_rejected(
