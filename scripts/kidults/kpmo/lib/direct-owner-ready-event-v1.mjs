@@ -59,7 +59,7 @@ export function selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pull
   let latestReady = lifecycleEvents
     .filter(entry => READY_EVENTS.has(entry.item?.event))
     .at(-1);
-  if (!latestReady && lifecycleEvents.length === 0) {
+  if (!latestReady) {
     const id = Number(pullRequest?.id);
     const actor = String(pullRequest?.user?.login || '');
     const createdAt = String(pullRequest?.created_at || '');
