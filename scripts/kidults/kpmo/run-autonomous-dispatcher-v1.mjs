@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
+import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
@@ -26,18 +27,17 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(new Set(required.map(value=>`${value.context}:${value.integration_id}`)).size!==required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_AMBIGUOUS');
   if (!required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
-  const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
+  const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||pr.head.sha),app_id:Number(x.app?.id||x.app_id||String(x.avatar_url||'').match(/^https:\/\/avatars\.githubusercontent\.com\/in\/(\d+)(?:\?|$)/)?.[1]||0),avatar_url:String(x.avatar_url||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
   const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),app_id:Number(x.app?.id||x.app_id||0),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id),semantic_evidence:[x.output?.title,x.output?.summary,x.output?.text].filter(Boolean).join('\n')})).sort((a,b)=>a.name.localeCompare(b.name)||a.app_id-b.app_id||a.id-b.id);
   if (!cleanStatuses.length&&!cleanChecks.length) fail('DISPATCH_EVIDENCE_MISSING');
-  const boundRequired=required.map(binding=>{
-    const matches=cleanChecks.filter(x=>x.name===binding.context&&(!binding.integration_id||x.app_id===binding.integration_id)&&x.head_sha===pr.head.sha&&Number.isSafeInteger(x.id)&&x.id>0);
-    if (matches.length!==1) fail(matches.length?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':'DISPATCH_REQUIRED_CONTEXT_MISSING',binding.context);
-    if(matches[0].status!=='completed'||matches[0].conclusion!=='success') fail('DISPATCH_CHECKS_NOT_GREEN',binding.context);
-    if(binding.context==='KPMO Live Canonical Issue Truth V1'){
-      if(/IMPLEMENTED_NOT_VERIFIED/.test(matches[0].semantic_evidence)||!/\bVERIFIED_PASS\b/.test(matches[0].semantic_evidence)) fail('DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
-    }
-    return matches[0];
-  });
+  const boundRequired=bindRequiredGateEvidence({required,checks:cleanChecks,statuses:cleanStatuses,headSha:pr.head.sha,
+    fail:(code,context)=>fail(code==='REQUIRED_CONTEXT_MISSING'?'DISPATCH_REQUIRED_CONTEXT_MISSING':
+      code==='REQUIRED_CONTEXT_AMBIGUOUS'?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':
+      code==='REQUIRED_STATUS_NOT_GREEN'?'DISPATCH_CHECKS_NOT_GREEN':`DISPATCH_${code}`,context)});
+  for (const binding of boundRequired) if(binding.context==='KPMO Live Canonical Issue Truth V1') {
+    const check=cleanChecks.find(value=>value.id===binding.id);
+    if(!check||/IMPLEMENTED_NOT_VERIFIED/.test(check.semantic_evidence)||!/\bVERIFIED_PASS\b/.test(check.semantic_evidence)) fail('DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
+  }
   const testEvidence={source:'GITHUB_LIVE_PROTECTED_MAIN_REQUIRED_CHECKS',result:'PASS',required_contexts:required,required_check_runs:boundRequired,statuses:cleanStatuses,checks:cleanChecks};
   testEvidence.artifact_digest=sha256(canonicalJson({statuses:cleanStatuses,checks:cleanChecks}));
   const rollbackPlan={source:'GITHUB_LIVE_EXACT_BINDING',strategy:'REVERT_MERGE_COMMIT',verified:true,base_sha:mainSha,head_tree_sha:treeSha};
