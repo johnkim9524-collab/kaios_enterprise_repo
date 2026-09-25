@@ -1,7 +1,13 @@
 name: KIDULTS ASI Autonomous Resolution Layer v1
-run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || format('recovery-{0}', github.sha) }}
+run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || github.event_name == 'workflow_dispatch' && format('p1-{0}', inputs.p1_run_id) || format('recovery-{0}', github.sha) }}
 
 on:
+  workflow_dispatch:
+    inputs:
+      p1_run_id:
+        description: Exact successful protected-main P1 workflow_dispatch run ID
+        required: true
+        type: string
   push:
     branches: [main]
     paths:
@@ -127,7 +133,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
 
   classify-p1-generation:
-    if: github.event_name == 'workflow_run'
+    if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -147,10 +153,29 @@ jobs:
         id: classify
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT_P1_RUN_ID: ${{ inputs.p1_run_id }}
         run: |
           set -euo pipefail
           CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')
-          node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+          test "$CURRENT_MAIN_SHA" = "$GITHUB_SHA"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            [[ "$INPUT_P1_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs/${INPUT_P1_RUN_ID}" \
+              > /tmp/arl-direct-p1-run.json
+            jq -e --argjson run "$INPUT_P1_RUN_ID" --arg repo "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" \
+              '.id==$run and .repository.full_name==$repo and .head_repository.full_name==$repo
+               and .name=="KIDULTS ASI P1 Source Preflight v1"
+               and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml"
+               and .event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha
+               and .status=="completed" and .conclusion=="success"' \
+              /tmp/arl-direct-p1-run.json >/dev/null
+            jq -n --arg sha "$GITHUB_SHA" --argjson run "$INPUT_P1_RUN_ID" \
+              '{classification:"CURRENT_MAIN_EXACT",reason:"EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED",current_main_sha:$sha,upstream_run_id:$run,upstream_event:"workflow_dispatch",promotion_authority:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
+              > /tmp/arl-p1-generation-classification-v1.json
+          else
+            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+          fi
           echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "current_main_sha=$CURRENT_MAIN_SHA" >> "$GITHUB_OUTPUT"
@@ -169,7 +194,10 @@ jobs:
 
   resolve-current-p1-actions:
     needs: classify-p1-generation
-    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'
+    if: >-
+      always() && (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
+      needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'
     permissions:
       contents: read
       actions: read
@@ -234,11 +262,12 @@ jobs:
         id: producer_restore
         env:
           GH_TOKEN: ${{ github.token }}
-          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
-          UPSTREAM_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
-          UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
-          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          UPSTREAM_PATH: ${{ github.event.workflow_run.path }}
+          UPSTREAM_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.p1_run_id || github.event.workflow_run.id }}
+          UPSTREAM_REPOSITORY: ${{ github.event_name == 'workflow_dispatch' && github.repository || github.event.workflow_run.head_repository.full_name }}
+          UPSTREAM_HEAD_BRANCH: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.event.workflow_run.head_branch }}
+          UPSTREAM_HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          UPSTREAM_PATH: ${{ github.event_name == 'workflow_dispatch' && '.github/workflows/kidults-asi-p1-source-preflight-v1.yml' || github.event.workflow_run.path }}
+          UPSTREAM_EVENT: ${{ github.event_name == 'workflow_dispatch' && 'workflow_dispatch' || github.event.workflow_run.event }}
         shell: bash
         run: |
           set -euo pipefail
@@ -246,7 +275,7 @@ jobs:
           CURRENT_SHA=$(git rev-parse HEAD)
           TARGET_SHA="$CURRENT_SHA"
           VALIDATION_ONLY=false
-          test "$GITHUB_EVENT_NAME" = workflow_run
+          test "$GITHUB_EVENT_NAME" = workflow_run -o "$GITHUB_EVENT_NAME" = workflow_dispatch
           test -n "$UPSTREAM_RUN_ID"
           test "$UPSTREAM_REPOSITORY" = "$GITHUB_REPOSITORY"
           test "$UPSTREAM_HEAD_BRANCH" = main
@@ -259,8 +288,8 @@ jobs:
           test -n "$P1_SOURCE_SHA"
           test "$P1_SOURCE_SHA" = "$TARGET_SHA"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${P1_RUN_ID}" > /tmp/p1-run.json
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" \
-            '.repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .event=="workflow_run" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$TARGET_SHA" --arg event "$UPSTREAM_EVENT" \
+            '.repository.full_name==$repo and .head_repository.full_name==$repo and .name=="KIDULTS ASI P1 Source Preflight v1" and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml" and .event==$event and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
             /tmp/p1-run.json >/dev/null
           for ARTIFACT_ATTEMPT in {1..12}; do
             rm -f /tmp/p1-artifact.json
@@ -356,7 +385,7 @@ jobs:
           done
           P1_RUN_ID="$P1_RUN_ID" P1_ID="$P1_ID" P0B_ID="$P0B_ID" P1_SOURCE_SHA="$P1_SOURCE_SHA" CURRENT_SHA="$CURRENT_SHA" P1_DIGEST="$P1_DIGEST" P0B_DIGEST="$P0B_DIGEST" VALIDATION_ONLY="$VALIDATION_ONLY" P1_RECOVERY_DISPATCHED="$P1_RECOVERY_DISPATCHED" node - <<'NODE'
           const fs=require('fs');
-          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.1.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,p0b_artifact_name:'kidults-asi-p0b-bounded-discovery-candidates-v1',p0b_artifact_id:Number(process.env.P0B_ID),p0b_artifact_digest:process.env.P0B_DIGEST,transactionally_paired_artifacts:true,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
+          const binding={id:'kidults-asi-p1-upstream-artifact-binding-v1',version:'1.2.0',workflow_name:'KIDULTS ASI P1 Source Preflight v1',workflow_path:'.github/workflows/kidults-asi-p1-source-preflight-v1.yml',workflow_run_id:Number(process.env.P1_RUN_ID),artifact_name:'kidults-asi-p1-source-preflight-v1',artifact_id:Number(process.env.P1_ID),artifact_digest:process.env.P1_DIGEST,artifact_cardinality:1,p0b_artifact_name:'kidults-asi-p0b-bounded-discovery-candidates-v1',p0b_artifact_id:Number(process.env.P0B_ID),p0b_artifact_digest:process.env.P0B_DIGEST,transactionally_paired_artifacts:true,head_branch:'main',source_sha:process.env.P1_SOURCE_SHA,consumer_sha:process.env.CURRENT_SHA,exact_generation_bound:true,exact_triggering_run_bound:['workflow_run','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME),recovery_dispatch_performed:process.env.P1_RECOVERY_DISPATCHED==='true',validation_only:process.env.VALIDATION_ONLY==='true',promotion_authority:false,status:'completed',conclusion:'success',expired:false};
           fs.writeFileSync('/tmp/p1-input/p1-upstream-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "P0B_ARTIFACT_ID=$P0B_ID" >> "$GITHUB_ENV"
@@ -493,10 +522,10 @@ jobs:
             > /tmp/arl-current-run.json
           CURRENT_ARL_CREATED_AT=$(jq -er --argjson run "$GITHUB_RUN_ID" \
             --argjson attempt "$GITHUB_RUN_ATTEMPT" --arg repo "$GITHUB_REPOSITORY" \
-            --arg title "KIDULTS ARL / p1-${P1_RUN_ID}" \
+            --arg title "KIDULTS ARL / p1-${P1_RUN_ID}" --arg event "$GITHUB_EVENT_NAME" \
             'select(.id==$run and .run_attempt==$attempt and .repository.full_name==$repo and .head_repository.full_name==$repo
              and (.name=="KIDULTS ASI Autonomous Resolution Layer v1" or .name==$title) and .display_title==$title
-             and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event=="workflow_run"
+             and .path==".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml" and .event==$event
              and .head_sha==env.GITHUB_SHA and .head_branch=="main") | .created_at' \
             /tmp/arl-current-run.json)
           CREATED_WINDOW="${P1_GENERATION_WINDOW_START}..${CURRENT_ARL_CREATED_AT}"
@@ -505,7 +534,7 @@ jobs:
           for ARL_HISTORY_PAGE in $(seq 1 20); do
             PAGE_FILE="/tmp/arl-authoritative-generation-runs-page-${ARL_HISTORY_PAGE}.json"
             gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f head_sha="$GITHUB_SHA" -f branch=main -f event=workflow_run \
+              -f head_sha="$GITHUB_SHA" -f branch=main -f event="$GITHUB_EVENT_NAME" \
               -f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE" \
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-autonomous-resolution-layer-v1.yml/runs" \
               > "$PAGE_FILE"
@@ -530,12 +559,13 @@ jobs:
             --display-title "KIDULTS ARL / p1-${P1_RUN_ID}" \
             --current-run-id "$GITHUB_RUN_ID" \
             --created-since "$P1_GENERATION_WINDOW_START" --created-through "$CURRENT_ARL_CREATED_AT" \
+            --event "$GITHUB_EVENT_NAME" \
             --output /tmp/arl-authoritative-generation-history-receipt-v1.json
       - name: Emit KPMO autonomous-resolution receipt
         id: producer_receipt
         run: |
           node - <<'NODE' >/tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
-          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const generationKey=`${process.env.GITHUB_SHA}:${process.env.P1_RUN_ID}:${process.env.P0B_ARTIFACT_ID}:${process.env.P0B_ARTIFACT_DIGEST}:${process.env.P1_ARTIFACT_ID}:${process.env.P1_ARTIFACT_DIGEST}`;process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,producer_workflow_run_id:Number(process.env.GITHUB_RUN_ID),producer_display_title:`KIDULTS ARL / p1-${process.env.P1_RUN_ID}`,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p0b_artifact_id:Number(process.env.P0B_ARTIFACT_ID),p0b_artifact_digest:process.env.P0B_ARTIFACT_DIGEST,p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,transactionally_paired_artifacts:true,p1_source_sha:process.env.P1_SOURCE_SHA,authoritative_generation_key:generationKey,artifact_role:'AUTHORITATIVE_CONSUMABLE',authoritative_producer:true,downstream_consumable:true,exact_generation_bound:true,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const crypto=require('crypto');const p='/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json';const m=JSON.parse(fs.readFileSync(p));const digest='sha256:'+crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');const generationKey=`${process.env.GITHUB_SHA}:${process.env.P1_RUN_ID}:${process.env.P0B_ARTIFACT_ID}:${process.env.P0B_ARTIFACT_DIGEST}:${process.env.P1_ARTIFACT_ID}:${process.env.P1_ARTIFACT_DIGEST}`;process.stdout.write(JSON.stringify({id:'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1',version:'1.2.0',state:'VERIFIED_PASS',source_sha:process.env.GITHUB_SHA,trigger_event:process.env.GITHUB_EVENT_NAME,producer_workflow_run_id:Number(process.env.GITHUB_RUN_ID),producer_display_title:`KIDULTS ARL / p1-${process.env.P1_RUN_ID}`,p1_workflow_run_id:Number(process.env.P1_RUN_ID),p0b_artifact_id:Number(process.env.P0B_ARTIFACT_ID),p0b_artifact_digest:process.env.P0B_ARTIFACT_DIGEST,p1_artifact_id:Number(process.env.P1_ARTIFACT_ID),p1_artifact_digest:process.env.P1_ARTIFACT_DIGEST,transactionally_paired_artifacts:true,p1_source_sha:process.env.P1_SOURCE_SHA,authoritative_generation_key:generationKey,artifact_role:'AUTHORITATIVE_CONSUMABLE',authoritative_producer:true,downstream_consumable:true,exact_generation_bound:true,exact_triggering_run_bound:['workflow_run','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME),validation_only:process.env.P1_VALIDATION_ONLY==='true',promotion_authority:false,artifact_cardinality:1,manifest_digest:digest,results:m.results,autonomous_effect:m.autonomous_effect,global_effect:m.global_effect,irreplaceable_value_effect:m.irreplaceable_value_effect,transparency_effect:m.transparency_effect,live_target_site_network_requests:0,rights_pass_created:0,evidence_admitted:0,market_events_created:0,snapshot_candidates_created:0,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -171,7 +171,7 @@ jobs:
           const x=JSON.parse(fs.readFileSync('/tmp/arl-runs.json','utf8'));
           const target=process.env.TARGET_SOURCE_SHA;
           const expectedBranch=process.env.EXPECTED_HEAD_BRANCH;
-          const artifactProducingEvents=new Set(['workflow_run']);
+          const artifactProducingEvents=new Set(['workflow_run','workflow_dispatch']);
           const runs=(x.workflow_runs||[])
             .filter((run)=>nativeWorkflowRunNameMatches(run,'KIDULTS ASI Autonomous Resolution Layer v1','.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml')&&
               run.repository?.full_name===process.env.GITHUB_REPOSITORY&&run.head_repository?.full_name===process.env.GITHUB_REPOSITORY&&
@@ -247,6 +247,7 @@ jobs:
             --run /tmp/arl-run.json \
             --receipt /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
             --source-sha "$TARGET_SOURCE_SHA" --head-branch "$EXPECTED_HEAD_BRANCH" \
+            --event "$(node -p \"JSON.parse(require('fs').readFileSync('/tmp/arl-run.json')).event\")" \
             --output /tmp/coverage-exact-upstream-producer-receipt-v1.json
           AUTHORITATIVE_PRODUCER_CARDINALITY=$(jq -r '.authoritative_producer_cardinality' /tmp/coverage-exact-upstream-producer-receipt-v1.json)
           test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1
@@ -266,13 +267,13 @@ jobs:
           const executionSha=process.env.EXECUTION_SHA;
           if(run.head_sha!==expectedSourceSha||run.head_sha!==process.env.PRODUCER_HEAD_SHA)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
           if(run.head_branch!==expectedHeadBranch)throw new Error('AUTONOMOUS_RESOLUTION_HEAD_BRANCH_SCOPE');
-          if(run.event!=='workflow_run')throw new Error(`AUTONOMOUS_RESOLUTION_NONAUTHORITATIVE_PRODUCER_EVENT:${run.event}`);
+          if(!['workflow_run','workflow_dispatch'].includes(run.event))throw new Error(`AUTONOMOUS_RESOLUTION_NONAUTHORITATIVE_PRODUCER_EVENT:${run.event}`);
           if(!['MAIN','PULL_REQUEST_HEAD'].includes(validationScope))throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_SCOPE');
           const receipt=JSON.parse(fs.readFileSync('/tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json','utf8'));
           if(receipt.producer_workflow_run_id!==run.id||receipt.producer_display_title!==run.display_title)throw new Error('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH');
           const upstreamClass='ASI_AUTONOMOUS_RESOLUTION';
           const canonicalRunKey=`${run.head_sha}:${upstreamClass}`;
-          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.3.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_event:run.event,consumer_event:process.env.GITHUB_EVENT_NAME,workflow_name:'KIDULTS ASI Autonomous Resolution Layer v1',workflow_path:run.path,producer_display_title:run.display_title,authoritative_generation_key:receipt.authoritative_generation_key,authoritative_producer_cardinality:Number(process.env.AUTHORITATIVE_PRODUCER_CARDINALITY),upstream_class:upstreamClass,canonical_run_key:canonicalRunKey,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,main_scope_validated:validationScope==='MAIN',production_authorized:false,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',authoritative_producer_event:run.event==='workflow_run',source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.4.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_event:run.event,consumer_event:process.env.GITHUB_EVENT_NAME,workflow_name:'KIDULTS ASI Autonomous Resolution Layer v1',workflow_path:run.path,producer_display_title:run.display_title,authoritative_generation_key:receipt.authoritative_generation_key,authoritative_producer_cardinality:Number(process.env.AUTHORITATIVE_PRODUCER_CARDINALITY),upstream_class:upstreamClass,canonical_run_key:canonicalRunKey,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,main_scope_validated:validationScope==='MAIN',production_authorized:false,exact_triggering_run_bound:true,authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event),source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
           fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"

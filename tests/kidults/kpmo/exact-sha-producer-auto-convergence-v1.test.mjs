@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {ROOTS,REPOSITORY,classifyHealthReceipt,ensureRoot,selectRootGeneration} from '../../../scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs';
+import {ARL_ROOT,P1_ROOT,ROOTS,REPOSITORY,classifyHealthReceipt,ensureRoot,selectRootGeneration,waitForSuccessfulRoot} from '../../../scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs';
 
 const sha='a'.repeat(40);
 const root=ROOTS[0];
@@ -24,6 +24,15 @@ test('missing root dispatches and failed root permits one bounded retry',async()
   assert.equal((await ensureRoot(root,{sourceSha:sha,token:'x',apiRuns:async()=>[],dispatch:async()=>{dispatches+=1;}})).action,'DISPATCHED');
   assert.equal((await ensureRoot(root,{sourceSha:sha,token:'x',force:true,apiRuns:async()=>[run({conclusion:'failure'})],dispatch:async()=>{dispatches+=1;}})).action,'DISPATCHED_RECOVERY');
   assert.equal(dispatches,2);
+});
+
+test('direct ARL dispatch is bound to the exact successful P1 run',async()=>{
+  let observedInputs=null;
+  await ensureRoot(ARL_ROOT,{sourceSha:sha,token:'x',inputs:{p1_run_id:'42'},apiRuns:async()=>[],dispatch:async(_root,_token,inputs)=>{observedInputs=inputs;}});
+  assert.deepEqual(observedInputs,{p1_run_id:'42'});
+  const p1Run={...run(),path:P1_ROOT.path,id:42};
+  const selected=await waitForSuccessfulRoot(P1_ROOT,{sourceSha:sha,token:'x',deadline:Date.now()+1000,pollMs:1,apiRuns:async()=>[p1Run],wait:async()=>{}});
+  assert.equal(selected.id,42);
 });
 
 test('third root dispatch is rejected fail-closed',async()=>{
@@ -49,4 +58,11 @@ test('workflow starts roots on protected-main push and retains terminal HOLD bou
 test('root dispatches target authoritative producers without relying on token-suppressed workflow_run recursion',()=>{
   assert.equal(ROOTS.find((root)=>root.id==='REQUIREMENT').workflow,'kidults-asi-requirement-adapter-coverage-v1.yml');
   assert.equal(ROOTS.find((root)=>root.id==='RESERVE').workflow,'kidults-asi-sharded-source-reserve-v1.yml');
+  assert.equal(P1_ROOT.workflow,'kidults-asi-p1-source-preflight-v1.yml');
+  assert.equal(ARL_ROOT.workflow,'kidults-asi-autonomous-resolution-layer-v1.yml');
+  const arl=fs.readFileSync(ARL_ROOT.path,'utf8');
+  assert.match(arl,/p1_run_id:/);
+  assert.match(arl,/EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED/);
+  const coverage=fs.readFileSync(ROOTS.find((root)=>root.id==='REQUIREMENT').path,'utf8');
+  assert.match(coverage,/new Set\(\['workflow_run','workflow_dispatch'\]\)/);
 });

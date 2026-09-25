@@ -42,11 +42,12 @@ function requireSafeCount(value, code) {
   return value;
 }
 
-function validateRunIdentity(run, { workflowName, workflowPath, sourceSha, headBranch }) {
+function validateRunIdentity(run, { workflowName, workflowPath, sourceSha, headBranch, event = 'workflow_run' }) {
   if (!run || typeof run !== 'object') fail('WORKFLOW_RUN_INVALID');
   requirePositiveInteger(run.id, 'WORKFLOW_RUN_ID_INVALID');
   if (!nativeWorkflowRunNameMatches(run, workflowName, workflowPath)) fail('WORKFLOW_RUN_IDENTITY_MISMATCH', run.id);
-  if (run.event !== 'workflow_run') fail('WORKFLOW_RUN_EVENT_FILTER_DRIFT', run.id);
+  if (!['workflow_run', 'workflow_dispatch'].includes(event)) fail('WORKFLOW_RUN_EXPECTED_EVENT_INVALID', event);
+  if (run.event !== event) fail('WORKFLOW_RUN_EVENT_FILTER_DRIFT', run.id);
   if (run.head_sha !== sourceSha || run.head_branch !== headBranch) fail('WORKFLOW_RUN_SOURCE_FILTER_DRIFT', run.id);
   return run;
 }
@@ -65,6 +66,7 @@ export function reconcileArlAuthoritativeGenerationPages({
   currentRunId,
   createdSince,
   createdThrough,
+  event = 'workflow_run',
 }) {
   requireSha(sourceSha);
   const current = requirePositiveInteger(currentRunId, 'CURRENT_RUN_ID_INVALID');
@@ -97,6 +99,7 @@ export function reconcileArlAuthoritativeGenerationPages({
       workflowPath: ARL_WORKFLOW_PATH,
       sourceSha,
       headBranch,
+      event,
     });
     if (ids.has(run.id)) fail('ARL_HISTORY_DUPLICATE_RUN_ID', run.id);
     ids.add(run.id);
@@ -126,17 +129,19 @@ export function reconcileArlAuthoritativeGenerationPages({
     current_run_in_complete_query: true,
     exact_generation_window_bound: true,
     pagination_reconciled_complete: true,
+    workflow_event: event,
     production: 'HOLD',
   };
 }
 
-export function resolveCoverageAuthoritativeProducer({ run, receipt, sourceSha, headBranch = 'main' }) {
+export function resolveCoverageAuthoritativeProducer({ run, receipt, sourceSha, headBranch = 'main', event = 'workflow_run' }) {
   requireSha(sourceSha);
   validateSuccessfulRun(run, {
     workflowName: ARL_WORKFLOW_NAME,
     workflowPath: ARL_WORKFLOW_PATH,
     sourceSha,
     headBranch,
+    event,
   });
   if (!receipt || typeof receipt !== 'object') fail('ARL_RECEIPT_INVALID');
   const p1RunId = requirePositiveInteger(receipt.p1_workflow_run_id, 'ARL_RECEIPT_P1_RUN_ID_INVALID');
@@ -158,6 +163,7 @@ export function resolveCoverageAuthoritativeProducer({ run, receipt, sourceSha, 
     authoritative_producer_cardinality: 1,
     global_same_head_history_scan_performed: false,
     exact_triggering_run_bound: true,
+    workflow_event: event,
     production: 'HOLD',
   };
 }
@@ -214,7 +220,7 @@ function parseArgs(argv) {
   const options = {};
   const allowed = new Set([
     '--mode', '--input', '--run', '--receipt', '--source-sha', '--head-branch', '--display-title',
-    '--current-run-id', '--created-since', '--created-through', '--output',
+    '--current-run-id', '--created-since', '--created-through', '--event', '--output',
   ]);
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
@@ -252,6 +258,7 @@ async function main() {
       currentRunId: options.current_run_id,
       createdSince: options.created_since,
       createdThrough: options.created_through,
+      event: options.event,
     });
   } else if (options.mode === 'coverage-exact-producer') {
     result = resolveCoverageAuthoritativeProducer({
@@ -259,6 +266,7 @@ async function main() {
       receipt: readJson(options.receipt, 'ARL_RECEIPT_INPUT_INVALID'),
       sourceSha: options.source_sha,
       headBranch: options.head_branch,
+      event: options.event,
     });
   } else {
     result = resolveCoveragePriorSuccessExactQuery({
