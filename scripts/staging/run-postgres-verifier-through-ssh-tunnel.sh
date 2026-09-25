@@ -97,6 +97,13 @@ if not canonical_host.endswith('.db.ondigitalocean.com') or remote_port != 25060
     raise SystemExit('PostgreSQL destination is outside the approved DigitalOcean STAGING boundary')
 
 original_query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+allowed_query_keys = {'sslmode'}
+unsupported_query_keys = sorted({
+    key.lower() for key, _value in original_query
+    if key.lower() not in allowed_query_keys
+})
+if unsupported_query_keys:
+    raise SystemExit('PostgreSQL URI query contains unsupported connection parameter')
 ssl_modes = [value.lower() for key, value in original_query if key.lower() == 'sslmode']
 if len(ssl_modes) != 1 or ssl_modes[0] not in {'require', 'verify-ca', 'verify-full'}:
     raise SystemExit('PostgreSQL URI must require TLS with one approved sslmode')
@@ -106,24 +113,33 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
     listener.bind(('127.0.0.1', 0))
     local_port = listener.getsockname()[1]
 
-userinfo, separator, _ = parts.netloc.rpartition('@')
-host_label = f'[{host}]' if ':' in host else host
-netloc = f'{userinfo}@{host_label}:{local_port}' if separator else f'{host_label}:{local_port}'
 query = [
-    (key, value)
-    for key, value in original_query
-    if key.lower() not in {'host', 'hostaddr', 'port', 'connect_timeout', 'sslmode'}
+    ('sslmode', ssl_mode),
+    ('connect_timeout', '10'),
 ]
-query.append(('sslmode', ssl_mode))
-query.append(('hostaddr', '127.0.0.1'))
-query.append(('connect_timeout', '10'))
-tunneled = urllib.parse.urlunsplit((
-    parts.scheme,
-    netloc,
-    parts.path,
-    urllib.parse.urlencode(query),
-    ''
-))
+
+# Use libpq's keyword/value format for the tunneled connection.  Keeping the
+# certificate/DNS identity in `host` while binding the socket explicitly with
+# `hostaddr` is supported by libpq and avoids relying on URI-authority plus
+# query-parameter precedence.  Values are single-quoted and escaped so the
+# credential is never passed as a process argument or interpreted by a shell.
+def conninfo_value(value):
+    return "'" + str(value).replace('\\', '\\\\').replace("'", "\\'") + "'"
+
+connection_values = [
+    ('host', host),
+    ('hostaddr', '127.0.0.1'),
+    ('port', str(local_port)),
+    ('dbname', urllib.parse.unquote(parts.path.lstrip('/'))),
+]
+if parts.username is not None:
+    connection_values.append(('user', urllib.parse.unquote(parts.username)))
+if parts.password is not None:
+    connection_values.append(('password', urllib.parse.unquote(parts.password)))
+connection_values.extend(query)
+tunneled = ' '.join(
+    f'{key}={conninfo_value(value)}' for key, value in connection_values
+)
 
 values = {
     'database_host': host,

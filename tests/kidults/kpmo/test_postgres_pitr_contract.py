@@ -914,15 +914,18 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
             #!/usr/bin/env bash
             set -euo pipefail
             python3 - <<'PY'
-            import json, os, urllib.parse
-            parts=urllib.parse.urlsplit(os.environ['KAIOS_POSTGRES_DSN'])
-            query=urllib.parse.parse_qs(parts.query)
-            assert parts.hostname == 'source.db.ondigitalocean.com'
-            assert parts.port != 25060
-            assert query['hostaddr'] == ['127.0.0.1']
-            assert query['sslmode'] == ['verify-full']
-            assert query['connect_timeout'] == ['10']
-            assert 'host' not in query and 'port' not in query
+            import json, os, shlex
+            values=dict(token.split('=',1) for token in shlex.split(os.environ['KAIOS_POSTGRES_DSN']))
+            assert values['host'] == 'source.db.ondigitalocean.com'
+            assert values['hostaddr'] == '127.0.0.1'
+            assert values['port'] != '25060'
+            assert values['dbname'] == 'kaios'
+            assert values['user'] == 'source-user'
+            assert values['password'] == 'source-password'
+            assert values['sslmode'] == 'verify-full'
+            assert values['connect_timeout'] == '10'
+            for key in ('host','hostaddr','port','dbname','user','password','sslmode','connect_timeout'):
+                assert os.environ['KAIOS_POSTGRES_DSN'].count(f'{key}=') == 1
             print(json.dumps({'status':'PASS','environment':'STAGING','production_touch':False}))
             PY
             """
@@ -939,7 +942,7 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     runner_temp.mkdir()
     dsn = (
         "postgres://source-user:source-password@source.db.ondigitalocean.com:25060/kaios"
-        "?sslmode=verify-full&host=ignored.invalid&hostaddr=192.0.2.1&port=6543"
+        "?sslmode=verify-full"
     )
     environment = os.environ.copy()
     environment.update(
@@ -1045,6 +1048,90 @@ def test_tunnel_helper_rejects_unapproved_destination_or_tls_mode(
     assert error in result.stderr
     assert dsn not in result.stdout
     assert dsn not in result.stderr
+    assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
+
+
+@pytest.mark.parametrize("mode", ["source", "restore"])
+@pytest.mark.parametrize("collision_key", ["user", "password", "dbname"])
+def test_tunnel_helper_rejects_query_identity_overrides_before_external_execution(
+    tmp_path: Path, mode: str, collision_key: str
+) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    invocation_marker = tmp_path / "external-command-invoked"
+    marker_script = (
+        "#!/usr/bin/env bash\n"
+        f"touch {invocation_marker}\n"
+        "exit 0\n"
+    )
+    _write_executable(fake_bin / "ssh", marker_script)
+    for command_name in ("psql", "pg_isready"):
+        _write_executable(fake_bin / command_name, "#!/usr/bin/env bash\nexit 0\n")
+
+    key = tmp_path / "id_ed25519"
+    known_hosts = tmp_path / "known_hosts"
+    verifier = tmp_path / "verifier.sh"
+    for path in (key, known_hosts):
+        path.write_text("fixture", encoding="utf-8")
+    _write_executable(verifier, marker_script)
+
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    query_secret = f"query-secret-{mode}-{collision_key}"
+    dsn = (
+        "postgresql://authority-user:authority-password@"
+        "source.db.ondigitalocean.com:25060/kaios"
+        f"?sslmode=verify-full&{collision_key}={query_secret}"
+    )
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "PATH": f"{fake_bin}{os.pathsep}{environment['PATH']}",
+            "RUNNER_TEMP": str(runner_temp),
+            "KAIOS_ENVIRONMENT": "staging",
+            "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+            "KAIOS_STAGING_SSH_HOST": "165.232.175.45",
+            "KAIOS_STAGING_SSH_USER": "kidults-staging",
+            "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+            "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(known_hosts),
+        }
+    )
+    if mode == "source":
+        environment.update(
+            {
+                "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+                "KAIOS_POSTGRES_DSN": dsn,
+            }
+        )
+    else:
+        environment.update(
+            {
+                "KAIOS_RESTORE_VERIFIER_PATH": str(verifier),
+                "KAIOS_POSTGRES_PITR_RESTORE_DSN": dsn,
+                "KAIOS_PITR_BEFORE_MARKER": "before",
+                "KAIOS_PITR_AFTER_MARKER": "after",
+                "KAIOS_PITR_BEFORE_MARKER_DIGEST": "sha256:" + "a" * 64,
+                "KAIOS_PITR_AFTER_MARKER_DIGEST": "sha256:" + "b" * 64,
+                "KAIOS_PITR_TARGET_TIME": "2026-09-25T00:00:00Z",
+            }
+        )
+
+    result = subprocess.run(
+        ["bash", str(TUNNEL_HELPER), mode],
+        cwd=ROOT,
+        env=environment,
+        text=True,
+        capture_output=True,
+        check=False,
+        timeout=10,
+    )
+    assert result.returncode != 0
+    assert "unsupported connection parameter" in result.stderr
+    assert query_secret not in result.stdout
+    assert query_secret not in result.stderr
+    assert dsn not in result.stdout
+    assert dsn not in result.stderr
+    assert not invocation_marker.exists()
     assert list(runner_temp.glob("kaios-postgres-tunnel-*")) == []
 
 
