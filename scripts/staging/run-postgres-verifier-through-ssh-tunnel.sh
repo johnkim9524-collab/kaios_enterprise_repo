@@ -112,7 +112,6 @@ query = [
     if key.lower() not in {'host', 'hostaddr', 'port', 'connect_timeout', 'sslmode'}
 ]
 query.append(('sslmode', ssl_mode))
-query.append(('hostaddr', '127.0.0.1'))
 query.append(('connect_timeout', '10'))
 
 # Use libpq's keyword/value format for the tunneled connection.  Keeping the
