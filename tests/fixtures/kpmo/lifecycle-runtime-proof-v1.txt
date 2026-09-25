@@ -1,0 +1,2 @@
+KPMO lifecycle runtime proof fixture.
+Expected behavior: control-only readiness converges without granting mutation authority.
