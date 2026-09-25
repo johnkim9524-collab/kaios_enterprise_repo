@@ -33,15 +33,20 @@ export function validateP1RuntimeLineageSnapshot({
   eventName,
   eventPayload,
   receipt,
-  expectedSourceSha
+  expectedSourceSha,
+  verifiedUpstreamRun = null
 }) {
-  requireCondition(eventName === 'workflow_run', 'ARL_EVENT_NOT_WORKFLOW_RUN');
+  requireCondition(['workflow_run', 'workflow_dispatch'].includes(eventName), 'ARL_EVENT_NOT_SUPPORTED');
   requireCondition(SHA_RE.test(String(expectedSourceSha || '')), 'ARL_EXPECTED_SOURCE_SHA_INVALID');
   requireCondition(eventPayload && typeof eventPayload === 'object', 'ARL_EVENT_PAYLOAD_REQUIRED');
-  const upstream = eventPayload.workflow_run;
+  const upstream = eventName === 'workflow_run' ? eventPayload.workflow_run : verifiedUpstreamRun;
   requireCondition(upstream && typeof upstream === 'object', 'ARL_UPSTREAM_WORKFLOW_RUN_REQUIRED');
   const p1RunId = positiveInteger(upstream.id, 'ARL_P1_RUN_ID_INVALID');
-  requireCondition(upstream.event === 'workflow_run', 'ARL_P1_UPSTREAM_EVENT_NOT_WORKFLOW_RUN');
+  if (eventName === 'workflow_dispatch') {
+    const requestedRunId = positiveInteger(eventPayload.inputs?.p1_run_id, 'ARL_DISPATCH_P1_RUN_ID_INVALID');
+    requireCondition(requestedRunId === p1RunId, 'ARL_DISPATCH_P1_RUN_ID_MISMATCH');
+  }
+  requireCondition(upstream.event === eventName, 'ARL_P1_UPSTREAM_EVENT_MISMATCH');
   requireCondition(upstream.name === P1_WORKFLOW_NAME, 'ARL_P1_WORKFLOW_NAME_MISMATCH');
   requireCondition(upstream.path === P1_WORKFLOW_PATH, 'ARL_P1_WORKFLOW_PATH_MISMATCH');
   requireCondition(upstream.head_branch === 'main', 'ARL_P1_HEAD_BRANCH_NOT_MAIN');
@@ -53,10 +58,16 @@ export function validateP1RuntimeLineageSnapshot({
   requireCondition(receipt.id === 'kidults-asi-p1-source-preflight-receipt-v1', 'ARL_P1_RECEIPT_ID_MISMATCH');
   requireCondition(receipt.state === 'VERIFIED_PASS', 'ARL_P1_RECEIPT_STATE_NOT_VERIFIED_PASS');
   requireCondition(receipt.source_sha === expectedSourceSha, 'ARL_P1_RECEIPT_SOURCE_SHA_MISMATCH');
-  requireCondition(receipt.trigger_event === 'workflow_run', 'ARL_P1_RECEIPT_TRIGGER_NOT_WORKFLOW_RUN');
-  requireCondition(receipt.p0b_input_mode === 'EXACT_TRIGGERING_WORKFLOW_RUN', 'ARL_P0B_INPUT_MODE_NOT_EXACT');
-  const p0bRunId = positiveInteger(receipt.p0b_origin_run_id, 'ARL_P0B_ORIGIN_RUN_ID_INVALID');
-  requireCondition(p0bRunId !== p1RunId, 'ARL_P0B_ORIGIN_SELF_REFERENCE');
+  requireCondition(receipt.trigger_event === eventName, 'ARL_P1_RECEIPT_TRIGGER_MISMATCH');
+  let p0bRunId = null;
+  if (eventName === 'workflow_run') {
+    requireCondition(receipt.p0b_input_mode === 'EXACT_TRIGGERING_WORKFLOW_RUN', 'ARL_P0B_INPUT_MODE_NOT_EXACT');
+    p0bRunId = positiveInteger(receipt.p0b_origin_run_id, 'ARL_P0B_ORIGIN_RUN_ID_INVALID');
+    requireCondition(p0bRunId !== p1RunId, 'ARL_P0B_ORIGIN_SELF_REFERENCE');
+  } else {
+    requireCondition(receipt.p0b_input_mode === 'REBUILT_LOCAL_CONTROL', 'ARL_P0B_DISPATCH_INPUT_MODE_INVALID');
+    requireCondition(receipt.p0b_origin_run_id === null, 'ARL_P0B_DISPATCH_ORIGIN_MUST_BE_NULL');
+  }
   requireCondition(receipt.p0b_origin_source_sha === expectedSourceSha, 'ARL_P0B_ORIGIN_SOURCE_SHA_MISMATCH');
   requireCondition(receipt.public_release === 'HOLD', 'ARL_P1_PUBLIC_RELEASE_NOT_HOLD');
   requireCondition(receipt.production === 'HOLD', 'ARL_P1_PRODUCTION_NOT_HOLD');
@@ -110,7 +121,8 @@ export function validateP1RuntimeLineageFromEnvironment({
   eventName = process.env.GITHUB_EVENT_NAME,
   eventPath = process.env.GITHUB_EVENT_PATH,
   expandedRoot = '/tmp/p1-expanded',
-  expectedSourceSha = process.env.GITHUB_SHA
+  expectedSourceSha = process.env.GITHUB_SHA,
+  upstreamRunPath = process.env.ARL_P1_UPSTREAM_RUN_PATH
 } = {}) {
   requireCondition(Boolean(eventPath) && fs.existsSync(eventPath), 'ARL_EVENT_PATH_MISSING');
   requireCondition(fs.existsSync(expandedRoot) && fs.statSync(expandedRoot).isDirectory(), 'ARL_P1_EXPANDED_ROOT_MISSING');
@@ -118,5 +130,12 @@ export function validateP1RuntimeLineageFromEnvironment({
   requireCondition(receiptPaths.length === 1, 'ARL_P1_RECEIPT_CARDINALITY_NOT_ONE', String(receiptPaths.length));
   const eventPayload = JSON.parse(fs.readFileSync(eventPath, 'utf8'));
   const receipt = JSON.parse(fs.readFileSync(receiptPaths[0], 'utf8'));
-  return validateP1RuntimeLineageSnapshot({ eventName, eventPayload, receipt, expectedSourceSha });
+  let verifiedUpstreamRun = null;
+  if (eventName === 'workflow_dispatch') {
+    requireCondition(Boolean(upstreamRunPath) && fs.existsSync(upstreamRunPath), 'ARL_P1_UPSTREAM_RUN_PATH_MISSING');
+    verifiedUpstreamRun = JSON.parse(fs.readFileSync(upstreamRunPath, 'utf8'));
+  }
+  return validateP1RuntimeLineageSnapshot({
+    eventName, eventPayload, receipt, expectedSourceSha, verifiedUpstreamRun
+  });
 }
