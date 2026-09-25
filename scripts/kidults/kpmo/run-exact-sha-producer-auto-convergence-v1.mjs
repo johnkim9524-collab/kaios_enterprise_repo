@@ -9,8 +9,8 @@ const REPOSITORY='johnkim9524-collab/kaios_enterprise_repo';
 const SHA=/^[0-9a-f]{40}$/;
 const ROOTS=[
   {id:'SHADOW',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml'},
-  {id:'REQUIREMENT',workflow:'kidults-asi-p0b-bounded-discovery-candidates-v1.yml',path:'.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'},
-  {id:'RESERVE',workflow:'kidults-asi-global-any-site-hourly-pooling-v2.yml',path:'.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'},
+  {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'},
+  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'},
 ];
 const ROOT_BY_PRODUCER=new Map(ROOTS.map((root)=>[root.id,root]));
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
