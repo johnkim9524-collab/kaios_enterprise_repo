@@ -6,8 +6,8 @@ import {
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
-const DEFAULT_MAX_ATTEMPTS = 30;
-const DEFAULT_DELAY_MS = 1000;
+const DEFAULT_MAX_ATTEMPTS = 60;
+const DEFAULT_DELAY_MS = 3000;
 const VALIDATOR = 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs';
 
 const assert = (condition, code) => {
@@ -21,7 +21,13 @@ export function nativeGovernanceConverged(statuses, requiredContexts) {
   }
   return requiredContexts.every(context => {
     const matches = statuses.filter(status => status?.context === context);
-    return matches.length === 1 && isAtomicLandingNativeStatusReady(matches[0]);
+    if (matches.length !== 1) return false;
+    const status = matches[0];
+    const normalReadyControl = context === 'KIDULTS Governed Landing Authorization V1'
+      && status.state === 'pending'
+      && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
+      && status.creator?.login === 'github-actions[bot]';
+    return normalReadyControl || isAtomicLandingNativeStatusReady(status);
   });
 }
 
@@ -42,6 +48,19 @@ function runSelfTest() {
   };
   assert(nativeGovernanceConverged([scope, governed], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_READY_REJECTED');
+  const normalReady = {
+    ...governed,
+    description: 'Ready lifecycle verified; operation-specific landing authority required',
+    creator: {login: 'github-actions[bot]'},
+  };
+  assert(nativeGovernanceConverged([scope, normalReady], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NORMAL_READY_REJECTED');
+  assert(!nativeGovernanceConverged([scope, {...normalReady, creator: {login: 'untrusted'}}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_UNTRUSTED_READY_ACCEPTED');
+  assert(!nativeGovernanceConverged([{...scope, state: 'pending'}, normalReady], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_SCOPE_PENDING_ACCEPTED');
+  assert(!nativeGovernanceConverged([scope, {...normalReady, state: 'success'}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_DIRECT_OWNER_SUCCESS_ACCEPTED');
   assert(!nativeGovernanceConverged([
     {...scope, state: 'pending'}, governed,
   ], required), 'LIFECYCLE_CONVERGENCE_SELFTEST_SCOPE_PENDING_ACCEPTED');
