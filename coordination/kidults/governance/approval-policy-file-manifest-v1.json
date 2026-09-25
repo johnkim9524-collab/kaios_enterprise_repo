@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "6ab86ccd6b6e76f495f2785c8f7b07a823aa9f68",
+  "revision": "1692b986372250583643ca27783bb2241af098ba",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4970,20 +4970,20 @@
     {
       "path": "tests/kidults/kpmo/direct-owner-approval-selection-history-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "60e32d9834b31b9536eb858eb3d79d2f5bbc1c3a",
-      "sha256": "sha256:e265eb4af092b68c9bf1d8f6782562ea9bcfa38d4d24a2c259c8d65dfd281da4"
+      "git_blob": "5cd0aa345b593e3194f8ce44c1d7ad9ff5d5e246",
+      "sha256": "sha256:ff2f5b2f6f65167c8cce07840a5bcd32f47676b2fbb0923c090e36ecda104016"
     },
     {
       "path": "tests/kidults/kpmo/direct-owner-head-tree-binding-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4c8eca458c763db710556e288b9724577eeb8fe4",
-      "sha256": "sha256:a8c5299fc24458948ecb2f207ce74c90594d7a5a155c5f0beb8367b66c3f4ec8"
+      "git_blob": "b818ec7b57681a30ecc3eb5b4bd779a5265b40b9",
+      "sha256": "sha256:dde9e8e84faf8e1ba7bcc66a21c44eb93ca0d3bc8f6d1d8b274068d820acda6d"
     },
     {
       "path": "tests/kidults/kpmo/direct-owner-landing-handoff-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e4f32b499fb60b5c476fff93e1a8477dd9594626",
-      "sha256": "sha256:d59a93f40b01bfa71c7912bd129d3099499286d705792f7b0b113aa10a640615"
+      "git_blob": "9555176698476faa3a35d899f138b986d99a66f6",
+      "sha256": "sha256:7f3a30bda1a114ced4992a1d6c5a5ec4817efd8510482d15bd749ef46ca57a42"
     },
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a4600e724001c9b85d122b5dae3f6017fa00fcad125f34361e956e11248c744b"
+  "manifest_sha256": "sha256:cb84828addf7de6a538d9e44a3dffda1c20397241fd2f3a4185d144704303fa2"
 }
