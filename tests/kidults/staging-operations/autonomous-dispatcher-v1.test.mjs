@@ -29,7 +29,21 @@ const unrelatedPending=classifyCandidate({...input,checks:[...input.checks,{id:1
 assert.equal(unrelatedPending.test_evidence.required_check_runs[0].id,101);
 deny({requiredChecks:[{context:'unit',integration_id:7},{context:'slow-required',integration_id:7}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
 deny({requiredChecks:[{context:'unit',integration_id:8}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-deny({checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},{id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'}]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
+{
+  const envelope=classifyCandidate({...input,checks:[
+    {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+    {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  ]});
+  assert.equal(envelope.test_evidence.required_check_runs[0].id,102);
+}
+deny({requiredChecks:[{context:'unit',integration_id:0}],checks:[
+  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  {id:102,name:'unit',head_sha:sha('b'),app:{id:8},status:'completed',conclusion:'success'},
+]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
+deny({checks:[
+  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'failure'},
+]},'DISPATCH_CHECKS_NOT_GREEN');
 deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
 deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
 deny({requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:201,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'IMPLEMENTED_NOT_VERIFIED'}}]},'DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
