@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1b87682f379cab40eaf36f772b843292cbd5b0a9",
+  "revision": "6ab86ccd6b6e76f495f2785c8f7b07a823aa9f68",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 654
+    "file_count": 656
   },
   "files": [
     {
@@ -379,8 +379,8 @@
     {
       "path": ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "83702f397dcb86d8c7e3e46e82c32bf986e57497",
-      "sha256": "sha256:1edc8bb8d6773884a51ad2f4967c34da2d7d21a1b3704066b993965b1f378c0b",
+      "git_blob": "78afe895272dd2690b6c80eff395f7d8c6a2e99d",
+      "sha256": "sha256:6b68d38729c763ec4136f70ccd1991dcaeb877555fa47f2f416a892d8387a5f6",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3111,6 +3111,19 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/lib/direct-owner-postmerge-lifecycle-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "cde5da72ca4f8896fcaff3a044d96349aa2e3767",
+      "sha256": "sha256:2b23f2f214e20165267472f1b2da635ff847428ca27eb626fa789ba5e302ce7a",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "65ed40103ec73d0943c5a058bd202da55107d6c8",
@@ -3282,8 +3295,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "906a4b3c5699ad87d57230686dcdaef6e99285e3",
-      "sha256": "sha256:47e18333fea058a9f215b2f6928e8d3a2d89b9d2aa07238df24ff5ee31fe5156",
+      "git_blob": "54326c9e86b220425ad15607fc6cbc1927642b6d",
+      "sha256": "sha256:638baec25de83fca3dc70f24b6e294d248719087400cfb355dc379ca3f4da346",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3505,6 +3518,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "fb8725acb31d2f4d8e74c8f9a7a97d83d5cd7353",
       "sha256": "sha256:990ed27fce2e88f553dc9a40e53ec56ed212e76d2fbc778aac6509a44fe9f055",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/validate-direct-owner-postmerge-lifecycle-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "7cb3501d21300fc93c52a7038a98212e85b35fa9",
+      "sha256": "sha256:09b14570d8cbf62b9bc86363267cc15dc0e9e3306d151bda2797cbd475800740",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -4956,8 +4982,8 @@
     {
       "path": "tests/kidults/kpmo/direct-owner-landing-handoff-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "787762bee5f188c3e56a5fefb07ad199124a00dd",
-      "sha256": "sha256:fd729dd8abeca1ead0712c88cf0a0cb472ff9b8b65f7cb45272fcd420669bfec"
+      "git_blob": "e4f32b499fb60b5c476fff93e1a8477dd9594626",
+      "sha256": "sha256:d59a93f40b01bfa71c7912bd129d3099499286d705792f7b0b113aa10a640615"
     },
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
@@ -5086,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ae469ddf7d10ac0b7c0d43f53ff71f769cd853764121e5f89b416a26c4d51d4c"
+  "manifest_sha256": "sha256:a4600e724001c9b85d122b5dae3f6017fa00fcad125f34361e956e11248c744b"
 }
