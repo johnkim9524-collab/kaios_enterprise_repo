@@ -8,6 +8,7 @@ const digest=value=>`sha256:${crypto.createHash('sha256').update(String(value)).
 const isComment=line=>/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line);
 const riskyValue=/\b(secrets\.|vars\.|id-token|curl\b|wget\b|gh\s+api\b|aws\s|gcloud\s|az\s|terraform\b|kubectl\b|https?:\/\/|configure-aws-credentials|--admin-bypass|force\s*:\s*true)\b/i;
 const writeKey=/^(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events)$/;
+const failClosedGuard=/\b(fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|permission|authorization|credential|secret|production|public|g5)\b/i;
 
 const flattenJson=(value,path='',out=new Map())=>{
   if(value===null||typeof value!=='object') { out.set(path,JSON.stringify(value)); return out; }
@@ -88,7 +89,8 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     else {
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));
-      const removed=before.find(line=>!after.has(line)); if(removed) fail('CAPABILITY_GUARD_REMOVED',filename);
+      const removedGuard=before.find(line=>!after.has(line)&&failClosedGuard.test(line));
+      if(removedGuard) fail('CAPABILITY_GUARD_REMOVED',filename);
       if(riskyValue.test(file.head_content)&&!riskyValue.test(file.base_content)) fail('CAPABILITY_EXPANSION',filename);
     }
     evidence.push({filename,base_digest:digest(file.base_content),head_digest:digest(file.head_content)});

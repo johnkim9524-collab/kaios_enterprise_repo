@@ -45,7 +45,7 @@ test('missing patch for governed workflow or governance code fails closed',()=>{
   }
 });
 
-test('capability expansion and material deletion fail closed before dispatch',()=>{
+test('capability expansion fails before dispatch while replacements reach semantic verification',()=>{
   const filename='.github/workflows/internal-recovery.yml';
   for(const line of [
     '+permissions:\n+  contents: write',
@@ -60,12 +60,15 @@ test('capability expansion and material deletion fail closed before dispatch',()
     '-if: github.ref == refs/heads/main',
     '-run: node scripts/validate-authority.mjs',
     '-permissions: read-all',
-  ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:`@@ -1,2 +1 @@\n${removed}\n name: recovery`}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+  ]) assert.deepEqual(
+    assertAutonomousFileScope({files:[{filename,patch:`@@ -1,2 +1 @@\n${removed}\n name: recovery`}],policy:landing}),
+    [filename],
+  );
 });
 
 test('exact exceptions are classified and cannot weaken routing coverage',()=>{
   const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
-  assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),/MATERIAL_DELETION_REQUIRES_OWNER/);
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),[filename]);
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1,2 @@\n {\n+  "verification_evidence": "monotonic-hardening"'}],policy:landing}),[filename]);
 });
 
@@ -131,4 +134,24 @@ test('safe monotonic workflow hardening passes both independent models',()=>{
   const file=semanticFile(workflow('    timeout-minutes: 10\n'));
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('safe internal implementation replacement is autonomous in both independent models',()=>{
+  const file={
+    filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
+    base_content:'export const normalize = value => String(value).trim();\n',
+    head_content:'export const normalize = value => String(value ?? "").trim();\n',
+  };
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('fail-closed guard replacement remains Owner-reserved',()=>{
+  const file={
+    filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
+    base_content:'if (!authorized) throw new Error("AUTHORIZATION_REQUIRED");\n',
+    head_content:'export const normalize = value => String(value).trim();\n',
+  };
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_REMOVED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
 });

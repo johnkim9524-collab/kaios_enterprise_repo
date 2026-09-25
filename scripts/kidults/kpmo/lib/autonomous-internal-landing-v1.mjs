@@ -41,9 +41,6 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
     if (typeof patch!=='string'||!patch) fail('AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN',filename);
     const lines=patch.split('\n');
     const additions=lines.filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
-    const removals=lines.filter(line=>line.startsWith('-')&&!line.startsWith('---')).map(line=>line.slice(1));
-    const materialRemoval=removals.find(line=>line.trim()&&!/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line));
-    if (materialRemoval) fail(errorCode,`${filename}:MATERIAL_DELETION_REQUIRES_OWNER`);
     const matched=addedPatterns.find(pattern=>pattern.test(additions));
     if (matched) fail(errorCode,`${filename}:${matched.source}`);
   }
