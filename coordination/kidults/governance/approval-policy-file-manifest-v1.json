@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "0cfa3a9c5783c97b373533d555a114a1b09c62c5",
+  "revision": "1b87682f379cab40eaf36f772b843292cbd5b0a9",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3113,8 +3113,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7f4229a60848317a09b35a715f3edb4960b67b4c",
-      "sha256": "sha256:cadaadac529138c84a12a5c384e83fa5582e2e035cc1510ba9efd856c964e349",
+      "git_blob": "65ed40103ec73d0943c5a058bd202da55107d6c8",
+      "sha256": "sha256:6ae1f9ae228954295588213ef075bead0a2666cd27089a64bb740474e1f8b21a",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3516,8 +3516,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-direct-owner-ready-event-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b35729d4bbb3c39ee0bb2c06aa8c08f3a23a7ab2",
-      "sha256": "sha256:18d93345c6b1aa965c008cd85cb588bd1ace5a789ac8a76dbf2876d44d669abc",
+      "git_blob": "e00c50df894c55a73881d8b1e643de5e21440e5a",
+      "sha256": "sha256:1dcdad5371425310d917318ee0ffcd9384575679a63a6456672d7c1a732c09cd",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5086,5 +5086,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:618528b42dc04afb172ae83d6dcc02e5e542b00f4d8aa4c6cdd7114d1bafae23"
+  "manifest_sha256": "sha256:ae469ddf7d10ac0b7c0d43f53ff71f769cd853764121e5f89b416a26c4d51d4c"
 }
