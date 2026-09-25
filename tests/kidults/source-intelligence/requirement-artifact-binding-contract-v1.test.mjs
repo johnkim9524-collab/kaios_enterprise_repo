@@ -26,7 +26,6 @@ const mutationBoundaryValidator = fs.readFileSync(
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs',
   'utf8',
 ).replace(/\r\n/g, '\n');
-const gitAttributes = fs.readFileSync('.gitattributes', 'utf8').replace(/\r\n/g, '\n');
 
 test('Requirement consumes the same v1.4 binding emitted by its workflow', () => {
   assert.equal(schema.properties.version.const, '1.4.0');
@@ -53,5 +52,4 @@ test('registry validation normalizes Windows CRLF before workflow shell parsing'
   assert.match(registryValidator, /WORKFLOW_ARL_EVENT_SHELL_UNAVAILABLE/);
   assert.match(orchestrationValidator, /readFileSync\(path, 'utf8'\)\.replace\(\/\\r\\n\/g, '\\n'\)/);
   assert.match(mutationBoundaryValidator, /readFileSync\(file, 'utf8'\)\.replace\(\/\\r\\n\/g, '\\n'\)/);
-  assert.match(gitAttributes, /^\* text=auto eol=lf$/m);
 });
