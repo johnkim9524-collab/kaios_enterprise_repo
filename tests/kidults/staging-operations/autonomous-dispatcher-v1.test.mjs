@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {classifyCandidate,DispatcherError} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {classifyCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
@@ -91,3 +92,8 @@ assert.doesNotMatch(deployWorkflow,/expected_authorization_id=[^\n]*GITHUB_RUN_I
 assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
 assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
 assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);
+
+// Unsupported workflow syntax remains owner-reserved for this PR without stopping unrelated scans.
+assert.equal(isCandidateRejection(new CapabilityDeltaError('CAPABILITY_YAML_UNSUPPORTED_SYNTAX')),true);
+assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_READY')),true);
+assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);

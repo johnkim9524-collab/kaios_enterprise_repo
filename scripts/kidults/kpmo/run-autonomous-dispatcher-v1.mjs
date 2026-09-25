@@ -2,10 +2,11 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
-import {evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
+import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
+export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError;
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
 
@@ -87,7 +88,7 @@ export async function discover({repository,token,prNumber,policy}){
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
-  }catch(error){if(!(error instanceof DispatcherError))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+  }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
