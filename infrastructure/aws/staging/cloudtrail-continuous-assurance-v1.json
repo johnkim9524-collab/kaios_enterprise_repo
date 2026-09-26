@@ -246,7 +246,10 @@
                     "logs:PutLogEvents"
                   ],
                   "Resource": {
-                    "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+                    "Fn::GetAtt": [
+                      "CloudTrailLogGroup",
+                      "Arn"
+                    ]
                   }
                 }
               ]
@@ -267,7 +270,10 @@
           "Ref": "CloudTrailLogBucket"
         },
         "CloudWatchLogsLogGroupArn": {
-          "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+          "Fn::GetAtt": [
+            "CloudTrailLogGroup",
+            "Arn"
+          ]
         },
         "CloudWatchLogsRoleArn": {
           "Fn::GetAtt": [

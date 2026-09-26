@@ -66,6 +66,10 @@ assert.equal(logGroup.DeletionPolicy, 'Retain');
 assert.equal(logGroup.UpdateReplacePolicy, 'Retain');
 assert.equal(logGroup.Properties.LogGroupName, '/aws/cloudtrail/kidults-staging-continuous-assurance-v1');
 assert.equal(logGroup.Properties.RetentionInDays, 3653);
+assert.deepEqual(resources.StagingAssuranceTrail.Properties.CloudWatchLogsLogGroupArn, {
+  'Fn::GetAtt': ['CloudTrailLogGroup', 'Arn'],
+});
+assert.ok(!JSON.stringify(template).includes('${CloudTrailLogGroup.Arn}:*'), 'LogGroup Arn already carries the stream wildcard');
 
 for (const name of [
   'CloudTrailMutationMetricFilter',
