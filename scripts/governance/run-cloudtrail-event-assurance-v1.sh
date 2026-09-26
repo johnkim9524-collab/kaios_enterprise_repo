@@ -15,6 +15,7 @@ NEGATIVE_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/kidults-autonomous-finalizer-
 NEGATIVE_BUCKET="kidults-cloudtrail-negative-boundary-staging-${ACCOUNT_ID}"
 NEGATIVE_BUCKET_ARN="arn:aws:s3:::${NEGATIVE_BUCKET}"
 WRONG_KEY_ARN="arn:aws:kms:${AWS_REGION}:${ACCOUNT_ID}:key/00000000-0000-0000-0000-000000000000"
+RECEIPT_KEY_ID="${RECEIPT_KEY_ARN##*/}"
 WRONG_REGION="us-east-1"
 OUT_DIR="out/cloudtrail-continuous-assurance-v1"
 SESSION_ARN="arn:aws:sts::${ACCOUNT_ID}:assumed-role/kidults-cloudtrail-assurance-staging-role/${ASSURANCE_SESSION_NAME}"
@@ -228,7 +229,7 @@ fail_call_expected wrong_bucket \
 fail_call_expected wrong_key \
   aws kms generate-data-key --key-id "$WRONG_KEY_ARN" --key-spec AES_256 --region "$AWS_REGION"
 fail_call_expected wrong_region \
-  aws kms generate-data-key --key-id "$RECEIPT_KEY_ARN" --key-spec AES_256 --region "$WRONG_REGION"
+  aws kms generate-data-key --key-id "$RECEIPT_KEY_ID" --key-spec AES_256 --region "$WRONG_REGION"
 fail_call_expected wrong_role \
   aws sts assume-role --role-arn "$NEGATIVE_ROLE_ARN" \
   --role-session-name "kidults-cloudtrail-denied-${GITHUB_RUN_ID}" --duration-seconds 900
@@ -255,7 +256,7 @@ NEGATIVE_KEY_EVENT=$(query_one_event negative_wrong_key \
 assert_actor_binding "$NEGATIVE_KEY_EVENT"
 
 NEGATIVE_REGION_EVENT=$(query_one_event negative_wrong_region \
-  "eventSource = 'kms.amazonaws.com' and eventName = 'GenerateDataKey' and awsRegion = '${WRONG_REGION}' and strcontains(@message, '${RECEIPT_KEY_ARN}') and userIdentity.arn = '${SESSION_ARN}' and ispresent(errorCode)")
+  "eventSource = 'kms.amazonaws.com' and eventName = 'GenerateDataKey' and awsRegion = '${WRONG_REGION}' and strcontains(@message, '${RECEIPT_KEY_ID}') and userIdentity.arn = '${SESSION_ARN}' and ispresent(errorCode)")
 assert_actor_binding "$NEGATIVE_REGION_EVENT"
 
 NEGATIVE_ROLE_EVENT=$(query_one_event negative_wrong_role \
