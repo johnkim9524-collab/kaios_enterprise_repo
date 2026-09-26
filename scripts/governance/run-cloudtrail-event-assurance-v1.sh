@@ -20,6 +20,8 @@ OUT_DIR="out/cloudtrail-continuous-assurance-v1"
 SESSION_ARN="arn:aws:sts::${ACCOUNT_ID}:assumed-role/kidults-cloudtrail-assurance-staging-role/${ASSURANCE_SESSION_NAME}"
 START_EPOCH="$(( $(date -u +%s) - 60 ))"
 mkdir -p "$OUT_DIR/events" "$OUT_DIR/negative"
+CURRENT_STAGE="INITIALIZE"
+trap 'exit_code=$?; jq -n --arg stage "$CURRENT_STAGE" --argjson exit_code "$exit_code" --arg failed_at "$(date -u "+%Y-%m-%dT%H:%M:%SZ")" '\''{id:"kidults-cloudtrail-canary-failure-v1",state:"VERIFIED_FAIL",stage:$stage,exit_code:$exit_code,failed_at:$failed_at,production:"HOLD",public:"HOLD",g5:"HOLD"}'\'' > "$OUT_DIR/canary-failure.json"; exit "$exit_code"' ERR
 
 LOG_GROUP=$(aws cloudformation describe-stacks \
   --stack-name "$CLOUDTRAIL_STACK" \
@@ -116,6 +118,7 @@ jq -n \
   '{id:"kidults-cloudtrail-assurance-probe-v2",exact_sha:$exact_sha,run_id:$run_id,session_name:$session,created_at:$created_at,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
   >"$OUT_DIR/probe.json"
 
+CURRENT_STAGE="POSITIVE_PROBE_PUT"
 PUT=$(aws s3api put-object \
   --bucket "$RECEIPT_BUCKET" \
   --key "$PROBE_KEY" \
@@ -128,6 +131,7 @@ PUT=$(aws s3api put-object \
   --metadata "exact-head-sha=$EXPECTED_MAIN_SHA,run-id=$GITHUB_RUN_ID,session-name=$ASSURANCE_SESSION_NAME" \
   --output json)
 VERSION_ID=$(jq -er '.VersionId' <<<"$PUT")
+CURRENT_STAGE="POSITIVE_PROBE_CHECKSUM_READBACK"
 HEAD=$(aws s3api head-object \
   --bucket "$RECEIPT_BUCKET" \
   --key "$PROBE_KEY" \
@@ -141,6 +145,7 @@ test "$(jq -r '.Metadata["run-id"]' <<<"$HEAD")" = "$GITHUB_RUN_ID"
 test "$(jq -r '.Metadata["session-name"]' <<<"$HEAD")" = "$ASSURANCE_SESSION_NAME"
 test "$(jq -r '.ChecksumSHA256 | length > 0' <<<"$HEAD")" = true
 
+CURRENT_STAGE="NEGATIVE_BOUNDARY_CALLS"
 fail_call_expected forbidden_prefix \
   aws s3api put-object --bucket "$RECEIPT_BUCKET" --key "$FORBIDDEN_KEY" \
   --body "$OUT_DIR/probe.json" --server-side-encryption aws:kms --ssekms-key-id "$RECEIPT_KEY_ARN"
@@ -155,6 +160,7 @@ fail_call_expected wrong_role \
   aws sts assume-role --role-arn "$NEGATIVE_ROLE_ARN" \
   --role-session-name "kidults-cloudtrail-denied-${GITHUB_RUN_ID}" --duration-seconds 900
 
+CURRENT_STAGE="CLOUDTRAIL_EVENT_OBSERVATION"
 POSITIVE_S3_EVENT=$(query_one_event positive_s3 \
   "eventSource = 's3.amazonaws.com' and eventName = 'PutObject' and awsRegion = '${AWS_REGION}' and requestParameters.bucketName = '${RECEIPT_BUCKET}' and requestParameters.key = '${PROBE_KEY}' and userIdentity.arn = '${SESSION_ARN}'")
 assert_actor_binding "$POSITIVE_S3_EVENT"
@@ -213,6 +219,7 @@ jq -n \
   '{id:"kidults-cloudtrail-continuous-assurance-terminal-v2",version:"2.0.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,session_name:$session,cloudtrail_log_group:$log_group,event_evidence:$event_evidence,positive_canary:"PASS",negative_canary:"PASS",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
   >"$OUT_DIR/terminal-receipt.json"
 
+CURRENT_STAGE="TERMINAL_RECEIPT_SEAL"
 TERMINAL_PUT=$(aws s3api put-object \
   --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" \
   --body "$OUT_DIR/terminal-receipt.json" --checksum-algorithm SHA256 \
