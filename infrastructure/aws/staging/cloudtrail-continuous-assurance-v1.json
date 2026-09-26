@@ -494,6 +494,7 @@
                     "iam:ListRolePolicies",
                     "iam:ListRoleTags",
                     "logs:DescribeLogGroups",
+                    "logs:DescribeIndexPolicies",
                     "logs:DescribeMetricFilters",
                     "logs:ListTagsForResource",
                     "logs:StartQuery",
