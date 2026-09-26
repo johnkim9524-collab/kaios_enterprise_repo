@@ -155,20 +155,52 @@ jobs:
           CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
         run: |
           set -euo pipefail
-          DRIFT_ID=$(aws cloudformation detect-stack-drift             --stack-name "$CLOUDTRAIL_STACK"             --query StackDriftDetectionId             --output text)
+          DRIFT_ID=$(aws cloudformation detect-stack-drift --stack-name "$CLOUDTRAIL_STACK" --query StackDriftDetectionId --output text)
           for attempt in $(seq 1 60); do
-            DRIFT=$(aws cloudformation describe-stack-drift-detection-status               --stack-drift-detection-id "$DRIFT_ID"               --output json)
+            DRIFT=$(aws cloudformation describe-stack-drift-detection-status --stack-drift-detection-id "$DRIFT_ID" --output json)
             STATUS=$(jq -r '.DetectionStatus' <<<"$DRIFT")
             test "$STATUS" != DETECTION_FAILED
             if [ "$STATUS" = DETECTION_COMPLETE ]; then break; fi
             test "$attempt" -lt 60
             sleep 5
           done
-          test "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC
-          test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
           STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
           test "$STACK_STATUS" = CREATE_COMPLETE -o "$STACK_STATUS" = UPDATE_COMPLETE
-          echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+
+          if [ "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC ]; then
+            test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
+            echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+          else
+            RESOURCE_DRIFTS=$(aws cloudformation describe-stack-resource-drifts \
+              --stack-name "$CLOUDTRAIL_STACK" \
+              --stack-resource-drift-status-filters MODIFIED DELETED \
+              --query StackResourceDrifts \
+              --output json)
+            jq -e '
+              length == 2 and
+              ([.[].LogicalResourceId] | sort) == ["CloudTrailLogBucket","StagingAssuranceTrail"] and
+              all(.[]; .StackResourceDriftStatus == "MODIFIED") and
+              all(.[]; all(.PropertyDifferences[]; .ActualValue == "null" and .DifferenceType == "REMOVE")) and
+              ([.[] | select(.LogicalResourceId == "CloudTrailLogBucket") | .PropertyDifferences[].PropertyPath] | sort) ==
+                ["/BucketEncryption","/OwnershipControls","/Tags"] and
+              ([.[] | select(.LogicalResourceId == "StagingAssuranceTrail") | .PropertyDifferences[].PropertyPath] | sort) ==
+                ["/Tags"]
+            ' <<<"$RESOURCE_DRIFTS" >/dev/null
+
+            BUCKET=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].Outputs[?OutputKey==`CloudTrailLogBucket`].OutputValue | [0]' --output text)
+            ENCRYPTION=$(aws s3api get-bucket-encryption --bucket "$BUCKET" --output json)
+            OWNERSHIP=$(aws s3api get-bucket-ownership-controls --bucket "$BUCKET" --output json)
+            BUCKET_TAGS=$(aws s3api get-bucket-tagging --bucket "$BUCKET" --output json)
+            test "$(jq -r '.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' <<<"$ENCRYPTION")" = AES256
+            test "$(jq -r '.ServerSideEncryptionConfiguration.Rules[0].BucketKeyEnabled' <<<"$ENCRYPTION")" = true
+            test "$(jq -r '.OwnershipControls.Rules[0].ObjectOwnership' <<<"$OWNERSHIP")" = BucketOwnerEnforced
+            jq -e '[.TagSet[] | select((.Key == "Environment" and .Value == "STAGING") or (.Key == "System" and .Value == "CloudTrailContinuousAssurance") or (.Key == "Production" and .Value == "HOLD") or (.Key == "Public" and .Value == "HOLD") or (.Key == "G5" and .Value == "HOLD"))] | length == 5' <<<"$BUCKET_TAGS" >/dev/null
+
+            TRAIL_ARN=$(aws cloudtrail describe-trails --trail-name-list kidults-staging-continuous-assurance --query 'trailList[0].TrailARN' --output text)
+            TRAIL_TAGS=$(aws cloudtrail list-tags --resource-id-list "$TRAIL_ARN" --output json)
+            jq -e '[.ResourceTagList[0].TagsList[] | select((.Key == "Environment" and .Value == "STAGING") or (.Key == "System" and .Value == "CloudTrailContinuousAssurance") or (.Key == "Production" and .Value == "HOLD") or (.Key == "Public" and .Value == "HOLD") or (.Key == "G5" and .Value == "HOLD"))] | length == 5' <<<"$TRAIL_TAGS" >/dev/null
+            echo 'CLOUDFORMATION_DRIFT=KNOWN_PROVIDER_READBACK_GAP_DIRECT_API_PASS'
+          fi
 
       - name: Execute positive and negative assurance canary
         env:
@@ -189,7 +221,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/cloudtrail-continuous-assurance-v1
-          if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
+          if ! aws sts get-caller-identity --output json >/dev/null 2>&1; then
             echo '{"state":"VERIFIED_FAIL","reason":"ASSURANCE_FAILED_BEFORE_OIDC"}' > out/cloudtrail-continuous-assurance-v1/terminal-fail-receipt.json
             exit 0
           fi

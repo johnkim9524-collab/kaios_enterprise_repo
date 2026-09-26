@@ -105,6 +105,7 @@ for (const action of [
   'cloudtrail:DescribeTrails',
   'cloudtrail:GetEventSelectors',
   'cloudtrail:GetTrailStatus',
+  'cloudtrail:ListTags',
   'logs:StartQuery',
   'logs:GetQueryResults',
   'logs:StopQuery',
@@ -112,6 +113,9 @@ for (const action of [
   'cloudformation:DetectStackResourceDrift',
   'cloudwatch:DescribeAlarms',
   'iam:GetRole',
+  's3:GetBucketEncryption',
+  's3:GetBucketOwnershipControls',
+  's3:GetBucketTagging',
 ]) {
   assert.ok(readbackActions.includes(action), `ACTION_REQUIRED:${action}`);
 }
@@ -139,6 +143,12 @@ for (const marker of [
   'IncludeManagementEvents',
   'AWS::S3::Object',
   'detect-stack-drift',
+  'describe-stack-resource-drifts',
+  'get-bucket-encryption',
+  'get-bucket-ownership-controls',
+  'get-bucket-tagging',
+  'cloudtrail list-tags',
+  'KNOWN_PROVIDER_READBACK_GAP_DIRECT_API_PASS',
   'run-cloudtrail-event-assurance-v1.sh',
   'Production',
   'Public',
@@ -149,6 +159,8 @@ for (const marker of [
 assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
+assert.equal(workflow.includes('if [ -z "${AWS_ACCESS_KEY_ID:-}" ]'), false);
+assert.ok(workflow.includes('aws sts get-caller-identity --output json >/dev/null 2>&1'));
 
 for (const marker of [
   'aws logs start-query',

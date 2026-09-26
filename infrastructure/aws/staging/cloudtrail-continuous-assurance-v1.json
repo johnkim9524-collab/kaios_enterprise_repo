@@ -479,6 +479,7 @@
                     "cloudtrail:DescribeTrails",
                     "cloudtrail:GetEventSelectors",
                     "cloudtrail:GetTrailStatus",
+                    "cloudtrail:ListTags",
                     "cloudtrail:LookupEvents",
                     "cloudformation:DetectStackDrift",
                     "cloudformation:DetectStackResourceDrift",
@@ -491,8 +492,11 @@
                     "logs:StartQuery",
                     "logs:GetQueryResults",
                     "logs:StopQuery",
+                    "s3:GetBucketEncryption",
                     "s3:GetBucketObjectLockConfiguration",
+                    "s3:GetBucketOwnershipControls",
                     "s3:GetBucketPublicAccessBlock",
+                    "s3:GetBucketTagging",
                     "s3:GetBucketVersioning"
                   ],
                   "Resource": "*"
