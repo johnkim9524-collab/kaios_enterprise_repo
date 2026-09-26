@@ -86,7 +86,11 @@ assert.match(dispatcherWorkflow,/dispatch_eligible=\$\(jq -r '\.dispatch_eligibl
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.repository\.full_name == github\.repository/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.head_branch == 'main'/);
-assert.match(dispatcherWorkflow,/steps\.consume_readiness\.outputs\.pull_request \|\| github\.event\.pull_request\.number \|\| github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
+assert.doesNotMatch(dispatcherWorkflow,/READINESS_PR_NUMBER: \$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.number \}\}/);
+assert.doesNotMatch(dispatcherWorkflow,/READINESS_HEAD_SHA: \$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.head\.sha \}\}/);
+assert.match(dispatcherWorkflow,/WORKFLOW_RUN_PULL_REQUESTS: \$\{\{ toJson\(github\.event\.workflow_run\.pull_requests\) \}\}/);
+assert.match(dispatcherWorkflow,/steps\.consume_readiness\.outputs\.pull_request \|\| github\.event\.pull_request\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/pr_number=\$\(jq -r 'if type=="array" and length>0 then \.\[0\]\.number \/\/ empty else empty end'/);
 assert.match(dispatcherWorkflow,/printf '\[\]\\n' > out\/autonomous-dispatcher-v1\/results\.json/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 assert.equal((dispatcherWorkflow.match(/for event in kidults\.track\.authorization\.v1/g)||[]).length,1);
