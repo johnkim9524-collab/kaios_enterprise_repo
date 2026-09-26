@@ -89,6 +89,50 @@ query_one_event() {
   exit 1
 }
 
+query_event_set() {
+  local label="$1"
+  local filter="$2"
+  local result_file="$OUT_DIR/events/${label}.query.json"
+  local event_set_file="$OUT_DIR/events/${label}.events.json"
+  local query_id status count end_epoch
+
+  for attempt in $(seq 1 60); do
+    end_epoch="$(date -u +%s)"
+    query_id=$(aws logs start-query \
+      --log-group-name "$LOG_GROUP" \
+      --start-time "$START_EPOCH" \
+      --end-time "$end_epoch" \
+      --query-string "fields @timestamp, @message | filter ${filter} | sort @timestamp asc | limit 100" \
+      --query queryId \
+      --output text)
+
+    for poll in $(seq 1 30); do
+      aws logs get-query-results --query-id "$query_id" --output json >"$result_file"
+      status=$(jq -r '.status' "$result_file")
+      case "$status" in
+        Complete) break ;;
+        Failed|Cancelled|Timeout|Unknown) echo "LOG_QUERY_${label}_FAILED:${status}" >&2; exit 1 ;;
+      esac
+      test "$poll" -lt 30
+      sleep 1
+    done
+
+    count=$(jq '.results | length' "$result_file")
+    if [ "$count" -gt 0 ]; then
+      jq -e '[.results[] | (.[] | select(.field == "@message") | .value | fromjson)] | sort_by(.eventTime, .eventID)' \
+        "$result_file" >"$event_set_file"
+      jq -e 'length > 0 and ((map(.eventID) | length) == (map(.eventID) | unique | length))' \
+        "$event_set_file" >/dev/null
+      printf '%s\n' "$event_set_file"
+      return 0
+    fi
+    test "$attempt" -lt 60
+    sleep 5
+  done
+  echo "LOG_QUERY_${label}_NOT_OBSERVED" >&2
+  exit 1
+}
+
 assert_actor_binding() {
   local event_file="$1"
   jq -e \
@@ -101,6 +145,22 @@ assert_actor_binding() {
       .userIdentity.arn == $session_arn and
       (.userIdentity.principalId | endswith(":" + $session))
     ' "$event_file" >/dev/null
+}
+
+assert_actor_binding_set() {
+  local event_set_file="$1"
+  jq -e \
+    --arg account "$ACCOUNT_ID" \
+    --arg role "$EXPECTED_ROLE_ARN" \
+    --arg session "$ASSURANCE_SESSION_NAME" \
+    --arg session_arn "$SESSION_ARN" '
+      length > 0 and all(.[];
+        .recipientAccountId == $account and
+        .userIdentity.sessionContext.sessionIssuer.arn == $role and
+        .userIdentity.arn == $session_arn and
+        (.userIdentity.principalId | endswith(":" + $session))
+      )
+    ' "$event_set_file" >/dev/null
 }
 
 RETAIN_UNTIL=$(date -u -d '+10 years' '+%Y-%m-%dT%H:%M:%SZ')
@@ -178,9 +238,9 @@ POSITIVE_S3_EVENT=$(query_one_event positive_s3 \
   "eventSource = 's3.amazonaws.com' and eventName = 'PutObject' and awsRegion = '${AWS_REGION}' and requestParameters.bucketName = '${RECEIPT_BUCKET}' and requestParameters.key = '${PROBE_KEY}' and userIdentity.arn = '${SESSION_ARN}'")
 assert_actor_binding "$POSITIVE_S3_EVENT"
 
-POSITIVE_KMS_EVENT=$(query_one_event positive_kms \
+POSITIVE_KMS_EVENT_SET=$(query_event_set positive_kms \
   "eventSource = 'kms.amazonaws.com' and eventName = 'GenerateDataKey' and awsRegion = '${AWS_REGION}' and strcontains(@message, '${RECEIPT_KEY_ARN}') and userIdentity.arn = '${SESSION_ARN}' and not ispresent(errorCode)")
-assert_actor_binding "$POSITIVE_KMS_EVENT"
+assert_actor_binding_set "$POSITIVE_KMS_EVENT_SET"
 
 NEGATIVE_PREFIX_EVENT=$(query_one_event negative_forbidden_prefix \
   "eventSource = 's3.amazonaws.com' and eventName = 'PutObject' and awsRegion = '${AWS_REGION}' and requestParameters.bucketName = '${RECEIPT_BUCKET}' and requestParameters.key = '${FORBIDDEN_KEY}' and userIdentity.arn = '${SESSION_ARN}' and ispresent(errorCode)")
@@ -211,13 +271,14 @@ done
 
 EVENT_EVIDENCE=$(jq -n \
   --arg positive_s3 "$(sha256sum "$POSITIVE_S3_EVENT" | cut -d' ' -f1)" \
-  --arg positive_kms "$(sha256sum "$POSITIVE_KMS_EVENT" | cut -d' ' -f1)" \
+  --arg positive_kms "$(sha256sum "$POSITIVE_KMS_EVENT_SET" | cut -d' ' -f1)" \
+  --argjson positive_kms_count "$(jq 'length' "$POSITIVE_KMS_EVENT_SET")" \
   --arg negative_prefix "$(sha256sum "$NEGATIVE_PREFIX_EVENT" | cut -d' ' -f1)" \
   --arg negative_bucket "$(sha256sum "$NEGATIVE_BUCKET_EVENT" | cut -d' ' -f1)" \
   --arg negative_key "$(sha256sum "$NEGATIVE_KEY_EVENT" | cut -d' ' -f1)" \
   --arg negative_region "$(sha256sum "$NEGATIVE_REGION_EVENT" | cut -d' ' -f1)" \
   --arg negative_role "$(sha256sum "$NEGATIVE_ROLE_EVENT" | cut -d' ' -f1)" \
-  '{positive_s3:{state:"OBSERVED_EXACTLY_ONCE",sha256:$positive_s3},positive_kms:{state:"OBSERVED_EXACTLY_ONCE",sha256:$positive_kms},negative_prefix:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_prefix},negative_bucket:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_bucket},negative_key:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_key},negative_region:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_region},negative_role:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_role}}')
+  '{positive_s3:{state:"OBSERVED_EXACTLY_ONCE",sha256:$positive_s3},positive_kms:{state:"OBSERVED_PROVIDER_EVENT_SET",event_count:$positive_kms_count,sha256:$positive_kms},negative_prefix:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_prefix},negative_bucket:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_bucket},negative_key:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_key},negative_region:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_region},negative_role:{state:"DENIED_AND_OBSERVED_EXACTLY_ONCE",sha256:$negative_role}}')
 
 jq -n \
   --arg exact_sha "$EXPECTED_MAIN_SHA" \
@@ -227,7 +288,7 @@ jq -n \
   --arg probe_key "$PROBE_KEY" \
   --arg probe_version_id "$VERSION_ID" \
   --arg checksum_sha256 "$(jq -r '.Checksum.ChecksumSHA256' <<<"$ATTRIBUTES")" \
-  --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$HEAD")" \
+  --arg retain_until "$(jq -r '.Retention.RetainUntilDate' <<<"$RETENTION")" \
   --argjson event_evidence "$EVENT_EVIDENCE" \
   '{id:"kidults-cloudtrail-continuous-assurance-terminal-v2",version:"2.0.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,session_name:$session,cloudtrail_log_group:$log_group,event_evidence:$event_evidence,positive_canary:"PASS",negative_canary:"PASS",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
   >"$OUT_DIR/terminal-receipt.json"
