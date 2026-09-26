@@ -145,6 +145,7 @@ assert.deepEqual(statements[1].Resource, {
   'Fn::Sub': '${ReceiptBucketArn}/receipts/cloudtrail-assurance/*',
 });
 assert.ok(statements[1].Action.includes('s3:PutObjectRetention'));
+assert.ok(statements[1].Action.includes('s3:GetObjectAttributes'));
 assert.deepEqual(statements[2].Resource, { Ref: 'ReceiptKeyArn' });
 assert.ok(statements[2].Action.includes('kms:Decrypt'));
 
@@ -180,6 +181,9 @@ for (const marker of [
 ]) {
   assert.ok(workflow.includes(marker), `WORKFLOW_MARKER_REQUIRED:${marker}`);
 }
+assert.ok(eventAssurance.includes('get-object-attributes'));
+assert.ok(eventAssurance.includes('probe-object-attributes.json'));
+assert.ok(eventAssurance.includes('terminal-object-attributes.json'));
 assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
