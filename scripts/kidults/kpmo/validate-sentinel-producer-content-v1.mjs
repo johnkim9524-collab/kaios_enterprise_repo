@@ -36,6 +36,25 @@ export const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}
 export const digest=bytes=>`sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
 const safeEnv=()=>({PATH:process.env.PATH||'/usr/bin:/bin',LANG:'C.UTF-8'});
+let resolvedPython;
+function pythonExecutable(){
+  if(resolvedPython)return resolvedPython;
+  // Resolve PATH wrappers once. Re-entering a version-manager shim for every
+  // adversarial archive caused hundreds of descendant shell processes and made
+  // the test runner look hung after the other suites had reported. The resolved
+  // interpreter is still invoked in isolated mode for every archive; no parser
+  // or validation boundary is skipped or cached.
+  const probe=spawnSync('python3',['-I','-c','import os,sys;print(os.path.realpath(sys.executable))'],{
+    encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:4096,
+  });
+  req(probe.status===0&&!probe.signal,'ARCHIVE_READER_PYTHON_RESOLUTION_FAILED');
+  const executable=String(probe.stdout||'').trim();
+  req(path.isAbsolute(executable),'ARCHIVE_READER_PYTHON_PATH_INVALID');
+  const stat=fs.lstatSync(executable);
+  req(stat.isFile()&&!stat.isSymbolicLink()&&fs.realpathSync(executable)===executable,'ARCHIVE_READER_PYTHON_NOT_REGULAR');
+  resolvedPython=executable;
+  return resolvedPython;
+}
 const hold=x=>{
   req(x.production==='HOLD','CONTENT_PRODUCTION_BOUNDARY');
   const publicFields=['public_release','public'].filter(k=>Object.hasOwn(x,k));
@@ -57,7 +76,7 @@ const json=(packet,basename,optional=false)=>{
 export function readArchive(bytes,expectedDigest){
   req(Buffer.isBuffer(bytes)&&bytes.length>0&&bytes.length<=MAX_ARCHIVE_BYTES,'ARCHIVE_BYTES_REQUIRED');
   req(DIGEST.test(expectedDigest)&&digest(bytes)===expectedDigest,'ARCHIVE_DIGEST_MISMATCH');
-  const child=spawnSync('python3',['-I',path.join(ROOT,'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'),expectedDigest],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
+  const child=spawnSync(pythonExecutable(),['-I',path.join(ROOT,'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'),expectedDigest],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
   req(child.status===0,'ARCHIVE_CONTENT_REJECTED');
   const packet=JSON.parse(child.stdout);
   req(packet.archive_digest===expectedDigest&&packet.extraction_performed===false&&Array.isArray(packet.members),'ARCHIVE_READER_CONTRACT');

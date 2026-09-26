@@ -1,0 +1,13 @@
+{
+  "id": "kidults-authority-chain-trigger-compatibility-v1",
+  "version": "1.0.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
+  "allowed_events": ["workflow_run", "workflow_dispatch"],
+  "requirements": {
+    "producer_event_registered": true,
+    "consumer_event_registered": true,
+    "producer_consumer_event_equal": true,
+    "exact_triggering_run_bound": true
+  },
+  "authority_boundary": {"production": "HOLD", "public": "HOLD", "g5": "HOLD"}
+}

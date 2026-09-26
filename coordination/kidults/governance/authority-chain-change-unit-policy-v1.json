@@ -7,6 +7,7 @@
   "rule_id": "AI-021",
   "rule_name": "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT",
   "change_unit": "WHOLE_AUTHORITY_CHAIN_NOT_SINGLE_FILE",
+  "trigger_compatibility_contract_path": "coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json",
   "canonical_chain": [
     "PRODUCER",
     "ARTIFACT",
@@ -28,6 +29,7 @@
   ],
   "required_validation": {
     "producer_consumer_contract_matrix": true,
+    "registered_equal_exact_bound_trigger_events_required": true,
     "supported_version_positive_cases": true,
     "unsupported_stale_and_future_version_negative_cases": true,
     "regression_tests": true,

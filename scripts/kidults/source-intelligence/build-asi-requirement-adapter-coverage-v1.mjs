@@ -13,6 +13,10 @@ import {
   makeWriter,
 } from './lib/asi-autonomous-resolution-common-v1.mjs';
 import { buildPurposeRightsIndex, RIGHTS_CLEAR } from './lib/source-purpose-rights-gate-v1.mjs';
+import {
+  loadAuthorityChainTriggerContract,
+  validateAuthorityChainTriggerCompatibility,
+} from './lib/authority-chain-trigger-compatibility-v1.mjs';
 
 const [queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath, outputDir] = process.argv.slice(2);
 if (![queuePath, manifestPath, receiptPath, artifactBindingPath, contractPath, purposeRightsPreflightPath, outputDir].every(Boolean)) {
@@ -64,6 +68,7 @@ assert(contract.truth_boundary?.main_scope_validated_is_production_authority ===
 const input = contract.authoritative_inputs;
 const staticEntries = [
   ['artifactBindingSchema', input.artifact_binding_schema],
+  ['triggerCompatibilityContract', input.trigger_compatibility_contract],
   ['resolutionContract', input.resolution_contract],
   ['runtimeContract', input.runtime_contract],
   ['frontier', input.source_frontier],
@@ -102,12 +107,13 @@ assert(same(purposeRightsPreflight, explicitPurposeRightsPreflight), 'PURPOSE_RI
 const artifactBindingValidator = new Ajv2020({ allErrors: true, strict: true }).compile(artifactBindingSchema);
 assert(artifactBindingValidator(artifactBinding), `ARTIFACT_BINDING_SCHEMA_INVALID:${JSON.stringify(artifactBindingValidator.errors || [])}`);
 assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.4.0', 'ARTIFACT_BINDING_ID_VERSION');
-const artifactProducingEvents = new Set(['workflow_run', 'workflow_dispatch']);
-assert(artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_WORKFLOW_EVENT');
-assert(['workflow_run', 'workflow_dispatch'].includes(artifactBinding.consumer_event), 'ARTIFACT_BINDING_CONSUMER_EVENT');
-assert(typeof artifactBinding.exact_triggering_run_bound === 'boolean', 'ARTIFACT_BINDING_EXACT_TRIGGER_TYPE');
-assert(artifactBinding.exact_triggering_run_bound === true, 'ARTIFACT_BINDING_EXACT_TRIGGER_SEMANTICS');
-assert(artifactBinding.authoritative_producer_event === true && artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_REQUIRED');
+const triggerCompatibilityContract = loadAuthorityChainTriggerContract(input.trigger_compatibility_contract);
+validateAuthorityChainTriggerCompatibility({
+  producerEvent: artifactBinding.workflow_event,
+  consumerEvent: artifactBinding.consumer_event,
+  exactTriggeringRunBound: artifactBinding.exact_triggering_run_bound,
+}, triggerCompatibilityContract);
+assert(artifactBinding.authoritative_producer_event === true, 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_REQUIRED');
 assert(artifactBinding.authoritative_producer_cardinality === 1, 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_CARDINALITY');
 assert(artifactBinding.upstream_class === contract.canonical_fanout?.upstream_class, 'ARTIFACT_BINDING_UPSTREAM_CLASS');
 assert(artifactBinding.canonical_run_key === `${artifactBinding.head_sha}:${artifactBinding.upstream_class}`, 'ARTIFACT_BINDING_CANONICAL_RUN_KEY');
@@ -141,7 +147,12 @@ assert(resolutionManifest.id === input.resolution_manifest_id && resolutionManif
 assert(resolutionReceipt.id === input.resolution_receipt_id && resolutionReceipt.state === 'VERIFIED_PASS', 'RESOLUTION_RECEIPT_ID_STATE');
 assert(typeof input.resolution_receipt_version === 'string', 'RESOLUTION_RECEIPT_VERSION_CONTRACT_MISSING');
 assert(resolutionReceipt.version === input.resolution_receipt_version, 'RESOLUTION_RECEIPT_VERSION');
-assert(resolutionReceipt.trigger_event === 'workflow_run' && resolutionReceipt.exact_triggering_run_bound === true, 'RESOLUTION_RECEIPT_EXACT_TRIGGER_REQUIRED');
+validateAuthorityChainTriggerCompatibility({
+  producerEvent: resolutionReceipt.trigger_event,
+  consumerEvent: artifactBinding.consumer_event,
+  exactTriggeringRunBound: resolutionReceipt.exact_triggering_run_bound,
+}, triggerCompatibilityContract);
+assert(resolutionReceipt.trigger_event === artifactBinding.workflow_event, 'RESOLUTION_RECEIPT_PRODUCER_EVENT_MISMATCH');
 assert(resolutionReceipt.artifact_role === 'AUTHORITATIVE_CONSUMABLE' && resolutionReceipt.authoritative_producer === true && resolutionReceipt.downstream_consumable === true, 'RESOLUTION_RECEIPT_AUTHORITATIVE_PRODUCER_REQUIRED');
 assert(resolutionReceipt.transactionally_paired_artifacts === true, 'RESOLUTION_RECEIPT_TRANSACTIONAL_PAIR_REQUIRED');
 assert(Number.isSafeInteger(resolutionReceipt.p0b_artifact_id) && resolutionReceipt.p0b_artifact_id > 0, 'RESOLUTION_RECEIPT_P0B_ARTIFACT_ID_INVALID');

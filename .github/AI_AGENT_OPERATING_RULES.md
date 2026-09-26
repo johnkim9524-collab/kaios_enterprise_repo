@@ -149,6 +149,8 @@ The change must reconcile producer and consumer schema versions, artifact identi
 
 The machine contract is `coordination/kidults/governance/authority-chain-change-unit-policy-v1.json` and its stable identity is `AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT`.
 
+Trigger compatibility is part of the indivisible change unit. The common contract `coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json` registers exactly `workflow_run` and `workflow_dispatch`; producer/consumer mismatch, an unregistered event, or `exact_triggering_run_bound !== true` must fail closed.
+
 ### 4.7 Autonomous closure ownership
 
 Every authorized reversible internal defect is one root incident owned by one accountable task session until terminal closure. Detection, containment, root-cause classification, whole-chain mapping, implementation, regression and adversarial verification, exact-main landing, whole-chain reproduction and consumption, and Producer Health Sentinel success are one continuous operation. PR creation, CI success, merge, or isolated workflow success is intermediate evidence only.
