@@ -109,6 +109,7 @@ for (const action of [
   'logs:GetQueryResults',
   'logs:StopQuery',
   'cloudformation:DetectStackDrift',
+  'cloudformation:DetectStackResourceDrift',
   'cloudwatch:DescribeAlarms',
   'iam:GetRole',
 ]) {

@@ -481,6 +481,7 @@
                     "cloudtrail:GetTrailStatus",
                     "cloudtrail:LookupEvents",
                     "cloudformation:DetectStackDrift",
+                    "cloudformation:DetectStackResourceDrift",
                     "cloudformation:DescribeStackDriftDetectionStatus",
                     "cloudformation:DescribeStacks",
                     "cloudwatch:DescribeAlarms",
