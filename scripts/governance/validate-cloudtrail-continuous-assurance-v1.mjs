@@ -225,6 +225,14 @@ assert.equal(
 assert.ok(!eventAssurance.includes('--object-attributes Checksum,ObjectSize'));
 assert.ok(eventAssurance.includes('probe-object-attributes.json'));
 assert.ok(eventAssurance.includes('terminal-object-attributes.json'));
+assert.ok(eventAssurance.includes('RECEIPT_KEY_ID="${RECEIPT_KEY_ARN##*/}"'));
+assert.ok(eventAssurance.includes('generate-data-key --key-id "$RECEIPT_KEY_ID" --key-spec AES_256 --region "$WRONG_REGION"'));
+assert.ok(eventAssurance.includes("awsRegion = '${WRONG_REGION}' and strcontains(@message, '${RECEIPT_KEY_ID}')"));
+assert.equal(
+  eventAssurance.includes('generate-data-key --key-id "$RECEIPT_KEY_ARN" --key-spec AES_256 --region "$WRONG_REGION"'),
+  false,
+  'wrong-region probe must reach KMS with a region-neutral key ID so the denial is CloudTrail-observable',
+);
 assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
