@@ -161,18 +161,21 @@ jobs:
           for attempt in $(seq 1 60); do
             DRIFT=$(aws cloudformation describe-stack-drift-detection-status --stack-drift-detection-id "$DRIFT_ID" --output json)
             STATUS=$(jq -r '.DetectionStatus' <<<"$DRIFT")
-            test "$STATUS" != DETECTION_FAILED
-            if [ "$STATUS" = DETECTION_COMPLETE ]; then break; fi
+            if [ "$STATUS" = DETECTION_COMPLETE ] || [ "$STATUS" = DETECTION_FAILED ]; then break; fi
             test "$attempt" -lt 60
             sleep 5
           done
           printf '%s\n' "$DRIFT" > "$evidence_dir/stack-drift.json"
           STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
 
-          if [ "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC ]; then
+          if [ "$STATUS" != DETECTION_COMPLETE ]; then
             node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
               --drift "$evidence_dir/stack-drift.json" \
-              --stack-status "$STACK_STATUS" | tee "$evidence_dir/validation-receipt.json"
+              --stack-status "$STACK_STATUS" 2>&1 | tee "$evidence_dir/validation-receipt.json"
+          elif [ "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC ]; then
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" 2>&1 | tee "$evidence_dir/validation-receipt.json"
           else
             RESOURCE_DRIFTS=$(aws cloudformation describe-stack-resource-drifts \
               --stack-name "$CLOUDTRAIL_STACK" \
@@ -195,7 +198,7 @@ jobs:
               --encryption "$evidence_dir/bucket-encryption.json" \
               --ownership "$evidence_dir/bucket-ownership.json" \
               --bucket-tags "$evidence_dir/bucket-tags.json" \
-              --trail-tags "$evidence_dir/trail-tags.json" | tee "$evidence_dir/validation-receipt.json"
+              --trail-tags "$evidence_dir/trail-tags.json" 2>&1 | tee "$evidence_dir/validation-receipt.json"
           fi
 
       - name: Execute positive and negative assurance canary

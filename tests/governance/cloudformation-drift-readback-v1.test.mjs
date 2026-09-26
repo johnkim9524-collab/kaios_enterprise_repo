@@ -80,3 +80,19 @@ test('rejects encryption and ownership mismatches', () => {
   result = run({ ownership: { OwnershipControls: { Rules: [{ ObjectOwnership: 'ObjectWriter' }] } } });
   assert.equal(JSON.parse(result.stderr).failure_code, 'BUCKET_OWNERSHIP_MISMATCH');
 });
+
+test('preserves the provider reason when drift detection itself fails', () => {
+  const result = run({
+    drift: {
+      DetectionStatus: 'DETECTION_FAILED',
+      DetectionStatusReason: 'User is not authorized to perform a required read action',
+    },
+  });
+  assert.equal(result.status, 1);
+  const receipt = JSON.parse(result.stderr);
+  assert.equal(receipt.failure_code, 'DRIFT_DETECTION_NOT_COMPLETE');
+  assert.deepEqual(receipt.detail, {
+    status: 'DETECTION_FAILED',
+    reason: 'User is not authorized to perform a required read action',
+  });
+});

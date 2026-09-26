@@ -114,10 +114,29 @@ for (const action of [
   'cloudformation:DetectStackResourceDrift',
   'cloudformation:DescribeStackResourceDrifts',
   'cloudwatch:DescribeAlarms',
+  'cloudwatch:ListTagsForResource',
   'iam:GetRole',
+  'iam:ListAttachedRolePolicies',
+  'iam:ListRolePolicies',
+  'iam:ListRoleTags',
+  'logs:DescribeMetricFilters',
+  'logs:ListTagsForResource',
+  's3:GetBucketAcl',
+  's3:GetBucketCors',
   's3:GetBucketEncryption',
+  's3:GetBucketLifecycleConfiguration',
+  's3:GetBucketLogging',
+  's3:GetBucketNotification',
   's3:GetBucketOwnershipControls',
+  's3:GetBucketPolicy',
+  's3:GetBucketPolicyStatus',
+  's3:GetBucketRequestPayment',
   's3:GetBucketTagging',
+  's3:GetBucketWebsite',
+  'sns:GetSubscriptionAttributes',
+  'sns:GetTopicAttributes',
+  'sns:ListSubscriptionsByTopic',
+  'sns:ListTagsForResource',
 ]) {
   assert.ok(readbackActions.includes(action), `ACTION_REQUIRED:${action}`);
 }
@@ -162,6 +181,8 @@ for (const marker of [
 assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
+assert.ok(workflow.includes('DETECTION_FAILED ]; then break'));
+assert.ok(workflow.includes('2>&1 | tee "$evidence_dir/validation-receipt.json"'));
 assert.equal(workflow.includes('length == 2 and'), false);
 assert.ok(workflow.includes('validate-cloudformation-drift-readback-v1.mjs'));
 assert.ok(workflow.includes('validation-receipt.json'));

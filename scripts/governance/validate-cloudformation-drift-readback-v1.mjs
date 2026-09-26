@@ -42,7 +42,10 @@ if (!['CREATE_COMPLETE', 'UPDATE_COMPLETE'].includes(stackStatus)) {
   fail('STACK_STATUS_NOT_STABLE', stackStatus || 'MISSING');
 }
 if (drift.DetectionStatus !== 'DETECTION_COMPLETE') {
-  fail('DRIFT_DETECTION_NOT_COMPLETE', drift.DetectionStatus || 'MISSING');
+  fail('DRIFT_DETECTION_NOT_COMPLETE', {
+    status: drift.DetectionStatus || 'MISSING',
+    reason: drift.DetectionStatusReason || 'MISSING',
+  });
 }
 
 if (drift.StackDriftStatus === 'IN_SYNC') {
