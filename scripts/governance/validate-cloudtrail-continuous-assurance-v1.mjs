@@ -4,6 +4,7 @@ import fs from 'node:fs';
 const templatePath = 'infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json';
 const workflowPath = '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml';
 const eventAssurancePath = 'scripts/governance/run-cloudtrail-event-assurance-v1.sh';
+const driftValidatorPath = 'scripts/governance/validate-cloudformation-drift-readback-v1.mjs';
 
 const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
 const resources = template.Resources || {};
@@ -132,6 +133,7 @@ for (const key of ['ProductionState', 'PublicState', 'G5State']) {
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const eventAssurance = fs.readFileSync(eventAssurancePath, 'utf8');
+const driftValidator = fs.readFileSync(driftValidatorPath, 'utf8');
 for (const marker of [
   'permissions: {}',
   'id-token: write',
@@ -150,7 +152,6 @@ for (const marker of [
   'get-bucket-ownership-controls',
   'get-bucket-tagging',
   'cloudtrail list-tags',
-  'KNOWN_PROVIDER_READBACK_GAP_DIRECT_API_PASS',
   'run-cloudtrail-event-assurance-v1.sh',
   'Production',
   'Public',
@@ -162,8 +163,11 @@ assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
 assert.equal(workflow.includes('length == 2 and'), false);
-assert.ok(workflow.includes('length > 0 and'));
-assert.ok(workflow.includes('else false'));
+assert.ok(workflow.includes('validate-cloudformation-drift-readback-v1.mjs'));
+assert.ok(workflow.includes('validation-receipt.json'));
+assert.ok(driftValidator.includes('UNKNOWN_DRIFT_RESOURCE'));
+assert.ok(driftValidator.includes('UNKNOWN_DRIFT_PROPERTY'));
+assert.ok(driftValidator.includes('REQUIRED_TAG_MISMATCH'));
 assert.equal(workflow.includes('if [ -z "${AWS_ACCESS_KEY_ID:-}" ]'), false);
 assert.ok(workflow.includes('aws sts get-caller-identity --output json >/dev/null 2>&1'));
 

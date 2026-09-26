@@ -104,11 +104,29 @@ const flattenJson=(value,path='',out=new Map())=>{
 
 const yamlModel=source=>{
   if(typeof source!=='string') fail('CAPABILITY_SOURCE_MISSING');
-  if(/\t/.test(source)||/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:|:\s*[>|]\s*$/m.test(source)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
+  if(/\t/.test(source)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
   const stack=[]; const values=new Map(); const sequenceIndexes=new Map();
   const joined=parts=>parts.reduce((path,part)=>part.startsWith('[')?`${path}${part}`:path?`${path}.${part}`:part,'');
-  for(const [index,raw] of source.split('\n').entries()) {
+  const lines=source.split('\n');
+  const blockScalar=(header,start,parentIndent)=>{
+    if(!/^[>|][+-]?$/.test(header)) return {value:header,end:start};
+    const body=[];let end=start;
+    while(end+1<lines.length) {
+      const next=lines[end+1];
+      if(!next.trim()){body.push('');end+=1;continue}
+      const bodyIndent=next.match(/^ */)[0].length;
+      if(bodyIndent<=parentIndent) break;
+      body.push(next.slice(Math.min(bodyIndent,parentIndent+2)));end+=1;
+    }
+    return {value:`${header}\n${body.join('\n')}`,end};
+  };
+  for(let index=0;index<lines.length;index+=1) {
+    const raw=lines[index];
     if(!raw.trim()||isComment(raw)||raw.trim()==='---') continue;
+    // YAML indirection remains unsupported and owner-reserved. Inspect only
+    // structural YAML lines: block-scalar bodies are opaque command text and
+    // may legitimately contain shell operators such as `!` and `*`.
+    if(/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:/.test(raw)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
     const match=raw.match(/^( *)(?:(-)\s+)?([^:#][^:]*):(?:\s*(.*))?$/);
     if(!match) {
       if(/^\s*-\s+[^:]+$/.test(raw)) { values.set(`list:${index}`,raw.trim()); continue; }
@@ -116,7 +134,7 @@ const yamlModel=source=>{
     }
     const indent=match[1].length; if(indent%2) fail('CAPABILITY_YAML_INDENT_UNKNOWN',String(index+1));
     const sequenceItem=match[2]==='-';
-    const key=match[3].trim().replace(/^['"]|['"]$/g,''); const value=(match[4]??'').trim();
+    const key=match[3].trim().replace(/^['"]|['"]$/g,''); let value=(match[4]??'').trim();
     while(stack.length&&stack.at(-1).indent>=indent) stack.pop();
     if(sequenceItem) {
       const parent=joined(stack.map(x=>x.key));
@@ -124,11 +142,15 @@ const yamlModel=source=>{
       const itemIndex=sequenceIndexes.get(counterKey)||0;
       sequenceIndexes.set(counterKey,itemIndex+1);
       const itemKey=`[${itemIndex}]`;
-      const path=joined([...stack.map(x=>x.key),itemKey,key]); values.set(path,value||'{}');
+      const path=joined([...stack.map(x=>x.key),itemKey,key]);
+      ({value,end:index}=blockScalar(value,index,indent));
+      values.set(path,value||'{}');
       stack.push({indent,key:itemKey});
       if(!value) stack.push({indent,key});
     } else {
-      const path=joined([...stack.map(x=>x.key),key]); values.set(path,value||'{}');
+      const path=joined([...stack.map(x=>x.key),key]);
+      ({value,end:index}=blockScalar(value,index,indent));
+      values.set(path,value||'{}');
       if(!value) stack.push({indent,key});
     }
   }

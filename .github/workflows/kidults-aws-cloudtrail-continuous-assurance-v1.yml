@@ -155,6 +155,8 @@ jobs:
           CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
         run: |
           set -euo pipefail
+          evidence_dir=out/cloudtrail-continuous-assurance-v1/drift
+          mkdir -p "$evidence_dir"
           DRIFT_ID=$(aws cloudformation detect-stack-drift --stack-name "$CLOUDTRAIL_STACK" --query StackDriftDetectionId --output text)
           for attempt in $(seq 1 60); do
             DRIFT=$(aws cloudformation describe-stack-drift-detection-status --stack-drift-detection-id "$DRIFT_ID" --output json)
@@ -164,44 +166,36 @@ jobs:
             test "$attempt" -lt 60
             sleep 5
           done
+          printf '%s\n' "$DRIFT" > "$evidence_dir/stack-drift.json"
           STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
-          test "$STACK_STATUS" = CREATE_COMPLETE -o "$STACK_STATUS" = UPDATE_COMPLETE
 
           if [ "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC ]; then
-            test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
-            echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" | tee "$evidence_dir/validation-receipt.json"
           else
             RESOURCE_DRIFTS=$(aws cloudformation describe-stack-resource-drifts \
               --stack-name "$CLOUDTRAIL_STACK" \
               --stack-resource-drift-status-filters MODIFIED DELETED \
               --query StackResourceDrifts \
               --output json)
-            jq -e '
-              length > 0 and
-              all(.[]; .StackResourceDriftStatus == "MODIFIED") and
-              all(.[]; all(.PropertyDifferences[]; .ActualValue == "null" and .DifferenceType == "REMOVE")) and
-              all(.[];
-                if .LogicalResourceId == "CloudTrailLogBucket" then
-                  all(.PropertyDifferences[]; .PropertyPath == "/BucketEncryption" or .PropertyPath == "/OwnershipControls" or .PropertyPath == "/Tags")
-                elif .LogicalResourceId == "StagingAssuranceTrail" then
-                  all(.PropertyDifferences[]; .PropertyPath == "/Tags")
-                else false
-                end)
-            ' <<<"$RESOURCE_DRIFTS" >/dev/null
+            printf '%s\n' "$RESOURCE_DRIFTS" > "$evidence_dir/resource-drifts.json"
 
             BUCKET=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].Outputs[?OutputKey==`CloudTrailLogBucket`].OutputValue | [0]' --output text)
-            ENCRYPTION=$(aws s3api get-bucket-encryption --bucket "$BUCKET" --output json)
-            OWNERSHIP=$(aws s3api get-bucket-ownership-controls --bucket "$BUCKET" --output json)
-            BUCKET_TAGS=$(aws s3api get-bucket-tagging --bucket "$BUCKET" --output json)
-            test "$(jq -r '.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' <<<"$ENCRYPTION")" = AES256
-            test "$(jq -r '.ServerSideEncryptionConfiguration.Rules[0].BucketKeyEnabled' <<<"$ENCRYPTION")" = true
-            test "$(jq -r '.OwnershipControls.Rules[0].ObjectOwnership' <<<"$OWNERSHIP")" = BucketOwnerEnforced
-            jq -e '[.TagSet[] | select((.Key == "Environment" and .Value == "STAGING") or (.Key == "System" and .Value == "CloudTrailContinuousAssurance") or (.Key == "Production" and .Value == "HOLD") or (.Key == "Public" and .Value == "HOLD") or (.Key == "G5" and .Value == "HOLD"))] | length == 5' <<<"$BUCKET_TAGS" >/dev/null
+            aws s3api get-bucket-encryption --bucket "$BUCKET" --output json > "$evidence_dir/bucket-encryption.json"
+            aws s3api get-bucket-ownership-controls --bucket "$BUCKET" --output json > "$evidence_dir/bucket-ownership.json"
+            aws s3api get-bucket-tagging --bucket "$BUCKET" --output json > "$evidence_dir/bucket-tags.json"
 
             TRAIL_ARN=$(aws cloudtrail describe-trails --trail-name-list kidults-staging-continuous-assurance --query 'trailList[0].TrailARN' --output text)
-            TRAIL_TAGS=$(aws cloudtrail list-tags --resource-id-list "$TRAIL_ARN" --output json)
-            jq -e '[.ResourceTagList[0].TagsList[] | select((.Key == "Environment" and .Value == "STAGING") or (.Key == "System" and .Value == "CloudTrailContinuousAssurance") or (.Key == "Production" and .Value == "HOLD") or (.Key == "Public" and .Value == "HOLD") or (.Key == "G5" and .Value == "HOLD"))] | length == 5' <<<"$TRAIL_TAGS" >/dev/null
-            echo 'CLOUDFORMATION_DRIFT=KNOWN_PROVIDER_READBACK_GAP_DIRECT_API_PASS'
+            aws cloudtrail list-tags --resource-id-list "$TRAIL_ARN" --output json > "$evidence_dir/trail-tags.json"
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" \
+              --resource-drifts "$evidence_dir/resource-drifts.json" \
+              --encryption "$evidence_dir/bucket-encryption.json" \
+              --ownership "$evidence_dir/bucket-ownership.json" \
+              --bucket-tags "$evidence_dir/bucket-tags.json" \
+              --trail-tags "$evidence_dir/trail-tags.json" | tee "$evidence_dir/validation-receipt.json"
           fi
 
       - name: Execute positive and negative assurance canary
