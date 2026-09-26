@@ -195,7 +195,6 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "LogGroupName": "/aws/cloudtrail/kidults-staging-continuous-assurance",
         "RetentionInDays": 3653,
         "Tags": [
           {
@@ -246,7 +245,10 @@
                     "logs:PutLogEvents"
                   ],
                   "Resource": {
-                    "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+                    "Fn::GetAtt": [
+                      "CloudTrailLogGroup",
+                      "Arn"
+                    ]
                   }
                 }
               ]
@@ -267,7 +269,10 @@
           "Ref": "CloudTrailLogBucket"
         },
         "CloudWatchLogsLogGroupArn": {
-          "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+          "Fn::GetAtt": [
+            "CloudTrailLogGroup",
+            "Arn"
+          ]
         },
         "CloudWatchLogsRoleArn": {
           "Fn::GetAtt": [
@@ -439,7 +444,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "kidults-cloudtrail-assurance-staging-role",
-        "MaxSessionDuration": 900,
+        "MaxSessionDuration": 3600,
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [

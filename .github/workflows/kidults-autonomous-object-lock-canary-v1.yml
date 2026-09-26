@@ -81,7 +81,7 @@ jobs:
           grep -Fq "KIDULTS-AUTONOMOUS-FINALIZER" <<<"$WORKLOAD_REGISTRY_JSON"
           echo 'ENVIRONMENT_BINDING_READBACK=PASS'
 
-      - name: Configure secretless FINALIZER OIDC credential process
+      - name: Acquire FINALIZER credentials through exact GitHub OIDC subject
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
         run: |
@@ -273,7 +273,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/autonomous-object-lock-canary-v1
-          test -n "${AWS_ACCESS_KEY_ID:-}"
+          aws sts get-caller-identity --output json >/dev/null
           RETAIN_UNTIL=$(date -u -d '+10 years' '+%Y-%m-%dT%H:%M:%SZ')
           FAILURE_KEY="receipts/canary/${EXPECTED_MAIN_SHA}/${GITHUB_RUN_ID}/terminal-fail.json"
           jq -n \

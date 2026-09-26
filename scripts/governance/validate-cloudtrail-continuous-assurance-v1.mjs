@@ -64,7 +64,12 @@ assert.deepEqual(
 const logGroup = resources.CloudTrailLogGroup;
 assert.equal(logGroup.DeletionPolicy, 'Retain');
 assert.equal(logGroup.UpdateReplacePolicy, 'Retain');
+assert.equal(logGroup.Properties.LogGroupName, undefined, 'stack-generated name prevents retained-resource redeploy collisions');
 assert.equal(logGroup.Properties.RetentionInDays, 3653);
+assert.deepEqual(resources.StagingAssuranceTrail.Properties.CloudWatchLogsLogGroupArn, {
+  'Fn::GetAtt': ['CloudTrailLogGroup', 'Arn'],
+});
+assert.ok(!JSON.stringify(template).includes('${CloudTrailLogGroup.Arn}:*'), 'LogGroup Arn already carries the stream wildcard');
 
 for (const name of [
   'CloudTrailMutationMetricFilter',
@@ -78,7 +83,7 @@ for (const name of [
 
 const role = resources.CloudTrailAssuranceRole;
 assert.equal(role.Type, 'AWS::IAM::Role');
-assert.equal(role.Properties.MaxSessionDuration, 900);
+assert.equal(role.Properties.MaxSessionDuration, 3600);
 const trust = role.Properties.AssumeRolePolicyDocument.Statement[0];
 assert.equal(trust.Action, 'sts:AssumeRoleWithWebIdentity');
 assert.deepEqual(trust.Principal.Federated, { Ref: 'GitHubOidcProviderArn' });
