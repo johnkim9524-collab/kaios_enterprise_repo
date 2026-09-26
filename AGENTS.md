@@ -113,6 +113,8 @@ If a material change cannot establish its effect on a principle, that principle 
 
 The stable machine identity is `AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT`, defined by `coordination/kidults/governance/authority-chain-change-unit-policy-v1.json`.
 
+Across that indivisible chain, producer and consumer trigger events must be validated by `coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json`: only `workflow_run` and `workflow_dispatch` are registered, the producer and consumer events must match, and `exact_triggering_run_bound` must be `true`; every other state fails closed.
+
 ## AI-agent accountability removal rule
 
 This rule applies to KPMO AI agents, Track agents, orchestration agents, child agents, external model agents, scheduled agents, and all other AI/model/runtime identities; KPMO has no self-exemption. It does not authorize human personnel or account action. A material violation requires exact evidence tying the assigned agent and task to an executable role/JD obligation and granted authority.

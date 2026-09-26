@@ -7,6 +7,13 @@
   "rule_name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
   "scope": "ALL_AUTHORIZED_REVERSIBLE_INTERNAL_DEFECTS_AND_MATERIAL_CHANGES",
   "validator_path": "scripts/governance/validate-autonomous-closure-ownership-v1.mjs",
+  "whole_authority_chain_change_unit": {
+    "indivisible": true,
+    "trigger_compatibility_contract_path": "coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json",
+    "producer_consumer_event_mismatch_fails_closed": true,
+    "unregistered_event_fails_closed": true,
+    "exact_triggering_run_bound_required": true
+  },
   "single_root_incident": {
     "one_root_incident_per_causal_defect": true,
     "one_accountable_completion_owner": true,

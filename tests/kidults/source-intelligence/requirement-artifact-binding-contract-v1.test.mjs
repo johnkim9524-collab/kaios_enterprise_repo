@@ -45,8 +45,8 @@ test('Requirement consumes the same v1.4 binding emitted by its workflow', () =>
 test('both governed ARL producer events require exact run binding', () => {
   assert.deepEqual(schema.properties.workflow_event.enum, ['workflow_run', 'workflow_dispatch']);
   assert.equal(schema.properties.exact_triggering_run_bound.const, true);
-  assert.match(builder, /new Set\(\['workflow_run', 'workflow_dispatch'\]\)/);
-  assert.match(builder, /artifactBinding\.exact_triggering_run_bound === true/);
+  assert.match(builder, /validateAuthorityChainTriggerCompatibility/);
+  assert.match(builder, /resolutionReceipt\.trigger_event === artifactBinding\.workflow_event/);
 });
 
 test('legacy and unbound bindings remain fail closed', () => {

@@ -16,6 +16,7 @@
     "upstream_workflow_name": "KIDULTS ASI Autonomous Resolution Layer v1",
     "upstream_workflow_path": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml",
     "artifact_binding_schema": "coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json",
+    "trigger_compatibility_contract": "coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json",
     "replacement_queue_file": "replacement-source-mission-queue-v1.json",
     "replacement_queue_id": "kidults-asi-replacement-source-mission-queue-v1",
     "resolution_manifest_file": "autonomous-resolution-manifest-v1.json",
@@ -124,6 +125,7 @@
         ],
         "authoritative_input_file_keys": [
           "artifact_binding_schema",
+          "trigger_compatibility_contract",
           "resolution_contract",
           "runtime_contract",
           "source_frontier",

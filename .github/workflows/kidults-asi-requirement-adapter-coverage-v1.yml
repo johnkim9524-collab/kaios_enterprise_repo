@@ -120,6 +120,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json','utf8'))"
+          node --test tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
       - name: Validate requirement coverage registry and automatic continuation
         run: |
           set -euo pipefail

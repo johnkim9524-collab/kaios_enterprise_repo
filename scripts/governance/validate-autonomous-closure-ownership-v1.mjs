@@ -9,6 +9,10 @@ const terminalStates = new Set(['COMPLETE_VERIFIED', 'PROTECTED_STOP_BLOCKED', '
 const allowedReturns = new Set(policy.reporting_gate.user_return_allowed_only_for);
 
 assert(policy.rule_id === 'AI-022', 'POLICY_RULE_ID');
+assert(policy.whole_authority_chain_change_unit?.indivisible === true, 'WHOLE_AUTHORITY_CHAIN_UNIT_REQUIRED');
+assert(policy.whole_authority_chain_change_unit?.producer_consumer_event_mismatch_fails_closed === true, 'TRIGGER_MISMATCH_FAIL_CLOSED');
+assert(policy.whole_authority_chain_change_unit?.unregistered_event_fails_closed === true, 'UNREGISTERED_TRIGGER_FAIL_CLOSED');
+assert(policy.whole_authority_chain_change_unit?.exact_triggering_run_bound_required === true, 'EXACT_TRIGGER_BINDING_REQUIRED');
 assert(policy.single_root_incident.one_accountable_completion_owner === true, 'SINGLE_COMPLETION_OWNER');
 assert(policy.continuation.same_task_session_retains_accountability_until_terminal_state === true, 'SESSION_CONTINUITY');
 assert(policy.continuation.authorized_reversible_work_continues_without_routine_owner_prompt === true, 'AUTONOMOUS_CONTINUATION');

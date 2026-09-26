@@ -24,6 +24,7 @@ const files = {
   roles: 'coordination/kidults/registry/roles-and-responsibilities.json',
   authorityChainPolicy: 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json',
   autonomousClosurePolicy: 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json',
+  triggerCompatibilityContract: 'coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json',
   reserveWorkflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
   scaleWorkflow: '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 };
@@ -58,6 +59,7 @@ const registry = readJson(files.registry);
 const roles = readJson(files.roles);
 const authorityChainPolicy = readJson(files.authorityChainPolicy);
 const autonomousClosurePolicy = readJson(files.autonomousClosurePolicy);
+const triggerCompatibilityContract = readJson(files.triggerCompatibilityContract);
 const reserveWorkflow = readText(files.reserveWorkflow);
 const scaleWorkflow = readText(files.scaleWorkflow);
 
@@ -111,6 +113,9 @@ assert(contract.authority_chain_change_unit_policy_path === files.authorityChain
 assert(authorityChainPolicy.id === 'kidults-authority-chain-change-unit-policy-v1', 'AUTHORITY_CHAIN_POLICY_ID');
 assert(authorityChainPolicy.version === '1.0.0' && authorityChainPolicy.status === 'MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'AUTHORITY_CHAIN_POLICY_STATE');
 assert(authorityChainPolicy.change_unit === 'WHOLE_AUTHORITY_CHAIN_NOT_SINGLE_FILE', 'AUTHORITY_CHAIN_CHANGE_UNIT');
+assert(authorityChainPolicy.trigger_compatibility_contract_path === files.triggerCompatibilityContract, 'AUTHORITY_CHAIN_TRIGGER_CONTRACT_PATH');
+assert(triggerCompatibilityContract.id === 'kidults-authority-chain-trigger-compatibility-v1', 'TRIGGER_COMPATIBILITY_CONTRACT_ID');
+assert(exactJson(triggerCompatibilityContract.allowed_events, ['workflow_run','workflow_dispatch']), 'TRIGGER_COMPATIBILITY_ALLOWED_EVENTS');
 assert(exactJson(authorityChainPolicy.canonical_chain, ['PRODUCER','ARTIFACT','AUTONOMOUS_RESOLUTION_LAYER','REQUIREMENT','RESERVE','CANONICAL_TRUTH','PRODUCER_HEALTH_SENTINEL']), 'AUTHORITY_CHAIN_ORDER');
 assert(authorityChainPolicy.required_validation?.producer_consumer_contract_matrix === true, 'AUTHORITY_CHAIN_CONTRACT_MATRIX');
 assert(authorityChainPolicy.required_validation?.unsupported_stale_and_future_version_negative_cases === true, 'AUTHORITY_CHAIN_NEGATIVE_VERSIONS');
@@ -121,6 +126,7 @@ assert(authorityChainPolicy.completion_policy?.pr_checks_alone_sufficient === fa
 assert(authorityChainPolicy.authority_boundary?.production === 'HOLD' && authorityChainPolicy.authority_boundary?.public === 'HOLD' && authorityChainPolicy.authority_boundary?.g5 === 'HOLD', 'AUTHORITY_CHAIN_HOLD_BOUNDARY');
 assert(contract.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'AUTONOMOUS_CLOSURE_POLICY_PATH');
 assert(autonomousClosurePolicy.rule_id === 'AI-022' && autonomousClosurePolicy.rule_name === 'AUTONOMOUS_CLOSURE_OWNERSHIP', 'AUTONOMOUS_CLOSURE_POLICY_IDENTITY');
+assert(autonomousClosurePolicy.whole_authority_chain_change_unit?.trigger_compatibility_contract_path === files.triggerCompatibilityContract, 'AUTONOMOUS_CLOSURE_TRIGGER_CONTRACT');
 assert(autonomousClosurePolicy.single_root_incident?.one_accountable_completion_owner === true, 'AUTONOMOUS_CLOSURE_SINGLE_OWNER');
 assert(autonomousClosurePolicy.continuation?.same_task_session_retains_accountability_until_terminal_state === true, 'AUTONOMOUS_CLOSURE_SESSION_CONTINUITY');
 assert(autonomousClosurePolicy.continuation?.pr_creation_ci_success_merge_or_single_workflow_success_is_terminal === false, 'AUTONOMOUS_CLOSURE_INTERMEDIATE_TERMINAL_FORBIDDEN');
