@@ -216,6 +216,107 @@
         ]
       }
     },
+    "NegativeBoundaryBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": {
+          "Fn::Sub": "kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}"
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "CloudTrailNegativeBoundary"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "NegativeBoundaryBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "NegativeBoundaryBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyAllObjectWrites",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${NegativeBoundaryBucket.Arn}/*"
+              }
+            },
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "NegativeBoundaryBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${NegativeBoundaryBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
     "CloudTrailCloudWatchRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -296,7 +397,7 @@
                     "Fn::Sub": "${ReceiptBucketArn}/"
                   },
                   {
-                    "Fn::Sub": "arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/"
+                    "Fn::Sub": "${NegativeBoundaryBucket.Arn}/"
                   }
                 ]
               }
