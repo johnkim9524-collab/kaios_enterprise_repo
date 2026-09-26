@@ -138,6 +138,12 @@ HEAD=$(aws s3api head-object \
   --version-id "$VERSION_ID" \
   --output json)
 printf '%s\n' "$HEAD" >"$OUT_DIR/probe-head-object.json"
+RETENTION=$(aws s3api get-object-retention \
+  --bucket "$RECEIPT_BUCKET" \
+  --key "$PROBE_KEY" \
+  --version-id "$VERSION_ID" \
+  --output json)
+printf '%s\n' "$RETENTION" >"$OUT_DIR/probe-object-retention.json"
 ATTRIBUTES=$(aws s3api get-object-attributes \
   --bucket "$RECEIPT_BUCKET" \
   --key "$PROBE_KEY" \
@@ -145,7 +151,7 @@ ATTRIBUTES=$(aws s3api get-object-attributes \
   --object-attributes Checksum ObjectSize \
   --output json)
 printf '%s\n' "$ATTRIBUTES" >"$OUT_DIR/probe-object-attributes.json"
-[[ "$(jq -r '.ObjectLockMode' <<<"$HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="PROBE_OBJECT_LOCK_READBACK"; false; }
+[[ "$(jq -r '.Retention.Mode' <<<"$RETENTION")" == COMPLIANCE ]] || { CURRENT_STAGE="PROBE_OBJECT_LOCK_READBACK"; false; }
 [[ "$(jq -r '.SSEKMSKeyId' <<<"$HEAD")" == "$RECEIPT_KEY_ARN" ]] || { CURRENT_STAGE="PROBE_KMS_KEY_READBACK"; false; }
 [[ "$(jq -r '.Metadata["exact-head-sha"]' <<<"$HEAD")" == "$EXPECTED_MAIN_SHA" ]] || { CURRENT_STAGE="PROBE_EXACT_SHA_METADATA_READBACK"; false; }
 [[ "$(jq -r '.Metadata["run-id"]' <<<"$HEAD")" == "$GITHUB_RUN_ID" ]] || { CURRENT_STAGE="PROBE_RUN_ID_METADATA_READBACK"; false; }
@@ -239,11 +245,15 @@ TERMINAL_HEAD=$(aws s3api head-object \
   --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
   --output json)
 printf '%s\n' "$TERMINAL_HEAD" >"$OUT_DIR/terminal-head-object.json"
+TERMINAL_RETENTION=$(aws s3api get-object-retention \
+  --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
+  --output json)
+printf '%s\n' "$TERMINAL_RETENTION" >"$OUT_DIR/terminal-object-retention.json"
 TERMINAL_ATTRIBUTES=$(aws s3api get-object-attributes \
   --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
   --object-attributes Checksum ObjectSize --output json)
 printf '%s\n' "$TERMINAL_ATTRIBUTES" >"$OUT_DIR/terminal-object-attributes.json"
-[[ "$(jq -r '.ObjectLockMode' <<<"$TERMINAL_HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="TERMINAL_OBJECT_LOCK_READBACK"; false; }
+[[ "$(jq -r '.Retention.Mode' <<<"$TERMINAL_RETENTION")" == COMPLIANCE ]] || { CURRENT_STAGE="TERMINAL_OBJECT_LOCK_READBACK"; false; }
 [[ "$(jq -r '.SSEKMSKeyId' <<<"$TERMINAL_HEAD")" == "$RECEIPT_KEY_ARN" ]] || { CURRENT_STAGE="TERMINAL_KMS_KEY_READBACK"; false; }
 [[ "$(jq -r '.Checksum.ChecksumSHA256 | length > 0' <<<"$TERMINAL_ATTRIBUTES")" == true ]] || { CURRENT_STAGE="TERMINAL_CHECKSUM_ATTRIBUTE_READBACK"; false; }
 
@@ -251,7 +261,7 @@ jq \
   --arg bucket "$RECEIPT_BUCKET" --arg key "$TERMINAL_KEY" \
   --arg version_id "$TERMINAL_VERSION_ID" \
   --arg checksum_sha256 "$(jq -r '.Checksum.ChecksumSHA256' <<<"$TERMINAL_ATTRIBUTES")" \
-  --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$TERMINAL_HEAD")" \
+  --arg retain_until "$(jq -r '.Retention.RetainUntilDate' <<<"$TERMINAL_RETENTION")" \
   '. + {immutable_copy:{state:"OBJECT_LOCK_COMPLIANCE_VERIFIED",bucket:$bucket,key:$key,version_id:$version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until}}' \
   "$OUT_DIR/terminal-receipt.json" >"$OUT_DIR/terminal-envelope.json"
 

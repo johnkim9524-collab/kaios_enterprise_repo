@@ -146,6 +146,7 @@ assert.deepEqual(statements[1].Resource, {
 });
 assert.ok(statements[1].Action.includes('s3:PutObjectRetention'));
 assert.ok(statements[1].Action.includes('s3:GetObjectAttributes'));
+assert.ok(statements[1].Action.includes('s3:GetObjectRetention'));
 assert.deepEqual(statements[2].Resource, { Ref: 'ReceiptKeyArn' });
 assert.ok(statements[2].Action.includes('kms:Decrypt'));
 
@@ -182,6 +183,9 @@ for (const marker of [
   assert.ok(workflow.includes(marker), `WORKFLOW_MARKER_REQUIRED:${marker}`);
 }
 assert.ok(eventAssurance.includes('get-object-attributes'));
+assert.equal((eventAssurance.match(/get-object-retention/g) || []).length, 2);
+assert.ok(eventAssurance.includes('probe-object-retention.json'));
+assert.ok(eventAssurance.includes('terminal-object-retention.json'));
 assert.equal(
   (eventAssurance.match(/--object-attributes Checksum ObjectSize/g) || []).length,
   2,
