@@ -16,3 +16,7 @@ test('classifies merged or closed terminal receipts without dispatch authority',
  assert.equal(validateReadinessConsumption(merged,input).dispatch_eligible,false);
  assert.equal(validateReadinessConsumption(closed,input).state,'READINESS_NONCONSUMABLE_TERMINAL');
 });
+test('classifies lifecycle-only automated ready receipts without terminal authority',()=>{
+ const lifecycle={...receipt,state:'LIFECYCLE_READY_AUTOMATED',atomic_landing_required:false,ready_state_grants_authorization:false};
+ assert.equal(validateReadinessConsumption(lifecycle,input).state,'READINESS_LIFECYCLE_ONLY_PENDING_RERUN');
+});

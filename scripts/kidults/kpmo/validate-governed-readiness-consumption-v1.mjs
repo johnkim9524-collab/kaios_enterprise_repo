@@ -5,7 +5,6 @@ import {pathToFileURL} from 'node:url';
 const SHA=/^[0-9a-f]{40}$/;
 const GOVERNED_WORKFLOW='KIDULTS Governed Landing Authorization V1';
 const TERMINAL_NONCONSUMABLE_STATES=new Set([
-  'LIFECYCLE_READY_AUTOMATED',
   'CLOSED_TERMINAL_NON_AUTHORIZING',
   'MERGED_POST_LANDING_VERIFICATION_REQUIRED',
 ]);
@@ -35,6 +34,11 @@ export function validateReadinessConsumption(receipt,{repository,runId,runAttemp
   }
   if(receipt.repository!==repository||String(receipt.workflow_run_id)!==String(runId)||Number(receipt.workflow_run_attempt)!==Number(runAttempt))fail('READINESS_RECEIPT_RUN_BINDING_MISMATCH');
   if(Number(receipt.pull_request)!==Number(prNumber)||receipt.exact_head_sha!==headSha||!SHA.test(headSha||''))fail('READINESS_RECEIPT_EXACT_HEAD_MISMATCH');
+  if(receipt.state==='LIFECYCLE_READY_AUTOMATED'){
+    if(receipt.atomic_landing_required!==false||receipt.ready_state_grants_authorization!==false)fail('READINESS_RECEIPT_LIFECYCLE_BOUNDARY_INVALID');
+    if(receipt.production!=='HOLD'||receipt.public_release!=='HOLD'||receipt.g5!=='HOLD')fail('READINESS_RECEIPT_HOLD_BOUNDARY_INVALID');
+    return {state:'READINESS_LIFECYCLE_ONLY_PENDING_RERUN',receipt_state:receipt.state,dispatch_eligible:false,pull_request:Number(receipt.pull_request),exact_head_sha:receipt.exact_head_sha,production:'HOLD',public_release:'HOLD',g5:'HOLD'};
+  }
   if(TERMINAL_NONCONSUMABLE_STATES.has(receipt.state)){
     if(receipt.atomic_landing_required!==false)fail('READINESS_RECEIPT_TERMINAL_BOUNDARY_INVALID');
     if(receipt.production!=='HOLD'||receipt.public_release!=='HOLD'||receipt.g5!=='HOLD')fail('READINESS_RECEIPT_HOLD_BOUNDARY_INVALID');
