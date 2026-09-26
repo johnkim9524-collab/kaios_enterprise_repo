@@ -78,31 +78,24 @@ jobs:
           test "$CLOUDTRAIL_STACK" = "kidults-cloudtrail-continuous-assurance-staging-v1"
           echo 'ENVIRONMENT_BINDING_READBACK=PASS'
 
-      - name: Acquire short-lived assurance credentials through GitHub OIDC
+      - name: Configure secretless assurance OIDC credential process
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_ROLE_ARN }}
         run: |
           set -euo pipefail
-          OIDC_JSON=$(curl --fail --silent --show-error             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          test -n "$OIDC_TOKEN"
-          echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity             --role-arn "$AWS_ROLE_ARN"             --role-session-name "kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"             --web-identity-token "$OIDC_TOKEN"             --duration-seconds 900             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'             --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          test -n "$AWS_ACCESS_KEY_ID"
-          test -n "$AWS_SECRET_ACCESS_KEY"
-          test -n "$AWS_SESSION_TOKEN"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
+          profile_path="$RUNNER_TEMP/kidults-oidc-${GITHUB_RUN_ID}-${GITHUB_JOB}.ini"
           {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-            echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
+            echo '[profile kidults-oidc]'
+            echo "credential_process = bash $GITHUB_WORKSPACE/scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh $AWS_ROLE_ARN kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
+            echo 'region = ap-northeast-2'
+          } > "$profile_path"
+          chmod 600 "$profile_path"
+          {
+            echo "AWS_CONFIG_FILE=$profile_path"
+            echo 'AWS_PROFILE=kidults-oidc'
+            echo 'AWS_REGION=ap-northeast-2'
           } >> "$GITHUB_ENV"
-          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
 
       - name: Read back FINALIZER IAM OIDC CloudTrail and alarms
         env:

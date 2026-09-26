@@ -90,7 +90,7 @@ assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$
 assert.doesNotMatch(deployWorkflow,/expected_authorization_id=[^\n]*GITHUB_RUN_ID/);
 
 assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
-assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
+assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,1);
 assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);
 
 const oidcWorkflowPaths=[
@@ -110,7 +110,27 @@ for(const workflowPath of oidcWorkflowPaths){
   assert.equal((workflow.match(/echo "::add-mask::\$AWS_SESSION_TOKEN"/g)||[]).length,sessions);
   assert.equal((workflow.match(/unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
   assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
+  assert.doesNotMatch(workflow,/AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID[\s\S]{0,200}\$GITHUB_ENV/);
+  assert.equal((workflow.match(/export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
+  assert.equal((workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT/g)||[]).length,sessions);
 }
+const allWorkflowText=fs.readdirSync('.github/workflows')
+  .filter(name=>name.endsWith('.yml'))
+  .map(name=>fs.readFileSync(`.github/workflows/${name}`,'utf8'))
+  .join('\n');
+assert.doesNotMatch(allWorkflowText,/echo "AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN)=\$AWS_/);
+for(const workflowPath of [
+  '.github/workflows/kidults-autonomous-object-lock-canary-v1.yml',
+  '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml',
+]){
+  const workflow=fs.readFileSync(workflowPath,'utf8');
+  assert.match(workflow,/credential_process = bash .*aws-oidc-credential-process-v1\.sh/);
+  assert.doesNotMatch(workflow,/read -r AWS_ACCESS_KEY_ID/);
+}
+const credentialProcess=fs.readFileSync('scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh','utf8');
+assert.match(credentialProcess,/env -u AWS_PROFILE -u AWS_CONFIG_FILE -u AWS_SHARED_CREDENTIALS_FILE/);
+assert.match(credentialProcess,/Version:1,AccessKeyId,SecretAccessKey,SessionToken,Expiration/);
+
 assert.match(deployWorkflow,/change_status.*describe-change-set/);
 assert.match(deployWorkflow,/didn't contain changes/);
 assert.match(deployWorkflow,/continuing with canary verification/);

@@ -57,12 +57,15 @@ jobs:
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
 
-      - name: Acquire broker invocation credentials through GitHub OIDC
+      - name: Mint exact short-lived token and emit all three role events in one credential boundary
         if: steps.discover.outputs.eligible_count != '0'
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
+          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
           test -n "$AWS_ROLE_ARN"
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
@@ -72,21 +75,10 @@ jobs:
           echo "::add-mask::$AWS_ACCESS_KEY_ID"
           echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
           echo "::add-mask::$AWS_SESSION_TOKEN"
-          {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-          } >> "$GITHUB_ENV"
-          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-
-      - name: Mint exact short-lived token and emit all three role events
-        if: steps.discover.outputs.eligible_count != '0'
-        env:
-          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          test -n "$AWS_ACCESS_KEY_ID"
           test -n "$BROKER_FUNCTION"
           jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json | while IFS= read -r envelope; do
             request=$(jq -c '{action:"MINT_INSTALLATION_TOKEN",repository,repository_id,pull_request,base_sha,head_sha,authorization_generation}' <<<"$envelope")
