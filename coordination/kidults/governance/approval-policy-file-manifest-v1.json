@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "5bd646c3647d64f60d78323d47f7d899ecbb12a0",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "606ff5fb9b896788f677af0d8e7c2ff605b4f418",
-      "sha256": "sha256:e02da2af6fdf92a15699d3a7909399d3a919bf186f349ff7f32040ef32f1f234",
+      "git_blob": "5e600742d0c4ebea0f8767cd094135143ff0c6d1",
+      "sha256": "sha256:a4ee4e3649d7933c27ca6045e742eaca9fb52639b0b412e6e329ed6a1bdf0988",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3646,8 +3646,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "02d2088bd43ea2768dc7d83d24e44594ff8a0dba",
-      "sha256": "sha256:02640a3bd168473cadddd5f81b80f8900f89dbe318a3dfbd8f2bb7a001d571f2",
+      "git_blob": "72162a71f26be45314d5073d43a1dc33ee62c6fd",
+      "sha256": "sha256:f30e231ff32118234825083699ff5a6fe06b97894eb0e1c82c526160c52edcab",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5054,8 +5054,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a44c3cd9445eea663380aec9047bf9f1f844dfe8",
-      "sha256": "sha256:1da7e15a85717966d0cc5b7a4b5c63195eb4db7cc88fa1662a89b3ad726f7d43"
+      "git_blob": "df2393396a62160cbad017c7946b03b2266167d2",
+      "sha256": "sha256:536f6050e7e9ab15c176e60497f0d46b1e1b6c1a4b700d77aa1e9df52508e5fa"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:e4c01cf4cdc6bde089456290227a4cc4ae65f19ce584f36da0dc2d17d6021847"
+  "manifest_sha256": "sha256:97e9e3ff3e9a2bf36f69e63e4c2a856f5b238667c7df996118a5004bfc34aa29"
 }
