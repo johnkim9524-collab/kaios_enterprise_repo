@@ -146,6 +146,7 @@ assert.deepEqual(statements[1].Resource, {
 });
 assert.ok(statements[1].Action.includes('s3:PutObjectRetention'));
 assert.deepEqual(statements[2].Resource, { Ref: 'ReceiptKeyArn' });
+assert.ok(statements[2].Action.includes('kms:Decrypt'));
 
 for (const key of ['ProductionState', 'PublicState', 'G5State']) {
   assert.equal(outputs[key].Value, 'HOLD');
