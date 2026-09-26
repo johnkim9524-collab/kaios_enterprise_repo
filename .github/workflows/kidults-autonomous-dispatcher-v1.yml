@@ -6,7 +6,7 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_run:
-    workflows: [CI Validation]
+    workflows: [CI Validation, KPMO PR Lifecycle Integrity V1]
     types: [completed]
   schedule:
     - cron: '*/10 * * * *'

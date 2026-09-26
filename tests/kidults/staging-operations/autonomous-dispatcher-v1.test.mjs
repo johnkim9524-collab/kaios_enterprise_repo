@@ -78,7 +78,7 @@ assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
 assert.doesNotMatch(deployWorkflow,/\n  push:/);
 assert.match(dispatcherWorkflow,/pull_request_target:/);
 assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
-assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation\][\s\S]*types: \[completed\]/);
+assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation, KPMO PR Lifecycle Integrity V1\][\s\S]*types: \[completed\]/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request'/);
 assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);

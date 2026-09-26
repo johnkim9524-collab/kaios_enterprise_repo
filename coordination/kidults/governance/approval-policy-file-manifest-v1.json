@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ff2c8884b70cfc0571cea05daac3401fb1b7d0b0",
-      "sha256": "sha256:9602670cee6d59ea223b547a11a8f0425c6e5fe8c607d8b299fed85e6ee16551",
+      "git_blob": "606ff5fb9b896788f677af0d8e7c2ff605b4f418",
+      "sha256": "sha256:e02da2af6fdf92a15699d3a7909399d3a919bf186f349ff7f32040ef32f1f234",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5054,8 +5054,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f0aa9e6fc6f011b7ea3f2994f02228d1cc115c23",
-      "sha256": "sha256:141fddcb528dab5d0380605480aafe3e9dfcb5371edfc01aa3857a47f310768d"
+      "git_blob": "a44c3cd9445eea663380aec9047bf9f1f844dfe8",
+      "sha256": "sha256:1da7e15a85717966d0cc5b7a4b5c63195eb4db7cc88fa1662a89b3ad726f7d43"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d82845ec708bdd15fd7a2c0d7e16999c19cf4144e96b15e314d10f64eebd7cca"
+  "manifest_sha256": "sha256:e4c01cf4cdc6bde089456290227a4cc4ae65f19ce584f36da0dc2d17d6021847"
 }

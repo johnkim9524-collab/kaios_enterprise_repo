@@ -136,14 +136,21 @@ HEAD=$(aws s3api head-object \
   --bucket "$RECEIPT_BUCKET" \
   --key "$PROBE_KEY" \
   --version-id "$VERSION_ID" \
-  --checksum-mode ENABLED \
   --output json)
-test "$(jq -r '.ObjectLockMode' <<<"$HEAD")" = COMPLIANCE
-test "$(jq -r '.SSEKMSKeyId' <<<"$HEAD")" = "$RECEIPT_KEY_ARN"
-test "$(jq -r '.Metadata["exact-head-sha"]' <<<"$HEAD")" = "$EXPECTED_MAIN_SHA"
-test "$(jq -r '.Metadata["run-id"]' <<<"$HEAD")" = "$GITHUB_RUN_ID"
-test "$(jq -r '.Metadata["session-name"]' <<<"$HEAD")" = "$ASSURANCE_SESSION_NAME"
-test "$(jq -r '.ChecksumSHA256 | length > 0' <<<"$HEAD")" = true
+printf '%s\n' "$HEAD" >"$OUT_DIR/probe-head-object.json"
+ATTRIBUTES=$(aws s3api get-object-attributes \
+  --bucket "$RECEIPT_BUCKET" \
+  --key "$PROBE_KEY" \
+  --version-id "$VERSION_ID" \
+  --object-attributes Checksum,ObjectSize \
+  --output json)
+printf '%s\n' "$ATTRIBUTES" >"$OUT_DIR/probe-object-attributes.json"
+[[ "$(jq -r '.ObjectLockMode' <<<"$HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="PROBE_OBJECT_LOCK_READBACK"; false; }
+[[ "$(jq -r '.SSEKMSKeyId' <<<"$HEAD")" == "$RECEIPT_KEY_ARN" ]] || { CURRENT_STAGE="PROBE_KMS_KEY_READBACK"; false; }
+[[ "$(jq -r '.Metadata["exact-head-sha"]' <<<"$HEAD")" == "$EXPECTED_MAIN_SHA" ]] || { CURRENT_STAGE="PROBE_EXACT_SHA_METADATA_READBACK"; false; }
+[[ "$(jq -r '.Metadata["run-id"]' <<<"$HEAD")" == "$GITHUB_RUN_ID" ]] || { CURRENT_STAGE="PROBE_RUN_ID_METADATA_READBACK"; false; }
+[[ "$(jq -r '.Metadata["session-name"]' <<<"$HEAD")" == "$ASSURANCE_SESSION_NAME" ]] || { CURRENT_STAGE="PROBE_SESSION_METADATA_READBACK"; false; }
+[[ "$(jq -r '.Checksum.ChecksumSHA256 | length > 0' <<<"$ATTRIBUTES")" == true ]] || { CURRENT_STAGE="PROBE_CHECKSUM_ATTRIBUTE_READBACK"; false; }
 
 CURRENT_STAGE="NEGATIVE_BOUNDARY_CALLS"
 fail_call_expected forbidden_prefix \
@@ -213,7 +220,7 @@ jq -n \
   --arg log_group "$LOG_GROUP" \
   --arg probe_key "$PROBE_KEY" \
   --arg probe_version_id "$VERSION_ID" \
-  --arg checksum_sha256 "$(jq -r '.ChecksumSHA256' <<<"$HEAD")" \
+  --arg checksum_sha256 "$(jq -r '.Checksum.ChecksumSHA256' <<<"$ATTRIBUTES")" \
   --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$HEAD")" \
   --argjson event_evidence "$EVENT_EVIDENCE" \
   '{id:"kidults-cloudtrail-continuous-assurance-terminal-v2",version:"2.0.0",state:"VERIFIED_PASS",exact_sha:$exact_sha,run_id:$run_id,session_name:$session,cloudtrail_log_group:$log_group,event_evidence:$event_evidence,positive_canary:"PASS",negative_canary:"PASS",probe:{key:$probe_key,version_id:$probe_version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until},production:"HOLD",public:"HOLD",g5:"HOLD"}' \
@@ -230,14 +237,20 @@ TERMINAL_PUT=$(aws s3api put-object \
 TERMINAL_VERSION_ID=$(jq -er '.VersionId' <<<"$TERMINAL_PUT")
 TERMINAL_HEAD=$(aws s3api head-object \
   --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
-  --checksum-mode ENABLED --output json)
-test "$(jq -r '.ObjectLockMode' <<<"$TERMINAL_HEAD")" = COMPLIANCE
-test "$(jq -r '.SSEKMSKeyId' <<<"$TERMINAL_HEAD")" = "$RECEIPT_KEY_ARN"
+  --output json)
+printf '%s\n' "$TERMINAL_HEAD" >"$OUT_DIR/terminal-head-object.json"
+TERMINAL_ATTRIBUTES=$(aws s3api get-object-attributes \
+  --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
+  --object-attributes Checksum,ObjectSize --output json)
+printf '%s\n' "$TERMINAL_ATTRIBUTES" >"$OUT_DIR/terminal-object-attributes.json"
+[[ "$(jq -r '.ObjectLockMode' <<<"$TERMINAL_HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="TERMINAL_OBJECT_LOCK_READBACK"; false; }
+[[ "$(jq -r '.SSEKMSKeyId' <<<"$TERMINAL_HEAD")" == "$RECEIPT_KEY_ARN" ]] || { CURRENT_STAGE="TERMINAL_KMS_KEY_READBACK"; false; }
+[[ "$(jq -r '.Checksum.ChecksumSHA256 | length > 0' <<<"$TERMINAL_ATTRIBUTES")" == true ]] || { CURRENT_STAGE="TERMINAL_CHECKSUM_ATTRIBUTE_READBACK"; false; }
 
 jq \
   --arg bucket "$RECEIPT_BUCKET" --arg key "$TERMINAL_KEY" \
   --arg version_id "$TERMINAL_VERSION_ID" \
-  --arg checksum_sha256 "$(jq -r '.ChecksumSHA256' <<<"$TERMINAL_HEAD")" \
+  --arg checksum_sha256 "$(jq -r '.Checksum.ChecksumSHA256' <<<"$TERMINAL_ATTRIBUTES")" \
   --arg retain_until "$(jq -r '.ObjectLockRetainUntilDate' <<<"$TERMINAL_HEAD")" \
   '. + {immutable_copy:{state:"OBJECT_LOCK_COMPLIANCE_VERIFIED",bucket:$bucket,key:$key,version_id:$version_id,checksum_sha256:$checksum_sha256,retain_until:$retain_until}}' \
   "$OUT_DIR/terminal-receipt.json" >"$OUT_DIR/terminal-envelope.json"
