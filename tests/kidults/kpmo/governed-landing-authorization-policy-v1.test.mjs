@@ -21,10 +21,10 @@ function expectRejected(policy, code) {
   );
 }
 
-test('committed authorization policy is the exact supported 1.7.0 contract', () => {
+test('committed authorization policy is the exact supported 1.8.0 contract', () => {
   const result = assertGovernedLandingAuthorizationPolicyV160(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.7.0',
+    policy_version: '1.8.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,
@@ -56,6 +56,7 @@ for (const field of [
   'single_governed_consumption_required',
   'pre_ready_approval_allowed',
   'multiple_current_generation_approvals_allowed',
+  'closed_or_merged_prereadiness_authority_forbidden',
   'lifecycle_root_issue',
   'root_issue',
 ]) {
@@ -110,6 +111,8 @@ for (const field of [
   'postmerge_exact_main_tree_and_parent_binding_required',
   'postmerge_exact_merge_sha_push_suite_required',
   'terminal_pass_requires_postmerge_success',
+  'terminal_closed_state',
+  'terminal_merged_state',
   'failure_revokes_exact_head_status',
   'immediate_post_status_premerge_reread_required',
   'external_transport_race_detected_postmerge_fail_closed',

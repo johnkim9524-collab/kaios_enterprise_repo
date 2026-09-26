@@ -221,6 +221,7 @@ jobs:
             (.upstream_assurance.event|length)>0 and
             .upstream_assurance.conclusion=="success" and
             .current_protected_main_sha==env.UPSTREAM_SHA and
+            (.producer_health_receipt_digest|type)=="string" and
             (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .producer_health_state=="VERIFIED_PASS" and
             .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and

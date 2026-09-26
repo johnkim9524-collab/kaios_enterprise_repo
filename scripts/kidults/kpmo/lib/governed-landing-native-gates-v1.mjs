@@ -218,6 +218,31 @@ export function assertPromotablePullRequest(pr, {
   };
 }
 
+export function assertTerminalNonAuthorizingPullRequest(pr, {
+  repository,
+  expectedHeadSha,
+  expectedBase = 'main',
+} = {}) {
+  if (!pr || typeof pr !== 'object') fail('PULL_REQUEST_SNAPSHOT_REQUIRED');
+  if (!SHA_PATTERN.test(expectedHeadSha || '')) fail('EXPECTED_HEAD_SHA_REQUIRED');
+  if (pr.state !== 'closed') fail('PULL_REQUEST_TERMINAL_STATE_REQUIRED', String(pr.state ?? 'missing'));
+  if (pr.base?.ref !== expectedBase) fail('PULL_REQUEST_BASE_MISMATCH', String(pr.base?.ref ?? 'missing'));
+  if (pr.head?.sha !== expectedHeadSha) fail('PULL_REQUEST_HEAD_CHANGED', String(pr.head?.sha ?? 'missing'));
+  if (repository && pr.head?.repo?.full_name !== repository) fail('PULL_REQUEST_HEAD_REPOSITORY_MISMATCH');
+  if (pr.merged === true && !SHA_PATTERN.test(pr.merge_commit_sha || '')) fail('PULL_REQUEST_MERGE_SHA_INVALID');
+  return {
+    number: Number(pr.number),
+    head_sha: pr.head.sha,
+    base_ref: pr.base.ref,
+    state: pr.state,
+    merged: pr.merged === true,
+    draft: pr.draft === true,
+    merge_commit_sha: pr.merged === true ? pr.merge_commit_sha : null,
+    updated_at: pr.updated_at ?? null,
+    blocker_count: 0,
+  };
+}
+
 export function assertStableFinalReread(initial, final, options) {
   const before = assertPromotablePullRequest(initial, options);
   const after = assertPromotablePullRequest(final, options);

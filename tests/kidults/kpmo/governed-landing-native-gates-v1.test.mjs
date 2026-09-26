@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   GateFailure,
   assertExactOwnerMergeDuringFinalReread,
+  assertTerminalNonAuthorizingPullRequest,
   assertPromotablePullRequest,
   assertStableFinalReread,
   resolveScopeRequirements,
@@ -66,6 +67,14 @@ test('close/NO-MERGE race between initial and final read is rejected', () => {
 test('head replacement between initial and final read is rejected', () => {
   const final = basePr(); final.head.sha = 'b'.repeat(40);
   code(() => assertStableFinalReread(basePr(), final, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('closed or merged final lifecycle states can be classified without regranting authority', () => {
+  assert.equal(assertTerminalNonAuthorizingPullRequest(mergedPr(), options).merge_commit_sha, 'c'.repeat(40));
+  const closed = basePr(); closed.state = 'closed';
+  assert.equal(assertTerminalNonAuthorizingPullRequest(closed, options).merged, false);
+  const wrongHead = mergedPr(); wrongHead.head.sha = 'd'.repeat(40);
+  code(() => assertTerminalNonAuthorizingPullRequest(wrongHead, options), 'PULL_REQUEST_HEAD_CHANGED');
 });
 
 test('exact owner merge during the final reread is accepted only inside the authorization window', () => {

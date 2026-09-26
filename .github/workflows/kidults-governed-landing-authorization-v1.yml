@@ -240,7 +240,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {assertStableFinalReread} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          import {assertStableFinalReread,assertTerminalNonAuthorizingPullRequest} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA;
           const receiptPath=process.env.READINESS_RECEIPT_PATH;fs.mkdirSync(new URL('.',`file://${receiptPath}`).pathname,{recursive:true});
           const writeReceipt=value=>fs.writeFileSync(receiptPath,JSON.stringify(value,null,2)+'\n');
@@ -253,6 +253,11 @@ jobs:
           let failure=null;
           try {
             const final=await api(`/pulls/${number}`);
+            if(final.state==='closed'){
+              const terminal=assertTerminalNonAuthorizingPullRequest(final,{repository:repo,expectedHeadSha:head});
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,merge_commit_sha:terminal.merge_commit_sha,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,post_landing_verification_required:terminal.merged===true,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+              process.exit(0);
+            }
             if(final.draft===true){
               if(final.state!=='open'||final.merged===true||final.head?.sha!==head||final.head?.repo?.full_name!==repo||final.base?.ref!=='main')throw new Error('DRAFT_DEVELOPMENT_FINAL_REREAD_INVALID');
               if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('DRAFT_DEVELOPMENT_EVALUATION_FAILED');

@@ -31,7 +31,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.7.0', 'POLICY_VERSION');
+  require(policy.version === '1.8.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -58,6 +58,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.single_governed_consumption_required === true, 'SINGLE_GOVERNED_CONSUMPTION_REQUIRED');
   require(generation.pre_ready_approval_allowed === false, 'PRE_READY_APPROVAL_MUST_BE_FORBIDDEN');
   require(generation.multiple_current_generation_approvals_allowed === false, 'MULTIPLE_CURRENT_APPROVALS_MUST_BE_FORBIDDEN');
+  require(generation.closed_or_merged_prereadiness_authority_forbidden === true, 'TERMINAL_PREREADINESS_AUTHORITY_FORBIDDEN');
   require(generation.lifecycle_root_issue === 2028, 'APPROVAL_LIFECYCLE_ROOT_ISSUE');
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
@@ -87,6 +88,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.atomic_landing_policy?.terminal_pass_requires_postmerge_success === true, 'EARLY_TERMINAL_PASS_ALLOWED');
   require(policy.atomic_landing_policy?.new_secret_or_permission_expansion_forbidden === true, 'SECRET_PERMISSION_BOUNDARY_MISSING');
   require(policy.atomic_landing_policy?.live_dispatch_actor_must_equal_repository_owner === true, 'LIVE_LANDING_ACTOR_GUARD_MISSING');
+  require(policy.atomic_landing_policy?.terminal_closed_state === 'CLOSED_TERMINAL_NON_AUTHORIZING', 'TERMINAL_CLOSED_STATE_INVALID');
+  require(policy.atomic_landing_policy?.terminal_merged_state === 'MERGED_POST_LANDING_VERIFICATION_REQUIRED', 'TERMINAL_MERGED_STATE_INVALID');
   require(policy.atomic_landing_policy?.immediate_post_status_premerge_reread_required === true, 'IMMEDIATE_PREMERGE_REREAD_POLICY_MISSING');
   require(policy.atomic_landing_policy?.expected_head_compare_is_atomic_for_sha_only === false
     && policy.atomic_landing_policy?.external_transport_race_detected_postmerge_fail_closed === true
@@ -112,6 +115,9 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'pull-requests: write',
     'markPullRequestReadyForReview',
     "state:'LIFECYCLE_READY_AUTOMATED'",
+    "state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING'",
+    'post_landing_verification_required:terminal.merged===true',
+    'assertTerminalNonAuthorizingPullRequest',
     'ready_state_grants_authorization:false',
     'AUTOMATED_DRAFT_READY_READBACK_INVALID',
     'validate-approval-generation-equality-live-pr-v1.mjs',

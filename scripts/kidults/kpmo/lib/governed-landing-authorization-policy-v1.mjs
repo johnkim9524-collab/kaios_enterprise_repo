@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.7.0';
+const EXPECTED_POLICY_VERSION = '1.8.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -17,6 +17,7 @@ const EXACT_GENERATION_POLICY = Object.freeze({
   single_governed_consumption_required: true,
   pre_ready_approval_allowed: false,
   multiple_current_generation_approvals_allowed: false,
+  closed_or_merged_prereadiness_authority_forbidden: true,
   lifecycle_root_issue: 2028,
   root_issue: 1787,
 });
@@ -51,6 +52,8 @@ const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
   postmerge_exact_main_tree_and_parent_binding_required: true,
   postmerge_exact_merge_sha_push_suite_required: true,
   terminal_pass_requires_postmerge_success: true,
+  terminal_closed_state: 'CLOSED_TERMINAL_NON_AUTHORIZING',
+  terminal_merged_state: 'MERGED_POST_LANDING_VERIFICATION_REQUIRED',
   failure_revokes_exact_head_status: true,
   immediate_post_status_premerge_reread_required: true,
   external_transport_race_detected_postmerge_fail_closed: true,
