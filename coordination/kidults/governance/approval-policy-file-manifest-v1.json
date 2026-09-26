@@ -9,20 +9,20 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 657
+    "file_count": 663
   },
   "files": [
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ea578de71daba77abc5fd79497251249f3f1976c",
-      "sha256": "sha256:76451643c1c6c3d9b0faf421f312ed62ffb17f3d936bad0489b95315c5005430"
+      "git_blob": "60794168b93d284d2bdc757ac55eaba4a292923d",
+      "sha256": "sha256:063c9684209fe45c8622eddcbc40d583fb5ea57668a16011a2546210e7d2b0e2"
     },
     {
       "path": ".github/copilot-instructions.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b2e7acd4c14b74ba19e02339b19cac8f204f14c7",
-      "sha256": "sha256:b04f891b9bbef025e1b9fdf3efaf71b89b6f84b92003e206cdf1d59e660da320"
+      "git_blob": "f07d1a43f0b1abe5d06caef1d2585efffc8584c9",
+      "sha256": "sha256:8b197630e6dd3ea1f6542c576bbcb3c7ca1a0687c26e5d5ee46c55f324438a63"
     },
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
@@ -704,8 +704,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5592812da2cf57ad96faca79e44f55fd62844936",
-      "sha256": "sha256:1d5a4d49f583de03983201d8a5b7b99e2500d109652dd4eebd6834db12003f4f"
+      "git_blob": "56a2d2c5d04a4f6fbbaf81c0f02e5b6bc5148d82",
+      "sha256": "sha256:f5d4e43a39e8214fcbbaee47182fad4972e93238923cdfe9c5e408b27fd93ed7"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1268,8 +1268,21 @@
     {
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e28f2dea951fd44ab72edf73c8adf3f26d895b1a",
-      "sha256": "sha256:d1f1fcaa87d260920dff152aafefeef25848b9dfdfb47a22227ccab976c6cffb",
+      "git_blob": "2aa77bd607dfbae4a4efa5b432f81721ebe558c4",
+      "sha256": "sha256:dab1a12666998761fe71619587c6382b1ff504f374e649a951639d96277f4495",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "865ef978e029d25cfb01c80900b136fbc1f13358",
+      "sha256": "sha256:d45e79b789c0b97763f6a996528cc02ca3c9616672f075ae536aa3fa181529ef",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1302,6 +1315,19 @@
           "mode": "CONSUMER",
           "consumer": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
           "source_reference": "kidults-autonomous-approval-policy-envelope-v1"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "92d29440aba4cbdc4d3b305bf680ac53b952b690",
+      "sha256": "sha256:1d46e5cf65dbb4c4c0f5bd83705e60c37b869b5aae494408146bae77c8b3d8d9",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
         }
       }
     },
@@ -2053,6 +2079,12 @@
       "sha256": "sha256:910fad5c131d6852a0dc19e548256d806840a775636f1beec7e6161229576aa3"
     },
     {
+      "path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "1225ac4e3eb8943fbfc0e25b79ad1a176749808b",
+      "sha256": "sha256:6a1fc6966fe2c4bee0b46bb4fa207a3e4cf80b9d47ca55eb5d094a65227ef23f"
+    },
+    {
       "path": "coordination/kidults/registry/cluster/records/cluster-discovery-authority-shadow-r1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "c58adb74cb525a9dc503da214b661390a689c81e",
@@ -2756,6 +2788,32 @@
       }
     },
     {
+      "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "ae68a5e4098fcd785fbb2995f17380ecd9e9bd9b",
+      "sha256": "sha256:392e9ed784b932a621eb9f24921d89dc3e002aacb15304941e8a54343633403f",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
+      "path": "scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "bdd3260bf133ed33d619f26890d032fa20dffdc4",
+      "sha256": "sha256:bb345f539fef3883e871492bf462167e336a87652007042e65d29f1c5d20f0fb",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
       "path": "scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "2052c02729c542218361537cec4798f75af68193",
@@ -2766,6 +2824,19 @@
           "mode": "CONSUMER",
           "consumer": "scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs",
           "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
+        }
+      }
+    },
+    {
+      "path": "scripts/governance/validate-autonomous-closure-ownership-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "ebb7fa2bf9fa9d7438575b469dfe18c5b0796ef9",
+      "sha256": "sha256:2d088c47517127b01125a9a795176b5d78753c266b89ff57ef6370bb5965e99d",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
         }
       }
     },
@@ -5125,5 +5196,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f80840a3959d354def89d5bcd5cd12551d9a0babc8d81fae21702767d5f7b26d"
+  "manifest_sha256": "sha256:5ea2b9debaa4210478976400b650de77a7ea44b30c83c5a09b1bf10b1ea794c4"
 }

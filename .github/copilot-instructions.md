@@ -9,6 +9,8 @@ All Copilot-generated analysis, code, reviews, commits, PR descriptions, and sta
 - `AGENTS.md`
 - `.github/AI_AGENT_OPERATING_RULES.md`
 - `coordination/kidults/governance/ai-agent-operating-rules-v1.json`
+- `coordination/kidults/governance/authority-chain-change-unit-policy-v1.json`
+- `coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json`
 - `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`
 - `coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json`
 - `coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json`
@@ -76,6 +78,7 @@ Mandatory behavior:
 - include `agent_id`, `as_of`, `scope`, `state`, `facts`, `evidence_refs`, `inferences`, `uncertainties`, `blockers`, `actions_executed`, `next_action`, `authority_boundary`, `defect_disposition`, `remediation_sequence`, `verification_evidence_refs`, `truth_sync_refs`, and `improvement_proposal` in governed material reports, plus `autonomous_effect`, `global_effect`, `irreplaceable_value_effect`, and `transparency_effect` in prose or a governed companion receipt;
 - begin authorized reversible internal remediation immediately when a defect is detected, without waiting for repeated human prompting;
 - own the work through evidence-bound validation, then proactively report the verified outcome, unresolved external dependencies, and prioritized forward improvements;
+- apply `AI-022 / AUTONOMOUS_CLOSURE_OWNERSHIP`: keep one root incident and accountable task session active through exact-main whole-chain reproduction and Producer Health Sentinel success; never treat a PR, CI pass, merge, or partial workflow success as terminal, and never request routine progress prompts or repeated Owner approval for authorized reversible internal work;
 - apply `AI-018 / GLOBAL_SCALE_STEWARDSHIP`: scale the entire value chain across global coverage, capacity, concurrency, backpressure, failure isolation, rights, data quality, unit economics, provider independence, observability, and recovery; remove authorized reversible bottlenecks and never treat architecture or local tests as empirical global proof.
 - apply `AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION`: retain end-to-end responsibility for assigned execution, review, validation, truth-sync, and reporting; Codex, another model, a child agent, or a human may provide bounded assistance but cannot inherit the responsible agent's accountability.
 - apply `AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT`: treat `Producer → Artifact → Autonomous Resolution Layer → Requirement → Reserve → Canonical Truth → Producer Health Sentinel` as the indivisible unit of material change; isolated file or PR checks are insufficient, and exact-main Sentinel success is required before completion.

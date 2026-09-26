@@ -23,6 +23,7 @@ const files = {
   registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
   roles: 'coordination/kidults/registry/roles-and-responsibilities.json',
   authorityChainPolicy: 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json',
+  autonomousClosurePolicy: 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json',
   reserveWorkflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
   scaleWorkflow: '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
 };
@@ -56,6 +57,7 @@ const schema = readJson(files.schema);
 const registry = readJson(files.registry);
 const roles = readJson(files.roles);
 const authorityChainPolicy = readJson(files.authorityChainPolicy);
+const autonomousClosurePolicy = readJson(files.autonomousClosurePolicy);
 const reserveWorkflow = readText(files.reserveWorkflow);
 const scaleWorkflow = readText(files.scaleWorkflow);
 
@@ -83,7 +85,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '1.9.0', 'CONTRACT_VERSION');
+assert(contract.version === '2.0.0', 'CONTRACT_VERSION');
 assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
@@ -104,6 +106,7 @@ assert(contract.enforcement?.verified_closure_and_forward_proposal_required === 
 assert(contract.enforcement?.global_scale_stewardship_required === true, 'GLOBAL_SCALE_STEWARDSHIP_REQUIRED');
 assert(contract.enforcement?.accountability_and_non_delegation_required === true, 'ACCOUNTABILITY_NON_DELEGATION_REQUIRED');
 assert(contract.enforcement?.whole_authority_chain_change_unit_required === true, 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_REQUIRED');
+assert(contract.enforcement?.autonomous_closure_ownership_required === true, 'AUTONOMOUS_CLOSURE_OWNERSHIP_REQUIRED');
 assert(contract.authority_chain_change_unit_policy_path === files.authorityChainPolicy, 'AUTHORITY_CHAIN_POLICY_PATH');
 assert(authorityChainPolicy.id === 'kidults-authority-chain-change-unit-policy-v1', 'AUTHORITY_CHAIN_POLICY_ID');
 assert(authorityChainPolicy.version === '1.0.0' && authorityChainPolicy.status === 'MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'AUTHORITY_CHAIN_POLICY_STATE');
@@ -116,6 +119,15 @@ assert(authorityChainPolicy.required_validation?.producer_health_sentinel_succes
 assert(authorityChainPolicy.completion_policy?.single_file_validation_sufficient === false, 'AUTHORITY_CHAIN_SINGLE_FILE_FORBIDDEN');
 assert(authorityChainPolicy.completion_policy?.pr_checks_alone_sufficient === false, 'AUTHORITY_CHAIN_PR_ONLY_FORBIDDEN');
 assert(authorityChainPolicy.authority_boundary?.production === 'HOLD' && authorityChainPolicy.authority_boundary?.public === 'HOLD' && authorityChainPolicy.authority_boundary?.g5 === 'HOLD', 'AUTHORITY_CHAIN_HOLD_BOUNDARY');
+assert(contract.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'AUTONOMOUS_CLOSURE_POLICY_PATH');
+assert(autonomousClosurePolicy.rule_id === 'AI-022' && autonomousClosurePolicy.rule_name === 'AUTONOMOUS_CLOSURE_OWNERSHIP', 'AUTONOMOUS_CLOSURE_POLICY_IDENTITY');
+assert(autonomousClosurePolicy.single_root_incident?.one_accountable_completion_owner === true, 'AUTONOMOUS_CLOSURE_SINGLE_OWNER');
+assert(autonomousClosurePolicy.continuation?.same_task_session_retains_accountability_until_terminal_state === true, 'AUTONOMOUS_CLOSURE_SESSION_CONTINUITY');
+assert(autonomousClosurePolicy.continuation?.pr_creation_ci_success_merge_or_single_workflow_success_is_terminal === false, 'AUTONOMOUS_CLOSURE_INTERMEDIATE_TERMINAL_FORBIDDEN');
+assert(autonomousClosurePolicy.reporting_gate?.routine_intermediate_progress_report_allowed === false, 'AUTONOMOUS_CLOSURE_INTERMEDIATE_REPORT_FORBIDDEN');
+assert(autonomousClosurePolicy.reporting_gate?.routine_request_for_next_or_repeat_approval_allowed === false, 'AUTONOMOUS_CLOSURE_REPROMPT_FORBIDDEN');
+assert(autonomousClosurePolicy.completion_gate?.producer_health_sentinel_success_required === true, 'AUTONOMOUS_CLOSURE_SENTINEL_REQUIRED');
+assert(autonomousClosurePolicy.authority_boundary?.production === 'HOLD' && autonomousClosurePolicy.authority_boundary?.public === 'HOLD' && autonomousClosurePolicy.authority_boundary?.g5 === 'HOLD', 'AUTONOMOUS_CLOSURE_HOLDS');
 assert(contract.enforcement?.confirmed_material_accountability_violation_requires_immediate_dispatch_removal === true, 'ACCOUNTABILITY_IMMEDIATE_REMOVAL_REQUIRED');
 assert(contract.enforcement?.bootstrap_binds_agent_role_jd_and_accountability_registry === true, 'ACCOUNTABILITY_BOOTSTRAP_ROLE_JD_BINDING');
 assert(contract.github_bootstrap_contract_path === files.githubBootstrapContract, 'CONTRACT_GITHUB_BOOTSTRAP_PATH');
@@ -129,7 +141,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.6.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.7.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
@@ -276,6 +288,7 @@ const requiredPrinciples = [
   'GLOBAL_SCALE_STEWARDSHIP',
   'ACCOUNTABILITY_AND_NON_DELEGATION'
   ,'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT'
+  ,'AUTONOMOUS_CLOSURE_OWNERSHIP'
 ];
 const principleNames = contract.principles?.map((x) => x.name) ?? [];
 assert(principleNames.length === requiredPrinciples.length, 'PRINCIPLE_COUNT');
@@ -297,6 +310,10 @@ for (const marker of ['Codex', 'end-to-end accountability', 'evidence-bound vali
 assert(principleById.get('AI-021')?.name === 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT', 'AI_021_IDENTITY_BINDING');
 for (const marker of ['whole Producer-to-Artifact', 'Requirement-to-Reserve', 'Producer Health Sentinel', 'single-file validation']) {
   assert(principleById.get('AI-021')?.requirement?.includes(marker), `AI_021_REQUIREMENT:${marker}`);
+}
+assert(principleById.get('AI-022')?.name === 'AUTONOMOUS_CLOSURE_OWNERSHIP', 'AI_022_IDENTITY_BINDING');
+for (const marker of ['accountable task session', 'exact-main whole-chain', 'routine progress prompts', 'repeated Owner approval']) {
+  assert(principleById.get('AI-022')?.requirement?.includes(marker), `AI_022_REQUIREMENT:${marker}`);
 }
 for (const rule of contract.principles) {
   assert(/^AI-\d{3}$/.test(rule.rule_id), `INVALID_RULE_ID:${rule.rule_id}`);
@@ -336,7 +353,8 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '1.9.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '2.0.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'REGISTRY_AUTONOMOUS_CLOSURE_POLICY');
 assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
 assert(registry.platform_operating_principles?.precedence === platform.precedence, 'REGISTRY_PLATFORM_PRECEDENCE');
@@ -516,11 +534,12 @@ const requiredAgentMarkers = [
   'AI-018 / GLOBAL_SCALE_STEWARDSHIP',
   'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION'
   ,'AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT'
+  ,'AI-022 / AUTONOMOUS_CLOSURE_OWNERSHIP'
 ];
 for (const marker of requiredAgentMarkers) assert(agents.includes(marker), `AGENTS_MISSING_MARKER:${marker}`);
 
 const requiredPolicyMarkers = [
-  '**Version:** 1.9.0',
+  '**Version:** 2.0.0',
   'Platform constitutional operating principles',
   '**AUTONOMOUS**',
   '**GLOBAL**',
@@ -550,6 +569,8 @@ const requiredPolicyMarkers = [
   'remove the AI agent from the active task'
   ,'Whole authority-chain change unit'
   ,'AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT'
+  ,'Autonomous closure ownership'
+  ,'AI-022 / AUTONOMOUS_CLOSURE_OWNERSHIP'
 ];
 for (const marker of requiredPolicyMarkers) assert(policy.includes(marker), `POLICY_MISSING_MARKER:${marker}`);
 assert(copilot.includes('AGENTS.md'), 'COPILOT_AGENTS_REFERENCE');
@@ -558,6 +579,7 @@ assert(copilot.includes('never fabricate metrics'), 'COPILOT_METRIC_BOUNDARY');
 assert(copilot.includes('AI-018 / GLOBAL_SCALE_STEWARDSHIP'), 'COPILOT_GLOBAL_SCALE_STEWARDSHIP');
 assert(copilot.includes('AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION'), 'COPILOT_ACCOUNTABILITY_NON_DELEGATION');
 assert(copilot.includes('AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT'), 'COPILOT_AUTHORITY_CHAIN_CHANGE_UNIT');
+assert(copilot.includes('AI-022 / AUTONOMOUS_CLOSURE_OWNERSHIP'), 'COPILOT_AUTONOMOUS_CLOSURE_OWNERSHIP');
 assert(copilot.includes('immediate fail-closed removal'), 'COPILOT_ACCOUNTABILITY_REMOVAL');
 assert(copilot.includes(files.githubBootstrapContract), 'COPILOT_GITHUB_BOOTSTRAP_CONTRACT');
 assert(copilot.includes('npm run agent:bootstrap'), 'COPILOT_GITHUB_BOOTSTRAP_COMMAND');
@@ -595,7 +617,7 @@ if (explicitReceiptIndex >= 0) {
 
 const report = {
   id: 'kidults-ai-agent-governance-validation-v1',
-  version: '1.9.0',
+  version: '2.0.0',
   status: 'VERIFIED_PASS',
   policy_id: 'KPMO-AI-GOV-001',
   platform_principles_validated: requiredPlatformPrinciples,
@@ -604,6 +626,7 @@ const report = {
   global_scale_rule_identities_validated: ['AI-018'],
   accountability_rule_identities_validated: ['AI-019'],
   authority_chain_rule_identities_validated: ['AI-021'],
+  autonomous_closure_rule_identities_validated: ['AI-022'],
   agent_jd_accountability_validated: true,
   global_scale_dimensions_validated: globalScale.required_dimensions.length,
   governed_states_validated: requiredStates.length,

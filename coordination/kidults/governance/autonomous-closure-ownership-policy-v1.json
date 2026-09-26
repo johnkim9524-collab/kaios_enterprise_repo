@@ -1,0 +1,63 @@
+{
+  "id": "kidults-autonomous-closure-ownership-policy-v1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
+  "owner": "KPMO",
+  "rule_id": "AI-022",
+  "rule_name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
+  "scope": "ALL_AUTHORIZED_REVERSIBLE_INTERNAL_DEFECTS_AND_MATERIAL_CHANGES",
+  "validator_path": "scripts/governance/validate-autonomous-closure-ownership-v1.mjs",
+  "single_root_incident": {
+    "one_root_incident_per_causal_defect": true,
+    "one_accountable_completion_owner": true,
+    "child_runs_prs_and_failures_remain_bound_to_root_incident": true,
+    "duplicate_incidents_for_same_exact_sha_input_digest_and_failure_code_forbidden": true
+  },
+  "mandatory_state_machine": [
+    "DETECTED",
+    "CONTAINED",
+    "ROOT_CAUSE_CLASSIFIED",
+    "WHOLE_AUTHORITY_CHAIN_MAPPED",
+    "REMEDIATION_IMPLEMENTED",
+    "REGRESSION_AND_ADVERSARIAL_VERIFIED",
+    "LANDED_ON_EXACT_MAIN",
+    "WHOLE_CHAIN_REPRODUCED_AND_CONSUMED",
+    "PRODUCER_HEALTH_SENTINEL_VERIFIED",
+    "COMPLETE_VERIFIED"
+  ],
+  "continuation": {
+    "same_task_session_retains_accountability_until_terminal_state": true,
+    "authorized_reversible_work_continues_without_routine_owner_prompt": true,
+    "failure_dispatches_next_bounded_diagnostic_or_remediation_step": true,
+    "unchanged_failure_may_not_create_unbounded_retry": true,
+    "bounded_retry_exhaustion_requires_structured_root_blocker": true,
+    "pr_creation_ci_success_merge_or_single_workflow_success_is_terminal": false
+  },
+  "reporting_gate": {
+    "routine_intermediate_progress_report_allowed": false,
+    "routine_request_for_next_or_repeat_approval_allowed": false,
+    "user_return_allowed_only_for": [
+      "COMPLETE_VERIFIED",
+      "OWNER_RESERVED_PRODUCTION_PUBLIC_G5_LEGAL_SPEND_CONTRACT_OR_IRREVERSIBLE_DECISION",
+      "EXTERNAL_PERMISSION_CREDENTIAL_OR_PROVIDER_DEPENDENCY_WITH_NO_AUTHORIZED_PATH",
+      "BOUNDED_AUTONOMOUS_RETRY_EXHAUSTED_WITH_EXACT_ROOT_BLOCKER"
+    ],
+    "unknown_failure_code_allowed_at_terminal": false
+  },
+  "completion_gate": {
+    "exact_landed_main_required": true,
+    "whole_authority_chain_manifest_required": true,
+    "all_mandatory_chain_nodes_terminal_success_required": true,
+    "producer_health_sentinel_success_required": true,
+    "unresolved_p0_or_p1_in_scope_allowed": 0,
+    "pending_waiting_unknown_or_unclassified_in_scope_allowed": 0,
+    "completion_receipt_required": true
+  },
+  "authority_boundary": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "owner_reserved_gates_preserved": true,
+    "policy_grants_no_new_credentials_spend_contract_release_or_irreversible_authority": true
+  }
+}

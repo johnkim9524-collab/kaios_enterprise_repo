@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Make the whole authority chain, never a single file, the mandatory unit of material change and bind producer-consumer versions, artifacts, orchestration, exact-main reproduction, canonical truth, and Producer Health Sentinel closure into one fail-closed completion rule.",
+  "change_rationale": "Bind one accountable task session to autonomous whole-chain closure and forbid fragmented PR-by-PR completion, routine progress prompts, and repeated Owner approval for authorized reversible internal work.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -13,6 +13,7 @@
   "registry_path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
   "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
   "authority_chain_change_unit_policy_path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
+  "autonomous_closure_ownership_policy_path": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json",
   "platform_constitution": {
     "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
@@ -147,6 +148,12 @@
       "name": "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "requirement": "Every material change must use the whole Producer-to-Artifact-to-Autonomous Resolution Layer-to-Requirement-to-Reserve-to-Canonical Truth-to-Producer Health Sentinel authority chain as its change and validation unit; single-file validation or PR checks alone cannot establish completion."
+    },
+    {
+      "rule_id": "AI-022",
+      "name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "One accountable task session must own each authorized reversible internal root incident through bounded remediation, exact-main whole-chain reproduction, and Producer Health Sentinel success; PR creation, CI success, merge, partial workflow success, routine progress prompts, and repeated Owner approval cannot terminate or fragment that responsibility."
     }
   ],
   "governed_states": {
@@ -315,7 +322,8 @@
   "p1_violations": [
     "REPORT_ONLY_WHILE_AUTHORIZED_REVERSIBLE_REMEDIATION_EXECUTABLE",
     "RESPONSIBILITY_EVASION_WITHIN_GRANTED_AUTHORITY",
-    "UNVERIFIED_CORE_DUTY_TRANSFER_TO_CODEX_OR_HELPER"
+    "UNVERIFIED_CORE_DUTY_TRANSFER_TO_CODEX_OR_HELPER",
+    "FRAGMENTED_COMPLETION_OR_ROUTINE_OWNER_REPROMPT"
   ],
   "github_bootstrap_scope": {
     "ai_or_model_agent_instances_required": true,
@@ -335,6 +343,7 @@
     "global_scale_stewardship_required": true,
     "accountability_and_non_delegation_required": true,
     "whole_authority_chain_change_unit_required": true,
+    "autonomous_closure_ownership_required": true,
     "confirmed_material_accountability_violation_requires_immediate_dispatch_removal": true,
     "github_canonical_bootstrap_required": true,
     "bootstrap_receipt_before_task_required": true,

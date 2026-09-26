@@ -1,12 +1,12 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
-  "change_rationale": "Register the whole authority chain as the mandatory material change unit and require producer-consumer contract closure, orchestration ordering, exact-main reproduction, canonical truth, and Producer Health Sentinel success before completion.",
+  "change_rationale": "Register autonomous closure ownership so one accountable task session retains each authorized reversible root incident through exact-main whole-chain and Sentinel closure without routine progress prompts or repeated Owner approval.",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.9.0",
+    "policy_version": "2.0.0",
     "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
@@ -21,6 +21,7 @@
     "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
     "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
     "authority_chain_change_unit_policy_path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
+    "autonomous_closure_ownership_policy_path": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json",
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
     "bootstrap_validator_path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
     "report_after_remediation_validator_path": "scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs",
@@ -334,7 +335,7 @@
       "transparency_effect"
     ]
   },
-  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP", "ACCOUNTABILITY_AND_NON_DELEGATION", "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT"],
+  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP", "ACCOUNTABILITY_AND_NON_DELEGATION", "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT", "AUTONOMOUS_CLOSURE_OWNERSHIP"],
   "leadership_rule_identities": {
     "AI-016": {
       "name": "PROACTIVE_ISSUE_OWNERSHIP",
@@ -349,6 +350,11 @@
       "name": "ACCOUNTABILITY_AND_NON_DELEGATION",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "owner": "ASSIGNED_AI_AGENT"
+    },
+    "AI-022": {
+      "name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "owner": "ACCOUNTABLE_TASK_SESSION"
     }
   },
   "violation_classification": {
@@ -372,7 +378,7 @@
     "requires_validator_pass": true,
     "requires_version_increment": true,
     "requires_change_rationale": true,
-    "change_rationale": "Version 1.8.0 binds AI-agent role accountability, bounded helper use, exact-evidence violation confirmation, immediate fail-closed task and dispatch removal, controlled reinstatement, and permanent retirement conditions across policy, machine contract, Agent JD registry, and validator."
+    "change_rationale": "Version 2.0.0 binds autonomous closure ownership and prevents fragmented completion, routine progress prompting, and repeated Owner approval for authorized reversible internal work."
   },
   "public_release": "HOLD",
   "production": "HOLD",

@@ -13,13 +13,16 @@ const contract = readJson(CONTRACT);
 const bootstrap = readJson(BOOTSTRAP);
 
 ok(contract.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'CONTRACT_ID');
-ok(contract.version === '1.1.0', 'CONTRACT_VERSION');
+ok(contract.version === '1.2.0', 'CONTRACT_VERSION');
 ok(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 ok(contract.scope === 'REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPTS', 'CONTRACT_SCOPE');
 ok(contract.behavioral_scope === 'ALL_AI_AGENTS_STATUS_AND_PROGRESS_REPORTING', 'BEHAVIORAL_SCOPE');
 ok(contract.machine_enforcement_scope === 'REGISTERED_REPOSITORY_STATUS_RECEIPT_PATHS', 'MACHINE_SCOPE');
 ok(contract.external_chat_output_interception_claimed === false, 'CHAT_INTERCEPTION_OVERCLAIM');
 ok(contract.normal_report_gate?.report_only_allowed === false, 'REPORT_ONLY_MUST_BE_FALSE');
+ok(contract.normal_report_gate?.intermediate_pr_ci_merge_or_partial_workflow_success_is_reportable_terminal === false, 'INTERMEDIATE_TERMINAL_REPORT_FORBIDDEN');
+ok(contract.normal_report_gate?.routine_progress_prompt_or_repeat_owner_approval_allowed === false, 'ROUTINE_REPROMPT_FORBIDDEN');
+ok(contract.normal_report_gate?.autonomous_closure_policy === 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json', 'AUTONOMOUS_CLOSURE_POLICY_BINDING');
 ok(contract.violation?.self_exemption_allowed === false, 'SELF_EXEMPTION_MUST_BE_FALSE');
 ok(contract.machine_receipt_rule?.receipt_must_pass_canonical_status_schema === true, 'CANONICAL_SCHEMA_BINDING');
 ok(contract.machine_receipt_rule?.receipt_must_pass_report_after_remediation_validator === true, 'REPORT_VALIDATOR_BINDING');
