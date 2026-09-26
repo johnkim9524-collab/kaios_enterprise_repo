@@ -182,6 +182,12 @@ for (const marker of [
   assert.ok(workflow.includes(marker), `WORKFLOW_MARKER_REQUIRED:${marker}`);
 }
 assert.ok(eventAssurance.includes('get-object-attributes'));
+assert.equal(
+  (eventAssurance.match(/--object-attributes Checksum ObjectSize/g) || []).length,
+  2,
+  'checksum readback must pass AWS CLI list values as separate arguments',
+);
+assert.ok(!eventAssurance.includes('--object-attributes Checksum,ObjectSize'));
 assert.ok(eventAssurance.includes('probe-object-attributes.json'));
 assert.ok(eventAssurance.includes('terminal-object-attributes.json'));
 assert.equal(workflow.includes('DeleteTrail'), false);

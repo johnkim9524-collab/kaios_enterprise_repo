@@ -142,7 +142,7 @@ ATTRIBUTES=$(aws s3api get-object-attributes \
   --bucket "$RECEIPT_BUCKET" \
   --key "$PROBE_KEY" \
   --version-id "$VERSION_ID" \
-  --object-attributes Checksum,ObjectSize \
+  --object-attributes Checksum ObjectSize \
   --output json)
 printf '%s\n' "$ATTRIBUTES" >"$OUT_DIR/probe-object-attributes.json"
 [[ "$(jq -r '.ObjectLockMode' <<<"$HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="PROBE_OBJECT_LOCK_READBACK"; false; }
@@ -241,7 +241,7 @@ TERMINAL_HEAD=$(aws s3api head-object \
 printf '%s\n' "$TERMINAL_HEAD" >"$OUT_DIR/terminal-head-object.json"
 TERMINAL_ATTRIBUTES=$(aws s3api get-object-attributes \
   --bucket "$RECEIPT_BUCKET" --key "$TERMINAL_KEY" --version-id "$TERMINAL_VERSION_ID" \
-  --object-attributes Checksum,ObjectSize --output json)
+  --object-attributes Checksum ObjectSize --output json)
 printf '%s\n' "$TERMINAL_ATTRIBUTES" >"$OUT_DIR/terminal-object-attributes.json"
 [[ "$(jq -r '.ObjectLockMode' <<<"$TERMINAL_HEAD")" == COMPLIANCE ]] || { CURRENT_STAGE="TERMINAL_OBJECT_LOCK_READBACK"; false; }
 [[ "$(jq -r '.SSEKMSKeyId' <<<"$TERMINAL_HEAD")" == "$RECEIPT_KEY_ARN" ]] || { CURRENT_STAGE="TERMINAL_KMS_KEY_READBACK"; false; }
