@@ -39,6 +39,35 @@ assert.ok(bucketPolicy.some((statement) => statement.Sid === 'DenyInsecureTransp
 assert.ok(bucketPolicy.some((statement) => statement.Sid === 'CloudTrailAclCheck'));
 assert.ok(bucketPolicy.some((statement) => statement.Sid === 'CloudTrailWrite'));
 
+const negativeBucket = resources.NegativeBoundaryBucket;
+assert.equal(negativeBucket.Type, 'AWS::S3::Bucket');
+assert.equal(negativeBucket.DeletionPolicy, 'Retain');
+assert.equal(negativeBucket.UpdateReplacePolicy, 'Retain');
+assert.deepEqual(negativeBucket.Properties.BucketName, {
+  'Fn::Sub': 'kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}',
+});
+assert.equal(negativeBucket.Properties.VersioningConfiguration.Status, 'Enabled');
+assert.deepEqual(negativeBucket.Properties.PublicAccessBlockConfiguration, {
+  BlockPublicAcls: true,
+  BlockPublicPolicy: true,
+  IgnorePublicAcls: true,
+  RestrictPublicBuckets: true,
+});
+const negativeBucketPolicy =
+  resources.NegativeBoundaryBucketPolicy.Properties.PolicyDocument.Statement;
+const denyWrites = negativeBucketPolicy.find(
+  (statement) => statement.Sid === 'DenyAllObjectWrites',
+);
+assert.equal(denyWrites.Effect, 'Deny');
+assert.equal(denyWrites.Principal, '*');
+assert.equal(denyWrites.Action, 's3:PutObject');
+assert.deepEqual(denyWrites.Resource, {
+  'Fn::Sub': '${NegativeBoundaryBucket.Arn}/*',
+});
+assert.ok(
+  negativeBucketPolicy.some((statement) => statement.Sid === 'DenyInsecureTransport'),
+);
+
 const trail = resources.StagingAssuranceTrail;
 assert.equal(trail.Type, 'AWS::CloudTrail::Trail');
 assert.equal(trail.Properties.TrailName, 'kidults-staging-continuous-assurance');
@@ -55,10 +84,7 @@ assert.deepEqual(
   trail.Properties.EventSelectors[0].DataResources[0].Values,
   [
     { 'Fn::Sub': '${ReceiptBucketArn}/' },
-    {
-      'Fn::Sub':
-        'arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/',
-    },
+    { 'Fn::Sub': '${NegativeBoundaryBucket.Arn}/' },
   ],
 );
 
