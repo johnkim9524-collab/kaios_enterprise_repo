@@ -26,6 +26,7 @@ test('template embeds reviewed source and limits secret and invoke scopes',()=>{
 });
 const stamp=Date.parse('2026-09-24T00:00:00Z');
 function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission='write', readPermission='read',
+  permissionProfile='AUTONOMOUS_EVENT_DISPATCH',
   repositories=[{id:123,full_name:repo}]}={}) {
   const calls=[];
   const request=async (url,options) => {
@@ -36,10 +37,15 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.repository_ids,[123]);
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
-          ?{contents:'read',pull_requests:'read'}:{contents:'write',pull_requests:'write'});
+          ? {contents:'read',pull_requests:'read'}
+          : permissionProfile==='DRAFT_READY_TRANSITION'
+            ? {pull_requests:'write'}
+            : {contents:'write',pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
-        permissions:{contents:body.permissions.contents==='read'?readPermission:permission,
-          pull_requests:body.permissions.pull_requests},repository_selection:'selected',repositories};
+        permissions:{...(Object.hasOwn(body.permissions,'contents')
+          ? {contents:body.permissions.contents==='read'?readPermission:permission}
+          : {}),pull_requests:body.permissions.pull_requests},
+        repository_selection:'selected',repositories};
     } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
       head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase}};
     else if(url.endsWith('/branches/main')) value={commit:{sha:mainBase}};
@@ -51,8 +57,16 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
 test('mints one repository scoped token after exact live tuple',async()=>{
   const {handler,calls}=setup(); const result=await handler(event);
   assert.equal(result.ok,true);assert.equal(result.token_type,'GITHUB_APP_INSTALLATION');
+  assert.equal(result.permission_profile,'AUTONOMOUS_EVENT_DISPATCH');
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
+});
+test('draft ready profile returns minimum pull-request write scope and installation identity',async()=>{
+  const {handler}=setup({draft:true,permissionProfile:'DRAFT_READY_TRANSITION'});
+  const result=await handler({...event,allow_draft_recovery:true,permission_profile:'DRAFT_READY_TRANSITION'});
+  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.equal(result.installation_id,'66');
+  assert.equal(result.app_id,'55');
 });
 test('allows exact draft only for an explicitly declared recovery before reservation',async()=>{
   const rejected=setup({draft:true});
@@ -89,4 +103,9 @@ test('rejects write permission downgrade after one authorized write mint',async(
   const {handler,calls}=setup({permission:'read'});
   await assert.rejects(handler(event),/DENIED/);
   assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,1);
+});
+test('rejects unsupported permission profile before requesting any token',async()=>{
+  const {handler,calls}=setup();
+  await assert.rejects(handler({...event,permission_profile:'INVALID'}),/DENIED/);
+  assert.equal(calls.length,0);
 });

@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.7.0",
+  "version": "1.9.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "routing": {
@@ -49,6 +49,7 @@
     "single_governed_consumption_required": true,
     "pre_ready_approval_allowed": false,
     "multiple_current_generation_approvals_allowed": false,
+    "closed_or_merged_prereadiness_authority_forbidden": true,
     "lifecycle_root_issue": 2028,
     "enforcement_points": [
       "PR_LIFECYCLE_CLASSIFICATION",
@@ -100,7 +101,15 @@
     "ready_transition_requires_human_approval": false,
     "automated_transition_grants_landing_authority": false,
     "ready_state_must_be_observable": true,
-    "ready_actor_and_time_must_be_receipted": true
+    "ready_actor_and_time_must_be_receipted": true,
+    "ordinary_github_token_ready_mutation_forbidden": true,
+    "ready_transition_token_source": "REPOSITORY_GITHUB_APP_INSTALLATION_BROKER",
+    "ready_transition_required_permissions": [
+      "pull_requests:write",
+      "metadata:read"
+    ],
+    "ready_transition_installation_identity_bound": true,
+    "ready_transition_post_mutation_reread_required": true
   },
   "no_merge_policy": {
     "closed_pull_request_blocks": true,
@@ -126,6 +135,8 @@
     "initial_live_pull_request_read_required": true,
     "final_live_pull_request_reread_required": true,
     "final_state_must_equal_open": true,
+    "terminal_closed_state": "CLOSED_TERMINAL_NON_AUTHORIZING",
+    "terminal_merged_state": "MERGED_POST_LANDING_VERIFICATION_REQUIRED",
     "repository_github_token_merge_forbidden": true,
     "event_emitting_transport": "DIRECT_OWNER_GITHUB_UI",
     "event_emitting_transport_availability_before_consumption": true,

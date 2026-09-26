@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GateFailure,
+  assertDraftReadyPostMutation,
+  assertDraftReadyTransitionCandidate,
   assertExactOwnerMergeDuringFinalReread,
+  assertTerminalNonAuthorizingPullRequest,
   assertPromotablePullRequest,
   assertStableFinalReread,
   resolveScopeRequirements,
@@ -12,6 +15,7 @@ import {
   assertLandingActorAndAuthorization,
   selectExactHeadProgramOwnerApproval,
   selectLatestProgramOwnerReadyEvent,
+  validateDraftReadyBrokerResponse,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
 
 const sha = 'a'.repeat(40);
@@ -66,6 +70,98 @@ test('close/NO-MERGE race between initial and final read is rejected', () => {
 test('head replacement between initial and final read is rejected', () => {
   const final = basePr(); final.head.sha = 'b'.repeat(40);
   code(() => assertStableFinalReread(basePr(), final, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('closed or merged final lifecycle states can be classified without regranting authority', () => {
+  assert.equal(assertTerminalNonAuthorizingPullRequest(mergedPr(), options).merge_commit_sha, 'c'.repeat(40));
+  const closed = basePr(); closed.state = 'closed';
+  assert.equal(assertTerminalNonAuthorizingPullRequest(closed, options).merged, false);
+  const wrongHead = mergedPr(); wrongHead.head.sha = 'd'.repeat(40);
+  code(() => assertTerminalNonAuthorizingPullRequest(wrongHead, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('draft ready transition requires exact draft, repo, base, head, and trigger binding', () => {
+  const draft = {...basePr(), draft: true, node_id: 'PR_node_1'};
+  assert.equal(assertDraftReadyTransitionCandidate(draft, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: true,
+  }).node_id, 'PR_node_1');
+  code(() => assertDraftReadyTransitionCandidate(draft, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: false,
+  }), 'DRAFT_READY_TRIGGER_DRAFT_REQUIRED');
+  code(() => assertDraftReadyTransitionCandidate({...draft, base: {ref: 'main', sha: 'c'.repeat(40)}}, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: true,
+  }), 'DRAFT_READY_BASE_DRIFT');
+});
+
+test('draft ready broker token validation rejects substitution, identity drift, and missing minimum permissions', () => {
+  const githubToken = 'workflow-token-abcdefghijklmnopqrstuvwxyz';
+  const response = {
+    ok: true,
+    token_type: 'GITHUB_APP_INSTALLATION',
+    permission_profile: 'DRAFT_READY_TRANSITION',
+    repository,
+    repository_id: '321',
+    app_id: '654',
+    installation_id: '987',
+    permissions: ['pull_requests:write', 'metadata:read'],
+    expires_at: '2026-09-01T03:00:00Z',
+    token: 'installation-token-1234567890',
+  };
+  assert.equal(validateDraftReadyBrokerResponse(response, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }).permission_profile, 'DRAFT_READY_TRANSITION');
+  code(() => validateDraftReadyBrokerResponse({...response, token: githubToken}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_GITHUB_TOKEN_SUBSTITUTION_FORBIDDEN');
+  code(() => validateDraftReadyBrokerResponse({...response, installation_id: '111'}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_INSTALLATION_REPOSITORY_MISMATCH');
+  code(() => validateDraftReadyBrokerResponse({...response, permissions: ['pull_requests:read', 'metadata:read']}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_INSTALLATION_PERMISSION_INSUFFICIENT');
+});
+
+test('draft ready post-mutation reread fails closed on identity or lifecycle drift', () => {
+  const before = {number: 1580, node_id: 'PR_node_1'};
+  const after = {...basePr(), draft: false, node_id: 'PR_node_1'};
+  assert.equal(assertDraftReadyPostMutation(before, after, {
+    repository,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+  }).draft, false);
+  code(() => assertDraftReadyPostMutation(before, {...after, node_id: 'PR_node_2'}, {
+    repository,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+  }), 'DRAFT_READY_POST_MUTATION_DRIFT');
 });
 
 test('exact owner merge during the final reread is accepted only inside the authorization window', () => {
