@@ -121,6 +121,21 @@ test('unknown YAML indirection and unavailable blobs fail closed',()=>{
   }
 });
 
+test('workflow block scalars are parsed without weakening capability checks',()=>{
+  const base=workflow('      - name: Script\n        run: |\n          set -euo pipefail\n          node scripts/validate.mjs\n');
+  const safe=base.replace('    runs-on: ubuntu-24.04','    runs-on: ubuntu-24.04\n    timeout-minutes: 10');
+  assert.equal(evaluateSemanticCapabilityDelta({files:[semanticFile(safe,{base_content:base})],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+
+  const network=base.replace('          node scripts/validate.mjs','          node scripts/validate.mjs\n          curl https://example.invalid');
+  assert.throws(
+    ()=>evaluateSemanticCapabilityDelta({files:[semanticFile(network,{base_content:base})],policy:landing}),
+    /CAPABILITY_(?:GUARD_WEAKENED|EXPANSION)/,
+  );
+
+  const shellOperators=workflow('      - name: Shell operators\n        run: |-\n          ! test -z "$VALUE"\n          printf "* literal"\n');
+  assert.equal(evaluateSemanticCapabilityDelta({files:[semanticFile(shellOperators,{base_content:shellOperators})],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+});
+
 test('exact exception policy weakening fails while monotonic evidence addition passes',()=>{
   const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
   const base=JSON.stringify({authorization_routing:{route:'CANONICAL_ENVELOPE'},evidence:['a']});
