@@ -75,9 +75,11 @@ test('event consumer binds exact run identity and rejects missing or duplicate e
 
 test('positive and every negative boundary require CloudTrail event evidence', () => {
   const script = fs.readFileSync(eventAssurancePath, 'utf8');
+  assert.match(script, /query_one_event positive_s3/);
+  assert.match(script, /query_event_set positive_kms/);
+  assert.match(script, /OBSERVED_PROVIDER_EVENT_SET/);
+  assert.match(script, /map\(\.eventID\).*unique/);
   for (const label of [
-    'positive_s3',
-    'positive_kms',
     'negative_forbidden_prefix',
     'negative_wrong_bucket',
     'negative_wrong_key',
@@ -87,6 +89,7 @@ test('positive and every negative boundary require CloudTrail event evidence', (
     assert.match(script, new RegExp(`query_one_event ${label}`));
   }
   assert.match(script, /DENIED_AND_OBSERVED_EXACTLY_ONCE/);
+  assert.match(script, /positive_s3:\{state:"OBSERVED_EXACTLY_ONCE"/);
   assert.match(script, /CLOUDTRAIL_EXACT_EVENT_BINDING=PASS/);
   assert.doesNotMatch(script, /cloudtrail lookup-events/);
 });

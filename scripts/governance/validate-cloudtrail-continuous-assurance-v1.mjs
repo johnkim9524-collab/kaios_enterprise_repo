@@ -187,6 +187,11 @@ assert.equal((eventAssurance.match(/get-object-retention/g) || []).length, 2);
 assert.ok(eventAssurance.includes('probe-object-retention.json'));
 assert.ok(eventAssurance.includes('terminal-object-retention.json'));
 assert.equal(
+  (eventAssurance.match(/\.Retention\.RetainUntilDate/g) || []).length,
+  2,
+  'probe and terminal receipts must bind explicit retention readback',
+);
+assert.equal(
   (eventAssurance.match(/--object-attributes Checksum ObjectSize/g) || []).length,
   2,
   'checksum readback must pass AWS CLI list values as separate arguments',
@@ -216,6 +221,9 @@ for (const marker of [
   'ASSURANCE_SESSION_NAME',
   'positive_s3',
   'positive_kms',
+  'query_event_set positive_kms',
+  'OBSERVED_PROVIDER_EVENT_SET',
+  'map(.eventID) | unique',
   'negative_forbidden_prefix',
   'negative_wrong_bucket',
   'negative_wrong_key',
@@ -246,7 +254,7 @@ console.log(
     alerts: 2,
     exact_sha: 'REQUIRED',
     negative_canary: 'NON_MUTATING_FAIL_CLOSED',
-    event_observation: 'CLOUDWATCH_LOGS_EXACTLY_ONCE_BOUND',
+    event_observation: 'CLOUDWATCH_LOGS_EXACT_OPERATION_AND_PROVIDER_EVENT_SET_BOUND',
     production: 'HOLD',
     public: 'HOLD',
     g5: 'HOLD',
