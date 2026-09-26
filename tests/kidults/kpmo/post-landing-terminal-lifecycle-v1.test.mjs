@@ -43,8 +43,9 @@ test('natural Canonical refresh is exact-main, first-attempt, append-only and se
 
 test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assurance without another approval', () => {
   assert.match(truth, /workflow_run:\n    workflows: \['KPMO Canonical Generation V3 Apply'\]/);
+  assert.doesNotMatch(truth, /^  push:/m);
   assert.match(truth, /github\.event\.workflow_run\.head_sha/);
-  assert.match(sentinelTrigger, /KPMO Live Canonical Issue Truth V1'.*events:\['push','workflow_run','workflow_dispatch','issues'\]/);
+  assert.match(sentinelTrigger, /KPMO Live Canonical Issue Truth V1'.*events:\['workflow_run','workflow_dispatch'\]/);
   assert.equal(discovery.match(/coordination\/kidults\/product\/representative-anchor-input-manifest-v1\.json/g)?.length, 2);
   assert.match(reserve, /workflow_run:\n    workflows:\n      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'/);
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);

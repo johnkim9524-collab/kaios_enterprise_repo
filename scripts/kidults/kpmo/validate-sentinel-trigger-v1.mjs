@@ -10,7 +10,7 @@ export const PRODUCER_COMPLETIONS=Object.freeze([
   {name:'KIDULTS ASI SHADOW Operating Evidence v1',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch']},
   {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch']},
   {name:'KIDULTS ASI Sharded Source Reserve v1',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch']},
-  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_run','workflow_dispatch','issues']},
+  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run','workflow_dispatch']},
 ]);
 const fail=code=>{throw new Error(code);};
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
