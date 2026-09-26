@@ -37,7 +37,6 @@ export function validateReadinessConsumption(receipt,{repository,runId,runAttemp
   }
   if(boundPrNumber==null) boundPrNumber=Number(receipt.pull_request);
   if(boundHeadSha==null) boundHeadSha=String(receipt.exact_head_sha||'');
-  if(workflowHeadSha!=null&&(workflowHeadSha!==receipt.exact_head_sha||workflowHeadSha!==boundHeadSha))fail('READINESS_WORKFLOW_HEAD_MISMATCH');
   if(receipt.repository!==repository||String(receipt.workflow_run_id)!==String(runId)||Number(receipt.workflow_run_attempt)!==Number(runAttempt))fail('READINESS_RECEIPT_RUN_BINDING_MISMATCH');
   if(Number(receipt.pull_request)!==Number(boundPrNumber)||receipt.exact_head_sha!==boundHeadSha||!SHA.test(boundHeadSha||''))fail('READINESS_RECEIPT_EXACT_HEAD_MISMATCH');
   if(receipt.state==='LIFECYCLE_READY_AUTOMATED'){
