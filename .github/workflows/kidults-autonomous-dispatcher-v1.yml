@@ -6,7 +6,7 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_run:
-    workflows: [CI Validation, KPMO PR Lifecycle Integrity V1]
+    workflows: [CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Governed Landing Authorization V1]
     types: [completed]
   schedule:
     - cron: '*/10 * * * *'
@@ -48,6 +48,25 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+
+      - name: Download exact-head governed readiness receipt
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: kidults-governed-landing-readiness-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ runner.temp }}/kidults-governed-landing-readiness
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Consume bounded exact-head readiness or fail for automatic reconvergence
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
+        env:
+          READINESS_RUN_ID: ${{ github.event.workflow_run.id }}
+          READINESS_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          READINESS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          READINESS_HEAD_SHA: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
+          READINESS_MAXIMUM_AGE_SECONDS: '900'
+        run: node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs "$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json"
 
       - name: Discover exact eligible PR bindings
         id: discover
