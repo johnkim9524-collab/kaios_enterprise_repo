@@ -33,14 +33,14 @@ export function validateReadinessConsumption(receipt,{repository,runId,runAttemp
       && String(pr?.head?.sha||pr?.head_sha||'')===String(receipt.exact_head_sha||''));
     if(!matched)fail('READINESS_WORKFLOW_RUN_PR_BINDING_MISMATCH');
   }
+  if(receipt.repository!==repository||String(receipt.workflow_run_id)!==String(runId)||Number(receipt.workflow_run_attempt)!==Number(runAttempt))fail('READINESS_RECEIPT_RUN_BINDING_MISMATCH');
+  if(Number(receipt.pull_request)!==Number(prNumber)||receipt.exact_head_sha!==headSha||!SHA.test(headSha||''))fail('READINESS_RECEIPT_EXACT_HEAD_MISMATCH');
   if(TERMINAL_NONCONSUMABLE_STATES.has(receipt.state)){
     if(receipt.atomic_landing_required!==false)fail('READINESS_RECEIPT_TERMINAL_BOUNDARY_INVALID');
     if(receipt.production!=='HOLD'||receipt.public_release!=='HOLD'||receipt.g5!=='HOLD')fail('READINESS_RECEIPT_HOLD_BOUNDARY_INVALID');
     return {state:'READINESS_NONCONSUMABLE_TERMINAL',receipt_state:receipt.state,dispatch_eligible:false,pull_request:Number(receipt.pull_request),exact_head_sha:receipt.exact_head_sha,production:'HOLD',public_release:'HOLD',g5:'HOLD'};
   }
   if(receipt.state!=='READY_PENDING_ATOMIC_LANDING')fail(`READINESS_RECEIPT_NOT_CONSUMABLE:${receipt.state||'missing'}`);
-  if(receipt.repository!==repository||String(receipt.workflow_run_id)!==String(runId)||Number(receipt.workflow_run_attempt)!==Number(runAttempt))fail('READINESS_RECEIPT_RUN_BINDING_MISMATCH');
-  if(Number(receipt.pull_request)!==Number(prNumber)||receipt.exact_head_sha!==headSha||!SHA.test(headSha||''))fail('READINESS_RECEIPT_EXACT_HEAD_MISMATCH');
   if(receipt.ordinary_readiness_published_success!==false||receipt.atomic_landing_required!==true||receipt.final_live_reread!==true)fail('READINESS_RECEIPT_AUTHORITY_BOUNDARY_INVALID');
   if(receipt.production!=='HOLD'||receipt.public_release!=='HOLD'||receipt.g5!=='HOLD')fail('READINESS_RECEIPT_HOLD_BOUNDARY_INVALID');
   const evaluated=Date.parse(receipt.evaluated_at);if(!Number.isFinite(evaluated)||evaluated>now)fail('READINESS_RECEIPT_TIME_INVALID');
