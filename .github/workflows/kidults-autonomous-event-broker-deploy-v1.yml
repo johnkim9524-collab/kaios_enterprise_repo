@@ -64,14 +64,19 @@ jobs:
           test -n "$AWS_ROLE_ARN"
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
           CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-broker-deploy-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
           read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
           {
             echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
             echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
             echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
             echo "AWS_REGION=ap-northeast-2"
           } >> "$GITHUB_ENV"
+          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
 
       - name: Deploy exact STAGING broker stack without console
         env:
@@ -89,9 +94,24 @@ jobs:
             --template-body file://infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters ParameterKey=GitHubAppId,ParameterValue="$GITHUB_APP_ID" ParameterKey=GitHubInstallationId,ParameterValue="$GITHUB_INSTALLATION_ID" ParameterKey=GitHubPrivateKeySecretArn,ParameterValue="$GITHUB_PRIVATE_KEY_SECRET_ARN" ParameterKey=GitHubRepositoryId,ParameterValue="$GITHUB_REPOSITORY_ID" ParameterKey=GitHubRepository,ParameterValue="$GITHUB_REPOSITORY" ParameterKey=GitHubOidcProviderArn,ParameterValue="$GITHUB_OIDC_PROVIDER_ARN" >/dev/null
+          set +e
           aws cloudformation wait change-set-create-complete --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
-          aws cloudformation execute-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
-          aws cloudformation wait stack-update-complete --stack-name "${{ inputs.stack_name }}"
+          wait_status=$?
+          set -e
+          if [ "$wait_status" -eq 0 ]; then
+            aws cloudformation execute-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
+            aws cloudformation wait stack-update-complete --stack-name "${{ inputs.stack_name }}"
+          else
+            change_status=$(aws cloudformation describe-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}" --query Status --output text)
+            change_reason=$(aws cloudformation describe-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}" --query StatusReason --output text)
+            if [ "$change_status" = "FAILED" ] && [[ "$change_reason" == *"didn't contain changes"* ]]; then
+              echo "Exact template is already deployed; continuing with canary verification."
+              aws cloudformation delete-change-set --stack-name "${{ inputs.stack_name }}" --change-set-name "${{ inputs.change_set_name }}"
+            else
+              echo "Change set creation failed: status=$change_status reason=$change_reason" >&2
+              exit 1
+            fi
+          fi
 
       - name: Run fail-closed negative canary and seal deployment evidence
         run: |

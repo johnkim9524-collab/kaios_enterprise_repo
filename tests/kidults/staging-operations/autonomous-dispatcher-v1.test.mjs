@@ -93,6 +93,28 @@ assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
 assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
 assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);
 
+const oidcWorkflowPaths=[
+  '.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml',
+  '.github/workflows/kidults-autonomous-dispatcher-v1.yml',
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+];
+for(const workflowPath of oidcWorkflowPaths){
+  const workflow=fs.readFileSync(workflowPath,'utf8');
+  const sessions=(workflow.match(/read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length;
+  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -r/g)||[]).length;
+  assert.ok(sessions>0,`expected OIDC session blocks in ${workflowPath}`);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_ACCESS_KEY_ID"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SECRET_ACCESS_KEY"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SESSION_TOKEN"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
+}
+assert.match(deployWorkflow,/change_status.*describe-change-set/);
+assert.match(deployWorkflow,/didn't contain changes/);
+assert.match(deployWorkflow,/continuing with canary verification/);
+
 // Unsupported workflow syntax remains owner-reserved for this PR without stopping unrelated scans.
 assert.equal(isCandidateRejection(new CapabilityDeltaError('CAPABILITY_YAML_UNSUPPORTED_SYNTAX')),true);
 assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_READY')),true);
