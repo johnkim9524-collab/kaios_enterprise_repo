@@ -1,12 +1,12 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.9.0
+**Version:** 2.0.0
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
 **Effective:** Immediately after merge
-**Change rationale:** Make the whole authority chain, never a single file, the mandatory material change unit and require exact-main Producer Health Sentinel closure.
+**Change rationale:** Make autonomous closure ownership executable and forbid fragmented PR-by-PR completion, routine progress prompts, and repeated Owner approval for authorized reversible internal work.
 
 **Constitutional authority:** Article 0, the KIDULTS Supreme Platform Philosophy in [`CONSTITUTION.md`](../CONSTITUTION.md), is the highest governing layer and the highest AI execution criterion. This policy inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles and may not weaken or override them. Any conflict must be disclosed and resolved fail-closed in favor of the Constitution.
 
@@ -148,6 +148,14 @@ Every material change must treat this complete authority chain as one indivisibl
 The change must reconcile producer and consumer schema versions, artifact identity and retention, trigger ordering and concurrency, exact-SHA provenance, fixtures, validators, workflows, inventories, recovery paths, canonical truth, and terminal receipts. Supported versions require positive tests; stale, unsupported, and future versions require negative tests. A green PR or isolated file test is insufficient. Completion is forbidden until the exact-landed main revision reproduces and consumes the artifacts and the final Producer Health Sentinel succeeds. Missing or unclassified downstream evidence fails closed while Production/Public/G5 and Owner-reserved gates remain unchanged.
 
 The machine contract is `coordination/kidults/governance/authority-chain-change-unit-policy-v1.json` and its stable identity is `AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT`.
+
+### 4.7 Autonomous closure ownership
+
+Every authorized reversible internal defect is one root incident owned by one accountable task session until terminal closure. Detection, containment, root-cause classification, whole-chain mapping, implementation, regression and adversarial verification, exact-main landing, whole-chain reproduction and consumption, and Producer Health Sentinel success are one continuous operation. PR creation, CI success, merge, or isolated workflow success is intermediate evidence only.
+
+The agent and its automation must continue bounded diagnosis and remediation without routine Program Owner prompts. They may return control only for `COMPLETE_VERIFIED`, an Owner-reserved Production/Public/G5/legal/spend/contract/irreversible decision, an external permission or provider dependency with no authorized path, or exhausted bounded retries accompanied by one exact root blocker. `UNKNOWN` may be transient but cannot be a terminal failure code. Duplicate incidents and unbounded retry for the same exact SHA, input digest, and failure code are forbidden.
+
+The machine contract is `coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json` and its stable identity is `AI-022 / AUTONOMOUS_CLOSURE_OWNERSHIP`.
 
 ## 5. State model
 

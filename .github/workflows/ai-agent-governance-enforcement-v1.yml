@@ -15,6 +15,7 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json'
+      - 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
@@ -31,6 +32,7 @@ on:
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'scripts/governance/validate-autonomous-closure-ownership-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ci-validation.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
@@ -51,6 +53,7 @@ on:
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
       - 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json'
+      - 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
@@ -67,6 +70,7 @@ on:
       - 'scripts/governance/validate-ai-agent-operating-rules-v1.mjs'
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
+      - 'scripts/governance/validate-autonomous-closure-ownership-v1.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ci-validation.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
@@ -159,6 +163,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs | tee /tmp/ai-agent-report-after-remediation-contract-validation-v1.json
+          node scripts/governance/validate-autonomous-closure-ownership-v1.mjs | tee /tmp/autonomous-closure-ownership-validation-v1.json
       - name: Validate a compliant evidence-bound repository status receipt through both gates
         run: |
           set -euo pipefail
