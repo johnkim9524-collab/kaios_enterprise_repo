@@ -25,7 +25,7 @@ export function validateReadinessConsumption(receipt,{repository,runId,runAttemp
   if(workflowEvent!=null&&!['pull_request','pull_request_target'].includes(workflowEvent))fail('READINESS_WORKFLOW_EVENT_INVALID');
   if(workflowHeadBranch!=null&&workflowHeadBranch!=='main')fail('READINESS_WORKFLOW_HEAD_BRANCH_INVALID');
   if(workflowRepository!=null&&workflowRepository!==repository)fail('READINESS_WORKFLOW_REPOSITORY_MISMATCH');
-  if(workflowHeadSha!=null&&workflowHeadSha!==receipt.exact_head_sha)fail('READINESS_WORKFLOW_HEAD_MISMATCH');
+  if(workflowHeadSha!=null&&(workflowHeadSha!==receipt.exact_head_sha||workflowHeadSha!==headSha))fail('READINESS_WORKFLOW_HEAD_MISMATCH');
   const triggerPullRequests=parsePullRequests(workflowPullRequests);
   if(triggerPullRequests){
     const matched=triggerPullRequests.some(pr=>Number(pr?.number)===Number(receipt.pull_request)
