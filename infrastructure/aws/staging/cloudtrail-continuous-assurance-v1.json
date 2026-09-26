@@ -439,7 +439,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "kidults-cloudtrail-assurance-staging-role",
-        "MaxSessionDuration": 900,
+        "MaxSessionDuration": 3600,
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [

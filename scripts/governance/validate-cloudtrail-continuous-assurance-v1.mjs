@@ -78,7 +78,7 @@ for (const name of [
 
 const role = resources.CloudTrailAssuranceRole;
 assert.equal(role.Type, 'AWS::IAM::Role');
-assert.equal(role.Properties.MaxSessionDuration, 900);
+assert.equal(role.Properties.MaxSessionDuration, 3600);
 const trust = role.Properties.AssumeRolePolicyDocument.Statement[0];
 assert.equal(trust.Action, 'sts:AssumeRoleWithWebIdentity');
 assert.deepEqual(trust.Principal.Federated, { Ref: 'GitHubOidcProviderArn' });
