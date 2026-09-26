@@ -111,7 +111,7 @@ assert(contract.enforcement?.whole_authority_chain_change_unit_required === true
 assert(contract.enforcement?.autonomous_closure_ownership_required === true, 'AUTONOMOUS_CLOSURE_OWNERSHIP_REQUIRED');
 assert(contract.authority_chain_change_unit_policy_path === files.authorityChainPolicy, 'AUTHORITY_CHAIN_POLICY_PATH');
 assert(authorityChainPolicy.id === 'kidults-authority-chain-change-unit-policy-v1', 'AUTHORITY_CHAIN_POLICY_ID');
-assert(authorityChainPolicy.version === '1.0.0' && authorityChainPolicy.status === 'MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'AUTHORITY_CHAIN_POLICY_STATE');
+assert(authorityChainPolicy.version === '1.1.0' && authorityChainPolicy.status === 'MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'AUTHORITY_CHAIN_POLICY_STATE');
 assert(authorityChainPolicy.change_unit === 'WHOLE_AUTHORITY_CHAIN_NOT_SINGLE_FILE', 'AUTHORITY_CHAIN_CHANGE_UNIT');
 assert(authorityChainPolicy.trigger_compatibility_contract_path === files.triggerCompatibilityContract, 'AUTHORITY_CHAIN_TRIGGER_CONTRACT_PATH');
 assert(triggerCompatibilityContract.id === 'kidults-authority-chain-trigger-compatibility-v1', 'TRIGGER_COMPATIBILITY_CONTRACT_ID');
@@ -119,6 +119,10 @@ assert(exactJson(triggerCompatibilityContract.allowed_events, ['workflow_run','w
 assert(exactJson(authorityChainPolicy.canonical_chain, ['PRODUCER','ARTIFACT','AUTONOMOUS_RESOLUTION_LAYER','REQUIREMENT','RESERVE','CANONICAL_TRUTH','PRODUCER_HEALTH_SENTINEL']), 'AUTHORITY_CHAIN_ORDER');
 assert(authorityChainPolicy.required_validation?.producer_consumer_contract_matrix === true, 'AUTHORITY_CHAIN_CONTRACT_MATRIX');
 assert(authorityChainPolicy.required_validation?.unsupported_stale_and_future_version_negative_cases === true, 'AUTHORITY_CHAIN_NEGATIVE_VERSIONS');
+assert(authorityChainPolicy.required_validation?.closed_or_merged_prereadiness_authority_forbidden === true, 'AUTHORITY_CHAIN_TERMINAL_PREREADINESS_FORBIDDEN');
+assert(authorityChainPolicy.required_validation?.exact_successful_readiness_receipt_dispatcher_consumption === true, 'AUTHORITY_CHAIN_DISPATCHER_RECEIPT_CONSUMPTION');
+assert(authorityChainPolicy.required_validation?.governed_canary_end_to_end_terminal_status === true, 'AUTHORITY_CHAIN_GOVERNED_CANARY_TERMINAL');
+assert(authorityChainPolicy.required_validation?.null_or_missing_digest_type_guard_required === true, 'AUTHORITY_CHAIN_NULL_DIGEST_GUARD');
 assert(authorityChainPolicy.required_validation?.exact_landed_main_reproduction_and_consumption === true, 'AUTHORITY_CHAIN_EXACT_MAIN');
 assert(authorityChainPolicy.required_validation?.producer_health_sentinel_success_before_complete === true, 'AUTHORITY_CHAIN_SENTINEL');
 assert(authorityChainPolicy.completion_policy?.single_file_validation_sufficient === false, 'AUTHORITY_CHAIN_SINGLE_FILE_FORBIDDEN');

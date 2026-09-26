@@ -86,6 +86,8 @@
     "gate_workflow": "KPMO Continuous Assurance Success Authority Gate V1",
     "producer_health_source": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
     "coverage_scope": "CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM",
+    "producer_health_receipt_digest_must_be_string": true,
+    "null_digest_runtime_exception_forbidden": true,
     "required_bindings": [
       "repository",
       "upstream_assurance_run_id",

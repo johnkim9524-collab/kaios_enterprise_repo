@@ -25,7 +25,7 @@ permissions: {}
 
 jobs:
   dispatch-eligible-internal-prs:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id) && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'pull_request_target') && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id) && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.repository.full_name == github.repository && github.event.workflow_run.head_branch == 'main'))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-DISPATCHER
     timeout-minutes: 10
@@ -58,24 +58,61 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
 
-      - name: Consume bounded exact-head readiness or fail for automatic reconvergence
+      - name: Bind exact workflow_run PR identity before authority consumption
+        id: bind_workflow_run
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
+        env:
+          WORKFLOW_RUN_PULL_REQUESTS: ${{ toJson(github.event.workflow_run.pull_requests) }}
+        run: |
+          set -euo pipefail
+          jq -e --argjson repo_id "$GITHUB_REPOSITORY_ID" 'type=="array" and length>0 and .[0].head.repo.id == $repo_id' <<<"$WORKFLOW_RUN_PULL_REQUESTS" >/dev/null
+          pr_number=$(jq -r 'if type=="array" and length>0 then .[0].number // empty else empty end' <<<"$WORKFLOW_RUN_PULL_REQUESTS")
+          head_sha=$(jq -r 'if type=="array" and length>0 then .[0].head.sha // empty else empty end' <<<"$WORKFLOW_RUN_PULL_REQUESTS")
+          [[ "$pr_number" =~ ^[1-9][0-9]*$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Consume bounded exact-head readiness or classify terminal state
+        id: consume_readiness
         if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
         env:
           READINESS_RUN_ID: ${{ github.event.workflow_run.id }}
           READINESS_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          READINESS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
-          READINESS_HEAD_SHA: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
+          READINESS_PR_NUMBER: ${{ steps.bind_workflow_run.outputs.pr_number || github.event.pull_request.number }}
+          READINESS_HEAD_SHA: ${{ steps.bind_workflow_run.outputs.head_sha || github.event.pull_request.head.sha }}
+          READINESS_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          READINESS_WORKFLOW_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          READINESS_WORKFLOW_EVENT: ${{ github.event.workflow_run.event }}
+          READINESS_WORKFLOW_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          READINESS_WORKFLOW_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          READINESS_WORKFLOW_REPOSITORY: ${{ github.event.workflow_run.repository.full_name }}
+          READINESS_WORKFLOW_PULL_REQUESTS: ${{ toJson(github.event.workflow_run.pull_requests) }}
           READINESS_MAXIMUM_AGE_SECONDS: '900'
-        run: node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs "$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json"
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs \
+            "$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json" \
+            > "$RUNNER_TEMP/kidults-governed-readiness-consumption.json"
+          cat "$RUNNER_TEMP/kidults-governed-readiness-consumption.json"
+          echo "dispatch_eligible=$(jq -r '.dispatch_eligible // false' "$RUNNER_TEMP/kidults-governed-readiness-consumption.json")" >> "$GITHUB_OUTPUT"
+          echo "pull_request=$(jq -r '.pull_request // empty' "$RUNNER_TEMP/kidults-governed-readiness-consumption.json")" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(jq -r '.exact_head_sha // empty' "$RUNNER_TEMP/kidults-governed-readiness-consumption.json")" >> "$GITHUB_OUTPUT"
 
       - name: Discover exact eligible PR bindings
         id: discover
         env:
+          DISPATCH_ELIGIBLE: ${{ steps.consume_readiness.outputs.dispatch_eligible }}
           GITHUB_TOKEN: ${{ github.token }}
-          KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}
+          KIDULTS_PR_NUMBER: ${{ steps.consume_readiness.outputs.pull_request || steps.bind_workflow_run.outputs.pr_number || github.event.pull_request.number || inputs.pull_request }}
         run: |
           set -euo pipefail
-          node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+          if [ "${{ github.event_name }}" = "workflow_run" ] && [ "${{ github.event.workflow_run.name }}" = "KIDULTS Governed Landing Authorization V1" ] && [ "${DISPATCH_ELIGIBLE:-false}" != "true" ]; then
+            mkdir -p out/autonomous-dispatcher-v1
+            printf '[]\n' > out/autonomous-dispatcher-v1/results.json
+          else
+            node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
+          fi
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
 

@@ -12,6 +12,7 @@ const reserve = read('.github/workflows/kidults-asi-sharded-source-reserve-v1.ym
 const sentinel = read('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml');
 const sentinelTrigger = read('scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs');
 const assurance = read('.github/workflows/kidults-platform-continuous-assurance-v1.yml');
+const canary = JSON.parse(read('coordination/kidults/kpmo/autonomous-e2e-canary-v1.json'));
 
 test('one Program Owner landing approval has a finite automatic terminal path', () => {
   assert.equal(contract.classification, 'DEFECT_REMEDIATED');
@@ -20,10 +21,15 @@ test('one Program Owner landing approval has a finite automatic terminal path', 
   assert.equal(contract.governance_boundary.canonical_manual_recovery_requires_program_owner_approval, true);
   assert.equal(contract.termination.approval_loop_possible, false);
   assert.deepEqual(contract.terminal_sequence, [
-    'ATOMIC_GOVERNED_LANDING', 'PROTECTED_MAIN_PUSH', 'CANONICAL_V3_APPEND_ONLY_REFRESH',
+    'READY_PENDING_ATOMIC_LANDING_RECEIPT', 'AUTONOMOUS_DISPATCHER_CONSUMPTION', 'ATOMIC_GOVERNED_LANDING', 'EXACT_LANDED_POST_MERGE_VALIDATION', 'PROTECTED_MAIN_PUSH', 'CANONICAL_V3_APPEND_ONLY_REFRESH',
     'LIVE_CANONICAL_TRUTH', 'EXACT_SHA_PRODUCER_ROOT_CONVERGENCE', 'SHADOW_OPERATING_EVIDENCE',
     'P0B_P1_ARL_REQUIREMENT_COVERAGE', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
     'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'PLATFORM_RUNTIME_GREEN',
+  ]);
+  assert.deepEqual(canary.expected_path, [
+    'EXACT_CANDIDATE_DISCOVERY', 'TRACK_ROLE_EVENT', 'KPMO_ROLE_EVENT', 'INDEPENDENT_MACHINE_VERIFICATION',
+    'DURABLE_SINGLE_USE_RESERVATION', 'READY_PENDING_ATOMIC_LANDING_RECEIPT', 'AUTONOMOUS_DISPATCHER_CONSUMPTION',
+    'GOVERNED_LANDING', 'EXACT_LANDED_POST_MERGE_VALIDATION', 'TERMINAL_RECEIPT', 'TERMINAL_STATUS', 'PROTECTED_MAIN_READBACK',
   ]);
 });
 

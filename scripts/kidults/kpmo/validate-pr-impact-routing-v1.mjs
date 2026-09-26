@@ -6,9 +6,14 @@ const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
 const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
-const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
+const dispatcherWorkflowRunPullRequestsBinding = 'WORKFLOW_RUN_PULL_REQUESTS: ${{ toJson(github.event.workflow_run.pull_requests) }}';
+const dispatcherWorkflowRunExactPrBinding = `pr_number=$(jq -r 'if type=="array" and length>0 then .[0].number // empty else empty end' <<<"$WORKFLOW_RUN_PULL_REQUESTS")`;
+const dispatcherWorkflowRunExactHeadBinding = `head_sha=$(jq -r 'if type=="array" and length>0 then .[0].head.sha // empty else empty end' <<<"$WORKFLOW_RUN_PULL_REQUESTS")`;
+const dispatcherReadinessPrBinding = 'READINESS_PR_NUMBER: ${{ steps.bind_workflow_run.outputs.pr_number || github.event.pull_request.number }}';
+const dispatcherReadinessHeadBinding = 'READINESS_HEAD_SHA: ${{ steps.bind_workflow_run.outputs.head_sha || github.event.pull_request.head.sha }}';
+const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ steps.consume_readiness.outputs.pull_request || steps.bind_workflow_run.outputs.pr_number || github.event.pull_request.number || inputs.pull_request }}';
 const dispatcherDirectRepositoryGuard = "github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id";
-const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
+const dispatcherWorkflowRunRepositoryGuard = `jq -e --argjson repo_id "$GITHUB_REPOSITORY_ID" 'type=="array" and length>0 and .[0].head.repo.id == $repo_id' <<<"$WORKFLOW_RUN_PULL_REQUESTS" >/dev/null`;
 const allowedUnbounded = new Set([
   'ci-validation.yml',
   autonomousDispatcherWorkflow,
@@ -29,13 +34,17 @@ function autonomousDispatcherViolations(source) {
   if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) {
     problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
   }
-  if (!source.includes(dispatcherDirectRepositoryGuard) || !source.includes(dispatcherWorkflowRunRepositoryGuard)) {
+  if (!source.includes(dispatcherDirectRepositoryGuard) || !source.includes(dispatcherWorkflowRunPullRequestsBinding) || !source.includes(dispatcherWorkflowRunRepositoryGuard)) {
     problems.push('DISPATCHER_SAME_REPOSITORY_GUARD_MISSING');
   }
   if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) {
     problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
   }
-  if (!source.includes(dispatcherExactPrBinding)) {
+  if (!source.includes(dispatcherWorkflowRunExactPrBinding)
+    || !source.includes(dispatcherWorkflowRunExactHeadBinding)
+    || !source.includes(dispatcherReadinessPrBinding)
+    || !source.includes(dispatcherReadinessHeadBinding)
+    || !source.includes(dispatcherExactPrBinding)) {
     problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
   }
   return problems;
@@ -230,9 +239,9 @@ if (files.includes(autonomousDispatcherWorkflow)) {
   const mutations = [
     source.replace('    branches: [main]\n', ''),
     source.replace(` && (${dispatcherDirectRepositoryGuard})`, ''),
-    source.replace(` && ${dispatcherWorkflowRunRepositoryGuard}`, ''),
+    source.replace(dispatcherWorkflowRunRepositoryGuard, 'jq -e \'.[0].head.repo.id == 0\' <<<"$WORKFLOW_RUN_PULL_REQUESTS" >/dev/null'),
     source.replace('          persist-credentials: false', '          persist-credentials: true'),
-    source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
+    source.replace(dispatcherWorkflowRunExactPrBinding, 'pr_number=""').replace(dispatcherWorkflowRunExactHeadBinding, 'head_sha=""').replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
   ];
   for (const [index, mutated] of mutations.entries()) {
     if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {

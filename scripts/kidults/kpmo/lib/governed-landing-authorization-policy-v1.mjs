@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.7.0';
+const EXPECTED_POLICY_VERSION = '1.9.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -17,6 +17,7 @@ const EXACT_GENERATION_POLICY = Object.freeze({
   single_governed_consumption_required: true,
   pre_ready_approval_allowed: false,
   multiple_current_generation_approvals_allowed: false,
+  closed_or_merged_prereadiness_authority_forbidden: true,
   lifecycle_root_issue: 2028,
   root_issue: 1787,
 });
@@ -51,6 +52,8 @@ const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
   postmerge_exact_main_tree_and_parent_binding_required: true,
   postmerge_exact_merge_sha_push_suite_required: true,
   terminal_pass_requires_postmerge_success: true,
+  terminal_closed_state: 'CLOSED_TERMINAL_NON_AUTHORIZING',
+  terminal_merged_state: 'MERGED_POST_LANDING_VERIFICATION_REQUIRED',
   failure_revokes_exact_head_status: true,
   immediate_post_status_premerge_reread_required: true,
   external_transport_race_detected_postmerge_fail_closed: true,
@@ -112,6 +115,19 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
     requireExact(Object.hasOwn(atomic, field), `ATOMIC_REPLAY_FIELD_MISSING:${field}`);
     requireExact(atomic[field] === expected, `ATOMIC_REPLAY_FIELD_INVALID:${field}`);
   }
+
+  const draft = policy.draft_policy;
+  requireExact(draft && typeof draft === 'object' && !Array.isArray(draft), 'DRAFT_POLICY_MISSING');
+  requireExact(draft.ordinary_github_token_ready_mutation_forbidden === true,
+    'DRAFT_POLICY_TOKEN_BOUNDARY_INVALID');
+  requireExact(draft.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER',
+    'DRAFT_POLICY_TOKEN_SOURCE_INVALID');
+  requireExactArray(draft.ready_transition_required_permissions, ['pull_requests:write','metadata:read'],
+    'DRAFT_POLICY_REQUIRED_PERMISSIONS');
+  requireExact(draft.ready_transition_installation_identity_bound === true,
+    'DRAFT_POLICY_INSTALLATION_BINDING_INVALID');
+  requireExact(draft.ready_transition_post_mutation_reread_required === true,
+    'DRAFT_POLICY_POST_MUTATION_REREAD_INVALID');
 
   return {
     policy_version: EXPECTED_POLICY_VERSION,

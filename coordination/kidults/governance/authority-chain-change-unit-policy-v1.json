@@ -1,6 +1,6 @@
 {
   "id": "kidults-authority-chain-change-unit-policy-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "scope": "REPOSITORY_WIDE_MATERIAL_CHANGES",
@@ -34,6 +34,10 @@
     "unsupported_stale_and_future_version_negative_cases": true,
     "regression_tests": true,
     "adversarial_tests": true,
+    "closed_or_merged_prereadiness_authority_forbidden": true,
+    "exact_successful_readiness_receipt_dispatcher_consumption": true,
+    "governed_canary_end_to_end_terminal_status": true,
+    "null_or_missing_digest_type_guard_required": true,
     "exact_head_validation": true,
     "exact_landed_main_reproduction_and_consumption": true,
     "canonical_truth_after_upstream_terminal_completion": true,

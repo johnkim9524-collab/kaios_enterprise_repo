@@ -1,6 +1,6 @@
 {
   "id": "kidults-post-landing-platform-runtime-terminal-lifecycle-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "classification": "DEFECT_REMEDIATED",
   "defect": "The exact-main health sentinel observed Producer state but did not activate the SHADOW, REQUIREMENT, and RESERVE root chains, so a protected-main landing could remain VERIFIED_HOLD until unrelated schedules or manual dispatches happened to create exact-SHA artifacts.",
   "governance_boundary": {
@@ -10,7 +10,10 @@
     "canonical_manual_recovery_requires_program_owner_approval": true
   },
   "terminal_sequence": [
+    "READY_PENDING_ATOMIC_LANDING_RECEIPT",
+    "AUTONOMOUS_DISPATCHER_CONSUMPTION",
     "ATOMIC_GOVERNED_LANDING",
+    "EXACT_LANDED_POST_MERGE_VALIDATION",
     "PROTECTED_MAIN_PUSH",
     "CANONICAL_V3_APPEND_ONLY_REFRESH",
     "LIVE_CANONICAL_TRUTH",
