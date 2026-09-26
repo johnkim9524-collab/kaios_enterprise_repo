@@ -119,6 +119,7 @@ for (const action of [
   'iam:ListAttachedRolePolicies',
   'iam:ListRolePolicies',
   'iam:ListRoleTags',
+  'logs:DescribeIndexPolicies',
   'logs:DescribeMetricFilters',
   'logs:ListTagsForResource',
   's3:GetBucketAcl',
