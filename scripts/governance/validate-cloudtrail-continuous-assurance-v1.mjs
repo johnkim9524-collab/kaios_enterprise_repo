@@ -111,6 +111,7 @@ for (const action of [
   'logs:StopQuery',
   'cloudformation:DetectStackDrift',
   'cloudformation:DetectStackResourceDrift',
+  'cloudformation:DescribeStackResourceDrifts',
   'cloudwatch:DescribeAlarms',
   'iam:GetRole',
   's3:GetBucketEncryption',

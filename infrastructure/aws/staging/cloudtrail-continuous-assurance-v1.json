@@ -484,6 +484,7 @@
                     "cloudformation:DetectStackDrift",
                     "cloudformation:DetectStackResourceDrift",
                     "cloudformation:DescribeStackDriftDetectionStatus",
+                    "cloudformation:DescribeStackResourceDrifts",
                     "cloudformation:DescribeStacks",
                     "cloudwatch:DescribeAlarms",
                     "iam:GetRole",
