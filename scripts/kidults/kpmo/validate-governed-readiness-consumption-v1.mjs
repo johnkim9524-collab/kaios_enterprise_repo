@@ -23,7 +23,7 @@ export function validateReadinessConsumption(receipt,{repository,runId,runAttemp
   if(receipt?.id!=='kidults-governed-landing-readiness-receipt-v1'||receipt.version!=='1.0.0')fail('READINESS_RECEIPT_ID_VERSION_INVALID');
   if(workflowName!=null&&workflowName!==GOVERNED_WORKFLOW)fail('READINESS_WORKFLOW_NAME_MISMATCH');
   if(workflowConclusion!=null&&workflowConclusion!=='success')fail('READINESS_WORKFLOW_NOT_SUCCESS');
-  if(workflowEvent!=null&&!['pull_request_target','pull_request_review'].includes(workflowEvent))fail('READINESS_WORKFLOW_EVENT_INVALID');
+  if(workflowEvent!=null&&!['pull_request','pull_request_target','pull_request_review'].includes(workflowEvent))fail('READINESS_WORKFLOW_EVENT_INVALID');
   if(workflowHeadBranch!=null&&workflowHeadBranch!=='main')fail('READINESS_WORKFLOW_HEAD_BRANCH_INVALID');
   if(workflowRepository!=null&&workflowRepository!==repository)fail('READINESS_WORKFLOW_REPOSITORY_MISMATCH');
   if(workflowHeadSha!=null&&workflowHeadSha!==receipt.exact_head_sha)fail('READINESS_WORKFLOW_HEAD_MISMATCH');

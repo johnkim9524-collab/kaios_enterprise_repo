@@ -87,11 +87,12 @@ jobs:
       - name: Discover exact eligible PR bindings
         id: discover
         env:
+          DISPATCH_ELIGIBLE: ${{ steps.consume_readiness.outputs.dispatch_eligible }}
           GITHUB_TOKEN: ${{ github.token }}
           KIDULTS_PR_NUMBER: ${{ steps.consume_readiness.outputs.pull_request || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_run" ] && [ "${{ github.event.workflow_run.name }}" = "KIDULTS Governed Landing Authorization V1" ] && [ "${{ steps.consume_readiness.outputs.dispatch_eligible }}" != "true" ]; then
+          if [ "${{ github.event_name }}" = "workflow_run" ] && [ "${{ github.event.workflow_run.name }}" = "KIDULTS Governed Landing Authorization V1" ] && [ "${DISPATCH_ELIGIBLE:-false}" != "true" ]; then
             mkdir -p out/autonomous-dispatcher-v1
             printf '[]\n' > out/autonomous-dispatcher-v1/results.json
           else
