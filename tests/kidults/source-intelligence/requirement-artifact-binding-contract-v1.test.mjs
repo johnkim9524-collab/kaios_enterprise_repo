@@ -27,6 +27,14 @@ const mutationBoundaryValidator = fs.readFileSync(
   'utf8',
 ).replace(/\r\n/g, '\n');
 const gitAttributes = fs.readFileSync('.gitattributes', 'utf8').replace(/\r\n/g, '\n');
+const coverageContract = JSON.parse(fs.readFileSync(
+  'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json',
+  'utf8',
+));
+const producerWorkflow = fs.readFileSync(
+  '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml',
+  'utf8',
+).replace(/\r\n/g, '\n');
 
 test('Requirement consumes the same v1.4 binding emitted by its workflow', () => {
   assert.equal(schema.properties.version.const, '1.4.0');
@@ -45,6 +53,14 @@ test('legacy and unbound bindings remain fail closed', () => {
   assert.notEqual(schema.properties.version.const, '1.3.0');
   assert.equal(schema.additionalProperties, false);
   assert.equal(schema.properties.authoritative_producer_event.const, true);
+});
+
+test('ARL receipt producer and Requirement consumer share the canonical version contract', () => {
+  assert.equal(coverageContract.version, '1.3.0');
+  assert.equal(coverageContract.authoritative_inputs.resolution_receipt_version, '1.2.0');
+  assert.match(producerWorkflow, /kpmo-receipt-v1',version:'1\.2\.0'/);
+  assert.match(builder, /resolutionReceipt\.version === input\.resolution_receipt_version/);
+  assert.doesNotMatch(builder, /resolutionReceipt\.version === '1\.1\.0'/);
 });
 
 test('repository policy enforces LF for cross-platform contract bytes', () => {

@@ -14,6 +14,7 @@ on:
       - 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json'
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
@@ -49,6 +50,7 @@ on:
       - 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json'
       - '.github/copilot-instructions.md'
       - 'coordination/kidults/governance/ai-agent-operating-rules-v1.json'
+      - 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json'
       - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
       - 'coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json'
       - 'coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json'
@@ -134,6 +136,7 @@ jobs:
           node --check scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-operating-rules-v1.json','utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/authority-chain-change-unit-policy-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json','utf8'))"
@@ -271,6 +274,23 @@ jobs:
             exit 1
           fi
           mv /tmp/ai-agent-bootstrap-remediation-sequence-v1.json coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json
+      - name: Reject weakened whole authority-chain change unit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp coordination/kidults/governance/authority-chain-change-unit-policy-v1.json /tmp/authority-chain-policy.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='coordination/kidults/governance/authority-chain-change-unit-policy-v1.json';
+          const x=JSON.parse(fs.readFileSync(p,'utf8'));
+          x.completion_policy.single_file_validation_sufficient=true;
+          fs.writeFileSync(p,JSON.stringify(x,null,2));
+          NODE
+          if node scripts/governance/validate-ai-agent-operating-rules-v1.mjs; then
+            echo 'Validator accepted single-file completion' >&2
+            exit 1
+          fi
+          mv /tmp/authority-chain-policy.json coordination/kidults/governance/authority-chain-change-unit-policy-v1.json
       - name: Reject manual-only sharded reserve activation mutation
         shell: bash
         run: |

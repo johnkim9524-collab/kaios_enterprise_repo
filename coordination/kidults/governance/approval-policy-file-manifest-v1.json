@@ -9,20 +9,20 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 656
+    "file_count": 657
   },
   "files": [
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e30656d8a07b9b54748304f35156df0f73d06218",
-      "sha256": "sha256:cfadda63a8022788f6264edc1143407a6959f41f0d1d1ab768392890bd5e71a4"
+      "git_blob": "ea578de71daba77abc5fd79497251249f3f1976c",
+      "sha256": "sha256:76451643c1c6c3d9b0faf421f312ed62ffb17f3d936bad0489b95315c5005430"
     },
     {
       "path": ".github/copilot-instructions.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "d2a4ffb9199ecda8eb4c1a101c19141c3f9fbbc5",
-      "sha256": "sha256:2a6d9afe91f3fcf9d14270b089cb43edde2db0742c7007d668b4322d518f53ef"
+      "git_blob": "b2e7acd4c14b74ba19e02339b19cac8f204f14c7",
+      "sha256": "sha256:b04f891b9bbef025e1b9fdf3efaf71b89b6f84b92003e206cdf1d59e660da320"
     },
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
@@ -704,8 +704,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "05a921ded33d5ae067a942c59114b81d7368adb7",
-      "sha256": "sha256:0d256449e4478387d26ad0210d2fbf82c6257a83b5b7009b62976f96b5007c79"
+      "git_blob": "5592812da2cf57ad96faca79e44f55fd62844936",
+      "sha256": "sha256:1d5a4d49f583de03983201d8a5b7b99e2500d109652dd4eebd6834db12003f4f"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1268,8 +1268,21 @@
     {
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "62eacbf0cb1c9f5af7afff40a6e8c5b5e0414935",
-      "sha256": "sha256:f90802e1bd58d7cbe8a31918a48becff16eb88a11666637620fe5deb43d20e09",
+      "git_blob": "e28f2dea951fd44ab72edf73c8adf3f26d895b1a",
+      "sha256": "sha256:d1f1fcaa87d260920dff152aafefeef25848b9dfdfb47a22227ccab976c6cffb",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "ca2218ff39870ea3a09c14a3ffd0f84648d06e78",
+      "sha256": "sha256:d07cfb67ca150adf1b1eadf5a286fd71b44eebc53f3afe8f61d5126e9f021588",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5112,5 +5125,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:00a52d958b68e475656e8dd3c95c9073d105934e656d5ab89e468a8b7f29f485"
+  "manifest_sha256": "sha256:f80840a3959d354def89d5bcd5cd12551d9a0babc8d81fae21702767d5f7b26d"
 }

@@ -1,12 +1,12 @@
 # AI Agent Honesty, Transparency, and Execution Policy
 
 **Policy ID:** KPMO-AI-GOV-001  
-**Version:** 1.8.0
+**Version:** 1.9.0
 **Owner:** KPMO  
 **Classification:** Internal Platform Governance  
 **Status:** MANDATORY / FAIL-CLOSED  
 **Effective:** Immediately after merge
-**Change rationale:** Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, evidence review, protected authority gates, and human personnel boundaries.
+**Change rationale:** Make the whole authority chain, never a single file, the mandatory material change unit and require exact-main Producer Health Sentinel closure.
 
 **Constitutional authority:** Article 0, the KIDULTS Supreme Platform Philosophy in [`CONSTITUTION.md`](../CONSTITUTION.md), is the highest governing layer and the highest AI execution criterion. This policy inherits its Autonomous, Global, Irreplaceable Value, and Transparent principles and may not weaken or override them. Any conflict must be disclosed and resolved fail-closed in favor of the Constitution.
 
@@ -138,6 +138,16 @@ Exceptions remain protected: Production/G5, irreversible legal or security chang
 ### 4.5 Fail closed on uncertainty
 
 If evidence is missing, stale, inaccessible, or contradictory, the agent must report `UNKNOWN`, `BLOCKED`, `HOLD`, or `IMPLEMENTED_NOT_VERIFIED`. It must not construct a plausible completion narrative.
+
+### 4.6 Whole authority-chain change unit
+
+Every material change must treat this complete authority chain as one indivisible analysis and validation unit:
+
+`Producer → Artifact → Autonomous Resolution Layer → Requirement → Reserve → Canonical Truth → Producer Health Sentinel`
+
+The change must reconcile producer and consumer schema versions, artifact identity and retention, trigger ordering and concurrency, exact-SHA provenance, fixtures, validators, workflows, inventories, recovery paths, canonical truth, and terminal receipts. Supported versions require positive tests; stale, unsupported, and future versions require negative tests. A green PR or isolated file test is insufficient. Completion is forbidden until the exact-landed main revision reproduces and consumes the artifacts and the final Producer Health Sentinel succeeds. Missing or unclassified downstream evidence fails closed while Production/Public/G5 and Owner-reserved gates remain unchanged.
+
+The machine contract is `coordination/kidults/governance/authority-chain-change-unit-policy-v1.json` and its stable identity is `AI-021 / WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT`.
 
 ## 5. State model
 

@@ -1,6 +1,6 @@
 {
   "id": "kidults-agent-constitutional-readiness-manifest-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -52,14 +52,18 @@
       "domain": "AI_GOVERNANCE",
       "documents": [
         ".github/AI_AGENT_OPERATING_RULES.md",
-        "coordination/kidults/governance/ai-agent-operating-rules-v1.json"
+        "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+        "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json"
       ],
       "required_topics": [
         "fail closed",
         "evidence",
         "authority boundaries",
         "AI-019",
-        "AI-020"
+        "AI-020",
+        "AI-021",
+        "whole authority chain",
+        "exact-landed main reproduction"
       ]
     },
     {

@@ -1,12 +1,12 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
-  "change_rationale": "Register KPMO-inclusive fail-closed AI-agent accountability and non-delegation enforcement, immediate active-task and dispatch removal for exact-evidence-confirmed material violations, Agent JD bootstrap binding, controlled reinstatement, and permanent retirement conditions while preserving bounded helper use, protected gates, audit history, and human personnel boundaries.",
+  "change_rationale": "Register the whole authority chain as the mandatory material change unit and require producer-consumer contract closure, orchestration ordering, exact-main reproduction, canonical truth, and Producer Health Sentinel success before completion.",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
-    "policy_version": "1.8.0",
+    "policy_version": "1.9.0",
     "platform_constitution_path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "human_policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
     "root_instruction_path": "AGENTS.md",
@@ -20,6 +20,7 @@
     "report_after_remediation_gate_path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
     "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
     "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
+    "authority_chain_change_unit_policy_path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
     "validator_path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
     "bootstrap_validator_path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
     "report_after_remediation_validator_path": "scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs",
@@ -333,7 +334,7 @@
       "transparency_effect"
     ]
   },
-  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP", "ACCOUNTABILITY_AND_NON_DELEGATION"],
+  "constitutional_principles": ["ABSOLUTE_HONESTY", "COMPLETE_TRANSPARENCY", "EVIDENCE_BEFORE_STATUS", "NO_FABRICATED_PROGRESS", "EXECUTION_TRUTH", "LIVE_STATE_VERIFICATION", "IMMEDIATE_BLOCKER_DISCLOSURE", "IMMEDIATE_CORRECTION", "FIX_WITHIN_AUTHORITY", "NO_UNSUPPORTED_CONTINUITY_CLAIMS", "NO_CAPABILITY_INFLATION", "REGISTRY_IS_TRUTH", "LABEL_FACT_INFERENCE_PLAN_UNKNOWN", "FAIL_CLOSED_ON_UNCERTAINTY", "TRUST_OVER_SPEED", "PROACTIVE_ISSUE_OWNERSHIP", "LEAD_TO_VERIFIED_CLOSURE_AND_IMPROVEMENT", "GLOBAL_SCALE_STEWARDSHIP", "ACCOUNTABILITY_AND_NON_DELEGATION", "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT"],
   "leadership_rule_identities": {
     "AI-016": {
       "name": "PROACTIVE_ISSUE_OWNERSHIP",

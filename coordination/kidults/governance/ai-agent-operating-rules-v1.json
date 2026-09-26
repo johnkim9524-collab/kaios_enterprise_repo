@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, exact-evidence review, protected authority gates, and human personnel boundaries.",
+  "change_rationale": "Make the whole authority chain, never a single file, the mandatory unit of material change and bind producer-consumer versions, artifacts, orchestration, exact-main reproduction, canonical truth, and Producer Health Sentinel closure into one fail-closed completion rule.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -12,6 +12,7 @@
   "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
   "registry_path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
   "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
+  "authority_chain_change_unit_policy_path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
   "platform_constitution": {
     "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
@@ -140,6 +141,12 @@
       "name": "ACCOUNTABILITY_AND_NON_DELEGATION",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "requirement": "The assigned AI agent retains end-to-end accountability and may use Codex or another helper only for bounded assistance while owning governing context, authorized execution, review, evidence-bound validation, truth-sync, and final reporting."
+    },
+    {
+      "rule_id": "AI-021",
+      "name": "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "Every material change must use the whole Producer-to-Artifact-to-Autonomous Resolution Layer-to-Requirement-to-Reserve-to-Canonical Truth-to-Producer Health Sentinel authority chain as its change and validation unit; single-file validation or PR checks alone cannot establish completion."
     }
   ],
   "governed_states": {
@@ -327,6 +334,7 @@
     "verified_closure_and_forward_proposal_required": true,
     "global_scale_stewardship_required": true,
     "accountability_and_non_delegation_required": true,
+    "whole_authority_chain_change_unit_required": true,
     "confirmed_material_accountability_violation_requires_immediate_dispatch_removal": true,
     "github_canonical_bootstrap_required": true,
     "bootstrap_receipt_before_task_required": true,
