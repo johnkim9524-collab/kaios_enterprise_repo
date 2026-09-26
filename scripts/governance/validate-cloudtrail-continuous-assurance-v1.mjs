@@ -64,6 +64,7 @@ assert.deepEqual(
 const logGroup = resources.CloudTrailLogGroup;
 assert.equal(logGroup.DeletionPolicy, 'Retain');
 assert.equal(logGroup.UpdateReplacePolicy, 'Retain');
+assert.equal(logGroup.Properties.LogGroupName, '/aws/cloudtrail/kidults-staging-continuous-assurance-v1');
 assert.equal(logGroup.Properties.RetentionInDays, 3653);
 
 for (const name of [
