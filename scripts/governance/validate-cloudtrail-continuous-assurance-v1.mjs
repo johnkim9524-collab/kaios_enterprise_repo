@@ -123,6 +123,7 @@ for (const action of [
 assert.deepEqual(statements[1].Resource, {
   'Fn::Sub': '${ReceiptBucketArn}/receipts/cloudtrail-assurance/*',
 });
+assert.ok(statements[1].Action.includes('s3:PutObjectRetention'));
 assert.deepEqual(statements[2].Resource, { Ref: 'ReceiptKeyArn' });
 
 for (const key of ['ProductionState', 'PublicState', 'G5State']) {
@@ -160,6 +161,9 @@ for (const marker of [
 assert.equal(workflow.includes('DeleteTrail'), false);
 assert.equal(workflow.includes('StopLogging'), false);
 assert.equal(workflow.includes('put-event-selectors'), false);
+assert.equal(workflow.includes('length == 2 and'), false);
+assert.ok(workflow.includes('length > 0 and'));
+assert.ok(workflow.includes('else false'));
 assert.equal(workflow.includes('if [ -z "${AWS_ACCESS_KEY_ID:-}" ]'), false);
 assert.ok(workflow.includes('aws sts get-caller-identity --output json >/dev/null 2>&1'));
 

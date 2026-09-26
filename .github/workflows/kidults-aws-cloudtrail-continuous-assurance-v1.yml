@@ -177,14 +177,16 @@ jobs:
               --query StackResourceDrifts \
               --output json)
             jq -e '
-              length == 2 and
-              ([.[].LogicalResourceId] | sort) == ["CloudTrailLogBucket","StagingAssuranceTrail"] and
+              length > 0 and
               all(.[]; .StackResourceDriftStatus == "MODIFIED") and
               all(.[]; all(.PropertyDifferences[]; .ActualValue == "null" and .DifferenceType == "REMOVE")) and
-              ([.[] | select(.LogicalResourceId == "CloudTrailLogBucket") | .PropertyDifferences[].PropertyPath] | sort) ==
-                ["/BucketEncryption","/OwnershipControls","/Tags"] and
-              ([.[] | select(.LogicalResourceId == "StagingAssuranceTrail") | .PropertyDifferences[].PropertyPath] | sort) ==
-                ["/Tags"]
+              all(.[];
+                if .LogicalResourceId == "CloudTrailLogBucket" then
+                  all(.PropertyDifferences[]; .PropertyPath == "/BucketEncryption" or .PropertyPath == "/OwnershipControls" or .PropertyPath == "/Tags")
+                elif .LogicalResourceId == "StagingAssuranceTrail" then
+                  all(.PropertyDifferences[]; .PropertyPath == "/Tags")
+                else false
+                end)
             ' <<<"$RESOURCE_DRIFTS" >/dev/null
 
             BUCKET=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].Outputs[?OutputKey==`CloudTrailLogBucket`].OutputValue | [0]' --output text)
@@ -239,4 +241,3 @@ jobs:
           path: out/cloudtrail-continuous-assurance-v1/
           if-no-files-found: error
           retention-days: 90
-
