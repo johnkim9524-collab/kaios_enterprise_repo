@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e5c629a6a019d07aa47191c84d9d24721d20bae0",
+  "revision": "HEAD",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "51debba8b6743f6699d8017536be320293ee1968",
-      "sha256": "sha256:b1d9346091696c60a3b4d8cde31a1783a91d3b6c0ea58622da6112eec9ca995b",
+      "git_blob": "6d28da2a47ae287f5bdc712ad4b65c11dca923d3",
+      "sha256": "sha256:580ebf37ae4984a87782f519804bbd75c8eab577af0352761d3e1cf957042a85",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -106,8 +106,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-event-broker-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5008185bbe87deb7a38b1a1cff4d51e8ee7cfa8c",
-      "sha256": "sha256:b8bbf820f6334f9cfbd57f24ea6dce47ba9c831431f9bbf7313d2ca5b3c1b3a5",
+      "git_blob": "b63435479b3b818c2e887c7a380380b6da5ec3ee",
+      "sha256": "sha256:1cb2d51e4b45f9ef31c72cd874ec5c6c17f03e6450174a0b963c522822c2f8d7",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "141996d019d6aabd51a1f12d8a3d5dbbd851e756",
-      "sha256": "sha256:afa7f8abd55c69cbb05c447175644c317624b4616a4616fba7aa61b3b9fe18ac",
+      "git_blob": "c8ed0c0500fa262ac647a788414490b3d62e7e58",
+      "sha256": "sha256:b4464cecd1cd3192c13df03c17f04f9fa099837ca9e6d8e729411ae35fb8a29f",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -132,8 +132,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d01674903d186e6c0146583f8ae35d71ce223a85",
-      "sha256": "sha256:a4d4f396453ceb4676d6c5c7fa40eb71b4d1e4b542941b026c8b0e3b4b7e2866",
+      "git_blob": "d598b54950ca1bdb1230097340d5e7992cf18e03",
+      "sha256": "sha256:771fa98a676c554c83e5d2ccd742a174c673d2a9206549e77178ad8f268c5fed",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "69c0e5ebd06a7f6ac81f137c271da514b32ef51a",
-      "sha256": "sha256:584dbb2f99f1bffb2837b66f14908a30c0093b41d767c34a2599eee38c4573f9",
+      "git_blob": "f6f429ca45d2ba8df6b058d7ca73b13a6aeb63f8",
+      "sha256": "sha256:f5626e08532f13fc30e8ad44ba0b2cf5830ef94ba55ad2b8483a2b4862bd2dcf",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5054,8 +5054,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "58670675fdccd1cb64d84e0608b049ed94e25dd1",
-      "sha256": "sha256:25895f729da081305f00be7c978241736b58e082b8710cc7ddf3e418e22b271e"
+      "git_blob": "7360bb8e6029358b3396d1f016aab3df72cb869b",
+      "sha256": "sha256:90332f7b635da81a5f9d83edc44a06120418088b571741d4082be8bd04e64b7d"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:457f08ec9581708a5f8459f3c37639cbb4e2fd62a99b1c8bc0787865634f2a68"
+  "manifest_sha256": "sha256:ba05502f5cbb8b90cb4f6a1014583972dd2f56c55361700ca155b988e9843bfb"
 }
