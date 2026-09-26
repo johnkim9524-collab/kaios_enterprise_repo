@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1692b986372250583643ca27783bb2241af098ba",
+  "revision": "e5c629a6a019d07aa47191c84d9d24721d20bae0",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3698,8 +3698,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3ff2cb9f8c91a098f74929a90e5d2afed42e7fa2",
-      "sha256": "sha256:1dfacc7fcc6a3809dad8365372c3a9cfe1739e9babdda052ad49ac671a672bc5",
+      "git_blob": "85196d7e11e067bbe6e8381fa47f044377652cb9",
+      "sha256": "sha256:9353bcc9c18739ba0ccfff6a8723707086b5afc8a07442f120bf6048f0ac1aa2",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:cb84828addf7de6a538d9e44a3dffda1c20397241fd2f3a4185d144704303fa2"
+  "manifest_sha256": "sha256:457f08ec9581708a5f8459f3c37639cbb4e2fd62a99b1c8bc0787865634f2a68"
 }

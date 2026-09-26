@@ -101,13 +101,13 @@ assert(same(purposeRightsPreflight, explicitPurposeRightsPreflight), 'PURPOSE_RI
 
 const artifactBindingValidator = new Ajv2020({ allErrors: true, strict: true }).compile(artifactBindingSchema);
 assert(artifactBindingValidator(artifactBinding), `ARTIFACT_BINDING_SCHEMA_INVALID:${JSON.stringify(artifactBindingValidator.errors || [])}`);
-assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.3.0', 'ARTIFACT_BINDING_ID_VERSION');
-const artifactProducingEvents = new Set(['workflow_run']);
+assert(artifactBinding.id === 'kidults-asi-autonomous-resolution-artifact-binding-v1' && artifactBinding.version === '1.4.0', 'ARTIFACT_BINDING_ID_VERSION');
+const artifactProducingEvents = new Set(['workflow_run', 'workflow_dispatch']);
 assert(artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_WORKFLOW_EVENT');
 assert(['workflow_run', 'workflow_dispatch'].includes(artifactBinding.consumer_event), 'ARTIFACT_BINDING_CONSUMER_EVENT');
 assert(typeof artifactBinding.exact_triggering_run_bound === 'boolean', 'ARTIFACT_BINDING_EXACT_TRIGGER_TYPE');
-assert(artifactBinding.exact_triggering_run_bound === (artifactBinding.consumer_event === 'workflow_run'), 'ARTIFACT_BINDING_EXACT_TRIGGER_SEMANTICS');
-assert(artifactBinding.authoritative_producer_event === true && artifactBinding.workflow_event === 'workflow_run', 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_REQUIRED');
+assert(artifactBinding.exact_triggering_run_bound === true, 'ARTIFACT_BINDING_EXACT_TRIGGER_SEMANTICS');
+assert(artifactBinding.authoritative_producer_event === true && artifactProducingEvents.has(artifactBinding.workflow_event), 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_REQUIRED');
 assert(artifactBinding.authoritative_producer_cardinality === 1, 'ARTIFACT_BINDING_AUTHORITATIVE_PRODUCER_CARDINALITY');
 assert(artifactBinding.upstream_class === contract.canonical_fanout?.upstream_class, 'ARTIFACT_BINDING_UPSTREAM_CLASS');
 assert(artifactBinding.canonical_run_key === `${artifactBinding.head_sha}:${artifactBinding.upstream_class}`, 'ARTIFACT_BINDING_CANONICAL_RUN_KEY');

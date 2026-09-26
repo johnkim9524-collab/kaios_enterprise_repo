@@ -13,6 +13,7 @@ const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
   [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), { event: 'kidults.independent.verification.v1', environment: 'KIDULTS-AUTONOMOUS-VERIFIER' }],
 ]);
 const AUTONOMOUS_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs');
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -310,18 +311,18 @@ const files = walk(ROOT);
 const findings = [];
 let constrainedAtomicLandingExceptions = 0;
 for (const file of files) {
-  const workflow = fs.readFileSync(file, 'utf8');
+  const workflow = read(file);
   let violations = violationsFor(workflow);
   if (path.resolve(file) === ATOMIC_LANDING_WORKFLOW) {
-    const runner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
-    const postValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
-    const terminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+    const runner = read(ATOMIC_LANDING_RUNNER);
+    const postValidator = read(ATOMIC_LANDING_POST_VALIDATOR);
+    const terminalReconciler = read(ATOMIC_LANDING_TERMINAL_RECONCILER);
     const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler);
     violations = [...new Set([...violations, ...exceptionViolations])];
   }
   const autonomousSpec = AUTONOMOUS_LANDING_WORKFLOWS.get(path.resolve(file));
   if (autonomousSpec) {
-    const runner = fs.readFileSync(AUTONOMOUS_LANDING_RUNNER, 'utf8');
+    const runner = read(AUTONOMOUS_LANDING_RUNNER);
     violations = [
       ...violations.filter(value => value !== 'contents-write'),
       ...constrainedAutonomousLandingViolations(workflow, runner, autonomousSpec),
@@ -337,10 +338,10 @@ if (constrainedAtomicLandingExceptions !== 0) {
   });
 }
 
-const atomicWorkflow = fs.readFileSync(ATOMIC_LANDING_WORKFLOW, 'utf8');
-const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
-const atomicPostValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
-const atomicTerminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+const atomicWorkflow = read(ATOMIC_LANDING_WORKFLOW);
+const atomicRunner = read(ATOMIC_LANDING_RUNNER);
+const atomicPostValidator = read(ATOMIC_LANDING_POST_VALIDATOR);
+const atomicTerminalReconciler = read(ATOMIC_LANDING_TERMINAL_RECONCILER);
 findings.push(...currentSoldMatcherAlignmentFindings(atomicRunner, atomicPostValidator, atomicTerminalReconciler));
 
 const atomicMutationCases = [

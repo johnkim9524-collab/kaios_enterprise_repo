@@ -27,7 +27,9 @@ const files = {
 };
 const fail = (message) => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
-const read = (file) => fs.readFileSync(file, 'utf8');
+// Git checkouts may use CRLF on Windows. Normalize before any line-oriented
+// workflow parsing so validation semantics are identical on every runner OS.
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const json = (file) => JSON.parse(read(file));
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 for (const [name, file] of Object.entries(files)) assert(fs.existsSync(file), `REGISTERED_ASSET_MISSING:${name}:${file}`);
@@ -46,7 +48,8 @@ const documentation = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
 assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'CONTRACT_ID_VERSION');
-assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.3.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.4.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(same(artifactBindingSchema.properties?.workflow_event?.enum, ['workflow_run', 'workflow_dispatch']) && artifactBindingSchema.properties?.exact_triggering_run_bound?.const === true, 'ARTIFACT_BINDING_SCHEMA_EVENT_STRICTNESS');
 assert(artifactBindingSchema.properties?.production_authorized?.const === false && !Object.hasOwn(artifactBindingSchema.properties || {}, 'production_eligible'), 'ARTIFACT_BINDING_SCHEMA_PRODUCTION_AUTHORITY');
 assert(artifactBindingSchema.properties?.upstream_class?.const === 'ASI_AUTONOMOUS_RESOLUTION' && artifactBindingSchema.required?.includes('canonical_run_key'), 'ARTIFACT_BINDING_SCHEMA_CANONICAL_RUN_IDENTITY');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'CONTRACT_STATUS');
@@ -259,7 +262,12 @@ assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISM
 assert(workflow.includes('--event "$(jq -r .event /tmp/arl-run.json)"'), 'WORKFLOW_ARL_EVENT_SHELL_PARSE_SAFE');
 const arlEventLine = workflow.split('\n').find((line) => line.trimStart().startsWith('--event '));
 assert(Boolean(arlEventLine), 'WORKFLOW_ARL_EVENT_LINE_MISSING');
-const arlEventShell = spawnSync('bash', ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+const gitForWindowsBash = `${process.env.ProgramFiles || 'C:\\Program Files'}\\Git\\bin\\bash.exe`;
+const bashExecutable = process.platform === 'win32' && fs.existsSync(gitForWindowsBash)
+  ? gitForWindowsBash
+  : 'bash';
+const arlEventShell = spawnSync(bashExecutable, ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+assert(!arlEventShell.error, `WORKFLOW_ARL_EVENT_SHELL_UNAVAILABLE:${arlEventShell.error?.code || 'UNKNOWN'}`);
 assert(arlEventShell.status === 0, 'WORKFLOW_ARL_EVENT_SHELL_SYNTAX');
 assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');
 for (const pin of [
