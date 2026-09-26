@@ -87,7 +87,7 @@ assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'suc
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.repository\.full_name == github\.repository/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.head_branch == 'main'/);
 assert.match(dispatcherWorkflow,/steps\.consume_readiness\.outputs\.pull_request \|\| github\.event\.pull_request\.number \|\| github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
-assert.match(dispatcherWorkflow,/printf '\\\[\\\]\\n' > out\/autonomous-dispatcher-v1\/results\.json/);
+assert.match(dispatcherWorkflow,/printf '\[\]\\n' > out\/autonomous-dispatcher-v1\/results\.json/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 assert.equal((dispatcherWorkflow.match(/for event in kidults\.track\.authorization\.v1/g)||[]).length,1);
 assert.match(dispatcherWorkflow,/for event[\s\S]*KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs[\s\S]*repos\/\$\{GITHUB_REPOSITORY\}\/dispatches/);
