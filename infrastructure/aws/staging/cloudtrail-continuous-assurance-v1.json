@@ -195,7 +195,6 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "LogGroupName": "/aws/cloudtrail/kidults-staging-continuous-assurance-v1",
         "RetentionInDays": 3653,
         "Tags": [
           {
