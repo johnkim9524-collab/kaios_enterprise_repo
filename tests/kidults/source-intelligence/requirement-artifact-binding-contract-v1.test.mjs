@@ -26,6 +26,7 @@ const mutationBoundaryValidator = fs.readFileSync(
   'scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs',
   'utf8',
 ).replace(/\r\n/g, '\n');
+const gitAttributes = fs.readFileSync('.gitattributes', 'utf8').replace(/\r\n/g, '\n');
 
 test('Requirement consumes the same v1.4 binding emitted by its workflow', () => {
   assert.equal(schema.properties.version.const, '1.4.0');
@@ -44,6 +45,10 @@ test('legacy and unbound bindings remain fail closed', () => {
   assert.notEqual(schema.properties.version.const, '1.3.0');
   assert.equal(schema.additionalProperties, false);
   assert.equal(schema.properties.authoritative_producer_event.const, true);
+});
+
+test('repository policy enforces LF for cross-platform contract bytes', () => {
+  assert.match(gitAttributes, /^\* text=auto eol=lf$/m);
 });
 
 test('registry validation normalizes Windows CRLF before workflow shell parsing', () => {
