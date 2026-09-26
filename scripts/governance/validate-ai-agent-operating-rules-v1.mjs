@@ -129,7 +129,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.5.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.6.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');

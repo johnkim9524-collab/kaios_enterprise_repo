@@ -1,7 +1,7 @@
 {
   "id": "kidults-ai-agent-github-bootstrap-contract-v1",
-  "version": "1.5.0",
-  "change_rationale": "Bind constitutional readiness covering vision and goals, operating principles, AI governance, assigned JD and role, and working attitude into the exact committed pre-dispatch trust closure; deny dispatch and require quarantine or replacement when readiness is absent or materially violated.",
+  "version": "1.6.0",
+  "change_rationale": "Bind AI-021 whole-authority-chain change-unit policy into the exact committed pre-dispatch trust closure so agents cannot treat an isolated file, test, workflow, or pull request as a complete correction.",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -125,36 +125,41 @@
     },
     {
       "order": 13,
+      "path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
+      "purpose": "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_POLICY"
+    },
+    {
+      "order": 14,
       "path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
       "purpose": "FIX_FIRST_BOOTSTRAP_SEQUENCE"
     },
     {
-      "order": 14,
+      "order": 15,
       "path": "coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json",
       "purpose": "REPORT_AFTER_REMEDIATION_GATE"
     },
     {
-      "order": 15,
+      "order": 16,
       "path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
       "purpose": "CANONICAL_STATUS_RECEIPT_SCHEMA"
     },
     {
-      "order": 16,
+      "order": 17,
       "path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
       "purpose": "GOVERNANCE_SYSTEM_OF_RECORD"
     },
     {
-      "order": 17,
+      "order": 18,
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "purpose": "AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY"
     },
     {
-      "order": 18,
+      "order": 19,
       "path": "coordination/kidults/bootstrap/README.md",
       "purpose": "TRACK_AND_ROLE_STARTUP_ROUTER"
     },
     {
-      "order": 19,
+      "order": 20,
       "path": ".github/copilot-instructions.md",
       "purpose": "GITHUB_AGENT_ADAPTER"
     }
