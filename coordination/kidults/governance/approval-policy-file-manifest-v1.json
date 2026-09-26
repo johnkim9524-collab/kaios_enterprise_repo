@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "9bba2856ccaeee8fedb4a6c8dec7ca96e0b2c3e3",
+  "revision": "5bd646c3647d64f60d78323d47f7d899ecbb12a0",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3646,8 +3646,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "02d2088bd43ea2768dc7d83d24e44594ff8a0dba",
-      "sha256": "sha256:02640a3bd168473cadddd5f81b80f8900f89dbe318a3dfbd8f2bb7a001d571f2",
+      "git_blob": "72162a71f26be45314d5073d43a1dc33ee62c6fd",
+      "sha256": "sha256:f30e231ff32118234825083699ff5a6fe06b97894eb0e1c82c526160c52edcab",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5112,5 +5112,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9dfa9a120d10e966c153ef4cf4d35717a2628b0d132e3221a499578211407c23"
+  "manifest_sha256": "sha256:97e9e3ff3e9a2bf36f69e63e4c2a856f5b238667c7df996118a5004bfc34aa29"
 }
