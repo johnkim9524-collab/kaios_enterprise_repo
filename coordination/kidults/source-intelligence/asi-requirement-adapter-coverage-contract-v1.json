@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-requirement-adapter-coverage-contract-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P1",
@@ -22,6 +22,7 @@
     "resolution_manifest_id": "kidults-asi-autonomous-resolution-manifest-v1",
     "resolution_receipt_file": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json",
     "resolution_receipt_id": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1",
+    "resolution_receipt_version": "1.2.0",
     "resolution_contract": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json",
     "runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
     "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",

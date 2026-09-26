@@ -48,7 +48,7 @@ const resolutionReceipt = JSON.parse(receiptText);
 const artifactBinding = JSON.parse(artifactBindingText);
 const contract = JSON.parse(contractText);
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'COVERAGE_CONTRACT_ID_VERSION');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.3.0', 'COVERAGE_CONTRACT_ID_VERSION');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'COVERAGE_CONTRACT_STATUS');
 assert(same(contract.platform_principles, principles), 'COVERAGE_CONTRACT_PRINCIPLES');
 assert(contract.canonical_grain?.unmerged_v2_adapter_requirement_id_is_authoritative === false, 'UNMERGED_V2_ID_AUTHORITY_FORBIDDEN');
@@ -139,7 +139,8 @@ assert(Date.parse(artifactBinding.expires_at) > Date.parse(artifactBinding.creat
 assert(queue.id === input.replacement_queue_id && queue.version === '1.0.0', 'REPLACEMENT_QUEUE_ID_VERSION');
 assert(resolutionManifest.id === input.resolution_manifest_id && resolutionManifest.version === '1.0.0', 'RESOLUTION_MANIFEST_ID_VERSION');
 assert(resolutionReceipt.id === input.resolution_receipt_id && resolutionReceipt.state === 'VERIFIED_PASS', 'RESOLUTION_RECEIPT_ID_STATE');
-assert(resolutionReceipt.version === '1.1.0', 'RESOLUTION_RECEIPT_VERSION');
+assert(typeof input.resolution_receipt_version === 'string', 'RESOLUTION_RECEIPT_VERSION_CONTRACT_MISSING');
+assert(resolutionReceipt.version === input.resolution_receipt_version, 'RESOLUTION_RECEIPT_VERSION');
 assert(resolutionReceipt.trigger_event === 'workflow_run' && resolutionReceipt.exact_triggering_run_bound === true, 'RESOLUTION_RECEIPT_EXACT_TRIGGER_REQUIRED');
 assert(resolutionReceipt.artifact_role === 'AUTHORITATIVE_CONSUMABLE' && resolutionReceipt.authoritative_producer === true && resolutionReceipt.downstream_consumable === true, 'RESOLUTION_RECEIPT_AUTHORITATIVE_PRODUCER_REQUIRED');
 assert(resolutionReceipt.transactionally_paired_artifacts === true, 'RESOLUTION_RECEIPT_TRANSACTIONAL_PAIR_REQUIRED');
