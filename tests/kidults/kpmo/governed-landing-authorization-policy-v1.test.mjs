@@ -21,10 +21,10 @@ function expectRejected(policy, code) {
   );
 }
 
-test('committed authorization policy is the exact supported 1.8.0 contract', () => {
+test('committed authorization policy is the exact supported 1.9.0 contract', () => {
   const result = assertGovernedLandingAuthorizationPolicyV160(clonePolicy());
   assert.deepEqual(result, {
-    policy_version: '1.8.0',
+    policy_version: '1.9.0',
     generation_mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
     generation_enforcement_points: sourcePolicy.approval_generation_policy.enforcement_points,
     replay_defense_exact: true,

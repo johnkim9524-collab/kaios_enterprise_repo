@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "routing": {
@@ -101,7 +101,15 @@
     "ready_transition_requires_human_approval": false,
     "automated_transition_grants_landing_authority": false,
     "ready_state_must_be_observable": true,
-    "ready_actor_and_time_must_be_receipted": true
+    "ready_actor_and_time_must_be_receipted": true,
+    "ordinary_github_token_ready_mutation_forbidden": true,
+    "ready_transition_token_source": "REPOSITORY_GITHUB_APP_INSTALLATION_BROKER",
+    "ready_transition_required_permissions": [
+      "pull_requests:write",
+      "metadata:read"
+    ],
+    "ready_transition_installation_identity_bound": true,
+    "ready_transition_post_mutation_reread_required": true
   },
   "no_merge_policy": {
     "closed_pull_request_blocks": true,

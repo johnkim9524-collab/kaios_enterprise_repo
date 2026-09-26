@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.8.0';
+const EXPECTED_POLICY_VERSION = '1.9.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -115,6 +115,19 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
     requireExact(Object.hasOwn(atomic, field), `ATOMIC_REPLAY_FIELD_MISSING:${field}`);
     requireExact(atomic[field] === expected, `ATOMIC_REPLAY_FIELD_INVALID:${field}`);
   }
+
+  const draft = policy.draft_policy;
+  requireExact(draft && typeof draft === 'object' && !Array.isArray(draft), 'DRAFT_POLICY_MISSING');
+  requireExact(draft.ordinary_github_token_ready_mutation_forbidden === true,
+    'DRAFT_POLICY_TOKEN_BOUNDARY_INVALID');
+  requireExact(draft.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER',
+    'DRAFT_POLICY_TOKEN_SOURCE_INVALID');
+  requireExactArray(draft.ready_transition_required_permissions, ['pull_requests:write','metadata:read'],
+    'DRAFT_POLICY_REQUIRED_PERMISSIONS');
+  requireExact(draft.ready_transition_installation_identity_bound === true,
+    'DRAFT_POLICY_INSTALLATION_BINDING_INVALID');
+  requireExact(draft.ready_transition_post_mutation_reread_required === true,
+    'DRAFT_POLICY_POST_MUTATION_REREAD_INVALID');
 
   return {
     policy_version: EXPECTED_POLICY_VERSION,

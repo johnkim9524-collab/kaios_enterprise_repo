@@ -8,12 +8,13 @@ const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url')
 function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
   return async event => {
     const {repository, repository_id, pull_request, base_sha, head_sha, authorization_generation,
-      allow_draft_recovery} = event || {};
+      allow_draft_recovery, permission_profile='AUTONOMOUS_EVENT_DISPATCH'} = event || {};
     if (event?.action !== 'MINT_INSTALLATION_TOKEN'
       || repository !== config.repository || String(repository_id) !== String(config.repositoryId)
       || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
       || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha
       || ![undefined,false,true].includes(allow_draft_recovery)
+      || !['AUTONOMOUS_EVENT_DISPATCH','DRAFT_READY_TRANSITION'].includes(permission_profile)
       || typeof authorization_generation !== 'string'
       || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();
     const issued = Math.floor(now()/1000);
@@ -36,7 +37,7 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
     });
     const validScope = (minted, permissions) => typeof minted.token==='string' && minted.token.length>=20
       && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
-      && minted.permissions?.contents===permissions.contents
+      && ((permissions.contents===undefined && minted.permissions?.contents===undefined) || minted.permissions?.contents===permissions.contents)
       && minted.permissions?.pull_requests===permissions.pull_requests
       && [undefined,'read'].includes(minted.permissions?.metadata)
       && Object.keys(minted.permissions).every(x=>['contents','pull_requests','metadata'].includes(x))
@@ -55,11 +56,17 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || main.commit?.sha!==base_sha) fail();
-    const writePermissions={contents:'write',pull_requests:'write'};
+    const writePermissions=permission_profile==='DRAFT_READY_TRANSITION'
+      ? {pull_requests:'write'}
+      : {contents:'write',pull_requests:'write'};
     const minted=await mint(writePermissions);
     if (!validScope(minted,writePermissions)) fail();
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
-      permissions:['contents:write','pull_requests:write','metadata:read'],expires_at:minted.expires_at,token:minted.token};
+      app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
+      permissions:(permission_profile==='DRAFT_READY_TRANSITION'
+        ? ['pull_requests:write','metadata:read']
+        : ['contents:write','pull_requests:write','metadata:read']),
+      expires_at:minted.expires_at,token:minted.token};
   };
 }
 

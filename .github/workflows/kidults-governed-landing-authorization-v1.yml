@@ -11,7 +11,8 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
+  id-token: write
+  pull-requests: read
   issues: read
   statuses: write
 
@@ -227,29 +228,96 @@ jobs:
           },null,2));
           NODE
 
+      - name: Mint exact draft-ready GitHub App token through the repository broker
+        id: mint_draft_ready_token
+        if: always() && github.event.pull_request.draft == true && steps.evaluate.outcome == 'success'
+        continue-on-error: true
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
+          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+          EXPECTED_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          EXPECTED_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          test -n "$AWS_ROLE_ARN"
+          test -n "$BROKER_FUNCTION"
+          test -n "$EXPECTED_APP_ID"
+          test -n "$EXPECTED_INSTALLATION_ID"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: ******" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-governed-ready-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          response_path="$RUNNER_TEMP/kidults-governed-draft-ready-token.json"
+          payload=$(jq -cn \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg repository_id "$GITHUB_REPOSITORY_ID" \
+            --argjson pull_request "$PR_NUMBER" \
+            --arg base_sha "$EXPECTED_BASE_SHA" \
+            --arg head_sha "$EXPECTED_HEAD_SHA" \
+            --arg authorization_generation "governed-ready-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${PR_NUMBER}" \
+            '{action:"MINT_INSTALLATION_TOKEN",permission_profile:"DRAFT_READY_TRANSITION",repository:$repository,repository_id:$repository_id,pull_request:$pull_request,base_sha:$base_sha,head_sha:$head_sha,authorization_generation:$authorization_generation,allow_draft_recovery:true}')
+          aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$payload" "$response_path" >/dev/null
+          chmod 600 "$response_path"
+          token=$(jq -er '.token' "$response_path")
+          echo "::add-mask::$token"
+          echo "response_path=$response_path" >> "$GITHUB_OUTPUT"
+
       - name: Publish fail-closed exact-head readiness status after final live re-read
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_REPOSITORY_ID: ${{ github.repository_id }}
+          EXPECTED_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          EXPECTED_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TRIGGER_PULL_REQUEST_DRAFT: ${{ github.event.pull_request.draft }}
           AUTHORIZATION_OUTCOME: ${{ steps.evaluate.outcome }}
+          DRAFT_READY_TOKEN_STEP_OUTCOME: ${{ steps.mint_draft_ready_token.outcome }}
+          DRAFT_READY_TOKEN_RESPONSE_PATH: ${{ steps.mint_draft_ready_token.outputs.response_path }}
           READINESS_RECEIPT_PATH: ${{ runner.temp }}/kidults-governed-landing-readiness/receipt.json
+          PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}
+          PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}
+          G5_STATE: ${{ vars.KIDULTS_G5_STATE || 'HOLD' }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {assertStableFinalReread,assertTerminalNonAuthorizingPullRequest} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
-          const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA;
+          import {GateFailure,assertStableFinalReread,assertTerminalNonAuthorizingPullRequest,assertDraftReadyTransitionCandidate,validateDraftReadyBrokerResponse,assertDraftReadyPostMutation} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA,base=process.env.EXPECTED_BASE_SHA;
           const receiptPath=process.env.READINESS_RECEIPT_PATH;fs.mkdirSync(new URL('.',`file://${receiptPath}`).pathname,{recursive:true});
           const writeReceipt=value=>fs.writeFileSync(receiptPath,JSON.stringify(value,null,2)+'\n');
           const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
-          const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
+          const headers={Authorization:`******'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
           const api=async(path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error'});if(!r.ok)throw new Error(`GITHUB_API_${r.status}:${path}`);return r.json();};
-          const graphql=async(query,variables)=>{const r=await fetch('https://api.github.com/graphql',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({query,variables}),redirect:'error'});if(!r.ok)throw new Error(`GITHUB_GRAPHQL_${r.status}`);const body=await r.json();if(body.errors?.length)throw new Error(`GITHUB_GRAPHQL_ERROR:${body.errors[0].type||'UNKNOWN'}`);return body.data;};
+          const headersForToken=bearer=>({Authorization:`******'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'});
+          const apiWithToken=async(bearer,path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headersForToken(bearer),...(options.headers||{})},redirect:'error'});if(!r.ok)throw new GateFailure(`GITHUB_API_${r.status}`,path);return r.json();};
+          const graphqlWithToken=async(bearer,query,variables)=>{const r=await fetch('https://api.github.com/graphql',{method:'POST',headers:{...headersForToken(bearer),'Content-Type':'application/json'},body:JSON.stringify({query,variables}),redirect:'error'});if(!r.ok)throw new GateFailure(`GITHUB_GRAPHQL_${r.status}`);const body=await r.json();if(body.errors?.length)throw new GateFailure(`GITHUB_GRAPHQL_ERROR:${body.errors[0].type||'UNKNOWN'}`);return body.data;};
           const scopePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
           const status=async(state,description,context=policy.required_status_context)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context,description})});
+          const holdStates=[process.env.PRODUCTION_STATE,process.env.PUBLIC_STATE,process.env.G5_STATE];
+          const assertHoldBoundary=()=>{if(holdStates.some(value=>value!=='HOLD'))throw new GateFailure('DRAFT_READY_HOLD_BOUNDARY_WEAKENED');};
+          const loadDraftReadyToken=()=>{
+            if(process.env.DRAFT_READY_TOKEN_STEP_OUTCOME!=='success')throw new GateFailure('DRAFT_READY_TOKEN_UNAVAILABLE');
+            const responsePath=process.env.DRAFT_READY_TOKEN_RESPONSE_PATH;
+            if(!responsePath||!fs.existsSync(responsePath))throw new GateFailure('DRAFT_READY_TOKEN_UNAVAILABLE');
+            let response;
+            try{response=JSON.parse(fs.readFileSync(responsePath,'utf8'));}catch{throw new GateFailure('DRAFT_READY_TOKEN_UNAVAILABLE');}
+            return validateDraftReadyBrokerResponse(response,{repository:repo,repositoryId:process.env.EXPECTED_REPOSITORY_ID,appId:process.env.EXPECTED_APP_ID,installationId:process.env.EXPECTED_INSTALLATION_ID,githubToken:token}).token;
+          };
           let failure=null;
           try {
             const final=await api(`/pulls/${number}`);
@@ -259,20 +327,27 @@ jobs:
               process.exit(0);
             }
             if(final.draft===true){
-              if(final.state!=='open'||final.merged===true||final.head?.sha!==head||final.head?.repo?.full_name!==repo||final.base?.ref!=='main')throw new Error('DRAFT_DEVELOPMENT_FINAL_REREAD_INVALID');
-              if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
+              const before=assertDraftReadyTransitionCandidate(final,{repository:repo,expectedPullRequestNumber:number,expectedHeadSha:head,expectedBaseSha:base,expectedTriggerDraft:process.env.TRIGGER_PULL_REQUEST_DRAFT==='true'});
+              if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
+              assertHoldBoundary();
               await status('pending','Draft is non-promotable; automated Ready transition pending');
               await status('success','Draft development controls verified; landing remains blocked',scopePolicy.draft_development_status_context);
-              if(!final.node_id)throw new Error('DRAFT_READY_NODE_ID_MISSING');
-              await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefName}}}',{pullRequestId:final.node_id});
-              const ready=await api(`/pulls/${number}`);
-              if(ready.node_id!==final.node_id||ready.state!=='open'||ready.merged===true||ready.draft!==false||ready.head?.sha!==head||ready.base?.ref!=='main')throw new Error('AUTOMATED_DRAFT_READY_READBACK_INVALID');
+              const appToken=loadDraftReadyToken();
+              try{
+                await graphqlWithToken(appToken,'mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id});
+              }catch(error){
+                if(error instanceof GateFailure&&String(error.code).includes('FORBIDDEN'))throw new GateFailure('DRAFT_READY_MUTATION_FORBIDDEN');
+                throw error;
+              }
+              const ready=await apiWithToken(appToken,`/pulls/${number}`);
+              assertDraftReadyPostMutation(before,ready,{repository:repo,expectedHeadSha:head,expectedBaseSha:base});
+              assertHoldBoundary();
               await status('pending','Ready lifecycle automated; operation-specific landing authority required');
               const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'LIFECYCLE_READY_AUTOMATED',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),ready_state_is_lifecycle_only:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,final_live_reread:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
               process.exit(0);
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
-            if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
+            if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
             await status('pending','Ready lifecycle verified; operation-specific landing authority required');
             const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ordinary_readiness_published_success:false,atomic_landing_required:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
           } catch(error) {

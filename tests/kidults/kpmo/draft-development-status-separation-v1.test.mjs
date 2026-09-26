@@ -25,7 +25,12 @@ test('eligible Draft is validated then autonomously promoted without landing aut
   assert.match(landingWorkflow, /await status\('pending','Draft is non-promotable; automated Ready transition pending'\)/);
   assert.match(landingWorkflow, /landing_authorization_created:false/);
   assert.match(landingWorkflow, /markPullRequestReadyForReview/);
-  assert.match(landingWorkflow, /AUTOMATED_DRAFT_READY_READBACK_INVALID/);
+  assert.match(landingWorkflow, /DRAFT_READY_TOKEN_UNAVAILABLE/);
+  assert.match(landingWorkflow, /DRAFT_READY_MUTATION_FORBIDDEN/);
+  assert.match(landingWorkflow, /assertDraftReadyPostMutation/);
+  assert.match(landingWorkflow, /validateDraftReadyBrokerResponse/);
+  assert.match(landingWorkflow, /KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION/);
+  assert.match(landingWorkflow, /permission_profile:"DRAFT_READY_TRANSITION"/);
   assert.match(landingWorkflow, /state:'LIFECYCLE_READY_AUTOMATED'/);
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
   assert.doesNotMatch(landingWorkflow, /if \(pr\.draft\) fail\('governed PR is Draft'\)/);
