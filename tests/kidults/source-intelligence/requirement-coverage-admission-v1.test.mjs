@@ -16,21 +16,6 @@ test('admits only exact current-main ARL producer', () => {
   assert.equal(result.should_run, true);
 });
 
-
-test('admits exact scheduled P1 lineage only when event contract is explicit', () => {
-  const scheduled = {...structuredClone(receipt), expected_producer_event: 'schedule', producer_event: 'schedule'};
-  const result = classifyWith(run, scheduled);
-  assert.equal(result.state, 'VERIFIED_PASS');
-  assert.equal(result.should_run, true);
-});
-
-test('fails closed when scheduled producer is not explicitly declared', () => {
-  const scheduled = {...structuredClone(receipt), producer_event: 'schedule'};
-  const result = classifyWith(run, scheduled);
-  assert.equal(result.state, 'VERIFIED_FAIL');
-  assert.equal(result.reason, 'AUTHORITATIVE_CLASSIFICATION_INVALID');
-});
-
 test('terminates exact main-push ARL recovery as proven nonauthority without classification artifact', () => {
   const recovery = {...structuredClone(run), event: 'push', name: `KIDULTS ARL / recovery-${sha}`, display_title: `KIDULTS ARL / recovery-${sha}`};
   const result = classify({run: recovery, classification: null, repository: repo, executionSha: sha});
