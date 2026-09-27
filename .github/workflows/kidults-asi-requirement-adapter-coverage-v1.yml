@@ -764,7 +764,8 @@ jobs:
   dispatch-kir-coverage-assurance:
     needs: [classify-upstream-arl-generation, verify-requirement-adapter-coverage]
     if: >-
-      always() && github.event_name == 'workflow_run' &&
+      always() && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') &&
       needs.classify-upstream-arl-generation.result == 'success' &&
       needs.classify-upstream-arl-generation.outputs.should_run == 'true' &&
       needs.verify-requirement-adapter-coverage.result == 'success'
@@ -796,9 +797,10 @@ jobs:
             > /tmp/kir-coverage-run.json
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" \
+            --arg event "$GITHUB_EVENT_NAME" \
             --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
             --slurpfile runRecord /tmp/kir-coverage-run.json \
-            '{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_run_id:$run,coverage_run_attempt:$attempt,run:$runRecord[0]}' \
+            '{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,run:$runRecord[0]}' \
             > /tmp/kir-coverage-assurance-issue-input-v1.json
           node scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs issue \
             --input /tmp/kir-coverage-assurance-issue-input-v1.json \
@@ -825,13 +827,14 @@ jobs:
           fi
           [[ "$DISPATCH_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           SOURCE_TREE=$(jq -r .source_tree /tmp/kir-coverage-assurance-continuation-v1.json)
+          COVERAGE_EVENT=$(jq -r .coverage_event /tmp/kir-coverage-assurance-continuation-v1.json)
           COVERAGE_CREATED_AT=$(jq -r .coverage_created_at /tmp/kir-coverage-assurance-continuation-v1.json)
           CONTINUATION_KEY=$(jq -r .continuation_key /tmp/kir-coverage-assurance-continuation-v1.json)
-          jq -n --arg ref main --arg profile sentinel \
+          jq -n --arg ref main --arg profile sentinel --arg coverage_event "$COVERAGE_EVENT" \
             --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
             --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" --arg created "$COVERAGE_CREATED_AT" \
             --arg artifact "$DISPATCH_ARTIFACT_ID" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
-            '{ref:$ref,inputs:{profile:$profile,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_source_sha:$sha,coverage_source_tree:$tree,coverage_created_at:$created,coverage_dispatch_artifact_id:$artifact,coverage_dispatch_artifact_digest:$digest,coverage_continuation_key:$key}}' \
+            '{ref:$ref,inputs:{profile:$profile,coverage_event:$coverage_event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_source_sha:$sha,coverage_source_tree:$tree,coverage_created_at:$created,coverage_dispatch_artifact_id:$artifact,coverage_dispatch_artifact_digest:$digest,coverage_continuation_key:$key}}' \
             > /tmp/kir-coverage-assurance-dispatch-request-v1.json
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \

@@ -34,12 +34,12 @@ const run = (overrides = {}) => ({
 
 function fixture() {
   const dispatchReceipt = issueKirCoverageAssuranceContinuation({
-    repository, source_sha: sha, source_tree: tree,
+    repository, source_sha: sha, source_tree: tree, coverage_event: run().event,
     coverage_run_id: runId, coverage_run_attempt: runAttempt, run: run(),
   });
   return {
     request: {
-      repository, source_sha: sha, source_tree: tree, coverage_run_id: runId,
+      repository, source_sha: sha, source_tree: tree, coverage_event: run().event, coverage_run_id: runId,
       coverage_run_attempt: runAttempt, coverage_created_at: run().created_at,
       dispatch_artifact_id: artifactId, dispatch_artifact_digest: artifactDigest,
       continuation_key: dispatchReceipt.continuation_key,
@@ -58,13 +58,39 @@ function fixture() {
 
 test('exact Coverage continuation issues and consumes once without release authority', () => {
   const issued = fixture().dispatch_receipt;
+  assert.equal(issued.version, '1.1.0');
+  assert.equal(issued.coverage_event, 'workflow_run');
   assert.equal(issued.state, 'ISSUED_PENDING_ONE_TIME_CONSUMPTION');
   const consumed = consumeKirCoverageAssuranceContinuation(fixture());
+  assert.equal(consumed.version, '1.1.0');
+  assert.equal(consumed.coverage_event, 'workflow_run');
   assert.equal(consumed.state, 'CONSUMED_VERIFIED');
   assert.equal(consumed.one_time_consumed, true);
   assert.equal(consumed.authoritative_coverage_verified, true);
   assert.equal(consumed.classification_only_success_accepted, false);
   for (const key of ['public', 'production', 'g5']) assert.equal(consumed[key], 'HOLD');
+});
+
+test('exact manual Coverage continuation issues and consumes with event and native run ID bound', () => {
+  const manualRun = run({
+    name: `KIDULTS Coverage / manual-${runId}`,
+    display_title: `KIDULTS Coverage / manual-${runId}`,
+    event: 'workflow_dispatch',
+  });
+  const receipt = issueKirCoverageAssuranceContinuation({
+    repository, source_sha: sha, source_tree: tree, coverage_event: manualRun.event,
+    coverage_run_id: runId, coverage_run_attempt: runAttempt, run: manualRun,
+  });
+  const input = fixture();
+  input.run = manualRun;
+  input.request.coverage_event = 'workflow_dispatch';
+  input.request.continuation_key = receipt.continuation_key;
+  input.dispatch_receipt = receipt;
+  const consumed = consumeKirCoverageAssuranceContinuation(input);
+  assert.equal(consumed.version, '1.1.0');
+  assert.equal(consumed.coverage_event, 'workflow_dispatch');
+  assert.equal(receipt.coverage_event, 'workflow_dispatch');
+  assert.equal(consumed.state, 'CONSUMED_VERIFIED');
 });
 
 const mutations = [
@@ -75,6 +101,8 @@ const mutations = [
   ['missing producer', (x) => { x.run = null; }, /COVERAGE_RUN_REQUIRED/],
   ['missing consumer', (x) => { x.consumer = {}; }, /CONSUMER_RUN_ID_INVALID/],
   ['workflow drift', (x) => { x.run.path = '.github/workflows/other.yml'; }, /COVERAGE_WORKFLOW_IDENTITY_MISMATCH/],
+  ['event binding drift', (x) => { x.request.coverage_event = 'workflow_dispatch'; }, /CONSUME_EVENT_REQUEST_MISMATCH/],
+  ['manual native name mismatch', (x) => { x.run.event = 'workflow_dispatch'; }, /COVERAGE_EVENT_RUN_IDENTITY_MISMATCH/],
   ['rights drift', (x) => { x.dispatch_receipt.production = 'READY'; reseal(x.dispatch_receipt); }, /CONSUME_AUTHORITY_BOUNDARY/],
   ['lineage corruption', (x) => { x.run.created_at = '2026-09-07T00:58:13Z'; }, /CONSUME_CREATED_AT_MISMATCH/],
   ['classification-only success', (x) => { x.run.event = 'schedule'; }, /COVERAGE_EVENT_NOT_AUTHORITATIVE/],
@@ -92,10 +120,18 @@ for (const [name, mutate, expected] of mutations) test(`fail closed: ${name}`, (
   assert.throws(() => consumeKirCoverageAssuranceContinuation(input), expected);
 });
 
+test('issuer rejects a Coverage event mismatch between request and native run', () => {
+  assert.throws(() => issueKirCoverageAssuranceContinuation({
+    repository, source_sha: sha, source_tree: tree, coverage_event: 'workflow_run',
+    coverage_run_id: runId, coverage_run_attempt: runAttempt,
+    run: run({event: 'workflow_dispatch',name: `KIDULTS Coverage / manual-${runId}`,display_title: `KIDULTS Coverage / manual-${runId}`}),
+  }), /ISSUE_EVENT_MISMATCH/);
+});
+
 test('issuer rejects non-authoritative classification-only Coverage', () => {
   assert.throws(() => issueKirCoverageAssuranceContinuation({
     repository, source_sha: sha, source_tree: tree,
     coverage_run_id: runId, coverage_run_attempt: runAttempt,
-    run: run({event: 'workflow_dispatch'}),
+    run: run({event: 'schedule'}),
   }), /COVERAGE_EVENT_NOT_AUTHORITATIVE/);
 });
