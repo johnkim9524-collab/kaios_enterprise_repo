@@ -725,12 +725,13 @@ jobs:
             --arg conclusion "$REQUIREMENT_UPSTREAM_CONCLUSION" \
             '.id==$run
              and .run_attempt==$attempt
-             and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))
+             and ((.event=="workflow_run" and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name)))
+                  or (.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name))
              and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and (.event=="workflow_run" or .event=="workflow_dispatch")
              and .status=="completed"
              and .conclusion==$conclusion' \
             /tmp/requirement-upstream-run.json >/dev/null
