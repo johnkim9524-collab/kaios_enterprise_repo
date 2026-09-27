@@ -139,6 +139,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
+      state: ${{ steps.classify.outputs.state }}
       classification: ${{ steps.classify.outputs.classification }}
       reason: ${{ steps.classify.outputs.reason }}
       current_main_sha: ${{ steps.classify.outputs.current_main_sha }}
@@ -174,8 +175,9 @@ jobs:
               '{classification:"CURRENT_MAIN_EXACT",reason:"EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED",current_main_sha:$sha,upstream_run_id:$run,upstream_event:"workflow_dispatch",promotion_authority:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
               > /tmp/arl-p1-generation-classification-v1.json
           else
-            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json             "${{ github.event.workflow_run.event }}"
+            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
           fi
+          echo "state=$(jq -r .state /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "current_main_sha=$CURRENT_MAIN_SHA" >> "$GITHUB_OUTPUT"
@@ -188,9 +190,14 @@ jobs:
           path: /tmp/arl-p1-generation-classification-v1.json
           retention-days: 90
           if-no-files-found: error
-      - name: Preserve non-authoritative or invalid trigger RED after receipt retention
+      - name: Preserve invalid trigger RED while terminating expected non-authority cleanly
         if: steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'
-        run: exit 1
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.classify.outputs.state }}" = 'VERIFIED_SKIP' ]; then
+            exit 0
+          fi
+          exit 1
 
   resolve-current-p1-actions:
     needs: classify-p1-generation
