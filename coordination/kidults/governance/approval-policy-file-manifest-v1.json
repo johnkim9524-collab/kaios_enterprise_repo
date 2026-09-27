@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "b2365de3d0954f72821796a4e79627b0aae7dd0a",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -522,8 +522,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e6bdb44fcd15c5bd20f733271187c160fb316740",
-      "sha256": "sha256:8c889f52a225fc55931bba37bd9cc75e93d4fa29bd966309f9695808d3d8ec21",
+      "git_blob": "23d1f79c22f2506c6e2496597be64b6c3e32a0d4",
+      "sha256": "sha256:1b0e8f109ff934e62bf0f968fe0529564d95cc790a67ae4b492fd3774eacf775",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5196,5 +5196,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a6ef72edeef17923f2fd65d788e43680fdb3069523fdace8b73835c41f48ca51"
+  "manifest_sha256": "sha256:7a9d670c7f0821aa3de135d292b1b2f74b04170d5a82e3de546d9c640a18f422"
 }
