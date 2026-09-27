@@ -32,13 +32,13 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   if (run.event !== 'workflow_run') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (!classification || classification.id !== 'kidults-workflow-run-generation-classification-v1' || classification.version !== '1.1.0') return {...base, reason: 'CLASSIFICATION_SCHEMA_INVALID'};
   if (classification.repository !== repository || classification.execution_sha !== executionSha || classification.current_main_sha !== executionSha) return {...base, reason: 'CLASSIFICATION_GENERATION_MISMATCH'};
-  if (classification.expected_producer_workflow_path !== P1_PATH || !['workflow_run','schedule'].includes(classification.expected_producer_event)) return {...base, reason: 'CLASSIFICATION_CONTRACT_MISMATCH'};
+  if (classification.expected_producer_workflow_path !== P1_PATH || classification.expected_producer_event !== 'workflow_run') return {...base, reason: 'CLASSIFICATION_CONTRACT_MISMATCH'};
   if (!positive(classification.producer_run_id) || !positive(classification.producer_run_attempt)) return {...base, reason: 'CLASSIFICATION_PRODUCER_IDENTITY_INVALID'};
   const title = run.display_title ?? run.name ?? '';
   const match = /^KIDULTS ARL \/ p1-(\d+)$/.exec(title);
   if (!match || Number(match[1]) !== classification.producer_run_id) return {...base, reason: 'CLASSIFICATION_ARL_LINEAGE_MISMATCH'};
   if (classification.classification === 'CURRENT_MAIN_EXACT') {
-    if (classification.state !== 'VERIFIED_PASS' || classification.reason !== 'CURRENT_MAIN_PRODUCER_BOUND' || classification.current_main_authority !== true || classification.producer_head_sha !== executionSha || classification.producer_head_branch !== 'main' || classification.producer_workflow_path !== P1_PATH || classification.producer_event !== classification.expected_producer_event || classification.producer_conclusion !== 'success') return {...base, reason: 'AUTHORITATIVE_CLASSIFICATION_INVALID'};
+    if (classification.state !== 'VERIFIED_PASS' || classification.reason !== 'CURRENT_MAIN_PRODUCER_BOUND' || classification.current_main_authority !== true || classification.producer_head_sha !== executionSha || classification.producer_head_branch !== 'main' || classification.producer_workflow_path !== P1_PATH || classification.producer_event !== 'workflow_run' || classification.producer_conclusion !== 'success') return {...base, reason: 'AUTHORITATIVE_CLASSIFICATION_INVALID'};
     return {...base, state: 'VERIFIED_PASS', admission: 'AUTHORITATIVE_REQUIRED', reason: 'CURRENT_MAIN_ARL_ARTIFACT_REQUIRED', should_run: true};
   }
   if (classification.classification === 'EXPECTED_NONAUTHORITATIVE_SKIP') {
