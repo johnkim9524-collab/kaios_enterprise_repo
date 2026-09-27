@@ -66,7 +66,7 @@ on:
 
 permissions:
   contents: read
-  actions: write
+  actions: read
 
 concurrency:
   group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
@@ -137,23 +137,6 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-      - name: Run exact-SHA producer auto-convergence
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          node scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs \
-            "$RUNNER_TEMP/kpmo-exact-sha-producer-auto-convergence-v1.json" \
-            "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
-      - name: Upload exact-SHA producer convergence receipt
-        if: github.event_name == 'push' && always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: kpmo-exact-sha-producer-auto-convergence-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/kpmo-exact-sha-producer-auto-convergence-v1.json
-          if-no-files-found: error
-          retention-days: 90
       - name: Resolve latest applicable exact-SHA producer health
         id: resolve
         continue-on-error: true
