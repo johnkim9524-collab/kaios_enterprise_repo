@@ -100,14 +100,20 @@ export async function ensureRoot(root,{sourceSha,token,force=false,maxDispatches
   return {action:force?'DISPATCHED_RECOVERY':'DISPATCHED',run_id:null};
 }
 
-export async function waitForSuccessfulRoot(root,{sourceSha,token,deadline,pollMs,apiRuns=rootRuns,wait=sleep}={}){
+export async function waitForSuccessfulRoot(root,{sourceSha,token,deadline,pollMs,inputs={},maxDispatches=2,apiRuns=rootRuns,dispatch=dispatchRoot,wait=sleep}={}){
+  let retryDispatched=false;
   for(;;){
     const runs=await apiRuns(root,token);
     const latest=selectRootGeneration(runs,root,sourceSha);
     if(latest?.status==='completed'){
       if(latest.conclusion==='success')return latest;
       const exact=runs.filter((run)=>run?.head_sha===sourceSha&&run?.event==='workflow_dispatch'&&run?.path===root.path);
-      if(exact.length>=2)fail(`${root.id}_ROOT_FAILED_${latest.conclusion||'UNKNOWN'}`);
+      if(exact.length>=maxDispatches)fail(`${root.id}_ROOT_FAILED_${latest.conclusion||'UNKNOWN'}`);
+      if(!retryDispatched){
+        if(exact.length>=maxDispatches)fail(`${root.id}_ROOT_RETRY_EXHAUSTED`);
+        await dispatch(root,token,inputs);
+        retryDispatched=true;
+      }
     }
     if(Date.now()>=deadline)fail(`${root.id}_ROOT_TIMEOUT`);
     await wait(pollMs);
@@ -144,7 +150,7 @@ export async function converge({repository,sourceSha,token,output,healthOutput,m
   const p1Start=await ensureRoot(P1_ROOT,{sourceSha,token});
   const p1Run=await waitForSuccessfulRoot(P1_ROOT,{sourceSha,token,deadline,pollMs});
   const arlStart=await ensureRoot(ARL_ROOT,{sourceSha,token,inputs:{p1_run_id:String(p1Run.id)}});
-  const arlRun=await waitForSuccessfulRoot(ARL_ROOT,{sourceSha,token,deadline,pollMs});
+  const arlRun=await waitForSuccessfulRoot(ARL_ROOT,{sourceSha,token,deadline,pollMs,inputs:{p1_run_id:String(p1Run.id)}});
   const requirement=ROOT_BY_PRODUCER.get('REQUIREMENT');
   roots.push({id:requirement.id,...await ensureRoot(requirement,{sourceSha,token})});
   const producerChain={p1:{...p1Start,run_id:p1Run.id},arl:{...arlStart,run_id:arlRun.id,p1_run_id:p1Run.id}};

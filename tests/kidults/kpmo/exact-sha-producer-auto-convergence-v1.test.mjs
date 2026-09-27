@@ -35,6 +35,39 @@ test('direct ARL dispatch is bound to the exact successful P1 run',async()=>{
   assert.equal(selected.id,42);
 });
 
+test('failed root performs one bounded retry and preserves exact inputs',async()=>{
+  const failed={...run(),path:ARL_ROOT.path,id:41,conclusion:'failure'};
+  const passed={...failed,id:42,created_at:'2026-09-25T00:01:00Z',conclusion:'success'};
+  const indexes=[[failed],[failed],[failed,passed]];
+  const dispatches=[];
+  const selected=await waitForSuccessfulRoot(ARL_ROOT,{
+    sourceSha:sha,token:'x',deadline:Date.now()+1000,pollMs:1,
+    inputs:{p1_run_id:'17'},
+    apiRuns:async()=>indexes.shift()??[failed,passed],
+    dispatch:async(root,_token,inputs)=>dispatches.push({root,inputs}),
+    wait:async()=>{},
+  });
+  assert.equal(selected.id,42);
+  assert.equal(dispatches.length,1);
+  assert.equal(dispatches[0].root,ARL_ROOT);
+  assert.deepEqual(dispatches[0].inputs,{p1_run_id:'17'});
+});
+
+test('bounded retry never redispatches while the new run is not yet indexed',async()=>{
+  const failed={...run(),path:ARL_ROOT.path,id:41,conclusion:'failure'};
+  let reads=0;
+  let dispatches=0;
+  await assert.rejects(()=>waitForSuccessfulRoot(ARL_ROOT,{
+    sourceSha:sha,token:'x',deadline:Date.now()+5,pollMs:1,
+    inputs:{p1_run_id:'17'},
+    apiRuns:async()=>{reads+=1;return [failed];},
+    dispatch:async()=>{dispatches+=1;},
+    wait:async()=>{},
+  }),/ARL_ROOT_TIMEOUT/);
+  assert.ok(reads>=2);
+  assert.equal(dispatches,1);
+});
+
 test('third root dispatch is rejected fail-closed',async()=>{
   const runs=[run({id:1,conclusion:'failure'}),run({id:2,created_at:'2026-09-25T00:01:00Z',conclusion:'failure'})];
   await assert.rejects(()=>ensureRoot(root,{sourceSha:sha,token:'x',force:true,apiRuns:async()=>runs,dispatch:async()=>{}}),/SHADOW_ROOT_RETRY_EXHAUSTED/);
