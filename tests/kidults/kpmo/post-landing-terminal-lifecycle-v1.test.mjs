@@ -47,6 +47,8 @@ test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assuran
   assert.match(truth, /github\.event\.workflow_run\.head_sha/);
   assert.match(sentinelTrigger, /KPMO Live Canonical Issue Truth V1'.*events:\['workflow_run','workflow_dispatch'\]/);
   assert.equal(discovery.match(/coordination\/kidults\/product\/representative-anchor-input-manifest-v1\.json/g)?.length, 2);
+  assert.match(discovery, /^  schedule:\n    - cron: '47 \* \* \* \*'/m);
+  assert.match(discovery, /global-any-site-hourly-pool-v2:\n    if: github\.event_name == 'workflow_dispatch' \|\| github\.event_name == 'schedule'/);
   assert.match(reserve, /workflow_run:\n    workflows:\n      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'/);
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
   assert.match(assurance, /- 'KPMO Live Canonical Issue Truth V1'/);
