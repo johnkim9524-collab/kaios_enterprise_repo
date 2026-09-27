@@ -2,8 +2,6 @@ name: KIDULTS ASI P1 Source Preflight v1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '52 * * * *'
   workflow_run:
     workflows:
       - 'KIDULTS ASI P0B Bounded Discovery Candidates v1'

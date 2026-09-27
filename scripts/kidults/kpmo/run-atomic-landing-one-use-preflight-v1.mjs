@@ -8,7 +8,7 @@ import {
   selectExactHeadProgramOwnerApproval,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
@@ -161,6 +161,13 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
   assert(receipt.tuple_sha256 === expectedTupleDigest, 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
   assert(receipt.raw_authorization_persisted === false, 'ATOMIC_CONSUMPTION_RAW_AUTHORIZATION_FORBIDDEN');
   assert(receipt.matching_run_count === 1, 'ATOMIC_CONSUMPTION_MATCHING_RUN_COUNT_INVALID');
+  assert(Number.isInteger(receipt.bounded_attempt_ordinal)
+    && receipt.bounded_attempt_ordinal >= 1
+    && receipt.bounded_attempt_ordinal <= MAX_BOUNDED_ATTEMPTS,
+  'ATOMIC_CONSUMPTION_BOUNDED_ATTEMPT_INVALID');
+  assert(Number.isInteger(receipt.prior_non_success_attempt_count)
+    && receipt.prior_non_success_attempt_count === receipt.bounded_attempt_ordinal - 1,
+  'ATOMIC_CONSUMPTION_PRIOR_ATTEMPT_COUNT_INVALID');
   assert(receipt.pr_head_matches_input === true, 'ATOMIC_CONSUMPTION_PR_HEAD_BINDING_INVALID');
   assert(receipt.pr_base_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_PR_BASE_BINDING_INVALID');
   assert(receipt.live_main_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_LIVE_MAIN_BINDING_INVALID');
@@ -298,7 +305,7 @@ async function main() {
   assert(exactBaseSha === currentRun.head_sha, 'ATOMIC_ONE_USE_PR_BASE_DISPATCH_MAIN_DRIFT');
   assert(liveMainSha === currentRun.head_sha, 'ATOMIC_ONE_USE_LIVE_MAIN_DRIFT');
 
-  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const latestReady = selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest: pr});
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
     repositoryOwner,

@@ -168,7 +168,7 @@ test('canonical convergence: exact generation then workflow_run Truth becomes co
  ];
  const x=classifyCanonicalConvergence([generationRun(30)],truth,sourceSha,observed);
  assert.equal(x.state,'READY_FOR_CONTENT_VALIDATION');assert.equal(x.generation.id,30);assert.equal(x.consumer.id,31);
- assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[20,31]);
+ assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[31]);
 });
 
 test('canonical convergence: terminal generation failure is preserved as fail-closed',()=>{
@@ -216,7 +216,7 @@ test('canonical convergence: PR 2290 natural race fixture selects the converged 
  ];
  const x=classifyCanonicalConvergence(generation,truth,incidentSha,'2026-09-21T23:42:00Z');
  assert.equal(x.state,'READY_FOR_CONTENT_VALIDATION');assert.equal(x.generation.id,35668619197);assert.equal(x.consumer.id,35668695381);
- assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[35668619160,35668695381]);
+ assert.deepEqual(x.evaluation_truth_runs.map(run=>run.id),[35668695381]);
 });
 test('canonical convergence: runtime wait budget stays bound to the post-merge policy',()=>{
  const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'));

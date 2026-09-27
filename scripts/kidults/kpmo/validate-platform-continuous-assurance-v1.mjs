@@ -115,6 +115,7 @@ if (!errors.length) {
     'semantic_input_receipt:$semantic[0]',
     'KPMO_COVERAGE_ALIAS_OBSERVATION',
     'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE_COVERAGE_ALIAS_OBSERVER',
+    '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.2.0" and .state=="CONSUMED_VERIFIED"',
     'zipinfo -1',
     'cancel-in-progress: false'
   ];

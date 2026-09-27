@@ -1,38 +1,37 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const workflowPath = '.github/workflows/kidults-autonomous-object-lock-canary-v1.yml';
-const workflow = fs.readFileSync(workflowPath, 'utf8');
-const acquisitionStart = workflow.indexOf('- name: Acquire FINALIZER credentials through exact GitHub OIDC subject');
-const nextStep = workflow.indexOf('\n      - name:', acquisitionStart + 10);
-assert.ok(acquisitionStart >= 0, 'FINALIZER credential acquisition step must exist');
-assert.ok(nextStep > acquisitionStart, 'FINALIZER credential acquisition step must be bounded');
+const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-object-lock-canary-v1.yml', 'utf8');
+const helper = fs.readFileSync('scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh', 'utf8');
+const stepName = '- name: Acquire FINALIZER credentials through exact GitHub OIDC subject';
+const acquisitionStart = workflow.indexOf(stepName);
+const nextStep = workflow.indexOf('\n      - name:', acquisitionStart + stepName.length);
+assert.ok(acquisitionStart >= 0 && nextStep > acquisitionStart, 'bounded FINALIZER credential step must exist');
 const step = workflow.slice(acquisitionStart, nextStep);
 
 assert.ok(!/set\s+-[^\n]*x/.test(step), 'credential step must never enable shell tracing');
-assert.ok(step.includes('echo "::add-mask::$OIDC_TOKEN"'), 'OIDC token must be masked immediately after acquisition');
+assert.match(step, /credential_process = bash .*aws-oidc-credential-process-v1\.sh/);
+assert.ok(step.includes('chmod 600 "$profile_path"'), 'credential profile must be owner-only');
+assert.ok(step.includes('AWS_CONFIG_FILE=$profile_path'), 'workflow must export only the credential profile path');
+assert.ok(step.includes('AWS_PROFILE=kidults-oidc'), 'workflow must select the credential-process profile');
 
 for (const name of ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN']) {
-  const shellRef = '$' + name;
-  const nonEmpty = step.indexOf('test -n "' + shellRef + '"');
-  const mask = step.indexOf('echo "::add-mask::' + shellRef + '"');
-  const exportToEnv = step.indexOf('echo "' + name + '=' + shellRef + '"');
-  assert.ok(nonEmpty >= 0, name + ' must be validated');
-  assert.ok(mask > nonEmpty, name + ' must be masked after validation');
-  assert.ok(exportToEnv > mask, name + ' must be masked before GITHUB_ENV export');
+  assert.ok(!workflow.includes('echo "' + name + '='), name + ' must never be written to GITHUB_ENV');
 }
-
-const envWrite = step.indexOf('} >> "$GITHUB_ENV"');
-const scrub = step.indexOf('unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN');
-assert.ok(envWrite >= 0, 'credential environment write must exist');
-assert.ok(scrub > envWrite, 'temporary credential variables must be scrubbed after export');
-assert.ok(workflow.includes('node scripts/governance/validate-object-lock-credential-hygiene-v1.mjs'), 'workflow must execute credential hygiene regression before OIDC acquisition');
+assert.doesNotMatch(workflow, /read\s+-r\s+AWS_ACCESS_KEY_ID/);
+assert.ok(!helper.includes('$GITHUB_ENV'), 'credential helper must not persist values across steps');
+assert.match(helper, /env[\s\S]*-u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN/, 'helper must reject inherited static credentials');
+assert.ok(helper.includes('assume-role-with-web-identity'), 'helper must exchange GitHub OIDC directly');
+assert.ok(helper.includes("jq -ce '{Version:1,AccessKeyId,SecretAccessKey,SessionToken,Expiration}'"), 'helper output must use the AWS credential_process contract');
+assert.ok(workflow.includes('aws sts get-caller-identity --output json >/dev/null'), 'fail-closed receipt must work with credential_process');
+assert.ok(workflow.includes('node scripts/governance/validate-object-lock-credential-hygiene-v1.mjs'), 'workflow must execute this regression before acquisition');
 
 console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   validator: 'validate-object-lock-credential-hygiene-v1',
-  protected_values: ['OIDC_TOKEN', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'],
-  export_order: 'MASK_BEFORE_GITHUB_ENV',
+  credential_boundary: 'PROCESS_SCOPED',
+  persisted_values: ['AWS_CONFIG_FILE', 'AWS_PROFILE', 'AWS_REGION'],
+  raw_credential_persistence: 'DENIED',
   production: 'HOLD',
   public: 'HOLD',
   g5: 'HOLD'

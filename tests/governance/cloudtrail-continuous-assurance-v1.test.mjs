@@ -21,7 +21,7 @@ test('CloudTrail assurance validator passes the canonical contract', () => {
   assert.equal(receipt.g5, 'HOLD');
 });
 
-test('S3 data events are scoped to the existing immutable receipt bucket', () => {
+test('S3 data events cover the receipt and provisioned negative boundary buckets', () => {
   const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
   const selector =
     template.Resources.StagingAssuranceTrail.Properties.EventSelectors[0];
@@ -30,13 +30,23 @@ test('S3 data events are scoped to the existing immutable receipt bucket', () =>
       Type: 'AWS::S3::Object',
       Values: [
         { 'Fn::Sub': '${ReceiptBucketArn}/' },
-        {
-          'Fn::Sub':
-            'arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/',
-        },
+        { 'Fn::Sub': '${NegativeBoundaryBucket.Arn}/' },
       ],
     },
   ]);
+
+  const negativeBucket = template.Resources.NegativeBoundaryBucket;
+  assert.equal(negativeBucket.Type, 'AWS::S3::Bucket');
+  assert.deepEqual(negativeBucket.Properties.BucketName, {
+    'Fn::Sub': 'kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}',
+  });
+  const denyWrites =
+    template.Resources.NegativeBoundaryBucketPolicy.Properties.PolicyDocument.Statement.find(
+      (statement) => statement.Sid === 'DenyAllObjectWrites',
+    );
+  assert.equal(denyWrites.Effect, 'Deny');
+  assert.equal(denyWrites.Principal, '*');
+  assert.equal(denyWrites.Action, 's3:PutObject');
 
   const roleStatements =
     template.Resources.CloudTrailAssuranceRole.Properties.Policies[0]
@@ -75,9 +85,11 @@ test('event consumer binds exact run identity and rejects missing or duplicate e
 
 test('positive and every negative boundary require CloudTrail event evidence', () => {
   const script = fs.readFileSync(eventAssurancePath, 'utf8');
+  assert.match(script, /query_one_event positive_s3/);
+  assert.match(script, /query_event_set positive_kms/);
+  assert.match(script, /OBSERVED_PROVIDER_EVENT_SET/);
+  assert.match(script, /map\(\.eventID\).*unique/);
   for (const label of [
-    'positive_s3',
-    'positive_kms',
     'negative_forbidden_prefix',
     'negative_wrong_bucket',
     'negative_wrong_key',
@@ -87,6 +99,7 @@ test('positive and every negative boundary require CloudTrail event evidence', (
     assert.match(script, new RegExp(`query_one_event ${label}`));
   }
   assert.match(script, /DENIED_AND_OBSERVED_EXACTLY_ONCE/);
+  assert.match(script, /positive_s3:\{state:"OBSERVED_EXACTLY_ONCE"/);
   assert.match(script, /CLOUDTRAIL_EXACT_EVENT_BINDING=PASS/);
   assert.doesNotMatch(script, /cloudtrail lookup-events/);
 });

@@ -78,31 +78,24 @@ jobs:
           test "$CLOUDTRAIL_STACK" = "kidults-cloudtrail-continuous-assurance-staging-v1"
           echo 'ENVIRONMENT_BINDING_READBACK=PASS'
 
-      - name: Acquire short-lived assurance credentials through GitHub OIDC
+      - name: Configure secretless assurance OIDC credential process
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_ROLE_ARN }}
         run: |
           set -euo pipefail
-          OIDC_JSON=$(curl --fail --silent --show-error             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          test -n "$OIDC_TOKEN"
-          echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity             --role-arn "$AWS_ROLE_ARN"             --role-session-name "kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"             --web-identity-token "$OIDC_TOKEN"             --duration-seconds 900             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'             --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          test -n "$AWS_ACCESS_KEY_ID"
-          test -n "$AWS_SECRET_ACCESS_KEY"
-          test -n "$AWS_SESSION_TOKEN"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
+          profile_path="$RUNNER_TEMP/kidults-oidc-${GITHUB_RUN_ID}-${GITHUB_JOB}.ini"
           {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-            echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
+            echo '[profile kidults-oidc]'
+            echo "credential_process = bash $GITHUB_WORKSPACE/scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh $AWS_ROLE_ARN kidults-cloudtrail-assurance-${GITHUB_RUN_ID}"
+            echo 'region = ap-northeast-2'
+          } > "$profile_path"
+          chmod 600 "$profile_path"
+          {
+            echo "AWS_CONFIG_FILE=$profile_path"
+            echo 'AWS_PROFILE=kidults-oidc'
+            echo 'AWS_REGION=ap-northeast-2'
           } >> "$GITHUB_ENV"
-          unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          echo "ASSURANCE_SESSION_NAME=kidults-cloudtrail-assurance-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
 
       - name: Read back FINALIZER IAM OIDC CloudTrail and alarms
         env:
@@ -162,20 +155,51 @@ jobs:
           CLOUDTRAIL_STACK: ${{ vars.KIDULTS_CLOUDTRAIL_ASSURANCE_STACK }}
         run: |
           set -euo pipefail
-          DRIFT_ID=$(aws cloudformation detect-stack-drift             --stack-name "$CLOUDTRAIL_STACK"             --query StackDriftDetectionId             --output text)
+          evidence_dir=out/cloudtrail-continuous-assurance-v1/drift
+          mkdir -p "$evidence_dir"
+          DRIFT_ID=$(aws cloudformation detect-stack-drift --stack-name "$CLOUDTRAIL_STACK" --query StackDriftDetectionId --output text)
           for attempt in $(seq 1 60); do
-            DRIFT=$(aws cloudformation describe-stack-drift-detection-status               --stack-drift-detection-id "$DRIFT_ID"               --output json)
+            DRIFT=$(aws cloudformation describe-stack-drift-detection-status --stack-drift-detection-id "$DRIFT_ID" --output json)
             STATUS=$(jq -r '.DetectionStatus' <<<"$DRIFT")
-            test "$STATUS" != DETECTION_FAILED
-            if [ "$STATUS" = DETECTION_COMPLETE ]; then break; fi
+            if [ "$STATUS" = DETECTION_COMPLETE ] || [ "$STATUS" = DETECTION_FAILED ]; then break; fi
             test "$attempt" -lt 60
             sleep 5
           done
-          test "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC
-          test "$(jq -r '.DriftedStackResourceCount' <<<"$DRIFT")" = 0
+          printf '%s\n' "$DRIFT" > "$evidence_dir/stack-drift.json"
           STACK_STATUS=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].StackStatus' --output text)
-          test "$STACK_STATUS" = CREATE_COMPLETE -o "$STACK_STATUS" = UPDATE_COMPLETE
-          echo 'CLOUDFORMATION_DRIFT=IN_SYNC'
+
+          if [ "$STATUS" != DETECTION_COMPLETE ]; then
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" 2>&1 | tee "$evidence_dir/validation-receipt.json"
+          elif [ "$(jq -r '.StackDriftStatus' <<<"$DRIFT")" = IN_SYNC ]; then
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" 2>&1 | tee "$evidence_dir/validation-receipt.json"
+          else
+            RESOURCE_DRIFTS=$(aws cloudformation describe-stack-resource-drifts \
+              --stack-name "$CLOUDTRAIL_STACK" \
+              --stack-resource-drift-status-filters MODIFIED DELETED \
+              --query StackResourceDrifts \
+              --output json)
+            printf '%s\n' "$RESOURCE_DRIFTS" > "$evidence_dir/resource-drifts.json"
+
+            BUCKET=$(aws cloudformation describe-stacks --stack-name "$CLOUDTRAIL_STACK" --query 'Stacks[0].Outputs[?OutputKey==`CloudTrailLogBucket`].OutputValue | [0]' --output text)
+            aws s3api get-bucket-encryption --bucket "$BUCKET" --output json > "$evidence_dir/bucket-encryption.json"
+            aws s3api get-bucket-ownership-controls --bucket "$BUCKET" --output json > "$evidence_dir/bucket-ownership.json"
+            aws s3api get-bucket-tagging --bucket "$BUCKET" --output json > "$evidence_dir/bucket-tags.json"
+
+            TRAIL_ARN=$(aws cloudtrail describe-trails --trail-name-list kidults-staging-continuous-assurance --query 'trailList[0].TrailARN' --output text)
+            aws cloudtrail list-tags --resource-id-list "$TRAIL_ARN" --output json > "$evidence_dir/trail-tags.json"
+            node scripts/governance/validate-cloudformation-drift-readback-v1.mjs \
+              --drift "$evidence_dir/stack-drift.json" \
+              --stack-status "$STACK_STATUS" \
+              --resource-drifts "$evidence_dir/resource-drifts.json" \
+              --encryption "$evidence_dir/bucket-encryption.json" \
+              --ownership "$evidence_dir/bucket-ownership.json" \
+              --bucket-tags "$evidence_dir/bucket-tags.json" \
+              --trail-tags "$evidence_dir/trail-tags.json" 2>&1 | tee "$evidence_dir/validation-receipt.json"
+          fi
 
       - name: Execute positive and negative assurance canary
         env:
@@ -196,7 +220,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out/cloudtrail-continuous-assurance-v1
-          if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
+          if ! aws sts get-caller-identity --output json >/dev/null 2>&1; then
             echo '{"state":"VERIFIED_FAIL","reason":"ASSURANCE_FAILED_BEFORE_OIDC"}' > out/cloudtrail-continuous-assurance-v1/terminal-fail-receipt.json
             exit 0
           fi
@@ -214,4 +238,3 @@ jobs:
           path: out/cloudtrail-continuous-assurance-v1/
           if-no-files-found: error
           retention-days: 90
-

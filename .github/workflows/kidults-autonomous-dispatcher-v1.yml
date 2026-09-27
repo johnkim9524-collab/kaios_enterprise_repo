@@ -5,6 +5,9 @@ on:
   pull_request_target:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_run:
+    workflows: [CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Governed Landing Authorization V1]
+    types: [completed]
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
@@ -22,7 +25,7 @@ permissions: {}
 
 jobs:
   dispatch-eligible-internal-prs:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id) && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'pull_request_target') && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-DISPATCHER
     timeout-minutes: 10
@@ -46,42 +49,119 @@ jobs:
           node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
 
+      - name: Download exact-head governed readiness receipt
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: kidults-governed-landing-readiness-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ runner.temp }}/kidults-governed-landing-readiness
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Consume bounded exact-head readiness or fail for automatic reconvergence
+        id: consume
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
+        env:
+          READINESS_RUN_ID: ${{ github.event.workflow_run.id }}
+          READINESS_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          READINESS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          READINESS_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+          READINESS_HEAD_SHA: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
+          READINESS_MAXIMUM_AGE_SECONDS: '900'
+        run: node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs "$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json"
+
+      - name: Transition exact validated draft to Ready through trusted broker
+        id: transition_draft
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1' && steps.consume.outputs.draft_transition_eligible == 'true'
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
+          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+          EXPECTED_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          EXPECTED_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
+          EXPECTED_BASE_SHA: ${{ github.event.workflow_run.pull_requests[0].base.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          READ_TOKEN: ${{ github.token }}
+          PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}
+          PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}
+          G5_STATE: ${{ vars.KIDULTS_G5_STATE || 'HOLD' }}
+        run: |
+          set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          test -n "$AWS_ROLE_ARN"
+          test -n "$BROKER_FUNCTION"
+          test -n "$EXPECTED_APP_ID"
+          test -n "$EXPECTED_INSTALLATION_ID"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-ready-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          response_path="$RUNNER_TEMP/kidults-dispatcher-draft-ready-token.json"
+          payload=$(jq -cn --arg repository "$GITHUB_REPOSITORY" --arg repository_id "$GITHUB_REPOSITORY_ID" --argjson pull_request "$PR_NUMBER" --arg base_sha "$EXPECTED_BASE_SHA" --arg head_sha "$EXPECTED_HEAD_SHA" --arg authorization_generation "dispatcher-ready-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${PR_NUMBER}" '{action:"MINT_INSTALLATION_TOKEN",permission_profile:"DRAFT_READY_TRANSITION",repository:$repository,repository_id:$repository_id,pull_request:$pull_request,base_sha:$base_sha,head_sha:$head_sha,authorization_generation:$authorization_generation,allow_draft_recovery:true}')
+          aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$payload" "$response_path" >/dev/null
+          chmod 600 "$response_path"
+          export DRAFT_READY_RESPONSE_PATH="$response_path"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {GateFailure,assertDraftReadyTransitionCandidate,validateDraftReadyBrokerResponse,assertDraftReadyPostMutation} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          const env=process.env;
+          if([env.PRODUCTION_STATE,env.PUBLIC_STATE,env.G5_STATE].some(value=>value!=='HOLD'))throw new GateFailure('DRAFT_READY_HOLD_BOUNDARY_WEAKENED');
+          const response=JSON.parse(fs.readFileSync(env.DRAFT_READY_RESPONSE_PATH,'utf8'));
+          const appToken=validateDraftReadyBrokerResponse(response,{repository:env.GITHUB_REPOSITORY,repositoryId:env.GITHUB_REPOSITORY_ID,appId:env.EXPECTED_APP_ID,installationId:env.EXPECTED_INSTALLATION_ID,githubToken:env.READ_TOKEN}).token;
+          console.log(`::add-mask::${appToken}`);
+          const api=async(bearer,path,options={})=>{const r=await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}${path}`,{...options,headers:{Authorization:`Bearer ${bearer}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1',...(options.headers||{})},redirect:'error'});if(!r.ok)throw new GateFailure(`GITHUB_API_${r.status}`,path);return r.json();};
+          const before=assertDraftReadyTransitionCandidate(await api(env.READ_TOKEN,`/pulls/${env.PR_NUMBER}`),{repository:env.GITHUB_REPOSITORY,expectedPullRequestNumber:env.PR_NUMBER,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA,expectedTriggerDraft:true});
+          const mutation=await fetch('https://api.github.com/graphql',{method:'POST',headers:{Authorization:`Bearer ${appToken}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json','User-Agent':'kidults-autonomous-dispatcher-v1'},body:JSON.stringify({query:'mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',variables:{pullRequestId:before.node_id}}),redirect:'error'});
+          if(!mutation.ok)throw new GateFailure(`DRAFT_READY_MUTATION_HTTP_${mutation.status}`);
+          const mutationBody=await mutation.json();if(mutationBody.errors?.length)throw new GateFailure(`DRAFT_READY_MUTATION_${mutationBody.errors[0].type||'FAILED'}`);
+          const after=await api(appToken,`/pulls/${env.PR_NUMBER}`);
+          const verified=assertDraftReadyPostMutation(before,after,{repository:env.GITHUB_REPOSITORY,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA});
+          if([env.PRODUCTION_STATE,env.PUBLIC_STATE,env.G5_STATE].some(value=>value!=='HOLD'))throw new GateFailure('DRAFT_READY_HOLD_BOUNDARY_WEAKENED');
+          fs.unlinkSync(env.DRAFT_READY_RESPONSE_PATH);
+          console.log(JSON.stringify({state:'EXACT_DRAFT_READY_TRANSITION_VERIFIED',...verified,permission_profile:response.permission_profile,production:'HOLD',public_release:'HOLD',g5:'HOLD'}));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,'performed=true\n');
+          NODE
+
       - name: Discover exact eligible PR bindings
         id: discover
+        if: steps.transition_draft.outputs.performed != 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}
+          KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
 
-      - name: Acquire broker invocation credentials through GitHub OIDC
+      - name: Mint exact short-lived token and emit all three role events in one credential boundary
         if: steps.discover.outputs.eligible_count != '0'
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
-        run: |
-          set -euo pipefail
-          test -n "$AWS_ROLE_ARN"
-          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-          } >> "$GITHUB_ENV"
-
-      - name: Mint exact short-lived token and emit all three role events
-        if: steps.discover.outputs.eligible_count != '0'
-        env:
           BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          test -n "$AWS_ROLE_ARN"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          test -n "$AWS_ACCESS_KEY_ID"
           test -n "$BROKER_FUNCTION"
           jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json | while IFS= read -r envelope; do
             request=$(jq -c '{action:"MINT_INSTALLATION_TOKEN",repository,repository_id,pull_request,base_sha,head_sha,authorization_generation}' <<<"$envelope")

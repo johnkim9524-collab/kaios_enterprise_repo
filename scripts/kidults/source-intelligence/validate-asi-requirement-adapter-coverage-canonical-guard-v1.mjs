@@ -35,7 +35,7 @@ const semanticManifest = {
   ],
 };
 const semanticReceipt = {
-  id: 'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1', version: '1.1.0', state: 'VERIFIED_PASS', source_sha: sourceSha,
+  id: 'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1', version: '1.2.0', state: 'VERIFIED_PASS', source_sha: sourceSha,
   trigger_event: 'workflow_run', artifact_role: 'AUTHORITATIVE_CONSUMABLE', authoritative_producer: true, downstream_consumable: true,
   p1_source_sha: sourceSha, exact_generation_bound: true, exact_triggering_run_bound: true, validation_only: false, promotion_authority: false,
   artifact_cardinality: 1, results: semanticManifest.results, autonomous_effect: 'POSITIVE', global_effect: 'POSITIVE', irreplaceable_value_effect: 'POSITIVE', transparency_effect: 'POSITIVE',
@@ -46,7 +46,7 @@ const semanticReceipt = {
 };
 const semanticArgs = {
   sourceSha, upstreamClass: 'ASI_AUTONOMOUS_RESOLUTION', queue: semanticQueue, manifest: semanticManifest, receipt: semanticReceipt,
-  coverageContract: { id: 'kidults-asi-requirement-adapter-coverage-contract-v1', version: '1.2.0' }, coverageContractBytes: Buffer.from('{"contract":"stable"}'),
+  coverageContract: { id: 'kidults-asi-requirement-adapter-coverage-contract-v1', version: '1.3.0' }, coverageContractBytes: Buffer.from('{"contract":"stable"}'),
   authoritativeInputDigests: { runtime_contract: { path: 'runtime.json', digest: `sha256:${'9'.repeat(64)}` } },
   authoritativeInputConstants: { replacement_queue_id: 'kidults-asi-replacement-source-mission-queue-v1' },
   implementationDigests: { builder: { path: 'builder.mjs', digest: `sha256:${'0'.repeat(64)}` } },

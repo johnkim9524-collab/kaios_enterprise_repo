@@ -173,6 +173,13 @@ jobs:
           test "$(git rev-parse HEAD)" = "$MERGE_SHA"
           test "$(jq -r '.state' out/direct-owner-landing-handoff-v1/receipt.json)" = CONSUMED_BY_DIRECT_OWNER_MERGE
 
+      - name: Verify post-merge lifecycle with exact landed implementation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          HANDOFF_RECEIPT_PATH: out/direct-owner-landing-handoff-v1/receipt.json
+        run: node scripts/kidults/kpmo/verify-direct-owner-postmerge-lifecycle-v1.mjs
+
       - name: Consume exact merge-SHA protected-main push suite
         env:
           GH_TOKEN: ${{ github.token }}

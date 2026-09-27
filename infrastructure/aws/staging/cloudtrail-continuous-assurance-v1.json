@@ -195,7 +195,6 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "LogGroupName": "/aws/cloudtrail/kidults-staging-continuous-assurance",
         "RetentionInDays": 3653,
         "Tags": [
           {
@@ -215,6 +214,107 @@
             "Value": "HOLD"
           }
         ]
+      }
+    },
+    "NegativeBoundaryBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": {
+          "Fn::Sub": "kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}"
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "CloudTrailNegativeBoundary"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "NegativeBoundaryBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "NegativeBoundaryBucket"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "DenyAllObjectWrites",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {
+                "Fn::Sub": "${NegativeBoundaryBucket.Arn}/*"
+              }
+            },
+            {
+              "Sid": "DenyInsecureTransport",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "NegativeBoundaryBucket",
+                    "Arn"
+                  ]
+                },
+                {
+                  "Fn::Sub": "${NegativeBoundaryBucket.Arn}/*"
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              }
+            }
+          ]
+        }
       }
     },
     "CloudTrailCloudWatchRole": {
@@ -246,7 +346,10 @@
                     "logs:PutLogEvents"
                   ],
                   "Resource": {
-                    "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+                    "Fn::GetAtt": [
+                      "CloudTrailLogGroup",
+                      "Arn"
+                    ]
                   }
                 }
               ]
@@ -267,7 +370,10 @@
           "Ref": "CloudTrailLogBucket"
         },
         "CloudWatchLogsLogGroupArn": {
-          "Fn::Sub": "${CloudTrailLogGroup.Arn}:*"
+          "Fn::GetAtt": [
+            "CloudTrailLogGroup",
+            "Arn"
+          ]
         },
         "CloudWatchLogsRoleArn": {
           "Fn::GetAtt": [
@@ -291,7 +397,7 @@
                     "Fn::Sub": "${ReceiptBucketArn}/"
                   },
                   {
-                    "Fn::Sub": "arn:${AWS::Partition}:s3:::kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}/"
+                    "Fn::Sub": "${NegativeBoundaryBucket.Arn}/"
                   }
                 ]
               }
@@ -439,7 +545,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "kidults-cloudtrail-assurance-staging-role",
-        "MaxSessionDuration": 900,
+        "MaxSessionDuration": 3600,
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
@@ -474,20 +580,46 @@
                     "cloudtrail:DescribeTrails",
                     "cloudtrail:GetEventSelectors",
                     "cloudtrail:GetTrailStatus",
+                    "cloudtrail:ListTags",
                     "cloudtrail:LookupEvents",
                     "cloudformation:DetectStackDrift",
+                    "cloudformation:DetectStackResourceDrift",
                     "cloudformation:DescribeStackDriftDetectionStatus",
+                    "cloudformation:DescribeStackResourceDrifts",
                     "cloudformation:DescribeStacks",
                     "cloudwatch:DescribeAlarms",
+                    "cloudwatch:ListTagsForResource",
                     "iam:GetRole",
                     "iam:GetRolePolicy",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListRolePolicies",
+                    "iam:ListRoleTags",
                     "logs:DescribeLogGroups",
+                    "logs:DescribeIndexPolicies",
+                    "logs:DescribeMetricFilters",
+                    "logs:ListTagsForResource",
                     "logs:StartQuery",
                     "logs:GetQueryResults",
                     "logs:StopQuery",
+                    "s3:GetBucketAcl",
+                    "s3:GetBucketCors",
+                    "s3:GetEncryptionConfiguration",
+                    "s3:GetBucketLifecycleConfiguration",
+                    "s3:GetBucketLogging",
+                    "s3:GetBucketNotification",
                     "s3:GetBucketObjectLockConfiguration",
+                    "s3:GetBucketOwnershipControls",
+                    "s3:GetBucketPolicy",
+                    "s3:GetBucketPolicyStatus",
                     "s3:GetBucketPublicAccessBlock",
-                    "s3:GetBucketVersioning"
+                    "s3:GetBucketRequestPayment",
+                    "s3:GetBucketTagging",
+                    "s3:GetBucketVersioning",
+                    "s3:GetBucketWebsite",
+                    "sns:GetSubscriptionAttributes",
+                    "sns:GetTopicAttributes",
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:ListTagsForResource"
                   ],
                   "Resource": "*"
                 },
@@ -495,7 +627,10 @@
                   "Effect": "Allow",
                   "Action": [
                     "s3:PutObject",
+                    "s3:PutObjectRetention",
                     "s3:GetObject",
+                    "s3:GetObjectAttributes",
+                    "s3:GetObjectRetention",
                     "s3:GetObjectVersion",
                     "s3:GetObjectVersionAttributes"
                   ],
@@ -507,6 +642,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "kms:DescribeKey",
+                    "kms:Decrypt",
                     "kms:Encrypt",
                     "kms:GenerateDataKey"
                   ],
@@ -579,4 +715,3 @@
     }
   }
 }
-

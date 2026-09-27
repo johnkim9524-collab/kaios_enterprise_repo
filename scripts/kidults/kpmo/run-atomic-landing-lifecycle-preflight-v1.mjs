@@ -7,7 +7,7 @@ import {
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 import {
   assertLandingActorAndAuthorization,
@@ -112,9 +112,10 @@ const nativeStatuses = required.map(context => {
   return matches[0];
 });
 
-const latestReadiness = selectLatestDirectOwnerReadyEvent({
+const latestReadiness = selectLatestLifecycleReadyEvent({
   timeline,
   repositoryOwner,
+  pullRequest: pr,
 });
 const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
   repository,

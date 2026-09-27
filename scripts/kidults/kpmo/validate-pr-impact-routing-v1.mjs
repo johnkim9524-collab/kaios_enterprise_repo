@@ -6,6 +6,9 @@ const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
 const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
+const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
+const dispatcherDirectRepositoryGuard = "github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id";
+const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
 const allowedUnbounded = new Set([
   'ci-validation.yml',
   autonomousDispatcherWorkflow,
@@ -26,13 +29,13 @@ function autonomousDispatcherViolations(source) {
   if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) {
     problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
   }
-  if (!source.includes("github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository")) {
+  if (!source.includes(dispatcherDirectRepositoryGuard) || !source.includes(dispatcherWorkflowRunRepositoryGuard)) {
     problems.push('DISPATCHER_SAME_REPOSITORY_GUARD_MISSING');
   }
   if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) {
     problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
   }
-  if (!source.includes('KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}')) {
+  if (!source.includes(dispatcherExactPrBinding)) {
     problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
   }
   return problems;
@@ -226,9 +229,10 @@ if (files.includes(autonomousDispatcherWorkflow)) {
   }
   const mutations = [
     source.replace('    branches: [main]\n', ''),
-    source.replace(" && (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository)", ''),
+    source.replace(` && (${dispatcherDirectRepositoryGuard})`, ''),
+    source.replace(` && ${dispatcherWorkflowRunRepositoryGuard}`, ''),
     source.replace('          persist-credentials: false', '          persist-credentials: true'),
-    source.replace('KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}', 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
+    source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
   ];
   for (const [index, mutated] of mutations.entries()) {
     if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
@@ -262,7 +266,7 @@ const receipt = {
     pull_request_target_base: 'main',
     source_checkout: 'TRUSTED_BASE_ONLY',
     exact_pr_binding: true,
-    mutation_cases: 4
+    mutation_cases: 5
   },
   violations
 };

@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-report-after-remediation-gate-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "scope": "REPOSITORY_GOVERNED_AI_AGENT_STATUS_RECEIPTS",
@@ -20,7 +20,10 @@
       "VERIFIED_OUTCOME_READY",
       "PRIORITIZED_IMPROVEMENT_PROPOSAL_READY"
     ],
-    "report_only_allowed": false
+    "report_only_allowed": false,
+    "intermediate_pr_ci_merge_or_partial_workflow_success_is_reportable_terminal": false,
+    "routine_progress_prompt_or_repeat_owner_approval_allowed": false,
+    "autonomous_closure_policy": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json"
   },
   "protected_stop_exception": {
     "allowed_only_when": [

@@ -10,7 +10,7 @@ import {
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 import {
   assertAtomicLandingStagedLifecycleAuthority,
@@ -284,12 +284,16 @@ const assertLifecycleAuthorityAgainstReady = (readyEvent, baseSha) =>
 
 const sameReadyEvent = (left, right) =>
   left?.id === right?.id
+  && left?.event === right?.event
   && left?.created_at === right?.created_at
   && left?.actor === right?.actor
-  && left?.direct_repository_owner === true
-  && right?.direct_repository_owner === true
-  && left?.performed_via_github_app === null
-  && right?.performed_via_github_app === null;
+  && JSON.stringify(left?.performed_via_github_app ?? null) === JSON.stringify(right?.performed_via_github_app ?? null)
+  && left?.direct_repository_owner === right?.direct_repository_owner
+  && left?.synthetic_lifecycle_boundary === right?.synthetic_lifecycle_boundary
+  && left?.authority === 'LIFECYCLE_ONLY'
+  && right?.authority === 'LIFECYCLE_ONLY'
+  && left?.grants_authorization === false
+  && right?.grants_authorization === false;
 
 const sameLifecycleAuthority = (left, right) =>
   left?.state === right?.state
@@ -335,6 +339,13 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     runAttempt: landingRunAttempt,
     expectedRunName,
   });
+  if (receipt.matching_run_count !== oneUse.matching_run_count
+    || receipt.bounded_attempt_ordinal !== oneUse.bounded_attempt_ordinal
+    || receipt.prior_non_success_attempt_count !== oneUse.prior_non_success_attempt_count
+    || receipt.landing_workflow_run_id !== oneUse.matching_run_id
+    || receipt.landing_workflow_run_attempt !== oneUse.matching_run_attempt) {
+    throw new Error('ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT');
+  }
   return {oneUse, receipt, currentRun};
 };
 
@@ -398,7 +409,7 @@ try {
   if (headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     throw new Error('ATOMIC_LANDING_EXPECTED_HEAD_TREE_MISMATCH');
   }
-  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const latestReady = selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest: initial});
   const lifecycleAuthority = assertLifecycleAuthorityAgainstReady(latestReady, initial.base.sha);
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
@@ -473,9 +484,10 @@ try {
     liveMainSha: initialMain.commit.sha,
   });
 
-  const immediateReady = selectLatestDirectOwnerReadyEvent({
+  const immediateReady = selectLatestLifecycleReadyEvent({
     timeline: immediateTimeline,
     repositoryOwner,
+    pullRequest: immediatePreMerge,
   });
   const immediateLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
     immediateReady,
@@ -540,9 +552,10 @@ try {
     assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
   }
 
-  const finalPreMergeReady = selectLatestDirectOwnerReadyEvent({
+  const finalPreMergeReady = selectLatestLifecycleReadyEvent({
     timeline: finalPreMergeTimeline,
     repositoryOwner,
+    pullRequest: finalPreMerge,
   });
   const finalPreMergeLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
     finalPreMergeReady,

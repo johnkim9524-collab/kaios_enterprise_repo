@@ -2,10 +2,13 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
-import {evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
+import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
+export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
+  || /^INDEPENDENT_/.test(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
 
@@ -22,6 +25,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
   assertDelegatedPathScope(files,policy);
   evaluateSemanticCapabilityDelta({files,policy});
+  independentlyVerifyCapabilityDelta({files,policy});
   const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
@@ -87,7 +91,7 @@ export async function discover({repository,token,prNumber,policy}){
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
-  }catch(error){if(!(error instanceof DispatcherError))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+  }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 

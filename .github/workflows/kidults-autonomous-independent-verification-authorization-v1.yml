@@ -60,32 +60,6 @@ jobs:
           test "$SIGNING_KEY_ARN" != "UNCONFIGURED"
           test "$WRITER_FUNCTION" != "UNCONFIGURED"
 
-      - name: Acquire short-lived AWS credentials through GitHub OIDC
-        env:
-          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
-        run: |
-          set -euo pipefail
-          OIDC_JSON=$(curl --fail --silent --show-error \
-            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          test -n "$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity \
-            --role-arn "$AWS_ROLE_ARN" \
-            --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" \
-            --web-identity-token "$OIDC_TOKEN" \
-            --duration-seconds 900 \
-            --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
-            --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          test -n "$AWS_ACCESS_KEY_ID"
-          {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-          } >> "$GITHUB_ENV"
-
       - name: Preserve owner-reserved HOLD boundary
         run: |
           set -euo pipefail
@@ -106,7 +80,22 @@ jobs:
           KIDULTS_AUTONOMOUS_WORKFLOW_REF: ${{ github.workflow_ref }}
           KIDULTS_AUTONOMOUS_REPOSITORY_ID: ${{ github.repository_id }}
           AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/approval-receipt.json
-        run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
 
       - name: Upload role approval receipt
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
@@ -164,24 +153,6 @@ jobs:
           test "$SIGNING_KEY_ARN" != "UNCONFIGURED"
           test "$WRITER_FUNCTION" != "UNCONFIGURED"
 
-      - name: Acquire finalizer AWS credentials through GitHub OIDC
-        env:
-          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
-        run: |
-          set -euo pipefail
-          OIDC_JSON=$(curl --fail --silent --show-error             -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN"             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          test -n "$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity             --role-arn "$AWS_ROLE_ARN"             --role-session-name "kidults-autonomous-finalizer-${GITHUB_RUN_ID}"             --web-identity-token "$OIDC_TOKEN"             --duration-seconds 900             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]'             --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          test -n "$AWS_ACCESS_KEY_ID"
-          {
-            echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID"
-            echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY"
-            echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN"
-            echo "AWS_REGION=ap-northeast-2"
-          } >> "$GITHUB_ENV"
-
       - name: Preserve owner-reserved HOLD boundary
         run: |
           set -euo pipefail
@@ -206,7 +177,22 @@ jobs:
           KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
           KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
           AUTONOMOUS_LANDING_RECEIPT_PATH: out/autonomous-internal-landing-v1/receipt.json
-        run: node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-finalizer-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
 
       - name: Upload finalizer receipt
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f

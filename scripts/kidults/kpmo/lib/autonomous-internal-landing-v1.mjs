@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import {evaluateSemanticCapabilityDelta} from './semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from './independent-capability-verifier-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -41,9 +42,6 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
     if (typeof patch!=='string'||!patch) fail('AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN',filename);
     const lines=patch.split('\n');
     const additions=lines.filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
-    const removals=lines.filter(line=>line.startsWith('-')&&!line.startsWith('---')).map(line=>line.slice(1));
-    const materialRemoval=removals.find(line=>line.trim()&&!/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line));
-    if (materialRemoval) fail(errorCode,`${filename}:MATERIAL_DELETION_REQUIRES_OWNER`);
     const matched=addedPatterns.find(pattern=>pattern.test(additions));
     if (matched) fail(errorCode,`${filename}:${matched.source}`);
   }
@@ -76,6 +74,7 @@ export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDiges
   if (policy) {
     assertAutonomousFileScope({files,policy});
     evaluateSemanticCapabilityDelta({files,policy});
+    independentlyVerifyCapabilityDelta({files,policy});
   }
   else {
     const exceptions=new Set(delegatedInternalExactPathExceptions||[]);

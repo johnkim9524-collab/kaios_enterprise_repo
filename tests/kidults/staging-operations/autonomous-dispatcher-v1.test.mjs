@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {classifyCandidate,DispatcherError} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {classifyCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
@@ -29,7 +30,21 @@ const unrelatedPending=classifyCandidate({...input,checks:[...input.checks,{id:1
 assert.equal(unrelatedPending.test_evidence.required_check_runs[0].id,101);
 deny({requiredChecks:[{context:'unit',integration_id:7},{context:'slow-required',integration_id:7}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
 deny({requiredChecks:[{context:'unit',integration_id:8}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-deny({checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},{id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'}]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
+{
+  const envelope=classifyCandidate({...input,checks:[
+    {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+    {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  ]});
+  assert.equal(envelope.test_evidence.required_check_runs[0].id,102);
+}
+deny({requiredChecks:[{context:'unit',integration_id:0}],checks:[
+  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  {id:102,name:'unit',head_sha:sha('b'),app:{id:8},status:'completed',conclusion:'success'},
+]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
+deny({checks:[
+  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
+  {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'failure'},
+]},'DISPATCH_CHECKS_NOT_GREEN');
 deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
 deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
 deny({requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:201,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'IMPLEMENTED_NOT_VERIFIED'}}]},'DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
@@ -57,13 +72,28 @@ deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',int
 console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:13}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
+const governedWorkflow=fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
 assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
 assert.doesNotMatch(deployWorkflow,/\n  push:/);
 assert.match(dispatcherWorkflow,/pull_request_target:/);
 assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
-assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Governed Landing Authorization V1\][\s\S]*types: \[completed\]/);
+assert.match(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
+assert.match(dispatcherWorkflow,/READINESS_BASE_SHA: \$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.base\.sha \}\}/);
+assert.match(dispatcherWorkflow,/permission_profile:"DRAFT_READY_TRANSITION"/);
+assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
+assert.match(dispatcherWorkflow,/id: transition_draft[\s\S]*if: steps\.transition_draft\.outputs\.performed != 'true'/);
+assert.match(dispatcherWorkflow,/assertDraftReadyTransitionCandidate[\s\S]*assertDraftReadyPostMutation/);
+assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready GitHub App token|DRAFT_READY_TOKEN_STEP_OUTCOME/);
+assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
+assert.match(governedWorkflow,/state:'READY_PENDING_ATOMIC_LANDING'[\s\S]*exact_base_sha:base/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request' \|\| github\.event\.workflow_run\.event == 'pull_request_target'/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
+assert.doesNotMatch(dispatcherWorkflow,/workflow_run\.pull_requests\[0\]\.head\.repo\.full_name/);
+assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 assert.equal((dispatcherWorkflow.match(/for event in kidults\.track\.authorization\.v1/g)||[]).length,1);
 assert.match(dispatcherWorkflow,/for event[\s\S]*KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs[\s\S]*repos\/\$\{GITHUB_REPOSITORY\}\/dispatches/);
@@ -75,5 +105,54 @@ assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$
 assert.doesNotMatch(deployWorkflow,/expected_authorization_id=[^\n]*GITHUB_RUN_ID/);
 
 assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
-assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,2);
+assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,1);
 assert.match(dispatcherWorkflow,/Upload bounded scan evidence/);
+
+const oidcWorkflowPaths=[
+  '.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml',
+  '.github/workflows/kidults-autonomous-dispatcher-v1.yml',
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+];
+for(const workflowPath of oidcWorkflowPaths){
+  const workflow=fs.readFileSync(workflowPath,'utf8');
+  const sessions=(workflow.match(/read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length;
+  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -r/g)||[]).length;
+  assert.ok(sessions>0,`expected OIDC session blocks in ${workflowPath}`);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_ACCESS_KEY_ID"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SECRET_ACCESS_KEY"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SESSION_TOKEN"/g)||[]).length,sessions);
+  assert.equal((workflow.match(/unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
+  assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
+  assert.doesNotMatch(workflow,/AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID[\s\S]{0,200}\$GITHUB_ENV/);
+  assert.equal((workflow.match(/export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
+  assert.equal((workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT/g)||[]).length,sessions);
+}
+const allWorkflowText=fs.readdirSync('.github/workflows')
+  .filter(name=>name.endsWith('.yml'))
+  .map(name=>fs.readFileSync(`.github/workflows/${name}`,'utf8'))
+  .join('\n');
+assert.doesNotMatch(allWorkflowText,/echo "AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN)=\$AWS_/);
+for(const workflowPath of [
+  '.github/workflows/kidults-autonomous-object-lock-canary-v1.yml',
+  '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml',
+]){
+  const workflow=fs.readFileSync(workflowPath,'utf8');
+  assert.match(workflow,/credential_process = bash .*aws-oidc-credential-process-v1\.sh/);
+  assert.doesNotMatch(workflow,/read -r AWS_ACCESS_KEY_ID/);
+}
+const credentialProcess=fs.readFileSync('scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh','utf8');
+assert.match(credentialProcess,/env -u AWS_PROFILE -u AWS_CONFIG_FILE -u AWS_SHARED_CREDENTIALS_FILE/);
+assert.match(credentialProcess,/Version:1,AccessKeyId,SecretAccessKey,SessionToken,Expiration/);
+
+assert.match(deployWorkflow,/change_status.*describe-change-set/);
+assert.match(deployWorkflow,/didn't contain changes/);
+assert.match(deployWorkflow,/continuing with canary verification/);
+
+// Unsupported workflow syntax remains owner-reserved for this PR without stopping unrelated scans.
+assert.equal(isCandidateRejection(new CapabilityDeltaError('CAPABILITY_YAML_UNSUPPORTED_SYNTAX')),true);
+const independentError=new Error('INDEPENDENT_SECURITY_CAPABILITY_ADDED');independentError.code='INDEPENDENT_SECURITY_CAPABILITY_ADDED';
+assert.equal(isCandidateRejection(independentError),true);
+assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_READY')),true);
+assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);

@@ -49,17 +49,14 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
     readyEvent.id,
     'ATOMIC_STAGED_LIFECYCLE_READY_EVENT_ID_INVALID',
   );
-  if (readyEvent.event !== 'ready_for_review') {
+  if (!['ready_for_review', 'created_ready_or_never_drafted'].includes(readyEvent.event)) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_EVENT_TYPE_INVALID');
   }
   if (typeof readyEvent.actor !== 'string' || readyEvent.actor.length === 0) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_EVENT_ACTOR_INVALID');
   }
-  if (readyEvent.direct_repository_owner !== true) {
-    fail('ATOMIC_STAGED_LIFECYCLE_READY_EVENT_NOT_DIRECT_OWNER');
-  }
-  if (readyEvent.performed_via_github_app !== null) {
-    fail('ATOMIC_STAGED_LIFECYCLE_READY_EVENT_APP_MEDIATED');
+  if (readyEvent.authority !== 'LIFECYCLE_ONLY' || readyEvent.grants_authorization !== false) {
+    fail('ATOMIC_STAGED_LIFECYCLE_READY_AUTHORITY_INVALID');
   }
   const readyEventTime = timestamp(
     readyEvent.created_at,
@@ -131,15 +128,20 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
     'ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_EVENT_ID_INVALID',
   );
   if (receiptReadyEventId !== readyEventId
+    || receipt.latest_ready_event_type !== readyEvent.event
     || receipt.latest_ready_event_at !== readyEvent.created_at
     || receipt.latest_ready_event_actor !== readyEvent.actor) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH');
   }
-  if (receipt.latest_ready_event_direct_repository_owner !== true) {
-    fail('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_NOT_DIRECT_OWNER');
+  if (JSON.stringify(receipt.latest_ready_event_performed_via_github_app ?? null)
+      !== JSON.stringify(readyEvent.performed_via_github_app ?? null)
+    || receipt.latest_ready_event_direct_repository_owner !== readyEvent.direct_repository_owner
+    || receipt.latest_ready_event_synthetic_lifecycle_boundary !== readyEvent.synthetic_lifecycle_boundary) {
+    fail('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH');
   }
-  if (receipt.latest_ready_event_performed_via_github_app !== null) {
-    fail('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_APP_MEDIATED');
+  if (receipt.readiness_authority !== 'LIFECYCLE_ONLY'
+    || receipt.ready_state_grants_authorization !== false) {
+    fail('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID');
   }
 
   if (!Array.isArray(receipt.native_status_evidence)
@@ -185,10 +187,11 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
     lifecycle_artifact_name: receipt.lifecycle_artifact_name,
     lifecycle_artifact_digest: receipt.lifecycle_artifact_digest,
     latest_ready_event_id: readyEventId,
+    latest_ready_event_type: readyEvent.event,
     latest_ready_event_at: readyEvent.created_at,
     latest_ready_event_actor: readyEvent.actor,
-    direct_repository_owner_ready: true,
-    app_mediated_ready: false,
+    readiness_authority: 'LIFECYCLE_ONLY',
+    ready_state_grants_authorization: false,
     public_release: 'HOLD',
     production: 'HOLD',
     g5: 'HOLD',

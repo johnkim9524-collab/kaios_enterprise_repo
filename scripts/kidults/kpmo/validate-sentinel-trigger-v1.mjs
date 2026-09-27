@@ -8,9 +8,9 @@ const terminal=new Set(['success','failure','cancelled','timed_out','action_requ
 const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run']);
 export const PRODUCER_COMPLETIONS=Object.freeze([
   {name:'KIDULTS ASI SHADOW Operating Evidence v1',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch']},
-  {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run']},
+  {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch']},
   {name:'KIDULTS ASI Sharded Source Reserve v1',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch']},
-  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_run','workflow_dispatch','issues']},
+  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run','workflow_dispatch']},
 ]);
 const fail=code=>{throw new Error(code);};
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
@@ -67,7 +67,7 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
-  if(['schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;

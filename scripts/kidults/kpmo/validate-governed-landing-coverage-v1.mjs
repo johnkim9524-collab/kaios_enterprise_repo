@@ -9,6 +9,7 @@ const aggregateWorkflowPath = '.github/workflows/kidults-scope-aware-authoritati
 const aggregatePolicyPath = 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json';
 const atomicRunnerPath = 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs';
 const aggregateRunnerPath = 'scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs';
+const dispatcherWorkflowPath = '.github/workflows/kidults-autonomous-dispatcher-v1.yml';
 
 const requiredPrefixes = [
   '.github/',
@@ -28,10 +29,11 @@ const requiredPrefixes = [
 function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner) {
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(id); };
+  const dispatcherWorkflow = fs.readFileSync(dispatcherWorkflowPath, 'utf8');
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.7.0', 'POLICY_VERSION');
+  require(policy.version === '1.9.0', 'POLICY_VERSION');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');
@@ -58,6 +60,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.single_governed_consumption_required === true, 'SINGLE_GOVERNED_CONSUMPTION_REQUIRED');
   require(generation.pre_ready_approval_allowed === false, 'PRE_READY_APPROVAL_MUST_BE_FORBIDDEN');
   require(generation.multiple_current_generation_approvals_allowed === false, 'MULTIPLE_CURRENT_APPROVALS_MUST_BE_FORBIDDEN');
+  require(generation.closed_or_merged_prereadiness_authority_forbidden === true, 'TERMINAL_PREREADINESS_AUTHORITY_FORBIDDEN');
   require(generation.lifecycle_root_issue === 2028, 'APPROVAL_LIFECYCLE_ROOT_ISSUE');
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
 
@@ -66,7 +69,16 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(review.self_review_counts === false, 'SELF_REVIEW_MUST_NOT_COUNT_AS_INDEPENDENT');
   require(review.solo_owner_author_must_match_repository_owner === true, 'OWNER_IDENTITY');
   require(review.same_repository_head_required === true, 'CANONICAL_REPOSITORY');
-  require(review.ready_state_by_owner_is_authorization === true, 'OWNER_READY_AUTHORIZATION');
+  require(review.ready_state_by_owner_is_authorization === false, 'READY_MUST_NOT_GRANT_AUTHORIZATION');
+  require(review.ready_state_is_lifecycle_only === true, 'READY_LIFECYCLE_ONLY_REQUIRED');
+  require(policy.draft_policy?.eligible_draft_to_ready_transition === 'AUTOMATED_AFTER_EXACT_HEAD_GOVERNANCE_PREFLIGHT'
+    && policy.draft_policy?.ready_transition_requires_human_approval === false
+    && policy.draft_policy?.automated_transition_grants_landing_authority === false
+    && policy.draft_policy?.ordinary_github_token_ready_mutation_forbidden === true
+    && policy.draft_policy?.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER'
+    && JSON.stringify(policy.draft_policy?.ready_transition_required_permissions) === JSON.stringify(['pull_requests:write', 'metadata:read'])
+    && policy.draft_policy?.ready_transition_installation_identity_bound === true
+    && policy.draft_policy?.ready_transition_post_mutation_reread_required === true, 'AUTOMATED_DRAFT_READY_POLICY_INVALID');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');
   require(policy.no_merge_policy?.closed_pull_request_blocks === true, 'CLOSED_PR_BLOCK_MISSING');
   require(policy.no_merge_policy?.merged_pull_request_blocks === true, 'MERGED_PR_BLOCK_MISSING');
@@ -83,6 +95,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.atomic_landing_policy?.terminal_pass_requires_postmerge_success === true, 'EARLY_TERMINAL_PASS_ALLOWED');
   require(policy.atomic_landing_policy?.new_secret_or_permission_expansion_forbidden === true, 'SECRET_PERMISSION_BOUNDARY_MISSING');
   require(policy.atomic_landing_policy?.live_dispatch_actor_must_equal_repository_owner === true, 'LIVE_LANDING_ACTOR_GUARD_MISSING');
+  require(policy.atomic_landing_policy?.terminal_closed_state === 'CLOSED_TERMINAL_NON_AUTHORIZING', 'TERMINAL_CLOSED_STATE_INVALID');
+  require(policy.atomic_landing_policy?.terminal_merged_state === 'MERGED_POST_LANDING_VERIFICATION_REQUIRED', 'TERMINAL_MERGED_STATE_INVALID');
   require(policy.atomic_landing_policy?.immediate_post_status_premerge_reread_required === true, 'IMMEDIATE_PREMERGE_REREAD_POLICY_MISSING');
   require(policy.atomic_landing_policy?.expected_head_compare_is_atomic_for_sha_only === false
     && policy.atomic_landing_policy?.external_transport_race_detected_postmerge_fail_closed === true
@@ -94,19 +108,39 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'last-push approval must remain disabled in solo-owner mode',
     'required_review_thread_resolution',
     'require_extra_approval_for_unattributed_changes',
-    "pr.user?.login!==repository.owner?.login",
     "pr.head?.repo?.full_name!==repo",
-    "readinessReceipt.actor!==repository.owner?.login",
-    "state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD'",
+    'PR authorship is provenance, not landing authority',
+    'change_origin_actor:pr.user?.login||null',
+    "state:'LIFECYCLE_READY_SOLO_OWNER_SCOPE_VERIFIED'",
+    'ready_state_is_lifecycle_only:true',
+    'landing_authorization_created:false',
     'required_approval_count:0',
     'ruleset bypass actor detected',
     "pr.state !== 'open' || pr.merged === true",
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
-    "Ready; operation-specific atomic landing is required",
+    "Ready lifecycle verified; operation-specific landing authority required",
+    'pull-requests: read',
+    "state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING'",
+    'post_landing_verification_required:terminal.merged===true',
+    'assertTerminalNonAuthorizingPullRequest',
+    'ready_state_grants_authorization:false',
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
+  require(!workflow.includes(['id-token', 'write'].join(': ')), 'GOVERNED_READINESS_OIDC_WRITE_FORBIDDEN');
+  require(!workflow.includes('markPullRequestReadyForReview'), 'GOVERNED_READINESS_MUTATION_FORBIDDEN');
+  require(workflow.includes("state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'")
+    && workflow.includes('exact_base_sha:base') && workflow.includes('promotion_eligible:false'), 'DRAFT_READINESS_RECEIPT_BINDING_INVALID');
+  for (const marker of [
+    'environment: KIDULTS-AUTONOMOUS-DISPATCHER',
+    'permission_profile:"DRAFT_READY_TRANSITION"',
+    'allow_draft_recovery:true',
+    'assertDraftReadyTransitionCandidate',
+    'markPullRequestReadyForReview',
+    'assertDraftReadyPostMutation',
+    "steps.transition_draft.outputs.performed != 'true'",
+  ]) require(dispatcherWorkflow.includes(marker), `DISPATCHER_DRAFT_READY_GUARD_MISSING:${marker}`);
 
   for (const marker of [
     'workflow_dispatch:',
@@ -170,7 +204,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(preflight.includes("independent_human_review: 'OPTIONAL_NOT_REQUIRED_BY_SOLO_OWNER_RULESET'"), 'SOLO_REVIEW_MODE');
   require(preflight.includes('technical_preflight_is_merge_authorization: false'), 'TECHNICAL_AUTHORITY_BOUNDARY');
   require(preflight.includes('exact_head_approval_required: false'), 'EXACT_HEAD_REVIEW_MUST_BE_OPTIONAL');
-  require(preflight.includes("merge_authorization: 'PROGRAM_OWNER_READY_AND_MERGE_DECISION_REQUIRED'"), 'PROGRAM_OWNER_AUTHORIZATION');
+  require(preflight.includes("merge_authorization: 'OWNER_RESERVED_EXACT_ACTION_ONLY'"), 'PROGRAM_OWNER_AUTHORIZATION');
 
   return findings;
 }
@@ -209,9 +243,9 @@ const mutations = [
     aggregateRunner,
   },
   {
-    id: 'PROGRAM_OWNER_IDENTITY_GUARD_REMOVED',
+    id: 'CANONICAL_REPOSITORY_HEAD_GUARD_REMOVED',
     policy,
-    workflow: workflow.replace("if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');", ''),
+    workflow: workflow.replace("if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');", ''),
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -325,7 +359,7 @@ const mutations = [
     aggregateRunner,
   },
   {
-    id: 'APPROVAL_READY_GATE_REMOVED',
+    id: 'APPROVAL_GENERATION_EQUALITY_GATE_REMOVED',
     policy,
     workflow: workflow.replace('Enforce active approval-generation equality before readiness', 'Approval generation check removed'),
     preflight,
@@ -369,9 +403,11 @@ const receipt = {
   },
   authorization_boundary: {
     required_approvals: 0,
-    author_must_be_repository_owner: true,
-    canonical_repository_head: true,
-    program_owner_ready_state: true,
+    change_origin_is_provenance_only: true,
+    canonical_internal_head_required: true,
+    exact_owner_landing_authority_separately_required: true,
+    ready_state_is_lifecycle_only: true,
+    ready_state_grants_authorization: false,
     exact_head_changes_requested_blocks: true,
     stale_review_rejected: true,
     review_threads_resolved: true,

@@ -1,11 +1,14 @@
 name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
       - 'scripts/kidults/kpmo/material-defect-registry-v3.mjs'
@@ -22,6 +25,12 @@ on:
       - 'tests/kidults/kpmo/sentinel-observation-v1.test.mjs'
       - '.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
+      - 'tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs'
+      - 'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'
+      - 'scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs'
+      - 'tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs'
+      - '.github/workflows/kidults-autonomous-dispatcher-v1.yml'
+      - 'coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json'
       - 'tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs'
       - 'coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json'
       - 'scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs'
@@ -42,6 +51,9 @@ on:
       - 'coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/authority-chain-trigger-compatibility-v1.mjs'
+      - 'coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json'
+      - 'tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs'
       - 'scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs'
       - 'scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs'
@@ -54,7 +66,7 @@ on:
 
 permissions:
   contents: read
-  actions: write
+  actions: read
 
 concurrency:
   group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
@@ -82,12 +94,12 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 55
     steps:
       - name: Initialize durable non-authorizing sentinel failure receipt
         shell: bash
@@ -165,15 +177,3 @@ jobs:
             ([.producers[].artifact_content_validated]|all(.==true))
           ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null
 
-      - name: Dispatch exact-main terminal Continuous Assurance
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_MAIN_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          test "$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')" = "$EXPECTED_MAIN_SHA"
-          gh workflow run kidults-platform-continuous-assurance-v1.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f profile=deep

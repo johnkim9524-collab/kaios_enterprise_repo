@@ -43,11 +43,23 @@ for(const [label,change] of [
   ['wrong path',{path:coveragePath}],['missing title',{display_title:undefined}],['empty name',{name:''}],
 ])test(`native-name rejects ${label}`,()=>assert.equal(matches(arl(change),arlName,arlPath),false));
 test('Coverage source title must bind its own head SHA',()=>assert.equal(matches(coverage({head_sha:'b'.repeat(40)}),coverageName,coveragePath),false));
+test('Coverage manual title must bind its native run ID',()=>{
+ const run=coverage({event:'workflow_dispatch',name:'KIDULTS Coverage / manual-34013514936',display_title:'KIDULTS Coverage / manual-34013514936'});
+ assert.equal(matches(run,coverageName,coveragePath),true);
+ assert.equal(matches({...run,display_title:'KIDULTS Coverage / manual-34013514937',name:'KIDULTS Coverage / manual-34013514937'},coverageName,coveragePath),false);
+});
 test('path/name contract cannot be expanded by arbitrary workflow labels',()=>assert.equal(matches(arl(),'unregistered name',arlPath),false));
 
 test('historical native dynamic ARL shape passes exact complete history',()=>{
  const result=historical();assert.equal(result.state,'VERIFIED_PASS_BOUNDED_COMPLETE');assert.equal(result.current_run_in_complete_query,true);
  assert.equal(result.production,'HOLD');
+});
+test('exact-input workflow_dispatch ARL passes only with an explicit matching event contract',()=>{
+ const run=arl({event:'workflow_dispatch'});
+ const result=history({...options,event:'workflow_dispatch',pages:[{total_count:1,workflow_runs:[run]}]});
+ assert.equal(result.workflow_event,'workflow_dispatch');
+ const consumed=producer({run,receipt:arlReceipt(),sourceSha:source,event:'workflow_dispatch'});
+ assert.equal(consumed.workflow_event,'workflow_dispatch');
 });
 for(const [label,change] of [['wrong name',{name:'other'}],['wrong path',{path:coveragePath}],['prior SHA',{head_sha:'b'.repeat(40)}],
  ['manual event',{event:'workflow_dispatch'}],['branch mismatch',{head_branch:'feature'}],['missing current run',{id:34013158293}],
@@ -99,7 +111,7 @@ const workflow=fs.readFileSync(arlPath,'utf8');
 const jqCommand=workflow.match(/CURRENT_ARL_CREATED_AT=\$\((jq[\s\S]*?\/tmp\/arl-current-run\.json)\)/)?.[1];
 assert.ok(jqCommand,'native ARL jq guard must be present');
 function arlGuard(run){return tempRun(run,file=>requireBashJq(spawnSync('bash',['-c',`command -v jq >/dev/null 2>&1 || exit 125\n${jqCommand.replace('/tmp/arl-current-run.json',JSON.stringify(shellPath(file)))}`],{
- encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,P1_RUN_ID:String(p1)}})));}
+ encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,GITHUB_RUN_ID:String(34013158292),GITHUB_RUN_ATTEMPT:'1',GITHUB_REPOSITORY:repo,GITHUB_SHA:source,GITHUB_EVENT_NAME:'workflow_run',P1_RUN_ID:String(p1)}})));}
 test('real workflow jq regression: old static-name predicate rejects native fixture; corrected exact predicate succeeds',()=>{
  tempRun(arl(),file=>assert.equal(requireSpawn(spawnSync('jq',['-er',`select(.name==${JSON.stringify(arlName)}) | .created_at`,file])).status,4));
  const r=arlGuard(arl());assert.equal(r.status,0,r.stderr);assert.equal(r.stdout.trim(),'2026-09-06T05:06:36Z');
@@ -140,10 +152,24 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(covSource.includes('dispatch-kir-coverage-assurance:'));
  assert.ok(covSource.includes('kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}'));
  assert.ok(covSource.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
- assert.ok(assurance.includes("inputs.coverage_run_id != '' && 'workflow_run' || github.event_name"));
+ assert.ok(covSource.includes("always() && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch')"));
+ assert.ok(covSource.includes('coverage_event:$event'));
+ assert.ok(covSource.includes('coverage_event:$coverage_event'));
+ assert.ok(covSource.includes('/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches'));
+ assert.ok(covSource.includes('kir-core-four-terminal-reserve-dispatch-v1.json'));
+ assert.ok(assurance.includes("inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || ''"));
+ assert.ok(assurance.includes("KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}"));
+ assert.ok(assurance.includes("needs.classify-canonical-identity.outputs.coverage_execute_full_audit != 'false'"));
+ assert.ok(assurance.includes('Resolve exact Coverage artifact authority'));
+ assert.ok(assurance.includes("inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id)"));
+ assert.ok(assurance.includes('.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name'));
+ assert.ok(assurance.includes('and (.event=="workflow_run" or .event=="workflow_dispatch")'));
  assert.ok(assurance.includes('Reject partial forwarded Coverage continuation inputs'));
  assert.ok(assurance.includes('PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN'));
  assert.ok(assurance.includes('Validate and consume forwarded exact Coverage continuation'));
+ assert.ok(assurance.includes('coverage_event:$event'));
+ assert.ok(assurance.includes('COVERAGE_EVENT: ${{ inputs.coverage_event }}'));
+ assert.ok(assurance.includes('test "$COVERAGE_EVENT" = "$(jq -r .event /tmp/kir-forwarded-coverage-run.json)"'));
  assert.ok(assurance.includes('CONSUME_REPLAY_DETECTED') || fs.readFileSync('scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs','utf8').includes('CONSUME_REPLAY_DETECTED'));
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
