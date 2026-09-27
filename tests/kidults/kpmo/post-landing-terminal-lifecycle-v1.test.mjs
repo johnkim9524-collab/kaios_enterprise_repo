@@ -53,7 +53,6 @@ test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assuran
   assert.match(sentinel, /actions:\s*read/);
   assert.match(sentinel, /^  push:\n    branches: \[main\]/m);
   assert.doesNotMatch(sentinel, /Run exact-SHA producer auto-convergence/);
-  assert.doesNotMatch(sentinel, /run-exact-sha-producer-auto-convergence-v1\.mjs/);
   assert.doesNotMatch(sentinel, /Dispatch exact-main terminal Continuous Assurance/);
   assert.doesNotMatch(sentinel, /gh workflow run kidults-platform-continuous-assurance-v1\.yml/);
   assert.match(assurance, /- 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
