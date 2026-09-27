@@ -94,7 +94,9 @@ test('terminal producer-health failure preserves the originating sentinel class'
     failed_producers:[],
     failure_class:'SENTINEL_GENERATION_CHANGED_DURING_READ',
   }),sha);
-  assert.equal(producerHealthFailureCode(race),'PRODUCER_HEALTH_FAILED_UNKNOWN__SENTINEL_GENERATION_CHANGED_DURING_READ');
+  assert.equal(race.state,'WAIT');
+  assert.deepEqual(race.waiting,['CANONICAL_TRUTH']);
+  assert.deepEqual(race.failure_classes,['SENTINEL_GENERATION_CHANGED_DURING_READ']);
 });
 
 test('workflow starts roots on protected-main push and retains terminal HOLD boundary',()=>{
