@@ -474,7 +474,7 @@ jobs:
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$KPMO_SOURCE_SHA" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" \
             --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
-            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.0.0" and .state=="CONSUMED_VERIFIED"
+            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.2.0" and .state=="CONSUMED_VERIFIED"
              and .repository==$repository and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt
              and .consumer_workflow_run_id==$consumer and .consumer_workflow_run_attempt==$consumerAttempt
              and .input_validated==true and .receipt_verified==true and .one_time_consumed==true
