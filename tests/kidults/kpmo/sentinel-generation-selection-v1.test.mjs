@@ -65,6 +65,15 @@ test('generation index: valid unrelated SHA is not treated as an exact-source fa
 test('generation index: genuinely newer pending run remains HOLD',()=>{
  assert.equal(evaluate([good,run(11,{created_at:'2026-09-05T11:00:00Z',status:'in_progress',conclusion:null})]).state,'VERIFIED_HOLD');
 });
+test('generation index: exact-source Coverage recovery dispatch supersedes an older workflow-run failure',()=>{
+ const requirement=SPECS.find(({id})=>id==='REQUIREMENT');
+ const failed={...run(20,{event:'workflow_run',conclusion:'failure',created_at:'2026-09-05T09:00:00Z'}),path:requirement.path};
+ const recovered={...run(21,{event:'workflow_dispatch',created_at:'2026-09-05T11:00:00Z'}),path:requirement.path};
+ const result=evaluateProducer(requirement,[failed,recovered],{21:[]},sourceSha,observed);
+ assert.equal(result.selected_run_id,21);
+ assert.equal(result.selected_event,'workflow_dispatch');
+ assert.equal(result.failure_class,'REQUIREMENT_ARTIFACT_CARDINALITY_0');
+});
 test('generation index: malformed metadata-only index fails before contents can be called verified',()=>{
  const r=evaluateProducer(spec,[run(10,{run_attempt:'1'})],{10:[artifact]},sourceSha,observed);
  assert.equal(r.state,'VERIFIED_FAIL');assert.notEqual(r.artifact_transport_verified,true);
