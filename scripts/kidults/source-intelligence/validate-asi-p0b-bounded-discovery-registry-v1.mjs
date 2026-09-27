@@ -43,14 +43,14 @@ assert(registry.execution_chain?.length === 8, 'REGISTRY_EXECUTION_CHAIN');
 assert(registry.automatic_activation?.provider_execution_enabled === true, 'REGISTRY_PROVIDER_EXECUTION');
 assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '37 * * * *', 'REGISTRY_SCHEDULE');
-assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P0 Mission Consumption v1', 'REGISTRY_UPSTREAM');
+assert(registry.automatic_activation?.upstream_workflow === null, 'REGISTRY_NATURAL_SCHEDULE_ROOT');
+assert(!/^  workflow_run:\s*$/m.test(workflow), 'P0B_NATURAL_CHAIN_DEPTH_EXCEEDED');
 assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.next_stage?.id === 'P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT', 'REGISTRY_NEXT_STAGE');
 
 for (const marker of [
-  'workflow_dispatch:', 'schedule:', "cron: '37 * * * *'", 'workflow_run:',
-  "'KIDULTS ASI P0 Mission Consumption v1'",
-  "if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')",
+  'workflow_dispatch:', 'schedule:', "cron: '37 * * * *'",
+  "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
   'Execute four governed public-metadata rotations',
   'Build P0B source candidate increment', 'Reject source-candidate-as-evidence mutation',
   'Reject region-hint-as-coverage mutation', 'Reject host-as-factual-origin mutation',

@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e7b594293297b17c3ec16a2b64c767f5d1ffa49b",
+  "revision": "dc01efc914125ae0e5605a80c0da2c129ef7506a",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1040,8 +1040,8 @@
     {
       "path": "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0a9a20c2ee5f2af586c7ec65c513ddeadb6cd718",
-      "sha256": "sha256:dc25d20e6bd7ff70f1075397a2f630225664f8b0d181843bceb50c81624a696d"
+      "git_blob": "99d54b410de506d7ff6d1756a56005304861b6a0",
+      "sha256": "sha256:71e347e1a0470479efe442caf672bf9fcc8378f4da17d49a5d02c1c314fed1a1"
     },
     {
       "path": "artifacts/audit/evidence-pack.txt",
@@ -5215,5 +5215,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d6c18800c1635d72b42e9315a67f5cab37cf825d21e9147b498e684cdc7547a8"
+  "manifest_sha256": "sha256:cd56de1963e1010cccce36433e38e2a1dd4d6795465f06514dc23f6ebc234257"
 }
