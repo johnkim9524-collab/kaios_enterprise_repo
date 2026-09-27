@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 const PRODUCER_EVENTS = new Set(['workflow_run', 'workflow_dispatch', 'schedule', 'push', 'pull_request']);
+const AUTHORITATIVE_EXPECTED_EVENTS = new Set(['workflow_run', 'schedule']);
 const TERMINAL = new Set(['success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale']);
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
@@ -28,7 +29,7 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
   if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
   if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
   if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
-  if(!PRODUCER_EVENTS.has(expectedProducerEvent))return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
+  if(!AUTHORITATIVE_EXPECTED_EVENTS.has(expectedProducerEvent))return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
   if(!PRODUCER_EVENTS.has(run.event))return {...base,reason:'PRODUCER_EVENT_INVALID'};
   if(!SHA_RE.test(run.head_sha??''))return {...base,reason:'PRODUCER_HEAD_SHA_INVALID'};
   if(run.status!=='completed'||!TERMINAL.has(run.conclusion))return {...base,reason:'PRODUCER_LIFECYCLE_INVALID'};
