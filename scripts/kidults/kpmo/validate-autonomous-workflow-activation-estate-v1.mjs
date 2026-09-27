@@ -29,7 +29,7 @@ const protectedManual = new Set([
 
 const autonomousRequired = new Map([
   ['kidults-asi-p0b-bounded-discovery-candidates-v1.yml', ['schedule', 'workflow_run']],
-  ['kidults-asi-p1-source-preflight-v1.yml', ['schedule', 'workflow_run']],
+  ['kidults-asi-p1-source-preflight-v1.yml', ['workflow_run']],
   ['kidults-autonomous-getty-sale-sample.yml', ['schedule']],
   ['kidults-autonomous-met-sample.yml', ['schedule']],
   ['kidults-autonomous-artic-sample.yml', ['schedule']],
@@ -64,6 +64,7 @@ const p0b = fs.readFileSync(path.join(workflowRoot, 'kidults-asi-p0b-bounded-dis
 const p1 = fs.readFileSync(path.join(workflowRoot, 'kidults-asi-p1-source-preflight-v1.yml'), 'utf8');
 assert(p0b.includes("github.event.workflow_run.conclusion == 'success'"), 'P0B_UPSTREAM_SUCCESS_GUARD_MISSING');
 assert(p1.includes("github.event.workflow_run.conclusion == 'success'"), 'P1_UPSTREAM_SUCCESS_GUARD_MISSING');
+assert(!triggers(p1).includes('schedule'), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
 
 const p0bMutation = p0b.replace("  schedule:\n    - cron: '37 * * * *'\n", '');
 assert(!triggers(p0bMutation).includes('schedule'), 'P0B_MANUAL_ONLY_MUTATION_NOT_DETECTED');

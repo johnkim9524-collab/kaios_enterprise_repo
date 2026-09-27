@@ -94,14 +94,18 @@ test('terminal producer-health failure preserves the originating sentinel class'
     failed_producers:[],
     failure_class:'SENTINEL_GENERATION_CHANGED_DURING_READ',
   }),sha);
-  assert.equal(producerHealthFailureCode(race),'PRODUCER_HEALTH_FAILED_UNKNOWN__SENTINEL_GENERATION_CHANGED_DURING_READ');
+  assert.equal(race.state,'WAIT');
+  assert.deepEqual(race.waiting,['CANONICAL_TRUTH']);
+  assert.deepEqual(race.failure_classes,['SENTINEL_GENERATION_CHANGED_DURING_READ']);
 });
 
-test('workflow starts roots on protected-main push and retains terminal HOLD boundary',()=>{
+test('sentinel observes protected-main health without dispatching or mutating producers',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
   assert.match(workflow,/^  push:\n    branches: \[main\]/m);
-  assert.match(workflow,/Run exact-SHA producer auto-convergence/);
-  assert.match(workflow,/run-exact-sha-producer-auto-convergence-v1\.mjs/);
+  assert.match(workflow,/permissions:\n  contents: read\n  actions: read/);
+  assert.doesNotMatch(workflow,/Run exact-SHA producer auto-convergence/);
+  assert.doesNotMatch(workflow,/node scripts\/kidults\/kpmo\/run-exact-sha-producer-auto-convergence-v1\.mjs/);
+  assert.doesNotMatch(workflow,/actions: write/);
   for(const marker of ['promotion_eligible==false','public=="HOLD"','production=="HOLD"','g5=="HOLD"'])assert.ok(workflow.includes(marker));
 });
 

@@ -17,35 +17,24 @@ export function assertDelegatedPathScope(changedPaths,policy){
   catch(error){ if(error?.code) throw new DispatcherError(error.code,error.message.split(':').slice(1).join(':')); throw error; }
 }
 
-export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date(),allowDraftReadyTransition=false}) {
-  const draftReadyTransition=pr?.draft===true&&allowDraftReadyTransition===true;
-  if (!pr || pr.state!=='open' || pr.merged===true || (pr.draft!==false&&!draftReadyTransition)) fail('DISPATCH_PR_NOT_READY');
+export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date()}) {
+  if (!pr || pr.state!=='open' || pr.merged===true || pr.draft!==false) fail('DISPATCH_PR_NOT_READY');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
-  // Draft recovery is a lifecycle-only operation. It still requires an exact
-  // live main binding and green native required checks below, but must not
-  // mint any delegated landing authority. The ordinary Ready path continues
-  // through all three independent scope/capability classifiers.
-  if(!draftReadyTransition){
-    assertDelegatedPathScope(files,policy);
-    evaluateSemanticCapabilityDelta({files,policy});
-    independentlyVerifyCapabilityDelta({files,policy});
-  }
+  assertDelegatedPathScope(files,policy);
+  evaluateSemanticCapabilityDelta({files,policy});
+  independentlyVerifyCapabilityDelta({files,policy});
   const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(new Set(required.map(value=>`${value.context}:${value.integration_id}`)).size!==required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_AMBIGUOUS');
   if (!required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
-  const lifecyclePendingContexts=draftReadyTransition?['KIDULTS Governed Landing Authorization V1']:[];
-  if(draftReadyTransition&&!required.some(value=>lifecyclePendingContexts.includes(value.context))) fail('DISPATCH_DRAFT_READY_AUTHORIZATION_CONTEXT_MISSING');
-  const evidenceRequired=required.filter(value=>!lifecyclePendingContexts.includes(value.context));
-  if(!evidenceRequired.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const cleanStatuses=statuses.map(x=>({id:Number(x.id),context:String(x.context),state:String(x.state),sha:String(x.sha||pr.head.sha),app_id:Number(x.app?.id||x.app_id||String(x.avatar_url||'').match(/^https:\/\/avatars\.githubusercontent\.com\/in\/(\d+)(?:\?|$)/)?.[1]||0),avatar_url:String(x.avatar_url||'')})).sort((a,b)=>a.context.localeCompare(b.context)||a.id-b.id);
   const cleanChecks=checks.map(x=>({id:Number(x.id),name:String(x.name),head_sha:String(x.head_sha||''),app_id:Number(x.app?.id||x.app_id||0),status:String(x.status),conclusion:String(x.conclusion),external_id:x.external_id==null?null:String(x.external_id),semantic_evidence:[x.output?.title,x.output?.summary,x.output?.text].filter(Boolean).join('\n')})).sort((a,b)=>a.name.localeCompare(b.name)||a.app_id-b.app_id||a.id-b.id);
   if (!cleanStatuses.length&&!cleanChecks.length) fail('DISPATCH_EVIDENCE_MISSING');
-  const boundRequired=bindRequiredGateEvidence({required:evidenceRequired,checks:cleanChecks,statuses:cleanStatuses,headSha:pr.head.sha,
+  const boundRequired=bindRequiredGateEvidence({required,checks:cleanChecks,statuses:cleanStatuses,headSha:pr.head.sha,
     fail:(code,context)=>fail(code==='REQUIRED_CONTEXT_MISSING'?'DISPATCH_REQUIRED_CONTEXT_MISSING':
       code==='REQUIRED_CONTEXT_AMBIGUOUS'?'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS':
       code==='REQUIRED_STATUS_NOT_GREEN'?'DISPATCH_CHECKS_NOT_GREEN':`DISPATCH_${code}`,context)});
@@ -53,7 +42,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     const check=cleanChecks.find(value=>value.id===binding.id);
     if(!check||/IMPLEMENTED_NOT_VERIFIED/.test(check.semantic_evidence)||!/\bVERIFIED_PASS\b/.test(check.semantic_evidence)) fail('DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
   }
-  const testEvidence={source:'GITHUB_LIVE_PROTECTED_MAIN_REQUIRED_CHECKS',result:'PASS',required_contexts:required,required_check_runs:boundRequired,...(draftReadyTransition?{lifecycle_only_pending_contexts:lifecyclePendingContexts}:{}),statuses:cleanStatuses,checks:cleanChecks};
+  const testEvidence={source:'GITHUB_LIVE_PROTECTED_MAIN_REQUIRED_CHECKS',result:'PASS',required_contexts:required,required_check_runs:boundRequired,statuses:cleanStatuses,checks:cleanChecks};
   testEvidence.artifact_digest=sha256(canonicalJson({statuses:cleanStatuses,checks:cleanChecks}));
   const rollbackPlan={source:'GITHUB_LIVE_EXACT_BINDING',strategy:'REVERT_MERGE_COMMIT',verified:true,base_sha:mainSha,head_tree_sha:treeSha};
   const issuedAt=new Date(now); const expiresAt=new Date(issuedAt.getTime()+Number(policy.durable_single_use.maximum_ttl_seconds)*1000);
@@ -64,7 +53,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     head_sha:pr.head.sha,head_tree_sha:treeSha,scope_digest:scopeDigest,test_evidence:testEvidence,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_plan:rollbackPlan,rollback_digest:sha256(canonicalJson(rollbackPlan)),
     authorization_generation:generation,nonce_digest:`sha256:${nonce}`,issued_at:issuedAt.toISOString(),expires_at:expiresAt.toISOString(),
-    operation:policy.delegated_operation,changed_paths:changedPaths,...(draftReadyTransition?{lifecycle_action:'DRAFT_READY_TRANSITION',permission_profile:'DRAFT_READY_TRANSITION',allow_draft_recovery:true}:{}),production:'HOLD',public:'HOLD',g5:'HOLD'};
+    operation:policy.delegated_operation,changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
 async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}
@@ -85,7 +74,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
   }));
 }
 
-export async function discover({repository,token,prNumber,policy,allowDraftReadyTransition=false}){
+export async function discover({repository,token,prNumber,policy}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
@@ -101,15 +90,14 @@ export async function discover({repository,token,prNumber,policy,allowDraftReady
   for(const pr of prs){try{
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
-    const envelope=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,allowDraftReadyTransition});
-    results.push({state:pr.draft===true?'DRAFT_READY_ELIGIBLE':'ELIGIBLE',envelope});
+    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
   }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,allowDraftReadyTransition:process.env.KIDULTS_ALLOW_DRAFT_READY_TRANSITION==='true'});
+  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy});
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,skipped:results.filter(x=>x.state==='SKIPPED').length}));
 }

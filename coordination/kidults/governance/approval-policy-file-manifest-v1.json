@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "e7b594293297b17c3ec16a2b64c767f5d1ffa49b",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f2337d36c74f8f740f60faa125d6a2c7c7ba06d6",
-      "sha256": "sha256:16441ac481f22508ed409cb6557cd8ac1c7fd66b338160f047653edc1db0df0d",
+      "git_blob": "a15f13cabda59767c45ba897ac4901ddeec148b8",
+      "sha256": "sha256:a7fde0de3e00f8aae54ac00abf72400cc88833c0ed9276f0321ff4b30fbafe6b",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -470,8 +470,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0deb6bbdb66e1d334eda740896b8d6e44bcbf9e9",
-      "sha256": "sha256:e1164e7784217abdd444a0d4921e37bf860ca52cf34b425c5529a17d7ccf5655",
+      "git_blob": "83d11af22426b3c202f686e8d965ce53a423a16e",
+      "sha256": "sha256:b13693fa781bd1be4bffdfb3ed12ef91483b8581fd66801b8fad8c866cbdbea7",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -522,8 +522,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e6bdb44fcd15c5bd20f733271187c160fb316740",
-      "sha256": "sha256:8c889f52a225fc55931bba37bd9cc75e93d4fa29bd966309f9695808d3d8ec21",
+      "git_blob": "bbc8d8454184d738751ca9a32a361631f5079c86",
+      "sha256": "sha256:0a67e09ba444cea7b699568688066bf44fef88f18677fe7442f435396d183fad",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1872,8 +1872,8 @@
     {
       "path": "coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3df1710a898dffc3106cfb3df800d96c4571e014",
-      "sha256": "sha256:af9b8182c28366470aed3c9b4ce6a6591ca386867cd4a78e21dc9a4bae1e8e12",
+      "git_blob": "79e214d9e4eea5bfc5e05833b7a527525763a831",
+      "sha256": "sha256:85ba0f1f01478222134abf20376baad3f6a5d19a47d88c33e3cf9ddb8ff1e4cd",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3353,8 +3353,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "425c835288a84ba54c9e8b16ed928e4af8ae30be",
-      "sha256": "sha256:d7b59543139e94dc16c684eac1dac6b0bafa3f516c063a3646a925847584ac61",
+      "git_blob": "d443db545703bde4650eb8ef5c118e251079406b",
+      "sha256": "sha256:f982b3766cf41e1a55948b137ed04b9ed9e3d2e479ee69219849a2839ae318ac",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3678,8 +3678,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "846d4ef6c5b435ccc0cac4a8eba52b2d6adff61b",
-      "sha256": "sha256:187c9467902be3fcdfe288290bf602bcaf1241dca15a06d814e26ab086198899",
+      "git_blob": "d61844427b7cd4f412f8857360848feb8b5929b2",
+      "sha256": "sha256:fe3c30f419682a049335415e0ba4fe4bd40b5f6e6d9866d4b6b88d5ad48d4972",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3691,8 +3691,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "89d66daf333316b7f2911719b05d08c7edadefd5",
-      "sha256": "sha256:75fe3afe0e67fb6e2c957011c34ca1558107b832d553e0a14bd7527c2de3ed06",
+      "git_blob": "1ed1bdd174438c04c83c915582866d8fd248cd8d",
+      "sha256": "sha256:f12a13cc4bab0c844c5da4543092fc810d1151c60b472df803aae107dfcbf107",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5085,8 +5085,8 @@
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "d13d03f25f367d69a97d8d009c9a33563120fc79",
-      "sha256": "sha256:69080ed65cf6cec6b701ec4fe5dcca75a33a955284f4c5c3cd0a411cbf1ae4c8"
+      "git_blob": "11a2264f57b793230fb2aafc11548ce24b262a31",
+      "sha256": "sha256:f2bdbc69b1646a861ef3696c757736e578bbe90b0ea1b165ea18e71ecd5f4550"
     },
     {
       "path": "tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs",
@@ -5115,14 +5115,14 @@
     {
       "path": "tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e28aa4ed992c6b9c7f1fceceaa80d6e604688e47",
-      "sha256": "sha256:c41fb43cdb3179e5a98e1ec05e01b27aedc87e631d6288abeb3553a41802cc79"
+      "git_blob": "e44f22e89d509e232f6e9188b742163b8c2a0c11",
+      "sha256": "sha256:a73d1ddf22d2d0d2c8df230249905abf0a51b6a1fb2b9fc712d0fcae68aff956"
     },
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "aa0494ef6877d0a23165e004b96845ba7c6e88f6",
-      "sha256": "sha256:8e14e4fedd839bfa110f21d53b39521602c8970b187874a9f6d432ac0dc23bb4"
+      "git_blob": "a1ee223b4ce1a35c2808eae13996d11aa5073ea0",
+      "sha256": "sha256:5893c20a6988223d67c81231adc10249eeab72fa1d288a7e6131f38b83aa0458"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
@@ -5133,8 +5133,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "788a13f6f3ab1593a7013cf53ce528852a421f42",
-      "sha256": "sha256:fe9824efde0734e1b511599d995e51522e62a67c8bee2d719d65bd144e901237"
+      "git_blob": "9365e652bc7da26100838679b0475c1996237efc",
+      "sha256": "sha256:bbc1e5bd69fecf8f6c9f31205cceee1aa1cd49ca711c763f3f36fc0694bfe814"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -5157,8 +5157,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "96034030c94a61db041244a7fdc89a5dd09860c1",
-      "sha256": "sha256:db7e81bfc955a2804a9678110b67ad2730f73ae93c41c26b77f3111129dd4766"
+      "git_blob": "54efb973b3c98e44041ccabeffaa9806b0ffe03f",
+      "sha256": "sha256:bd0b231cab446a165f8e8db3a19a3c8b3f7a88387dfee468cce0dbcd8cd0c719"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5215,5 +5215,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:28c18725f1fdd1bc4380eacae3079a52bc75a38b6a4cb07c73486917256c5e0b"
+  "manifest_sha256": "sha256:d6c18800c1635d72b42e9315a67f5cab37cf825d21e9147b498e684cdc7547a8"
 }

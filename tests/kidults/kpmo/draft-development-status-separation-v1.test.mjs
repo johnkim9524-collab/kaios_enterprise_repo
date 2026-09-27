@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 
 const scopeWorkflow = fs.readFileSync('.github/workflows/kidults-scope-aware-authoritative-status-v1.yml', 'utf8');
 const landingWorkflow = fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml', 'utf8');
+const dispatcherWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml', 'utf8');
 const scopeRunner = fs.readFileSync('scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs', 'utf8');
 const atomicPreflight = fs.readFileSync('scripts/kidults/kpmo/run-atomic-event-emitting-transport-preflight-v1.mjs', 'utf8');
 const lifecycleRunner = fs.readFileSync('scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs', 'utf8');
@@ -22,18 +23,15 @@ test('Draft technical validation has a separate non-authority status', () => {
 
 test('eligible Draft is validated then autonomously promoted without landing authority', () => {
   assert.match(landingWorkflow, /DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE/);
-  assert.match(landingWorkflow, /await status\('pending','Draft passed exact-head preflight; trusted dispatcher must perform lifecycle-only Ready transition'\)/);
+  assert.match(landingWorkflow, /await status\('pending','Draft is non-promotable; automated Ready transition pending'\)/);
   assert.match(landingWorkflow, /landing_authorization_created:false/);
-  assert.match(landingWorkflow, /state:'DRAFT_READY_PENDING_DISPATCHER'/);
-  assert.match(landingWorkflow, /ready_transition_requested:true/);
-  assert.doesNotMatch(landingWorkflow, /id-token: write|markPullRequestReadyForReview|validateDraftReadyBrokerResponse/);
-  const dispatcherWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml', 'utf8');
+  assert.doesNotMatch(landingWorkflow, /id-token: write|markPullRequestReadyForReview|DRAFT_READY_TOKEN_UNAVAILABLE/);
+  assert.match(landingWorkflow, /exact_base_sha:base/);
   assert.match(dispatcherWorkflow, /markPullRequestReadyForReview/);
-  assert.match(dispatcherWorkflow, /assertDraftReadyPostMutation/);
   assert.match(dispatcherWorkflow, /validateDraftReadyBrokerResponse/);
   assert.match(dispatcherWorkflow, /permission_profile:"DRAFT_READY_TRANSITION"/);
-  assert.match(dispatcherWorkflow, /state:'LIFECYCLE_READY_AUTOMATED'/);
-  assert.match(dispatcherWorkflow, /draft_ready_transition/);
+  assert.match(dispatcherWorkflow, /assertDraftReadyPostMutation/);
+  assert.match(dispatcherWorkflow, /steps\.transition_draft\.outputs\.performed != 'true'/);
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
   assert.doesNotMatch(landingWorkflow, /if \(pr\.draft\) fail\('governed PR is Draft'\)/);
 });

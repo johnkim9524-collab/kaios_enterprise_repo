@@ -251,7 +251,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {GateFailure,assertStableFinalReread,assertTerminalNonAuthorizingPullRequest,assertDraftReadyTransitionCandidate} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          import {GateFailure,assertStableFinalReread,assertTerminalNonAuthorizingPullRequest} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
           const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA,base=process.env.EXPECTED_BASE_SHA;
           const receiptPath=process.env.READINESS_RECEIPT_PATH;fs.mkdirSync(new URL('.',`file://${receiptPath}`).pathname,{recursive:true});
           const writeReceipt=value=>fs.writeFileSync(receiptPath,JSON.stringify(value,null,2)+'\n');
@@ -271,18 +271,17 @@ jobs:
               process.exit(0);
             }
             if(final.draft===true){
-              const before=assertDraftReadyTransitionCandidate(final,{repository:repo,expectedPullRequestNumber:number,expectedHeadSha:head,expectedBaseSha:base,expectedTriggerDraft:process.env.TRIGGER_PULL_REQUEST_DRAFT==='true'});
               if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
               assertHoldBoundary();
-              await status('pending','Draft passed exact-head preflight; trusted dispatcher must perform lifecycle-only Ready transition');
+              await status('pending','Draft is non-promotable; automated Ready transition pending');
               await status('success','Draft development controls verified; landing remains blocked',scopePolicy.draft_development_status_context);
-              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'DRAFT_READY_PENDING_DISPATCHER',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,exact_base_sha:base,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_transition_requested:true,ready_state_is_lifecycle_only:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
               process.exit(0);
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
             if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
             await status('pending','Ready lifecycle verified; operation-specific landing authority required');
-            const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ordinary_readiness_published_success:false,atomic_landing_required:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+            const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ordinary_readiness_published_success:false,atomic_landing_required:true,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
           } catch(error) {
             failure=error;
             writeReceipt({id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'VERIFIED_FAIL',failure_code:String(error.code||error.message||'GOVERNED_READINESS_FAILED'),repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),atomic_landing_required:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'});
