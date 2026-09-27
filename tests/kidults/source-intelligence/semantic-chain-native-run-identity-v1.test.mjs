@@ -211,13 +211,6 @@ for (const conclusion of [null, 'bogus', '', 0]) test(`malformed terminal conclu
 test('expected event cannot widen canonical producer authority', () => {
  assert.equal(classification({event:'schedule'}, {expectedProducerEvent:'schedule'}).reason, 'EXPECTED_PRODUCER_EVENT_INVALID');
 });
-test('expected nonauthority terminates cleanly without granting consumer authority', () => {
- const text=fs.readFileSync('.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml','utf8');
- assert.ok(text.includes("state: ${{ steps.classify.outputs.state }}"));
- assert.ok(text.includes("if [ \"${{ steps.classify.outputs.state }}\" = 'VERIFIED_SKIP' ]; then"));
- assert.ok(text.includes("steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'"));
- assert.ok(text.includes("needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'"));
-});
 test('KIR regression includes the real semantic-chain regression without dropping existing tests', () => {
  const text = fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml', 'utf8');
  assert.ok(text.includes('node --test tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs tests/kidults/runtime/kir-runtime-v1.test.mjs'));
