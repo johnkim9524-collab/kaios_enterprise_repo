@@ -11,7 +11,7 @@ const TERMINAL_BLOCK = `      - name: Preserve invalid trigger RED while termina
             exit 0
           fi
           exit 1`;
-const STATE_OUTPUT = 'state: \${{ steps.classify.outputs.state }}';
+const STATE_OUTPUT = 'state: ${{ steps.classify.outputs.state }}';
 const PRODUCER_GUARD = `if: >-
       always() && (github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
