@@ -17,7 +17,7 @@ const ARL_ROOT={id:'ARL',workflow:'kidults-asi-autonomous-resolution-layer-v1.ym
 const ROOT_BY_PRODUCER=new Map(ROOTS.map((root)=>[root.id,root]));
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
 const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
-const TRANSIENT_FAILURES=new Set(['CANONICAL_CONVERGENCE_TIMEOUT']);
+const TRANSIENT_FAILURES=new Set(['CANONICAL_CONVERGENCE_TIMEOUT','SENTINEL_GENERATION_CHANGED_DURING_READ']);
 const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
 const fail=(code)=>{throw new Error(code);};
 
