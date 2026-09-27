@@ -21,6 +21,8 @@ assert.equal(result.producer_event,'schedule');
 assert.equal(result.expected_producer_event,'schedule');
 result=classify({event:'workflow_dispatch'});
 assert.equal(result.reason,'PRODUCER_EVENT_MISMATCH');
+result=classify({event:'workflow_dispatch'}, {expectedProducerEvent:'workflow_dispatch'});
+assert.equal(result.reason,'EXPECTED_PRODUCER_EVENT_INVALID');
 result=classify({head_sha:priorMainSha});
 assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','STALE_PRIOR_MAIN_TRIGGER',false]);
 for(const conclusion of ['failure','cancelled','timed_out']){
